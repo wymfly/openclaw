@@ -160,7 +160,8 @@ function shouldSuppressConsoleMessage(message: string): boolean {
     return true;
   }
   if (
-    message.startsWith("[EventQueue] Slow listener detected") &&
+    (message.startsWith("[EventQueue] Slow listener detected") ||
+      message.startsWith("[EventQueue] Listener")) &&
     SUPPRESSED_DISCORD_EVENTQUEUE_LISTENERS.some((listener) => message.includes(listener))
   ) {
     return true;
