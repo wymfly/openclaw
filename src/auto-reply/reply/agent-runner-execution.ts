@@ -6,6 +6,7 @@ import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import {
   isCompactionFailureError,
+  isConnectionErrorMessage,
   isContextOverflowError,
   isLikelyContextOverflowError,
   isTransientHttpError,
@@ -98,6 +99,7 @@ export async function runAgentTurnWithFallback(params: {
   resolvedVerboseLevel: VerboseLevel;
 }): Promise<AgentRunLoopResult> {
   const TRANSIENT_HTTP_RETRY_DELAY_MS = 2_500;
+  const MAX_TRANSIENT_RETRIES = 3;
   let didLogHeartbeatStrip = false;
   let autoCompactionCompleted = false;
   // Track payloads sent directly (not via pipeline) during tool flush to avoid duplicates.
@@ -124,7 +126,7 @@ export async function runAgentTurnWithFallback(params: {
   let fallbackModel = params.followupRun.run.model;
   let fallbackAttempts: RuntimeFallbackAttempt[] = [];
   let didResetAfterCompactionFailure = false;
-  let didRetryTransientHttpError = false;
+  let transientRetryCount = 0;
 
   while (true) {
     try {
@@ -477,6 +479,7 @@ export async function runAgentTurnWithFallback(params: {
       const isSessionCorruption = /function call turn comes immediately after/i.test(message);
       const isRoleOrderingError = /incorrect role information|roles must alternate/i.test(message);
       const isTransientHttp = isTransientHttpError(message);
+      const isConnectionError = isConnectionErrorMessage(message);
 
       if (
         isCompactionFailure &&
@@ -548,25 +551,28 @@ export async function runAgentTurnWithFallback(params: {
         };
       }
 
-      if (isTransientHttp && !didRetryTransientHttpError) {
-        didRetryTransientHttpError = true;
+      if ((isTransientHttp || isConnectionError) && transientRetryCount < MAX_TRANSIENT_RETRIES) {
+        transientRetryCount++;
         // Retry the full runWithModelFallback() cycle — transient errors
-        // (502/521/etc.) typically affect the whole provider, so falling
-        // back to an alternate model first would not help. Instead we wait
-        // and retry the complete primary→fallback chain.
+        // (502/521/etc.) and connection failures typically affect the whole
+        // provider, so falling back to an alternate model first would not
+        // help. Instead we wait and retry the complete primary->fallback chain.
+        // Exponential backoff: 2.5s, 5s, 10s
+        const delay = TRANSIENT_HTTP_RETRY_DELAY_MS * Math.pow(2, transientRetryCount - 1);
         defaultRuntime.error(
-          `Transient HTTP provider error before reply (${message}). Retrying once in ${TRANSIENT_HTTP_RETRY_DELAY_MS}ms.`,
+          `Transient provider error before reply (${message}). Retry ${transientRetryCount}/${MAX_TRANSIENT_RETRIES} in ${delay}ms.`,
         );
         await new Promise<void>((resolve) => {
-          setTimeout(resolve, TRANSIENT_HTTP_RETRY_DELAY_MS);
+          setTimeout(resolve, delay);
         });
         continue;
       }
 
       defaultRuntime.error(`Embedded agent failed before reply: ${message}`);
-      const safeMessage = isTransientHttp
-        ? sanitizeUserFacingText(message, { errorContext: true })
-        : message;
+      const safeMessage =
+        isTransientHttp || isConnectionError
+          ? sanitizeUserFacingText(message, { errorContext: true })
+          : message;
       const trimmedMessage = safeMessage.replace(/\.\s*$/, "");
       const fallbackText = isContextOverflow
         ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."

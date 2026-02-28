@@ -534,6 +534,10 @@ export function formatAssistantErrorText(
     return "LLM request timed out.";
   }
 
+  if (isConnectionErrorMessage(raw)) {
+    return "Network connection to AI service failed. Please try again.";
+  }
+
   if (isBillingErrorMessage(raw)) {
     return formatBillingErrorMessage(opts?.provider, opts?.model ?? msg.model);
   }
@@ -593,7 +597,14 @@ export function sanitizeUserFacingText(text: string, opts?: { errorContext?: boo
       if (isTimeoutErrorMessage(trimmed)) {
         return "LLM request timed out.";
       }
+      if (isConnectionErrorMessage(trimmed)) {
+        return "Network connection to AI service failed. Please try again.";
+      }
       return formatRawAssistantErrorForUi(trimmed);
+    }
+
+    if (isConnectionErrorMessage(trimmed)) {
+      return "Network connection to AI service failed. Please try again.";
     }
   }
 
@@ -640,6 +651,17 @@ const ERROR_PATTERNS = {
     /\bstop reason:\s*abort\b/i,
     /\breason:\s*abort\b/i,
     /\bunhandled stop reason:\s*abort\b/i,
+  ],
+  connection: [
+    /^connection error\.?$/i,
+    /^request timed out\.?$/i,
+    /^request was aborted\.?$/i,
+    "ECONNRESET",
+    "ECONNREFUSED",
+    "ENOTFOUND",
+    "ENETUNREACH",
+    "socket hang up",
+    "fetch failed",
   ],
   billing: [
     /["']?(?:status|code)["']?\s*[:=]\s*402\b|\bhttp\s*402\b|\berror(?:\s+code)?\s*[:=]?\s*402\b|\b(?:got|returned|received)\s+(?:a\s+)?402\b|^\s*402\s+payment/i,
@@ -773,6 +795,11 @@ export function isAuthErrorMessage(raw: string): boolean {
 
 export function isOverloadedErrorMessage(raw: string): boolean {
   return matchesErrorPatterns(raw, ERROR_PATTERNS.overloaded);
+}
+
+/** Detect low-level connection failures (ECONNRESET, socket hang up, fetch failed, etc.). */
+export function isConnectionErrorMessage(raw: string): boolean {
+  return matchesErrorPatterns(raw, ERROR_PATTERNS.connection);
 }
 
 function isJsonApiInternalServerError(raw: string): boolean {
@@ -909,6 +936,9 @@ export function classifyFailoverReason(raw: string): FailoverReason | null {
     return "billing";
   }
   if (isTimeoutErrorMessage(raw)) {
+    return "timeout";
+  }
+  if (isConnectionErrorMessage(raw)) {
     return "timeout";
   }
   if (isAuthPermanentErrorMessage(raw)) {
