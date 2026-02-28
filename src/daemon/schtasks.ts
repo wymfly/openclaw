@@ -60,6 +60,16 @@ function resolveTaskUser(env: GatewayServiceEnv): string | null {
   return username;
 }
 
+/** Lines belonging to the restart-loop scaffolding that the parser should skip. */
+function isRestartLoopLine(lower: string): boolean {
+  return (
+    lower.startsWith(":") ||
+    lower.startsWith("if ") ||
+    lower.startsWith("goto ") ||
+    lower.startsWith("timeout ")
+  );
+}
+
 export async function readScheduledTaskCommand(
   env: GatewayServiceEnv,
 ): Promise<GatewayServiceCommandConfig | null> {
@@ -90,6 +100,10 @@ export async function readScheduledTaskCommand(
       }
       if (lower.startsWith("cd /d ")) {
         workingDirectory = line.slice("cd /d ".length).trim().replace(/^"|"$/g, "");
+        continue;
+      }
+      // Skip restart-loop control flow lines (labels, if, goto, timeout).
+      if (isRestartLoopLine(lower)) {
         continue;
       }
       commandLine = line;
@@ -132,6 +146,9 @@ export function parseSchtasksQuery(output: string): ScheduledTaskInfo {
   return info;
 }
 
+/** Delay in seconds before restarting the gateway after a crash (non-zero exit). */
+const RESTART_DELAY_SECONDS = 5;
+
 function buildTaskScript({
   description,
   programArguments,
@@ -156,7 +173,15 @@ function buildTaskScript({
     }
   }
   const command = programArguments.map(quoteCmdScriptArg).join(" ");
+  // Wrap the command in a restart loop so the gateway auto-recovers from crashes.
+  // Exit code 0 = intentional stop (SIGTERM/SIGINT) → exit cleanly.
+  // Exit code non-zero = crash → wait and restart (mirrors systemd Restart=always).
+  lines.push(":_openclaw_restart");
   lines.push(command);
+  lines.push("if %errorlevel% equ 0 goto _openclaw_exit");
+  lines.push(`timeout /t ${RESTART_DELAY_SECONDS} /nobreak >nul 2>nul`);
+  lines.push("goto _openclaw_restart");
+  lines.push(":_openclaw_exit");
   return `${lines.join("\r\n")}\r\n`;
 }
 
@@ -282,6 +307,16 @@ export async function isScheduledTaskInstalled(args: GatewayServiceEnvArgs): Pro
   const taskName = resolveTaskName(args.env ?? (process.env as GatewayServiceEnv));
   const res = await execSchtasks(["/Query", "/TN", taskName]);
   return res.code === 0;
+}
+
+export async function hasScheduledTaskRestartLoop(env: GatewayServiceEnv): Promise<boolean> {
+  const scriptPath = resolveTaskScriptPath(env);
+  try {
+    const content = await fs.readFile(scriptPath, "utf8");
+    return content.includes(":_openclaw_restart");
+  } catch {
+    return false;
+  }
 }
 
 export async function readScheduledTaskRuntime(
