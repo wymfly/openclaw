@@ -7,6 +7,7 @@ import {
   isVersionManagedNodePath,
   resolveSystemNodePath,
 } from "./runtime-paths.js";
+import { hasScheduledTaskRestartLoop } from "./schtasks.js";
 import { getMinimalServicePathPartsFromEnv } from "./service-env.js";
 import { resolveSystemdUserUnitPath } from "./systemd.js";
 
@@ -45,6 +46,7 @@ export const SERVICE_AUDIT_CODES = {
   systemdAfterNetworkOnline: "systemd-after-network-online",
   systemdRestartSec: "systemd-restart-sec",
   systemdWantsNetworkOnline: "systemd-wants-network-online",
+  schtasksRestartLoop: "schtasks-restart-loop",
 } as const;
 
 export function needsNodeRuntimeMigration(issues: ServiceConfigIssue[]): boolean {
@@ -185,6 +187,22 @@ async function auditLaunchdPlist(
       code: SERVICE_AUDIT_CODES.launchdKeepAlive,
       message: "LaunchAgent is missing KeepAlive=true",
       detail: plistPath,
+      level: "recommended",
+    });
+  }
+}
+
+async function auditSchtasksScript(
+  env: Record<string, string | undefined>,
+  issues: ServiceConfigIssue[],
+) {
+  const hasLoop = await hasScheduledTaskRestartLoop(env);
+  if (!hasLoop) {
+    issues.push({
+      code: SERVICE_AUDIT_CODES.schtasksRestartLoop,
+      message:
+        "Task script is missing the crash restart loop; the gateway will not auto-recover if it crashes.",
+      detail: "Reinstall with `openclaw daemon install --force` to add the restart loop.",
       level: "recommended",
     });
   }
@@ -399,6 +417,8 @@ export async function auditGatewayServiceConfig(params: {
     await auditSystemdUnit(params.env, issues);
   } else if (platform === "darwin") {
     await auditLaunchdPlist(params.env, issues);
+  } else if (platform === "win32") {
+    await auditSchtasksScript(params.env, issues);
   }
 
   return { ok: issues.length === 0, issues };
