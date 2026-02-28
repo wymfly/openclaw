@@ -2,7 +2,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseSchtasksQuery, readScheduledTaskCommand, resolveTaskScriptPath } from "./schtasks.js";
+import {
+  buildTaskScript,
+  hasScheduledTaskRestartLoop,
+  parseSchtasksQuery,
+  readScheduledTaskCommand,
+  resolveTaskScriptPath,
+} from "./schtasks.js";
 
 describe("schtasks runtime parsing", () => {
   it.each(["Ready", "Running"])("parses %s status", (status) => {
@@ -225,5 +231,94 @@ describe("readScheduledTaskCommand", () => {
         });
       },
     );
+  });
+
+  it("parses command from script containing restart loop scaffolding", async () => {
+    await withScheduledTaskScript(
+      {
+        scriptLines: [
+          "@echo off",
+          "rem OpenClaw Gateway",
+          "cd /d C:\\Projects\\openclaw",
+          "set NODE_ENV=production",
+          ":_openclaw_restart",
+          "node gateway.js --verbose",
+          "if %errorlevel% equ 0 goto _openclaw_exit",
+          "timeout /t 5 /nobreak >nul 2>nul",
+          "goto _openclaw_restart",
+          ":_openclaw_exit",
+        ],
+      },
+      async (env) => {
+        const result = await readScheduledTaskCommand(env);
+        expect(result).toEqual({
+          programArguments: ["node", "gateway.js", "--verbose"],
+          workingDirectory: "C:\\Projects\\openclaw",
+          environment: { NODE_ENV: "production" },
+        });
+      },
+    );
+  });
+});
+
+describe("buildTaskScript restart loop", () => {
+  it("generates script with restart loop scaffolding", () => {
+    const script = buildTaskScript({
+      programArguments: ["node", "gateway.js"],
+    });
+    expect(script).toContain(":_openclaw_restart");
+    expect(script).toContain("if %errorlevel%");
+    expect(script).toContain("timeout /t ");
+    expect(script).toContain("goto _openclaw_restart");
+    expect(script).toContain(":_openclaw_exit");
+  });
+});
+
+describe("hasScheduledTaskRestartLoop", () => {
+  async function withTempScript(
+    lines: string[] | null,
+    run: (env: Record<string, string | undefined>) => Promise<void>,
+  ) {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-schtasks-loop-"));
+    try {
+      const env = { USERPROFILE: tmpDir, OPENCLAW_PROFILE: "default" };
+      if (lines) {
+        const scriptPath = resolveTaskScriptPath(env);
+        await fs.mkdir(path.dirname(scriptPath), { recursive: true });
+        await fs.writeFile(scriptPath, lines.join("\r\n"), "utf8");
+      }
+      await run(env);
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  it("returns true when script contains restart loop", async () => {
+    await withTempScript(
+      [
+        "@echo off",
+        ":_openclaw_restart",
+        "node gateway.js",
+        "if %errorlevel% equ 0 goto _openclaw_exit",
+        "timeout /t 5 /nobreak >nul 2>nul",
+        "goto _openclaw_restart",
+        ":_openclaw_exit",
+      ],
+      async (env) => {
+        expect(await hasScheduledTaskRestartLoop(env)).toBe(true);
+      },
+    );
+  });
+
+  it("returns false when script has no restart loop", async () => {
+    await withTempScript(["@echo off", "node gateway.js"], async (env) => {
+      expect(await hasScheduledTaskRestartLoop(env)).toBe(false);
+    });
+  });
+
+  it("returns false when script file does not exist", async () => {
+    await withTempScript(null, async (env) => {
+      expect(await hasScheduledTaskRestartLoop(env)).toBe(false);
+    });
   });
 });

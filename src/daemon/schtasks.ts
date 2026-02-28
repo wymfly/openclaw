@@ -63,10 +63,11 @@ function resolveTaskUser(env: GatewayServiceEnv): string | null {
 /** Lines belonging to the restart-loop scaffolding that the parser should skip. */
 function isRestartLoopLine(lower: string): boolean {
   return (
-    lower.startsWith(":") ||
-    lower.startsWith("if ") ||
-    lower.startsWith("goto ") ||
-    lower.startsWith("timeout ")
+    lower === ":_openclaw_restart" ||
+    lower === ":_openclaw_exit" ||
+    lower.startsWith("if %errorlevel%") ||
+    lower.startsWith("goto _openclaw_") ||
+    lower.startsWith("timeout /t ")
   );
 }
 
@@ -149,7 +150,7 @@ export function parseSchtasksQuery(output: string): ScheduledTaskInfo {
 /** Delay in seconds before restarting the gateway after a crash (non-zero exit). */
 const RESTART_DELAY_SECONDS = 5;
 
-function buildTaskScript({
+export function buildTaskScript({
   description,
   programArguments,
   workingDirectory,
