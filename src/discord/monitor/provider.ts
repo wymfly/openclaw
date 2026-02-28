@@ -523,6 +523,12 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
         publicKey: "a",
         token,
         autoDeploy: false,
+        eventQueue: {
+          // AI model calls regularly exceed the default 30s timeout.
+          // The EventQueue timeout only logs — it does not cancel the handler —
+          // so raising it silences harmless noise without changing behaviour.
+          listenerTimeout: 300_000,
+        },
       },
       {
         commands,

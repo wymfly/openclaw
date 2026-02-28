@@ -141,7 +141,8 @@ function shouldSuppressConsoleMessage(message: string): boolean {
     return true;
   }
   if (
-    message.startsWith("[EventQueue] Slow listener detected") &&
+    (message.startsWith("[EventQueue] Slow listener detected") ||
+      message.startsWith("[EventQueue] Listener DiscordMessageListener timed out")) &&
     message.includes("DiscordMessageListener")
   ) {
     return true;
