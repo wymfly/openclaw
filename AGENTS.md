@@ -254,3 +254,50 @@
   - `node --import tsx scripts/release-check.ts`
   - `pnpm release:check`
   - `pnpm test:install:smoke` or `OPENCLAW_INSTALL_SMOKE_SKIP_NONROOT=1 pnpm test:install:smoke` for non-root smoke path.
+
+## Enhanced Fork — 上游同步流程
+
+本项目是 OpenClaw 的增强 fork（`wymfly/openclaw`）。`enhanced` 分支包含所有增量改动，`main` 分支跟踪上游。
+
+### 同步步骤
+
+```bash
+# 1. 获取上游最新代码
+git fetch upstream main
+
+# 2. 切换到增强分支
+git checkout enhanced
+
+# 3. 将我们的 commit 叠到最新上游之上
+git rebase upstream/main
+
+# 4. 解决冲突（如果有），逐 commit 处理
+# git rebase --continue
+
+# 5. 验证
+pnpm install
+pnpm check
+pnpm test
+
+# 6. 推送
+git push --force-with-lease origin enhanced
+```
+
+### Commit 规范
+
+- 前缀：`[enhanced]` 标识增量 commit
+- 示例：`[enhanced] feat: add SSRF dual-phase protection`
+- 对上游文件的修改限制在最小插入点（一两行 import + 调用）
+- 新功能优先以新文件形式添加
+
+### 增强模块
+
+本 fork 移植自 MindGate 的优质增量，包含：
+
+1. **安全加固** — SSRF 双阶段防护、Fetch Guard、外部内容 Unicode 防护、Windows ACL、环境变量安全
+2. **渠道稳定性** — 统一重试框架（指数退避）、Discord HELLO 超时、Telegram IPv4-first DNS、Signal JSON 解析防护
+3. **Windows 适配** — 全平台条件分支、icacls 解析、WSL2 检测
+4. **测试增强** — 环境隔离、安全扫描测试（temp-path-guard、weak-random）、覆盖率修正
+
+设计文档：`docs/plans/2026-02-28-openclaw-migration-design.md`
+实施计划：`docs/plans/2026-02-28-openclaw-migration-plan.md`
