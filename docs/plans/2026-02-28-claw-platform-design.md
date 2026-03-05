@@ -1,7 +1,7 @@
 # Claw Platform Design — 商业交付平台
 
 > Date: 2026-02-28
-> Status: Draft
+> Status: Archived
 > Base: wymfly/openclaw `enhanced` branch (OpenClaw fork)
 
 ## 决策背景
