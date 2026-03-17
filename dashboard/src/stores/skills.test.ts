@@ -1,0 +1,164 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { useSkillsStore, type SkillEntry } from "./skills";
+
+beforeEach(() => {
+  useSkillsStore.setState({
+    skills: [],
+    selectedSkillKey: null,
+    statusFilter: "all",
+    loading: false,
+    error: null,
+  });
+  vi.restoreAllMocks();
+});
+
+const SKILL_FIXTURE: SkillEntry = {
+  key: "web-search",
+  name: "Web Search",
+  status: "ready",
+  source: "bundled",
+  enabled: true,
+};
+
+const SKILL_MANAGED: SkillEntry = {
+  key: "custom-skill",
+  name: "Custom Skill",
+  status: "needs-setup",
+  source: "managed",
+  enabled: false,
+  missingRequirements: ["API_KEY"],
+};
+
+describe("skills store", () => {
+  it("has correct initial state", () => {
+    const state = useSkillsStore.getState();
+    expect(state.skills).toEqual([]);
+    expect(state.selectedSkillKey).toBeNull();
+    expect(state.statusFilter).toBe("all");
+    expect(state.loading).toBe(false);
+    expect(state.error).toBeNull();
+  });
+
+  it("selectSkill sets selectedSkillKey", () => {
+    useSkillsStore.getState().selectSkill("web-search");
+    expect(useSkillsStore.getState().selectedSkillKey).toBe("web-search");
+  });
+
+  it("setStatusFilter changes filter", () => {
+    useSkillsStore.getState().setStatusFilter("ready");
+    expect(useSkillsStore.getState().statusFilter).toBe("ready");
+  });
+
+  describe("fetchSkills", () => {
+    it("sets skills on success", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ skills: [SKILL_FIXTURE, SKILL_MANAGED] }), { status: 200 }),
+      );
+
+      await useSkillsStore.getState().fetchSkills();
+
+      expect(useSkillsStore.getState().skills).toHaveLength(2);
+      expect(useSkillsStore.getState().loading).toBe(false);
+    });
+
+    it("passes agentId as query param", async () => {
+      const spy = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue(new Response(JSON.stringify({ skills: [] }), { status: 200 }));
+
+      await useSkillsStore.getState().fetchSkills("agent-1");
+
+      expect(spy).toHaveBeenCalledWith("/api/skills?agentId=agent-1");
+    });
+
+    it("sets error on failure", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ error: "Gateway down" }), { status: 502 }),
+      );
+
+      await useSkillsStore.getState().fetchSkills();
+
+      expect(useSkillsStore.getState().error).toBe("Gateway down");
+      expect(useSkillsStore.getState().loading).toBe(false);
+    });
+
+    it("handles fetch exception", async () => {
+      vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
+
+      await useSkillsStore.getState().fetchSkills();
+
+      expect(useSkillsStore.getState().error).toBe("Network error");
+    });
+  });
+
+  describe("updateSkill", () => {
+    it("updates skill in state on success", async () => {
+      useSkillsStore.setState({ skills: [SKILL_FIXTURE] });
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ ok: true, skillKey: "web-search", config: {} }), {
+          status: 200,
+        }),
+      );
+
+      const ok = await useSkillsStore.getState().updateSkill("web-search", { enabled: false });
+
+      expect(ok).toBe(true);
+      expect(useSkillsStore.getState().skills[0].enabled).toBe(false);
+    });
+
+    it("returns false on non-ok response", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
+      );
+
+      const ok = await useSkillsStore.getState().updateSkill("nope", { enabled: true });
+      expect(ok).toBe(false);
+    });
+
+    it("encodes skillKey in URL", async () => {
+      const spy = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+
+      await useSkillsStore.getState().updateSkill("my/skill", { enabled: true });
+
+      expect(spy).toHaveBeenCalledWith(
+        "/api/skills/my%2Fskill",
+        expect.objectContaining({ method: "PATCH" }),
+      );
+    });
+  });
+
+  describe("installSkill", () => {
+    it("returns true on success", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      );
+
+      const ok = await useSkillsStore.getState().installSkill("new-skill");
+
+      expect(ok).toBe(true);
+      // Verify installId was included
+      const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      const body = JSON.parse(call[1].body as string) as { name: string; installId: string };
+      expect(body.name).toBe("new-skill");
+      expect(body.installId).toBeTruthy();
+    });
+
+    it("returns false on failure", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ error: "fail" }), { status: 500 }),
+      );
+
+      const ok = await useSkillsStore.getState().installSkill("bad-skill");
+      expect(ok).toBe(false);
+    });
+
+    it("returns false on network error", async () => {
+      vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("timeout"));
+
+      const ok = await useSkillsStore.getState().installSkill("x");
+      expect(ok).toBe(false);
+    });
+  });
+});
