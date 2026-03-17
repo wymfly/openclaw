@@ -194,9 +194,19 @@ export const useMemoryStore = create<MemoryState>((set, _get) => ({
           {
             agentId: typeof data.agentId === "string" ? data.agentId : "",
             provider: typeof data.provider === "string" ? data.provider : "",
+            // Gateway returns embedding: { ok: boolean, error?: string }
             embeddingStatus:
-              data.embedding === "ok" || data.embeddingStatus === "ok" ? "ok" : "unknown",
-            error: typeof data.error === "string" ? data.error : undefined,
+              typeof data.embedding === "object" &&
+              data.embedding !== null &&
+              (data.embedding as { ok?: boolean }).ok
+                ? "ok"
+                : data.embeddingStatus === "ok"
+                  ? "ok"
+                  : "error",
+            error:
+              (typeof data.embedding === "object" && data.embedding !== null
+                ? (data.embedding as { error?: string }).error
+                : undefined) ?? (typeof data.error === "string" ? data.error : undefined),
           },
         ];
       } else {

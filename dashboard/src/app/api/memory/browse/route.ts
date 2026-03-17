@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, lstat, realpath } from "node:fs/promises";
 /**
  * GET /api/memory/browse — Browse memory files for an agent.
  *
@@ -9,8 +9,9 @@ import { readdir, readFile, stat } from "node:fs/promises";
  *
  * Uses `config.get` via Gateway RPC to resolve the memory path dynamically.
  * Path traversal protection ensures the resolved path stays within the memory root.
+ * Uses realpath() to resolve symlinks BEFORE checking path boundaries.
  */
-import { resolve, relative } from "node:path";
+import { resolve, relative, sep } from "node:path";
 import { getRuntime } from "@server/runtime";
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
@@ -54,21 +55,34 @@ async function resolveMemoryPath(agentId: string): Promise<string | null> {
 
 /**
  * Validate that a resolved path does not escape the allowed base directory.
+ * Uses realpath() to resolve symlinks BEFORE checking boundaries — prevents
+ * symlink-based traversal attacks.
  * Returns the safe absolute path or null if traversal is detected.
  */
-function safePath(base: string, subPath: string): string | null {
+async function safePath(base: string, subPath: string): Promise<string | null> {
   const resolvedBase = resolve(base);
-  const resolved = resolve(base, subPath);
-  const rel = relative(resolvedBase, resolved);
+  const candidate = resolve(base, subPath);
+  const rel = relative(resolvedBase, candidate);
   // Traversal check: relative path must not start with ".." or be absolute.
   if (rel.startsWith("..") || resolve(rel) === rel) {
     return null;
   }
-  // Belt-and-suspenders: ensure resolved path is within the base directory.
-  if (!resolved.startsWith(resolvedBase + "/") && resolved !== resolvedBase) {
+  // Use platform-aware separator for startsWith check (fixes Windows backslash).
+  if (!candidate.startsWith(resolvedBase + sep) && candidate !== resolvedBase) {
     return null;
   }
-  return resolved;
+  // Resolve symlinks to get the REAL path, then re-check boundary.
+  try {
+    const realBase = await realpath(resolvedBase);
+    const realTarget = await realpath(candidate);
+    if (!realTarget.startsWith(realBase + sep) && realTarget !== realBase) {
+      return null;
+    }
+    return realTarget;
+  } catch {
+    // If realpath fails (e.g. ENOENT), return the candidate — stat() will catch it.
+    return candidate;
+  }
 }
 
 /** Validate agentId: must be alphanumeric, hyphens, or underscores only. */
@@ -118,13 +132,13 @@ export const GET = withAuth(async (request: NextRequest) => {
     return NextResponse.json({ error: "Could not resolve memory path" }, { status: 503 });
   }
 
-  const targetPath = subPath ? safePath(basePath, subPath) : basePath;
+  const targetPath = subPath ? await safePath(basePath, subPath) : basePath;
   if (!targetPath) {
     return NextResponse.json({ error: "Invalid path — traversal detected" }, { status: 403 });
   }
 
   try {
-    const info = await stat(targetPath);
+    const info = await lstat(targetPath);
 
     // Read file content.
     if (readMode || info.isFile()) {
@@ -149,7 +163,7 @@ export const GET = withAuth(async (request: NextRequest) => {
         let size: number | undefined;
         if (entry.isFile()) {
           try {
-            const s = await stat(resolve(targetPath, entry.name));
+            const s = await lstat(resolve(targetPath, entry.name));
             size = s.size;
           } catch {
             // Skip stat errors.

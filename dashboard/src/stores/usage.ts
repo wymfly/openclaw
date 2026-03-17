@@ -95,36 +95,25 @@ export const useUsageStore = create<UsageState>((set, get) => ({
         return;
       }
 
-      const statusData = (await statusRes.json()) as Record<string, unknown>;
+      // usage.status response consumed to confirm connectivity; token data is in cost response.
+      await statusRes.json();
       const costData = (await costRes.json()) as Record<string, unknown>;
 
-      // usage.status returns `{ updatedAt, providers: [...] }` — aggregate across providers.
-      let tokensIn = 0;
-      let tokensOut = 0;
-      let totalTokens = 0;
-      const providers = Array.isArray(statusData.providers) ? statusData.providers : [];
-      for (const p of providers as Record<string, unknown>[]) {
-        tokensIn += Number(p.inputTokens ?? p.tokensIn ?? 0);
-        tokensOut += Number(p.outputTokens ?? p.tokensOut ?? 0);
-        totalTokens += Number(p.totalTokens ?? 0);
-      }
-      // Fallback: if top-level fields exist (legacy gateway), use them.
-      if (providers.length === 0) {
-        tokensIn = Number(statusData.tokensIn ?? statusData.inputTokens ?? 0);
-        tokensOut = Number(statusData.tokensOut ?? statusData.outputTokens ?? 0);
-        totalTokens = Number(statusData.totalTokens ?? 0);
-      }
-      if (totalTokens === 0 && (tokensIn > 0 || tokensOut > 0)) {
-        totalTokens = tokensIn + tokensOut;
-      }
+      // usage.status returns `{ updatedAt, providers: [{ provider, displayName, windows }] }` — rate limit info only.
+      // usage.cost returns `{ updatedAt, days, daily, totals: { input, output, totalTokens, totalCost, ... } }` — the real token/cost data.
+      const totals = (costData.totals ?? {}) as Record<string, unknown>;
+      const tokensIn = Number(totals.input ?? 0);
+      const tokensOut = Number(totals.output ?? 0);
+      const totalTokens = Number(totals.totalTokens ?? tokensIn + tokensOut);
+      const totalCost = Number(totals.totalCost ?? 0);
 
-      // usage.cost returns `{ totalCost }` or `{ cost }`.
-      const totalCost = Number(costData.totalCost ?? costData.cost ?? 0);
+      // Note: usage.status providers contain rate-limit windows, not token breakdowns.
+      // Model/agent breakdown may come from cost data in future Gateway versions.
 
       set({
         summary: { tokensIn, tokensOut, totalTokens, totalCost },
-        modelBreakdown: (statusData.modelBreakdown as ModelBreakdown[]) ?? [],
-        agentBreakdown: (statusData.agentBreakdown as AgentBreakdown[]) ?? [],
+        modelBreakdown: (costData.modelBreakdown as ModelBreakdown[]) ?? [],
+        agentBreakdown: (costData.agentBreakdown as AgentBreakdown[]) ?? [],
         loading: false,
       });
     } catch (err) {
