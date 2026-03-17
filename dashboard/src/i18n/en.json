@@ -37,7 +37,9 @@
     "delete": "Delete",
     "create": "Create",
     "edit": "Edit",
-    "search": "Search"
+    "search": "Search",
+    "add": "Add",
+    "noConfigurableFields": "No configurable fields in this section."
   },
   "chat": {
     "placeholder": "Type a message...",
@@ -455,6 +457,14 @@
     "extractedAt": "Extracted at",
     "delete": "Delete document",
     "confirmDelete": "Delete this document?"
+  },
+  "shortcuts": {
+    "panelNav": "Switch panel (Alt+1~9)",
+    "search": "Focus search (Ctrl/Cmd+K)",
+    "send": "Send message (Ctrl/Cmd+Enter)",
+    "escape": "Close/Cancel (Esc)",
+    "openSettings": "Open Settings (Ctrl/Cmd+,)",
+    "toggleNav": "Toggle navigation (Ctrl/Cmd+/)"
   },
   "settings": {
     "title": "Settings",

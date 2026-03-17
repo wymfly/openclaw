@@ -63,6 +63,7 @@ export function SearchPanel() {
       {/* Search input */}
       <div className="flex items-center gap-2">
         <input
+          data-panel-search
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
