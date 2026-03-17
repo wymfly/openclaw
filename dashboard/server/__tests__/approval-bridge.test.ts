@@ -45,13 +45,16 @@ describe("initApprovalBridge", () => {
     });
 
     // Simulate a gateway.event wrapping exec.approval.requested
+    // Gateway nests command/agentId/cwd inside `request`
     bus.broadcast("gateway.event", {
       type: "gateway.event",
       event: "exec.approval.requested",
       payload: {
         id: "apr-1",
-        command: "rm -rf /",
-        agentId: "agent-x",
+        request: {
+          command: "rm -rf /",
+          agentId: "agent-x",
+        },
         createdAtMs: 1000,
         expiresAtMs: 2000,
       },
@@ -78,7 +81,12 @@ describe("initApprovalBridge", () => {
     bus.broadcast("gateway.event", {
       type: "gateway.event",
       event: "exec.approval.requested",
-      payload: { id: "apr-2", command: "echo hello", createdAtMs: 1000, expiresAtMs: 2000 },
+      payload: {
+        id: "apr-2",
+        request: { command: "echo hello" },
+        createdAtMs: 1000,
+        expiresAtMs: 2000,
+      },
     });
     expect(getPendingApprovals()).toHaveLength(1);
 
@@ -128,7 +136,7 @@ describe("initApprovalBridge", () => {
     const payload = {
       type: "gateway.event",
       event: "exec.approval.requested",
-      payload: { id: "apr-3", command: "test", createdAtMs: 1000, expiresAtMs: 2000 },
+      payload: { id: "apr-3", request: { command: "test" }, createdAtMs: 1000, expiresAtMs: 2000 },
     };
 
     bus.broadcast("gateway.event", payload);
@@ -145,7 +153,7 @@ describe("initApprovalBridge", () => {
     bus.broadcast("gateway.event", {
       type: "gateway.event",
       event: "exec.approval.requested",
-      payload: { id: "", command: "test", createdAtMs: 1000, expiresAtMs: 2000 },
+      payload: { id: "", request: { command: "test" }, createdAtMs: 1000, expiresAtMs: 2000 },
     });
 
     expect(getPendingApprovals()).toHaveLength(0);
@@ -165,7 +173,12 @@ describe("getPendingApprovals", () => {
       bus.broadcast("gateway.event", {
         type: "gateway.event",
         event: "exec.approval.requested",
-        payload: { id: `apr-${i}`, command: `cmd-${i}`, createdAtMs: 1000, expiresAtMs: 2000 },
+        payload: {
+          id: `apr-${i}`,
+          request: { command: `cmd-${i}` },
+          createdAtMs: 1000,
+          expiresAtMs: 2000,
+        },
       });
     }
 

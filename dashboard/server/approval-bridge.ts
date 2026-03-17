@@ -81,14 +81,21 @@ export function initApprovalBridge(runtime: DeckRuntime): void {
       | undefined;
 
     if (innerEvent === "exec.approval.requested" && innerPayload) {
+      // Gateway broadcasts { id, request: { command, agentId, commandArgv, cwd, ... },
+      // createdAtMs, expiresAtMs }.  The command/agentId are nested inside `request`.
+      const request =
+        typeof innerPayload.request === "object" && innerPayload.request !== null
+          ? (innerPayload.request as Record<string, unknown>)
+          : ({} as Record<string, unknown>);
+
       const approval: PendingApproval = {
         id: typeof innerPayload.id === "string" ? innerPayload.id : "",
-        command: typeof innerPayload.command === "string" ? innerPayload.command : "",
-        commandArgv: Array.isArray(innerPayload.commandArgv)
-          ? (innerPayload.commandArgv as string[])
+        command: typeof request.command === "string" ? request.command : "",
+        commandArgv: Array.isArray(request.commandArgv)
+          ? (request.commandArgv as string[])
           : undefined,
-        agentId: typeof innerPayload.agentId === "string" ? innerPayload.agentId : undefined,
-        cwd: typeof innerPayload.cwd === "string" ? innerPayload.cwd : undefined,
+        agentId: typeof request.agentId === "string" ? request.agentId : undefined,
+        cwd: typeof request.cwd === "string" ? request.cwd : undefined,
         createdAtMs: Number(innerPayload.createdAtMs ?? Date.now()),
         expiresAtMs: Number(innerPayload.expiresAtMs ?? Date.now() + 300_000),
       };

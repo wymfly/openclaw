@@ -133,11 +133,14 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
       const res = await fetch("/api/approvals/policy", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        // ExecApprovalsFileSchema has additionalProperties: false with only
+        // { version, socket, defaults, agents }.  Sending `allowlist` at top
+        // level causes the request to be rejected.  Omit it here; allowlist
+        // management is handled separately via the approvals file on disk.
         body: JSON.stringify({
           file: {
             defaults: policy.defaults,
             agents: policy.agents,
-            allowlist: policy.allowlist,
           },
           baseHash: policyHash,
         }),

@@ -20,7 +20,7 @@ const JOB_FIXTURE: CronJob = {
   schedule: { kind: "cron", expr: "*/5 * * * *" },
   sessionTarget: "main",
   wakeMode: "now",
-  payload: { kind: "systemEvent", event: "ping" },
+  payload: { kind: "systemEvent", text: "ping" },
   enabled: true,
 };
 
@@ -28,7 +28,7 @@ const RUN_FIXTURE: CronRunEntry = {
   id: "run-1",
   jobId: "job-1",
   status: "ok",
-  startedAt: "2026-03-17T00:00:00Z",
+  ts: 1742169600000, // 2026-03-17T00:00:00Z as Unix ms
   durationMs: 150,
 };
 
@@ -96,7 +96,7 @@ describe("cron store", () => {
       const result = await useCronStore.getState().addJob({
         name: "Test Job",
         schedule: { kind: "cron", expr: "*/5 * * * *" },
-        payload: { kind: "systemEvent", event: "ping" },
+        payload: { kind: "systemEvent", text: "ping" },
         enabled: true,
       });
 
@@ -179,9 +179,9 @@ describe("cron store", () => {
   });
 
   describe("fetchRuns", () => {
-    it("sets runs on success", async () => {
+    it("sets runs on success (Gateway returns entries field)", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify({ runs: [RUN_FIXTURE] }), { status: 200 }),
+        new Response(JSON.stringify({ entries: [RUN_FIXTURE] }), { status: 200 }),
       );
 
       await useCronStore.getState().fetchRuns("job-1");
