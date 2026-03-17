@@ -16,11 +16,13 @@ import { ChannelsPanel } from "@/components/panels/channels/ChannelsPanel";
 import { ChatPanel } from "@/components/panels/chat/ChatPanel";
 import { ConfigPanel } from "@/components/panels/config-editor/ConfigPanel";
 import { CronPanel } from "@/components/panels/cron/CronPanel";
+import { DocHubPanel } from "@/components/panels/docs/DocHubPanel";
 import { GatewayPanel } from "@/components/panels/gateway/GatewayPanel";
 import { LogsPanel } from "@/components/panels/logs/LogsPanel";
 import { MemoryPanel } from "@/components/panels/memory/MemoryPanel";
 import { ModelsPanel } from "@/components/panels/models/ModelsPanel";
 import { SessionsPanel } from "@/components/panels/sessions/SessionsPanel";
+import { SettingsPanel } from "@/components/panels/settings/SettingsPanel";
 import { SkillsPanel } from "@/components/panels/skills/SkillsPanel";
 import { UsagePanel } from "@/components/panels/usage/UsagePanel";
 import { WebhooksPanel } from "@/components/panels/webhooks/WebhooksPanel";
@@ -89,6 +91,12 @@ function ActivePanel({ panel }: { panel: Panel }) {
   }
   if (panel === "alerts") {
     return <AlertsPanel />;
+  }
+  if (panel === "docs") {
+    return <DocHubPanel />;
+  }
+  if (panel === "settings") {
+    return <SettingsPanel />;
   }
   return <PanelPlaceholder panel={panel} />;
 }
