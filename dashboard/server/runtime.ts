@@ -1,3 +1,6 @@
+import { initAlertEngine } from "./alert-engine.js";
+// P2 subsystem bridges (stubs — Phase 1 agents will implement)
+import { initApprovalBridge } from "./approval-bridge.js";
 import type { ControlPlaneGatewaySettings, ControlPlaneDomainEvent } from "./contracts";
 import { getDb, type Database } from "./db";
 import { EventBus, getEventBus } from "./event-bus";
@@ -78,6 +81,14 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "notification.toast",
   "log.entry",
   "activity.event",
+  // P2 additions
+  "approval.pending",
+  "approval.resolved",
+  "budget.warn",
+  "budget.over",
+  "alert.fired",
+  "webhook.delivery",
+  "cron.run.complete",
 ]);
 
 /** Events that should be bridged to the activity feed outbox. */
@@ -223,6 +234,11 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
 
   const runtime: DeckRuntime = { adapter, eventBus, db, store, rateLimiter };
   g[GLOBAL_KEY] = runtime;
+
+  // Initialize P2 subsystem bridges
+  initApprovalBridge(runtime);
+  initAlertEngine(runtime);
+
   return runtime;
 }
 

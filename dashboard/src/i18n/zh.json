@@ -222,6 +222,12 @@
     "channels": "渠道",
     "advanced": "高级"
   },
+  "cron": {},
+  "webhooks": {},
+  "approvals": {},
+  "skills": {},
+  "budget": {},
+  "alerts": {},
   "onboarding": {
     "title": "欢迎使用 OpenClaw",
     "subtitle": "完成以下步骤开始使用",

@@ -222,6 +222,12 @@
     "channels": "Channels",
     "advanced": "Advanced"
   },
+  "cron": {},
+  "webhooks": {},
+  "approvals": {},
+  "skills": {},
+  "budget": {},
+  "alerts": {},
   "onboarding": {
     "title": "Welcome to OpenClaw",
     "subtitle": "Complete the following steps to get started",
