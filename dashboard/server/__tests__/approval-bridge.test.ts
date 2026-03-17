@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { getPendingApprovals, initApprovalBridge } from "../approval-bridge.js";
 import { EventBus } from "../event-bus.js";
 import type { ServerEvent } from "../event-bus.js";
@@ -185,5 +185,114 @@ describe("getPendingApprovals", () => {
     const pending = getPendingApprovals();
     expect(pending).toHaveLength(3);
     expect(pending.map((p) => p.id).toSorted()).toEqual(["apr-1", "apr-2", "apr-3"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F7: Expiry timer
+// ---------------------------------------------------------------------------
+
+describe("F7: expiry timer", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("removes expired entries every 30s", () => {
+    const runtime = createMockRuntime(bus);
+    const cleanup = initApprovalBridge(runtime);
+
+    // Add an already-expired approval
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.requested",
+      payload: {
+        id: "exp-1",
+        request: { command: "rm -rf" },
+        createdAtMs: Date.now() - 60_000,
+        expiresAtMs: Date.now() - 1,
+      },
+    });
+
+    expect(getPendingApprovals()).toHaveLength(1);
+
+    // Advance timer — expiry check fires
+    vi.advanceTimersByTime(30_000);
+
+    expect(getPendingApprovals()).toHaveLength(0);
+
+    cleanup();
+  });
+
+  it("does NOT remove non-expired entries", () => {
+    const runtime = createMockRuntime(bus);
+    const cleanup = initApprovalBridge(runtime);
+
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.requested",
+      payload: {
+        id: "fresh-1",
+        request: { command: "ls" },
+        createdAtMs: Date.now(),
+        expiresAtMs: Date.now() + 600_000,
+      },
+    });
+
+    vi.advanceTimersByTime(30_000);
+    expect(getPendingApprovals()).toHaveLength(1);
+
+    cleanup();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F12: Cleanup function
+// ---------------------------------------------------------------------------
+
+describe("F12: cleanup function", () => {
+  it("initApprovalBridge returns a cleanup function", () => {
+    const runtime = createMockRuntime(bus);
+    const cleanup = initApprovalBridge(runtime);
+    expect(typeof cleanup).toBe("function");
+  });
+
+  it("cleanup unsubscribes from EventBus", () => {
+    const runtime = createMockRuntime(bus);
+    const initialCount = bus.subscriberCount;
+    const cleanup = initApprovalBridge(runtime);
+    expect(bus.subscriberCount).toBe(initialCount + 1);
+    cleanup();
+    expect(bus.subscriberCount).toBe(initialCount);
+  });
+
+  it("cleanup stops expiry timer", () => {
+    vi.useFakeTimers();
+    const runtime = createMockRuntime(bus);
+    const cleanup = initApprovalBridge(runtime);
+
+    // Add an expired entry
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.requested",
+      payload: {
+        id: "exp-2",
+        request: { command: "test" },
+        createdAtMs: Date.now() - 60_000,
+        expiresAtMs: Date.now() - 1,
+      },
+    });
+
+    // Cleanup before timer fires
+    cleanup();
+    vi.advanceTimersByTime(30_000);
+
+    // Entry should still be there (timer was stopped)
+    expect(getPendingApprovals()).toHaveLength(1);
+
+    vi.useRealTimers();
   });
 });

@@ -235,9 +235,21 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   const runtime: DeckRuntime = { adapter, eventBus, db, store, rateLimiter };
   g[GLOBAL_KEY] = runtime;
 
-  // Initialize P2 subsystem bridges
-  initApprovalBridge(runtime);
-  initAlertEngine(runtime);
+  // Initialize P2 subsystem bridges — store cleanup refs on globalThis for HMR safety (F12)
+  const gCleanup = globalThis as Record<string, unknown>;
+  gCleanup.__deckCleanupApproval = initApprovalBridge(runtime);
+  gCleanup.__deckCleanupAlerts = initAlertEngine(runtime);
+
+  // F10: Schedule webhook retry processor every 60s
+  const retryTimer = setInterval(async () => {
+    try {
+      const { processWebhookRetries } = await import("../src/lib/webhooks.js");
+      processWebhookRetries(runtime.db).catch(() => {});
+    } catch {
+      // Module not available — ignore
+    }
+  }, 60_000);
+  gCleanup.__deckRetryTimer = retryTimer;
 
   return runtime;
 }
@@ -265,7 +277,7 @@ export function getRuntime(): DeckRuntime | null {
 // shutdownRuntime
 // ---------------------------------------------------------------------------
 
-/** Gracefully shut down the runtime: stop adapter, dispose rate limiter. */
+/** Gracefully shut down the runtime: stop adapter, dispose rate limiter, call cleanups. */
 export async function shutdownRuntime(): Promise<void> {
   const g = globalThis as unknown as GlobalStore;
   const runtime = g[GLOBAL_KEY];
@@ -274,6 +286,15 @@ export async function shutdownRuntime(): Promise<void> {
   }
 
   g[GLOBAL_KEY] = undefined;
+
+  // F12: Call cleanup functions for P2 subsystem bridges
+  const gCleanup = globalThis as Record<string, unknown>;
+  (gCleanup.__deckCleanupApproval as (() => void) | undefined)?.();
+  (gCleanup.__deckCleanupAlerts as (() => void) | undefined)?.();
+  clearInterval(gCleanup.__deckRetryTimer as ReturnType<typeof setInterval>);
+  gCleanup.__deckCleanupApproval = undefined;
+  gCleanup.__deckCleanupAlerts = undefined;
+  gCleanup.__deckRetryTimer = undefined;
 
   await runtime.adapter.stop();
   runtime.rateLimiter.dispose();
