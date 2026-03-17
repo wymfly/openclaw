@@ -1,0 +1,286 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useState, useEffect } from "react";
+import { useCronStore, type CronJob, type CronSchedule } from "@/stores/cron";
+
+// Schedule templates pre-fill cron expression
+const TEMPLATES = {
+  every5min: "*/5 * * * *",
+  hourly: "0 * * * *",
+  daily: "0 9 * * *",
+  weekly: "0 9 * * 1",
+  custom: "",
+} as const;
+
+type TemplateKey = keyof typeof TEMPLATES;
+
+interface JobFormProps {
+  job?: CronJob;
+  onDone: () => void;
+}
+
+export function JobForm({ job, onDone }: JobFormProps) {
+  const t = useTranslations("cron");
+  const tc = useTranslations("common");
+  const { addJob, updateJob } = useCronStore();
+
+  const [name, setName] = useState(job?.name ?? "");
+  const [template, setTemplate] = useState<TemplateKey>(() => {
+    if (!job?.schedule.expr) {
+      return "daily";
+    }
+    const match = Object.entries(TEMPLATES).find(([, v]) => v === job.schedule.expr);
+    return (match?.[0] as TemplateKey) ?? "custom";
+  });
+  const [cronExpr, setCronExpr] = useState(job?.schedule.expr ?? TEMPLATES.daily);
+  const [sessionTarget, setSessionTarget] = useState(job?.sessionTarget ?? "main");
+  const [wakeMode, setWakeMode] = useState(job?.wakeMode ?? "now");
+  const [payloadKind, setPayloadKind] = useState<"systemEvent" | "agentTurn">(
+    (job?.payload?.kind as "systemEvent" | "agentTurn") ?? "systemEvent",
+  );
+  const [payloadValue, setPayloadValue] = useState(
+    () => (job?.payload?.event as string) ?? (job?.payload?.message as string) ?? "",
+  );
+  const [description, setDescription] = useState(job?.description ?? "");
+  const [enabled, setEnabled] = useState(job?.enabled ?? true);
+  const [saving, setSaving] = useState(false);
+
+  // Sync cron expression when template changes
+  useEffect(() => {
+    if (template !== "custom" && TEMPLATES[template]) {
+      setCronExpr(TEMPLATES[template]);
+    }
+  }, [template]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const schedule: CronSchedule = { kind: "cron", expr: cronExpr };
+    const payload =
+      payloadKind === "systemEvent"
+        ? { kind: "systemEvent" as const, event: payloadValue }
+        : { kind: "agentTurn" as const, message: payloadValue };
+
+    if (job) {
+      await updateJob(job.id, {
+        name,
+        schedule,
+        sessionTarget,
+        wakeMode,
+        payload,
+        description,
+        enabled,
+      });
+    } else {
+      await addJob({ name, schedule, sessionTarget, wakeMode, payload, description, enabled });
+    }
+    setSaving(false);
+    onDone();
+  };
+
+  return (
+    <div className="flex flex-col gap-3 p-4">
+      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        {job ? t("editJob") : t("addJob")}
+      </h3>
+
+      {/* Name */}
+      <label className="flex flex-col gap-1">
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          {t("name")}
+        </span>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="px-2 py-1.5 text-xs rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
+        />
+      </label>
+
+      {/* Schedule template */}
+      <label className="flex flex-col gap-1">
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          {t("schedule")}
+        </span>
+        <div className="flex gap-1 flex-wrap">
+          {(["every5min", "hourly", "daily", "weekly", "custom"] as TemplateKey[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              className="px-2 py-1 text-[11px] rounded-md transition-colors"
+              style={{
+                backgroundColor: template === key ? "var(--accent)" : "var(--bg-tertiary)",
+                color: template === key ? "#fff" : "var(--text-secondary)",
+              }}
+              onClick={() => setTemplate(key)}
+            >
+              {t(`templates.${key}`)}
+            </button>
+          ))}
+        </div>
+        {template === "custom" && (
+          <input
+            type="text"
+            value={cronExpr}
+            onChange={(e) => setCronExpr(e.target.value)}
+            placeholder="* * * * *"
+            className="mt-1 px-2 py-1.5 text-xs rounded-md border font-mono"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--bg-primary)",
+              color: "var(--text-primary)",
+            }}
+          />
+        )}
+      </label>
+
+      {/* Session target */}
+      <label className="flex flex-col gap-1">
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          {t("sessionTarget")}
+        </span>
+        <div className="flex gap-2">
+          {(["main", "isolated"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className="px-2 py-1 text-[11px] rounded-md transition-colors"
+              style={{
+                backgroundColor: sessionTarget === mode ? "var(--accent)" : "var(--bg-tertiary)",
+                color: sessionTarget === mode ? "#fff" : "var(--text-secondary)",
+              }}
+              onClick={() => setSessionTarget(mode)}
+            >
+              {t(mode)}
+            </button>
+          ))}
+        </div>
+      </label>
+
+      {/* Wake mode */}
+      <label className="flex flex-col gap-1">
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          {t("wakeMode")}
+        </span>
+        <div className="flex gap-2">
+          {(["now", "nextHeartbeat"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className="px-2 py-1 text-[11px] rounded-md transition-colors"
+              style={{
+                backgroundColor: wakeMode === mode ? "var(--accent)" : "var(--bg-tertiary)",
+                color: wakeMode === mode ? "#fff" : "var(--text-secondary)",
+              }}
+              onClick={() => setWakeMode(mode)}
+            >
+              {t(mode)}
+            </button>
+          ))}
+        </div>
+      </label>
+
+      {/* Payload type + value */}
+      <label className="flex flex-col gap-1">
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          {t("payloadType")}
+        </span>
+        <div className="flex gap-2">
+          {(["systemEvent", "agentTurn"] as const).map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              className="px-2 py-1 text-[11px] rounded-md transition-colors"
+              style={{
+                backgroundColor: payloadKind === kind ? "var(--accent)" : "var(--bg-tertiary)",
+                color: payloadKind === kind ? "#fff" : "var(--text-secondary)",
+              }}
+              onClick={() => setPayloadKind(kind)}
+            >
+              {t(`payloadKinds.${kind}`)}
+            </button>
+          ))}
+        </div>
+        {payloadKind === "systemEvent" ? (
+          <input
+            type="text"
+            value={payloadValue}
+            onChange={(e) => setPayloadValue(e.target.value)}
+            placeholder={t("eventNamePlaceholder")}
+            className="mt-1 px-2 py-1.5 text-xs rounded-md border"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--bg-primary)",
+              color: "var(--text-primary)",
+            }}
+          />
+        ) : (
+          <textarea
+            value={payloadValue}
+            onChange={(e) => setPayloadValue(e.target.value)}
+            placeholder={t("agentMessagePlaceholder")}
+            rows={3}
+            className="mt-1 px-2 py-1.5 text-xs rounded-md border resize-none"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--bg-primary)",
+              color: "var(--text-primary)",
+            }}
+          />
+        )}
+      </label>
+
+      {/* Description */}
+      <label className="flex flex-col gap-1">
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          {t("description")}
+        </span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          className="px-2 py-1.5 text-xs rounded-md border resize-none"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
+        />
+      </label>
+
+      {/* Enabled */}
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+        <span className="text-xs" style={{ color: "var(--text-primary)" }}>
+          {t("enabled")}
+        </span>
+      </label>
+
+      {/* Actions */}
+      <div className="flex gap-2 pt-2">
+        <button
+          type="button"
+          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          onClick={handleSave}
+          disabled={saving || !name.trim()}
+        >
+          {saving ? tc("loading") : tc("save")}
+        </button>
+        <button
+          type="button"
+          className="px-3 py-1.5 text-xs rounded-md transition-colors"
+          style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--text-secondary)" }}
+          onClick={onDone}
+        >
+          {tc("cancel")}
+        </button>
+      </div>
+    </div>
+  );
+}
