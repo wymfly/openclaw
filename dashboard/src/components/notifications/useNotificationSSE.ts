@@ -34,8 +34,24 @@ export function useNotificationSSE(): void {
 
     es.addEventListener("notification.toast", handler);
 
+    // F9: Bridge alert.fired SSE events to the alerts store
+    const alertHandler = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        // Dynamic import to avoid circular deps and keep bundle splitting
+        void import("@/stores/alerts").then(({ useAlertsStore }) => {
+          useAlertsStore.getState().addFiredAlert(data);
+        });
+      } catch {
+        // Malformed payload — ignore.
+      }
+    };
+
+    es.addEventListener("alert.fired", alertHandler);
+
     return () => {
       es.removeEventListener("notification.toast", handler);
+      es.removeEventListener("alert.fired", alertHandler);
       es.close();
     };
   }, [addToast]);

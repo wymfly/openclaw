@@ -98,6 +98,33 @@ function determineSeverity(
 }
 
 // ---------------------------------------------------------------------------
+// F11: Condition evaluation
+// ---------------------------------------------------------------------------
+
+/** Evaluate a condition operator against value and threshold. */
+function evaluateCondition(value: number, condition: string, threshold: number): boolean {
+  switch (condition) {
+    case ">":
+      return value > threshold;
+    case ">=":
+      return value >= threshold;
+    case "<":
+      return value < threshold;
+    case "<=":
+      return value <= threshold;
+    case "==":
+      return value === threshold;
+    case "!=":
+      return value !== threshold;
+    case "contains":
+      return String(value).includes(String(threshold));
+    default:
+      // Backward compat: unrecognized conditions (e.g. "cost > 100") default to >=
+      return value >= threshold;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Engine
 // ---------------------------------------------------------------------------
 
@@ -130,8 +157,8 @@ function handleEvent(
   const value = extractEventValue(event.data);
 
   for (const rule of rules) {
-    // Check threshold: fire if value >= threshold
-    if (value < rule.threshold) {
+    // F11: Use evaluateCondition instead of hardcoded >= check
+    if (!evaluateCondition(value, rule.condition, rule.threshold)) {
       continue;
     }
 
@@ -217,14 +244,21 @@ async function fireAlertWebhook(db: Database, payload: Record<string, unknown>):
 // Init
 // ---------------------------------------------------------------------------
 
-export function initAlertEngine(runtime: DeckRuntime): void {
+export function initAlertEngine(runtime: DeckRuntime): () => void {
   const { db, eventBus, store } = runtime;
 
-  eventBus.subscribe((event: ServerEvent) => {
+  const subscriber = (event: ServerEvent) => {
     try {
       handleEvent(event, db, eventBus, store);
     } catch (err) {
       console.error("[AlertEngine] error processing event:", err);
     }
-  });
+  };
+
+  eventBus.subscribe(subscriber);
+
+  // F12: Return cleanup function for HMR safety
+  return () => {
+    eventBus.unsubscribe(subscriber);
+  };
 }

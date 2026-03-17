@@ -50,17 +50,22 @@ export function getPendingApprovals(): PendingApproval[] {
 // Bridge initialization
 // ---------------------------------------------------------------------------
 
-export function initApprovalBridge(runtime: DeckRuntime): void {
+export function initApprovalBridge(runtime: DeckRuntime): () => void {
   const { eventBus } = runtime;
   const pendingMap = getPendingMap();
 
+  // F7: Periodic expiry sweep — removes entries where expiresAtMs has passed.
+  const expiryTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [id, approval] of pendingMap) {
+      if (approval.expiresAtMs && approval.expiresAtMs < now) {
+        pendingMap.delete(id);
+      }
+    }
+  }, 30_000);
+
   // Listen for EventBus events that originate from the Gateway WS domain event bridge.
-  // The runtime's bridgeDomainEvent already maps gateway.event inner names to EventBus
-  // broadcasts. However, approval events arrive as gateway.event with inner event names
-  // like "exec.approval.requested" — which are NOT in the VALID_DECK_EVENTS set and
-  // therefore get broadcast as generic "gateway.event". We subscribe to "gateway.event"
-  // and inspect the payload for approval-specific events.
-  eventBus.subscribe((event) => {
+  const subscriber = (event: { type: string; data: unknown }) => {
     if (event.type !== "gateway.event") {
       return;
     }
@@ -111,5 +116,13 @@ export function initApprovalBridge(runtime: DeckRuntime): void {
         eventBus.broadcast("approval.resolved", { id, ...innerPayload });
       }
     }
-  });
+  };
+
+  eventBus.subscribe(subscriber);
+
+  // F12: Return cleanup function for HMR safety
+  return () => {
+    clearInterval(expiryTimer);
+    eventBus.unsubscribe(subscriber);
+  };
 }

@@ -253,6 +253,153 @@ describe("alert-engine", () => {
     );
   });
 
+  // F11: evaluateCondition tests
+  it("should evaluate '>' condition correctly", () => {
+    const rules = [
+      {
+        id: "gt-1",
+        name: "Greater Than",
+        entity_type: "usage",
+        condition: ">",
+        threshold: 100,
+        action: "toast",
+        cooldown_ms: 0,
+        last_fired_at: null,
+        enabled: 1,
+      },
+    ];
+    const { runtime, eventBus } = createMockRuntime(rules);
+    initAlertEngine(runtime);
+
+    const events: { type: string }[] = [];
+    eventBus.subscribe((e) => events.push({ type: e.type }));
+
+    // Value 100 should NOT fire (not strictly greater)
+    eventBus.broadcast("budget.warn", { value: 100 });
+    expect(events.filter((e) => e.type === "alert.fired")).toHaveLength(0);
+
+    // Value 101 should fire
+    eventBus.broadcast("budget.warn", { value: 101 });
+    expect(events.filter((e) => e.type === "alert.fired")).toHaveLength(1);
+  });
+
+  it("should evaluate '<' condition correctly", () => {
+    const rules = [
+      {
+        id: "lt-1",
+        name: "Less Than",
+        entity_type: "usage",
+        condition: "<",
+        threshold: 50,
+        action: "toast",
+        cooldown_ms: 0,
+        last_fired_at: null,
+        enabled: 1,
+      },
+    ];
+    const { runtime, eventBus } = createMockRuntime(rules);
+    initAlertEngine(runtime);
+
+    const events: { type: string }[] = [];
+    eventBus.subscribe((e) => events.push({ type: e.type }));
+
+    eventBus.broadcast("budget.warn", { value: 30 });
+    expect(events.filter((e) => e.type === "alert.fired")).toHaveLength(1);
+  });
+
+  it("should evaluate '==' condition correctly", () => {
+    const rules = [
+      {
+        id: "eq-1",
+        name: "Equal",
+        entity_type: "usage",
+        condition: "==",
+        threshold: 42,
+        action: "toast",
+        cooldown_ms: 0,
+        last_fired_at: null,
+        enabled: 1,
+      },
+    ];
+    const { runtime, eventBus } = createMockRuntime(rules);
+    initAlertEngine(runtime);
+
+    const events: { type: string }[] = [];
+    eventBus.subscribe((e) => events.push({ type: e.type }));
+
+    eventBus.broadcast("budget.warn", { value: 42 });
+    expect(events.filter((e) => e.type === "alert.fired")).toHaveLength(1);
+
+    eventBus.broadcast("budget.warn", { value: 43 });
+    // Should still be 1 (second event didn't match)
+    expect(events.filter((e) => e.type === "alert.fired")).toHaveLength(1);
+  });
+
+  it("should evaluate '!=' condition correctly", () => {
+    const rules = [
+      {
+        id: "ne-1",
+        name: "Not Equal",
+        entity_type: "usage",
+        condition: "!=",
+        threshold: 0,
+        action: "toast",
+        cooldown_ms: 0,
+        last_fired_at: null,
+        enabled: 1,
+      },
+    ];
+    const { runtime, eventBus } = createMockRuntime(rules);
+    initAlertEngine(runtime);
+
+    const events: { type: string }[] = [];
+    eventBus.subscribe((e) => events.push({ type: e.type }));
+
+    eventBus.broadcast("budget.warn", { value: 5 });
+    expect(events.filter((e) => e.type === "alert.fired")).toHaveLength(1);
+  });
+
+  it("should default to >= for unrecognized conditions (backward compat)", () => {
+    const rules = [
+      {
+        id: "compat-1",
+        name: "Legacy Condition",
+        entity_type: "usage",
+        condition: "cost > 100",
+        threshold: 100,
+        action: "toast",
+        cooldown_ms: 0,
+        last_fired_at: null,
+        enabled: 1,
+      },
+    ];
+    const { runtime, eventBus } = createMockRuntime(rules);
+    initAlertEngine(runtime);
+
+    const events: { type: string }[] = [];
+    eventBus.subscribe((e) => events.push({ type: e.type }));
+
+    eventBus.broadcast("budget.warn", { value: 100 });
+    // 100 >= 100 should fire with default behavior
+    expect(events.filter((e) => e.type === "alert.fired")).toHaveLength(1);
+  });
+
+  // F12: cleanup function
+  it("initAlertEngine returns a cleanup function", () => {
+    const { runtime } = createMockRuntime();
+    const cleanup = initAlertEngine(runtime);
+    expect(typeof cleanup).toBe("function");
+  });
+
+  it("cleanup unsubscribes from EventBus", () => {
+    const { runtime, eventBus } = createMockRuntime();
+    const initialCount = eventBus.subscriberCount;
+    const cleanup = initAlertEngine(runtime);
+    expect(eventBus.subscriberCount).toBe(initialCount + 1);
+    cleanup();
+    expect(eventBus.subscriberCount).toBe(initialCount);
+  });
+
   it("should update last_fired_at in DB when alert fires", () => {
     const rules = [
       {
