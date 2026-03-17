@@ -1,5 +1,6 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import type { WecomAccountRuntime } from "../../app/account-runtime.js";
+import type { ReqIdStore } from "../../enhanced/reqid-store.js";
 import { startBotWebhookTransport } from "../../transport/bot-webhook/http-handler.js";
 import { BotWsSdkAdapter } from "../../transport/bot-ws/sdk-adapter.js";
 import type { WecomRuntimeEnv } from "../../types/runtime-context.js";
@@ -45,6 +46,13 @@ export class WecomBotCapabilityService {
       transport: "bot-webhook",
       descriptors: webhook.paths,
     };
+  }
+
+  /** [enhanced] Allow gateway-monitor to inject a reqId dedup store into the ws adapter. */
+  injectReqIdStore(store: ReqIdStore): void {
+    if (this.wsAdapter) {
+      this.wsAdapter.reqIdStore = store;
+    }
   }
 
   stop(): void {

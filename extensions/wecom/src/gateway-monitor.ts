@@ -1,3 +1,5 @@
+import os from "node:os";
+import path from "node:path";
 import type { ChannelGatewayContext, OpenClawConfig } from "openclaw/plugin-sdk";
 import { createAccountRuntime } from "./app/bootstrap.js";
 import { registerAccountRuntime, unregisterAccountRuntime } from "./app/index.js";
@@ -9,6 +11,9 @@ import {
   resolveWecomAccount,
   resolveWecomAccountConflict,
 } from "./config/index.js";
+import { createQuotaTracker } from "./enhanced/quota-tracker.js";
+import { createReqIdStore, type ReqIdStore } from "./enhanced/reqid-store.js";
+import { setQuotaTracker } from "./outbound.js";
 import type { ResolvedWecomAccount, WecomConfig } from "./types/index.js";
 import type { WecomRuntimeEnv } from "./types/runtime-context.js";
 
@@ -118,6 +123,7 @@ export async function monitorWecomProvider(
   };
   const botService = new WecomBotCapabilityService(accountRuntime, cfg, runtimeEnv);
   const agentIngress = new WecomAgentIngressService(accountRuntime, cfg, runtimeEnv);
+  let reqIdStore: ReqIdStore | undefined;
   try {
     ctx.log?.info(
       `[${account.accountId}] wecom runtime start bot=${bot?.primaryTransport ?? "disabled"} agent=${agentConfigured ? "callback/api" : "disabled"}`,
@@ -136,6 +142,32 @@ export async function monitorWecomProvider(
       ctx.log?.info(
         `[${account.accountId}] wecom agent ${agentRegistration.transport} started: ${agentRegistration.descriptors.join(", ")}`,
       );
+    }
+
+    // [enhanced] Wire up enhanced modules based on config
+    const enhancedConfig = account.enhanced;
+    if (enhancedConfig) {
+      // Quota tracking (in-memory, zero dependencies)
+      if (enhancedConfig.quotaTracking !== false) {
+        const tracker = createQuotaTracker();
+        setQuotaTracker(tracker);
+        ctx.log?.info(`[${account.accountId}] enhanced: quota tracking enabled`);
+      }
+
+      // ReqId dedup persistence (disk-backed)
+      if (enhancedConfig.reqIdPersistence !== false) {
+        reqIdStore = createReqIdStore({
+          storeDir: path.join(os.homedir(), ".openclaw"),
+          accountId: account.accountId,
+        });
+        await reqIdStore.warmup();
+        botService.injectReqIdStore(reqIdStore);
+        ctx.log?.info(`[${account.accountId}] enhanced: reqId dedup persistence enabled`);
+      }
+
+      // TODO: [enhanced] PendingReplyManager wiring deferred — requires
+      // ReliableDeliveryStore implementation and deliverPendingReply callback
+      // that depend on more runtime context. Wire up in a follow-up.
     }
 
     accountRouteRegistry.set(account.accountId, { botPaths, agentPaths });
@@ -159,6 +191,15 @@ export async function monitorWecomProvider(
 
     await waitForAbortSignal(ctx.abortSignal);
   } finally {
+    // [enhanced] Cleanup reqIdStore — flush pending writes and cancel timers
+    if (reqIdStore) {
+      try {
+        await reqIdStore.flush();
+      } catch {
+        // flush is best-effort on shutdown
+      }
+      reqIdStore.destroy();
+    }
     botService.stop();
     agentIngress.stop();
     accountRouteRegistry.delete(account.accountId);
