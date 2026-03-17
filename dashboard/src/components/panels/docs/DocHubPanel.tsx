@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { useChatStore } from "@/stores/chat";
 import { useDocsStore } from "@/stores/docs";
 import { CategoryFilter } from "./CategoryFilter";
 import { DocList } from "./DocList";
@@ -11,6 +12,7 @@ export function DocHubPanel() {
   const t = useTranslations("docs");
   const tc = useTranslations("common");
   const { loading, error, fetchDocs, extractDocs, searchQuery, setSearchQuery } = useDocsStore();
+  const activeSessionId = useChatStore((s) => s.activeSessionId);
 
   useEffect(() => {
     void fetchDocs();
@@ -36,7 +38,7 @@ export function DocHubPanel() {
           type="button"
           className="px-3 py-1 text-xs font-medium rounded-md"
           style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-          onClick={() => void extractDocs()}
+          onClick={() => void extractDocs(activeSessionId ?? undefined)}
         >
           {t("extract")}
         </button>
