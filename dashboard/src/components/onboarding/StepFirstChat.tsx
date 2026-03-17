@@ -2,24 +2,71 @@
 
 import { MessageCircle, Send, Loader2, CheckCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { OnboardingData } from "./OnboardingWizard";
 
 type Props = { data: OnboardingData; onComplete: () => void; onBack: () => void };
 
+/**
+ * Onboarding Step 3: First Chat.
+ *
+ * Correct order:
+ *   1. Save settings (so the runtime initializes and Gateway connects)
+ *   2. Wait briefly for the adapter to connect
+ *   3. Then allow sending a test message
+ */
 export function StepFirstChat({ data, onComplete, onBack }: Props) {
   const t = useTranslations("onboarding");
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const savedRef = useRef(false);
+
+  /** Save configuration first, then the runtime can initialize. */
+  const ensureSettingsSaved = useCallback(async (): Promise<boolean> => {
+    if (savedRef.current) {
+      return true;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/onboarding/save-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        setError(((await res.json()) as { error?: string }).error ?? t("saveError"));
+        return false;
+      }
+      savedRef.current = true;
+      setSettingsSaved(true);
+      // Brief delay to let the adapter start connecting.
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return true;
+    } catch {
+      setError(t("saveError"));
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [data, t]);
 
   const sendTest = useCallback(async () => {
     const text = message.trim();
     if (!text) {
       return;
     }
+
+    // Ensure settings are saved and runtime is initialized before sending.
+    const ok = await ensureSettingsSaved();
+    if (!ok) {
+      return;
+    }
+
     setSending(true);
     setError(null);
     setReply(null);
@@ -27,39 +74,28 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
       const res = await fetch("/api/chat/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, sessionKey: "main" }),
       });
       if (!res.ok) {
         setError(((await res.json()) as { error?: string }).error ?? t("chatError"));
         return;
       }
-      setReply(((await res.json()) as { content?: string }).content ?? t("chatSuccess"));
+      // chat.send returns { runId, status: "started" } — the actual
+      // response will arrive via SSE. Show a confirmation for now.
+      setReply(t("chatSuccess"));
     } catch {
       setError(t("chatError"));
     } finally {
       setSending(false);
     }
-  }, [message, t]);
+  }, [message, t, ensureSettingsSaved]);
 
   const handleComplete = useCallback(async () => {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/onboarding/save-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        onComplete();
-      } else {
-        setError(((await res.json()) as { error?: string }).error ?? t("saveError"));
-      }
-    } catch {
-      setError(t("saveError"));
-    } finally {
-      setSaving(false);
+    const ok = await ensureSettingsSaved();
+    if (ok) {
+      onComplete();
     }
-  }, [data, onComplete, t]);
+  }, [ensureSettingsSaved, onComplete]);
 
   const iStyle = {
     backgroundColor: "var(--bg-primary)",
@@ -75,6 +111,18 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
           {t("stepChat")}
         </span>
       </div>
+      {settingsSaved && (
+        <div
+          className="text-xs p-2 rounded flex items-center gap-1"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+            color: "var(--accent)",
+          }}
+        >
+          <CheckCircle size={12} />
+          {t("settingsSaved") ?? "Settings saved"}
+        </div>
+      )}
       <div className="flex gap-2">
         <input
           type="text"
@@ -91,11 +139,11 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
         />
         <button
           onClick={() => void sendTest()}
-          disabled={sending || !message.trim()}
+          disabled={sending || saving || !message.trim()}
           className="flex items-center gap-1.5 text-xs px-3 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
           style={{ backgroundColor: "var(--accent)", color: "#fff" }}
         >
-          {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          {sending || saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         </button>
       </div>
       {reply && (

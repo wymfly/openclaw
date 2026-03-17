@@ -1,0 +1,56 @@
+/**
+ * Gateway method allowlist — extracted from gateway-adapter.ts for clarity.
+ *
+ * Methods the Deck server-side may call through the gateway.
+ */
+
+export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([
+  // --- original studio set ---
+  "status",
+  "chat.send",
+  "chat.abort",
+  "chat.history",
+  "agents.create",
+  "agents.update",
+  "agents.delete",
+  "agents.list",
+  "agents.files.get",
+  "agents.files.set",
+  "agents.files.list",
+  "sessions.list",
+  "sessions.preview",
+  "sessions.patch",
+  "sessions.reset",
+  "sessions.delete",
+  "cron.list",
+  "cron.run",
+  "cron.remove",
+  "cron.add",
+  "cron.update",
+  "config.get",
+  "config.set",
+  "config.patch",
+  "config.schema",
+  "config.apply",
+  "models.list",
+  "exec.approval.resolve",
+  "exec.approvals.get",
+  "exec.approvals.set",
+  "agent.wait",
+  // --- Deck additions ---
+  "health",
+  "usage.status",
+  "usage.cost",
+  "sessions.usage",
+  "sessions.usage.timeseries",
+  "sessions.usage.logs",
+  "channels.status",
+  "channels.logout",
+  "logs.tail",
+  "doctor.memory.status",
+  "cron.status",
+  "cron.runs",
+  "skills.status",
+  "skills.update",
+  "skills.install",
+]);

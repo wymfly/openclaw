@@ -2,11 +2,13 @@
  * GET /api/models — Model catalog.
  *
  * Calls `models.list` RPC to retrieve available models from all providers.
+ *
+ * Gateway contract (`ModelsListParamsSchema`): {} (no params)
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest, extractPlatformHeaders } from "@/lib/api-helpers";
+import { gatewayRequest } from "@/lib/api-helpers";
+import { withAuth } from "@/lib/with-auth";
 
-export async function GET(request: NextRequest) {
-  const platform = extractPlatformHeaders(request);
-  return gatewayRequest("models.list", { ...platform });
-}
+export const GET = withAuth(async (_request: NextRequest) => {
+  return gatewayRequest("models.list", {});
+});

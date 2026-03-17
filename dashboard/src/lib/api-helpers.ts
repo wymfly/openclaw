@@ -5,11 +5,13 @@ import { getRuntime } from "@server/runtime";
  *
  * Establishes the canonical pattern for all panel API routes:
  *   1. `gatewayRequest()` — send an RPC through the Gateway adapter
- *   2. `extractPlatformHeaders()` — forward tenant/user context
+ *   2. `extractPlatformHeaders()` — forward tenant/user context (for Deck-layer logging only)
  */
 import { NextResponse } from "next/server";
 
 type ErrorBody = { error: string; code?: string };
+
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 /** Send an RPC request through the Gateway adapter. */
 export async function gatewayRequest(
@@ -33,12 +35,23 @@ export async function gatewayRequest(
         status: 502,
       });
     }
-    const message = err instanceof Error ? err.message : "Unknown error";
+    // In production, do not leak internal error details to the client.
+    const message = IS_PRODUCTION
+      ? "Internal server error"
+      : err instanceof Error
+        ? err.message
+        : "Unknown error";
     return NextResponse.json({ error: message } satisfies ErrorBody, { status: 500 });
   }
 }
 
-/** Extract platform contract headers from the incoming request. */
+/**
+ * Extract platform contract headers from the incoming request.
+ *
+ * IMPORTANT: These headers must NOT be injected into Gateway RPC params,
+ * because Gateway schemas use `additionalProperties: false` and will reject
+ * unknown fields. Use this only for Deck-layer logging/tracing.
+ */
 export function extractPlatformHeaders(req: Request): Record<string, string> {
   const headers: Record<string, string> = {};
   const tenantId = req.headers.get("x-tenant-id");

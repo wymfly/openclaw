@@ -3,56 +3,108 @@
 import { useEffect, useRef } from "react";
 import { useChatStore } from "@/stores/chat";
 
+/**
+ * Gateway chat event payload shape (from ChatEventSchema):
+ *   { runId, sessionKey, seq, state: "delta"|"final"|"error"|"aborted",
+ *     message?: { role, content: [{type:"text",text}], timestamp },
+ *     errorMessage?, stopReason? }
+ */
+type ChatEventPayload = {
+  runId: string;
+  sessionKey: string;
+  seq: number;
+  state: "delta" | "final" | "error" | "aborted";
+  message?: {
+    role: string;
+    content: Array<{ type: string; text?: string }>;
+    timestamp?: number;
+  };
+  errorMessage?: string;
+  stopReason?: string;
+};
+
+function extractTextFromMessage(message?: ChatEventPayload["message"]): string {
+  if (!message?.content) {
+    return "";
+  }
+  return message.content
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text!)
+    .join("");
+}
+
 /** Connect to the SSE stream and dispatch chat events to the store. */
 export function useChatSSE() {
   const { addMessage, updateStreamingMessage, finalizeStreamingMessage, setIsStreaming, setError } =
     useChatStore();
 
-  const streamingMsgIdRef = useRef<string | null>(null);
+  const streamingRunIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const es = new EventSource("/api/stream");
 
-    es.addEventListener("chat.delta", (e) => {
-      const payload = JSON.parse(e.data) as { content?: string; id?: string };
-      if (!streamingMsgIdRef.current && payload.id) {
-        streamingMsgIdRef.current = payload.id;
-        addMessage({
-          id: payload.id,
-          role: "assistant",
-          content: payload.content ?? "",
-          timestamp: Date.now(),
-          streaming: true,
-        });
-      } else if (streamingMsgIdRef.current) {
-        const current =
-          useChatStore.getState().messages.find((m) => m.id === streamingMsgIdRef.current)
-            ?.content ?? "";
-        updateStreamingMessage(streamingMsgIdRef.current, current + (payload.content ?? ""));
-      }
-    });
+    // Gateway broadcasts all chat events under the `chat` event type.
+    // The `state` field distinguishes delta / final / error / aborted.
+    es.addEventListener("chat", (e) => {
+      const payload = JSON.parse(e.data) as ChatEventPayload;
 
-    es.addEventListener("chat.final", (e) => {
-      const msgId = streamingMsgIdRef.current;
-      if (msgId) {
-        const payload = JSON.parse(e.data) as { content?: string };
-        if (payload.content) {
-          updateStreamingMessage(msgId, payload.content);
+      if (payload.state === "delta") {
+        const text = extractTextFromMessage(payload.message);
+        if (!streamingRunIdRef.current && payload.runId) {
+          streamingRunIdRef.current = payload.runId;
+          setIsStreaming(true);
+          addMessage({
+            id: payload.runId,
+            role: "assistant",
+            content: text,
+            timestamp: payload.message?.timestamp ?? Date.now(),
+            streaming: true,
+          });
+        } else if (streamingRunIdRef.current) {
+          // Gateway sends the full accumulated text each delta, not incremental.
+          updateStreamingMessage(streamingRunIdRef.current, text);
         }
-        finalizeStreamingMessage(msgId);
-        streamingMsgIdRef.current = null;
+        return;
       }
-      setIsStreaming(false);
-    });
 
-    es.addEventListener("chat.error", (e) => {
-      const payload = JSON.parse(e.data) as { message?: string };
-      setError(payload.message ?? "Unknown error");
-      if (streamingMsgIdRef.current) {
-        finalizeStreamingMessage(streamingMsgIdRef.current);
-        streamingMsgIdRef.current = null;
+      if (payload.state === "final") {
+        const text = extractTextFromMessage(payload.message);
+        if (streamingRunIdRef.current) {
+          if (text) {
+            updateStreamingMessage(streamingRunIdRef.current, text);
+          }
+          finalizeStreamingMessage(streamingRunIdRef.current);
+          streamingRunIdRef.current = null;
+        } else if (text && payload.runId) {
+          // Final without any preceding delta (e.g., command response)
+          addMessage({
+            id: payload.runId,
+            role: "assistant",
+            content: text,
+            timestamp: payload.message?.timestamp ?? Date.now(),
+          });
+        }
+        setIsStreaming(false);
+        return;
       }
-      setIsStreaming(false);
+
+      if (payload.state === "error") {
+        setError(payload.errorMessage ?? "Unknown error");
+        if (streamingRunIdRef.current) {
+          finalizeStreamingMessage(streamingRunIdRef.current);
+          streamingRunIdRef.current = null;
+        }
+        setIsStreaming(false);
+        return;
+      }
+
+      if (payload.state === "aborted") {
+        if (streamingRunIdRef.current) {
+          finalizeStreamingMessage(streamingRunIdRef.current);
+          streamingRunIdRef.current = null;
+        }
+        setIsStreaming(false);
+      }
     });
 
     return () => es.close();

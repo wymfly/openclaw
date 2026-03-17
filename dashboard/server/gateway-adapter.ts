@@ -5,6 +5,10 @@
  *   - Studio settings dependency removed; settings injected via constructor
  *   - Client ID changed to "openclaw-deck"
  *   - Method allowlist extended for all Deck panels
+ *
+ * Extracted modules:
+ *   - `gateway-allowlist.ts` — DEFAULT_METHOD_ALLOWLIST
+ *   - `gateway-errors.ts`    — ControlPlaneGatewayError
  */
 import { randomUUID } from "node:crypto";
 import { WebSocket } from "ws";
@@ -15,6 +19,12 @@ import type {
   GatewayEventFrame,
   GatewayResponseFrame,
 } from "./contracts";
+import { DEFAULT_METHOD_ALLOWLIST } from "./gateway-allowlist";
+import { ControlPlaneGatewayError } from "./gateway-errors";
+
+// Re-export for consumers that import from this file.
+export { DEFAULT_METHOD_ALLOWLIST } from "./gateway-allowlist";
+export { ControlPlaneGatewayError } from "./gateway-errors";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -38,62 +48,6 @@ const CONNECT_CLIENT_PLATFORM_LEGACY = "web";
 const CONNECT_CAPABILITIES = ["tool-events"];
 
 // ---------------------------------------------------------------------------
-// Method Allowlist
-// ---------------------------------------------------------------------------
-
-/** Methods the Deck server-side may call through the gateway. */
-export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([
-  // --- original studio set ---
-  "status",
-  "chat.send",
-  "chat.abort",
-  "chat.history",
-  "agents.create",
-  "agents.update",
-  "agents.delete",
-  "agents.list",
-  "agents.files.get",
-  "agents.files.set",
-  "agents.files.list",
-  "sessions.list",
-  "sessions.preview",
-  "sessions.patch",
-  "sessions.reset",
-  "sessions.delete",
-  "cron.list",
-  "cron.run",
-  "cron.remove",
-  "cron.add",
-  "cron.update",
-  "config.get",
-  "config.set",
-  "config.patch",
-  "config.schema",
-  "config.apply",
-  "models.list",
-  "exec.approval.resolve",
-  "exec.approvals.get",
-  "exec.approvals.set",
-  "agent.wait",
-  // --- Deck additions ---
-  "health",
-  "usage.status",
-  "usage.cost",
-  "sessions.usage",
-  "sessions.usage.timeseries",
-  "sessions.usage.logs",
-  "channels.status",
-  "channels.logout",
-  "logs.tail",
-  "doctor.memory.status",
-  "cron.status",
-  "cron.runs",
-  "skills.status",
-  "skills.update",
-  "skills.install",
-]);
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -102,18 +56,6 @@ type PendingRequest = {
   reject: (err: Error) => void;
   timer: ReturnType<typeof setTimeout>;
 };
-
-export class ControlPlaneGatewayError extends Error {
-  readonly code: string;
-  readonly details?: unknown;
-
-  constructor(params: { code: string; message: string; details?: unknown }) {
-    super(params.message);
-    this.name = "ControlPlaneGatewayError";
-    this.code = params.code;
-    this.details = params.details;
-  }
-}
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object");

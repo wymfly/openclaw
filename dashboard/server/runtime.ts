@@ -67,10 +67,41 @@ function resolveGatewaySettings(
 // Domain event bridge
 // ---------------------------------------------------------------------------
 
-/** Map ControlPlaneDomainEvent.type to DeckEventType. */
+/** Valid DeckEventType values for type-safe broadcasting. */
+const VALID_DECK_EVENTS = new Set<DeckEventType>([
+  "runtime.status",
+  "gateway.event",
+  "chat",
+  "agent",
+  "agent.updated",
+  "gateway.health",
+  "notification.toast",
+]);
+
+/**
+ * Map ControlPlaneDomainEvent to DeckEventType and broadcast.
+ *
+ * Gateway WS events arrive as `{ type: "gateway.event", event: "chat"|"agent"|..., payload }`.
+ * We extract the inner event name so SSE clients can listen on `"chat"` / `"agent"` directly.
+ */
 function bridgeDomainEvent(event: ControlPlaneDomainEvent, eventBus: EventBus): void {
-  const deckType: DeckEventType = event.type;
-  eventBus.broadcast(deckType, event);
+  if (event.type === "gateway.event" && "event" in event) {
+    const innerEvent = event.event as DeckEventType;
+    if (VALID_DECK_EVENTS.has(innerEvent)) {
+      // Broadcast the payload under the specific event type (e.g., "chat", "agent")
+      eventBus.broadcast(innerEvent, event.payload);
+      return;
+    }
+    // Unknown inner event — broadcast as generic gateway.event
+    eventBus.broadcast("gateway.event", event);
+    return;
+  }
+  // runtime.status events
+  if (VALID_DECK_EVENTS.has(event.type as DeckEventType)) {
+    eventBus.broadcast(event.type as DeckEventType, event);
+    return;
+  }
+  eventBus.broadcast("gateway.event", event);
 }
 
 // ---------------------------------------------------------------------------

@@ -2,6 +2,11 @@
  * EventBus — typed pub/sub with auto-incrementing IDs and replay buffer.
  *
  * Uses globalThis singleton to survive Next.js HMR reloads.
+ *
+ * Event type contract aligned with Gateway:
+ *   - Gateway broadcasts `chat` events with a `state` field: delta | final | error | aborted
+ *   - Gateway broadcasts `agent` events for lifecycle/tool/assistant streams
+ *   - Deck-internal events: runtime.status, agent.updated, notification.toast, gateway.health
  */
 
 // ---------------------------------------------------------------------------
@@ -11,9 +16,8 @@
 export type DeckEventType =
   | "runtime.status"
   | "gateway.event"
-  | "chat.delta"
-  | "chat.final"
-  | "chat.error"
+  | "chat"
+  | "agent"
   | "agent.updated"
   | "gateway.health"
   | "notification.toast";

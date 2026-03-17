@@ -25,9 +25,19 @@ export interface ChatMessage {
   error?: string;
 }
 
+/**
+ * Session info as consumed by the UI.
+ *
+ * Gateway `sessions.list` returns entries with fields like:
+ *   { key, sessionId, agentId, derivedTitle?, lastMessage?, lastActivityAt?, ... }
+ * We normalize to this shape.
+ */
 export type SessionInfo = {
   key: string;
+  sessionId?: string;
   agentId?: string;
+  title?: string;
+  lastMessage?: string;
   updatedAt?: number;
 };
 

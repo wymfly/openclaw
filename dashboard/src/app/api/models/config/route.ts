@@ -3,27 +3,36 @@
  *
  * GET   — Read provider config (API keys, base URLs)
  * PATCH — Update provider config
+ *
+ * Gateway contracts:
+ *   config.get:   {} (no params, returns { raw, hash })
+ *   config.patch: { raw, baseHash?, sessionKey?, note?, restartDelayMs? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest, extractPlatformHeaders } from "@/lib/api-helpers";
+import { gatewayRequest } from "@/lib/api-helpers";
+import { withAuth } from "@/lib/with-auth";
 
-export async function GET(request: NextRequest) {
-  const platform = extractPlatformHeaders(request);
-  return gatewayRequest("config.get", { section: "models", ...platform });
-}
+export const GET = withAuth(async (_request: NextRequest) => {
+  return gatewayRequest("config.get", {});
+});
 
-export async function PATCH(request: NextRequest) {
-  const body = (await request.json()) as Record<string, unknown>;
+export const PATCH = withAuth(async (request: NextRequest) => {
+  const body = (await request.json()) as {
+    raw?: string;
+    baseHash?: string;
+    note?: string;
+  };
 
   if (!body || typeof body !== "object") {
     return Response.json({ error: "Invalid body" }, { status: 400 });
   }
-
-  const platform = extractPlatformHeaders(request);
+  if (!body.raw) {
+    return Response.json({ error: "raw config content is required" }, { status: 400 });
+  }
 
   return gatewayRequest("config.patch", {
-    section: "models",
-    ...body,
-    ...platform,
+    raw: body.raw,
+    ...(body.baseHash ? { baseHash: body.baseHash } : {}),
+    ...(body.note ? { note: body.note } : {}),
   });
-}
+});

@@ -4,35 +4,44 @@
  * GET    — List all agents
  * POST   — Create a new agent
  * DELETE — Delete an agent by ID
+ *
+ * Gateway contracts:
+ *   agents.list:   {} (no params)
+ *   agents.create: { name, workspace, emoji?, avatar? }
+ *   agents.delete: { agentId, deleteFiles? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest, extractPlatformHeaders } from "@/lib/api-helpers";
+import { gatewayRequest } from "@/lib/api-helpers";
+import { withAuth } from "@/lib/with-auth";
 
-export async function GET(request: NextRequest) {
-  const platform = extractPlatformHeaders(request);
-  return gatewayRequest("agents.list", { ...platform });
-}
+export const GET = withAuth(async () => {
+  return gatewayRequest("agents.list", {});
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   const body = (await request.json()) as {
     name?: string;
-    model?: string;
+    workspace?: string;
+    emoji?: string;
+    avatar?: string;
   };
 
   if (!body.name?.trim()) {
     return Response.json({ error: "name is required" }, { status: 400 });
   }
-
-  const platform = extractPlatformHeaders(request);
+  if (!body.workspace?.trim()) {
+    return Response.json({ error: "workspace is required" }, { status: 400 });
+  }
 
   return gatewayRequest("agents.create", {
     name: body.name.trim(),
-    model: body.model ?? undefined,
-    ...platform,
+    workspace: body.workspace.trim(),
+    ...(body.emoji ? { emoji: body.emoji } : {}),
+    ...(body.avatar ? { avatar: body.avatar } : {}),
   });
-}
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(async (request: NextRequest) => {
   const { searchParams } = request.nextUrl;
   const agentId = searchParams.get("agentId");
 
@@ -40,10 +49,7 @@ export async function DELETE(request: NextRequest) {
     return Response.json({ error: "agentId is required" }, { status: 400 });
   }
 
-  const platform = extractPlatformHeaders(request);
-
   return gatewayRequest("agents.delete", {
     agentId,
-    ...platform,
   });
-}
+});

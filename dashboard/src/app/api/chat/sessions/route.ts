@@ -3,36 +3,37 @@
  *
  * GET    — List all sessions
  * DELETE — Delete a session by key
+ *
+ * Gateway contracts:
+ *   sessions.list:   { limit?, activeMinutes?, includeGlobal?, agentId?, ... }
+ *   sessions.delete: { key, deleteTranscript? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest, extractPlatformHeaders } from "@/lib/api-helpers";
+import { gatewayRequest } from "@/lib/api-helpers";
+import { withAuth } from "@/lib/with-auth";
 
-export async function GET(request: NextRequest) {
-  const platform = extractPlatformHeaders(request);
+export const GET = withAuth(async (request: NextRequest) => {
   const { searchParams } = request.nextUrl;
   const agentId = searchParams.get("agentId");
 
   return gatewayRequest("sessions.list", {
-    agentId: agentId ?? undefined,
-    ...platform,
+    ...(agentId ? { agentId } : {}),
+    includeDerivedTitles: true,
+    includeLastMessage: true,
+    limit: 50,
   });
-}
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(async (request: NextRequest) => {
   const body = (await request.json()) as {
     sessionKey?: string;
-    agentId?: string;
   };
 
   if (!body.sessionKey) {
     return Response.json({ error: "sessionKey is required" }, { status: 400 });
   }
 
-  const platform = extractPlatformHeaders(request);
-
   return gatewayRequest("sessions.delete", {
-    sessionKey: body.sessionKey,
-    agentId: body.agentId ?? undefined,
-    ...platform,
+    key: body.sessionKey,
   });
-}
+});
