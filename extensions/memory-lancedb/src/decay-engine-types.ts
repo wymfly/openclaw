@@ -1,32 +1,11 @@
 /**
- * Decay Engine Type Stubs (P3)
+ * Decay Engine Types — re-exports from canonical sources
  *
- * Lightweight interface stubs for the DecayEngine module.
- * Full implementation will come in the P3 lifecycle phase.
+ * MemoryTier is canonically defined in memory-categories.ts.
+ * DecayableMemory, DecayScore, DecayEngine are canonically defined in decay-engine.ts.
+ * This file re-exports them for backward compatibility with existing imports.
  */
 
-export type MemoryTier = "core" | "working" | "peripheral";
+export type { MemoryTier } from "./memory-categories.js";
 
-export interface DecayableMemory {
-  id: string;
-  importance: number;
-  confidence: number;
-  tier: MemoryTier;
-  accessCount: number;
-  createdAt: number;
-  lastAccessedAt: number;
-}
-
-export interface DecayScore {
-  composite: number;
-  recency: number;
-  frequency: number;
-  intrinsic: number;
-}
-
-export interface DecayEngine {
-  /** Compute composite decay score for a memory at a given time. */
-  score(memory: DecayableMemory, nowMs?: number): DecayScore;
-  /** Apply search-time boost/penalty to scored results in-place. */
-  applySearchBoost(scored: Array<{ memory: DecayableMemory; score: number }>, nowMs?: number): void;
-}
+export type { DecayableMemory, DecayScore, DecayEngine } from "./decay-engine.js";
