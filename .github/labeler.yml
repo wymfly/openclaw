@@ -79,6 +79,11 @@
           - "src/telegram/**"
           - "extensions/telegram/**"
           - "docs/channels/telegram.md"
+"channel: wecom":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/wecom/**"
+          - "docs/channels/wecom.md"
 "channel: tlon":
   - changed-files:
       - any-glob-to-any-file:
