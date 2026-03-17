@@ -21,9 +21,12 @@ import {
   FileCode,
   PanelLeftClose,
   PanelLeft,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
+import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { useUIStore, type Panel } from "@/stores/ui";
 
 interface NavItem {
@@ -80,32 +83,85 @@ const navGroups: NavGroup[] = [
 
 export function NavRail() {
   const t = useTranslations("nav");
-  const { sidebarCollapsed, activePanel, toggleSidebar, setActivePanel } = useUIStore();
+  const {
+    sidebarCollapsed,
+    mobileNavOpen,
+    activePanel,
+    toggleSidebar,
+    setSidebarCollapsed,
+    setMobileNavOpen,
+    setActivePanel,
+  } = useUIStore();
 
-  return (
+  const isTablet = useMediaQuery(BREAKPOINTS.tablet);
+  const isMobile = useMediaQuery(BREAKPOINTS.mobile);
+
+  // Auto-collapse sidebar on tablet breakpoint
+  useEffect(() => {
+    if (isTablet) {
+      setSidebarCollapsed(true);
+    }
+  }, [isTablet, setSidebarCollapsed]);
+
+  // Close mobile overlay when switching away from mobile
+  useEffect(() => {
+    if (!isMobile && mobileNavOpen) {
+      setMobileNavOpen(false);
+    }
+  }, [isMobile, mobileNavOpen, setMobileNavOpen]);
+
+  // On mobile, NavRail is hidden unless mobileNavOpen is true (overlay mode)
+  if (isMobile && !mobileNavOpen) {
+    return null;
+  }
+
+  // Determine if we show collapsed (icon-only) view
+  const collapsed = isMobile ? false : sidebarCollapsed;
+
+  const handleNavClick = (panel: Panel) => {
+    setActivePanel(panel);
+    // Close overlay on mobile after selecting a panel
+    if (isMobile) {
+      setMobileNavOpen(false);
+    }
+  };
+
+  const navContent = (
     <nav
       className={`flex flex-col h-full border-r transition-all duration-200 ${
-        sidebarCollapsed ? "w-14" : "w-52"
+        isMobile ? "w-64" : collapsed ? "w-14" : "w-52"
       }`}
       style={{
         borderColor: "var(--border)",
         backgroundColor: "var(--bg-nav)",
       }}
     >
-      {/* Collapse toggle */}
+      {/* Header: collapse toggle (desktop/tablet) or close button (mobile) */}
       <button
-        onClick={toggleSidebar}
+        onClick={() => {
+          if (isMobile) {
+            setMobileNavOpen(false);
+          } else {
+            toggleSidebar();
+          }
+        }}
         className="flex items-center justify-center h-12 hover:opacity-80 transition-opacity"
         style={{ color: "var(--text-secondary)" }}
       >
-        {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+        {isMobile ? (
+          <X size={18} />
+        ) : collapsed ? (
+          <PanelLeft size={18} />
+        ) : (
+          <PanelLeftClose size={18} />
+        )}
       </button>
 
       {/* Nav groups */}
       <div className="flex-1 overflow-y-auto py-2">
         {navGroups.map((group) => (
           <div key={group.titleKey} className="mb-3">
-            {!sidebarCollapsed && (
+            {!collapsed && (
               <div
                 className="px-3 py-1 text-xs font-semibold uppercase tracking-wider"
                 style={{ color: "var(--text-secondary)" }}
@@ -119,23 +175,20 @@ export function NavRail() {
               return (
                 <button
                   key={item.panel}
-                  onClick={() => setActivePanel(item.panel)}
+                  onClick={() => handleNavClick(item.panel)}
                   className={`flex items-center gap-2.5 w-full px-3 py-1.5 text-sm transition-colors ${
-                    sidebarCollapsed ? "justify-center" : ""
+                    collapsed ? "justify-center" : ""
                   }`}
                   style={{
                     color: isActive ? "var(--accent)" : "var(--text-primary)",
-                    backgroundColor: isActive ? "var(--accent)" : "transparent",
-                    ...(isActive
-                      ? {
-                          backgroundColor: "color-mix(in srgb, var(--accent) 12%, transparent)",
-                        }
-                      : {}),
+                    backgroundColor: isActive
+                      ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                      : "transparent",
                   }}
-                  title={sidebarCollapsed ? t(item.labelKey) : undefined}
+                  title={collapsed ? t(item.labelKey) : undefined}
                 >
                   <Icon size={16} />
-                  {!sidebarCollapsed && <span>{t(item.labelKey)}</span>}
+                  {!collapsed && <span>{t(item.labelKey)}</span>}
                 </button>
               );
             })}
@@ -146,9 +199,9 @@ export function NavRail() {
       {/* Bottom: Settings */}
       <div className="border-t py-2" style={{ borderColor: "var(--border)" }}>
         <button
-          onClick={() => setActivePanel("settings")}
+          onClick={() => handleNavClick("settings")}
           className={`flex items-center gap-2.5 w-full px-3 py-1.5 text-sm transition-colors ${
-            sidebarCollapsed ? "justify-center" : ""
+            collapsed ? "justify-center" : ""
           }`}
           style={{
             color: activePanel === "settings" ? "var(--accent)" : "var(--text-primary)",
@@ -157,12 +210,37 @@ export function NavRail() {
                 ? "color-mix(in srgb, var(--accent) 12%, transparent)"
                 : "transparent",
           }}
-          title={sidebarCollapsed ? t("settings") : undefined}
+          title={collapsed ? t("settings") : undefined}
         >
           <Settings size={16} />
-          {!sidebarCollapsed && <span>{t("settings")}</span>}
+          {!collapsed && <span>{t("settings")}</span>}
         </button>
       </div>
     </nav>
   );
+
+  // Mobile: render as overlay with backdrop
+  if (isMobile) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex"
+        onClick={(e) => {
+          // Close when clicking backdrop (not the nav itself)
+          if (e.target === e.currentTarget) {
+            setMobileNavOpen(false);
+          }
+        }}
+      >
+        {navContent}
+        {/* Backdrop */}
+        <div
+          className="flex-1"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+          onClick={() => setMobileNavOpen(false)}
+        />
+      </div>
+    );
+  }
+
+  return navContent;
 }
