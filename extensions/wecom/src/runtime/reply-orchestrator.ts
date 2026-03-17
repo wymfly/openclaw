@@ -1,0 +1,54 @@
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import type { ReplyHandle } from "../types/index.js";
+import type { PreparedSession } from "./session-manager.js";
+
+export async function dispatchReplyPayload(params: {
+  replyHandle: ReplyHandle;
+  payload: {
+    text?: string;
+    mediaUrl?: string;
+    mediaUrls?: string[];
+    replyToId?: string;
+    replyToTag?: boolean;
+    replyToCurrent?: boolean;
+    audioAsVoice?: boolean;
+    isError?: boolean;
+    isReasoning?: boolean;
+    channelData?: Record<string, unknown>;
+  };
+  kind: "block" | "final";
+}): Promise<void> {
+  await params.replyHandle.deliver(params.payload, { kind: params.kind });
+}
+
+export async function dispatchRuntimeReply(params: {
+  core: PluginRuntime;
+  cfg: OpenClawConfig;
+  session: PreparedSession;
+  replyHandle: ReplyHandle;
+}): Promise<void> {
+  const { core, cfg, session, replyHandle } = params;
+  await core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({
+    ctx: session.ctx,
+    cfg,
+    replyOptions:
+      replyHandle.context.transport === "bot-ws"
+        ? {
+            // WS bot replies should emit block updates instead of waiting for a final-only flush.
+            disableBlockStreaming: false,
+          }
+        : undefined,
+    dispatcherOptions: {
+      deliver: async (payload, info) => {
+        await dispatchReplyPayload({
+          replyHandle,
+          payload,
+          kind: info?.kind === "final" ? "final" : "block",
+        });
+      },
+      onError: async (error) => {
+        await replyHandle.fail?.(error);
+      },
+    },
+  });
+}
