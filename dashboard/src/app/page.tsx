@@ -7,10 +7,17 @@ import { ThemeSync } from "@/components/layout/ThemeSync";
 import { ToastContainer } from "@/components/notifications/ToastContainer";
 import { useNotificationSSE } from "@/components/notifications/useNotificationSSE";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { ActivityPanel } from "@/components/panels/activity/ActivityPanel";
 import { AgentsPanel } from "@/components/panels/agents/AgentsPanel";
+import { ChannelsPanel } from "@/components/panels/channels/ChannelsPanel";
 import { ChatPanel } from "@/components/panels/chat/ChatPanel";
+import { ConfigPanel } from "@/components/panels/config-editor/ConfigPanel";
 import { GatewayPanel } from "@/components/panels/gateway/GatewayPanel";
+import { LogsPanel } from "@/components/panels/logs/LogsPanel";
+import { MemoryPanel } from "@/components/panels/memory/MemoryPanel";
 import { ModelsPanel } from "@/components/panels/models/ModelsPanel";
+import { SessionsPanel } from "@/components/panels/sessions/SessionsPanel";
+import { UsagePanel } from "@/components/panels/usage/UsagePanel";
 import { useUIStore, type Panel } from "@/stores/ui";
 
 function PanelPlaceholder({ panel }: { panel: Panel }) {
@@ -37,6 +44,27 @@ function ActivePanel({ panel }: { panel: Panel }) {
   }
   if (panel === "models") {
     return <ModelsPanel />;
+  }
+  if (panel === "usage") {
+    return <UsagePanel />;
+  }
+  if (panel === "sessions") {
+    return <SessionsPanel />;
+  }
+  if (panel === "logs") {
+    return <LogsPanel />;
+  }
+  if (panel === "memory") {
+    return <MemoryPanel />;
+  }
+  if (panel === "activity") {
+    return <ActivityPanel />;
+  }
+  if (panel === "channels") {
+    return <ChannelsPanel />;
+  }
+  if (panel === "config") {
+    return <ConfigPanel />;
   }
   return <PanelPlaceholder panel={panel} />;
 }

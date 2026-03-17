@@ -76,20 +76,37 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "agent.updated",
   "gateway.health",
   "notification.toast",
+  "log.entry",
+  "activity.event",
 ]);
+
+/** Events that should be bridged to the activity feed outbox. */
+const ACTIVITY_BRIDGE_EVENTS = new Set<string>(["chat", "agent", "agent.updated"]);
 
 /**
  * Map ControlPlaneDomainEvent to DeckEventType and broadcast.
  *
  * Gateway WS events arrive as `{ type: "gateway.event", event: "chat"|"agent"|..., payload }`.
  * We extract the inner event name so SSE clients can listen on `"chat"` / `"agent"` directly.
+ *
+ * Agent/chat events are also persisted to the outbox as activity events and
+ * broadcast on the "activity.event" channel for the Activity Feed panel.
  */
-function bridgeDomainEvent(event: ControlPlaneDomainEvent, eventBus: EventBus): void {
+function bridgeDomainEvent(
+  event: ControlPlaneDomainEvent,
+  eventBus: EventBus,
+  store?: ProjectionStore,
+): void {
   if (event.type === "gateway.event" && "event" in event) {
     const innerEvent = event.event as DeckEventType;
     if (VALID_DECK_EVENTS.has(innerEvent)) {
       // Broadcast the payload under the specific event type (e.g., "chat", "agent")
       eventBus.broadcast(innerEvent, event.payload);
+
+      // Bridge agent/chat events into activity outbox.
+      if (ACTIVITY_BRIDGE_EVENTS.has(innerEvent) && store) {
+        bridgeToActivity(innerEvent, event.payload, store, eventBus);
+      }
       return;
     }
     // Unknown inner event — broadcast as generic gateway.event
@@ -102,6 +119,67 @@ function bridgeDomainEvent(event: ControlPlaneDomainEvent, eventBus: EventBus): 
     return;
   }
   eventBus.broadcast("gateway.event", event);
+}
+
+/** Derive an activity event from a Gateway domain event and persist + broadcast it. */
+function bridgeToActivity(
+  eventType: string,
+  payload: unknown,
+  store: ProjectionStore,
+  eventBus: EventBus,
+): void {
+  const p = (payload ?? {}) as Record<string, unknown>;
+  const now = Date.now();
+  const id = `act-${now}-${Math.random().toString(36).slice(2, 8)}`;
+
+  let type: string;
+  let description: string;
+  let agentId: string | undefined;
+  let agentName: string | undefined;
+  let details: string | undefined;
+
+  if (eventType === "chat") {
+    type = "chat";
+    const state = (p.state as string) ?? "";
+    const sessionKey = (p.sessionKey as string) ?? "";
+    description =
+      state === "final"
+        ? `Chat message completed (${sessionKey})`
+        : `Chat ${state} (${sessionKey})`;
+    details = typeof p.errorMessage === "string" ? p.errorMessage : undefined;
+  } else if (eventType === "agent" || eventType === "agent.updated") {
+    type = "agent";
+    agentId = p.agentId as string | undefined;
+    agentName = p.name as string | undefined;
+    const status = p.status as string | undefined;
+    description = status
+      ? `Agent ${agentName ?? agentId ?? "unknown"}: ${status}`
+      : `Agent ${agentName ?? agentId ?? "unknown"} updated`;
+  } else {
+    type = "system";
+    description = `Gateway event: ${eventType}`;
+  }
+
+  const activityPayload = {
+    id,
+    timestamp: now,
+    type,
+    agentId,
+    agentName,
+    description,
+    details,
+  };
+
+  // Persist to outbox.
+  try {
+    store.appendEvent("activity.event", activityPayload);
+  } catch {
+    // Non-critical — log and continue.
+    console.error("[DeckRuntime] failed to persist activity event");
+  }
+
+  // Broadcast via EventBus so SSE clients receive it in real-time.
+  eventBus.broadcast("activity.event", activityPayload);
 }
 
 // ---------------------------------------------------------------------------
@@ -135,7 +213,7 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
       const latest = resolveGatewaySettings(settings, store);
       return latest ?? gwSettings;
     },
-    onDomainEvent: (event) => bridgeDomainEvent(event, eventBus),
+    onDomainEvent: (event) => bridgeDomainEvent(event, eventBus, store),
   });
 
   // Start the adapter (non-blocking — reconnection is handled internally).

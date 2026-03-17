@@ -20,7 +20,10 @@ export type DeckEventType =
   | "agent"
   | "agent.updated"
   | "gateway.health"
-  | "notification.toast";
+  | "notification.toast"
+  // P1 additions
+  | "log.entry"
+  | "activity.event";
 
 export type ServerEvent = {
   id: number;
