@@ -38,9 +38,15 @@ OpenClaw enhanced fork 需要企业微信集成。经过深度调研（评估 10
 - A) 官方 @wecom 插件 → 否决：黑盒 npm，无法嵌入配额/去重/动态 Agent
 - B) 自研 → 否决：消息传输层需要数月迭代才能稳定，现有插件已经历 160 版本打磨
 - C) @dingxiang-me → 否决：26K LOC 但 JS 非 TypeScript，代码量大维护负担重
-- D) @sunnoy → 否决：架构不如 @yanhaidao（无 Zod 验证、无审计日志、无健康状态机）
+- D) @sunnoy → 否决：JS 非 TypeScript，无 Zod 验证，无审计日志/健康状态机。但 @sunnoy 的 flat config keys (`channels.wecom.botId/dmPolicy/groupPolicy`) 与官方插件兼容性更好，且已实现 pairing adapter 和完整的群聊策略。选择 @yanhaidao 意味着需要额外的配置兼容适配工作。
 
-**理由：** TypeScript 完整源码 + Zod schema + 4 层架构分离 + 审计日志/健康状态机 + 生产验证（腾讯云/火山引擎/天翼云）+ 文档双向读写。
+**理由：** TypeScript 完整源码 + Zod schema + 4 层架构分离 + 审计日志/健康状态机 + 生产验证（腾讯云/火山引擎/天翼云）+ 文档双向读写。@sunnoy 的 flat config 优势通过 D2.1 兼容适配器解决。
+
+### D2.1：配置兼容适配器
+
+**选择：** 在增强层实现配置别名映射，使 `channels.wecom.botId` 等 flat keys 自动映射到 @yanhaidao 的嵌套 schema (`channels.wecom.bot.ws.botId`)
+
+**理由：** 保持与官方插件和其他社区插件的配置兼容性，降低用户迁移成本。@yanhaidao 原生 schema 作为内部规范，别名映射在配置加载时一次性完成。
 
 ### D2：增强层隔离在 `src/enhanced/` 目录
 

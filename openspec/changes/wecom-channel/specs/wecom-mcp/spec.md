@@ -7,7 +7,7 @@ The system SHALL fetch MCP Server configuration from the WeCom server after WebS
 #### Scenario: Successful MCP config fetch
 
 - **WHEN** WebSocket authentication succeeds (aibot_subscribe acknowledged)
-- **THEN** system sends `aibot_get_mcp_config` command with `biz_type: "doc"`, receives the MCP Server URL and auth status, and writes to `~/.openclaw/wecomConfig/config.json`
+- **THEN** system sends `aibot_get_mcp_config` command with `biz_type: "doc"`, receives the MCP Server URL and auth status, defaults `type` to `"streamable-http"` if not present in response, and writes to `~/.openclaw/wecomConfig/{accountId}/config.json` (per-account isolation)
 
 #### Scenario: MCP config fetch timeout
 
@@ -44,7 +44,7 @@ The wecom-doc Skill SHALL auto-detect MCP Server configuration from the persiste
 
 #### Scenario: Auto-detection from config file
 
-- **WHEN** wecom-doc Skill is invoked and `~/.openclaw/wecomConfig/config.json` contains a valid `mcpConfig.doc` entry
+- **WHEN** wecom-doc Skill is invoked and `~/.openclaw/wecomConfig/{accountId}/config.json` contains a valid `mcpConfig.doc` entry
 - **THEN** Skill uses the stored MCP Server URL without user interaction
 
 #### Scenario: Manual configuration fallback
