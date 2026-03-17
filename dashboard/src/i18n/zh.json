@@ -39,6 +39,8 @@
     "edit": "编辑",
     "search": "搜索",
     "add": "添加",
+    "on": "开启",
+    "off": "关闭",
     "noConfigurableFields": "此节无可配置项。"
   },
   "chat": {
@@ -46,6 +48,7 @@
     "send": "发送",
     "abort": "停止",
     "newSession": "新建会话",
+    "defaultAgent": "默认智能体",
     "noMessages": "还没有消息，开始对话吧",
     "thinking": "思考中...",
     "toolUse": "工具调用",
@@ -81,7 +84,8 @@
     "busy": "忙碌",
     "error": "异常",
     "offline": "离线",
-    "confirmDelete": "确定删除该智能体？"
+    "confirmDelete": "确定删除该智能体？",
+    "selectAgent": "选择智能体查看详情"
   },
   "models": {
     "title": "模型管理",
@@ -98,7 +102,8 @@
     "setDefault": "设为默认",
     "save": "保存",
     "saved": "已保存",
-    "noModels": "未发现模型"
+    "noModels": "未发现模型",
+    "selectProvider": "选择供应商进行配置"
   },
   "notifications": {
     "info": "提示",
@@ -478,6 +483,8 @@
     "gatewayUrl": "Gateway 地址",
     "gatewayToken": "Gateway Token",
     "testConnection": "测试连接",
+    "connectionSuccess": "连接成功",
+    "connectionFailed": "连接失败",
     "notifications": "通知",
     "notifyApprovals": "审批请求通知",
     "notifyBudget": "预算告警通知",

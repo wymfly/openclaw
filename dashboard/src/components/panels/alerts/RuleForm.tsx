@@ -210,7 +210,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
         <button
           type="submit"
           className="px-4 py-1.5 text-xs font-medium rounded-md"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
         >
           {rule ? t("editRule") : t("addRule")}
         </button>

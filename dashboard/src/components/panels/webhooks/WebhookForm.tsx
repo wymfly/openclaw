@@ -150,7 +150,7 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
               className="px-2 py-1 text-xs rounded-md border transition-colors"
               style={{
                 backgroundColor: events.includes(event) ? "var(--accent)" : "transparent",
-                color: events.includes(event) ? "#fff" : "var(--text-secondary)",
+                color: events.includes(event) ? "var(--accent-fg)" : "var(--text-secondary)",
                 borderColor: events.includes(event) ? "var(--accent)" : "var(--border)",
               }}
               onClick={() => toggleEvent(event)}
@@ -185,7 +185,7 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
           type="submit"
           disabled={saving}
           className="px-4 py-2 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
         >
           {tc("save")}
         </button>

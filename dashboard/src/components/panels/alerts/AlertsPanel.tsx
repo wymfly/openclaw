@@ -95,7 +95,7 @@ export function AlertsPanel() {
               className="px-3 py-1 text-xs rounded-md font-medium transition-colors"
               style={{
                 backgroundColor: tab === t.key ? "var(--accent)" : "transparent",
-                color: tab === t.key ? "#fff" : "var(--text-secondary)",
+                color: tab === t.key ? "var(--accent-fg)" : "var(--text-secondary)",
               }}
               onClick={() => setTab(t.key)}
             >
@@ -111,7 +111,7 @@ export function AlertsPanel() {
               setShowForm(true);
             }}
             className="px-3 py-1 text-xs font-medium rounded-md"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
           >
             {t("addRule")}
           </button>

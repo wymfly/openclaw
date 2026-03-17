@@ -55,7 +55,7 @@ export function RuleList({ rules, onEdit, onDelete, onToggle }: RuleListProps) {
                 className="px-2 py-0.5 text-xs rounded-full"
                 style={{
                   backgroundColor: rule.enabled ? "var(--accent)" : "var(--border)",
-                  color: rule.enabled ? "#fff" : "var(--text-secondary)",
+                  color: rule.enabled ? "var(--accent-fg)" : "var(--text-secondary)",
                 }}
               >
                 {rule.enabled ? t("enabled") : t("disabled")}
@@ -111,7 +111,7 @@ export function RuleList({ rules, onEdit, onDelete, onToggle }: RuleListProps) {
               className="px-2 py-1 text-xs rounded border"
               style={{
                 borderColor: "var(--border)",
-                color: "var(--danger, #ef4444)",
+                color: "var(--danger)",
               }}
             >
               {t("deleteRule")}

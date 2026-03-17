@@ -137,10 +137,7 @@ export function MemoryPanel() {
               className="text-xs px-3 py-1 rounded border cursor-pointer"
               style={{
                 borderColor: activeTab === tab ? "var(--accent)" : "var(--border)",
-                backgroundColor:
-                  activeTab === tab
-                    ? "var(--accent-muted, rgba(59,130,246,0.1))"
-                    : "var(--bg-primary)",
+                backgroundColor: activeTab === tab ? "var(--accent-muted)" : "var(--bg-primary)",
                 color: activeTab === tab ? "var(--accent)" : "var(--text-primary)",
               }}
             >

@@ -5,11 +5,11 @@ import { useTranslations } from "next-intl";
 import { useGatewayStore, type GatewayStatus } from "@/stores/gateway";
 
 const STATUS_CONFIG: Record<GatewayStatus, { color: string; icon: typeof Wifi }> = {
-  connected: { color: "#22c55e", icon: Wifi },
-  connecting: { color: "#eab308", icon: RefreshCw },
-  reconnecting: { color: "#eab308", icon: RefreshCw },
-  disconnected: { color: "#6b7280", icon: WifiOff },
-  error: { color: "#ef4444", icon: AlertCircle },
+  connected: { color: "var(--success)", icon: Wifi },
+  connecting: { color: "var(--warning)", icon: RefreshCw },
+  reconnecting: { color: "var(--warning)", icon: RefreshCw },
+  disconnected: { color: "var(--neutral-muted-text)", icon: WifiOff },
+  error: { color: "var(--danger)", icon: AlertCircle },
 };
 
 function statusI18nKey(status: GatewayStatus): string {

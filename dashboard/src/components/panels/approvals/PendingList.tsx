@@ -45,8 +45,8 @@ export function PendingList() {
               <span
                 className="text-xs font-medium px-2 py-0.5 rounded"
                 style={{
-                  backgroundColor: "rgba(234, 179, 8, 0.15)",
-                  color: "#eab308",
+                  backgroundColor: "var(--warning-muted)",
+                  color: "var(--warning)",
                 }}
               >
                 {t("command")}

@@ -12,9 +12,9 @@ type FiredAlertsListProps = {
 };
 
 const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
-  info: { bg: "var(--accent)", text: "#fff" },
-  warning: { bg: "#f59e0b", text: "#fff" },
-  critical: { bg: "#ef4444", text: "#fff" },
+  info: { bg: "var(--accent)", text: "var(--accent-fg)" },
+  warning: { bg: "var(--warning)", text: "var(--warning-fg)" },
+  critical: { bg: "var(--danger)", text: "var(--danger-fg)" },
 };
 
 // ---------------------------------------------------------------------------

@@ -136,7 +136,7 @@ export function CronPanel() {
                   <button
                     type="button"
                     className="px-2 py-1 text-xs rounded-md transition-colors"
-                    style={{ backgroundColor: "#ef4444", color: "#fff" }}
+                    style={{ backgroundColor: "var(--danger)", color: "var(--danger-fg)" }}
                     onClick={handleDelete}
                   >
                     {t("deleteJob")}

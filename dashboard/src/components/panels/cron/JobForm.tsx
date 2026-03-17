@@ -115,7 +115,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
               style={{
                 backgroundColor: template === key ? "var(--accent)" : "var(--bg-tertiary)",
-                color: template === key ? "#fff" : "var(--text-secondary)",
+                color: template === key ? "var(--accent-fg)" : "var(--text-secondary)",
               }}
               onClick={() => setTemplate(key)}
             >
@@ -152,7 +152,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
               style={{
                 backgroundColor: sessionTarget === mode ? "var(--accent)" : "var(--bg-tertiary)",
-                color: sessionTarget === mode ? "#fff" : "var(--text-secondary)",
+                color: sessionTarget === mode ? "var(--accent-fg)" : "var(--text-secondary)",
               }}
               onClick={() => setSessionTarget(mode)}
             >
@@ -175,7 +175,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
               style={{
                 backgroundColor: wakeMode === mode ? "var(--accent)" : "var(--bg-tertiary)",
-                color: wakeMode === mode ? "#fff" : "var(--text-secondary)",
+                color: wakeMode === mode ? "var(--accent-fg)" : "var(--text-secondary)",
               }}
               onClick={() => setWakeMode(mode)}
             >
@@ -198,7 +198,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
               style={{
                 backgroundColor: payloadKind === kind ? "var(--accent)" : "var(--bg-tertiary)",
-                color: payloadKind === kind ? "#fff" : "var(--text-secondary)",
+                color: payloadKind === kind ? "var(--accent-fg)" : "var(--text-secondary)",
               }}
               onClick={() => setPayloadKind(kind)}
             >
@@ -266,7 +266,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
         <button
           type="button"
           className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
           onClick={handleSave}
           disabled={saving || !name.trim()}
         >

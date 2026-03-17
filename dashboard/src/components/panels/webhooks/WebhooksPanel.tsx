@@ -107,7 +107,7 @@ export function WebhooksPanel() {
           <button
             type="button"
             className="px-2 py-1 text-xs rounded-md font-medium"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
             onClick={handleCreate}
           >
             + {tc("create")}
@@ -148,8 +148,8 @@ export function WebhooksPanel() {
                 <span
                   className="text-xs px-1.5 py-0.5 rounded"
                   style={{
-                    backgroundColor: wh.enabled ? "rgba(34,197,94,0.15)" : "rgba(156,163,175,0.15)",
-                    color: wh.enabled ? "rgb(34,197,94)" : "rgb(156,163,175)",
+                    backgroundColor: wh.enabled ? "var(--success-muted)" : "var(--neutral-muted)",
+                    color: wh.enabled ? "var(--success)" : "var(--neutral-muted-text)",
                   }}
                 >
                   {wh.enabled ? t("enabled") : t("disabled")}
@@ -173,8 +173,8 @@ export function WebhooksPanel() {
             className="px-4 py-2 text-xs border-b"
             style={{
               borderColor: "var(--border)",
-              color: "rgb(239,68,68)",
-              backgroundColor: "rgba(239,68,68,0.05)",
+              color: "var(--danger)",
+              backgroundColor: "var(--danger-muted)",
             }}
           >
             {error}
@@ -220,7 +220,7 @@ export function WebhooksPanel() {
                       <button
                         type="button"
                         className="px-3 py-1 text-xs rounded-md font-medium"
-                        style={{ backgroundColor: "rgb(239,68,68)", color: "#fff" }}
+                        style={{ backgroundColor: "var(--danger)", color: "var(--accent-fg)" }}
                         onClick={() => void handleDelete(selectedWebhook.id)}
                       >
                         {tc("delete")}
@@ -238,7 +238,7 @@ export function WebhooksPanel() {
                     <button
                       type="button"
                       className="px-3 py-1 text-xs rounded-md border"
-                      style={{ borderColor: "var(--border)", color: "rgb(239,68,68)" }}
+                      style={{ borderColor: "var(--border)", color: "var(--danger)" }}
                       onClick={() => setConfirmDeleteId(selectedWebhook.id)}
                     >
                       {tc("delete")}

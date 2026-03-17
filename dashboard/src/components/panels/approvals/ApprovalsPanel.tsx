@@ -61,10 +61,7 @@ export function ApprovalsPanel() {
               className="text-xs px-3 py-1 rounded border cursor-pointer"
               style={{
                 borderColor: activeTab === tab ? "var(--accent)" : "var(--border)",
-                backgroundColor:
-                  activeTab === tab
-                    ? "var(--accent-muted, rgba(59,130,246,0.1))"
-                    : "var(--bg-primary)",
+                backgroundColor: activeTab === tab ? "var(--accent-muted)" : "var(--bg-primary)",
                 color: activeTab === tab ? "var(--accent)" : "var(--text-primary)",
               }}
             >
@@ -73,8 +70,8 @@ export function ApprovalsPanel() {
                 <span
                   className="ml-1 px-1.5 py-0.5 rounded-full text-xs"
                   style={{
-                    backgroundColor: "rgba(234, 179, 8, 0.2)",
-                    color: "#eab308",
+                    backgroundColor: "var(--warning-muted)",
+                    color: "var(--warning)",
                     fontSize: "0.65rem",
                   }}
                 >

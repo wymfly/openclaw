@@ -65,7 +65,7 @@ export function UsagePanel() {
               className="px-3 py-1 text-xs rounded-md font-medium transition-colors"
               style={{
                 backgroundColor: timeWindow === w ? "var(--accent)" : "transparent",
-                color: timeWindow === w ? "#fff" : "var(--text-secondary)",
+                color: timeWindow === w ? "var(--accent-fg)" : "var(--text-secondary)",
               }}
               onClick={() => setTimeWindow(w)}
             >

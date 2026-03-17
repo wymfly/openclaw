@@ -82,7 +82,7 @@ export function AgentList() {
               onClick={() => void handleCreate()}
               disabled={!newName.trim() || creating}
               className="flex-1 text-xs px-2 py-1 rounded disabled:opacity-40"
-              style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+              style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
             >
               {tc("create")}
             </button>

@@ -90,7 +90,7 @@ export function BudgetPanel() {
           <button
             type="button"
             className="px-2 py-1 text-xs rounded-md font-medium"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
             onClick={handleCreate}
           >
             + {tc("create")}
@@ -125,8 +125,8 @@ export function BudgetPanel() {
             className="px-4 py-2 text-xs border-b"
             style={{
               borderColor: "var(--border)",
-              color: "rgb(239,68,68)",
-              backgroundColor: "rgba(239,68,68,0.05)",
+              color: "var(--danger)",
+              backgroundColor: "var(--danger-muted)",
             }}
           >
             {error}
@@ -153,7 +153,7 @@ export function BudgetPanel() {
                       <button
                         type="button"
                         className="px-3 py-1 text-xs rounded-md font-medium"
-                        style={{ backgroundColor: "rgb(239,68,68)", color: "#fff" }}
+                        style={{ backgroundColor: "var(--danger)", color: "var(--danger-fg)" }}
                         onClick={() => void handleDelete(editingRule.id)}
                       >
                         {t("confirmDelete")}
@@ -171,7 +171,7 @@ export function BudgetPanel() {
                     <button
                       type="button"
                       className="px-3 py-1 text-xs rounded-md border"
-                      style={{ borderColor: "var(--border)", color: "rgb(239,68,68)" }}
+                      style={{ borderColor: "var(--border)", color: "var(--danger)" }}
                       onClick={() => setConfirmDeleteId(editingRule.id)}
                     >
                       {tc("delete")}

@@ -44,7 +44,7 @@ export function AppearanceSection() {
                 className="px-3 py-1.5 text-xs rounded-md font-medium transition-colors"
                 style={{
                   backgroundColor: theme === value ? "var(--accent)" : "var(--bg-primary)",
-                  color: theme === value ? "#fff" : "var(--text-secondary)",
+                  color: theme === value ? "var(--accent-fg)" : "var(--text-secondary)",
                   border: theme === value ? "none" : "1px solid var(--border)",
                 }}
                 onClick={() => setTheme(value)}
@@ -68,7 +68,7 @@ export function AppearanceSection() {
                 className="px-3 py-1.5 text-xs rounded-md font-medium transition-colors"
                 style={{
                   backgroundColor: locale === value ? "var(--accent)" : "var(--bg-primary)",
-                  color: locale === value ? "#fff" : "var(--text-secondary)",
+                  color: locale === value ? "var(--accent-fg)" : "var(--text-secondary)",
                   border: locale === value ? "none" : "1px solid var(--border)",
                 }}
                 onClick={() => setLocale(value)}

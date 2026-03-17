@@ -74,9 +74,7 @@ export function KnowledgeGraph() {
               className="text-xs px-2 py-0.5 rounded shrink-0"
               style={{
                 backgroundColor:
-                  node.type === "directory"
-                    ? "var(--accent-muted, rgba(59,130,246,0.1))"
-                    : "var(--bg-tertiary, rgba(255,255,255,0.05))",
+                  node.type === "directory" ? "var(--accent-muted)" : "var(--bg-tertiary)",
                 color: node.type === "directory" ? "var(--accent)" : "var(--text-secondary)",
               }}
             >

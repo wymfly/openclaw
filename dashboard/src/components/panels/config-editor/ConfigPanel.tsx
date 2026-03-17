@@ -196,7 +196,7 @@ export function ConfigPanel() {
             onClick={handleSave}
             disabled={!isDirty || saving}
             className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
           >
             <Save size={12} />
             {saving ? t("saving") : t("save")}

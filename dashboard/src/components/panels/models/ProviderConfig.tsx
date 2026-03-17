@@ -123,7 +123,7 @@ export function ProviderConfig({ provider }: { provider: string }) {
             onClick={() => void handleSave()}
             disabled={saving}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
           >
             <Save size={12} />
             {saved ? t("saved") : t("save")}

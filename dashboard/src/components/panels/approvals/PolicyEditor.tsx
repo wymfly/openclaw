@@ -59,6 +59,7 @@ interface PolicyToggleProps {
 }
 
 function PolicyToggle({ label, value, onChange }: PolicyToggleProps) {
+  const tc = useTranslations("common");
   return (
     <div className="flex items-center gap-2">
       <span
@@ -73,10 +74,10 @@ function PolicyToggle({ label, value, onChange }: PolicyToggleProps) {
         style={{
           borderColor: value ? "var(--status-connected)" : "var(--border)",
           color: value ? "var(--status-connected)" : "var(--text-secondary)",
-          backgroundColor: value ? "rgba(34, 197, 94, 0.1)" : "transparent",
+          backgroundColor: value ? "var(--success-muted)" : "transparent",
         }}
       >
-        {value ? "ON" : "OFF"}
+        {value ? tc("on") : tc("off")}
       </button>
     </div>
   );
@@ -293,7 +294,7 @@ export function PolicyEditor() {
           style={{
             borderColor: "var(--accent)",
             backgroundColor: "var(--accent)",
-            color: "#fff",
+            color: "var(--accent-fg)",
             opacity: saving ? 0.6 : 1,
           }}
         >

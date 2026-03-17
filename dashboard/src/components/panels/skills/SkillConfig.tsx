@@ -76,7 +76,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
             className="px-2 py-1 text-[11px] rounded-md transition-colors"
             style={{
               backgroundColor: skill.enabled ? "var(--accent)" : "var(--bg-tertiary)",
-              color: skill.enabled ? "#fff" : "var(--text-secondary)",
+              color: skill.enabled ? "var(--accent-fg)" : "var(--text-secondary)",
             }}
             onClick={handleToggle}
           >
@@ -88,7 +88,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
             <button
               type="button"
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
-              style={{ backgroundColor: "#8b5cf6", color: "#fff" }}
+              style={{ backgroundColor: "var(--purple)", color: "var(--accent-fg)" }}
               onClick={handleInstall}
               disabled={installing}
             >
@@ -110,7 +110,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
       {skill.missingRequirements && skill.missingRequirements.length > 0 && (
         <div
           className="text-xs px-3 py-2 rounded-md"
-          style={{ backgroundColor: "#fef3c7", color: "#92400e" }}
+          style={{ backgroundColor: "var(--skill-warning-bg)", color: "var(--skill-warning-text)" }}
         >
           <span className="font-medium">{t("missingRequirements")}:</span>{" "}
           {skill.missingRequirements.join(", ")}
@@ -147,7 +147,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
             style={{ color: "var(--accent)" }}
             onClick={addEnvPair}
           >
-            + Add
+            + {tc("add")}
           </button>
         </div>
         {envPairs.map((pair, idx) => (
@@ -179,7 +179,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
             <button
               type="button"
               className="text-xs px-1"
-              style={{ color: "#ef4444" }}
+              style={{ color: "var(--danger)" }}
               onClick={() => removeEnvPair(idx)}
             >
               x
@@ -192,7 +192,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
       <button
         type="button"
         className="self-start px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-        style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+        style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
         onClick={handleSave}
         disabled={saving}
       >

@@ -47,7 +47,7 @@ export function ConflictDialog({ onReload, onCancel }: ConflictDialogProps) {
           <button
             onClick={onReload}
             className="text-xs px-3 py-1.5 rounded"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
           >
             {t("reload")}
           </button>

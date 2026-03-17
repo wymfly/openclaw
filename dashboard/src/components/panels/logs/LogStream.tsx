@@ -9,10 +9,10 @@ import { useLogsStore, type LogLevel } from "@/stores/logs";
 // ---------------------------------------------------------------------------
 
 const LEVEL_COLORS: Record<LogLevel, { bg: string; text: string }> = {
-  debug: { bg: "var(--bg-tertiary, #374151)", text: "var(--text-secondary, #9ca3af)" },
-  info: { bg: "var(--accent-muted, #1e3a5f)", text: "var(--accent, #3b82f6)" },
-  warn: { bg: "rgba(234, 179, 8, 0.15)", text: "#eab308" },
-  error: { bg: "rgba(239, 68, 68, 0.15)", text: "#ef4444" },
+  debug: { bg: "var(--bg-tertiary)", text: "var(--text-secondary)" },
+  info: { bg: "var(--accent-muted)", text: "var(--accent)" },
+  warn: { bg: "var(--warning-muted)", text: "var(--warning)" },
+  error: { bg: "var(--danger-muted)", text: "var(--danger)" },
 };
 
 /**

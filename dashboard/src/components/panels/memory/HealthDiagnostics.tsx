@@ -9,15 +9,15 @@ import { useMemoryStore } from "@/stores/memory";
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   ok: {
-    bg: "rgba(34, 197, 94, 0.15)",
-    text: "#22c55e",
+    bg: "var(--success-muted)",
+    text: "var(--success)",
   },
   error: {
-    bg: "rgba(239, 68, 68, 0.15)",
-    text: "#ef4444",
+    bg: "var(--danger-muted)",
+    text: "var(--danger)",
   },
   unknown: {
-    bg: "var(--bg-tertiary, rgba(255,255,255,0.05))",
+    bg: "var(--bg-tertiary)",
     text: "var(--text-secondary)",
   },
 };
@@ -36,8 +36,8 @@ export function HealthDiagnostics() {
       <div
         className="text-xs mb-4 px-3 py-2 rounded inline-block"
         style={{
-          backgroundColor: isLanceDbEnabled ? "rgba(34, 197, 94, 0.1)" : "rgba(234, 179, 8, 0.1)",
-          color: isLanceDbEnabled ? "#22c55e" : "#eab308",
+          backgroundColor: isLanceDbEnabled ? "var(--success-muted)" : "var(--warning-muted)",
+          color: isLanceDbEnabled ? "var(--success)" : "var(--warning)",
         }}
       >
         {isLanceDbEnabled ? t("lancedbEnabled") : t("lancedbDisabled")}

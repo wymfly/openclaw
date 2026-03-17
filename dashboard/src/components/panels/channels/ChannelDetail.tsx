@@ -243,7 +243,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
                   className="text-xs px-3 py-1 rounded disabled:opacity-40"
                   style={{
                     backgroundColor: "var(--status-disconnected)",
-                    color: "#fff",
+                    color: "var(--accent-fg)",
                   }}
                 >
                   {t("logout")}

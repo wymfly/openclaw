@@ -8,21 +8,21 @@ import { useSessionsStore, type SessionEntry, type SessionKind } from "@/stores/
 // ---------------------------------------------------------------------------
 
 const KIND_COLORS: Record<SessionKind, string> = {
-  direct: "#3b82f6", // blue
-  group: "#22c55e", // green
-  global: "#a855f7", // purple
-  unknown: "#6b7280", // gray
+  direct: "var(--accent)",
+  group: "var(--success)",
+  global: "var(--purple)",
+  unknown: "var(--neutral-muted-text)",
 };
 
 /** Color for context usage percentage. */
 function pressureColor(pct: number): string {
   if (pct >= 80) {
-    return "#ef4444";
+    return "var(--danger)";
   }
   if (pct >= 60) {
-    return "#eab308";
+    return "var(--warning)";
   }
-  return "#22c55e";
+  return "var(--success)";
 }
 
 /** Compute context usage percentage (0-100). */

@@ -16,6 +16,7 @@ const CATEGORY_COLORS: Record<DocCategory, string> = {
 
 export function DocViewer() {
   const t = useTranslations("docs");
+  const tc = useTranslations("common");
   const { selectedDoc, deleteDoc, selectDoc } = useDocsStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -106,7 +107,7 @@ export function DocViewer() {
             <button
               type="button"
               className="px-3 py-1 text-xs rounded-md font-medium"
-              style={{ backgroundColor: "#ef4444", color: "#fff" }}
+              style={{ backgroundColor: "var(--danger)", color: "var(--danger-fg)" }}
               onClick={() => void handleDelete()}
             >
               {t("confirmDelete")}
@@ -117,14 +118,14 @@ export function DocViewer() {
               style={{ color: "var(--text-secondary)" }}
               onClick={() => setConfirmDelete(false)}
             >
-              Cancel
+              {tc("cancel")}
             </button>
           </div>
         ) : (
           <button
             type="button"
             className="px-3 py-1 text-xs rounded-md font-medium"
-            style={{ color: "#ef4444" }}
+            style={{ color: "var(--danger)" }}
             onClick={() => setConfirmDelete(true)}
           >
             {t("delete")}

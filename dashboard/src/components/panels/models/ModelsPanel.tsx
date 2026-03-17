@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useModelsStore } from "@/stores/models";
 import { ModelCatalog } from "./ModelCatalog";
@@ -10,6 +11,7 @@ import { ProviderConfig } from "./ProviderConfig";
  * Composes model catalog (left) and provider config (right).
  */
 export function ModelsPanel() {
+  const t = useTranslations("models");
   const { selectedProvider, fetchModels, fetchProviderConfig } = useModelsStore();
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function ModelsPanel() {
             className="flex items-center justify-center h-full"
             style={{ color: "var(--text-secondary)" }}
           >
-            <p className="text-sm">Select a provider to configure</p>
+            <p className="text-sm">{t("selectProvider")}</p>
           </div>
         )}
       </div>

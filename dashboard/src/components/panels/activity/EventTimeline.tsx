@@ -10,24 +10,24 @@ import { useActivityStore, type ActivityEventType } from "@/stores/activity";
 
 const TYPE_COLORS: Record<ActivityEventType, { bg: string; text: string }> = {
   tool_call: {
-    bg: "rgba(168, 85, 247, 0.15)",
-    text: "#a855f7",
+    bg: "var(--purple-muted)",
+    text: "var(--purple)",
   },
   chat: {
-    bg: "var(--accent-muted, rgba(59,130,246,0.1))",
-    text: "var(--accent, #3b82f6)",
+    bg: "var(--accent-muted)",
+    text: "var(--accent)",
   },
   status: {
-    bg: "rgba(234, 179, 8, 0.15)",
-    text: "#eab308",
+    bg: "var(--warning-muted)",
+    text: "var(--warning)",
   },
   agent: {
-    bg: "rgba(34, 197, 94, 0.15)",
-    text: "#22c55e",
+    bg: "var(--success-muted)",
+    text: "var(--success)",
   },
   system: {
-    bg: "var(--bg-tertiary, rgba(255,255,255,0.05))",
-    text: "var(--text-secondary, #9ca3af)",
+    bg: "var(--bg-tertiary)",
+    text: "var(--text-secondary)",
   },
 };
 

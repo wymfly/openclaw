@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useAgentsStore } from "@/stores/agents";
 import { AgentDetail } from "./AgentDetail";
@@ -10,6 +11,7 @@ import { AgentList } from "./AgentList";
  * Composes agent list sidebar and detail view.
  */
 export function AgentsPanel() {
+  const t = useTranslations("agents");
   const { selectedAgentId, fetchAgents } = useAgentsStore();
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export function AgentsPanel() {
             className="flex items-center justify-center h-full"
             style={{ color: "var(--text-secondary)" }}
           >
-            <p className="text-sm">Select an agent to view details</p>
+            <p className="text-sm">{t("selectAgent")}</p>
           </div>
         )}
       </div>
