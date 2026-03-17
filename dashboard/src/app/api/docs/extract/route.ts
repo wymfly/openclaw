@@ -18,15 +18,16 @@ export const POST = withAuth(async (request: NextRequest) => {
   const body = (await request.json()) as { sessionKey?: string };
 
   try {
-    // Fetch conversation messages via Gateway RPC
-    let messages: Array<{ role: string; content: string }> = [];
+    // Fetch conversation messages via Gateway RPC.
+    // content may be string or ContentBlock[] — doc-extractor.flattenContent handles both.
+    let messages: Array<{ role: string; content: unknown }> = [];
     try {
       const params: Record<string, unknown> = {};
       if (body.sessionKey) {
         params.sessionKey = body.sessionKey;
       }
       const raw = await runtime.adapter.request("chat.history", params);
-      const typed = raw as { messages?: Array<{ role: string; content: string }> } | undefined;
+      const typed = raw as { messages?: Array<{ role: string; content: unknown }> } | undefined;
       messages = typed?.messages ?? [];
     } catch {
       return NextResponse.json({ error: "Failed to fetch conversation history" }, { status: 502 });

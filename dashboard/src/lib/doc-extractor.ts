@@ -188,11 +188,32 @@ export function extractKeywords(text: string, category: DocCategory): string[] {
 }
 
 /**
+ * Flatten message content — handles both string and ContentBlock[] formats.
+ * Gateway chat.history may return content as an array of blocks:
+ * `[{ type: "text", text: "..." }, { type: "tool_use", ... }]`
+ */
+function flattenContent(content: unknown): string {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter(
+        (block: Record<string, unknown>) => block.type === "text" && typeof block.text === "string",
+      )
+      .map((block: Record<string, unknown>) => block.text as string)
+      .join("\n\n");
+  }
+  return "";
+}
+
+/**
  * Extract document candidates from conversation messages.
  * Only processes assistant messages with substantive content (≥ 200 chars).
+ * Handles both string content and ContentBlock[] from Gateway.
  */
 export function extractDocsFromMessages(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: unknown }>,
 ): ExtractionResult[] {
   const results: ExtractionResult[] = [];
 
@@ -200,19 +221,20 @@ export function extractDocsFromMessages(
     if (msg.role !== "assistant") {
       continue;
     }
-    if (!msg.content || msg.content.length < MIN_CONTENT_LENGTH) {
+    const text = flattenContent(msg.content);
+    if (!text || text.length < MIN_CONTENT_LENGTH) {
       continue;
     }
 
-    const category = categorizeContent(msg.content);
-    const title = extractTitle(msg.content);
-    const language = detectLanguage(msg.content);
-    const keywords = extractKeywords(msg.content, category);
+    const category = categorizeContent(text);
+    const title = extractTitle(text);
+    const language = detectLanguage(text);
+    const keywords = extractKeywords(text, category);
 
     results.push({
       title,
       category,
-      content: msg.content,
+      content: text,
       keywords,
       language,
     });

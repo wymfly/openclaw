@@ -28,7 +28,9 @@ export const GET = withAuth(async () => {
 
   return NextResponse.json({
     gatewayUrl,
-    gatewayToken: gatewayToken ? "***" : "",
+    // Use same sentinel as PATCH check (••••••) to prevent third-party clients
+    // from accidentally overwriting the real token via GET→PATCH roundtrip.
+    gatewayToken: gatewayToken ? "••••••" : "",
     notificationPrefs,
   });
 });
