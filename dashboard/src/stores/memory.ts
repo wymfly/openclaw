@@ -180,13 +180,33 @@ export const useMemoryStore = create<MemoryState>((set, _get) => ({
         set({ error: "Failed to fetch health status" });
         return;
       }
-      const data = (await res.json()) as {
-        entries?: MemoryHealthEntry[];
-        lanceDbEnabled?: boolean;
-      };
+      const data = (await res.json()) as Record<string, unknown>;
+      // doctor.memory.status may return a single object `{ agentId, provider, embedding }`
+      // or `{ entries: [...], lanceDbEnabled }` or an array. Handle all shapes.
+      let entries: MemoryHealthEntry[];
+      if (Array.isArray(data)) {
+        entries = data as MemoryHealthEntry[];
+      } else if (Array.isArray(data.entries)) {
+        entries = data.entries as MemoryHealthEntry[];
+      } else if (data.agentId || data.provider) {
+        // Single-object response from doctor.memory.status
+        entries = [
+          {
+            agentId: typeof data.agentId === "string" ? data.agentId : "",
+            provider: typeof data.provider === "string" ? data.provider : "",
+            embeddingStatus:
+              data.embedding === "ok" || data.embeddingStatus === "ok" ? "ok" : "unknown",
+            error: typeof data.error === "string" ? data.error : undefined,
+          },
+        ];
+      } else {
+        entries = [];
+      }
       set({
-        healthStatus: data.entries ?? [],
-        isLanceDbEnabled: data.lanceDbEnabled ?? false,
+        healthStatus: entries,
+        isLanceDbEnabled: Boolean(
+          data.lanceDbEnabled ?? entries.some((e) => e.provider === "lancedb"),
+        ),
       });
     } catch {
       set({ error: "Failed to fetch health" });

@@ -35,7 +35,11 @@ async function resolveMemoryPath(agentId: string): Promise<string | null> {
   try {
     // Ask Gateway for the agent's memory/files path.
     const res = await runtime.adapter.request("agents.files.list", { agentId });
-    // If we got a basePath from the gateway, use it.
+    // Gateway returns `workspace` from agents.files.list.
+    if (res && typeof res === "object" && "workspace" in res) {
+      return (res as { workspace: string }).workspace;
+    }
+    // Legacy fallback for older gateways that return `basePath`.
     if (res && typeof res === "object" && "basePath" in res) {
       return (res as { basePath: string }).basePath;
     }
@@ -53,13 +57,36 @@ async function resolveMemoryPath(agentId: string): Promise<string | null> {
  * Returns the safe absolute path or null if traversal is detected.
  */
 function safePath(base: string, subPath: string): string | null {
+  const resolvedBase = resolve(base);
   const resolved = resolve(base, subPath);
-  const rel = relative(base, resolved);
+  const rel = relative(resolvedBase, resolved);
   // Traversal check: relative path must not start with ".." or be absolute.
   if (rel.startsWith("..") || resolve(rel) === rel) {
     return null;
   }
+  // Belt-and-suspenders: ensure resolved path is within the base directory.
+  if (!resolved.startsWith(resolvedBase + "/") && resolved !== resolvedBase) {
+    return null;
+  }
   return resolved;
+}
+
+/** Validate agentId: must be alphanumeric, hyphens, or underscores only. */
+function isValidAgentId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]+$/.test(id);
+}
+
+/** Validate sub-path: must not contain `..` segments or be absolute. */
+function isValidSubPath(p: string): boolean {
+  if (!p) {
+    return true;
+  }
+  // Reject absolute paths and `..` traversal segments
+  if (p.startsWith("/") || p.startsWith("\\")) {
+    return false;
+  }
+  const segments = p.split(/[/\\]/);
+  return !segments.some((s) => s === "..");
 }
 
 export const GET = withAuth(async (request: NextRequest) => {
@@ -70,6 +97,20 @@ export const GET = withAuth(async (request: NextRequest) => {
 
   if (!agentId) {
     return NextResponse.json({ error: "agentId is required" }, { status: 400 });
+  }
+
+  if (!isValidAgentId(agentId)) {
+    return NextResponse.json(
+      { error: "Invalid agentId — must be alphanumeric, hyphens, or underscores" },
+      { status: 400 },
+    );
+  }
+
+  if (!isValidSubPath(subPath)) {
+    return NextResponse.json(
+      { error: "Invalid path — must be relative without '..' segments" },
+      { status: 400 },
+    );
   }
 
   const basePath = await resolveMemoryPath(agentId);

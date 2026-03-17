@@ -95,18 +95,36 @@ export const useUsageStore = create<UsageState>((set, get) => ({
         return;
       }
 
-      const statusData = await statusRes.json();
-      const costData = await costRes.json();
+      const statusData = (await statusRes.json()) as Record<string, unknown>;
+      const costData = (await costRes.json()) as Record<string, unknown>;
+
+      // usage.status returns `{ updatedAt, providers: [...] }` — aggregate across providers.
+      let tokensIn = 0;
+      let tokensOut = 0;
+      let totalTokens = 0;
+      const providers = Array.isArray(statusData.providers) ? statusData.providers : [];
+      for (const p of providers as Record<string, unknown>[]) {
+        tokensIn += Number(p.inputTokens ?? p.tokensIn ?? 0);
+        tokensOut += Number(p.outputTokens ?? p.tokensOut ?? 0);
+        totalTokens += Number(p.totalTokens ?? 0);
+      }
+      // Fallback: if top-level fields exist (legacy gateway), use them.
+      if (providers.length === 0) {
+        tokensIn = Number(statusData.tokensIn ?? statusData.inputTokens ?? 0);
+        tokensOut = Number(statusData.tokensOut ?? statusData.outputTokens ?? 0);
+        totalTokens = Number(statusData.totalTokens ?? 0);
+      }
+      if (totalTokens === 0 && (tokensIn > 0 || tokensOut > 0)) {
+        totalTokens = tokensIn + tokensOut;
+      }
+
+      // usage.cost returns `{ totalCost }` or `{ cost }`.
+      const totalCost = Number(costData.totalCost ?? costData.cost ?? 0);
 
       set({
-        summary: {
-          tokensIn: statusData.tokensIn ?? 0,
-          tokensOut: statusData.tokensOut ?? 0,
-          totalTokens: statusData.totalTokens ?? 0,
-          totalCost: costData.totalCost ?? 0,
-        },
-        modelBreakdown: statusData.modelBreakdown ?? [],
-        agentBreakdown: statusData.agentBreakdown ?? [],
+        summary: { tokensIn, tokensOut, totalTokens, totalCost },
+        modelBreakdown: (statusData.modelBreakdown as ModelBreakdown[]) ?? [],
+        agentBreakdown: (statusData.agentBreakdown as AgentBreakdown[]) ?? [],
         loading: false,
       });
     } catch (err) {
@@ -123,17 +141,31 @@ export const useUsageStore = create<UsageState>((set, get) => ({
     try {
       const res = await fetch(`/api/usage/timeseries?days=${days}`);
       if (!res.ok) {
-        const errBody = await res.json();
-        set({ error: (errBody as { error?: string }).error ?? "Failed to fetch timeseries" });
+        // Timeseries may not be available (requires session key); degrade gracefully.
+        set({ timeseries: [] });
         return;
       }
 
-      const data = await res.json();
-      set({ timeseries: data.timeseries ?? data ?? [] });
-    } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : "Failed to fetch timeseries",
-      });
+      const data = (await res.json()) as Record<string, unknown>;
+      // Gateway returns `{ points: [...] }` — unwrap from `points` if present.
+      const raw = Array.isArray(data.points)
+        ? data.points
+        : Array.isArray(data.timeseries)
+          ? data.timeseries
+          : Array.isArray(data)
+            ? data
+            : [];
+      // Map gateway field names (input/output) to store field names (tokensIn/tokensOut).
+      const timeseries: TimeseriesPoint[] = (raw as Record<string, unknown>[]).map((p) => ({
+        timestamp: Number(p.timestamp ?? 0),
+        tokensIn: Number(p.input ?? p.tokensIn ?? 0),
+        tokensOut: Number(p.output ?? p.tokensOut ?? 0),
+        cost: Number(p.cost ?? 0),
+      }));
+      set({ timeseries });
+    } catch {
+      // Timeseries fetch is best-effort; don't set error state.
+      set({ timeseries: [] });
     }
   },
 }));

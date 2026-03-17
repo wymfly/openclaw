@@ -42,8 +42,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       if (!res.ok) {
         return;
       }
-      const data = await res.json();
-      set({ schema: data });
+      const data = (await res.json()) as Record<string, unknown>;
+      // config.schema returns `{ schema, uiHints, version }` — unwrap.
+      set({ schema: (data.schema as Record<string, unknown>) ?? data });
     } catch {
       // Schema fetch is best-effort
     }
@@ -98,11 +99,24 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Save failed" }));
-        const errorMsg = (data as { error?: string }).error ?? "Save failed";
+        const data = (await res.json().catch(() => ({ error: "Save failed" }))) as {
+          error?: string;
+          message?: string;
+          code?: string;
+        };
+        const errorMsg = data.error ?? data.message ?? "Save failed";
 
-        // Conflict detection: INVALID_REQUEST with "config changed" message
-        if (errorMsg.includes("config changed")) {
+        // Conflict detection: INVALID_REQUEST with config-change-related messages
+        const msg = errorMsg.toLowerCase();
+        if (
+          data.code === "INVALID_REQUEST" &&
+          (msg.includes("config changed") || msg.includes("base hash"))
+        ) {
+          set({ conflict: true });
+          return false;
+        }
+        // Also catch conflict without explicit code, if message matches
+        if (msg.includes("config changed") || msg.includes("base hash")) {
           set({ conflict: true });
           return false;
         }
