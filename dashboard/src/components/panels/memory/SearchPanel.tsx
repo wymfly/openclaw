@@ -2,7 +2,29 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { useMemoryStore } from "@/stores/memory";
+import { useMemoryStore, type MemoryTier } from "@/stores/memory";
+
+// Tier badge colors for visual distinction
+const TIER_STYLES: Record<MemoryTier, { bg: string; color: string }> = {
+  core: { bg: "rgba(34, 197, 94, 0.15)", color: "#22c55e" },
+  working: { bg: "rgba(59, 130, 246, 0.15)", color: "#3b82f6" },
+  peripheral: { bg: "rgba(156, 163, 175, 0.15)", color: "#9ca3af" },
+};
+
+function TierBadge({ tier }: { tier: MemoryTier }) {
+  const t = useTranslations("memory");
+  const style = TIER_STYLES[tier];
+  const labelKey =
+    tier === "core" ? "tierCore" : tier === "working" ? "tierWorking" : "tierPeripheral";
+  return (
+    <span
+      className="text-xs px-1.5 py-0.5 rounded font-medium"
+      style={{ backgroundColor: style.bg, color: style.color }}
+    >
+      {t(labelKey)}
+    </span>
+  );
+}
 
 /**
  * SearchPanel — vector search input + results with relevance scores.
@@ -10,8 +32,15 @@ import { useMemoryStore } from "@/stores/memory";
  */
 export function SearchPanel() {
   const t = useTranslations("memory");
-  const { selectedAgentId, searchResults, isLanceDbEnabled, loading, error, searchMemory } =
-    useMemoryStore();
+  const {
+    selectedAgentId,
+    selectedScope,
+    searchResults,
+    isLanceDbEnabled,
+    loading,
+    error,
+    searchMemory,
+  } = useMemoryStore();
 
   const [query, setQuery] = useState("");
 
@@ -20,7 +49,7 @@ export function SearchPanel() {
     if (!q) {
       return;
     }
-    void searchMemory(q, selectedAgentId ?? undefined);
+    void searchMemory(q, selectedAgentId ?? undefined, selectedScope);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -106,22 +135,36 @@ export function SearchPanel() {
               backgroundColor: "var(--bg-secondary)",
             }}
           >
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1 gap-1.5">
               <span
                 className="text-xs font-medium truncate"
                 style={{ color: "var(--text-primary)" }}
               >
                 {result.path}
               </span>
-              <span
-                className="text-xs shrink-0 ml-2 px-2 py-0.5 rounded"
-                style={{
-                  backgroundColor: "var(--accent-muted, rgba(59,130,246,0.1))",
-                  color: "var(--accent)",
-                }}
-              >
-                {t("relevance")}: {(result.relevance * 100).toFixed(0)}%
-              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {result.tier && <TierBadge tier={result.tier} />}
+                {result.decayScore !== undefined && (
+                  <span
+                    className="text-xs px-1.5 py-0.5 rounded"
+                    style={{
+                      backgroundColor: "rgba(168, 85, 247, 0.12)",
+                      color: "#a855f7",
+                    }}
+                  >
+                    {t("decayScore")}: {(result.decayScore * 100).toFixed(0)}
+                  </span>
+                )}
+                <span
+                  className="text-xs px-2 py-0.5 rounded"
+                  style={{
+                    backgroundColor: "var(--accent-muted, rgba(59,130,246,0.1))",
+                    color: "var(--accent)",
+                  }}
+                >
+                  {t("relevance")}: {(result.relevance * 100).toFixed(0)}%
+                </span>
+              </div>
             </div>
             <pre
               className="text-xs whitespace-pre-wrap break-words mt-1"

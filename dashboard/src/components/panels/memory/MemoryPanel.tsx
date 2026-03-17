@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { useMemoryStore, type MemoryTab } from "@/stores/memory";
+import { useMemoryStore, type MemoryTab, type MemoryScope } from "@/stores/memory";
 import { FileTree } from "./FileTree";
 import { HealthDiagnostics } from "./HealthDiagnostics";
 import { KnowledgeGraph } from "./KnowledgeGraph";
@@ -22,12 +22,22 @@ const TAB_LABEL_KEYS: Record<MemoryTab, string> = {
  */
 export function MemoryPanel() {
   const t = useTranslations("memory");
+  const SCOPES: MemoryScope[] = ["all", "global", "agent"];
+
+  const SCOPE_LABEL_KEYS: Record<MemoryScope, string> = {
+    all: "scope",
+    global: "scopeGlobal",
+    agent: "scopeAgent",
+  };
+
   const {
     agents,
     selectedAgentId,
+    selectedScope,
     activeTab,
     fetchAgents,
     setSelectedAgent,
+    setSelectedScope,
     setActiveTab,
     browseFiles,
     fetchHealth,
@@ -89,6 +99,30 @@ export function MemoryPanel() {
             {agents.map((agent) => (
               <option key={agent.id} value={agent.id}>
                 {agent.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Scope filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            {t("scope")}:
+          </span>
+          <select
+            value={selectedScope}
+            onChange={(e) => setSelectedScope(e.target.value as MemoryScope)}
+            className="text-xs rounded px-2 py-1 border"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--bg-primary)",
+              color: "var(--text-primary)",
+              minWidth: 90,
+            }}
+          >
+            {SCOPES.map((scope) => (
+              <option key={scope} value={scope}>
+                {t(SCOPE_LABEL_KEYS[scope])}
               </option>
             ))}
           </select>
