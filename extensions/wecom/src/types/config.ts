@@ -69,6 +69,19 @@ export type WecomDynamicAgentsConfig = {
   adminUsers?: string[];
 };
 
+export type WecomPendingReplyConfig = {
+  enabled?: boolean;
+  maxRetries?: number;
+  sweepIntervalMs?: number;
+};
+
+export type WecomEnhancedConfig = {
+  quotaTracking?: boolean;
+  reqIdPersistence?: boolean;
+  reasoningMode?: "separate" | "append" | "hidden";
+  pendingReply?: WecomPendingReplyConfig;
+};
+
 export type WecomAccountConfig = {
   enabled?: boolean;
   name?: string;
@@ -86,4 +99,5 @@ export type WecomConfig = {
   network?: WecomNetworkConfig;
   routing?: WecomRoutingConfig;
   dynamicAgents?: WecomDynamicAgentsConfig;
+  enhanced?: WecomEnhancedConfig;
 };

@@ -3,6 +3,7 @@ import type {
   WecomAgentConfig,
   WecomBotConfig,
   WecomBotPrimaryTransport,
+  WecomEnhancedConfig,
   WecomNetworkConfig,
 } from "./config.js";
 
@@ -59,6 +60,7 @@ export type ResolvedWecomAccount = {
   config: WecomAccountConfig;
   bot?: ResolvedBotAccount;
   agent?: ResolvedAgentAccount;
+  enhanced?: WecomEnhancedConfig;
 };
 
 export type ResolvedWecomAccounts = {

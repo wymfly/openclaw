@@ -9,6 +9,7 @@ import type {
   WecomAgentConfig,
   WecomBotConfig,
   WecomConfig,
+  WecomEnhancedConfig,
   WecomNetworkConfig,
 } from "../types/index.js";
 
@@ -95,6 +96,7 @@ function toResolvedAccount(params: {
   name?: string;
   config: WecomAccountConfig;
   network?: WecomNetworkConfig;
+  enhanced?: WecomEnhancedConfig;
 }): ResolvedWecomAccount {
   const bot = params.config.bot
     ? resolveBotAccount(params.accountId, params.config.bot, params.network)
@@ -110,6 +112,7 @@ function toResolvedAccount(params: {
     config: params.config,
     bot,
     agent,
+    enhanced: params.enhanced,
   };
 }
 
@@ -144,6 +147,7 @@ function resolveMatrixAccounts(wecom: WecomConfig): Record<string, ResolvedWecom
       name: entry.name,
       config: entry,
       network: wecom.network,
+      enhanced: wecom.enhanced,
     });
   }
   return resolved;
@@ -160,6 +164,7 @@ function resolveLegacyAccounts(wecom: WecomConfig): Record<string, ResolvedWecom
       enabled: wecom.enabled !== false,
       config,
       network: wecom.network,
+      enhanced: wecom.enhanced,
     }),
   };
 }
