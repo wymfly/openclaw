@@ -6,8 +6,8 @@ The system SHALL establish a WebSocket long connection to the WeCom AI Bot serve
 
 #### Scenario: Successful authentication and message reception
 
-- **WHEN** gateway starts with valid botId and secret configured at `channels.wecom.botId` and `channels.wecom.secret`
-- **THEN** system establishes WSS connection to `wss://openws.work.weixin.qq.com`, authenticates via `aibot_subscribe`, and begins receiving `aibot_callback` messages
+- **WHEN** gateway starts with valid botId and secret configured at `channels.wecom.bot.ws.botId` and `channels.wecom.bot.ws.secret` (or per-account at `channels.wecom.accounts.<id>.bot.ws.botId`)
+- **THEN** system establishes WSS connection to `wss://openws.work.weixin.qq.com` with `maxReconnectAttempts: 100`, authenticates via `aibot_subscribe`, and begins receiving `aibot_msg_callback` messages
 
 #### Scenario: Automatic reconnection on disconnect
 
@@ -39,18 +39,18 @@ The system SHALL support both direct messages (1:1) and group chat messages, wit
 
 #### Scenario: DM with open policy
 
-- **WHEN** `channels.wecom.dmPolicy` is set to `"open"` and a user sends a direct message
+- **WHEN** `channels.wecom.bot.dm.policy` is set to `"open"` and a user sends a direct message
 - **THEN** system processes the message and routes to the Agent without access check
 
-#### Scenario: DM with pairing policy
+#### Scenario: DM with allowlist policy
 
-- **WHEN** `channels.wecom.dmPolicy` is set to `"pairing"` and an unapproved user sends a direct message
-- **THEN** system returns a pairing code and queues the request for admin approval via `openclaw pairing approve wecom <code>`
+- **WHEN** `channels.wecom.bot.dm.policy` is set to `"allowlist"` and a user not in `channels.wecom.bot.dm.allowFrom` sends a direct message
+- **THEN** system silently ignores the message
 
-#### Scenario: Group chat with mention requirement
+#### Scenario: Group chat via dynamic agent groupEnabled
 
-- **WHEN** `channels.wecom.groupPolicy` is set to `"open"` with `requireMention: true` and a user sends a message without @-mentioning the bot
-- **THEN** system ignores the message silently
+- **WHEN** `channels.wecom.dynamicAgents.groupEnabled` is `true` and a user sends a group message
+- **THEN** system creates or routes to a per-group dynamic Agent
 
 ### Requirement: Multi-account support
 
@@ -72,12 +72,12 @@ The system SHALL support per-user or per-group Agent isolation, generating deter
 
 #### Scenario: Per-user Agent workspace
 
-- **WHEN** `dynamicAgents` is enabled and user A sends a DM
+- **WHEN** `channels.wecom.dynamicAgents.enabled` is `true` and `channels.wecom.dynamicAgents.dmCreateAgent` is `true` and user A sends a DM
 - **THEN** system routes to Agent `wecom-{accountId}-dm-{userId}` with an isolated workspace directory
 
 #### Scenario: Admin bypass
 
-- **WHEN** a user listed in `adminUsers` sends a message and `adminBypass` is enabled
+- **WHEN** a user listed in `channels.wecom.dynamicAgents.adminUsers` sends a message
 - **THEN** system routes to the main Agent instead of creating an isolated workspace
 
 ### Requirement: Agent API proactive messaging
