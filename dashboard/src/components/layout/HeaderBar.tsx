@@ -1,7 +1,8 @@
 "use client";
 
-import { Globe, Moon, Sun } from "lucide-react";
+import { Globe, Menu, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { useGatewayStore } from "@/stores/gateway";
 import { useUIStore } from "@/stores/ui";
 
@@ -17,7 +18,9 @@ export function HeaderBar() {
   const tNav = useTranslations("nav");
   const tHeader = useTranslations("header");
   const { status } = useGatewayStore();
-  const { activePanel, theme, locale, setTheme, setLocale } = useUIStore();
+  const { activePanel, theme, locale, setTheme, setLocale, setMobileNavOpen } = useUIStore();
+
+  const isMobile = useMediaQuery(BREAKPOINTS.mobile);
 
   const statusLabel =
     status === "connected"
@@ -48,10 +51,21 @@ export function HeaderBar() {
         backgroundColor: "var(--bg-secondary)",
       }}
     >
-      {/* Current panel name */}
-      <h1 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-        {tNav(activePanel)}
-      </h1>
+      {/* Left: hamburger (mobile) + panel name */}
+      <div className="flex items-center gap-2">
+        {isMobile && (
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="flex items-center p-1 rounded hover:opacity-80 transition-opacity"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <Menu size={18} />
+          </button>
+        )}
+        <h1 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          {tNav(activePanel)}
+        </h1>
+      </div>
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
@@ -64,7 +78,8 @@ export function HeaderBar() {
             className="inline-block w-2 h-2 rounded-full"
             style={{ backgroundColor: statusColors[status] ?? "var(--status-disconnected)" }}
           />
-          {statusLabel}
+          {/* Hide status text on mobile to save space */}
+          {!isMobile && statusLabel}
         </div>
 
         {/* Locale toggle */}
