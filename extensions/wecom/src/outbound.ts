@@ -229,8 +229,15 @@ export const wecomOutbound: ChannelOutboundAdapter = {
           `[wecom-outbound] Failed to send text to ${String(to ?? "")}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
-      // [enhanced] Enqueue for reliable delivery retry
-      pendingReplyManager?.enqueuePendingReply(cfg, { text: outgoingText, to, accountId });
+      // [enhanced] Enqueue for reliable delivery retry (only transient failures, not config errors)
+      const isTransient =
+        err instanceof Error &&
+        !err.message.includes("requires Agent mode") &&
+        !err.message.includes("requires channels.wecom") &&
+        !err.message.includes("not configured");
+      if (isTransient) {
+        pendingReplyManager?.enqueuePendingReply(cfg, { text: outgoingText, to, accountId });
+      }
       throw err;
     }
 

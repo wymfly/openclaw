@@ -118,27 +118,25 @@ export function createBotReplyDispatcher(params: {
       });
 
       // [enhanced] Apply reasoning visibility policy
-      const reasoningPolicy = (config as Record<string, unknown>).enhanced as
-        | { reasoningMode?: string }
-        | undefined;
-      if (reasoningPolicy?.reasoningMode) {
-        const thinkExtract = /<think>([\s\S]*?)<\/think>/g;
-        let thinkContent = "";
-        let cleanText = text;
-        const thinkMatches = [...text.matchAll(thinkExtract)];
-        if (thinkMatches.length > 0) {
-          thinkContent = thinkMatches.map((m) => m[1]).join("\n\n");
-          cleanText = text.replace(thinkExtract, "").trim();
-        }
+      const wecomConfig = (config.channels?.wecom ?? {}) as Record<string, unknown>;
+      const enhancedConfig = (wecomConfig.enhanced ?? {}) as { reasoningMode?: string };
+      if (enhancedConfig.reasoningMode) {
+        // Use the full applyWecomReasoningPolicy API which handles code block protection
         const result = applyWecomReasoningPolicy({
-          text: cleanText,
-          thinkingContent: thinkContent,
-          policy: { mode: reasoningPolicy.reasoningMode },
+          text,
+          policy: { mode: enhancedConfig.reasoningMode },
           transport: "bot",
           phase: "final",
         });
         text = result.text;
-        // result.thinkingContent is available for separate-mode delivery if needed
+        // In separate mode, send thinking content as a preceding message
+        if (result.thinkingContent && result.effectiveMode === "separate" && target) {
+          try {
+            await target.runtime.replyToChat?.(`💭 思考过程\n\n${result.thinkingContent}`);
+          } catch {
+            // Best-effort: don't block main reply if thinking message fails
+          }
+        }
       }
 
       const current = streamStore.getStream(streamId);
