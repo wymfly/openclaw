@@ -1,21 +1,23 @@
 /**
  * /api/agents/[agentId]/files/[...path] — Read a single agent file.
  *
- * GET — Read file content by path
+ * GET — Read file content by name (path segments joined)
+ *
+ * Gateway contract (`AgentsFilesGetParamsSchema`):
+ *   { agentId, name }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest, extractPlatformHeaders } from "@/lib/api-helpers";
+import { gatewayRequest } from "@/lib/api-helpers";
+import { withAuth } from "@/lib/with-auth";
 
 type RouteContext = { params: Promise<{ agentId: string; path: string[] }> };
 
-export async function GET(request: NextRequest, context: RouteContext) {
-  const { agentId, path } = await context.params;
-  const filePath = path.join("/");
-  const platform = extractPlatformHeaders(request);
+export const GET = withAuth(async (_request: NextRequest, ctx: unknown) => {
+  const { agentId, path } = await (ctx as RouteContext).params;
+  const name = path.join("/");
 
   return gatewayRequest("agents.files.get", {
     agentId,
-    path: filePath,
-    ...platform,
+    name,
   });
-}
+});

@@ -2,43 +2,43 @@
  * /api/agents/[agentId]/files — Agent file management.
  *
  * GET  — List agent files
- * POST — Write a file (body: { path, content })
+ * POST — Write a file (body: { name, content })
+ *
+ * Gateway contracts:
+ *   agents.files.list: { agentId }
+ *   agents.files.set:  { agentId, name, content }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest, extractPlatformHeaders } from "@/lib/api-helpers";
+import { gatewayRequest } from "@/lib/api-helpers";
+import { withAuth } from "@/lib/with-auth";
 
 type RouteContext = { params: Promise<{ agentId: string }> };
 
-export async function GET(request: NextRequest, context: RouteContext) {
-  const { agentId } = await context.params;
-  const platform = extractPlatformHeaders(request);
+export const GET = withAuth(async (_request: NextRequest, ctx: unknown) => {
+  const { agentId } = await (ctx as RouteContext).params;
 
   return gatewayRequest("agents.files.list", {
     agentId,
-    ...platform,
   });
-}
+});
 
-export async function POST(request: NextRequest, context: RouteContext) {
-  const { agentId } = await context.params;
+export const POST = withAuth(async (request: NextRequest, ctx: unknown) => {
+  const { agentId } = await (ctx as RouteContext).params;
   const body = (await request.json()) as {
-    path?: string;
+    name?: string;
     content?: string;
   };
 
-  if (!body.path?.trim()) {
-    return Response.json({ error: "path is required" }, { status: 400 });
+  if (!body.name?.trim()) {
+    return Response.json({ error: "name is required" }, { status: 400 });
   }
   if (typeof body.content !== "string") {
     return Response.json({ error: "content is required" }, { status: 400 });
   }
 
-  const platform = extractPlatformHeaders(request);
-
   return gatewayRequest("agents.files.set", {
     agentId,
-    path: body.path.trim(),
+    name: body.name.trim(),
     content: body.content,
-    ...platform,
   });
-}
+});

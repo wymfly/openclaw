@@ -6,7 +6,10 @@ import { useMemo } from "react";
 import { useModelsStore, type Model } from "@/stores/models";
 
 /** Format context window size to human-readable (e.g. 128K, 1M). */
-function fmtCtx(tokens: number): string {
+function fmtCtx(tokens: number | undefined | null): string {
+  if (typeof tokens !== "number" || !Number.isFinite(tokens)) {
+    return "\u2014";
+  }
   if (tokens >= 1_000_000) {
     return `${(tokens / 1_000_000).toFixed(tokens % 1_000_000 === 0 ? 0 : 1)}M`;
   }
@@ -16,8 +19,11 @@ function fmtCtx(tokens: number): string {
   return String(tokens);
 }
 
-/** Format price per million tokens. */
-function fmtPrice(price: number): string {
+/** Format price per million tokens. Returns "—" for missing/undefined values. */
+function fmtPrice(price: number | undefined | null): string {
+  if (typeof price !== "number" || !Number.isFinite(price)) {
+    return "\u2014";
+  }
   if (price === 0) {
     return "Free";
   }

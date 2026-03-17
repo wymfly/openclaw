@@ -5,8 +5,13 @@ import { initRuntime, shutdownRuntime } from "@server/runtime";
  *
  * Saves gateway URL/token (and optional provider fields) to the SQLite
  * settings table, then triggers runtime initialization.
+ *
+ * Note: No withAuth here — this is called during initial onboarding when
+ * no token is configured yet. The access-gate allows all requests when
+ * no token is set (local dev mode).
  */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withAuth } from "@/lib/with-auth";
 
 type SaveBody = {
   gatewayUrl?: string;
@@ -16,7 +21,7 @@ type SaveBody = {
   model?: string;
 };
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request: NextRequest) => {
   const body = (await request.json()) as SaveBody;
   const url = body.gatewayUrl?.trim();
   const token = body.gatewayToken?.trim();
@@ -47,4 +52,4 @@ export async function POST(request: Request) {
   const runtime = initRuntime({ gatewayUrl: url, gatewayToken: token });
 
   return NextResponse.json({ success: !!runtime });
-}
+});

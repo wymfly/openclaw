@@ -100,7 +100,7 @@ export function SessionSidebar() {
               }}
             >
               <div className="flex flex-col items-start min-w-0">
-                <span className="truncate w-full text-left">{session.key}</span>
+                <span className="truncate w-full text-left">{session.title || session.key}</span>
                 <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
                   {formatTime(session.updatedAt)}
                 </span>

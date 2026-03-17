@@ -8,7 +8,7 @@
  * Token source priority: env `DECK_ACCESS_TOKEN` > SQLite settings table.
  * When no token is configured, authentication is skipped (local dev mode).
  */
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,7 +57,9 @@ export function checkPublicBind(bindAddress: string, token: string | null): stri
   if (token) {
     return null;
   }
-  const loopback = ["127.0.0.1", "::1", "localhost", "0.0.0.0"];
+  // Note: 0.0.0.0 is NOT loopback — it means "all interfaces" and would
+  // expose the service to the network. Only true loopback addresses here.
+  const loopback = ["127.0.0.1", "::1", "localhost"];
   if (loopback.includes(bindAddress)) {
     return null;
   }
@@ -68,11 +70,16 @@ export function checkPublicBind(bindAddress: string, token: string | null): stri
 // Timing-safe comparison
 // ---------------------------------------------------------------------------
 
+/**
+ * Timing-safe string comparison that does not leak length information.
+ * Both strings are HMAC'd to a fixed-length digest before comparison,
+ * so the comparison time is constant regardless of input lengths.
+ */
 function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-  return timingSafeEqual(Buffer.from(a, "utf-8"), Buffer.from(b, "utf-8"));
+  const key = "deck-compare-key";
+  const ha = createHmac("sha256", key).update(a).digest();
+  const hb = createHmac("sha256", key).update(b).digest();
+  return timingSafeEqual(ha, hb);
 }
 
 // ---------------------------------------------------------------------------

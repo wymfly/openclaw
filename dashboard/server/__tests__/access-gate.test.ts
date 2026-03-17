@@ -74,7 +74,15 @@ describe("checkPublicBind", () => {
     expect(checkPublicBind("127.0.0.1", null)).toBeNull();
     expect(checkPublicBind("::1", null)).toBeNull();
     expect(checkPublicBind("localhost", null)).toBeNull();
-    expect(checkPublicBind("0.0.0.0", null)).toBeNull();
+  });
+
+  it("rejects 0.0.0.0 without token (not loopback)", () => {
+    const result = checkPublicBind("0.0.0.0", null);
+    expect(result).toContain("Refusing to start");
+  });
+
+  it("allows 0.0.0.0 with token", () => {
+    expect(checkPublicBind("0.0.0.0", SECRET)).toBeNull();
   });
 
   it("rejects public address without token", () => {

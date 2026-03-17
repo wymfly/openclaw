@@ -22,11 +22,11 @@ describe("EventBus broadcast", () => {
     bus.subscribe((e) => received1.push(e));
     bus.subscribe((e) => received2.push(e));
 
-    bus.broadcast("chat.delta", { token: "hi" });
+    bus.broadcast("chat", { token: "hi" });
 
     expect(received1).toHaveLength(1);
     expect(received2).toHaveLength(1);
-    expect(received1[0].type).toBe("chat.delta");
+    expect(received1[0].type).toBe("chat");
     expect(received1[0].data).toEqual({ token: "hi" });
   });
 
@@ -66,9 +66,9 @@ describe("subscriber error isolation", () => {
 
 describe("event ID auto-increment", () => {
   it("increments IDs monotonically", () => {
-    const e1 = bus.broadcast("chat.delta", "a");
-    const e2 = bus.broadcast("chat.delta", "b");
-    const e3 = bus.broadcast("chat.final", "c");
+    const e1 = bus.broadcast("chat", "a");
+    const e2 = bus.broadcast("chat", "b");
+    const e3 = bus.broadcast("chat", "c");
 
     expect(e1.id).toBe(1);
     expect(e2.id).toBe(2);
@@ -94,9 +94,9 @@ describe("replay buffer", () => {
   });
 
   it("getEventsSince returns events after the given ID", () => {
-    bus.broadcast("chat.delta", "a");
-    bus.broadcast("chat.delta", "b");
-    bus.broadcast("chat.final", "c");
+    bus.broadcast("chat", "a");
+    bus.broadcast("chat", "b");
+    bus.broadcast("chat", "c");
 
     const since1 = bus.getEventsSince(1);
     expect(since1).toHaveLength(2);
@@ -113,7 +113,7 @@ describe("replay buffer", () => {
   });
 
   it("getEventsSince with future ID returns empty", () => {
-    bus.broadcast("chat.delta", "a");
+    bus.broadcast("chat", "a");
     expect(bus.getEventsSince(999)).toHaveLength(0);
   });
 });
@@ -128,11 +128,11 @@ describe("unsubscribe", () => {
     const cb = (e: ServerEvent) => received.push(e);
     bus.subscribe(cb);
 
-    bus.broadcast("chat.delta", "first");
+    bus.broadcast("chat", "first");
     expect(received).toHaveLength(1);
 
     bus.unsubscribe(cb);
-    bus.broadcast("chat.delta", "second");
+    bus.broadcast("chat", "second");
     expect(received).toHaveLength(1);
   });
 
@@ -175,9 +175,8 @@ describe("DeckEventType coverage", () => {
     const types: DeckEventType[] = [
       "runtime.status",
       "gateway.event",
-      "chat.delta",
-      "chat.final",
-      "chat.error",
+      "chat",
+      "agent",
       "agent.updated",
       "gateway.health",
       "notification.toast",
