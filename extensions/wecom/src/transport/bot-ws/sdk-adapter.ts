@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import AiBot, { type BaseMessage, type EventMessage, type WsFrame } from "@wecom/aibot-node-sdk";
 import type { WecomAccountRuntime } from "../../app/account-runtime.js";
 import { registerBotWsPushHandle, unregisterBotWsPushHandle } from "../../app/index.js";
+import { fetchAndSaveMcpConfig } from "../../enhanced/mcp-config.js";
+import type { ReqIdStore } from "../../enhanced/reqid-store.js";
 import type { RuntimeLogSink } from "../../types/index.js";
 import { mapBotWsFrameToInboundEvent } from "./inbound.js";
 import { createBotWsReplyHandle } from "./reply.js";
@@ -10,6 +12,8 @@ import { createBotWsSessionSnapshot } from "./session.js";
 export class BotWsSdkAdapter {
   private client?: AiBot.WSClient;
   private readonly ownerId: string;
+  /** Optional dedup store — set before start() to enable duplicate frame rejection. */
+  reqIdStore?: ReqIdStore;
 
   constructor(
     private readonly runtime: WecomAccountRuntime,
@@ -82,6 +86,13 @@ export class BotWsSdkAdapter {
           authenticated: true,
         }),
       );
+
+      // MCP config auto-fetch (best-effort, never blocks messaging)
+      fetchAndSaveMcpConfig(client, this.runtime.account.accountId, this.log).catch((err) =>
+        this.log.warn?.(
+          `[wecom-ws] MCP config fetch skipped: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
     });
 
     client.on("disconnected", (reason) => {
@@ -140,6 +151,25 @@ export class BotWsSdkAdapter {
       const botAccount = this.runtime.account.bot;
       if (!botAccount) {
         return;
+      }
+      // [enhanced] dedup: reject duplicate frames after reconnect
+      const chatId =
+        (frame.body as Record<string, unknown>)?.chatid ??
+        (frame.body as Record<string, unknown>)?.from?.userid;
+      const reqId = frame.headers.req_id;
+      if (
+        this.reqIdStore &&
+        chatId &&
+        reqId &&
+        this.reqIdStore.has(String(chatId), String(reqId))
+      ) {
+        this.log.info?.(
+          `[wecom-ws] dedup: skipping duplicate frame reqId=${reqId} chatId=${chatId}`,
+        );
+        return;
+      }
+      if (this.reqIdStore && chatId && reqId) {
+        this.reqIdStore.set(String(chatId), String(reqId));
       }
       this.log.info?.(
         `[wecom-ws] frame account=${this.runtime.account.accountId} cmd=${frame.cmd} reqId=${frame.headers.req_id ?? "n/a"}`,
@@ -231,6 +261,7 @@ export class BotWsSdkAdapter {
 
   stop(): void {
     this.log.info?.(`[wecom-ws] stop account=${this.runtime.account.accountId}`);
+    this.reqIdStore?.destroy();
     unregisterBotWsPushHandle(this.runtime.account.accountId);
     this.runtime.updateTransportSession(
       createBotWsSessionSnapshot({

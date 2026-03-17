@@ -5,8 +5,24 @@ import {
   resolveWecomAccountConflict,
   resolveWecomAccounts,
 } from "./config/index.js";
+import type { PendingReplyManager } from "./enhanced/pending-reply.js";
+import type { QuotaTracker } from "./enhanced/quota-tracker.js";
 import { getAccountRuntime, getBotWsPushHandle, getWecomRuntime } from "./runtime.js";
 import { resolveScopedWecomTarget } from "./target.js";
+
+// [enhanced] Pending-reply manager singleton; set via setPendingReplyManager()
+let pendingReplyManager: PendingReplyManager | null = null;
+
+export function setPendingReplyManager(mgr: PendingReplyManager): void {
+  pendingReplyManager = mgr;
+}
+
+// [enhanced] Quota tracker singleton; set via setQuotaTracker()
+let quotaTracker: QuotaTracker | null = null;
+
+export function setQuotaTracker(tracker: QuotaTracker): void {
+  quotaTracker = tracker;
+}
 
 function resolveOutboundAccountOrThrow(params: {
   cfg: ChannelOutboundContext["cfg"];
@@ -213,7 +229,15 @@ export const wecomOutbound: ChannelOutboundAdapter = {
           `[wecom-outbound] Failed to send text to ${String(to ?? "")}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
+      // [enhanced] Enqueue for reliable delivery retry
+      pendingReplyManager?.enqueuePendingReply(cfg, { text: outgoingText, to, accountId });
       throw err;
+    }
+
+    // [enhanced] Track outbound activity for quota monitoring
+    const resolvedAccountId = accountId?.trim() || resolveWecomAccounts(cfg).defaultAccountId;
+    if (quotaTracker && resolvedAccountId) {
+      quotaTracker.recordOutboundActivity({ accountId: resolvedAccountId });
     }
 
     return {
