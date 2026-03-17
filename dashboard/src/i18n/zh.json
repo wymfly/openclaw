@@ -170,7 +170,14 @@
     "lancedbDisabled": "LanceDB 未启用（仅文件浏览）",
     "relevance": "相关度",
     "content": "内容",
-    "notImplemented": "需要 LanceDB 扩展"
+    "notImplemented": "需要 LanceDB 扩展",
+    "scope": "作用域",
+    "scopeGlobal": "全局",
+    "scopeAgent": "智能体",
+    "tierCore": "核心",
+    "tierWorking": "工作",
+    "tierPeripheral": "外围",
+    "decayScore": "衰减分数"
   },
   "activity": {
     "title": "动态信息流",
@@ -430,5 +437,47 @@
     "back": "上一步",
     "skipForNow": "稍后配置",
     "finish": "完成"
+  },
+  "docs": {
+    "title": "文档中心",
+    "search": "搜索文档...",
+    "category": {
+      "all": "全部",
+      "summary": "总结",
+      "plan": "计划",
+      "spec": "规范",
+      "manual": "手册",
+      "draft": "草稿"
+    },
+    "extract": "提取文档",
+    "noResults": "暂无文档",
+    "source": "来源",
+    "extractedAt": "提取时间",
+    "delete": "删除文档",
+    "confirmDelete": "确认删除此文档？"
+  },
+  "settings": {
+    "title": "设置",
+    "appearance": "外观",
+    "theme": "主题",
+    "themeSystem": "跟随系统",
+    "themeDark": "深色",
+    "themeLight": "浅色",
+    "language": "语言",
+    "connection": "连接",
+    "gatewayUrl": "Gateway 地址",
+    "gatewayToken": "Gateway Token",
+    "testConnection": "测试连接",
+    "notifications": "通知",
+    "notifyApprovals": "审批请求通知",
+    "notifyBudget": "预算告警通知",
+    "notifyAlerts": "规则告警通知",
+    "about": "关于",
+    "deckVersion": "Deck 版本",
+    "gatewayVersion": "Gateway 版本",
+    "cliVersion": "CLI 版本",
+    "docs": "文档",
+    "github": "GitHub",
+    "saved": "设置已保存"
   }
 }
