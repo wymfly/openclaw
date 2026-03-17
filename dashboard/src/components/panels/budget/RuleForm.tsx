@@ -117,7 +117,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               className="px-3 py-1 text-xs rounded-md border transition-colors"
               style={{
                 backgroundColor: scope === s ? "var(--accent)" : "transparent",
-                color: scope === s ? "#fff" : "var(--text-secondary)",
+                color: scope === s ? "var(--accent-fg)" : "var(--text-secondary)",
                 borderColor: scope === s ? "var(--accent)" : "var(--border)",
               }}
               onClick={() => setScope(s)}
@@ -173,7 +173,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               className="px-3 py-1 text-xs rounded-md border transition-colors"
               style={{
                 backgroundColor: dimension === d ? "var(--accent)" : "transparent",
-                color: dimension === d ? "#fff" : "var(--text-secondary)",
+                color: dimension === d ? "var(--accent-fg)" : "var(--text-secondary)",
                 borderColor: dimension === d ? "var(--accent)" : "var(--border)",
               }}
               onClick={() => setDimension(d)}
@@ -229,7 +229,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               className="px-3 py-1 text-xs rounded-md border transition-colors"
               style={{
                 backgroundColor: period === p ? "var(--accent)" : "transparent",
-                color: period === p ? "#fff" : "var(--text-secondary)",
+                color: period === p ? "var(--accent-fg)" : "var(--text-secondary)",
                 borderColor: period === p ? "var(--accent)" : "var(--border)",
               }}
               onClick={() => setPeriod(p)}
@@ -264,7 +264,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
           type="submit"
           disabled={saving}
           className="px-4 py-2 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
         >
           {tc("save")}
         </button>

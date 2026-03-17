@@ -45,7 +45,10 @@ export function HeartbeatCard() {
 
           {/* Gateway state */}
           <div className="flex items-center gap-2">
-            <HeartPulse size={14} style={{ color: state === "active" ? "#22c55e" : "#eab308" }} />
+            <HeartPulse
+              size={14}
+              style={{ color: state === "active" ? "var(--success)" : "var(--warning)" }}
+            />
             <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
               {t("gatewayState")}
             </span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
 import type { FormField } from "@/lib/schema-parser";
 
@@ -106,7 +107,7 @@ function BooleanField({
         <span
           className="inline-block h-3.5 w-3.5 rounded-full transition-transform"
           style={{
-            backgroundColor: value ? "#fff" : "var(--text-secondary)",
+            backgroundColor: value ? "var(--accent-fg)" : "var(--text-secondary)",
             transform: value ? "translateX(17px)" : "translateX(2px)",
           }}
         />
@@ -230,6 +231,7 @@ function ObjectField({
 }
 
 export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaFormProps) {
+  const tc = useTranslations("common");
   const handleChange = useCallback(
     (key: string, value: unknown) => {
       onChange(key, value);
@@ -240,7 +242,7 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
   if (fields.length === 0) {
     return (
       <div className="text-xs py-2" style={{ color: "var(--text-secondary)" }}>
-        No configurable fields in this section.
+        {tc("noConfigurableFields")}
       </div>
     );
   }

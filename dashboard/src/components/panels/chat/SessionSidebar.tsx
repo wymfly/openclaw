@@ -69,7 +69,7 @@ export function SessionSidebar() {
             border: "1px solid var(--border)",
           }}
         >
-          <option value="">Default Agent</option>
+          <option value="">{t("defaultAgent")}</option>
         </select>
       </div>
 

@@ -6,9 +6,9 @@ import { useMemoryStore, type MemoryTier } from "@/stores/memory";
 
 // Tier badge colors for visual distinction
 const TIER_STYLES: Record<MemoryTier, { bg: string; color: string }> = {
-  core: { bg: "rgba(34, 197, 94, 0.15)", color: "#22c55e" },
-  working: { bg: "rgba(59, 130, 246, 0.15)", color: "#3b82f6" },
-  peripheral: { bg: "rgba(156, 163, 175, 0.15)", color: "#9ca3af" },
+  core: { bg: "var(--success-muted)", color: "var(--success)" },
+  working: { bg: "var(--accent-muted)", color: "var(--accent)" },
+  peripheral: { bg: "var(--neutral-muted)", color: "var(--neutral-muted-text)" },
 };
 
 function TierBadge({ tier }: { tier: MemoryTier }) {
@@ -82,7 +82,7 @@ export function SearchPanel() {
           className="text-xs px-4 py-2 rounded border cursor-pointer disabled:opacity-50"
           style={{
             borderColor: "var(--accent)",
-            backgroundColor: "var(--accent-muted, rgba(59,130,246,0.1))",
+            backgroundColor: "var(--accent-muted)",
             color: "var(--accent)",
           }}
         >
@@ -95,8 +95,8 @@ export function SearchPanel() {
         <div
           className="text-xs px-3 py-2 rounded"
           style={{
-            backgroundColor: "rgba(234, 179, 8, 0.1)",
-            color: "#eab308",
+            backgroundColor: "var(--warning-muted)",
+            color: "var(--warning)",
           }}
         >
           {t("lancedbDisabled")}
@@ -108,8 +108,8 @@ export function SearchPanel() {
         <div
           className="text-xs px-3 py-2 rounded"
           style={{
-            backgroundColor: "rgba(239, 68, 68, 0.1)",
-            color: "#ef4444",
+            backgroundColor: "var(--danger-muted)",
+            color: "var(--danger)",
           }}
         >
           {error}
@@ -149,8 +149,8 @@ export function SearchPanel() {
                   <span
                     className="text-xs px-1.5 py-0.5 rounded"
                     style={{
-                      backgroundColor: "rgba(168, 85, 247, 0.12)",
-                      color: "#a855f7",
+                      backgroundColor: "var(--purple-muted)",
+                      color: "var(--purple)",
                     }}
                   >
                     {t("decayScore")}: {(result.decayScore * 100).toFixed(0)}
@@ -159,7 +159,7 @@ export function SearchPanel() {
                 <span
                   className="text-xs px-2 py-0.5 rounded"
                   style={{
-                    backgroundColor: "var(--accent-muted, rgba(59,130,246,0.1))",
+                    backgroundColor: "var(--accent-muted)",
                     color: "var(--accent)",
                   }}
                 >

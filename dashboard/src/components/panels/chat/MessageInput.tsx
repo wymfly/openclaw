@@ -131,7 +131,7 @@ export function MessageInput() {
           <button
             onClick={() => void handleAbort()}
             className="p-2 rounded-lg shrink-0 hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: "var(--status-disconnected)", color: "#fff" }}
+            style={{ backgroundColor: "var(--status-disconnected)", color: "var(--accent-fg)" }}
             title={t("abort")}
           >
             <Square size={16} />

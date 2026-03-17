@@ -10,6 +10,7 @@ import { NotificationSection } from "./NotificationSection";
 
 export function SettingsPanel() {
   const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const fetchSettings = useSettingsStore((s) => s.fetchSettings);
   const loading = useSettingsStore((s) => s.loading);
   const error = useSettingsStore((s) => s.error);
@@ -39,9 +40,9 @@ export function SettingsPanel() {
           <div
             className="mb-4 px-3 py-2 text-xs rounded-md"
             style={{
-              color: "rgb(239,68,68)",
-              backgroundColor: "rgba(239,68,68,0.05)",
-              border: "1px solid rgba(239,68,68,0.2)",
+              color: "var(--danger)",
+              backgroundColor: "var(--danger-muted)",
+              border: "1px solid var(--danger)",
             }}
           >
             {error}
@@ -50,7 +51,7 @@ export function SettingsPanel() {
 
         {loading ? (
           <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            Loading...
+            {tc("loading")}
           </p>
         ) : (
           <div className="flex flex-col gap-6 max-w-lg">

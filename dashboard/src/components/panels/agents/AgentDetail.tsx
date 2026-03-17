@@ -162,7 +162,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
               onClick={() => void handleSaveSoul()}
               disabled={saving || soulLoading}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-              style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+              style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
             >
               <Save size={12} />
               {saved ? t("saved") : tc("save")}

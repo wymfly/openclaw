@@ -97,7 +97,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             className="rounded-lg px-3 py-2 text-sm leading-relaxed"
             style={{
               backgroundColor: isUser ? "var(--accent)" : "var(--bg-secondary)",
-              color: isUser ? "#fff" : "var(--text-primary)",
+              color: isUser ? "var(--accent-fg)" : "var(--text-primary)",
             }}
           >
             {isUser ? (

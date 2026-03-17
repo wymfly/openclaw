@@ -10,9 +10,9 @@ function sourceBadgeColor(source: SkillEntry["source"]): string {
     case "bundled":
       return "var(--accent)";
     case "managed":
-      return "#8b5cf6";
+      return "var(--purple)";
     case "plugin":
-      return "#f59e0b";
+      return "var(--warning)";
   }
 }
 
@@ -34,7 +34,7 @@ export function SkillList() {
             className="px-2 py-1 text-[11px] rounded-md transition-colors"
             style={{
               backgroundColor: statusFilter === f ? "var(--accent)" : "var(--bg-tertiary)",
-              color: statusFilter === f ? "#fff" : "var(--text-secondary)",
+              color: statusFilter === f ? "var(--accent-fg)" : "var(--text-secondary)",
             }}
             onClick={() => setStatusFilter(f)}
           >
@@ -64,7 +64,7 @@ export function SkillList() {
             <span className="font-medium truncate">{skill.name}</span>
             <span
               className="text-[10px] px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: sourceBadgeColor(skill.source), color: "#fff" }}
+              style={{ backgroundColor: sourceBadgeColor(skill.source), color: "var(--accent-fg)" }}
             >
               {t(skill.source)}
             </span>
@@ -75,10 +75,10 @@ export function SkillList() {
               style={{
                 backgroundColor:
                   skill.status === "ready"
-                    ? "#22c55e"
+                    ? "var(--success)"
                     : skill.status === "needs-setup"
-                      ? "#f59e0b"
-                      : "#6b7280",
+                      ? "var(--warning)"
+                      : "var(--neutral-muted-text)",
               }}
             />
             <span>{skill.status === "needs-setup" ? t("needsSetup") : t(skill.status)}</span>

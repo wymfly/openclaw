@@ -43,7 +43,7 @@ export function CategoryFilter() {
                   ? CATEGORY_COLORS[cat]
                   : "var(--accent)"
                 : "transparent",
-              color: isActive ? "#fff" : "var(--text-secondary)",
+              color: isActive ? "var(--accent-fg)" : "var(--text-secondary)",
               border: isActive ? "none" : "1px solid var(--border)",
             }}
             onClick={() => setFilterCategory(cat)}

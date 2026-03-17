@@ -21,7 +21,7 @@ export function DeliveryHistory({ deliveries, onTest, testing }: DeliveryHistory
         <button
           type="button"
           className="px-3 py-1 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
           onClick={onTest}
           disabled={testing}
         >
@@ -67,10 +67,8 @@ export function DeliveryHistory({ deliveries, onTest, testing }: DeliveryHistory
                     <span
                       className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
                       style={{
-                        backgroundColor: d.success
-                          ? "rgba(34,197,94,0.15)"
-                          : "rgba(239,68,68,0.15)",
-                        color: d.success ? "rgb(34,197,94)" : "rgb(239,68,68)",
+                        backgroundColor: d.success ? "var(--success-muted)" : "var(--danger-muted)",
+                        color: d.success ? "var(--success)" : "var(--danger)",
                       }}
                     >
                       {d.success ? t("success") : t("failed")}

@@ -4,9 +4,9 @@ import { useTranslations } from "next-intl";
 import type { BudgetRule, RuleEvaluation } from "@/stores/budget";
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  ok: { bg: "rgba(34,197,94,0.15)", text: "rgb(34,197,94)" },
-  warn: { bg: "rgba(234,179,8,0.15)", text: "rgb(234,179,8)" },
-  over: { bg: "rgba(239,68,68,0.15)", text: "rgb(239,68,68)" },
+  ok: { bg: "var(--success-muted)", text: "var(--success)" },
+  warn: { bg: "var(--warning-muted)", text: "var(--warning)" },
+  over: { bg: "var(--danger-muted)", text: "var(--danger)" },
 };
 
 interface RuleListProps {
@@ -66,7 +66,10 @@ export function RuleList({ rules, evaluations, selectedRuleId, onSelect }: RuleL
                 {!rule.enabled && (
                   <span
                     className="text-xs px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: "rgba(156,163,175,0.15)", color: "rgb(156,163,175)" }}
+                    style={{
+                      backgroundColor: "var(--neutral-muted)",
+                      color: "var(--neutral-muted-text)",
+                    }}
                   >
                     {t("disabled")}
                   </span>

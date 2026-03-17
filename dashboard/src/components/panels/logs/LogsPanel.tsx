@@ -54,9 +54,7 @@ export function LogsPanel() {
             className="text-xs px-3 py-1 rounded border cursor-pointer"
             style={{
               borderColor: streaming ? "var(--accent)" : "var(--border)",
-              backgroundColor: streaming
-                ? "var(--accent-muted, rgba(59,130,246,0.1))"
-                : "var(--bg-primary)",
+              backgroundColor: streaming ? "var(--accent-muted)" : "var(--bg-primary)",
               color: streaming ? "var(--accent)" : "var(--text-primary)",
             }}
           >

@@ -101,7 +101,7 @@ export function ConnectionSection() {
             className="px-3 py-1.5 text-xs rounded-md font-medium"
             style={{
               backgroundColor: "var(--accent)",
-              color: "#fff",
+              color: "var(--accent-fg)",
             }}
             onClick={() => void handleSave()}
             disabled={saving}
@@ -113,10 +113,10 @@ export function ConnectionSection() {
             <span
               className="text-xs font-medium"
               style={{
-                color: testResult ? "rgb(34,197,94)" : "rgb(239,68,68)",
+                color: testResult ? "var(--success)" : "var(--danger)",
               }}
             >
-              {testResult ? "Connected" : "Failed"}
+              {testResult ? t("connectionSuccess") : t("connectionFailed")}
             </span>
           )}
         </div>

@@ -80,8 +80,8 @@ export function UsageChart({ timeseries }: UsageChartProps) {
             type="monotone"
             dataKey="tokensOut"
             stackId="tokens"
-            stroke="#22c55e"
-            fill="#22c55e"
+            stroke="var(--success)"
+            fill="var(--success)"
             fillOpacity={0.3}
             name={t("tokensOut")}
           />

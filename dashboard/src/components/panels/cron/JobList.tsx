@@ -33,7 +33,7 @@ export function JobList() {
       <button
         type="button"
         className="w-full px-3 py-2 text-xs font-medium rounded-md mb-2 transition-colors"
-        style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+        style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
         onClick={() => selectJob("__new__")}
       >
         {t("addJob")}
@@ -62,7 +62,7 @@ export function JobList() {
               className="text-[10px] px-1.5 py-0.5 rounded"
               style={{
                 backgroundColor: job.enabled ? "var(--accent)" : "var(--bg-tertiary)",
-                color: job.enabled ? "#fff" : "var(--text-secondary)",
+                color: job.enabled ? "var(--accent-fg)" : "var(--text-secondary)",
               }}
             >
               {job.enabled ? t("enabled") : t("disabled")}

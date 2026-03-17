@@ -12,12 +12,12 @@ import { useSessionsStore, type HistoryMessage, type SessionEntry } from "@/stor
 /** Color for context usage percentage. */
 function pressureColor(pct: number): string {
   if (pct >= 80) {
-    return "#ef4444";
+    return "var(--danger)";
   }
   if (pct >= 60) {
-    return "#eab308";
+    return "var(--warning)";
   }
-  return "#22c55e";
+  return "var(--success)";
 }
 
 /** Compute context usage percentage (0-100). */
@@ -60,14 +60,14 @@ function HistoryBubble({ message }: { message: HistoryMessage }) {
         className="max-w-[75%] rounded-lg px-3 py-2 text-sm leading-relaxed"
         style={{
           backgroundColor: isUser ? "var(--accent)" : "var(--bg-secondary)",
-          color: isUser ? "#fff" : "var(--text-primary)",
+          color: isUser ? "var(--accent-fg)" : "var(--text-primary)",
         }}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
         {message.timestamp && (
           <span
             className="block text-[10px] mt-1 opacity-60"
-            style={{ color: isUser ? "#fff" : "var(--text-secondary)" }}
+            style={{ color: isUser ? "var(--accent-fg)" : "var(--text-secondary)" }}
           >
             {new Date(message.timestamp).toLocaleTimeString()}
           </span>
@@ -145,8 +145,8 @@ export function SessionDetail() {
           type="button"
           className="shrink-0 p-1.5 rounded-md transition-colors"
           style={{
-            color: confirming ? "#fff" : "var(--text-secondary)",
-            backgroundColor: confirming ? "#ef4444" : "transparent",
+            color: confirming ? "var(--danger-fg)" : "var(--text-secondary)",
+            backgroundColor: confirming ? "var(--danger)" : "transparent",
           }}
           title={confirming ? t("confirmDelete") : tc("delete")}
           onClick={handleDelete}

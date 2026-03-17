@@ -11,12 +11,12 @@ import { useSessionsStore, type SessionEntry } from "@/stores/sessions";
 /** Return color based on context usage percentage. */
 function pressureColor(pct: number): string {
   if (pct >= 80) {
-    return "#ef4444";
-  } // red
+    return "var(--danger)";
+  }
   if (pct >= 60) {
-    return "#eab308";
-  } // yellow
-  return "#22c55e"; // green
+    return "var(--warning)";
+  }
+  return "var(--success)";
 }
 
 /** Compute context usage percentage (0-100). */

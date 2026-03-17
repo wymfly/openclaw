@@ -64,11 +64,11 @@ export function RunHistory({ jobId }: RunHistoryProps) {
                   style={{
                     backgroundColor:
                       run.status === "ok"
-                        ? "var(--accent)"
+                        ? "var(--success)"
                         : run.status === "error"
-                          ? "#ef4444"
+                          ? "var(--danger)"
                           : "var(--bg-tertiary)",
-                    color: run.status === "skipped" ? "var(--text-secondary)" : "#fff",
+                    color: run.status === "skipped" ? "var(--text-secondary)" : "var(--accent-fg)",
                   }}
                 >
                   {t(run.status)}

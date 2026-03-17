@@ -83,7 +83,7 @@ function TreeNode({
     <>
       <button
         onClick={handleClick}
-        className="flex items-center gap-1.5 w-full text-left px-2 py-1 rounded hover:bg-[var(--bg-tertiary,rgba(255,255,255,0.05))] cursor-pointer"
+        className="flex items-center gap-1.5 w-full text-left px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer"
         style={{
           paddingLeft: `${depth * 16 + 8}px`,
           color: "var(--text-primary)",

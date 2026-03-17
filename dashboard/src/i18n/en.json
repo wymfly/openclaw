@@ -39,6 +39,8 @@
     "edit": "Edit",
     "search": "Search",
     "add": "Add",
+    "on": "ON",
+    "off": "OFF",
     "noConfigurableFields": "No configurable fields in this section."
   },
   "chat": {
@@ -46,6 +48,7 @@
     "send": "Send",
     "abort": "Stop",
     "newSession": "New Session",
+    "defaultAgent": "Default Agent",
     "noMessages": "No messages yet. Start a conversation!",
     "thinking": "Thinking...",
     "toolUse": "Tool Call",
@@ -81,7 +84,8 @@
     "busy": "Busy",
     "error": "Error",
     "offline": "Offline",
-    "confirmDelete": "Are you sure you want to delete this agent?"
+    "confirmDelete": "Are you sure you want to delete this agent?",
+    "selectAgent": "Select an agent to view details"
   },
   "models": {
     "title": "Models",
@@ -98,7 +102,8 @@
     "setDefault": "Set Default",
     "save": "Save",
     "saved": "Saved",
-    "noModels": "No models found"
+    "noModels": "No models found",
+    "selectProvider": "Select a provider to configure"
   },
   "notifications": {
     "info": "Info",
@@ -478,6 +483,8 @@
     "gatewayUrl": "Gateway URL",
     "gatewayToken": "Gateway Token",
     "testConnection": "Test Connection",
+    "connectionSuccess": "Connected",
+    "connectionFailed": "Failed",
     "notifications": "Notifications",
     "notifyApprovals": "Approval request notifications",
     "notifyBudget": "Budget alert notifications",
