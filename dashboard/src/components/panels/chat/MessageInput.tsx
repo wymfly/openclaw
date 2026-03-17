@@ -113,6 +113,7 @@ export function MessageInput() {
           }}
         />
         <textarea
+          data-chat-input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -140,7 +141,7 @@ export function MessageInput() {
             onClick={() => void sendMessage()}
             disabled={!input.trim()}
             className="p-2 rounded-lg shrink-0 hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
             title={t("send")}
           >
             <Send size={16} />

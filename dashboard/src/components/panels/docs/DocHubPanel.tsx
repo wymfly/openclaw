@@ -35,7 +35,7 @@ export function DocHubPanel() {
         <button
           type="button"
           className="px-3 py-1 text-xs font-medium rounded-md"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
           onClick={() => void extractDocs()}
         >
           {t("extract")}
@@ -50,6 +50,7 @@ export function DocHubPanel() {
       {/* Search */}
       <div className="px-4 py-2 border-b" style={{ borderColor: "var(--border)" }}>
         <input
+          data-panel-search
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

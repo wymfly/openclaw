@@ -37,7 +37,9 @@
     "delete": "删除",
     "create": "创建",
     "edit": "编辑",
-    "search": "搜索"
+    "search": "搜索",
+    "add": "添加",
+    "noConfigurableFields": "此节无可配置项。"
   },
   "chat": {
     "placeholder": "输入消息...",
@@ -455,6 +457,14 @@
     "extractedAt": "提取时间",
     "delete": "删除文档",
     "confirmDelete": "确认删除此文档？"
+  },
+  "shortcuts": {
+    "panelNav": "切换面板（Alt+1~9）",
+    "search": "聚焦搜索（Ctrl/Cmd+K）",
+    "send": "发送消息（Ctrl/Cmd+Enter）",
+    "escape": "关闭/取消（Esc）",
+    "openSettings": "打开设置（Ctrl/Cmd+,）",
+    "toggleNav": "折叠/展开导航（Ctrl/Cmd+/）"
   },
   "settings": {
     "title": "设置",

@@ -26,6 +26,7 @@ import { SettingsPanel } from "@/components/panels/settings/SettingsPanel";
 import { SkillsPanel } from "@/components/panels/skills/SkillsPanel";
 import { UsagePanel } from "@/components/panels/usage/UsagePanel";
 import { WebhooksPanel } from "@/components/panels/webhooks/WebhooksPanel";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useUIStore, type Panel } from "@/stores/ui";
 
 function PanelPlaceholder({ panel }: { panel: Panel }) {
@@ -107,6 +108,9 @@ export default function Home() {
 
   // Bridge SSE notification events into the toast store.
   useNotificationSSE();
+
+  // Register global keyboard shortcuts (Alt+N panels, Ctrl/Cmd+K search, etc.)
+  useKeyboardShortcuts();
 
   useEffect(() => {
     void fetch("/api/onboarding/status")
