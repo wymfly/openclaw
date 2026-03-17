@@ -23,7 +23,15 @@ export type DeckEventType =
   | "notification.toast"
   // P1 additions
   | "log.entry"
-  | "activity.event";
+  | "activity.event"
+  // P2 additions
+  | "approval.pending"
+  | "approval.resolved"
+  | "budget.warn"
+  | "budget.over"
+  | "alert.fired"
+  | "webhook.delivery"
+  | "cron.run.complete";
 
 export type ServerEvent = {
   id: number;
