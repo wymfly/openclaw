@@ -1,0 +1,54 @@
+{
+  "name": "@openclaw-enhanced/wecom",
+  "version": "2026.3.17",
+  "description": "OpenClaw Enhanced Fork — 企业微信（WeCom）频道插件，基于 @yanhaidao/wecom fork，增强配额追踪、持久化去重、MCP Skill 等企业级能力",
+  "license": "ISC",
+  "author": "wymfly (fork of YanHaidao)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wymfly/openclaw.git",
+    "directory": "extensions/wecom"
+  },
+  "type": "module",
+  "dependencies": {
+    "@wecom/aibot-node-sdk": "^1.0.0",
+    "fast-xml-parser": "5.3.4",
+    "undici": "^7.20.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.3.0"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "wecom",
+      "label": "WeCom (企业微信)",
+      "selectionLabel": "WeCom (企业微信)",
+      "detailLabel": "WeCom (企业微信)",
+      "docsPath": "/channels/wecom",
+      "docsLabel": "企业微信",
+      "blurb": "企业微信官方推荐三方插件，默认 Bot WS 配置简单，支持主动发消息与 Agent 全能力。",
+      "aliases": [
+        "wechatwork",
+        "wework",
+        "qywx",
+        "企微",
+        "企业微信"
+      ],
+      "order": 85
+    },
+    "install": {
+      "npmSpec": "@yanhaidao/wecom",
+      "localPath": "extensions/wecom",
+      "defaultChoice": "npm"
+    }
+  }
+}
