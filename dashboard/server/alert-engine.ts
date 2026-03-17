@@ -116,8 +116,7 @@ function evaluateCondition(value: number, condition: string, threshold: number):
       return value === threshold;
     case "!=":
       return value !== threshold;
-    case "contains":
-      return String(value).includes(String(threshold));
+    // "contains" removed — semantically broken for numeric comparisons (L2 review P1)
     default:
       // Backward compat: unrecognized conditions (e.g. "cost > 100") default to >=
       return value >= threshold;
@@ -195,7 +194,7 @@ function handleEvent(
       case "toast":
         eventBus.broadcast("notification.toast", {
           title: rule.name,
-          message: `${rule.condition}: ${value} >= ${rule.threshold}`,
+          message: `${rule.entity_type}: ${value} ${rule.condition} ${rule.threshold}`,
           severity,
         });
         break;

@@ -90,6 +90,8 @@ export function useKeyboardShortcuts() {
             code: "Enter",
             bubbles: true,
             cancelable: true,
+            ctrlKey: e.ctrlKey,
+            metaKey: e.metaKey,
           });
           chatInput.dispatchEvent(enterEvent);
         }
