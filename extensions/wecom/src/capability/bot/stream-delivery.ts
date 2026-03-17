@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { PluginRuntime } from "openclaw/plugin-sdk";
+import { applyWecomReasoningPolicy } from "../../enhanced/reasoning-visibility.js";
 import { wecomFetch } from "../../http.js";
 import { LIMITS, type StreamStore } from "../../monitor/state.js";
 import { getActiveReplyUrl, useActiveReplyOnce } from "../../transport/bot-webhook/active-reply.js";
@@ -115,6 +116,30 @@ export function createBotReplyDispatcher(params: {
       thinks.forEach((think, i) => {
         text = text.replace(`__THINK_PLACEHOLDER_${i}__`, think);
       });
+
+      // [enhanced] Apply reasoning visibility policy
+      const reasoningPolicy = (config as Record<string, unknown>).enhanced as
+        | { reasoningMode?: string }
+        | undefined;
+      if (reasoningPolicy?.reasoningMode) {
+        const thinkExtract = /<think>([\s\S]*?)<\/think>/g;
+        let thinkContent = "";
+        let cleanText = text;
+        const thinkMatches = [...text.matchAll(thinkExtract)];
+        if (thinkMatches.length > 0) {
+          thinkContent = thinkMatches.map((m) => m[1]).join("\n\n");
+          cleanText = text.replace(thinkExtract, "").trim();
+        }
+        const result = applyWecomReasoningPolicy({
+          text: cleanText,
+          thinkingContent: thinkContent,
+          policy: { mode: reasoningPolicy.reasoningMode },
+          transport: "bot",
+          phase: "final",
+        });
+        text = result.text;
+        // result.thinkingContent is available for separate-mode delivery if needed
+      }
 
       const current = streamStore.getStream(streamId);
       if (!current) return;
