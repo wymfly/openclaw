@@ -37,7 +37,7 @@ interface SettingsState {
   fetchVersionInfo: () => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsState>((set) => ({
+export const useSettingsStore = create<SettingsState>((set, get) => ({
   gatewayUrl: "",
   gatewayToken: "",
   notificationPrefs: { approvals: true, budget: true, alerts: true },
@@ -46,11 +46,47 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   error: null,
 
   fetchSettings: async () => {
-    /* T4 */
+    set({ loading: true, error: null });
+    try {
+      const res = await fetch("/api/settings");
+      if (!res.ok) {
+        set({ error: "Failed to fetch settings", loading: false });
+        return;
+      }
+      const data = (await res.json()) as Record<string, unknown>;
+      set({
+        gatewayUrl: (data.gatewayUrl as string) ?? "",
+        gatewayToken: data.gatewayToken ? "••••••" : "",
+        notificationPrefs: (data.notificationPrefs as NotificationPrefs) ?? {
+          approvals: true,
+          budget: true,
+          alerts: true,
+        },
+        loading: false,
+      });
+    } catch {
+      set({ error: "Failed to fetch settings", loading: false });
+    }
   },
 
   saveSettings: async () => {
-    /* T4 */
+    const { gatewayUrl, gatewayToken, notificationPrefs } = get();
+    set({ error: null });
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gatewayUrl, gatewayToken, notificationPrefs }),
+      });
+      if (!res.ok) {
+        set({ error: "Failed to save settings" });
+        return;
+      }
+      // Re-fetch to confirm persisted state
+      await get().fetchSettings();
+    } catch {
+      set({ error: "Failed to save settings" });
+    }
   },
 
   setGatewayUrl: (url) => {
@@ -68,11 +104,31 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   testConnection: async () => {
-    /* T4 */
-    return false;
+    const { gatewayUrl, gatewayToken } = get();
+    try {
+      const res = await fetch("/api/settings/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: gatewayUrl, token: gatewayToken }),
+      });
+      const data = (await res.json()) as { ok: boolean };
+      return data.ok;
+    } catch {
+      return false;
+    }
   },
 
   fetchVersionInfo: async () => {
-    /* T4 */
+    try {
+      const res = await fetch("/api/settings/version");
+      if (!res.ok) {
+        set({ versionInfo: { deck: "", gateway: "", cli: "" } });
+        return;
+      }
+      const data = (await res.json()) as VersionInfo;
+      set({ versionInfo: data });
+    } catch {
+      set({ versionInfo: { deck: "", gateway: "", cli: "" } });
+    }
   },
 }));
