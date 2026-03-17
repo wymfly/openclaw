@@ -6,6 +6,10 @@ import { useActivityStore, type ActivityEvent } from "@/stores/activity";
 /**
  * Listen for "activity.event" events from the existing SSE stream at `/api/stream`.
  * Adds new events to the activity store in real-time.
+ *
+ * Reconnection: The native EventSource API automatically reconnects with
+ * ~3 s delay. The server supports `Last-Event-ID` replay, so no events
+ * are lost during brief disconnections.
  */
 export function useActivitySSE() {
   const addEvent = useActivityStore((s) => s.addEvent);

@@ -3,7 +3,13 @@
 import { useEffect } from "react";
 import { useApprovalsStore, type PendingApproval } from "@/stores/approvals";
 
-/** Subscribe to SSE approval events and update the store in real-time. */
+/**
+ * Subscribe to SSE approval events and update the store in real-time.
+ *
+ * Reconnection: The native EventSource API automatically reconnects with
+ * ~3 s delay. The server supports `Last-Event-ID` replay, so no events
+ * are lost during brief disconnections.
+ */
 export function useApprovalsSSE() {
   const addPending = useApprovalsStore((s) => s.addPending);
   const removePending = useApprovalsStore((s) => s.removePending);
