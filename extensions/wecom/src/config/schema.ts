@@ -90,6 +90,23 @@ const dynamicAgentsSchema = z
   })
   .optional();
 
+const pendingReplySchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    maxRetries: z.number().optional(),
+    sweepIntervalMs: z.number().optional(),
+  })
+  .optional();
+
+const enhancedSchema = z
+  .object({
+    quotaTracking: z.boolean().optional(),
+    reqIdPersistence: z.boolean().optional(),
+    reasoningMode: z.enum(["separate", "append", "hidden"]).optional(),
+    pendingReply: pendingReplySchema,
+  })
+  .optional();
+
 const accountSchema = z.object({
   enabled: z.boolean().optional(),
   name: z.string().optional(),
@@ -108,6 +125,7 @@ export const WecomConfigSchema = bindToJsonSchema(
     network: networkSchema,
     routing: routingSchema,
     dynamicAgents: dynamicAgentsSchema,
+    enhanced: enhancedSchema,
   }),
 );
 
