@@ -40,7 +40,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
     (job?.payload?.kind as "systemEvent" | "agentTurn") ?? "systemEvent",
   );
   const [payloadValue, setPayloadValue] = useState(
-    () => (job?.payload?.event as string) ?? (job?.payload?.message as string) ?? "",
+    () => (job?.payload?.text as string) ?? (job?.payload?.message as string) ?? "",
   );
   const [description, setDescription] = useState(job?.description ?? "");
   const [enabled, setEnabled] = useState(job?.enabled ?? true);
@@ -58,7 +58,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
     const schedule: CronSchedule = { kind: "cron", expr: cronExpr };
     const payload =
       payloadKind === "systemEvent"
-        ? { kind: "systemEvent" as const, event: payloadValue }
+        ? { kind: "systemEvent" as const, text: payloadValue }
         : { kind: "agentTurn" as const, message: payloadValue };
 
     if (job) {
@@ -168,7 +168,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
           {t("wakeMode")}
         </span>
         <div className="flex gap-2">
-          {(["now", "nextHeartbeat"] as const).map((mode) => (
+          {(["now", "next-heartbeat"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
@@ -179,7 +179,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
               }}
               onClick={() => setWakeMode(mode)}
             >
-              {t(mode)}
+              {t(mode === "next-heartbeat" ? "nextHeartbeat" : mode)}
             </button>
           ))}
         </div>

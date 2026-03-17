@@ -178,11 +178,12 @@ describe("updatePolicy", () => {
     expect(result).toBe(true);
     expect(useApprovalsStore.getState().policyHash).toBe("hash-2");
 
-    // Verify request body
+    // Verify request body — allowlist must NOT be sent at the file top level
+    // because ExecApprovalsFileSchema has additionalProperties: false.
     const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(callBody.baseHash).toBe("hash-1");
     expect(callBody.file.defaults.security).toBe("full");
-    expect(callBody.file.allowlist).toEqual(["/usr/local"]);
+    expect(callBody.file).not.toHaveProperty("allowlist");
   });
 
   it("returns false on failure", async () => {

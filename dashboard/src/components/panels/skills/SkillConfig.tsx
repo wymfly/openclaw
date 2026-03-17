@@ -45,8 +45,11 @@ export function SkillConfig({ skill }: SkillConfigProps) {
   };
 
   const handleInstall = async () => {
+    // installId comes from the skill's install metadata (key); Gateway uses it
+    // to look up the installer spec — a random UUID would never match.
+    const installId = (skill.config?.installId as string) ?? skill.key;
     setInstalling(true);
-    await installSkill(skill.name);
+    await installSkill(skill.name, installId);
     await fetchSkills();
     setInstalling(false);
   };

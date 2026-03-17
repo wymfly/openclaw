@@ -39,7 +39,9 @@ export interface CronRunEntry {
   id: string;
   jobId: string;
   status: "ok" | "error" | "skipped";
-  startedAt: string;
+  /** Unix ms timestamp from Gateway (replaces the old `startedAt` ISO string). */
+  ts: number;
+  runAtMs?: number;
   durationMs?: number;
   delivery?: unknown;
   error?: string;
@@ -167,8 +169,8 @@ export const useCronStore = create<CronState>((set) => ({
         set({ runs: [] });
         return;
       }
-      const data = (await res.json()) as { runs?: CronRunEntry[] };
-      set({ runs: data.runs ?? [] });
+      const data = (await res.json()) as { entries?: CronRunEntry[] };
+      set({ runs: data.entries ?? [] });
     } catch {
       set({ runs: [] });
     }

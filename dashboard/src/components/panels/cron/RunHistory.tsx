@@ -53,7 +53,7 @@ export function RunHistory({ jobId }: RunHistoryProps) {
           {runs.map((run) => (
             <tr key={run.id} style={{ borderColor: "var(--border)" }} className="border-b">
               <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>
-                {new Date(run.startedAt).toLocaleString()}
+                {new Date(run.ts).toLocaleString()}
               </td>
               <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>
                 {run.durationMs != null ? `${run.durationMs}ms` : "—"}

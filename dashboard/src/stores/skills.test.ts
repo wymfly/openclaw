@@ -61,6 +61,65 @@ describe("skills store", () => {
       expect(useSkillsStore.getState().loading).toBe(false);
     });
 
+    it("normalizes gateway skills.status response shape", async () => {
+      // Gateway returns { skillKey, disabled, eligible, missing, ... } —
+      // the store must normalize to { key, name, status, source, enabled, ... }
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            skills: [
+              {
+                skillKey: "web-search",
+                name: "Web Search",
+                source: "bundled",
+                disabled: false,
+                eligible: true,
+                missing: [],
+              },
+              {
+                skillKey: "custom-plugin",
+                name: "Custom Plugin",
+                source: "plugin",
+                disabled: true,
+                eligible: true,
+                missing: [],
+              },
+              {
+                skillKey: "needs-key",
+                name: "Needs Key",
+                source: "managed",
+                disabled: false,
+                eligible: false,
+                missing: ["API_KEY"],
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+      await useSkillsStore.getState().fetchSkills();
+
+      const skills = useSkillsStore.getState().skills;
+      expect(skills).toHaveLength(3);
+
+      // Ready skill
+      expect(skills[0].key).toBe("web-search");
+      expect(skills[0].status).toBe("ready");
+      expect(skills[0].enabled).toBe(true);
+
+      // Disabled skill
+      expect(skills[1].key).toBe("custom-plugin");
+      expect(skills[1].status).toBe("disabled");
+      expect(skills[1].enabled).toBe(false);
+
+      // Needs-setup skill
+      expect(skills[2].key).toBe("needs-key");
+      expect(skills[2].status).toBe("needs-setup");
+      expect(skills[2].enabled).toBe(true);
+      expect(skills[2].missingRequirements).toEqual(["API_KEY"]);
+    });
+
     it("passes agentId as query param", async () => {
       const spy = vi
         .spyOn(globalThis, "fetch")
@@ -130,19 +189,19 @@ describe("skills store", () => {
   });
 
   describe("installSkill", () => {
-    it("returns true on success", async () => {
+    it("returns true on success and sends caller-provided installId", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         new Response(JSON.stringify({ ok: true }), { status: 200 }),
       );
 
-      const ok = await useSkillsStore.getState().installSkill("new-skill");
+      const ok = await useSkillsStore.getState().installSkill("new-skill", "installer-abc");
 
       expect(ok).toBe(true);
-      // Verify installId was included
+      // Verify installId matches the caller-provided value (not a random UUID)
       const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
       const body = JSON.parse(call[1].body as string) as { name: string; installId: string };
       expect(body.name).toBe("new-skill");
-      expect(body.installId).toBeTruthy();
+      expect(body.installId).toBe("installer-abc");
     });
 
     it("returns false on failure", async () => {
@@ -150,14 +209,14 @@ describe("skills store", () => {
         new Response(JSON.stringify({ error: "fail" }), { status: 500 }),
       );
 
-      const ok = await useSkillsStore.getState().installSkill("bad-skill");
+      const ok = await useSkillsStore.getState().installSkill("bad-skill", "inst-1");
       expect(ok).toBe(false);
     });
 
     it("returns false on network error", async () => {
       vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("timeout"));
 
-      const ok = await useSkillsStore.getState().installSkill("x");
+      const ok = await useSkillsStore.getState().installSkill("x", "inst-2");
       expect(ok).toBe(false);
     });
   });
