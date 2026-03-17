@@ -158,6 +158,7 @@ describe("fetchAndSaveMcpConfig", () => {
     expect(saved.mcpConfig.doc).toEqual({
       type: "streamable-http",
       url: "https://mcp.example.invalid/runtime-doc",
+      is_authed: true,
     });
     expect(log.info).toHaveBeenCalledWith(expect.stringContaining("MCP config fetched"));
   });

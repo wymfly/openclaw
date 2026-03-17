@@ -106,7 +106,9 @@ function resolveMcpTransport(body: McpRawResponse["body"] = {}): string {
 
 /** Per-account config file path: `~/.openclaw/wecomConfig/{accountId}/config.json` */
 function getConfigPath(accountId: string): string {
-  return path.join(os.homedir(), ".openclaw", "wecomConfig", accountId, "config.json");
+  // Sanitize accountId to prevent path traversal (e.g. "../" in user-configured YAML keys)
+  const safeId = accountId.replace(/[/\\]/g, "_").replace(/\.\./g, "_");
+  return path.join(os.homedir(), ".openclaw", "wecomConfig", safeId, "config.json");
 }
 
 // Serialize writes per-account to avoid torn config files.
@@ -188,6 +190,7 @@ async function saveMcpConfig(config: McpConfig, accountId: string): Promise<void
     (current.mcpConfig as Record<string, unknown>)[config.key || MCP_CONFIG_KEY] = {
       type: config.type,
       url: config.url,
+      is_authed: config.isAuthed,
     };
 
     await writeJsonFileAtomically(configPath, current);
