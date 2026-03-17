@@ -6,6 +6,10 @@ import { create } from "zustand";
 
 export type MemoryTab = "files" | "search" | "graph" | "health";
 
+export type MemoryScope = "all" | "global" | "agent";
+
+export type MemoryTier = "core" | "working" | "peripheral";
+
 export interface MemoryFileNode {
   name: string;
   path: string;
@@ -18,6 +22,9 @@ export interface MemorySearchResult {
   path: string;
   content: string;
   relevance: number;
+  tier?: MemoryTier;
+  scope?: string;
+  decayScore?: number;
 }
 
 export interface MemoryHealthEntry {
@@ -39,6 +46,7 @@ export interface MemoryAgent {
 interface MemoryState {
   agents: MemoryAgent[];
   selectedAgentId: string | null;
+  selectedScope: MemoryScope;
   files: MemoryFileNode[];
   selectedFileContent: string | null;
   selectedFilePath: string | null;
@@ -51,6 +59,7 @@ interface MemoryState {
 
   setActiveTab: (tab: MemoryTab) => void;
   setSelectedAgent: (agentId: string | null) => void;
+  setSelectedScope: (scope: MemoryScope) => void;
   setFiles: (files: MemoryFileNode[]) => void;
   setSelectedFile: (path: string | null, content: string | null) => void;
   setSearchResults: (results: MemorySearchResult[]) => void;
@@ -62,13 +71,14 @@ interface MemoryState {
   fetchAgents: () => Promise<void>;
   browseFiles: (agentId: string, path?: string) => Promise<void>;
   readFile: (agentId: string, path: string) => Promise<void>;
-  searchMemory: (query: string, agentId?: string) => Promise<void>;
+  searchMemory: (query: string, agentId?: string, scope?: MemoryScope) => Promise<void>;
   fetchHealth: () => Promise<void>;
 }
 
 export const useMemoryStore = create<MemoryState>((set, _get) => ({
   agents: [],
   selectedAgentId: null,
+  selectedScope: "all",
   files: [],
   selectedFileContent: null,
   selectedFilePath: null,
@@ -81,6 +91,7 @@ export const useMemoryStore = create<MemoryState>((set, _get) => ({
 
   setActiveTab: (activeTab) => set({ activeTab }),
   setSelectedAgent: (selectedAgentId) => set({ selectedAgentId }),
+  setSelectedScope: (selectedScope) => set({ selectedScope }),
   setFiles: (files) => set({ files }),
   setSelectedFile: (path, content) => set({ selectedFilePath: path, selectedFileContent: content }),
   setSearchResults: (searchResults) => set({ searchResults }),
@@ -147,12 +158,15 @@ export const useMemoryStore = create<MemoryState>((set, _get) => ({
     }
   },
 
-  searchMemory: async (query: string, agentId?: string) => {
+  searchMemory: async (query: string, agentId?: string, scope?: MemoryScope) => {
     set({ loading: true, error: null, searchResults: [] });
     try {
       const params = new URLSearchParams({ q: query });
       if (agentId) {
         params.set("agentId", agentId);
+      }
+      if (scope && scope !== "all") {
+        params.set("scope", scope);
       }
       const res = await fetch(`/api/memory/search?${params}`);
       if (!res.ok) {
