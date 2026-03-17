@@ -26,6 +26,31 @@ export interface HistoryMessage {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Normalize message content that may be a string or an array of content blocks.
+ * Gateway chat.history may return `content` as `[{ type: "text", text: "..." }, ...]`.
+ */
+function normalizeContent(content: unknown): string {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter((b): b is { type: string; text: string } => {
+        return (
+          b != null &&
+          typeof b === "object" &&
+          "type" in b &&
+          (b as { type: string }).type === "text" &&
+          "text" in b
+        );
+      })
+      .map((b) => b.text)
+      .join("\n");
+  }
+  return "";
+}
+
 /** Derive session kind from the key naming convention. */
 function inferKind(key: string): SessionKind {
   if (key.startsWith("direct:") || key.includes(":direct:")) {
@@ -49,9 +74,9 @@ function normalizeSession(raw: Record<string, unknown>): SessionEntry {
     key,
     kind: (raw.kind as SessionKind) ?? inferKind(key),
     model: typeof modelVal === "string" ? modelVal : JSON.stringify(modelVal),
-    tokensIn: Number(raw.tokensIn ?? 0),
-    tokensOut: Number(raw.tokensOut ?? 0),
-    contextWindow: Number(raw.contextWindow ?? 0),
+    tokensIn: Number(raw.inputTokens ?? raw.tokensIn ?? 0),
+    tokensOut: Number(raw.outputTokens ?? raw.tokensOut ?? 0),
+    contextWindow: Number(raw.contextTokens ?? raw.contextWindow ?? 0),
     updatedAt: Number(raw.updatedAt ?? raw.lastActivityAt ?? 0),
   };
 }
@@ -122,12 +147,17 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
         return;
       }
       const data = await res.json();
-      const messages = Array.isArray(data)
+      const rawMessages = Array.isArray(data)
         ? data
         : Array.isArray((data as { messages?: unknown }).messages)
           ? (data as { messages: unknown[] }).messages
           : [];
-      set({ history: messages as HistoryMessage[] });
+      const messages: HistoryMessage[] = (rawMessages as Record<string, unknown>[]).map((m) => ({
+        role: (m.role as HistoryMessage["role"]) ?? "user",
+        content: normalizeContent(m.content),
+        timestamp: typeof m.timestamp === "number" ? m.timestamp : undefined,
+      }));
+      set({ history: messages });
     } catch {
       // silently ignore — history is non-critical
     }

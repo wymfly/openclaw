@@ -14,5 +14,5 @@ type RouteContext = { params: Promise<{ channelId: string }> };
 
 export const POST = withAuth(async (_request: NextRequest, ctx: unknown) => {
   const { channelId } = await (ctx as RouteContext).params;
-  return gatewayRequest("channels.logout", { channelId });
+  return gatewayRequest("channels.logout", { channel: channelId });
 });
