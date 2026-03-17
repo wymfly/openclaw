@@ -244,7 +244,9 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   const retryTimer = setInterval(async () => {
     try {
       const { processWebhookRetries } = await import("../src/lib/webhooks.js");
-      processWebhookRetries(runtime.db).catch(() => {});
+      processWebhookRetries(runtime.db).catch((err: unknown) =>
+        console.error("[DeckRuntime] webhook retry error:", err),
+      );
     } catch {
       // Module not available — ignore
     }

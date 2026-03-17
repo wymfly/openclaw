@@ -59,8 +59,12 @@ export const GET = withAuth(async (request: NextRequest) => {
       params.push(category);
     }
     if (q) {
-      conditions.push("(title LIKE ? OR content LIKE ? OR keywords LIKE ?)");
-      const pattern = `%${q}%`;
+      conditions.push(
+        "(title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR keywords LIKE ? ESCAPE '\\')",
+      );
+      // Escape LIKE metacharacters to prevent wildcard injection (L2 review P2)
+      const escaped = q.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+      const pattern = `%${escaped}%`;
       params.push(pattern, pattern, pattern);
     }
 
