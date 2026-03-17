@@ -9,15 +9,21 @@ import { useNotificationSSE } from "@/components/notifications/useNotificationSS
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ActivityPanel } from "@/components/panels/activity/ActivityPanel";
 import { AgentsPanel } from "@/components/panels/agents/AgentsPanel";
+import { AlertsPanel } from "@/components/panels/alerts/AlertsPanel";
+import { ApprovalsPanel } from "@/components/panels/approvals/ApprovalsPanel";
+import { BudgetPanel } from "@/components/panels/budget/BudgetPanel";
 import { ChannelsPanel } from "@/components/panels/channels/ChannelsPanel";
 import { ChatPanel } from "@/components/panels/chat/ChatPanel";
 import { ConfigPanel } from "@/components/panels/config-editor/ConfigPanel";
+import { CronPanel } from "@/components/panels/cron/CronPanel";
 import { GatewayPanel } from "@/components/panels/gateway/GatewayPanel";
 import { LogsPanel } from "@/components/panels/logs/LogsPanel";
 import { MemoryPanel } from "@/components/panels/memory/MemoryPanel";
 import { ModelsPanel } from "@/components/panels/models/ModelsPanel";
 import { SessionsPanel } from "@/components/panels/sessions/SessionsPanel";
+import { SkillsPanel } from "@/components/panels/skills/SkillsPanel";
 import { UsagePanel } from "@/components/panels/usage/UsagePanel";
+import { WebhooksPanel } from "@/components/panels/webhooks/WebhooksPanel";
 import { useUIStore, type Panel } from "@/stores/ui";
 
 function PanelPlaceholder({ panel }: { panel: Panel }) {
@@ -65,6 +71,24 @@ function ActivePanel({ panel }: { panel: Panel }) {
   }
   if (panel === "config") {
     return <ConfigPanel />;
+  }
+  if (panel === "cron") {
+    return <CronPanel />;
+  }
+  if (panel === "webhooks") {
+    return <WebhooksPanel />;
+  }
+  if (panel === "approvals") {
+    return <ApprovalsPanel />;
+  }
+  if (panel === "skills") {
+    return <SkillsPanel />;
+  }
+  if (panel === "budget") {
+    return <BudgetPanel />;
+  }
+  if (panel === "alerts") {
+    return <AlertsPanel />;
   }
   return <PanelPlaceholder panel={panel} />;
 }

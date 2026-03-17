@@ -170,7 +170,14 @@
     "lancedbDisabled": "LanceDB not enabled (file browsing only)",
     "relevance": "Relevance",
     "content": "Content",
-    "notImplemented": "Requires LanceDB extension"
+    "notImplemented": "Requires LanceDB extension",
+    "scope": "Scope",
+    "scopeGlobal": "Global",
+    "scopeAgent": "Agent",
+    "tierCore": "Core",
+    "tierWorking": "Working",
+    "tierPeripheral": "Peripheral",
+    "decayScore": "Decay Score"
   },
   "activity": {
     "title": "Activity Feed",
@@ -430,5 +437,47 @@
     "back": "Back",
     "skipForNow": "Skip for now",
     "finish": "Finish"
+  },
+  "docs": {
+    "title": "Doc Hub",
+    "search": "Search docs...",
+    "category": {
+      "all": "All",
+      "summary": "Summary",
+      "plan": "Plan",
+      "spec": "Spec",
+      "manual": "Manual",
+      "draft": "Draft"
+    },
+    "extract": "Extract Docs",
+    "noResults": "No documents yet",
+    "source": "Source",
+    "extractedAt": "Extracted at",
+    "delete": "Delete document",
+    "confirmDelete": "Delete this document?"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "language": "Language",
+    "connection": "Connection",
+    "gatewayUrl": "Gateway URL",
+    "gatewayToken": "Gateway Token",
+    "testConnection": "Test Connection",
+    "notifications": "Notifications",
+    "notifyApprovals": "Approval request notifications",
+    "notifyBudget": "Budget alert notifications",
+    "notifyAlerts": "Rule alert notifications",
+    "about": "About",
+    "deckVersion": "Deck Version",
+    "gatewayVersion": "Gateway Version",
+    "cliVersion": "CLI Version",
+    "docs": "Documentation",
+    "github": "GitHub",
+    "saved": "Settings saved"
   }
 }
