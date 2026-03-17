@@ -25,8 +25,9 @@ export const POST = withAuth(async (request: NextRequest) => {
       if (body.sessionKey) {
         params.sessionKey = body.sessionKey;
       }
-      const result = await runtime.adapter.request("chat.history", params);
-      messages = result?.messages ?? [];
+      const raw = await runtime.adapter.request("chat.history", params);
+      const typed = raw as { messages?: Array<{ role: string; content: string }> } | undefined;
+      messages = typed?.messages ?? [];
     } catch {
       return NextResponse.json({ error: "Failed to fetch conversation history" }, { status: 502 });
     }
