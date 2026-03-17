@@ -33,7 +33,13 @@ function extractTextFromMessage(message?: ChatEventPayload["message"]): string {
     .join("");
 }
 
-/** Connect to the SSE stream and dispatch chat events to the store. */
+/**
+ * Connect to the SSE stream and dispatch chat events to the store.
+ *
+ * Reconnection: The native EventSource API automatically reconnects with
+ * ~3 s delay. The server supports `Last-Event-ID` replay, so no events
+ * are lost during brief disconnections.
+ */
 export function useChatSSE() {
   const { addMessage, updateStreamingMessage, finalizeStreamingMessage, setIsStreaming, setError } =
     useChatStore();

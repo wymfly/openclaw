@@ -5,6 +5,20 @@
  * Supports Last-Event-ID header for replay after reconnect.
  * Sends `: heartbeat\n\n` every 15 s to keep the connection alive.
  *
+ * Reconnection strategy:
+ *   The browser's native EventSource API handles automatic reconnection
+ *   with a default retry interval (~3 s in most browsers). The server may
+ *   override this by sending a `retry: <ms>` field. After a 503 (connection
+ *   limit), the response includes a `Retry-After: 5` header as a hint to
+ *   the client. The `Last-Event-ID` header on reconnection enables the
+ *   server to replay any events the client missed from the in-memory ring
+ *   buffer (see `getEventsSince`).
+ *
+ *   For custom SSE clients (non-EventSource), implement exponential backoff:
+ *     baseDelay = 1000ms, factor = 2, maxDelay = 30000ms, jitter = +/-25%
+ *     delay = min(baseDelay * factor^attempt, maxDelay) * (0.75 + Math.random() * 0.5)
+ *     Reset attempt counter on successful connection (first data frame received).
+ *
  * Security:
  *   - Maximum 50 concurrent SSE connections (returns 503 if exceeded)
  *   - No auth required (SSE is used by the onboarding flow too)

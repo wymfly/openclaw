@@ -12,6 +12,10 @@ interface ToastEvent {
 /**
  * Hook that subscribes to the SSE stream and bridges
  * `notification.toast` events into the Zustand toast store.
+ *
+ * Reconnection: The native EventSource API automatically reconnects with
+ * ~3 s delay. The server supports `Last-Event-ID` replay, so no events
+ * are lost during brief disconnections.
  */
 export function useNotificationSSE(): void {
   const addToast = useNotificationsStore((s) => s.addToast);
