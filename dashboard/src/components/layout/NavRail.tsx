@@ -236,25 +236,45 @@ export function NavRail() {
 
   const navContent = (
     <div className="flex flex-col h-full">
-      {/* ── Brand ── */}
+      {/* ── Brand + expand toggle ── */}
       <div
         className={cn(
           "flex items-center shrink-0 h-14 border-b border-[var(--border-subtle)]",
           collapsed ? "justify-center px-2" : "gap-2.5 px-4",
         )}
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent-muted)]">
-          <Hexagon size={18} className="text-[var(--accent)]" />
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
-              OpenClaw
-            </span>
-            <span className="text-[10px] font-mono text-[var(--text-secondary)] leading-none">
-              deck v0.1
-            </span>
-          </div>
+        {collapsed ? (
+          /* Collapsed: brand icon doubles as expand button */
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  onClick={toggleSidebar}
+                  className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--accent-muted)] border border-[var(--accent)]/20 hover:border-[var(--accent)]/50 hover:shadow-[var(--accent-glow)] transition-all duration-150 cursor-pointer"
+                  aria-label="Expand sidebar"
+                />
+              }
+            >
+              <PanelLeft size={18} className="text-[var(--accent)]" />
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>
+              Expand sidebar
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <>
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent-muted)]">
+              <Hexagon size={18} className="text-[var(--accent)]" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+                OpenClaw
+              </span>
+              <span className="text-[10px] font-mono text-[var(--text-secondary)] leading-none">
+                deck v0.1
+              </span>
+            </div>
+          </>
         )}
       </div>
 
@@ -340,21 +360,15 @@ export function NavRail() {
         <div className={cn("py-1.5", collapsed ? "px-1" : "px-2")}>
           {renderNavItem(settingsItem)}
         </div>
-        {!isMobile && (
-          <div className={cn("pb-2.5", collapsed ? "flex justify-center px-1" : "px-2")}>
+        {!isMobile && !collapsed && (
+          <div className="pb-2.5 px-2">
             <button
-              className={cn(
-                "flex items-center justify-center rounded-lg transition-colors duration-150 cursor-pointer",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-                collapsed
-                  ? "w-10 h-8 mx-auto border border-[var(--border)] text-[var(--accent)] hover:bg-[var(--accent-muted)] hover:border-[var(--accent)]/30"
-                  : "w-full h-7 gap-2 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
-              )}
+              className="flex items-center justify-center w-full h-7 gap-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
               onClick={toggleSidebar}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label="Collapse sidebar"
             >
-              {collapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
-              {!collapsed && <span className="text-xs">Collapse</span>}
+              <PanelLeftClose size={16} />
+              <span className="text-xs">Collapse</span>
             </button>
           </div>
         )}
