@@ -125,14 +125,20 @@
     },
     "fallbacks": {
       "primary": "主力模型",
+      "changePrimary": "更换",
+      "textModels": "文本模型",
       "failsOver": "失败时",
       "empty": "未配置回退链。主模型不可用时请求将直接失败。",
       "add": "添加回退模型",
+      "saving": "保存中...",
       "saved": "已保存",
+      "saveFailed": "回退链保存失败",
+      "noPrimary": "未选择主模型。请选择一个模型以开始。",
       "imageModels": "图像模型",
       "emptyImage": "未配置图像模型。",
       "authWarning": "该提供商未配置认证，故障转移时将被跳过。",
-      "goConfig": "去配置"
+      "goConfig": "去配置",
+      "position": "位置 {position}"
     },
     "usage": {
       "todayCost": "今日",

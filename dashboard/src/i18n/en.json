@@ -125,14 +125,20 @@
     },
     "fallbacks": {
       "primary": "Primary Model",
+      "changePrimary": "Change",
+      "textModels": "Text Models",
       "failsOver": "On failure",
       "empty": "No fallback chain configured. Requests will fail if the primary model is unavailable.",
       "add": "Add Fallback Model",
+      "saving": "Saving...",
       "saved": "Saved",
+      "saveFailed": "Failed to save fallback chain",
+      "noPrimary": "No primary model selected. Choose a model to get started.",
       "imageModels": "Image Models",
       "emptyImage": "No image model configured.",
       "authWarning": "This provider has no auth configured. It will be skipped during failover.",
-      "goConfig": "Configure"
+      "goConfig": "Configure",
+      "position": "Position {position}"
     },
     "usage": {
       "todayCost": "Today",
