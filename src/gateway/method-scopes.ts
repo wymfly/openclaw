@@ -80,6 +80,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "talk.config",
     "agents.files.list",
     "agents.files.get",
+    "deck.auth.overview",
   ],
   [WRITE_SCOPE]: [
     "send",
@@ -98,6 +99,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "chat.abort",
     "browser.request",
     "push.test",
+    "deck.auth.probe",
   ],
   [ADMIN_SCOPE]: [
     "channels.logout",
