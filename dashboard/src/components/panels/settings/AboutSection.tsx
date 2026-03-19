@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings";
 
 export function AboutSection() {
@@ -21,56 +23,42 @@ export function AboutSection() {
 
   return (
     <section>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-        {t("about")}
-      </h3>
-      <div
-        className="rounded-lg border p-4 flex flex-col gap-3"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-      >
-        {/* Version badges */}
-        <div className="flex flex-wrap gap-3">
-          {versions.map(({ label, value }) => (
-            <div key={label} className="flex items-center gap-1.5">
-              <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-                {label}:
-              </span>
-              <span
-                className="text-xs px-2 py-0.5 rounded-full font-mono"
-                style={{
-                  backgroundColor: "var(--bg-primary)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                {value || "—"}
-              </span>
-            </div>
-          ))}
-        </div>
+      <h3 className="mb-3 text-sm font-semibold text-foreground">{t("about")}</h3>
+      <Card size="sm">
+        <CardContent className="flex flex-col gap-3">
+          {/* Version badges */}
+          <div className="flex flex-wrap gap-3">
+            {versions.map(({ label, value }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">{label}:</span>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {value || "—"}
+                </Badge>
+              </div>
+            ))}
+          </div>
 
-        {/* External links */}
-        <div className="flex gap-3 pt-1">
-          <a
-            href="https://docs.openclaw.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-medium underline"
-            style={{ color: "var(--accent)" }}
-          >
-            {t("docs")}
-          </a>
-          <a
-            href="https://github.com/openclaw/openclaw"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-medium underline"
-            style={{ color: "var(--accent)" }}
-          >
-            {t("github")}
-          </a>
-        </div>
-      </div>
+          {/* External links */}
+          <div className="flex gap-3 pt-1">
+            <a
+              href="https://docs.openclaw.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              {t("docs")}
+            </a>
+            <a
+              href="https://github.com/openclaw/openclaw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              {t("github")}
+            </a>
+          </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }

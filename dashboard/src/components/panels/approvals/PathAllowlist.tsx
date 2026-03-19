@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface PathAllowlistProps {
   paths: string[];
@@ -37,60 +40,38 @@ export function PathAllowlist({ paths, onChange }: PathAllowlistProps) {
 
   return (
     <div className="space-y-2">
-      <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-        {t("pathAllowlist")}
-      </label>
+      <Label className="text-xs text-muted-foreground">{t("pathAllowlist")}</Label>
 
       {/* Existing paths */}
       <div className="space-y-1">
         {paths.map((path) => (
-          <div
-            key={path}
-            className="flex items-center gap-2 px-2 py-1 rounded text-xs"
-            style={{ backgroundColor: "var(--bg-primary)" }}
-          >
-            <code className="flex-1 truncate" style={{ color: "var(--text-primary)" }}>
-              {path}
-            </code>
-            <button
+          <div key={path} className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted text-xs">
+            <code className="flex-1 truncate text-foreground">{path}</code>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="text-destructive hover:text-destructive shrink-0 h-5 px-1"
               onClick={() => handleRemove(path)}
-              className="text-xs px-1 cursor-pointer shrink-0"
-              style={{ color: "var(--status-disconnected)" }}
             >
               {t("removePath")}
-            </button>
+            </Button>
           </div>
         ))}
       </div>
 
       {/* Add new path */}
       <div className="flex items-center gap-2">
-        <input
+        <Input
           type="text"
           value={newPath}
           onChange={(e) => setNewPath(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="/path/to/allow"
-          className="flex-1 text-xs rounded px-2 py-1 border"
-          style={{
-            borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
-          }}
+          className="flex-1 h-7 text-xs"
         />
-        <button
-          onClick={handleAdd}
-          disabled={!newPath.trim()}
-          className="text-xs px-3 py-1 rounded border cursor-pointer"
-          style={{
-            borderColor: "var(--accent)",
-            color: "var(--accent)",
-            backgroundColor: "transparent",
-            opacity: newPath.trim() ? 1 : 0.5,
-          }}
-        >
+        <Button variant="outline" size="xs" onClick={handleAdd} disabled={!newPath.trim()}>
           {t("addPath")}
-        </button>
+        </Button>
       </div>
     </div>
   );

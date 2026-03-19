@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useCronStore, type CronJob, type CronSchedule } from "@/stores/cron";
 
 // Schedule templates pre-fill cron expression
@@ -80,144 +83,101 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-        {job ? t("editJob") : t("addJob")}
-      </h3>
+      <h3 className="text-sm font-semibold text-foreground">{job ? t("editJob") : t("addJob")}</h3>
 
       {/* Name */}
-      <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("name")}
-        </span>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("name")}</Label>
+        <Input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="px-2 py-1.5 text-xs rounded-md border"
-          style={{
-            borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
-          }}
+          className="h-7 text-xs"
         />
-      </label>
+      </div>
 
       {/* Schedule template */}
-      <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("schedule")}
-        </span>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("schedule")}</Label>
         <div className="flex gap-1 flex-wrap">
           {(["every5min", "hourly", "daily", "weekly", "custom"] as TemplateKey[]).map((key) => (
-            <button
+            <Button
               key={key}
-              type="button"
-              className="px-2 py-1 text-[11px] rounded-md transition-colors"
-              style={{
-                backgroundColor: template === key ? "var(--accent)" : "var(--bg-tertiary)",
-                color: template === key ? "var(--accent-fg)" : "var(--text-secondary)",
-              }}
+              variant={template === key ? "default" : "secondary"}
+              size="xs"
               onClick={() => setTemplate(key)}
             >
               {t(`templates.${key}`)}
-            </button>
+            </Button>
           ))}
         </div>
         {template === "custom" && (
-          <input
+          <Input
             type="text"
             value={cronExpr}
             onChange={(e) => setCronExpr(e.target.value)}
             placeholder="* * * * *"
-            className="mt-1 px-2 py-1.5 text-xs rounded-md border font-mono"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-            }}
+            className="mt-1 h-7 text-xs font-mono"
           />
         )}
-      </label>
+      </div>
 
       {/* Session target */}
-      <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("sessionTarget")}
-        </span>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("sessionTarget")}</Label>
         <div className="flex gap-2">
           {(["main", "isolated"] as const).map((mode) => (
-            <button
+            <Button
               key={mode}
-              type="button"
-              className="px-2 py-1 text-[11px] rounded-md transition-colors"
-              style={{
-                backgroundColor: sessionTarget === mode ? "var(--accent)" : "var(--bg-tertiary)",
-                color: sessionTarget === mode ? "var(--accent-fg)" : "var(--text-secondary)",
-              }}
+              variant={sessionTarget === mode ? "default" : "secondary"}
+              size="xs"
               onClick={() => setSessionTarget(mode)}
             >
               {t(mode)}
-            </button>
+            </Button>
           ))}
         </div>
-      </label>
+      </div>
 
       {/* Wake mode */}
-      <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("wakeMode")}
-        </span>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("wakeMode")}</Label>
         <div className="flex gap-2">
           {(["now", "next-heartbeat"] as const).map((mode) => (
-            <button
+            <Button
               key={mode}
-              type="button"
-              className="px-2 py-1 text-[11px] rounded-md transition-colors"
-              style={{
-                backgroundColor: wakeMode === mode ? "var(--accent)" : "var(--bg-tertiary)",
-                color: wakeMode === mode ? "var(--accent-fg)" : "var(--text-secondary)",
-              }}
+              variant={wakeMode === mode ? "default" : "secondary"}
+              size="xs"
               onClick={() => setWakeMode(mode)}
             >
               {t(mode === "next-heartbeat" ? "nextHeartbeat" : mode)}
-            </button>
+            </Button>
           ))}
         </div>
-      </label>
+      </div>
 
       {/* Payload type + value */}
-      <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("payloadType")}
-        </span>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("payloadType")}</Label>
         <div className="flex gap-2">
           {(["systemEvent", "agentTurn"] as const).map((kind) => (
-            <button
+            <Button
               key={kind}
-              type="button"
-              className="px-2 py-1 text-[11px] rounded-md transition-colors"
-              style={{
-                backgroundColor: payloadKind === kind ? "var(--accent)" : "var(--bg-tertiary)",
-                color: payloadKind === kind ? "var(--accent-fg)" : "var(--text-secondary)",
-              }}
+              variant={payloadKind === kind ? "default" : "secondary"}
+              size="xs"
               onClick={() => setPayloadKind(kind)}
             >
               {t(`payloadKinds.${kind}`)}
-            </button>
+            </Button>
           ))}
         </div>
         {payloadKind === "systemEvent" ? (
-          <input
+          <Input
             type="text"
             value={payloadValue}
             onChange={(e) => setPayloadValue(e.target.value)}
             placeholder={t("eventNamePlaceholder")}
-            className="mt-1 px-2 py-1.5 text-xs rounded-md border"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-            }}
+            className="mt-1 h-7 text-xs"
           />
         ) : (
           <textarea
@@ -225,61 +185,36 @@ export function JobForm({ job, onDone }: JobFormProps) {
             onChange={(e) => setPayloadValue(e.target.value)}
             placeholder={t("agentMessagePlaceholder")}
             rows={3}
-            className="mt-1 px-2 py-1.5 text-xs rounded-md border resize-none"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-            }}
+            className="mt-1 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-none dark:bg-input/30"
           />
         )}
-      </label>
+      </div>
 
       {/* Description */}
-      <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("description")}
-        </span>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("description")}</Label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="px-2 py-1.5 text-xs rounded-md border resize-none"
-          style={{
-            borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
-          }}
+          className="w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-none dark:bg-input/30"
         />
-      </label>
+      </div>
 
       {/* Enabled */}
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-        <span className="text-xs" style={{ color: "var(--text-primary)" }}>
-          {t("enabled")}
-        </span>
+        <span className="text-xs text-foreground">{t("enabled")}</span>
       </label>
 
       {/* Actions */}
       <div className="flex gap-2 pt-2">
-        <button
-          type="button"
-          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-          onClick={handleSave}
-          disabled={saving || !name.trim()}
-        >
+        <Button size="sm" onClick={handleSave} disabled={saving || !name.trim()}>
           {saving ? tc("loading") : tc("save")}
-        </button>
-        <button
-          type="button"
-          className="px-3 py-1.5 text-xs rounded-md transition-colors"
-          style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--text-secondary)" }}
-          onClick={onDone}
-        >
+        </Button>
+        <Button variant="outline" size="sm" onClick={onDone}>
           {tc("cancel")}
-        </button>
+        </Button>
       </div>
     </div>
   );

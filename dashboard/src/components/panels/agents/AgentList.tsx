@@ -3,13 +3,17 @@
 import { Plus, Trash2, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
 
 const STATUS_COLORS: Record<string, string> = {
-  idle: "var(--status-connected)",
-  busy: "var(--accent)",
-  error: "var(--status-disconnected)",
-  offline: "var(--text-secondary)",
+  idle: "bg-[var(--status-connected)]",
+  busy: "bg-primary",
+  error: "bg-destructive",
+  offline: "bg-muted-foreground",
 };
 
 export function AgentList() {
@@ -43,24 +47,22 @@ export function AgentList() {
   };
 
   return (
-    <aside
-      className="flex flex-col w-56 shrink-0 border-r h-full"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-    >
+    <aside className="flex flex-col w-56 shrink-0 border-r h-full bg-card">
       {/* New agent button */}
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setShowDialog(true)}
-        className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b hover:opacity-80 transition-opacity"
-        style={{ borderColor: "var(--border)", color: "var(--accent)" }}
+        className="justify-start gap-1.5 rounded-none border-b text-primary"
       >
         <Plus size={14} />
         {t("create")}
-      </button>
+      </Button>
 
       {/* Create dialog */}
       {showDialog && (
-        <div className="p-2 border-b" style={{ borderColor: "var(--border)" }}>
-          <input
+        <div className="p-2 border-b">
+          <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => {
@@ -70,46 +72,36 @@ export function AgentList() {
             }}
             placeholder={t("namePlaceholder")}
             autoFocus
-            className="w-full text-xs rounded px-2 py-1.5 mb-1.5"
-            style={{
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border)",
-            }}
+            className="text-xs mb-1.5 h-7"
           />
           <div className="flex gap-1">
-            <button
+            <Button
+              size="xs"
               onClick={() => void handleCreate()}
               disabled={!newName.trim() || creating}
-              className="flex-1 text-xs px-2 py-1 rounded disabled:opacity-40"
-              style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+              className="flex-1"
             >
               {tc("create")}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="xs"
               onClick={() => {
                 setShowDialog(false);
                 setNewName("");
               }}
-              className="flex-1 text-xs px-2 py-1 rounded"
-              style={{
-                backgroundColor: "var(--bg-primary)",
-                color: "var(--text-secondary)",
-                border: "1px solid var(--border)",
-              }}
+              className="flex-1"
             >
               {tc("cancel")}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {/* Agent list */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {loading && agents.length === 0 && (
-          <div className="p-3 text-xs" style={{ color: "var(--text-secondary)" }}>
-            {tc("loading")}
-          </div>
+          <div className="p-3 text-xs text-muted-foreground">{tc("loading")}</div>
         )}
         {agents.map((agent) => {
           const isActive = selectedAgentId === agent.id;
@@ -117,13 +109,10 @@ export function AgentList() {
             <button
               key={agent.id}
               onClick={() => selectAgent(agent.id)}
-              className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group"
-              style={{
-                backgroundColor: isActive
-                  ? "color-mix(in srgb, var(--accent) 12%, transparent)"
-                  : "transparent",
-                color: isActive ? "var(--accent)" : "var(--text-primary)",
-              }}
+              className={cn(
+                "flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group cursor-pointer",
+                isActive ? "bg-primary/[0.12] text-primary" : "text-foreground hover:bg-muted",
+              )}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Bot size={14} className="shrink-0" />
@@ -131,30 +120,27 @@ export function AgentList() {
                   <span className="truncate w-full text-left">{agent.name}</span>
                   <div className="flex items-center gap-1">
                     <span
-                      className="inline-block w-1.5 h-1.5 rounded-full"
-                      style={{
-                        backgroundColor: STATUS_COLORS[agent.status] ?? "var(--text-secondary)",
-                      }}
+                      className={cn(
+                        "inline-block w-1.5 h-1.5 rounded-full",
+                        STATUS_COLORS[agent.status] ?? "bg-muted-foreground",
+                      )}
                     />
-                    <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
-                      {agent.model}
-                    </span>
+                    <span className="text-[10px] text-muted-foreground">{agent.model}</span>
                   </div>
                 </div>
               </div>
               <span
-                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
+                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1 text-muted-foreground"
                 onClick={(e) => void handleDelete(agent.id, e)}
                 role="button"
                 tabIndex={-1}
-                style={{ color: "var(--text-secondary)" }}
               >
                 <Trash2 size={12} />
               </span>
             </button>
           );
         })}
-      </div>
+      </ScrollArea>
     </aside>
   );
 }

@@ -1,31 +1,37 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { useSessionsStore, type SessionEntry, type SessionKind } from "@/stores/sessions";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const KIND_COLORS: Record<SessionKind, string> = {
-  direct: "var(--accent)",
-  group: "var(--success)",
-  global: "var(--purple)",
-  unknown: "var(--neutral-muted-text)",
+const KIND_BADGE_STYLES: Record<SessionKind, string> = {
+  direct: "bg-[var(--accent-muted)] text-[var(--accent)]",
+  group: "bg-[var(--success-muted)] text-[var(--success)]",
+  global: "bg-[var(--purple-muted)] text-[var(--purple)]",
+  unknown: "bg-muted text-muted-foreground",
 };
 
-/** Color for context usage percentage. */
-function pressureColor(pct: number): string {
+function pressureBarClass(pct: number): string {
   if (pct >= 80) {
-    return "var(--danger)";
+    return "bg-[var(--danger)]";
   }
   if (pct >= 60) {
-    return "var(--warning)";
+    return "bg-[var(--warning)]";
   }
-  return "var(--success)";
+  return "bg-[var(--success)]";
 }
 
-/** Compute context usage percentage (0-100). */
+function pressureTextClass(pct: number): string {
+  if (pct >= 80) {
+    return "text-[var(--danger)]";
+  }
+  if (pct >= 60) {
+    return "text-[var(--warning)]";
+  }
+  return "text-[var(--success)]";
+}
+
 function contextPct(session: SessionEntry): number {
   if (session.contextWindow <= 0) {
     return 0;
@@ -34,18 +40,10 @@ function contextPct(session: SessionEntry): number {
   return Math.min(100, Math.round((used / session.contextWindow) * 100));
 }
 
-/** Truncate session key for display. */
 function shortKey(key: string, maxLen = 20): string {
   return key.length > maxLen ? `${key.slice(0, maxLen)}...` : key;
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
-/**
- * SessionList — list of sessions with kind badge, key, model, and context bar.
- */
 export function SessionList() {
   const t = useTranslations("sessions");
   const { sessions, selectedKey, selectSession } = useSessionsStore();
@@ -55,38 +53,23 @@ export function SessionList() {
       {sessions.map((session) => {
         const isActive = session.key === selectedKey;
         const pct = contextPct(session);
-        const color = pressureColor(pct);
-        const kindColor = KIND_COLORS[session.kind];
 
         return (
           <button
             key={session.key}
             type="button"
-            className="flex flex-col gap-1.5 px-4 py-3 text-left border-b transition-colors"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: isActive
-                ? "color-mix(in srgb, var(--accent) 12%, transparent)"
-                : "transparent",
-            }}
+            className={cn(
+              "flex flex-col gap-1.5 px-4 py-3 text-left border-b border-border transition-colors cursor-pointer",
+              isActive ? "bg-primary/10" : "bg-transparent hover:bg-muted",
+            )}
             onClick={() => selectSession(session.key)}
           >
             {/* Top row: kind badge + key */}
             <div className="flex items-center gap-2 min-w-0">
-              <span
-                className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded"
-                style={{
-                  backgroundColor: `color-mix(in srgb, ${kindColor} 18%, transparent)`,
-                  color: kindColor,
-                }}
-              >
+              <Badge className={cn("text-[10px] h-auto py-0.5", KIND_BADGE_STYLES[session.kind])}>
                 {t(session.kind)}
-              </span>
-              <span
-                className="text-xs font-mono truncate"
-                style={{ color: "var(--text-primary)" }}
-                title={session.key}
-              >
+              </Badge>
+              <span className="text-xs font-mono truncate text-foreground" title={session.key}>
                 {shortKey(session.key)}
               </span>
             </div>
@@ -94,30 +77,19 @@ export function SessionList() {
             {/* Bottom row: model + context bar */}
             <div className="flex items-center gap-2 min-w-0">
               {session.model && (
-                <span
-                  className="text-[10px] truncate shrink-0"
-                  style={{ color: "var(--text-secondary)" }}
-                >
+                <span className="text-[10px] truncate shrink-0 text-muted-foreground">
                   {session.model}
                 </span>
               )}
               {session.contextWindow > 0 && (
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                  <div
-                    className="flex-1 h-1.5 rounded-full overflow-hidden"
-                    style={{ backgroundColor: "var(--bg-primary)" }}
-                  >
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-muted">
                     <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: color,
-                      }}
+                      className={cn("h-full rounded-full", pressureBarClass(pct))}
+                      style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-[10px] shrink-0" style={{ color }}>
-                    {pct}%
-                  </span>
+                  <span className={cn("text-[10px] shrink-0", pressureTextClass(pct))}>{pct}%</span>
                 </div>
               )}
             </div>

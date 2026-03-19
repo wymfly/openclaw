@@ -2,6 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import type { BudgetRule, CreateRuleInput, BudgetDimension } from "@/stores/budget";
 
 const DIMENSIONS: BudgetDimension[] = ["tokensIn", "tokensOut", "totalTokens", "cost"];
@@ -77,53 +81,36 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
     onSave(input);
   };
 
-  const inputStyle = {
-    backgroundColor: "var(--bg-primary)",
-    borderColor: "var(--border)",
-    color: "var(--text-primary)",
-  };
-
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold text-foreground">
         {rule ? t("editRule") : t("addRule")}
       </h3>
 
       {/* Name */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("name")}
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="px-3 py-2 text-sm rounded-md border"
-          style={inputStyle}
-          required
-        />
+        <Label className="text-xs text-muted-foreground">{t("name")}</Label>
+        <Input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       {/* Scope */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("scope")}
-        </label>
+        <Label className="text-xs text-muted-foreground">{t("scope")}</Label>
         <div className="flex gap-1">
           {SCOPES.map((s) => (
-            <button
+            <Button
               key={s}
               type="button"
-              className="px-3 py-1 text-xs rounded-md border transition-colors"
-              style={{
-                backgroundColor: scope === s ? "var(--accent)" : "transparent",
-                color: scope === s ? "var(--accent-fg)" : "var(--text-secondary)",
-                borderColor: scope === s ? "var(--accent)" : "var(--border)",
-              }}
+              variant="outline"
+              size="xs"
+              className={cn(
+                scope === s &&
+                  "bg-primary text-primary-foreground border-primary hover:bg-primary/80 hover:text-primary-foreground",
+              )}
               onClick={() => setScope(s)}
             >
               {t(s)}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -131,55 +118,37 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
       {/* Agent ID (conditional) */}
       {scope === "perAgent" && (
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-            {t("agentId")}
-          </label>
-          <input
-            type="text"
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            className="px-3 py-2 text-sm rounded-md border"
-            style={inputStyle}
-          />
+          <Label className="text-xs text-muted-foreground">{t("agentId")}</Label>
+          <Input type="text" value={agentId} onChange={(e) => setAgentId(e.target.value)} />
         </div>
       )}
 
       {/* Task ID (conditional) */}
       {scope === "perTask" && (
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-            {t("taskId")}
-          </label>
-          <input
-            type="text"
-            value={taskId}
-            onChange={(e) => setTaskId(e.target.value)}
-            className="px-3 py-2 text-sm rounded-md border"
-            style={inputStyle}
-          />
+          <Label className="text-xs text-muted-foreground">{t("taskId")}</Label>
+          <Input type="text" value={taskId} onChange={(e) => setTaskId(e.target.value)} />
         </div>
       )}
 
       {/* Dimension */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("dimension")}
-        </label>
+        <Label className="text-xs text-muted-foreground">{t("dimension")}</Label>
         <div className="flex gap-1 flex-wrap">
           {DIMENSIONS.map((d) => (
-            <button
+            <Button
               key={d}
               type="button"
-              className="px-3 py-1 text-xs rounded-md border transition-colors"
-              style={{
-                backgroundColor: dimension === d ? "var(--accent)" : "transparent",
-                color: dimension === d ? "var(--accent-fg)" : "var(--text-secondary)",
-                borderColor: dimension === d ? "var(--accent)" : "var(--border)",
-              }}
+              variant="outline"
+              size="xs"
+              className={cn(
+                dimension === d &&
+                  "bg-primary text-primary-foreground border-primary hover:bg-primary/80 hover:text-primary-foreground",
+              )}
               onClick={() => setDimension(d)}
             >
               {t(d)}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -187,68 +156,58 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
       {/* Thresholds */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-            {t("warnThreshold")}
-          </label>
-          <input
+          <Label className="text-xs text-muted-foreground">{t("warnThreshold")}</Label>
+          <Input
             type="number"
             min="0"
             step="any"
             value={warnThreshold}
             onChange={(e) => setWarnThreshold(e.target.value)}
-            className="px-3 py-2 text-sm rounded-md border"
-            style={inputStyle}
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-            {t("overThreshold")}
-          </label>
-          <input
+          <Label className="text-xs text-muted-foreground">{t("overThreshold")}</Label>
+          <Input
             type="number"
             min="0"
             step="any"
             value={overThreshold}
             onChange={(e) => setOverThreshold(e.target.value)}
-            className="px-3 py-2 text-sm rounded-md border"
-            style={inputStyle}
           />
         </div>
       </div>
 
       {/* Period */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("period")}
-        </label>
+        <Label className="text-xs text-muted-foreground">{t("period")}</Label>
         <div className="flex gap-1">
           {PERIODS.map((p) => (
-            <button
+            <Button
               key={p}
               type="button"
-              className="px-3 py-1 text-xs rounded-md border transition-colors"
-              style={{
-                backgroundColor: period === p ? "var(--accent)" : "transparent",
-                color: period === p ? "var(--accent-fg)" : "var(--text-secondary)",
-                borderColor: period === p ? "var(--accent)" : "var(--border)",
-              }}
+              variant="outline"
+              size="xs"
+              className={cn(
+                period === p &&
+                  "bg-primary text-primary-foreground border-primary hover:bg-primary/80 hover:text-primary-foreground",
+              )}
               onClick={() => setPeriod(p)}
             >
               {t(p)}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {/* Enabled toggle */}
       <div className="flex items-center gap-2">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("enabledToggle")}
-        </label>
+        <Label className="text-xs text-muted-foreground">{t("enabledToggle")}</Label>
         <button
           type="button"
-          className="w-10 h-5 rounded-full transition-colors relative"
-          style={{ backgroundColor: enabled ? "var(--accent)" : "var(--border)" }}
+          className={cn(
+            "w-10 h-5 rounded-full transition-colors relative",
+            enabled ? "bg-primary" : "bg-input",
+          )}
           onClick={() => setEnabled(!enabled)}
         >
           <span
@@ -260,22 +219,12 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
       {/* Actions */}
       <div className="flex gap-2 pt-2">
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-4 py-2 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-        >
+        <Button type="submit" disabled={saving} size="sm">
           {tc("save")}
-        </button>
-        <button
-          type="button"
-          className="px-4 py-2 text-xs rounded-md font-medium transition-colors border"
-          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-          onClick={onCancel}
-        >
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
           {tc("cancel")}
-        </button>
+        </Button>
       </div>
     </form>
   );

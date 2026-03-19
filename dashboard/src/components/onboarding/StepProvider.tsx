@@ -2,6 +2,16 @@
 
 import { Settings } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { OnboardingData } from "./OnboardingWizard";
 
 type Props = {
@@ -30,104 +40,73 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
     });
   };
 
-  const inputStyle = {
-    backgroundColor: "var(--bg-primary)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border)",
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Settings size={16} style={{ color: "var(--accent)" }} />
-        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {t("stepProvider")}
-        </span>
+      <div className="mb-2 flex items-center gap-2">
+        <Settings size={16} className="text-primary" />
+        <span className="text-sm font-semibold text-foreground">{t("stepProvider")}</span>
       </div>
 
       {/* Provider selector */}
-      <div>
-        <label
-          className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {t("provider")}
-        </label>
-        <select
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">{t("provider")}</Label>
+        <Select
           value={data.providerName ?? ""}
-          onChange={(e) => handleProviderChange(e.target.value)}
-          className="w-full text-sm rounded px-3 py-2"
-          style={inputStyle}
+          onValueChange={(value) => {
+            if (value) {
+              handleProviderChange(value);
+            }
+          }}
         >
-          <option value="">{t("selectProvider")}</option>
-          {PROVIDERS.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={t("selectProvider")} />
+          </SelectTrigger>
+          <SelectContent>
+            {PROVIDERS.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* API Key */}
-      <div>
-        <label
-          className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {t("apiKey")}
-        </label>
-        <input
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">{t("apiKey")}</Label>
+        <Input
           type="password"
           value={data.apiKey ?? ""}
           onChange={(e) => onChange({ apiKey: e.target.value })}
           placeholder="sk-..."
-          className="w-full text-sm rounded px-3 py-2"
-          style={inputStyle}
+          className="text-sm"
         />
       </div>
 
       {/* Model name */}
-      <div>
-        <label
-          className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {t("model")}
-        </label>
-        <input
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">{t("model")}</Label>
+        <Input
           type="text"
           value={data.model ?? ""}
           onChange={(e) => onChange({ model: e.target.value })}
           placeholder={t("modelPlaceholder")}
-          className="w-full text-sm rounded px-3 py-2"
-          style={inputStyle}
+          className="text-sm"
         />
       </div>
 
       {/* Actions */}
       <div className="flex justify-between pt-2">
-        <button
-          onClick={onBack}
-          className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
-          style={{ border: "1px solid var(--border)", color: "var(--text-primary)" }}
-        >
+        <Button variant="outline" size="sm" onClick={onBack}>
           {t("back")}
-        </button>
+        </Button>
         <div className="flex gap-2">
-          <button
-            onClick={onNext}
-            className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <Button variant="ghost" size="sm" onClick={onNext}>
             {t("skipForNow")}
-          </button>
-          <button
-            onClick={onNext}
-            className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
-          >
+          </Button>
+          <Button size="sm" onClick={onNext}>
             {t("next")}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

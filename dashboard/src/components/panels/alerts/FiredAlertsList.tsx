@@ -1,6 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { FiredAlert } from "@/stores/alerts";
 
 // ---------------------------------------------------------------------------
@@ -11,11 +14,24 @@ type FiredAlertsListProps = {
   alerts: FiredAlert[];
 };
 
-const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
-  info: { bg: "var(--accent)", text: "var(--accent-fg)" },
-  warning: { bg: "var(--warning)", text: "var(--warning-fg)" },
-  critical: { bg: "var(--danger)", text: "var(--danger-fg)" },
-};
+// ---------------------------------------------------------------------------
+// Severity → Badge variant mapping
+// ---------------------------------------------------------------------------
+
+function severityBadge(severity: string) {
+  switch (severity) {
+    case "critical":
+      return { variant: "destructive" as const };
+    case "warning":
+      return {
+        variant: undefined,
+        className: "bg-[var(--warning)] text-[var(--warning-fg)] border-transparent",
+      };
+    case "info":
+    default:
+      return { variant: "default" as const };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -26,10 +42,7 @@ export function FiredAlertsList({ alerts }: FiredAlertsListProps) {
 
   if (alerts.length === 0) {
     return (
-      <div
-        className="flex items-center justify-center py-12"
-        style={{ color: "var(--text-secondary)" }}
-      >
+      <div className="flex items-center justify-center py-12 text-muted-foreground">
         <p className="text-sm">{t("noFiredAlerts")}</p>
       </div>
     );
@@ -38,45 +51,31 @@ export function FiredAlertsList({ alerts }: FiredAlertsListProps) {
   return (
     <div className="space-y-2">
       {alerts.map((alert) => {
-        const colors = SEVERITY_COLORS[alert.severity] ?? SEVERITY_COLORS.info;
+        const badge = severityBadge(alert.severity);
         return (
-          <div
-            key={alert.id}
-            className="flex items-center justify-between px-4 py-3 rounded-lg border"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-secondary)",
-            }}
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span
-                  className="text-sm font-medium truncate"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {alert.ruleName}
-                </span>
-                <span
-                  className="px-2 py-0.5 text-xs rounded-full"
-                  style={{
-                    backgroundColor: colors.bg,
-                    color: colors.text,
-                  }}
-                >
-                  {t(alert.severity)}
-                </span>
+          <Card key={alert.id} size="sm" className="py-3">
+            <CardContent className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium truncate text-foreground">
+                    {alert.ruleName}
+                  </span>
+                  <Badge variant={badge.variant} className={cn(badge.className)}>
+                    {t(alert.severity)}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs text-muted-foreground">
+                    {t("triggerDetails")}: {alert.condition} = {alert.actualValue} ({t("threshold")}
+                    : {alert.threshold})
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(alert.timestamp).toLocaleString()}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {t("triggerDetails")}: {alert.condition} = {alert.actualValue} ({t("threshold")}:{" "}
-                  {alert.threshold})
-                </span>
-                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {new Date(alert.timestamp).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         );
       })}
     </div>

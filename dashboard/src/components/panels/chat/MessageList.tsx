@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { cn } from "@/lib/utils";
 import { useChatStore, type ChatMessage, type ToolUseBlock } from "@/stores/chat";
 
 // ---------------------------------------------------------------------------
@@ -15,17 +16,11 @@ function ThinkingBlock({ text }: { text: string }) {
   const t = useTranslations("chat");
   return (
     <details className="my-1.5 text-xs">
-      <summary
-        className="flex items-center gap-1 cursor-pointer select-none"
-        style={{ color: "var(--text-secondary)" }}
-      >
+      <summary className="flex items-center gap-1 cursor-pointer select-none text-muted-foreground">
         <Brain size={12} />
         {t("thinking")}
       </summary>
-      <pre
-        className="mt-1 p-2 rounded text-xs whitespace-pre-wrap overflow-auto"
-        style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
-      >
+      <pre className="mt-1 p-2 rounded text-xs whitespace-pre-wrap overflow-auto bg-card text-muted-foreground">
         {text}
       </pre>
     </details>
@@ -35,27 +30,18 @@ function ThinkingBlock({ text }: { text: string }) {
 function ToolUseCard({ tool }: { tool: ToolUseBlock }) {
   const t = useTranslations("chat");
   return (
-    <details className="my-1.5 text-xs border rounded" style={{ borderColor: "var(--border)" }}>
-      <summary
-        className="flex items-center gap-1.5 px-2 py-1 cursor-pointer select-none"
-        style={{ color: "var(--text-secondary)" }}
-      >
+    <details className="my-1.5 text-xs border rounded">
+      <summary className="flex items-center gap-1.5 px-2 py-1 cursor-pointer select-none text-muted-foreground">
         <Wrench size={12} />
         <span className="font-medium">{t("toolUse")}:</span>
         <code className="font-mono">{tool.name}</code>
       </summary>
       <div className="px-2 pb-2">
-        <pre
-          className="mt-1 p-2 rounded text-xs overflow-auto"
-          style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
-        >
+        <pre className="mt-1 p-2 rounded text-xs overflow-auto bg-card text-muted-foreground">
           {JSON.stringify(tool.input, null, 2)}
         </pre>
         {tool.result && (
-          <pre
-            className="mt-1 p-2 rounded text-xs overflow-auto"
-            style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }}
-          >
+          <pre className="mt-1 p-2 rounded text-xs overflow-auto bg-card text-foreground">
             {tool.result}
           </pre>
         )}
@@ -67,22 +53,21 @@ function ToolUseCard({ tool }: { tool: ToolUseBlock }) {
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
   return (
-    <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""} mb-4`}>
+    <div className={cn("flex gap-2.5 mb-4", isUser && "flex-row-reverse")}>
       {/* Avatar */}
       <div
-        className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
-        style={{
-          backgroundColor: isUser
-            ? "color-mix(in srgb, var(--accent) 20%, transparent)"
-            : "var(--bg-secondary)",
-          color: isUser ? "var(--accent)" : "var(--text-secondary)",
-        }}
+        className={cn(
+          "shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
+          isUser ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground",
+        )}
       >
         {isUser ? <User size={14} /> : <Bot size={14} />}
       </div>
 
       {/* Content */}
-      <div className={`flex flex-col max-w-[75%] min-w-0 ${isUser ? "items-end" : "items-start"}`}>
+      <div
+        className={cn("flex flex-col max-w-[75%] min-w-0", isUser ? "items-end" : "items-start")}
+      >
         {/* Thinking trace */}
         {message.thinking && <ThinkingBlock text={message.thinking} />}
 
@@ -94,11 +79,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         {/* Main content */}
         {message.content && (
           <div
-            className="rounded-lg px-3 py-2 text-sm leading-relaxed"
-            style={{
-              backgroundColor: isUser ? "var(--accent)" : "var(--bg-secondary)",
-              color: isUser ? "var(--accent-fg)" : "var(--text-primary)",
-            }}
+            className={cn(
+              "rounded-lg px-3 py-2 text-sm leading-relaxed",
+              isUser ? "bg-primary text-primary-foreground" : "bg-card text-foreground",
+            )}
           >
             {isUser ? (
               <p className="whitespace-pre-wrap">{message.content}</p>
@@ -108,23 +92,16 @@ function MessageBubble({ message }: { message: ChatMessage }) {
               </div>
             )}
             {message.streaming && (
-              <span
-                className="inline-block w-1.5 h-4 ml-0.5 animate-pulse rounded-sm"
-                style={{ backgroundColor: "var(--accent)" }}
-              />
+              <span className="inline-block w-1.5 h-4 ml-0.5 animate-pulse rounded-sm bg-primary" />
             )}
           </div>
         )}
 
         {/* Error */}
-        {message.error && (
-          <span className="text-xs mt-1" style={{ color: "var(--status-disconnected)" }}>
-            {message.error}
-          </span>
-        )}
+        {message.error && <span className="text-xs mt-1 text-destructive">{message.error}</span>}
 
         {/* Timestamp */}
-        <span className="text-[10px] mt-0.5 px-1" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-[10px] mt-0.5 px-1 text-muted-foreground">
           {new Date(message.timestamp).toLocaleTimeString()}
         </span>
       </div>
@@ -164,10 +141,7 @@ export function MessageList() {
 
   if (messages.length === 0) {
     return (
-      <div
-        className="flex-1 flex items-center justify-center"
-        style={{ color: "var(--text-secondary)" }}
-      >
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <p className="text-sm">{t("noMessages")}</p>
       </div>
     );
@@ -181,10 +155,7 @@ export function MessageList() {
 
       {/* Streaming indicator when waiting for first delta */}
       {isStreaming && !messages.some((m) => m.streaming) && (
-        <div
-          className="flex items-center gap-2 mb-4 text-xs"
-          style={{ color: "var(--text-secondary)" }}
-        >
+        <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
           <Bot size={14} />
           <span className="animate-pulse">{t("thinking")}</span>
         </div>

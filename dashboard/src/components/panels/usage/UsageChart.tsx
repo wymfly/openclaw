@@ -10,20 +10,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TimeseriesPoint } from "@/stores/usage";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function formatDate(ts: number): string {
   const d = new Date(ts);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 interface UsageChartProps {
   timeseries: TimeseriesPoint[];
@@ -37,56 +30,57 @@ export function UsageChart({ timeseries }: UsageChartProps) {
   }
 
   return (
-    <div
-      className="rounded-lg border p-4"
-      style={{
-        backgroundColor: "var(--bg-secondary)",
-        borderColor: "var(--border)",
-      }}
-    >
-      <p className="text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>
-        {t("chart")}
-      </p>
-      <ResponsiveContainer width="100%" height={200}>
-        <AreaChart data={timeseries}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis
-            dataKey="timestamp"
-            tickFormatter={formatDate}
-            tick={{ fontSize: 12, fill: "var(--text-secondary)" }}
-            stroke="var(--border)"
-          />
-          <YAxis tick={{ fontSize: 12, fill: "var(--text-secondary)" }} stroke="var(--border)" />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "var(--bg-secondary)",
-              borderColor: "var(--border)",
-              color: "var(--text-primary)",
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-            labelFormatter={(label) => formatDate(Number(label))}
-          />
-          <Area
-            type="monotone"
-            dataKey="tokensIn"
-            stackId="tokens"
-            stroke="var(--accent)"
-            fill="var(--accent)"
-            fillOpacity={0.4}
-            name={t("tokensIn")}
-          />
-          <Area
-            type="monotone"
-            dataKey="tokensOut"
-            stackId="tokens"
-            stroke="var(--success)"
-            fill="var(--success)"
-            fillOpacity={0.3}
-            name={t("tokensOut")}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle className="text-sm">{t("chart")}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={timeseries}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+            <XAxis
+              dataKey="timestamp"
+              tickFormatter={formatDate}
+              tick={{ fontSize: 12 }}
+              className="text-muted-foreground"
+              stroke="hsl(var(--border))"
+            />
+            <YAxis
+              tick={{ fontSize: 12 }}
+              className="text-muted-foreground"
+              stroke="hsl(var(--border))"
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "var(--bg-secondary)",
+                borderColor: "var(--border)",
+                color: "var(--text-primary)",
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              labelFormatter={(label) => formatDate(Number(label))}
+            />
+            <Area
+              type="monotone"
+              dataKey="tokensIn"
+              stackId="tokens"
+              stroke="var(--accent)"
+              fill="var(--accent)"
+              fillOpacity={0.4}
+              name={t("tokensIn")}
+            />
+            <Area
+              type="monotone"
+              dataKey="tokensOut"
+              stackId="tokens"
+              stroke="var(--success)"
+              fill="var(--success)"
+              fillOpacity={0.3}
+              name={t("tokensOut")}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   );
 }

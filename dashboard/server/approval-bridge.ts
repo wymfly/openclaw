@@ -9,7 +9,7 @@
  * (GET /api/approvals/pending returns current map entries).
  */
 
-import type { DeckRuntime } from "./runtime.js";
+import type { DeckRuntime } from "./runtime";
 
 // ---------------------------------------------------------------------------
 // Types

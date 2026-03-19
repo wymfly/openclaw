@@ -1,6 +1,6 @@
-import { initAlertEngine } from "./alert-engine.js";
+import { initAlertEngine } from "./alert-engine";
 // P2 subsystem bridges (stubs — Phase 1 agents will implement)
-import { initApprovalBridge } from "./approval-bridge.js";
+import { initApprovalBridge } from "./approval-bridge";
 import type { ControlPlaneGatewaySettings, ControlPlaneDomainEvent } from "./contracts";
 import { getDb, type Database } from "./db";
 import { EventBus, getEventBus } from "./event-bus";
@@ -243,7 +243,7 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   // F10: Schedule webhook retry processor every 60s
   const retryTimer = setInterval(async () => {
     try {
-      const { processWebhookRetries } = await import("../src/lib/webhooks.js");
+      const { processWebhookRetries } = await import("../src/lib/webhooks");
       processWebhookRetries(runtime.db).catch((err: unknown) =>
         console.error("[DeckRuntime] webhook retry error:", err),
       );

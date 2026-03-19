@@ -3,6 +3,9 @@
 import { Save, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useCallback } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { parseSchemaSection } from "@/lib/schema-parser";
 import { useConfigStore } from "@/stores/config";
 import { ConflictDialog } from "./ConflictDialog";
@@ -142,75 +145,38 @@ export function ConfigPanel() {
   }, [reloadConfig]);
 
   return (
-    <div
-      className="flex flex-col h-full rounded-lg overflow-hidden border"
-      style={{ borderColor: "var(--border)" }}
-    >
+    <div className="flex flex-col h-full rounded-lg overflow-hidden border border-border">
       {/* Toolbar */}
-      <div
-        className="flex items-center justify-between px-4 py-2 border-b"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-      >
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-            {t("title")}
-          </h2>
+          <h2 className="text-sm font-semibold text-foreground">{t("title")}</h2>
           {isDirty && (
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded-full"
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
-                color: "var(--accent)",
-              }}
-            >
+            <Badge variant="secondary" className="bg-primary/15 text-primary text-[10px]">
               {t("unsavedChanges")}
-            </span>
+            </Badge>
           )}
           {error && (
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded-full"
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--status-disconnected) 15%, transparent)",
-                color: "var(--status-disconnected)",
-              }}
-            >
+            <Badge variant="destructive" className="text-[10px]">
               {error}
-            </span>
+            </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleReload}
-            disabled={loading}
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{
-              border: "1px solid var(--border)",
-              color: "var(--text-primary)",
-              backgroundColor: "var(--bg-primary)",
-            }}
-          >
+          <Button variant="outline" size="xs" onClick={handleReload} disabled={loading}>
             <RefreshCw size={12} />
             {t("reload")}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!isDirty || saving}
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-          >
+          </Button>
+          <Button size="xs" onClick={handleSave} disabled={!isDirty || saving}>
             <Save size={12} />
             {saving ? t("saving") : t("save")}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex flex-1 min-h-0">
         {loading && !schema ? (
-          <div
-            className="flex items-center justify-center w-full"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <div className="flex items-center justify-center w-full text-muted-foreground">
             <p className="text-sm">{tc("loading")}</p>
           </div>
         ) : (
@@ -220,15 +186,17 @@ export function ConfigPanel() {
               activeSection={activeSection}
               onSelect={setActiveSection}
             />
-            <div className="flex-1 overflow-y-auto px-4 py-3">
-              {activeSection && (
-                <SchemaForm
-                  fields={currentFields}
-                  values={sectionValues}
-                  onChange={handleFieldChange}
-                />
-              )}
-            </div>
+            <ScrollArea className="flex-1">
+              <div className="px-4 py-3">
+                {activeSection && (
+                  <SchemaForm
+                    fields={currentFields}
+                    values={sectionValues}
+                    onChange={handleFieldChange}
+                  />
+                )}
+              </div>
+            </ScrollArea>
           </>
         )}
       </div>

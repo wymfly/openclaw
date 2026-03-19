@@ -19,19 +19,13 @@ export function ChannelsPanel() {
   }, [fetchChannels]);
 
   return (
-    <div
-      className="flex h-full rounded-lg overflow-hidden border"
-      style={{ borderColor: "var(--border)" }}
-    >
+    <div className="flex h-full rounded-lg overflow-hidden border border-border">
       <ChannelList />
       <div className="flex flex-col flex-1 min-w-0">
         {selectedId ? (
           <ChannelDetail channelId={selectedId} />
         ) : (
-          <div
-            className="flex items-center justify-center h-full"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <div className="flex items-center justify-center h-full text-muted-foreground">
             <p className="text-sm">{t("noChannels")}</p>
           </div>
         )}

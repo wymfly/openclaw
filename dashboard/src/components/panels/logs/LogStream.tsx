@@ -2,29 +2,23 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { useLogsStore, type LogLevel } from "@/stores/logs";
 
-// ---------------------------------------------------------------------------
-// Level badge colors (CSS variable-friendly)
-// ---------------------------------------------------------------------------
-
-const LEVEL_COLORS: Record<LogLevel, { bg: string; text: string }> = {
-  debug: { bg: "var(--bg-tertiary)", text: "var(--text-secondary)" },
-  info: { bg: "var(--accent-muted)", text: "var(--accent)" },
-  warn: { bg: "var(--warning-muted)", text: "var(--warning)" },
-  error: { bg: "var(--danger-muted)", text: "var(--danger)" },
+const LEVEL_BADGE_STYLES: Record<LogLevel, string> = {
+  debug: "bg-muted text-muted-foreground",
+  info: "bg-[var(--accent-muted)] text-[var(--accent)]",
+  warn: "bg-[var(--warning-muted)] text-[var(--warning)]",
+  error: "bg-[var(--danger-muted)] text-[var(--danger)]",
 };
 
-/**
- * LogStream — auto-scrolling monospace log output with color-coded level badges.
- */
 export function LogStream() {
   const t = useTranslations("logs");
   const entries = useLogsStore((s) => s.entries);
   const streaming = useLogsStore((s) => s.streaming);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new entries arrive, unless paused.
   useEffect(() => {
     if (!streaming) {
       return;
@@ -37,10 +31,7 @@ export function LogStream() {
 
   if (entries.length === 0) {
     return (
-      <div
-        className="flex items-center justify-center flex-1"
-        style={{ color: "var(--text-secondary)" }}
-      >
+      <div className="flex items-center justify-center flex-1 text-muted-foreground">
         <p className="text-sm">{t("noLogs")}</p>
       </div>
     );
@@ -49,58 +40,30 @@ export function LogStream() {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto p-3"
-      style={{
-        fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace",
-        fontSize: 12,
-        lineHeight: "1.6",
-        backgroundColor: "var(--bg-primary)",
-      }}
+      className="flex-1 overflow-y-auto p-3 bg-background font-mono text-xs leading-relaxed"
     >
-      {entries.map((entry, idx) => {
-        const colors = LEVEL_COLORS[entry.level];
-        return (
-          <div
-            key={idx}
-            className="flex items-start gap-2 py-0.5"
-            style={{ color: "var(--text-primary)" }}
+      {entries.map((entry, idx) => (
+        <div key={idx} className="flex items-start gap-2 py-0.5 text-foreground">
+          {/* Timestamp */}
+          <span className="shrink-0 text-muted-foreground min-w-[180px]">{entry.timestamp}</span>
+
+          {/* Level badge */}
+          <Badge
+            className={cn(
+              "shrink-0 uppercase text-center text-[10px] font-semibold h-[18px] min-w-[48px]",
+              LEVEL_BADGE_STYLES[entry.level],
+            )}
           >
-            {/* Timestamp */}
-            <span className="shrink-0" style={{ color: "var(--text-secondary)", minWidth: 180 }}>
-              {entry.timestamp}
-            </span>
+            {entry.level}
+          </Badge>
 
-            {/* Level badge */}
-            <span
-              className="shrink-0 rounded px-1.5 py-0 text-center uppercase"
-              style={{
-                backgroundColor: colors.bg,
-                color: colors.text,
-                fontSize: 10,
-                fontWeight: 600,
-                minWidth: 48,
-                lineHeight: "18px",
-              }}
-            >
-              {entry.level}
-            </span>
+          {/* Source */}
+          <span className="shrink-0 text-muted-foreground min-w-[64px]">[{entry.source}]</span>
 
-            {/* Source */}
-            <span
-              className="shrink-0"
-              style={{
-                color: "var(--text-secondary)",
-                minWidth: 64,
-              }}
-            >
-              [{entry.source}]
-            </span>
-
-            {/* Message */}
-            <span className="break-all">{entry.message}</span>
-          </div>
-        );
-      })}
+          {/* Message */}
+          <span className="break-all">{entry.message}</span>
+        </div>
+      ))}
     </div>
   );
 }

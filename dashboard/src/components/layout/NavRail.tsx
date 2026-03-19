@@ -21,12 +21,16 @@ import {
   FileCode,
   PanelLeftClose,
   PanelLeft,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
+import { cn } from "@/lib/utils";
 import { useUIStore, type Panel } from "@/stores/ui";
 
 interface NavItem {
@@ -81,6 +85,12 @@ const navGroups: NavGroup[] = [
   },
 ];
 
+const settingsItem: NavItem = {
+  panel: "settings",
+  labelKey: "settings",
+  icon: Settings,
+};
+
 export function NavRail() {
   const t = useTranslations("nav");
   const {
@@ -110,137 +120,109 @@ export function NavRail() {
     }
   }, [isMobile, mobileNavOpen, setMobileNavOpen]);
 
-  // On mobile, NavRail is hidden unless mobileNavOpen is true (overlay mode)
-  if (isMobile && !mobileNavOpen) {
-    return null;
-  }
-
-  // Determine if we show collapsed (icon-only) view
   const collapsed = isMobile ? false : sidebarCollapsed;
 
   const handleNavClick = (panel: Panel) => {
     setActivePanel(panel);
-    // Close overlay on mobile after selecting a panel
     if (isMobile) {
       setMobileNavOpen(false);
     }
   };
 
-  const navContent = (
-    <nav
-      className={`flex flex-col h-full border-r transition-all duration-200 ${
-        isMobile ? "w-64" : collapsed ? "w-14" : "w-52"
-      }`}
-      style={{
-        borderColor: "var(--border)",
-        backgroundColor: "var(--bg-nav)",
-      }}
-    >
-      {/* Header: collapse toggle (desktop/tablet) or close button (mobile) */}
-      <button
-        onClick={() => {
-          if (isMobile) {
-            setMobileNavOpen(false);
-          } else {
-            toggleSidebar();
-          }
-        }}
-        className="flex items-center justify-center h-12 hover:opacity-80 transition-opacity"
-        style={{ color: "var(--text-secondary)" }}
-      >
-        {isMobile ? (
-          <X size={18} />
-        ) : collapsed ? (
-          <PanelLeft size={18} />
-        ) : (
-          <PanelLeftClose size={18} />
-        )}
-      </button>
+  const renderNavItem = (item: NavItem) => {
+    const isActive = activePanel === item.panel;
+    const Icon = item.icon;
+    const label = t(item.labelKey);
+    const activeClass = isActive
+      ? "bg-primary/12 text-primary hover:bg-primary/15 hover:text-primary"
+      : "";
 
-      {/* Nav groups */}
+    if (collapsed) {
+      return (
+        <Tooltip key={item.panel}>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn("w-full justify-center", activeClass)}
+                onClick={() => handleNavClick(item.panel)}
+              />
+            }
+          >
+            <Icon size={16} />
+          </TooltipTrigger>
+          <TooltipContent side="right">{label}</TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return (
+      <Button
+        key={item.panel}
+        variant="ghost"
+        size="sm"
+        className={cn("w-full justify-start gap-2.5", activeClass)}
+        onClick={() => handleNavClick(item.panel)}
+      >
+        <Icon size={16} />
+        <span className="truncate">{label}</span>
+      </Button>
+    );
+  };
+
+  const navBody = (
+    <>
       <div className="flex-1 overflow-y-auto py-2">
-        {navGroups.map((group) => (
-          <div key={group.titleKey} className="mb-3">
+        {navGroups.map((group, i) => (
+          <div key={group.titleKey}>
+            {i > 0 && <Separator className="my-2" />}
             {!collapsed && (
-              <div
-                className="px-3 py-1 text-xs font-semibold uppercase tracking-wider"
-                style={{ color: "var(--text-secondary)" }}
-              >
+              <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t(group.titleKey)}
               </div>
             )}
-            {group.items.map((item) => {
-              const isActive = activePanel === item.panel;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.panel}
-                  onClick={() => handleNavClick(item.panel)}
-                  className={`flex items-center gap-2.5 w-full px-3 py-1.5 text-sm transition-colors ${
-                    collapsed ? "justify-center" : ""
-                  }`}
-                  style={{
-                    color: isActive ? "var(--accent)" : "var(--text-primary)",
-                    backgroundColor: isActive
-                      ? "color-mix(in srgb, var(--accent) 12%, transparent)"
-                      : "transparent",
-                  }}
-                  title={collapsed ? t(item.labelKey) : undefined}
-                >
-                  <Icon size={16} />
-                  {!collapsed && <span>{t(item.labelKey)}</span>}
-                </button>
-              );
-            })}
+            <div className="px-1.5 space-y-0.5">{group.items.map(renderNavItem)}</div>
           </div>
         ))}
       </div>
-
-      {/* Bottom: Settings */}
-      <div className="border-t py-2" style={{ borderColor: "var(--border)" }}>
-        <button
-          onClick={() => handleNavClick("settings")}
-          className={`flex items-center gap-2.5 w-full px-3 py-1.5 text-sm transition-colors ${
-            collapsed ? "justify-center" : ""
-          }`}
-          style={{
-            color: activePanel === "settings" ? "var(--accent)" : "var(--text-primary)",
-            backgroundColor:
-              activePanel === "settings"
-                ? "color-mix(in srgb, var(--accent) 12%, transparent)"
-                : "transparent",
-          }}
-          title={collapsed ? t("settings") : undefined}
-        >
-          <Settings size={16} />
-          {!collapsed && <span>{t("settings")}</span>}
-        </button>
-      </div>
-    </nav>
+      <Separator />
+      <div className="py-2 px-1.5">{renderNavItem(settingsItem)}</div>
+    </>
   );
 
-  // Mobile: render as overlay with backdrop
+  // Mobile: Sheet overlay
   if (isMobile) {
     return (
-      <div
-        className="fixed inset-0 z-50 flex"
-        onClick={(e) => {
-          // Close when clicking backdrop (not the nav itself)
-          if (e.target === e.currentTarget) {
-            setMobileNavOpen(false);
-          }
-        }}
-      >
-        {navContent}
-        {/* Backdrop */}
-        <div
-          className="flex-1"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
-          onClick={() => setMobileNavOpen(false)}
-        />
-      </div>
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent
+          side="left"
+          className="data-[side=left]:w-64 data-[side=left]:sm:max-w-64 gap-0 p-0 bg-[var(--bg-nav)]"
+        >
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <nav className="flex flex-col h-full">{navBody}</nav>
+        </SheetContent>
+      </Sheet>
     );
   }
 
-  return navContent;
+  // Desktop / Tablet: inline sidebar
+  return (
+    <nav
+      className={cn(
+        "flex flex-col h-full border-r border-border bg-[var(--bg-nav)] transition-all duration-200",
+        collapsed ? "w-14" : "w-52",
+      )}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="mx-auto my-1 text-muted-foreground"
+        onClick={toggleSidebar}
+      >
+        {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+      </Button>
+      {navBody}
+    </nav>
+  );
 }

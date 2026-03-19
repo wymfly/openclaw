@@ -2,6 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useSettingsStore } from "@/stores/settings";
 
 export function ConnectionSection() {
@@ -35,92 +39,62 @@ export function ConnectionSection() {
 
   return (
     <section>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-        {t("connection")}
-      </h3>
-      <div
-        className="rounded-lg border p-4 flex flex-col gap-3"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-      >
-        {/* Gateway URL */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-            {t("gatewayUrl")}
-          </label>
-          <input
-            type="text"
-            value={gatewayUrl}
-            onChange={(e) => setGatewayUrl(e.target.value)}
-            placeholder="ws://localhost:18789"
-            className="px-3 py-1.5 text-xs rounded-md border outline-none"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-            }}
-          />
-        </div>
+      <h3 className="mb-3 text-sm font-semibold text-foreground">{t("connection")}</h3>
+      <Card size="sm">
+        <CardContent className="flex flex-col gap-3">
+          {/* Gateway URL */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground">{t("gatewayUrl")}</Label>
+            <Input
+              type="text"
+              value={gatewayUrl}
+              onChange={(e) => setGatewayUrl(e.target.value)}
+              placeholder="ws://localhost:18789"
+              className="h-7 text-xs"
+            />
+          </div>
 
-        {/* Gateway Token */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-            {t("gatewayToken")}
-          </label>
-          <input
-            type="password"
-            value={gatewayToken}
-            onChange={(e) => setGatewayToken(e.target.value)}
-            placeholder="••••••"
-            className="px-3 py-1.5 text-xs rounded-md border outline-none"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-            }}
-          />
-        </div>
+          {/* Gateway Token */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground">{t("gatewayToken")}</Label>
+            <Input
+              type="password"
+              value={gatewayToken}
+              onChange={(e) => setGatewayToken(e.target.value)}
+              placeholder="••••••"
+              className="h-7 text-xs"
+            />
+          </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            type="button"
-            className="px-3 py-1.5 text-xs rounded-md font-medium border"
-            style={{
-              borderColor: "var(--border)",
-              color: "var(--text-primary)",
-              backgroundColor: "var(--bg-primary)",
-            }}
-            onClick={() => void handleTest()}
-            disabled={testing}
-          >
-            {testing ? "..." : t("testConnection")}
-          </button>
-
-          <button
-            type="button"
-            className="px-3 py-1.5 text-xs rounded-md font-medium"
-            style={{
-              backgroundColor: "var(--accent)",
-              color: "var(--accent-fg)",
-            }}
-            onClick={() => void handleSave()}
-            disabled={saving}
-          >
-            {saving ? "..." : tc("save")}
-          </button>
-
-          {testResult !== null && (
-            <span
-              className="text-xs font-medium"
-              style={{
-                color: testResult ? "var(--success)" : "var(--danger)",
-              }}
+          {/* Actions */}
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => void handleTest()}
+              disabled={testing}
             >
-              {testResult ? t("connectionSuccess") : t("connectionFailed")}
-            </span>
-          )}
-        </div>
-      </div>
+              {testing ? "..." : t("testConnection")}
+            </Button>
+
+            <Button size="xs" onClick={() => void handleSave()} disabled={saving}>
+              {saving ? "..." : tc("save")}
+            </Button>
+
+            {testResult !== null && (
+              <span
+                className={
+                  testResult
+                    ? "text-xs font-medium text-[var(--success)]"
+                    : "text-xs font-medium text-destructive"
+                }
+              >
+                {testResult ? t("connectionSuccess") : t("connectionFailed")}
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }

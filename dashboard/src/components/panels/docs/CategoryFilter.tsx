@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
 import { useDocsStore, type DocCategory } from "@/stores/docs";
 
 const CATEGORIES: Array<DocCategory | null> = [null, "summary", "plan", "spec", "manual", "draft"];
@@ -32,20 +33,21 @@ export function CategoryFilter() {
         const label = cat ? t(`category.${cat}`) : t("category.all");
         const count = cat ? (counts[cat] ?? 0) : docs.length;
 
+        // Active "all" button uses primary token; active category buttons use dynamic hex color
+        const isActiveAll = isActive && !cat;
+        const isActiveCat = isActive && cat;
+
         return (
           <button
             key={cat ?? "all"}
             type="button"
-            className="px-3 py-1 text-xs rounded-full font-medium transition-colors"
-            style={{
-              backgroundColor: isActive
-                ? cat
-                  ? CATEGORY_COLORS[cat]
-                  : "var(--accent)"
-                : "transparent",
-              color: isActive ? "var(--accent-fg)" : "var(--text-secondary)",
-              border: isActive ? "none" : "1px solid var(--border)",
-            }}
+            className={cn(
+              "px-3 py-1 text-xs rounded-full font-medium transition-colors",
+              isActiveAll && "bg-primary text-primary-foreground",
+              isActiveCat && "text-primary-foreground",
+              !isActive && "border text-muted-foreground bg-transparent hover:bg-muted",
+            )}
+            style={isActiveCat ? { backgroundColor: CATEGORY_COLORS[cat] } : undefined}
             onClick={() => setFilterCategory(cat)}
           >
             {label}

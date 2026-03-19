@@ -1,6 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useApprovalsStore, type ApprovalDecision } from "@/stores/approvals";
 
 /**
@@ -21,9 +24,7 @@ export function PendingList() {
   if (pending.length === 0) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          {t("noPending")}
-        </span>
+        <span className="text-sm text-muted-foreground">{t("noPending")}</span>
       </div>
     );
   }
@@ -31,86 +32,64 @@ export function PendingList() {
   return (
     <div className="flex-1 overflow-y-auto p-3 space-y-2">
       {pending.map((item) => (
-        <div
-          key={item.id}
-          className="rounded-lg border p-3"
-          style={{
-            borderColor: "var(--border)",
-            backgroundColor: "var(--bg-secondary)",
-          }}
-        >
-          {/* Command + details */}
-          <div className="mb-2">
-            <div className="flex items-center gap-2 mb-1">
-              <span
-                className="text-xs font-medium px-2 py-0.5 rounded"
-                style={{
-                  backgroundColor: "var(--warning-muted)",
-                  color: "var(--warning)",
-                }}
-              >
-                {t("command")}
-              </span>
-              <code className="text-sm font-mono truncate" style={{ color: "var(--text-primary)" }}>
-                {item.command}
-              </code>
-            </div>
+        <Card key={item.id} size="sm">
+          <CardContent>
+            {/* Command + details */}
+            <div className="mb-2">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge
+                  variant="secondary"
+                  className="bg-yellow-500/15 text-yellow-600 dark:text-yellow-400"
+                >
+                  {t("command")}
+                </Badge>
+                <code className="text-sm font-mono truncate text-foreground">{item.command}</code>
+              </div>
 
-            <div
-              className="flex items-center gap-4 text-xs"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              {item.agentId && (
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                {item.agentId && (
+                  <span>
+                    {t("agent")}: {item.agentId}
+                  </span>
+                )}
                 <span>
-                  {t("agent")}: {item.agentId}
+                  {t("requestedAt")}: {new Date(item.createdAtMs).toLocaleTimeString()}
                 </span>
-              )}
-              <span>
-                {t("requestedAt")}: {new Date(item.createdAtMs).toLocaleTimeString()}
-              </span>
-              <span>
-                {t("expiresAt")}: {new Date(item.expiresAtMs).toLocaleTimeString()}
-              </span>
+                <span>
+                  {t("expiresAt")}: {new Date(item.expiresAtMs).toLocaleTimeString()}
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleResolve(item.id, "allow-once")}
-              className="text-xs px-3 py-1 rounded border cursor-pointer"
-              style={{
-                borderColor: "var(--status-connected)",
-                color: "var(--status-connected)",
-                backgroundColor: "transparent",
-              }}
-            >
-              {t("approve")}
-            </button>
-            <button
-              onClick={() => handleResolve(item.id, "allow-always")}
-              className="text-xs px-3 py-1 rounded border cursor-pointer"
-              style={{
-                borderColor: "var(--accent)",
-                color: "var(--accent)",
-                backgroundColor: "transparent",
-              }}
-            >
-              {t("approveAlways")}
-            </button>
-            <button
-              onClick={() => handleResolve(item.id, "deny")}
-              className="text-xs px-3 py-1 rounded border cursor-pointer"
-              style={{
-                borderColor: "var(--status-disconnected)",
-                color: "var(--status-disconnected)",
-                backgroundColor: "transparent",
-              }}
-            >
-              {t("deny")}
-            </button>
-          </div>
-        </div>
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="xs"
+                className="border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10"
+                onClick={() => handleResolve(item.id, "allow-once")}
+              >
+                {t("approve")}
+              </Button>
+              <Button
+                variant="outline"
+                size="xs"
+                className="border-primary/50 text-primary hover:bg-primary/10"
+                onClick={() => handleResolve(item.id, "allow-always")}
+              >
+                {t("approveAlways")}
+              </Button>
+              <Button
+                variant="outline"
+                size="xs"
+                className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                onClick={() => handleResolve(item.id, "deny")}
+              >
+                {t("deny")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );

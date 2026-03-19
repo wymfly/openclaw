@@ -1,6 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { WebhookDelivery } from "@/stores/webhooks";
 
 interface DeliveryHistoryProps {
@@ -15,32 +17,19 @@ export function DeliveryHistory({ deliveries, onTest, testing }: DeliveryHistory
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-          {t("deliveries")}
-        </h3>
-        <button
-          type="button"
-          className="px-3 py-1 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-          onClick={onTest}
-          disabled={testing}
-        >
+        <h3 className="text-sm font-medium text-foreground">{t("deliveries")}</h3>
+        <Button size="sm" onClick={onTest} disabled={testing}>
           {testing ? "..." : t("testDelivery")}
-        </button>
+        </Button>
       </div>
 
       {deliveries.length === 0 ? (
-        <p className="text-xs py-4 text-center" style={{ color: "var(--text-secondary)" }}>
-          {t("noDeliveries")}
-        </p>
+        <p className="text-xs py-4 text-center text-muted-foreground">{t("noDeliveries")}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr
-                className="border-b"
-                style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-              >
+              <tr className="border-b border-border text-muted-foreground">
                 <th className="text-left py-2 px-2 font-medium">{t("time")}</th>
                 <th className="text-left py-2 px-2 font-medium">{t("eventType")}</th>
                 <th className="text-left py-2 px-2 font-medium">{t("statusCode")}</th>
@@ -50,29 +39,19 @@ export function DeliveryHistory({ deliveries, onTest, testing }: DeliveryHistory
             </thead>
             <tbody>
               {deliveries.map((d) => (
-                <tr key={d.id} className="border-b" style={{ borderColor: "var(--border)" }}>
-                  <td className="py-2 px-2" style={{ color: "var(--text-secondary)" }}>
+                <tr key={d.id} className="border-b border-border">
+                  <td className="py-2 px-2 text-muted-foreground">
                     {new Date(d.createdAt).toLocaleString()}
                   </td>
-                  <td className="py-2 px-2" style={{ color: "var(--text-primary)" }}>
-                    {d.eventType}
-                  </td>
-                  <td className="py-2 px-2" style={{ color: "var(--text-primary)" }}>
-                    {d.statusCode ?? "—"}
-                  </td>
-                  <td className="py-2 px-2" style={{ color: "var(--text-secondary)" }}>
+                  <td className="py-2 px-2 text-foreground">{d.eventType}</td>
+                  <td className="py-2 px-2 text-foreground">{d.statusCode ?? "—"}</td>
+                  <td className="py-2 px-2 text-muted-foreground">
                     {d.durationMs != null ? `${d.durationMs}ms` : "—"}
                   </td>
                   <td className="py-2 px-2">
-                    <span
-                      className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: d.success ? "var(--success-muted)" : "var(--danger-muted)",
-                        color: d.success ? "var(--success)" : "var(--danger)",
-                      }}
-                    >
+                    <Badge variant={d.success ? "default" : "destructive"} className="text-xs">
                       {d.success ? t("success") : t("failed")}
-                    </span>
+                    </Badge>
                   </td>
                 </tr>
               ))}

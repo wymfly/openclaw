@@ -1,11 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Card, CardContent } from "@/components/ui/card";
 import type { UsageSummary } from "@/stores/usage";
-
-// ---------------------------------------------------------------------------
-// Number formatting helpers
-// ---------------------------------------------------------------------------
 
 function formatTokens(value: number): string {
   if (value >= 1_000_000) {
@@ -20,10 +17,6 @@ function formatTokens(value: number): string {
 function formatCost(value: number): string {
   return `$${value.toFixed(2)}`;
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 interface SummaryCardsProps {
   summary: UsageSummary;
@@ -42,21 +35,12 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
-        <div
-          key={card.label}
-          className="rounded-lg p-4 border"
-          style={{
-            backgroundColor: "var(--bg-secondary)",
-            borderColor: "var(--border)",
-          }}
-        >
-          <p className="text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-            {card.label}
-          </p>
-          <p className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-            {card.value}
-          </p>
-        </div>
+        <Card key={card.label} size="sm">
+          <CardContent>
+            <p className="text-xs font-medium mb-1 text-muted-foreground">{card.label}</p>
+            <p className="text-xl font-semibold text-foreground">{card.value}</p>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
