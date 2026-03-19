@@ -90,7 +90,7 @@ export function ActiveRunsTab() {
   // Fetch lineage when a run is selected
   useEffect(() => {
     if (selectedLineageRunId) {
-      void fetchLineage(selectedLineageRunId);
+      void fetchLineage({ runId: selectedLineageRunId });
     }
   }, [selectedLineageRunId, fetchLineage]);
 

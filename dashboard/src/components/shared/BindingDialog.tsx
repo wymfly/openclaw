@@ -97,13 +97,13 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
     return match;
   }, [channel, accountId, peerKind, peerId, guildId, roles, teamId, isDiscord, isSlack]);
 
-  // Real-time validation when fields change
+  // Real-time validation when fields change (skip if agentId or channel is empty)
   useEffect(() => {
-    if (!channel) {
+    if (!channel || !agentId) {
       return;
     }
     const timer = setTimeout(() => {
-      void validateBinding(buildMatch(), agentId || undefined);
+      void validateBinding(buildMatch(), agentId);
     }, 500);
     return () => clearTimeout(timer);
   }, [

@@ -21,11 +21,25 @@ const statusIcons: Record<string, string> = {
   timeout: "\u{23F1}\u{FE0F}",
 };
 
-function TreeNodeView({ data, isLast }: { data: TreeNodeData; isLast: boolean }) {
+function TreeNodeView({
+  data,
+  isLast,
+  isOrphan,
+}: {
+  data: TreeNodeData;
+  isLast: boolean;
+  isOrphan?: boolean;
+}) {
   const icon = statusIcons[data.node.status] ?? statusIcons.active;
 
   return (
-    <li className={cn("relative", !isLast && "border-l border-[var(--border)]")}>
+    <li
+      className={cn(
+        "relative",
+        !isLast && "border-l border-[var(--border)]",
+        isOrphan && "border-l border-dashed border-[var(--warning)]",
+      )}
+    >
       {/* Horizontal connector */}
       <div className="flex items-center gap-2 pl-4 py-1 relative">
         <span className="absolute left-0 top-1/2 w-4 border-t border-[var(--border)]" aria-hidden />
@@ -35,6 +49,9 @@ function TreeNodeView({ data, isLast }: { data: TreeNodeData; isLast: boolean })
         <span className="text-xs font-medium text-[var(--text-primary)] truncate">
           {data.node.agentName ?? data.node.agentId}
         </span>
+        {isOrphan && (
+          <span className="text-[10px] text-[var(--warning)] italic shrink-0">(orphan)</span>
+        )}
         <span className="text-[10px] font-mono text-[var(--text-secondary)] opacity-60 shrink-0">
           d{data.node.depth}
         </span>
@@ -56,9 +73,16 @@ function TreeNodeView({ data, isLast }: { data: TreeNodeData; isLast: boolean })
   );
 }
 
-/** Build tree from flat nodes using parentRunId. */
-function buildTree(nodes: LineageNode[]): TreeNodeData[] {
+interface BuildResult {
+  roots: TreeNodeData[];
+  orphanRunIds: Set<string>;
+}
+
+/** Build tree from flat nodes using parentRunId. Orphan nodes are appended as top-level. */
+function buildTree(nodes: LineageNode[]): BuildResult {
   const childrenMap = new Map<string | null, LineageNode[]>();
+  const nodeIds = new Set(nodes.map((n) => n.runId));
+
   for (const node of nodes) {
     const key = node.parentRunId;
     const siblings = childrenMap.get(key) ?? [];
@@ -66,16 +90,29 @@ function buildTree(nodes: LineageNode[]): TreeNodeData[] {
     childrenMap.set(key, siblings);
   }
 
+  const visited = new Set<string>();
+  const orphanRunIds = new Set<string>();
+
   function buildSubtree(parentRunId: string | null): TreeNodeData[] {
     const children = childrenMap.get(parentRunId) ?? [];
-    return children.map((node) => ({
-      node,
-      children: buildSubtree(node.runId),
-    }));
+    return children.map((node) => {
+      visited.add(node.runId);
+      return { node, children: buildSubtree(node.runId) };
+    });
   }
 
-  // Root nodes have parentRunId === null
-  return buildSubtree(null);
+  const roots = buildSubtree(null);
+
+  // Collect orphans: parentRunId points to a non-existent node
+  for (const node of nodes) {
+    if (!visited.has(node.runId) && node.parentRunId !== null && !nodeIds.has(node.parentRunId)) {
+      orphanRunIds.add(node.runId);
+      visited.add(node.runId);
+      roots.push({ node, children: buildSubtree(node.runId) });
+    }
+  }
+
+  return { roots, orphanRunIds };
 }
 
 /**
@@ -84,7 +121,7 @@ function buildTree(nodes: LineageNode[]): TreeNodeData[] {
  * Accepts a flat `nodes` array from the API and builds tree structure locally.
  */
 export function LineageTree({ nodes, rootSessionKey }: LineageTreeProps) {
-  const tree = useMemo(() => buildTree(nodes), [nodes]);
+  const { roots, orphanRunIds } = useMemo(() => buildTree(nodes), [nodes]);
 
   if (nodes.length === 0) {
     return (
@@ -96,8 +133,13 @@ export function LineageTree({ nodes, rootSessionKey }: LineageTreeProps) {
 
   return (
     <ul className="space-y-0">
-      {tree.map((data, i) => (
-        <TreeNodeView key={data.node.runId} data={data} isLast={i === tree.length - 1} />
+      {roots.map((data, i) => (
+        <TreeNodeView
+          key={data.node.runId}
+          data={data}
+          isLast={i === roots.length - 1}
+          isOrphan={orphanRunIds.has(data.node.runId)}
+        />
       ))}
     </ul>
   );
