@@ -1,12 +1,15 @@
 "use client";
 
-import { Trash2, User, Bot } from "lucide-react";
+import { ArrowRight, GitBranch, Trash2, User, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { LineageTree } from "@/components/shared/LineageTree";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { useSessionsStore, type HistoryMessage, type SessionEntry } from "@/stores/sessions";
+import { useUIStore } from "@/stores/ui";
 
 function pressureBarClass(pct: number): string {
   if (pct >= 80) {
@@ -97,9 +100,20 @@ export function SessionDetail() {
   const t = useTranslations("sessions");
   const tc = useTranslations("common");
   const { sessions, selectedKey, history, deleteSession } = useSessionsStore();
+  const { lineage, fetchLineage } = useDeckSubagentsStore();
+  const setActivePanel = useUIStore((s) => s.setActivePanel);
   const [confirming, setConfirming] = useState(false);
 
   const session = sessions.find((s) => s.key === selectedKey);
+  const isSubagent = selectedKey ? selectedKey.includes(":subagent:") : false;
+
+  // Fetch lineage for subagent sessions
+  useEffect(() => {
+    if (isSubagent && selectedKey) {
+      void fetchLineage(selectedKey);
+    }
+  }, [isSubagent, selectedKey, fetchLineage]);
+
   if (!session) {
     return null;
   }
@@ -155,6 +169,36 @@ export function SessionDetail() {
           <Trash2 size={15} />
         </Button>
       </div>
+
+      {/* Lineage block for subagent sessions */}
+      {isSubagent && (
+        <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <GitBranch size={14} className="text-purple-400" />
+                <span className="text-xs font-medium text-[var(--text-primary)]">
+                  Subagent Lineage
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivePanel("subagents")}
+                className={cn(
+                  "inline-flex items-center gap-1 text-[10px] font-medium cursor-pointer",
+                  "text-[var(--accent)] hover:text-[var(--accent)]/80",
+                  "transition-colors duration-150",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                )}
+              >
+                View in Subagents panel
+                <ArrowRight size={10} />
+              </button>
+            </div>
+            <LineageTree nodes={lineage} rootSessionKey={selectedKey ?? ""} />
+          </div>
+        </div>
+      )}
 
       {/* Stats + context bar */}
       <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">

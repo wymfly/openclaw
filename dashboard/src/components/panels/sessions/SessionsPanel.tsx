@@ -2,16 +2,24 @@
 
 import { ScrollText } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useSessionsStore } from "@/stores/sessions";
 import { SessionDetail } from "./SessionDetail";
-import { SessionList } from "./SessionList";
+import { SessionList, type SessionType } from "./SessionList";
 
 export function SessionsPanel() {
   const t = useTranslations("sessions");
   const tc = useTranslations("common");
   const { sessions, selectedKey, loading, error, fetchSessions } = useSessionsStore();
+  const [typeFilter, setTypeFilter] = useState<SessionType | "all">("all");
 
   useEffect(() => {
     void fetchSessions();
@@ -26,7 +34,24 @@ export function SessionsPanel() {
       >
         {/* Header */}
         <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t("title")}</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t("title")}</h2>
+            <Select
+              value={typeFilter}
+              onValueChange={(v) => setTypeFilter((v as SessionType | "all") ?? "all")}
+            >
+              <SelectTrigger className="h-6 w-[100px] text-[10px] bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="dm">DM</SelectItem>
+                <SelectItem value="group">Group</SelectItem>
+                <SelectItem value="channel">Channel</SelectItem>
+                <SelectItem value="subagent">Subagent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* List body */}
@@ -52,7 +77,7 @@ export function SessionsPanel() {
             </div>
           )}
 
-          {!loading && !error && sessions.length > 0 && <SessionList />}
+          {!loading && !error && sessions.length > 0 && <SessionList typeFilter={typeFilter} />}
         </ScrollArea>
       </div>
 
