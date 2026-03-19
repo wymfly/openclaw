@@ -22,10 +22,12 @@ import {
   PanelLeftClose,
   PanelLeft,
   Hexagon,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -129,6 +131,35 @@ export function NavRail() {
 
   const collapsed = isMobile ? false : sidebarCollapsed;
 
+  // Track which groups are expanded — auto-expand the group containing the active panel
+  const activeGroupIndex = useMemo(
+    () => navGroups.findIndex((g) => g.items.some((it) => it.panel === activePanel)),
+    [activePanel],
+  );
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(
+    () => new Set([activeGroupIndex]),
+  );
+
+  // When active panel changes, ensure its group is expanded
+  useEffect(() => {
+    if (activeGroupIndex >= 0 && !expandedGroups.has(activeGroupIndex)) {
+      setExpandedGroups((prev) => new Set(prev).add(activeGroupIndex));
+    }
+  }, [activeGroupIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleGroup = useCallback((idx: number) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
+  }, []);
+
   const handleNavClick = (panel: Panel) => {
     setActivePanel(panel);
     if (isMobile) {
@@ -229,22 +260,59 @@ export function NavRail() {
 
       {/* ── Groups ── */}
       <ScrollArea className="flex-1">
-        <div className="py-3">
-          {navGroups.map((group, i) => (
-            <div key={group.titleKey} className={i > 0 ? "mt-5" : undefined}>
-              {!collapsed && (
-                <div className="px-4 mb-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-secondary)]">
-                    {t(group.titleKey)}
-                  </span>
+        <div className="py-2">
+          {navGroups.map((group, i) => {
+            const isExpanded = expandedGroups.has(i);
+            const hasActiveItem = group.items.some((it) => it.panel === activePanel);
+
+            /* Collapsed sidebar: icon-only, no collapsible */
+            if (collapsed) {
+              return (
+                <div key={group.titleKey}>
+                  {i > 0 && <Separator className="mx-3 my-1.5 bg-[var(--border-subtle)]" />}
+                  <div className="space-y-0.5 px-1">{group.items.map(renderNavItem)}</div>
                 </div>
-              )}
-              {collapsed && i > 0 && <Separator className="mx-3 mb-2 bg-[var(--border-subtle)]" />}
-              <div className={cn("space-y-0.5", collapsed ? "px-1" : "px-2")}>
-                {group.items.map(renderNavItem)}
-              </div>
-            </div>
-          ))}
+              );
+            }
+
+            /* Expanded sidebar: collapsible groups */
+            return (
+              <Collapsible
+                key={group.titleKey}
+                open={isExpanded}
+                onOpenChange={() => toggleGroup(i)}
+                className={i > 0 ? "mt-1" : undefined}
+              >
+                <CollapsibleTrigger
+                  render={
+                    <button
+                      className={cn(
+                        "flex items-center gap-1 w-full px-4 py-1.5 cursor-pointer transition-colors duration-150",
+                        "text-[10px] font-semibold uppercase tracking-[0.08em]",
+                        "hover:text-[var(--text-primary)]",
+                        hasActiveItem ? "text-[var(--accent)]" : "text-[var(--text-secondary)]",
+                      )}
+                    />
+                  }
+                >
+                  <ChevronRight
+                    size={12}
+                    className={cn(
+                      "shrink-0 transition-transform duration-150",
+                      isExpanded && "rotate-90",
+                    )}
+                  />
+                  {t(group.titleKey)}
+                  <span className="ml-auto text-[9px] font-mono opacity-50">
+                    {group.items.length}
+                  </span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-0.5 px-2 mt-0.5">{group.items.map(renderNavItem)}</div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
         </div>
       </ScrollArea>
 
