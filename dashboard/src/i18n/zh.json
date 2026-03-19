@@ -103,7 +103,75 @@
     "save": "保存",
     "saved": "已保存",
     "noModels": "未发现模型",
-    "selectProvider": "选择供应商进行配置"
+    "selectProvider": "选择供应商进行配置",
+    "tabs": {
+      "catalog": "目录",
+      "config": "提供商配置",
+      "fallbacks": "回退链",
+      "usage": "用量"
+    },
+    "auth": {
+      "ready": "就绪",
+      "warning": "警告",
+      "missing": "未配置",
+      "unknown": "未知",
+      "probe": "运行诊断",
+      "probing": "测试中...",
+      "probeHint": "发送一个测试请求（消耗少量 token）",
+      "source": "来源",
+      "type": "认证类型",
+      "expires": "有效期剩余",
+      "cooldown": "冷却时间"
+    },
+    "fallbacks": {
+      "primary": "主力模型",
+      "failsOver": "失败时",
+      "empty": "未配置回退链。主模型不可用时请求将直接失败。",
+      "add": "添加回退模型",
+      "saved": "已保存",
+      "imageModels": "图像模型",
+      "emptyImage": "未配置图像模型。",
+      "authWarning": "该提供商未配置认证，故障转移时将被跳过。",
+      "goConfig": "去配置"
+    },
+    "usage": {
+      "todayCost": "今日",
+      "weekCost": "本周",
+      "activeProviders": "活跃提供商",
+      "vsYesterday": "较昨日",
+      "vsLastWeek": "较上周",
+      "quota": "配额",
+      "resetsIn": "重置倒计时",
+      "noQuotaData": "配额数据不可用",
+      "viewDetails": "查看详细分析"
+    },
+    "config": {
+      "configured": "已配置",
+      "unconfigured": "未配置",
+      "apiKey": "API Key",
+      "baseUrl": "Base URL",
+      "modelId": "模型 ID",
+      "save": "保存",
+      "saved": "已保存",
+      "providerReady": "{provider} 已就绪",
+      "needsApiKey": "需要 API Key 才能使用此提供商",
+      "apiFormat": "API 格式",
+      "envHint": "环境变量：{envVar}",
+      "advanced": "高级",
+      "profiles": "认证配置"
+    },
+    "catalog": {
+      "setDefault": "设为默认",
+      "addToFallback": "加入回退链",
+      "goConfig": "去配置",
+      "contextWindow": "上下文",
+      "inputPrice": "输入",
+      "outputPrice": "输出",
+      "noModels": "未发现模型",
+      "text": "文本",
+      "reasoning": "推理",
+      "vision": "视觉"
+    }
   },
   "notifications": {
     "info": "提示",
