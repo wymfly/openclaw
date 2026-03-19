@@ -41,9 +41,9 @@ export function RunHistory({ jobId }: RunHistoryProps) {
           </tr>
         </thead>
         <tbody>
-          {runs.map((run) => (
+          {runs.map((run, idx) => (
             <tr
-              key={run.id}
+              key={run.id ?? `${run.ts}-${idx}`}
               className="border-b border-[var(--border-subtle)] transition-colors duration-150 hover:bg-[var(--bg-tertiary)]"
             >
               <td className="px-4 py-2.5 font-mono text-[var(--text-primary)]">
