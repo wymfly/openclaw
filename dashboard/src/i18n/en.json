@@ -167,10 +167,20 @@
       "contextWindow": "Context",
       "inputPrice": "Input",
       "outputPrice": "Output",
+      "cacheRead": "Cache Read",
+      "cacheWrite": "Cache Write",
+      "maxOutput": "Max Output",
       "noModels": "No models found",
+      "selectModel": "Select a provider or model to view details",
       "text": "Text",
       "reasoning": "Reasoning",
-      "vision": "Vision"
+      "vision": "Vision",
+      "free": "Free",
+      "providerModels": "{provider} Models",
+      "authSummary": "API Key from {source}",
+      "authNone": "No authentication configured",
+      "modelName": "Name",
+      "models": "models"
     }
   },
   "notifications": {
