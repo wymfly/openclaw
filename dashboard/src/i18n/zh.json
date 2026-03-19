@@ -341,6 +341,7 @@
     "ready": "就绪",
     "needsSetup": "需配置",
     "disabled": "已禁用",
+    "enabled": "已启用",
     "enable": "启用",
     "disable": "禁用",
     "configure": "配置",

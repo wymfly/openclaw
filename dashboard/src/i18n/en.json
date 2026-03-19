@@ -341,6 +341,7 @@
     "ready": "Ready",
     "needsSetup": "Needs Setup",
     "disabled": "Disabled",
+    "enabled": "Enabled",
     "enable": "Enable",
     "disable": "Disable",
     "configure": "Configure",
