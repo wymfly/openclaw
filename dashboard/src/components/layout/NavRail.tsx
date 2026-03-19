@@ -3,8 +3,10 @@
 import {
   MessageSquare,
   Bot,
+  GitBranch,
   Radio,
   Cpu,
+  Network,
   BarChart3,
   ScrollText,
   Brain,
@@ -57,6 +59,7 @@ const navGroups: NavGroup[] = [
     items: [
       { panel: "chat", labelKey: "chat", icon: MessageSquare },
       { panel: "agents", labelKey: "agents", icon: Bot },
+      { panel: "routing", labelKey: "routing", icon: GitBranch },
       { panel: "gateway", labelKey: "gateway", icon: Radio },
       { panel: "models", labelKey: "models", icon: Cpu },
     ],
@@ -64,6 +67,7 @@ const navGroups: NavGroup[] = [
   {
     titleKey: "observe",
     items: [
+      { panel: "subagents", labelKey: "subagents", icon: Network },
       { panel: "usage", labelKey: "usage", icon: BarChart3 },
       { panel: "sessions", labelKey: "sessions", icon: ScrollText },
       { panel: "memory", labelKey: "memory", icon: Brain },

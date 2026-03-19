@@ -21,6 +21,8 @@
     "alerts": "告警",
     "channels": "渠道",
     "config": "配置",
+    "routing": "消息路由",
+    "subagents": "子智能体",
     "docs": "文档",
     "settings": "设置"
   },
@@ -188,6 +190,33 @@
       "modelName": "名称",
       "models": "个模型"
     }
+  },
+  "routing": {
+    "title": "消息路由",
+    "bindings": "路由规则",
+    "simulator": "路由模拟器",
+    "addBinding": "添加规则",
+    "tier": "优先级",
+    "defaultAgent": "默认 Agent",
+    "dmScope": "DM 合并策略",
+    "simulate": "模拟",
+    "matchedBy": "匹配方式"
+  },
+  "subagents": {
+    "title": "子智能体监控",
+    "activeRuns": "活跃运行",
+    "history": "历史记录",
+    "config": "配置",
+    "kill": "终止",
+    "lineage": "调用谱系",
+    "ephemeralNote": "仅显示最近记录"
+  },
+  "agentDetail": {
+    "overview": "概览",
+    "routing": "路由",
+    "skills": "Skills",
+    "subagent": "子智能体",
+    "sessions": "会话"
   },
   "notifications": {
     "info": "提示",
