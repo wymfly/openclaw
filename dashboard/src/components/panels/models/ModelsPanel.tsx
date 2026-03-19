@@ -1,45 +1,41 @@
 "use client";
 
-import { Cpu } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
-import { useModelsStore } from "@/stores/models";
-import { ModelCatalog } from "./ModelCatalog";
-import { ProviderConfig } from "./ProviderConfig";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CatalogTab } from "./tabs/CatalogTab";
+import { FallbacksTab } from "./tabs/FallbacksTab";
+import { ProviderConfigTab } from "./tabs/ProviderConfigTab";
+import { UsageTab } from "./tabs/UsageTab";
 
 /**
- * Models panel — catalog browser with provider detail.
- * Left: scrollable model catalog grouped by provider.
- * Right: provider configuration form.
+ * Models panel — four-tab layout:
+ *   Catalog | Provider Config | Fallbacks | Usage
  */
 export function ModelsPanel() {
   const t = useTranslations("models");
-  const { selectedProvider, fetchModels, fetchProviderConfig } = useModelsStore();
-
-  useEffect(() => {
-    void fetchModels();
-    void fetchProviderConfig();
-  }, [fetchModels, fetchProviderConfig]);
 
   return (
-    <div className="flex h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
-      <ModelCatalog />
-      <div className="flex flex-col flex-1 min-w-0">
-        {selectedProvider ? (
-          <ProviderConfig provider={selectedProvider} />
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--text-secondary)]">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
-              <Cpu size={20} className="text-[var(--accent)]" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-[var(--text-primary)]">
-                {t("selectProvider")}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+    <div className="flex h-full flex-col">
+      <Tabs defaultValue="catalog" className="flex h-full flex-col">
+        <TabsList className="mx-4 mt-2 shrink-0">
+          <TabsTrigger value="catalog">{t("tabs.catalog")}</TabsTrigger>
+          <TabsTrigger value="config">{t("tabs.config")}</TabsTrigger>
+          <TabsTrigger value="fallbacks">{t("tabs.fallbacks")}</TabsTrigger>
+          <TabsTrigger value="usage">{t("tabs.usage")}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="catalog" className="flex-1 overflow-hidden mt-0">
+          <CatalogTab />
+        </TabsContent>
+        <TabsContent value="config" className="flex-1 overflow-hidden mt-0">
+          <ProviderConfigTab />
+        </TabsContent>
+        <TabsContent value="fallbacks" className="flex-1 overflow-hidden mt-0">
+          <FallbacksTab />
+        </TabsContent>
+        <TabsContent value="usage" className="flex-1 overflow-hidden mt-0">
+          <UsageTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
