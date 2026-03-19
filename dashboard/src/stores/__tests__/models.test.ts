@@ -1,0 +1,550 @@
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { useModelsStore } from "../models";
+
+// ---------------------------------------------------------------------------
+// Mock fetch
+// ---------------------------------------------------------------------------
+
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
+function resetStore() {
+  useModelsStore.setState({
+    models: [],
+    providers: [],
+    selectedProvider: null,
+    loading: false,
+    authOverview: [],
+    authLoading: false,
+    probeResults: {},
+    primaryModel: null,
+    fallbacks: [],
+    imagePrimaryModel: null,
+    imageFallbacks: [],
+    usageCost: [],
+    usageProviders: [],
+    configRaw: null,
+    configHash: null,
+  });
+}
+
+beforeEach(() => {
+  mockFetch.mockReset();
+  resetStore();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// Mock data
+// ---------------------------------------------------------------------------
+
+const mockModels = [
+  {
+    id: "kimi-k2.5",
+    name: "Kimi K2.5",
+    provider: "moonshot",
+    contextWindow: 262144,
+    inputPrice: 0.57,
+    outputPrice: 3.0,
+    reasoning: true,
+    input: ["text", "image"],
+    maxTokens: 32768,
+    isDefault: true,
+  },
+  {
+    id: "MiniMax-M2.5",
+    name: "MiniMax M2.5",
+    provider: "minimax",
+    contextWindow: 205000,
+    inputPrice: 0.3,
+    outputPrice: 1.2,
+    reasoning: true,
+    input: ["text"],
+    maxTokens: 16384,
+  },
+  {
+    id: "gpt-5.1-codex",
+    name: "GPT 5.1 Codex",
+    provider: "openai",
+    contextWindow: 131072,
+    inputPrice: 2.5,
+    outputPrice: 10,
+    reasoning: false,
+    input: ["text", "image"],
+    maxTokens: 32768,
+  },
+];
+
+const mockAuthOverview = [
+  {
+    provider: "moonshot",
+    status: "ready",
+    auth: { type: "api_key", source: "env:MOONSHOT_API_KEY", profileId: "moonshot:default" },
+  },
+  {
+    provider: "minimax",
+    status: "warning",
+    auth: { type: "oauth", source: "profile:minimax:oauth" },
+    oauth: { expiresAt: Date.now() + 3600000, remainingMs: 3600000, status: "expiring" },
+  },
+  { provider: "openai", status: "missing", auth: null },
+];
+
+function makeConfigRaw(overrides?: Record<string, unknown>): string {
+  const base = {
+    agents: {
+      defaults: {
+        model: { primary: "moonshot/kimi-k2.5", fallbacks: ["minimax/MiniMax-M2.5"] },
+        imageModel: "openai/gpt-5.1-codex",
+      },
+    },
+    ...overrides,
+  };
+  return JSON.stringify(base);
+}
+
+// ---------------------------------------------------------------------------
+// §3.1 fetchModels
+// ---------------------------------------------------------------------------
+
+describe("fetchModels", () => {
+  it("S-FM-01: fetches models and updates state", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ models: mockModels }),
+    });
+
+    const store = useModelsStore.getState();
+    await store.fetchModels();
+
+    const state = useModelsStore.getState();
+    expect(state.models).toHaveLength(3);
+    expect(state.models[0].id).toBe("kimi-k2.5");
+    expect(state.loading).toBe(false);
+  });
+
+  it("S-FM-02: handles empty list", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ models: [] }),
+    });
+
+    await useModelsStore.getState().fetchModels();
+
+    const state = useModelsStore.getState();
+    expect(state.models).toEqual([]);
+    expect(state.loading).toBe(false);
+  });
+
+  it("S-FM-03: keeps original models on API failure", async () => {
+    useModelsStore.setState({ models: mockModels });
+
+    mockFetch.mockResolvedValueOnce({ ok: false });
+
+    await useModelsStore.getState().fetchModels();
+
+    const state = useModelsStore.getState();
+    expect(state.models).toEqual(mockModels);
+    expect(state.loading).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §3.2 fetchAuthOverview
+// ---------------------------------------------------------------------------
+
+describe("fetchAuthOverview", () => {
+  it("S-FA-01: fetches auth overview successfully", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ providers: mockAuthOverview }),
+    });
+
+    await useModelsStore.getState().fetchAuthOverview();
+
+    const state = useModelsStore.getState();
+    expect(state.authOverview).toHaveLength(3);
+    expect(state.authLoading).toBe(false);
+  });
+
+  it("S-FA-02: maps multiple provider statuses correctly", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ providers: mockAuthOverview }),
+    });
+
+    await useModelsStore.getState().fetchAuthOverview();
+
+    const state = useModelsStore.getState();
+    expect(state.authOverview[0].status).toBe("ready");
+    expect(state.authOverview[1].status).toBe("warning");
+    expect(state.authOverview[2].status).toBe("missing");
+  });
+
+  it("S-FA-03: keeps original on API failure", async () => {
+    const existing = [{ provider: "old", status: "ready" as const, auth: null }];
+    useModelsStore.setState({ authOverview: existing });
+
+    mockFetch.mockResolvedValueOnce({ ok: false });
+
+    await useModelsStore.getState().fetchAuthOverview();
+
+    const state = useModelsStore.getState();
+    expect(state.authOverview).toEqual(existing);
+    expect(state.authLoading).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §3.3 runProbe
+// ---------------------------------------------------------------------------
+
+describe("runProbe", () => {
+  it("S-RP-01: stores successful probe result", async () => {
+    const probeResult = {
+      provider: "moonshot",
+      profileId: "moonshot:default",
+      status: "ok",
+      latencyMs: 238,
+      model: "kimi-k2.5",
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => probeResult,
+    });
+
+    const result = await useModelsStore.getState().runProbe("moonshot");
+
+    expect(result).toEqual(probeResult);
+    expect(useModelsStore.getState().probeResults.moonshot).toEqual(probeResult);
+  });
+
+  it("S-RP-02: stores auth failure probe result", async () => {
+    const probeResult = {
+      provider: "openai",
+      status: "auth",
+      latencyMs: 0,
+      error: "Invalid API key",
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => probeResult,
+    });
+
+    const result = await useModelsStore.getState().runProbe("openai");
+
+    expect(result?.status).toBe("auth");
+    expect(result?.error).toBe("Invalid API key");
+    expect(useModelsStore.getState().probeResults.openai).toEqual(probeResult);
+  });
+
+  it("S-RP-03: returns null on network error without crashing", async () => {
+    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+
+    const result = await useModelsStore.getState().runProbe("moonshot");
+
+    expect(result).toBeNull();
+    expect(useModelsStore.getState().probeResults).toEqual({});
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §3.4 fetchFallbacks
+// ---------------------------------------------------------------------------
+
+describe("fetchFallbacks", () => {
+  it("S-FF-01: parses string model form", async () => {
+    const raw = JSON.stringify({
+      agents: { defaults: { model: "moonshot/kimi-k2.5" } },
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "h1" }),
+    });
+
+    await useModelsStore.getState().fetchFallbacks();
+
+    const state = useModelsStore.getState();
+    expect(state.primaryModel).toBe("moonshot/kimi-k2.5");
+    expect(state.fallbacks).toEqual([]);
+  });
+
+  it("S-FF-02: parses object model form with fallbacks", async () => {
+    const raw = makeConfigRaw();
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "h2" }),
+    });
+
+    await useModelsStore.getState().fetchFallbacks();
+
+    const state = useModelsStore.getState();
+    expect(state.primaryModel).toBe("moonshot/kimi-k2.5");
+    expect(state.fallbacks).toEqual(["minimax/MiniMax-M2.5"]);
+  });
+
+  it("S-FF-03: handles missing agents.defaults.model", async () => {
+    const raw = JSON.stringify({ agents: { defaults: {} } });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "h3" }),
+    });
+
+    await useModelsStore.getState().fetchFallbacks();
+
+    const state = useModelsStore.getState();
+    expect(state.primaryModel).toBeNull();
+    expect(state.fallbacks).toEqual([]);
+  });
+
+  it("S-FF-04: extracts imageModel simultaneously", async () => {
+    const raw = JSON.stringify({
+      agents: {
+        defaults: {
+          model: { primary: "moonshot/kimi-k2.5", fallbacks: [] },
+          imageModel: { primary: "openai/gpt-5.1-codex", fallbacks: ["minimax/MiniMax-M2.5"] },
+        },
+      },
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "h4" }),
+    });
+
+    await useModelsStore.getState().fetchFallbacks();
+
+    const state = useModelsStore.getState();
+    expect(state.imagePrimaryModel).toBe("openai/gpt-5.1-codex");
+    expect(state.imageFallbacks).toEqual(["minimax/MiniMax-M2.5"]);
+  });
+
+  it("S-FF-05: stores configRaw and configHash", async () => {
+    const raw = makeConfigRaw();
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "abc123" }),
+    });
+
+    await useModelsStore.getState().fetchFallbacks();
+
+    const state = useModelsStore.getState();
+    expect(state.configRaw).toBe(raw);
+    expect(state.configHash).toBe("abc123");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §3.5 updateFallbacks
+// ---------------------------------------------------------------------------
+
+describe("updateFallbacks", () => {
+  beforeEach(() => {
+    // Pre-populate config state so updateFallbacks can build the PATCH body
+    useModelsStore.setState({
+      configRaw: makeConfigRaw(),
+      configHash: "abc123",
+      primaryModel: "moonshot/kimi-k2.5",
+      fallbacks: ["minimax/MiniMax-M2.5"],
+    });
+  });
+
+  it("S-UF-01: sends correct PATCH body", async () => {
+    // PATCH success
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    // fetchFallbacks refetch after success
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        raw: makeConfigRaw(),
+        hash: "new-hash",
+      }),
+    });
+
+    await useModelsStore.getState().updateFallbacks("moonshot/kimi-k2.5", ["openai/gpt-5.1-codex"]);
+
+    const patchCall = mockFetch.mock.calls[0];
+    expect(patchCall[0]).toBe("/api/models/config");
+    expect(patchCall[1].method).toBe("PATCH");
+
+    const body = JSON.parse(patchCall[1].body);
+    expect(body.baseHash).toBe("abc123");
+
+    const parsed = JSON.parse(body.raw);
+    expect(parsed.agents.defaults.model.primary).toBe("moonshot/kimi-k2.5");
+    expect(parsed.agents.defaults.model.fallbacks).toEqual(["openai/gpt-5.1-codex"]);
+  });
+
+  it("S-UF-02: refetches config after successful save", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        raw: makeConfigRaw(),
+        hash: "refreshed-hash",
+      }),
+    });
+
+    await useModelsStore.getState().updateFallbacks("moonshot/kimi-k2.5", []);
+
+    // Should have made 2 calls: PATCH + GET (refetch)
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(useModelsStore.getState().configHash).toBe("refreshed-hash");
+  });
+
+  it("S-UF-03: re-syncs on 409 conflict", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 409 });
+    // fetchFallbacks called on conflict
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        raw: makeConfigRaw(),
+        hash: "conflict-hash",
+      }),
+    });
+
+    const result = await useModelsStore
+      .getState()
+      .updateFallbacks("moonshot/kimi-k2.5", ["new/model"]);
+
+    expect(result).toBe(false);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(useModelsStore.getState().configHash).toBe("conflict-hash");
+  });
+
+  it("S-UF-04: preserves other config fields", async () => {
+    // Config with extra fields in the model object
+    const raw = JSON.stringify({
+      agents: {
+        defaults: {
+          model: { primary: "moonshot/kimi-k2.5", fallbacks: [], customField: "keep" },
+          imageModel: "openai/gpt-5.1-codex",
+        },
+      },
+      otherSetting: true,
+    });
+    useModelsStore.setState({ configRaw: raw, configHash: "h1" });
+
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "h2" }),
+    });
+
+    await useModelsStore.getState().updateFallbacks("moonshot/kimi-k2.5", ["new/model"]);
+
+    const patchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const parsed = JSON.parse(patchBody.raw);
+
+    // Other config fields preserved
+    expect(parsed.otherSetting).toBe(true);
+    expect(parsed.agents.defaults.imageModel).toBe("openai/gpt-5.1-codex");
+    // customField from model object preserved via spread
+    expect(parsed.agents.defaults.model.customField).toBe("keep");
+  });
+
+  it("S-UF-05: updateImageFallbacks works the same way", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        raw: makeConfigRaw(),
+        hash: "img-hash",
+      }),
+    });
+
+    const result = await useModelsStore
+      .getState()
+      .updateImageFallbacks("openai/gpt-5.1-codex", ["minimax/MiniMax-M2.5"]);
+
+    expect(result).toBe(true);
+
+    const patchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const parsed = JSON.parse(patchBody.raw);
+    expect(parsed.agents.defaults.imageModel.primary).toBe("openai/gpt-5.1-codex");
+    expect(parsed.agents.defaults.imageModel.fallbacks).toEqual(["minimax/MiniMax-M2.5"]);
+  });
+
+  it("returns false when configRaw is null", async () => {
+    useModelsStore.setState({ configRaw: null });
+
+    const result = await useModelsStore.getState().updateFallbacks("a/b", []);
+
+    expect(result).toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §3.6 fetchUsageSummary
+// ---------------------------------------------------------------------------
+
+describe("fetchUsageSummary", () => {
+  it("S-US-01: fetches both cost and provider status", async () => {
+    const mockCost = [
+      { date: "2026-03-18", cost: 7.6 },
+      { date: "2026-03-19", cost: 12.38 },
+    ];
+    const mockProviders = [
+      {
+        provider: "moonshot",
+        displayName: "Moonshot",
+        windows: [{ label: "Daily", usedPercent: 72, resetsInMs: 19380000 }],
+        plan: "Standard",
+      },
+    ];
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ costs: mockCost }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ providers: mockProviders }),
+      });
+
+    await useModelsStore.getState().fetchUsageSummary();
+
+    const state = useModelsStore.getState();
+    expect(state.usageCost).toHaveLength(2);
+    expect(state.usageCost[1].cost).toBe(12.38);
+    expect(state.usageProviders).toHaveLength(1);
+    expect(state.usageProviders[0].provider).toBe("moonshot");
+  });
+
+  it("S-US-02: partial failure — cost ok but status fails", async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ date: "2026-03-19", cost: 5.0 }],
+      })
+      .mockResolvedValueOnce({ ok: false });
+
+    await useModelsStore.getState().fetchUsageSummary();
+
+    const state = useModelsStore.getState();
+    expect(state.usageCost).toHaveLength(1);
+    expect(state.usageProviders).toEqual([]);
+  });
+
+  it("S-US-03: both fail — keeps original values", async () => {
+    const original = [{ date: "old", cost: 1 }];
+    useModelsStore.setState({ usageCost: original });
+
+    mockFetch.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({ ok: false });
+
+    await useModelsStore.getState().fetchUsageSummary();
+
+    expect(useModelsStore.getState().usageCost).toEqual(original);
+  });
+});
