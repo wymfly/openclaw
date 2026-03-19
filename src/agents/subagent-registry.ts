@@ -1255,6 +1255,10 @@ export function listDescendantRunsForRequester(rootSessionKey: string): Subagent
   );
 }
 
+export function getSubagentRunsForDeck(): Map<string, SubagentRunRecord> {
+  return getSubagentRunsSnapshotForRead(subagentRuns);
+}
+
 export function initSubagentRegistry() {
   restoreSubagentRunsOnce();
 }
