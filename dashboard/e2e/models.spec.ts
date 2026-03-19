@@ -832,6 +832,171 @@ test.describe("Cross-Tab Integration", () => {
 // §5 i18n Verification (P2)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// §7 Boundary Conditions (P3)
+// ---------------------------------------------------------------------------
+
+test.describe("Boundary Conditions", () => {
+  test("BC-01: gateway disconnected — all tabs render without crash", async ({ page }) => {
+    // Mock all APIs to fail (simulating gateway down)
+    await page.route("**/api/onboarding/status", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ needsOnboarding: false }),
+      }),
+    );
+    await page.route("**/api/gateway/status", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "disconnected" }),
+      }),
+    );
+    await page.route("**/api/settings", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({}),
+      }),
+    );
+    await page.route("**/api/models", (route) =>
+      route.fulfill({ status: 500, body: "Gateway down" }),
+    );
+    await page.route("**/api/models/auth", (route) =>
+      route.fulfill({ status: 500, body: "Gateway down" }),
+    );
+    await page.route("**/api/models/config", (route) =>
+      route.fulfill({ status: 500, body: "Gateway down" }),
+    );
+    await page.route("**/api/usage/**", (route) =>
+      route.fulfill({ status: 500, body: "Gateway down" }),
+    );
+    await page.route("**/api/usage", (route) =>
+      route.fulfill({ status: 500, body: "Gateway down" }),
+    );
+
+    await page.goto("/");
+    await goToModels(page);
+
+    // Should not white-screen — tabs should still be visible
+    const tabs = page.locator("[role='tab']");
+    await expect(tabs).toHaveCount(4);
+
+    // Click through each tab to verify no crash
+    for (let i = 0; i < 4; i++) {
+      await tabs.nth(i).click();
+      await page.waitForTimeout(200);
+    }
+  });
+
+  test("BC-02: large model list renders without timeout", async ({ page }) => {
+    // Generate 100+ models
+    const largeModelList = Array.from({ length: 120 }, (_, i) => ({
+      id: `model-${i}`,
+      name: `Model ${i}`,
+      provider: `provider-${Math.floor(i / 10)}`,
+      contextWindow: 128000,
+      inputPrice: 1.0,
+      outputPrice: 2.0,
+      reasoning: i % 3 === 0,
+      input: ["text"],
+      maxTokens: 4096,
+    }));
+
+    await setupAllRoutes(page);
+    await page.route("**/api/models", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ models: largeModelList }),
+      }),
+    );
+
+    await page.goto("/");
+    await goToModels(page);
+
+    // Should render without timeout — verify at least some providers visible
+    await expect(page.locator("text=provider-0").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=provider-5").first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test("BC-06: no provider has auth — Config tab shows all unconfigured", async ({ page }) => {
+    await setupAllRoutes(page);
+    // Override auth to all missing
+    await page.route("**/api/models/auth", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          providers: [
+            { provider: "moonshot", status: "missing", auth: null },
+            { provider: "openai", status: "missing", auth: null },
+          ],
+        }),
+      }),
+    );
+
+    await page.goto("/");
+    await goToModels(page);
+    const configTab = page.locator("[role='tab']", { hasText: /提供商配置|Provider Config/ });
+    await configTab.click();
+    await page.waitForTimeout(300);
+
+    // All providers should be in the "Unconfigured" group
+    const unconfigured = page.locator("text=/Unconfigured|未配置/i");
+    await expect(unconfigured.first()).toBeVisible();
+
+    // "Not configured" status badge should appear
+    const missingBadge = page.locator("text=/Not configured|未配置/");
+    await expect(missingBadge.first()).toBeVisible();
+  });
+
+  test("BC-07: provider with multiple usage windows", async ({ page }) => {
+    await setupAllRoutes(page);
+    await page.route("**/api/usage", (route) => {
+      if (route.request().url().includes("/api/usage/cost")) {
+        return route.continue();
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          providers: [
+            {
+              provider: "multi",
+              displayName: "Multi Window Provider",
+              windows: [
+                { label: "Daily", usedPercent: 30, resetsInMs: 19380000 },
+                { label: "Monthly", usedPercent: 85, resetsInMs: 1900800000 },
+              ],
+              plan: "Enterprise",
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto("/");
+    await goToModels(page);
+    const usageTab = page.locator("[role='tab']", { hasText: /用量|Usage/ });
+    await usageTab.click();
+    await page.waitForTimeout(300);
+
+    // Both windows should be visible
+    await expect(page.locator("text=Daily").first()).toBeVisible();
+    await expect(page.locator("text=Monthly").first()).toBeVisible();
+
+    // Both percentages
+    await expect(page.locator("text=30%").first()).toBeVisible();
+    await expect(page.locator("text=85%").first()).toBeVisible();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §5 i18n Verification (P2)
+// ---------------------------------------------------------------------------
+
 test.describe("i18n Verification", () => {
   test("I18N-01: default Chinese locale renders all tabs without missing keys", async ({
     page,

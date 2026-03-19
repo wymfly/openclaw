@@ -548,3 +548,124 @@ describe("fetchUsageSummary", () => {
     expect(useModelsStore.getState().usageCost).toEqual(original);
   });
 });
+
+// ---------------------------------------------------------------------------
+// §7 Boundary Conditions (P3)
+// ---------------------------------------------------------------------------
+
+describe("boundary conditions", () => {
+  it("BC-01: fetchModels propagates network error but resets loading", async () => {
+    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+
+    // fetchModels lets the error propagate but still resets loading via finally
+    await expect(useModelsStore.getState().fetchModels()).rejects.toThrow("Network error");
+
+    const state = useModelsStore.getState();
+    expect(state.models).toEqual([]);
+    expect(state.loading).toBe(false);
+  });
+
+  it("BC-05: fetchFallbacks handles malformed JSON in raw", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw: "NOT-VALID-JSON{{{", hash: "bad" }),
+    });
+
+    // Should not throw
+    await useModelsStore.getState().fetchFallbacks();
+
+    const state = useModelsStore.getState();
+    expect(state.primaryModel).toBeNull();
+    expect(state.fallbacks).toEqual([]);
+  });
+
+  it("BC-05b: fetchFallbacks handles raw that is not a string", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw: 12345, hash: "num" }),
+    });
+
+    await useModelsStore.getState().fetchFallbacks();
+
+    const state = useModelsStore.getState();
+    expect(state.primaryModel).toBeNull();
+    expect(state.configRaw).toBeNull();
+  });
+
+  it("BC-05c: fetchFallbacks handles deeply nested null values", async () => {
+    const raw = JSON.stringify({ agents: null });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "null-agents" }),
+    });
+
+    await useModelsStore.getState().fetchFallbacks();
+
+    const state = useModelsStore.getState();
+    expect(state.primaryModel).toBeNull();
+    expect(state.fallbacks).toEqual([]);
+  });
+
+  it("BC-06: updateFallbacks returns false when configRaw is null", async () => {
+    useModelsStore.setState({ configRaw: null, configHash: null });
+
+    const result = await useModelsStore.getState().updateFallbacks("a/b", []);
+
+    expect(result).toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("BC-07: fetchUsageSummary handles array response directly", async () => {
+    // Some APIs return arrays directly instead of { costs: [...] }
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ date: "2026-03-19", cost: 5.0 }],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            provider: "moonshot",
+            displayName: "Moonshot",
+            windows: [
+              { label: "Daily", usedPercent: 30, resetsInMs: 10000 },
+              { label: "Monthly", usedPercent: 10, resetsInMs: 500000 },
+            ],
+            plan: "Pro",
+          },
+        ],
+      });
+
+    await useModelsStore.getState().fetchUsageSummary();
+
+    const state = useModelsStore.getState();
+    expect(state.usageCost).toHaveLength(1);
+    // Provider with multiple windows
+    expect(state.usageProviders).toHaveLength(1);
+    expect(state.usageProviders[0].windows).toHaveLength(2);
+  });
+
+  it("fetchModels handles plain array response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockModels,
+    });
+
+    await useModelsStore.getState().fetchModels();
+
+    expect(useModelsStore.getState().models).toHaveLength(3);
+  });
+
+  it("fetchAuthOverview handles plain array response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockAuthOverview,
+    });
+
+    await useModelsStore.getState().fetchAuthOverview();
+
+    expect(useModelsStore.getState().authOverview).toHaveLength(3);
+  });
+});
