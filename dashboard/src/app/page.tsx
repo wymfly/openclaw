@@ -68,6 +68,11 @@ const LazyAlertsPanel = lazy(() =>
 const LazyRoutingPanel = lazy(() =>
   import("@/components/panels/routing/RoutingPanel").then((m) => ({ default: m.RoutingPanel })),
 );
+const LazySubagentsPanel = lazy(() =>
+  import("@/components/panels/subagents/SubagentsPanel").then((m) => ({
+    default: m.SubagentsPanel,
+  })),
+);
 const LazyDocHubPanel = lazy(() =>
   import("@/components/panels/docs/DocHubPanel").then((m) => ({ default: m.DocHubPanel })),
 );
@@ -147,6 +152,8 @@ function ActivePanel({ panel }: { panel: Panel }) {
     LazyComponent = LazyAlertsPanel;
   } else if (panel === "routing") {
     LazyComponent = LazyRoutingPanel;
+  } else if (panel === "subagents") {
+    LazyComponent = LazySubagentsPanel;
   } else if (panel === "docs") {
     LazyComponent = LazyDocHubPanel;
   } else if (panel === "settings") {
