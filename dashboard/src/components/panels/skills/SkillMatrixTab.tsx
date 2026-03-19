@@ -27,6 +27,7 @@ export function SkillMatrixTab() {
   const [agentSkillsMap, setAgentSkillsMap] = useState<Map<string, AgentSkills>>(new Map());
   const [loading, setLoading] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   // Load agents and skills
   useEffect(() => {
@@ -70,11 +71,20 @@ export function SkillMatrixTab() {
 
     const cellKey = `${agent.id}:${skillKey}`;
     setToggling(cellKey);
+    setToggleError(null);
 
     const inSkills = config.skills.includes(skillKey);
     const newSkills = inSkills
       ? config.skills.filter((s) => s !== skillKey)
       : [...config.skills, skillKey];
+
+    // Optimistic update
+    const prevConfig = config;
+    setAgentSkillsMap((prev) => {
+      const next = new Map(prev);
+      next.set(agent.id, { ...config, skills: newSkills });
+      return next;
+    });
 
     try {
       const res = await fetch("/api/deck/agents", {
@@ -88,24 +98,39 @@ export function SkillMatrixTab() {
           baseHash: config.configHash ?? "",
         }),
       });
-      if (res.ok) {
-        // Re-fetch to get updated configHash
-        const refreshRes = await fetch("/api/deck/agents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "skills.get", agentId: agent.id }),
+      if (!res.ok) {
+        // Revert optimistic update on failure
+        setAgentSkillsMap((prev) => {
+          const next = new Map(prev);
+          next.set(agent.id, prevConfig);
+          return next;
         });
-        if (refreshRes.ok) {
-          const refreshed = (await refreshRes.json()) as AgentSkills;
-          setAgentSkillsMap((prev) => {
-            const next = new Map(prev);
-            next.set(agent.id, refreshed);
-            return next;
-          });
-        }
+        const data = await res.json().catch(() => ({ error: "Toggle failed" }));
+        setToggleError((data as { error?: string }).error ?? "Toggle failed");
+        return;
+      }
+      // Re-fetch to get updated configHash
+      const refreshRes = await fetch("/api/deck/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "skills.get", agentId: agent.id }),
+      });
+      if (refreshRes.ok) {
+        const refreshed = (await refreshRes.json()) as AgentSkills;
+        setAgentSkillsMap((prev) => {
+          const next = new Map(prev);
+          next.set(agent.id, refreshed);
+          return next;
+        });
       }
     } catch {
-      // ignore
+      // Revert optimistic update on network error
+      setAgentSkillsMap((prev) => {
+        const next = new Map(prev);
+        next.set(agent.id, prevConfig);
+        return next;
+      });
+      setToggleError("Network error — skill toggle failed");
     } finally {
       setToggling(null);
     }
@@ -131,6 +156,18 @@ export function SkillMatrixTab() {
   return (
     <ScrollArea className="h-full">
       <div className="p-4">
+        {toggleError && (
+          <div className="mb-3 px-3 py-2 rounded-md text-xs bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-between">
+            <span>{toggleError}</span>
+            <button
+              type="button"
+              onClick={() => setToggleError(null)}
+              className="ml-2 text-red-400 hover:text-red-300 cursor-pointer"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
         <TooltipProvider>
           <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
             <table className="w-full text-xs">

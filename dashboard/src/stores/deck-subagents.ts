@@ -53,9 +53,10 @@ interface DeckSubagentsState {
   // Polling
   polling: boolean;
   _pollTimer: ReturnType<typeof setInterval> | null;
+  _visibilityHandler: (() => void) | null;
 
   fetchRuns: (status?: string, requesterAgentId?: string) => Promise<void>;
-  fetchLineage: (runId: string) => Promise<void>;
+  fetchLineage: (params: { runId?: string; sessionKey?: string }) => Promise<void>;
   killRun: (runId: string) => Promise<boolean>;
   startPolling: () => void;
   stopPolling: () => void;
@@ -69,6 +70,7 @@ export const useDeckSubagentsStore = create<DeckSubagentsState>((set, get) => ({
   error: null,
   polling: false,
   _pollTimer: null,
+  _visibilityHandler: null,
 
   fetchRuns: async (status?: string, requesterAgentId?: string) => {
     set({ loading: true, error: null });
@@ -99,12 +101,12 @@ export const useDeckSubagentsStore = create<DeckSubagentsState>((set, get) => ({
     }
   },
 
-  fetchLineage: async (runId: string) => {
+  fetchLineage: async (params: { runId?: string; sessionKey?: string }) => {
     try {
       const res = await fetch("/api/deck/subagents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "lineage", runId }),
+        body: JSON.stringify({ action: "lineage", ...params }),
       });
       if (!res.ok) {
         return;
@@ -142,7 +144,6 @@ export const useDeckSubagentsStore = create<DeckSubagentsState>((set, get) => ({
     const poll = () => void get().fetchRuns();
     poll();
     const timer = setInterval(poll, POLL_INTERVAL_MS);
-    set({ polling: true, _pollTimer: timer });
 
     // Visibility-gated: pause when tab hidden, resume when visible
     const handleVisibility = () => {
@@ -163,21 +164,19 @@ export const useDeckSubagentsStore = create<DeckSubagentsState>((set, get) => ({
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // Store cleanup reference on the timer for stopPolling
-    (timer as unknown as Record<string, unknown>).__cleanup = () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
+    set({ polling: true, _pollTimer: timer, _visibilityHandler: handleVisibility });
   },
 
   stopPolling: () => {
     const timer = get()._pollTimer;
     if (timer) {
       clearInterval(timer);
-      const cleanup = (timer as unknown as Record<string, () => void>).__cleanup;
-      if (typeof cleanup === "function") {
-        cleanup();
-      }
     }
-    set({ polling: false, _pollTimer: null });
+    // Always remove visibility listener to prevent leaks
+    const handler = get()._visibilityHandler;
+    if (handler) {
+      document.removeEventListener("visibilitychange", handler);
+    }
+    set({ polling: false, _pollTimer: null, _visibilityHandler: null });
   },
 }));

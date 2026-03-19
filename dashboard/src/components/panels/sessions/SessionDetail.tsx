@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { LineageTree } from "@/components/shared/LineageTree";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { navigateToSubagents } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { useSessionsStore, type HistoryMessage, type SessionEntry } from "@/stores/sessions";
-import { useUIStore } from "@/stores/ui";
 
 function pressureBarClass(pct: number): string {
   if (pct >= 80) {
@@ -101,7 +101,6 @@ export function SessionDetail() {
   const tc = useTranslations("common");
   const { sessions, selectedKey, history, deleteSession } = useSessionsStore();
   const { lineage, fetchLineage } = useDeckSubagentsStore();
-  const setActivePanel = useUIStore((s) => s.setActivePanel);
   const [confirming, setConfirming] = useState(false);
 
   const session = sessions.find((s) => s.key === selectedKey);
@@ -110,7 +109,7 @@ export function SessionDetail() {
   // Fetch lineage for subagent sessions
   useEffect(() => {
     if (isSubagent && selectedKey) {
-      void fetchLineage(selectedKey);
+      void fetchLineage({ sessionKey: selectedKey });
     }
   }, [isSubagent, selectedKey, fetchLineage]);
 
@@ -183,7 +182,7 @@ export function SessionDetail() {
               </div>
               <button
                 type="button"
-                onClick={() => setActivePanel("subagents")}
+                onClick={navigateToSubagents}
                 className={cn(
                   "inline-flex items-center gap-1 text-[10px] font-medium cursor-pointer",
                   "text-[var(--accent)] hover:text-[var(--accent)]/80",

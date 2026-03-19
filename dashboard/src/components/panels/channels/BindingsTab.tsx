@@ -7,6 +7,13 @@ import { AgentBadge } from "@/components/shared/AgentBadge";
 import { BindingDialog } from "@/components/shared/BindingDialog";
 import { TierBadge } from "@/components/shared/TierBadge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -49,30 +56,27 @@ export function BindingsTab() {
   const selectedChannelInfo = selectedChannel ? channelMap.get(selectedChannel) : undefined;
   const accounts = selectedChannelInfo?.accounts ?? [];
 
-  // Filter bindings by selected channel + account
+  // Filter bindings by selected channel + account (skip "__all__" sentinel)
   const filteredBindings = bindings.filter((b) => {
-    if (selectedChannel && b.match.channel !== selectedChannel) {
+    if (selectedChannel && selectedChannel !== "__all__" && b.match.channel !== selectedChannel) {
       return false;
     }
-    if (selectedAccount && b.match.accountId !== selectedAccount) {
+    if (selectedAccount && selectedAccount !== "__all__" && b.match.accountId !== selectedAccount) {
       return false;
     }
     return true;
   });
 
-  const handleRemove = useCallback(
-    async (bindingId: string) => {
-      if (confirmingId !== bindingId) {
-        setConfirmingId(bindingId);
-        return;
-      }
-      setRemoving(bindingId);
-      setConfirmingId(null);
-      await removeBinding(bindingId, configHash ?? "");
-      setRemoving(null);
-    },
-    [confirmingId, configHash, removeBinding],
-  );
+  const handleRemoveConfirm = useCallback(async () => {
+    if (!confirmingId) {
+      return;
+    }
+    setRemoving(confirmingId);
+    const id = confirmingId;
+    setConfirmingId(null);
+    await removeBinding(id, configHash ?? "");
+    setRemoving(null);
+  }, [confirmingId, configHash, removeBinding]);
 
   const handleAddSave = useCallback(async (match: BindingMatch, agentId: string) => {
     const { addBinding, fetchBindings: reload } = useDeckRoutingStore.getState();
@@ -204,9 +208,7 @@ export function BindingsTab() {
                       binding={binding}
                       isEven={idx % 2 === 1}
                       removing={removing === binding.id}
-                      confirming={confirmingId === binding.id}
-                      onRemove={() => void handleRemove(binding.id)}
-                      onBlurConfirm={() => setConfirmingId(null)}
+                      onRemove={() => setConfirmingId(binding.id)}
                     />
                   ))}
                 </tbody>
@@ -240,6 +242,32 @@ export function BindingsTab() {
         )}
       </ScrollArea>
 
+      {/* Unbind confirmation dialog */}
+      <Dialog open={!!confirmingId} onOpenChange={(o) => !o && setConfirmingId(null)}>
+        <DialogContent className="bg-[var(--bg-secondary)] border-[var(--border)] sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-[var(--text-primary)]">确认解绑?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[var(--text-secondary)]">此操作将移除该路由绑定，确认继续？</p>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmingId(null)}
+              className="cursor-pointer"
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleRemoveConfirm()}
+              className="cursor-pointer"
+            >
+              确认解绑
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Binding dialog */}
       <BindingDialog
         open={dialogOpen}
@@ -259,16 +287,12 @@ function BindingRow({
   binding,
   isEven,
   removing,
-  confirming,
   onRemove,
-  onBlurConfirm,
 }: {
   binding: Binding;
   isEven: boolean;
   removing: boolean;
-  confirming: boolean;
   onRemove: () => void;
-  onBlurConfirm: () => void;
 }) {
   const peerLabel = binding.match.peer
     ? `${binding.match.peer.kind}:${binding.match.peer.id}`
@@ -307,15 +331,11 @@ function BindingRow({
           <Loader2 size={14} className="animate-spin ml-auto text-[var(--text-secondary)]" />
         ) : (
           <Button
-            variant={confirming ? "destructive" : "ghost"}
+            variant="ghost"
             size="icon-sm"
             onClick={onRemove}
-            onBlur={onBlurConfirm}
-            className={cn(
-              "cursor-pointer ml-auto",
-              !confirming && "text-[var(--text-secondary)] hover:text-[var(--danger)]",
-            )}
-            title={confirming ? "Click again to confirm" : "Unbind"}
+            className="cursor-pointer ml-auto text-[var(--text-secondary)] hover:text-[var(--danger)]"
+            title="Unbind"
           >
             <Trash2 size={13} />
           </Button>
