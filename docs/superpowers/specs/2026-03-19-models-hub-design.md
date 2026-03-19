@@ -123,9 +123,38 @@ Models 面板
 - 上下文窗口、最大输出 tokens
 - 快捷操作：[设为默认] / [加入回退链]
 
+### 模型数据与定价
+
+现有 `models.list` RPC 返回的 `ModelCatalogEntry` 包含 `id, name, provider, contextWindow, reasoning, input[]`。定价数据（`cost.input/output/cacheRead/cacheWrite`）存在于网关内部的 model definition（`ModelDefinitionConfig.cost`）中，但当前 `models.list` 未返回。
+
+**需要扩展 `models.list` 的返回字段**（在 `src/gateway/server-methods/models.ts` 中）：
+
+```typescript
+// 扩展 ModelCatalogEntry
+{
+  id: string;
+  name: string;
+  provider: string;
+  contextWindow: number;
+  maxTokens?: number;
+  reasoning: boolean;
+  input: ("text" | "image")[];       // vision = input.includes("image")
+  cost: {
+    input: number;                    // $/1M tokens
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
+}
+```
+
+Dashboard 的 `Model` 接口同步扩展，增加 `reasoning`, `input`, `cacheReadPrice`, `cacheWritePrice` 字段。
+
+**定价单位**：API 返回美元，UI 显示时根据 locale 转换（$X.XX 或 ¥X.XX），汇率由前端配置常量控制。
+
 ### 数据源
 
-- `models.list`（已有）
+- `models.list`（已有，需扩展返回字段）
 - `deck.auth.overview`（新增，面板加载时自动调用一次）
 - `config.patch`（已有，用于设默认/加回退链）
 
@@ -250,13 +279,33 @@ OAuth 类型额外显示：
 
 空状态："未配置图像模型。" + [+ 选择图像模型]
 
-### 数据源
+### 数据源与读写流程
 
-- 回退链读取：`config.get` → `agents.defaults.model.primary` / `fallbacks`
-- 图像回退链：`config.get` → `agents.defaults.imageModel.primary` / `fallbacks`
-- 模型信息：`models.list`（共享 store）
+**读取**：
+
+1. `config.get` → 返回 `{ raw: string, hash: string }`
+2. 解析 `raw` 中的 `agents.defaults.model` 字段
+3. 通过 `resolveAgentModelPrimaryValue()` 提取 primary
+4. 通过 `resolveAgentModelFallbackValues()` 提取 fallbacks 数组
+5. 图像模型同理，字段为 `agents.defaults.imageModel`
+
+**写入**（拖拽排序/增删后）：
+
+1. 基于最近一次 `config.get` 的 `raw` + `hash`
+2. 修改 `agents.defaults.model.primary` 和 `agents.defaults.model.fallbacks`
+3. 调用 `config.patch({ raw: modifiedRaw, baseHash: hash })`
+4. 如果 `baseHash` 不匹配（并发编辑）→ toast 错误 "配置已被其他操作修改，正在刷新" → 自动 refetch
+
+**自动保存策略**：
+
+- 500ms trailing debounce：快速连续拖拽只触发一次保存
+- 保存期间禁止新的拖拽操作（UI 显示 saving 状态）
+- 保存失败 → toast 错误 + UI 回滚到最后已知状态 + 自动 refetch config
+
+**其他数据源**：
+
+- 模型信息（价格、上下文等）：`models.list`（共享 store）
 - 认证状态：`deck.auth.overview`（共享）
-- 写入：`config.patch`
 
 ## 7. Tab 4: Usage（用量摘要）
 
@@ -357,7 +406,27 @@ Recharts 柱状图：
 }
 ```
 
-**实现**：复用 `src/agents/auth-profiles.ts` 和 `src/commands/models/list.status-command.ts` 中的逻辑，提取为共享函数。
+**实现**：提取共享逻辑到 `src/agents/auth-diagnostics.ts`，合并以下三个数据源：
+
+| 字段                         | 数据来源            | 现有函数                                                                       |
+| ---------------------------- | ------------------- | ------------------------------------------------------------------------------ |
+| `auth.type/source/profileId` | Auth profile store  | `resolveProviderAuthOverview()` in `src/commands/models/list.auth-overview.ts` |
+| `oauth.expiresAt/status`     | Auth health         | `buildAuthHealthSummary()` in `src/agents/auth-health.ts`                      |
+| `cooldown.*`                 | Profile usage stats | `resolveProfileUnusableUntilForDisplay()` in `src/agents/auth-profiles.ts`     |
+| `usage.*`                    | Provider usage      | `loadProviderUsageSummary()` in `src/infra/provider-usage.ts`                  |
+
+**状态点映射规则**（从现有 `AuthProviderHealthStatus` 到 UI `status`）：
+
+| 现有状态       | UI status | 条件                       |
+| -------------- | --------- | -------------------------- |
+| `ok`           | `ready`   | 认证有效                   |
+| `static`       | `ready`   | API Key 类型，无过期概念   |
+| `expiring`     | `warning` | OAuth <24h 过期            |
+| `expired`      | `missing` | OAuth 已过期，等同于无认证 |
+| `missing`      | `missing` | 无认证凭证                 |
+| （无 profile） | `unknown` | 非隐式 provider，未检测到  |
+
+当 provider 同时有过期 OAuth 和有效 API Key fallback 时：以最佳可用凭证的状态为准（`ready`）。
 
 ### `deck.auth.probe`
 
@@ -388,6 +457,13 @@ Recharts 柱状图：
 ```
 
 **实现**：复用 `src/commands/models/list.probe.ts` 中的 `runAuthProbes` 逻辑。
+
+**注意事项**：
+
+- 探针会通过 `runEmbeddedPiAgent` 发送一个 `maxTokens=8` 的真实请求，消耗少量 token
+- 每次探针创建临时 session 文件，handler 负责清理
+- UI 上探针按钮旁显示提示文字 "将发送测试请求，消耗少量 token"
+- 同一 provider 的并发探针请求由 handler 端去重（同时只允许一个）
 
 ### 文件位置
 
@@ -429,11 +505,15 @@ dashboard/src/components/panels/models/
 ├── shared/
 │   ├── AuthStatusDot.tsx         ← 认证状态点组件（🟢🟡🔴⚫）
 │   └── ModelBadges.tsx           ← 能力标签（推理、视觉等）
-├── ModelCatalog.tsx              ← 移除（拆分到 catalog/）
-└── ProviderConfig.tsx            ← 移除（拆分到 config/）
-
-dashboard/src/stores/models.ts    ← 扩展（增加 auth/fallback/usage 状态）
+├── ModelCatalog.tsx              ← 废弃，由 catalog/ 下的组件替代，实施时删除
+└── ProviderConfig.tsx            ← 废弃，由 config/ 下的组件替代，实施时删除
 ```
+
+迁移策略：先创建新组件并在 `ModelsPanel.tsx` 中切换 import，确认新组件工作后再删除旧文件。不做渐进式迁移——旧组件代码量小，直接替换。
+
+dashboard/src/stores/models.ts ← 扩展（增加 auth/fallback/usage 状态）
+
+````
 
 ## 10. Store 扩展
 
@@ -449,7 +529,7 @@ interface ModelsState {
   // 新增 — Auth
   authOverview: AuthProviderStatus[];
   authLoading: boolean;
-  probeResults: Map<string, ProbeResult>;
+  probeResults: Record<string, ProbeResult>;  // Record 而非 Map，确保 Zustand 响应式更新
 
   // 新增 — Fallbacks
   primaryModel: string | null; // "moonshot/kimi-k2.5"
@@ -468,7 +548,7 @@ interface ModelsState {
   updateImageFallbacks: (primary: string, fallbacks: string[]) => Promise<void>;
   fetchUsageSummary: () => Promise<void>;
 }
-```
+````
 
 ## 11. 依赖新增
 
@@ -507,3 +587,16 @@ interface ModelsState {
 - 自动保存操作（Fallbacks 拖拽/增删）不弹确认 dialog，用 toast 反馈
 - L3 探针按钮有 loading 状态防止重复点击
 - 所有新 RPC 通过 `gatewayRequest()` 代理层调用，不直接访问网关
+
+## 14. Loading / Error 状态
+
+每个 Tab 的加载和错误处理：
+
+| Tab       | 加载态                                | 错误态                        | 空态                         |
+| --------- | ------------------------------------- | ----------------------------- | ---------------------------- |
+| Catalog   | 左栏 skeleton 列表（5 行）            | "模型目录加载失败" + 重试按钮 | "未发现可用模型"             |
+| Config    | 右栏 skeleton 卡片                    | "认证信息加载失败" + 重试按钮 | 左栏显示"未检测到 Provider"  |
+| Fallbacks | 卡片 skeleton（2 张）                 | "配置加载失败" + 重试按钮     | "未配置回退链..." + 添加按钮 |
+| Usage     | 卡片 skeleton（3 张） + 图表 skeleton | "用量数据加载失败" + 重试按钮 | "暂无用量数据"               |
+
+探针按钮独立 loading 状态（spinner 替换按钮文字），失败时内联显示错误信息。
