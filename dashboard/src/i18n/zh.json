@@ -167,10 +167,20 @@
       "contextWindow": "上下文",
       "inputPrice": "输入",
       "outputPrice": "输出",
+      "cacheRead": "缓存读取",
+      "cacheWrite": "缓存写入",
+      "maxOutput": "最大输出",
       "noModels": "未发现模型",
+      "selectModel": "选择供应商或模型以查看详情",
       "text": "文本",
       "reasoning": "推理",
-      "vision": "视觉"
+      "vision": "视觉",
+      "free": "免费",
+      "providerModels": "{provider} 模型",
+      "authSummary": "API Key 来源: {source}",
+      "authNone": "未配置认证",
+      "modelName": "名称",
+      "models": "个模型"
     }
   },
   "notifications": {
