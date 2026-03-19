@@ -46,10 +46,12 @@ export const useGatewayStore = create<GatewayState>((set) => ({
       const res = await fetch("/api/gateway/health");
       if (res.ok) {
         const data = (await res.json()) as HealthSummary;
-        set({ healthSummary: data });
+        set({ healthSummary: data, status: "connected" });
+      } else {
+        set({ status: "disconnected" });
       }
     } catch {
-      // Health fetch failed — keep previous data.
+      set({ status: "disconnected" });
     } finally {
       set({ healthLoading: false });
     }

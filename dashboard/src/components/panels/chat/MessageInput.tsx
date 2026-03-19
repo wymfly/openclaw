@@ -50,7 +50,7 @@ export function MessageInput() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sessionKey: activeSessionId ?? undefined,
+        sessionKey: activeSessionId ?? "agent:main:main",
         agentId: activeAgentId ?? undefined,
       }),
     });

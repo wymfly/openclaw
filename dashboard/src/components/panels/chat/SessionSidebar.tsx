@@ -26,7 +26,7 @@ function formatTime(ts?: number): string {
   });
 }
 
-export function SessionSidebar() {
+export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => void } = {}) {
   const t = useTranslations("chat");
   const {
     sessions,
@@ -40,6 +40,7 @@ export function SessionSidebar() {
   const handleNew = () => {
     setActiveSession(null);
     clearMessages();
+    onSessionSelect?.();
   };
 
   const handleSelect = (session: SessionInfo) => {
@@ -47,6 +48,7 @@ export function SessionSidebar() {
     if (session.agentId) {
       setActiveAgent(session.agentId);
     }
+    onSessionSelect?.();
   };
 
   const handleDelete = async (sessionKey: string, e: React.MouseEvent) => {
@@ -63,7 +65,7 @@ export function SessionSidebar() {
   };
 
   return (
-    <aside className="flex flex-col w-56 shrink-0 border-r border-[var(--border)] h-full bg-[var(--bg-secondary)]">
+    <aside className="flex flex-col w-full sm:w-56 shrink-0 border-r border-[var(--border)] h-full bg-[var(--bg-secondary)]">
       {/* Agent selector */}
       <div className="p-2.5 border-b border-[var(--border-subtle)]">
         <Select
