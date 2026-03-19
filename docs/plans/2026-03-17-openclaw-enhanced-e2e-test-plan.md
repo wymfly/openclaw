@@ -2,9 +2,11 @@
 
 > **目标：** 通过浏览器操作 + CLI 验证，全面确认 enhanced 分支的所有功能可用，发现并修复缺陷。
 
-**测试基线：** enhanced 分支 commit `0661bde6a`，593 unit tests + 35 E2E tests passing。
+**测试基线：** enhanced 分支 commit `b66a5329a`（UI 重构完成后），593 unit tests + 35 E2E tests passing。
 
-**测试环境：** macOS, Node 22+, Chrome (Playwright), 本地 Gateway + Dashboard。
+**测试环境：** macOS, Node 22+, Chrome (Playwright), 本地 Gateway + Dashboard (port 3099)。
+
+**设计系统：** Mission Control — Deep Space 色板，Outfit + Geist Mono 字体，shadcn/ui 组件库，accent bar 辉光签名效果。所有面板已完成设计重构，深浅两种主题均需验证。
 
 ---
 
@@ -30,6 +32,14 @@ cd dashboard && npx tsc --noEmit
 ```
 
 - [ ] 0 errors
+
+### T0.1b: PostCSS 配置检查
+
+```bash
+ls dashboard/postcss.config.mjs
+```
+
+- [ ] 文件存在（Tailwind CSS v4 必需 `@tailwindcss/postcss` 插件）
 
 ### T0.2: Dashboard 单元测试
 
@@ -100,13 +110,24 @@ cd dashboard && pnpm dev
 
 验证项：
 
-- [ ] 控制台输出 "Next.js 16.x" + "Local: http://localhost:3000"
-- [ ] `curl -s http://localhost:3000 | head -5` 返回 HTML
+- [ ] 控制台输出 "Next.js 16.x" + "Local: http://localhost:3099"
+- [ ] `curl -s http://localhost:3099 | head -5` 返回 HTML
+
+### T1.2b: 字体加载验证
+
+操作：DevTools → Network tab → 筛选 "woff2"
+
+验证项：
+
+- [ ] Outfit 字体文件加载（next/font/google 自动下载）
+- [ ] Geist Mono 字体文件加载
+- [ ] 页面正文使用 Outfit 字体（非 system-ui fallback）
+- [ ] 代码/数据区域使用 Geist Mono 字体
 
 ### T1.3: 服务间连通性
 
 ```bash
-curl -s http://localhost:3000/api/onboarding/status | jq .
+curl -s http://localhost:3099/api/onboarding/status | jq .
 ```
 
 - [ ] 返回 `{ "needsOnboarding": true }` （首次启动）或 `{ "needsOnboarding": false }`
@@ -128,7 +149,7 @@ rm -f ~/.openclaw/deck.db   # 清除旧数据，强制触发 onboarding
 
 ### T2.1: Onboarding 向导加载
 
-操作：打开 `http://localhost:3000`
+操作：打开 `http://localhost:3099`
 
 验证项：
 
@@ -192,7 +213,11 @@ rm -f ~/.openclaw/deck.db   # 清除旧数据，强制触发 onboarding
 
 - [ ] 看到 Dashboard Shell（NavRail + HeaderBar + 主内容区）
 - [ ] 默认面板为 Chat
-- [ ] NavRail 显示 4 个分组（Core / Observe / Automate / Control）
+- [ ] NavRail 顶部显示品牌区（Hexagon icon + "OpenClaw" + "deck v0.1"）
+- [ ] NavRail 显示 4 个**可折叠分组**（核心/观测/自动化/控制），每组有 ChevronRight + 数量标签
+- [ ] 当前活跃面板(Chat)所在组(核心)自动展开，其余组折叠
+- [ ] 点击折叠组标题 → 展开显示子菜单项
+- [ ] NavRail 底部有 Settings + Collapse 按钮
 - [ ] 刷新页面 → 不再显示 Onboarding（配置已持久化到 deck.db）
 
 **Phase 2 退出标准：** 3 步向导全部完成，进入 Dashboard。
@@ -209,14 +234,17 @@ rm -f ~/.openclaw/deck.db   # 清除旧数据，强制触发 onboarding
 
 操作 + 验证：
 
-- [ ] 消息输入框可见，placeholder 显示提示文字
+- [ ] 消息输入框可见（rounded-xl, focus 时有 accent glow ring），placeholder 显示提示文字
+- [ ] 发送按钮：未输入时灰色 disabled，输入后变 accent 色 + glow shadow
 - [ ] 输入 "请用 3 句话介绍自己" → 点击发送（或 Ctrl+Enter）
-- [ ] 消息列表显示用户消息 + AI 流式回复
-- [ ] 回复中 Markdown 正确渲染（加粗、列表等）
+- [ ] 消息列表显示：用户消息右对齐 accent bg（rounded-br-md），AI 消息左对齐 card bg（rounded-bl-md）
+- [ ] 头像：用户 = 圆形 accent-muted bg + User icon，AI = 圆形 tertiary bg + Bot icon
+- [ ] 回复中 Markdown 正确渲染（加粗、列表、代码块用 font-mono）
+- [ ] 流式回复中显示 cursor 闪烁 + "thinking" 指示（3 dots bounce）
 - [ ] 流式回复中点击 "Abort" → 回复中止
-- [ ] Session Sidebar 可见，显示当前 session
-- [ ] Agent Selector 下拉框可用
-- [ ] 文件附件拖拽区域存在
+- [ ] Session Sidebar 可见，active session 有 accent 左 bar + glow
+- [ ] Agent Selector（shadcn Select）下拉框可用
+- [ ] 附件按钮（Paperclip icon）可点击，file badges 显示已选文件
 
 ### T3.2: Agents 面板
 
@@ -237,10 +265,11 @@ rm -f ~/.openclaw/deck.db   # 清除旧数据，强制触发 onboarding
 
 验证项：
 
-- [ ] Connection Card 显示 "Connected" + 绿色指示灯
-- [ ] Health Card 显示健康状态
-- [ ] Heartbeat Card 显示心跳监控
-- [ ] Gateway 状态显示（active/paused）
+- [ ] 3 卡片横排布局：连接状态 / 健康状态 / 心跳监控
+- [ ] Connection Card：状态 dot（connected=绿+pulse / disconnected=灰）+ 延迟 metric 行（font-mono）
+- [ ] Health Card：活跃会话 / 渠道状态 / Auth 指标行
+- [ ] Heartbeat Card：心跳时间 + 网关状态
+- [ ] 卡片有 `card-hover` 辉光效果（hover 时 accent 边框 + glow）
 
 ### T3.4: Models 面板
 
@@ -444,15 +473,16 @@ rm -f ~/.openclaw/deck.db   # 清除旧数据，强制触发 onboarding
 
 验证项：
 
-- [ ] 面板加载，显示 4 个 section
-- [ ] **Appearance:** Theme 3 按钮（System/Dark/Light）→ 切换即时生效
-- [ ] **Appearance:** Language 2 按钮（中文/English）→ 切换即时生效，全站文案变化
-- [ ] **Connection:** Gateway URL + Token 输入框，显示当前值
-- [ ] **Connection:** Test Connection 按钮 → 测试连接
-- [ ] **Connection:** Save 按钮 → 保存设置
-- [ ] **Notifications:** 3 个 checkbox（Approvals/Budget/Alerts）可切换
-- [ ] **About:** Version badges（Deck/Gateway/CLI 版本号）
-- [ ] **About:** Documentation + GitHub 外部链接
+- [ ] 面板加载，左侧 **vertical tab rail**（外观/连接/通知/关于）+ 右侧内容区
+- [ ] Tab rail active 状态：accent 左 bar + glow + tinted bg（与 NavRail 一致）
+- [ ] **外观:** Theme 选择器 = 3 个 **icon card**（跟随系统/深色/浅色），active card 有 accent ring
+- [ ] **外观:** Language 选择器 = **pill toggle**（ZH 中文 / EN English），切换即时生效
+- [ ] **连接:** Gateway URL + Token 输入框，显示当前值
+- [ ] **连接:** Test Connection 按钮 → 测试连接
+- [ ] **连接:** Save 按钮 → 保存设置
+- [ ] **通知:** 通知开关使用 shadcn Switch（带 icon + 描述文字的卡片式 toggle）
+- [ ] **关于:** Version badges（Deck/Gateway/CLI 版本号）
+- [ ] **关于:** Documentation + GitHub 外部链接
 
 **Phase 4 退出标准：** 10 个 Automate + Control 面板全部可操作，P3 修复项已验证。
 
@@ -468,13 +498,16 @@ rm -f ~/.openclaw/deck.db   # 清除旧数据，强制触发 onboarding
 
 验证项：
 
-- [ ] **Desktop (≥1024px):** NavRail 展开（图标+文字），正常 2 列布局
-- [ ] **Tablet (768-1023px):** NavRail 自动折叠为图标模式
+- [ ] **Desktop (≥1024px):** NavRail 展开（可折叠分组 + 图标+文字），正常 2 列布局
+- [ ] Desktop: 分组可点击折叠/展开，ChevronRight 旋转 90° 表示展开
+- [ ] **Tablet (768-1023px):** NavRail 自动折叠为图标模式（56px 宽）
+- [ ] Tablet: 图标 hover 显示 tooltip（组名/面板名）
+- [ ] Tablet: 组间用 Separator 分隔
 - [ ] **Mobile (<768px):** NavRail 隐藏，HeaderBar 出现汉堡菜单按钮
-- [ ] Mobile: 点击汉堡菜单 → NavRail overlay 打开
+- [ ] Mobile: 点击汉堡菜单 → Sheet overlay 打开（展开模式，有折叠组）
 - [ ] Mobile: 选择面板 → overlay 自动关闭
 - [ ] Mobile: 点击 overlay 外部（backdrop）→ overlay 关闭
-- [ ] 主内容区在 3 个断点下均正常显示，无溢出
+- [ ] 主内容区在 3 个断点下均正常显示，无溢出（Desktop p-5 / Mobile p-3）
 
 ### T5.2: Dark/Light 主题
 
@@ -482,12 +515,20 @@ rm -f ~/.openclaw/deck.db   # 清除旧数据，强制触发 onboarding
 
 验证项：
 
-- [ ] Dark 模式：深色背景，浅色文字，border 可见
-- [ ] Light 模式：浅色背景，深色文字，border 可见
+- [ ] Dark 模式：Deep Space 背景(#0a0f1c)，浅色文字(#e2e8f0)，border 可见(rgba 白)
+- [ ] Light 模式：浅色背景(#f8fafc)，深色文字(#0f172a)，border 可见(#e2e8f0)
 - [ ] System 模式：跟随系统偏好
-- [ ] 切换后所有 19 面板均正确渲染（无残留硬编码颜色）
+- [ ] 切换后所有 19 面板均正确渲染（无残留硬编码颜色，全部使用 CSS 变量）
+- [ ] **设计系统一致性检查（抽查 3 个面板）：**
+  - [ ] 容器：`rounded-xl` + `ring-1` 微边框
+  - [ ] Active 项：3px accent 左 bar + glow shadow
+  - [ ] Hover：bg-tertiary 渐变 + 150ms transition
+  - [ ] Focus：accent ring-2（键盘 Tab 可见）
+  - [ ] 数据：font-mono 显示
+  - [ ] Badge：药丸形 + 语义色（success/danger/warning）
 - [ ] hover/focus 状态在两个主题下均可见
 - [ ] Chart（Recharts）在两个主题下正确显示
+- [ ] Card hover 辉光效果在两个主题下均可见
 
 ### T5.3: 键盘快捷键
 
@@ -770,6 +811,10 @@ pnpm test -- src/daemon/ --reporter=verbose
 - [ ] 0 TypeScript errors
 - [ ] 0 lint errors
 - [ ] 19/19 面板可操作
+- [ ] 设计系统一致性：所有面板使用 CSS 变量、accent bar active、card-hover glow、font-mono 数据
+- [ ] 深浅两种主题在所有面板下均正常渲染
+- [ ] 字体加载正常：Outfit (display) + Geist Mono (data)
+- [ ] `grep -r 'style={{' dashboard/src/components/ --include='*.tsx' | grep -v 'ui/' | wc -l` ≤ 8（仅动态宽度/缩进）
 - [ ] 所有已知缺陷已修复或有明确延后理由
 - [ ] 缺陷清单中无阻碍性缺陷残留
 
