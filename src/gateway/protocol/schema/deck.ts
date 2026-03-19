@@ -129,6 +129,7 @@ export const DeckSubagentsListParamsSchema = Type.Object(
         Type.Literal("active"),
         Type.Literal("completed"),
         Type.Literal("failed"),
+        Type.Literal("timeout"),
         Type.Literal("all"),
       ]),
     ),

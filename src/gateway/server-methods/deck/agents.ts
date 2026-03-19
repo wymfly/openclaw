@@ -52,7 +52,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     const isDefault = agentId === defaultAgentId;
 
     // Binding count
-    const bindings = cfg.routing?.bindings ?? [];
+    const bindings = cfg.bindings ?? [];
     const bindingCount = bindings.filter((b) => b.agentId === agentId).length;
 
     // Session count + active subagent count — stubbed to 0 (no session store access in this handler)

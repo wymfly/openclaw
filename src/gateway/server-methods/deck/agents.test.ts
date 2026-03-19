@@ -43,13 +43,11 @@ const mockConfig = {
       },
     ],
   },
-  routing: {
-    bindings: [
-      { agentId: "main", match: { channel: "discord" } },
-      { agentId: "main", match: { channel: "telegram" } },
-      { agentId: "coder", match: { channel: "slack" } },
-    ],
-  },
+  bindings: [
+    { agentId: "main", match: { channel: "discord" } },
+    { agentId: "main", match: { channel: "telegram" } },
+    { agentId: "coder", match: { channel: "slack" } },
+  ],
 };
 
 // Track what was written for write-operation tests

@@ -207,7 +207,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
 
     const hashError = validateBaseHash(params.baseHash, currentHash);
     if (hashError) {
-      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, hashError.message));
+      respond(false, undefined, errorShape(hashError.code, hashError.message));
       return;
     }
 
@@ -253,7 +253,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
 
     const hashError = validateBaseHash(params.baseHash, currentHash);
     if (hashError) {
-      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, hashError.message));
+      respond(false, undefined, errorShape(hashError.code, hashError.message));
       return;
     }
 
@@ -266,7 +266,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
       respond(
         false,
         undefined,
-        errorShape(ErrorCodes.INVALID_REQUEST, `binding with id "${params.id}" not found`),
+        errorShape("NOT_FOUND", `binding with id "${params.id}" not found`),
       );
       return;
     }
