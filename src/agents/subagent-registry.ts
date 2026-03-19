@@ -942,6 +942,10 @@ export function getLatestSubagentRunByChildSessionKey(
   return latest;
 }
 
+export function getSubagentRunsForDeck(): Map<string, SubagentRunRecord> {
+  return subagentRegistryDeps.getSubagentRunsSnapshotForRead(subagentRuns);
+}
+
 export function initSubagentRegistry() {
   restoreSubagentRunsOnce();
 }
