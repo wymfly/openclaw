@@ -4,8 +4,10 @@ import type { Locale } from "@/i18n/config";
 export type Panel =
   | "chat"
   | "agents"
+  | "routing"
   | "gateway"
   | "models"
+  | "subagents"
   | "usage"
   | "sessions"
   | "memory"

@@ -21,6 +21,8 @@
     "alerts": "Alerts",
     "channels": "Channels",
     "config": "Config",
+    "routing": "Routing",
+    "subagents": "Subagents",
     "docs": "Docs",
     "settings": "Settings"
   },
@@ -188,6 +190,33 @@
       "modelName": "Name",
       "models": "models"
     }
+  },
+  "routing": {
+    "title": "Message Routing",
+    "bindings": "Routing Rules",
+    "simulator": "Route Simulator",
+    "addBinding": "Add Rule",
+    "tier": "Priority",
+    "defaultAgent": "Default Agent",
+    "dmScope": "DM Scope",
+    "simulate": "Simulate",
+    "matchedBy": "Matched By"
+  },
+  "subagents": {
+    "title": "Subagent Monitor",
+    "activeRuns": "Active Runs",
+    "history": "History",
+    "config": "Config",
+    "kill": "Terminate",
+    "lineage": "Call Lineage",
+    "ephemeralNote": "Showing recent runs only"
+  },
+  "agentDetail": {
+    "overview": "Overview",
+    "routing": "Routing",
+    "skills": "Skills",
+    "subagent": "Subagent",
+    "sessions": "Sessions"
   },
   "notifications": {
     "info": "Info",
