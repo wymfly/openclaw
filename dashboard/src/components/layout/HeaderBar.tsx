@@ -2,6 +2,7 @@
 
 import { Globe, Menu, Moon, Sun, Monitor } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ const themeNext = { dark: "light", light: "system", system: "dark" } as const;
 export function HeaderBar() {
   const tNav = useTranslations("nav");
   const tHeader = useTranslations("header");
+  const router = useRouter();
   const { status } = useGatewayStore();
   const { activePanel, theme, locale, setTheme, setLocale, setMobileNavOpen } = useUIStore();
 
@@ -111,7 +113,12 @@ export function HeaderBar() {
             render={
               <button
                 className="flex items-center gap-1 h-7 px-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+                onClick={() => {
+                  const next = locale === "zh" ? "en" : "zh";
+                  document.cookie = `NEXT_LOCALE=${next};path=/;max-age=31536000`;
+                  setLocale(next);
+                  router.refresh();
+                }}
               />
             }
           >
