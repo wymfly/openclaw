@@ -3,8 +3,8 @@ name: Release & Publish
 on:
   push:
     tags:
-      - 'v*'
-      - 'wecom-v*'
+      - "v*"
+      - "wecom-v*"
 
 jobs:
   publish:
@@ -23,8 +23,8 @@ jobs:
         with:
           # npm Trusted Publishing (OIDC) requires npm >=11.5.1.
           # Use Node 24 to get modern npm in hosted runners.
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Show runtime versions
         run: |
