@@ -4,11 +4,66 @@ import { PanelLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { useChatStore } from "@/stores/chat";
+import { useChatStore, type ChatMessage, type SessionInfo } from "@/stores/chat";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
 import { useChatSSE } from "./useChatSSE";
+
+// ---------------------------------------------------------------------------
+// Gateway → ChatMessage adapters
+// ---------------------------------------------------------------------------
+
+type GatewayContentBlock = {
+  type: string;
+  text?: string;
+  thinking?: string;
+  name?: string;
+  input?: Record<string, unknown>;
+};
+type GatewayMessage = { role: string; content: GatewayContentBlock[]; timestamp?: number };
+
+/** Convert a Gateway history message to the UI ChatMessage shape. */
+function toUiMessage(msg: GatewayMessage, index: number): ChatMessage {
+  const textParts: string[] = [];
+  let thinking: string | undefined;
+  for (const block of msg.content) {
+    if (block.type === "text" && block.text) {
+      textParts.push(block.text);
+    } else if (block.type === "thinking" && block.thinking) {
+      thinking = (thinking ?? "") + block.thinking;
+    }
+  }
+  return {
+    id: `hist-${index}`,
+    role: msg.role as ChatMessage["role"],
+    content: textParts.join("\n"),
+    timestamp: msg.timestamp ?? Date.now(),
+    thinking,
+  };
+}
+
+type GatewaySessionEntry = {
+  key: string;
+  sessionId?: string;
+  agentId?: string;
+  derivedTitle?: string;
+  lastMessage?: string;
+  updatedAt?: number;
+};
+
+function toUiSession(s: GatewaySessionEntry): SessionInfo {
+  return {
+    key: s.key,
+    sessionId: s.sessionId,
+    agentId: s.agentId,
+    title: s.derivedTitle,
+    lastMessage: s.lastMessage,
+    updatedAt: s.updatedAt,
+  };
+}
+
+// ---------------------------------------------------------------------------
 
 /**
  * Chat panel — entry point component.
@@ -34,9 +89,10 @@ export function ChatPanel() {
       : "/api/chat/sessions";
     void fetch(url)
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setSessions(data);
+      .then((data: { sessions?: GatewaySessionEntry[] } | GatewaySessionEntry[]) => {
+        const list = Array.isArray(data) ? data : data.sessions;
+        if (Array.isArray(list)) {
+          setSessions(list.map(toUiSession));
         }
       })
       .catch(() => {});
@@ -52,9 +108,10 @@ export function ChatPanel() {
     }
     void fetch(`/api/chat/history?${params}`)
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setMessages(data);
+      .then((data: { messages?: GatewayMessage[] } | GatewayMessage[]) => {
+        const list = Array.isArray(data) ? data : data.messages;
+        if (Array.isArray(list)) {
+          setMessages(list.map(toUiMessage));
         }
       })
       .catch(() => {});
