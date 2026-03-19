@@ -1,30 +1,17 @@
 "use client";
 
-import { Save, Bot } from "lucide-react";
+import { Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useAgentsStore } from "@/stores/agents";
-
-const MODELS = [
-  "claude-sonnet-4-20250514",
-  "claude-opus-4-20250514",
-  "gpt-4o",
-  "gpt-4o-mini",
-  "gemini-2.0-flash",
-  "gemini-2.5-pro-preview-06-05",
-];
-
-const SOUL_PATH = "SOUL.md";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useDeckAgentsStore } from "@/stores/deck-agents";
+import { OverviewTab } from "./tabs/OverviewTab";
+import { RoutingTab } from "./tabs/RoutingTab";
+import { SessionsTab } from "./tabs/SessionsTab";
+import { SkillsTab } from "./tabs/SkillsTab";
+import { SubagentTab } from "./tabs/SubagentTab";
 
 const STATUS_BADGE: Record<string, string> = {
   idle: "bg-[var(--success-muted)] text-[var(--success-muted-text)]",
@@ -33,175 +20,105 @@ const STATUS_BADGE: Record<string, string> = {
   offline: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
 };
 
+type TabValue = "overview" | "routing" | "skills" | "subagent" | "sessions";
+
 export function AgentDetail({ agentId }: { agentId: string }) {
-  const t = useTranslations("agents");
-  const tc = useTranslations("common");
-  const { agents, updateAgent } = useAgentsStore();
-
-  const agent = agents.find((a) => a.id === agentId);
-
-  const [model, setModel] = useState(agent?.model ?? "");
-  const [soul, setSoul] = useState("");
-  const [soulLoading, setSoulLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const t = useTranslations("agentDetail");
+  const ta = useTranslations("agents");
+  const { currentDetail, loading, fetchDetail } = useDeckAgentsStore();
+  const [activeTab, setActiveTab] = useState<TabValue>("overview");
 
   useEffect(() => {
-    if (agent) {
-      setModel(agent.model);
-    }
-  }, [agent]);
+    void fetchDetail(agentId);
+  }, [agentId, fetchDetail]);
 
+  // Reset to overview when switching agents
   useEffect(() => {
-    setSoulLoading(true);
-    setSoul("");
-    setSaved(false);
-    void fetch(`/api/agents/${encodeURIComponent(agentId)}/files/${SOUL_PATH}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          return;
-        }
-        const data = await res.json();
-        const content =
-          typeof data === "string" ? data : typeof data?.content === "string" ? data.content : "";
-        setSoul(content);
-      })
-      .catch(() => {})
-      .finally(() => setSoulLoading(false));
+    setActiveTab("overview");
   }, [agentId]);
 
-  const handleModelChange = useCallback(
-    async (newModel: string) => {
-      setModel(newModel);
-      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: newModel }),
-      });
-      if (res.ok) {
-        updateAgent(agentId, { model: newModel });
-      }
-    },
-    [agentId, updateAgent],
-  );
+  if (loading && !currentDetail) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <span className="text-xs text-[var(--text-secondary)]">Loading...</span>
+      </div>
+    );
+  }
 
-  const handleSaveSoul = useCallback(async () => {
-    setSaving(true);
-    setSaved(false);
-    try {
-      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/files`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: SOUL_PATH, content: soul }),
-      });
-      if (res.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    } finally {
-      setSaving(false);
-    }
-  }, [agentId, soul]);
+  const detail = currentDetail?.id === agentId ? currentDetail : null;
 
-  if (!agent) {
+  if (!detail) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--text-secondary)]">
         <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
           <Bot size={20} className="text-[var(--accent)]" />
         </div>
-        <p className="text-sm">{t("notFound")}</p>
+        <p className="text-sm">{ta("notFound")}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      {/* Header with agent identity */}
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border)]">
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border)] shrink-0">
         <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20">
-          <Bot size={16} className="text-[var(--accent)]" />
+          {detail.emoji ? (
+            <span className="text-base leading-none">{detail.emoji}</span>
+          ) : (
+            <Bot size={16} className="text-[var(--accent)]" />
+          )}
         </div>
         <div className="flex flex-col min-w-0">
           <h2 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
-            {agent.name}
+            {detail.name}
           </h2>
-          <span className="text-[10px] font-mono text-[var(--text-secondary)]">{agent.id}</span>
+          <span className="text-[10px] font-mono text-[var(--text-secondary)]">{detail.id}</span>
         </div>
-        <Badge
-          className={`ml-auto shrink-0 text-[10px] border-0 ${STATUS_BADGE[agent.status] ?? STATUS_BADGE.offline}`}
-        >
-          {t(agent.status ?? "idle")}
-        </Badge>
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {detail.isDefault && (
+            <Badge className="text-[10px] border-0 bg-[var(--accent-muted)] text-[var(--accent)]">
+              {t("defaultAgent")}
+            </Badge>
+          )}
+          <Badge className={`text-[10px] border-0 ${STATUS_BADGE.idle}`}>{ta("idle")}</Badge>
+        </div>
       </div>
 
-      {/* Content sections */}
-      <div className="flex-1 p-4 space-y-4">
-        {/* Model config card */}
-        <Card className="card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs">{t("model")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select
-              value={model}
-              onValueChange={(val) => {
-                if (val) {
-                  void handleModelChange(val);
-                }
-              }}
-            >
-              <SelectTrigger className="w-full max-w-sm" size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODELS.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    <span className="font-mono text-xs">{m}</span>
-                  </SelectItem>
-                ))}
-                {model && !MODELS.includes(model) && (
-                  <SelectItem value={model}>
-                    <span className="font-mono text-xs">{model}</span>
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+      {/* Tabs */}
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as TabValue)}
+        className="flex flex-col flex-1 min-h-0"
+      >
+        <div className="px-4 pt-2 shrink-0 border-b border-[var(--border-subtle)]">
+          <TabsList variant="line">
+            <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
+            <TabsTrigger value="routing">{t("routing")}</TabsTrigger>
+            <TabsTrigger value="skills">{t("skills")}</TabsTrigger>
+            <TabsTrigger value="subagent">{t("subagent")}</TabsTrigger>
+            <TabsTrigger value="sessions">{t("sessions")}</TabsTrigger>
+          </TabsList>
+        </div>
 
-        {/* SOUL.md editor */}
-        <Card className="flex flex-col flex-1 min-h-0">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs">
-                {t("personality")}
-                <span className="ml-1.5 font-mono text-[var(--text-secondary)] font-normal">
-                  {SOUL_PATH}
-                </span>
-              </CardTitle>
-              <Button
-                size="xs"
-                variant={saved ? "outline" : "default"}
-                onClick={() => void handleSaveSoul()}
-                disabled={saving || soulLoading}
-                className="gap-1"
-              >
-                <Save size={12} />
-                {saved ? t("saved") : tc("save")}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 pb-4">
-            <textarea
-              value={soulLoading ? "" : soul}
-              onChange={(e) => setSoul(e.target.value)}
-              disabled={soulLoading}
-              placeholder={soulLoading ? tc("loading") : t("soulPlaceholder")}
-              className="w-full min-h-[200px] text-xs rounded-lg px-3 py-2.5 resize-none font-mono border border-[var(--border)] bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 focus-visible:border-[var(--accent)] disabled:opacity-50"
-            />
-          </CardContent>
-        </Card>
-      </div>
+        <ScrollArea className="flex-1">
+          <TabsContent value="overview" className="p-4">
+            <OverviewTab detail={detail} onNavigateTab={setActiveTab} />
+          </TabsContent>
+          <TabsContent value="routing" className="p-4">
+            <RoutingTab agentId={agentId} />
+          </TabsContent>
+          <TabsContent value="skills" className="p-4">
+            <SkillsTab agentId={agentId} />
+          </TabsContent>
+          <TabsContent value="subagent" className="p-4">
+            <SubagentTab agentId={agentId} />
+          </TabsContent>
+          <TabsContent value="sessions" className="p-4">
+            <SessionsTab agentId={agentId} />
+          </TabsContent>
+        </ScrollArea>
+      </Tabs>
     </div>
   );
 }
