@@ -184,7 +184,22 @@ export const deckAuthHandlers: GatewayRequestHandlers = {
         // Best-effort cleanup; ignore errors.
       }
 
-      return summary.results[0] ?? null;
+      // Filter out skipped/excluded entries — only return an actual probe result.
+      // Skip entries have status "unknown" with a reasonCode; real probes have
+      // status in {"ok","auth","rate_limit","timeout","billing","format","no_model"}.
+      const actualStatuses = new Set([
+        "ok",
+        "auth",
+        "rate_limit",
+        "timeout",
+        "billing",
+        "format",
+        "no_model",
+      ]);
+      const match = summary.results.find(
+        (r) => actualStatuses.has(r.status) && (!provider || r.provider === provider),
+      );
+      return match ?? summary.results.find((r) => actualStatuses.has(r.status)) ?? null;
     })();
 
     inflightProbes.set(dedupeKey, probePromise);

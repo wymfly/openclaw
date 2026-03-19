@@ -280,7 +280,11 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         agents.defaults = {};
       }
       const defaults = agents.defaults as Record<string, unknown>;
-      defaults.model = { primary, fallbacks };
+      const existingModel =
+        defaults.model && typeof defaults.model === "object" && !Array.isArray(defaults.model)
+          ? (defaults.model as Record<string, unknown>)
+          : {};
+      defaults.model = { ...existingModel, primary, fallbacks };
 
       const newRaw = JSON.stringify(config, null, 2);
       const res = await fetch("/api/models/config", {
@@ -290,13 +294,9 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
       });
 
       if (res.ok) {
-        const data = await res.json();
-        set({
-          configRaw: data?.raw ?? newRaw,
-          configHash: data?.hash ?? null,
-          primaryModel: primary,
-          fallbacks,
-        });
+        set({ primaryModel: primary, fallbacks });
+        // Gateway config.patch does not return a hash — refresh from config.get
+        await get().fetchFallbacks();
         return true;
       }
 
@@ -326,7 +326,13 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         agents.defaults = {};
       }
       const defaults = agents.defaults as Record<string, unknown>;
-      defaults.imageModel = { primary, fallbacks };
+      const existingImageModel =
+        defaults.imageModel &&
+        typeof defaults.imageModel === "object" &&
+        !Array.isArray(defaults.imageModel)
+          ? (defaults.imageModel as Record<string, unknown>)
+          : {};
+      defaults.imageModel = { ...existingImageModel, primary, fallbacks };
 
       const newRaw = JSON.stringify(config, null, 2);
       const res = await fetch("/api/models/config", {
@@ -336,13 +342,9 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
       });
 
       if (res.ok) {
-        const data = await res.json();
-        set({
-          configRaw: data?.raw ?? newRaw,
-          configHash: data?.hash ?? null,
-          imagePrimaryModel: primary,
-          imageFallbacks: fallbacks,
-        });
+        set({ imagePrimaryModel: primary, imageFallbacks: fallbacks });
+        // Gateway config.patch does not return a hash — refresh from config.get
+        await get().fetchFallbacks();
         return true;
       }
 
@@ -359,7 +361,7 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     try {
       const [costRes, statusRes] = await Promise.all([
         fetch("/api/usage/cost?days=7"),
-        fetch("/api/usage/status"),
+        fetch("/api/usage"),
       ]);
 
       if (costRes.ok) {
