@@ -103,7 +103,75 @@
     "save": "Save",
     "saved": "Saved",
     "noModels": "No models found",
-    "selectProvider": "Select a provider to configure"
+    "selectProvider": "Select a provider to configure",
+    "tabs": {
+      "catalog": "Catalog",
+      "config": "Provider Config",
+      "fallbacks": "Fallbacks",
+      "usage": "Usage"
+    },
+    "auth": {
+      "ready": "Ready",
+      "warning": "Warning",
+      "missing": "Not configured",
+      "unknown": "Unknown",
+      "probe": "Run Diagnostic",
+      "probing": "Testing...",
+      "probeHint": "Sends a test request (uses a small amount of tokens)",
+      "source": "Source",
+      "type": "Auth Type",
+      "expires": "Expires in",
+      "cooldown": "Cooldown"
+    },
+    "fallbacks": {
+      "primary": "Primary Model",
+      "failsOver": "On failure",
+      "empty": "No fallback chain configured. Requests will fail if the primary model is unavailable.",
+      "add": "Add Fallback Model",
+      "saved": "Saved",
+      "imageModels": "Image Models",
+      "emptyImage": "No image model configured.",
+      "authWarning": "This provider has no auth configured. It will be skipped during failover.",
+      "goConfig": "Configure"
+    },
+    "usage": {
+      "todayCost": "Today",
+      "weekCost": "This Week",
+      "activeProviders": "Active Providers",
+      "vsYesterday": "vs yesterday",
+      "vsLastWeek": "vs last week",
+      "quota": "Quota",
+      "resetsIn": "Resets in",
+      "noQuotaData": "Quota data unavailable",
+      "viewDetails": "View detailed analysis"
+    },
+    "config": {
+      "configured": "Configured",
+      "unconfigured": "Unconfigured",
+      "apiKey": "API Key",
+      "baseUrl": "Base URL",
+      "modelId": "Model ID",
+      "save": "Save",
+      "saved": "Saved",
+      "providerReady": "{provider} is ready",
+      "needsApiKey": "Requires an API Key to use this provider",
+      "apiFormat": "API Format",
+      "envHint": "Environment variable: {envVar}",
+      "advanced": "Advanced",
+      "profiles": "Auth Profiles"
+    },
+    "catalog": {
+      "setDefault": "Set as Default",
+      "addToFallback": "Add to Fallback Chain",
+      "goConfig": "Configure",
+      "contextWindow": "Context",
+      "inputPrice": "Input",
+      "outputPrice": "Output",
+      "noModels": "No models found",
+      "text": "Text",
+      "reasoning": "Reasoning",
+      "vision": "Vision"
+    }
   },
   "notifications": {
     "info": "Info",
