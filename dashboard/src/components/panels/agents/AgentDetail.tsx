@@ -128,7 +128,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         <Badge
           className={`ml-auto shrink-0 text-[10px] border-0 ${STATUS_BADGE[agent.status] ?? STATUS_BADGE.offline}`}
         >
-          {t(agent.status)}
+          {t(agent.status ?? "idle")}
         </Badge>
       </div>
 

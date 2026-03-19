@@ -7,6 +7,8 @@ export interface Agent {
   status: "idle" | "busy" | "error" | "offline";
 }
 
+const statusSet: Record<string, true> = { idle: true, busy: true, error: true, offline: true };
+
 interface AgentsState {
   agents: Agent[];
   selectedAgentId: string | null;
@@ -44,7 +46,20 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
       }
       const data = await res.json();
       // Gateway may return { agents: [...] } or an array directly.
-      const list = Array.isArray(data) ? data : Array.isArray(data?.agents) ? data.agents : [];
+      // Agent entries may be sparse (only `id`); fill in defaults for UI.
+      const raw: Record<string, unknown>[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.agents)
+          ? data.agents
+          : [];
+      const list: Agent[] = raw.map((a) => ({
+        id: typeof a.id === "string" ? a.id : JSON.stringify(a.id ?? ""),
+        name: typeof a.name === "string" ? a.name : typeof a.id === "string" ? a.id : "",
+        model: typeof a.model === "string" ? a.model : "",
+        status: (typeof a.status === "string" && a.status in statusSet
+          ? a.status
+          : "idle") as Agent["status"],
+      }));
       set({ agents: list });
     } finally {
       set({ loading: false });
