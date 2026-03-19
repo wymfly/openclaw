@@ -13,7 +13,7 @@ import { normalizeProviderId } from "./provider-id.js";
 
 const log = createSubsystemLogger("model-catalog");
 
-export type { ModelCatalogEntry, ModelInputType } from "./model-catalog.types.js";
+export type { ModelCatalogCost, ModelCatalogEntry, ModelInputType } from "./model-catalog.types.js";
 
 type DiscoveredModel = {
   id: string;
