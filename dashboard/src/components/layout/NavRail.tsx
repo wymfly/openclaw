@@ -266,7 +266,7 @@ export function NavRail() {
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent-muted)]">
               <Hexagon size={18} className="text-[var(--accent)]" />
             </div>
-            <div className="flex flex-col min-w-0">
+            <div className="flex flex-col min-w-0 flex-1">
               <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
                 OpenClaw
               </span>
@@ -274,6 +274,15 @@ export function NavRail() {
                 deck v0.1
               </span>
             </div>
+            {!isMobile && (
+              <button
+                onClick={toggleSidebar}
+                className="flex items-center justify-center w-7 h-7 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors duration-150 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeftClose size={16} />
+              </button>
+            )}
           </>
         )}
       </div>
@@ -355,23 +364,11 @@ export function NavRail() {
         </div>
       </ScrollArea>
 
-      {/* ── Bottom: Settings + Collapse toggle ── */}
+      {/* ── Bottom: Settings ── */}
       <div className="shrink-0 border-t border-[var(--border-subtle)]">
         <div className={cn("py-1.5", collapsed ? "px-1" : "px-2")}>
           {renderNavItem(settingsItem)}
         </div>
-        {!isMobile && !collapsed && (
-          <div className="pb-2.5 px-2">
-            <button
-              className="flex items-center justify-center w-full h-7 gap-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-              onClick={toggleSidebar}
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeftClose size={16} />
-              <span className="text-xs">Collapse</span>
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
