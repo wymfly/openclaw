@@ -65,6 +65,9 @@ const LazyBudgetPanel = lazy(() =>
 const LazyAlertsPanel = lazy(() =>
   import("@/components/panels/alerts/AlertsPanel").then((m) => ({ default: m.AlertsPanel })),
 );
+const LazyRoutingPanel = lazy(() =>
+  import("@/components/panels/routing/RoutingPanel").then((m) => ({ default: m.RoutingPanel })),
+);
 const LazyDocHubPanel = lazy(() =>
   import("@/components/panels/docs/DocHubPanel").then((m) => ({ default: m.DocHubPanel })),
 );
@@ -142,6 +145,8 @@ function ActivePanel({ panel }: { panel: Panel }) {
     LazyComponent = LazyBudgetPanel;
   } else if (panel === "alerts") {
     LazyComponent = LazyAlertsPanel;
+  } else if (panel === "routing") {
+    LazyComponent = LazyRoutingPanel;
   } else if (panel === "docs") {
     LazyComponent = LazyDocHubPanel;
   } else if (panel === "settings") {
