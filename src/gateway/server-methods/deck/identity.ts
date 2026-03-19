@@ -6,7 +6,6 @@ import {
 } from "../../../config/config.js";
 import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import {
-  ErrorCodes,
   errorShape,
   validateDeckIdentityLinkParams,
   validateDeckIdentityListParams,
@@ -67,7 +66,7 @@ export const deckIdentityHandlers: GatewayRequestHandlers = {
 
     const hashErr = validateBaseHash(baseHash, currentHash);
     if (hashErr) {
-      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, hashErr.message));
+      respond(false, undefined, errorShape(hashErr.code, hashErr.message));
       return;
     }
 
@@ -115,7 +114,7 @@ export const deckIdentityHandlers: GatewayRequestHandlers = {
 
     const hashErr = validateBaseHash(baseHash, currentHash);
     if (hashErr) {
-      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, hashErr.message));
+      respond(false, undefined, errorShape(hashErr.code, hashErr.message));
       return;
     }
 
