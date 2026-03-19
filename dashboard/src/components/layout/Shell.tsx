@@ -2,6 +2,7 @@
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
+import { cn } from "@/lib/utils";
 import { HeaderBar } from "./HeaderBar";
 import { NavRail } from "./NavRail";
 
@@ -10,15 +11,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen overflow-hidden">
-        {/* NavRail handles its own visibility:
-            - Desktop: expanded sidebar
-            - Tablet: collapsed (icon-only) sidebar with tooltips
-            - Mobile: hidden, rendered as Sheet overlay when mobileNavOpen */}
+      <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)]">
         <NavRail />
         <div className="flex flex-col flex-1 min-w-0">
           <HeaderBar />
-          <main className={`flex-1 overflow-auto ${isMobile ? "p-2" : "p-4"}`}>{children}</main>
+          <main className={cn("flex-1 overflow-auto", isMobile ? "p-3" : "p-5")}>{children}</main>
         </div>
       </div>
     </TooltipProvider>

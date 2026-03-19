@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { Card } from "@/components/ui/card";
 import { useChatStore } from "@/stores/chat";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
@@ -11,14 +10,15 @@ import { useChatSSE } from "./useChatSSE";
 /**
  * Chat panel — entry point component.
  * Composes session sidebar, message list, and input area.
+ *
+ * Design baseline: rounded container with ring border,
+ * internal sections separated by borders, card-elevated bg.
  */
 export function ChatPanel() {
   const { activeSessionId, activeAgentId, setSessions, setMessages } = useChatStore();
 
-  // Connect to SSE stream for real-time chat events.
   useChatSSE();
 
-  // Fetch sessions on mount and when agent changes.
   useEffect(() => {
     const url = activeAgentId
       ? `/api/chat/sessions?agentId=${encodeURIComponent(activeAgentId)}`
@@ -33,7 +33,6 @@ export function ChatPanel() {
       .catch(() => {});
   }, [activeAgentId, setSessions]);
 
-  // Fetch history when session changes.
   useEffect(() => {
     if (!activeSessionId) {
       return;
@@ -53,12 +52,12 @@ export function ChatPanel() {
   }, [activeSessionId, activeAgentId, setMessages]);
 
   return (
-    <Card className="flex-row h-full p-0 gap-0">
+    <div className="flex h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
       <SessionSidebar />
       <div className="flex flex-col flex-1 min-w-0">
         <MessageList />
         <MessageInput />
       </div>
-    </Card>
+    </div>
   );
 }

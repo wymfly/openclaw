@@ -1,29 +1,51 @@
 "use client";
 
-import { Globe, Menu, Moon, Sun } from "lucide-react";
+import { Globe, Menu, Moon, Sun, Monitor } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { useGatewayStore } from "@/stores/gateway";
 import { useUIStore } from "@/stores/ui";
 
-const statusBadgeStyles: Record<string, string> = {
-  connected: "bg-[var(--success-muted)] text-[var(--success-muted-text)]",
-  disconnected: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]",
-  reconnecting: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)]",
-  connecting: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)]",
-  error: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]",
+/* ------------------------------------------------------------------ */
+/*  Status configuration                                               */
+/* ------------------------------------------------------------------ */
+
+const statusConfig: Record<string, { dot: string; bg: string; pulse: boolean }> = {
+  connected: {
+    dot: "bg-[var(--status-connected)]",
+    bg: "bg-[var(--success-muted)] text-[var(--success-muted-text)] border-[var(--success-muted)]",
+    pulse: true,
+  },
+  disconnected: {
+    dot: "bg-[var(--status-disconnected)]",
+    bg: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)] border-[var(--danger-muted)]",
+    pulse: false,
+  },
+  reconnecting: {
+    dot: "bg-[var(--status-reconnecting)]",
+    bg: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)] border-[var(--warning-muted)]",
+    pulse: true,
+  },
+  connecting: {
+    dot: "bg-[var(--status-reconnecting)]",
+    bg: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)] border-[var(--warning-muted)]",
+    pulse: true,
+  },
+  error: {
+    dot: "bg-[var(--status-disconnected)]",
+    bg: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)] border-[var(--danger-muted)]",
+    pulse: false,
+  },
 };
 
-const statusDotStyles: Record<string, string> = {
-  connected: "bg-[var(--status-connected)]",
-  disconnected: "bg-[var(--status-disconnected)]",
-  reconnecting: "bg-[var(--status-reconnecting)]",
-  connecting: "bg-[var(--status-reconnecting)]",
-  error: "bg-[var(--status-disconnected)]",
-};
+const themeIcons = { dark: Sun, light: Moon, system: Monitor } as const;
+const themeNext = { dark: "light", light: "system", system: "dark" } as const;
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
 
 export function HeaderBar() {
   const tNav = useTranslations("nav");
@@ -40,75 +62,81 @@ export function HeaderBar() {
         ? tHeader("reconnecting")
         : tHeader("disconnected");
 
-  const toggleTheme = () => {
-    if (theme === "dark") {
-      setTheme("light");
-    } else if (theme === "light") {
-      setTheme("system");
-    } else {
-      setTheme("dark");
-    }
-  };
-
-  const toggleLocale = () => {
-    setLocale(locale === "zh" ? "en" : "zh");
-  };
+  const cfg = statusConfig[status] ?? statusConfig.disconnected;
+  const ThemeIcon = themeIcons[theme];
 
   return (
-    <header className="flex items-center justify-between h-12 px-4 border-b border-border bg-card shrink-0">
-      {/* Left: hamburger (mobile) + panel name */}
-      <div className="flex items-center gap-2">
+    <header className="flex items-center justify-between h-12 px-4 border-b border-[var(--border)] bg-[var(--bg-secondary)] shrink-0">
+      {/* ── Left: hamburger (mobile) + panel name ── */}
+      <div className="flex items-center gap-3">
         {isMobile && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-muted-foreground"
+          <button
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation"
           >
             <Menu size={18} />
-          </Button>
+          </button>
         )}
-        <h1 className="text-sm font-semibold text-foreground">{tNav(activePanel)}</h1>
+        <h1 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+          {tNav(activePanel)}
+        </h1>
       </div>
 
-      {/* Right controls */}
-      <div className="flex items-center gap-2">
-        {/* Gateway status badge */}
-        <Badge
+      {/* ── Right: status + controls ── */}
+      <div className="flex items-center gap-1.5">
+        {/* Gateway status pill */}
+        <div
           className={cn(
-            "gap-1.5 font-normal",
-            statusBadgeStyles[status] ?? statusBadgeStyles.disconnected,
+            "flex items-center gap-1.5 h-6 rounded-full text-[11px] font-medium border px-2.5",
+            cfg.bg,
           )}
         >
           <span
             className={cn(
-              "size-1.5 rounded-full",
-              statusDotStyles[status] ?? statusDotStyles.disconnected,
+              "w-1.5 h-1.5 rounded-full shrink-0",
+              cfg.dot,
+              cfg.pulse && "animate-pulse",
             )}
           />
-          {!isMobile && statusLabel}
-        </Badge>
+          {!isMobile && <span>{statusLabel}</span>}
+        </div>
+
+        {/* Divider */}
+        <span className="w-px h-4 bg-[var(--border)] mx-1" aria-hidden />
 
         {/* Locale toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1 text-xs text-muted-foreground"
-          onClick={toggleLocale}
-        >
-          <Globe size={14} />
-          {locale === "zh" ? "EN" : "ZH"}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                className="flex items-center gap-1 h-7 px-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+              />
+            }
+          >
+            <Globe size={14} />
+            <span className="font-mono text-[11px]">{locale === "zh" ? "EN" : "ZH"}</span>
+          </TooltipTrigger>
+          <TooltipContent>{locale === "zh" ? "Switch to English" : "切换到中文"}</TooltipContent>
+        </Tooltip>
 
         {/* Theme toggle */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="text-muted-foreground"
-          onClick={toggleTheme}
-        >
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                className="flex items-center justify-center w-7 h-7 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                onClick={() => setTheme(themeNext[theme])}
+              />
+            }
+          >
+            <ThemeIcon size={15} />
+          </TooltipTrigger>
+          <TooltipContent>
+            {theme === "dark" ? "Light mode" : theme === "light" ? "System" : "Dark mode"}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </header>
   );
