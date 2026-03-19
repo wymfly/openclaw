@@ -113,6 +113,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "talk.config",
     "agents.files.list",
     "agents.files.get",
+    "deck.auth.overview",
   ],
   [WRITE_SCOPE]: [
     "message.action",
@@ -143,6 +144,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "doctor.memory.dedupeDreamDiary",
     "push.test",
     "node.pending.enqueue",
+    "deck.auth.probe",
   ],
   [ADMIN_SCOPE]: [
     "channels.logout",

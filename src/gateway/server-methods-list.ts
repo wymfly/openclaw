@@ -131,6 +131,9 @@ const BASE_METHODS = [
   "chat.history",
   "chat.abort",
   "chat.send",
+  // Deck auth diagnostics
+  "deck.auth.overview",
+  "deck.auth.probe",
 ];
 
 export function listGatewayMethods(): string[] {

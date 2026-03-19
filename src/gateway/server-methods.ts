@@ -12,6 +12,7 @@ import { commandsHandlers } from "./server-methods/commands.js";
 import { configHandlers } from "./server-methods/config.js";
 import { connectHandlers } from "./server-methods/connect.js";
 import { cronHandlers } from "./server-methods/cron.js";
+import { deckAuthHandlers } from "./server-methods/deck-auth.js";
 import { deviceHandlers } from "./server-methods/devices.js";
 import { doctorHandlers } from "./server-methods/doctor.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
@@ -97,6 +98,8 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...usageHandlers,
   ...agentHandlers,
   ...agentsHandlers,
+  ...browserHandlers,
+  ...deckAuthHandlers,
 };
 
 export async function handleGatewayRequest(
