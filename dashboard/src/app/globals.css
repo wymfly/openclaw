@@ -183,7 +183,7 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-outfit, 'Outfit'), system-ui, -apple-system, sans-serif;
   font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -191,7 +191,7 @@ body {
 
 /* Monospace for data/code elements */
 code, kbd, .font-mono, [data-mono] {
-  font-family: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+  font-family: var(--font-geist-mono, 'Geist Mono'), ui-monospace, 'SF Mono', monospace;
 }
 
 /* ============================================================
@@ -304,6 +304,25 @@ code, kbd, .font-mono, [data-mono] {
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ============================================================
+   Reduced Motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Focus Glow (for inputs and interactive elements)
+   ============================================================ */
+.focus-glow:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent), var(--accent-glow);
 }
 
 @layer base {

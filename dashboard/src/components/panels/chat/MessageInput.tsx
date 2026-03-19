@@ -1,10 +1,10 @@
 "use client";
 
-import { Send, Square, Paperclip } from "lucide-react";
+import { Send, Square, Paperclip, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useCallback } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useChatStore } from "@/stores/chat";
 
 export function MessageInput() {
@@ -70,26 +70,42 @@ export function MessageInput() {
   };
 
   return (
-    <div className="border-t p-3" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
+    <div
+      className="border-t border-[var(--border)] p-3"
+      onDrop={handleDrop}
+      onDragOver={(e) => e.preventDefault()}
+    >
+      {/* File attachments */}
       {files.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {files.map((f, i) => (
-            <Badge key={`${f.name}-${i}`} variant="secondary" className="gap-1">
+            <span
+              key={`${f.name}-${i}`}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-[var(--bg-tertiary)] text-[var(--text-secondary)] ring-1 ring-[var(--border-subtle)]"
+            >
               {f.name}
               <button
                 onClick={() => setFiles((p) => p.filter((_, j) => j !== i))}
-                className="hover:opacity-60"
+                className="hover:text-[var(--danger)] transition-colors cursor-pointer"
+                aria-label={`Remove ${f.name}`}
               >
-                &times;
+                <X size={10} />
               </button>
-            </Badge>
+            </span>
           ))}
         </div>
       )}
+
+      {/* Input row */}
       <div className="flex items-end gap-2">
-        <Button variant="ghost" size="icon-xs" onClick={() => fileInputRef.current?.click()}>
+        {/* Attach button */}
+        <button
+          className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="Attach file"
+        >
           <Paperclip size={16} />
-        </Button>
+        </button>
         <input
           ref={fileInputRef}
           type="file"
@@ -101,6 +117,8 @@ export function MessageInput() {
             }
           }}
         />
+
+        {/* Textarea */}
         <textarea
           data-chat-input
           value={input}
@@ -108,26 +126,40 @@ export function MessageInput() {
           onKeyDown={handleKeyDown}
           placeholder={t("placeholder")}
           rows={1}
-          className="flex-1 resize-none text-sm rounded-lg px-3 py-2 outline-none max-h-[120px] border border-input bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          className={cn(
+            "flex-1 resize-none text-sm rounded-xl px-3.5 py-2 max-h-[120px]",
+            "bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]",
+            "border border-[var(--border-subtle)]",
+            "outline-none transition-shadow duration-150",
+            "focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 focus:shadow-[var(--accent-glow)]",
+          )}
         />
+
+        {/* Send / Abort */}
         {isStreaming ? (
           <Button
             variant="destructive"
             size="icon-sm"
+            className="shrink-0 rounded-xl"
             onClick={() => void handleAbort()}
             title={t("abort")}
           >
-            <Square size={16} />
+            <Square size={14} />
           </Button>
         ) : (
-          <Button
-            size="icon-sm"
+          <button
+            className={cn(
+              "flex items-center justify-center w-8 h-8 rounded-xl shrink-0 transition-all duration-150 cursor-pointer",
+              input.trim()
+                ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] shadow-[var(--accent-glow)]"
+                : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] cursor-not-allowed",
+            )}
             onClick={() => void sendMessage()}
             disabled={!input.trim()}
             title={t("send")}
           >
-            <Send size={16} />
-          </Button>
+            <Send size={14} />
+          </button>
         )}
       </div>
     </div>

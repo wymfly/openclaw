@@ -21,17 +21,22 @@ import {
   FileCode,
   PanelLeftClose,
   PanelLeft,
+  Hexagon,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { useUIStore, type Panel } from "@/stores/ui";
+
+/* ------------------------------------------------------------------ */
+/*  Data                                                               */
+/* ------------------------------------------------------------------ */
 
 interface NavItem {
   panel: Panel;
@@ -91,6 +96,10 @@ const settingsItem: NavItem = {
   icon: Settings,
 };
 
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
+
 export function NavRail() {
   const t = useTranslations("nav");
   const {
@@ -106,14 +115,12 @@ export function NavRail() {
   const isTablet = useMediaQuery(BREAKPOINTS.tablet);
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);
 
-  // Auto-collapse sidebar on tablet breakpoint
   useEffect(() => {
     if (isTablet) {
       setSidebarCollapsed(true);
     }
   }, [isTablet, setSidebarCollapsed]);
 
-  // Close mobile overlay when switching away from mobile
   useEffect(() => {
     if (!isMobile && mobileNavOpen) {
       setMobileNavOpen(false);
@@ -129,69 +136,144 @@ export function NavRail() {
     }
   };
 
+  /* ── Nav item renderer ── */
+
   const renderNavItem = (item: NavItem) => {
     const isActive = activePanel === item.panel;
     const Icon = item.icon;
     const label = t(item.labelKey);
-    const activeClass = isActive
-      ? "bg-primary/12 text-primary hover:bg-primary/15 hover:text-primary"
-      : "";
 
+    // Accent indicator bar — appears on the left edge of active items
+    const indicator = isActive && (
+      <span
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
+        aria-hidden
+      />
+    );
+
+    /* Collapsed: icon-only with tooltip */
     if (collapsed) {
       return (
         <Tooltip key={item.panel}>
           <TooltipTrigger
             render={
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn("w-full justify-center", activeClass)}
+              <button
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "relative flex items-center justify-center w-10 h-9 rounded-lg mx-auto cursor-pointer transition-colors duration-150",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                  isActive
+                    ? "bg-[var(--accent-muted)] text-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
+                )}
                 onClick={() => handleNavClick(item.panel)}
               />
             }
           >
-            <Icon size={16} />
+            {indicator}
+            <Icon size={18} />
           </TooltipTrigger>
-          <TooltipContent side="right">{label}</TooltipContent>
+          <TooltipContent side="right" sideOffset={8}>
+            {label}
+          </TooltipContent>
         </Tooltip>
       );
     }
 
+    /* Expanded: icon + label */
     return (
-      <Button
+      <button
         key={item.panel}
-        variant="ghost"
-        size="sm"
-        className={cn("w-full justify-start gap-2.5", activeClass)}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          "relative flex items-center gap-2.5 w-full h-8 px-3 rounded-lg text-[13px] font-medium cursor-pointer transition-colors duration-150",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+          isActive
+            ? "bg-[var(--accent-muted)] text-[var(--accent)]"
+            : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
+        )}
         onClick={() => handleNavClick(item.panel)}
       >
-        <Icon size={16} />
+        {indicator}
+        <Icon size={16} className="shrink-0" />
         <span className="truncate">{label}</span>
-      </Button>
+      </button>
     );
   };
 
-  const navBody = (
-    <>
-      <div className="flex-1 overflow-y-auto py-2">
-        {navGroups.map((group, i) => (
-          <div key={group.titleKey}>
-            {i > 0 && <Separator className="my-2" />}
-            {!collapsed && (
-              <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {t(group.titleKey)}
-              </div>
-            )}
-            <div className="px-1.5 space-y-0.5">{group.items.map(renderNavItem)}</div>
+  /* ── Nav body (shared between mobile sheet and desktop sidebar) ── */
+
+  const navContent = (
+    <div className="flex flex-col h-full">
+      {/* ── Brand ── */}
+      <div
+        className={cn(
+          "flex items-center shrink-0 h-14 border-b border-[var(--border-subtle)]",
+          collapsed ? "justify-center px-2" : "gap-2.5 px-4",
+        )}
+      >
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent-muted)]">
+          <Hexagon size={18} className="text-[var(--accent)]" />
+        </div>
+        {!collapsed && (
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+              OpenClaw
+            </span>
+            <span className="text-[10px] font-mono text-[var(--text-secondary)] leading-none">
+              deck v0.1
+            </span>
           </div>
-        ))}
+        )}
       </div>
-      <Separator />
-      <div className="py-2 px-1.5">{renderNavItem(settingsItem)}</div>
-    </>
+
+      {/* ── Groups ── */}
+      <ScrollArea className="flex-1">
+        <div className="py-3">
+          {navGroups.map((group, i) => (
+            <div key={group.titleKey} className={i > 0 ? "mt-5" : undefined}>
+              {!collapsed && (
+                <div className="px-4 mb-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-secondary)]">
+                    {t(group.titleKey)}
+                  </span>
+                </div>
+              )}
+              {collapsed && i > 0 && <Separator className="mx-3 mb-2 bg-[var(--border-subtle)]" />}
+              <div className={cn("space-y-0.5", collapsed ? "px-1" : "px-2")}>
+                {group.items.map(renderNavItem)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {/* ── Bottom: Settings + Collapse toggle ── */}
+      <div className="shrink-0 border-t border-[var(--border-subtle)]">
+        <div className={cn("py-1.5", collapsed ? "px-1" : "px-2")}>
+          {renderNavItem(settingsItem)}
+        </div>
+        {!isMobile && (
+          <div className={cn("pb-2.5", collapsed ? "flex justify-center px-1" : "px-2")}>
+            <button
+              className={cn(
+                "flex items-center justify-center h-7 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors duration-150 cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                collapsed ? "w-10 mx-auto" : "w-full gap-2",
+              )}
+              onClick={toggleSidebar}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
+              {!collapsed && <span className="text-xs">Collapse</span>}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 
-  // Mobile: Sheet overlay
+  /* ── Mobile: Sheet overlay ── */
   if (isMobile) {
     return (
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
@@ -200,29 +282,21 @@ export function NavRail() {
           className="data-[side=left]:w-64 data-[side=left]:sm:max-w-64 gap-0 p-0 bg-[var(--bg-nav)]"
         >
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <nav className="flex flex-col h-full">{navBody}</nav>
+          <nav className="h-full">{navContent}</nav>
         </SheetContent>
       </Sheet>
     );
   }
 
-  // Desktop / Tablet: inline sidebar
+  /* ── Desktop / Tablet: inline sidebar ── */
   return (
     <nav
       className={cn(
-        "flex flex-col h-full border-r border-border bg-[var(--bg-nav)] transition-all duration-200",
-        collapsed ? "w-14" : "w-52",
+        "flex flex-col h-full border-r border-[var(--border)] bg-[var(--bg-nav)] transition-[width] duration-200 ease-out shrink-0",
+        collapsed ? "w-[56px]" : "w-56",
       )}
     >
-      <Button
-        variant="ghost"
-        size="icon"
-        className="mx-auto my-1 text-muted-foreground"
-        onClick={toggleSidebar}
-      >
-        {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
-      </Button>
-      {navBody}
+      {navContent}
     </nav>
   );
 }
