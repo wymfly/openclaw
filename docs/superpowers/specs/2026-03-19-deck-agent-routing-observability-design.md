@@ -76,7 +76,7 @@ CONTROL
 **左栏 — 路由规则表：**
 
 - 数据来源：`deck.routing.list`
-- 按匹配优先级排序（Peer → Guild+Roles → Guild → Team → Account → Channel → Default）
+- 按匹配优先级排序（Peer → Peer.Parent → Guild+Roles → Guild → Team → Account → Channel → Default）
 - 最后固定 Default 行（不可删除）
 - 每行：优先级层级标签、匹配条件摘要、目标 Agent（带头像/emoji）、编辑/删除操作
 - 筛选：按渠道、按 Agent
@@ -86,7 +86,8 @@ CONTROL
 
 - 数据来源：`deck.routing.simulate`
 - 输入：渠道 → 账户 → 类型 → ID → Guild/角色（可选）
-- 输出：命中 Agent、匹配层级、Session Key、7 层逐层检查结果（命中 ✅ / 跳过 —）
+- 输出：命中 Agent、匹配层级、Session Key、8 层逐层检查结果（命中 ✅ / 跳过 —）
+- 8 层 = 7 个绑定层级（peer, peer.parent, guild+roles, guild, team, account, channel）+ default
 - 渠道选择后动态显示该渠道特有字段
 
 **添加/编辑绑定 Dialog：**
@@ -138,9 +139,11 @@ CONTROL
 
 - 召唤权限三选一：不允许 / 指定 Agent / 任意 Agent (\*)
 - 允许的 Agent 勾选列表
-- 限制参数：最大嵌套深度、最大并发、子 Agent 模型、思考级别
+- 子 Agent 模型覆盖（可选，留空则继承全局默认）
+- 生效参数只读展示：有效深度限制、有效并发限制（来自全局默认，在 Subagents 面板 Config Tab 修改）
 - 当前活跃运行列表（摘要，链接到 Subagents 面板）
-- 数据来源：`deck.agents.subagents`（读写）+ `deck.subagents.list({ requesterAgentId })`
+- 数据来源：`deck.agents.subagents.get/set`（读写 allowAgents + model）+ `deck.subagents.list({ requesterAgentId })`
+- Note: `maxSpawnDepth`、`maxChildrenPerAgent`、`thinking` 是全局配置（`agents.defaults.subagents`），不在此处修改，仅显示有效值
 
 #### Tab 5: Sessions
 
@@ -230,6 +233,16 @@ CONTROL
 
 所有方法注册在 `src/gateway/server-methods/deck/` 目录下。
 
+### Common Conventions
+
+**ChatType values:** `"direct"` | `"group"` | `"channel"` (Discord 中 `"group"` 和 `"channel"` 等价)
+
+**Binding ID:** 上游 `AgentBinding` 无 `id` 字段（config.bindings 是无 ID 数组）。`deck.*` API 使用**内容哈希**作为合成 ID：`sha256(JSON.stringify(match))` 的前 12 位 hex。该 ID 是确定性的（相同 match 产生相同 ID），用于引用和删除。
+
+**Optimistic Locking:** 所有写入 RPC 接受 `baseHash` 参数并返回新的 `configHash`。`baseHash` 是调用前从最近一次读取（`deck.routing.list` / `deck.agents.skills` 等）获取的 hash 值。若 `baseHash` 与当前 config hash 不一致，返回 `CONFLICT` 错误，前端应重新加载后重试。与现有 `config.patch` 的 `baseHash` 机制一致。
+
+**Error Response:** 所有 `deck.*` RPC 遵循 Gateway 现有错误格式：`{ error: { code: string, message: string } }`。常用 code: `INVALID_REQUEST`, `NOT_FOUND`, `CONFLICT` (baseHash 冲突), `FORBIDDEN`。
+
 ### deck.routing.\* (5 methods)
 
 #### deck.routing.list
@@ -242,22 +255,24 @@ params: {
 }
 returns: {
   bindings: Array<{
-    id: string,
+    id: string,                // 内容哈希合成 ID
     agentId: string,
     agentName?: string,
     match: {
       channel: string,
       accountId?: string,
-      peer?: { kind: ChatType, id: string },
+      peer?: { kind: "direct" | "group" | "channel", id: string },
       guildId?: string,
       roles?: string[],
       teamId?: string,
     },
-    tier: "peer" | "guild+roles" | "guild" | "team" | "account" | "channel",
+    tier: "peer" | "peer.parent" | "guild+roles" | "guild"
+        | "team" | "account" | "channel",
     comment?: string,
   }>,
   defaultAgentId: string,
   dmScope: string,
+  configHash: string,          // 用于后续写入操作的 baseHash
 }
 ```
 
@@ -268,10 +283,12 @@ params: {
   agentId: string,
   match: { channel, accountId?, peer?, guildId?, roles?, teamId? },
   comment?: string,
+  baseHash: string,            // optimistic lock
 }
 returns: {
   ok: boolean,
   binding: { id, agentId, match, tier },
+  configHash: string,          // 新 hash
   warnings?: Array<{
     type: "overlap" | "shadow",
     existingBinding: { id, agentId, match },
@@ -283,11 +300,15 @@ returns: {
 #### deck.routing.remove
 
 ```typescript
-params: { id: string }
+params: {
+  id: string,                  // 内容哈希 ID
+  baseHash: string,
+}
 returns: {
   ok: boolean,
   removed: { id, agentId, match },
-  impact?: string,
+  configHash: string,
+  impact?: string,             // e.g. "消息将回退到默认 Agent: main"
 }
 ```
 
@@ -315,7 +336,7 @@ returns: {
 params: {
   channel: string,
   accountId?: string,
-  peer?: { kind: ChatType, id: string },
+  peer?: { kind: "direct" | "group" | "channel", id: string },
   guildId?: string,
   teamId?: string,
   memberRoleIds?: string[],
@@ -323,11 +344,12 @@ params: {
 returns: {
   agentId: string,
   agentName?: string,
-  matchedBy: string,
+  matchedBy: string,           // "binding.peer" | ... | "default"
   matchedBinding?: { id, agentId, match },
   sessionKey: string,
-  tiers: Array<{
-    name: string,
+  tiers: Array<{               // 8 entries (7 binding tiers + default)
+    name: "peer" | "peer.parent" | "guild+roles" | "guild"
+        | "team" | "account" | "channel" | "default",
     checked: boolean,
     matched: boolean,
     candidateCount: number,
@@ -351,27 +373,28 @@ returns: {
   sessionCount: number,
   activeSubagentCount: number,
   skillMode: "all" | "whitelist",
+  // skillMode="all" → all registered skill keys; "whitelist" → assigned subset only
+  // Includes ineligible skills (marked via available[].eligible in deck.agents.skills)
   effectiveSkills: string[],
   totalAvailableSkills: number,
   subagents: {
+    // Per-agent fields (from AgentConfig.subagents)
     allowAgents: string[] | ["*"],
     model?: string,
-    thinking?: string,
-    maxSpawnDepth?: number,
-    maxChildrenPerAgent?: number,
+    // Effective values (per-agent override ?? global default)
+    effectiveMaxSpawnDepth: number,
+    effectiveMaxChildrenPerAgent: number,
   },
 }
 ```
 
-#### deck.agents.skills
+#### deck.agents.skills.get / deck.agents.skills.set
+
+拆分为两个方法，避免条件必填参数歧义。
 
 ```typescript
-params: {
-  agentId: string,
-  action: "get" | "set",
-  mode?: "all" | "whitelist",
-  skills?: string[],
-}
+// deck.agents.skills.get
+params: { agentId: string }
 returns: {
   agentId: string,
   mode: "all" | "whitelist",
@@ -379,47 +402,79 @@ returns: {
   available: Array<{
     key: string,
     name: string,
-    eligible: boolean,
-    assigned: boolean,
+    eligible: boolean,         // 运行时资格（平台/依赖）
+    assigned: boolean,         // 是否在白名单中
   }>,
+  configHash: string,
+}
+
+// deck.agents.skills.set
+params: {
+  agentId: string,
+  mode: "all" | "whitelist",
+  skills: string[],            // mode="whitelist" 时的白名单; mode="all" 时忽略
+  baseHash: string,
+}
+returns: {
+  ok: boolean,
+  agentId: string,
+  mode: "all" | "whitelist",
+  skills: string[],
+  configHash: string,
 }
 ```
 
-#### deck.agents.subagents
+#### deck.agents.subagents.get / deck.agents.subagents.set
+
+Per-agent `subagents` config 仅包含 `allowAgents` 和 `model`（与上游 `AgentConfig.subagents` 类型对齐）。`maxSpawnDepth`、`maxChildrenPerAgent`、`thinking` 仅存在于全局默认级别（`agents.defaults.subagents`），在 Subagents 面板 Config Tab 中管理。
 
 ```typescript
-params: {
-  agentId: string,
-  action: "get" | "set",
-  allowAgents?: string[],
-  model?: string | null,
-  thinking?: string | null,
-  maxSpawnDepth?: number | null,
-  maxChildrenPerAgent?: number | null,
-}
+// deck.agents.subagents.get
+params: { agentId: string }
 returns: {
   agentId: string,
-  allowAgents: string[],
+  // Per-agent config
+  allowAgents: string[],       // 空=不允许, ["*"]=任意
   allowAny: boolean,
-  model?: string,
-  thinking?: string,
-  maxSpawnDepth: number,
-  maxChildrenPerAgent: number,
+  model?: string,              // per-agent 子 Agent 模型覆盖
+  // Effective values (per-agent ?? global defaults, read-only)
+  effectiveMaxSpawnDepth: number,
+  effectiveMaxChildrenPerAgent: number,
+  effectiveThinking?: string,
+  // Agent lists for UI rendering
   allowedAgents: Array<{ id: string, name?: string }>,
   allAgents: Array<{ id: string, name?: string }>,
+  configHash: string,
+}
+
+// deck.agents.subagents.set
+params: {
+  agentId: string,
+  allowAgents: string[],       // 空=不允许, ["*"]=任意
+  model?: string | null,       // null=清除覆盖,继承默认
+  baseHash: string,
+}
+returns: {
+  ok: boolean,
+  agentId: string,
+  allowAgents: string[],
+  model?: string,
+  configHash: string,
 }
 ```
 
 ### deck.subagents.\* (3 methods)
+
+**History limitation:** Subagent runs are stored in-memory (`subagentRuns` Map) and swept after completion (default `archiveAfterMinutes: 60`). `deck.subagents.list` with `status: "all"` only returns runs still in memory or on-disk (not yet swept). There is no long-term history store. The History tab should display an appropriate empty state: "仅显示最近 N 小时内的运行记录". Long-term history persistence (append-only log) is deferred to a future iteration.
 
 #### deck.subagents.list
 
 ```typescript
 params: {
   status?: "active" | "completed" | "failed" | "all",
-  agentId?: string,
-  requesterAgentId?: string,
-  limit?: number,
+  agentId?: string,            // filter by child agent ID
+  requesterAgentId?: string,   // filter by parent agent ID
+  limit?: number,              // default 50
   offset?: number,
 }
 returns: {
@@ -442,11 +497,12 @@ returns: {
     durationMs?: number,
     status: "active" | "completed" | "failed" | "timeout",
     outcome?: { status: string, error?: string },
-    tokenUsage?: { input: number, output: number },
   }>,
   total: number,
 }
 ```
+
+Note: `tokenUsage` removed from response — `SubagentRunRecord` has no token tracking. Token data per session can be obtained from `sessions.usage` if needed, but is not aggregated here.
 
 #### deck.subagents.kill
 
@@ -457,10 +513,21 @@ returns: { ok: boolean, runId: string, childSessionKey: string }
 
 #### deck.subagents.lineage
 
+**Traversal algorithm:** Given a `runId` or `sessionKey`, walk **upward** via `requesterSessionKey` chain to find the root (non-subagent session). Then walk **downward** from root, collecting all runs whose `requesterSessionKey` matches any node in the tree. Returns the complete tree.
+
+**`parentRunId` reconstruction:** For each node, find the run whose `childSessionKey` matches this node's `requesterSessionKey`. This is an O(N) scan of the runs Map per node; acceptable for typical tree depths (≤3).
+
 ```typescript
-params: { runId?: string, sessionKey?: string }
+params: {
+  runId?: string,              // either runId or sessionKey required
+  sessionKey?: string,
+}
 returns: {
-  root: { sessionKey: string, agentId: string, agentName?: string },
+  root: {
+    sessionKey: string,        // top-level non-subagent session
+    agentId: string,
+    agentName?: string,
+  },
   nodes: Array<{
     runId: string,
     sessionKey: string,
@@ -468,15 +535,16 @@ returns: {
     agentName?: string,
     task: string,
     depth: number,
-    parentRunId?: string,
+    parentRunId?: string,      // null for direct children of root
     status: "active" | "completed" | "failed" | "timeout",
     durationMs?: number,
-    tokenUsage?: { input: number, output: number },
   }>,
 }
 ```
 
 ### deck.identity.\* (3 methods)
+
+**Data model mapping:** Upstream config stores identity links as `Record<string, string[]>` where keys are canonical names and values are `"channel:peerId"` strings (e.g. `{ alice: ["telegram:123", "discord:456"] }`). The `deck.identity.*` API presents a structured view, splitting `"telegram:123"` into `{ channel: "telegram", peerId: "123" }`. Implementation must join/split the `channel:peerId` format.
 
 #### deck.identity.list
 
@@ -487,29 +555,44 @@ returns: {
     canonical: string,
     peers: Array<{ channel: string, peerId: string }>,
   }>,
+  configHash: string,
 }
 ```
 
 #### deck.identity.link
 
 ```typescript
-params: { canonical: string, channel: string, peerId: string }
-returns: { ok: boolean }
+params: {
+  canonical: string,
+  channel: string,
+  peerId: string,
+  baseHash: string,
+}
+returns: { ok: boolean, configHash: string }
+// Implementation: appends "channel:peerId" to config.session.identityLinks[canonical]
 ```
 
 #### deck.identity.unlink
 
 ```typescript
-params: { canonical: string, channel: string, peerId: string }
-returns: { ok: boolean }
+params: {
+  canonical: string,
+  channel: string,
+  peerId: string,
+  baseHash: string,
+}
+returns: { ok: boolean, configHash: string }
+// Implementation: removes "channel:peerId" from config.session.identityLinks[canonical]
 ```
 
 ### deck.threads.list (1 method)
 
+**Scope:** Initially covers Discord thread bindings only (the primary channel with thread binding support). Thread binding persistence is channel-specific (`~/.openclaw/agents/<agentId>/sessions/thread-bindings-<accountId>.json`). Other channels may be added in future iterations.
+
 ```typescript
 params: {
   agentId?: string,
-  channel?: string,
+  channel?: string,            // currently only "discord" has data
   status?: "active" | "all",
 }
 returns: {
@@ -531,25 +614,27 @@ returns: {
 
 ### API Summary
 
-| Method                   | R/W | Backend Implementation                                |
-| ------------------------ | --- | ----------------------------------------------------- |
-| `deck.routing.list`      | R   | Read config.bindings + compute tier                   |
-| `deck.routing.add`       | W   | Atomic config.bindings mutation + baseHash lock       |
-| `deck.routing.remove`    | W   | Same                                                  |
-| `deck.routing.validate`  | R   | Call existing match logic + conflict detection        |
-| `deck.routing.simulate`  | R   | Call resolveAgentRoute() + wrap tier details          |
-| `deck.agents.detail`     | R   | Aggregate agent config + bindings + sessions + skills |
-| `deck.agents.skills`     | R/W | Read/write agent.skills field                         |
-| `deck.agents.subagents`  | R/W | Read/write agent.subagents field                      |
-| `deck.subagents.list`    | R   | Read subagentRuns Map + history                       |
-| `deck.subagents.kill`    | W   | Call existing termination logic                       |
-| `deck.subagents.lineage` | R   | Recursive spawnedBy chain query                       |
-| `deck.identity.list`     | R   | Read config.identityLinks                             |
-| `deck.identity.link`     | W   | Modify config.identityLinks                           |
-| `deck.identity.unlink`   | W   | Same                                                  |
-| `deck.threads.list`      | R   | Read thread-bindings persistence files                |
+| Method                      | R/W | Backend Implementation                                |
+| --------------------------- | --- | ----------------------------------------------------- |
+| `deck.routing.list`         | R   | Read config.bindings + compute tier + content-hash ID |
+| `deck.routing.add`          | W   | Atomic config.bindings mutation + baseHash lock       |
+| `deck.routing.remove`       | W   | Match by content-hash ID + baseHash lock              |
+| `deck.routing.validate`     | R   | Call existing match logic + conflict detection        |
+| `deck.routing.simulate`     | R   | Call resolveAgentRoute() + wrap 8-tier details        |
+| `deck.agents.detail`        | R   | Aggregate agent config + bindings + sessions + skills |
+| `deck.agents.skills.get`    | R   | Read agent.skills + build available list              |
+| `deck.agents.skills.set`    | W   | Write agent.skills field + baseHash lock              |
+| `deck.agents.subagents.get` | R   | Read agent.subagents + resolve effective defaults     |
+| `deck.agents.subagents.set` | W   | Write agent.subagents (allowAgents + model only)      |
+| `deck.subagents.list`       | R   | Read subagentRuns Map (in-memory + disk)              |
+| `deck.subagents.kill`       | W   | Call existing termination logic                       |
+| `deck.subagents.lineage`    | R   | Walk up to root, then collect full tree               |
+| `deck.identity.list`        | R   | Read config.identityLinks + split channel:peerId      |
+| `deck.identity.link`        | W   | Append to config.identityLinks + baseHash lock        |
+| `deck.identity.unlink`      | W   | Remove from config.identityLinks + baseHash lock      |
+| `deck.threads.list`         | R   | Read Discord thread-bindings persistence files        |
 
-**Total: 15 RPC methods (9 read, 6 write)**
+**Total: 17 RPC methods (9 read, 8 write)** — split `skills` and `subagents` into get/set adds 2
 
 ---
 
@@ -620,7 +705,7 @@ components/panels/
 | -------------------- | ------------------------------- | -------- |
 | Binding rules        | Refresh after mutation          | —        |
 | Agent detail         | Load on enter, cache 60s        | —        |
-| Subagent active runs | Polling                         | 5s       |
+| Subagent active runs | Polling (visibility-gated)      | 5s       |
 | Subagent history     | Refresh after mutation + manual | —        |
 | Skill matrix         | Load on enter Tab               | —        |
 | Route simulation     | On user click "Simulate"        | —        |
@@ -654,4 +739,8 @@ Entire `deck/` directory is isolated from upstream — zero rebase conflict.
 - `LineageTree` component uses pure CSS flexbox tree rendering — no D3/vis.js dependency
 - `BindingDialog` is the most critical shared component; accepts `prefill` prop for context-specific pre-population
 - All write RPCs use baseHash optimistic locking (consistent with existing `config.patch` pattern)
-- Subagent polling uses `setInterval` with cleanup on panel unmount; consider SSE upgrade in future
+- Subagent polling uses `setInterval` with cleanup on panel unmount; must pause when `document.hidden` is true (via `visibilitychange` event) to avoid unnecessary requests when tab is inactive
+- Binding content-hash ID: `sha256(JSON.stringify(normalizedMatch)).slice(0, 12)` — deterministic, collision-resistant for typical binding counts
+- `deck.agents.subagents.set` only writes `allowAgents` and `model` to per-agent config; global limits (`maxSpawnDepth`, `maxChildrenPerAgent`, `thinking`) are managed via `config.patch` on `agents.defaults.subagents`
+- Subagent history is ephemeral (in-memory + disk sweep); History tab must show "仅显示最近记录" empty state; long-term append-only log deferred to future
+- `deck.threads.list` initially only returns Discord thread bindings; expandable per-channel as other channels add thread support
