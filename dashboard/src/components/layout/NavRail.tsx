@@ -265,11 +265,30 @@ export function NavRail() {
             const isExpanded = expandedGroups.has(i);
             const hasActiveItem = group.items.some((it) => it.panel === activePanel);
 
-            /* Collapsed sidebar: icon-only, no collapsible */
+            /* Collapsed sidebar: icon-only with abbreviated group label */
             if (collapsed) {
               return (
                 <div key={group.titleKey}>
-                  {i > 0 && <Separator className="mx-3 my-1.5 bg-[var(--border-subtle)]" />}
+                  {i > 0 && <Separator className="mx-3 my-1 bg-[var(--border)]" />}
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <div
+                          className={cn(
+                            "flex justify-center py-1 text-[9px] font-semibold uppercase tracking-wider select-none",
+                            hasActiveItem
+                              ? "text-[var(--accent)]"
+                              : "text-[var(--text-secondary)] opacity-50",
+                          )}
+                        />
+                      }
+                    >
+                      {t(group.titleKey).charAt(0)}
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8}>
+                      {t(group.titleKey)}
+                    </TooltipContent>
+                  </Tooltip>
                   <div className="space-y-0.5 px-1">{group.items.map(renderNavItem)}</div>
                 </div>
               );
@@ -325,9 +344,11 @@ export function NavRail() {
           <div className={cn("pb-2.5", collapsed ? "flex justify-center px-1" : "px-2")}>
             <button
               className={cn(
-                "flex items-center justify-center h-7 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors duration-150 cursor-pointer",
+                "flex items-center justify-center rounded-lg transition-colors duration-150 cursor-pointer",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-                collapsed ? "w-10 mx-auto" : "w-full gap-2",
+                collapsed
+                  ? "w-10 h-8 mx-auto border border-[var(--border)] text-[var(--accent)] hover:bg-[var(--accent-muted)] hover:border-[var(--accent)]/30"
+                  : "w-full h-7 gap-2 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
               )}
               onClick={toggleSidebar}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
