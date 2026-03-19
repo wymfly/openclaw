@@ -5,9 +5,9 @@
  * POST   — Dispatch kill/lineage by action field
  *
  * Gateway contracts:
- *   deck.subagents.list:    { status?, requesterAgentId? }
- *   deck.subagents.kill:    { sessionKey }
- *   deck.subagents.lineage: { sessionKey }
+ *   deck.subagents.list:    { status?, agentId?, requesterAgentId?, limit?, offset? }
+ *   deck.subagents.kill:    { runId }
+ *   deck.subagents.lineage: { runId?, sessionKey? }
  */
 import { type NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";

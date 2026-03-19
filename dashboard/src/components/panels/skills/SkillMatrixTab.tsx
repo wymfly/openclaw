@@ -5,11 +5,11 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { navigateToAgent } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useAgentsStore, type Agent } from "@/stores/agents";
 import type { AgentSkills } from "@/stores/deck-agents";
 import { useSkillsStore, type SkillEntry } from "@/stores/skills";
-import { useUIStore } from "@/stores/ui";
 
 /**
  * Agent x Skill assignment matrix.
@@ -23,7 +23,6 @@ export function SkillMatrixTab() {
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
   const skills = useSkillsStore((s) => s.skills);
   const fetchSkills = useSkillsStore((s) => s.fetchSkills);
-  const setActivePanel = useUIStore((s) => s.setActivePanel);
 
   const [agentSkillsMap, setAgentSkillsMap] = useState<Map<string, AgentSkills>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -72,10 +71,10 @@ export function SkillMatrixTab() {
     const cellKey = `${agent.id}:${skillKey}`;
     setToggling(cellKey);
 
-    const inWhitelist = config.whitelist.includes(skillKey);
-    const newWhitelist = inWhitelist
-      ? config.whitelist.filter((s) => s !== skillKey)
-      : [...config.whitelist, skillKey];
+    const inSkills = config.skills.includes(skillKey);
+    const newSkills = inSkills
+      ? config.skills.filter((s) => s !== skillKey)
+      : [...config.skills, skillKey];
 
     try {
       const res = await fetch("/api/deck/agents", {
@@ -84,16 +83,26 @@ export function SkillMatrixTab() {
         body: JSON.stringify({
           action: "skills.set",
           agentId: agent.id,
-          skills: { mode: config.mode, whitelist: newWhitelist },
-          baseHash: "",
+          mode: config.mode,
+          skills: newSkills,
+          baseHash: config.configHash ?? "",
         }),
       });
       if (res.ok) {
-        setAgentSkillsMap((prev) => {
-          const next = new Map(prev);
-          next.set(agent.id, { mode: config.mode, whitelist: newWhitelist });
-          return next;
+        // Re-fetch to get updated configHash
+        const refreshRes = await fetch("/api/deck/agents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "skills.get", agentId: agent.id }),
         });
+        if (refreshRes.ok) {
+          const refreshed = (await refreshRes.json()) as AgentSkills;
+          setAgentSkillsMap((prev) => {
+            const next = new Map(prev);
+            next.set(agent.id, refreshed);
+            return next;
+          });
+        }
       }
     } catch {
       // ignore
@@ -134,7 +143,7 @@ export function SkillMatrixTab() {
                     <th key={agent.id} className="px-3 py-2 text-center min-w-[80px]">
                       <button
                         type="button"
-                        onClick={() => setActivePanel("agents")}
+                        onClick={() => navigateToAgent(agent.id, "skills")}
                         className={cn(
                           "inline-flex items-center gap-1 text-xs font-medium cursor-pointer",
                           "text-[var(--text-primary)] hover:text-[var(--accent)]",
@@ -224,8 +233,8 @@ function MatrixCell({
     );
   }
 
-  // Whitelist mode — check if skill is in whitelist
-  const inWhitelist = config.whitelist.includes(skill.key);
+  // Whitelist mode — check if skill is in assigned skills list
+  const isAssigned = config.skills.includes(skill.key);
 
   return (
     <td className="px-3 py-2 text-center">
@@ -236,17 +245,17 @@ function MatrixCell({
           "inline-flex items-center justify-center w-6 h-6 rounded-full cursor-pointer",
           "transition-colors duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-          inWhitelist
+          isAssigned
             ? "text-emerald-400 hover:bg-emerald-500/15"
             : "text-red-400/60 hover:bg-red-500/15 hover:text-red-400",
         )}
         title={
-          inWhitelist
+          isAssigned
             ? `Remove ${skill.key} from ${agent.name}`
             : `Add ${skill.key} to ${agent.name}`
         }
       >
-        {inWhitelist ? <Check size={14} /> : <X size={14} />}
+        {isAssigned ? <Check size={14} /> : <X size={14} />}
       </button>
     </td>
   );

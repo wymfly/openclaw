@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { navigateToChannel } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
 import { useChannelsStore } from "@/stores/channels";
@@ -47,14 +48,14 @@ function summarizeMatch(match: Binding["match"]): string {
   if (match.peer) {
     parts.push(`${match.peer.kind}:${match.peer.id}`);
   }
-  if (match.guild) {
-    parts.push(`guild:${match.guild}`);
+  if (match.guildId) {
+    parts.push(`guild:${match.guildId}`);
   }
   if (match.roles?.length) {
     parts.push(`roles:${match.roles.join(",")}`);
   }
-  if (match.team) {
-    parts.push(`team:${match.team}`);
+  if (match.teamId) {
+    parts.push(`team:${match.teamId}`);
   }
   return parts.join(" · ") || "—";
 }
@@ -196,16 +197,22 @@ export function BindingTable() {
                       <TierBadge tier={binding.tier} />
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className="text-[var(--text-secondary)] font-mono">
-                        {summarizeMatch(binding.match)}
-                      </span>
+                      {binding.match.channel ? (
+                        <button
+                          type="button"
+                          onClick={() => navigateToChannel(binding.match.channel)}
+                          className="text-[var(--text-secondary)] font-mono hover:text-[var(--accent)] transition-colors cursor-pointer"
+                        >
+                          {summarizeMatch(binding.match)}
+                        </button>
+                      ) : (
+                        <span className="text-[var(--text-secondary)] font-mono">
+                          {summarizeMatch(binding.match)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5">
-                      <AgentBadge
-                        agentId={binding.agentId}
-                        agentName={binding.agentName}
-                        emoji={binding.agentEmoji}
-                      />
+                      <AgentBadge agentId={binding.agentId} />
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       {!isDefault && (

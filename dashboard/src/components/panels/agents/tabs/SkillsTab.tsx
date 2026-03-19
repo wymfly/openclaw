@@ -36,7 +36,7 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
   const { currentSkills, fetchSkills, updateSkills } = useDeckAgentsStore();
 
   const [mode, setMode] = useState<AgentSkills["mode"]>("all");
-  const [whitelist, setWhitelist] = useState<string[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -48,18 +48,18 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
   useEffect(() => {
     if (currentSkills) {
       setMode(currentSkills.mode);
-      setWhitelist(currentSkills.whitelist);
+      setSkills(currentSkills.skills);
     }
   }, [currentSkills]);
 
   const isWhitelistMode = mode === "whitelist";
 
-  // Available skills from detail stats — skills in the whitelist are toggled on
-  const availableSkills = whitelist.length > 0 ? whitelist : [];
+  // Available skills from the backend skills.get response
+  const availableSkills = currentSkills?.available ?? [];
 
-  const toggleSkill = (skill: string) => {
-    setWhitelist((prev) =>
-      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill],
+  const toggleSkill = (skillKey: string) => {
+    setSkills((prev) =>
+      prev.includes(skillKey) ? prev.filter((s) => s !== skillKey) : [...prev, skillKey],
     );
     setSaved(false);
   };
@@ -67,13 +67,14 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaved(false);
-    const ok = await updateSkills(agentId, { mode, whitelist }, "");
+    const baseHash = currentSkills?.configHash ?? "";
+    const ok = await updateSkills(agentId, mode, skills, baseHash);
     if (ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }
     setSaving(false);
-  }, [agentId, mode, whitelist, updateSkills]);
+  }, [agentId, mode, skills, currentSkills?.configHash, updateSkills]);
 
   return (
     <div className="space-y-4">
@@ -108,18 +109,19 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
               {t("noSkillsAvailable")}
             </div>
           )}
-          {availableSkills.map((skill) => {
-            const eligibility = ELIGIBILITY_STYLES.ready;
+          {availableSkills.map((entry) => {
+            const isAssigned = skills.includes(entry.key);
+            const eligibilityKey = entry.eligible ? "ready" : "missing_dep";
+            const eligibility = ELIGIBILITY_STYLES[eligibilityKey] ?? ELIGIBILITY_STYLES.ready;
             return (
               <button
-                key={skill}
-                onClick={() => toggleSkill(skill)}
+                key={entry.key}
+                onClick={() => toggleSkill(entry.key)}
                 className={cn(
                   "flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer",
                   "border border-[var(--border)] bg-[var(--bg-primary)]",
                   "hover:border-[var(--accent)]/30",
-                  whitelist.includes(skill) &&
-                    "ring-1 ring-[var(--accent)]/30 border-[var(--accent)]/20",
+                  isAssigned && "ring-1 ring-[var(--accent)]/30 border-[var(--accent)]/20",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
                 )}
               >
@@ -127,21 +129,23 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
                   <div
                     className={cn(
                       "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-                      whitelist.includes(skill)
+                      isAssigned
                         ? "bg-[var(--accent)] border-[var(--accent)] text-white"
                         : "border-[var(--border)] bg-transparent",
                     )}
                   >
-                    {whitelist.includes(skill) && <Check size={10} />}
+                    {isAssigned && <Check size={10} />}
                   </div>
-                  <span className="font-mono text-[var(--text-primary)]">{skill}</span>
+                  <span className="font-mono text-[var(--text-primary)]">
+                    {entry.name || entry.key}
+                  </span>
                 </div>
                 <Badge
                   variant="outline"
                   className={cn("text-[10px] border gap-1", eligibility.color)}
                 >
                   {eligibility.icon}
-                  {t("skillReady")}
+                  {entry.eligible ? t("skillReady") : "Missing dep"}
                 </Badge>
               </button>
             );

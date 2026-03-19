@@ -7,30 +7,49 @@ import { create } from "zustand";
 export interface AgentDetail {
   id: string;
   name: string;
-  emoji?: string;
   model?: string;
   workspace?: string;
   isDefault?: boolean;
-  stats?: {
-    bindingCount: number;
-    skillCount: number;
-    subagentCount: number;
-    activeSessionCount: number;
-    activeRunCount: number;
+  bindingCount: number;
+  sessionCount: number;
+  activeSubagentCount: number;
+  skillMode: "all" | "whitelist";
+  effectiveSkills: string[];
+  totalAvailableSkills: number;
+  subagents: {
+    allowAgents: string[];
+    model?: string;
+    effectiveMaxSpawnDepth: number;
+    effectiveMaxChildrenPerAgent: number;
   };
 }
 
+export interface SkillEntry {
+  key: string;
+  name: string;
+  eligible: boolean;
+  assigned: boolean;
+}
+
 export interface AgentSkills {
+  agentId: string;
   mode: "all" | "whitelist";
-  whitelist: string[];
+  skills: string[];
+  available: SkillEntry[];
+  configHash: string;
 }
 
 export interface AgentSubagentConfig {
-  allowMode: "none" | "list" | "any";
+  agentId: string;
   allowAgents: string[];
+  allowAny: boolean;
   model?: string;
-  effectiveMaxDepth?: number;
-  effectiveMaxChildren?: number;
+  effectiveMaxSpawnDepth: number;
+  effectiveMaxChildrenPerAgent: number;
+  effectiveThinking?: unknown;
+  allowedAgents: Array<{ id: string; name?: string }>;
+  allAgents: Array<{ id: string; name?: string }>;
+  configHash: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,11 +77,17 @@ interface DeckAgentsState {
 
   fetchDetail: (agentId: string, force?: boolean) => Promise<void>;
   fetchSkills: (agentId: string) => Promise<void>;
-  updateSkills: (agentId: string, skills: AgentSkills, baseHash: string) => Promise<boolean>;
+  updateSkills: (
+    agentId: string,
+    mode: "all" | "whitelist",
+    skills: string[],
+    baseHash: string,
+  ) => Promise<boolean>;
   fetchSubagentConfig: (agentId: string) => Promise<void>;
   updateSubagentConfig: (
     agentId: string,
-    config: AgentSubagentConfig,
+    allowAgents: string[],
+    model: string | null | undefined,
     baseHash: string,
   ) => Promise<boolean>;
   invalidateCache: (agentId: string) => void;
@@ -123,12 +148,12 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
     }
   },
 
-  updateSkills: async (agentId, skills, baseHash) => {
+  updateSkills: async (agentId, mode, skills, baseHash) => {
     try {
       const res = await fetch("/api/deck/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "skills.set", agentId, skills, baseHash }),
+        body: JSON.stringify({ action: "skills.set", agentId, mode, skills, baseHash }),
       });
       if (res.ok) {
         get().invalidateCache(agentId);
@@ -158,12 +183,18 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
     }
   },
 
-  updateSubagentConfig: async (agentId, config, baseHash) => {
+  updateSubagentConfig: async (agentId, allowAgents, model, baseHash) => {
     try {
       const res = await fetch("/api/deck/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "subagents.set", agentId, subagents: config, baseHash }),
+        body: JSON.stringify({
+          action: "subagents.set",
+          agentId,
+          allowAgents,
+          ...(model !== undefined ? { model } : {}),
+          baseHash,
+        }),
       });
       if (res.ok) {
         get().invalidateCache(agentId);

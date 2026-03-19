@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useAgentsStore } from "@/stores/agents";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { RoutingTab } from "./tabs/RoutingTab";
@@ -26,16 +27,23 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const t = useTranslations("agentDetail");
   const ta = useTranslations("agents");
   const { currentDetail, loading, fetchDetail } = useDeckAgentsStore();
+  const pendingTab = useAgentsStore((s) => s.pendingTab);
+  const setPendingTab = useAgentsStore((s) => s.setPendingTab);
   const [activeTab, setActiveTab] = useState<TabValue>("overview");
 
   useEffect(() => {
     void fetchDetail(agentId);
   }, [agentId, fetchDetail]);
 
-  // Reset to overview when switching agents
+  // Reset to overview when switching agents, or to pending tab if set
   useEffect(() => {
-    setActiveTab("overview");
-  }, [agentId]);
+    if (pendingTab) {
+      setActiveTab(pendingTab as TabValue);
+      setPendingTab(null);
+    } else {
+      setActiveTab("overview");
+    }
+  }, [agentId, pendingTab, setPendingTab]);
 
   if (loading && !currentDetail) {
     return (
@@ -63,11 +71,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border)] shrink-0">
         <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20">
-          {detail.emoji ? (
-            <span className="text-base leading-none">{detail.emoji}</span>
-          ) : (
-            <Bot size={16} className="text-[var(--accent)]" />
-          )}
+          <Bot size={16} className="text-[var(--accent)]" />
         </div>
         <div className="flex flex-col min-w-0">
           <h2 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">

@@ -24,13 +24,28 @@ const statusBadge: Record<string, { label: string; color: string }> = {
   completed: { label: "Done", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
   failed: { label: "Failed", color: "bg-red-500/15 text-red-400 border-red-500/25" },
   timeout: { label: "Timeout", color: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
-  running: { label: "Running", color: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
+  active: { label: "Active", color: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
 };
 
-function formatDuration(start: string, end?: string): string {
-  const startMs = new Date(start).getTime();
-  const endMs = end ? new Date(end).getTime() : Date.now();
-  const seconds = Math.floor((endMs - startMs) / 1000);
+function formatDuration(durationMs?: number, startMs?: number, endMs?: number): string {
+  if (durationMs !== undefined) {
+    const seconds = Math.floor(durationMs / 1000);
+    if (seconds < 60) {
+      return `${seconds}s`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remainSec = seconds % 60;
+    if (minutes < 60) {
+      return `${minutes}m ${remainSec}s`;
+    }
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m`;
+  }
+  if (startMs === undefined) {
+    return "—";
+  }
+  const end = endMs ?? Date.now();
+  const seconds = Math.floor((end - startMs) / 1000);
   if (seconds < 60) {
     return `${seconds}s`;
   }
@@ -92,12 +107,12 @@ export function HistoryTab() {
     const rangeMs = getTimeRangeMs(timeRange);
     if (rangeMs) {
       const cutoff = Date.now() - rangeMs;
-      runs = runs.filter((r) => new Date(r.startedAt).getTime() >= cutoff);
+      runs = runs.filter((r) => (r.startedAt ?? r.createdAt) >= cutoff);
     }
 
     // Agent filter
     if (agentFilter !== "all") {
-      runs = runs.filter((r) => r.agentId === agentFilter);
+      runs = runs.filter((r) => r.childAgentId === agentFilter);
     }
 
     // Status filter
@@ -107,7 +122,7 @@ export function HistoryTab() {
 
     // Sort newest first
     return [...runs].toSorted(
-      (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+      (a, b) => (b.startedAt ?? b.createdAt) - (a.startedAt ?? a.createdAt),
     );
   }, [historyRuns, timeRange, agentFilter, statusFilter]);
 
@@ -196,9 +211,9 @@ export function HistoryTab() {
 
             {visible.map((run) => (
               <HistoryRow
-                key={run.sessionKey}
+                key={run.runId}
                 run={run}
-                expanded={expandedKey === run.sessionKey}
+                expanded={expandedKey === run.runId}
                 onToggle={handleToggleExpand}
               />
             ))}
@@ -243,7 +258,7 @@ function HistoryRow({
     <>
       <button
         type="button"
-        onClick={() => onToggle(run.sessionKey)}
+        onClick={() => onToggle(run.runId)}
         className={cn(
           "grid grid-cols-[auto_1fr_1fr_2fr_80px_80px] gap-3 px-4 py-2.5 w-full text-left transition-colors cursor-pointer",
           "hover:bg-[var(--bg-tertiary)]",
@@ -259,21 +274,21 @@ function HistoryRow({
               run.status === "completed" && "bg-emerald-400",
               run.status === "failed" && "bg-red-400",
               run.status === "timeout" && "bg-amber-400",
-              run.status === "running" && "bg-blue-400",
+              run.status === "active" && "bg-blue-400",
             )}
           />
         </span>
 
         {/* Child agent */}
         <span className="flex items-center min-w-0">
-          <AgentBadge agentId={run.agentId} agentName={run.agentName} emoji={run.agentEmoji} />
+          <AgentBadge agentId={run.childAgentId} agentName={run.childAgentName} />
         </span>
 
         {/* Parent agent */}
         <span className="flex items-center min-w-0">
           {run.requesterAgentId ? (
             <span className="text-xs text-[var(--text-secondary)] truncate">
-              {run.requesterAgentId}
+              {run.requesterAgentName ?? run.requesterAgentId}
             </span>
           ) : (
             <span className="text-xs text-[var(--text-secondary)] opacity-40">—</span>
@@ -288,7 +303,7 @@ function HistoryRow({
         {/* Duration */}
         <span className="flex items-center">
           <span className="text-xs font-mono text-[var(--text-secondary)]">
-            {formatDuration(run.startedAt, run.completedAt)}
+            {formatDuration(run.durationMs, run.startedAt, run.endedAt)}
           </span>
         </span>
 
@@ -317,7 +332,7 @@ function HistoryRow({
             <div className="flex gap-4 text-xs text-[var(--text-secondary)]">
               <span>depth: {run.depth}</span>
               {run.model && <span>model: {run.model}</span>}
-              <span>session: {run.sessionKey}</span>
+              <span>session: {run.childSessionKey}</span>
             </div>
             {isFailed && (
               <div className="rounded-md p-2 bg-red-500/10 border border-red-500/20">
@@ -326,7 +341,7 @@ function HistoryRow({
                 </span>
                 <p className="text-xs text-red-300 mt-0.5">
                   Run failed
-                  {run.completedAt ? ` at ${new Date(run.completedAt).toLocaleString()}` : ""}
+                  {run.endedAt ? ` at ${new Date(run.endedAt).toLocaleString()}` : ""}
                 </p>
               </div>
             )}

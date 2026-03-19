@@ -20,10 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { navigateToSession } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
 import { useDeckSubagentsStore, type SubagentRun } from "@/stores/deck-subagents";
-import { useUIStore } from "@/stores/ui";
 
 /**
  * Active Runs tab — real-time subagent run monitoring with polling,
@@ -35,12 +35,11 @@ export function ActiveRunsTab() {
     useDeckSubagentsStore();
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
-  const setActivePanel = useUIStore((s) => s.setActivePanel);
 
   const [agentFilter, setAgentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [killTarget, setKillTarget] = useState<string | null>(null);
-  const [selectedLineageKey, setSelectedLineageKey] = useState<string | null>(null);
+  const [killTargetRunId, setKillTargetRunId] = useState<string | null>(null);
+  const [selectedLineageRunId, setSelectedLineageRunId] = useState<string | null>(null);
 
   // Start polling on mount, stop on unmount
   useEffect(() => {
@@ -53,7 +52,7 @@ export function ActiveRunsTab() {
   const filtered = useMemo(() => {
     let runs = activeRuns;
     if (agentFilter !== "all") {
-      runs = runs.filter((r) => r.agentId === agentFilter);
+      runs = runs.filter((r) => r.childAgentId === agentFilter);
     }
     if (statusFilter !== "all") {
       runs = runs.filter((r) => r.status === statusFilter);
@@ -61,15 +60,15 @@ export function ActiveRunsTab() {
     return runs;
   }, [activeRuns, agentFilter, statusFilter]);
 
-  // Build tree structure: group by parent, nest children under parents
+  // Build tree structure: group by requester, nest children under parents
   const { roots, childMap } = useMemo(() => {
     const map = new Map<string, SubagentRun[]>();
     const rootRuns: SubagentRun[] = [];
     for (const run of filtered) {
-      if (run.parentSessionKey) {
-        const siblings = map.get(run.parentSessionKey) ?? [];
+      if (run.requesterSessionKey) {
+        const siblings = map.get(run.requesterSessionKey) ?? [];
         siblings.push(run);
-        map.set(run.parentSessionKey, siblings);
+        map.set(run.requesterSessionKey, siblings);
       } else {
         rootRuns.push(run);
       }
@@ -78,27 +77,22 @@ export function ActiveRunsTab() {
   }, [filtered]);
 
   const handleKillConfirm = useCallback(async () => {
-    if (killTarget) {
-      await killRun(killTarget);
-      setKillTarget(null);
+    if (killTargetRunId) {
+      await killRun(killTargetRunId);
+      setKillTargetRunId(null);
     }
-  }, [killTarget, killRun]);
+  }, [killTargetRunId, killRun]);
 
-  const handleViewSession = useCallback(
-    (sessionKey: string) => {
-      setActivePanel("sessions");
-      // Session panel will pick up from URL / store state
-      void sessionKey;
-    },
-    [setActivePanel],
-  );
+  const handleViewSession = useCallback((sessionKey: string) => {
+    navigateToSession(sessionKey);
+  }, []);
 
   // Fetch lineage when a run is selected
   useEffect(() => {
-    if (selectedLineageKey) {
-      void fetchLineage(selectedLineageKey);
+    if (selectedLineageRunId) {
+      void fetchLineage(selectedLineageRunId);
     }
-  }, [selectedLineageKey, fetchLineage]);
+  }, [selectedLineageRunId, fetchLineage]);
 
   const activeCount = activeRuns.length;
 
@@ -126,7 +120,7 @@ export function ActiveRunsTab() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="running">Running</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="failed">Failed</SelectItem>
             <SelectItem value="timeout">Timeout</SelectItem>
@@ -160,25 +154,25 @@ export function ActiveRunsTab() {
             <div className="space-y-2">
               {roots.map((run) => (
                 <RunTreeNode
-                  key={run.sessionKey}
+                  key={run.runId}
                   run={run}
                   childMap={childMap}
                   depth={0}
-                  onKill={setKillTarget}
+                  onKill={setKillTargetRunId}
                   onViewSession={handleViewSession}
-                  onSelectLineage={setSelectedLineageKey}
-                  selectedLineageKey={selectedLineageKey}
+                  onSelectLineage={setSelectedLineageRunId}
+                  selectedLineageRunId={selectedLineageRunId}
                 />
               ))}
             </div>
 
             {/* Lineage visualization */}
-            {selectedLineageKey && lineage.length > 0 && (
+            {selectedLineageRunId && lineage.length > 0 && (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
                 <h3 className="text-xs font-medium text-[var(--text-secondary)] mb-3">
                   {t("lineage")}
                 </h3>
-                <LineageTree nodes={lineage} rootSessionKey={selectedLineageKey} />
+                <LineageTree nodes={lineage} rootSessionKey={selectedLineageRunId} />
               </div>
             )}
           </div>
@@ -186,16 +180,20 @@ export function ActiveRunsTab() {
       </div>
 
       {/* Kill confirmation dialog */}
-      <Dialog open={killTarget !== null} onOpenChange={(o) => !o && setKillTarget(null)}>
+      <Dialog open={killTargetRunId !== null} onOpenChange={(o) => !o && setKillTargetRunId(null)}>
         <DialogContent className="bg-[var(--bg-secondary)] border-[var(--border)] sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-[var(--text-primary)]">{t("kill")}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-[var(--text-secondary)]">
-            Terminate run <code className="text-xs font-mono">{killTarget}</code>?
+            Terminate run <code className="text-xs font-mono">{killTargetRunId}</code>?
           </p>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setKillTarget(null)} className="cursor-pointer">
+            <Button
+              variant="ghost"
+              onClick={() => setKillTargetRunId(null)}
+              className="cursor-pointer"
+            >
               Cancel
             </Button>
             <Button
@@ -223,18 +221,18 @@ function RunTreeNode({
   onKill,
   onViewSession,
   onSelectLineage,
-  selectedLineageKey,
+  selectedLineageRunId,
 }: {
   run: SubagentRun;
   childMap: Map<string, SubagentRun[]>;
   depth: number;
-  onKill: (sessionKey: string) => void;
+  onKill: (runId: string) => void;
   onViewSession: (sessionKey: string) => void;
-  onSelectLineage: (sessionKey: string) => void;
-  selectedLineageKey: string | null;
+  onSelectLineage: (runId: string) => void;
+  selectedLineageRunId: string | null;
 }) {
-  const children = childMap.get(run.sessionKey) ?? [];
-  const isSelected = selectedLineageKey === run.sessionKey;
+  const children = childMap.get(run.childSessionKey) ?? [];
+  const isSelected = selectedLineageRunId === run.runId;
 
   return (
     <div style={{ marginLeft: depth * 24 }}>
@@ -247,21 +245,21 @@ function RunTreeNode({
         <button
           type="button"
           className="w-full text-left cursor-pointer"
-          onClick={() => onSelectLineage(run.sessionKey)}
+          onClick={() => onSelectLineage(run.runId)}
         >
           <SubagentRunCard run={run} onKill={onKill} onViewSession={onViewSession} />
         </button>
       </div>
       {children.map((child) => (
         <RunTreeNode
-          key={child.sessionKey}
+          key={child.runId}
           run={child}
           childMap={childMap}
           depth={depth + 1}
           onKill={onKill}
           onViewSession={onViewSession}
           onSelectLineage={onSelectLineage}
-          selectedLineageKey={selectedLineageKey}
+          selectedLineageRunId={selectedLineageRunId}
         />
       ))}
     </div>

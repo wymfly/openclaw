@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Plus, Shield, Trash2 } from "lucide-react";
+import { ExternalLink, Loader2, Plus, Shield, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { AgentBadge } from "@/components/shared/AgentBadge";
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { navigateToRouting } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useChannelsStore } from "@/stores/channels";
 import { useDeckRoutingStore, type Binding, type BindingMatch } from "@/stores/deck-routing";
@@ -137,7 +138,7 @@ export function BindingsTab() {
             </div>
           )}
 
-          <div className="pt-4">
+          <div className="pt-4 flex items-center gap-3">
             <Button
               size="sm"
               variant="outline"
@@ -147,6 +148,13 @@ export function BindingsTab() {
               <Plus size={14} />
               Add Binding
             </Button>
+            <button
+              onClick={() => navigateToRouting()}
+              className="flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
+            >
+              View all routing rules
+              <ExternalLink size={10} />
+            </button>
           </div>
         </div>
       </div>
@@ -281,19 +289,15 @@ function BindingRow({
               account: {binding.match.accountId}
             </span>
           )}
-          {binding.match.guild && (
+          {binding.match.guildId && (
             <span className="text-[10px] text-[var(--text-secondary)]">
-              guild: {binding.match.guild}
+              guild: {binding.match.guildId}
             </span>
           )}
         </div>
       </td>
       <td className="px-3 py-2">
-        <AgentBadge
-          agentId={binding.agentId}
-          agentName={binding.agentName}
-          emoji={binding.agentEmoji}
-        />
+        <AgentBadge agentId={binding.agentId} />
       </td>
       <td className="px-3 py-2">
         <TierBadge tier={binding.tier} />

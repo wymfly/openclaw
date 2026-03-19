@@ -5,11 +5,11 @@
  * POST   — Dispatch skills.get/set, subagents.get/set by action field
  *
  * Gateway contracts:
- *   deck.agents.detail:       { agentId }
- *   deck.agents.skills.get:   { agentId }
- *   deck.agents.skills.set:   { agentId, skills, baseHash }
+ *   deck.agents.detail:        { agentId }
+ *   deck.agents.skills.get:    { agentId }
+ *   deck.agents.skills.set:    { agentId, mode, skills, baseHash }
  *   deck.agents.subagents.get: { agentId }
- *   deck.agents.subagents.set: { agentId, subagents, baseHash }
+ *   deck.agents.subagents.set: { agentId, allowAgents, model?, baseHash }
  */
 import { type NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";

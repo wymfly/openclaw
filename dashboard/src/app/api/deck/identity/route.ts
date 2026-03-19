@@ -5,9 +5,9 @@
  * POST   — Dispatch link/unlink by action field
  *
  * Gateway contracts:
- *   deck.identity.list:   { channel?, accountId? }
- *   deck.identity.link:   { identities, baseHash }
- *   deck.identity.unlink: { identityId, baseHash }
+ *   deck.identity.list:   {}
+ *   deck.identity.link:   { canonical, channel, peerId, baseHash }
+ *   deck.identity.unlink: { canonical, channel, peerId, baseHash }
  */
 import { type NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";

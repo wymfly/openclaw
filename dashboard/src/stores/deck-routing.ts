@@ -8,9 +8,9 @@ export interface BindingMatch {
   channel: string;
   accountId?: string;
   peer?: { kind: string; id: string };
-  guild?: string;
+  guildId?: string;
   roles?: string[];
-  team?: string;
+  teamId?: string;
 }
 
 export interface Binding {
@@ -18,29 +18,26 @@ export interface Binding {
   tier: string;
   match: BindingMatch;
   agentId: string;
-  agentName?: string;
-  agentEmoji?: string;
+  comment?: string;
 }
 
 export interface ValidationResult {
-  valid: boolean;
-  predictedTier?: string;
-  conflicts?: Array<{ bindingId: string; description: string }>;
-  warnings?: string[];
+  ok: boolean;
+  tier?: string;
+  conflicts?: Array<{ type: string; bindingId: string; agentId: string; detail: string }>;
 }
 
-export interface SimulationLayer {
+export interface SimulationTier {
   tier: string;
   matched: boolean;
-  agentId?: string;
-  bindingId?: string;
+  checked: boolean;
 }
 
 export interface SimulationResult {
-  matchedAgentId: string;
-  matchedTier: string;
+  agentId: string;
+  matchedBy: string;
   sessionKey: string;
-  layers: SimulationLayer[];
+  tiers: SimulationTier[];
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +127,7 @@ export const useDeckRoutingStore = create<DeckRoutingState>((set, get) => ({
       const res = await fetch("/api/deck/routing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "remove", bindingId, baseHash }),
+        body: JSON.stringify({ action: "remove", id: bindingId, baseHash }),
       });
       if (res.ok) {
         await get().fetchBindings();
