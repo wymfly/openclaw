@@ -460,16 +460,73 @@ test.describe("Catalog Tab", () => {
   });
 
   test("E-CAT-02: auth status dots visible", async ({ page }) => {
-    // Auth status dots are rendered per provider — just verify no crash
-    // The ProviderList renders AuthStatusDot for each provider
     const dots = page.locator("[class*='rounded-full']");
-    // At least 3 providers should have dots
     const count = await dots.count();
     expect(count).toBeGreaterThanOrEqual(3);
   });
 
+  test("E-CAT-03: expand provider to see models", async ({ page }) => {
+    // Click on moonshot provider to expand it
+    const moonshotTrigger = page.locator("button", { hasText: "moonshot" }).first();
+    await moonshotTrigger.click();
+
+    // Model name "Kimi K2.5" should be visible in the expanded list
+    await expect(page.locator("text=Kimi K2.5").first()).toBeVisible();
+    // Context window badge "262K" should be visible
+    await expect(page.locator("text=262K").first()).toBeVisible();
+  });
+
+  test("E-CAT-04: default model has star icon", async ({ page }) => {
+    // Click moonshot to expand and select it
+    const moonshotTrigger = page.locator("button", { hasText: "moonshot" }).first();
+    await moonshotTrigger.click();
+    await page.waitForTimeout(300);
+
+    // When moonshot is selected, the ProviderOverview table shows in the right pane.
+    // Kimi K2.5 is isDefault=true, so it has a Star icon (filled) next to its name in the table.
+    // The Star SVG has a fill attribute — look for it in the overview table area.
+    const defaultStar = page.locator("table svg");
+    await expect(defaultStar.first()).toBeVisible();
+  });
+
+  test("E-CAT-05: select provider shows overview in right pane", async ({ page }) => {
+    // Click moonshot provider header
+    const moonshotTrigger = page.locator("button", { hasText: "moonshot" }).first();
+    await moonshotTrigger.click();
+
+    // Right pane should show provider overview with model comparison table
+    const table = page.locator("table");
+    await expect(table.first()).toBeVisible();
+
+    // Table should contain model name
+    await expect(page.locator("td", { hasText: "Kimi K2.5" }).first()).toBeVisible();
+  });
+
+  test("E-CAT-06: provider overview shows pricing in table", async ({ page }) => {
+    // Select moonshot provider — right pane shows ProviderOverview with model comparison table
+    const moonshotTrigger = page.locator("button", { hasText: "moonshot" }).first();
+    await moonshotTrigger.click();
+    await page.waitForTimeout(300);
+
+    // The ProviderOverview table shows model prices in $X.XX/M format
+    await expect(page.locator("text=$0.57/M").first()).toBeVisible();
+    await expect(page.locator("text=$3.00/M").first()).toBeVisible();
+
+    // "Set as Default" action should be visible for non-default models
+    // (Kimi K2.5 is already default, so no button for it — but if other models existed, it would)
+  });
+
+  test("E-CAT-07: model price display format", async ({ page }) => {
+    // Select moonshot provider to see overview table
+    const moonshotTrigger = page.locator("button", { hasText: "moonshot" }).first();
+    await moonshotTrigger.click();
+
+    // Price should be in $X.XX/M format
+    const priceCell = page.locator("text=$0.57/M");
+    await expect(priceCell.first()).toBeVisible();
+  });
+
   test("E-CAT-08: empty models shows message", async ({ page }) => {
-    // Override models to empty
     await page.route("**/api/models", (route) =>
       route.fulfill({
         status: 200,
@@ -495,26 +552,130 @@ test.describe("Provider Config Tab", () => {
     await setupAllRoutes(page);
     await page.goto("/");
     await goToModels(page);
-    // Click Config tab
     const configTab = page.locator("[role='tab']", { hasText: /提供商配置|Provider Config/ });
     await configTab.click();
     await page.waitForTimeout(300);
   });
 
   test("E-CFG-01: configured and unconfigured groups shown", async ({ page }) => {
-    // Auth overview has moonshot (ready), minimax (warning) as configured; openai (missing) as unconfigured
-    // The sidebar should show grouped providers
     await expect(page.locator("text=moonshot").first()).toBeVisible();
     await expect(page.locator("text=openai").first()).toBeVisible();
+
+    // Section labels: "Configured" / "已配置" and "Unconfigured" / "未配置"
+    const configuredLabel = page.locator("text=/Configured|已配置/i");
+    const unconfiguredLabel = page.locator("text=/Unconfigured|未配置/i");
+    await expect(configuredLabel.first()).toBeVisible();
+    await expect(unconfiguredLabel.first()).toBeVisible();
   });
 
   test("E-CFG-02: auth type badges displayed", async ({ page }) => {
-    // moonshot has api_key, minimax has oauth
     const apiKeyBadge = page.locator("text=/API Key|api_key/i");
     const oauthBadge = page.locator("text=/OAuth|oauth/i");
-    // At least one of each should be visible
     await expect(apiKeyBadge.first()).toBeVisible();
     await expect(oauthBadge.first()).toBeVisible();
+  });
+
+  test("E-CFG-03: auth health card shows ready status", async ({ page }) => {
+    // moonshot is auto-selected (first provider). Auth health card should show "Ready" / "就绪"
+    const statusBadge = page.locator("text=/Ready|就绪/");
+    await expect(statusBadge.first()).toBeVisible();
+
+    // Auth source should be visible
+    await expect(page.locator("text=env:MOONSHOT_API_KEY").first()).toBeVisible();
+  });
+
+  test("E-CFG-04: auth health card shows warning for expiring OAuth", async ({ page }) => {
+    // Click on minimax (warning status with expiring OAuth)
+    const minimaxBtn = page.locator("button", { hasText: "minimax" }).first();
+    await minimaxBtn.click();
+    await page.waitForTimeout(200);
+
+    // Should show "Warning" / "警告" badge
+    const warningBadge = page.locator("text=/Warning|警告/");
+    await expect(warningBadge.first()).toBeVisible();
+
+    // Should show expires countdown
+    const expiresLabel = page.locator("text=/有效期剩余|Expires in/");
+    await expect(expiresLabel.first()).toBeVisible();
+  });
+
+  test("E-CFG-06: probe diagnostic — success", async ({ page }) => {
+    // The probe button should be visible (moonshot auto-selected)
+    const probeBtn = page.locator("text=/运行诊断|Run Diagnostic/");
+    await expect(probeBtn.first()).toBeVisible();
+
+    await probeBtn.first().click();
+
+    // After probe returns, should show "ok · 238ms"
+    const result = page.locator("text=ok");
+    await expect(result.first()).toBeVisible({ timeout: 3000 });
+    await expect(page.locator("text=238ms").first()).toBeVisible();
+  });
+
+  test("E-CFG-07: probe diagnostic — failure", async ({ page }) => {
+    // Override probe to return failure
+    await page.route("**/api/models/probe", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          provider: "moonshot",
+          status: "auth",
+          latencyMs: 0,
+          error: "Invalid API key",
+        }),
+      }),
+    );
+
+    const probeBtn = page.locator("text=/运行诊断|Run Diagnostic/");
+    await probeBtn.first().click();
+
+    // Should show error info
+    await expect(page.locator("text=Invalid API key").first()).toBeVisible({ timeout: 3000 });
+  });
+
+  test("E-CFG-08: API key input with show/hide toggle", async ({ page }) => {
+    // API Key input should be a password field
+    const apiKeyInput = page.locator("input[type='password']").first();
+    await expect(apiKeyInput).toBeVisible();
+
+    // Click eye toggle to show
+    const eyeBtn = page.locator("button[aria-label='Show API key']");
+    await eyeBtn.click();
+
+    // Input type should now be text
+    const visibleInput = page.locator("input[placeholder='sk-...']").first();
+    await expect(visibleInput).toHaveAttribute("type", "text");
+
+    // Click again to hide
+    const eyeOffBtn = page.locator("button[aria-label='Hide API key']");
+    await eyeOffBtn.click();
+    await expect(visibleInput).toHaveAttribute("type", "password");
+  });
+
+  test("E-CFG-09: save configuration", async ({ page }) => {
+    // Type an API key
+    const apiKeyInput = page.locator("input[placeholder='sk-...']").first();
+    await apiKeyInput.fill("sk-test-123");
+
+    // Click Save button
+    const saveBtn = page.locator("button", { hasText: /Save|保存/ }).first();
+    await saveBtn.click();
+
+    // Should show "Saved" / "已保存" after success
+    const savedText = page.locator("button", { hasText: /Saved|已保存/ });
+    await expect(savedText.first()).toBeVisible({ timeout: 3000 });
+  });
+
+  test("E-CFG-10: unconfigured provider shows guidance", async ({ page }) => {
+    // Click on openai (missing status)
+    const openaiBtn = page.locator("button", { hasText: "openai" }).first();
+    await openaiBtn.click();
+    await page.waitForTimeout(200);
+
+    // Should show "Not configured" / "未配置" status
+    const missingStatus = page.locator("text=/Not configured|未配置/");
+    await expect(missingStatus.first()).toBeVisible();
   });
 });
 
@@ -527,26 +688,66 @@ test.describe("Usage Tab", () => {
     await setupAllRoutes(page);
     await page.goto("/");
     await goToModels(page);
-    // Click Usage tab
     const usageTab = page.locator("[role='tab']", { hasText: /用量|Usage/ });
     await usageTab.click();
     await page.waitForTimeout(300);
   });
 
   test("E-US-01: today cost card displayed", async ({ page }) => {
-    // "Today" / "今日" label should be visible
     const todayLabel = page.locator("text=/今日|Today/");
     await expect(todayLabel.first()).toBeVisible();
+
+    // Today's cost from mock data is $12.38
+    await expect(page.locator("text=$12.38").first()).toBeVisible();
+  });
+
+  test("E-US-02: week cost card displayed", async ({ page }) => {
+    const weekLabel = page.locator("text=/本周|This Week/");
+    await expect(weekLabel.first()).toBeVisible();
+
+    // Sum of 7 days: 8.5+12.3+9.8+15.2+11.0+7.6+12.38 = 76.78
+    await expect(page.locator("text=$76.78").first()).toBeVisible();
   });
 
   test("E-US-03: active providers card displayed", async ({ page }) => {
-    // "Active Providers" / "活跃提供商"
     const label = page.locator("text=/活跃提供商|Active Providers/");
     await expect(label.first()).toBeVisible();
+
+    // 1 ready (moonshot) out of 3 total
+    await expect(page.locator("text=1 / 3").first()).toBeVisible();
   });
 
-  test("E-US-09: empty data shows placeholder", async ({ page }) => {
-    // Override cost to empty
+  test("E-US-04: provider quota card with progress bar", async ({ page }) => {
+    // Moonshot quota card should be visible
+    await expect(page.locator("text=Moonshot").first()).toBeVisible();
+
+    // Plan badge "Standard"
+    await expect(page.locator("text=Standard").first()).toBeVisible();
+
+    // Usage percent "72%"
+    await expect(page.locator("text=72%").first()).toBeVisible();
+
+    // Reset timer should be visible
+    const resetsLabel = page.locator("text=/重置倒计时|Resets in/");
+    await expect(resetsLabel.first()).toBeVisible();
+  });
+
+  test("E-US-06: 7-day trend chart renders", async ({ page }) => {
+    // Recharts renders SVG elements — verify bar chart has bars
+    const bars = page.locator(".recharts-bar-rectangle");
+    await expect(bars.first()).toBeVisible({ timeout: 3000 });
+
+    // Should have 7 bars for 7 days
+    const barCount = await bars.count();
+    expect(barCount).toBe(7);
+  });
+
+  test("E-US-08: view details link present", async ({ page }) => {
+    const viewDetails = page.locator("text=/查看详细分析|View detailed analysis/");
+    await expect(viewDetails.first()).toBeVisible();
+  });
+
+  test("E-US-09: empty cost data shows placeholder", async ({ page }) => {
     await page.route("**/api/usage/cost**", (route) =>
       route.fulfill({
         status: 200,
@@ -561,8 +762,94 @@ test.describe("Usage Tab", () => {
     await usageTab.click();
     await page.waitForTimeout(500);
 
-    // Today cost should show $0 or the empty state
-    const todayLabel = page.locator("text=/今日|Today/");
-    await expect(todayLabel.first()).toBeVisible();
+    // With empty cost, "No cost data available" message should appear in chart area
+    const emptyChart = page.locator("text=No cost data available");
+    await expect(emptyChart.first()).toBeVisible();
+  });
+
+  test("E-US-10: provider with only error shows unavailable", async ({ page }) => {
+    // Override usage status to include an error-only provider
+    await page.route("**/api/usage", (route) => {
+      if (route.request().url().includes("/api/usage/cost")) {
+        return route.continue();
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          providers: [
+            {
+              provider: "broken",
+              displayName: "Broken Provider",
+              windows: [],
+              error: "API unreachable",
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto("/");
+    await goToModels(page);
+    const usageTab = page.locator("[role='tab']", { hasText: /用量|Usage/ });
+    await usageTab.click();
+    await page.waitForTimeout(500);
+
+    // "Quota data unavailable" / "配额数据不可用"
+    const noQuota = page.locator("text=/配额数据不可用|Quota data unavailable/");
+    await expect(noQuota.first()).toBeVisible();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §4.6 Cross-Tab Integration (P2)
+// ---------------------------------------------------------------------------
+
+test.describe("Cross-Tab Integration", () => {
+  test.beforeEach(async ({ page }) => {
+    await setupAllRoutes(page);
+    await page.goto("/");
+    await goToModels(page);
+  });
+
+  test("E-INT-04: auth status consistency across Catalog and Config tabs", async ({ page }) => {
+    // In Catalog tab, count green dots (moonshot=ready)
+    // Note: we can't easily count specific colored dots, but we verify both tabs render without crash
+    await expect(page.locator("text=moonshot").first()).toBeVisible();
+
+    // Switch to Config tab
+    const configTab = page.locator("[role='tab']", { hasText: /提供商配置|Provider Config/ });
+    await configTab.click();
+    await page.waitForTimeout(300);
+
+    // Same providers should appear
+    await expect(page.locator("text=moonshot").first()).toBeVisible();
+    await expect(page.locator("text=openai").first()).toBeVisible();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §5 i18n Verification (P2)
+// ---------------------------------------------------------------------------
+
+test.describe("i18n Verification", () => {
+  test("I18N-01: default Chinese locale renders all tabs without missing keys", async ({
+    page,
+  }) => {
+    await setupAllRoutes(page);
+    await page.goto("/");
+    await goToModels(page);
+
+    // All 4 tab labels in Chinese
+    await expect(page.locator("[role='tab']", { hasText: "目录" })).toBeVisible();
+    await expect(page.locator("[role='tab']", { hasText: "提供商配置" })).toBeVisible();
+    await expect(page.locator("[role='tab']", { hasText: "回退链" })).toBeVisible();
+    await expect(page.locator("[role='tab']", { hasText: "用量" })).toBeVisible();
+
+    // No missing i18n keys (they show as the raw key path like "models.tabs.xxx")
+    const body = await page.locator("body").textContent();
+    expect(body).not.toContain("models.tabs.");
+    expect(body).not.toContain("models.fallbacks.");
+    expect(body).not.toContain("models.auth.");
   });
 });
