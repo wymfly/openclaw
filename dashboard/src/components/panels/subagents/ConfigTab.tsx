@@ -13,10 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { navigateToAgent } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
 import { useDeckAgentsStore, type AgentSubagentConfig } from "@/stores/deck-agents";
-import { useUIStore } from "@/stores/ui";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,7 +50,6 @@ export function ConfigTab() {
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
   const fetchSubagentConfig = useDeckAgentsStore((s) => s.fetchSubagentConfig);
-  const setActivePanel = useUIStore((s) => s.setActivePanel);
 
   const [defaults, setDefaults] = useState<GlobalDefaults>(DEFAULT_VALUES);
   const [saving, setSaving] = useState(false);
@@ -281,24 +280,24 @@ export function ConfigTab() {
                       )}
                       onClick={() => {
                         void fetchSubagentConfig(agent.id);
-                        setActivePanel("agents");
+                        navigateToAgent(agent.id, "subagent");
                       }}
                     >
                       <td className="py-2.5 pr-4">
                         <AgentBadge agentId={agent.id} agentName={agent.name} />
                       </td>
                       <td className="py-2.5 pr-4 text-[var(--text-primary)]">
-                        {config?.allowMode === "none"
-                          ? "None"
-                          : config?.allowMode === "any"
-                            ? "Any"
-                            : config?.allowAgents?.join(", ") || "—"}
+                        {config?.allowAny
+                          ? "Any"
+                          : config?.allowAgents?.length
+                            ? config.allowAgents.join(", ")
+                            : "None"}
                       </td>
                       <td className="py-2.5 pr-4 font-mono text-[var(--text-secondary)]">
-                        {config?.effectiveMaxDepth ?? defaults.maxSpawnDepth}
+                        {config?.effectiveMaxSpawnDepth ?? defaults.maxSpawnDepth}
                       </td>
                       <td className="py-2.5 pr-4 font-mono text-[var(--text-secondary)]">
-                        {config?.effectiveMaxChildren ?? defaults.maxChildrenPerAgent}
+                        {config?.effectiveMaxChildrenPerAgent ?? defaults.maxChildrenPerAgent}
                       </td>
                       <td className="py-2.5 text-[var(--text-secondary)]">
                         {config?.model ?? (defaults.defaultModel || "—")}

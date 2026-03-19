@@ -5,11 +5,11 @@
  * POST   — Dispatch add/remove/validate/simulate by action field
  *
  * Gateway contracts:
- *   deck.routing.list:     { agentId? }
- *   deck.routing.add:      { match, agentId, baseHash }
- *   deck.routing.remove:   { bindingId, baseHash }
- *   deck.routing.validate: { match, agentId? }
- *   deck.routing.simulate: { channel, accountId?, peer?, guild?, roles? }
+ *   deck.routing.list:     { agentId?, channel?, accountId? }
+ *   deck.routing.add:      { agentId, match, comment?, baseHash }
+ *   deck.routing.remove:   { id, baseHash }
+ *   deck.routing.validate: { agentId, match }
+ *   deck.routing.simulate: { channel, accountId?, peer?, guildId?, teamId?, memberRoleIds? }
  */
 import { type NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";

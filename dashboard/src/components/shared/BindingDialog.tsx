@@ -53,9 +53,9 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
   const [accountId, setAccountId] = useState(prefill?.accountId ?? "");
   const [peerKind, setPeerKind] = useState("");
   const [peerId, setPeerId] = useState("");
-  const [guild, setGuild] = useState("");
+  const [guildId, setGuildId] = useState("");
   const [roles, setRoles] = useState("");
-  const [team, setTeam] = useState("");
+  const [teamId, setTeamId] = useState("");
 
   // Reset when dialog opens
   useEffect(() => {
@@ -65,9 +65,9 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
       setAccountId(prefill?.accountId ?? "");
       setPeerKind("");
       setPeerId("");
-      setGuild("");
+      setGuildId("");
       setRoles("");
-      setTeam("");
+      setTeamId("");
     }
   }, [open, prefill]);
 
@@ -82,8 +82,8 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
     if (peerKind && peerId) {
       match.peer = { kind: peerKind, id: peerId };
     }
-    if (isDiscord && guild) {
-      match.guild = guild;
+    if (isDiscord && guildId) {
+      match.guildId = guildId;
     }
     if (isDiscord && roles) {
       match.roles = roles
@@ -91,11 +91,11 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
         .map((r) => r.trim())
         .filter(Boolean);
     }
-    if (isSlack && team) {
-      match.team = team;
+    if (isSlack && teamId) {
+      match.teamId = teamId;
     }
     return match;
-  }, [channel, accountId, peerKind, peerId, guild, roles, team, isDiscord, isSlack]);
+  }, [channel, accountId, peerKind, peerId, guildId, roles, teamId, isDiscord, isSlack]);
 
   // Real-time validation when fields change
   useEffect(() => {
@@ -111,9 +111,9 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
     accountId,
     peerKind,
     peerId,
-    guild,
+    guildId,
     roles,
-    team,
+    teamId,
     agentId,
     buildMatch,
     validateBinding,
@@ -190,9 +190,9 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
                   <SelectValue placeholder="Type..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="channel">Channel</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="direct">Direct</SelectItem>
                   <SelectItem value="group">Group</SelectItem>
+                  <SelectItem value="channel">Channel</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -213,8 +213,8 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
               <div className="space-y-1.5">
                 <Label className="text-xs text-[var(--text-secondary)]">Guild ID</Label>
                 <Input
-                  value={guild}
-                  onChange={(e) => setGuild(e.target.value)}
+                  value={guildId}
+                  onChange={(e) => setGuildId(e.target.value)}
                   placeholder="Discord Guild ID..."
                   className="bg-[var(--bg-primary)] border-[var(--border)]"
                 />
@@ -238,8 +238,8 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
             <div className="space-y-1.5">
               <Label className="text-xs text-[var(--text-secondary)]">Team ID</Label>
               <Input
-                value={team}
-                onChange={(e) => setTeam(e.target.value)}
+                value={teamId}
+                onChange={(e) => setTeamId(e.target.value)}
                 placeholder="Slack Team ID..."
                 className="bg-[var(--bg-primary)] border-[var(--border)]"
               />
@@ -251,24 +251,19 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
             <div
               className={cn(
                 "rounded-md p-2.5 text-xs border",
-                validationResult.valid
+                validationResult.ok
                   ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                   : "bg-red-500/10 border-red-500/20 text-red-400",
               )}
             >
-              {validationResult.predictedTier && (
+              {validationResult.tier && (
                 <p>
-                  Predicted tier: <strong>{validationResult.predictedTier}</strong>
+                  Predicted tier: <strong>{validationResult.tier}</strong>
                 </p>
               )}
               {validationResult.conflicts?.map((c, i) => (
                 <p key={i} className="mt-1">
-                  Conflict: {c.description}
-                </p>
-              ))}
-              {validationResult.warnings?.map((w, i) => (
-                <p key={i} className="mt-1 text-amber-400">
-                  {w}
+                  {c.type}: {c.detail}
                 </p>
               ))}
             </div>

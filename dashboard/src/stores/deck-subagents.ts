@@ -5,27 +5,36 @@ import { create } from "zustand";
 // ---------------------------------------------------------------------------
 
 export interface SubagentRun {
-  sessionKey: string;
-  agentId: string;
-  agentName?: string;
-  agentEmoji?: string;
-  task?: string;
-  model?: string;
-  status: "running" | "completed" | "failed" | "timeout";
-  depth: number;
-  startedAt: string;
-  completedAt?: string;
-  parentSessionKey?: string;
+  runId: string;
+  childSessionKey: string;
+  childAgentId: string;
+  childAgentName?: string;
+  requesterSessionKey?: string;
   requesterAgentId?: string;
+  requesterAgentName?: string;
+  task?: string;
+  label?: string;
+  model?: string;
+  spawnMode?: string;
+  status: "active" | "completed" | "failed" | "timeout";
+  depth: number;
+  createdAt: number;
+  startedAt?: number;
+  endedAt?: number;
+  durationMs?: number;
+  outcome?: { status?: string; error?: string };
 }
 
 export interface LineageNode {
+  runId: string;
   sessionKey: string;
   agentId: string;
   agentName?: string;
-  status: "running" | "completed" | "failed" | "timeout";
+  task?: string;
   depth: number;
-  children: LineageNode[];
+  parentRunId: string | null;
+  status: "active" | "completed" | "failed" | "timeout";
+  durationMs?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,8 +55,8 @@ interface DeckSubagentsState {
   _pollTimer: ReturnType<typeof setInterval> | null;
 
   fetchRuns: (status?: string, requesterAgentId?: string) => Promise<void>;
-  fetchLineage: (sessionKey: string) => Promise<void>;
-  killRun: (sessionKey: string) => Promise<boolean>;
+  fetchLineage: (runId: string) => Promise<void>;
+  killRun: (runId: string) => Promise<boolean>;
   startPolling: () => void;
   stopPolling: () => void;
 }
@@ -80,8 +89,8 @@ export const useDeckSubagentsStore = create<DeckSubagentsState>((set, get) => ({
       const data = await res.json();
       const runs: SubagentRun[] = Array.isArray(data.runs) ? data.runs : [];
       set({
-        activeRuns: runs.filter((r) => r.status === "running"),
-        historyRuns: runs.filter((r) => r.status !== "running"),
+        activeRuns: runs.filter((r) => r.status === "active"),
+        historyRuns: runs.filter((r) => r.status !== "active"),
       });
     } catch {
       set({ error: "Failed to fetch subagent runs" });
@@ -90,12 +99,12 @@ export const useDeckSubagentsStore = create<DeckSubagentsState>((set, get) => ({
     }
   },
 
-  fetchLineage: async (sessionKey: string) => {
+  fetchLineage: async (runId: string) => {
     try {
       const res = await fetch("/api/deck/subagents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "lineage", sessionKey }),
+        body: JSON.stringify({ action: "lineage", runId }),
       });
       if (!res.ok) {
         return;
@@ -107,12 +116,12 @@ export const useDeckSubagentsStore = create<DeckSubagentsState>((set, get) => ({
     }
   },
 
-  killRun: async (sessionKey: string) => {
+  killRun: async (runId: string) => {
     try {
       const res = await fetch("/api/deck/subagents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "kill", sessionKey }),
+        body: JSON.stringify({ action: "kill", runId }),
       });
       if (res.ok) {
         await get().fetchRuns();

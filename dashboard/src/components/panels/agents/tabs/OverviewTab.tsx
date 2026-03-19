@@ -4,6 +4,7 @@ import { Route, Zap, GitBranch, MessageSquare, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { navigateToSubagents } from "@/lib/panel-navigation";
 import type { AgentDetail } from "@/stores/deck-agents";
 
 type TabValue = "overview" | "routing" | "skills" | "subagent" | "sessions";
@@ -17,48 +18,48 @@ interface StatCardDef {
   label: string;
   value: number;
   icon: React.ReactNode;
-  tab: TabValue;
+  tab?: TabValue;
+  /** If set, navigates to a different panel instead of switching tabs. */
+  panelAction?: () => void;
   color: string;
 }
 
 export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
   const t = useTranslations("agentDetail");
-  const stats = detail.stats;
-
   const statCards: StatCardDef[] = [
     {
       label: t("statBindings"),
-      value: stats?.bindingCount ?? 0,
+      value: detail.bindingCount ?? 0,
       icon: <Route size={14} />,
       tab: "routing",
       color: "text-blue-400",
     },
     {
       label: t("statSkills"),
-      value: stats?.skillCount ?? 0,
+      value: detail.effectiveSkills?.length ?? 0,
       icon: <Zap size={14} />,
       tab: "skills",
       color: "text-amber-400",
     },
     {
       label: t("statSubagents"),
-      value: stats?.subagentCount ?? 0,
+      value: detail.subagents?.allowAgents?.length ?? 0,
       icon: <GitBranch size={14} />,
       tab: "subagent",
       color: "text-purple-400",
     },
     {
       label: t("statSessions"),
-      value: stats?.activeSessionCount ?? 0,
+      value: detail.sessionCount ?? 0,
       icon: <MessageSquare size={14} />,
       tab: "sessions",
       color: "text-teal-400",
     },
     {
       label: t("statActiveRuns"),
-      value: stats?.activeRunCount ?? 0,
+      value: detail.activeSubagentCount ?? 0,
       icon: <Play size={14} />,
-      tab: "subagent",
+      panelAction: navigateToSubagents,
       color: "text-emerald-400",
     },
   ];
@@ -105,8 +106,14 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {statCards.map((card) => (
           <button
-            key={card.tab + card.label}
-            onClick={() => onNavigateTab(card.tab)}
+            key={(card.tab ?? "panel") + card.label}
+            onClick={() => {
+              if (card.panelAction) {
+                card.panelAction();
+              } else if (card.tab) {
+                onNavigateTab(card.tab);
+              }
+            }}
             className="text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded-lg"
           >
             <Card className="bg-[var(--bg-primary)] border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors h-full">

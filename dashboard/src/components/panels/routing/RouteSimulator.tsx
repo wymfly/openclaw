@@ -57,16 +57,16 @@ export function RouteSimulator() {
       params.peer = { kind: peerType, id: peerId };
     }
     if (isDiscord && guildId) {
-      params.guild = guildId;
+      params.guildId = guildId;
     }
     if (isDiscord && roles) {
-      params.roles = roles
+      params.memberRoleIds = roles
         .split(",")
         .map((r) => r.trim())
         .filter(Boolean);
     }
     if (isSlack && teamId) {
-      params.team = teamId;
+      params.teamId = teamId;
     }
     void simulate(params);
   };
@@ -84,7 +84,7 @@ export function RouteSimulator() {
 
   // Find agent details for the matched agent
   const matchedAgent = simulationResult
-    ? agents.find((a) => a.id === simulationResult.matchedAgentId)
+    ? agents.find((a) => a.id === simulationResult.agentId)
     : null;
 
   return (
@@ -227,12 +227,9 @@ export function RouteSimulator() {
                 <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                   Matched Agent
                 </span>
-                <TierBadge tier={simulationResult.matchedTier} />
+                <TierBadge tier={simulationResult.matchedBy} />
               </div>
-              <AgentBadge
-                agentId={simulationResult.matchedAgentId}
-                agentName={matchedAgent?.name}
-              />
+              <AgentBadge agentId={simulationResult.agentId} agentName={matchedAgent?.name} />
             </div>
 
             {/* Session key */}
@@ -251,8 +248,8 @@ export function RouteSimulator() {
                 Tier Evaluation
               </span>
               {ALL_TIERS.map((tier) => {
-                const layer = simulationResult.layers.find((l) => l.tier === tier);
-                const isMatched = layer?.matched ?? false;
+                const tierEntry = simulationResult.tiers.find((t) => t.tier === tier);
+                const isMatched = tierEntry?.matched ?? false;
                 return (
                   <div
                     key={tier}
@@ -270,11 +267,6 @@ export function RouteSimulator() {
                       {isMatched ? "\u2705" : "\u2014"}
                     </span>
                     <TierBadge tier={tier} />
-                    {isMatched && layer?.agentId && (
-                      <span className="text-[10px] text-[var(--text-secondary)] font-mono ml-auto truncate max-w-[100px]">
-                        {layer.agentId}
-                      </span>
-                    )}
                   </div>
                 );
               })}

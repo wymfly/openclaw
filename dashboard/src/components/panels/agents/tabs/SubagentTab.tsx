@@ -1,6 +1,6 @@
 "use client";
 
-import { Info } from "lucide-react";
+import { ExternalLink, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { SubagentRunCard } from "@/components/shared/SubagentRunCard";
@@ -9,16 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { navigateToSubagents } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
-import { useDeckAgentsStore, type AgentSubagentConfig } from "@/stores/deck-agents";
+import { useDeckAgentsStore } from "@/stores/deck-agents";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 
 interface SubagentTabProps {
   agentId: string;
 }
 
-type AllowMode = AgentSubagentConfig["allowMode"];
+type AllowMode = "none" | "list" | "any";
 
 const MODES: { value: AllowMode; labelKey: string }[] = [
   { value: "none", labelKey: "spawnNone" },
@@ -45,8 +46,15 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
 
   useEffect(() => {
     if (currentSubagentConfig) {
-      setAllowMode(currentSubagentConfig.allowMode);
-      setAllowAgents(currentSubagentConfig.allowAgents);
+      // Derive UI allowMode from backend allowAgents/allowAny
+      if (currentSubagentConfig.allowAny) {
+        setAllowMode("any");
+      } else if (currentSubagentConfig.allowAgents.length > 0) {
+        setAllowMode("list");
+      } else {
+        setAllowMode("none");
+      }
+      setAllowAgents(currentSubagentConfig.allowAgents.filter((id) => id !== "*"));
       setModelOverride(currentSubagentConfig.model ?? "");
     }
   }, [currentSubagentConfig]);
@@ -59,21 +67,29 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaved(false);
+    // Convert UI allowMode to backend allowAgents format
+    const effectiveAllowAgents =
+      allowMode === "any" ? ["*"] : allowMode === "list" ? allowAgents : [];
+    const baseHash = currentSubagentConfig?.configHash ?? "";
     const ok = await updateSubagentConfig(
       agentId,
-      {
-        allowMode,
-        allowAgents,
-        model: modelOverride || undefined,
-      },
-      "",
+      effectiveAllowAgents,
+      modelOverride || null,
+      baseHash,
     );
     if (ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }
     setSaving(false);
-  }, [agentId, allowMode, allowAgents, modelOverride, updateSubagentConfig]);
+  }, [
+    agentId,
+    allowMode,
+    allowAgents,
+    modelOverride,
+    currentSubagentConfig?.configHash,
+    updateSubagentConfig,
+  ]);
 
   // Filter active runs for this agent
   const agentRuns = activeRuns.filter((r) => r.requesterAgentId === agentId);
@@ -175,13 +191,13 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
             <div>
               <span className="text-[10px] text-[var(--text-secondary)]">{t("maxDepth")}</span>
               <p className="text-sm font-mono text-[var(--text-primary)]">
-                {currentSubagentConfig?.effectiveMaxDepth ?? "—"}
+                {currentSubagentConfig?.effectiveMaxSpawnDepth ?? "—"}
               </p>
             </div>
             <div>
               <span className="text-[10px] text-[var(--text-secondary)]">{t("maxChildren")}</span>
               <p className="text-sm font-mono text-[var(--text-primary)]">
-                {currentSubagentConfig?.effectiveMaxChildren ?? "—"}
+                {currentSubagentConfig?.effectiveMaxChildrenPerAgent ?? "—"}
               </p>
             </div>
           </div>
@@ -205,6 +221,17 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
         </Button>
       </div>
 
+      {/* Link to subagents panel */}
+      <div className="flex justify-end">
+        <button
+          onClick={navigateToSubagents}
+          className="flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
+        >
+          {t("viewInSubagentsPanel")}
+          <ExternalLink size={10} />
+        </button>
+      </div>
+
       {/* Active runs summary */}
       {agentRuns.length > 0 && (
         <div className="space-y-2">
@@ -215,7 +242,7 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
             </Badge>
           </h3>
           {agentRuns.map((run) => (
-            <SubagentRunCard key={run.sessionKey} run={run} />
+            <SubagentRunCard key={run.runId} run={run} />
           ))}
         </div>
       )}
