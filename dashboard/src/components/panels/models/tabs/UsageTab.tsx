@@ -1,12 +1,28 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useEffect } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useModelsStore } from "@/stores/models";
+import { CostTrendChart } from "../usage/CostTrendChart";
+import { ProviderQuotaGrid } from "../usage/ProviderQuotaGrid";
+import { SummaryCards } from "../usage/SummaryCards";
 
 export function UsageTab() {
-  const t = useTranslations("models");
+  const { authOverview, usageCost, usageProviders, fetchUsageSummary, fetchAuthOverview } =
+    useModelsStore();
+
+  useEffect(() => {
+    void fetchUsageSummary();
+    void fetchAuthOverview();
+  }, [fetchUsageSummary, fetchAuthOverview]);
+
   return (
-    <div className="flex h-full items-center justify-center text-muted-foreground">
-      {t("tabs.usage")} — coming soon
-    </div>
+    <ScrollArea className="h-full">
+      <div className="p-4 space-y-6">
+        <SummaryCards cost={usageCost} auth={authOverview} />
+        <ProviderQuotaGrid providers={usageProviders} />
+        <CostTrendChart data={usageCost} />
+      </div>
+    </ScrollArea>
   );
 }
