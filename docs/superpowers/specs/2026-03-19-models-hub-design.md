@@ -125,9 +125,11 @@ Models 面板
 
 ### 模型数据与定价
 
-现有 `models.list` RPC 返回的 `ModelCatalogEntry` 包含 `id, name, provider, contextWindow, reasoning, input[]`。定价数据（`cost.input/output/cacheRead/cacheWrite`）存在于网关内部的 model definition（`ModelDefinitionConfig.cost`）中，但当前 `models.list` 未返回。
+现有 `models.list` RPC 返回的 `ModelCatalogEntry`（来自 Pi SDK 的 `ModelRegistry` 动态发现）包含 `id, name, provider, contextWindow, reasoning, input[]`。定价数据（`cost.input/output/cacheRead/cacheWrite`）存在于 `ModelDefinitionConfig`（`src/config/types.models.ts`，来自 `models.json` 静态配置）中，但 `ModelCatalogEntry` 和 `models.list` 均不返回。
 
-**需要扩展 `models.list` 的返回字段**（在 `src/gateway/server-methods/models.ts` 中）：
+**实现路径**：在 `src/gateway/server-model-catalog.ts` 的 `loadGatewayModelCatalog()` 中，将 `ModelDefinitionConfig.cost` 和 `maxTokens` 合并到 `ModelCatalogEntry` 中返回。两个数据源通过 `provider + model.id` 关联。
+
+**需要扩展 `models.list` 的返回字段**（在 `src/gateway/server-methods/models.ts` + `src/gateway/server-model-catalog.ts` 中）：
 
 ```typescript
 // 扩展 ModelCatalogEntry
@@ -283,7 +285,7 @@ OAuth 类型额外显示：
 
 **读取**：
 
-1. `config.get` → 返回 `{ raw: string, hash: string }`
+1. `config.get` → 返回完整 `ConfigFileSnapshot`（含 `raw`, `hash`, `config`, `parsed`, `resolved`, `path`, `exists`, `valid`, `issues` 等字段），我们只需 `raw` 和 `hash`
 2. 解析 `raw` 中的 `agents.defaults.model` 字段
 3. 通过 `resolveAgentModelPrimaryValue()` 提取 primary
 4. 通过 `resolveAgentModelFallbackValues()` 提取 fallbacks 数组
@@ -397,9 +399,12 @@ Recharts 柱状图：
       until: number; // timestamp ms
     };
     usage?: {
-      windowLabel: string; // "每日限额"
-      usedPercent: number; // 0-100
-      resetsInMs: number;
+      windows: Array<{
+        // 一个 provider 可能有多个窗口（如日限额+月配额）
+        label: string; // "每日限额"
+        usedPercent: number; // 0-100
+        resetsInMs: number; // 由 handler 从 UsageWindow.resetAt (timestamp) 转换为相对毫秒
+      }>;
       plan?: string; // "Standard"
     };
   }>;
@@ -408,12 +413,12 @@ Recharts 柱状图：
 
 **实现**：提取共享逻辑到 `src/agents/auth-diagnostics.ts`，合并以下三个数据源：
 
-| 字段                         | 数据来源            | 现有函数                                                                       |
-| ---------------------------- | ------------------- | ------------------------------------------------------------------------------ |
-| `auth.type/source/profileId` | Auth profile store  | `resolveProviderAuthOverview()` in `src/commands/models/list.auth-overview.ts` |
-| `oauth.expiresAt/status`     | Auth health         | `buildAuthHealthSummary()` in `src/agents/auth-health.ts`                      |
-| `cooldown.*`                 | Profile usage stats | `resolveProfileUnusableUntilForDisplay()` in `src/agents/auth-profiles.ts`     |
-| `usage.*`                    | Provider usage      | `loadProviderUsageSummary()` in `src/infra/provider-usage.ts`                  |
+| 字段                         | 数据来源            | 现有函数                                                                                                                                                                                                                                         |
+| ---------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `auth.type/source/profileId` | Auth profile store  | `resolveProviderAuthOverview()` in `src/commands/models/list.auth-overview.ts`（注意：该函数返回 `effective.kind` 为 `"profiles"\|"env"\|"models.json"\|"missing"`，需额外从 profile store 提取具体 auth type `"api_key"\|"oauth"\|"token"` 等） |
+| `oauth.expiresAt/status`     | Auth health         | `buildAuthHealthSummary()` in `src/agents/auth-health.ts`                                                                                                                                                                                        |
+| `cooldown.*`                 | Profile usage stats | `resolveProfileUnusableUntilForDisplay()` in `src/agents/auth-profiles.ts`                                                                                                                                                                       |
+| `usage.*`                    | Provider usage      | `loadProviderUsageSummary()` in `src/infra/provider-usage.ts`                                                                                                                                                                                    |
 
 **状态点映射规则**（从现有 `AuthProviderHealthStatus` 到 UI `status`）：
 
@@ -449,7 +454,7 @@ Recharts 柱状图：
 {
   provider: string;
   profileId?: string;
-  status: "ok" | "rate_limit" | "auth" | "timeout" | "billing" | "format" | "no_model";
+  status: "ok" | "rate_limit" | "auth" | "timeout" | "billing" | "format" | "no_model" | "unknown";
   latencyMs: number;
   error?: string;
   model?: string;                    // 实际使用的测试模型
