@@ -3,7 +3,7 @@ import { create } from "zustand";
 export type GatewayStatus = "connected" | "connecting" | "reconnecting" | "disconnected" | "error";
 
 export type HealthSummary = {
-  sessions?: { active: number; total: number };
+  sessions?: { count: number; active?: number; total?: number };
   channels?: Record<string, string>;
   auth?: string;
 };

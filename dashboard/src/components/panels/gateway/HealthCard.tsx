@@ -43,7 +43,11 @@ export function HealthCard() {
                 {t("sessions")}
               </span>
               <span className="text-xs font-mono font-medium text-[var(--text-primary)]">
-                {sessions ? `${sessions.active} / ${sessions.total}` : "\u2014"}
+                {sessions
+                  ? sessions.active != null && sessions.total != null
+                    ? `${sessions.active} / ${sessions.total}`
+                    : String(sessions.count ?? 0)
+                  : "\u2014"}
               </span>
             </div>
 
