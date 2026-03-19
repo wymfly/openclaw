@@ -443,7 +443,8 @@
     "next": "下一步",
     "back": "上一步",
     "skipForNow": "稍后配置",
-    "finish": "完成"
+    "finish": "完成",
+    "settingsSaved": "设置已保存"
   },
   "docs": {
     "title": "文档中心",
@@ -486,9 +487,12 @@
     "connectionSuccess": "连接成功",
     "connectionFailed": "连接失败",
     "notifications": "通知",
-    "notifyApprovals": "审批请求通知",
-    "notifyBudget": "预算告警通知",
-    "notifyAlerts": "规则告警通知",
+    "notifyApprovals": "审批请求",
+    "notifyApprovalsDesc": "审批请求需要处理时发送通知",
+    "notifyBudget": "预算告警",
+    "notifyBudgetDesc": "使用量接近预算限额时发送通知",
+    "notifyAlerts": "规则告警",
+    "notifyAlertsDesc": "告警规则被触发时发送通知",
     "about": "关于",
     "deckVersion": "Deck 版本",
     "gatewayVersion": "Gateway 版本",

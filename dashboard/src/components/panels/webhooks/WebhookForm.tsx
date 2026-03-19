@@ -5,10 +5,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { Webhook, CreateWebhookInput } from "@/stores/webhooks";
 
-// Available event types for the multi-select
 const AVAILABLE_EVENTS = [
   "*",
   "chat",
@@ -76,37 +76,38 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold text-foreground">
+      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
         {webhook ? t("editWebhook") : t("addWebhook")}
       </h3>
 
       {/* Name */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-muted-foreground">{t("name")}</Label>
+        <Label className="text-xs text-[var(--text-secondary)]">{t("name")}</Label>
         <Input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       {/* URL */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-muted-foreground">{t("url")}</Label>
+        <Label className="text-xs text-[var(--text-secondary)]">{t("url")}</Label>
         <Input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://example.com/webhook"
+          className="font-mono"
           required
         />
       </div>
 
       {/* Secret */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-muted-foreground">{t("secret")}</Label>
+        <Label className="text-xs text-[var(--text-secondary)]">{t("secret")}</Label>
         <div className="flex gap-2">
           <Input
             type={showSecret ? "text" : "password"}
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
-            className="flex-1"
+            className="flex-1 font-mono"
           />
           <Button
             type="button"
@@ -121,44 +122,35 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
 
       {/* Events multi-select */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-muted-foreground">{t("events")}</Label>
+        <Label className="text-xs text-[var(--text-secondary)]">{t("events")}</Label>
         <div className="flex flex-wrap gap-1.5">
           {AVAILABLE_EVENTS.map((event) => (
-            <Button
+            <button
               key={event}
               type="button"
-              variant={events.includes(event) ? "default" : "outline"}
-              size="xs"
+              className={cn(
+                "px-2.5 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                events.includes(event)
+                  ? "bg-[var(--accent)] text-[var(--accent-fg)]"
+                  : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] ring-1 ring-[var(--border-subtle)] hover:text-[var(--text-primary)]",
+              )}
               onClick={() => toggleEvent(event)}
             >
               {event}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       {/* Enabled toggle */}
-      <div className="flex items-center gap-2">
-        <Label className="text-xs text-muted-foreground">{t("enabledToggle")}</Label>
-        <button
-          type="button"
-          className={cn(
-            "w-10 h-5 rounded-full transition-colors relative cursor-pointer",
-            enabled ? "bg-primary" : "bg-input",
-          )}
-          onClick={() => setEnabled(!enabled)}
-        >
-          <span
-            className={cn(
-              "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform",
-              enabled ? "left-[calc(100%-18px)]" : "left-0.5",
-            )}
-          />
-        </button>
+      <div className="flex items-center gap-2.5">
+        <Switch checked={enabled} onCheckedChange={setEnabled} />
+        <Label className="text-xs text-[var(--text-primary)]">{t("enabledToggle")}</Label>
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2 pt-1">
         <Button type="submit" size="sm" disabled={saving}>
           {tc("save")}
         </Button>

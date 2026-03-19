@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { BudgetRule, CreateRuleInput, BudgetDimension } from "@/stores/budget";
 
@@ -83,19 +84,19 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold text-foreground">
+      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
         {rule ? t("editRule") : t("addRule")}
       </h3>
 
       {/* Name */}
-      <div className="flex flex-col gap-1">
-        <Label className="text-xs text-muted-foreground">{t("name")}</Label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-[var(--text-secondary)]">{t("name")}</Label>
         <Input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       {/* Scope */}
-      <div className="flex flex-col gap-1">
-        <Label className="text-xs text-muted-foreground">{t("scope")}</Label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-[var(--text-secondary)]">{t("scope")}</Label>
         <div className="flex gap-1">
           {SCOPES.map((s) => (
             <Button
@@ -104,8 +105,9 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               variant="outline"
               size="xs"
               className={cn(
+                "transition-colors duration-150",
                 scope === s &&
-                  "bg-primary text-primary-foreground border-primary hover:bg-primary/80 hover:text-primary-foreground",
+                  "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] hover:bg-[var(--accent-hover)] hover:text-[var(--accent-fg)]",
               )}
               onClick={() => setScope(s)}
             >
@@ -117,23 +119,23 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
       {/* Agent ID (conditional) */}
       {scope === "perAgent" && (
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">{t("agentId")}</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-[var(--text-secondary)]">{t("agentId")}</Label>
           <Input type="text" value={agentId} onChange={(e) => setAgentId(e.target.value)} />
         </div>
       )}
 
       {/* Task ID (conditional) */}
       {scope === "perTask" && (
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">{t("taskId")}</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-[var(--text-secondary)]">{t("taskId")}</Label>
           <Input type="text" value={taskId} onChange={(e) => setTaskId(e.target.value)} />
         </div>
       )}
 
       {/* Dimension */}
-      <div className="flex flex-col gap-1">
-        <Label className="text-xs text-muted-foreground">{t("dimension")}</Label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-[var(--text-secondary)]">{t("dimension")}</Label>
         <div className="flex gap-1 flex-wrap">
           {DIMENSIONS.map((d) => (
             <Button
@@ -142,8 +144,9 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               variant="outline"
               size="xs"
               className={cn(
+                "transition-colors duration-150",
                 dimension === d &&
-                  "bg-primary text-primary-foreground border-primary hover:bg-primary/80 hover:text-primary-foreground",
+                  "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] hover:bg-[var(--accent-hover)] hover:text-[var(--accent-fg)]",
               )}
               onClick={() => setDimension(d)}
             >
@@ -155,8 +158,8 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
       {/* Thresholds */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">{t("warnThreshold")}</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-[var(--text-secondary)]">{t("warnThreshold")}</Label>
           <Input
             type="number"
             min="0"
@@ -165,8 +168,8 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
             onChange={(e) => setWarnThreshold(e.target.value)}
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">{t("overThreshold")}</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-[var(--text-secondary)]">{t("overThreshold")}</Label>
           <Input
             type="number"
             min="0"
@@ -178,8 +181,8 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
       </div>
 
       {/* Period */}
-      <div className="flex flex-col gap-1">
-        <Label className="text-xs text-muted-foreground">{t("period")}</Label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-[var(--text-secondary)]">{t("period")}</Label>
         <div className="flex gap-1">
           {PERIODS.map((p) => (
             <Button
@@ -188,8 +191,9 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               variant="outline"
               size="xs"
               className={cn(
+                "transition-colors duration-150",
                 period === p &&
-                  "bg-primary text-primary-foreground border-primary hover:bg-primary/80 hover:text-primary-foreground",
+                  "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] hover:bg-[var(--accent-hover)] hover:text-[var(--accent-fg)]",
               )}
               onClick={() => setPeriod(p)}
             >
@@ -201,20 +205,10 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
       {/* Enabled toggle */}
       <div className="flex items-center gap-2">
-        <Label className="text-xs text-muted-foreground">{t("enabledToggle")}</Label>
-        <button
-          type="button"
-          className={cn(
-            "w-10 h-5 rounded-full transition-colors relative",
-            enabled ? "bg-primary" : "bg-input",
-          )}
-          onClick={() => setEnabled(!enabled)}
-        >
-          <span
-            className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-            style={{ left: enabled ? "calc(100% - 18px)" : "2px" }}
-          />
-        </button>
+        <Switch id="budget-enabled" checked={enabled} onCheckedChange={setEnabled} />
+        <Label htmlFor="budget-enabled" className="text-xs text-[var(--text-secondary)]">
+          {t("enabledToggle")}
+        </Label>
       </div>
 
       {/* Actions */}

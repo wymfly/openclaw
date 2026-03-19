@@ -36,7 +36,7 @@ export function ConflictDialog({ onReload, onCancel }: ConflictDialogProps) {
       <DialogContent showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-sm">
-            <AlertTriangle size={20} className="text-destructive" />
+            <AlertTriangle size={20} className="text-[var(--danger)]" />
             {t("conflict")}
           </DialogTitle>
         </DialogHeader>

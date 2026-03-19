@@ -1,8 +1,8 @@
 "use client";
 
+import { Gauge } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useSessionsStore, type SessionEntry } from "@/stores/sessions";
 
@@ -59,35 +59,39 @@ export function ContextPressure() {
   }
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle className="text-sm">{t("contextPressure")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2.5">
-          {ranked.map((s) => (
-            <div key={s.key}>
-              <div className="flex items-center justify-between mb-1">
-                <span
-                  className="text-xs truncate mr-2 font-mono text-muted-foreground"
-                  title={s.key}
-                >
-                  {shortKey(s.key)}
-                </span>
-                <span className={cn("text-xs font-medium shrink-0", pressureTextClass(s.pct))}>
-                  {s.pct}%
-                </span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden bg-muted">
-                <div
-                  className={cn("h-full rounded-full transition-all", pressureBarClass(s.pct))}
-                  style={{ width: `${s.pct}%` }}
-                />
-              </div>
+    <div className="rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)] p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Gauge size={14} className="text-[var(--text-secondary)]" />
+        <h3 className="text-sm font-medium text-[var(--text-primary)]">{t("contextPressure")}</h3>
+      </div>
+      <div className="space-y-3">
+        {ranked.map((s) => (
+          <div key={s.key}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span
+                className="text-xs truncate mr-2 font-mono text-[var(--text-secondary)]"
+                title={s.key}
+              >
+                {shortKey(s.key)}
+              </span>
+              <span
+                className={cn("text-xs font-semibold font-mono shrink-0", pressureTextClass(s.pct))}
+              >
+                {s.pct}%
+              </span>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            <div className="h-1.5 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-300",
+                  pressureBarClass(s.pct),
+                )}
+                style={{ width: `${s.pct}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -443,7 +443,8 @@
     "next": "Next",
     "back": "Back",
     "skipForNow": "Skip for now",
-    "finish": "Finish"
+    "finish": "Finish",
+    "settingsSaved": "Settings saved successfully"
   },
   "docs": {
     "title": "Doc Hub",
@@ -486,9 +487,12 @@
     "connectionSuccess": "Connected",
     "connectionFailed": "Failed",
     "notifications": "Notifications",
-    "notifyApprovals": "Approval request notifications",
-    "notifyBudget": "Budget alert notifications",
-    "notifyAlerts": "Rule alert notifications",
+    "notifyApprovals": "Approval Requests",
+    "notifyApprovalsDesc": "Get notified when an approval request needs your attention",
+    "notifyBudget": "Budget Alerts",
+    "notifyBudgetDesc": "Get notified when usage approaches budget limits",
+    "notifyAlerts": "Rule Alerts",
+    "notifyAlertsDesc": "Get notified when alert rules are triggered",
     "about": "About",
     "deckVersion": "Deck Version",
     "gatewayVersion": "Gateway Version",

@@ -42,14 +42,18 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="mb-2 flex items-center gap-2">
-        <Settings size={16} className="text-primary" />
-        <span className="text-sm font-semibold text-foreground">{t("stepProvider")}</span>
+      <div className="flex items-center gap-2.5 mb-1">
+        <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--accent-muted)]">
+          <Settings size={14} className="text-[var(--accent)]" />
+        </div>
+        <span className="text-sm font-semibold text-[var(--text-primary)]">
+          {t("stepProvider")}
+        </span>
       </div>
 
       {/* Provider selector */}
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">{t("provider")}</Label>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-[var(--text-secondary)]">{t("provider")}</Label>
         <Select
           value={data.providerName ?? ""}
           onValueChange={(value) => {
@@ -58,7 +62,7 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
             }
           }}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full h-9 focus-glow">
             <SelectValue placeholder={t("selectProvider")} />
           </SelectTrigger>
           <SelectContent>
@@ -72,39 +76,44 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
       </div>
 
       {/* API Key */}
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">{t("apiKey")}</Label>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-[var(--text-secondary)]">{t("apiKey")}</Label>
         <Input
           type="password"
           value={data.apiKey ?? ""}
           onChange={(e) => onChange({ apiKey: e.target.value })}
           placeholder="sk-..."
-          className="text-sm"
+          className="h-9 text-sm font-mono focus-glow"
         />
       </div>
 
       {/* Model name */}
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">{t("model")}</Label>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-[var(--text-secondary)]">{t("model")}</Label>
         <Input
           type="text"
           value={data.model ?? ""}
           onChange={(e) => onChange({ model: e.target.value })}
           placeholder={t("modelPlaceholder")}
-          className="text-sm"
+          className="h-9 text-sm font-mono focus-glow"
         />
       </div>
 
       {/* Actions */}
-      <div className="flex justify-between pt-2">
-        <Button variant="outline" size="sm" onClick={onBack}>
+      <div className="flex justify-between pt-2 border-t border-[var(--border-subtle)]">
+        <Button variant="outline" size="sm" onClick={onBack} className="text-xs">
           {t("back")}
         </Button>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={onNext}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNext}
+            className="text-xs text-[var(--text-secondary)]"
+          >
             {t("skipForNow")}
           </Button>
-          <Button size="sm" onClick={onNext}>
+          <Button size="sm" onClick={onNext} className="text-xs">
             {t("next")}
           </Button>
         </div>

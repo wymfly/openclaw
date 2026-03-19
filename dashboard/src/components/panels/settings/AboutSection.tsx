@@ -1,5 +1,6 @@
 "use client";
 
+import { ExternalLink, Hexagon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -21,44 +22,61 @@ export function AboutSection() {
     { label: t("cliVersion"), value: versionInfo.cli },
   ];
 
+  const links = [
+    { label: t("docs"), href: "https://docs.openclaw.ai" },
+    { label: t("github"), href: "https://github.com/openclaw/openclaw" },
+  ];
+
   return (
-    <section>
-      <h3 className="mb-3 text-sm font-semibold text-foreground">{t("about")}</h3>
-      <Card size="sm">
-        <CardContent className="flex flex-col gap-3">
-          {/* Version badges */}
-          <div className="flex flex-wrap gap-3">
-            {versions.map(({ label, value }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <span className="text-xs font-medium text-muted-foreground">{label}:</span>
-                <Badge variant="outline" className="font-mono text-xs">
-                  {value || "—"}
-                </Badge>
+    <div className="space-y-5">
+      <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-secondary)]">
+        {t("about")}
+      </h3>
+
+      <Card className="ring-1 ring-[var(--border)]">
+        <CardContent className="p-4 space-y-4">
+          {/* Brand + version grid */}
+          <div className="flex items-start gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--accent-muted)] shrink-0">
+              <Hexagon size={20} className="text-[var(--accent)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+                OpenClaw Deck
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {versions.map(({ label, value }) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-[var(--text-secondary)]">{label}</span>
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-[10px] h-5 px-1.5 bg-[var(--bg-tertiary)]"
+                    >
+                      {value || "—"}
+                    </Badge>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
 
-          {/* External links */}
-          <div className="flex gap-3 pt-1">
-            <a
-              href="https://docs.openclaw.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-medium text-primary underline underline-offset-4 hover:text-primary/80"
-            >
-              {t("docs")}
-            </a>
-            <a
-              href="https://github.com/openclaw/openclaw"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-medium text-primary underline underline-offset-4 hover:text-primary/80"
-            >
-              {t("github")}
-            </a>
+          {/* Links */}
+          <div className="flex gap-3 pt-2 border-t border-[var(--border-subtle)]">
+            {links.map(({ label, href }) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
+              >
+                <ExternalLink size={11} />
+                {label}
+              </a>
+            ))}
           </div>
         </CardContent>
       </Card>
-    </section>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { HeartPulse, Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { useGatewayStore } from "@/stores/gateway";
 
 export function HeartbeatCard() {
@@ -18,37 +19,61 @@ export function HeartbeatCard() {
   const heartbeat = statusSummary?.heartbeat;
   const state = statusSummary?.state;
 
+  const isActive = state === "active";
+
   return (
-    <Card size="sm">
+    <Card className="card-hover">
       <CardHeader>
-        <CardTitle>{t("heartbeat")}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-xs">
+          <HeartPulse
+            size={14}
+            className={cn(
+              isActive ? "text-[var(--success)]" : "text-[var(--warning)]",
+              isActive && "status-pulse",
+            )}
+          />
+          {t("heartbeat")}
+        </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 pt-0">
         {statusLoading && !statusSummary ? (
-          <span className="text-xs text-muted-foreground">{tc("loading")}</span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
+            <span className="text-xs text-[var(--text-secondary)]">{tc("loading")}</span>
+          </div>
         ) : (
           <>
             {/* Last heartbeat */}
-            <div className="flex items-center gap-2">
-              <Clock size={14} className="text-primary" />
-              <span className="text-xs text-muted-foreground">{t("lastHeartbeat")}</span>
-              <span className="text-xs font-mono ml-auto text-foreground">
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
+              <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                <Clock size={12} className="text-[var(--accent)]" />
+                {t("lastHeartbeat")}
+              </span>
+              <span className="text-xs font-mono font-medium text-[var(--text-primary)]">
                 {heartbeat && typeof heartbeat === "object"
                   ? `${(heartbeat as { agents?: unknown[] }).agents?.length ?? 0} agent(s)`
-                  : ((heartbeat as string) ?? "—")}
+                  : ((heartbeat as string) ?? "\u2014")}
               </span>
             </div>
 
             {/* Gateway state */}
-            <div className="flex items-center gap-2">
-              <HeartPulse
-                size={14}
-                className={state === "active" ? "text-[var(--success)]" : "text-[var(--warning)]"}
-              />
-              <span className="text-xs text-muted-foreground">{t("gatewayState")}</span>
-              <span className="text-xs font-medium ml-auto text-foreground">
-                {state ? t(state) : "—"}
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
+              <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                <HeartPulse
+                  size={12}
+                  className={isActive ? "text-[var(--success)]" : "text-[var(--warning)]"}
+                />
+                {t("gatewayState")}
+              </span>
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  isActive
+                    ? "text-[var(--success-muted-text)]"
+                    : "text-[var(--warning-muted-text)]",
+                )}
+              >
+                {state ? t(state) : "\u2014"}
               </span>
             </div>
           </>

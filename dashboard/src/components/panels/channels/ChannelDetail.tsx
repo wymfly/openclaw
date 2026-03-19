@@ -15,10 +15,7 @@ function AccountStatusBadge({ account }: { account: ChannelAccount }) {
 
   if (account.linked && account.connected) {
     return (
-      <Badge
-        variant="outline"
-        className="border-transparent bg-[var(--success-muted)] text-[var(--status-connected)] gap-1 text-[10px] px-1.5 py-0.5 h-auto"
-      >
+      <Badge className="border-transparent bg-[var(--success-muted)] text-[var(--success-muted-text)] gap-1 text-[10px] px-1.5 py-0.5 h-auto">
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-connected)]" />
         {t("linked")}
       </Badge>
@@ -27,10 +24,7 @@ function AccountStatusBadge({ account }: { account: ChannelAccount }) {
 
   if (account.lastError) {
     return (
-      <Badge
-        variant="outline"
-        className="border-transparent bg-[var(--danger-muted)] text-[var(--status-disconnected)] gap-1 text-[10px] px-1.5 py-0.5 h-auto"
-      >
+      <Badge className="border-transparent bg-[var(--danger-muted)] text-[var(--danger-muted-text)] gap-1 text-[10px] px-1.5 py-0.5 h-auto">
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-disconnected)]" />
         {t("error")}
       </Badge>
@@ -39,20 +33,14 @@ function AccountStatusBadge({ account }: { account: ChannelAccount }) {
 
   if (account.enabled) {
     return (
-      <Badge
-        variant="outline"
-        className="border-transparent bg-primary/15 text-primary text-[10px] px-1.5 py-0.5 h-auto"
-      >
+      <Badge className="border-transparent bg-[var(--accent-muted)] text-[var(--accent)] text-[10px] px-1.5 py-0.5 h-auto">
         {t("enabled")}
       </Badge>
     );
   }
 
   return (
-    <Badge
-      variant="outline"
-      className="border-transparent bg-muted text-muted-foreground text-[10px] px-1.5 py-0.5 h-auto"
-    >
+    <Badge className="border-transparent bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)] text-[10px] px-1.5 py-0.5 h-auto">
       {t("disabled")}
     </Badge>
   );
@@ -95,7 +83,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
 
   if (!channel) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="flex items-center justify-center h-full text-[var(--text-secondary)]">
         <p className="text-sm">{t("noChannels")}</p>
       </div>
     );
@@ -104,35 +92,35 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border">
-        <h2 className="text-sm font-semibold text-foreground">{channel.label}</h2>
-        <span className="text-xs text-muted-foreground">ID: {channel.id}</span>
+      <div className="px-4 py-3 border-b border-[var(--border)]">
+        <h2 className="text-sm font-semibold text-[var(--text-primary)]">{channel.label}</h2>
+        <span className="text-xs text-[var(--text-secondary)] font-mono">ID: {channel.id}</span>
       </div>
 
       <div className="flex-1 px-4 py-3 space-y-4">
         {/* Accounts section */}
         <div>
-          <label className="block text-xs font-medium mb-2 text-muted-foreground">
+          <label className="block text-xs font-medium mb-2 text-[var(--text-secondary)]">
             {t("accounts")} ({channel.accounts.length})
           </label>
 
           {channel.accounts.length === 0 && (
-            <p className="text-xs text-muted-foreground">{t("unconfigured")}</p>
+            <p className="text-xs text-[var(--text-secondary)]">{t("unconfigured")}</p>
           )}
 
           <div className="space-y-2">
             {channel.accounts.map((account) => (
-              <Card key={account.accountId} size="sm" className="gap-0 py-0">
+              <Card key={account.accountId} size="sm" className="card-hover gap-0 py-0">
                 <CardContent className="px-3 py-2">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-foreground">
+                    <span className="text-xs font-medium text-[var(--text-primary)]">
                       {account.name ?? account.accountId}
                     </span>
                     <AccountStatusBadge account={account} />
                   </div>
 
                   {/* Account details */}
-                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-3 text-[10px] text-[var(--text-secondary)] font-mono">
                     <span>ID: {account.accountId}</span>
                     {account.configured && <span>{t("configured")}</span>}
                   </div>
@@ -141,8 +129,8 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
                   {account.lastError && (
                     <div
                       className={cn(
-                        "flex items-start gap-1.5 mt-1.5 text-[10px] rounded px-2 py-1",
-                        "bg-[var(--danger-muted)] text-[var(--status-disconnected)]",
+                        "flex items-start gap-1.5 mt-1.5 text-[10px] rounded-lg px-2 py-1",
+                        "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]",
                       )}
                     >
                       <AlertCircle size={10} className="shrink-0 mt-0.5" />
@@ -157,7 +145,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
                       size="xs"
                       onClick={() => void handleToggleEnabled(account)}
                       disabled={toggling}
-                      className="text-[10px] gap-1"
+                      className="text-[10px] gap-1 transition-colors duration-150"
                     >
                       {account.enabled ? (
                         <>
@@ -180,7 +168,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
 
         {/* Logout section */}
         <div className="pt-2">
-          <Separator className="mb-4" />
+          <Separator className="mb-4 bg-[var(--border-subtle)]" />
           {!confirmLogout ? (
             <Button
               variant="destructive"
@@ -193,7 +181,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
             </Button>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-destructive">{t("confirmLogout")}</p>
+              <p className="text-xs text-[var(--danger)]">{t("confirmLogout")}</p>
               <div className="flex gap-2">
                 <Button
                   variant="destructive"

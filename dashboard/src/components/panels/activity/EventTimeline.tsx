@@ -1,5 +1,6 @@
 "use client";
 
+import { Activity } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +10,17 @@ import { useActivityStore, type ActivityEventType } from "@/stores/activity";
 const TYPE_BADGE_STYLES: Record<ActivityEventType, string> = {
   tool_call: "bg-[var(--purple-muted)] text-[var(--purple)]",
   chat: "bg-[var(--accent-muted)] text-[var(--accent)]",
-  status: "bg-[var(--warning-muted)] text-[var(--warning)]",
+  status: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)]",
   agent: "bg-[var(--success-muted)] text-[var(--success)]",
-  system: "bg-muted text-muted-foreground",
+  system: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
+};
+
+const TYPE_DOT_COLORS: Record<ActivityEventType, string> = {
+  tool_call: "bg-[var(--purple)]",
+  chat: "bg-[var(--accent)]",
+  status: "bg-[var(--warning)]",
+  agent: "bg-[var(--success)]",
+  system: "bg-[var(--neutral-muted-text)]",
 };
 
 function relativeTime(timestamp: number): string {
@@ -54,48 +63,65 @@ export function EventTimeline() {
 
   if (filtered.length === 0) {
     return (
-      <div className="flex items-center justify-center flex-1 text-muted-foreground">
+      <div className="flex flex-col items-center justify-center flex-1 gap-3 text-[var(--text-secondary)]">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
+          <Activity size={20} className="text-[var(--accent)]" />
+        </div>
         <p className="text-sm">{t("noEvents")}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-3 bg-background">
+    <div className="flex-1 overflow-y-auto px-4 py-3">
       {filtered.map((event) => (
         <div
           key={event.id}
-          className="flex items-start gap-3 py-2 border-b border-border last:border-b-0"
+          className="group relative flex items-start gap-3 py-2.5 transition-panel"
         >
-          {/* Timestamp */}
-          <span className="text-xs shrink-0 pt-0.5 text-muted-foreground font-mono min-w-[60px]">
-            {relativeTime(event.timestamp)}
-          </span>
+          {/* Timeline dot + line */}
+          <div className="flex flex-col items-center shrink-0 pt-0.5">
+            <div
+              className={cn(
+                "w-2 h-2 rounded-full ring-2 ring-[var(--bg-secondary)]",
+                TYPE_DOT_COLORS[event.type] ?? TYPE_DOT_COLORS.system,
+              )}
+            />
+            <div className="w-px flex-1 bg-[var(--border-subtle)] mt-1 group-last:hidden" />
+          </div>
 
-          {/* Type badge */}
-          <Badge
-            className={cn(
-              "shrink-0 font-medium text-[10px] min-w-[60px] text-center h-auto py-0.5",
-              TYPE_BADGE_STYLES[event.type] ?? TYPE_BADGE_STYLES.system,
-            )}
-          >
-            {event.type}
-          </Badge>
+          {/* Content */}
+          <div className="flex-1 min-w-0 pb-2">
+            {/* Top row: badge + agent + time */}
+            <div className="flex items-center gap-2 mb-1">
+              <Badge
+                className={cn(
+                  "font-medium text-[10px] h-auto py-0.5",
+                  TYPE_BADGE_STYLES[event.type] ?? TYPE_BADGE_STYLES.system,
+                )}
+              >
+                {event.type}
+              </Badge>
 
-          {/* Agent name */}
-          {(event.agentName ?? event.agentId) && (
-            <span className="text-xs shrink-0 font-medium pt-0.5 text-primary min-w-[60px]">
-              {event.agentName ?? event.agentId}
-            </span>
-          )}
+              {(event.agentName ?? event.agentId) && (
+                <span className="text-xs font-medium text-[var(--accent)]">
+                  {event.agentName ?? event.agentId}
+                </span>
+              )}
 
-          {/* Description + details */}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs break-words text-foreground">{event.description}</p>
+              <span className="text-[10px] font-mono text-[var(--text-secondary)] ml-auto shrink-0">
+                {relativeTime(event.timestamp)}
+              </span>
+            </div>
+
+            {/* Description */}
+            <p className="text-xs text-[var(--text-primary)] break-words">{event.description}</p>
+
+            {/* Details */}
             {event.details && (
-              <p className="text-xs mt-0.5 break-words text-muted-foreground font-mono max-h-[60px] overflow-hidden">
+              <pre className="text-[11px] mt-1 px-2.5 py-1.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-mono max-h-[60px] overflow-hidden break-words whitespace-pre-wrap">
                 {event.details}
-              </p>
+              </pre>
             )}
           </div>
         </div>

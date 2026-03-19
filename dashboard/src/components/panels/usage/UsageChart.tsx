@@ -9,8 +9,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TimeseriesPoint } from "@/stores/usage";
 
 function formatDate(ts: number): string {
@@ -30,57 +30,66 @@ export function UsageChart({ timeseries }: UsageChartProps) {
   }
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle className="text-sm">{t("chart")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={timeseries}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-            <XAxis
-              dataKey="timestamp"
-              tickFormatter={formatDate}
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
-              stroke="hsl(var(--border))"
-            />
-            <YAxis
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
-              stroke="hsl(var(--border))"
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "var(--bg-secondary)",
-                borderColor: "var(--border)",
-                color: "var(--text-primary)",
-                borderRadius: 8,
-                fontSize: 12,
-              }}
-              labelFormatter={(label) => formatDate(Number(label))}
-            />
-            <Area
-              type="monotone"
-              dataKey="tokensIn"
-              stackId="tokens"
-              stroke="var(--accent)"
-              fill="var(--accent)"
-              fillOpacity={0.4}
-              name={t("tokensIn")}
-            />
-            <Area
-              type="monotone"
-              dataKey="tokensOut"
-              stackId="tokens"
-              stroke="var(--success)"
-              fill="var(--success)"
-              fillOpacity={0.3}
-              name={t("tokensOut")}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <div className="rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)] p-4">
+      <h3 className="text-sm font-medium text-[var(--text-primary)] mb-3">{t("chart")}</h3>
+      <ResponsiveContainer width="100%" height={220}>
+        <AreaChart data={timeseries}>
+          <defs>
+            <linearGradient id="gradIn" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
+            </linearGradient>
+            <linearGradient id="gradOut" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--success)" stopOpacity={0.25} />
+              <stop offset="100%" stopColor="var(--success)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+          <XAxis
+            dataKey="timestamp"
+            tickFormatter={formatDate}
+            tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
+            axisLine={{ stroke: "var(--border)" }}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
+            axisLine={false}
+            tickLine={false}
+            width={48}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "var(--bg-secondary)",
+              borderColor: "var(--border)",
+              color: "var(--text-primary)",
+              borderRadius: 10,
+              fontSize: 12,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            }}
+            labelFormatter={(label) => formatDate(Number(label))}
+          />
+          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+          <Area
+            type="monotone"
+            dataKey="tokensIn"
+            stackId="tokens"
+            stroke="var(--accent)"
+            strokeWidth={2}
+            fill="url(#gradIn)"
+            name={t("tokensIn")}
+          />
+          <Area
+            type="monotone"
+            dataKey="tokensOut"
+            stackId="tokens"
+            stroke="var(--success)"
+            strokeWidth={2}
+            fill="url(#gradOut)"
+            name={t("tokensOut")}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

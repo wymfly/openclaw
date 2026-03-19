@@ -1,6 +1,6 @@
 "use client";
 
-import { Save, RefreshCw } from "lucide-react";
+import { Save, RefreshCw, Settings } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +14,8 @@ import { SectionNav } from "./SectionNav";
 
 /**
  * Config Editor panel — entry point component.
- * Split: SectionNav (20%) + SchemaForm (80%).
- * Save/Reload buttons in toolbar. "Unsaved changes" indicator.
+ * Split: SectionNav (sidebar) + SchemaForm (main area).
+ * Toolbar with Save/Reload buttons and "Unsaved changes" indicator.
  */
 export function ConfigPanel() {
   const t = useTranslations("config");
@@ -43,7 +43,6 @@ export function ConfigPanel() {
     void fetchConfig();
   }, [fetchSchema, fetchConfig]);
 
-  // Navigation guard: warn about unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
@@ -54,7 +53,6 @@ export function ConfigPanel() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  // Derive sections from schema top-level keys
   const sections = useMemo(() => {
     if (!schema) {
       return [];
@@ -66,14 +64,12 @@ export function ConfigPanel() {
     return Object.keys(schema);
   }, [schema]);
 
-  // Auto-select first section
   useEffect(() => {
     if (sections.length > 0 && !activeSection) {
       setActiveSection(sections[0]);
     }
   }, [sections, activeSection, setActiveSection]);
 
-  // Parse config JSON to object for form values
   const configObj = useMemo(() => {
     try {
       return JSON.parse(editedConfig || "{}") as Record<string, unknown>;
@@ -82,7 +78,6 @@ export function ConfigPanel() {
     }
   }, [editedConfig]);
 
-  // Get fields for current section from schema
   const currentFields = useMemo(() => {
     if (!schema || !activeSection) {
       return [];
@@ -95,7 +90,6 @@ export function ConfigPanel() {
     return parseSchemaSection(sectionSchema);
   }, [schema, activeSection]);
 
-  // Get values for the active section
   const sectionValues = useMemo(() => {
     if (!activeSection) {
       return {};
@@ -112,12 +106,10 @@ export function ConfigPanel() {
           typeof existing === "object" && existing !== null
             ? { ...(existing as Record<string, unknown>) }
             : {};
-        // Handle nested keys like "gateway.port"
         const parts = key.split(".");
         if (parts.length === 1) {
           sectionObj[key] = value;
         } else {
-          // Walk the nesting
           let current: Record<string, unknown> = sectionObj;
           for (let i = 0; i < parts.length - 1; i++) {
             const part = parts[i];
@@ -145,28 +137,34 @@ export function ConfigPanel() {
   }, [reloadConfig]);
 
   return (
-    <div className="flex flex-col h-full rounded-lg overflow-hidden border border-border">
+    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-foreground">{t("title")}</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t("title")}</h2>
           {isDirty && (
-            <Badge variant="secondary" className="bg-primary/15 text-primary text-[10px]">
+            <Badge className="bg-[var(--warning-muted)] text-[var(--warning-muted-text)] border-transparent text-[10px]">
               {t("unsavedChanges")}
             </Badge>
           )}
           {error && (
-            <Badge variant="destructive" className="text-[10px]">
+            <Badge className="bg-[var(--danger-muted)] text-[var(--danger-muted-text)] border-transparent text-[10px]">
               {error}
             </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="xs" onClick={handleReload} disabled={loading}>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={handleReload}
+            disabled={loading}
+            className="gap-1 transition-colors duration-150"
+          >
             <RefreshCw size={12} />
             {t("reload")}
           </Button>
-          <Button size="xs" onClick={handleSave} disabled={!isDirty || saving}>
+          <Button size="xs" onClick={handleSave} disabled={!isDirty || saving} className="gap-1">
             <Save size={12} />
             {saving ? t("saving") : t("save")}
           </Button>
@@ -176,7 +174,10 @@ export function ConfigPanel() {
       {/* Content */}
       <div className="flex flex-1 min-h-0">
         {loading && !schema ? (
-          <div className="flex items-center justify-center w-full text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-3 w-full text-[var(--text-secondary)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)]">
+              <Settings size={20} className="text-[var(--accent)] animate-pulse" />
+            </div>
             <p className="text-sm">{tc("loading")}</p>
           </div>
         ) : (

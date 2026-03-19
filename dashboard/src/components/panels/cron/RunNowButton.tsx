@@ -1,5 +1,6 @@
 "use client";
 
+import { Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,13 +18,13 @@ export function RunNowButton({ jobId }: RunNowButtonProps) {
   const handleRun = async () => {
     setRunning(true);
     await runJob(jobId);
-    // Refresh runs after triggering
     await fetchRuns(jobId);
     setRunning(false);
   };
 
   return (
-    <Button size="sm" onClick={handleRun} disabled={running}>
+    <Button size="sm" variant="outline" onClick={handleRun} disabled={running} className="gap-1.5">
+      <Play size={14} />
       {running ? "..." : t("runNow")}
     </Button>
   );
