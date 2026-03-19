@@ -62,7 +62,7 @@ interface UsageState {
 
   setTimeWindow: (window: TimeWindow) => void;
   fetchUsage: () => Promise<void>;
-  fetchTimeseries: () => Promise<void>;
+  fetchTimeseries: (sessionKey?: string) => Promise<void>;
 }
 
 export const useUsageStore = create<UsageState>((set, get) => ({
@@ -124,13 +124,13 @@ export const useUsageStore = create<UsageState>((set, get) => ({
     }
   },
 
-  fetchTimeseries: async () => {
-    const days = TIME_WINDOW_DAYS[get().timeWindow];
+  fetchTimeseries: async (sessionKey?: string) => {
+    const key = sessionKey ?? "agent:main:main";
 
     try {
-      const res = await fetch(`/api/usage/timeseries?days=${days}`);
+      const res = await fetch(`/api/usage/timeseries?key=${encodeURIComponent(key)}`);
       if (!res.ok) {
-        // Timeseries may not be available (requires session key); degrade gracefully.
+        // Timeseries may not be available; degrade gracefully.
         set({ timeseries: [] });
         return;
       }
