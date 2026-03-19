@@ -89,13 +89,15 @@ export function AgentDetail({ agentId }: { agentId: string }) {
     setSaving(true);
     setSaved(false);
     try {
-      await fetch(`/api/agents/${encodeURIComponent(agentId)}/files`, {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: SOUL_PATH, content: soul }),
+        body: JSON.stringify({ name: SOUL_PATH, content: soul }),
       });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
     } finally {
       setSaving(false);
     }
