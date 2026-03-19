@@ -67,7 +67,7 @@ function callHandler(method: string, params: Record<string, unknown>) {
   void handler({
     req: { id: "1", method, params },
     params,
-    client: null,
+    client: null as never,
     isWebchatConnect: () => false,
     respond: fn,
     context: {} as never,
