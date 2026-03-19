@@ -4,6 +4,7 @@ import { Cpu, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useModelsStore, type Model } from "@/stores/models";
 
@@ -21,7 +22,7 @@ function fmtCtx(tokens: number | undefined | null): string {
   return String(tokens);
 }
 
-/** Format price per million tokens. Returns "—" for missing/undefined values. */
+/** Format price per million tokens. */
 function fmtPrice(price: number | undefined | null): string {
   if (typeof price !== "number" || !Number.isFinite(price)) {
     return "\u2014";
@@ -37,7 +38,6 @@ export function ModelCatalog() {
   const tc = useTranslations("common");
   const { models, loading, selectedProvider, selectProvider } = useModelsStore();
 
-  // Group models by provider.
   const grouped = useMemo(() => {
     const map = new Map<string, Model[]>();
     for (const m of models) {
@@ -51,65 +51,97 @@ export function ModelCatalog() {
   }, [models]);
 
   return (
-    <aside className="flex flex-col w-80 shrink-0 border-r h-full bg-card">
+    <aside className="flex flex-col w-72 shrink-0 border-r border-[var(--border)] h-full bg-[var(--bg-secondary)]">
       {/* Header */}
-      <div className="px-3 py-2 border-b text-xs font-medium text-muted-foreground">
-        {t("catalog")}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border)] shrink-0">
+        <Cpu size={14} className="text-[var(--accent)]" />
+        <span className="text-xs font-semibold text-[var(--text-primary)] tracking-tight">
+          {t("catalog")}
+        </span>
+        {models.length > 0 && (
+          <span className="ml-auto text-[10px] font-mono text-[var(--text-secondary)]">
+            {models.length}
+          </span>
+        )}
       </div>
 
-      {/* Scrollable list */}
+      {/* Scrollable catalog */}
       <ScrollArea className="flex-1">
-        {loading && models.length === 0 && (
-          <div className="p-3 text-xs text-muted-foreground">{tc("loading")}</div>
-        )}
+        <div className="py-1">
+          {loading && models.length === 0 && (
+            <div className="px-4 py-4 text-xs text-[var(--text-secondary)]">{tc("loading")}</div>
+          )}
 
-        {!loading && models.length === 0 && (
-          <div className="p-3 text-xs text-muted-foreground">{t("noModels")}</div>
-        )}
+          {!loading && models.length === 0 && (
+            <div className="px-4 py-4 text-xs text-[var(--text-secondary)]">{t("noModels")}</div>
+          )}
 
-        {[...grouped.entries()].map(([provider, providerModels]) => (
-          <div key={provider}>
-            {/* Provider group header */}
-            <button
-              onClick={() => selectProvider(provider)}
-              className={cn(
-                "flex items-center gap-1.5 w-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide cursor-pointer hover:opacity-80",
-                selectedProvider === provider
-                  ? "text-primary bg-primary/[0.08]"
-                  : "text-muted-foreground",
-              )}
-            >
-              <Cpu size={12} />
-              {provider}
-            </button>
+          {[...grouped.entries()].map(([provider, providerModels], groupIndex) => (
+            <div key={provider}>
+              {groupIndex > 0 && <Separator className="mx-3 my-1 bg-[var(--border-subtle)]" />}
 
-            {/* Models in this provider */}
-            {providerModels.map((model) => (
-              <div
-                key={model.id}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-default text-foreground"
+              {/* Provider group header */}
+              <button
+                onClick={() => selectProvider(provider)}
+                className={cn(
+                  "relative flex items-center gap-2 w-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.06em] cursor-pointer transition-colors duration-150",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                  selectedProvider === provider
+                    ? "bg-[var(--accent-muted)] text-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
+                )}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className="truncate font-medium">{model.name}</span>
-                    {model.isDefault && (
-                      <Star size={10} className="shrink-0 text-primary fill-primary" />
-                    )}
+                {/* Active indicator */}
+                {selectedProvider === provider && (
+                  <span
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
+                    aria-hidden
+                  />
+                )}
+                <Cpu size={12} className="shrink-0" />
+                {provider}
+                <span className="ml-auto font-mono font-normal text-[10px]">
+                  {providerModels.length}
+                </span>
+              </button>
+
+              {/* Models in provider */}
+              <div className="px-2 space-y-0.5">
+                {providerModels.map((model) => (
+                  <div
+                    key={model.id}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors duration-150 hover:bg-[var(--bg-tertiary)]"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate font-medium text-[var(--text-primary)]">
+                          {model.name}
+                        </span>
+                        {model.isDefault && (
+                          <Star
+                            size={10}
+                            className="shrink-0 text-[var(--accent)] fill-[var(--accent)]"
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2.5 mt-0.5">
+                        <span className="font-mono text-[10px] text-[var(--text-secondary)]">
+                          {fmtCtx(model.contextWindow)}
+                        </span>
+                        <span className="font-mono text-[10px] text-[var(--text-secondary)]">
+                          {t("inputPrice")}: {fmtPrice(model.inputPrice)}
+                        </span>
+                        <span className="font-mono text-[10px] text-[var(--text-secondary)]">
+                          {t("outputPrice")}: {fmtPrice(model.outputPrice)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] mt-0.5 text-muted-foreground">
-                    <span>{fmtCtx(model.contextWindow)}</span>
-                    <span>
-                      {t("inputPrice")}: {fmtPrice(model.inputPrice)}
-                    </span>
-                    <span>
-                      {t("outputPrice")}: {fmtPrice(model.outputPrice)}
-                    </span>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ))}
+            </div>
+          ))}
+        </div>
       </ScrollArea>
     </aside>
   );

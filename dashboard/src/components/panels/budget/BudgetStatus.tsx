@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 import type { RuleEvaluation } from "@/stores/budget";
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
-  ok: "bg-[var(--success-muted)] text-[var(--success)] border-transparent",
-  warn: "bg-[var(--warning-muted)] text-[var(--warning)] border-transparent",
-  over: "bg-[var(--danger-muted)] text-[var(--danger)] border-transparent",
+  ok: "bg-[var(--success-muted)] text-[var(--success-muted-text)] border-transparent",
+  warn: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)] border-transparent",
+  over: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)] border-transparent",
 };
 
 const STATUS_BAR_COLORS: Record<string, string> = {
@@ -31,7 +31,7 @@ export function BudgetStatus({ evaluations }: BudgetStatusProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-medium text-foreground">{t("status")}</h3>
+      <h3 className="text-sm font-medium text-[var(--text-primary)]">{t("status")}</h3>
 
       <div className="flex flex-col gap-2">
         {evaluations.map((ev) => {
@@ -42,26 +42,28 @@ export function BudgetStatus({ evaluations }: BudgetStatusProps) {
             maxThreshold > 0 ? Math.min((ev.current / maxThreshold) * 100, 100) : 0;
 
           return (
-            <Card key={ev.ruleId} size="sm" className="py-3">
+            <Card key={ev.ruleId} size="sm" className="card-hover py-3">
               <CardContent>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-foreground">{ev.ruleName}</span>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
+                    {ev.ruleName}
+                  </span>
                   <Badge className={badgeClass}>{t(ev.status)}</Badge>
                 </div>
 
                 {/* Progress bar */}
-                <div className="h-2 rounded-full overflow-hidden mb-1 bg-border">
+                <div className="h-2 rounded-full overflow-hidden mb-1 bg-[var(--border)]">
                   <div
-                    className={cn("h-full rounded-full transition-all", barColor)}
+                    className={cn("h-full rounded-full transition-all duration-300", barColor)}
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
 
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>
+                <div className="flex justify-between text-xs text-[var(--text-secondary)]">
+                  <span className="font-mono">
                     {t("current")}: {formatValue(ev.current, ev.dimension)}
                   </span>
-                  <span>
+                  <span className="font-mono">
                     {ev.overThreshold != null
                       ? `${t("overThreshold")}: ${formatValue(ev.overThreshold, ev.dimension)}`
                       : ev.warnThreshold != null

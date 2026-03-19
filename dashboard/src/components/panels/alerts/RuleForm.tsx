@@ -15,10 +15,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import type { AlertAction, AlertRule } from "@/stores/alerts";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 type RuleFormData = {
   name: string;
   entityType: string;
@@ -37,10 +33,6 @@ type RuleFormProps = {
 
 const ENTITY_TYPES = ["usage", "cron", "approval", "agent"] as const;
 const ACTIONS: AlertAction[] = ["toast", "activity", "webhook"];
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
   const t = useTranslations("alerts");
@@ -69,14 +61,14 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4">
-      <h3 className="text-sm font-semibold text-foreground">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
         {rule ? t("editRule") : t("addRule")}
       </h3>
 
       {/* Name */}
       <div className="space-y-1.5">
-        <Label htmlFor="rule-name" className="text-xs text-muted-foreground">
+        <Label htmlFor="rule-name" className="text-xs text-[var(--text-secondary)]">
           {t("name")}
         </Label>
         <Input
@@ -90,7 +82,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
 
       {/* Entity Type */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">{t("entityType")}</Label>
+        <Label className="text-xs text-[var(--text-secondary)]">{t("entityType")}</Label>
         <Select
           value={entityType}
           onValueChange={(v) => {
@@ -114,7 +106,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
 
       {/* Condition */}
       <div className="space-y-1.5">
-        <Label htmlFor="rule-condition" className="text-xs text-muted-foreground">
+        <Label htmlFor="rule-condition" className="text-xs text-[var(--text-secondary)]">
           {t("condition")}
         </Label>
         <Input
@@ -129,7 +121,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
 
       {/* Threshold */}
       <div className="space-y-1.5">
-        <Label htmlFor="rule-threshold" className="text-xs text-muted-foreground">
+        <Label htmlFor="rule-threshold" className="text-xs text-[var(--text-secondary)]">
           {t("threshold")}
         </Label>
         <Input
@@ -144,7 +136,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
 
       {/* Action */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">{t("action")}</Label>
+        <Label className="text-xs text-[var(--text-secondary)]">{t("action")}</Label>
         <Select
           value={action}
           onValueChange={(v) => {
@@ -168,7 +160,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
 
       {/* Cooldown */}
       <div className="space-y-1.5">
-        <Label htmlFor="rule-cooldown" className="text-xs text-muted-foreground">
+        <Label htmlFor="rule-cooldown" className="text-xs text-[var(--text-secondary)]">
           {t("cooldown")} ({t("cooldownMinutes")})
         </Label>
         <Input
@@ -183,7 +175,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
       {/* Enabled */}
       <div className="flex items-center gap-2">
         <Switch id="rule-enabled" checked={enabled} onCheckedChange={setEnabled} />
-        <Label htmlFor="rule-enabled" className="text-xs text-muted-foreground">
+        <Label htmlFor="rule-enabled" className="text-xs text-[var(--text-secondary)]">
           {t("enabled")}
         </Label>
       </div>

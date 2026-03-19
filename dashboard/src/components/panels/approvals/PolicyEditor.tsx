@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 import {
   useApprovalsStore,
   type ApprovalPolicy,
@@ -36,7 +37,7 @@ interface PolicySelectProps {
 function PolicySelect({ label, value, options, onChange }: PolicySelectProps) {
   return (
     <div className="flex items-center gap-2">
-      <Label className="text-xs w-28 shrink-0 text-muted-foreground">{label}</Label>
+      <Label className="text-xs w-28 shrink-0 text-[var(--text-secondary)]">{label}</Label>
       <Select value={value ?? ""} onValueChange={(v) => onChange(v ?? "")}>
         <SelectTrigger size="sm" className="max-w-[180px]">
           <SelectValue placeholder="--" />
@@ -61,23 +62,14 @@ interface PolicyToggleProps {
 }
 
 function PolicyToggle({ label, value, onChange }: PolicyToggleProps) {
-  const tc = useTranslations("common");
   return (
     <div className="flex items-center gap-2">
-      <Label className="text-xs w-28 shrink-0 text-muted-foreground">{label}</Label>
-      <Button
-        variant={value ? "default" : "outline"}
-        size="xs"
-        onClick={() => onChange(!value)}
-        className={cn(value && "bg-green-600 hover:bg-green-700 text-white")}
-      >
-        {value ? tc("on") : tc("off")}
-      </Button>
+      <Label className="text-xs w-28 shrink-0 text-[var(--text-secondary)]">{label}</Label>
+      <Switch checked={!!value} onCheckedChange={onChange} />
     </div>
   );
 }
 
-/** Edit a single defaults block (security, ask, askFallback, autoAllowSkills). */
 function DefaultsEditor({
   defaults,
   onChange,
@@ -92,7 +84,7 @@ function DefaultsEditor({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <PolicySelect
         label={t("security")}
         value={defaults.security}
@@ -120,13 +112,6 @@ function DefaultsEditor({
   );
 }
 
-/**
- * PolicyEditor — 4-dimensional approval policy editor.
- *
- * Global defaults from ExecApprovalsFile.defaults.
- * Per-agent overrides from ExecApprovalsFile.agents.
- * Path allowlist from ExecApprovalsFile.allowlist.
- */
 export function PolicyEditor() {
   const t = useTranslations("approvals");
   const tc = useTranslations("common");
@@ -134,13 +119,11 @@ export function PolicyEditor() {
   const fetchPolicy = useApprovalsStore((s) => s.fetchPolicy);
   const updatePolicy = useApprovalsStore((s) => s.updatePolicy);
 
-  // Local draft for editing
   const [draft, setDraft] = useState<ApprovalPolicy | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newAgentId, setNewAgentId] = useState("");
 
-  // Sync draft from store
   useEffect(() => {
     if (policy && !draft) {
       setDraft(structuredClone(policy));
@@ -189,7 +172,7 @@ export function PolicyEditor() {
   if (!draft) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <span className="text-sm text-muted-foreground">{tc("loading")}</span>
+        <span className="text-sm text-[var(--text-secondary)]">{tc("loading")}</span>
       </div>
     );
   }
@@ -198,7 +181,9 @@ export function PolicyEditor() {
     <div className="flex-1 overflow-y-auto p-4 space-y-6">
       {/* Global defaults */}
       <section>
-        <h3 className="text-sm font-semibold mb-3 text-foreground">{t("globalDefaults")}</h3>
+        <h3 className="text-sm font-semibold mb-3 text-[var(--text-primary)]">
+          {t("globalDefaults")}
+        </h3>
         <DefaultsEditor
           defaults={draft.defaults}
           onChange={(defaults) => setDraft({ ...draft, defaults })}
@@ -207,19 +192,22 @@ export function PolicyEditor() {
 
       {/* Per-agent overrides */}
       <section>
-        <h3 className="text-sm font-semibold mb-3 text-foreground">{t("perAgent")}</h3>
+        <h3 className="text-sm font-semibold mb-3 text-[var(--text-primary)]">{t("perAgent")}</h3>
 
         {Object.entries(draft.agents).map(([agentId, agentDefaults]) => (
-          <Card key={agentId} size="sm" className="mb-4">
+          <Card key={agentId} size="sm" className="mb-3">
             <CardContent>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-primary">{agentId}</span>
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-xs font-semibold font-mono text-[var(--accent)]">
+                  {agentId}
+                </span>
                 <Button
                   variant="ghost"
                   size="xs"
-                  className="text-destructive hover:text-destructive"
+                  className="text-[var(--danger)] hover:text-[var(--danger)] hover:bg-[var(--danger-muted)] gap-1"
                   onClick={() => handleRemoveAgent(agentId)}
                 >
+                  <Trash2 size={12} />
                   {tc("delete")}
                 </Button>
               </div>
@@ -239,14 +227,16 @@ export function PolicyEditor() {
             onChange={(e) => setNewAgentId(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddAgent()}
             placeholder={t("addAgentPlaceholder")}
-            className="h-7 text-xs min-w-[160px] max-w-[240px]"
+            className="h-8 text-xs min-w-[160px] max-w-[240px]"
           />
           <Button
             variant="outline"
             size="xs"
             onClick={handleAddAgent}
             disabled={!newAgentId.trim()}
+            className="gap-1"
           >
+            <Plus size={12} />
             {tc("create")}
           </Button>
         </div>
@@ -261,11 +251,11 @@ export function PolicyEditor() {
       </section>
 
       {/* Save button */}
-      <div className="flex items-center gap-3 pt-2">
+      <div className="flex items-center gap-3 pt-1">
         <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? tc("loading") : tc("save")}
         </Button>
-        {saved && <span className="text-xs text-green-600 dark:text-green-400">{t("saved")}</span>}
+        {saved && <span className="text-xs text-[var(--success-muted-text)]">{t("saved")}</span>}
       </div>
     </div>
   );

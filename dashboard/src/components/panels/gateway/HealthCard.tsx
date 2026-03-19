@@ -21,50 +21,63 @@ export function HealthCard() {
   const auth = healthSummary?.auth;
 
   return (
-    <Card size="sm">
+    <Card className="card-hover">
       <CardHeader>
-        <CardTitle>{t("health")}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-xs">
+          <Activity size={14} className="text-[var(--accent)]" />
+          {t("health")}
+        </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 pt-0">
         {healthLoading && !healthSummary ? (
-          <span className="text-xs text-muted-foreground">{tc("loading")}</span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
+            <span className="text-xs text-[var(--text-secondary)]">{tc("loading")}</span>
+          </div>
         ) : (
           <>
-            {/* Sessions */}
-            <div className="flex items-center gap-2">
-              <Activity size={14} className="text-primary" />
-              <span className="text-xs text-muted-foreground">{t("sessions")}</span>
-              <span className="text-xs font-mono ml-auto text-foreground">
-                {sessions ? `${sessions.active} / ${sessions.total}` : "—"}
+            {/* Sessions metric */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
+              <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                <Activity size={12} className="text-[var(--accent)]" />
+                {t("sessions")}
+              </span>
+              <span className="text-xs font-mono font-medium text-[var(--text-primary)]">
+                {sessions ? `${sessions.active} / ${sessions.total}` : "\u2014"}
               </span>
             </div>
 
             {/* Channels */}
-            <div className="flex items-start gap-2">
-              <Radio size={14} className="mt-0.5 shrink-0 text-primary" />
-              <div className="flex flex-col gap-1 flex-1 min-w-0">
-                <span className="text-xs text-muted-foreground">{t("channels")}</span>
-                {channels ? (
-                  Object.entries(channels).map(([name, status]) => (
+            <div className="px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
+              <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] mb-2">
+                <Radio size={12} className="text-[var(--accent)]" />
+                {t("channels")}
+              </span>
+              {channels ? (
+                <div className="space-y-1.5">
+                  {Object.entries(channels).map(([name, status]) => (
                     <div key={name} className="flex items-center justify-between">
-                      <span className="text-xs truncate text-foreground">{name}</span>
-                      <Badge variant="outline" className="ml-2 shrink-0">
+                      <span className="text-xs truncate text-[var(--text-primary)]">{name}</span>
+                      <Badge variant="outline" className="ml-2 shrink-0 text-[10px]">
                         {status}
                       </Badge>
                     </div>
-                  ))
-                ) : (
-                  <span className="text-xs text-foreground">—</span>
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-xs text-[var(--text-secondary)]">{"\u2014"}</span>
+              )}
             </div>
 
             {/* Auth */}
-            <div className="flex items-center gap-2">
-              <Shield size={14} className="text-primary" />
-              <span className="text-xs text-muted-foreground">Auth</span>
-              <span className="text-xs ml-auto text-foreground">{auth ?? "—"}</span>
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
+              <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                <Shield size={12} className="text-[var(--accent)]" />
+                Auth
+              </span>
+              <span className="text-xs font-medium text-[var(--text-primary)]">
+                {auth ?? "\u2014"}
+              </span>
             </div>
           </>
         )}

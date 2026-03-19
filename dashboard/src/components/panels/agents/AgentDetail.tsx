@@ -1,11 +1,11 @@
 "use client";
 
-import { Save } from "lucide-react";
+import { Save, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -26,6 +26,13 @@ const MODELS = [
 
 const SOUL_PATH = "SOUL.md";
 
+const STATUS_BADGE: Record<string, string> = {
+  idle: "bg-[var(--success-muted)] text-[var(--success-muted-text)]",
+  busy: "bg-[var(--accent-muted)] text-[var(--accent)]",
+  error: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]",
+  offline: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
+};
+
 export function AgentDetail({ agentId }: { agentId: string }) {
   const t = useTranslations("agents");
   const tc = useTranslations("common");
@@ -39,14 +46,12 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Sync model when agent changes.
   useEffect(() => {
     if (agent) {
       setModel(agent.model);
     }
   }, [agent]);
 
-  // Load SOUL.md content.
   useEffect(() => {
     setSoulLoading(true);
     setSoul("");
@@ -57,7 +62,6 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           return;
         }
         const data = await res.json();
-        // Gateway returns { content: "..." } or a string.
         const content =
           typeof data === "string" ? data : typeof data?.content === "string" ? data.content : "";
         setSoul(content);
@@ -99,7 +103,10 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   if (!agent) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--text-secondary)]">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
+          <Bot size={20} className="text-[var(--accent)]" />
+        </div>
         <p className="text-sm">{t("notFound")}</p>
       </div>
     );
@@ -107,70 +114,91 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      {/* Header */}
-      <div className="px-4 py-3 border-b">
-        <h2 className="text-sm font-semibold text-foreground">{agent.name}</h2>
-        <span className="text-xs text-muted-foreground">ID: {agent.id}</span>
+      {/* Header with agent identity */}
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border)]">
+        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20">
+          <Bot size={16} className="text-[var(--accent)]" />
+        </div>
+        <div className="flex flex-col min-w-0">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+            {agent.name}
+          </h2>
+          <span className="text-[10px] font-mono text-[var(--text-secondary)]">{agent.id}</span>
+        </div>
+        <Badge
+          className={`ml-auto shrink-0 text-[10px] border-0 ${STATUS_BADGE[agent.status] ?? STATUS_BADGE.offline}`}
+        >
+          {t(agent.status)}
+        </Badge>
       </div>
 
-      <div className="flex-1 px-4 py-3 space-y-4">
-        {/* Model selector */}
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1">{t("model")}</Label>
-          <Select
-            value={model}
-            onValueChange={(val) => {
-              if (val) {
-                void handleModelChange(val);
-              }
-            }}
-          >
-            <SelectTrigger className="w-full max-w-sm" size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MODELS.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {m}
-                </SelectItem>
-              ))}
-              {/* Include current model if not in preset list */}
-              {model && !MODELS.includes(model) && <SelectItem value={model}>{model}</SelectItem>}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Status */}
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1">{t("status")}</Label>
-          <div>
-            <Badge variant="secondary">{t(agent.status)}</Badge>
-          </div>
-        </div>
+      {/* Content sections */}
+      <div className="flex-1 p-4 space-y-4">
+        {/* Model config card */}
+        <Card className="card-hover">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs">{t("model")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={model}
+              onValueChange={(val) => {
+                if (val) {
+                  void handleModelChange(val);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full max-w-sm" size="sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODELS.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    <span className="font-mono text-xs">{m}</span>
+                  </SelectItem>
+                ))}
+                {model && !MODELS.includes(model) && (
+                  <SelectItem value={model}>
+                    <span className="font-mono text-xs">{model}</span>
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
 
         {/* SOUL.md editor */}
-        <div className="flex flex-col flex-1 min-h-0">
-          <div className="flex items-center justify-between mb-1">
-            <Label className="text-xs text-muted-foreground">
-              {t("personality")} ({SOUL_PATH})
-            </Label>
-            <Button
-              size="xs"
-              onClick={() => void handleSaveSoul()}
-              disabled={saving || soulLoading}
-            >
-              <Save size={12} />
-              {saved ? t("saved") : tc("save")}
-            </Button>
-          </div>
-          <textarea
-            value={soulLoading ? "" : soul}
-            onChange={(e) => setSoul(e.target.value)}
-            disabled={soulLoading}
-            placeholder={soulLoading ? tc("loading") : t("soulPlaceholder")}
-            className="flex-1 min-h-[200px] text-xs rounded-lg px-3 py-2 resize-none font-mono border border-input bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-          />
-        </div>
+        <Card className="flex flex-col flex-1 min-h-0">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xs">
+                {t("personality")}
+                <span className="ml-1.5 font-mono text-[var(--text-secondary)] font-normal">
+                  {SOUL_PATH}
+                </span>
+              </CardTitle>
+              <Button
+                size="xs"
+                variant={saved ? "outline" : "default"}
+                onClick={() => void handleSaveSoul()}
+                disabled={saving || soulLoading}
+                className="gap-1"
+              >
+                <Save size={12} />
+                {saved ? t("saved") : tc("save")}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 pb-4">
+            <textarea
+              value={soulLoading ? "" : soul}
+              onChange={(e) => setSoul(e.target.value)}
+              disabled={soulLoading}
+              placeholder={soulLoading ? tc("loading") : t("soulPlaceholder")}
+              className="w-full min-h-[200px] text-xs rounded-lg px-3 py-2.5 resize-none font-mono border border-[var(--border)] bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 focus-visible:border-[var(--accent)] disabled:opacity-50"
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

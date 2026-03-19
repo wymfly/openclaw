@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Trash2, User, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -56,21 +56,35 @@ function formatTokens(n: number): string {
 function HistoryBubble({ message }: { message: HistoryMessage }) {
   const isUser = message.role === "user";
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}>
+    <div className={cn("flex gap-3 mb-4 transition-panel", isUser && "flex-row-reverse")}>
+      {/* Avatar */}
       <div
         className={cn(
-          "max-w-[75%] rounded-lg px-3 py-2 text-sm leading-relaxed",
-          isUser ? "bg-primary text-primary-foreground" : "bg-card text-foreground",
+          "shrink-0 w-7 h-7 rounded-full flex items-center justify-center ring-1",
+          isUser
+            ? "bg-[var(--accent-muted)] text-[var(--accent)] ring-[var(--accent)]/20"
+            : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] ring-[var(--border)]",
         )}
       >
-        <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        {isUser ? <User size={12} /> : <Bot size={12} />}
+      </div>
+
+      {/* Content */}
+      <div
+        className={cn("flex flex-col max-w-[75%] min-w-0", isUser ? "items-end" : "items-start")}
+      >
+        <div
+          className={cn(
+            "px-3 py-2 text-sm leading-relaxed",
+            isUser
+              ? "bg-[var(--accent)] text-white rounded-2xl rounded-br-md"
+              : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-2xl rounded-bl-md ring-1 ring-[var(--border-subtle)]",
+          )}
+        >
+          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        </div>
         {message.timestamp && (
-          <span
-            className={cn(
-              "block text-[10px] mt-1 opacity-60",
-              isUser ? "text-primary-foreground" : "text-muted-foreground",
-            )}
-          >
+          <span className="text-[10px] mt-1 px-1 text-[var(--text-secondary)] font-mono">
             {new Date(message.timestamp).toLocaleTimeString()}
           </span>
         )}
@@ -104,22 +118,22 @@ export function SessionDetail() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-card">
+      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-2 shrink-0">
         <div className="min-w-0">
           <h3
-            className="text-sm font-semibold truncate font-mono text-foreground"
+            className="text-sm font-semibold truncate font-mono text-[var(--text-primary)]"
             title={session.key}
           >
             {session.key}
           </h3>
           <div className="flex items-center gap-3 mt-0.5">
             {session.model && (
-              <span className="text-xs text-muted-foreground">
-                {t("model")}: {session.model}
+              <span className="text-xs text-[var(--text-secondary)]">
+                {t("model")}: <span className="font-mono">{session.model}</span>
               </span>
             )}
             {session.updatedAt > 0 && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-[var(--text-secondary)]">
                 {t("updatedAt")}: {formatTime(session.updatedAt)}
               </span>
             )}
@@ -132,33 +146,51 @@ export function SessionDetail() {
           title={confirming ? t("confirmDelete") : tc("delete")}
           onClick={handleDelete}
           onBlur={() => setConfirming(false)}
+          className={cn(
+            "cursor-pointer",
+            !confirming &&
+              "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
+          )}
         >
-          <Trash2 size={16} />
+          <Trash2 size={15} />
         </Button>
       </div>
 
       {/* Stats + context bar */}
-      <div className="px-4 py-3 border-b border-border">
-        <div className="flex items-center gap-4 mb-2">
+      <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
+        <div className="flex items-center gap-6 mb-2">
           <div>
-            <span className="text-[10px] uppercase text-muted-foreground">{t("tokensIn")}</span>
-            <p className="text-sm font-medium text-foreground">{formatTokens(session.tokensIn)}</p>
+            <span className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
+              {t("tokensIn")}
+            </span>
+            <p className="text-sm font-semibold font-mono text-[var(--text-primary)]">
+              {formatTokens(session.tokensIn)}
+            </p>
           </div>
           <div>
-            <span className="text-[10px] uppercase text-muted-foreground">{t("tokensOut")}</span>
-            <p className="text-sm font-medium text-foreground">{formatTokens(session.tokensOut)}</p>
+            <span className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
+              {t("tokensOut")}
+            </span>
+            <p className="text-sm font-semibold font-mono text-[var(--text-primary)]">
+              {formatTokens(session.tokensOut)}
+            </p>
           </div>
         </div>
 
         {session.contextWindow > 0 && (
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">{t("context")}</span>
-              <span className={cn("text-xs font-medium", pressureTextClass(pct))}>{pct}%</span>
+              <span className="text-xs text-[var(--text-secondary)]">{t("context")}</span>
+              <span className={cn("text-xs font-semibold font-mono", pressureTextClass(pct))}>
+                {pct}%
+              </span>
             </div>
-            <div className="h-2 rounded-full overflow-hidden bg-muted">
+            <div className="h-1.5 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
               <div
-                className={cn("h-full rounded-full transition-all", pressureBarClass(pct))}
+                className={cn(
+                  "h-full rounded-full transition-all duration-300",
+                  pressureBarClass(pct),
+                )}
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -167,9 +199,9 @@ export function SessionDetail() {
       </div>
 
       {/* Conversation history */}
-      <ScrollArea className="flex-1 px-4 py-3">
+      <ScrollArea className="flex-1 px-5 py-4">
         {history.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
+          <div className="flex items-center justify-center h-full text-[var(--text-secondary)]">
             <p className="text-sm">{t("history")}</p>
           </div>
         ) : (

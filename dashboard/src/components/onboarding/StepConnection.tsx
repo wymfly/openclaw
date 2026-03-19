@@ -1,11 +1,12 @@
 "use client";
 
-import { Wifi, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle, AlertCircle, Loader2, Radio } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import type { OnboardingData } from "./OnboardingWizard";
 
 type Props = {
@@ -39,14 +40,20 @@ export function StepConnection({ data, onChange, onNext }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="mb-2 flex items-center gap-2">
-        <Wifi size={16} className="text-primary" />
-        <span className="text-sm font-semibold text-foreground">{t("stepConnection")}</span>
+      <div className="flex items-center gap-2.5 mb-1">
+        <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--accent-muted)]">
+          <Radio size={14} className="text-[var(--accent)]" />
+        </div>
+        <span className="text-sm font-semibold text-[var(--text-primary)]">
+          {t("stepConnection")}
+        </span>
       </div>
 
       {/* Gateway URL */}
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">{t("gatewayUrl")}</Label>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-[var(--text-secondary)]">
+          {t("gatewayUrl")}
+        </Label>
         <Input
           type="url"
           value={data.gatewayUrl}
@@ -55,13 +62,15 @@ export function StepConnection({ data, onChange, onNext }: Props) {
             setResult(null);
           }}
           placeholder="ws://localhost:18789"
-          className="text-sm"
+          className="h-9 text-sm font-mono focus-glow"
         />
       </div>
 
       {/* Token */}
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">{t("gatewayToken")}</Label>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-[var(--text-secondary)]">
+          {t("gatewayToken")}
+        </Label>
         <Input
           type="password"
           value={data.gatewayToken}
@@ -70,18 +79,19 @@ export function StepConnection({ data, onChange, onNext }: Props) {
             setResult(null);
           }}
           placeholder={t("tokenPlaceholder")}
-          className="text-sm"
+          className="h-9 text-sm focus-glow"
         />
       </div>
 
       {/* Test result */}
       {result && (
         <div
-          className={
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-medium ring-1 transition-panel",
             result.ok
-              ? "flex items-center gap-2 rounded-md bg-[var(--success-muted)] px-3 py-2 text-xs text-[var(--success-muted-text)]"
-              : "flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive"
-          }
+              ? "bg-[var(--success-muted)] text-[var(--success-muted-text)] ring-[var(--success)]/20"
+              : "bg-[var(--danger-muted)] text-[var(--danger-muted-text)] ring-[var(--danger)]/20",
+          )}
         >
           {result.ok ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
           {result.ok ? t("connectionSuccess") : (result.error ?? t("connectionFailed"))}
@@ -89,17 +99,18 @@ export function StepConnection({ data, onChange, onNext }: Props) {
       )}
 
       {/* Actions */}
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
         <Button
           variant="outline"
           size="sm"
           onClick={() => void testConnection()}
           disabled={testing || !data.gatewayUrl || !data.gatewayToken}
+          className="gap-1.5 text-xs"
         >
           {testing && <Loader2 size={12} className="animate-spin" />}
           {t("testConnection")}
         </Button>
-        <Button size="sm" onClick={onNext} disabled={!result?.ok}>
+        <Button size="sm" onClick={onNext} disabled={!result?.ok} className="text-xs">
           {t("next")}
         </Button>
       </div>

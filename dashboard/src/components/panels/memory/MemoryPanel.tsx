@@ -2,7 +2,14 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { useMemoryStore, type MemoryTab, type MemoryScope } from "@/stores/memory";
 import { FileTree } from "./FileTree";
 import { HealthDiagnostics } from "./HealthDiagnostics";
@@ -58,55 +65,68 @@ export function MemoryPanel() {
   }, [activeTab, fetchHealth]);
 
   return (
-    <div className="flex flex-col h-full rounded-lg overflow-hidden border border-border">
+    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card flex-wrap">
-        <h2 className="text-sm font-semibold shrink-0 text-foreground">{t("title")}</h2>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] shrink-0 flex-wrap">
+        <h2 className="text-sm font-semibold shrink-0 text-[var(--text-primary)]">{t("title")}</h2>
 
         {/* Agent selector */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">{t("agent")}:</span>
-          <select
-            value={selectedAgentId ?? ""}
-            onChange={(e) => setSelectedAgent(e.target.value || null)}
-            className="text-xs rounded-lg px-2 py-1 border border-input bg-transparent text-foreground min-w-[120px]"
+          <span className="text-xs font-medium text-[var(--text-secondary)]">{t("agent")}:</span>
+          <Select
+            value={selectedAgentId ?? "_none"}
+            onValueChange={(val) => setSelectedAgent(val === "_none" ? null : val)}
           >
-            <option value="">--</option>
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-[140px] h-7 text-xs" size="sm">
+              <SelectValue placeholder="--" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">--</SelectItem>
+              {agents.map((agent) => (
+                <SelectItem key={agent.id} value={agent.id}>
+                  {agent.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Scope filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">{t("scope")}:</span>
-          <select
+          <span className="text-xs font-medium text-[var(--text-secondary)]">{t("scope")}:</span>
+          <Select
             value={selectedScope}
-            onChange={(e) => setSelectedScope(e.target.value as MemoryScope)}
-            className="text-xs rounded-lg px-2 py-1 border border-input bg-transparent text-foreground min-w-[90px]"
+            onValueChange={(val) => setSelectedScope(val as MemoryScope)}
           >
-            {SCOPES.map((scope) => (
-              <option key={scope} value={scope}>
-                {t(SCOPE_LABEL_KEYS[scope])}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-[100px] h-7 text-xs" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SCOPES.map((scope) => (
+                <SelectItem key={scope} value={scope}>
+                  {t(SCOPE_LABEL_KEYS[scope])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Tab bar */}
-        <div className="flex items-center gap-1 ml-auto">
+        <div className="flex items-center gap-0.5 ml-auto rounded-lg bg-[var(--bg-tertiary)] p-0.5">
           {TABS.map((tab) => (
-            <Button
+            <button
               key={tab}
-              variant={activeTab === tab ? "default" : "outline"}
-              size="xs"
+              className={cn(
+                "px-2.5 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                activeTab === tab
+                  ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+              )}
               onClick={() => setActiveTab(tab)}
             >
               {t(TAB_LABEL_KEYS[tab])}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
