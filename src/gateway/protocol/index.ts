@@ -391,6 +391,50 @@ export const validateWebLoginStartParams =
   ajv.compile<WebLoginStartParams>(WebLoginStartParamsSchema);
 export const validateWebLoginWaitParams = ajv.compile<WebLoginWaitParams>(WebLoginWaitParamsSchema);
 
+// deck.* validators
+import {
+  DeckRoutingListParamsSchema,
+  DeckRoutingAddParamsSchema,
+  DeckRoutingRemoveParamsSchema,
+  DeckRoutingValidateParamsSchema,
+  DeckRoutingSimulateParamsSchema,
+  DeckAgentsDetailParamsSchema,
+  DeckAgentsSkillsGetParamsSchema,
+  DeckAgentsSkillsSetParamsSchema,
+  DeckAgentsSubagentsGetParamsSchema,
+  DeckAgentsSubagentsSetParamsSchema,
+  DeckSubagentsListParamsSchema,
+  DeckSubagentsKillParamsSchema,
+  DeckSubagentsLineageParamsSchema,
+  DeckIdentityListParamsSchema,
+  DeckIdentityLinkParamsSchema,
+  DeckIdentityUnlinkParamsSchema,
+  DeckThreadsListParamsSchema,
+} from "./schema/deck.js";
+
+// deck.routing.*
+export const validateDeckRoutingListParams = ajv.compile(DeckRoutingListParamsSchema);
+export const validateDeckRoutingAddParams = ajv.compile(DeckRoutingAddParamsSchema);
+export const validateDeckRoutingRemoveParams = ajv.compile(DeckRoutingRemoveParamsSchema);
+export const validateDeckRoutingValidateParams = ajv.compile(DeckRoutingValidateParamsSchema);
+export const validateDeckRoutingSimulateParams = ajv.compile(DeckRoutingSimulateParamsSchema);
+// deck.agents.*
+export const validateDeckAgentsDetailParams = ajv.compile(DeckAgentsDetailParamsSchema);
+export const validateDeckAgentsSkillsGetParams = ajv.compile(DeckAgentsSkillsGetParamsSchema);
+export const validateDeckAgentsSkillsSetParams = ajv.compile(DeckAgentsSkillsSetParamsSchema);
+export const validateDeckAgentsSubagentsGetParams = ajv.compile(DeckAgentsSubagentsGetParamsSchema);
+export const validateDeckAgentsSubagentsSetParams = ajv.compile(DeckAgentsSubagentsSetParamsSchema);
+// deck.subagents.*
+export const validateDeckSubagentsListParams = ajv.compile(DeckSubagentsListParamsSchema);
+export const validateDeckSubagentsKillParams = ajv.compile(DeckSubagentsKillParamsSchema);
+export const validateDeckSubagentsLineageParams = ajv.compile(DeckSubagentsLineageParamsSchema);
+// deck.identity.*
+export const validateDeckIdentityListParams = ajv.compile(DeckIdentityListParamsSchema);
+export const validateDeckIdentityLinkParams = ajv.compile(DeckIdentityLinkParamsSchema);
+export const validateDeckIdentityUnlinkParams = ajv.compile(DeckIdentityUnlinkParamsSchema);
+// deck.threads.*
+export const validateDeckThreadsListParams = ajv.compile(DeckThreadsListParamsSchema);
+
 export function formatValidationErrors(errors: ErrorObject[] | null | undefined) {
   if (!errors?.length) {
     return "unknown validation error";

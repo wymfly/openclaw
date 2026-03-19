@@ -100,6 +100,28 @@ const BASE_METHODS = [
   // Deck auth diagnostics
   "deck.auth.overview",
   "deck.auth.probe",
+  // deck.routing
+  "deck.routing.list",
+  "deck.routing.add",
+  "deck.routing.remove",
+  "deck.routing.validate",
+  "deck.routing.simulate",
+  // deck.agents
+  "deck.agents.detail",
+  "deck.agents.skills.get",
+  "deck.agents.skills.set",
+  "deck.agents.subagents.get",
+  "deck.agents.subagents.set",
+  // deck.subagents
+  "deck.subagents.list",
+  "deck.subagents.kill",
+  "deck.subagents.lineage",
+  // deck.identity
+  "deck.identity.list",
+  "deck.identity.link",
+  "deck.identity.unlink",
+  // deck.threads
+  "deck.threads.list",
 ];
 
 export function listGatewayMethods(): string[] {
