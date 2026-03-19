@@ -26,16 +26,17 @@ export const POST = withAuth(async (request: NextRequest) => {
     avatar?: string;
   };
 
-  if (!body.name?.trim()) {
+  const name = body.name?.trim();
+  if (!name) {
     return Response.json({ error: "name is required" }, { status: 400 });
   }
-  if (!body.workspace?.trim()) {
-    return Response.json({ error: "workspace is required" }, { status: 400 });
-  }
+
+  // Default workspace to name — Gateway resolves it relative to the user home.
+  const workspace = body.workspace?.trim() || name;
 
   return gatewayRequest("agents.create", {
-    name: body.name.trim(),
-    workspace: body.workspace.trim(),
+    name,
+    workspace,
     ...(body.emoji ? { emoji: body.emoji } : {}),
     ...(body.avatar ? { avatar: body.avatar } : {}),
   });

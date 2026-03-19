@@ -20,7 +20,7 @@ interface AgentsState {
   setLoading: (loading: boolean) => void;
 
   fetchAgents: () => Promise<void>;
-  createAgent: (name: string, model?: string) => Promise<void>;
+  createAgent: (name: string) => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
 }
 
@@ -66,11 +66,11 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
     }
   },
 
-  createAgent: async (name: string, model?: string) => {
+  createAgent: async (name: string) => {
     const res = await fetch("/api/agents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, model }),
+      body: JSON.stringify({ name }),
     });
     if (res.ok) {
       await get().fetchAgents();
