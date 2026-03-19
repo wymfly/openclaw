@@ -1,9 +1,53 @@
 "use client";
 
+import { Hash, Link2, Smartphone, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useSessionsStore, type SessionEntry, type SessionKind } from "@/stores/sessions";
+
+// ---------------------------------------------------------------------------
+// Session type inference
+// ---------------------------------------------------------------------------
+
+export type SessionType = "dm" | "group" | "channel" | "subagent";
+
+const TYPE_ICONS: Record<SessionType, ReactNode> = {
+  dm: <Smartphone size={12} />,
+  group: <Users size={12} />,
+  channel: <Hash size={12} />,
+  subagent: <Link2 size={12} />,
+};
+
+const TYPE_STYLES: Record<SessionType, string> = {
+  dm: "text-blue-400",
+  group: "text-emerald-400",
+  channel: "text-amber-400",
+  subagent: "text-purple-400",
+};
+
+export function inferSessionType(key: string): SessionType {
+  if (key.includes(":subagent:")) {
+    return "subagent";
+  }
+  if (key.includes(":channel:")) {
+    return "channel";
+  }
+  if (key.includes(":group:")) {
+    return "group";
+  }
+  return "dm";
+}
+
+function inferSubagentDepth(key: string): number {
+  const matches = key.match(/:subagent:/g);
+  return matches ? matches.length : 0;
+}
+
+// ---------------------------------------------------------------------------
+// Existing helpers
+// ---------------------------------------------------------------------------
 
 const KIND_BADGE_STYLES: Record<SessionKind, string> = {
   direct: "bg-[var(--accent-muted)] text-[var(--accent)]",
@@ -44,15 +88,29 @@ function shortKey(key: string, maxLen = 20): string {
   return key.length > maxLen ? `${key.slice(0, maxLen)}...` : key;
 }
 
-export function SessionList() {
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+interface SessionListProps {
+  typeFilter?: SessionType | "all";
+}
+
+export function SessionList({ typeFilter = "all" }: SessionListProps) {
   const t = useTranslations("sessions");
   const { sessions, selectedKey, selectSession } = useSessionsStore();
 
+  const filtered =
+    typeFilter === "all"
+      ? sessions
+      : sessions.filter((s) => inferSessionType(s.key) === typeFilter);
+
   return (
     <div className="flex flex-col py-1">
-      {sessions.map((session) => {
+      {filtered.map((session) => {
         const isActive = session.key === selectedKey;
         const pct = contextPct(session);
+        const sType = inferSessionType(session.key);
 
         return (
           <button
@@ -75,11 +133,19 @@ export function SessionList() {
               />
             )}
 
-            {/* Top row: kind badge + key */}
+            {/* Top row: type icon + kind badge + key */}
             <div className="flex items-center gap-2 min-w-0">
+              <span className={cn("shrink-0", TYPE_STYLES[sType])} title={sType}>
+                {TYPE_ICONS[sType]}
+              </span>
               <Badge className={cn("text-[10px] h-auto py-0.5", KIND_BADGE_STYLES[session.kind])}>
                 {t(session.kind)}
               </Badge>
+              {sType === "subagent" && (
+                <span className="text-[9px] font-mono bg-purple-500/15 text-purple-400 px-1 rounded shrink-0">
+                  d{inferSubagentDepth(session.key)}
+                </span>
+              )}
               <span className="text-xs font-mono truncate" title={session.key}>
                 {shortKey(session.key)}
               </span>
