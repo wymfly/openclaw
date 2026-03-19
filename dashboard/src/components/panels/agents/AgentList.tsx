@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
+import { useDeckAgentsStore } from "@/stores/deck-agents";
 
 const STATUS_DOT: Record<string, string> = {
   idle: "bg-[var(--status-connected)]",
@@ -16,11 +17,16 @@ const STATUS_DOT: Record<string, string> = {
   offline: "bg-[var(--text-secondary)]",
 };
 
-export function AgentList() {
+interface AgentListProps {
+  onAgentSelect?: () => void;
+}
+
+export function AgentList({ onAgentSelect }: AgentListProps) {
   const t = useTranslations("agents");
   const tc = useTranslations("common");
   const { agents, selectedAgentId, loading, selectAgent, createAgent, deleteAgent } =
     useAgentsStore();
+  const fetchDetail = useDeckAgentsStore((s) => s.fetchDetail);
 
   const [showDialog, setShowDialog] = useState(false);
   const [newName, setNewName] = useState("");
@@ -46,8 +52,14 @@ export function AgentList() {
     await deleteAgent(id);
   };
 
+  const handleSelect = (id: string) => {
+    selectAgent(id);
+    void fetchDetail(id);
+    onAgentSelect?.();
+  };
+
   return (
-    <aside className="flex flex-col w-56 shrink-0 border-r border-[var(--border)] h-full bg-[var(--bg-secondary)]">
+    <aside className="flex flex-col w-60 shrink-0 border-r border-[var(--border)] h-full bg-[var(--bg-secondary)]">
       {/* New agent action */}
       <Button
         variant="ghost"
@@ -109,7 +121,7 @@ export function AgentList() {
             return (
               <button
                 key={agent.id}
-                onClick={() => selectAgent(agent.id)}
+                onClick={() => handleSelect(agent.id)}
                 className={cn(
                   "relative flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer group",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
