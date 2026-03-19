@@ -43,6 +43,8 @@ OpenClaw Gateway 通过 7 层优先级绑定规则将渠道消息路由到 Agent
 
 **理由：** 上游 `AgentBinding` 类型无 `id` 字段（config.bindings 是无 ID 数组）。数组索引在并发修改下不稳定。内容哈希是确定性的，相同 match 产生相同 ID，且不修改上游类型定义。
 
+**归一化保证：** 哈希输入必须经过归一化（sorted keys, trimmed, lowercased）后再 `JSON.stringify`，确保即使 config 文件序列化顺序变化，相同语义的 match 始终产生相同 ID。归一化函数复用现有 `normalizeBindingMatch()` 逻辑。
+
 ### D3: Optimistic Locking — baseHash
 
 **选择：** 所有写入 RPC 接受 `baseHash` 并返回 `configHash`
@@ -80,6 +82,12 @@ OpenClaw Gateway 通过 7 层优先级绑定规则将渠道消息路由到 Agent
 **备选：** SSE/WebSocket 推送
 
 **理由：** Gateway 现有架构以 RPC 为主，活跃 subagent 数量通常很少（≤5），5s 轮询开销可接受。SSE 升级作为未来迭代。
+
+### D8: RPC 鉴权 Scope — 读写分离
+
+**选择：** 读取类 RPC（list/get/detail/validate/simulate/lineage）注册为 VIEWER scope；写入类 RPC（add/remove/set/kill/link/unlink）注册为 ADMIN scope
+
+**理由：** 面向"非技术运维"的可视化需求以只读为主，VIEWER scope 即可满足。配置变更需要更高权限。未在 `method-scopes.ts` 注册的方法默认走 ADMIN（参见 `src/gateway/method-scopes.ts`），但显式注册更安全可审计。
 
 ## Risks / Trade-offs
 

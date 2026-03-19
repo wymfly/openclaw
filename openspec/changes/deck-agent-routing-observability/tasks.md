@@ -1,8 +1,9 @@
 ## 1. Backend Infrastructure
 
 - [ ] 1.1 Create `src/gateway/server-methods/deck/` directory with `index.ts` registration entry point
-- [ ] 1.2 Implement content-hash binding ID utility (`sha256(JSON.stringify(normalizedMatch)).slice(0, 12)`)
-- [ ] 1.3 Implement shared baseHash validation helper for all `deck.*` write RPCs
+- [ ] 1.2 Register all `deck.*` methods in `server-methods-list.ts` and define scopes in `method-scopes.ts` (read RPCs: VIEWER scope; write RPCs: ADMIN scope)
+- [ ] 1.3 Implement content-hash binding ID utility — normalize match object (sorted keys, trimmed, lowercased) before hashing to ensure stability across serialization order changes
+- [ ] 1.4 Implement shared baseHash validation helper for all `deck.*` write RPCs
 
 ## 2. Backend: deck.routing.\* (5 RPCs)
 
@@ -26,7 +27,7 @@
 
 - [ ] 4.1 Implement `deck.subagents.list` — read subagentRuns Map + disk, filter by status/agentId/requesterAgentId, paginate
 - [ ] 4.2 Implement `deck.subagents.kill` — call existing kill/termination logic
-- [ ] 4.3 Implement `deck.subagents.lineage` — walk upward to root via requesterSessionKey, then collect full descendant tree, reconstruct parentRunId
+- [ ] 4.3 Implement `deck.subagents.lineage` — walk upward to root via requesterSessionKey, then collect full descendant tree, reconstruct parentRunId; enforce maxNodes=50 limit to prevent unbounded traversal
 - [ ] 4.4 Write tests for all deck.subagents.\* methods
 
 ## 5. Backend: deck.identity._ + deck.threads._ (4 RPCs)
@@ -92,8 +93,11 @@
 - [ ] 12.1 Wire all cross-panel links: Routing ↔ Agents ↔ Subagents ↔ Sessions ↔ Channels ↔ Skills
 - [ ] 12.2 Verify navigation with prefilled filters (e.g., Agents Routing tab → Routing panel with agentId filter)
 
-## 13. Integration Testing
+## 13. Integration & Edge-Case Testing
 
 - [ ] 13.1 E2E test: create binding via Routing panel → verify in Agents Routing tab → simulate route
 - [ ] 13.2 E2E test: configure agent skills → verify in Skills matrix
 - [ ] 13.3 Verify responsive layouts (desktop/tablet/mobile) for Routing and Subagents panels
+- [ ] 13.4 Test baseHash conflict: two concurrent binding adds with stale baseHash → verify CONFLICT error and UI recovery
+- [ ] 13.5 Test lineage with maxNodes boundary: verify truncation when tree exceeds 50 nodes
+- [ ] 13.6 Test deck.\* RPC scope enforcement: verify VIEWER scope can call read RPCs, ADMIN scope required for write RPCs
