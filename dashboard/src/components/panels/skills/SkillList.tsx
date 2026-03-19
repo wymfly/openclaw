@@ -1,18 +1,32 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useSkillsStore, type SkillEntry, type StatusFilter } from "@/stores/skills";
 
 const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "needs-setup", "disabled"];
 
-function sourceBadgeColor(source: SkillEntry["source"]): string {
+function sourceBadgeVariant(source: SkillEntry["source"]): "default" | "secondary" | "outline" {
   switch (source) {
     case "bundled":
-      return "var(--accent)";
+      return "default";
     case "managed":
-      return "var(--purple)";
+      return "secondary";
     case "plugin":
-      return "var(--warning)";
+      return "outline";
+  }
+}
+
+function statusDotColor(status: string): string {
+  switch (status) {
+    case "ready":
+      return "bg-green-500";
+    case "needs-setup":
+      return "bg-yellow-500";
+    default:
+      return "bg-muted-foreground";
   }
 }
 
@@ -28,58 +42,51 @@ export function SkillList() {
       {/* Filter tabs */}
       <div className="flex gap-1 flex-wrap mb-2">
         {STATUS_FILTERS.map((f) => (
-          <button
+          <Button
             key={f}
-            type="button"
-            className="px-2 py-1 text-[11px] rounded-md transition-colors"
-            style={{
-              backgroundColor: statusFilter === f ? "var(--accent)" : "var(--bg-tertiary)",
-              color: statusFilter === f ? "var(--accent-fg)" : "var(--text-secondary)",
-            }}
+            variant={statusFilter === f ? "default" : "secondary"}
+            size="xs"
             onClick={() => setStatusFilter(f)}
           >
             {f === "all" ? t("all") : f === "needs-setup" ? t("needsSetup") : t(f)}
-          </button>
+          </Button>
         ))}
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-xs px-3 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
-          {t("noSkills")}
-        </p>
+        <p className="text-xs px-3 py-4 text-center text-muted-foreground">{t("noSkills")}</p>
       )}
 
       {filtered.map((skill) => (
         <button
           key={skill.key}
           type="button"
-          className="w-full text-left px-3 py-2 rounded-md transition-colors text-xs"
-          style={{
-            backgroundColor: selectedSkillKey === skill.key ? "var(--bg-tertiary)" : "transparent",
-            color: "var(--text-primary)",
-          }}
+          className={cn(
+            "w-full text-left px-3 py-2 rounded-md transition-colors text-xs cursor-pointer",
+            selectedSkillKey === skill.key
+              ? "bg-muted text-foreground"
+              : "text-foreground hover:bg-muted/50",
+          )}
           onClick={() => selectSkill(skill.key)}
         >
           <div className="flex items-center justify-between">
             <span className="font-medium truncate">{skill.name}</span>
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: sourceBadgeColor(skill.source), color: "var(--accent-fg)" }}
+            <Badge
+              variant={sourceBadgeVariant(skill.source)}
+              className={cn(
+                "text-[10px] h-4",
+                skill.source === "managed" &&
+                  "bg-purple-500/15 text-purple-600 dark:text-purple-400",
+                skill.source === "plugin" &&
+                  "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400",
+              )}
             >
               {t(skill.source)}
-            </span>
+            </Badge>
           </div>
-          <div className="mt-1 flex items-center gap-2" style={{ color: "var(--text-secondary)" }}>
+          <div className="mt-1 flex items-center gap-2 text-muted-foreground">
             <span
-              className="w-1.5 h-1.5 rounded-full inline-block"
-              style={{
-                backgroundColor:
-                  skill.status === "ready"
-                    ? "var(--success)"
-                    : skill.status === "needs-setup"
-                      ? "var(--warning)"
-                      : "var(--neutral-muted-text)",
-              }}
+              className={cn("w-1.5 h-1.5 rounded-full inline-block", statusDotColor(skill.status))}
             />
             <span>{skill.status === "needs-setup" ? t("needsSetup") : t(skill.status)}</span>
           </div>

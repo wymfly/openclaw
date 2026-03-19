@@ -3,6 +3,8 @@
 import { Send, Square, Paperclip } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useCallback } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useChatStore } from "@/stores/chat";
 
 export function MessageInput() {
@@ -68,20 +70,11 @@ export function MessageInput() {
   };
 
   return (
-    <div
-      className="border-t p-3"
-      style={{ borderColor: "var(--border)" }}
-      onDrop={handleDrop}
-      onDragOver={(e) => e.preventDefault()}
-    >
+    <div className="border-t p-3" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
       {files.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {files.map((f, i) => (
-            <span
-              key={`${f.name}-${i}`}
-              className="flex items-center gap-1 text-xs px-2 py-0.5 rounded"
-              style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
-            >
+            <Badge key={`${f.name}-${i}`} variant="secondary" className="gap-1">
               {f.name}
               <button
                 onClick={() => setFiles((p) => p.filter((_, j) => j !== i))}
@@ -89,18 +82,14 @@ export function MessageInput() {
               >
                 &times;
               </button>
-            </span>
+            </Badge>
           ))}
         </div>
       )}
       <div className="flex items-end gap-2">
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="p-1.5 rounded hover:opacity-80 transition-opacity shrink-0"
-          style={{ color: "var(--text-secondary)" }}
-        >
+        <Button variant="ghost" size="icon-xs" onClick={() => fileInputRef.current?.click()}>
           <Paperclip size={16} />
-        </button>
+        </Button>
         <input
           ref={fileInputRef}
           type="file"
@@ -119,33 +108,26 @@ export function MessageInput() {
           onKeyDown={handleKeyDown}
           placeholder={t("placeholder")}
           rows={1}
-          className="flex-1 resize-none text-sm rounded-lg px-3 py-2 outline-none"
-          style={{
-            backgroundColor: "var(--bg-secondary)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-            maxHeight: 120,
-          }}
+          className="flex-1 resize-none text-sm rounded-lg px-3 py-2 outline-none max-h-[120px] border border-input bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
         {isStreaming ? (
-          <button
+          <Button
+            variant="destructive"
+            size="icon-sm"
             onClick={() => void handleAbort()}
-            className="p-2 rounded-lg shrink-0 hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: "var(--status-disconnected)", color: "var(--accent-fg)" }}
             title={t("abort")}
           >
             <Square size={16} />
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button
+            size="icon-sm"
             onClick={() => void sendMessage()}
             disabled={!input.trim()}
-            className="p-2 rounded-lg shrink-0 hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
             title={t("send")}
           >
             <Send size={16} />
-          </button>
+          </Button>
         )}
       </div>
     </div>

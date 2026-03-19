@@ -7,8 +7,8 @@
  */
 
 import type { Database } from "@server/db";
-import type { EventBus, ServerEvent } from "./event-bus.js";
-import type { DeckRuntime } from "./runtime.js";
+import type { EventBus, ServerEvent } from "./event-bus";
+import type { DeckRuntime } from "./runtime";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -232,7 +232,7 @@ function handleEvent(
 async function fireAlertWebhook(db: Database, payload: Record<string, unknown>): Promise<void> {
   try {
     // Dynamic import to avoid circular dependency
-    const { fireWebhooks } = await import("../src/lib/webhooks.js");
+    const { fireWebhooks } = await import("../src/lib/webhooks");
     await fireWebhooks(db, "alert.fired", payload);
   } catch {
     console.error("[AlertEngine] webhook delivery failed");

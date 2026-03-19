@@ -2,6 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import type { Webhook, CreateWebhookInput } from "@/stores/webhooks";
 
 // Available event types for the multi-select
@@ -70,133 +74,97 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
     );
   };
 
-  const inputStyle = {
-    backgroundColor: "var(--bg-primary)",
-    borderColor: "var(--border)",
-    color: "var(--text-primary)",
-  };
-
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold text-foreground">
         {webhook ? t("editWebhook") : t("addWebhook")}
       </h3>
 
       {/* Name */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("name")}
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="px-3 py-2 text-sm rounded-md border"
-          style={inputStyle}
-          required
-        />
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("name")}</Label>
+        <Input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       {/* URL */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("url")}
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("url")}</Label>
+        <Input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          className="px-3 py-2 text-sm rounded-md border"
-          style={inputStyle}
           placeholder="https://example.com/webhook"
           required
         />
       </div>
 
       {/* Secret */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("secret")}
-        </label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("secret")}</Label>
         <div className="flex gap-2">
-          <input
+          <Input
             type={showSecret ? "text" : "password"}
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm rounded-md border"
-            style={inputStyle}
+            className="flex-1"
           />
-          <button
+          <Button
             type="button"
-            className="px-3 py-2 text-xs rounded-md border"
-            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+            variant="outline"
+            size="sm"
             onClick={() => setShowSecret(!showSecret)}
           >
             {showSecret ? t("hide") : t("show")}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Events multi-select */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("events")}
-        </label>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("events")}</Label>
         <div className="flex flex-wrap gap-1.5">
           {AVAILABLE_EVENTS.map((event) => (
-            <button
+            <Button
               key={event}
               type="button"
-              className="px-2 py-1 text-xs rounded-md border transition-colors"
-              style={{
-                backgroundColor: events.includes(event) ? "var(--accent)" : "transparent",
-                color: events.includes(event) ? "var(--accent-fg)" : "var(--text-secondary)",
-                borderColor: events.includes(event) ? "var(--accent)" : "var(--border)",
-              }}
+              variant={events.includes(event) ? "default" : "outline"}
+              size="xs"
               onClick={() => toggleEvent(event)}
             >
               {event}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {/* Enabled toggle */}
       <div className="flex items-center gap-2">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-          {t("enabledToggle")}
-        </label>
+        <Label className="text-xs text-muted-foreground">{t("enabledToggle")}</Label>
         <button
           type="button"
-          className="w-10 h-5 rounded-full transition-colors relative"
-          style={{ backgroundColor: enabled ? "var(--accent)" : "var(--border)" }}
+          className={cn(
+            "w-10 h-5 rounded-full transition-colors relative cursor-pointer",
+            enabled ? "bg-primary" : "bg-input",
+          )}
           onClick={() => setEnabled(!enabled)}
         >
           <span
-            className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-            style={{ left: enabled ? "calc(100% - 18px)" : "2px" }}
+            className={cn(
+              "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform",
+              enabled ? "left-[calc(100%-18px)]" : "left-0.5",
+            )}
           />
         </button>
       </div>
 
       {/* Actions */}
       <div className="flex gap-2 pt-2">
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-4 py-2 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-        >
+        <Button type="submit" size="sm" disabled={saving}>
           {tc("save")}
-        </button>
-        <button
-          type="button"
-          className="px-4 py-2 text-xs rounded-md font-medium transition-colors border"
-          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-          onClick={onCancel}
-        >
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
           {tc("cancel")}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { useMemoryStore, type MemoryTab, type MemoryScope } from "@/stores/memory";
 import { FileTree } from "./FileTree";
 import { HealthDiagnostics } from "./HealthDiagnostics";
@@ -17,9 +18,6 @@ const TAB_LABEL_KEYS: Record<MemoryTab, string> = {
   health: "health",
 };
 
-/**
- * Memory Browser panel — top agent selector + tab bar, and active tab content.
- */
 export function MemoryPanel() {
   const t = useTranslations("memory");
   const SCOPES: MemoryScope[] = ["all", "global", "agent"];
@@ -43,19 +41,16 @@ export function MemoryPanel() {
     fetchHealth,
   } = useMemoryStore();
 
-  // Fetch agents on mount.
   useEffect(() => {
     void fetchAgents();
   }, [fetchAgents]);
 
-  // When agent changes, browse root files.
   useEffect(() => {
     if (selectedAgentId) {
       void browseFiles(selectedAgentId);
     }
   }, [selectedAgentId, browseFiles]);
 
-  // When health tab is active, fetch health data.
   useEffect(() => {
     if (activeTab === "health") {
       void fetchHealth();
@@ -63,37 +58,18 @@ export function MemoryPanel() {
   }, [activeTab, fetchHealth]);
 
   return (
-    <div
-      className="flex flex-col h-full rounded-lg overflow-hidden border"
-      style={{ borderColor: "var(--border)" }}
-    >
+    <div className="flex flex-col h-full rounded-lg overflow-hidden border border-border">
       {/* Toolbar */}
-      <div
-        className="flex items-center gap-3 px-4 py-3 border-b flex-wrap"
-        style={{
-          borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
-        }}
-      >
-        <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--text-primary)" }}>
-          {t("title")}
-        </h2>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card flex-wrap">
+        <h2 className="text-sm font-semibold shrink-0 text-foreground">{t("title")}</h2>
 
         {/* Agent selector */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-            {t("agent")}:
-          </span>
+          <span className="text-xs font-medium text-muted-foreground">{t("agent")}:</span>
           <select
             value={selectedAgentId ?? ""}
             onChange={(e) => setSelectedAgent(e.target.value || null)}
-            className="text-xs rounded px-2 py-1 border"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              minWidth: 120,
-            }}
+            className="text-xs rounded-lg px-2 py-1 border border-input bg-transparent text-foreground min-w-[120px]"
           >
             <option value="">--</option>
             {agents.map((agent) => (
@@ -106,19 +82,11 @@ export function MemoryPanel() {
 
         {/* Scope filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-            {t("scope")}:
-          </span>
+          <span className="text-xs font-medium text-muted-foreground">{t("scope")}:</span>
           <select
             value={selectedScope}
             onChange={(e) => setSelectedScope(e.target.value as MemoryScope)}
-            className="text-xs rounded px-2 py-1 border"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              minWidth: 90,
-            }}
+            className="text-xs rounded-lg px-2 py-1 border border-input bg-transparent text-foreground min-w-[90px]"
           >
             {SCOPES.map((scope) => (
               <option key={scope} value={scope}>
@@ -131,18 +99,14 @@ export function MemoryPanel() {
         {/* Tab bar */}
         <div className="flex items-center gap-1 ml-auto">
           {TABS.map((tab) => (
-            <button
+            <Button
               key={tab}
+              variant={activeTab === tab ? "default" : "outline"}
+              size="xs"
               onClick={() => setActiveTab(tab)}
-              className="text-xs px-3 py-1 rounded border cursor-pointer"
-              style={{
-                borderColor: activeTab === tab ? "var(--accent)" : "var(--border)",
-                backgroundColor: activeTab === tab ? "var(--accent-muted)" : "var(--bg-primary)",
-                color: activeTab === tab ? "var(--accent)" : "var(--text-primary)",
-              }}
             >
               {t(TAB_LABEL_KEYS[tab])}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

@@ -1,21 +1,23 @@
 "use client";
 
+import { Info, CheckCircle, AlertTriangle, XCircle, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useNotificationsStore, type ToastType } from "@/stores/notifications";
 
-const ICONS: Record<ToastType, string> = {
-  info: "\u2139\uFE0F",
-  success: "\u2705",
-  warning: "\u26A0\uFE0F",
-  error: "\u274C",
+const ICONS: Record<ToastType, React.ReactNode> = {
+  info: <Info size={16} className="shrink-0 text-primary" />,
+  success: <CheckCircle size={16} className="shrink-0 text-[var(--success)]" />,
+  warning: <AlertTriangle size={16} className="shrink-0 text-[var(--warning)]" />,
+  error: <XCircle size={16} className="shrink-0 text-destructive" />,
 };
 
-const BORDER_COLORS: Record<ToastType, string> = {
-  info: "var(--accent)",
-  success: "var(--status-connected)",
-  warning: "var(--status-reconnecting)",
-  error: "var(--status-disconnected)",
+const BORDER_CLASSES: Record<ToastType, string> = {
+  info: "border-l-primary",
+  success: "border-l-[var(--success)]",
+  warning: "border-l-[var(--warning)]",
+  error: "border-l-destructive",
 };
 
 /**
@@ -44,55 +46,25 @@ export function ToastContainer() {
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 16,
-        right: 16,
-        zIndex: 9999,
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        maxWidth: 380,
-        pointerEvents: "none",
-      }}
-    >
+    <div className="pointer-events-none fixed right-4 top-4 z-[9999] flex max-w-[380px] flex-col gap-2">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "10px 14px",
-            borderRadius: 8,
-            borderLeft: `4px solid ${BORDER_COLORS[toast.type]}`,
-            backgroundColor: "var(--bg-secondary)",
-            color: "var(--text-primary)",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            pointerEvents: "auto",
-            opacity: visible.has(toast.id) ? 1 : 0,
-            transform: visible.has(toast.id) ? "translateX(0)" : "translateX(100%)",
-            transition: "opacity 0.3s ease, transform 0.3s ease",
-          }}
+          className={cn(
+            "pointer-events-auto flex items-center gap-2.5 rounded-lg border-l-4 bg-card px-3.5 py-2.5 text-card-foreground shadow-lg ring-1 ring-foreground/10 transition-all duration-300 ease-out",
+            BORDER_CLASSES[toast.type],
+            visible.has(toast.id) ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
+          )}
           role="alert"
         >
-          <span style={{ fontSize: 18, flexShrink: 0 }}>{ICONS[toast.type]}</span>
-          <span style={{ flex: 1, fontSize: 14 }}>{toast.message}</span>
+          {ICONS[toast.type]}
+          <span className="flex-1 text-sm">{toast.message}</span>
           <button
             onClick={() => dismissToast(toast.id)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--text-secondary)",
-              padding: "2px 4px",
-              fontSize: 12,
-              flexShrink: 0,
-            }}
+            className="shrink-0 cursor-pointer rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
             aria-label={t("dismiss")}
           >
-            {t("dismiss")}
+            <X size={14} />
           </button>
         </div>
       ))}

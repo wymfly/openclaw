@@ -3,6 +3,7 @@
 import { HeartPulse, Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useGatewayStore } from "@/stores/gateway";
 
 export function HeartbeatCard() {
@@ -18,46 +19,41 @@ export function HeartbeatCard() {
   const state = statusSummary?.state;
 
   return (
-    <div
-      className="rounded-lg border p-4 flex flex-col gap-3"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-    >
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-        {t("heartbeat")}
-      </h3>
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>{t("heartbeat")}</CardTitle>
+      </CardHeader>
 
-      {statusLoading && !statusSummary ? (
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {tc("loading")}
-        </span>
-      ) : (
-        <>
-          {/* Last heartbeat */}
-          <div className="flex items-center gap-2">
-            <Clock size={14} style={{ color: "var(--accent)" }} />
-            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              {t("lastHeartbeat")}
-            </span>
-            <span className="text-xs font-mono ml-auto" style={{ color: "var(--text-primary)" }}>
-              {heartbeat ?? "—"}
-            </span>
-          </div>
+      <CardContent className="space-y-3">
+        {statusLoading && !statusSummary ? (
+          <span className="text-xs text-muted-foreground">{tc("loading")}</span>
+        ) : (
+          <>
+            {/* Last heartbeat */}
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="text-primary" />
+              <span className="text-xs text-muted-foreground">{t("lastHeartbeat")}</span>
+              <span className="text-xs font-mono ml-auto text-foreground">
+                {heartbeat && typeof heartbeat === "object"
+                  ? `${(heartbeat as { agents?: unknown[] }).agents?.length ?? 0} agent(s)`
+                  : ((heartbeat as string) ?? "—")}
+              </span>
+            </div>
 
-          {/* Gateway state */}
-          <div className="flex items-center gap-2">
-            <HeartPulse
-              size={14}
-              style={{ color: state === "active" ? "var(--success)" : "var(--warning)" }}
-            />
-            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              {t("gatewayState")}
-            </span>
-            <span className="text-xs font-medium ml-auto" style={{ color: "var(--text-primary)" }}>
-              {state ? t(state) : "—"}
-            </span>
-          </div>
-        </>
-      )}
-    </div>
+            {/* Gateway state */}
+            <div className="flex items-center gap-2">
+              <HeartPulse
+                size={14}
+                className={state === "active" ? "text-[var(--success)]" : "text-[var(--warning)]"}
+              />
+              <span className="text-xs text-muted-foreground">{t("gatewayState")}</span>
+              <span className="text-xs font-medium ml-auto text-foreground">
+                {state ? t(state) : "—"}
+              </span>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

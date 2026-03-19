@@ -3,6 +3,9 @@
 import { Wifi, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { OnboardingData } from "./OnboardingWizard";
 
 type Props = {
@@ -34,30 +37,17 @@ export function StepConnection({ data, onChange, onNext }: Props) {
     }
   }, [data.gatewayUrl, data.gatewayToken, t]);
 
-  const inputStyle = {
-    backgroundColor: "var(--bg-primary)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border)",
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Wifi size={16} style={{ color: "var(--accent)" }} />
-        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {t("stepConnection")}
-        </span>
+      <div className="mb-2 flex items-center gap-2">
+        <Wifi size={16} className="text-primary" />
+        <span className="text-sm font-semibold text-foreground">{t("stepConnection")}</span>
       </div>
 
       {/* Gateway URL */}
-      <div>
-        <label
-          className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {t("gatewayUrl")}
-        </label>
-        <input
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">{t("gatewayUrl")}</Label>
+        <Input
           type="url"
           value={data.gatewayUrl}
           onChange={(e) => {
@@ -65,20 +55,14 @@ export function StepConnection({ data, onChange, onNext }: Props) {
             setResult(null);
           }}
           placeholder="ws://localhost:18789"
-          className="w-full text-sm rounded px-3 py-2"
-          style={inputStyle}
+          className="text-sm"
         />
       </div>
 
       {/* Token */}
-      <div>
-        <label
-          className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {t("gatewayToken")}
-        </label>
-        <input
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">{t("gatewayToken")}</Label>
+        <Input
           type="password"
           value={data.gatewayToken}
           onChange={(e) => {
@@ -86,19 +70,18 @@ export function StepConnection({ data, onChange, onNext }: Props) {
             setResult(null);
           }}
           placeholder={t("tokenPlaceholder")}
-          className="w-full text-sm rounded px-3 py-2"
-          style={inputStyle}
+          className="text-sm"
         />
       </div>
 
       {/* Test result */}
       {result && (
         <div
-          className="flex items-center gap-2 text-xs px-3 py-2 rounded"
-          style={{
-            backgroundColor: result.ok ? "var(--status-connected)" : "var(--status-disconnected)",
-            color: "#fff",
-          }}
+          className={
+            result.ok
+              ? "flex items-center gap-2 rounded-md bg-[var(--success-muted)] px-3 py-2 text-xs text-[var(--success-muted-text)]"
+              : "flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          }
         >
           {result.ok ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
           {result.ok ? t("connectionSuccess") : (result.error ?? t("connectionFailed"))}
@@ -107,23 +90,18 @@ export function StepConnection({ data, onChange, onNext }: Props) {
 
       {/* Actions */}
       <div className="flex justify-end gap-2 pt-2">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => void testConnection()}
           disabled={testing || !data.gatewayUrl || !data.gatewayToken}
-          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-          style={{ border: "1px solid var(--border)", color: "var(--text-primary)" }}
         >
           {testing && <Loader2 size={12} className="animate-spin" />}
           {t("testConnection")}
-        </button>
-        <button
-          onClick={onNext}
-          disabled={!result?.ok}
-          className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
-        >
+        </Button>
+        <Button size="sm" onClick={onNext} disabled={!result?.ok}>
           {t("next")}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,7 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Locale } from "@/i18n/config";
+import { cn } from "@/lib/utils";
 import { useUIStore, type Theme } from "@/stores/ui";
 
 const THEMES: { value: Theme; labelKey: string }[] = [
@@ -24,61 +27,46 @@ export function AppearanceSection() {
 
   return (
     <section>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-        {t("appearance")}
-      </h3>
-      <div
-        className="rounded-lg border p-4 flex flex-col gap-4"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-      >
-        {/* Theme */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium w-16" style={{ color: "var(--text-secondary)" }}>
-            {t("theme")}
-          </span>
-          <div className="flex gap-1">
-            {THEMES.map(({ value, labelKey }) => (
-              <button
-                key={value}
-                type="button"
-                className="px-3 py-1.5 text-xs rounded-md font-medium transition-colors"
-                style={{
-                  backgroundColor: theme === value ? "var(--accent)" : "var(--bg-primary)",
-                  color: theme === value ? "var(--accent-fg)" : "var(--text-secondary)",
-                  border: theme === value ? "none" : "1px solid var(--border)",
-                }}
-                onClick={() => setTheme(value)}
-              >
-                {t(labelKey)}
-              </button>
-            ))}
+      <h3 className="mb-3 text-sm font-semibold text-foreground">{t("appearance")}</h3>
+      <Card size="sm">
+        <CardContent className="flex flex-col gap-4">
+          {/* Theme */}
+          <div className="flex items-center gap-3">
+            <span className="w-16 text-xs font-medium text-muted-foreground">{t("theme")}</span>
+            <div className="flex gap-1">
+              {THEMES.map(({ value, labelKey }) => (
+                <Button
+                  key={value}
+                  size="xs"
+                  variant={theme === value ? "default" : "outline"}
+                  className={cn("font-medium", theme !== value && "text-muted-foreground")}
+                  onClick={() => setTheme(value)}
+                >
+                  {t(labelKey)}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Language */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium w-16" style={{ color: "var(--text-secondary)" }}>
-            {t("language")}
-          </span>
-          <div className="flex gap-1">
-            {LANGUAGES.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                className="px-3 py-1.5 text-xs rounded-md font-medium transition-colors"
-                style={{
-                  backgroundColor: locale === value ? "var(--accent)" : "var(--bg-primary)",
-                  color: locale === value ? "var(--accent-fg)" : "var(--text-secondary)",
-                  border: locale === value ? "none" : "1px solid var(--border)",
-                }}
-                onClick={() => setLocale(value)}
-              >
-                {label}
-              </button>
-            ))}
+          {/* Language */}
+          <div className="flex items-center gap-3">
+            <span className="w-16 text-xs font-medium text-muted-foreground">{t("language")}</span>
+            <div className="flex gap-1">
+              {LANGUAGES.map(({ value, label }) => (
+                <Button
+                  key={value}
+                  size="xs"
+                  variant={locale === value ? "default" : "outline"}
+                  className={cn("font-medium", locale !== value && "text-muted-foreground")}
+                  onClick={() => setLocale(value)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }

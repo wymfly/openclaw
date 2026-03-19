@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useSkillsStore, type SkillEntry } from "@/stores/skills";
 
 interface SkillConfigProps {
@@ -66,40 +69,34 @@ export function SkillConfig({ skill }: SkillConfigProps) {
     <div className="flex flex-col gap-3 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {skill.name}
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground">{skill.name}</h3>
         <div className="flex items-center gap-2">
           {/* Enable/disable toggle */}
-          <button
-            type="button"
-            className="px-2 py-1 text-[11px] rounded-md transition-colors"
-            style={{
-              backgroundColor: skill.enabled ? "var(--accent)" : "var(--bg-tertiary)",
-              color: skill.enabled ? "var(--accent-fg)" : "var(--text-secondary)",
-            }}
+          <Button
+            variant={skill.enabled ? "default" : "secondary"}
+            size="xs"
             onClick={handleToggle}
           >
             {skill.enabled ? t("disable") : t("enable")}
-          </button>
+          </Button>
 
           {/* Install button for managed/plugin */}
           {skill.source !== "bundled" && (
-            <button
-              type="button"
-              className="px-2 py-1 text-[11px] rounded-md transition-colors"
-              style={{ backgroundColor: "var(--purple)", color: "var(--accent-fg)" }}
+            <Button
+              variant="secondary"
+              size="xs"
+              className="bg-purple-500/15 text-purple-600 dark:text-purple-400 hover:bg-purple-500/25"
               onClick={handleInstall}
               disabled={installing}
             >
               {installing ? "..." : t("install")}
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {/* Status + source */}
-      <div className="flex gap-4 text-xs" style={{ color: "var(--text-secondary)" }}>
+      <div className="flex gap-4 text-xs text-muted-foreground">
         <span>
           {t("source")}: {t(skill.source)}
         </span>
@@ -108,96 +105,63 @@ export function SkillConfig({ skill }: SkillConfigProps) {
 
       {/* Missing requirements */}
       {skill.missingRequirements && skill.missingRequirements.length > 0 && (
-        <div
-          className="text-xs px-3 py-2 rounded-md"
-          style={{ backgroundColor: "var(--skill-warning-bg)", color: "var(--skill-warning-text)" }}
-        >
+        <div className="text-xs px-3 py-2 rounded-md bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">
           <span className="font-medium">{t("missingRequirements")}:</span>{" "}
           {skill.missingRequirements.join(", ")}
         </div>
       )}
 
       {/* API Key */}
-      <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("apiKey")}
-        </span>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">{t("apiKey")}</Label>
+        <Input
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          className="px-2 py-1.5 text-xs rounded-md border"
-          style={{
-            borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
-          }}
+          className="h-7 text-xs"
         />
-      </label>
+      </div>
 
       {/* Env vars */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            {t("envVars")}
-          </span>
-          <button
-            type="button"
-            className="text-[11px] px-1.5 py-0.5 rounded"
-            style={{ color: "var(--accent)" }}
-            onClick={addEnvPair}
-          >
+          <Label className="text-xs text-muted-foreground">{t("envVars")}</Label>
+          <Button variant="ghost" size="xs" className="text-primary" onClick={addEnvPair}>
             + {tc("add")}
-          </button>
+          </Button>
         </div>
         {envPairs.map((pair, idx) => (
           <div key={idx} className="flex gap-1 items-center">
-            <input
+            <Input
               type="text"
               value={pair.key}
               onChange={(e) => updateEnvPair(idx, "key", e.target.value)}
               placeholder="KEY"
-              className="flex-1 px-2 py-1 text-xs rounded-md border font-mono"
-              style={{
-                borderColor: "var(--border)",
-                backgroundColor: "var(--bg-primary)",
-                color: "var(--text-primary)",
-              }}
+              className="flex-1 h-7 text-xs font-mono"
             />
-            <input
+            <Input
               type="text"
               value={pair.value}
               onChange={(e) => updateEnvPair(idx, "value", e.target.value)}
               placeholder="value"
-              className="flex-1 px-2 py-1 text-xs rounded-md border font-mono"
-              style={{
-                borderColor: "var(--border)",
-                backgroundColor: "var(--bg-primary)",
-                color: "var(--text-primary)",
-              }}
+              className="flex-1 h-7 text-xs font-mono"
             />
-            <button
-              type="button"
-              className="text-xs px-1"
-              style={{ color: "var(--danger)" }}
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-destructive hover:text-destructive shrink-0"
               onClick={() => removeEnvPair(idx)}
             >
               x
-            </button>
+            </Button>
           </div>
         ))}
       </div>
 
       {/* Save */}
-      <button
-        type="button"
-        className="self-start px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-        style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-        onClick={handleSave}
-        disabled={saving}
-      >
+      <Button size="sm" className="self-start" onClick={handleSave} disabled={saving}>
         {saving ? tc("loading") : tc("save")}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { Card } from "@/components/ui/card";
 import { useModelsStore } from "@/stores/models";
 import { ModelCatalog } from "./ModelCatalog";
 import { ProviderConfig } from "./ProviderConfig";
@@ -20,23 +21,17 @@ export function ModelsPanel() {
   }, [fetchModels, fetchProviderConfig]);
 
   return (
-    <div
-      className="flex h-full rounded-lg overflow-hidden border"
-      style={{ borderColor: "var(--border)" }}
-    >
+    <Card className="flex-row h-full p-0 gap-0">
       <ModelCatalog />
       <div className="flex flex-col flex-1 min-w-0">
         {selectedProvider ? (
           <ProviderConfig provider={selectedProvider} />
         ) : (
-          <div
-            className="flex items-center justify-center h-full"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <div className="flex items-center justify-center h-full text-muted-foreground">
             <p className="text-sm">{t("selectProvider")}</p>
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

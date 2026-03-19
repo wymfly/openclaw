@@ -2,14 +2,31 @@
 
 import { Wifi, WifiOff, RefreshCw, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useGatewayStore, type GatewayStatus } from "@/stores/gateway";
 
-const STATUS_CONFIG: Record<GatewayStatus, { color: string; icon: typeof Wifi }> = {
-  connected: { color: "var(--success)", icon: Wifi },
-  connecting: { color: "var(--warning)", icon: RefreshCw },
-  reconnecting: { color: "var(--warning)", icon: RefreshCw },
-  disconnected: { color: "var(--neutral-muted-text)", icon: WifiOff },
-  error: { color: "var(--danger)", icon: AlertCircle },
+const STATUS_CONFIG: Record<
+  GatewayStatus,
+  { textClass: string; bgClass: string; icon: typeof Wifi }
+> = {
+  connected: { textClass: "text-[var(--success)]", bgClass: "bg-[var(--success)]", icon: Wifi },
+  connecting: {
+    textClass: "text-[var(--warning)]",
+    bgClass: "bg-[var(--warning)]",
+    icon: RefreshCw,
+  },
+  reconnecting: {
+    textClass: "text-[var(--warning)]",
+    bgClass: "bg-[var(--warning)]",
+    icon: RefreshCw,
+  },
+  disconnected: {
+    textClass: "text-muted-foreground",
+    bgClass: "bg-muted-foreground",
+    icon: WifiOff,
+  },
+  error: { textClass: "text-destructive", bgClass: "bg-destructive", icon: AlertCircle },
 };
 
 function statusI18nKey(status: GatewayStatus): string {
@@ -26,36 +43,27 @@ export function ConnectionCard() {
   const Icon = config.icon;
 
   return (
-    <div
-      className="rounded-lg border p-4 flex flex-col gap-3"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-    >
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
           {t("connection")}
-        </h3>
-        <div
-          className="w-2.5 h-2.5 rounded-full"
-          style={{ backgroundColor: config.color }}
-          title={status}
-        />
-      </div>
+          <span className={`w-2.5 h-2.5 rounded-full ${config.bgClass}`} title={status} />
+        </CardTitle>
+      </CardHeader>
 
-      <div className="flex items-center gap-2">
-        <Icon size={16} style={{ color: config.color }} />
-        <span className="text-sm" style={{ color: "var(--text-primary)" }}>
-          {t(statusI18nKey(status))}
-        </span>
-      </div>
+      <CardContent className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Icon size={16} className={config.textClass} />
+          <Badge variant="outline">{t(statusI18nKey(status))}</Badge>
+        </div>
 
-      <div className="flex items-center justify-between">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("latency")}
-        </span>
-        <span className="text-xs font-mono" style={{ color: "var(--text-primary)" }}>
-          {latency !== null ? `${latency}ms` : "—"}
-        </span>
-      </div>
-    </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{t("latency")}</span>
+          <span className="text-xs font-mono text-foreground">
+            {latency !== null ? `${latency}ms` : "—"}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

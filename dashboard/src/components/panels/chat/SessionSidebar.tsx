@@ -2,6 +2,16 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { useChatStore, type SessionInfo } from "@/stores/chat";
 
 function formatTime(ts?: number): string {
@@ -53,71 +63,64 @@ export function SessionSidebar() {
   };
 
   return (
-    <aside
-      className="flex flex-col w-56 shrink-0 border-r h-full"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-    >
+    <aside className="flex flex-col w-56 shrink-0 border-r h-full bg-card">
       {/* Agent selector */}
-      <div className="p-2 border-b" style={{ borderColor: "var(--border)" }}>
-        <select
-          value={activeAgentId ?? ""}
-          onChange={(e) => setActiveAgent(e.target.value || null)}
-          className="w-full text-xs rounded px-2 py-1.5"
-          style={{
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-          }}
+      <div className="p-2 border-b">
+        <Select
+          value={activeAgentId ?? "_default"}
+          onValueChange={(val) => setActiveAgent(val === "_default" ? null : val)}
         >
-          <option value="">{t("defaultAgent")}</option>
-        </select>
+          <SelectTrigger className="w-full" size="sm">
+            <SelectValue placeholder={t("defaultAgent")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_default">{t("defaultAgent")}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* New session button */}
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={handleNew}
-        className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b hover:opacity-80 transition-opacity"
-        style={{ borderColor: "var(--border)", color: "var(--accent)" }}
+        className="justify-start gap-1.5 rounded-none border-b text-primary"
       >
         <Plus size={14} />
         {t("newSession")}
-      </button>
+      </Button>
 
       {/* Session list */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {sessions.map((session) => {
           const isActive = activeSessionId === session.key;
           return (
             <button
               key={session.key}
               onClick={() => handleSelect(session)}
-              className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group"
-              style={{
-                backgroundColor: isActive
-                  ? "color-mix(in srgb, var(--accent) 12%, transparent)"
-                  : "transparent",
-                color: isActive ? "var(--accent)" : "var(--text-primary)",
-              }}
+              className={cn(
+                "flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group cursor-pointer",
+                isActive ? "bg-primary/[0.12] text-primary" : "text-foreground hover:bg-muted",
+              )}
             >
               <div className="flex flex-col items-start min-w-0">
                 <span className="truncate w-full text-left">{session.title || session.key}</span>
-                <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+                <span className="text-[10px] text-muted-foreground">
                   {formatTime(session.updatedAt)}
                 </span>
               </div>
               <span
-                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
+                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1 text-muted-foreground"
                 onClick={(e) => void handleDelete(session.key, e)}
                 role="button"
                 tabIndex={-1}
-                style={{ color: "var(--text-secondary)" }}
               >
                 <Trash2 size={12} />
               </span>
             </button>
           );
         })}
-      </div>
+      </ScrollArea>
     </aside>
   );
 }

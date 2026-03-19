@@ -2,16 +2,27 @@
 
 import { Globe, Menu, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
+import { cn } from "@/lib/utils";
 import { useGatewayStore } from "@/stores/gateway";
 import { useUIStore } from "@/stores/ui";
 
-const statusColors: Record<string, string> = {
-  connected: "var(--status-connected)",
-  disconnected: "var(--status-disconnected)",
-  reconnecting: "var(--status-reconnecting)",
-  connecting: "var(--status-reconnecting)",
-  error: "var(--status-disconnected)",
+const statusBadgeStyles: Record<string, string> = {
+  connected: "bg-[var(--success-muted)] text-[var(--success-muted-text)]",
+  disconnected: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]",
+  reconnecting: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)]",
+  connecting: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)]",
+  error: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]",
+};
+
+const statusDotStyles: Record<string, string> = {
+  connected: "bg-[var(--status-connected)]",
+  disconnected: "bg-[var(--status-disconnected)]",
+  reconnecting: "bg-[var(--status-reconnecting)]",
+  connecting: "bg-[var(--status-reconnecting)]",
+  error: "bg-[var(--status-disconnected)]",
 };
 
 export function HeaderBar() {
@@ -44,62 +55,60 @@ export function HeaderBar() {
   };
 
   return (
-    <header
-      className="flex items-center justify-between h-12 px-4 border-b shrink-0"
-      style={{
-        borderColor: "var(--border)",
-        backgroundColor: "var(--bg-secondary)",
-      }}
-    >
+    <header className="flex items-center justify-between h-12 px-4 border-b border-border bg-card shrink-0">
       {/* Left: hamburger (mobile) + panel name */}
       <div className="flex items-center gap-2">
         {isMobile && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground"
             onClick={() => setMobileNavOpen(true)}
-            className="flex items-center p-1 rounded hover:opacity-80 transition-opacity"
-            style={{ color: "var(--text-secondary)" }}
           >
             <Menu size={18} />
-          </button>
+          </Button>
         )}
-        <h1 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {tNav(activePanel)}
-        </h1>
+        <h1 className="text-sm font-semibold text-foreground">{tNav(activePanel)}</h1>
       </div>
 
       {/* Right controls */}
-      <div className="flex items-center gap-3">
-        {/* Gateway status */}
-        <div
-          className="flex items-center gap-1.5 text-xs"
-          style={{ color: "var(--text-secondary)" }}
+      <div className="flex items-center gap-2">
+        {/* Gateway status badge */}
+        <Badge
+          className={cn(
+            "gap-1.5 font-normal",
+            statusBadgeStyles[status] ?? statusBadgeStyles.disconnected,
+          )}
         >
           <span
-            className="inline-block w-2 h-2 rounded-full"
-            style={{ backgroundColor: statusColors[status] ?? "var(--status-disconnected)" }}
+            className={cn(
+              "size-1.5 rounded-full",
+              statusDotStyles[status] ?? statusDotStyles.disconnected,
+            )}
           />
-          {/* Hide status text on mobile to save space */}
           {!isMobile && statusLabel}
-        </div>
+        </Badge>
 
         {/* Locale toggle */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1 text-xs text-muted-foreground"
           onClick={toggleLocale}
-          className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity"
-          style={{ color: "var(--text-secondary)" }}
         >
           <Globe size={14} />
           {locale === "zh" ? "EN" : "ZH"}
-        </button>
+        </Button>
 
         {/* Theme toggle */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground"
           onClick={toggleTheme}
-          className="flex items-center p-1 rounded hover:opacity-80 transition-opacity"
-          style={{ color: "var(--text-secondary)" }}
         >
           {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
+        </Button>
       </div>
     </header>
   );

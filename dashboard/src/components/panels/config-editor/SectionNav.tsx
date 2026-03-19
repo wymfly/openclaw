@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
 
 interface SectionNavProps {
   sections: string[];
@@ -25,14 +26,8 @@ export function SectionNav({ sections, activeSection, onSelect }: SectionNavProp
   };
 
   return (
-    <nav
-      className="flex flex-col w-44 shrink-0 border-r h-full overflow-y-auto"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-    >
-      <div
-        className="px-3 py-2 text-xs font-semibold border-b"
-        style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
-      >
+    <nav className="flex flex-col w-44 shrink-0 border-r border-border h-full overflow-y-auto bg-card">
+      <div className="px-3 py-2 text-xs font-semibold border-b border-border text-foreground">
         {t("section")}
       </div>
       {sections.map((section) => {
@@ -53,13 +48,10 @@ export function SectionNav({ sections, activeSection, onSelect }: SectionNavProp
           <button
             key={section}
             onClick={() => onSelect(section)}
-            className="text-left px-3 py-2 text-xs transition-colors"
-            style={{
-              backgroundColor: isActive
-                ? "color-mix(in srgb, var(--accent) 12%, transparent)"
-                : "transparent",
-              color: isActive ? "var(--accent)" : "var(--text-primary)",
-            }}
+            className={cn(
+              "text-left px-3 py-2 text-xs transition-colors",
+              isActive ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted",
+            )}
           >
             {label}
           </button>

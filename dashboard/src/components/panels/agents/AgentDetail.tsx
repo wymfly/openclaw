@@ -3,6 +3,16 @@
 import { Save } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useCallback } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAgentsStore } from "@/stores/agents";
 
 const MODELS = [
@@ -89,10 +99,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   if (!agent) {
     return (
-      <div
-        className="flex items-center justify-center h-full"
-        style={{ color: "var(--text-secondary)" }}
-      >
+      <div className="flex items-center justify-center h-full text-muted-foreground">
         <p className="text-sm">{t("notFound")}</p>
       </div>
     );
@@ -101,84 +108,67 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
-        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {agent.name}
-        </h2>
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          ID: {agent.id}
-        </span>
+      <div className="px-4 py-3 border-b">
+        <h2 className="text-sm font-semibold text-foreground">{agent.name}</h2>
+        <span className="text-xs text-muted-foreground">ID: {agent.id}</span>
       </div>
 
       <div className="flex-1 px-4 py-3 space-y-4">
         {/* Model selector */}
         <div>
-          <label
-            className="block text-xs font-medium mb-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {t("model")}
-          </label>
-          <select
+          <Label className="text-xs text-muted-foreground mb-1">{t("model")}</Label>
+          <Select
             value={model}
-            onChange={(e) => void handleModelChange(e.target.value)}
-            className="w-full max-w-sm text-xs rounded px-2 py-1.5"
-            style={{
-              backgroundColor: "var(--bg-secondary)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border)",
+            onValueChange={(val) => {
+              if (val) {
+                void handleModelChange(val);
+              }
             }}
           >
-            {MODELS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-            {/* Include current model if not in preset list */}
-            {model && !MODELS.includes(model) && <option value={model}>{model}</option>}
-          </select>
+            <SelectTrigger className="w-full max-w-sm" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MODELS.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {m}
+                </SelectItem>
+              ))}
+              {/* Include current model if not in preset list */}
+              {model && !MODELS.includes(model) && <SelectItem value={model}>{model}</SelectItem>}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Status */}
         <div>
-          <label
-            className="block text-xs font-medium mb-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {t("status")}
-          </label>
-          <span className="text-xs" style={{ color: "var(--text-primary)" }}>
-            {t(agent.status)}
-          </span>
+          <Label className="text-xs text-muted-foreground mb-1">{t("status")}</Label>
+          <div>
+            <Badge variant="secondary">{t(agent.status)}</Badge>
+          </div>
         </div>
 
         {/* SOUL.md editor */}
         <div className="flex flex-col flex-1 min-h-0">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            <Label className="text-xs text-muted-foreground">
               {t("personality")} ({SOUL_PATH})
-            </label>
-            <button
+            </Label>
+            <Button
+              size="xs"
               onClick={() => void handleSaveSoul()}
               disabled={saving || soulLoading}
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-              style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
             >
               <Save size={12} />
               {saved ? t("saved") : tc("save")}
-            </button>
+            </Button>
           </div>
           <textarea
             value={soulLoading ? "" : soul}
             onChange={(e) => setSoul(e.target.value)}
             disabled={soulLoading}
             placeholder={soulLoading ? tc("loading") : t("soulPlaceholder")}
-            className="flex-1 min-h-[200px] text-xs rounded px-3 py-2 resize-none font-mono"
-            style={{
-              backgroundColor: "var(--bg-secondary)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border)",
-            }}
+            className="flex-1 min-h-[200px] text-xs rounded-lg px-3 py-2 resize-none font-mono border border-input bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
           />
         </div>
       </div>

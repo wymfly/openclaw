@@ -3,6 +3,8 @@
 import { MessageCircle, Send, Loader2, CheckCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { OnboardingData } from "./OnboardingWizard";
 
 type Props = { data: OnboardingData; onComplete: () => void; onBack: () => void };
@@ -80,8 +82,6 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
         setError(((await res.json()) as { error?: string }).error ?? t("chatError"));
         return;
       }
-      // chat.send returns { runId, status: "started" } — the actual
-      // response will arrive via SSE. Show a confirmation for now.
       setReply(t("chatSuccess"));
     } catch {
       setError(t("chatError"));
@@ -97,34 +97,22 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
     }
   }, [ensureSettingsSaved, onComplete]);
 
-  const iStyle = {
-    backgroundColor: "var(--bg-primary)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border)",
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <MessageCircle size={16} style={{ color: "var(--accent)" }} />
-        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {t("stepChat")}
-        </span>
+      <div className="mb-2 flex items-center gap-2">
+        <MessageCircle size={16} className="text-primary" />
+        <span className="text-sm font-semibold text-foreground">{t("stepChat")}</span>
       </div>
+
       {settingsSaved && (
-        <div
-          className="text-xs p-2 rounded flex items-center gap-1"
-          style={{
-            backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
-            color: "var(--accent)",
-          }}
-        >
+        <div className="flex items-center gap-1 rounded-md bg-primary/10 p-2 text-xs text-primary">
           <CheckCircle size={12} />
           {t("settingsSaved") ?? "Settings saved"}
         </div>
       )}
+
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -134,51 +122,31 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
             }
           }}
           placeholder={t("chatPlaceholder")}
-          className="flex-1 text-sm rounded px-3 py-2"
-          style={iStyle}
+          className="flex-1 text-sm"
         />
-        <button
+        <Button
+          size="icon"
           onClick={() => void sendTest()}
           disabled={sending || saving || !message.trim()}
-          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
         >
           {sending || saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-        </button>
+        </Button>
       </div>
-      {reply && (
-        <div
-          className="text-xs p-3 rounded"
-          style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}
-        >
-          {reply}
-        </div>
-      )}
+
+      {reply && <div className="rounded-md bg-muted p-3 text-xs text-foreground">{reply}</div>}
+
       {error && (
-        <div
-          className="text-xs p-2 rounded"
-          style={{ backgroundColor: "var(--status-disconnected)", color: "#fff" }}
-        >
-          {error}
-        </div>
+        <div className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{error}</div>
       )}
+
       <div className="flex justify-between pt-2">
-        <button
-          onClick={onBack}
-          className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
-          style={{ border: "1px solid var(--border)", color: "var(--text-primary)" }}
-        >
+        <Button variant="outline" size="sm" onClick={onBack}>
           {t("back")}
-        </button>
-        <button
-          onClick={() => void handleComplete()}
-          disabled={saving}
-          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
-        >
+        </Button>
+        <Button size="sm" onClick={() => void handleComplete()} disabled={saving}>
           {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
           {t("finish")}
-        </button>
+        </Button>
       </div>
     </div>
   );

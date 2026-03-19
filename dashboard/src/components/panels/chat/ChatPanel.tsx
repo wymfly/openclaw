@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Card } from "@/components/ui/card";
 import { useChatStore } from "@/stores/chat";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
@@ -52,15 +53,12 @@ export function ChatPanel() {
   }, [activeSessionId, activeAgentId, setMessages]);
 
   return (
-    <div
-      className="flex h-full rounded-lg overflow-hidden border"
-      style={{ borderColor: "var(--border)" }}
-    >
+    <Card className="flex-row h-full p-0 gap-0">
       <SessionSidebar />
       <div className="flex flex-col flex-1 min-w-0">
         <MessageList />
         <MessageInput />
       </div>
-    </div>
+    </Card>
   );
 }

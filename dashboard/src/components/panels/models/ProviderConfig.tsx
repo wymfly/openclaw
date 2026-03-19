@@ -3,6 +3,9 @@
 import { Save } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useModelsStore } from "@/stores/models";
 
 export function ProviderConfig({ provider }: { provider: string }) {
@@ -44,90 +47,57 @@ export function ProviderConfig({ provider }: { provider: string }) {
     }
   }, [provider, apiKey, baseUrl, modelId, updateProviderConfig]);
 
-  const inputStyle = {
-    backgroundColor: "var(--bg-secondary)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border)",
-  };
-
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
-        <h2 className="text-sm font-semibold uppercase" style={{ color: "var(--text-primary)" }}>
-          {provider}
-        </h2>
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {t("provider")}
-        </span>
+      <div className="px-4 py-3 border-b">
+        <h2 className="text-sm font-semibold uppercase text-foreground">{provider}</h2>
+        <span className="text-xs text-muted-foreground">{t("provider")}</span>
       </div>
 
       <div className="flex-1 px-4 py-3 space-y-4">
         {/* API Key */}
         <div>
-          <label
-            className="block text-xs font-medium mb-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {t("apiKey")}
-          </label>
-          <input
+          <Label className="text-xs text-muted-foreground mb-1">{t("apiKey")}</Label>
+          <Input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="sk-..."
-            className="w-full max-w-md text-xs rounded px-2 py-1.5"
-            style={inputStyle}
+            className="max-w-md text-xs"
           />
         </div>
 
         {/* Base URL */}
         <div>
-          <label
-            className="block text-xs font-medium mb-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {t("baseUrl")}
-          </label>
-          <input
+          <Label className="text-xs text-muted-foreground mb-1">{t("baseUrl")}</Label>
+          <Input
             type="url"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://api.example.com/v1"
-            className="w-full max-w-md text-xs rounded px-2 py-1.5"
-            style={inputStyle}
+            className="max-w-md text-xs"
           />
         </div>
 
         {/* Model ID */}
         <div>
-          <label
-            className="block text-xs font-medium mb-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {t("name")}
-          </label>
-          <input
+          <Label className="text-xs text-muted-foreground mb-1">{t("name")}</Label>
+          <Input
             type="text"
             value={modelId}
             onChange={(e) => setModelId(e.target.value)}
             placeholder="model-id"
-            className="w-full max-w-md text-xs rounded px-2 py-1.5"
-            style={inputStyle}
+            className="max-w-md text-xs"
           />
         </div>
 
         {/* Save button */}
         <div className="pt-2">
-          <button
-            onClick={() => void handleSave()}
-            disabled={saving}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-          >
+          <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
             <Save size={12} />
             {saved ? t("saved") : t("save")}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

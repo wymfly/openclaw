@@ -2,11 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMemoryStore, type MemoryFileNode } from "@/stores/memory";
-
-// ---------------------------------------------------------------------------
-// Icons (inline SVG to avoid extra deps — matches lucide-react style)
-// ---------------------------------------------------------------------------
 
 function FolderIcon({ open }: { open?: boolean }) {
   return (
@@ -21,13 +18,11 @@ function FolderIcon({ open }: { open?: boolean }) {
       strokeLinejoin="round"
     >
       {open ? (
-        // FolderOpen
         <>
           <path d="M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h4a2 2 0 0 1 2 2v1" />
           <path d="M20.27 13.73A2.5 2.5 0 0 0 17.5 12H9.5a2.5 2.5 0 0 0-2.42 1.87L5 21h14l1.27-7.27Z" />
         </>
       ) : (
-        // Folder
         <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
       )}
     </svg>
@@ -55,10 +50,6 @@ function FileIcon() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// TreeNode component
-// ---------------------------------------------------------------------------
-
 function TreeNode({
   node,
   depth,
@@ -83,17 +74,13 @@ function TreeNode({
     <>
       <button
         onClick={handleClick}
-        className="flex items-center gap-1.5 w-full text-left px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer"
-        style={{
-          paddingLeft: `${depth * 16 + 8}px`,
-          color: "var(--text-primary)",
-          fontSize: 13,
-        }}
+        className="flex items-center gap-1.5 w-full text-left px-2 py-1 rounded-md hover:bg-muted cursor-pointer text-foreground text-[13px]"
+        style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
         {node.type === "directory" ? <FolderIcon open={expanded} /> : <FileIcon />}
         <span className="truncate">{node.name}</span>
         {node.size !== undefined && node.type === "file" && (
-          <span className="ml-auto text-xs shrink-0" style={{ color: "var(--text-secondary)" }}>
+          <span className="ml-auto text-xs shrink-0 text-muted-foreground">
             {formatSize(node.size)}
           </span>
         )}
@@ -116,13 +103,6 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-// ---------------------------------------------------------------------------
-// FileTree
-// ---------------------------------------------------------------------------
-
-/**
- * Hierarchical expandable tree: folders expand on click, files show content.
- */
 export function FileTree() {
   const t = useTranslations("memory");
   const {
@@ -151,10 +131,7 @@ export function FileTree() {
 
   if (!selectedAgentId) {
     return (
-      <div
-        className="flex items-center justify-center h-full"
-        style={{ color: "var(--text-secondary)" }}
-      >
+      <div className="flex items-center justify-center h-full text-muted-foreground">
         <p className="text-sm">{t("agent")}</p>
       </div>
     );
@@ -162,10 +139,7 @@ export function FileTree() {
 
   if (loading && files.length === 0) {
     return (
-      <div
-        className="flex items-center justify-center h-full"
-        style={{ color: "var(--text-secondary)" }}
-      >
+      <div className="flex items-center justify-center h-full text-muted-foreground">
         <p className="text-sm">...</p>
       </div>
     );
@@ -174,53 +148,33 @@ export function FileTree() {
   return (
     <div className="flex h-full overflow-hidden">
       {/* File tree sidebar */}
-      <div
-        className="w-64 shrink-0 overflow-y-auto border-r py-2"
-        style={{ borderColor: "var(--border)" }}
-      >
+      <ScrollArea className="w-64 shrink-0 border-r border-border py-2">
         {files.length === 0 ? (
-          <p className="text-xs px-3 py-2" style={{ color: "var(--text-secondary)" }}>
-            {t("noFiles")}
-          </p>
+          <p className="text-xs px-3 py-2 text-muted-foreground">{t("noFiles")}</p>
         ) : (
           files.map((node) => (
             <TreeNode key={node.path} node={node} depth={0} onSelect={handleSelect} />
           ))
         )}
-      </div>
+      </ScrollArea>
 
       {/* File content preview */}
-      <div className="flex-1 overflow-auto p-4" style={{ backgroundColor: "var(--bg-primary)" }}>
+      <ScrollArea className="flex-1 p-4 bg-background">
         {selectedFilePath && selectedFileContent !== null ? (
           <div>
-            <div
-              className="text-xs mb-2 pb-2 border-b"
-              style={{
-                color: "var(--text-secondary)",
-                borderColor: "var(--border)",
-              }}
-            >
+            <div className="text-xs mb-2 pb-2 border-b border-border text-muted-foreground">
               {selectedFilePath}
             </div>
-            <pre
-              className="text-xs whitespace-pre-wrap break-words"
-              style={{
-                color: "var(--text-primary)",
-                fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace",
-              }}
-            >
+            <pre className="text-xs whitespace-pre-wrap break-words text-foreground font-mono">
               {selectedFileContent}
             </pre>
           </div>
         ) : (
-          <div
-            className="flex items-center justify-center h-full"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <div className="flex items-center justify-center h-full text-muted-foreground">
             <p className="text-sm">{t("content")}</p>
           </div>
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 }

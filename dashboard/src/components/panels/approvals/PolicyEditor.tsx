@@ -2,6 +2,18 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import {
   useApprovalsStore,
   type ApprovalPolicy,
@@ -24,30 +36,20 @@ interface PolicySelectProps {
 function PolicySelect({ label, value, options, onChange }: PolicySelectProps) {
   return (
     <div className="flex items-center gap-2">
-      <span
-        className="text-xs font-medium w-28 shrink-0"
-        style={{ color: "var(--text-secondary)" }}
-      >
-        {label}
-      </span>
-      <select
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-xs rounded px-2 py-1 border flex-1"
-        style={{
-          borderColor: "var(--border)",
-          backgroundColor: "var(--bg-primary)",
-          color: "var(--text-primary)",
-          maxWidth: 180,
-        }}
-      >
-        <option value="">--</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+      <Label className="text-xs w-28 shrink-0 text-muted-foreground">{label}</Label>
+      <Select value={value ?? ""} onValueChange={(v) => onChange(v ?? "")}>
+        <SelectTrigger size="sm" className="max-w-[180px]">
+          <SelectValue placeholder="--" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">--</SelectItem>
+          {options.map((opt) => (
+            <SelectItem key={opt} value={opt}>
+              {opt}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -62,23 +64,15 @@ function PolicyToggle({ label, value, onChange }: PolicyToggleProps) {
   const tc = useTranslations("common");
   return (
     <div className="flex items-center gap-2">
-      <span
-        className="text-xs font-medium w-28 shrink-0"
-        style={{ color: "var(--text-secondary)" }}
-      >
-        {label}
-      </span>
-      <button
+      <Label className="text-xs w-28 shrink-0 text-muted-foreground">{label}</Label>
+      <Button
+        variant={value ? "default" : "outline"}
+        size="xs"
         onClick={() => onChange(!value)}
-        className="text-xs px-3 py-1 rounded border cursor-pointer"
-        style={{
-          borderColor: value ? "var(--status-connected)" : "var(--border)",
-          color: value ? "var(--status-connected)" : "var(--text-secondary)",
-          backgroundColor: value ? "var(--success-muted)" : "transparent",
-        }}
+        className={cn(value && "bg-green-600 hover:bg-green-700 text-white")}
       >
         {value ? tc("on") : tc("off")}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -195,9 +189,7 @@ export function PolicyEditor() {
   if (!draft) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          {tc("loading")}
-        </span>
+        <span className="text-sm text-muted-foreground">{tc("loading")}</span>
       </div>
     );
   }
@@ -206,9 +198,7 @@ export function PolicyEditor() {
     <div className="flex-1 overflow-y-auto p-4 space-y-6">
       {/* Global defaults */}
       <section>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-          {t("globalDefaults")}
-        </h3>
+        <h3 className="text-sm font-semibold mb-3 text-foreground">{t("globalDefaults")}</h3>
         <DefaultsEditor
           defaults={draft.defaults}
           onChange={(defaults) => setDraft({ ...draft, defaults })}
@@ -217,63 +207,48 @@ export function PolicyEditor() {
 
       {/* Per-agent overrides */}
       <section>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-          {t("perAgent")}
-        </h3>
+        <h3 className="text-sm font-semibold mb-3 text-foreground">{t("perAgent")}</h3>
 
         {Object.entries(draft.agents).map(([agentId, agentDefaults]) => (
-          <div
-            key={agentId}
-            className="mb-4 p-3 rounded-lg border"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>
-                {agentId}
-              </span>
-              <button
-                onClick={() => handleRemoveAgent(agentId)}
-                className="text-xs cursor-pointer"
-                style={{ color: "var(--status-disconnected)" }}
-              >
-                {tc("delete")}
-              </button>
-            </div>
-            <DefaultsEditor
-              defaults={agentDefaults}
-              onChange={(d) => setDraft({ ...draft, agents: { ...draft.agents, [agentId]: d } })}
-            />
-          </div>
+          <Card key={agentId} size="sm" className="mb-4">
+            <CardContent>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-primary">{agentId}</span>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => handleRemoveAgent(agentId)}
+                >
+                  {tc("delete")}
+                </Button>
+              </div>
+              <DefaultsEditor
+                defaults={agentDefaults}
+                onChange={(d) => setDraft({ ...draft, agents: { ...draft.agents, [agentId]: d } })}
+              />
+            </CardContent>
+          </Card>
         ))}
 
         {/* Add agent */}
         <div className="flex items-center gap-2 mt-2">
-          <input
+          <Input
             type="text"
             value={newAgentId}
             onChange={(e) => setNewAgentId(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddAgent()}
             placeholder={t("addAgentPlaceholder")}
-            className="text-xs rounded px-2 py-1 border"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              minWidth: 160,
-            }}
+            className="h-7 text-xs min-w-[160px] max-w-[240px]"
           />
-          <button
+          <Button
+            variant="outline"
+            size="xs"
             onClick={handleAddAgent}
             disabled={!newAgentId.trim()}
-            className="text-xs px-3 py-1 rounded border cursor-pointer"
-            style={{
-              borderColor: "var(--accent)",
-              color: "var(--accent)",
-              opacity: newAgentId.trim() ? 1 : 0.5,
-            }}
           >
             {tc("create")}
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -287,24 +262,10 @@ export function PolicyEditor() {
 
       {/* Save button */}
       <div className="flex items-center gap-3 pt-2">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="text-xs px-4 py-1.5 rounded border cursor-pointer"
-          style={{
-            borderColor: "var(--accent)",
-            backgroundColor: "var(--accent)",
-            color: "var(--accent-fg)",
-            opacity: saving ? 0.6 : 1,
-          }}
-        >
+        <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? tc("loading") : tc("save")}
-        </button>
-        {saved && (
-          <span className="text-xs" style={{ color: "var(--status-connected)" }}>
-            {t("saved")}
-          </span>
-        )}
+        </Button>
+        {saved && <span className="text-xs text-green-600 dark:text-green-400">{t("saved")}</span>}
       </div>
     </div>
   );

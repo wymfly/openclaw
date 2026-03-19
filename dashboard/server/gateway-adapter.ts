@@ -36,7 +36,7 @@ const INITIAL_RECONNECT_DELAY_MS = 1_000;
 const MAX_RECONNECT_DELAY_MS = 15_000;
 const CONNECT_PROTOCOL = 3;
 
-const CONNECT_CLIENT_ID = "openclaw-deck";
+const CONNECT_CLIENT_ID = "gateway-client";
 const CONNECT_CLIENT_MODE = "backend";
 const CONNECT_CLIENT_PLATFORM = "node";
 

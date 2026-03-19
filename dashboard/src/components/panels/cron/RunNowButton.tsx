@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useCronStore } from "@/stores/cron";
 
 interface RunNowButtonProps {
@@ -22,14 +23,8 @@ export function RunNowButton({ jobId }: RunNowButtonProps) {
   };
 
   return (
-    <button
-      type="button"
-      className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-      style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-      onClick={handleRun}
-      disabled={running}
-    >
+    <Button size="sm" onClick={handleRun} disabled={running}>
       {running ? "..." : t("runNow")}
-    </button>
+    </Button>
   );
 }

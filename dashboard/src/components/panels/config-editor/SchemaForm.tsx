@@ -3,7 +3,18 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { FormField } from "@/lib/schema-parser";
+import { cn } from "@/lib/utils";
 
 interface SchemaFormProps {
   fields: FormField[];
@@ -14,15 +25,13 @@ interface SchemaFormProps {
 
 function FieldLabel({ field }: { field: FormField }) {
   return (
-    <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+    <Label className="text-xs text-muted-foreground mb-1">
       {field.key}
-      {field.required && <span style={{ color: "var(--status-disconnected)" }}> *</span>}
+      {field.required && <span className="text-destructive"> *</span>}
       {field.description && (
-        <span className="ml-1 font-normal" style={{ color: "var(--text-secondary)", opacity: 0.7 }}>
-          — {field.description}
-        </span>
+        <span className="ml-1 font-normal opacity-70">— {field.description}</span>
       )}
-    </label>
+    </Label>
   );
 }
 
@@ -38,17 +47,12 @@ function StringField({
   return (
     <div className="mb-3">
       <FieldLabel field={field} />
-      <input
+      <Input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={typeof field.defaultValue === "string" ? field.defaultValue : ""}
-        className="w-full max-w-md text-xs rounded px-2 py-1.5"
-        style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
-          border: "1px solid var(--border)",
-        }}
+        className="w-full max-w-md text-xs h-7"
       />
     </div>
   );
@@ -66,17 +70,12 @@ function NumberField({
   return (
     <div className="mb-3">
       <FieldLabel field={field} />
-      <input
+      <Input
         type="number"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         placeholder={field.defaultValue != null ? JSON.stringify(field.defaultValue) : ""}
-        className="w-full max-w-xs text-xs rounded px-2 py-1.5"
-        style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
-          border: "1px solid var(--border)",
-        }}
+        className="w-full max-w-xs text-xs h-7"
       />
     </div>
   );
@@ -98,18 +97,18 @@ function BooleanField({
         role="switch"
         aria-checked={value}
         onClick={() => onChange(!value)}
-        className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-        style={{
-          backgroundColor: value ? "var(--accent)" : "var(--bg-secondary)",
-          border: "1px solid var(--border)",
-        }}
+        className={cn(
+          "relative inline-flex h-5 w-9 items-center rounded-full transition-colors border",
+          value ? "bg-primary border-primary" : "bg-card border-border",
+        )}
       >
         <span
-          className="inline-block h-3.5 w-3.5 rounded-full transition-transform"
-          style={{
-            backgroundColor: value ? "var(--accent-fg)" : "var(--text-secondary)",
-            transform: value ? "translateX(17px)" : "translateX(2px)",
-          }}
+          className={cn(
+            "inline-block h-3.5 w-3.5 rounded-full transition-transform",
+            value
+              ? "translate-x-[17px] bg-primary-foreground"
+              : "translate-x-[2px] bg-muted-foreground",
+          )}
         />
       </button>
       <FieldLabel field={field} />
@@ -129,23 +128,18 @@ function EnumField({
   return (
     <div className="mb-3">
       <FieldLabel field={field} />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full max-w-md text-xs rounded px-2 py-1.5"
-        style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <option value="">—</option>
-        {field.options?.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+      <Select value={value || undefined} onValueChange={(v) => onChange(v as string)}>
+        <SelectTrigger size="sm" className="w-full max-w-md text-xs">
+          <SelectValue placeholder="—" />
+        </SelectTrigger>
+        <SelectContent>
+          {field.options?.map((opt) => (
+            <SelectItem key={opt} value={opt}>
+              {opt}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -171,12 +165,7 @@ function ArrayField({
         value={text}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
-        className="w-full max-w-md text-xs rounded px-2 py-1.5 font-mono resize-y"
-        style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
-          border: "1px solid var(--border)",
-        }}
+        className="w-full max-w-md text-xs rounded-lg px-2.5 py-1.5 font-mono resize-y border border-input bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none transition-colors"
       />
     </div>
   );
@@ -193,40 +182,34 @@ function ObjectField({
   onChange: (key: string, value: unknown) => void;
   prefix: string;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [open, setOpen] = useState(true);
 
   return (
-    <div className="mb-3">
-      <button
-        type="button"
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center gap-1 text-xs font-medium mb-1"
-        style={{ color: "var(--text-primary)" }}
-      >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+    <Collapsible open={open} onOpenChange={setOpen} className="mb-3">
+      <CollapsibleTrigger className="flex items-center gap-1 text-xs font-medium mb-1 text-foreground">
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         {field.key}
         {field.description && (
-          <span
-            className="ml-1 font-normal"
-            style={{ color: "var(--text-secondary)", opacity: 0.7 }}
-          >
+          <span className="ml-1 font-normal text-muted-foreground opacity-70">
             — {field.description}
           </span>
         )}
-      </button>
-      {!collapsed && field.children && (
-        <div className="ml-3 pl-3 border-l" style={{ borderColor: "var(--border)" }}>
-          <SchemaForm
-            fields={field.children}
-            values={(values[field.key] as Record<string, unknown>) ?? {}}
-            onChange={(childKey, value) => {
-              onChange(`${prefix}${field.key}.${childKey}`, value);
-            }}
-            prefix={`${prefix}${field.key}.`}
-          />
-        </div>
-      )}
-    </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {field.children && (
+          <div className="ml-3 pl-3 border-l border-border">
+            <SchemaForm
+              fields={field.children}
+              values={(values[field.key] as Record<string, unknown>) ?? {}}
+              onChange={(childKey, value) => {
+                onChange(`${prefix}${field.key}.${childKey}`, value);
+              }}
+              prefix={`${prefix}${field.key}.`}
+            />
+          </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -240,11 +223,7 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
   );
 
   if (fields.length === 0) {
-    return (
-      <div className="text-xs py-2" style={{ color: "var(--text-secondary)" }}>
-        {tc("noConfigurableFields")}
-      </div>
-    );
+    return <div className="text-xs py-2 text-muted-foreground">{tc("noConfigurableFields")}</div>;
   }
 
   return (
