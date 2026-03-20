@@ -1460,6 +1460,11 @@ export async function runEmbeddedAttempt(
                 : undefined,
           });
 
+          // Prepend warning to prompt when images are silently dropped (no vision support)
+          if (imageResult.warning) {
+            effectivePrompt = `[系统提示: ${imageResult.warning}]\n\n${effectivePrompt}`;
+          }
+
           cacheTrace?.recordStage("prompt:images", {
             prompt: effectivePrompt,
             messages: activeSession.messages,

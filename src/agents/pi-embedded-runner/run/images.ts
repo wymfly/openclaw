@@ -297,14 +297,20 @@ export async function detectAndLoadPromptImages(params: {
   detectedRefs: DetectedImageRef[];
   loadedCount: number;
   skippedCount: number;
+  /** Warning message when images are silently dropped due to model lacking vision support */
+  warning?: string;
 }> {
-  // If model doesn't support images, return empty results
+  // If model doesn't support images, return empty results with a warning when images were provided
   if (!modelSupportsImages(params.model)) {
+    const hasImages = (params.existingImages?.length ?? 0) > 0;
     return {
       images: [],
       detectedRefs: [],
       loadedCount: 0,
-      skippedCount: 0,
+      skippedCount: params.existingImages?.length ?? 0,
+      warning: hasImages
+        ? "当前模型不支持图片分析，图片已忽略。可切换到支持 vision 的模型（如 claude-sonnet-4）。"
+        : undefined,
     };
   }
 
