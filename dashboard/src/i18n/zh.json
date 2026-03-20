@@ -58,7 +58,16 @@
     "attachFile": "添加附件",
     "fileTooLarge": "文件 {name} 超过 5MB 限制",
     "tooManyFiles": "最多只能添加 10 个文件",
-    "uploadFailed": "文件上传失败"
+    "uploadFailed": "文件上传失败",
+    "toolCall": "工具调用",
+    "toolResult": "工具结果",
+    "toolError": "工具错误",
+    "showMore": "展开全部",
+    "showLess": "收起",
+    "imagePreview": "图片预览",
+    "download": "下载",
+    "artifact": "交互内容",
+    "openArtifact": "打开"
   },
   "gateway": {
     "title": "网关概览",

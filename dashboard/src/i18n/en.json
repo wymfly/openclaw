@@ -58,7 +58,16 @@
     "attachFile": "Attach file",
     "fileTooLarge": "File {name} exceeds 5MB limit",
     "tooManyFiles": "Maximum 10 files allowed",
-    "uploadFailed": "Upload failed"
+    "uploadFailed": "Upload failed",
+    "toolCall": "Tool Call",
+    "toolResult": "Tool Result",
+    "toolError": "Tool Error",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "imagePreview": "Image preview",
+    "download": "Download",
+    "artifact": "Interactive Content",
+    "openArtifact": "Open"
   },
   "gateway": {
     "title": "Gateway Overview",
