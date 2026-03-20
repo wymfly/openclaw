@@ -1,57 +1,47 @@
 "use client";
 
-import { Bot, User, Wrench, Brain, MessageSquare } from "lucide-react";
+import { Bot, User, MessageSquare } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { useChatStore, type ChatMessage, type ToolUseBlock } from "@/stores/chat";
+import { useChatStore, type ChatMessage, type ContentBlock } from "@/stores/chat";
+import { FileBlock } from "./blocks/FileBlock";
+import { ImageBlock } from "./blocks/ImageBlock";
+import { ThinkingBlock } from "./blocks/ThinkingBlock";
+import { ToolResultCard } from "./blocks/ToolResultCard";
+import { ToolUseCard } from "./blocks/ToolUseCard";
 
 /* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
+/*  MessageBubble                                                       */
 /* ------------------------------------------------------------------ */
-
-function ThinkingBlock({ text }: { text: string }) {
-  const t = useTranslations("chat");
-  return (
-    <details className="my-1.5 text-xs group/thinking">
-      <summary className="flex items-center gap-1.5 cursor-pointer select-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-        <Brain size={12} />
-        <span>{t("thinking")}</span>
-      </summary>
-      <pre className="mt-1.5 p-2.5 rounded-lg text-xs whitespace-pre-wrap overflow-auto bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-        {text}
-      </pre>
-    </details>
-  );
-}
-
-function ToolUseCard({ tool }: { tool: ToolUseBlock }) {
-  const t = useTranslations("chat");
-  return (
-    <details className="my-1.5 text-xs rounded-lg border border-[var(--border-subtle)] overflow-hidden">
-      <summary className="flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
-        <Wrench size={12} className="shrink-0" />
-        <span className="font-medium">{t("toolUse")}:</span>
-        <code className="font-mono text-[var(--accent)]">{tool.name}</code>
-      </summary>
-      <div className="px-2.5 pb-2.5 border-t border-[var(--border-subtle)]">
-        <pre className="mt-1.5 p-2 rounded-lg text-xs overflow-auto bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-          {JSON.stringify(tool.input, null, 2)}
-        </pre>
-        {tool.result && (
-          <pre className="mt-1.5 p-2 rounded-lg text-xs overflow-auto bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
-            {tool.result}
-          </pre>
-        )}
-      </div>
-    </details>
-  );
-}
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
+
+  // Group content blocks by type
+  const thinkingBlocks = message.content.filter(
+    (b): b is ContentBlock & { type: "thinking" } => b.type === "thinking",
+  );
+  const imageBlocks = message.content.filter(
+    (b): b is ContentBlock & { type: "image" } => b.type === "image",
+  );
+  const fileBlocks = message.content.filter(
+    (b): b is ContentBlock & { type: "file" } => b.type === "file",
+  );
+  const textBlocks = message.content.filter(
+    (b): b is ContentBlock & { type: "text" } => b.type === "text",
+  );
+  const toolUseBlocks = message.content.filter(
+    (b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use",
+  );
+  const toolResultBlocks = message.content.filter(
+    (b): b is ContentBlock & { type: "tool_result" } => b.type === "tool_result",
+  );
+
+  const combinedText = textBlocks.map((b) => b.text).join("\n");
+
   return (
     <div className={cn("flex gap-3 mb-5 transition-panel", isUser && "flex-row-reverse")}>
       {/* Avatar */}
@@ -71,15 +61,35 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         className={cn("flex flex-col max-w-[75%] min-w-0", isUser ? "items-end" : "items-start")}
       >
         {/* Thinking trace */}
-        {message.thinking && <ThinkingBlock text={message.thinking} />}
-
-        {/* Tool use blocks */}
-        {message.toolUse?.map((tool, i) => (
-          <ToolUseCard key={`${tool.name}-${i}`} tool={tool} />
+        {thinkingBlocks.map((b, i) => (
+          <ThinkingBlock key={`think-${i}`} text={b.text} />
         ))}
 
-        {/* Main bubble */}
-        {message.content && (
+        {/* Attachment strip — images and files */}
+        {(imageBlocks.length > 0 || fileBlocks.length > 0) && (
+          <div className="flex flex-wrap gap-2 mb-1.5">
+            {imageBlocks.map((b, i) => (
+              <ImageBlock
+                key={`img-${i}`}
+                data={b.data}
+                mimeType={b.mimeType}
+                fileName={b.fileName}
+              />
+            ))}
+            {fileBlocks.map((b, i) => (
+              <FileBlock
+                key={`file-${i}`}
+                data={b.data}
+                mimeType={b.mimeType}
+                fileName={b.fileName}
+                size={b.size}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Main text bubble */}
+        {combinedText && (
           <div
             className={cn(
               "px-3.5 py-2.5 text-sm leading-relaxed",
@@ -89,10 +99,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             )}
           >
             {isUser ? (
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <p className="whitespace-pre-wrap">{combinedText}</p>
             ) : (
               <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:overflow-auto [&_pre]:text-xs [&_code]:text-xs [&_pre]:bg-[var(--bg-primary)] [&_pre]:rounded-lg [&_pre]:p-2.5 [&_code]:font-mono">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{combinedText}</ReactMarkdown>
               </div>
             )}
             {message.streaming && (
@@ -100,6 +110,20 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             )}
           </div>
         )}
+
+        {/* Tool use cards */}
+        {toolUseBlocks.map((b, i) => (
+          <ToolUseCard key={`tool-${i}`} name={b.name} input={b.input} />
+        ))}
+
+        {/* Tool result cards */}
+        {toolResultBlocks.map((b, i) => (
+          <ToolResultCard
+            key={`result-${i}`}
+            content={typeof b.content === "string" ? b.content : JSON.stringify(b.content)}
+            isError={b.isError}
+          />
+        ))}
 
         {/* Error */}
         {message.error && (
