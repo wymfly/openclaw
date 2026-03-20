@@ -67,5 +67,13 @@ export const handleNodeInvokeResult: GatewayRequestHandler = async ({
     return;
   }
 
+  // Broadcast A2UI events if present in the result payload
+  const payloadObj = p.payload as Record<string, unknown> | null | undefined;
+  if (payloadObj && typeof payloadObj === "object" && Array.isArray(payloadObj.events)) {
+    for (const event of payloadObj.events) {
+      context.broadcast("a2ui", event);
+    }
+  }
+
   respond(true, { ok: true }, undefined);
 };
