@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +12,7 @@ interface ProviderSidebarProps {
   auth: AuthOverviewEntry[];
   selected: string | null;
   onSelect: (provider: string) => void;
+  onAddProvider?: () => void;
 }
 
 /** Human-readable label for auth type. */
@@ -33,7 +35,7 @@ function authTypeLabel(type: string | null | undefined): string {
  * Left-pane provider sidebar for the Config tab.
  * Groups providers into "Configured" (ready/warning) and "Unconfigured" (missing/unknown).
  */
-export function ProviderSidebar({ auth, selected, onSelect }: ProviderSidebarProps) {
+export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: ProviderSidebarProps) {
   const t = useTranslations("models");
 
   const configured = auth.filter((e) => e.status !== "missing" && e.status !== "unknown");
@@ -121,6 +123,18 @@ export function ProviderSidebar({ auth, selected, onSelect }: ProviderSidebarPro
           )}
         </div>
       </ScrollArea>
+      {onAddProvider && (
+        <div className="px-3 py-2 border-t border-[var(--border)]">
+          <button
+            type="button"
+            onClick={onAddProvider}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-muted)] transition-colors cursor-pointer"
+          >
+            <Plus size={12} />
+            {t("config.addProvider")}
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
