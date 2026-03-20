@@ -494,6 +494,10 @@ async function processAgentMessage(params: {
           },
           error: err instanceof Error ? err.message : String(err),
         });
+        // Inject error into finalContent so the user sees it in-chat.
+        // The core pipeline only handles errors AFTER download succeeds, so
+        // we must surface failures here before handing off to the agent.
+        finalContent = [content, "", `媒体处理失败：${String(err)}`].join("\n");
       }
     } else {
       const keys = Object.keys((msg as unknown as Record<string, unknown>) ?? {})
