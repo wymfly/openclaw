@@ -187,6 +187,9 @@
       "providerAddFailed": "Failed to add provider"
     },
     "catalog": {
+      "addModel": "Add Model",
+      "addModelTitle": "Add model to {provider}",
+      "modelAdding": "Adding...",
       "setDefault": "Set as Default",
       "addToFallback": "Add to Fallback Chain",
       "goConfig": "Configure",
@@ -583,7 +586,11 @@
     "networkError": "Network error — skill toggle failed",
     "allModeTooltip": "This agent uses all skills. Switch to whitelist mode in Agent detail first.",
     "removeSkillTitle": "Remove {skill} from {agent}",
-    "addSkillTitle": "Add {skill} to {agent}"
+    "addSkillTitle": "Add {skill} to {agent}",
+    "searchPlaceholder": "Search skills...",
+    "groupBundled": "Bundled Skills",
+    "groupManaged": "Managed Skills",
+    "groupPlugin": "Plugin Skills"
   },
   "budget": {
     "title": "Budget",
