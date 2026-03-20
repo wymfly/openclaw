@@ -112,26 +112,9 @@ catch (err) {
 
 **上推位置**：`src/media/mime.ts`
 
-扩展现有 `EXT_BY_MIME` / `MIME_BY_EXT` 映射表，补充 Office、音频、视频类型。核心 `normalizeMimeType()` 函数已与 WeCom 实现一致，无需改动。
+验证并补漏现有 `EXT_BY_MIME` / `MIME_BY_EXT` 映射表。核心 `src/media/mime.ts` 已包含 `doc/docx/xls/xlsx/ppt/pptx` 和 `audio/ogg` 映射（`mime.ts:13,26-31`），可能只需补充少量缺失类型（如 `audio/amr`、`audio/speex`、`audio/opus`）。
 
-新增类型（现有映射表中缺失的）：
-
-```typescript
-// Office
-"application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
-"application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
-"application/msword": "doc",
-"application/vnd.ms-excel": "xls",
-"application/vnd.ms-powerpoint": "ppt",
-// Audio
-"audio/amr": "amr",
-"audio/speex": "speex",
-"audio/ogg": "ogg",
-"audio/opus": "opus",
-```
-
-**影响**：WeCom 删除自有 extMap（~15 行）
+**影响**：WeCom 删除自有 extMap（~15 行），改用核心映射。实际改动量可能很小（验证 + 补漏）。
 
 ---
 
@@ -144,8 +127,8 @@ catch (err) {
 **Phase 1（立即可用）**：chat.send 的 `attachments` 参数（base64 inline）
 
 - 已有基础设施：`ChatSendParamsSchema` 已声明 `attachments` 字段
-- 限制：WebSocket 帧 25MB，扣除开销后单次约 18MB base64
-- 适用：图片、小文件（< 10MB 解码后）
+- 限制：`parseMessageWithAttachments` 单附件上限 5MB 解码后（`chat-attachments.ts:115`）
+- 适用：图片、小文件（≤ 5MB 解码后）
 
 **Phase 2（后续）**：HTTP multipart 上传端点
 
@@ -199,62 +182,54 @@ ctxPayload.MediaTypes = mediaTypes.length > 0 ? mediaTypes : undefined;
 
 ### 2.3 chat.send 接入 applyMediaUnderstanding
 
-**改动文件**：`src/gateway/server-methods/chat.ts`
+**无需额外调用。** `applyMediaUnderstanding()` 已在 `getReplyFromConfig()`（`src/auto-reply/reply/get-reply.ts:127-133`）中统一调用，chat.send 必经该链路。
 
-在 MsgContext 构建后、`dispatchInboundMessage()` 之前，调用 `applyMediaUnderstanding()`：
+chat.send 只需确保 MsgContext 的 `MediaPath/MediaPaths/MediaTypes` 字段已填充（§2.2），统一链路会自动处理媒体理解。**不在 RPC handler 层额外调用 apply**，避免重复执行和 transcript echo 重复。
+
+同时，移除现有的 `replyOptions.images` 直传路径（`chat.ts:974`），统一走 MediaPath → apply → detectAndLoadPromptImages 的渠道路径，消除"路径理解 + 原图直传"双通道冲突。
 
 ```typescript
-// 在构建 ctxPayload 之后
-if (ctxPayload.MediaPaths && ctxPayload.MediaPaths.length > 0) {
-  await applyMediaUnderstanding({
-    ctx: ctxPayload,
-    cfg,
-    agentDir: resolveAgentWorkspaceDir(cfg, agentId),
-    activeModel: { provider: modelProvider, model: modelName },
-  });
-}
-```
+// 现状（移除）：
+// images: parsedImages.length > 0 ? parsedImages : undefined,
 
-**无需改动 `applyMediaUnderstanding()` 本身** — 它只读 `ctx.MediaPath/MediaPaths`，渠道无关。
+// 改为：不传 images，让 MediaPath 走统一管线
+// images 由 detectAndLoadPromptImages 从 MediaPath 加载
+```
 
 ### 2.4 工具事件广播
 
-**改动文件**：`src/gateway/server-chat.ts`
+**改动文件**：Dashboard WebSocket 连接配置
 
-chat.send 发起的 agent 调用，自动注册 WebSocket 连接到 `toolEventRecipients`：
+现有代码要求客户端声明 `tool-events` capability 才注册到 `toolEventRecipients`（`chat.ts:978-983`）。**不绕过这个协议约束**，而是让 Dashboard 的 WebSocket 连接在握手时声明 `tool-events` capability：
 
 ```typescript
-// 在 chat.send handler 的 onAgentRunStart 回调中（约 line 978）
-// 现有：仅注册 wantsToolEvents 的客户端
-// 改为：chat.send 的发起连接也注册
-
-onAgentRunStart: (runId) => {
-  // ...existing logic...
-  // 注册 chat.send 发起者的连接为 tool event 接收方
-  if (connId) {
-    toolEventRecipients.register(runId, [connId]);
-  }
-},
+// Dashboard 的 Gateway adapter 连接配置
+connect({ caps: ["tool-events"] });
 ```
 
-**效果**：chat.send 客户端（Dashboard）自动收到 `agent` 事件（工具调用状态、结果）。
+这样 Dashboard 通过正规协议获得工具事件广播，无需修改 `server-chat.ts` 的过滤逻辑。
 
 ### 2.5 审批事件
 
-**改动文件**：`src/gateway/server-broadcast.ts`
+**改动文件**：Dashboard Gateway adapter 连接配置
 
-新增 webchat 审批 scope：
+**不创建新 scope。** 直接给 Dashboard 的 WebSocket 连接分配 `operator.approvals` scope。原因：
+
+1. `exec.approval.resolve` RPC 要求 `operator.approvals`（`method-scopes.ts:30-34`）
+2. 审批客户端判定也只看 `operator.approvals|operator.admin`（`server.impl.ts:793-800`）
+3. 如果用新 scope，WebChat 能收到事件但**无法响应**，且请求会被自动过期
+
+Dashboard 作为 operator 级客户端，使用 `operator.approvals` scope 是合理的：
 
 ```typescript
-const WEBCHAT_APPROVALS_SCOPE = "webchat.approvals";
-
-EVENT_SCOPE_GUARDS["exec.approval.requested"] = [APPROVALS_SCOPE, WEBCHAT_APPROVALS_SCOPE];
-EVENT_SCOPE_GUARDS["exec.approval.resolved"] = [APPROVALS_SCOPE, WEBCHAT_APPROVALS_SCOPE];
+// Dashboard Gateway adapter 连接
+connect({
+  scopes: ["operator.read", "operator.write", "operator.approvals"],
+  caps: ["tool-events"],
+});
 ```
 
-在 chat.send 客户端认证时分配此 scope（`message-handler.ts` 的连接认证流程）。
-
-审批响应走现有 RPC `exec.approval.resolve`，无需新增。
+审批响应走现有 RPC `exec.approval.resolve`，无需新增任何服务端代码。
 
 ### 2.6 ChatEvent 媒体字段
 
@@ -272,13 +247,18 @@ export const ChatEventSchema = Type.Object(
 );
 ```
 
-在 `emitChatFinal()` 中，如果 agent 回复包含媒体（工具产出的文件/图片），填充这些字段。
+需在**两条** final 发射路径中都填充媒体字段：
+
+1. `src/gateway/server-chat.ts:342-425`（emitChatFinal）
+2. `src/gateway/server-methods/chat.ts:550-569`（chat.send 内部 final）
+
+同时需在 dispatcher 回调中采集媒体引用（当前只累积文本），以便 final 时有数据可填。
 
 ### 2.7 A2UI 事件（Phase 1）
 
-**改动文件**：`src/gateway/server-node-events.ts`
+**改动文件**：`src/gateway/server-methods/nodes.handlers.invoke-result.ts`（不是 `server-node-events.ts`，后者处理 `node.event` 分支）
 
-Phase 1：canvas 命令结果中携带事件数组，Gateway 在处理 `node.invoke` 返回时广播给相关客户端。
+Phase 1：canvas 命令结果中携带事件数组，Gateway 在 `handleNodeInvokeResult`（`nodes.handlers.invoke-result.ts:25-71`，由 `nodes.ts:791` 注册）处理 `node.invoke.result` 返回时广播给相关客户端。
 
 ```typescript
 // handleNodeInvokeResult 中
