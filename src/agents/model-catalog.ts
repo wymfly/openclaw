@@ -50,6 +50,115 @@ function loadModelSuppression() {
   return modelSuppressionPromise;
 }
 
+const CODEX_PROVIDER = "openai-codex";
+const OPENAI_CODEX_GPT53_MODEL_ID = "gpt-5.3-codex";
+const OPENAI_CODEX_GPT53_SPARK_MODEL_ID = "gpt-5.3-codex-spark";
+
+function applyOpenAICodexSparkFallback(models: ModelCatalogEntry[]): void {
+  const hasSpark = models.some(
+    (entry) =>
+      entry.provider === CODEX_PROVIDER &&
+      entry.id.toLowerCase() === OPENAI_CODEX_GPT53_SPARK_MODEL_ID,
+  );
+  if (hasSpark) {
+    return;
+  }
+
+  const baseModel = models.find(
+    (entry) =>
+      entry.provider === CODEX_PROVIDER && entry.id.toLowerCase() === OPENAI_CODEX_GPT53_MODEL_ID,
+  );
+  if (!baseModel) {
+    return;
+  }
+
+  models.push({
+    ...baseModel,
+    id: OPENAI_CODEX_GPT53_SPARK_MODEL_ID,
+    name: OPENAI_CODEX_GPT53_SPARK_MODEL_ID,
+  });
+}
+
+function normalizeConfiguredModelInput(input: unknown): ModelInputType[] | undefined {
+  if (!Array.isArray(input)) {
+    return undefined;
+  }
+  const normalized = input.filter(
+    (item): item is ModelInputType => item === "text" || item === "image" || item === "document",
+  );
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function readConfiguredOptInProviderModels(config: OpenClawConfig): ModelCatalogEntry[] {
+  const providers = config.models?.providers;
+  if (!providers || typeof providers !== "object") {
+    return [];
+  }
+
+  const out: ModelCatalogEntry[] = [];
+  for (const [providerRaw, providerValue] of Object.entries(providers)) {
+    const provider = providerRaw.toLowerCase().trim();
+    if (!providerValue || typeof providerValue !== "object") {
+      continue;
+    }
+
+    const configuredModels = (providerValue as { models?: unknown }).models;
+    if (!Array.isArray(configuredModels)) {
+      continue;
+    }
+
+    for (const configuredModel of configuredModels) {
+      if (!configuredModel || typeof configuredModel !== "object") {
+        continue;
+      }
+      const idRaw = (configuredModel as { id?: unknown }).id;
+      if (typeof idRaw !== "string") {
+        continue;
+      }
+      const id = idRaw.trim();
+      if (!id) {
+        continue;
+      }
+      const rawName = (configuredModel as { name?: unknown }).name;
+      const name = (typeof rawName === "string" ? rawName : id).trim() || id;
+      const contextWindowRaw = (configuredModel as { contextWindow?: unknown }).contextWindow;
+      const contextWindow =
+        typeof contextWindowRaw === "number" && contextWindowRaw > 0 ? contextWindowRaw : undefined;
+      const reasoningRaw = (configuredModel as { reasoning?: unknown }).reasoning;
+      const reasoning = typeof reasoningRaw === "boolean" ? reasoningRaw : undefined;
+      const input = normalizeConfiguredModelInput((configuredModel as { input?: unknown }).input);
+      out.push({ id, name, provider, contextWindow, reasoning, input });
+    }
+  }
+
+  return out;
+}
+
+function mergeConfiguredOptInProviderModels(params: {
+  config: OpenClawConfig;
+  models: ModelCatalogEntry[];
+}): void {
+  const configured = readConfiguredOptInProviderModels(params.config);
+  if (configured.length === 0) {
+    return;
+  }
+
+  const seen = new Set(
+    params.models.map(
+      (entry) => `${entry.provider.toLowerCase().trim()}::${entry.id.toLowerCase().trim()}`,
+    ),
+  );
+
+  for (const entry of configured) {
+    const key = `${entry.provider.toLowerCase().trim()}::${entry.id.toLowerCase().trim()}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    params.models.push(entry);
+    seen.add(key);
+  }
+}
+
 export function resetModelCatalogCacheForTest() {
   modelCatalogPromise = null;
   hasLoggedModelCatalogError = false;
