@@ -4,7 +4,6 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
-import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
 import type { WecomAccountRuntime } from "../app/account-runtime.js";
@@ -77,49 +76,10 @@ function rememberAgentMsgId(msgId: string): boolean {
   return true;
 }
 
-function looksLikeTextFile(buffer: Buffer): boolean {
-  const sampleSize = Math.min(buffer.length, 4096);
-  if (sampleSize === 0) return true;
-  let bad = 0;
-  for (let i = 0; i < sampleSize; i++) {
-    const b = buffer[i]!;
-    const isWhitespace = b === 0x09 || b === 0x0a || b === 0x0d; // \t \n \r
-    const isPrintable = b >= 0x20 && b !== 0x7f;
-    if (!isWhitespace && !isPrintable) bad++;
-  }
-  // 非可打印字符占比太高，基本可判断为二进制
-  return bad / sampleSize <= 0.02;
-}
-
-function analyzeTextHeuristic(buffer: Buffer): {
-  sampleSize: number;
-  badCount: number;
-  badRatio: number;
-} {
-  const sampleSize = Math.min(buffer.length, 4096);
-  if (sampleSize === 0) return { sampleSize: 0, badCount: 0, badRatio: 0 };
-  let badCount = 0;
-  for (let i = 0; i < sampleSize; i++) {
-    const b = buffer[i]!;
-    const isWhitespace = b === 0x09 || b === 0x0a || b === 0x0d;
-    const isPrintable = b >= 0x20 && b !== 0x7f;
-    if (!isWhitespace && !isPrintable) badCount++;
-  }
-  return { sampleSize, badCount, badRatio: badCount / sampleSize };
-}
-
 function previewHex(buffer: Buffer, maxBytes = 32): string {
   const n = Math.min(buffer.length, maxBytes);
   if (n <= 0) return "";
   return buffer.subarray(0, n).toString("hex").replace(/(..)/g, "$1 ").trim();
-}
-
-function buildTextFilePreview(buffer: Buffer, maxChars: number): string | undefined {
-  if (!looksLikeTextFile(buffer)) return undefined;
-  const text = buffer.toString("utf8");
-  if (!text.trim()) return undefined;
-  const truncated = text.length > maxChars ? `${text.slice(0, maxChars)}\n…(已截断)` : text;
-  return truncated;
 }
 
 /**
@@ -487,42 +447,18 @@ async function processAgentMessage(params: {
         } = await downloadAgentApiMedia({ agent, mediaId, maxBytes: mediaMaxBytes });
         const xmlFileName = extractFileName(msg);
         const originalFileName = (xmlFileName || headerFileName || `${mediaId}.bin`).trim();
-        const heuristic = analyzeTextHeuristic(buffer);
-
-        // 推断文件名后缀
-        const extMap: Record<string, string> = {
-          "image/jpeg": "jpg",
-          "image/png": "png",
-          "image/gif": "gif",
-          "audio/amr": "amr",
-          "audio/speex": "speex",
-          "video/mp4": "mp4",
-        };
-        const textPreview = msgType === "file" ? buildTextFilePreview(buffer, 12_000) : undefined;
-        const looksText = Boolean(textPreview);
-        const originalExt = path.extname(originalFileName).toLowerCase();
-        const normalizedContentType =
-          looksText && originalExt === ".md"
-            ? "text/markdown"
-            : looksText && (!contentType || contentType === "application/octet-stream")
-              ? "text/plain; charset=utf-8"
-              : contentType;
-
-        const ext = extMap[normalizedContentType] || (looksText ? "txt" : "bin");
-        const filename = `${mediaId}.${ext}`;
 
         log?.(
           `[wecom-agent] file meta: msgType=${msgType} mediaId=${mediaId} size=${buffer.length} maxBytes=${mediaMaxBytes} ` +
-            `contentType=${contentType} normalizedContentType=${normalizedContentType} originalFileName=${originalFileName} ` +
+            `contentType=${contentType} originalFileName=${originalFileName} ` +
             `xmlFileName=${xmlFileName ?? "N/A"} headerFileName=${headerFileName ?? "N/A"} ` +
-            `textHeuristic(sample=${heuristic.sampleSize}, bad=${heuristic.badCount}, ratio=${heuristic.badRatio.toFixed(4)}) ` +
             `headHex="${previewHex(buffer)}"`,
         );
 
-        // 使用 Core SDK 保存媒体文件
+        // 使用 Core SDK 保存媒体文件（文本启发与内容抽取由 core pipeline 统一处理）
         const saved = await core.channel.media.saveMediaBuffer(
           buffer,
-          normalizedContentType,
+          contentType,
           "inbound", // context/scope
           mediaMaxBytes, // limit
           originalFileName,
@@ -530,45 +466,22 @@ async function processAgentMessage(params: {
 
         log?.(`[wecom-agent] media saved to: ${saved.path}`);
         mediaPath = saved.path;
-        mediaType = normalizedContentType;
+        mediaType = contentType;
 
         // 构建附件
         attachments.push({
           name: originalFileName,
-          contentType: normalizedContentType,
+          contentType,
           remoteUrl: pathToFileURL(saved.path).href, // 使用跨平台安全的文件 URL
         });
 
-        // 更新文本提示
-        if (textPreview) {
-          finalContent = [
-            content,
-            "",
-            "文件内容预览：",
-            "```",
-            textPreview,
-            "```",
-            `(已下载 ${buffer.length} 字节)`,
-          ].join("\n");
-        } else {
-          if (msgType === "file") {
-            finalContent = [
-              content,
-              "",
-              `已收到文件：${originalFileName}`,
-              `文件类型：${normalizedContentType || contentType || "未知"}`,
-              "提示：当前仅对文本/Markdown/JSON/CSV/HTML/PDF（可选）做内容抽取；其他二进制格式请转为 PDF 或复制文本内容。",
-              `(已下载 ${buffer.length} 字节)`,
-            ].join("\n");
-          } else {
-            finalContent = `${content} (已下载 ${buffer.length} 字节)`;
-          }
-        }
+        finalContent = `${content} (已下载 ${buffer.length} 字节)`;
         log?.(
-          `[wecom-agent] file preview: enabled=${looksText} finalContentLen=${finalContent.length} attachments=${attachments.length}`,
+          `[wecom-agent] media ready: finalContentLen=${finalContent.length} attachments=${attachments.length}`,
         );
       } catch (err) {
         error?.(`[wecom-agent] media processing failed: ${String(err)}`);
+        // WeCom-specific audit logging
         auditSink?.({
           transport: "agent-callback",
           category: "runtime-error",
@@ -581,13 +494,6 @@ async function processAgentMessage(params: {
           },
           error: err instanceof Error ? err.message : String(err),
         });
-        finalContent = [
-          content,
-          "",
-          `媒体处理失败：${String(err)}`,
-          `提示：可在 OpenClaw 配置中提高 channels.wecom.media.maxBytes（当前=${mediaMaxBytes}）`,
-          `例如：openclaw config set channels.wecom.media.maxBytes ${50 * 1024 * 1024}`,
-        ].join("\n");
       }
     } else {
       const keys = Object.keys((msg as unknown as Record<string, unknown>) ?? {})
