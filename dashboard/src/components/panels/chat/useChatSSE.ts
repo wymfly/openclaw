@@ -207,19 +207,26 @@ export function useChatSSE() {
 
     // Agent tool-execution events (tool_use blocks from running agent).
     // Map to a ContentBlock and append to the current streaming message.
+    // Only handle `phase === "start"` to avoid duplicate blocks from update/result.
+    // Gateway emits: { stream: "tool", data: { phase, name, toolCallId, args } }
     es.addEventListener("agent", (e) => {
       try {
         const payload = JSON.parse(e.data) as Record<string, unknown>;
         const stream = payload.stream as string | undefined;
         const data = payload.data as Record<string, unknown> | undefined;
         if (stream === "tool" && data && streamingRunIdRef.current) {
+          // Only create a block on the start phase; update/result phases would duplicate it
+          if (data.phase !== "start") {
+            return;
+          }
           const toolName = data.name as string | undefined;
           if (toolName) {
             const block: ContentBlock = {
               type: "tool_use",
-              id: (data.id as string | undefined) ?? `tool-${Date.now()}`,
+              // Gateway uses toolCallId (not id) and args (not input)
+              id: (data.toolCallId as string | undefined) ?? `tool-${Date.now()}`,
               name: toolName,
-              input: (data.input as Record<string, unknown> | undefined) ?? {},
+              input: (data.args as Record<string, unknown> | undefined) ?? {},
             };
             // Append the tool_use block alongside any existing text blocks
             useChatStore.setState((state) => ({
@@ -235,7 +242,8 @@ export function useChatSSE() {
     });
 
     // Tool execution approval requested — store in chat store for ApprovalDialog.
-    es.addEventListener("exec.approval.requested", (e) => {
+    // Gateway broadcasts this as "approval.pending" (matches useApprovalsSSE.ts).
+    es.addEventListener("approval.pending", (e) => {
       try {
         const payload = JSON.parse(e.data) as Record<string, unknown>;
         const approval: ActiveApproval = {
@@ -256,7 +264,8 @@ export function useChatSSE() {
     });
 
     // Approval resolved — clear the dialog.
-    es.addEventListener("exec.approval.resolved", () => {
+    // Gateway broadcasts this as "approval.resolved" (matches useApprovalsSSE.ts).
+    es.addEventListener("approval.resolved", () => {
       setActiveApproval(null);
     });
 

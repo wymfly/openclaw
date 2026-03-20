@@ -126,16 +126,22 @@ export function ChatPanel() {
   /**
    * Relay the user's approval decision to the Gateway and clear the dialog.
    * Uses the dedicated /api/exec/approval route which calls exec.approval.resolve.
+   * Clear only on success so the user can retry on network/server failure.
    */
   const handleResolveApproval = useCallback(
     async (id: string, decision: "allow-once" | "allow-always" | "deny") => {
-      // Optimistically clear the dialog immediately for responsive UX
-      setActiveApproval(null);
-      await fetch("/api/exec/approval", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, decision }),
-      });
+      try {
+        const res = await fetch("/api/exec/approval", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, decision }),
+        });
+        if (res.ok) {
+          setActiveApproval(null); // Clear only on success
+        }
+      } catch {
+        // Keep dialog visible on error so user can retry
+      }
     },
     [setActiveApproval],
   );
