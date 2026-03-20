@@ -67,11 +67,17 @@ export const handleNodeInvokeResult: GatewayRequestHandler = async ({
     return;
   }
 
-  // Broadcast A2UI events if present in the result payload
+  // Broadcast A2UI events if present in the result payload.
+  // Inject invokeId + nodeId so Dashboard clients can filter events that belong
+  // to their own invoke request, avoiding cross-invoke leakage.
   const payloadObj = p.payload as Record<string, unknown> | null | undefined;
   if (payloadObj && typeof payloadObj === "object" && Array.isArray(payloadObj.events)) {
     for (const event of payloadObj.events) {
-      context.broadcast("a2ui", event);
+      const scopedEvent =
+        event && typeof event === "object"
+          ? { ...event, __invokeId: p.id, __nodeId: p.nodeId }
+          : event;
+      context.broadcast("a2ui", scopedEvent);
     }
   }
 
