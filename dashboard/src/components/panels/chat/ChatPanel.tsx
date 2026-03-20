@@ -178,9 +178,16 @@ export function ChatPanel() {
   }, [isStreaming, refreshSessions]);
 
   useEffect(() => {
+    // Clear immediately on session change to avoid stale messages flashing
+    setMessages([]);
+
     if (!activeSessionId) {
       return;
     }
+
+    // Guard against stale fetch responses: if activeSessionId changes
+    // while fetch is in flight, discard the response.
+    let cancelled = false;
     const params = new URLSearchParams({ sessionKey: activeSessionId });
     if (activeAgentId) {
       params.set("agentId", activeAgentId);
@@ -188,12 +195,19 @@ export function ChatPanel() {
     void fetch(`/api/chat/history?${params}`)
       .then((r) => r.json())
       .then((data: { messages?: GatewayMessage[] } | GatewayMessage[]) => {
+        if (cancelled) {
+          return;
+        }
         const list = Array.isArray(data) ? data : data.messages;
         if (Array.isArray(list)) {
           setMessages(list.map(toUiMessage));
         }
       })
       .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeSessionId, activeAgentId, setMessages]);
 
   return (

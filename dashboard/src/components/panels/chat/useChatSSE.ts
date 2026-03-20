@@ -140,6 +140,11 @@ export function useChatSSE() {
     es.addEventListener("chat", (e) => {
       const payload = JSON.parse(e.data) as ChatEventPayload;
 
+      // Ignore events for other sessions to prevent cross-session message injection
+      if (activeSessionId && payload.sessionKey && payload.sessionKey !== activeSessionId) {
+        return;
+      }
+
       if (payload.state === "delta") {
         const text = extractTextFromMessage(payload.message);
         if (!streamingRunIdRef.current && payload.runId) {
