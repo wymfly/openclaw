@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useCallback } from "react";
 import { useModelsStore } from "@/stores/models";
+import { AddProviderDialog } from "../config/AddProviderDialog";
 import { AuthHealthCard } from "../config/AuthHealthCard";
 import { ConfigForm } from "../config/ConfigForm";
 import { ProviderSidebar } from "../config/ProviderSidebar";
@@ -22,10 +23,12 @@ export function ProviderConfigTab() {
     fetchProviderConfig,
     runProbe,
     updateProviderConfig,
+    addCustomProvider,
   } = useModelsStore();
 
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [probeLoading, setProbeLoading] = useState<Record<string, boolean>>({});
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   useEffect(() => {
     void fetchAuthOverview();
@@ -43,6 +46,17 @@ export function ProviderConfigTab() {
 
   // Find matching provider config for the selected entry
   const selectedConfig = providers.find((p) => p.provider === selectedProvider);
+
+  const handleAddProvider = useCallback(
+    async (params: Parameters<typeof addCustomProvider>[0]) => {
+      const ok = await addCustomProvider(params);
+      if (ok) {
+        setSelectedProvider(params.name.toLowerCase().trim());
+      }
+      return ok;
+    },
+    [addCustomProvider],
+  );
 
   const handleProbe = useCallback(async () => {
     if (!selectedProvider) {
@@ -63,6 +77,7 @@ export function ProviderConfigTab() {
         auth={authOverview}
         selected={selectedProvider}
         onSelect={setSelectedProvider}
+        onAddProvider={() => setAddDialogOpen(true)}
       />
 
       {/* Right pane: details for selected provider */}
@@ -88,6 +103,11 @@ export function ProviderConfigTab() {
           </div>
         )}
       </div>
+      <AddProviderDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onAdd={handleAddProvider}
+      />
     </div>
   );
 }
