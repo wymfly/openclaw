@@ -128,6 +128,70 @@ describe("loadGatewayModelCatalog", () => {
     expect(catalog[0].maxTokens).toBeUndefined();
   });
 
+  it("includes custom provider models from config", async () => {
+    mockPiDiscoveryModels([]);
+    mockConfig = {
+      models: {
+        providers: {
+          "my-llm": {
+            baseUrl: "https://api.my-llm.com/v1",
+            api: "openai-completions",
+            models: [
+              {
+                id: "my-model-7b",
+                name: "My Model 7B",
+                reasoning: false,
+                input: ["text"],
+                cost: { input: 0.5, output: 1.0, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 32768,
+                maxTokens: 4096,
+              },
+            ],
+          },
+        },
+      },
+    } as unknown as OpenClawConfig;
+
+    const { loadGatewayModelCatalog } = await import("./server-model-catalog.js");
+    const catalog = await loadGatewayModelCatalog();
+    const customModel = catalog.find((m) => m.provider === "my-llm" && m.id === "my-model-7b");
+    expect(customModel).toBeDefined();
+    expect(customModel!.name).toBe("My Model 7B");
+    expect(customModel!.contextWindow).toBe(32768);
+    expect(customModel!.cost?.input).toBe(0.5);
+  });
+
+  it("does not duplicate Pi SDK native provider models from config", async () => {
+    mockPiDiscoveryModels([{ id: "deepseek-chat", provider: "deepseek", name: "DeepSeek Chat" }]);
+    mockConfig = {
+      models: {
+        providers: {
+          deepseek: {
+            baseUrl: "https://api.deepseek.com",
+            models: [
+              {
+                id: "deepseek-chat",
+                name: "DeepSeek Chat Override",
+                reasoning: false,
+                input: ["text"],
+                cost: { input: 0.14, output: 0.28, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 65536,
+                maxTokens: 4096,
+              },
+            ],
+          },
+        },
+      },
+    } as unknown as OpenClawConfig;
+
+    const { loadGatewayModelCatalog } = await import("./server-model-catalog.js");
+    const catalog = await loadGatewayModelCatalog();
+    const deepseekModels = catalog.filter(
+      (m) => m.provider === "deepseek" && m.id === "deepseek-chat",
+    );
+    expect(deepseekModels).toHaveLength(1);
+  });
+
   it("matches provider and model id case-insensitively", async () => {
     mockPiDiscoveryModels([
       { id: "Claude-Sonnet-4", provider: "Anthropic", name: "Claude Sonnet 4" },
