@@ -67,7 +67,12 @@
     "imagePreview": "Image preview",
     "download": "Download",
     "artifact": "Interactive Content",
-    "openArtifact": "Open"
+    "openArtifact": "Open",
+    "artifactClose": "Close",
+    "artifactCopy": "Copy Code",
+    "artifactCopied": "Copied",
+    "artifactFullscreen": "Fullscreen",
+    "artifactTitle": "Interactive Content"
   },
   "gateway": {
     "title": "Gateway Overview",
@@ -224,7 +229,9 @@
       "authSummary": "API Key from {source}",
       "authNone": "No authentication configured",
       "modelName": "Name",
-      "models": "models"
+      "models": "models",
+      "deleteProvider": "Delete Provider",
+      "deleteModel": "Delete"
     }
   },
   "routing": {

@@ -1,14 +1,23 @@
 "use client";
 
 import { PanelLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useChatStore, type ChatMessage, type ContentBlock, type SessionInfo } from "@/stores/chat";
+import { ArtifactPanel } from "./artifacts/ArtifactPanel";
+import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
 import { useChatSSE } from "./useChatSSE";
+
+// ---------------------------------------------------------------------------
+// Artifact context — lets ToolResultCard open the panel without prop drilling
+// ---------------------------------------------------------------------------
+export const ArtifactContext = createContext<{
+  onOpenArtifact: (artifact: ArtifactInfo) => void;
+}>({ onOpenArtifact: () => {} });
 
 // ---------------------------------------------------------------------------
 // Gateway → ChatMessage adapters
@@ -102,6 +111,7 @@ export function ChatPanel() {
   const { activeSessionId, activeAgentId, setSessions, setMessages } = useChatStore();
   const isCompact = useMediaQuery("(max-width: 1023px)");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactInfo | null>(null);
 
   useChatSSE();
 
@@ -141,8 +151,8 @@ export function ChatPanel() {
 
   return (
     <div className="flex h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
-      {/* Desktop: inline sidebar */}
-      {!isCompact && <SessionSidebar />}
+      {/* Desktop: inline sidebar — hidden when artifact panel is open */}
+      {!isCompact && !activeArtifact && <SessionSidebar />}
 
       {/* Compact: sidebar as sheet overlay */}
       {isCompact && (
@@ -170,9 +180,16 @@ export function ChatPanel() {
             </button>
           </div>
         )}
-        <MessageList />
+        <ArtifactContext.Provider value={{ onOpenArtifact: setActiveArtifact }}>
+          <MessageList />
+        </ArtifactContext.Provider>
         <MessageInput />
       </div>
+
+      {/* Artifact panel — shown beside chat when an artifact is active */}
+      {activeArtifact && (
+        <ArtifactPanel artifact={activeArtifact} onClose={() => setActiveArtifact(null)} />
+      )}
     </div>
   );
 }
