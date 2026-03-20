@@ -4,6 +4,9 @@
  * Gateway contract (`ChatSendParamsSchema`):
  *   { sessionKey, message, thinking?, deliver?, attachments?, timeoutMs?, idempotencyKey }
  * Note: `additionalProperties: false` — do NOT inject platform headers into params.
+ *
+ * Body size: Next.js App Router body parsing is automatic via request.json().
+ * For larger payloads (file attachments), configure bodyParser sizeLimit in next.config.ts.
  */
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
@@ -16,10 +19,19 @@ export const POST = withAuth(async (request: NextRequest) => {
     sessionKey?: string;
     thinking?: string;
     idempotencyKey?: string;
+    attachments?: Array<{
+      type: string;
+      mimeType: string;
+      fileName: string;
+      content: string;
+    }>;
   };
 
-  if (!body.message?.trim()) {
-    return Response.json({ error: "message is required" }, { status: 400 });
+  const hasMessage = !!body.message?.trim();
+  const hasAttachments = Array.isArray(body.attachments) && body.attachments.length > 0;
+
+  if (!hasMessage && !hasAttachments) {
+    return Response.json({ error: "message or attachments required" }, { status: 400 });
   }
   if (!body.sessionKey?.trim()) {
     return Response.json({ error: "sessionKey is required" }, { status: 400 });
@@ -29,8 +41,9 @@ export const POST = withAuth(async (request: NextRequest) => {
 
   return gatewayRequest("chat.send", {
     sessionKey: body.sessionKey,
-    message: body.message,
+    message: body.message ?? "",
     thinking: body.thinking ?? undefined,
+    attachments: body.attachments ?? undefined,
     idempotencyKey,
   });
 });
