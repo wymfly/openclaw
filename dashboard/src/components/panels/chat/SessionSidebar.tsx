@@ -63,6 +63,7 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
   };
 
   const handleSelect = (session: SessionInfo) => {
+    clearMessages(); // Clear immediately to avoid stale messages flashing
     setActiveSession(session.key);
     if (session.agentId) {
       setActiveAgent(session.agentId);
