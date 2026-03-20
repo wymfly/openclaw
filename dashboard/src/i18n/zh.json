@@ -67,7 +67,12 @@
     "imagePreview": "图片预览",
     "download": "下载",
     "artifact": "交互内容",
-    "openArtifact": "打开"
+    "openArtifact": "打开",
+    "artifactClose": "关闭",
+    "artifactCopy": "复制代码",
+    "artifactCopied": "已复制",
+    "artifactFullscreen": "全屏",
+    "artifactTitle": "交互内容"
   },
   "gateway": {
     "title": "网关概览",
@@ -224,7 +229,9 @@
       "authSummary": "API Key 来源: {source}",
       "authNone": "未配置认证",
       "modelName": "名称",
-      "models": "个模型"
+      "models": "个模型",
+      "deleteProvider": "删除供应商",
+      "deleteModel": "删除"
     }
   },
   "routing": {
