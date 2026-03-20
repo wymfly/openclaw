@@ -6,15 +6,29 @@
 
 ## 现状分析
 
-| 层级                | 多模态支持                          | 现状                                  |
-| ------------------- | ----------------------------------- | ------------------------------------- |
-| Gateway `chat.send` | `attachments[]`（base64 图像/文件） | 已有，但只处理 image 附件             |
-| Pi SDK 视觉         | Claude/GPT VLM 图像分析             | 已有                                  |
-| SSE 消息流          | 返回 image/file/tool_use 内容块     | 已有                                  |
-| MessageInput        | 拖放+选择文件 UI                    | UI 已做，`sendMessage()` 未发送 files |
-| MessageList         | 只渲染 text 块                      | 不渲染 image/file/tool_use            |
-| SSE Hook            | 只过滤 `type === "text"`            | 丢弃所有非文本块                      |
-| Canvas/Artifacts    | macOS 专有 WKWebView                | Dashboard 未集成                      |
+| 层级                | 多模态支持                                                              | 现状                                  |
+| ------------------- | ----------------------------------------------------------------------- | ------------------------------------- |
+| Gateway `chat.send` | `attachments[]`（base64 图像/文件）                                     | 已有，但只处理 image 附件             |
+| Pi SDK 视觉         | Claude/GPT VLM 图像分析                                                 | 已有                                  |
+| SSE 消息流          | `emitChatDelta`/`emitChatFinal` 只发 `[{type:"text"}]`                  | **仅文本块**                          |
+| `chat.history`      | 返回完整 Anthropic 格式消息（text/image/tool_use/tool_result/thinking） | 已有                                  |
+| MessageInput        | 拖放+选择文件 UI                                                        | UI 已做，`sendMessage()` 未发送 files |
+| MessageList         | 只渲染 text 块                                                          | 不渲染 image/file/tool_use            |
+| SSE Hook            | 只过滤 `type === "text"`                                                | 仅处理文本                            |
+| Canvas/Artifacts    | macOS 专有 WKWebView + A2UI                                             | Dashboard 未集成                      |
+
+### 关键约束：两条数据路径
+
+Gateway 的 chat 消息有两条路径，支持的内容块类型不同：
+
+1. **SSE 实时流**（`emitChatDelta` / `emitChatFinal` in `server-chat.ts`）— 只发送 `[{ type: "text", text }]` 块。用于流式打字效果。
+2. **历史加载**（`chat.history` → Pi session transcript）— 返回完整的 Anthropic 格式内容块数组（text, image, tool_use, tool_result, thinking）。
+
+本设计基于此约束：
+
+- **流式阶段**：SSE 只处理 text 块，实现打字效果
+- **完成阶段**：收到 `final` 事件后，调用 `chat.history` 重新加载该消息的完整内容块（含 tool_use、tool_result、thinking 等）
+- **历史加载**：直接映射 Anthropic 格式为 `ContentBlock[]`
 
 ## 参考实现
 
@@ -41,9 +55,10 @@ type ContentBlock =
   | { type: "file"; data: string; mimeType: string; fileName: string; size?: number }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
   | { type: "tool_result"; toolUseId: string; content: string; isError?: boolean }
-  | { type: "thinking"; text: string }
-  | { type: "artifact"; id: string; title: string; language: string; content: string };
+  | { type: "thinking"; text: string };
 ```
+
+注：不包含 `artifact` 块类型 — Artifacts 是前端从 `tool_result` 中识别的渲染策略，不是 Gateway 的内容块类型（见第五节）。
 
 ### ChatMessage 重构
 
@@ -79,15 +94,23 @@ interface ChatMessage {
 }
 ```
 
-### 与 Gateway 的映射
+### 与 Gateway 数据的映射
 
-| Gateway SSE 块                                    | → ContentBlock                                |
+**来源 1：chat.history（完整内容块）**
+
+| Anthropic 格式                                    | → ContentBlock                                |
 | ------------------------------------------------- | --------------------------------------------- |
 | `{ type: "text", text }`                          | `{ type: "text", text }`                      |
 | `{ type: "image", source: { data, media_type } }` | `{ type: "image", data, mimeType }`           |
 | `{ type: "tool_use", id, name, input }`           | `{ type: "tool_use", id, name, input }`       |
 | `{ type: "tool_result", tool_use_id, content }`   | `{ type: "tool_result", toolUseId, content }` |
-| `{ type: "thinking", thinking }`                  | `{ type: "thinking", text }`                  |
+| `{ type: "thinking", thinking }`                  | `{ type: "thinking", text: thinking }`        |
+
+**来源 2：SSE 实时流（仅文本）**
+
+| SSE 事件块               | → ContentBlock           |
+| ------------------------ | ------------------------ |
+| `{ type: "text", text }` | `{ type: "text", text }` |
 
 ---
 
@@ -102,20 +125,21 @@ MessageBubble
  ├── ThinkingBlock[]      ← type: "thinking"
  ├── AttachmentStrip[]    ← type: "image" | "file" (用户消息的附件缩略图/文件标签)
  ├── TextContent          ← type: "text" (合并所有 text 块，Markdown 渲染)
- ├── ToolUseCard[]        ← type: "tool_use" (工具调用卡片)
- ├── ToolResultCard[]     ← type: "tool_result" (工具结果，可展开)
- └── ArtifactCard[]       ← type: "artifact" (点击打开 Artifacts 面板)
+ ├── ToolUseCard[]        ← type: "tool_use" (工具调用卡片，含 emoji + 工具名)
+ ├── ToolResultCard[]     ← type: "tool_result" (工具结果，可展开，长结果折叠)
+ └── ArtifactCard[]       ← 从 tool_result 中识别（见第五节）
 ```
 
-### 新增组件
+### 新增/重构组件
 
-| 组件             | 职责                                                               |
-| ---------------- | ------------------------------------------------------------------ |
-| `ImageBlock`     | 渲染 inline 图片，缩略图 + 点击放大 lightbox                       |
-| `FileBlock`      | 文件附件标签（图标 + 文件名 + 大小），可下载                       |
-| `ToolResultCard` | 工具结果展示，短结果直接显示，长结果折叠，含图片结果时 inline 渲染 |
-| `ArtifactCard`   | artifact 卡片，显示标题 + 语言标签，点击打开 Artifacts 面板        |
-| `ArtifactPanel`  | 聊天面板右侧的独立面板，iframe 渲染交互式内容                      |
+| 组件                     | 职责                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `ImageBlock`             | 渲染 inline 图片，缩略图 + 点击放大 lightbox                                  |
+| `FileBlock`              | 文件附件标签（图标 + 文件名 + 大小），可下载                                  |
+| `ToolUseCard`（重构）    | 从现有组件重构，接受 `ContentBlock & {type:"tool_use"}` 而非旧 `ToolUseBlock` |
+| `ToolResultCard`（新增） | 工具结果展示，短结果直接显示，长结果 8 行折叠+展开按钮（参考 macOS app）      |
+| `ArtifactCard`           | 从特定 tool_result 识别的 artifact 卡片，点击打开 Artifacts 面板              |
+| `ArtifactPanel`          | 聊天面板右侧的独立面板，iframe 渲染交互式内容                                 |
 
 ### 布局
 
@@ -127,7 +151,7 @@ MessageBubble
 │  ┌───────────────┬──────────────────────────┐ │
 │  │ SessionSidebar│  ┌─ MessageList ───────┐ │ │
 │  │               │  │  MessageBubble...    │ │ │
-│  │               │  └────────────────────-─┘ │ │
+│  │               │  └─────────────────────┘ │ │
 │  │               │  ┌─ MessageInput ──────┐ │ │
 │  │               │  │ [📎] [textarea] [▶] │ │ │
 │  │               │  │ [img1] [img2] [doc] │ │ │
@@ -136,11 +160,11 @@ MessageBubble
 └──────────────────────────────────────────────┘
 ```
 
-有 Artifact 时：
+有 Artifact 时（SessionSidebar 自动收起）：
 
 ```
 ┌───────────────────────────────────────────────────────┐
-│  ┌─ Chat ────────────────┬─ ArtifactPanel ──────────┐ │
+│  ┌─ Chat (50%) ──────────┬─ ArtifactPanel (50%) ────┐ │
 │  │  MessageList           │  [标题栏: title + 关闭]   │ │
 │  │  ...                   │  ┌─ iframe ────────────┐ │ │
 │  │  [ArtifactCard] ←click→│  │  交互式 HTML/JS     │ │ │
@@ -150,6 +174,8 @@ MessageBubble
 └───────────────────────────────────────────────────────┘
 ```
 
+窄屏（< 1024px）：ArtifactPanel 以 overlay 全屏显示，覆盖聊天区域。
+
 ---
 
 ## 三、上传管线
@@ -158,18 +184,20 @@ MessageBubble
 
 ```
 用户选择/拖放文件
-  → 校验大小（≤5MB）和数量（≤10）
+  → 校验大小（≤5MB）和数量（≤10），失败时 toast 提示
   → 生成预览（图片: URL.createObjectURL, 文件: 图标+名称+大小）
   → 存入 MessageInput 本地 state: PendingAttachment[]
   → 显示在附件预览条
 
-点击发送
+点击发送（允许纯附件无文本，也允许纯文本无附件）
   → 每个文件读取为 base64 (FileReader.readAsDataURL)
-  → 构造 ContentBlock[]: 图片→{type:"image"}, 其他→{type:"file"}
-  → 文本→{type:"text"}
-  → 合并为 content: ContentBlock[]
+  → 构造用户消息 content: ContentBlock[]
+      图片 → {type:"image", data, mimeType, fileName}
+      其他 → {type:"file", data, mimeType, fileName, size}
+      文本 → {type:"text", text}（如果有输入文本）
   → 本地立即显示用户消息（乐观更新，含附件缩略图）
   → POST /api/chat/send { sessionKey, message, attachments, idempotencyKey }
+  → 清空 files 和 input state
 ```
 
 ### PendingAttachment 类型
@@ -185,31 +213,33 @@ interface PendingAttachment {
 
 ### API 路由修改
 
-`/api/chat/send` 请求体扩展：
+`/api/chat/send`：
+
+- 放宽 `message` 必填限制：有 `message` 或 `attachments` 之一即可
+- 透传 `attachments` 给 Gateway `chat.send`
+- **配置 Next.js body size limit**：附件 base64 编码后约大 33%，5MB 文件 ≈ 6.67MB base64，10 个文件最大 ~67MB。需在 route config 中设置 `export const config = { api: { bodyParser: { sizeLimit: '70mb' } } }` 或使用 App Router 的 `export const maxDuration` + `bodyParser` 配置
 
 ```typescript
 // 请求体
 {
   sessionKey: string;
-  message: string;
+  message?: string;          // 改为 optional
   attachments?: Array<{
     type: "image" | "file";
     mimeType: string;
     fileName: string;
     content: string;         // base64
   }>;
-  idempotencyKey?: string;
+  idempotencyKey?: string;   // 前端生成，防重复提交
 }
 ```
-
-直接透传 `attachments` 给 Gateway `chat.send`。
 
 ### Gateway 改动
 
 `src/gateway/chat-attachments.ts` 的 `parseMessageWithAttachments()`：
 
-- 当前行为：非图像附件被丢弃 + warn
-- 改为：图像附件 → 照旧转为 `ChatImageContent`；非图像附件 → 转为 `ChatFileContent`，通过文件分析工具处理
+- 当前行为：非图像附件被 MIME 嗅探检测到后丢弃 + warn
+- 改为：图像附件 → 照旧转为 `ChatImageContent`；非图像附件 → 转为新类型 `ChatFileContent`，注入消息上下文（文件名+内容摘要）供模型参考
 - 新增 `ChatFileContent` 类型：`{ type: "file"; data: string; mimeType: string; fileName: string }`
 
 ### 限制
@@ -217,105 +247,121 @@ interface PendingAttachment {
 | 类型       | 限制              | 说明                           |
 | ---------- | ----------------- | ------------------------------ |
 | 单文件     | 5MB（解码后）     | 沿用 Gateway 现有限制          |
-| 单次附件数 | 最多 10 个        | 前端限制                       |
+| 单次附件数 | 最多 10 个        | 前端校验，超出 toast 提示      |
 | 图片格式   | jpeg/png/gif/webp | Gateway MIME 嗅探已支持        |
 | 文件格式   | 不限              | 前端不过滤，Gateway 按能力处理 |
 
 ---
 
-## 四、SSE 多模态处理 + Store 重构
+## 四、SSE 处理 + Store 重构
+
+### 双路径数据流
+
+```
+┌─ 实时路径 ──────────────────────────────────────────┐
+│ SSE delta → text 块 → 流式打字效果                    │
+│ SSE final → 标记完成 → 触发历史重载                    │
+└─────────────────────────────────────────────────────┘
+              ↓ final 触发
+┌─ 完成路径 ──────────────────────────────────────────┐
+│ chat.history → 获取最后一条完整消息                    │
+│ → 映射为 ContentBlock[]（含 tool_use/result/thinking）│
+│ → 替换 store 中的流式消息                              │
+└─────────────────────────────────────────────────────┘
+```
 
 ### useChatSSE 改造
 
-处理所有内容块类型：
+```
+SSE delta 事件:
+  → 提取 content[].text（仅 text 块）
+  → 调用 store.updateStreamingBlocks(id, [{ type: "text", text }])
+  → 实时打字效果
 
-```typescript
-// 当前（丢弃非文本）
-const text = blocks
-  .filter((b) => b.type === "text")
-  .map((b) => b.text)
-  .join("");
-
-// 改为（保留所有块，映射为 ContentBlock）
-const contentBlocks: ContentBlock[] = blocks.map((block) => {
-  switch (block.type) {
-    case "text":
-      return { type: "text", text: block.text };
-    case "image":
-      return { type: "image", data: block.source?.data, mimeType: block.source?.media_type };
-    case "tool_use":
-      return { type: "tool_use", id: block.id, name: block.name, input: block.input };
-    case "tool_result":
-      return { type: "tool_result", toolUseId: block.tool_use_id, content: block.content };
-    case "thinking":
-      return { type: "thinking", text: block.thinking };
-    default:
-      return { type: "text", text: JSON.stringify(block) };
-  }
-});
+SSE final 事件:
+  → 标记 streaming: false
+  → 调用 reloadLastMessage(sessionKey) 从 chat.history 获取完整内容
+  → 映射 Anthropic 格式为 ContentBlock[]
+  → 替换 store 中该消息的 content
 ```
 
 ### Store 重构
 
 ```typescript
-// 旧 actions（面向 string content）
+// 旧 actions（移除）
 updateStreamingMessage(id: string, content: string)
 appendThinking(id: string, text: string)
 appendToolUse(id: string, tool: ToolUseBlock)
 
-// 新 actions（面向 ContentBlock[]）
-updateStreamingBlocks(id: string, blocks: ContentBlock[])
-appendBlock(id: string, block: ContentBlock)
-updateBlock(id: string, blockIndex: number, patch: Partial<ContentBlock>)
+// 新 actions
+updateStreamingBlocks(id: string, blocks: ContentBlock[])   // SSE delta 用
+replaceMessageContent(id: string, blocks: ContentBlock[])   // history reload 用
 ```
 
 移除旧的 `ToolUseBlock` 类型，统一使用 `ContentBlock`。
 
-### 流式渲染策略
-
-SSE delta 事件中，助手消息的 text 块是增量的（每次 delta 带完整累积文本）。其他块类型在 final 时一次性到达。
-
-```
-delta 1: content: [{ type: "text", text: "让我" }]
-delta 2: content: [{ type: "text", text: "让我分析" }]
-delta 3: content: [{ type: "text", text: "让我分析这张图" }]
-...
-final:   content: [
-           { type: "text", text: "让我分析这张图..." },
-           { type: "tool_use", id: "t1", name: "image", input: {...} },
-           { type: "tool_result", toolUseId: "t1", content: "图中包含..." }
-         ]
-```
-
-处理逻辑：
-
-- **delta 状态**：替换整个 `content` 数组（Gateway 每次发累积文本）
-- **final 状态**：替换为最终完整的 `content` 数组，标记 `streaming: false`
-
 ### 历史消息加载
 
-`sessions.history` API 返回的消息已是 Anthropic 格式的块数组，加载时直接映射为 `ContentBlock[]`。
+`chat.history` API 返回 Anthropic 格式消息。`toUiMessage()` 改造：
+
+```typescript
+function toUiMessage(raw: RawMessage): ChatMessage {
+  const blocks: ContentBlock[] = raw.content.map(block => {
+    switch (block.type) {
+      case "text":        return { type: "text", text: block.text };
+      case "image":       return { type: "image", data: block.source.data, mimeType: block.source.media_type };
+      case "tool_use":    return { type: "tool_use", id: block.id, name: block.name, input: block.input };
+      case "tool_result": return { type: "tool_result", toolUseId: block.tool_use_id, content: ... };
+      case "thinking":    return { type: "thinking", text: block.thinking };
+      default:            return { type: "text", text: JSON.stringify(block) };
+    }
+  });
+  return { id: raw.id, role: raw.role, content: blocks, timestamp: raw.timestamp };
+}
+```
 
 ---
 
 ## 五、Artifacts 面板
 
-### 触发方式
+### 设计原则
 
-1. **工具产出触发** — 助手消息中出现 `type: "artifact"` 块时，MessageList 渲染 ArtifactCard，用户点击打开面板
-2. **自动打开** — SSE 流中出现新 artifact 块，面板自动展开
-3. **手动关闭** — 面板标题栏有关闭按钮
+Gateway 不存在 `type: "artifact"` 内容块。Artifacts 是 **Dashboard 前端的渲染策略** — 从 `tool_result` 块中识别可交互内容，在独立面板中渲染。
 
-### Artifact 数据流
+### 识别规则
+
+从 `tool_result` 块中检测 artifact 的启发式规则：
+
+````typescript
+function detectArtifact(block: ToolResultBlock): ArtifactInfo | null {
+  const content = block.content;
+  // 1. HTML 内容（含 <html> 或 <body> 或 <!DOCTYPE）
+  if (/<html|<body|<!doctype/i.test(content)) {
+    return { language: "html", title: guessTitle(content), content };
+  }
+  // 2. SVG 内容
+  if (content.trimStart().startsWith("<svg")) {
+    return { language: "svg", title: "SVG", content };
+  }
+  // 3. Mermaid 图表（```mermaid 代码块）
+  const mermaidMatch = /```mermaid\n([\s\S]+?)```/.exec(content);
+  if (mermaidMatch) {
+    return { language: "mermaid", title: "Diagram", content: mermaidMatch[1] };
+  }
+  return null;
+}
+````
+
+### 数据流
 
 ```
-Gateway Canvas Tool (present action)
-  → SSE event 携带 artifact 内容
-  → useChatSSE 解析为 { type: "artifact", id, title, language, content }
-  → ChatStore 存储 artifact 块
-  → ArtifactCard 渲染在消息气泡中
-  → 用户点击 / 自动展开 ArtifactPanel
-  → iframe 加载 artifact 内容
+chat.history 返回 tool_result 块
+  → toUiMessage() 映射为 ContentBlock
+  → MessageBubble 渲染 ToolResultCard
+  → ToolResultCard 内调用 detectArtifact()
+  → 如果识别到 artifact → 显示 ArtifactCard（带预览 + "打开"按钮）
+  → 用户点击 → 设置 activeArtifact state
+  → ArtifactPanel 展开，iframe 渲染内容
 ```
 
 ### ArtifactPanel 状态
@@ -325,7 +371,7 @@ interface ArtifactState {
   activeArtifact: {
     id: string;
     title: string;
-    language: string; // "html" | "react" | "mermaid" | "svg" | "text"
+    language: string; // "html" | "mermaid" | "svg" | "text"
     content: string;
   } | null;
 }
@@ -333,18 +379,21 @@ interface ArtifactState {
 
 ### 渲染策略
 
-| language      | 渲染方式                                       |
-| ------------- | ---------------------------------------------- |
-| `html`        | iframe srcdoc 直接渲染                         |
-| `react`       | iframe 内注入 React + Babel standalone 运行时  |
-| `mermaid`     | iframe 内注入 Mermaid.js 渲染                  |
-| `svg`         | dangerouslySetInnerHTML（经过 DOMPurify 消毒） |
-| `text` / 其他 | 代码高亮展示（只读）                           |
+所有类型统一在 iframe 内渲染（含 SVG），避免主页面 XSS 风险：
+
+| language      | iframe 内渲染方式              |
+| ------------- | ------------------------------ |
+| `html`        | srcdoc 直接渲染                |
+| `mermaid`     | 注入 Mermaid.js CDN + 渲染脚本 |
+| `svg`         | 包裹在 HTML body 中渲染        |
+| `text` / 其他 | `<pre>` 代码展示（只读）       |
+
+注：不支持 `react` 类型 — Babel standalone 约 3MB 且有 CSP 限制，性价比低。如需 React artifact，由工具端编译为纯 HTML 后输出。
 
 ### iframe 安全
 
 ```html
-<iframe srcdoc="..." sandbox="allow-scripts" style="width:100%; height:100%; border:none;" />
+<iframe srcdoc="..." sandbox="allow-scripts" />
 ```
 
 - `allow-scripts`：允许 JS 执行
@@ -356,20 +405,22 @@ interface ArtifactState {
 - **多 artifact 切换** — 标题栏显示当前 title，下拉切换同会话内其他 artifacts
 - **复制代码** — 标题栏按钮，一键复制原始代码
 - **全屏** — 切换面板全宽显示
-- **响应式** — 默认占右侧 50% 宽度，窄屏时 overlay 全屏
+- **响应式** — 默认占右侧 50% 宽度，窄屏（< 1024px）以 overlay 全屏显示
 
 ### 与 Gateway A2UI 的关系
 
-Dashboard 的 ArtifactPanel 初期不依赖 Gateway 的 `/__openclaw__/a2ui/` 端点，直接用 iframe srcdoc 渲染 artifact content。后续如需双向交互（artifact 发送用户操作回 Gateway），再接入 A2UI 消息协议。
+初期不依赖 Gateway 的 `/__openclaw__/a2ui/` 端点。后续如需双向交互（artifact 发送用户操作回 Gateway），再接入 A2UI WebSocket 消息协议。
 
 ---
 
 ## 任务拆分
 
-| 任务                 | 子系统 | 改动范围                                                 | 依赖   |
-| -------------------- | ------ | -------------------------------------------------------- | ------ |
-| T1: 数据模型重构     | 基础   | chat store + ChatMessage 类型 + SSE hook                 | 无     |
-| T2: 上传管线         | 输入   | MessageInput + /api/chat/send + Gateway chat-attachments | T1     |
-| T3: 内容块渲染       | 输出   | MessageList + ImageBlock + FileBlock + ToolResultCard    | T1     |
-| T4: Artifacts 面板   | 交互   | ArtifactPanel + ArtifactCard + ChatPanel 布局            | T1, T3 |
-| T5: Gateway 文件支持 | 后端   | chat-attachments.ts 解除 image-only 限制                 | 无     |
+| 任务                       | 子系统 | 改动范围                                                                                   | 依赖   |
+| -------------------------- | ------ | ------------------------------------------------------------------------------------------ | ------ |
+| T0: Next.js body size 配置 | 基础   | `/api/chat/send/route.ts` body parser limit                                                | 无     |
+| T1: 数据模型重构           | 基础   | chat store（ContentBlock 类型 + ChatMessage 重构 + 新 actions）                            | 无     |
+| T2: SSE + 历史加载改造     | 基础   | useChatSSE（双路径）+ toUiMessage() 映射 + ChatPanel 加载                                  | T1     |
+| T3: 上传管线               | 输入   | MessageInput（base64 编码 + 发送）+ /api/chat/send（放宽 message 限制 + 透传 attachments） | T1     |
+| T4: 内容块渲染             | 输出   | MessageBubble 重构 + ImageBlock + FileBlock + ToolUseCard 重构 + ToolResultCard            | T1, T2 |
+| T5: Artifacts 面板         | 交互   | detectArtifact() + ArtifactCard + ArtifactPanel + ChatPanel 布局                           | T4     |
+| T6: Gateway 文件支持       | 后端   | chat-attachments.ts 解除 image-only 限制，新增 ChatFileContent 类型                        | 无     |
