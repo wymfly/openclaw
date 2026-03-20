@@ -100,6 +100,20 @@ interface ModelsState {
   updateFallbacks: (primary: string, fallbacks: string[]) => Promise<boolean>;
   updateImageFallbacks: (primary: string, fallbacks: string[]) => Promise<boolean>;
   fetchUsageSummary: () => Promise<void>;
+  addCustomProvider: (params: {
+    name: string;
+    api: string;
+    baseUrl: string;
+    apiKey?: string;
+    models: Array<{
+      id: string;
+      name: string;
+      contextWindow: number;
+      maxTokens: number;
+      reasoning?: boolean;
+      input?: string[];
+    }>;
+  }) => Promise<boolean>;
 }
 
 /**
@@ -385,6 +399,77 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
       }
     } catch {
       // ignore
+    }
+  },
+
+  addCustomProvider: async (params) => {
+    // 1. Read current config
+    const configRes = await fetch("/api/models/config");
+    if (!configRes.ok) {
+      return false;
+    }
+    const data = await configRes.json();
+    const raw: string | undefined = data?.raw;
+    const hash: string | undefined = data?.hash;
+    if (typeof raw !== "string") {
+      return false;
+    }
+
+    try {
+      // 2. Inject provider into config
+      const config = JSON.parse(raw) as Record<string, unknown>;
+      if (!config.models || typeof config.models !== "object") {
+        config.models = {};
+      }
+      const models = config.models as Record<string, unknown>;
+      if (!models.providers || typeof models.providers !== "object") {
+        models.providers = {};
+      }
+      const providers = models.providers as Record<string, unknown>;
+
+      const providerEntry: Record<string, unknown> = {
+        baseUrl: params.baseUrl,
+        api: params.api,
+        models: params.models.map((m) => ({
+          id: m.id,
+          name: m.name,
+          reasoning: m.reasoning ?? false,
+          input: m.input ?? ["text"],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: m.contextWindow,
+          maxTokens: m.maxTokens,
+        })),
+      };
+      if (params.apiKey) {
+        providerEntry.apiKey = params.apiKey;
+      }
+
+      providers[params.name.toLowerCase().trim()] = providerEntry;
+
+      // 3. Write via config.patch
+      const newRaw = JSON.stringify(config, null, 2);
+      const patchRes = await fetch("/api/models/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw: newRaw, baseHash: hash }),
+      });
+      if (!patchRes.ok) {
+        return false;
+      }
+
+      // 4. Wait for Gateway restart
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // 5. Refresh all data
+      await Promise.all([
+        get().fetchModels(),
+        get().fetchAuthOverview(),
+        get().fetchProviderConfig(),
+      ]);
+
+      return true;
+    } catch {
+      return false;
     }
   },
 }));
