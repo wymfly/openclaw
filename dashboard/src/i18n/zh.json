@@ -54,7 +54,11 @@
     "noMessages": "还没有消息，开始对话吧",
     "thinking": "思考中...",
     "toolUse": "工具调用",
-    "error": "发送失败"
+    "error": "发送失败",
+    "attachFile": "添加附件",
+    "fileTooLarge": "文件 {name} 超过 5MB 限制",
+    "tooManyFiles": "最多只能添加 10 个文件",
+    "uploadFailed": "文件上传失败"
   },
   "gateway": {
     "title": "网关概览",
@@ -182,6 +186,8 @@
       "contextWindowLabel": "上下文窗口",
       "maxTokensLabel": "最大输出",
       "noModelsAdded": "请至少添加一个模型",
+      "modelApiOverride": "API 格式（覆盖）",
+      "modelApiInherit": "继承供应商设置",
       "providerAdding": "正在添加...",
       "providerAdded": "供应商已添加，Gateway 正在重启...",
       "providerAddFailed": "添加失败"
@@ -309,7 +315,8 @@
     "depth": "深度",
     "parentAgent": "父智能体",
     "skillDescAll": "所有技能均对此智能体可用",
-    "skillDescWhitelist": "仅选中的技能对此智能体可用"
+    "skillDescWhitelist": "仅选中的技能对此智能体可用",
+    "searchSkills": "搜索技能..."
   },
   "notifications": {
     "info": "提示",

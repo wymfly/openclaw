@@ -54,7 +54,11 @@
     "noMessages": "No messages yet. Start a conversation!",
     "thinking": "Thinking...",
     "toolUse": "Tool Call",
-    "error": "Failed to send"
+    "error": "Failed to send",
+    "attachFile": "Attach file",
+    "fileTooLarge": "File {name} exceeds 5MB limit",
+    "tooManyFiles": "Maximum 10 files allowed",
+    "uploadFailed": "Upload failed"
   },
   "gateway": {
     "title": "Gateway Overview",
@@ -182,6 +186,8 @@
       "contextWindowLabel": "Context Window",
       "maxTokensLabel": "Max Output",
       "noModelsAdded": "Add at least one model",
+      "modelApiOverride": "API Format (override)",
+      "modelApiInherit": "Inherit from provider",
       "providerAdding": "Adding...",
       "providerAdded": "Provider added, Gateway restarting...",
       "providerAddFailed": "Failed to add provider"
@@ -309,7 +315,8 @@
     "depth": "Depth",
     "parentAgent": "Parent",
     "skillDescAll": "All skills are available to this agent",
-    "skillDescWhitelist": "Only selected skills are available to this agent"
+    "skillDescWhitelist": "Only selected skills are available to this agent",
+    "searchSkills": "Search skills..."
   },
   "notifications": {
     "info": "Info",

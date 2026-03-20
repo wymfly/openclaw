@@ -5,33 +5,177 @@ import { useTranslations } from "next-intl";
 import { useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useChatStore } from "@/stores/chat";
+import { useChatStore, type ContentBlock } from "@/stores/chat";
+import { useNotificationsStore } from "@/stores/notifications";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface PendingAttachment {
+  id: string;
+  file: File;
+  preview?: string;
+  type: "image" | "file";
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_COUNT = 10;
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const result = reader.result as string;
+      // Strip data URL prefix: "data:image/jpeg;base64,XXXX" → "XXXX"
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64 ?? "");
+    });
+    reader.addEventListener("error", reject);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function MessageInput() {
   const t = useTranslations("chat");
   const { isStreaming, activeSessionId, activeAgentId, addMessage, setIsStreaming, setError } =
     useChatStore();
+  const addToast = useNotificationsStore((s) => s.addToast);
+
   const [input, setInput] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<PendingAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // -------------------------------------------------------------------------
+  // File management
+  // -------------------------------------------------------------------------
+
+  const addFiles = useCallback(
+    (newFiles: File[]) => {
+      for (const f of newFiles) {
+        if (f.size > MAX_FILE_SIZE) {
+          addToast("error", t("fileTooLarge", { name: f.name }));
+          return;
+        }
+      }
+      if (files.length + newFiles.length > MAX_FILE_COUNT) {
+        addToast("error", t("tooManyFiles"));
+        return;
+      }
+      const pending: PendingAttachment[] = newFiles.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        type: file.type.startsWith("image/") ? ("image" as const) : ("file" as const),
+        preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+      }));
+      setFiles((prev) => [...prev, ...pending]);
+    },
+    [files.length, addToast, t],
+  );
+
+  const removeFile = useCallback((id: string) => {
+    setFiles((prev) => {
+      const target = prev.find((f) => f.id === id);
+      if (target?.preview) {
+        URL.revokeObjectURL(target.preview);
+      }
+      return prev.filter((f) => f.id !== id);
+    });
+  }, []);
+
+  // -------------------------------------------------------------------------
+  // Send
+  // -------------------------------------------------------------------------
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
-    if (!text || isStreaming) {
+    if (!text && files.length === 0) {
       return;
     }
-    addMessage({ id: `user-${Date.now()}`, role: "user", content: text, timestamp: Date.now() });
+    if (isStreaming) {
+      return;
+    }
+
+    // Build content blocks for local optimistic display
+    const userContent: ContentBlock[] = [];
+
+    // Encode files to base64 and build attachment payload
+    const attachments: Array<{
+      type: string;
+      mimeType: string;
+      fileName: string;
+      content: string;
+    }> = [];
+    for (const pending of files) {
+      let base64: string;
+      try {
+        base64 = await fileToBase64(pending.file);
+      } catch {
+        addToast("error", t("uploadFailed"));
+        return;
+      }
+      const mimeType = pending.file.type || "application/octet-stream";
+      if (pending.type === "image") {
+        userContent.push({ type: "image", data: base64, mimeType, fileName: pending.file.name });
+      } else {
+        userContent.push({
+          type: "file",
+          data: base64,
+          mimeType,
+          fileName: pending.file.name,
+          size: pending.file.size,
+        });
+      }
+      attachments.push({
+        type: pending.type,
+        mimeType,
+        fileName: pending.file.name,
+        content: base64,
+      });
+    }
+    if (text) {
+      userContent.push({ type: "text", text });
+    }
+
+    // Optimistic local display
+    addMessage({
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: userContent,
+      timestamp: Date.now(),
+    });
+
+    // Clear input and revoke object URLs before async work
     setInput("");
+    const capturedFiles = files;
+    setFiles([]);
+    capturedFiles.forEach((f) => {
+      if (f.preview) {
+        URL.revokeObjectURL(f.preview);
+      }
+    });
+
     setIsStreaming(true);
     setError(null);
+
     try {
       const res = await fetch("/api/chat/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: text,
+          message: text || undefined,
           sessionKey: activeSessionId ?? "agent:main:main",
           agentId: activeAgentId ?? undefined,
+          attachments: attachments.length > 0 ? attachments : undefined,
+          idempotencyKey: crypto.randomUUID(),
         }),
       });
       if (!res.ok) {
@@ -43,7 +187,22 @@ export function MessageInput() {
       setError(t("error"));
       setIsStreaming(false);
     }
-  }, [input, isStreaming, activeSessionId, activeAgentId, addMessage, setIsStreaming, setError, t]);
+  }, [
+    input,
+    files,
+    isStreaming,
+    activeSessionId,
+    activeAgentId,
+    addMessage,
+    setIsStreaming,
+    setError,
+    addToast,
+    t,
+  ]);
+
+  // -------------------------------------------------------------------------
+  // Abort
+  // -------------------------------------------------------------------------
 
   const handleAbort = useCallback(async () => {
     await fetch("/api/chat/abort", {
@@ -57,6 +216,10 @@ export function MessageInput() {
     setIsStreaming(false);
   }, [activeSessionId, activeAgentId, setIsStreaming]);
 
+  // -------------------------------------------------------------------------
+  // Event handlers
+  // -------------------------------------------------------------------------
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -66,8 +229,12 @@ export function MessageInput() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
+    addFiles(Array.from(e.dataTransfer.files));
   };
+
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
 
   return (
     <div
@@ -75,19 +242,26 @@ export function MessageInput() {
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
     >
-      {/* File attachments */}
+      {/* Attachment preview strip */}
       {files.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
-          {files.map((f, i) => (
+          {files.map((f) => (
             <span
-              key={`${f.name}-${i}`}
+              key={f.id}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-[var(--bg-tertiary)] text-[var(--text-secondary)] ring-1 ring-[var(--border-subtle)]"
             >
-              {f.name}
+              {f.preview && (
+                <img
+                  src={f.preview}
+                  alt={f.file.name}
+                  className="w-5 h-5 rounded object-cover shrink-0"
+                />
+              )}
+              <span className="truncate max-w-[100px]">{f.file.name}</span>
               <button
-                onClick={() => setFiles((p) => p.filter((_, j) => j !== i))}
-                className="hover:text-[var(--danger)] transition-colors cursor-pointer"
-                aria-label={`Remove ${f.name}`}
+                onClick={() => removeFile(f.id)}
+                className="hover:text-[var(--danger)] transition-colors cursor-pointer shrink-0"
+                aria-label={`Remove ${f.file.name}`}
               >
                 <X size={10} />
               </button>
@@ -102,7 +276,7 @@ export function MessageInput() {
         <button
           className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
           onClick={() => fileInputRef.current?.click()}
-          aria-label="Attach file"
+          aria-label={t("attachFile")}
         >
           <Paperclip size={16} />
         </button>
@@ -113,7 +287,9 @@ export function MessageInput() {
           className="hidden"
           onChange={(e) => {
             if (e.target.files) {
-              setFiles((p) => [...p, ...Array.from(e.target.files!)]);
+              addFiles(Array.from(e.target.files));
+              // Reset so the same file can be re-selected
+              e.target.value = "";
             }
           }}
         />
@@ -150,12 +326,12 @@ export function MessageInput() {
           <button
             className={cn(
               "flex items-center justify-center w-8 h-8 rounded-xl shrink-0 transition-all duration-150 cursor-pointer",
-              input.trim()
+              input.trim() || files.length > 0
                 ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] shadow-[var(--accent-glow)]"
                 : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] cursor-not-allowed",
             )}
             onClick={() => void sendMessage()}
-            disabled={!input.trim()}
+            disabled={!input.trim() && files.length === 0}
             title={t("send")}
           >
             <Send size={14} />
