@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -12,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useAgentsStore } from "@/stores/agents";
 import { useChatStore, type SessionInfo } from "@/stores/chat";
 
 function formatTime(ts?: number): string {
@@ -37,8 +39,20 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
     clearMessages,
   } = useChatStore();
 
+  const agents = useAgentsStore((s) => s.agents);
+  const fetchAgents = useAgentsStore((s) => s.fetchAgents);
+
+  useEffect(() => {
+    void fetchAgents();
+  }, [fetchAgents]);
+
   const handleNew = () => {
-    setActiveSession(null);
+    // Generate a unique session key for the new session
+    // Format: agent:<agentId>:<unique-id> (matches Gateway session key convention)
+    const agentId = activeAgentId || "main";
+    const uniqueId = `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const newSessionKey = `agent:${agentId}:${uniqueId}`;
+    setActiveSession(newSessionKey);
     clearMessages();
     onSessionSelect?.();
   };
@@ -77,6 +91,11 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="_default">{t("defaultAgent")}</SelectItem>
+            {agents.map((agent) => (
+              <SelectItem key={agent.id} value={agent.id}>
+                {agent.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
