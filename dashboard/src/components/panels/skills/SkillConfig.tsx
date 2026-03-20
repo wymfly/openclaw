@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Plus, X } from "lucide-react";
+import { Download, ExternalLink, Loader2, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { useSkillsStore, type SkillEntry } from "@/stores/skills";
+import { useNotificationsStore } from "@/stores/notifications";
+import { useSkillsStore, type SkillEntry, type SkillInstallOption } from "@/stores/skills";
 
 interface SkillConfigProps {
   skill: SkillEntry;
@@ -40,12 +41,13 @@ function sourceBadgeColor(source: SkillEntry["source"]): string {
 export function SkillConfig({ skill }: SkillConfigProps) {
   const t = useTranslations("skills");
   const tc = useTranslations("common");
-  const { updateSkill, installSkill, fetchSkills } = useSkillsStore();
+  const { updateSkill, installSkill } = useSkillsStore();
+  const addToast = useNotificationsStore((s) => s.addToast);
 
   const [apiKey, setApiKey] = useState("");
   const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>([]);
   const [saving, setSaving] = useState(false);
-  const [installing, setInstalling] = useState(false);
+  const [installingDeps, setInstallingDeps] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const env = (skill.config?.env ?? {}) as Record<string, string>;
@@ -72,12 +74,18 @@ export function SkillConfig({ skill }: SkillConfigProps) {
     setSaving(false);
   };
 
-  const handleInstall = async () => {
-    const installId = (skill.config?.installId as string) ?? skill.key;
-    setInstalling(true);
-    await installSkill(skill.name, installId);
-    await fetchSkills();
-    setInstalling(false);
+  const handleInstallDep = async (opt: SkillInstallOption) => {
+    setInstallingDeps((prev) => ({ ...prev, [opt.id]: true }));
+    try {
+      const ok = await installSkill(skill.name, opt.id);
+      if (ok) {
+        addToast("success", t("installSuccess", { name: opt.label }));
+      } else {
+        addToast("error", t("installFailed", { name: opt.label }));
+      }
+    } finally {
+      setInstallingDeps((prev) => ({ ...prev, [opt.id]: false }));
+    }
   };
 
   const addEnvPair = () => setEnvPairs([...envPairs, { key: "", value: "" }]);
@@ -101,21 +109,36 @@ export function SkillConfig({ skill }: SkillConfigProps) {
               {skill.enabled ? t("enabled") : t("disabled")}
             </span>
           </div>
-
-          {/* Install button for managed/plugin */}
-          {skill.source !== "bundled" && (
-            <Button
-              variant="outline"
-              size="xs"
-              className="bg-[var(--purple-muted)] text-[var(--purple-muted-text)] border-[var(--purple)]/30 hover:bg-[var(--purple-muted)] gap-1"
-              onClick={handleInstall}
-              disabled={installing}
-            >
-              <Download size={12} />
-              {installing ? "..." : t("install")}
-            </Button>
-          )}
         </div>
+      </div>
+
+      {/* Description preview */}
+      <div className="text-xs space-y-2">
+        <p className="text-[var(--text-primary)] leading-relaxed">
+          {skill.emoji && <span className="mr-1.5">{skill.emoji}</span>}
+          {skill.description || t("noDescription")}
+        </p>
+
+        {skill.homepage && (
+          <a
+            href={skill.homepage}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
+          >
+            <ExternalLink size={11} />
+            {t("homepage")}
+          </a>
+        )}
+
+        {skill.primaryEnv && (
+          <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
+            <span className="font-medium">{t("requiredEnv")}:</span>
+            <code className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] font-mono text-[11px]">
+              {skill.primaryEnv}
+            </code>
+          </div>
+        )}
       </div>
 
       {/* Status + source */}
@@ -134,11 +157,53 @@ export function SkillConfig({ skill }: SkillConfigProps) {
         </div>
       </div>
 
-      {/* Missing requirements */}
-      {skill.missingRequirements && skill.missingRequirements.length > 0 && (
-        <div className="text-xs px-3 py-2 rounded-lg bg-[var(--skill-warning-bg)] text-[var(--skill-warning-text)] ring-1 ring-[var(--warning)]/20">
-          <span className="font-medium">{t("missingRequirements")}:</span>{" "}
-          {skill.missingRequirements.join(", ")}
+      {/* Actionable dependencies section */}
+      {((skill.missingRequirements && skill.missingRequirements.length > 0) ||
+        (skill.installOptions && skill.installOptions.length > 0)) && (
+        <div className="space-y-2">
+          <Label className="text-xs text-[var(--text-secondary)]">{t("installDeps")}</Label>
+
+          {skill.missingRequirements && skill.missingRequirements.length > 0 && (
+            <div className="text-xs px-3 py-2 rounded-lg bg-[var(--skill-warning-bg)] text-[var(--skill-warning-text)] ring-1 ring-[var(--warning)]/20">
+              <span className="font-medium">{t("missingRequirements")}:</span>{" "}
+              {skill.missingRequirements.join(", ")}
+            </div>
+          )}
+
+          {skill.installOptions?.map((opt) => (
+            <div
+              key={opt.id}
+              className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)]"
+            >
+              <div className="text-xs">
+                <span className="font-medium text-[var(--text-primary)]">{opt.label}</span>
+                {opt.bins.length > 0 && (
+                  <span className="ml-2 text-[var(--text-secondary)]">
+                    {t("requiredBins")}: {opt.bins.join(", ")}
+                  </span>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="xs"
+                className="gap-1 shrink-0"
+                onClick={() => void handleInstallDep(opt)}
+                disabled={!!installingDeps[opt.id]}
+              >
+                {installingDeps[opt.id] ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    {t("installing")}
+                  </>
+                ) : (
+                  <>
+                    <Download size={12} />
+                    {t("install")}
+                  </>
+                )}
+              </Button>
+            </div>
+          ))}
         </div>
       )}
 
