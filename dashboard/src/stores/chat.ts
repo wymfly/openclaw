@@ -47,6 +47,17 @@ export type SessionInfo = {
 // Store
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Approval request state (for inline chat dialog)
+// ---------------------------------------------------------------------------
+
+export type ActiveApproval = {
+  id: string;
+  toolName: string;
+  command?: string;
+  description?: string;
+};
+
 interface ChatState {
   messages: ChatMessage[];
   isStreaming: boolean;
@@ -54,6 +65,8 @@ interface ChatState {
   activeAgentId: string | null;
   sessions: SessionInfo[];
   error: string | null;
+  /** Pending tool-execution approval surfaced via exec.approval.requested SSE event. */
+  activeApproval: ActiveApproval | null;
 
   addMessage: (message: ChatMessage) => void;
   /** Replace the content array of a streaming message (text-only, real-time). */
@@ -68,6 +81,7 @@ interface ChatState {
   clearMessages: () => void;
   setIsStreaming: (streaming: boolean) => void;
   setError: (error: string | null) => void;
+  setActiveApproval: (approval: ActiveApproval | null) => void;
   /** Select the skill/session to use for the next message. */
   selectSkill: (sessionId: string) => void;
 }
@@ -79,6 +93,7 @@ export const useChatStore = create<ChatState>((set) => ({
   activeAgentId: null,
   sessions: [],
   error: null,
+  activeApproval: null,
 
   addMessage: (message) =>
     set((state) => {
@@ -113,5 +128,6 @@ export const useChatStore = create<ChatState>((set) => ({
   clearMessages: () => set({ messages: [] }),
   setIsStreaming: (isStreaming) => set({ isStreaming }),
   setError: (error) => set({ error }),
+  setActiveApproval: (activeApproval) => set({ activeApproval }),
   selectSkill: (sessionId) => set({ activeSessionId: sessionId }),
 }));

@@ -72,7 +72,12 @@
     "artifactCopy": "复制代码",
     "artifactCopied": "已复制",
     "artifactFullscreen": "全屏",
-    "artifactTitle": "交互内容"
+    "artifactTitle": "交互内容",
+    "approvalTitle": "工具执行审批",
+    "approvalAllow": "允许",
+    "approvalDeny": "拒绝",
+    "approvalAllowAlways": "始终允许",
+    "approvalExpired": "审批已过期"
   },
   "gateway": {
     "title": "网关概览",
@@ -231,7 +236,9 @@
       "modelName": "名称",
       "models": "个模型",
       "deleteProvider": "删除供应商",
-      "deleteModel": "删除"
+      "deleteModel": "删除",
+      "confirmDeleteProvider": "确定删除供应商「{provider}」及其所有模型？此操作不可撤销。",
+      "confirmDeleteModel": "确定删除模型「{model}」？此操作不可撤销。"
     }
   },
   "routing": {

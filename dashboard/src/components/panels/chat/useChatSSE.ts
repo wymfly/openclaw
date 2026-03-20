@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useChatStore, type ContentBlock } from "@/stores/chat";
+import { useChatStore, type ContentBlock, type ActiveApproval } from "@/stores/chat";
 
 /**
  * Gateway chat event payload shape (from ChatEventSchema):
@@ -126,6 +126,7 @@ export function useChatSSE() {
     finalizeStreamingMessage,
     setIsStreaming,
     setError,
+    setActiveApproval,
   } = useChatStore();
   const activeSessionId = useChatStore((s) => s.activeSessionId);
 
@@ -204,6 +205,68 @@ export function useChatSSE() {
       }
     });
 
+    // Agent tool-execution events (tool_use blocks from running agent).
+    // Map to a ContentBlock and append to the current streaming message.
+    es.addEventListener("agent", (e) => {
+      try {
+        const payload = JSON.parse(e.data) as Record<string, unknown>;
+        const stream = payload.stream as string | undefined;
+        const data = payload.data as Record<string, unknown> | undefined;
+        if (stream === "tool" && data && streamingRunIdRef.current) {
+          const toolName = data.name as string | undefined;
+          if (toolName) {
+            const block: ContentBlock = {
+              type: "tool_use",
+              id: (data.id as string | undefined) ?? `tool-${Date.now()}`,
+              name: toolName,
+              input: (data.input as Record<string, unknown> | undefined) ?? {},
+            };
+            // Append the tool_use block alongside any existing text blocks
+            useChatStore.setState((state) => ({
+              messages: state.messages.map((m) =>
+                m.id === streamingRunIdRef.current ? { ...m, content: [...m.content, block] } : m,
+              ),
+            }));
+          }
+        }
+      } catch {
+        // Ignore malformed payloads
+      }
+    });
+
+    // Tool execution approval requested — store in chat store for ApprovalDialog.
+    es.addEventListener("exec.approval.requested", (e) => {
+      try {
+        const payload = JSON.parse(e.data) as Record<string, unknown>;
+        const approval: ActiveApproval = {
+          id: (payload.id as string | undefined) ?? "",
+          toolName:
+            (payload.toolName as string | undefined) ??
+            (payload.command as string | undefined) ??
+            "unknown",
+          command: payload.command as string | undefined,
+          description: payload.description as string | undefined,
+        };
+        if (approval.id) {
+          setActiveApproval(approval);
+        }
+      } catch {
+        // Ignore malformed payloads
+      }
+    });
+
+    // Approval resolved — clear the dialog.
+    es.addEventListener("exec.approval.resolved", () => {
+      setActiveApproval(null);
+    });
+
+    // A2UI events — update artifact panel state.
+    // Currently a stub; integration with ArtifactContext requires
+    // prop-drilling or a separate artifact store (deferred to a future task).
+    es.addEventListener("a2ui", (_e) => {
+      // TODO: wire to ArtifactContext or a dedicated artifact store
+    });
+
     return () => es.close();
   }, [
     addMessage,
@@ -212,6 +275,7 @@ export function useChatSSE() {
     finalizeStreamingMessage,
     setIsStreaming,
     setError,
+    setActiveApproval,
     activeSessionId,
   ]);
 }
