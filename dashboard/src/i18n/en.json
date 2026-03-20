@@ -72,7 +72,12 @@
     "artifactCopy": "Copy Code",
     "artifactCopied": "Copied",
     "artifactFullscreen": "Fullscreen",
-    "artifactTitle": "Interactive Content"
+    "artifactTitle": "Interactive Content",
+    "approvalTitle": "Tool Execution Approval",
+    "approvalAllow": "Allow",
+    "approvalDeny": "Deny",
+    "approvalAllowAlways": "Always Allow",
+    "approvalExpired": "Approval Expired"
   },
   "gateway": {
     "title": "Gateway Overview",
@@ -231,7 +236,9 @@
       "modelName": "Name",
       "models": "models",
       "deleteProvider": "Delete Provider",
-      "deleteModel": "Delete"
+      "deleteModel": "Delete",
+      "confirmDeleteProvider": "Delete provider \"{provider}\" and all its models? This cannot be undone.",
+      "confirmDeleteModel": "Delete model \"{model}\"? This cannot be undone."
     }
   },
   "routing": {
