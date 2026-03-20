@@ -1,24 +1,26 @@
 import { create } from "zustand";
 
 // ---------------------------------------------------------------------------
-// Message types
+// Content block types (Anthropic-compatible discriminated union)
 // ---------------------------------------------------------------------------
 
-export type ToolUseBlock = {
-  name: string;
-  input: Record<string, unknown>;
-  result?: string;
-};
+export type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; data: string; mimeType: string; fileName?: string }
+  | { type: "file"; data: string; mimeType: string; fileName: string; size?: number }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_result"; toolUseId: string; content: string | ContentBlock[]; isError?: boolean }
+  | { type: "thinking"; text: string };
+
+// ---------------------------------------------------------------------------
+// Message types
+// ---------------------------------------------------------------------------
 
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
-  content: string;
+  content: ContentBlock[];
   timestamp: number;
-  /** Tool invocations attached to this message (assistant only). */
-  toolUse?: ToolUseBlock[];
-  /** Extended thinking trace (assistant only). */
-  thinking?: string;
   /** Whether this message is still being streamed. */
   streaming?: boolean;
   /** Error associated with this message. */
@@ -54,10 +56,11 @@ interface ChatState {
   error: string | null;
 
   addMessage: (message: ChatMessage) => void;
-  updateStreamingMessage: (id: string, content: string) => void;
+  /** Replace the content array of a streaming message (text-only, real-time). */
+  updateStreamingBlocks: (id: string, blocks: ContentBlock[]) => void;
+  /** Replace content and mark streaming: false (called after history reload). */
+  replaceMessageContent: (id: string, blocks: ContentBlock[]) => void;
   finalizeStreamingMessage: (id: string) => void;
-  appendThinking: (id: string, text: string) => void;
-  appendToolUse: (id: string, tool: ToolUseBlock) => void;
   setActiveSession: (sessionId: string | null) => void;
   setActiveAgent: (agentId: string | null) => void;
   setSessions: (sessions: SessionInfo[]) => void;
@@ -65,6 +68,8 @@ interface ChatState {
   clearMessages: () => void;
   setIsStreaming: (streaming: boolean) => void;
   setError: (error: string | null) => void;
+  /** Select the skill/session to use for the next message. */
+  selectSkill: (sessionId: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -83,29 +88,22 @@ export const useChatStore = create<ChatState>((set) => ({
       return { messages: [...state.messages, message] };
     }),
 
-  updateStreamingMessage: (id, content) =>
+  updateStreamingBlocks: (id, blocks) =>
     set((state) => ({
-      messages: state.messages.map((m) => (m.id === id ? { ...m, content } : m)),
+      messages: state.messages.map((m) => (m.id === id ? { ...m, content: blocks } : m)),
+    })),
+
+  replaceMessageContent: (id, blocks) =>
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === id ? { ...m, content: blocks, streaming: false } : m,
+      ),
     })),
 
   finalizeStreamingMessage: (id) =>
     set((state) => ({
       messages: state.messages.map((m) => (m.id === id ? { ...m, streaming: false } : m)),
       isStreaming: false,
-    })),
-
-  appendThinking: (id, text) =>
-    set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === id ? { ...m, thinking: (m.thinking ?? "") + text } : m,
-      ),
-    })),
-
-  appendToolUse: (id, tool) =>
-    set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === id ? { ...m, toolUse: [...(m.toolUse ?? []), tool] } : m,
-      ),
     })),
 
   setActiveSession: (activeSessionId) => set({ activeSessionId }),
@@ -115,4 +113,5 @@ export const useChatStore = create<ChatState>((set) => ({
   clearMessages: () => set({ messages: [] }),
   setIsStreaming: (isStreaming) => set({ isStreaming }),
   setError: (error) => set({ error }),
+  selectSkill: (sessionId) => set({ activeSessionId: sessionId }),
 }));
