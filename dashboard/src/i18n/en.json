@@ -590,7 +590,16 @@
     "searchPlaceholder": "Search skills...",
     "groupBundled": "Bundled Skills",
     "groupManaged": "Managed Skills",
-    "groupPlugin": "Plugin Skills"
+    "groupPlugin": "Plugin Skills",
+    "description": "Description",
+    "homepage": "Homepage",
+    "requiredEnv": "Required Env",
+    "noDescription": "No description available for this skill",
+    "installDeps": "Install Dependencies",
+    "installing": "Installing...",
+    "installSuccess": "{name} installed successfully",
+    "installFailed": "{name} installation failed",
+    "requiredBins": "Requires"
   },
   "budget": {
     "title": "Budget",

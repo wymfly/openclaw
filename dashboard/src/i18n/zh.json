@@ -590,7 +590,16 @@
     "searchPlaceholder": "搜索技能...",
     "groupBundled": "内置技能",
     "groupManaged": "托管技能",
-    "groupPlugin": "插件技能"
+    "groupPlugin": "插件技能",
+    "description": "说明",
+    "homepage": "主页",
+    "requiredEnv": "所需环境变量",
+    "noDescription": "此技能未提供说明",
+    "installDeps": "安装依赖",
+    "installing": "安装中...",
+    "installSuccess": "{name} 安装成功",
+    "installFailed": "{name} 安装失败",
+    "requiredBins": "需要"
   },
   "budget": {
     "title": "预算管理",
