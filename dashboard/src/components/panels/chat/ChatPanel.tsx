@@ -4,7 +4,7 @@ import { PanelLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { useChatStore, type ChatMessage, type SessionInfo } from "@/stores/chat";
+import { useChatStore, type ChatMessage, type ContentBlock, type SessionInfo } from "@/stores/chat";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
@@ -14,32 +14,54 @@ import { useChatSSE } from "./useChatSSE";
 // Gateway → ChatMessage adapters
 // ---------------------------------------------------------------------------
 
-type GatewayContentBlock = {
-  type: string;
-  text?: string;
-  thinking?: string;
-  name?: string;
-  input?: Record<string, unknown>;
-};
-type GatewayMessage = { role: string; content: GatewayContentBlock[]; timestamp?: number };
+// Tool call type aliases (Gateway transcript uses multiple variants)
+const TOOL_USE_TYPES = new Set(["tool_use", "toolcall", "tool_call"]);
+const TOOL_RESULT_TYPES = new Set(["tool_result", "tool_result_error"]);
 
-/** Convert a Gateway history message to the UI ChatMessage shape. */
+type GatewayMessage = { role: string; content: Record<string, unknown>[]; timestamp?: number };
+
+/** Convert a Gateway history message to the UI ChatMessage shape, mapping all content block types. */
 function toUiMessage(msg: GatewayMessage, index: number): ChatMessage {
-  const textParts: string[] = [];
-  let thinking: string | undefined;
-  for (const block of msg.content) {
-    if (block.type === "text" && block.text) {
-      textParts.push(block.text);
-    } else if (block.type === "thinking" && block.thinking) {
-      thinking = (thinking ?? "") + block.thinking;
+  const blocks: ContentBlock[] = (msg.content ?? []).map((block) => {
+    const type = ((block.type as string) ?? "text").toLowerCase();
+    if (type === "text") {
+      return { type: "text" as const, text: (block.text as string) ?? "" };
     }
-  }
+    if (type === "image") {
+      const source = block.source as Record<string, unknown> | undefined;
+      return {
+        type: "image" as const,
+        data: (source?.data as string) ?? "",
+        mimeType: (source?.media_type as string) ?? "",
+      };
+    }
+    if (TOOL_USE_TYPES.has(type)) {
+      return {
+        type: "tool_use" as const,
+        id: (block.id as string) ?? "",
+        name: (block.name as string) ?? "",
+        input: (block.input ?? block.arguments ?? {}) as Record<string, unknown>,
+      };
+    }
+    if (TOOL_RESULT_TYPES.has(type)) {
+      return {
+        type: "tool_result" as const,
+        toolUseId: ((block.tool_use_id ?? block.toolUseId) as string) ?? "",
+        content: ((block.content ?? block.output) as string) ?? "",
+        isError: block.is_error === true || type === "tool_result_error",
+      };
+    }
+    if (type === "thinking") {
+      return { type: "thinking" as const, text: ((block.thinking ?? block.text) as string) ?? "" };
+    }
+    // Unknown block — serialise as text to avoid silent data loss
+    return { type: "text" as const, text: JSON.stringify(block) };
+  });
   return {
     id: `hist-${index}`,
     role: msg.role as ChatMessage["role"],
-    content: textParts.join("\n"),
+    content: blocks.length > 0 ? blocks : [{ type: "text", text: "" }],
     timestamp: msg.timestamp ?? Date.now(),
-    thinking,
   };
 }
 
