@@ -36,6 +36,7 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
     activeAgentId,
     setActiveSession,
     setActiveAgent,
+    setSessions,
     clearMessages,
   } = useChatStore();
 
@@ -52,6 +53,10 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
     const agentId = activeAgentId || "main";
     const uniqueId = `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const newSessionKey = `agent:${agentId}:${uniqueId}`;
+
+    // Optimistically add to session list so it appears in sidebar immediately
+    setSessions([{ key: newSessionKey, agentId, updatedAt: Date.now() }, ...sessions]);
+
     setActiveSession(newSessionKey);
     clearMessages();
     onSessionSelect?.();
