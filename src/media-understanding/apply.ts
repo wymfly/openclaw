@@ -332,6 +332,30 @@ function isBinaryMediaMime(mime?: string): boolean {
   return false;
 }
 
+/**
+ * Heuristic: sample first 4096 bytes, count non-printable characters.
+ * If ≤ 2% are non-printable, treat as text. This catches text files
+ * misclassified by MIME (e.g., .log → application/octet-stream).
+ * Office files (docx/xlsx) have >50% non-printable and won't match.
+ * Ported from extensions/wecom/src/agent/handler.ts:80-92.
+ */
+function looksLikeTextContent(buffer: Buffer, sampleSize = 4096): boolean {
+  if (buffer.length === 0) {
+    return false;
+  }
+  const sample = buffer.subarray(0, Math.min(sampleSize, buffer.length));
+  let badChars = 0;
+  for (const byte of sample) {
+    if (byte < 0x20 && byte !== 0x09 && byte !== 0x0a && byte !== 0x0d) {
+      badChars++;
+    }
+    if (byte === 0x7f) {
+      badChars++;
+    }
+  }
+  return badChars / sample.length <= 0.02;
+}
+
 async function extractFileBlocks(params: {
   attachments: ReturnType<typeof normalizeMediaAttachments>;
   cache: ReturnType<typeof createMediaAttachmentCache>;
@@ -369,9 +393,10 @@ async function extractFileBlocks(params: {
         timeoutMs: limits.timeoutMs,
       });
     } catch (err) {
-      if (shouldLogVerbose()) {
-        logVerbose(`media: file attachment skipped (buffer): ${String(err)}`);
-      }
+      const label = attachment.path ?? attachment.url ?? `attachment-${attachment.index}`;
+      const errMsg = `[⚠️ 媒体处理: ${label} — ${String(err)}]`;
+      blocks.push(errMsg);
+      logVerbose(`media: file attachment error (buffer): ${String(err)}`);
       continue;
     }
     const nameHint = bufferResult?.fileName ?? attachment.path ?? attachment.url;
@@ -379,7 +404,14 @@ async function extractFileBlocks(params: {
     const rawMime = bufferResult?.mime ?? attachment.mime;
     const normalizedRawMime = normalizeMimeType(rawMime);
     if (!forcedTextMimeResolved && isBinaryMediaMime(normalizedRawMime)) {
-      continue;
+      // Second-chance: check if buffer content actually looks like text
+      // (catches .log, .cfg, etc. misclassified as application/octet-stream)
+      if (!bufferResult?.buffer || !looksLikeTextContent(bufferResult.buffer)) {
+        continue;
+      }
+      logVerbose(
+        `media: binary MIME "${normalizedRawMime}" overridden to text/plain (text heuristic) index=${attachment.index}`,
+      );
     }
     const utf16Charset = resolveUtf16Charset(bufferResult?.buffer);
     const textSample = decodeTextSample(bufferResult?.buffer);
@@ -438,9 +470,10 @@ async function extractFileBlocks(params: {
         },
       });
     } catch (err) {
-      if (shouldLogVerbose()) {
-        logVerbose(`media: file attachment skipped (extract): ${String(err)}`);
-      }
+      const label = attachment.path ?? attachment.url ?? `attachment-${attachment.index}`;
+      const errMsg = `[⚠️ 媒体处理: ${label} — ${String(err)}]`;
+      blocks.push(errMsg);
+      logVerbose(`media: file attachment error (extract): ${String(err)}`);
       continue;
     }
     const text = extracted?.text?.trim() ?? "";
