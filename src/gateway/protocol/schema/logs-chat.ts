@@ -92,6 +92,9 @@ export const ChatEventSchema = Type.Object(
     ),
     usage: Type.Optional(Type.Unknown()),
     stopReason: Type.Optional(Type.String()),
+    mediaUrl: Type.Optional(Type.String()),
+    mediaUrls: Type.Optional(Type.Array(Type.String())),
+    mediaType: Type.Optional(Type.String()),
   },
   { additionalProperties: false },
 );
