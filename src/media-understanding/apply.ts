@@ -333,10 +333,11 @@ function isBinaryMediaMime(mime?: string): boolean {
 }
 
 /**
- * Heuristic: sample first 4096 bytes, count non-printable characters.
- * If ≤ 2% are non-printable, treat as text. This catches text files
- * misclassified by MIME (e.g., .log → application/octet-stream).
- * Office files (docx/xlsx) have >50% non-printable and won't match.
+ * Heuristic: sample first 4096 bytes.
+ * Check 1: low non-printable char ratio (< 0x20 excl. tab/lf/cr, and 0x7f).
+ * Check 2: must be valid UTF-8 — rejects pure high-byte binary (e.g. 0xFF fills)
+ *   while accepting valid multibyte sequences (Chinese, Japanese, etc.).
+ * Office files (docx/xlsx) have >50% non-printable and won't pass check 1.
  * Ported from extensions/wecom/src/agent/handler.ts:80-92.
  */
 function looksLikeTextContent(buffer: Buffer, sampleSize = 4096): boolean {
@@ -344,6 +345,7 @@ function looksLikeTextContent(buffer: Buffer, sampleSize = 4096): boolean {
     return false;
   }
   const sample = buffer.subarray(0, Math.min(sampleSize, buffer.length));
+  // Check 1: low non-printable character ratio
   let badChars = 0;
   for (const byte of sample) {
     if (byte < 0x20 && byte !== 0x09 && byte !== 0x0a && byte !== 0x0d) {
@@ -353,7 +355,17 @@ function looksLikeTextContent(buffer: Buffer, sampleSize = 4096): boolean {
       badChars++;
     }
   }
-  return badChars / sample.length <= 0.02;
+  if (badChars / sample.length > 0.02) {
+    return false;
+  }
+  // Check 2: must be valid UTF-8 (rejects pure high-byte binary like 0xFF fills
+  // while accepting valid multibyte sequences for CJK and other Unicode text)
+  try {
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(sample);
+    return decoded.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 async function extractFileBlocks(params: {
@@ -393,8 +405,10 @@ async function extractFileBlocks(params: {
         timeoutMs: limits.timeoutMs,
       });
     } catch (err) {
-      const label = attachment.path ?? attachment.url ?? `attachment-${attachment.index}`;
-      const errMsg = `[⚠️ 媒体处理: ${label} — ${String(err)}]`;
+      const rawLabel = attachment.path ?? attachment.url ?? `attachment-${attachment.index}`;
+      const safeLabel = rawLabel.replace(/[<>&"]/g, "");
+      const safeErr = String(err).replace(/[<>&"]/g, "");
+      const errMsg = `[⚠️ 媒体处理: ${safeLabel} — ${safeErr}]`;
       blocks.push(errMsg);
       logVerbose(`media: file attachment error (buffer): ${String(err)}`);
       continue;
@@ -470,8 +484,10 @@ async function extractFileBlocks(params: {
         },
       });
     } catch (err) {
-      const label = attachment.path ?? attachment.url ?? `attachment-${attachment.index}`;
-      const errMsg = `[⚠️ 媒体处理: ${label} — ${String(err)}]`;
+      const rawLabel = attachment.path ?? attachment.url ?? `attachment-${attachment.index}`;
+      const safeLabel = rawLabel.replace(/[<>&"]/g, "");
+      const safeErr = String(err).replace(/[<>&"]/g, "");
+      const errMsg = `[⚠️ 媒体处理: ${safeLabel} — ${safeErr}]`;
       blocks.push(errMsg);
       logVerbose(`media: file attachment error (extract): ${String(err)}`);
       continue;

@@ -788,31 +788,6 @@ export const chatHandlers: GatewayRequestHandlers = {
         return;
       }
     }
-    // Save all parsed attachments to disk and build MediaPath arrays
-    const mediaPaths: string[] = [];
-    const mediaTypes: string[] = [];
-
-    for (const img of parsedImages) {
-      const saved = await saveMediaBuffer(Buffer.from(img.data, "base64"), img.mimeType, "inbound");
-      mediaPaths.push(saved.path);
-      if (saved.contentType) {
-        mediaTypes.push(saved.contentType);
-      }
-    }
-    for (const file of parsedFiles) {
-      const saved = await saveMediaBuffer(
-        Buffer.from(file.data, "base64"),
-        file.mimeType,
-        "inbound",
-        undefined,
-        file.fileName,
-      );
-      mediaPaths.push(saved.path);
-      if (saved.contentType) {
-        mediaTypes.push(saved.contentType);
-      }
-    }
-
     const rawSessionKey = p.sessionKey;
     const { cfg, entry, canonicalKey: sessionKey } = loadSessionEntry(rawSessionKey);
     const timeoutMs = resolveAgentTimeoutMs({
@@ -865,6 +840,28 @@ export const chatHandlers: GatewayRequestHandlers = {
         runId: clientRunId,
       });
       return;
+    }
+
+    // Save all parsed attachments to disk and build MediaPath arrays.
+    // Deferred until after policy/stop/dedupe checks to avoid unnecessary I/O.
+    const mediaPaths: string[] = [];
+    const mediaTypes: string[] = [];
+
+    for (const img of parsedImages) {
+      const saved = await saveMediaBuffer(Buffer.from(img.data, "base64"), img.mimeType, "inbound");
+      mediaPaths.push(saved.path);
+      mediaTypes.push(saved.contentType ?? img.mimeType ?? "application/octet-stream");
+    }
+    for (const file of parsedFiles) {
+      const saved = await saveMediaBuffer(
+        Buffer.from(file.data, "base64"),
+        file.mimeType,
+        "inbound",
+        undefined,
+        file.fileName,
+      );
+      mediaPaths.push(saved.path);
+      mediaTypes.push(saved.contentType ?? file.mimeType ?? "application/octet-stream");
     }
 
     try {
@@ -1001,7 +998,10 @@ export const chatHandlers: GatewayRequestHandlers = {
         replyOptions: {
           runId: clientRunId,
           abortSignal: abortController.signal,
-          // images bypass removed: attachments flow through MediaPath → applyMediaUnderstanding → detectAndLoadPromptImages
+          // Keep images for CLI provider path (codex --image args).
+          // Attachments also flow through MediaPath → applyMediaUnderstanding → detectAndLoadPromptImages
+          // for the embedded Pi path; detectAndLoadPromptImages deduplicates existingImages.
+          images: parsedImages.length > 0 ? parsedImages : undefined,
           onAgentRunStart: (runId) => {
             agentRunStarted = true;
             const connId = typeof client?.connId === "string" ? client.connId : undefined;
