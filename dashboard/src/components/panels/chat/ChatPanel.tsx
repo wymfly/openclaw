@@ -1,10 +1,11 @@
 "use client";
 
 import { PanelLeft } from "lucide-react";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useChatStore, type ChatMessage, type ContentBlock, type SessionInfo } from "@/stores/chat";
+import { ApprovalDialog } from "./ApprovalDialog";
 import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { MessageInput } from "./MessageInput";
@@ -108,12 +109,36 @@ function toUiSession(s: GatewaySessionEntry): SessionInfo {
  * area full width.
  */
 export function ChatPanel() {
-  const { activeSessionId, activeAgentId, setSessions, setMessages } = useChatStore();
+  const {
+    activeSessionId,
+    activeAgentId,
+    setSessions,
+    setMessages,
+    activeApproval,
+    setActiveApproval,
+  } = useChatStore();
   const isCompact = useMediaQuery("(max-width: 1023px)");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeArtifact, setActiveArtifact] = useState<ArtifactInfo | null>(null);
 
   useChatSSE();
+
+  /**
+   * Relay the user's approval decision to the Gateway and clear the dialog.
+   * Uses the dedicated /api/exec/approval route which calls exec.approval.resolve.
+   */
+  const handleResolveApproval = useCallback(
+    async (id: string, decision: "allow-once" | "allow-always" | "deny") => {
+      // Optimistically clear the dialog immediately for responsive UX
+      setActiveApproval(null);
+      await fetch("/api/exec/approval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, decision }),
+      });
+    },
+    [setActiveApproval],
+  );
 
   useEffect(() => {
     const url = activeAgentId
@@ -183,6 +208,12 @@ export function ChatPanel() {
         <ArtifactContext.Provider value={{ onOpenArtifact: setActiveArtifact }}>
           <MessageList />
         </ArtifactContext.Provider>
+        {activeApproval && (
+          <ApprovalDialog
+            approval={activeApproval}
+            onResolve={(id, decision) => void handleResolveApproval(id, decision)}
+          />
+        )}
         <MessageInput />
       </div>
 
