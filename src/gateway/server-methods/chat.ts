@@ -11,6 +11,7 @@ import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.j
 import { createReplyPrefixOptions } from "../../channels/reply-prefix.js";
 import { resolveSessionFilePath } from "../../config/sessions.js";
 import { jsonUtf8Bytes } from "../../infra/json-utf8-bytes.js";
+import { saveMediaBuffer } from "../../media/store.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
 import { parseAgentSessionKey } from "../../sessions/session-key-utils.js";
 import {
@@ -787,8 +788,31 @@ export const chatHandlers: GatewayRequestHandlers = {
         return;
       }
     }
-    // parsedFiles is captured for future use (forwarding to agent pipeline).
-    void parsedFiles;
+    // Save all parsed attachments to disk and build MediaPath arrays
+    const mediaPaths: string[] = [];
+    const mediaTypes: string[] = [];
+
+    for (const img of parsedImages) {
+      const saved = await saveMediaBuffer(Buffer.from(img.data, "base64"), img.mimeType, "inbound");
+      mediaPaths.push(saved.path);
+      if (saved.contentType) {
+        mediaTypes.push(saved.contentType);
+      }
+    }
+    for (const file of parsedFiles) {
+      const saved = await saveMediaBuffer(
+        Buffer.from(file.data, "base64"),
+        file.mimeType,
+        "inbound",
+        undefined,
+        file.fileName,
+      );
+      mediaPaths.push(saved.path);
+      if (saved.contentType) {
+        mediaTypes.push(saved.contentType);
+      }
+    }
+
     const rawSessionKey = p.sessionKey;
     const { cfg, entry, canonicalKey: sessionKey } = loadSessionEntry(rawSessionKey);
     const timeoutMs = resolveAgentTimeoutMs({
@@ -934,6 +958,12 @@ export const chatHandlers: GatewayRequestHandlers = {
         SenderName: clientInfo?.displayName,
         SenderUsername: clientInfo?.displayName,
         GatewayClientScopes: client?.connect?.scopes,
+        MediaPath: mediaPaths.length > 0 ? mediaPaths[0] : undefined,
+        MediaUrl: mediaPaths.length > 0 ? mediaPaths[0] : undefined,
+        MediaType: mediaTypes.length > 0 ? mediaTypes[0] : undefined,
+        MediaPaths: mediaPaths.length > 0 ? mediaPaths : undefined,
+        MediaUrls: mediaPaths.length > 0 ? mediaPaths : undefined,
+        MediaTypes: mediaTypes.length > 0 ? mediaTypes : undefined,
       };
 
       const agentId = resolveSessionAgentId({
@@ -971,7 +1001,7 @@ export const chatHandlers: GatewayRequestHandlers = {
         replyOptions: {
           runId: clientRunId,
           abortSignal: abortController.signal,
-          images: parsedImages.length > 0 ? parsedImages : undefined,
+          // images bypass removed: attachments flow through MediaPath → applyMediaUnderstanding → detectAndLoadPromptImages
           onAgentRunStart: (runId) => {
             agentRunStarted = true;
             const connId = typeof client?.connId === "string" ? client.connId : undefined;
