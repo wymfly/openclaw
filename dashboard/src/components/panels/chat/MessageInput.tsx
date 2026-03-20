@@ -172,7 +172,7 @@ export function MessageInput() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text || undefined,
-          sessionKey: activeSessionId ?? "agent:main:main",
+          sessionKey: activeSessionId || `agent:${activeAgentId || "main"}:main`,
           agentId: activeAgentId ?? undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
           idempotencyKey: crypto.randomUUID(),
