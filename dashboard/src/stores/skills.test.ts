@@ -6,6 +6,7 @@ beforeEach(() => {
     skills: [],
     selectedSkillKey: null,
     statusFilter: "all",
+    searchQuery: "",
     loading: false,
     error: null,
   });
@@ -15,6 +16,7 @@ beforeEach(() => {
 const SKILL_FIXTURE: SkillEntry = {
   key: "web-search",
   name: "Web Search",
+  description: "",
   status: "ready",
   source: "bundled",
   enabled: true,
@@ -23,6 +25,7 @@ const SKILL_FIXTURE: SkillEntry = {
 const SKILL_MANAGED: SkillEntry = {
   key: "custom-skill",
   name: "Custom Skill",
+  description: "",
   status: "needs-setup",
   source: "managed",
   enabled: false,

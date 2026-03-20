@@ -13,7 +13,15 @@ import { ProviderSidebar } from "../config/ProviderSidebar";
  *   Left: ProviderSidebar (grouped by configured/unconfigured)
  *   Right: AuthHealthCard + ConfigForm for the selected provider
  */
-export function ProviderConfigTab() {
+interface ProviderConfigTabProps {
+  initialProvider?: string | null;
+  onConsumeInitialProvider?: () => void;
+}
+
+export function ProviderConfigTab({
+  initialProvider,
+  onConsumeInitialProvider,
+}: ProviderConfigTabProps = {}) {
   const t = useTranslations("models");
   const {
     authOverview,
@@ -41,6 +49,14 @@ export function ProviderConfigTab() {
       setSelectedProvider(authOverview[0].provider);
     }
   }, [selectedProvider, authOverview]);
+
+  // Handle navigation from Catalog tab with a specific provider
+  useEffect(() => {
+    if (initialProvider) {
+      setSelectedProvider(initialProvider);
+      onConsumeInitialProvider?.();
+    }
+  }, [initialProvider, onConsumeInitialProvider]);
 
   const selectedEntry = authOverview.find((e) => e.provider === selectedProvider);
 
