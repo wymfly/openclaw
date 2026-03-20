@@ -1,7 +1,7 @@
 "use client";
 
 import { PanelLeft } from "lucide-react";
-import { createContext, useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useChatStore, type ChatMessage, type ContentBlock, type SessionInfo } from "@/stores/chat";
@@ -112,6 +112,7 @@ export function ChatPanel() {
   const {
     activeSessionId,
     activeAgentId,
+    isStreaming,
     setSessions,
     setMessages,
     activeApproval,
@@ -146,7 +147,9 @@ export function ChatPanel() {
     [setActiveApproval],
   );
 
-  useEffect(() => {
+  // Refresh session list on mount, agent change, and after streaming completes
+  // (streaming completion may have created a new session with a derived title)
+  const refreshSessions = useCallback(() => {
     const url = activeAgentId
       ? `/api/chat/sessions?agentId=${encodeURIComponent(activeAgentId)}`
       : "/api/chat/sessions";
@@ -160,6 +163,19 @@ export function ChatPanel() {
       })
       .catch(() => {});
   }, [activeAgentId, setSessions]);
+
+  useEffect(() => {
+    refreshSessions();
+  }, [refreshSessions]);
+
+  // Refresh sessions after a reply completes (picks up new session titles)
+  const prevStreamingRef = useRef(false);
+  useEffect(() => {
+    if (prevStreamingRef.current && !isStreaming) {
+      refreshSessions();
+    }
+    prevStreamingRef.current = isStreaming;
+  }, [isStreaming, refreshSessions]);
 
   useEffect(() => {
     if (!activeSessionId) {
