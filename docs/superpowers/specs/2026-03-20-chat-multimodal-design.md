@@ -54,11 +54,16 @@ type ContentBlock =
   | { type: "image"; data: string; mimeType: string; fileName?: string }
   | { type: "file"; data: string; mimeType: string; fileName: string; size?: number }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-  | { type: "tool_result"; toolUseId: string; content: string; isError?: boolean }
+  | { type: "tool_result"; toolUseId: string; content: string | ContentBlock[]; isError?: boolean }
   | { type: "thinking"; text: string };
 ```
 
-注：不包含 `artifact` 块类型 — Artifacts 是前端从 `tool_result` 中识别的渲染策略，不是 Gateway 的内容块类型（见第五节）。
+注：
+
+- `tool_result.content` 支持 `string | ContentBlock[]`，因为 Gateway transcript 中 tool_result 的 content 可能是嵌套块数组（如 text + image 混合结果）
+- Gateway transcript 中工具调用类型有多种别名（`tool_use` / `toolcall` / `tool_call`），`toUiMessage()` 映射时统一归并为 `type: "tool_use"`
+- Gateway 也使用 `tool_result_error` 类型和 `is_error: true` 标志，映射时统一为 `type: "tool_result"` + `isError: true`
+- 不包含 `artifact` 块类型 — Artifacts 是前端从 `tool_result` 中识别的渲染策略，不是 Gateway 的内容块类型（见第五节）
 
 ### ChatMessage 重构
 
@@ -280,9 +285,11 @@ SSE delta 事件:
 
 SSE final 事件:
   → 标记 streaming: false
-  → 调用 reloadLastMessage(sessionKey) 从 chat.history 获取完整内容
+  → 调用 reloadLastMessage(sessionKey, runId) 从 chat.history 获取完整内容
   → 映射 Anthropic 格式为 ContentBlock[]
-  → 替换 store 中该消息的 content
+  → 按 runId 幂等替换 store 中该消息的 content（避免并发覆盖）
+  → 如果 chat.history 请求失败（网络错误/超时），等待 1s 后重试一次
+  → 重试仍失败则保留流式文本结果，不丢失已有内容
 ```
 
 ### Store 重构
@@ -305,16 +312,32 @@ replaceMessageContent(id: string, blocks: ContentBlock[])   // history reload �
 `chat.history` API 返回 Anthropic 格式消息。`toUiMessage()` 改造：
 
 ```typescript
+// 工具调用类型别名集（Gateway transcript 存在多种写法）
+const TOOL_USE_TYPES = new Set(["tool_use", "toolcall", "tool_call"]);
+const TOOL_RESULT_TYPES = new Set(["tool_result", "tool_result_error"]);
+
 function toUiMessage(raw: RawMessage): ChatMessage {
-  const blocks: ContentBlock[] = raw.content.map(block => {
-    switch (block.type) {
-      case "text":        return { type: "text", text: block.text };
-      case "image":       return { type: "image", data: block.source.data, mimeType: block.source.media_type };
-      case "tool_use":    return { type: "tool_use", id: block.id, name: block.name, input: block.input };
-      case "tool_result": return { type: "tool_result", toolUseId: block.tool_use_id, content: ... };
-      case "thinking":    return { type: "thinking", text: block.thinking };
-      default:            return { type: "text", text: JSON.stringify(block) };
-    }
+  const blocks: ContentBlock[] = raw.content.map((block) => {
+    const type = (block.type ?? "text").toLowerCase();
+    if (type === "text") return { type: "text", text: block.text ?? "" };
+    if (type === "image")
+      return { type: "image", data: block.source?.data, mimeType: block.source?.media_type };
+    if (TOOL_USE_TYPES.has(type))
+      return {
+        type: "tool_use",
+        id: block.id,
+        name: block.name,
+        input: block.input ?? block.arguments ?? {},
+      };
+    if (TOOL_RESULT_TYPES.has(type))
+      return {
+        type: "tool_result",
+        toolUseId: block.tool_use_id ?? block.toolUseId,
+        content: block.content ?? block.output ?? "",
+        isError: block.is_error === true || type === "tool_result_error",
+      };
+    if (type === "thinking") return { type: "thinking", text: block.thinking ?? block.text ?? "" };
+    return { type: "text", text: JSON.stringify(block) };
   });
   return { id: raw.id, role: raw.role, content: blocks, timestamp: raw.timestamp };
 }
@@ -327,6 +350,8 @@ function toUiMessage(raw: RawMessage): ChatMessage {
 ### 设计原则
 
 Gateway 不存在 `type: "artifact"` 内容块。Artifacts 是 **Dashboard 前端的渲染策略** — 从 `tool_result` 块中识别可交互内容，在独立面板中渲染。
+
+**演进路线**：当前使用启发式识别（HTML/SVG/Mermaid 文本模式）作为 MVP。未来如果 Gateway 或工具协议引入显式 artifact 标记（如 tool schema 中的 `output_format: "artifact"` 或 tool_result metadata 中的 `artifact_hint`），前端优先使用协议级标签，启发式降级为回退策略。
 
 ### 识别规则
 
