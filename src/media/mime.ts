@@ -18,6 +18,9 @@ const EXT_BY_MIME: Record<string, string> = {
   "audio/opus": ".opus",
   "audio/x-m4a": ".m4a",
   "audio/mp4": ".m4a",
+  "audio/amr": ".amr",
+  "audio/speex": ".speex",
+  "audio/opus": ".opus",
   "video/mp4": ".mp4",
   "video/quicktime": ".mov",
   "application/pdf": ".pdf",
@@ -49,6 +52,9 @@ const MIME_BY_EXT: Record<string, string> = {
   ".js": "text/javascript",
   ".htm": "text/html",
   ".xml": "text/xml",
+  ".amr": "audio/amr",
+  ".speex": "audio/speex",
+  ".opus": "audio/opus",
 };
 
 const AUDIO_FILE_EXTENSIONS = new Set([
