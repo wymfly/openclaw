@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
-import { useChatStore, type SessionInfo } from "@/stores/chat";
+import { useChatStore } from "@/stores/chat";
+import { useActiveSessionKey, useSessionMetaList } from "@/stores/chat-hooks";
+import type { SessionMeta } from "@/stores/chat-types";
 
 function formatTime(ts?: number): string {
   if (!ts) {
@@ -30,15 +32,12 @@ function formatTime(ts?: number): string {
 
 export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => void } = {}) {
   const t = useTranslations("chat");
-  const {
-    sessions,
-    activeSessionId,
-    activeAgentId,
-    setActiveSession,
-    setActiveAgent,
-    setSessions,
-    clearMessages,
-  } = useChatStore();
+  const sessionMeta = useSessionMetaList();
+  const activeSessionKey = useActiveSessionKey();
+  const activeAgentId = useChatStore((s) => s.activeAgentId);
+  const setActiveSession = useChatStore((s) => s.setActiveSession);
+  const setActiveAgent = useChatStore((s) => s.setActiveAgent);
+  const setSessionMeta = useChatStore((s) => s.setSessionMeta);
 
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
@@ -55,16 +54,14 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
     const newSessionKey = `agent:${agentId}:${uniqueId}`;
 
     // Optimistically add to session list so it appears in sidebar immediately
-    setSessions([{ key: newSessionKey, agentId, updatedAt: Date.now() }, ...sessions]);
+    setSessionMeta([{ key: newSessionKey, agentId, updatedAt: Date.now() }, ...sessionMeta]);
 
     setActiveSession(newSessionKey);
-    clearMessages();
     onSessionSelect?.();
   };
 
-  const handleSelect = (session: SessionInfo) => {
-    clearMessages(); // Clear immediately to avoid stale messages flashing
-    setActiveSession(session.key);
+  const handleSelect = (session: SessionMeta) => {
+    setActiveSession(session.key); // setActiveSession handles state internally
     if (session.agentId) {
       setActiveAgent(session.agentId);
     }
@@ -78,10 +75,11 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionKey, agentId: activeAgentId }),
     });
-    if (activeSessionId === sessionKey) {
+    if (activeSessionKey === sessionKey) {
       setActiveSession(null);
-      clearMessages();
     }
+    // Remove from session meta list
+    useChatStore.getState().removeSession(sessionKey);
   };
 
   return (
@@ -120,8 +118,8 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
       {/* Session list */}
       <ScrollArea className="flex-1">
         <div className="px-2 pb-2 space-y-0.5">
-          {sessions.map((session) => {
-            const isActive = activeSessionId === session.key;
+          {sessionMeta.map((session) => {
+            const isActive = activeSessionKey === session.key;
             return (
               <button
                 key={session.key}
