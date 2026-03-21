@@ -16,6 +16,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import type { FormField } from "@/lib/schema-parser";
 import { cn } from "@/lib/utils";
+import { PasswordField } from "./fields/PasswordField";
+import { RecordField } from "./fields/RecordField";
+import { TypedArrayField } from "./fields/TypedArrayField";
+import { UnionField } from "./fields/UnionField";
 
 interface SchemaFormProps {
   fields: FormField[];
@@ -52,7 +56,9 @@ function StringField({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={typeof field.defaultValue === "string" ? field.defaultValue : ""}
+        placeholder={
+          field.placeholder ?? (typeof field.defaultValue === "string" ? field.defaultValue : "")
+        }
         className="w-full max-w-md text-xs h-7"
       />
     </div>
@@ -207,6 +213,43 @@ function ObjectField({
   );
 }
 
+function JsonFallbackField({
+  field,
+  value,
+  onChange,
+}: {
+  field: FormField;
+  value: unknown;
+  onChange: (v: unknown) => void;
+}) {
+  const t = useTranslations("config");
+  const text = typeof value === "string" ? value : JSON.stringify(value ?? null, null, 2);
+  return (
+    <div className="mb-3">
+      <FieldLabel field={field} />
+      <p className="text-[10px] text-[var(--text-secondary)] mb-1 italic">{t("rawJsonFallback")}</p>
+      <textarea
+        value={text}
+        onChange={(e) => {
+          try {
+            onChange(JSON.parse(e.target.value));
+          } catch {
+            onChange(e.target.value);
+          }
+        }}
+        rows={4}
+        className={cn(
+          "w-full max-w-md text-xs rounded-lg px-2.5 py-1.5 font-mono resize-y",
+          "border border-[var(--border)] bg-transparent text-[var(--text-primary)]",
+          "placeholder:text-[var(--text-secondary)]",
+          "focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+          "outline-none transition-colors duration-150",
+        )}
+      />
+    </div>
+  );
+}
+
 export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaFormProps) {
   const tc = useTranslations("common");
   const handleChange = useCallback(
@@ -230,6 +273,19 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
 
         switch (field.type) {
           case "string":
+            // Sensitive fields render as password input
+            if (field.sensitive) {
+              return (
+                <PasswordField
+                  key={fullKey}
+                  field={field}
+                  value={
+                    typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""
+                  }
+                  onChange={(v) => handleChange(field.key, v)}
+                />
+              );
+            }
             return (
               <StringField
                 key={fullKey}
@@ -270,6 +326,18 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
               />
             );
           case "array":
+            // Typed array with itemSchema renders item-level editor
+            if (field.itemSchema) {
+              return (
+                <TypedArrayField
+                  key={fullKey}
+                  field={field}
+                  value={Array.isArray(value) ? value : []}
+                  onChange={(v) => handleChange(field.key, v)}
+                  prefix={prefix}
+                />
+              );
+            }
             return (
               <ArrayField
                 key={fullKey}
@@ -292,6 +360,35 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
                 values={values}
                 onChange={handleChange}
                 prefix={prefix}
+              />
+            );
+          case "union":
+            return (
+              <UnionField
+                key={fullKey}
+                field={field}
+                value={value}
+                onChange={handleChange}
+                prefix={prefix}
+              />
+            );
+          case "record":
+            return (
+              <RecordField
+                key={fullKey}
+                field={field}
+                value={(value as Record<string, unknown>) ?? {}}
+                onChange={handleChange}
+                prefix={prefix}
+              />
+            );
+          case "json":
+            return (
+              <JsonFallbackField
+                key={fullKey}
+                field={field}
+                value={value}
+                onChange={(v) => handleChange(field.key, v)}
               />
             );
           default:

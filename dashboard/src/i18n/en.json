@@ -516,7 +516,21 @@
     "hooks": "Hooks",
     "models": "Models",
     "channels": "Channels",
-    "advanced": "Advanced"
+    "advanced": "Advanced",
+    "addEntry": "Add Entry",
+    "removeEntry": "Remove",
+    "addItem": "Add Item",
+    "removeItem": "Remove",
+    "moveUp": "Move Up",
+    "moveDown": "Move Down",
+    "showPassword": "Show",
+    "hidePassword": "Hide",
+    "selectVariant": "Select variant",
+    "selectType": "Select type",
+    "rawJsonFallback": "Raw JSON (visual editing not supported for this field type)",
+    "entryKey": "Key",
+    "entryValue": "Value",
+    "itemIndex": "Item {index}"
   },
   "cron": {
     "title": "Cron Jobs",
