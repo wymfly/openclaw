@@ -597,20 +597,20 @@ describe("dispatchApprovalResolved", () => {
 });
 
 describe("dispatchA2UIEvent", () => {
-  it("routes A2UI state to correct session", () => {
+  it("routes A2UI event to correct session and appends to event log", () => {
     useChatStore.getState().ensureSession("sess-1");
 
     dispatchA2UIEvent({
       sessionKey: "sess-1",
-      url: "https://example.com/artifact",
-      visible: true,
+      surfaceUpdate: { surfaceId: "main", components: [{ id: "c1" }] },
     });
 
     const sess = useChatStore.getState().sessions.get("sess-1")!;
-    expect(sess.a2uiState).toEqual({
-      url: "https://example.com/artifact",
-      visible: true,
-    });
+    // Should auto-show the A2UI overlay
+    expect(sess.a2uiState?.visible).toBe(true);
+    // Should have appended an event
+    expect(sess.a2uiState?.eventLog).toHaveLength(1);
+    expect(sess.a2uiState?.eventLog?.[0].action).toBe("surfaceUpdate");
   });
 
   it("does not affect other sessions", () => {
@@ -619,8 +619,7 @@ describe("dispatchA2UIEvent", () => {
 
     dispatchA2UIEvent({
       sessionKey: "sess-a",
-      url: "https://example.com/artifact",
-      visible: true,
+      surfaceUpdate: { surfaceId: "main", components: [] },
     });
 
     const sessB = useChatStore.getState().sessions.get("sess-b")!;

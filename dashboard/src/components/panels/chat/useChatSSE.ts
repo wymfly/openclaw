@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useChatStore, type ContentBlock, type ApprovalRequest } from "@/stores/chat";
 import { getSessionAbort } from "@/stores/chat-abort";
+import type { A2UIEvent } from "@/stores/chat-types";
+import { extractA2UIActionType, summarizeA2UIEvent } from "./a2ui-message-format";
 
 // ---------------------------------------------------------------------------
 // Payload types
@@ -54,9 +56,13 @@ export type ApprovalResolvedPayload = {
 };
 
 export type A2UIEventPayload = {
-  sessionKey: string;
-  url?: string;
-  visible?: boolean;
+  sessionKey?: string;
+  __invokeId?: string;
+  __nodeId?: string;
+  surfaceUpdate?: unknown;
+  beginRendering?: unknown;
+  dataModelUpdate?: unknown;
+  deleteSurface?: unknown;
 };
 
 // ---------------------------------------------------------------------------
@@ -356,18 +362,36 @@ export function dispatchApprovalResolved(payload: ApprovalResolvedPayload): void
 
 /**
  * Dispatch an A2UI (Agent-to-User Interface) event to the correct session.
+ *
+ * The new payload shape carries surfaceUpdate / beginRendering / deleteSurface
+ * etc. — matching what the Gateway broadcasts. We derive the sessionKey from
+ * the payload or fall back to the active session.
  */
 export function dispatchA2UIEvent(payload: A2UIEventPayload): void {
-  const sessionKey = payload.sessionKey;
+  const sessionKey = payload.sessionKey ?? useChatStore.getState().activeSessionKey;
   if (!sessionKey) {
     return;
   }
 
   useChatStore.getState().ensureSession(sessionKey);
-  useChatStore.getState().setA2UIState(sessionKey, {
-    url: payload.url ?? "",
-    visible: payload.visible ?? false,
-  });
+
+  const event: A2UIEvent = {
+    timestamp: Date.now(),
+    direction: "inbound",
+    action: extractA2UIActionType(payload as Record<string, unknown>),
+    summary: summarizeA2UIEvent(payload as Record<string, unknown>),
+    raw: payload,
+  };
+
+  useChatStore.getState().appendA2UIEvent(sessionKey, event);
+
+  const current = useChatStore.getState().sessions.get(sessionKey)?.a2uiState;
+  if (!current?.visible) {
+    useChatStore.getState().setA2UIState(sessionKey, {
+      url: current?.url ?? "",
+      visible: true,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
