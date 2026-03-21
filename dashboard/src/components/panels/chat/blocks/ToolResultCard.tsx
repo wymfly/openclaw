@@ -10,16 +10,20 @@ import { ArtifactContext } from "../ChatPanel";
 interface ToolResultCardProps {
   content: string;
   isError?: boolean;
+  /** Optional tool name for contextual artifact detection (e.g. write_file). */
+  toolName?: string;
   onOpenArtifact?: (artifact: ArtifactInfo) => void;
 }
 
-export function ToolResultCard({ content, isError }: ToolResultCardProps) {
+export function ToolResultCard({ content, isError, toolName }: ToolResultCardProps) {
   const t = useTranslations("chat");
   const { onOpenArtifact } = useContext(ArtifactContext);
 
   const contentStr = typeof content === "string" ? content : JSON.stringify(content, null, 2);
 
-  const artifact = !isError ? detectArtifact(contentStr) : null;
+  const artifact = !isError
+    ? detectArtifact(contentStr, toolName ? { toolName } : undefined)
+    : null;
 
   return (
     <>
