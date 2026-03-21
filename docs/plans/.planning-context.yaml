@@ -1,0 +1,31 @@
+# 由 dev-workflow 自动生成，writing-plans 消费后可保留供 G2 参考
+mode: 1                          # Mode 1A (brainstorming → writing-plans)
+pre_g2: likely                   # 三条件全满足
+
+# 并行感知
+parallel:
+  enabled: true
+  requirements:
+    - file_list_per_task         # 每任务列出预期创建或修改的文件路径
+    - cross_file_matrix          # 标注哪些并行任务触碰同一文件
+    - task_0_if_shared_interface # 并行任务依赖尚不存在的接口时，生成前置串行任务
+    - task_n_integration         # 所有并行任务之后安排集成验证任务
+    - resolve_conflicts          # 文件交叉矩阵有冲突时调整边界或标记串行依赖
+
+# 设计文档路径
+spec_path: "docs/superpowers/specs/2026-03-21-a2ui-canvas-design.md"
+
+# 任务分组提示（来自 brainstorming 阶段确认）
+task_groups:
+  - name: "Group A: A2UI Canvas + RightPanel"
+    description: "核心：iframe bridge、CanvasPanel、RightPanel 统一容器、Deck Server 事件注册、dispatchA2UIEvent 增强"
+    domain: "[frontend] [backend]"
+    serial: true  # 组内串行
+  - name: "Group B: Artifact 增强"
+    description: "detectArtifact 扩展 + 4 个新渲染器 + ArtifactPanel 重构到 RightPanel"
+    domain: "[frontend]"
+    depends_on: "Group A (RightPanel 容器)"
+  - name: "Group C: Block 过滤/折叠"
+    description: "BlockFilterBar + tool_result 默认折叠 + localStorage 持久化"
+    domain: "[frontend]"
+    independent: true  # 与 A/B 完全独立
