@@ -126,6 +126,17 @@ export function ChatPanel() {
     [activeSessionKey, setActiveApprovalAction],
   );
 
+  // Evict stale chat sessions when the tab becomes hidden
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === "hidden") {
+        useChatStore.getState().evictStale();
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+
   // Refresh session list on mount, agent change, and after streaming completes
   // (streaming completion may have created a new session with a derived title)
   useEffect(() => {

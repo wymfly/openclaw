@@ -10,6 +10,7 @@ import {
   type ToolProgress,
   createEmptySessionState,
   DEFAULT_EVICT_IDLE_MS,
+  MAX_CACHED_SESSIONS,
 } from "./chat-types";
 
 // ---------------------------------------------------------------------------
@@ -116,7 +117,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       });
       return;
     }
-    const newMap = new Map(sessions);
+    // Evict stale sessions before adding a new one if at capacity
+    if (sessions.size >= MAX_CACHED_SESSIONS) {
+      get().evictStale();
+    }
+    const newMap = new Map(get().sessions);
     newMap.set(key, createEmptySessionState());
     set({ sessions: newMap });
   },
@@ -198,6 +203,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         status: streaming ? "active" : "idle",
       })),
     });
+    // Trigger eviction when a session transitions to idle
+    if (!streaming) {
+      get().evictStale();
+    }
   },
 
   setError(sessionKey: string, error: string | null) {
