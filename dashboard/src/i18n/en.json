@@ -79,7 +79,10 @@
     "approvalAllowAlways": "Always Allow",
     "approvalExpired": "Approval Expired",
     "toolsRunning": "{count} tools running",
-    "toolsCompleted": "Tools completed"
+    "toolsCompleted": "Tools completed",
+    "filterThinking": "Thinking",
+    "filterTools": "Tool Calls",
+    "filterResults": "Results"
   },
   "gateway": {
     "title": "Gateway Overview",
