@@ -538,7 +538,15 @@
     "validationMin": "Minimum value is {min}",
     "validationMax": "Maximum value is {max}",
     "validationPattern": "Invalid format",
-    "validationErrors": "Please fix validation errors before saving"
+    "validationErrors": "Please fix validation errors before saving",
+    "diffPreview": "Change Preview",
+    "diffConfirm": "Confirm Save",
+    "diffCancel": "Cancel",
+    "diffNoChanges": "No changes",
+    "diffAdded": "Added",
+    "diffRemoved": "Removed",
+    "diffChanged": "Changed",
+    "diffDontShowAgain": "Don't show again this session"
   },
   "cron": {
     "title": "Cron Jobs",
