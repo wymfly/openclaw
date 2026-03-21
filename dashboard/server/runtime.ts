@@ -89,6 +89,8 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "alert.fired",
   "webhook.delivery",
   "cron.run.complete",
+  // P4 additions (A2UI Canvas)
+  "a2ui",
 ]);
 
 /** Events that should be bridged to the activity feed outbox. */
