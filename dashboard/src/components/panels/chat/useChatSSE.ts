@@ -224,7 +224,8 @@ export function dispatchChatEvent(payload: ChatEventPayload): void {
  * Dispatch an agent tool-execution event to the correct session.
  *
  * Gateway emits: { sessionKey, stream: "tool", data: { phase, name, toolCallId, args } }
- * Only handles `phase === "start"` to avoid duplicate blocks from update/result phases.
+ * Updates toolProgress for start/result/complete/error phases.
+ * Only appends a tool_use content block on phase === "start".
  */
 export function dispatchAgentEvent(payload: AgentEventPayload): void {
   const sessionKey = payload.sessionKey;
@@ -239,13 +240,37 @@ export function dispatchAgentEvent(payload: AgentEventPayload): void {
       return;
     }
 
-    // Only create a block on the start phase; update/result phases would duplicate it
-    if (data.phase !== "start") {
+    const toolName = data.name;
+    const toolCallId = data.toolCallId;
+    if (!toolName || !toolCallId) {
       return;
     }
 
-    const toolName = data.name;
-    if (!toolName) {
+    const phase = data.phase;
+
+    // Update toolProgress record for ALL phases
+    if (phase === "start") {
+      useChatStore.getState().ensureSession(sessionKey);
+      useChatStore.getState().updateToolProgress(sessionKey, toolCallId, {
+        toolUseId: toolCallId,
+        name: toolName,
+        status: "running",
+        startedAt: Date.now(),
+      });
+    } else if (phase === "result" || phase === "complete") {
+      useChatStore.getState().updateToolProgress(sessionKey, toolCallId, {
+        status: "completed",
+        completedAt: Date.now(),
+      });
+    } else if (phase === "error") {
+      useChatStore.getState().updateToolProgress(sessionKey, toolCallId, {
+        status: "error",
+        completedAt: Date.now(),
+      });
+    }
+
+    // Only append tool_use block on start phase (existing behavior)
+    if (phase !== "start") {
       return;
     }
 
@@ -259,7 +284,7 @@ export function dispatchAgentEvent(payload: AgentEventPayload): void {
     const block: ContentBlock = {
       type: "tool_use",
       // Gateway uses toolCallId (not id) and args (not input)
-      id: data.toolCallId ?? `tool-${Date.now()}`,
+      id: toolCallId,
       name: toolName,
       input: data.args ?? {},
     };
