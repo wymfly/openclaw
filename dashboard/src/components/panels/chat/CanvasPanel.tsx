@@ -69,6 +69,9 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         useChatStore.getState().updateA2UISurfaces(sessionKey, surfaces);
         if (surfaces.length > 0) {
           setState("ready");
+        } else {
+          setState("empty");
+          useChatStore.getState().setA2UIState(sessionKey, { visible: false });
         }
       },
     });
@@ -154,7 +157,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
       <div className="flex-1 relative min-h-0">
         <iframe
           ref={iframeRef}
-          src="/api/canvas/host"
+          src="/api/canvas/"
           className="w-full h-full border-0"
           sandbox="allow-scripts allow-same-origin"
           title="A2UI Canvas"

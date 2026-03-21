@@ -47,6 +47,11 @@ function MessageBubble({
     return true;
   });
 
+  // Skip rendering if all blocks are filtered out (avoid empty message shells)
+  if (filteredContent.length === 0 && !message.error) {
+    return null;
+  }
+
   // Group content blocks by type
   const thinkingBlocks = filteredContent.filter(
     (b): b is ContentBlock & { type: "thinking" } => b.type === "thinking",
@@ -68,7 +73,12 @@ function MessageBubble({
   );
 
   // Build a lookup from toolUseId -> tool name for contextual artifact detection
-  const toolUseNameMap = new Map(toolUseBlocks.map((b) => [b.id, b.name]));
+  // Uses original content (not filtered) so toolName is available even when tool_use is hidden
+  const toolUseNameMap = new Map(
+    message.content
+      .filter((b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use")
+      .map((b) => [b.id, b.name]),
+  );
 
   const combinedText = textBlocks.map((b) => b.text).join("\n");
 

@@ -51,16 +51,16 @@ describe("detectArtifact enhanced", () => {
 
   it("sets correct title for JSON artifact", () => {
     const json = JSON.stringify({ name: "test", items: [1, 2, 3], nested: { a: 1 } });
-    expect(detectArtifact(json)?.title).toBe("JSON");
+    expect(detectArtifact(json)?.title).toBe("artifactJson");
   });
 
   it("sets correct title for CSV artifact", () => {
     const csv = "name,age,city\nAlice,28,Beijing\nBob,32,Shanghai\nCharlie,25,Shenzhen";
-    expect(detectArtifact(csv)?.title).toBe("Table");
+    expect(detectArtifact(csv)?.title).toBe("artifactCsv");
   });
 
   it("sets correct title for Markdown artifact", () => {
     const md = "# Title\n\nThis is a **bold** paragraph.\n\n- Item 1\n- Item 2";
-    expect(detectArtifact(md)?.title).toBe("Document");
+    expect(detectArtifact(md)?.title).toBe("artifactMarkdown");
   });
 });
