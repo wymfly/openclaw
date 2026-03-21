@@ -158,6 +158,72 @@ describe("initApprovalBridge", () => {
 
     expect(getPendingApprovals()).toHaveLength(0);
   });
+
+  it("forwards sessionKey from request in approval.pending broadcast", () => {
+    initApprovalBridge(createMockRuntime(bus));
+
+    const received: ServerEvent[] = [];
+    bus.subscribe((e) => {
+      if (e.type === "approval.pending") {
+        received.push(e);
+      }
+    });
+
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.requested",
+      payload: {
+        id: "apr-sk-1",
+        request: {
+          command: "rm -rf /",
+          agentId: "agent-x",
+          sessionKey: "agent:main:web-123",
+        },
+        createdAtMs: 1000,
+        expiresAtMs: 2000,
+      },
+    });
+
+    expect(received).toHaveLength(1);
+    expect((received[0].data as Record<string, unknown>).sessionKey).toBe("agent:main:web-123");
+  });
+
+  it("includes sessionKey from pending map in approval.resolved broadcast", () => {
+    initApprovalBridge(createMockRuntime(bus));
+
+    // First create a pending approval with sessionKey
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.requested",
+      payload: {
+        id: "apr-sk-2",
+        request: {
+          command: "echo hello",
+          sessionKey: "agent:main:web-456",
+        },
+        createdAtMs: 1000,
+        expiresAtMs: 2000,
+      },
+    });
+
+    const resolved: ServerEvent[] = [];
+    bus.subscribe((e) => {
+      if (e.type === "approval.resolved") {
+        resolved.push(e);
+      }
+    });
+
+    // Resolve it — sessionKey should come from the pending map
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.resolved",
+      payload: { id: "apr-sk-2", decision: "allow-once" },
+    });
+
+    expect(resolved).toHaveLength(1);
+    expect((resolved[0].data as Record<string, unknown>).sessionKey).toBe("agent:main:web-456");
+    expect(getPendingApprovals()).toHaveLength(0);
+  });
 });
 
 describe("getPendingApprovals", () => {
