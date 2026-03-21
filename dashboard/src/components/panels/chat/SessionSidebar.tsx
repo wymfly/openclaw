@@ -15,7 +15,12 @@ import {
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
-import { useActiveSessionKey, useSessionMetaList } from "@/stores/chat-hooks";
+import {
+  useActiveSessionKey,
+  useSessionMetaList,
+  useSessionIndicator,
+  type SessionIndicator,
+} from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
 
 function formatTime(ts?: number): string {
@@ -28,6 +33,27 @@ function formatTime(ts?: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+const INDICATOR_STYLES: Record<SessionIndicator, string> = {
+  approval: "bg-[var(--warning)] shadow-[0_0_4px_var(--warning)]",
+  streaming: "bg-[var(--accent)] animate-pulse",
+  canvas: "bg-[var(--success)]",
+  idle: "",
+  none: "",
+};
+
+function SessionDot({ sessionKey }: { sessionKey: string }) {
+  const indicator = useSessionIndicator(sessionKey);
+  if (indicator === "idle" || indicator === "none") {
+    return null;
+  }
+  return (
+    <span
+      className={cn("w-1.5 h-1.5 rounded-full shrink-0", INDICATOR_STYLES[indicator])}
+      aria-hidden
+    />
+  );
 }
 
 export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => void } = {}) {
@@ -148,6 +174,9 @@ export function SessionSidebar({ onSessionSelect }: { onSessionSelect?: () => vo
                     {formatTime(session.updatedAt)}
                   </span>
                 </div>
+
+                {/* Session status indicator */}
+                <SessionDot sessionKey={session.key} />
 
                 {/* Delete on hover */}
                 <span
