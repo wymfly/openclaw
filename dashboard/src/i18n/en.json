@@ -82,7 +82,22 @@
     "toolsCompleted": "Tools completed",
     "filterThinking": "Thinking",
     "filterTools": "Tool Calls",
-    "filterResults": "Results"
+    "filterResults": "Results",
+    "canvasTitle": "Canvas",
+    "canvasLoading": "Loading Canvas...",
+    "canvasEmpty": "Waiting for agent to push content...",
+    "canvasError": "Canvas failed to load",
+    "canvasRetry": "Retry",
+    "canvasCollapse": "Collapse",
+    "canvasExpand": "Show Canvas",
+    "debugTitle": "Debug",
+    "debugMessages": "Messages",
+    "debugTree": "Tree",
+    "debugClear": "Clear",
+    "debugEvents": "{count} events",
+    "debugSurfaces": "{count} surfaces",
+    "debugNodes": "{count} nodes",
+    "debugTreeUnavailable": "Component tree unavailable"
   },
   "gateway": {
     "title": "Gateway Overview",
