@@ -530,7 +530,15 @@
     "rawJsonFallback": "原始 JSON（此字段类型暂不支持可视化编辑）",
     "entryKey": "键",
     "entryValue": "值",
-    "itemIndex": "第 {index} 项"
+    "itemIndex": "第 {index} 项",
+    "showAdvanced": "显示高级选项",
+    "hideAdvanced": "隐藏高级选项",
+    "validationMinLength": "最少 {min} 个字符",
+    "validationMaxLength": "最多 {max} 个字符",
+    "validationMin": "最小值为 {min}",
+    "validationMax": "最大值为 {max}",
+    "validationPattern": "格式不正确",
+    "validationErrors": "存在验证错误，请修正后保存"
   },
   "cron": {
     "title": "定时任务",

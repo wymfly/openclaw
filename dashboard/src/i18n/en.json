@@ -530,7 +530,15 @@
     "rawJsonFallback": "Raw JSON (visual editing not supported for this field type)",
     "entryKey": "Key",
     "entryValue": "Value",
-    "itemIndex": "Item {index}"
+    "itemIndex": "Item {index}",
+    "showAdvanced": "Show Advanced",
+    "hideAdvanced": "Hide Advanced",
+    "validationMinLength": "At least {min} characters",
+    "validationMaxLength": "At most {max} characters",
+    "validationMin": "Minimum value is {min}",
+    "validationMax": "Maximum value is {max}",
+    "validationPattern": "Invalid format",
+    "validationErrors": "Please fix validation errors before saving"
   },
   "cron": {
     "title": "Cron Jobs",
