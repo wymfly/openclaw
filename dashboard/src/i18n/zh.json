@@ -516,7 +516,21 @@
     "hooks": "钩子",
     "models": "模型",
     "channels": "渠道",
-    "advanced": "高级"
+    "advanced": "高级",
+    "addEntry": "添加条目",
+    "removeEntry": "删除",
+    "addItem": "添加项",
+    "removeItem": "删除",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
+    "selectVariant": "选择类型",
+    "selectType": "选择类型",
+    "rawJsonFallback": "原始 JSON（此字段类型暂不支持可视化编辑）",
+    "entryKey": "键",
+    "entryValue": "值",
+    "itemIndex": "第 {index} 项"
   },
   "cron": {
     "title": "定时任务",
