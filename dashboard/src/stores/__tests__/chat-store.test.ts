@@ -563,28 +563,11 @@ describe("setActiveApproval", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Compatibility bridge (backward compat with old flat API)
+// Module exports
 // ---------------------------------------------------------------------------
 
-describe("compatibility bridge", () => {
-  it("getActiveSession returns active session state", async () => {
-    const { getActiveSession } = await import("../chat");
-    useChatStore.getState().ensureSession("sess-1");
-    useChatStore.getState().setActiveSession("sess-1");
-    useChatStore.getState().addMessage("sess-1", makeMsg("m1"));
-
-    const sess = getActiveSession();
-    expect(sess).toBeDefined();
-    expect(sess!.messages).toHaveLength(1);
-  });
-
-  it("getActiveSession returns undefined when no active session", async () => {
-    const { getActiveSession } = await import("../chat");
-    expect(getActiveSession()).toBeUndefined();
-  });
-
-  it("exports type aliases for backward compatibility", async () => {
-    // These should be importable without error
+describe("module exports", () => {
+  it("exports useChatStore", async () => {
     const mod = await import("../chat");
     expect(mod.useChatStore).toBeDefined();
   });
