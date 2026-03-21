@@ -13,22 +13,18 @@ import {
 } from "./chat-types";
 
 // ---------------------------------------------------------------------------
-// Re-export types for backward compatibility
+// Re-export types so consumers can import from "@/stores/chat"
 // ---------------------------------------------------------------------------
 
 export {
   type ContentBlock,
   type ChatMessage,
-  type SessionInfo,
   type ApprovalRequest,
   type SessionMeta,
   type SessionState,
   type A2UIState,
   type ToolProgress,
 } from "./chat-types";
-
-/** @deprecated Use ApprovalRequest */
-export type { ApprovalRequest as ActiveApproval } from "./chat-types";
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -65,60 +61,6 @@ interface ChatStore {
   setSessionMeta: (meta: SessionMeta[]) => void;
   refreshSessionMeta: () => Promise<void>;
   evictStale: (maxIdleMs?: number) => void;
-
-  // ---- Backward-compatible actions (removed in Task 6) ----
-  /** @deprecated Use session-scoped addMessage(sessionKey, msg) */
-  addMessageCompat: (msg: ChatMessage) => void;
-  /** @deprecated Use session-scoped updateStreamingBlocks(sessionKey, runId, blocks) */
-  updateStreamingBlocksCompat: (id: string, blocks: ContentBlock[]) => void;
-  /** @deprecated Use session-scoped replaceMessageContent(sessionKey, messageId, blocks) */
-  replaceMessageContentCompat: (id: string, blocks: ContentBlock[]) => void;
-  /** @deprecated Use session-scoped finalizeStreamingMessage(sessionKey, runId) */
-  finalizeStreamingMessageCompat: (id: string) => void;
-  /** @deprecated Use session-scoped setMessages(sessionKey, msgs) */
-  setMessagesCompat: (msgs: ChatMessage[]) => void;
-  /** @deprecated Use session-scoped setStreaming */
-  setIsStreaming: (streaming: boolean) => void;
-  /** @deprecated Use session-scoped setError(sessionKey, error) */
-  setErrorCompat: (error: string | null) => void;
-  /** @deprecated Use session-scoped setActiveApproval(sessionKey, approval) */
-  setActiveApprovalCompat: (approval: ApprovalRequest | null) => void;
-  /** @deprecated Use setSessionMeta */
-  setSessions: (
-    sessions: Array<{
-      key: string;
-      sessionId?: string;
-      agentId?: string;
-      title?: string;
-      lastMessage?: string;
-      updatedAt?: number;
-    }>,
-  ) => void;
-  /** @deprecated Use setMessages(sessionKey, []) */
-  clearMessages: () => void;
-  /** @deprecated Use setActiveSession */
-  selectSkill: (sessionId: string) => void;
-
-  // ---- Backward-compatible computed properties ----
-  /** @deprecated Read from sessions.get(activeSessionKey) */
-  messages: ChatMessage[];
-  /** @deprecated Read from sessions.get(activeSessionKey) */
-  isStreaming: boolean;
-  /** @deprecated Use activeSessionKey */
-  activeSessionId: string | null;
-  /** @deprecated Use sessionMeta */
-  sessions_legacy: Array<{
-    key: string;
-    sessionId?: string;
-    agentId?: string;
-    title?: string;
-    lastMessage?: string;
-    updatedAt?: number;
-  }>;
-  /** @deprecated Read from sessions.get(activeSessionKey) */
-  error: string | null;
-  /** @deprecated Read from sessions.get(activeSessionKey) */
-  activeApproval: ApprovalRequest | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -160,14 +102,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   activeAgentId: null,
   sessionMeta: [],
 
-  // ---- Backward-compatible computed properties ----
-  messages: [],
-  isStreaming: false,
-  activeSessionId: null,
-  sessions_legacy: [],
-  error: null,
-  activeApproval: null,
-
   // ---- Session-scoped actions ----
 
   ensureSession(key: string) {
@@ -197,7 +131,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return { ...s, messages: [...s.messages, msg] };
     });
     set({ sessions: newSessions });
-    syncCompatFields(set, get);
   },
 
   updateStreamingBlocks(sessionKey: string, runId: string, blocks: ContentBlock[]) {
@@ -208,7 +141,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         messages: s.messages.map((m) => (m.id === runId ? { ...m, content: blocks } : m)),
       })),
     });
-    syncCompatFields(set, get);
   },
 
   finalizeStreamingMessage(sessionKey: string, runId: string) {
@@ -219,7 +151,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         messages: s.messages.map((m) => (m.id === runId ? { ...m, streaming: false } : m)),
       })),
     });
-    syncCompatFields(set, get);
   },
 
   replaceMessageContent(sessionKey: string, messageId: string, blocks: ContentBlock[]) {
@@ -232,7 +163,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         ),
       })),
     });
-    syncCompatFields(set, get);
   },
 
   setMessages(sessionKey: string, msgs: ChatMessage[]) {
@@ -256,7 +186,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         return { ...s, messages: [...msgs, ...uniqueSseMessages] };
       }),
     });
-    syncCompatFields(set, get);
   },
 
   setStreaming(sessionKey: string, streaming: boolean, runId?: string) {
@@ -269,7 +198,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         status: streaming ? "active" : "idle",
       })),
     });
-    syncCompatFields(set, get);
   },
 
   setError(sessionKey: string, error: string | null) {
@@ -280,7 +208,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         error,
       })),
     });
-    syncCompatFields(set, get);
   },
 
   setActiveApproval(sessionKey: string, approval: ApprovalRequest | null) {
@@ -291,7 +218,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         activeApproval: approval,
       })),
     });
-    syncCompatFields(set, get);
   },
 
   updateToolProgress(sessionKey: string, toolUseId: string, progress: Partial<ToolProgress>) {
@@ -321,8 +247,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   setActiveSession(key: string | null) {
     if (key === null) {
-      set({ activeSessionKey: null, activeSessionId: null });
-      syncCompatFields(set, get);
+      set({ activeSessionKey: null });
       return;
     }
 
@@ -331,7 +256,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       // Cache hit — update lastAccessedAt
       set({
         activeSessionKey: key,
-        activeSessionId: key,
         sessions: updateSession(sessions, key, (s) => ({
           ...s,
           lastAccessedAt: Date.now(),
@@ -343,11 +267,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       newMap.set(key, createEmptySessionState());
       set({
         activeSessionKey: key,
-        activeSessionId: key,
         sessions: newMap,
       });
     }
-    syncCompatFields(set, get);
   },
 
   setActiveAgent(agentId: string | null) {
@@ -366,7 +288,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       sessions: newMap,
       sessionMeta: sessionMeta.filter((m) => m.key !== key),
     });
-    syncCompatFields(set, get);
   },
 
   setSessionMeta(meta: SessionMeta[]) {
@@ -432,99 +353,4 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
     set({ sessions: newMap });
   },
-
-  // ---- Backward-compatible actions (compatibility bridge) ----
-
-  addMessageCompat(msg: ChatMessage) {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().addMessage(key, msg);
-  },
-
-  updateStreamingBlocksCompat(id: string, blocks: ContentBlock[]) {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().updateStreamingBlocks(key, id, blocks);
-  },
-
-  replaceMessageContentCompat(id: string, blocks: ContentBlock[]) {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().replaceMessageContent(key, id, blocks);
-  },
-
-  finalizeStreamingMessageCompat(id: string) {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().finalizeStreamingMessage(key, id);
-  },
-
-  setMessagesCompat(msgs: ChatMessage[]) {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().setMessages(key, msgs);
-  },
-
-  setIsStreaming(streaming: boolean) {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().setStreaming(key, streaming);
-  },
-
-  setErrorCompat(error: string | null) {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().setError(key, error);
-  },
-
-  setActiveApprovalCompat(approval: ApprovalRequest | null) {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().setActiveApproval(key, approval);
-  },
-
-  setSessions(sessions) {
-    // Bridge: convert old SessionInfo[] to sessionMeta + sessions_legacy
-    set({ sessions_legacy: sessions });
-  },
-
-  clearMessages() {
-    const { activeSessionKey } = get();
-    const key = activeSessionKey ?? "_default";
-    get().setMessages(key, []);
-  },
-
-  selectSkill(sessionId: string) {
-    get().setActiveSession(sessionId);
-  },
 }));
-
-// ---------------------------------------------------------------------------
-// Sync compatibility fields from active session to flat store properties.
-// Called after every session-scoped mutation so that old selectors
-// (e.g., `useChatStore(s => s.messages)`) continue to work.
-// ---------------------------------------------------------------------------
-
-function syncCompatFields(set: (partial: Partial<ChatStore>) => void, get: () => ChatStore) {
-  const { activeSessionKey, sessions } = get();
-  const active = activeSessionKey ? sessions.get(activeSessionKey) : undefined;
-  set({
-    messages: active?.messages ?? [],
-    isStreaming: active?.isStreaming ?? false,
-    error: active?.error ?? null,
-    activeApproval: active?.activeApproval ?? null,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Compatibility bridge helper (exported for un-migrated components)
-// ---------------------------------------------------------------------------
-
-/** @deprecated Use session-scoped selectors instead */
-export function getActiveSession(): SessionState | undefined {
-  const state = useChatStore.getState();
-  if (!state.activeSessionKey) {
-    return undefined;
-  }
-  return state.sessions.get(state.activeSessionKey);
-}

@@ -15,7 +15,7 @@ export function DocHubPanel() {
   const t = useTranslations("docs");
   const tc = useTranslations("common");
   const { loading, error, fetchDocs, extractDocs, searchQuery, setSearchQuery } = useDocsStore();
-  const activeSessionId = useChatStore((s) => s.activeSessionId);
+  const activeSessionId = useChatStore((s) => s.activeSessionKey);
 
   useEffect(() => {
     void fetchDocs();

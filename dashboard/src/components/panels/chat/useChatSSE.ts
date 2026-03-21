@@ -265,7 +265,7 @@ export function dispatchAgentEvent(payload: AgentEventPayload): void {
     };
 
     // Append the tool_use block alongside any existing text blocks.
-    // Use updateStreamingBlocks (via store action) to ensure syncCompatFields runs.
+    // Use updateStreamingBlocks (via store action) to update the session Map immutably.
     const msg = sess.messages.find((m) => m.id === streamingRunId);
     if (!msg) {
       return;

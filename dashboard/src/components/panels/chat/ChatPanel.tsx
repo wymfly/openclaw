@@ -32,7 +32,7 @@ const TOOL_RESULT_TYPES = new Set(["tool_result", "tool_result_error"]);
 type GatewayMessage = { role: string; content: Record<string, unknown>[]; timestamp?: number };
 
 /** Convert a Gateway history message to the UI ChatMessage shape, mapping all content block types. */
-function toUiMessage(msg: GatewayMessage, index: number): ChatMessage {
+function toUiMessage(sessionKey: string, msg: GatewayMessage, index: number): ChatMessage {
   const blocks: ContentBlock[] = (msg.content ?? []).map((block) => {
     const type = ((block.type as string) ?? "text").toLowerCase();
     if (type === "text") {
@@ -69,7 +69,7 @@ function toUiMessage(msg: GatewayMessage, index: number): ChatMessage {
     return { type: "text" as const, text: JSON.stringify(block) };
   });
   return {
-    id: `hist-${index}`,
+    id: `${sessionKey}:${msg.timestamp ?? Date.now()}:${index}`,
     role: msg.role as ChatMessage["role"],
     content: blocks.length > 0 ? blocks : [{ type: "text", text: "" }],
     timestamp: msg.timestamp ?? Date.now(),
@@ -162,7 +162,10 @@ export function ChatPanel() {
         }
         const list = Array.isArray(data) ? data : data.messages;
         if (Array.isArray(list)) {
-          useChatStore.getState().setMessages(activeSessionKey, list.map(toUiMessage));
+          useChatStore.getState().setMessages(
+            activeSessionKey,
+            list.map((msg, i) => toUiMessage(activeSessionKey, msg, i)),
+          );
         }
       })
       .catch(() => {});
