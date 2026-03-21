@@ -95,20 +95,63 @@ export function detectArtifact(
   return null;
 }
 
+/** Count logical CSV fields in a line, respecting quoted fields. */
+function countCSVFields(line: string): number {
+  let count = 1;
+  let inQuotes = false;
+  for (const ch of line) {
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === "," && !inQuotes) {
+      count++;
+    }
+  }
+  return count;
+}
+
 function isLikelyCSV(content: string): boolean {
   const lines = content.split("\n").filter((l) => l.trim());
   if (lines.length < 3) {
     return false;
   }
-  const counts = lines.slice(0, 5).map((l) => (l.match(/,/g) || []).length);
-  return counts[0] > 0 && counts.every((c) => c === counts[0]);
+  const counts = lines.slice(0, 5).map(countCSVFields);
+  return counts[0] > 1 && counts.every((c) => c === counts[0]);
 }
 
 function isLikelyMarkdown(content: string): boolean {
   const trimmed = content.trimStart();
+  // Heading at start is a strong signal on its own
   if (/^#{1,3}\s/.test(trimmed)) {
     return true;
   }
-  const mdPatterns = /\*\*|__|\[.*\]\(.*\)|- \[[ x]\]/;
-  return mdPatterns.test(content) && content.length > 80;
+  if (content.length < 80) {
+    return false;
+  }
+  // Require at least 2 distinct markdown patterns for non-heading content
+  let patterns = 0;
+  if (/\*\*[^*]+\*\*/.test(content)) {
+    patterns++;
+  }
+  if (/__[^_]+__/.test(content)) {
+    patterns++;
+  }
+  if (/\[.+\]\(.+\)/.test(content)) {
+    patterns++;
+  }
+  if (/- \[[ x]\]/.test(content)) {
+    patterns++;
+  }
+  if (/^[-*+]\s/m.test(content)) {
+    patterns++;
+  }
+  if (/^\d+\.\s/m.test(content)) {
+    patterns++;
+  }
+  if (/^>\s/m.test(content)) {
+    patterns++;
+  }
+  if (/```[\s\S]*?```/.test(content)) {
+    patterns++;
+  }
+  return patterns >= 2;
 }
