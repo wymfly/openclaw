@@ -37,7 +37,7 @@ Gateway 端 A2UI 渲染引擎完整：
 
 1. **iframe 隔离** —— A2UI 内容在沙箱 iframe 中渲染，与 Deck 主应用完全隔离
 2. **与原生客户端对齐** —— 复用同一个渲染引擎，行为与 macOS/iOS/Android 一致
-3. **Gateway 零改动** —— 所有变更限制在 Deck 前端（`dashboard/`）
+3. **Gateway 最小改动** —— 核心变更在 Deck 前端（`dashboard/`），Gateway 仅需在 A2UI 广播中注入 `sessionKey`（见§四 Issue 1）
 4. **统一面板** —— Canvas 和 Artifact 共用右侧抽拉面板，互斥显示
 
 ## 约束
@@ -130,40 +130,102 @@ iframe → Deck:
 
 ### iframe 端桥接脚本
 
-iframe 加载 `/__openclaw__/a2ui/?bridge=postMessage` 时，注入桥接脚本替代原生 WebView bridge：
+Gateway 的 `/__openclaw__/a2ui/` 端点不支持 `?bridge=postMessage` 参数。因此 Deck Server 需要提供一个**代理端点** `/api/canvas/host`，该端点：
+
+1. 从 Gateway 获取 `/__openclaw__/a2ui/index.html` 内容
+2. 在 `</body>` 前注入 postMessage 桥接脚本（与 Gateway 的 `injectCanvasLiveReload` 模式一致）
+3. 返回修改后的 HTML
+
+桥接脚本内容（注入到 index.html）：
 
 ```javascript
-// 监听来自 Deck 的消息
+// postMessage 桥接 —— 替代原生 WebView bridge
+(() => {
+  const DECK_ORIGIN = window.location.ancestorOrigins?.[0] ?? "*";
+
+  // 监听来自 Deck 的消息
+  window.addEventListener("message", (e) => {
+    // origin 校验：只接受来自 Deck 父窗口的消息
+    if (DECK_ORIGIN !== "*" && e.origin !== DECK_ORIGIN) return;
+
+    if (e.data?.type === "a2ui:push") {
+      openclawA2UI.applyMessages(e.data.messages);
+      // 推送 surfaces 变更
+      window.parent.postMessage(
+        { type: "a2ui:surfaces-changed", surfaces: openclawA2UI.getSurfaces() },
+        DECK_ORIGIN,
+      );
+    } else if (e.data?.type === "a2ui:reset") {
+      openclawA2UI.reset();
+    } else if (e.data?.type === "a2ui:action-status") {
+      window.dispatchEvent(
+        new CustomEvent("openclaw:a2ui-action-status", {
+          detail: { id: e.data.id, ok: e.data.ok, error: e.data.error },
+        }),
+      );
+    } else if (e.data?.type === "a2ui:get-tree") {
+      // Tree tab 请求组件树 —— 通过遍历 shadow DOM 提取
+      const host = document.querySelector("openclaw-a2ui-host");
+      const tree = host ? extractComponentTree(host) : null;
+      window.parent.postMessage({ type: "a2ui:tree-data", tree }, DECK_ORIGIN);
+    }
+  });
+
+  // 替代原生 bridge，用 postMessage 回传 userAction
+  window.openclawCanvasA2UIAction = {
+    postMessage: (payload) => {
+      const parsed = JSON.parse(payload);
+      window.parent.postMessage(
+        { type: "a2ui:action", userAction: parsed.userAction ?? parsed },
+        DECK_ORIGIN,
+      );
+    },
+  };
+
+  // 从 shadow DOM 提取组件树（用于 Debug Tree tab）
+  function extractComponentTree(host) {
+    try {
+      const surfaces = host.shadowRoot?.querySelector("#surfaces");
+      if (!surfaces) return null;
+      const surfaceEls = surfaces.querySelectorAll("a2ui-surface");
+      return Array.from(surfaceEls).map((el) => ({
+        surfaceId: el.surfaceId ?? "unknown",
+        // 组件树的详细提取在实现时完善
+        componentCount: el.shadowRoot?.querySelectorAll("[data-component-id]")?.length ?? 0,
+      }));
+    } catch {
+      return null;
+    }
+  }
+
+  window.parent.postMessage({ type: "a2ui:ready" }, DECK_ORIGIN);
+})();
+```
+
+### Deck 端 message 监听
+
+```typescript
+// A2UIBridge.attach() 中注册
 window.addEventListener("message", (e) => {
-  if (e.data?.type === "a2ui:push") {
-    openclawA2UI.applyMessages(e.data.messages);
-    // 推送 surfaces 变更
-    window.parent.postMessage(
-      {
-        type: "a2ui:surfaces-changed",
-        surfaces: openclawA2UI.getSurfaces(),
-      },
-      "*",
-    );
-  } else if (e.data?.type === "a2ui:reset") {
-    openclawA2UI.reset();
-  } else if (e.data?.type === "a2ui:action-status") {
-    window.dispatchEvent(
-      new CustomEvent("openclaw:a2ui-action-status", {
-        detail: { id: e.data.id, ok: e.data.ok, error: e.data.error },
-      }),
-    );
+  // origin 校验：只接受来自 iframe 的消息
+  if (e.origin !== new URL(iframeSrc).origin) return;
+
+  switch (e.data?.type) {
+    case "a2ui:ready":
+      bridge.onReady();
+      break;
+    case "a2ui:action":
+      // 提取 userAction 对象（bundle 包裹在 { userAction: {...} } 中）
+      bridge.onUserAction(e.data.userAction);
+      break;
+    case "a2ui:surfaces-changed":
+      bridge.onSurfacesChanged(e.data.surfaces);
+      break;
+    case "a2ui:tree-data":
+      bridge.onTreeData?.(e.data.tree);
+      break;
   }
 });
-
-// 替代原生 bridge，用 postMessage 回传 userAction
-window.openclawCanvasA2UIAction = {
-  postMessage: (payload) => {
-    window.parent.postMessage({ type: "a2ui:action", ...JSON.parse(payload) }, "*");
-  },
-};
-
-window.parent.postMessage({ type: "a2ui:ready" }, "*");
 ```
 
 ### userAction 回传（移植自原生客户端）
@@ -265,7 +327,7 @@ interface RightPanelState {
 - **手动收起** —— 点击 › 按钮收起，Chat 恢复全宽
 - **手动展开** —— 点击收起态的 ‹ 按钮重新展开
 - **可拖拽分割线** —— 自由调节 Chat / Panel 宽度比例，localStorage 记忆
-- **自动隐藏** —— Agent 发送 `canvas.hide` 或 reset 时面板自动收起
+- **自动隐藏** —— surfaces 列表变为空时（所有 surface 被 `deleteSurface` 或 `a2ui_reset`）面板自动收起
 
 ### 响应式断点
 
@@ -279,37 +341,63 @@ interface RightPanelState {
 
 ## 四、A2UIState 扩展与 dispatchA2UIEvent 修正
 
-### A2UIState 扩展
+### Issue 1：Gateway A2UI 广播不含 sessionKey
+
+Gateway 的 `nodes.handlers.invoke-result.ts` 广播 A2UI 事件时只注入 `__invokeId` 和 `__nodeId`，不含 `sessionKey`。而 chat 事件（`server-methods/chat.ts`）则包含 `sessionKey`。
+
+**解决方案：Gateway 小改动**（设计原则 3 从"零改动"调整为"最小改动"）
+
+在 `nodes.handlers.invoke-result.ts` 的 A2UI 广播中注入 `sessionKey`：
 
 ```typescript
+// nodes.handlers.invoke-result.ts — 修改 broadcast 调用
+const scopedEvent =
+  event && typeof event === "object"
+    ? { ...event, __invokeId: p.id, __nodeId: p.nodeId, sessionKey: context.sessionKey }
+    : event;
+context.broadcast("a2ui", scopedEvent);
+```
+
+这是一行代码的改动，`context.sessionKey` 在 Gateway 的 invoke handler 上下文中已可用。
+
+**降级方案：** 如果 Gateway 改动不可行，Deck 端可降级为将无 `sessionKey` 的 A2UI 事件归属到 `activeSessionKey`（当前活跃 session）。但这会导致后台 session 的 A2UI 事件被错误归属。
+
+### A2UIState 扩展
+
+新增字段使用**独立 store actions 管理**，不通过 `setA2UIState` 全量替换。`setA2UIState` 保持现有签名的 merge 语义：
+
+```typescript
+// A2UIState 保持向后兼容 —— 新字段全部可选，有默认值
 interface A2UIState {
   url: string;
   visible: boolean;
-  bridgeStatus: "connecting" | "ready" | "error";
-  eventLog: A2UIEvent[]; // 环形缓冲区，最多 200 条
-  surfaces: string[]; // 当前 surface 列表
+  bridgeStatus?: "connecting" | "ready" | "error"; // default: undefined (未初始化)
+  eventLog?: A2UIEvent[]; // default: undefined → [] (由独立 action 管理)
+  surfaces?: string[]; // default: undefined → [] (由独立 action 管理)
 }
 
 interface A2UIEvent {
   timestamp: number;
   direction: "inbound" | "outbound";
-  action: string; // surfaceUpdate / beginRendering / userAction 等
-  summary: string; // 人类可读摘要
-  raw: unknown; // 原始 payload，Debug 面板可展开查看
+  action: string;
+  summary: string;
+  raw: unknown;
 }
 ```
 
-### dispatchA2UIEvent payload 修正
+**向后兼容：**
 
-当前 payload 类型（`{url, visible}`）与 Gateway 实际广播不匹配。修正为：
+- `createEmptySessionState()` 保持 `a2uiState: null` 不变
+- 现有 `setA2UIState(sessionKey, {url, visible})` 调用不需要修改
+- 新字段通过独立 actions 管理，不在 `setA2UIState` 中设置
+
+### dispatchA2UIEvent payload 修正
 
 ```typescript
 export type A2UIEventPayload = {
   sessionKey?: string;
-  // Gateway 广播的原始 A2UI JSONL 事件字段
   __invokeId?: string;
   __nodeId?: string;
-  // 以下为 JSONL action —— 恰好有一个
   surfaceUpdate?: unknown;
   beginRendering?: unknown;
   dataModelUpdate?: unknown;
@@ -321,7 +409,8 @@ export type A2UIEventPayload = {
 
 ```typescript
 export function dispatchA2UIEvent(payload: A2UIEventPayload): void {
-  const sessionKey = payload.sessionKey;
+  // Issue 1 降级：无 sessionKey 时归属到 activeSession
+  const sessionKey = payload.sessionKey ?? useChatStore.getState().activeSessionKey;
   if (!sessionKey) return;
 
   useChatStore.getState().ensureSession(sessionKey);
@@ -335,30 +424,32 @@ export function dispatchA2UIEvent(payload: A2UIEventPayload): void {
     raw: payload,
   };
 
-  // 2. 追加到 eventLog（环形缓冲区）
+  // 2. 追加到 eventLog（环形缓冲区，由独立 action 管理）
   useChatStore.getState().appendA2UIEvent(sessionKey, event);
 
-  // 3. 设置 visible=true（自动展开面板）
+  // 3. 仅设置 visible=true（merge 语义，不触碰 eventLog/surfaces/bridgeStatus）
   const current = useChatStore.getState().sessions.get(sessionKey)?.a2uiState;
-  useChatStore.getState().setA2UIState(sessionKey, {
-    url: current?.url ?? "",
-    visible: true,
-    bridgeStatus: current?.bridgeStatus ?? "connecting",
-    eventLog: current?.eventLog ?? [],
-    surfaces: current?.surfaces ?? [],
-  });
+  if (!current?.visible) {
+    useChatStore.getState().setA2UIState(sessionKey, {
+      url: current?.url ?? "",
+      visible: true,
+    });
+  }
 
   // 4. A2UIBridge 推送由 CanvasPanel 组件通过 React effect 完成
-  //    store 更新 → 组件检测新事件 → postMessage 到 iframe
 }
 ```
 
 ### 新增 store actions
 
 ```typescript
+// 独立管理 A2UIState 的各个子字段，避免全量替换导致的覆盖问题
 appendA2UIEvent(sessionKey: string, event: A2UIEvent): void;
+  // 追加到 eventLog 数组，超过 200 条时淘汰最早的
 updateA2UIBridgeStatus(sessionKey: string, status: "connecting" | "ready" | "error"): void;
+  // 仅更新 bridgeStatus 字段
 updateA2UISurfaces(sessionKey: string, surfaces: string[]): void;
+  // 仅更新 surfaces 字段
 ```
 
 ---
@@ -367,7 +458,7 @@ updateA2UISurfaces(sessionKey: string, surfaces: string[]): void;
 
 ```
      ┌──────────┐
-     │  hidden  │ ← 默认 / canvas.hide / reset / 用户手动收起
+     │  hidden  │ ← 默认 / surfaces 清空 / 用户手动收起
      └────┬─────┘
           │ Agent a2ui_push 或用户手动展开
           ▼
@@ -448,10 +539,12 @@ Canvas 底部可折叠区域，点击 "Debug" 按钮切换显示。
 
 ### 数据来源
 
-Tree tab 需要从 iframe 获取组件树信息。通过扩展 postMessage 协议实现：
+A2UI bundle 仅暴露 `openclawA2UI.getSurfaces()` 返回 surface ID 列表（string[]），不暴露组件树结构。Tree tab 的数据通过**桥接脚本遍历 shadow DOM** 获取（见§二桥接脚本中的 `extractComponentTree`）：
 
-- 每次 `applyMessages` 后，iframe 端 postMessage `surfaces-changed`
-- Deck 可主动请求 `{ type: "a2ui:get-tree" }` → iframe 回复完整组件树
+- 每次 `applyMessages` 后，iframe postMessage `surfaces-changed`（surface ID 列表）
+- Deck 主动请求 `{ type: "a2ui:get-tree" }` → 桥接脚本遍历 `<openclaw-a2ui-host>` 和 `<a2ui-surface>` 的 shadow DOM → 回复组件树
+
+**注意：** shadow DOM 遍历依赖 bundle 内部结构，可能在 bundle 更新时失效。Tree tab 应具备优雅降级 —— 遍历失败时显示 "Component tree unavailable" 而非报错。组件树的详细提取逻辑在实现阶段根据 bundle 实际 DOM 结构完善。
 
 ---
 
@@ -477,9 +570,9 @@ Tree tab 需要从 iframe 获取组件树信息。通过扩展 postMessage 协�
 interface ArtifactInfo {
   id: string;
   title: string;
-  language: "html" | "mermaid" | "svg" | "json" | "markdown" | "csv" | "code";
+  language: "html" | "mermaid" | "svg" | "json" | "markdown" | "csv" | "code" | "text";
   content: string;
-  codeLang?: string; // language=code 时的语言标识
+  codeLang?: string; // language=code 时的语言标识（"text" 保留用于向后兼容）
   source?: {
     toolName?: string; // 产生此 artifact 的工具名
     fileName?: string; // 文件名（从 tool_use input 推断）
@@ -551,7 +644,56 @@ interface ChatBlockPreferences {
 
 ---
 
-## 十、测试策略
+## 十、i18n Keys
+
+所有新增用户可见文字的 i18n key（`chat` 命名空间，需同步 `zh.json` + `en.json`）：
+
+### Canvas 面板
+
+| Key              | zh                     | en                                   |
+| ---------------- | ---------------------- | ------------------------------------ |
+| `canvasTitle`    | Canvas                 | Canvas                               |
+| `canvasLoading`  | 加载 Canvas...         | Loading Canvas...                    |
+| `canvasEmpty`    | 等待 Agent 推送内容... | Waiting for agent to push content... |
+| `canvasError`    | Canvas 加载失败        | Canvas failed to load                |
+| `canvasRetry`    | 重试                   | Retry                                |
+| `canvasCollapse` | 收起                   | Collapse                             |
+| `canvasExpand`   | 展开                   | Expand                               |
+
+### Debug 面板
+
+| Key                    | zh                 | en                         |
+| ---------------------- | ------------------ | -------------------------- |
+| `debugTitle`           | 调试               | Debug                      |
+| `debugMessages`        | 消息               | Messages                   |
+| `debugTree`            | 组件树             | Tree                       |
+| `debugClear`           | 清除               | Clear                      |
+| `debugEvents`          | {count} 个事件     | {count} events             |
+| `debugSurfaces`        | {count} 个 Surface | {count} surfaces           |
+| `debugNodes`           | {count} 个节点     | {count} nodes              |
+| `debugTreeUnavailable` | 组件树不可用       | Component tree unavailable |
+
+### Block 过滤
+
+| Key              | zh   | en       |
+| ---------------- | ---- | -------- |
+| `filterThinking` | 思考 | Thinking |
+| `filterTools`    | 工具 | Tools    |
+| `filterResults`  | 结果 | Results  |
+
+### Artifact 渲染器
+
+| Key                | zh          | en          |
+| ------------------ | ----------- | ----------- |
+| `artifactJson`     | JSON 查看器 | JSON Viewer |
+| `artifactCsv`      | 表格        | Table       |
+| `artifactMarkdown` | Markdown    | Markdown    |
+| `artifactCode`     | 代码        | Code        |
+| `artifactLoadMore` | 加载更多    | Load more   |
+
+---
+
+## 十一、测试策略
 
 | 层                     | 测试内容                                                          | 方式                                   |
 | ---------------------- | ----------------------------------------------------------------- | -------------------------------------- |
@@ -567,7 +709,7 @@ interface ChatBlockPreferences {
 
 ---
 
-## 十一、P0/P1 划分
+## 十二、P0/P1 划分
 
 ### P0（首版必须有）
 
