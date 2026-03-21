@@ -13,7 +13,7 @@ import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
 import { ToolProgressBar } from "./ToolProgressBar";
-import { useSSEConnection } from "./useChatSSE";
+import { dispatchApproval, useSSEConnection } from "./useChatSSE";
 
 // ---------------------------------------------------------------------------
 // Artifact context — lets ToolResultCard open the panel without prop drilling
@@ -186,6 +186,28 @@ export function ChatPanel() {
       cancelled = true;
     };
   }, [activeSessionKey, activeAgentId]);
+
+  // Restore pending approvals on mount (refresh recovery)
+  useEffect(() => {
+    void fetch("/api/approvals/pending")
+      .then((r) => r.json())
+      .then((data: { pending?: Array<Record<string, unknown>> }) => {
+        const pending = data.pending;
+        if (!Array.isArray(pending)) {
+          return;
+        }
+        for (const approval of pending) {
+          // PendingApproval has `command` but not `toolName`;
+          // dispatchApproval falls back: toolName ?? command ?? "unknown"
+          dispatchApproval({
+            sessionKey: (approval.sessionKey as string) ?? "",
+            id: (approval.id as string) ?? "",
+            command: (approval.command as string) ?? "",
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="flex h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
