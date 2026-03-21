@@ -18,7 +18,18 @@ export function loadBlockPreferences(): ChatBlockPreferences {
     if (!raw) {
       return { ...DEFAULTS };
     }
-    return { ...DEFAULTS, ...JSON.parse(raw) };
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) {
+      return { ...DEFAULTS };
+    }
+    const obj = parsed as Record<string, unknown>;
+    return {
+      showThinking:
+        typeof obj.showThinking === "boolean" ? obj.showThinking : DEFAULTS.showThinking,
+      showToolUse: typeof obj.showToolUse === "boolean" ? obj.showToolUse : DEFAULTS.showToolUse,
+      showToolResult:
+        typeof obj.showToolResult === "boolean" ? obj.showToolResult : DEFAULTS.showToolResult,
+    };
   } catch {
     return { ...DEFAULTS };
   }

@@ -26,9 +26,33 @@ describe("detectArtifact enhanced", () => {
     expect(detectArtifact(csv)?.language).toBe("csv");
   });
 
-  it("detects Markdown", () => {
+  it("detects CSV with quoted fields containing commas (B7)", () => {
+    const csv =
+      'name,city,note\nAlice,"New York, NY","has a comma"\nBob,"San Francisco, CA","also commas"';
+    expect(detectArtifact(csv)?.language).toBe("csv");
+  });
+
+  it("rejects inconsistent CSV when quotes are mishandled", () => {
+    // 3 fields in header, but varying raw comma counts without quote awareness
+    const notCsv = "a,b,c\n1,2\n3,4,5,6";
+    expect(detectArtifact(notCsv)).toBeNull(); // too few lines or inconsistent fields
+  });
+
+  it("detects Markdown with heading", () => {
     const md = "# Title\n\nThis is a **bold** paragraph.\n\n- Item 1\n- Item 2";
     expect(detectArtifact(md)?.language).toBe("markdown");
+  });
+
+  it("detects Markdown with multiple patterns but no heading (B2)", () => {
+    const md =
+      "This is a **bold** paragraph with [a link](https://example.com) and more text to pad out the length beyond eighty characters for detection.";
+    expect(detectArtifact(md)?.language).toBe("markdown");
+  });
+
+  it("rejects text with only one markdown pattern (B2)", () => {
+    const prose =
+      "This is some normal text that happens to contain **one bold phrase** but nothing else that looks like markdown formatting at all in this line.";
+    expect(detectArtifact(prose)).toBeNull();
   });
 
   it("returns null for short text", () => {
