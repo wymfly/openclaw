@@ -79,7 +79,10 @@
     "approvalAllowAlways": "始终允许",
     "approvalExpired": "审批已过期",
     "toolsRunning": "{count} 个工具执行中",
-    "toolsCompleted": "工具执行完成"
+    "toolsCompleted": "工具执行完成",
+    "filterThinking": "思考",
+    "filterTools": "工具调用",
+    "filterResults": "工具结果"
   },
   "gateway": {
     "title": "网关概览",
