@@ -12,6 +12,7 @@ import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
+import { ToolProgressBar } from "./ToolProgressBar";
 import { useSSEConnection } from "./useChatSSE";
 
 // ---------------------------------------------------------------------------
@@ -220,6 +221,7 @@ export function ChatPanel() {
         <ArtifactContext.Provider value={{ onOpenArtifact: setActiveArtifact }}>
           <MessageList />
         </ArtifactContext.Provider>
+        <ToolProgressBar />
         {activeApproval && (
           <ApprovalDialog
             approval={activeApproval}
