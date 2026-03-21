@@ -2,14 +2,17 @@
 
 import { Save, RefreshCw, Settings } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { computeConfigDiff } from "@/lib/config-diff";
+import type { DiffEntry } from "@/lib/config-diff";
 import { parseSchemaSection, type FormField } from "@/lib/schema-parser";
 import { applyUiHints, type UiHintsMap } from "@/lib/ui-hints";
 import { useConfigStore } from "@/stores/config";
 import { ConflictDialog } from "./ConflictDialog";
+import { DiffPreviewDialog } from "./DiffPreviewDialog";
 import { validateField } from "./fields/FieldValidation";
 import { SchemaForm } from "./SchemaForm";
 import { SectionNav } from "./SectionNav";
@@ -26,6 +29,7 @@ export function ConfigPanel() {
   const {
     schema,
     uiHints,
+    rawConfig,
     editedConfig,
     isDirty,
     saving,
@@ -40,6 +44,10 @@ export function ConfigPanel() {
     saveConfig,
     reloadConfig,
   } = useConfigStore();
+
+  const [showDiffPreview, setShowDiffPreview] = useState(false);
+  const [diffEntries, setDiffEntries] = useState<DiffEntry[]>([]);
+  const [skipDiffPreview, setSkipDiffPreview] = useState(false);
 
   useEffect(() => {
     void fetchSchema();
@@ -169,8 +177,34 @@ export function ConfigPanel() {
     if (hasValidationErrors) {
       return;
     }
-    void saveConfig();
-  }, [saveConfig, hasValidationErrors]);
+
+    if (skipDiffPreview) {
+      void saveConfig();
+      return;
+    }
+
+    try {
+      const oldObj = JSON.parse(rawConfig || "{}") as Record<string, unknown>;
+      const newObj = JSON.parse(editedConfig || "{}") as Record<string, unknown>;
+      const entries = computeConfigDiff(oldObj, newObj);
+
+      if (entries.length === 0) {
+        void saveConfig();
+        return;
+      }
+
+      // Single-field change: skip full dialog, save directly
+      if (entries.length === 1) {
+        void saveConfig();
+        return;
+      }
+
+      setDiffEntries(entries);
+      setShowDiffPreview(true);
+    } catch {
+      void saveConfig();
+    }
+  }, [rawConfig, editedConfig, saveConfig, skipDiffPreview, hasValidationErrors]);
 
   const handleReload = useCallback(() => {
     void reloadConfig();
@@ -253,6 +287,19 @@ export function ConfigPanel() {
         <ConflictDialog
           onReload={handleReload}
           onCancel={() => useConfigStore.setState({ conflict: false })}
+        />
+      )}
+
+      {/* Diff preview dialog */}
+      {showDiffPreview && (
+        <DiffPreviewDialog
+          entries={diffEntries}
+          onConfirm={() => {
+            setShowDiffPreview(false);
+            void saveConfig();
+          }}
+          onCancel={() => setShowDiffPreview(false)}
+          onDontShowAgain={() => setSkipDiffPreview(true)}
         />
       )}
     </div>
