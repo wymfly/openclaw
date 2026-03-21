@@ -122,9 +122,41 @@ export interface A2UIEvent {
 export const MAX_A2UI_EVENT_LOG = 200;
 ```
 
-- [ ] **Step 2: 新增 store actions**
+- [ ] **Step 2: 修改 setA2UIState 为 merge 语义 + 新增 store actions**
 
-在 `dashboard/src/stores/chat.ts` 的 ChatStore interface 和 create() 中新增：
+**⚠️ Codex P1 修复：** 当前 `setA2UIState` 是整对象替换（`chat.ts:245`），会覆盖 `eventLog/bridgeStatus/surfaces`。必须改为 merge 语义。
+
+在 `dashboard/src/stores/chat.ts` 中：
+
+**2a. 修改现有 `setA2UIState` 为 merge 语义：**
+
+```typescript
+// Before (整对象替换):
+setA2UIState(sessionKey: string, state: A2UIState | null) {
+  const { sessions } = get();
+  set({
+    sessions: updateSession(sessions, sessionKey, (s) => ({
+      ...s,
+      a2uiState: state,
+    })),
+  });
+},
+
+// After (merge 语义，null 时清空):
+setA2UIState(sessionKey: string, state: Partial<A2UIState> | null) {
+  const { sessions } = get();
+  set({
+    sessions: updateSession(sessions, sessionKey, (s) => ({
+      ...s,
+      a2uiState: state === null ? null : { ...(s.a2uiState ?? { url: "", visible: false }), ...state },
+    })),
+  });
+},
+```
+
+同步更新 ChatStore interface 签名：`setA2UIState: (sessionKey: string, state: Partial<A2UIState> | null) => void;`
+
+**2b. 新增 store actions（ChatStore interface + implementation）：**
 
 ```typescript
 // Interface
@@ -732,13 +764,24 @@ git commit -m "[enhanced] feat(deck): implement A2UIBridge + message formatting 
 
 ## Task 3: Canvas Host 代理端点（Group A）
 
+**⚠️ Codex P1 修复 (A-P1-2 + A-P1-3)：**
+
+- `getGatewayBaseUrl` 不存在——改为从 `runtime.ts:resolveGatewaySettings()` 读取 WS URL 并转 HTTP
+- 单 HTML 代理改为**通配符路径代理**——覆盖 `a2ui.bundle.js` 等静态资源
+- 新增 Gateway token 鉴权 + SSRF 防护 + 超时 + 响应大小限制
+
 **Files:**
 
-- Create: `dashboard/src/app/api/canvas/host/route.ts`
+- Create: `dashboard/src/lib/gateway-http.ts`（Gateway HTTP URL 解析 helper）
+- Create: `dashboard/src/app/api/canvas/[...path]/route.ts`（通配符代理端点）
 
-- [ ] **Step 1: 实现代理端点**
+- [ ] **Step 1: 实现 Gateway HTTP URL helper**
 
-创建 `dashboard/src/app/api/canvas/host/route.ts`：
+创建 `dashboard/src/lib/gateway-http.ts`——从 runtime settings 中获取 Gateway HTTP base URL（WS→HTTP 转换）和 token。实现时先读 `dashboard/server/runtime.ts:resolveGatewaySettings()` 确认实际获取方式。
+
+- [ ] **Step 2: 实现通配符代理端点**
+
+创建 `dashboard/src/app/api/canvas/[...path]/route.ts`：
 
 ```typescript
 import { NextResponse } from "next/server";
@@ -814,17 +857,26 @@ export async function GET() {
 }
 ```
 
-注意：需要确认 `getGatewayBaseUrl` 的实际导入路径——如果不存在，在 task 中查找 Gateway URL 的获取方式并对应调整。
+代理端点关键要求：
 
-- [ ] **Step 2: 验证端点**
+- GET handler 接收 `params.path` 通配符，拼接到 Gateway 的 `/__openclaw__/a2ui/` 路径后
+- 从 `gateway-http.ts` 获取 HTTP base URL 和 token
+- SSRF 防护：验证 base URL 协议为 http/https
+- 请求超时 10s，响应体上限 5MB
+- HTML 响应注入 BRIDGE_SCRIPT（复用 Task 2 设计的桥接脚本）
+- 非 HTML 响应（JS/CSS/图片）直接 pass-through
+- iframe src 应为 `/api/canvas/`（代理根路径）
 
-Run: `cd dashboard && npm run dev`（手动验证 `http://localhost:3000/api/canvas/host` 返回 HTML）
+- [ ] **Step 3: 运行类型检查**
 
-- [ ] **Step 3: Commit**
+Run: `cd dashboard && npx tsc --noEmit`
+Expected: 零错误
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add dashboard/src/app/api/canvas/host/route.ts
-git commit -m "[enhanced] feat(deck): add canvas host proxy endpoint with bridge script injection"
+git add dashboard/src/lib/gateway-http.ts 'dashboard/src/app/api/canvas/[...path]/route.ts'
+git commit -m "[enhanced] feat(deck): add canvas host wildcard proxy with auth + SSRF protection"
 ```
 
 ---
@@ -892,6 +944,7 @@ git commit -m "[enhanced] feat(deck): add canvas host proxy endpoint with bridge
 - useEffect：监听 store eventLog 变化，pushMessages 到 iframe
 - useEffect：5s 加载超时，3s bridge ready 超时
 - Debug 按钮切换 CanvasDebugPanel 显示
+- **⚠️ Codex P1 (A-P1-4)：session 切换处理** — useEffect 监听 `activeSessionKey` 变化，切换时：(1) `bridge.reset()` 清空 iframe，(2) 如果新 session 有缓存 eventLog，回放 inbound 事件的 `raw` payload 到 iframe
 
 - [ ] **Step 4: 实现 CanvasDebugPanel.tsx**
 
@@ -929,10 +982,17 @@ git commit -m "[enhanced] feat(deck): add RightPanel + CanvasPanel + CanvasDebug
 
 ## Task 5: Artifact 系统增强（Group B — 依赖 Task 4 RightPanel）
 
+**⚠️ Codex P1 修复：**
+
+- **(B-P1-1)** `code` 检测需要 `toolContext` 参数，但 `ToolResultCard` 调用 `detectArtifact(content)` 时无法传递。修复：`ToolResultCard` 新增 `toolName` prop，从 `MessageBubble` 传入关联的 `tool_use.name`；`detectArtifact` 签名改为 `detectArtifact(content, toolContext?)`
+- **(B-P1-2)** `ArtifactPanel` 不再独立渲染——它在 `RightPanel` 容器内作为 `mode="artifact"` 时的子组件。ArtifactPanel 只负责**内容渲染**（标题栏 + 渲染器选择），不再自带面板外壳（抽拉、分割线、收起由 RightPanel 统一管理）
+
 **Files:**
 
 - Modify: `dashboard/src/components/panels/chat/artifacts/detectArtifact.ts`
 - Modify: `dashboard/src/components/panels/chat/artifacts/ArtifactPanel.tsx`
+- Modify: `dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx`（新增 `toolName` prop）
+- Modify: `dashboard/src/components/panels/chat/MessageList.tsx`（传递 `toolName` 到 ToolResultCard）
 - Create: `dashboard/src/components/panels/chat/artifacts/JsonTree.tsx`
 - Create: `dashboard/src/components/panels/chat/artifacts/TableViewer.tsx`
 - Create: `dashboard/src/components/panels/chat/artifacts/CodeViewer.tsx`
@@ -1137,11 +1197,13 @@ git commit -m "[enhanced] feat(deck): enhance artifact detection + add JSON/CSV/
 
 ## Task 6: Block 过滤/折叠（Group C — 完全独立）
 
+**⚠️ Codex P1 修复 (C-P1-1)：** `MessageBubble` 是 `MessageList.tsx` 内部组件，`preferences` 状态在 `MessageList` 中管理但需传递到 `MessageBubble`。计划必须明确 props 传递路径：`MessageList` 持有 `preferences` state → 通过 `<MessageBubble preferences={preferences}>` prop 传入 → `MessageBubble` 内部用 `preferences` 过滤 `message.content`。
+
 **Files:**
 
 - Create: `dashboard/src/stores/chat-preferences.ts`
 - Create: `dashboard/src/components/panels/chat/BlockFilterBar.tsx`
-- Modify: `dashboard/src/components/panels/chat/MessageList.tsx`
+- Modify: `dashboard/src/components/panels/chat/MessageList.tsx`（新增 preferences state + 传递到 MessageBubble）
 - Modify: `dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx`
 - Test: `dashboard/src/components/panels/chat/__tests__/block-filter.test.ts`
 - Modify: `dashboard/src/i18n/zh.json`
