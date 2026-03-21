@@ -69,6 +69,38 @@ export function parseSchemaSection(schema: Record<string, unknown>): FormField[]
   return fields;
 }
 
+/**
+ * Extract validation constraints from a JSON Schema object.
+ * Returns undefined if no constraints are present.
+ */
+function extractValidation(schema: Record<string, unknown>): ValidationConstraints | undefined {
+  const constraints: ValidationConstraints = {};
+  let hasAny = false;
+
+  if (typeof schema.minLength === "number") {
+    constraints.minLength = schema.minLength;
+    hasAny = true;
+  }
+  if (typeof schema.maxLength === "number") {
+    constraints.maxLength = schema.maxLength;
+    hasAny = true;
+  }
+  if (typeof schema.minimum === "number") {
+    constraints.minimum = schema.minimum;
+    hasAny = true;
+  }
+  if (typeof schema.maximum === "number") {
+    constraints.maximum = schema.maximum;
+    hasAny = true;
+  }
+  if (typeof schema.pattern === "string") {
+    constraints.pattern = schema.pattern;
+    hasAny = true;
+  }
+
+  return hasAny ? constraints : undefined;
+}
+
 function parseProperty(
   key: string,
   schema: Record<string, unknown>,
@@ -98,11 +130,22 @@ function parseProperty(
   const schemaType = schema.type as string | undefined;
 
   if (schemaType === "string") {
-    return { key, type: "string", description, defaultValue, required: isRequired };
+    const format = typeof schema.format === "string" ? schema.format : undefined;
+    const validation = extractValidation(schema);
+    return {
+      key,
+      type: "string",
+      description,
+      defaultValue,
+      required: isRequired,
+      format,
+      validation,
+    };
   }
 
   if (schemaType === "number" || schemaType === "integer") {
-    return { key, type: "number", description, defaultValue, required: isRequired };
+    const validation = extractValidation(schema);
+    return { key, type: "number", description, defaultValue, required: isRequired, validation };
   }
 
   if (schemaType === "boolean") {
@@ -110,10 +153,30 @@ function parseProperty(
   }
 
   if (schemaType === "array") {
-    return { key, type: "array", description, defaultValue, required: isRequired };
+    // Parse items schema if present
+    let itemSchema: FormField | undefined;
+    if (schema.items && typeof schema.items === "object") {
+      const parsed = parseProperty("_item", schema.items as Record<string, unknown>, false);
+      itemSchema = parsed ?? undefined;
+    }
+    return { key, type: "array", description, defaultValue, required: isRequired, itemSchema };
   }
 
   if (schemaType === "object") {
+    // Record detection: additionalProperties with a schema object (not boolean true)
+    if (
+      schema.additionalProperties &&
+      typeof schema.additionalProperties === "object" &&
+      !Array.isArray(schema.additionalProperties)
+    ) {
+      const parsed = parseProperty(
+        "_value",
+        schema.additionalProperties as Record<string, unknown>,
+        false,
+      );
+      const valueSchema = parsed ?? undefined;
+      return { key, type: "record", description, defaultValue, required: isRequired, valueSchema };
+    }
     const children = schema.properties ? parseSchemaSection(schema) : undefined;
     return { key, type: "object", description, defaultValue, children, required: isRequired };
   }
