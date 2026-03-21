@@ -310,7 +310,16 @@ function findDiscriminator(variants: Record<string, unknown>[]): string | null {
       );
     });
     if (allHaveConst) {
-      return propName;
+      // Verify discriminator values are unique across variants
+      const values = variants.map((v) => {
+        const props = v.properties as Record<string, Record<string, unknown>> | undefined;
+        const prop = props?.[propName];
+        return (prop?.const as string) ?? (prop?.enum as string[])?.[0] ?? "";
+      });
+      const unique = new Set(values);
+      if (unique.size === variants.length) {
+        return propName;
+      }
     }
   }
 
