@@ -38,11 +38,15 @@ openclaw-deck 的 chat 状态管理使用扁平 Zustand store，所有 session �
 
 **选择**：维持单个 EventSource 连接，所有 session 的事件通过同一连接，客户端按 `payload.sessionKey` 路由到对应 SessionState。
 
+**备选方案**：每个活跃 session 维护独立的 EventSource 连接（或 WebSocket），完全隔离。放弃原因：连接数随 session 数线性增长，Gateway 需支持 session-scoped 订阅（违反"Gateway 零改动"约束），且单连接已满足需求。
+
 **理由**：Gateway 的 SSE 端点已在所有事件中携带 sessionKey，零 Gateway 改动；单连接避免了多连接的管理复杂性和资源开销。
 
 ### D3: AbortController 外置于模块级 Map（而非存入 SessionState）
 
 **选择**：`AbortController` 不存储在 Zustand store 中，使用模块级 `Map<string, AbortController>` 独立管理。
+
+**备选方案**：存入 SessionState 并通过 Zustand `partialize` 配置排除序列化。放弃原因：增加了 devtools/persist 配置复杂度，且模块级 Map 更简单直接。
 
 **理由**：AbortController 不可 JSON 序列化，存入 store 会破坏 devtools/persist 中间件。模块级 Map 与 store 生命周期解耦，通过 `getSessionAbort(key)` / `abortSession(key)` 函数访问。
 
@@ -58,11 +62,11 @@ openclaw-deck 的 chat 状态管理使用扁平 Zustand store，所有 session �
 
 **理由**：不存在跨 session 附件场景；`File` 对象不可序列化；组件级状态更简单。
 
-### D6: setMessages 合并策略（而非直接覆盖）
+### D6: setMessages "history-then-append" 策略（而非 ID 去重合并）
 
-**选择**：rehydrate 加载历史时，如果 session 已有通过 SSE 到达的消息，按 message.id 去重合并而非直接覆盖。
+**选择**：rehydrate 加载历史时，用历史消息替换全部消息，然后将 SSE 到达的消息（ID 为 runId 格式）追加到末尾。不依赖跨通道 ID 去重，因为 SSE 消息用 `runId` 作 ID，历史消息用 `${sessionKey}:${timestamp}:${index}`，两者格式不同无法去重。
 
-**理由**：防止 rehydrate 与 SSE 事件的竞态丢消息——加载历史的 fetch 是异步的，期间 SSE 事件可能已添加新消息到该 session。
+**理由**：防止 rehydrate 与 SSE 事件的竞态丢消息——加载历史的 fetch 是异步的，期间 SSE 事件可能已添加新消息到该 session。按格式区分比按 ID 去重更可靠。
 
 ### D7: 渐进式迁移（兼容层过渡）
 
@@ -74,5 +78,5 @@ openclaw-deck 的 chat 状态管理使用扁平 Zustand store，所有 session �
 
 - **[Map 嵌套更新复杂度]** → 所有 store action 必须通过 `set()` 创建新 Map 引用触发 re-render；直接 mutation 静默失败。mitigate: 可选引入 immer middleware。
 - **[兼容层遗留风险]** → 如果 Step 5 未及时执行，兼容层可能长期存在。mitigate: Step 5 作为独立任务，完成后删除所有 `getActiveSession()` 调用。
-- **[内存增长]** → 缓存过多 session 可能导致内存膨胀。mitigate: LRU 淘汰（5 分钟空闲阈值），估算 10 个 session ≈ 2MB，可接受。
+- **[内存增长]** → 缓存过多 session 可能导致内存膨胀。mitigate: LRU 淘汰（5 分钟空闲阈值 + MAX_CACHED_SESSIONS=20 硬上限），估算 10 个 session ≈ 2MB，可接受。淘汰触发点包括：session 切换、新 session 创建超阈值、页面隐藏、流完成（active→idle 转换）。
 - **[幽灵 session]** → SSE 事件为未知 session 创建状态但不在侧栏显示。mitigate: 下次 `refreshSessionMeta()` 时出现；不产生用户可见异常。

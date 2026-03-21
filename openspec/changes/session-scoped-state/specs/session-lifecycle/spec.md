@@ -52,7 +52,7 @@ Each `SessionState` SHALL have a `status` field with values `'active'` or `'idle
 
 ### Requirement: Natural eviction triggers
 
-`evictStale()` SHALL be called at the following trigger points instead of periodic timers: (1) inside `setActiveSession(key)`, (2) inside `ensureSession(key)` when `Map.size` exceeds a threshold, (3) on `document.visibilitychange` when page transitions to `'hidden'`.
+`evictStale()` SHALL be called at the following trigger points instead of periodic timers: (1) inside `setActiveSession(key)`, (2) inside `ensureSession(key)` when `Map.size` exceeds `MAX_CACHED_SESSIONS` (default: 20), (3) on `document.visibilitychange` when page transitions to `'hidden'`, (4) when any session's status transitions from `'active'` to `'idle'` (i.e., inside `setStreaming(sessionKey, false)`).
 
 #### Scenario: Eviction on session switch
 
@@ -63,6 +63,20 @@ Each `SessionState` SHALL have a `status` field with values `'active'` or `'idle
 
 - **WHEN** the browser tab becomes hidden (`visibilitychange` → `hidden`)
 - **THEN** `evictStale()` SHALL run to aggressively clean up idle sessions
+
+#### Scenario: Eviction on stream completion
+
+- **WHEN** a session transitions from `'active'` to `'idle'` (streaming ends)
+- **THEN** `evictStale()` SHALL run to clean up other stale idle sessions
+
+### Requirement: MAX_CACHED_SESSIONS threshold
+
+The `ensureSession` trigger SHALL use a configurable `MAX_CACHED_SESSIONS` constant with a default value of 20. When `Map.size >= MAX_CACHED_SESSIONS`, `evictStale()` SHALL be called before creating the new session.
+
+#### Scenario: Threshold triggers eviction
+
+- **WHEN** `ensureSession(key)` is called and `sessions.size >= 20`
+- **THEN** `evictStale()` SHALL run before the new session is created
 
 ### Requirement: Transparent rehydration
 

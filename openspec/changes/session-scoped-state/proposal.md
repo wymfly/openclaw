@@ -27,7 +27,7 @@ openclaw-deck 的 chat 状态管理使用扁平 Zustand store（单一 `messages
 ## Impact
 
 - **Dashboard 前端**（`dashboard/src/`）：`stores/chat.ts` 重写，`useChatSSE.ts` 重写，5 个消费方组件迁移
-- **Gateway / API routes**：零改动
+- **Gateway / API routes**：零改动（注：提案 3 Approval 审批流需要修改 `dashboard/server/approval-bridge.ts` 以透传 `sessionKey`，本提案只预留槽位）
 - **渠道消息流**：零影响 — 改动范围严格限制在 Dashboard 前端
 - **依赖**：无新增依赖
 - **后续提案**：Tool Progress（提案 2）、Approval（提案 3）、A2UI Canvas（提案 4）、多窗格 UI（提案 5）均依赖本提案的 SessionState 槽位
