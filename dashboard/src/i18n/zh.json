@@ -77,7 +77,9 @@
     "approvalAllow": "允许",
     "approvalDeny": "拒绝",
     "approvalAllowAlways": "始终允许",
-    "approvalExpired": "审批已过期"
+    "approvalExpired": "审批已过期",
+    "toolsRunning": "{count} 个工具执行中",
+    "toolsCompleted": "工具执行完成"
   },
   "gateway": {
     "title": "网关概览",
