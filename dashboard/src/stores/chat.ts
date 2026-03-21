@@ -271,13 +271,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         })),
       });
     } else {
-      // Cache miss — create session
-      const newMap = new Map(sessions);
-      newMap.set(key, createEmptySessionState());
-      set({
-        activeSessionKey: key,
-        sessions: newMap,
-      });
+      // Cache miss — delegate to ensureSession (handles capacity check)
+      get().ensureSession(key);
+      set({ activeSessionKey: key });
     }
   },
 
@@ -288,9 +284,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   removeSession(key: string) {
     abortSession(key);
     const { sessions, sessionMeta } = get();
-    if (!sessions.has(key)) {
-      return;
-    }
     const newMap = new Map(sessions);
     newMap.delete(key);
     set({

@@ -6,6 +6,7 @@
 // omitted they fall back to `activeSessionKey`.
 // ---------------------------------------------------------------------------
 
+import { useShallow } from "zustand/shallow";
 import { useChatStore } from "./chat";
 import type {
   ChatMessage,
@@ -36,14 +37,16 @@ export function useSessionStreaming(sessionKey?: string): {
   isStreaming: boolean;
   runId: string | null;
 } {
-  return useChatStore((s) => {
-    const key = sessionKey ?? s.activeSessionKey;
-    const session = key ? s.sessions.get(key) : undefined;
-    return {
-      isStreaming: session?.isStreaming ?? false,
-      runId: session?.streamingRunId ?? null,
-    };
-  });
+  return useChatStore(
+    useShallow((s) => {
+      const key = sessionKey ?? s.activeSessionKey;
+      const session = key ? s.sessions.get(key) : undefined;
+      return {
+        isStreaming: session?.isStreaming ?? false,
+        runId: session?.streamingRunId ?? null,
+      };
+    }),
+  );
 }
 
 // ---------------------------------------------------------------------------
