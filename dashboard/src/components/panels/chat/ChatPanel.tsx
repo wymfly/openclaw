@@ -5,12 +5,19 @@ import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useChatStore, type ChatMessage, type ContentBlock } from "@/stores/chat";
-import { useActiveSessionKey, useSessionApproval, useSessionStreaming } from "@/stores/chat-hooks";
+import {
+  useActiveSessionKey,
+  useSessionA2UI,
+  useSessionApproval,
+  useSessionStreaming,
+} from "@/stores/chat-hooks";
 import { ApprovalDialog } from "./ApprovalDialog";
 import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
+import { CanvasPanel } from "./CanvasPanel";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
+import { RightPanel } from "./RightPanel";
 import { SessionSidebar } from "./SessionSidebar";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { dispatchApproval, useSSEConnection } from "./useChatSSE";
@@ -101,6 +108,13 @@ export function ChatPanel() {
   const isCompact = useMediaQuery("(max-width: 1023px)");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeArtifact, setActiveArtifact] = useState<ArtifactInfo | null>(null);
+  const a2uiState = useSessionA2UI();
+
+  const rightPanelMode = activeArtifact
+    ? ("artifact" as const)
+    : a2uiState?.visible
+      ? ("canvas" as const)
+      : ("hidden" as const);
 
   useSSEConnection();
 
@@ -211,8 +225,8 @@ export function ChatPanel() {
 
   return (
     <div className="flex h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
-      {/* Desktop: inline sidebar — hidden when artifact panel is open */}
-      {!isCompact && !activeArtifact && <SessionSidebar />}
+      {/* Desktop: inline sidebar — hidden when right panel is open */}
+      {!isCompact && rightPanelMode === "hidden" && <SessionSidebar />}
 
       {/* Compact: sidebar as sheet overlay */}
       {isCompact && (
@@ -253,10 +267,30 @@ export function ChatPanel() {
         <MessageInput />
       </div>
 
-      {/* Artifact panel — shown beside chat when an artifact is active */}
-      {activeArtifact && (
-        <ArtifactPanel artifact={activeArtifact} onClose={() => setActiveArtifact(null)} />
-      )}
+      {/* Right panel — Canvas or Artifact */}
+      <RightPanel
+        mode={rightPanelMode}
+        onClose={() => {
+          setActiveArtifact(null);
+          // Canvas auto-hides when surfaces empty; manual close sets visible=false
+          if (a2uiState?.visible && activeSessionKey) {
+            useChatStore.getState().setA2UIState(activeSessionKey, { visible: false });
+          }
+        }}
+      >
+        {rightPanelMode === "canvas" && (
+          <CanvasPanel
+            onClose={() => {
+              if (activeSessionKey) {
+                useChatStore.getState().setA2UIState(activeSessionKey, { visible: false });
+              }
+            }}
+          />
+        )}
+        {rightPanelMode === "artifact" && activeArtifact && (
+          <ArtifactPanel artifact={activeArtifact} onClose={() => setActiveArtifact(null)} />
+        )}
+      </RightPanel>
     </div>
   );
 }

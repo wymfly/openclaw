@@ -82,7 +82,22 @@
     "toolsCompleted": "工具执行完成",
     "filterThinking": "思考",
     "filterTools": "工具调用",
-    "filterResults": "工具结果"
+    "filterResults": "工具结果",
+    "canvasTitle": "Canvas",
+    "canvasLoading": "加载 Canvas...",
+    "canvasEmpty": "等待 Agent 推送内容...",
+    "canvasError": "Canvas 加载失败",
+    "canvasRetry": "重试",
+    "canvasCollapse": "收起",
+    "canvasExpand": "展开 Canvas",
+    "debugTitle": "调试",
+    "debugMessages": "消息",
+    "debugTree": "组件树",
+    "debugClear": "清除",
+    "debugEvents": "{count} 个事件",
+    "debugSurfaces": "{count} 个 Surface",
+    "debugNodes": "{count} 个节点",
+    "debugTreeUnavailable": "组件树不可用"
   },
   "gateway": {
     "title": "网关概览",
