@@ -59,7 +59,7 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
       {/* Title bar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)] shrink-0">
         <span className="flex-1 text-xs font-medium text-[var(--text-primary)] truncate">
-          {artifact.title}
+          {t.has(artifact.title) ? t(artifact.title) : artifact.title}
         </span>
         <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider">
           {artifact.language}

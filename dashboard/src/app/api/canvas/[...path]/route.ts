@@ -73,6 +73,11 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
   const token = getGatewayToken();
   const { path } = await ctx.params;
   const subPath = path?.join("/") ?? "";
+
+  // Path traversal protection: reject ".." segments and normalize
+  if (subPath.includes("..") || /[^\w.\-/]/.test(subPath)) {
+    return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+  }
   const targetUrl = `${base.replace(/\/$/, "")}/__openclaw__/a2ui/${subPath}`;
 
   try {

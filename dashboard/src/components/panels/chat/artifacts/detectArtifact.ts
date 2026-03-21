@@ -51,26 +51,32 @@ export function detectArtifact(
     try {
       const parsed = JSON.parse(content);
       if (typeof parsed === "object" && parsed !== null) {
-        return { id: `artifact-${++artifactCounter}`, title: "JSON", language: "json", content };
+        return {
+          id: `artifact-${++artifactCounter}`,
+          title: "artifactJson",
+          language: "json",
+          content,
+        };
       }
     } catch {
       /* not JSON */
     }
   }
 
-  // 5. CSV (consistent comma-separated lines)
-  if (isLikelyCSV(content)) {
-    return { id: `artifact-${++artifactCounter}`, title: "Table", language: "csv", content };
-  }
-
-  // 6. Markdown (headings, bold, links, checklists)
+  // 5. Markdown (headings, bold, links, checklists) — checked before CSV to avoid
+  // misclassifying comma-heavy prose as table data
   if (isLikelyMarkdown(content)) {
     return {
       id: `artifact-${++artifactCounter}`,
-      title: "Document",
+      title: "artifactMarkdown",
       language: "markdown",
       content,
     };
+  }
+
+  // 6. CSV (consistent comma-separated lines)
+  if (isLikelyCSV(content)) {
+    return { id: `artifact-${++artifactCounter}`, title: "artifactCsv", language: "csv", content };
   }
 
   // 7. Code (contextual — only when triggered by a write/create/edit tool)
