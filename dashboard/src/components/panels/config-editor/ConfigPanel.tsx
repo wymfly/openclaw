@@ -100,7 +100,7 @@ export function ConfigPanel() {
     }
     let fields = parseSchemaSection(sectionSchema);
     if (uiHints && Object.keys(uiHints).length > 0) {
-      fields = applyUiHints(fields, uiHints as UiHintsMap, activeSection);
+      fields = applyUiHints(fields, uiHints as UiHintsMap, `${activeSection}.`);
     }
     return fields;
   }, [schema, activeSection, uiHints]);

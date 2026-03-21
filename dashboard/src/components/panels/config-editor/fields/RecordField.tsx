@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import type { FormField } from "@/lib/schema-parser";
 import { SchemaForm } from "../SchemaForm";
 
@@ -22,6 +23,7 @@ export function RecordField({ field, value, onChange, prefix }: RecordFieldProps
 
   const entries = Object.entries(value ?? {});
   const isComplexValue = field.valueSchema && field.valueSchema.type === "object";
+  const valueType = field.valueSchema?.type;
 
   const handleAdd = () => {
     const trimmed = newKey.trim();
@@ -64,13 +66,25 @@ export function RecordField({ field, value, onChange, prefix }: RecordFieldProps
               </span>
               {isComplexValue && field.valueSchema?.children ? (
                 <div className="flex-1" />
+              ) : valueType === "boolean" ? (
+                <Switch
+                  checked={Boolean(entryValue)}
+                  onCheckedChange={(v) => handleValueChange(entryKey, v)}
+                />
               ) : (
                 <Input
-                  type="text"
+                  type={valueType === "number" ? "number" : "text"}
                   value={
                     typeof entryValue === "string" ? entryValue : JSON.stringify(entryValue ?? "")
                   }
-                  onChange={(e) => handleValueChange(entryKey, e.target.value)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (valueType === "number") {
+                      handleValueChange(entryKey, Number(raw));
+                    } else {
+                      handleValueChange(entryKey, raw);
+                    }
+                  }}
                   className="flex-1 max-w-xs text-xs h-7 font-mono"
                   placeholder={t("entryValue")}
                 />

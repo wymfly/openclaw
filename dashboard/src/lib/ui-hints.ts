@@ -87,6 +87,24 @@ export function applyUiHints(fields: FormField[], hints: UiHintsMap, prefix = ""
       decorated.children = applyUiHints(decorated.children, hints, `${path}.`);
     }
 
+    // Recurse into union variants
+    if (decorated.variants) {
+      decorated.variants = decorated.variants.map((v) => ({
+        ...v,
+        fields: v.fields ? applyUiHints(v.fields, hints, `${path}.`) : v.fields,
+      }));
+    }
+    // Recurse into record valueSchema
+    if (decorated.valueSchema) {
+      const hinted = applyUiHints([decorated.valueSchema], hints, `${path}.`);
+      decorated.valueSchema = hinted[0];
+    }
+    // Recurse into array itemSchema
+    if (decorated.itemSchema) {
+      const hinted = applyUiHints([decorated.itemSchema], hints, `${path}.`);
+      decorated.itemSchema = hinted[0];
+    }
+
     return decorated;
   });
 }
