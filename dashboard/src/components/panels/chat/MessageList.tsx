@@ -6,7 +6,8 @@ import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { useChatStore, type ChatMessage, type ContentBlock } from "@/stores/chat";
+import type { ChatMessage, ContentBlock } from "@/stores/chat";
+import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import { FileBlock } from "./blocks/FileBlock";
 import { ImageBlock } from "./blocks/ImageBlock";
 import { ThinkingBlock } from "./blocks/ThinkingBlock";
@@ -149,7 +150,8 @@ const NEAR_BOTTOM_PX = 80;
 
 export function MessageList() {
   const t = useTranslations("chat");
-  const { messages, isStreaming } = useChatStore();
+  const messages = useSessionMessages();
+  const { isStreaming } = useSessionStreaming();
   const containerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
 

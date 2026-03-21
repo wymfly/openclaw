@@ -4,14 +4,15 @@ import { PanelLeft } from "lucide-react";
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { useChatStore, type ChatMessage, type ContentBlock, type SessionInfo } from "@/stores/chat";
+import { useChatStore, type ChatMessage, type ContentBlock } from "@/stores/chat";
+import { useActiveSessionKey, useSessionApproval, useSessionStreaming } from "@/stores/chat-hooks";
 import { ApprovalDialog } from "./ApprovalDialog";
 import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
-import { useChatSSE } from "./useChatSSE";
+import { useSSEConnection } from "./useChatSSE";
 
 // ---------------------------------------------------------------------------
 // Artifact context — lets ToolResultCard open the panel without prop drilling
@@ -75,26 +76,6 @@ function toUiMessage(msg: GatewayMessage, index: number): ChatMessage {
   };
 }
 
-type GatewaySessionEntry = {
-  key: string;
-  sessionId?: string;
-  agentId?: string;
-  derivedTitle?: string;
-  lastMessage?: string;
-  updatedAt?: number;
-};
-
-function toUiSession(s: GatewaySessionEntry): SessionInfo {
-  return {
-    key: s.key,
-    sessionId: s.sessionId,
-    agentId: s.agentId,
-    title: s.derivedTitle,
-    lastMessage: s.lastMessage,
-    updatedAt: s.updatedAt,
-  };
-}
-
 // ---------------------------------------------------------------------------
 
 /**
@@ -109,20 +90,18 @@ function toUiSession(s: GatewaySessionEntry): SessionInfo {
  * area full width.
  */
 export function ChatPanel() {
-  const {
-    activeSessionId,
-    activeAgentId,
-    isStreaming,
-    setSessions,
-    setMessages,
-    activeApproval,
-    setActiveApproval,
-  } = useChatStore();
+  const activeSessionKey = useActiveSessionKey();
+  const activeAgentId = useChatStore((s) => s.activeAgentId);
+  const { isStreaming } = useSessionStreaming();
+  const activeApproval = useSessionApproval();
+  const refreshSessionMeta = useChatStore((s) => s.refreshSessionMeta);
+  const setActiveApprovalAction = useChatStore((s) => s.setActiveApproval);
+
   const isCompact = useMediaQuery("(max-width: 1023px)");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeArtifact, setActiveArtifact] = useState<ArtifactInfo | null>(null);
 
-  useChatSSE();
+  useSSEConnection();
 
   /**
    * Relay the user's approval decision to the Gateway and clear the dialog.
@@ -137,58 +116,41 @@ export function ChatPanel() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id, decision }),
         });
-        if (res.ok) {
-          setActiveApproval(null); // Clear only on success
+        if (res.ok && activeSessionKey) {
+          setActiveApprovalAction(activeSessionKey, null); // Clear only on success
         }
       } catch {
         // Keep dialog visible on error so user can retry
       }
     },
-    [setActiveApproval],
+    [activeSessionKey, setActiveApprovalAction],
   );
 
   // Refresh session list on mount, agent change, and after streaming completes
   // (streaming completion may have created a new session with a derived title)
-  const refreshSessions = useCallback(() => {
-    const url = activeAgentId
-      ? `/api/chat/sessions?agentId=${encodeURIComponent(activeAgentId)}`
-      : "/api/chat/sessions";
-    void fetch(url)
-      .then((r) => r.json())
-      .then((data: { sessions?: GatewaySessionEntry[] } | GatewaySessionEntry[]) => {
-        const list = Array.isArray(data) ? data : data.sessions;
-        if (Array.isArray(list)) {
-          setSessions(list.map(toUiSession));
-        }
-      })
-      .catch(() => {});
-  }, [activeAgentId, setSessions]);
-
   useEffect(() => {
-    refreshSessions();
-  }, [refreshSessions]);
+    void refreshSessionMeta();
+  }, [refreshSessionMeta, activeAgentId]);
 
   // Refresh sessions after a reply completes (picks up new session titles)
   const prevStreamingRef = useRef(false);
   useEffect(() => {
     if (prevStreamingRef.current && !isStreaming) {
-      refreshSessions();
+      void refreshSessionMeta();
     }
     prevStreamingRef.current = isStreaming;
-  }, [isStreaming, refreshSessions]);
+  }, [isStreaming, refreshSessionMeta]);
 
+  // Load history when active session changes
   useEffect(() => {
-    // Clear immediately on session change to avoid stale messages flashing
-    setMessages([]);
-
-    if (!activeSessionId) {
+    if (!activeSessionKey) {
       return;
     }
 
-    // Guard against stale fetch responses: if activeSessionId changes
+    // Guard against stale fetch responses: if activeSessionKey changes
     // while fetch is in flight, discard the response.
     let cancelled = false;
-    const params = new URLSearchParams({ sessionKey: activeSessionId });
+    const params = new URLSearchParams({ sessionKey: activeSessionKey });
     if (activeAgentId) {
       params.set("agentId", activeAgentId);
     }
@@ -200,7 +162,7 @@ export function ChatPanel() {
         }
         const list = Array.isArray(data) ? data : data.messages;
         if (Array.isArray(list)) {
-          setMessages(list.map(toUiMessage));
+          useChatStore.getState().setMessages(activeSessionKey, list.map(toUiMessage));
         }
       })
       .catch(() => {});
@@ -208,7 +170,7 @@ export function ChatPanel() {
     return () => {
       cancelled = true;
     };
-  }, [activeSessionId, activeAgentId, setMessages]);
+  }, [activeSessionKey, activeAgentId]);
 
   return (
     <div className="flex h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">

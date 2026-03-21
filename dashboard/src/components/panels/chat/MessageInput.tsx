@@ -6,6 +6,7 @@ import { useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useChatStore, type ContentBlock } from "@/stores/chat";
+import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
 import { useNotificationsStore } from "@/stores/notifications";
 
 // ---------------------------------------------------------------------------
@@ -46,8 +47,9 @@ function fileToBase64(file: File): Promise<string> {
 
 export function MessageInput() {
   const t = useTranslations("chat");
-  const { isStreaming, activeSessionId, activeAgentId, addMessage, setIsStreaming, setError } =
-    useChatStore();
+  const activeSessionKey = useActiveSessionKey();
+  const { isStreaming } = useSessionStreaming();
+  const activeAgentId = useChatStore((s) => s.activeAgentId);
   const addToast = useNotificationsStore((s) => s.addToast);
 
   const [input, setInput] = useState("");
@@ -146,7 +148,8 @@ export function MessageInput() {
     }
 
     // Optimistic local display
-    addMessage({
+    const sessionKey = activeSessionKey || `agent:${activeAgentId || "main"}:main`;
+    useChatStore.getState().addMessage(sessionKey, {
       id: `user-${Date.now()}`,
       role: "user",
       content: userContent,
@@ -163,8 +166,8 @@ export function MessageInput() {
       }
     });
 
-    setIsStreaming(true);
-    setError(null);
+    useChatStore.getState().setStreaming(sessionKey, true);
+    useChatStore.getState().setError(sessionKey, null);
 
     try {
       const res = await fetch("/api/chat/send", {
@@ -172,7 +175,7 @@ export function MessageInput() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text || undefined,
-          sessionKey: activeSessionId || `agent:${activeAgentId || "main"}:main`,
+          sessionKey,
           agentId: activeAgentId ?? undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
           idempotencyKey: crypto.randomUUID(),
@@ -180,41 +183,31 @@ export function MessageInput() {
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        setError(data.error ?? t("error"));
-        setIsStreaming(false);
+        useChatStore.getState().setError(sessionKey, data.error ?? t("error"));
+        useChatStore.getState().setStreaming(sessionKey, false);
       }
     } catch {
-      setError(t("error"));
-      setIsStreaming(false);
+      useChatStore.getState().setError(sessionKey, t("error"));
+      useChatStore.getState().setStreaming(sessionKey, false);
     }
-  }, [
-    input,
-    files,
-    isStreaming,
-    activeSessionId,
-    activeAgentId,
-    addMessage,
-    setIsStreaming,
-    setError,
-    addToast,
-    t,
-  ]);
+  }, [input, files, isStreaming, activeSessionKey, activeAgentId, addToast, t]);
 
   // -------------------------------------------------------------------------
   // Abort
   // -------------------------------------------------------------------------
 
   const handleAbort = useCallback(async () => {
+    const sessionKey = activeSessionKey ?? "agent:main:main";
     await fetch("/api/chat/abort", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sessionKey: activeSessionId ?? "agent:main:main",
+        sessionKey,
         agentId: activeAgentId ?? undefined,
       }),
     });
-    setIsStreaming(false);
-  }, [activeSessionId, activeAgentId, setIsStreaming]);
+    useChatStore.getState().setStreaming(sessionKey, false);
+  }, [activeSessionKey, activeAgentId]);
 
   // -------------------------------------------------------------------------
   // Event handlers

@@ -3,14 +3,14 @@
 import { Shield, Check, X, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import type { ActiveApproval } from "@/stores/chat";
+import type { ApprovalRequest } from "@/stores/chat";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 interface ApprovalDialogProps {
-  approval: ActiveApproval;
+  approval: ApprovalRequest;
   onResolve: (id: string, decision: "allow-once" | "allow-always" | "deny") => void;
 }
 
