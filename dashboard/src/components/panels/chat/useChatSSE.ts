@@ -249,9 +249,10 @@ export function dispatchAgentEvent(payload: AgentEventPayload): void {
       return;
     }
 
-    const session = useChatStore.getState().sessions.get(sessionKey);
-    const streamingRunId = session?.streamingRunId;
-    if (!streamingRunId) {
+    // Single getState() read for both streamingRunId and message lookup
+    const sess = useChatStore.getState().sessions.get(sessionKey);
+    const streamingRunId = sess?.streamingRunId;
+    if (!streamingRunId || !sess) {
       return;
     }
 
@@ -263,22 +264,15 @@ export function dispatchAgentEvent(payload: AgentEventPayload): void {
       input: data.args ?? {},
     };
 
-    // Append the tool_use block alongside any existing text blocks
-    // Session-scoped: update the correct session's message, not flat messages
-    const sessions = useChatStore.getState().sessions;
-    const sess = sessions.get(sessionKey);
-    if (!sess) {
+    // Append the tool_use block alongside any existing text blocks.
+    // Use updateStreamingBlocks (via store action) to ensure syncCompatFields runs.
+    const msg = sess.messages.find((m) => m.id === streamingRunId);
+    if (!msg) {
       return;
     }
-
-    const newSessions = new Map(sessions);
-    newSessions.set(sessionKey, {
-      ...sess,
-      messages: sess.messages.map((m) =>
-        m.id === streamingRunId ? { ...m, content: [...m.content, block] } : m,
-      ),
-    });
-    useChatStore.setState({ sessions: newSessions });
+    useChatStore
+      .getState()
+      .updateStreamingBlocks(sessionKey, streamingRunId, [...msg.content, block]);
   } catch {
     // Ignore malformed payloads
   }
@@ -322,7 +316,10 @@ export function dispatchApprovalResolved(payload: ApprovalResolvedPayload): void
     return;
   }
 
-  useChatStore.getState().ensureSession(sessionKey);
+  // Don't recreate an evicted session just to clear its approval
+  if (!useChatStore.getState().sessions.has(sessionKey)) {
+    return;
+  }
   useChatStore.getState().setActiveApproval(sessionKey, null);
 }
 
