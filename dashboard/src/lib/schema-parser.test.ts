@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { parseSchemaSection, type FormField } from "./schema-parser.js";
 
 describe("parseSchemaSection", () => {
@@ -169,5 +169,88 @@ describe("parseSchemaSection", () => {
     };
     const fields = parseSchemaSection(schema as Record<string, unknown>);
     expect(fields).toHaveLength(2);
+  });
+});
+
+describe("union type detection", () => {
+  it("detects a discriminated union (openai/anthropic with 'type' discriminator)", () => {
+    const schema = {
+      properties: {
+        model: {
+          description: "AI model provider",
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                type: { type: "string", const: "openai" },
+                apiKey: { type: "string" },
+              },
+              required: ["type"],
+            },
+            {
+              type: "object",
+              properties: {
+                type: { type: "string", const: "anthropic" },
+                apiKey: { type: "string" },
+                version: { type: "string" },
+              },
+              required: ["type"],
+            },
+          ],
+        },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields).toHaveLength(1);
+    const field = fields[0];
+    expect(field?.type).toBe("union");
+    expect(field?.discriminator).toBe("type");
+    expect(field?.variants).toHaveLength(2);
+    expect(field?.variants?.[0]?.value).toBe("openai");
+    expect(field?.variants?.[1]?.value).toBe("anthropic");
+    // Each variant has sub-fields
+    expect(field?.variants?.[0]?.fields).toBeDefined();
+    expect(field?.variants?.[1]?.fields).toBeDefined();
+  });
+
+  it("detects a simple type union (string | number)", () => {
+    const schema = {
+      properties: {
+        timeout: {
+          description: "Timeout value",
+          anyOf: [{ type: "string" }, { type: "number" }],
+        },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields).toHaveLength(1);
+    const field = fields[0];
+    expect(field?.type).toBe("union");
+    expect(field?.discriminator).toBeUndefined();
+    expect(field?.variants).toHaveLength(2);
+    expect(field?.variants?.[0]?.value).toBe("string");
+    expect(field?.variants?.[1]?.value).toBe("number");
+  });
+
+  it("falls back to json for unrecognized union patterns", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const schema = {
+      properties: {
+        data: {
+          description: "Mixed data",
+          anyOf: [
+            { type: "string" },
+            { type: "object", properties: { foo: { type: "string" } } },
+            { type: "array" },
+          ],
+        },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields).toHaveLength(1);
+    const field = fields[0];
+    expect(field?.type).toBe("json");
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });
