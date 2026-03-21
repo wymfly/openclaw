@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useChatStore, type ContentBlock, type ActiveApproval } from "@/stores/chat";
+import { useEffect } from "react";
+import { useChatStore, type ContentBlock, type ApprovalRequest } from "@/stores/chat";
+import { getSessionAbort } from "@/stores/chat-abort";
+
+// ---------------------------------------------------------------------------
+// Payload types
+// ---------------------------------------------------------------------------
 
 /**
  * Gateway chat event payload shape (from ChatEventSchema):
  *   { runId, sessionKey, seq, state: "delta"|"final"|"error"|"aborted",
  *     message?: { role, content: [{type:"text",text}], timestamp },
  *     errorMessage?, stopReason? }
+ *
+ * IMPORTANT: The discriminant field is `state`, NOT `type`.
  */
-type ChatEventPayload = {
+export type ChatEventPayload = {
   runId: string;
   sessionKey: string;
   seq: number;
@@ -23,7 +30,46 @@ type ChatEventPayload = {
   stopReason?: string;
 };
 
-function extractTextFromMessage(message?: ChatEventPayload["message"]): string {
+export type AgentEventPayload = {
+  sessionKey: string;
+  stream?: string;
+  data?: {
+    phase?: string;
+    name?: string;
+    toolCallId?: string;
+    args?: Record<string, unknown>;
+  };
+};
+
+export type ApprovalEventPayload = {
+  sessionKey: string;
+  id?: string;
+  toolName?: string;
+  command?: string;
+  description?: string;
+};
+
+export type ApprovalResolvedPayload = {
+  sessionKey: string;
+};
+
+export type A2UIEventPayload = {
+  sessionKey: string;
+  url?: string;
+  visible?: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// Helpers (kept from original — correct and well-tested)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract concatenated text from the message's content blocks.
+ *
+ * IMPORTANT: The payload has no top-level `text` field. Text must be
+ * extracted from `payload.message.content` blocks of type "text".
+ */
+export function extractTextFromMessage(message?: ChatEventPayload["message"]): string {
   if (!message?.content) {
     return "";
   }
@@ -34,7 +80,7 @@ function extractTextFromMessage(message?: ChatEventPayload["message"]): string {
 }
 
 /** Map a raw Gateway/Anthropic block to a typed ContentBlock. */
-function mapBlock(block: Record<string, unknown>): ContentBlock {
+export function mapBlock(block: Record<string, unknown>): ContentBlock {
   const type = ((block.type as string) ?? "text").toLowerCase();
   if (type === "text") {
     return { type: "text", text: (block.text as string) ?? "" };
@@ -70,22 +116,254 @@ function mapBlock(block: Record<string, unknown>): ContentBlock {
   return { type: "text", text: JSON.stringify(block) };
 }
 
+// ---------------------------------------------------------------------------
+// Standalone dispatcher functions (NOT hooks — use getState() directly)
+// ---------------------------------------------------------------------------
+
+/**
+ * Dispatch a chat SSE event to the correct session in the store.
+ *
+ * KEY CHANGES from the old closure-based approach:
+ * - Routes ALL events to their correct session via `payload.sessionKey`
+ *   (no filtering by activeSessionId — enables background session tracking)
+ * - Reads `session.streamingRunId` from the store instead of a React ref
+ * - Uses session-scoped store actions (sessionKey as first argument)
+ */
+export function dispatchChatEvent(payload: ChatEventPayload): void {
+  const sessionKey = payload.sessionKey;
+  if (!sessionKey) {
+    return;
+  }
+
+  const store = useChatStore.getState();
+  store.ensureSession(sessionKey);
+
+  switch (payload.state) {
+    case "delta": {
+      const text = extractTextFromMessage(payload.message);
+      // Read the current session to determine first-delta vs subsequent-delta
+      const session = useChatStore.getState().sessions.get(sessionKey);
+      if (session && session.streamingRunId !== payload.runId) {
+        // First delta for this run — add new streaming message
+        useChatStore.getState().setStreaming(sessionKey, true, payload.runId);
+        useChatStore.getState().addMessage(sessionKey, {
+          id: payload.runId,
+          role: "assistant",
+          content: [{ type: "text", text }],
+          timestamp: payload.message?.timestamp ?? Date.now(),
+          streaming: true,
+        });
+      } else {
+        // Subsequent delta — Gateway sends full accumulated text, not incremental
+        useChatStore
+          .getState()
+          .updateStreamingBlocks(sessionKey, payload.runId, [{ type: "text", text }]);
+      }
+      break;
+    }
+
+    case "final": {
+      const text = extractTextFromMessage(payload.message);
+      const session = useChatStore.getState().sessions.get(sessionKey);
+      const streamingRunId = session?.streamingRunId;
+
+      if (streamingRunId && streamingRunId === payload.runId) {
+        // Normal final after streaming deltas
+        if (text) {
+          useChatStore
+            .getState()
+            .updateStreamingBlocks(sessionKey, streamingRunId, [{ type: "text", text }]);
+        }
+        useChatStore.getState().finalizeStreamingMessage(sessionKey, streamingRunId);
+        useChatStore.getState().setStreaming(sessionKey, false);
+
+        // Reload full content blocks (tool_use, tool_result, thinking, image)
+        void reloadFullContent(sessionKey, streamingRunId);
+      } else if (text && payload.runId) {
+        // Final without preceding delta (e.g., command response)
+        useChatStore.getState().addMessage(sessionKey, {
+          id: payload.runId,
+          role: "assistant",
+          content: [{ type: "text", text }],
+          timestamp: payload.message?.timestamp ?? Date.now(),
+        });
+        useChatStore.getState().setStreaming(sessionKey, false);
+
+        // Also reload for standalone finals
+        void reloadFullContent(sessionKey, payload.runId);
+      } else {
+        useChatStore.getState().setStreaming(sessionKey, false);
+      }
+      break;
+    }
+
+    case "error": {
+      // IMPORTANT: error text is in `payload.errorMessage`, NOT `payload.message`
+      useChatStore.getState().setError(sessionKey, payload.errorMessage ?? "Unknown error");
+
+      const session = useChatStore.getState().sessions.get(sessionKey);
+      if (session?.streamingRunId) {
+        useChatStore.getState().finalizeStreamingMessage(sessionKey, session.streamingRunId);
+      }
+      useChatStore.getState().setStreaming(sessionKey, false);
+      break;
+    }
+
+    case "aborted": {
+      const session = useChatStore.getState().sessions.get(sessionKey);
+      if (session?.streamingRunId) {
+        useChatStore.getState().finalizeStreamingMessage(sessionKey, session.streamingRunId);
+      }
+      useChatStore.getState().setStreaming(sessionKey, false);
+      break;
+    }
+  }
+}
+
+/**
+ * Dispatch an agent tool-execution event to the correct session.
+ *
+ * Gateway emits: { sessionKey, stream: "tool", data: { phase, name, toolCallId, args } }
+ * Only handles `phase === "start"` to avoid duplicate blocks from update/result phases.
+ */
+export function dispatchAgentEvent(payload: AgentEventPayload): void {
+  const sessionKey = payload.sessionKey;
+  if (!sessionKey) {
+    return;
+  }
+
+  try {
+    const stream = payload.stream;
+    const data = payload.data;
+    if (stream !== "tool" || !data) {
+      return;
+    }
+
+    // Only create a block on the start phase; update/result phases would duplicate it
+    if (data.phase !== "start") {
+      return;
+    }
+
+    const toolName = data.name;
+    if (!toolName) {
+      return;
+    }
+
+    const session = useChatStore.getState().sessions.get(sessionKey);
+    const streamingRunId = session?.streamingRunId;
+    if (!streamingRunId) {
+      return;
+    }
+
+    const block: ContentBlock = {
+      type: "tool_use",
+      // Gateway uses toolCallId (not id) and args (not input)
+      id: data.toolCallId ?? `tool-${Date.now()}`,
+      name: toolName,
+      input: data.args ?? {},
+    };
+
+    // Append the tool_use block alongside any existing text blocks
+    // Session-scoped: update the correct session's message, not flat messages
+    const sessions = useChatStore.getState().sessions;
+    const sess = sessions.get(sessionKey);
+    if (!sess) {
+      return;
+    }
+
+    const newSessions = new Map(sessions);
+    newSessions.set(sessionKey, {
+      ...sess,
+      messages: sess.messages.map((m) =>
+        m.id === streamingRunId ? { ...m, content: [...m.content, block] } : m,
+      ),
+    });
+    useChatStore.setState({ sessions: newSessions });
+  } catch {
+    // Ignore malformed payloads
+  }
+}
+
+/**
+ * Dispatch a tool approval request to the correct session.
+ *
+ * Gateway broadcasts this as "approval.pending".
+ */
+export function dispatchApproval(payload: ApprovalEventPayload): void {
+  const sessionKey = payload.sessionKey;
+  if (!sessionKey) {
+    return;
+  }
+
+  try {
+    const approval: ApprovalRequest = {
+      id: payload.id ?? "",
+      toolName: payload.toolName ?? payload.command ?? "unknown",
+      command: payload.command,
+      description: payload.description,
+    };
+    if (approval.id) {
+      useChatStore.getState().ensureSession(sessionKey);
+      useChatStore.getState().setActiveApproval(sessionKey, approval);
+    }
+  } catch {
+    // Ignore malformed payloads
+  }
+}
+
+/**
+ * Clear active approval for a session when approval is resolved.
+ *
+ * Gateway broadcasts this as "approval.resolved".
+ */
+export function dispatchApprovalResolved(payload: ApprovalResolvedPayload): void {
+  const sessionKey = payload.sessionKey;
+  if (!sessionKey) {
+    return;
+  }
+
+  useChatStore.getState().ensureSession(sessionKey);
+  useChatStore.getState().setActiveApproval(sessionKey, null);
+}
+
+/**
+ * Dispatch an A2UI (Agent-to-User Interface) event to the correct session.
+ */
+export function dispatchA2UIEvent(payload: A2UIEventPayload): void {
+  const sessionKey = payload.sessionKey;
+  if (!sessionKey) {
+    return;
+  }
+
+  useChatStore.getState().ensureSession(sessionKey);
+  useChatStore.getState().setA2UIState(sessionKey, {
+    url: payload.url ?? "",
+    visible: payload.visible ?? false,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// reloadFullContent — session-scoped version of the old reloadLastMessage
+// ---------------------------------------------------------------------------
+
 /**
  * Reload the last assistant message from chat.history to get full content
  * blocks (tool_use, tool_result, thinking, image). Called after the `final`
  * SSE event so that the in-memory message reflects what the Gateway persisted.
  *
+ * Uses `getSessionAbort(sessionKey).signal` so the fetch can be cancelled
+ * when the session is removed or aborted.
+ *
  * Retry policy: try twice with a 1 s delay. On failure, keep existing text.
+ * Queries `limit=5` because the last message may be a user message — we need
+ * to scan back to find the assistant message to replace.
  */
-async function reloadLastMessage(
-  sessionKey: string,
-  messageId: string,
-  replaceMessageContent: (id: string, blocks: ContentBlock[]) => void,
-) {
+export async function reloadFullContent(sessionKey: string, messageId: string): Promise<void> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      const signal = getSessionAbort(sessionKey).signal;
       const params = new URLSearchParams({ sessionKey, limit: "5" });
-      const res = await fetch(`/api/chat/history?${params}`);
+      const res = await fetch(`/api/chat/history?${params}`, { signal });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
@@ -93,9 +371,15 @@ async function reloadLastMessage(
       const messages = Array.isArray(data) ? data : (data.messages ?? []);
       // Find the last assistant message
       const lastAssistant = [...messages].toReversed().find((m) => m.role === "assistant");
+
+      // Double-check session still exists before mutating
+      if (!useChatStore.getState().sessions.has(sessionKey)) {
+        return;
+      }
+
       if (lastAssistant && Array.isArray(lastAssistant.content)) {
         const blocks = (lastAssistant.content as Record<string, unknown>[]).map(mapBlock);
-        replaceMessageContent(messageId, blocks);
+        useChatStore.getState().replaceMessageContent(sessionKey, messageId, blocks);
       }
       return;
     } catch {
@@ -107,189 +391,55 @@ async function reloadLastMessage(
   // Both attempts failed — keep the streaming text, don't lose content
 }
 
+// ---------------------------------------------------------------------------
+// useSSEConnection hook — the only React hook in this module
+// ---------------------------------------------------------------------------
+
 /**
- * Connect to the SSE stream and dispatch chat events to the store.
+ * Connect to the SSE stream and dispatch events to session-scoped store.
  *
- * Two-path design:
- *   - `delta` events: update streaming text blocks in real-time for typing effect
- *   - `final` event: finalize, then reload full content blocks from chat.history
+ * Empty deps array: the connection survives session switches because all
+ * routing is done by `payload.sessionKey` inside the dispatcher functions.
+ * No closure over `activeSessionId` means no EventSource reconnection on
+ * session switch.
  *
  * Reconnection: The native EventSource API automatically reconnects with
  * ~3 s delay. The server supports `Last-Event-ID` replay, so no events
  * are lost during brief disconnections.
  */
-export function useChatSSE() {
-  const {
-    addMessage,
-    updateStreamingBlocks,
-    replaceMessageContent,
-    finalizeStreamingMessage,
-    setIsStreaming,
-    setError,
-    setActiveApproval,
-  } = useChatStore();
-  const activeSessionId = useChatStore((s) => s.activeSessionId);
-
-  const streamingRunIdRef = useRef<string | null>(null);
-
+export function useSSEConnection(): void {
   useEffect(() => {
     const es = new EventSource("/api/stream");
 
-    // Gateway broadcasts all chat events under the `chat` event type.
-    // The `state` field distinguishes delta / final / error / aborted.
     es.addEventListener("chat", (e) => {
-      const payload = JSON.parse(e.data) as ChatEventPayload;
-
-      // Ignore events for other sessions to prevent cross-session message injection
-      if (activeSessionId && payload.sessionKey && payload.sessionKey !== activeSessionId) {
-        return;
-      }
-
-      if (payload.state === "delta") {
-        const text = extractTextFromMessage(payload.message);
-        if (!streamingRunIdRef.current && payload.runId) {
-          streamingRunIdRef.current = payload.runId;
-          setIsStreaming(true);
-          addMessage({
-            id: payload.runId,
-            role: "assistant",
-            content: [{ type: "text", text }],
-            timestamp: payload.message?.timestamp ?? Date.now(),
-            streaming: true,
-          });
-        } else if (streamingRunIdRef.current) {
-          // Gateway sends the full accumulated text each delta, not incremental.
-          updateStreamingBlocks(streamingRunIdRef.current, [{ type: "text", text }]);
-        }
-        return;
-      }
-
-      if (payload.state === "final") {
-        const text = extractTextFromMessage(payload.message);
-        const runId = streamingRunIdRef.current;
-        if (runId) {
-          if (text) {
-            updateStreamingBlocks(runId, [{ type: "text", text }]);
-          }
-          finalizeStreamingMessage(runId);
-          streamingRunIdRef.current = null;
-          // Reload full content blocks (tool_use, tool_result, thinking, image)
-          const sessionKey = payload.sessionKey || activeSessionId;
-          if (sessionKey) {
-            void reloadLastMessage(sessionKey, runId, replaceMessageContent);
-          }
-        } else if (text && payload.runId) {
-          // Final without any preceding delta (e.g., command response)
-          addMessage({
-            id: payload.runId,
-            role: "assistant",
-            content: [{ type: "text", text }],
-            timestamp: payload.message?.timestamp ?? Date.now(),
-          });
-        }
-        setIsStreaming(false);
-        return;
-      }
-
-      if (payload.state === "error") {
-        setError(payload.errorMessage ?? "Unknown error");
-        if (streamingRunIdRef.current) {
-          finalizeStreamingMessage(streamingRunIdRef.current);
-          streamingRunIdRef.current = null;
-        }
-        setIsStreaming(false);
-        return;
-      }
-
-      if (payload.state === "aborted") {
-        if (streamingRunIdRef.current) {
-          finalizeStreamingMessage(streamingRunIdRef.current);
-          streamingRunIdRef.current = null;
-        }
-        setIsStreaming(false);
-      }
+      dispatchChatEvent(JSON.parse(e.data) as ChatEventPayload);
     });
 
-    // Agent tool-execution events (tool_use blocks from running agent).
-    // Map to a ContentBlock and append to the current streaming message.
-    // Only handle `phase === "start"` to avoid duplicate blocks from update/result.
-    // Gateway emits: { stream: "tool", data: { phase, name, toolCallId, args } }
     es.addEventListener("agent", (e) => {
-      try {
-        const payload = JSON.parse(e.data) as Record<string, unknown>;
-        const stream = payload.stream as string | undefined;
-        const data = payload.data as Record<string, unknown> | undefined;
-        if (stream === "tool" && data && streamingRunIdRef.current) {
-          // Only create a block on the start phase; update/result phases would duplicate it
-          if (data.phase !== "start") {
-            return;
-          }
-          const toolName = data.name as string | undefined;
-          if (toolName) {
-            const block: ContentBlock = {
-              type: "tool_use",
-              // Gateway uses toolCallId (not id) and args (not input)
-              id: (data.toolCallId as string | undefined) ?? `tool-${Date.now()}`,
-              name: toolName,
-              input: (data.args as Record<string, unknown> | undefined) ?? {},
-            };
-            // Append the tool_use block alongside any existing text blocks
-            useChatStore.setState((state) => ({
-              messages: state.messages.map((m) =>
-                m.id === streamingRunIdRef.current ? { ...m, content: [...m.content, block] } : m,
-              ),
-            }));
-          }
-        }
-      } catch {
-        // Ignore malformed payloads
-      }
+      dispatchAgentEvent(JSON.parse(e.data) as AgentEventPayload);
     });
 
-    // Tool execution approval requested — store in chat store for ApprovalDialog.
-    // Gateway broadcasts this as "approval.pending" (matches useApprovalsSSE.ts).
     es.addEventListener("approval.pending", (e) => {
-      try {
-        const payload = JSON.parse(e.data) as Record<string, unknown>;
-        const approval: ActiveApproval = {
-          id: (payload.id as string | undefined) ?? "",
-          toolName:
-            (payload.toolName as string | undefined) ??
-            (payload.command as string | undefined) ??
-            "unknown",
-          command: payload.command as string | undefined,
-          description: payload.description as string | undefined,
-        };
-        if (approval.id) {
-          setActiveApproval(approval);
-        }
-      } catch {
-        // Ignore malformed payloads
-      }
+      dispatchApproval(JSON.parse(e.data) as ApprovalEventPayload);
     });
 
-    // Approval resolved — clear the dialog.
-    // Gateway broadcasts this as "approval.resolved" (matches useApprovalsSSE.ts).
-    es.addEventListener("approval.resolved", () => {
-      setActiveApproval(null);
+    es.addEventListener("approval.resolved", (e) => {
+      const payload = JSON.parse(e.data) as ApprovalResolvedPayload;
+      dispatchApprovalResolved(payload);
     });
 
-    // A2UI events — update artifact panel state.
-    // Currently a stub; integration with ArtifactContext requires
-    // prop-drilling or a separate artifact store (deferred to a future task).
-    es.addEventListener("a2ui", (_e) => {
-      // TODO: wire to ArtifactContext or a dedicated artifact store
+    es.addEventListener("a2ui", (e) => {
+      dispatchA2UIEvent(JSON.parse(e.data) as A2UIEventPayload);
     });
 
     return () => es.close();
-  }, [
-    addMessage,
-    updateStreamingBlocks,
-    replaceMessageContent,
-    finalizeStreamingMessage,
-    setIsStreaming,
-    setError,
-    setActiveApproval,
-    activeSessionId,
-  ]);
+  }, []); // ← empty deps: survives session switches
+}
+
+/**
+ * @deprecated Use `useSSEConnection` instead. Kept for backward compatibility
+ * during migration (Task 5 will update all consumers).
+ */
+export function useChatSSE(): void {
+  useSSEConnection();
 }
