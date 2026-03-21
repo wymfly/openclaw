@@ -172,6 +172,176 @@ describe("parseSchemaSection", () => {
   });
 });
 
+describe("config-schema-advanced", () => {
+  describe("Schema parser handles record types", () => {
+    it("Record with typed string values", () => {
+      const schema = {
+        properties: {
+          labels: {
+            type: "object",
+            additionalProperties: { type: "string" },
+          },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      const field = fields[0];
+      expect(field?.type).toBe("record");
+      expect(field?.valueSchema).toBeDefined();
+      expect(field?.valueSchema?.type).toBe("string");
+    });
+
+    it("Record with complex values", () => {
+      const schema = {
+        properties: {
+          routes: {
+            type: "object",
+            additionalProperties: {
+              type: "object",
+              properties: {
+                path: { type: "string" },
+                method: { type: "string" },
+              },
+            },
+          },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      const field = fields[0];
+      expect(field?.type).toBe("record");
+      expect(field?.valueSchema?.type).toBe("object");
+      expect(field?.valueSchema?.children).toHaveLength(2);
+    });
+  });
+
+  describe("Schema parser handles array items", () => {
+    it("Array with object items", () => {
+      const schema = {
+        properties: {
+          users: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+              },
+            },
+          },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      const field = fields[0];
+      expect(field?.type).toBe("array");
+      expect(field?.itemSchema).toBeDefined();
+      expect(field?.itemSchema?.type).toBe("object");
+      expect(field?.itemSchema?.children).toHaveLength(2);
+    });
+
+    it("Array with simple items", () => {
+      const schema = {
+        properties: {
+          tags: {
+            type: "array",
+            items: { type: "string" },
+          },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      const field = fields[0];
+      expect(field?.type).toBe("array");
+      expect(field?.itemSchema).toBeDefined();
+      expect(field?.itemSchema?.type).toBe("string");
+    });
+
+    it("Array without items schema", () => {
+      const schema = {
+        properties: {
+          data: { type: "array" },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      const field = fields[0];
+      expect(field?.type).toBe("array");
+      expect(field?.itemSchema).toBeUndefined();
+    });
+  });
+
+  describe("Schema parser handles format keywords", () => {
+    it("URI format", () => {
+      const schema = {
+        properties: {
+          endpoint: { type: "string", format: "uri" },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      expect(fields[0]?.format).toBe("uri");
+    });
+
+    it("Email format", () => {
+      const schema = {
+        properties: {
+          email: { type: "string", format: "email" },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      expect(fields[0]?.format).toBe("email");
+    });
+  });
+
+  describe("Schema parser extracts validation constraints", () => {
+    it("String with length constraints", () => {
+      const schema = {
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 255 },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      expect(fields[0]?.validation).toEqual({ minLength: 1, maxLength: 255 });
+    });
+
+    it("Number with range constraints", () => {
+      const schema = {
+        properties: {
+          port: { type: "number", minimum: 0, maximum: 65535 },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      expect(fields[0]?.validation).toEqual({ minimum: 0, maximum: 65535 });
+    });
+
+    it("String with pattern", () => {
+      const schema = {
+        properties: {
+          slug: { type: "string", pattern: "^[a-z0-9-]+$" },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      expect(fields[0]?.validation).toEqual({ pattern: "^[a-z0-9-]+$" });
+    });
+
+    it("No constraints returns undefined validation", () => {
+      const schema = {
+        properties: {
+          name: { type: "string" },
+        },
+      };
+      const fields = parseSchemaSection(schema);
+      expect(fields).toHaveLength(1);
+      expect(fields[0]?.validation).toBeUndefined();
+    });
+  });
+});
+
 describe("union type detection", () => {
   it("detects a discriminated union (openai/anthropic with 'type' discriminator)", () => {
     const schema = {
