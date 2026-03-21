@@ -97,7 +97,13 @@
     "debugEvents": "{count} 个事件",
     "debugSurfaces": "{count} 个 Surface",
     "debugNodes": "{count} 个节点",
-    "debugTreeUnavailable": "组件树不可用"
+    "debugTreeUnavailable": "组件树不可用",
+    "artifactJson": "JSON 数据",
+    "artifactCsv": "表格数据",
+    "artifactMarkdown": "文档",
+    "artifactCode": "代码",
+    "artifactJsonInvalid": "无效的 JSON 数据",
+    "artifactCsvEmpty": "无有效数据行"
   },
   "gateway": {
     "title": "网关概览",

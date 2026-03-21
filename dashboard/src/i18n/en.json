@@ -97,7 +97,13 @@
     "debugEvents": "{count} events",
     "debugSurfaces": "{count} surfaces",
     "debugNodes": "{count} nodes",
-    "debugTreeUnavailable": "Component tree unavailable"
+    "debugTreeUnavailable": "Component tree unavailable",
+    "artifactJson": "JSON Data",
+    "artifactCsv": "Table Data",
+    "artifactMarkdown": "Document",
+    "artifactCode": "Code",
+    "artifactJsonInvalid": "Invalid JSON data",
+    "artifactCsvEmpty": "No valid data rows"
   },
   "gateway": {
     "title": "Gateway Overview",

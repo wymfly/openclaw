@@ -67,6 +67,9 @@ function MessageBubble({
     (b): b is ContentBlock & { type: "tool_result" } => b.type === "tool_result",
   );
 
+  // Build a lookup from toolUseId -> tool name for contextual artifact detection
+  const toolUseNameMap = new Map(toolUseBlocks.map((b) => [b.id, b.name]));
+
   const combinedText = textBlocks.map((b) => b.text).join("\n");
 
   return (
@@ -149,6 +152,7 @@ function MessageBubble({
             key={`result-${i}`}
             content={typeof b.content === "string" ? b.content : JSON.stringify(b.content)}
             isError={b.isError}
+            toolName={toolUseNameMap.get(b.toolUseId)}
           />
         ))}
 
