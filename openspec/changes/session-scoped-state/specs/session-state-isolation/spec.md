@@ -67,10 +67,11 @@ Each session SHALL have an associated `AbortController` managed in a module-leve
 
 Historical messages loaded from `chat.history` SHALL use the ID format `msg.id ?? ${sessionKey}:${msg.timestamp}:${index}` instead of the previous `hist-${index}`.
 
-#### Scenario: Stable IDs across rehydration
+#### Scenario: IDs unique within single load cycle
 
-- **WHEN** a session is evicted and then rehydrated
-- **THEN** the same historical message SHALL receive the same ID as before eviction
+- **WHEN** historical messages are loaded from `chat.history` in a single call
+- **THEN** each message SHALL receive a unique ID within that load result
+- **AND** no two messages in the same session SHALL have the same ID at any point in time
 
 ### Requirement: Fine-grained selector hooks
 
@@ -91,15 +92,21 @@ The system SHALL provide fine-grained selector hooks (`useSessionMessages`, `use
 - **THEN** session A's messages SHALL be displayed immediately without a loading delay
 - **AND** no fetch to `chat.history` SHALL be triggered (cache hit)
 
-### Requirement: setMessages merge strategy for rehydrate
+### Requirement: setMessages rehydrate strategy preserves SSE messages
 
-`setMessages(sessionKey, msgs)` SHALL merge incoming messages with any existing messages in the session (deduplicating by `message.id`) rather than overwriting, to prevent data loss from SSE events arriving during an async history load.
+`setMessages(sessionKey, msgs)` SHALL use a "history-then-append" strategy: replace the session's messages with the history-loaded messages, then append any messages that arrived via SSE during the load (identified by having an `id` that is a `runId` format, not a history-index format). This avoids relying on cross-channel ID deduplication, since SSE messages use `runId` as ID while history messages use `${sessionKey}:${timestamp}:${index}`.
 
 #### Scenario: SSE message preserved during rehydrate
 
 - **WHEN** session A is being rehydrated and a `loadHistory` fetch is in progress
-- **AND** an SSE delta event adds a new message to session A before the fetch completes
-- **THEN** when the fetch completes and `setMessages` is called, the SSE-delivered message SHALL NOT be lost
+- **AND** an SSE delta event adds a new message (with `id = runId`) to session A before the fetch completes
+- **THEN** when the fetch completes and `setMessages` is called, the SSE-delivered message SHALL be appended after the history messages
+
+#### Scenario: History messages fully replaced on rehydrate
+
+- **WHEN** `setMessages` is called with history-loaded messages
+- **AND** the session has no SSE-delivered messages (empty or only history messages)
+- **THEN** the messages array SHALL be fully replaced with the new history messages
 
 ### Requirement: Compatibility bridge during migration
 
@@ -118,3 +125,52 @@ The sidebar session list SHALL be driven by `sessionMeta: SessionMeta[]` (loaded
 
 - **WHEN** an SSE event creates a session via `ensureSession` for a `sessionKey` not in `sessionMeta`
 - **THEN** the session SHALL NOT appear in the sidebar until the next `refreshSessionMeta()` call
+
+### Requirement: Immutable Map updates for all session-scoped actions
+
+All store actions that modify a `SessionState` within the sessions Map SHALL create a new `Map` instance (via `new Map(state.sessions)`) and a new `SessionState` object (via spread `{ ...session, ... }`), then update the store via `set({ sessions: newMap })`. Direct mutation of the existing Map or SessionState references is prohibited, as it would silently bypass Zustand's shallow equality check.
+
+#### Scenario: Message addition triggers re-render
+
+- **WHEN** `addMessage(sessionKey, msg)` adds a new message to session A
+- **THEN** the `sessions` Map reference SHALL change (new Map instance)
+- **AND** components subscribed to session A's messages SHALL re-render
+
+#### Scenario: Direct mutation does not occur
+
+- **WHEN** any session-scoped action is called
+- **THEN** the action SHALL NOT call `sessions.get(key).messages.push(...)` or `sessions.set(key, ...)` on the existing Map reference
+
+### Requirement: SSE dispatcher routes agent events by sessionKey
+
+The SSE dispatcher SHALL route `agent` events to the correct `SessionState` by `payload.sessionKey`, calling `updateToolProgress(sessionKey, ...)` to track tool execution progress.
+
+#### Scenario: Agent tool event routed to correct session
+
+- **WHEN** an SSE `agent` event arrives with `sessionKey = 'A'` and contains tool execution data
+- **THEN** the dispatcher SHALL call `updateToolProgress('A', ...)` on session A's state
+
+### Requirement: SSE dispatcher routes A2UI events by sessionKey
+
+The SSE dispatcher SHALL route `a2ui` events to the correct `SessionState` by `payload.sessionKey`, calling `setA2UIState(sessionKey, ...)`.
+
+#### Scenario: A2UI event routed to correct session
+
+- **WHEN** an SSE `a2ui` event arrives with `sessionKey = 'B'`
+- **THEN** the dispatcher SHALL call `setA2UIState('B', ...)` on session B's state
+
+### Requirement: reloadFullContent fetches complete content blocks after streaming
+
+After an SSE `final` event, `reloadFullContent(sessionKey, runId)` SHALL fetch the complete content blocks from `chat.history` and replace the streaming message's content via `replaceMessageContent`. The fetch SHALL use the session's `AbortController.signal` and retry once on failure.
+
+#### Scenario: Full content blocks loaded after stream completes
+
+- **WHEN** an SSE `final` event arrives for session A with `runId = 'run-123'`
+- **THEN** `reloadFullContent('A', 'run-123')` SHALL fetch from `/api/chat/history`
+- **AND** replace the message with `id = 'run-123'` with complete content blocks (including tool_use, tool_result, thinking)
+
+#### Scenario: Reload cancelled when session evicted
+
+- **WHEN** `reloadFullContent` is in progress and the session is evicted
+- **THEN** the fetch SHALL be cancelled via `AbortController.signal`
+- **AND** no store modification SHALL occur

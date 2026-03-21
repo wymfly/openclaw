@@ -43,12 +43,20 @@
 - [ ] 6.3 添加 `visibilitychange` 监听器：页面 hidden 时激进清理
 - [ ] 6.4 实现 `useSessionIndicator(key)` hook：从 SessionState 字段派生 `'approval' | 'streaming' | 'canvas' | 'idle' | 'none'`
 
-## 7. 验证
+## 7. 自动化测试
 
-- [ ] 7.1 手动验证：正常对话收发（发消息 → 流式回复 → 完整内容块渲染）
-- [ ] 7.2 手动验证：Session 切换无闪现（快速切换 3 个 session）
-- [ ] 7.3 手动验证：后台 session 流跟踪（session A 发消息 → 切到 B → 切回 A 看到完整回复）
-- [ ] 7.4 手动验证：SSE 连接稳定（连续切换 10 次，Network 面板只有 1 个 EventSource）
-- [ ] 7.5 手动验证：附件发送 + abort 功能 + 多模态历史渲染
-- [ ] 7.6 手动验证：淘汰后恢复（等待 5 分钟 → 切回 → 历史正确加载）
-- [ ] 7.7 手动验证：DevTools Memory 面板，20 次切换后无持续增长
+- [ ] 7.1 Store 单元测试：`ensureSession` 创建/刷新、`addMessage` 幂等去重、`setMessages` history-then-append 策略、`setStreaming` active/idle 状态转换、`evictStale` 淘汰逻辑（active 不淘汰 / activeSessionKey 不淘汰 / 超时淘汰）
+- [ ] 7.2 Store 单元测试：`setActiveSession` 缓存命中 vs rehydrate、`removeSession` 清理、Map 不可变更新（验证引用变化）
+- [ ] 7.3 SSE Dispatcher 单元测试：first-delta vs subsequent-delta 路由、final 触发 reloadFullContent、error/aborted 清理流状态、跨 session 事件正确路由
+- [ ] 7.4 Selector hooks 隔离测试：session A 消息变更不触发 session B 的 `useSessionMessages` re-render
+- [ ] 7.5 AbortController 测试：session 淘汰时 pending fetch 被取消、abortSession 后新 getSessionAbort 返回新实例
+
+## 8. 手动验证
+
+- [ ] 8.1 手动验证：正常对话收发（发消息 → 流式回复 → 完整内容块渲染）
+- [ ] 8.2 手动验证：Session 切换无闪现（快速切换 3 个 session）
+- [ ] 8.3 手动验证：后台 session 流跟踪（session A 发消息 → 切到 B → 切回 A 看到完整回复）
+- [ ] 8.4 手动验证：SSE 连接稳定（连续切换 10 次，Network 面板只有 1 个 EventSource）
+- [ ] 8.5 手动验证：附件发送 + abort 功能 + 多模态历史渲染
+- [ ] 8.6 手动验证：淘汰后恢复（等待 5 分钟 → 切回 → 历史正确加载）
+- [ ] 8.7 手动验证：DevTools Memory 面板，20 次切换后无持续增长

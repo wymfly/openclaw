@@ -272,7 +272,7 @@ function dispatchChatEvent(payload: ChatSSEPayload) {
   const store = useChatStore.getState();
   store.ensureSession(sessionKey);
 
-  switch (payload.type) {
+  switch (payload.state) {
     case "delta": {
       const session = store.sessions.get(sessionKey)!;
       const isFirstDelta = session.streamingRunId !== payload.runId;
@@ -325,7 +325,7 @@ async function reloadFullContent(sessionKey: string, runId: string) {
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const res = await fetch(`/api/chat/history?sessionKey=${sessionKey}&last=1`, { signal });
+      const res = await fetch(`/api/chat/history?sessionKey=${sessionKey}&limit=1`, { signal });
       if (signal.aborted) return;
       const data = await res.json();
       // 二次检查：session 是否仍存在于 Map 中
