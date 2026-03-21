@@ -7,10 +7,12 @@ import {
   type ContentBlock,
   type ApprovalRequest,
   type A2UIState,
+  type A2UIEvent,
   type ToolProgress,
   createEmptySessionState,
   DEFAULT_EVICT_IDLE_MS,
   MAX_CACHED_SESSIONS,
+  MAX_A2UI_EVENT_LOG,
 } from "./chat-types";
 
 // ---------------------------------------------------------------------------
@@ -24,6 +26,7 @@ export {
   type SessionMeta,
   type SessionState,
   type A2UIState,
+  type A2UIEvent,
   type ToolProgress,
 } from "./chat-types";
 
@@ -53,7 +56,10 @@ interface ChatStore {
     toolUseId: string,
     progress: Partial<ToolProgress>,
   ) => void;
-  setA2UIState: (sessionKey: string, state: A2UIState | null) => void;
+  setA2UIState: (sessionKey: string, state: Partial<A2UIState> | null) => void;
+  appendA2UIEvent: (sessionKey: string, event: A2UIEvent) => void;
+  updateA2UIBridgeStatus: (sessionKey: string, status: "connecting" | "ready" | "error") => void;
+  updateA2UISurfaces: (sessionKey: string, surfaces: string[]) => void;
 
   // ---- Global actions ----
   setActiveSession: (key: string | null) => void;
@@ -242,12 +248,49 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     });
   },
 
-  setA2UIState(sessionKey: string, state: A2UIState | null) {
+  setA2UIState(sessionKey: string, state: Partial<A2UIState> | null) {
     const { sessions } = get();
     set({
       sessions: updateSession(sessions, sessionKey, (s) => ({
         ...s,
-        a2uiState: state,
+        a2uiState:
+          state === null ? null : { ...(s.a2uiState ?? { url: "", visible: false }), ...state },
+      })),
+    });
+  },
+
+  appendA2UIEvent(sessionKey: string, event: A2UIEvent) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => {
+        const log = [...(s.a2uiState?.eventLog ?? []), event];
+        if (log.length > MAX_A2UI_EVENT_LOG) {
+          log.splice(0, log.length - MAX_A2UI_EVENT_LOG);
+        }
+        return {
+          ...s,
+          a2uiState: { ...(s.a2uiState ?? { url: "", visible: false }), eventLog: log },
+        };
+      }),
+    });
+  },
+
+  updateA2UIBridgeStatus(sessionKey: string, status: "connecting" | "ready" | "error") {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        a2uiState: { ...(s.a2uiState ?? { url: "", visible: false }), bridgeStatus: status },
+      })),
+    });
+  },
+
+  updateA2UISurfaces(sessionKey: string, surfaces: string[]) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        a2uiState: { ...(s.a2uiState ?? { url: "", visible: false }), surfaces },
       })),
     });
   },

@@ -84,7 +84,20 @@ export interface A2UIState {
   url: string;
   /** Whether the A2UI overlay is currently visible. */
   visible: boolean;
+  bridgeStatus?: "connecting" | "ready" | "error";
+  eventLog?: A2UIEvent[];
+  surfaces?: string[];
 }
+
+export interface A2UIEvent {
+  timestamp: number;
+  direction: "inbound" | "outbound";
+  action: string;
+  summary: string;
+  raw: unknown;
+}
+
+export const MAX_A2UI_EVENT_LOG = 200;
 
 // ---------------------------------------------------------------------------
 // Per-session state
