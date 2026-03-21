@@ -252,6 +252,9 @@ function JsonFallbackField({
 
 export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaFormProps) {
   const tc = useTranslations("common");
+  const t = useTranslations("config");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   const handleChange = useCallback(
     (key: string, value: unknown) => {
       onChange(key, value);
@@ -259,142 +262,163 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
     [onChange],
   );
 
+  const normalFields = fields.filter((f) => !f.collapsed);
+  const advancedFields = fields.filter((f) => f.collapsed);
+
   if (fields.length === 0) {
     return (
       <div className="text-xs py-2 text-[var(--text-secondary)]">{tc("noConfigurableFields")}</div>
     );
   }
 
+  function renderField(field: FormField) {
+    const fullKey = `${prefix}${field.key}`;
+    const value = values[field.key];
+
+    switch (field.type) {
+      case "string":
+        // Sensitive fields render as password input
+        if (field.sensitive) {
+          return (
+            <PasswordField
+              key={fullKey}
+              field={field}
+              value={typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""}
+              onChange={(v) => handleChange(field.key, v)}
+            />
+          );
+        }
+        return (
+          <StringField
+            key={fullKey}
+            field={field}
+            value={typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""}
+            onChange={(v) => handleChange(field.key, v)}
+          />
+        );
+      case "number":
+        return (
+          <NumberField
+            key={fullKey}
+            field={field}
+            value={typeof value === "number" ? value : ""}
+            onChange={(v) => handleChange(field.key, v)}
+          />
+        );
+      case "boolean":
+        return (
+          <BooleanField
+            key={fullKey}
+            field={field}
+            value={Boolean(value ?? field.defaultValue ?? false)}
+            onChange={(v) => handleChange(field.key, v)}
+          />
+        );
+      case "enum":
+        return (
+          <EnumField
+            key={fullKey}
+            field={field}
+            value={typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""}
+            onChange={(v) => handleChange(field.key, v)}
+          />
+        );
+      case "array":
+        // Typed array with itemSchema renders item-level editor
+        if (field.itemSchema) {
+          return (
+            <TypedArrayField
+              key={fullKey}
+              field={field}
+              value={Array.isArray(value) ? value : []}
+              onChange={(v) => handleChange(field.key, v)}
+              prefix={prefix}
+            />
+          );
+        }
+        return (
+          <ArrayField
+            key={fullKey}
+            field={field}
+            value={value}
+            onChange={(v) => {
+              try {
+                handleChange(field.key, JSON.parse(v));
+              } catch {
+                handleChange(field.key, v);
+              }
+            }}
+          />
+        );
+      case "object":
+        return (
+          <ObjectField
+            key={fullKey}
+            field={field}
+            values={values}
+            onChange={handleChange}
+            prefix={prefix}
+          />
+        );
+      case "union":
+        return (
+          <UnionField
+            key={fullKey}
+            field={field}
+            value={value}
+            onChange={handleChange}
+            prefix={prefix}
+          />
+        );
+      case "record":
+        return (
+          <RecordField
+            key={fullKey}
+            field={field}
+            value={(value as Record<string, unknown>) ?? {}}
+            onChange={handleChange}
+            prefix={prefix}
+          />
+        );
+      case "json":
+        return (
+          <JsonFallbackField
+            key={fullKey}
+            field={field}
+            value={value}
+            onChange={(v) => handleChange(field.key, v)}
+          />
+        );
+      default:
+        return null;
+    }
+  }
+
   return (
     <div>
-      {fields.map((field) => {
-        const fullKey = `${prefix}${field.key}`;
-        const value = values[field.key];
+      {normalFields.map((field) => renderField(field))}
 
-        switch (field.type) {
-          case "string":
-            // Sensitive fields render as password input
-            if (field.sensitive) {
-              return (
-                <PasswordField
-                  key={fullKey}
-                  field={field}
-                  value={
-                    typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""
-                  }
-                  onChange={(v) => handleChange(field.key, v)}
-                />
-              );
-            }
-            return (
-              <StringField
-                key={fullKey}
-                field={field}
-                value={
-                  typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""
-                }
-                onChange={(v) => handleChange(field.key, v)}
-              />
-            );
-          case "number":
-            return (
-              <NumberField
-                key={fullKey}
-                field={field}
-                value={typeof value === "number" ? value : ""}
-                onChange={(v) => handleChange(field.key, v)}
-              />
-            );
-          case "boolean":
-            return (
-              <BooleanField
-                key={fullKey}
-                field={field}
-                value={Boolean(value ?? field.defaultValue ?? false)}
-                onChange={(v) => handleChange(field.key, v)}
-              />
-            );
-          case "enum":
-            return (
-              <EnumField
-                key={fullKey}
-                field={field}
-                value={
-                  typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""
-                }
-                onChange={(v) => handleChange(field.key, v)}
-              />
-            );
-          case "array":
-            // Typed array with itemSchema renders item-level editor
-            if (field.itemSchema) {
-              return (
-                <TypedArrayField
-                  key={fullKey}
-                  field={field}
-                  value={Array.isArray(value) ? value : []}
-                  onChange={(v) => handleChange(field.key, v)}
-                  prefix={prefix}
-                />
-              );
-            }
-            return (
-              <ArrayField
-                key={fullKey}
-                field={field}
-                value={value}
-                onChange={(v) => {
-                  try {
-                    handleChange(field.key, JSON.parse(v));
-                  } catch {
-                    handleChange(field.key, v);
-                  }
-                }}
-              />
-            );
-          case "object":
-            return (
-              <ObjectField
-                key={fullKey}
-                field={field}
-                values={values}
-                onChange={handleChange}
-                prefix={prefix}
-              />
-            );
-          case "union":
-            return (
-              <UnionField
-                key={fullKey}
-                field={field}
-                value={value}
-                onChange={handleChange}
-                prefix={prefix}
-              />
-            );
-          case "record":
-            return (
-              <RecordField
-                key={fullKey}
-                field={field}
-                value={(value as Record<string, unknown>) ?? {}}
-                onChange={handleChange}
-                prefix={prefix}
-              />
-            );
-          case "json":
-            return (
-              <JsonFallbackField
-                key={fullKey}
-                field={field}
-                value={value}
-                onChange={(v) => handleChange(field.key, v)}
-              />
-            );
-          default:
-            return null;
-        }
-      })}
+      {advancedFields.length > 0 && (
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="mt-2">
+          <CollapsibleTrigger
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-medium cursor-pointer transition-colors duration-150 mb-2",
+              "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+            )}
+          >
+            {advancedOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            <span>{advancedOpen ? t("hideAdvanced") : t("showAdvanced")}</span>
+            <span className="text-[var(--text-secondary)] opacity-60">
+              ({advancedFields.length})
+            </span>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="pl-3 border-l border-[var(--border-subtle)]">
+              {advancedFields.map((field) => renderField(field))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
     </div>
   );
 }

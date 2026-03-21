@@ -6,9 +6,11 @@ import { useEffect, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { parseSchemaSection } from "@/lib/schema-parser";
+import { parseSchemaSection, type FormField } from "@/lib/schema-parser";
+import { applyUiHints, type UiHintsMap } from "@/lib/ui-hints";
 import { useConfigStore } from "@/stores/config";
 import { ConflictDialog } from "./ConflictDialog";
+import { validateField } from "./fields/FieldValidation";
 import { SchemaForm } from "./SchemaForm";
 import { SectionNav } from "./SectionNav";
 
@@ -23,6 +25,7 @@ export function ConfigPanel() {
 
   const {
     schema,
+    uiHints,
     editedConfig,
     isDirty,
     saving,
@@ -87,8 +90,12 @@ export function ConfigPanel() {
     if (!sectionSchema || typeof sectionSchema !== "object") {
       return [];
     }
-    return parseSchemaSection(sectionSchema);
-  }, [schema, activeSection]);
+    let fields = parseSchemaSection(sectionSchema);
+    if (uiHints && Object.keys(uiHints).length > 0) {
+      fields = applyUiHints(fields, uiHints as UiHintsMap, activeSection);
+    }
+    return fields;
+  }, [schema, activeSection, uiHints]);
 
   const sectionValues = useMemo(() => {
     if (!activeSection) {
@@ -96,6 +103,35 @@ export function ConfigPanel() {
     }
     return (configObj[activeSection] as Record<string, unknown>) ?? {};
   }, [configObj, activeSection]);
+
+  /**
+   * Recursively walk a FormField[] tree and check each field's value against
+   * its validation constraints. Returns true if any field fails validation.
+   */
+  const hasValidationErrors = useMemo(() => {
+    function checkFields(fields: FormField[], values: Record<string, unknown>): boolean {
+      for (const field of fields) {
+        const value = values[field.key];
+        const err = validateField(value, field.validation, field.format);
+        if (err !== null) {
+          return true;
+        }
+        // Recurse into object children
+        if (
+          field.children &&
+          field.children.length > 0 &&
+          typeof value === "object" &&
+          value !== null
+        ) {
+          if (checkFields(field.children, value as Record<string, unknown>)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    return checkFields(currentFields, sectionValues);
+  }, [currentFields, sectionValues]);
 
   const handleFieldChange = useCallback(
     (key: string, value: unknown) => {
@@ -129,8 +165,12 @@ export function ConfigPanel() {
   );
 
   const handleSave = useCallback(() => {
+    // Block save when any field fails validation
+    if (hasValidationErrors) {
+      return;
+    }
     void saveConfig();
-  }, [saveConfig]);
+  }, [saveConfig, hasValidationErrors]);
 
   const handleReload = useCallback(() => {
     void reloadConfig();
@@ -164,7 +204,13 @@ export function ConfigPanel() {
             <RefreshCw size={12} />
             {t("reload")}
           </Button>
-          <Button size="xs" onClick={handleSave} disabled={!isDirty || saving} className="gap-1">
+          <Button
+            size="xs"
+            onClick={handleSave}
+            disabled={!isDirty || saving || hasValidationErrors}
+            className="gap-1"
+            title={hasValidationErrors ? t("validationErrors") : undefined}
+          >
             <Save size={12} />
             {saving ? t("saving") : t("save")}
           </Button>
