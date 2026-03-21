@@ -2,9 +2,9 @@
 
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useSessionToolProgress } from "@/stores/chat-hooks";
+import { useActiveSessionKey, useSessionToolProgress } from "@/stores/chat-hooks";
 import type { ToolProgress } from "@/stores/chat-types";
 
 const COMPLETED_VISIBLE_MS = 3_000;
@@ -57,7 +57,17 @@ function ToolEntry({ tool }: { tool: ToolProgress }) {
 export function ToolProgressBar() {
   const t = useTranslations("chat");
   const toolProgress = useSessionToolProgress();
+  const activeKey = useActiveSessionKey();
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+
+  // Reset hidden IDs when session changes to prevent stale cross-session state
+  const prevKeyRef = useRef(activeKey);
+  useEffect(() => {
+    if (prevKeyRef.current !== activeKey) {
+      prevKeyRef.current = activeKey;
+      setHiddenIds(new Set());
+    }
+  }, [activeKey]);
 
   useEffect(() => {
     const entries = Object.values(toolProgress);

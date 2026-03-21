@@ -258,15 +258,21 @@ export function dispatchAgentEvent(payload: AgentEventPayload): void {
         startedAt: Date.now(),
       });
     } else if (phase === "result" || phase === "complete") {
-      useChatStore.getState().updateToolProgress(sessionKey, toolCallId, {
-        status: "completed",
-        completedAt: Date.now(),
-      });
+      // Only update if a start record exists — avoids creating incomplete ToolProgress
+      // when the start event was missed (SSE reconnection gap).
+      if (useChatStore.getState().sessions.get(sessionKey)?.toolProgress[toolCallId]) {
+        useChatStore.getState().updateToolProgress(sessionKey, toolCallId, {
+          status: "completed",
+          completedAt: Date.now(),
+        });
+      }
     } else if (phase === "error") {
-      useChatStore.getState().updateToolProgress(sessionKey, toolCallId, {
-        status: "error",
-        completedAt: Date.now(),
-      });
+      if (useChatStore.getState().sessions.get(sessionKey)?.toolProgress[toolCallId]) {
+        useChatStore.getState().updateToolProgress(sessionKey, toolCallId, {
+          status: "error",
+          completedAt: Date.now(),
+        });
+      }
     }
 
     // Only append tool_use block on start phase (existing behavior)

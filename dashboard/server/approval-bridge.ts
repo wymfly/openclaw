@@ -114,10 +114,16 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
     } else if (innerEvent === "exec.approval.resolved" && innerPayload) {
       const id = typeof innerPayload.id === "string" ? innerPayload.id : "";
       if (id) {
-        // Retrieve sessionKey from pending map before deleting, so the resolved
-        // broadcast can route the event back to the originating session on the client.
+        // Retrieve sessionKey from pending map before deleting; fall back to
+        // the Gateway's request.sessionKey if the entry was already expired.
         const pending = pendingMap.get(id);
-        const sessionKey = pending?.sessionKey;
+        const request =
+          typeof innerPayload.request === "object" && innerPayload.request !== null
+            ? (innerPayload.request as Record<string, unknown>)
+            : undefined;
+        const sessionKey =
+          pending?.sessionKey ??
+          (typeof request?.sessionKey === "string" ? request.sessionKey : undefined);
         pendingMap.delete(id);
         eventBus.broadcast("approval.resolved", { id, sessionKey, ...innerPayload });
       }
