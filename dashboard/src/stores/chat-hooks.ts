@@ -13,6 +13,7 @@ import type {
   ToolProgress,
   ApprovalRequest,
   A2UIState,
+  A2UIEvent,
   SessionMeta,
 } from "./chat-types";
 
@@ -112,6 +113,32 @@ export function useSessionA2UI(sessionKey?: string): A2UIState | null {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
     return key ? (s.sessions.get(key)?.a2uiState ?? null) : null;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// A2UI event log
+// ---------------------------------------------------------------------------
+
+/** Subscribe to A2UI event log for a single session. */
+export function useSessionA2UIEvents(sessionKey?: string): A2UIEvent[] {
+  return useChatStore((s) => {
+    const key = sessionKey ?? s.activeSessionKey;
+    return key ? (s.sessions.get(key)?.a2uiState?.eventLog ?? []) : [];
+  });
+}
+
+// ---------------------------------------------------------------------------
+// A2UI bridge status
+// ---------------------------------------------------------------------------
+
+/** Subscribe to A2UI bridge status for a single session. */
+export function useSessionA2UIBridgeStatus(
+  sessionKey?: string,
+): "connecting" | "ready" | "error" | undefined {
+  return useChatStore((s) => {
+    const key = sessionKey ?? s.activeSessionKey;
+    return key ? s.sessions.get(key)?.a2uiState?.bridgeStatus : undefined;
   });
 }
 
