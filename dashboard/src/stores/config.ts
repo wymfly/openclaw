@@ -6,6 +6,7 @@ import { create } from "zustand";
 
 interface ConfigState {
   schema: Record<string, unknown> | null;
+  uiHints: Record<string, unknown>;
   rawConfig: string;
   baseHash: string | null;
   editedConfig: string;
@@ -26,6 +27,7 @@ interface ConfigState {
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
   schema: null,
+  uiHints: {},
   rawConfig: "",
   baseHash: null,
   editedConfig: "",
@@ -44,7 +46,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       }
       const data = (await res.json()) as Record<string, unknown>;
       // config.schema returns `{ schema, uiHints, version }` — unwrap.
-      set({ schema: (data.schema as Record<string, unknown>) ?? data });
+      set({
+        schema: (data.schema as Record<string, unknown>) ?? data,
+        uiHints: (data.uiHints as Record<string, unknown>) ?? {},
+      });
     } catch {
       // Schema fetch is best-effort
     }
