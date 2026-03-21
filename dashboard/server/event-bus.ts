@@ -31,7 +31,9 @@ export type DeckEventType =
   | "budget.over"
   | "alert.fired"
   | "webhook.delivery"
-  | "cron.run.complete";
+  | "cron.run.complete"
+  // P4 additions (A2UI Canvas)
+  | "a2ui";
 
 export type ServerEvent = {
   id: number;
