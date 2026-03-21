@@ -1,133 +1,530 @@
 import { create } from "zustand";
+import { abortSession } from "./chat-abort";
+import {
+  type SessionState,
+  type SessionMeta,
+  type ChatMessage,
+  type ContentBlock,
+  type ApprovalRequest,
+  type A2UIState,
+  type ToolProgress,
+  createEmptySessionState,
+  DEFAULT_EVICT_IDLE_MS,
+} from "./chat-types";
 
 // ---------------------------------------------------------------------------
-// Content block types (Anthropic-compatible discriminated union)
+// Re-export types for backward compatibility
 // ---------------------------------------------------------------------------
 
-export type ContentBlock =
-  | { type: "text"; text: string }
-  | { type: "image"; data: string; mimeType: string; fileName?: string }
-  | { type: "file"; data: string; mimeType: string; fileName: string; size?: number }
-  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-  | { type: "tool_result"; toolUseId: string; content: string | ContentBlock[]; isError?: boolean }
-  | { type: "thinking"; text: string };
+export {
+  type ContentBlock,
+  type ChatMessage,
+  type SessionInfo,
+  type ApprovalRequest,
+  type SessionMeta,
+  type SessionState,
+  type A2UIState,
+  type ToolProgress,
+} from "./chat-types";
+
+/** @deprecated Use ApprovalRequest */
+export type { ApprovalRequest as ActiveApproval } from "./chat-types";
 
 // ---------------------------------------------------------------------------
-// Message types
+// Store interface
 // ---------------------------------------------------------------------------
 
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: ContentBlock[];
-  timestamp: number;
-  /** Whether this message is still being streamed. */
-  streaming?: boolean;
-  /** Error associated with this message. */
-  error?: string;
+interface ChatStore {
+  // ---- Core state ----
+  sessions: Map<string, SessionState>;
+  activeSessionKey: string | null;
+  activeAgentId: string | null;
+  sessionMeta: SessionMeta[];
+
+  // ---- Session-scoped actions ----
+  ensureSession: (key: string) => void;
+  addMessage: (sessionKey: string, msg: ChatMessage) => void;
+  updateStreamingBlocks: (sessionKey: string, runId: string, blocks: ContentBlock[]) => void;
+  finalizeStreamingMessage: (sessionKey: string, runId: string) => void;
+  replaceMessageContent: (sessionKey: string, messageId: string, blocks: ContentBlock[]) => void;
+  setMessages: (sessionKey: string, msgs: ChatMessage[]) => void;
+  setStreaming: (sessionKey: string, streaming: boolean, runId?: string) => void;
+  setError: (sessionKey: string, error: string | null) => void;
+  setActiveApproval: (sessionKey: string, approval: ApprovalRequest | null) => void;
+  updateToolProgress: (
+    sessionKey: string,
+    toolUseId: string,
+    progress: Partial<ToolProgress>,
+  ) => void;
+  setA2UIState: (sessionKey: string, state: A2UIState | null) => void;
+
+  // ---- Global actions ----
+  setActiveSession: (key: string | null) => void;
+  setActiveAgent: (agentId: string | null) => void;
+  removeSession: (key: string) => void;
+  setSessionMeta: (meta: SessionMeta[]) => void;
+  refreshSessionMeta: () => Promise<void>;
+  evictStale: (maxIdleMs?: number) => void;
+
+  // ---- Backward-compatible actions (removed in Task 6) ----
+  /** @deprecated Use session-scoped addMessage(sessionKey, msg) */
+  addMessageCompat: (msg: ChatMessage) => void;
+  /** @deprecated Use session-scoped updateStreamingBlocks(sessionKey, runId, blocks) */
+  updateStreamingBlocksCompat: (id: string, blocks: ContentBlock[]) => void;
+  /** @deprecated Use session-scoped replaceMessageContent(sessionKey, messageId, blocks) */
+  replaceMessageContentCompat: (id: string, blocks: ContentBlock[]) => void;
+  /** @deprecated Use session-scoped finalizeStreamingMessage(sessionKey, runId) */
+  finalizeStreamingMessageCompat: (id: string) => void;
+  /** @deprecated Use session-scoped setMessages(sessionKey, msgs) */
+  setMessagesCompat: (msgs: ChatMessage[]) => void;
+  /** @deprecated Use session-scoped setStreaming */
+  setIsStreaming: (streaming: boolean) => void;
+  /** @deprecated Use session-scoped setError(sessionKey, error) */
+  setErrorCompat: (error: string | null) => void;
+  /** @deprecated Use session-scoped setActiveApproval(sessionKey, approval) */
+  setActiveApprovalCompat: (approval: ApprovalRequest | null) => void;
+  /** @deprecated Use setSessionMeta */
+  setSessions: (
+    sessions: Array<{
+      key: string;
+      sessionId?: string;
+      agentId?: string;
+      title?: string;
+      lastMessage?: string;
+      updatedAt?: number;
+    }>,
+  ) => void;
+  /** @deprecated Use setMessages(sessionKey, []) */
+  clearMessages: () => void;
+  /** @deprecated Use setActiveSession */
+  selectSkill: (sessionId: string) => void;
+
+  // ---- Backward-compatible computed properties ----
+  /** @deprecated Read from sessions.get(activeSessionKey) */
+  messages: ChatMessage[];
+  /** @deprecated Read from sessions.get(activeSessionKey) */
+  isStreaming: boolean;
+  /** @deprecated Use activeSessionKey */
+  activeSessionId: string | null;
+  /** @deprecated Use sessionMeta */
+  sessions_legacy: Array<{
+    key: string;
+    sessionId?: string;
+    agentId?: string;
+    title?: string;
+    lastMessage?: string;
+    updatedAt?: number;
+  }>;
+  /** @deprecated Read from sessions.get(activeSessionKey) */
+  error: string | null;
+  /** @deprecated Read from sessions.get(activeSessionKey) */
+  activeApproval: ApprovalRequest | null;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Immutably update a single session in the Map.
+ * Returns a new Map with the session at `key` replaced by `updater(existing)`.
+ * If key doesn't exist, creates a new empty session first.
+ */
+function updateSession(
+  sessions: Map<string, SessionState>,
+  key: string,
+  updater: (s: SessionState) => SessionState,
+): Map<string, SessionState> {
+  const newMap = new Map(sessions);
+  const existing = newMap.get(key) ?? createEmptySessionState();
+  newMap.set(key, updater(existing));
+  return newMap;
 }
 
 /**
- * Session info as consumed by the UI.
- *
- * Gateway `sessions.list` returns entries with fields like:
- *   { key, sessionId, agentId, derivedTitle?, lastMessage?, lastActivityAt?, ... }
- * We normalize to this shape.
+ * Check if an ID looks like a "history" message ID (contains colons),
+ * as opposed to an SSE/run ID (typically UUID-like, no colons).
  */
-export type SessionInfo = {
-  key: string;
-  sessionId?: string;
-  agentId?: string;
-  title?: string;
-  lastMessage?: string;
-  updatedAt?: number;
-};
+function isHistoryId(id: string): boolean {
+  return id.includes(":");
+}
 
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Approval request state (for inline chat dialog)
-// ---------------------------------------------------------------------------
+export const useChatStore = create<ChatStore>((set, get) => ({
+  // ---- Core state ----
+  sessions: new Map<string, SessionState>(),
+  activeSessionKey: null,
+  activeAgentId: null,
+  sessionMeta: [],
 
-export type ActiveApproval = {
-  id: string;
-  toolName: string;
-  command?: string;
-  description?: string;
-};
-
-interface ChatState {
-  messages: ChatMessage[];
-  isStreaming: boolean;
-  activeSessionId: string | null;
-  activeAgentId: string | null;
-  sessions: SessionInfo[];
-  error: string | null;
-  /** Pending tool-execution approval surfaced via exec.approval.requested SSE event. */
-  activeApproval: ActiveApproval | null;
-
-  addMessage: (message: ChatMessage) => void;
-  /** Replace the content array of a streaming message (text-only, real-time). */
-  updateStreamingBlocks: (id: string, blocks: ContentBlock[]) => void;
-  /** Replace content and mark streaming: false (called after history reload). */
-  replaceMessageContent: (id: string, blocks: ContentBlock[]) => void;
-  finalizeStreamingMessage: (id: string) => void;
-  setActiveSession: (sessionId: string | null) => void;
-  setActiveAgent: (agentId: string | null) => void;
-  setSessions: (sessions: SessionInfo[]) => void;
-  setMessages: (messages: ChatMessage[]) => void;
-  clearMessages: () => void;
-  setIsStreaming: (streaming: boolean) => void;
-  setError: (error: string | null) => void;
-  setActiveApproval: (approval: ActiveApproval | null) => void;
-  /** Select the skill/session to use for the next message. */
-  selectSkill: (sessionId: string) => void;
-}
-
-export const useChatStore = create<ChatState>((set) => ({
+  // ---- Backward-compatible computed properties ----
   messages: [],
   isStreaming: false,
   activeSessionId: null,
-  activeAgentId: null,
-  sessions: [],
+  sessions_legacy: [],
   error: null,
   activeApproval: null,
 
-  addMessage: (message) =>
-    set((state) => {
-      if (state.messages.some((m) => m.id === message.id)) {
-        return state;
+  // ---- Session-scoped actions ----
+
+  ensureSession(key: string) {
+    const { sessions } = get();
+    if (sessions.has(key)) {
+      // Update lastAccessedAt on existing session
+      set({
+        sessions: updateSession(sessions, key, (s) => ({
+          ...s,
+          lastAccessedAt: Date.now(),
+        })),
+      });
+      return;
+    }
+    const newMap = new Map(sessions);
+    newMap.set(key, createEmptySessionState());
+    set({ sessions: newMap });
+  },
+
+  addMessage(sessionKey: string, msg: ChatMessage) {
+    const { sessions } = get();
+    const newSessions = updateSession(sessions, sessionKey, (s) => {
+      // Idempotent: skip if msg.id already exists
+      if (s.messages.some((m) => m.id === msg.id)) {
+        return s;
       }
-      return { messages: [...state.messages, message] };
-    }),
+      return { ...s, messages: [...s.messages, msg] };
+    });
+    set({ sessions: newSessions });
+    syncCompatFields(set, get);
+  },
 
-  updateStreamingBlocks: (id, blocks) =>
-    set((state) => ({
-      messages: state.messages.map((m) => (m.id === id ? { ...m, content: blocks } : m)),
-    })),
+  updateStreamingBlocks(sessionKey: string, runId: string, blocks: ContentBlock[]) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        messages: s.messages.map((m) => (m.id === runId ? { ...m, content: blocks } : m)),
+      })),
+    });
+    syncCompatFields(set, get);
+  },
 
-  replaceMessageContent: (id, blocks) =>
-    set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === id ? { ...m, content: blocks, streaming: false } : m,
-      ),
-    })),
+  finalizeStreamingMessage(sessionKey: string, runId: string) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        messages: s.messages.map((m) => (m.id === runId ? { ...m, streaming: false } : m)),
+      })),
+    });
+    syncCompatFields(set, get);
+  },
 
-  finalizeStreamingMessage: (id) =>
-    set((state) => ({
-      messages: state.messages.map((m) => (m.id === id ? { ...m, streaming: false } : m)),
-      isStreaming: false,
-    })),
+  replaceMessageContent(sessionKey: string, messageId: string, blocks: ContentBlock[]) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        messages: s.messages.map((m) =>
+          m.id === messageId ? { ...m, content: blocks, streaming: false } : m,
+        ),
+      })),
+    });
+    syncCompatFields(set, get);
+  },
 
-  setActiveSession: (activeSessionId) => set({ activeSessionId }),
-  setActiveAgent: (activeAgentId) => set({ activeAgentId }),
-  setSessions: (sessions) => set({ sessions }),
-  setMessages: (messages) => set({ messages }),
-  clearMessages: () => set({ messages: [] }),
-  setIsStreaming: (isStreaming) => set({ isStreaming }),
-  setError: (error) => set({ error }),
-  setActiveApproval: (activeApproval) => set({ activeApproval }),
-  selectSkill: (sessionId) => set({ activeSessionId: sessionId }),
+  setMessages(sessionKey: string, msgs: ChatMessage[]) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => {
+        // If session has no messages, just set them directly
+        if (s.messages.length === 0) {
+          return { ...s, messages: msgs };
+        }
+
+        // History-then-append strategy:
+        // Identify SSE messages (non-history IDs) that should be preserved
+        const sseMessages = s.messages.filter((m) => !isHistoryId(m.id));
+        const historyIds = new Set(msgs.map((m) => m.id));
+
+        // Filter out SSE messages whose IDs also appear in history (dedup)
+        const uniqueSseMessages = sseMessages.filter((m) => !historyIds.has(m.id));
+
+        // History first, then SSE messages appended
+        return { ...s, messages: [...msgs, ...uniqueSseMessages] };
+      }),
+    });
+    syncCompatFields(set, get);
+  },
+
+  setStreaming(sessionKey: string, streaming: boolean, runId?: string) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        isStreaming: streaming,
+        streamingRunId: streaming ? (runId ?? s.streamingRunId) : null,
+        status: streaming ? "active" : "idle",
+      })),
+    });
+    syncCompatFields(set, get);
+  },
+
+  setError(sessionKey: string, error: string | null) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        error,
+      })),
+    });
+    syncCompatFields(set, get);
+  },
+
+  setActiveApproval(sessionKey: string, approval: ApprovalRequest | null) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        activeApproval: approval,
+      })),
+    });
+    syncCompatFields(set, get);
+  },
+
+  updateToolProgress(sessionKey: string, toolUseId: string, progress: Partial<ToolProgress>) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        toolProgress: {
+          ...s.toolProgress,
+          [toolUseId]: { ...s.toolProgress[toolUseId], ...progress } as ToolProgress,
+        },
+      })),
+    });
+  },
+
+  setA2UIState(sessionKey: string, state: A2UIState | null) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        a2uiState: state,
+      })),
+    });
+  },
+
+  // ---- Global actions ----
+
+  setActiveSession(key: string | null) {
+    if (key === null) {
+      set({ activeSessionKey: null, activeSessionId: null });
+      syncCompatFields(set, get);
+      return;
+    }
+
+    const { sessions } = get();
+    if (sessions.has(key)) {
+      // Cache hit — update lastAccessedAt
+      set({
+        activeSessionKey: key,
+        activeSessionId: key,
+        sessions: updateSession(sessions, key, (s) => ({
+          ...s,
+          lastAccessedAt: Date.now(),
+        })),
+      });
+    } else {
+      // Cache miss — create session
+      const newMap = new Map(sessions);
+      newMap.set(key, createEmptySessionState());
+      set({
+        activeSessionKey: key,
+        activeSessionId: key,
+        sessions: newMap,
+      });
+    }
+    syncCompatFields(set, get);
+  },
+
+  setActiveAgent(agentId: string | null) {
+    set({ activeAgentId: agentId });
+  },
+
+  removeSession(key: string) {
+    abortSession(key);
+    const { sessions, sessionMeta } = get();
+    if (!sessions.has(key)) {
+      return;
+    }
+    const newMap = new Map(sessions);
+    newMap.delete(key);
+    set({
+      sessions: newMap,
+      sessionMeta: sessionMeta.filter((m) => m.key !== key),
+    });
+    syncCompatFields(set, get);
+  },
+
+  setSessionMeta(meta: SessionMeta[]) {
+    set({ sessionMeta: meta });
+  },
+
+  async refreshSessionMeta() {
+    try {
+      const { activeAgentId } = get();
+      const url = activeAgentId
+        ? `/api/chat/sessions?agentId=${encodeURIComponent(activeAgentId)}`
+        : "/api/chat/sessions";
+      const res = await fetch(url);
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as
+        | { sessions?: Array<Record<string, unknown>> }
+        | Array<Record<string, unknown>>;
+      const list = Array.isArray(data) ? data : (data.sessions ?? []);
+      if (Array.isArray(list)) {
+        const meta: SessionMeta[] = list.map((s) => ({
+          key: (s.key as string) ?? "",
+          agentId: (s.agentId as string) ?? "",
+          title: s.derivedTitle as string | undefined,
+          updatedAt: (s.updatedAt as number) ?? Date.now(),
+          lastMessagePreview: s.lastMessage as string | undefined,
+        }));
+        set({ sessionMeta: meta });
+      }
+    } catch {
+      // Silently ignore fetch errors
+    }
+  },
+
+  evictStale(maxIdleMs: number = DEFAULT_EVICT_IDLE_MS) {
+    const { sessions, activeSessionKey } = get();
+    const now = Date.now();
+    const keysToEvict: string[] = [];
+
+    for (const [key, sess] of sessions) {
+      if (sess.status !== "idle") {
+        continue;
+      }
+      if (key === activeSessionKey) {
+        continue;
+      }
+      if (now - sess.lastAccessedAt >= maxIdleMs) {
+        keysToEvict.push(key);
+      }
+    }
+
+    if (keysToEvict.length === 0) {
+      // Still create a new Map to satisfy immutability contract
+      set({ sessions: new Map(sessions) });
+      return;
+    }
+
+    const newMap = new Map(sessions);
+    for (const key of keysToEvict) {
+      abortSession(key);
+      newMap.delete(key);
+    }
+    set({ sessions: newMap });
+  },
+
+  // ---- Backward-compatible actions (compatibility bridge) ----
+
+  addMessageCompat(msg: ChatMessage) {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().addMessage(key, msg);
+  },
+
+  updateStreamingBlocksCompat(id: string, blocks: ContentBlock[]) {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().updateStreamingBlocks(key, id, blocks);
+  },
+
+  replaceMessageContentCompat(id: string, blocks: ContentBlock[]) {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().replaceMessageContent(key, id, blocks);
+  },
+
+  finalizeStreamingMessageCompat(id: string) {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().finalizeStreamingMessage(key, id);
+  },
+
+  setMessagesCompat(msgs: ChatMessage[]) {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().setMessages(key, msgs);
+  },
+
+  setIsStreaming(streaming: boolean) {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().setStreaming(key, streaming);
+  },
+
+  setErrorCompat(error: string | null) {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().setError(key, error);
+  },
+
+  setActiveApprovalCompat(approval: ApprovalRequest | null) {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().setActiveApproval(key, approval);
+  },
+
+  setSessions(sessions) {
+    // Bridge: convert old SessionInfo[] to sessionMeta + sessions_legacy
+    set({ sessions_legacy: sessions });
+  },
+
+  clearMessages() {
+    const { activeSessionKey } = get();
+    const key = activeSessionKey ?? "_default";
+    get().setMessages(key, []);
+  },
+
+  selectSkill(sessionId: string) {
+    get().setActiveSession(sessionId);
+  },
 }));
+
+// ---------------------------------------------------------------------------
+// Sync compatibility fields from active session to flat store properties.
+// Called after every session-scoped mutation so that old selectors
+// (e.g., `useChatStore(s => s.messages)`) continue to work.
+// ---------------------------------------------------------------------------
+
+function syncCompatFields(set: (partial: Partial<ChatStore>) => void, get: () => ChatStore) {
+  const { activeSessionKey, sessions } = get();
+  const active = activeSessionKey ? sessions.get(activeSessionKey) : undefined;
+  set({
+    messages: active?.messages ?? [],
+    isStreaming: active?.isStreaming ?? false,
+    error: active?.error ?? null,
+    activeApproval: active?.activeApproval ?? null,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Compatibility bridge helper (exported for un-migrated components)
+// ---------------------------------------------------------------------------
+
+/** @deprecated Use session-scoped selectors instead */
+export function getActiveSession(): SessionState | undefined {
+  const state = useChatStore.getState();
+  if (!state.activeSessionKey) {
+    return undefined;
+  }
+  return state.sessions.get(state.activeSessionKey);
+}
