@@ -983,6 +983,7 @@
       "callbackUrlNote": "Replace {GATEWAY_URL} with your gateway's public address.",
       "noCallbackNeeded": "WebSocket mode does not require a callback URL. The connection is established automatically by the Gateway.",
       "testDesc": "Save configuration and test the connection to WeCom.",
+      "probeConfigNote": "Note: This test validates the configuration already saved to the Gateway. Make sure you have saved your credentials in the previous step.",
       "probeSuccess": "WeCom channel connection is healthy",
       "probeNoChannel": "No WeCom channel detected",
       "probeFailed": "Connection test failed"
@@ -1004,6 +1005,7 @@
       "appSecretHint": "Feishu App Secret",
       "appSecretHelp": "The secret key paired with the App ID",
       "testDesc": "Save configuration and test the connection to Feishu.",
+      "probeConfigNote": "Note: This test validates the configuration already saved to the Gateway. Make sure you have saved your credentials in the previous step.",
       "probeSuccess": "Feishu channel connection is healthy",
       "probeNoChannel": "No Feishu channel detected",
       "probeFailed": "Connection test failed"

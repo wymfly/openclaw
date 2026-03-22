@@ -983,6 +983,7 @@
       "callbackUrlNote": "请将 {GATEWAY_URL} 替换为您的网关实际公网地址。",
       "noCallbackNeeded": "WebSocket 模式无需配置回调 URL，连接将由 Gateway 自动建立。",
       "testDesc": "保存配置并测试与企业微信的连接。",
+      "probeConfigNote": "注意：测试将验证已保存到 Gateway 的配置，请确保已在上一步保存凭据。",
       "probeSuccess": "WeCom 渠道连接正常",
       "probeNoChannel": "未检测到 WeCom 渠道",
       "probeFailed": "连接测试失败"
@@ -1004,6 +1005,7 @@
       "appSecretHint": "飞书应用 App Secret",
       "appSecretHelp": "与 App ID 配对的应用密钥",
       "testDesc": "保存配置并测试与飞书的连接。",
+      "probeConfigNote": "注意：测试将验证已保存到 Gateway 的配置，请确保已在上一步保存凭据。",
       "probeSuccess": "飞书渠道连接正常",
       "probeNoChannel": "未检测到飞书渠道",
       "probeFailed": "连接测试失败"
