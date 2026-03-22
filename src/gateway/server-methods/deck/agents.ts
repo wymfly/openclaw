@@ -1,3 +1,5 @@
+import { stat } from "node:fs/promises";
+import { join } from "node:path";
 import {
   listAgentIds,
   resolveAgentConfig,
@@ -68,6 +70,32 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     const effectiveSkills = skillMode === "all" ? allSkillKeys : (skillFilter ?? []);
     const totalAvailableSkills = allSkillKeys.length;
 
+    // Sandbox config
+    const sandbox = agentConfig.sandbox;
+
+    // Identity existence check
+    let identityExists = false;
+    try {
+      const identityPath = join(workspaceDir, "IDENTITY.md");
+      await stat(identityPath);
+      identityExists = true;
+    } catch {
+      // File does not exist
+    }
+
+    // Fallback models
+    let fallbackModels: string[] | undefined;
+    if (
+      agentConfig.model &&
+      typeof agentConfig.model === "object" &&
+      "fallbacks" in agentConfig.model
+    ) {
+      const fb = (agentConfig.model as { fallbacks?: string[] }).fallbacks;
+      if (Array.isArray(fb)) {
+        fallbackModels = fb;
+      }
+    }
+
     // Subagents
     const agentSubagents = agentConfig.subagents;
     const globalDefaults = cfg.agents?.defaults?.subagents;
@@ -93,6 +121,9 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
         effectiveMaxSpawnDepth,
         effectiveMaxChildrenPerAgent,
       },
+      sandbox,
+      identityExists,
+      fallbackModels,
     });
   },
 
