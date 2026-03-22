@@ -109,7 +109,14 @@
     "paramShowLess": "Show less",
     "paramKeys": "{count} keys",
     "copyJson": "Copy JSON",
-    "copied": "Copied"
+    "copied": "Copied",
+    "bashCommand": "Command",
+    "bashStdout": "stdout",
+    "bashStderr": "stderr",
+    "bashExitCode": "Exit code",
+    "showRaw": "Show Raw",
+    "showFormatted": "Show Formatted",
+    "binaryFile": "[Binary file — diff not available]"
   },
   "gateway": {
     "title": "Gateway Overview",
