@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Power, PowerOff, AlertCircle } from "lucide-react";
+import { LogOut, Power, PowerOff, AlertCircle, Wand2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useChannelsStore, type ChannelAccount } from "@/stores/channels";
+import { FeishuWizard } from "./FeishuWizard";
+import { WeComWizard } from "./WeComWizard";
 
 function AccountStatusBadge({ account }: { account: ChannelAccount }) {
   const t = useTranslations("channels");
@@ -54,6 +56,11 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  const isWecom = channelId.includes("wecom");
+  const isFeishu = channelId.includes("feishu");
+  const hasWizard = isWecom || isFeishu;
 
   const channel = channels.get(channelId);
 
@@ -93,9 +100,28 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
       <div className="px-4 py-3 border-b border-[var(--border)]">
-        <h2 className="text-sm font-semibold text-[var(--text-primary)]">{channel.label}</h2>
-        <span className="text-xs text-[var(--text-secondary)] font-mono">ID: {channel.id}</span>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">{channel.label}</h2>
+            <span className="text-xs text-[var(--text-secondary)] font-mono">ID: {channel.id}</span>
+          </div>
+          {hasWizard && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setWizardOpen(true)}
+            >
+              <Wand2 size={12} />
+              {t("configWizard")}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Wizard dialogs */}
+      {isWecom && <WeComWizard open={wizardOpen} onOpenChange={setWizardOpen} />}
+      {isFeishu && <FeishuWizard open={wizardOpen} onOpenChange={setWizardOpen} />}
 
       <div className="flex-1 px-4 py-3 space-y-4">
         {/* Accounts section */}
