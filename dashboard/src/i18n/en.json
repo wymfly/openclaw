@@ -13,6 +13,7 @@
     "memory": "Memory",
     "logs": "Logs",
     "activity": "Activity",
+    "scheduler": "Scheduler",
     "cron": "Cron Jobs",
     "webhooks": "Webhooks",
     "approvals": "Approvals",
@@ -738,6 +739,10 @@
     "diffRemoved": "Removed",
     "diffChanged": "Changed",
     "diffDontShowAgain": "Don't show again this session"
+  },
+  "scheduler": {
+    "cronJobs": "Cron Jobs",
+    "heartbeat": "Heartbeat"
   },
   "cron": {
     "title": "Cron Jobs",

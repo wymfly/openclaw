@@ -12,7 +12,7 @@ import { JobList } from "./JobList";
 import { RunHistory } from "./RunHistory";
 import { RunNowButton } from "./RunNowButton";
 
-export function CronPanel() {
+function CronJobsContent() {
   const t = useTranslations("cron");
   const tc = useTranslations("common");
 
@@ -38,8 +38,8 @@ export function CronPanel() {
   };
 
   return (
-    <div className="flex h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
-      {/* Sidebar — job list */}
+    <div className="flex h-full overflow-hidden">
+      {/* Sidebar -- job list */}
       <aside className="flex flex-col w-56 shrink-0 border-r border-[var(--border)] h-full">
         <ScrollArea className="flex-1">
           <div className="p-2">
@@ -117,6 +117,36 @@ export function CronPanel() {
               </TabsContent>
             </div>
           </Tabs>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SchedulerPanel() {
+  const ts = useTranslations("scheduler");
+
+  const [activeTab, setActiveTab] = useState("cron");
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
+      {/* Top-level scheduler tabs */}
+      <div className="flex items-center px-4 py-2 border-b border-[var(--border)]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList variant="line">
+            <TabsTrigger value="cron">{ts("cronJobs")}</TabsTrigger>
+            <TabsTrigger value="heartbeat">{ts("heartbeat")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Tab content */}
+      <div className="flex-1 min-h-0">
+        {activeTab === "cron" && <CronJobsContent />}
+        {activeTab === "heartbeat" && (
+          <div className="flex-1 flex items-center justify-center h-full text-[var(--text-secondary)]">
+            <p className="text-sm">{ts("heartbeat")}</p>
+          </div>
         )}
       </div>
     </div>
