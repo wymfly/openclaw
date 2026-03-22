@@ -57,10 +57,10 @@ export function OverviewTab() {
             </div>
             <div className="min-w-0">
               <p className="text-[11px] text-[var(--text-secondary)] truncate">
-                {t("stats.activeRuns")}
+                {t("stats.todayRuns")}
               </p>
               <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums">
-                {statsLoading && !stats ? tc("loading") : (stats?.activeRuns ?? 0)}
+                {statsLoading && !stats ? tc("loading") : (stats?.todayRuns ?? 0)}
               </p>
             </div>
           </CardContent>
@@ -78,8 +78,8 @@ export function OverviewTab() {
               <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums">
                 {statsLoading && !stats
                   ? tc("loading")
-                  : stats?.avgDuration
-                    ? formatDuration(stats.avgDuration)
+                  : stats?.avgDurationMs
+                    ? formatDuration(stats.avgDurationMs)
                     : "\u2014"}
               </p>
             </div>
@@ -93,14 +93,10 @@ export function OverviewTab() {
             </div>
             <div className="min-w-0">
               <p className="text-[11px] text-[var(--text-secondary)] truncate">
-                {t("stats.successRate")}
+                {t("stats.topAgents")}
               </p>
               <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums">
-                {statsLoading && !stats
-                  ? tc("loading")
-                  : stats?.successRate != null
-                    ? `${Math.round(stats.successRate * 100)}%`
-                    : "\u2014"}
+                {statsLoading && !stats ? tc("loading") : (stats?.topAgents?.length ?? 0)}
               </p>
             </div>
           </CardContent>

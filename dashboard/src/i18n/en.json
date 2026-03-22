@@ -553,9 +553,9 @@
     },
     "stats": {
       "totalRuns": "Total Runs",
-      "activeRuns": "Active Runs",
+      "todayRuns": "Today's Runs",
       "avgDuration": "Avg Duration",
-      "successRate": "Success Rate"
+      "topAgents": "Top Agents"
     },
     "diagnostics": "Diagnostics",
     "liveFeed": "Live Feed",

@@ -94,8 +94,9 @@ export function TimelineTab() {
   }
 
   // ── Run detail view ──
-  const duration =
-    runSummary?.endedAt && runSummary.startedAt ? runSummary.endedAt - runSummary.startedAt : null;
+  // Derive agent info from the first event (metadata not in RunSummary).
+  const firstEvent = runEvents.length > 0 ? runEvents[0] : null;
+  const sessionKey = firstEvent?.session_key ?? "";
 
   return (
     <div className="p-4 space-y-5 overflow-auto">
@@ -103,14 +104,8 @@ export function TimelineTab() {
       <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)]">
         <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
           <Hash size={12} />
-          <span className="font-mono text-[var(--text-primary)] select-all">
-            {runSummary?.runId ?? selectedRunId}
-          </span>
+          <span className="font-mono text-[var(--text-primary)] select-all">{selectedRunId}</span>
         </div>
-
-        {runSummary?.agentName && (
-          <span className="text-xs text-[var(--text-secondary)]">{runSummary.agentName}</span>
-        )}
 
         {/* Summary metrics */}
         <div className="flex flex-wrap gap-3 ml-auto text-[11px] text-[var(--text-secondary)]">
@@ -122,27 +117,35 @@ export function TimelineTab() {
               </strong>
             </span>
           )}
-          {duration != null && (
+          {runSummary?.durationMs != null && runSummary.durationMs > 0 && (
             <span className="flex items-center gap-1">
               <Clock size={10} />
               <strong className="text-[var(--text-primary)] tabular-nums">
-                {formatDuration(duration)}
+                {formatDuration(runSummary.durationMs)}
               </strong>
             </span>
           )}
-          {runSummary?.inputTokens != null && runSummary.inputTokens > 0 && (
+          {runSummary?.totalInputTokens != null && runSummary.totalInputTokens > 0 && (
             <span>
               {t("timeline.tokensIn")}:{" "}
               <strong className="text-[var(--text-primary)] tabular-nums">
-                {formatTokens(runSummary.inputTokens)}
+                {formatTokens(runSummary.totalInputTokens)}
               </strong>
             </span>
           )}
-          {runSummary?.outputTokens != null && runSummary.outputTokens > 0 && (
+          {runSummary?.totalOutputTokens != null && runSummary.totalOutputTokens > 0 && (
             <span>
               {t("timeline.tokensOut")}:{" "}
               <strong className="text-[var(--text-primary)] tabular-nums">
-                {formatTokens(runSummary.outputTokens)}
+                {formatTokens(runSummary.totalOutputTokens)}
+              </strong>
+            </span>
+          )}
+          {runSummary?.totalCacheTokens != null && runSummary.totalCacheTokens > 0 && (
+            <span>
+              {t("timeline.tokensCache")}:{" "}
+              <strong className="text-[var(--text-primary)] tabular-nums">
+                {formatTokens(runSummary.totalCacheTokens)}
               </strong>
             </span>
           )}
@@ -182,7 +185,7 @@ export function TimelineTab() {
       </section>
 
       {/* Subagent tree — only rendered if events exist */}
-      <SubagentTree events={runEvents} sessionKey={runSummary?.sessionKey ?? ""} />
+      <SubagentTree events={runEvents} sessionKey={sessionKey} />
     </div>
   );
 }

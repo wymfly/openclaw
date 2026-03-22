@@ -238,8 +238,8 @@ export class RunEventStore {
         MAX(created_at) AS last_event_at,
         COUNT(*) AS event_count,
         MIN(id) AS min_id,
-        SUM(CASE WHEN json_extract(data, '$.type') = 'tool_use' THEN 1 ELSE 0 END) AS tool_calls,
-        SUM(CASE WHEN json_extract(data, '$.type') = 'result' THEN 1 ELSE 0 END) AS model_calls,
+        SUM(CASE WHEN stream IN ('tool_call', 'file_op') THEN 1 ELSE 0 END) AS tool_calls,
+        SUM(CASE WHEN stream = 'model' THEN 1 ELSE 0 END) AS model_calls,
         SUM(
           COALESCE(json_extract(data, '$.usage.input_tokens'), 0) +
           COALESCE(json_extract(data, '$.usage.output_tokens'), 0)

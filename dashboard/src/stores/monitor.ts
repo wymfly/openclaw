@@ -19,59 +19,57 @@ export interface LiveEvent {
   details?: string;
 }
 
-export type RunStatus = "running" | "completed" | "failed" | "cancelled";
+export type RunStatus = "running" | "completed" | "error";
 
 export interface RunListItem {
   runId: string;
-  agentId: string;
-  agentName?: string;
-  sessionKey: string;
-  status: RunStatus;
-  startedAt: number;
-  endedAt?: number;
+  agentId: string | null;
+  sessionKey: string | null;
+  firstEventAt: string;
+  lastEventAt: string;
   eventCount: number;
-  inputTokens: number;
-  outputTokens: number;
+  status: RunStatus;
+  toolCalls: number;
+  modelCalls: number;
+  totalTokens: number;
 }
 
 export interface RunEventRow {
   id: number;
-  runId: string;
+  run_id: string;
   seq: number;
-  kind: string;
-  agentId: string;
-  sessionKey: string;
-  ts: number;
-  payload: string;
+  stream: string;
+  data: string;
+  agent_id: string | null;
+  session_key: string | null;
+  created_at: string;
 }
 
 export interface RunSummary {
-  runId: string;
-  agentId: string;
-  agentName?: string;
-  sessionKey: string;
-  status: RunStatus;
-  startedAt: number;
-  endedAt?: number;
+  toolCalls: number;
+  modelCalls: number;
+  fileOps: number;
+  subagentSpawns: number;
+  compacted: boolean;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCacheTokens: number;
+  durationMs: number;
   eventCount: number;
-  inputTokens: number;
-  outputTokens: number;
-  events: RunEventRow[];
 }
 
 export interface OverviewStats {
   totalRuns: number;
-  activeRuns: number;
-  avgDuration: number;
-  successRate: number;
-  recentRuns: RunListItem[];
+  todayRuns: number;
+  avgDurationMs: number;
+  topAgents: Array<{ agentId: string; runCount: number }>;
 }
 
 interface MonitorFilters {
   agentId: string | null;
   sessionKey: string | null;
-  since: number | null;
-  until: number | null;
+  since: string | null;
+  until: string | null;
   status: RunStatus | null;
 }
 
@@ -92,7 +90,7 @@ interface MonitorState {
   // Runs list
   runs: RunListItem[];
   runsLoading: boolean;
-  runsHasMore: boolean;
+  nextCursor: string | null;
 
   // Run detail
   runSummary: RunSummary | null;
@@ -138,7 +136,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
 
   runs: [],
   runsLoading: false,
-  runsHasMore: true,
+  nextCursor: null,
 
   runSummary: null,
   runEvents: [],
@@ -195,10 +193,10 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
         params.set("sessionKey", filters.sessionKey);
       }
       if (filters.since) {
-        params.set("since", String(filters.since));
+        params.set("since", filters.since);
       }
       if (filters.until) {
-        params.set("until", String(filters.until));
+        params.set("until", filters.until);
       }
       if (filters.status) {
         params.set("status", filters.status);
@@ -208,9 +206,8 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
       if (!res.ok) {
         return;
       }
-      const data = (await res.json()) as { runs?: RunListItem[] };
-      const runs = data.runs ?? [];
-      set({ runs, runsHasMore: runs.length >= DEFAULT_RUN_LIMIT });
+      const data = (await res.json()) as { runs: RunListItem[]; nextCursor: string | null };
+      set({ runs: data.runs, nextCursor: data.nextCursor });
     } catch {
       // Silently ignore — will retry on next fetch.
     } finally {
@@ -219,8 +216,8 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
   },
 
   loadMoreRuns: async () => {
-    const { runs, runsLoading, runsHasMore, filters } = get();
-    if (runsLoading || !runsHasMore) {
+    const { runs, runsLoading, nextCursor, filters } = get();
+    if (runsLoading || !nextCursor) {
       return;
     }
 
@@ -228,7 +225,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
     try {
       const params = new URLSearchParams();
       params.set("limit", String(DEFAULT_RUN_LIMIT));
-      params.set("offset", String(runs.length));
+      params.set("cursor", nextCursor);
       if (filters.agentId) {
         params.set("agentId", filters.agentId);
       }
@@ -236,10 +233,10 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
         params.set("sessionKey", filters.sessionKey);
       }
       if (filters.since) {
-        params.set("since", String(filters.since));
+        params.set("since", filters.since);
       }
       if (filters.until) {
-        params.set("until", String(filters.until));
+        params.set("until", filters.until);
       }
       if (filters.status) {
         params.set("status", filters.status);
@@ -249,11 +246,10 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
       if (!res.ok) {
         return;
       }
-      const data = (await res.json()) as { runs?: RunListItem[] };
-      const newRuns = data.runs ?? [];
+      const data = (await res.json()) as { runs: RunListItem[]; nextCursor: string | null };
       set({
-        runs: [...runs, ...newRuns],
-        runsHasMore: newRuns.length >= DEFAULT_RUN_LIMIT,
+        runs: [...runs, ...data.runs],
+        nextCursor: data.nextCursor,
       });
     } catch {
       // Silently ignore.
@@ -279,8 +275,8 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
       if (!res.ok) {
         return;
       }
-      const data = (await res.json()) as RunSummary;
-      set({ runSummary: data, runEvents: data.events ?? [] });
+      const data = (await res.json()) as { events: RunEventRow[]; summary: RunSummary | null };
+      set({ runEvents: data.events, runSummary: data.summary, selectedRunId: runId });
     } catch {
       // Silently ignore.
     } finally {

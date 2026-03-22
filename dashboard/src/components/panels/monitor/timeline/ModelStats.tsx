@@ -33,7 +33,7 @@ function formatTokens(n: number): string {
 }
 
 function aggregateModelStats(events: RunEventRow[]): ModelStat[] {
-  const modelEvents = events.filter((e) => e.kind === "model" || e.kind === "llm");
+  const modelEvents = events.filter((e) => e.stream === "model");
   if (modelEvents.length === 0) {
     return [];
   }
@@ -41,15 +41,15 @@ function aggregateModelStats(events: RunEventRow[]): ModelStat[] {
   const statsMap = new Map<string, ModelStat>();
 
   for (const row of modelEvents) {
-    let payload: Record<string, unknown> = {};
+    let parsed: Record<string, unknown> = {};
     try {
-      payload = JSON.parse(row.payload) as Record<string, unknown>;
+      parsed = JSON.parse(row.data) as Record<string, unknown>;
     } catch {
       // skip
     }
 
     const model =
-      (payload.model as string | undefined) ?? (payload.modelId as string | undefined) ?? "unknown";
+      (parsed.model as string | undefined) ?? (parsed.modelId as string | undefined) ?? "unknown";
 
     const existing = statsMap.get(model) ?? {
       model,
@@ -61,11 +61,16 @@ function aggregateModelStats(events: RunEventRow[]): ModelStat[] {
     };
 
     existing.callCount += 1;
-    existing.inputTokens += typeof payload.inputTokens === "number" ? payload.inputTokens : 0;
-    existing.outputTokens += typeof payload.outputTokens === "number" ? payload.outputTokens : 0;
-    existing.cacheTokens += typeof payload.cacheTokens === "number" ? payload.cacheTokens : 0;
 
-    if (payload.isFallback === true || payload.fallback === true) {
+    // Token data may be nested in a `usage` object (normalized pipeline shape)
+    const usage = parsed.usage as Record<string, number> | undefined;
+    if (usage) {
+      existing.inputTokens += usage.input_tokens ?? 0;
+      existing.outputTokens += usage.output_tokens ?? 0;
+      existing.cacheTokens += usage.cache_read_input_tokens ?? 0;
+    }
+
+    if (parsed.isFallback === true || parsed.fallback === true) {
       existing.hasFallback = true;
     }
 

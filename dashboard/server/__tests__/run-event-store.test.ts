@@ -42,7 +42,7 @@ function makeToolCallEvent(runId: string, seq: number): RunEventInput {
   return {
     runId,
     seq,
-    stream: "assistant",
+    stream: "tool_call",
     data: JSON.stringify({ type: "tool_use", name: "Read" }),
   };
 }
@@ -55,7 +55,7 @@ function makeModelEvent(
   return {
     runId,
     seq,
-    stream: "result",
+    stream: "model",
     data: JSON.stringify({
       type: "result",
       subtype: "success",
@@ -237,19 +237,19 @@ describe("getRunSummary", () => {
       {
         runId: "run-f",
         seq: 0,
-        stream: "assistant",
+        stream: "file_op",
         data: JSON.stringify({ type: "tool_use", name: "Write" }),
       },
       {
         runId: "run-f",
         seq: 1,
-        stream: "assistant",
+        stream: "file_op",
         data: JSON.stringify({ type: "tool_use", name: "Edit" }),
       },
       {
         runId: "run-f",
         seq: 2,
-        stream: "assistant",
+        stream: "file_op",
         data: JSON.stringify({ type: "tool_use", name: "Read" }),
       },
     ]);
@@ -263,13 +263,13 @@ describe("getRunSummary", () => {
       {
         runId: "run-s",
         seq: 0,
-        stream: "assistant",
+        stream: "subagent",
         data: JSON.stringify({ type: "tool_use", name: "Agent" }),
       },
       {
         runId: "run-s",
         seq: 1,
-        stream: "assistant",
+        stream: "subagent",
         data: JSON.stringify({ type: "tool_use", name: "TaskCreate" }),
       },
     ]);

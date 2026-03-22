@@ -31,25 +31,25 @@ function formatDuration(ms: number): string {
 }
 
 function parseToolEvents(events: RunEventRow[]): ToolEvent[] {
-  const toolEvents = events.filter((e) => e.kind === "tool_call" || e.kind === "tool");
+  const toolEvents = events.filter((e) => e.stream === "tool_call" || e.stream === "file_op");
   return toolEvents.map((row) => {
-    let payload: Record<string, unknown> = {};
+    let parsed: Record<string, unknown> = {};
     try {
-      payload = JSON.parse(row.payload) as Record<string, unknown>;
+      parsed = JSON.parse(row.data) as Record<string, unknown>;
     } catch {
       // skip
     }
     return {
       id: row.id,
       toolName:
-        (payload.toolName as string | undefined) ??
-        (payload.name as string | undefined) ??
-        row.kind,
-      durationMs: typeof payload.durationMs === "number" ? payload.durationMs : 0,
-      phase: (payload.phase as string | undefined) ?? "",
-      args: payload.args ?? payload.input ?? null,
-      result: payload.result ?? payload.output ?? null,
-      indent: typeof payload.depth === "number" ? payload.depth : 0,
+        (parsed.toolName as string | undefined) ??
+        (parsed.name as string | undefined) ??
+        row.stream,
+      durationMs: typeof parsed.durationMs === "number" ? parsed.durationMs : 0,
+      phase: (parsed.phase as string | undefined) ?? "",
+      args: parsed.args ?? parsed.input ?? null,
+      result: parsed.result ?? parsed.output ?? null,
+      indent: typeof parsed.depth === "number" ? parsed.depth : 0,
     };
   });
 }
