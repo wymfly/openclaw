@@ -11,6 +11,7 @@ import {
   useSessionApproval,
   useSessionStreaming,
 } from "@/stores/chat-hooks";
+import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { ApprovalDialog } from "./ApprovalDialog";
 import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
@@ -150,6 +151,12 @@ export function ChatPanel() {
     };
     document.addEventListener("visibilitychange", handler);
     return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+
+  // Start subagent polling while ChatPanel is mounted
+  useEffect(() => {
+    useDeckSubagentsStore.getState().startPolling();
+    return () => useDeckSubagentsStore.getState().stopPolling();
   }, []);
 
   // Refresh session list on mount, agent change, and after streaming completes
