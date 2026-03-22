@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import { ConditionBuilder } from "@/components/panels/routing/ConditionBuilder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +12,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
-import { useChannelsStore } from "@/stores/channels";
 import { useDeckRoutingStore, type BindingMatch } from "@/stores/deck-routing";
 
 interface BindingDialogProps {
@@ -37,93 +37,56 @@ interface BindingDialogProps {
 }
 
 /**
- * Dialog for adding/editing a routing binding. Dynamic fields based on
- * channel selection (Discord shows Guild/Roles, Slack shows Team).
- * Real-time validation via deck.routing.validate.
+ * Dialog for adding/editing a routing binding.
+ * Uses ConditionBuilder for dynamic match-condition editing
+ * and real-time validation via deck.routing.validate.
  */
 export function BindingDialog({ open, mode, prefill, onSave, onCancel }: BindingDialogProps) {
+  const t = useTranslations("routing");
+  const tc = useTranslations("common");
   const agents = useAgentsStore((s) => s.agents);
-  const channels = useChannelsStore((s) => s.channelOrder);
   const validateBinding = useDeckRoutingStore((s) => s.validateBinding);
   const validating = useDeckRoutingStore((s) => s.validating);
   const validationResult = useDeckRoutingStore((s) => s.validationResult);
 
-  const [agentId, setAgentId] = useState(prefill?.agentId ?? "");
-  const [channel, setChannel] = useState(prefill?.channel ?? "");
-  const [accountId, setAccountId] = useState(prefill?.accountId ?? "");
-  const [peerKind, setPeerKind] = useState("");
-  const [peerId, setPeerId] = useState("");
-  const [guildId, setGuildId] = useState("");
-  const [roles, setRoles] = useState("");
-  const [teamId, setTeamId] = useState("");
+  const [agentId, setAgentId] = useState("");
+  const [match, setMatch] = useState<Partial<BindingMatch>>({});
 
   // Reset when dialog opens
   useEffect(() => {
     if (open) {
+      const initial: Partial<BindingMatch> = {};
+      if (prefill?.channel) {
+        initial.channel = prefill.channel;
+      } else {
+        initial.channel = ""; // pre-add channel dimension
+      }
+      if (prefill?.accountId) {
+        initial.accountId = prefill.accountId;
+      }
+      setMatch(initial);
       setAgentId(prefill?.agentId ?? "");
-      setChannel(prefill?.channel ?? "");
-      setAccountId(prefill?.accountId ?? "");
-      setPeerKind("");
-      setPeerId("");
-      setGuildId("");
-      setRoles("");
-      setTeamId("");
     }
   }, [open, prefill]);
 
-  const isDiscord = channel === "discord";
-  const isSlack = channel === "slack";
-
-  const buildMatch = useCallback((): BindingMatch => {
-    const match: BindingMatch = { channel };
-    if (accountId) {
-      match.accountId = accountId;
-    }
-    if (peerKind && peerId) {
-      match.peer = { kind: peerKind, id: peerId };
-    }
-    if (isDiscord && guildId) {
-      match.guildId = guildId;
-    }
-    if (isDiscord && roles) {
-      match.roles = roles
-        .split(",")
-        .map((r) => r.trim())
-        .filter(Boolean);
-    }
-    if (isSlack && teamId) {
-      match.teamId = teamId;
-    }
-    return match;
-  }, [channel, accountId, peerKind, peerId, guildId, roles, teamId, isDiscord, isSlack]);
-
-  // Real-time validation when fields change (skip if agentId or channel is empty)
+  // Real-time validation when fields change (debounced)
   useEffect(() => {
-    if (!channel || !agentId) {
+    if (!match.channel || !agentId) {
       return;
     }
     const timer = setTimeout(() => {
-      void validateBinding(buildMatch(), agentId);
+      void validateBinding(match as BindingMatch, agentId);
     }, 500);
     return () => clearTimeout(timer);
-  }, [
-    channel,
-    accountId,
-    peerKind,
-    peerId,
-    guildId,
-    roles,
-    teamId,
-    agentId,
-    buildMatch,
-    validateBinding,
-  ]);
+  }, [match, agentId, validateBinding]);
+
+  const canSave = Boolean(match.channel && agentId);
 
   const handleSave = () => {
-    if (!channel || !agentId) {
+    if (!canSave) {
       return;
     }
-    onSave(buildMatch(), agentId);
+    onSave(match as BindingMatch, agentId);
   };
 
   return (
@@ -131,17 +94,17 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
       <DialogContent className="bg-[var(--bg-secondary)] border-[var(--border)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[var(--text-primary)]">
-            {mode === "add" ? "Add Routing Rule" : "Edit Routing Rule"}
+            {mode === "add" ? t("addRule") : t("editRule")}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {/* Agent */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Target Agent</Label>
+            <Label className="text-xs text-[var(--text-secondary)]">{t("targetAgent")}</Label>
             <Select value={agentId} onValueChange={(v) => setAgentId(v ?? "")}>
               <SelectTrigger className="bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
-                <SelectValue placeholder="Select agent..." />
+                <SelectValue placeholder={t("selectAgent")} />
               </SelectTrigger>
               <SelectContent>
                 {agents.map((a) => (
@@ -153,98 +116,11 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
             </Select>
           </div>
 
-          {/* Channel */}
+          {/* Match conditions via ConditionBuilder */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Channel</Label>
-            <Select value={channel} onValueChange={(v) => setChannel(v ?? "")}>
-              <SelectTrigger className="bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
-                <SelectValue placeholder="Select channel..." />
-              </SelectTrigger>
-              <SelectContent>
-                {channels.map((ch) => (
-                  <SelectItem key={ch} value={ch}>
-                    {ch}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs text-[var(--text-secondary)]">{t("matchConditions")}</Label>
+            <ConditionBuilder match={match} onChange={setMatch} />
           </div>
-
-          {/* Account ID */}
-          <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Account ID (optional)</Label>
-            <Input
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
-              placeholder="e.g. srv-main"
-              className="bg-[var(--bg-primary)] border-[var(--border)]"
-            />
-          </div>
-
-          {/* Peer */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-[var(--text-secondary)]">Peer Kind</Label>
-              <Select value={peerKind} onValueChange={(v) => setPeerKind(v ?? "")}>
-                <SelectTrigger className="bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
-                  <SelectValue placeholder="Type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="direct">Direct</SelectItem>
-                  <SelectItem value="group">Group</SelectItem>
-                  <SelectItem value="channel">Channel</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-[var(--text-secondary)]">Peer ID</Label>
-              <Input
-                value={peerId}
-                onChange={(e) => setPeerId(e.target.value)}
-                placeholder="ID..."
-                className="bg-[var(--bg-primary)] border-[var(--border)]"
-              />
-            </div>
-          </div>
-
-          {/* Discord-specific: Guild + Roles */}
-          {isDiscord && (
-            <>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-[var(--text-secondary)]">Guild ID</Label>
-                <Input
-                  value={guildId}
-                  onChange={(e) => setGuildId(e.target.value)}
-                  placeholder="Discord Guild ID..."
-                  className="bg-[var(--bg-primary)] border-[var(--border)]"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-[var(--text-secondary)]">
-                  Roles (comma-separated)
-                </Label>
-                <Input
-                  value={roles}
-                  onChange={(e) => setRoles(e.target.value)}
-                  placeholder="admin, moderator..."
-                  className="bg-[var(--bg-primary)] border-[var(--border)]"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Slack-specific: Team */}
-          {isSlack && (
-            <div className="space-y-1.5">
-              <Label className="text-xs text-[var(--text-secondary)]">Team ID</Label>
-              <Input
-                value={teamId}
-                onChange={(e) => setTeamId(e.target.value)}
-                placeholder="Slack Team ID..."
-                className="bg-[var(--bg-primary)] border-[var(--border)]"
-              />
-            </div>
-          )}
 
           {/* Validation result */}
           {validationResult && (
@@ -258,7 +134,7 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
             >
               {validationResult.tier && (
                 <p>
-                  Predicted tier: <strong>{validationResult.tier}</strong>
+                  {t("predictedTier")}: <strong>{validationResult.tier}</strong>
                 </p>
               )}
               {validationResult.conflicts?.map((c, i) => (
@@ -270,17 +146,17 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
           )}
           {validating && (
             <Badge variant="outline" className="text-[10px] text-[var(--text-secondary)]">
-              Validating...
+              {t("validating")}
             </Badge>
           )}
         </div>
 
         <DialogFooter>
           <Button variant="ghost" onClick={onCancel} className="cursor-pointer">
-            Cancel
+            {tc("cancel")}
           </Button>
-          <Button onClick={handleSave} disabled={!channel || !agentId} className="cursor-pointer">
-            {mode === "add" ? "Add Rule" : "Save"}
+          <Button onClick={handleSave} disabled={!canSave} className="cursor-pointer">
+            {mode === "add" ? t("addBinding") : tc("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { detectConflicts, type ConflictPair } from "@/lib/detect-conflicts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,6 +52,9 @@ interface DeckRoutingState {
   loading: boolean;
   error: string | null;
 
+  // Conflict detection
+  conflictPairs: ConflictPair[];
+
   // Simulation state
   simulating: boolean;
   simulationResult: SimulationResult | null;
@@ -60,7 +64,12 @@ interface DeckRoutingState {
   validationResult: ValidationResult | null;
 
   fetchBindings: (agentId?: string) => Promise<void>;
-  addBinding: (match: BindingMatch, agentId: string, baseHash: string) => Promise<boolean>;
+  addBinding: (
+    match: BindingMatch,
+    agentId: string,
+    baseHash: string,
+    position?: number,
+  ) => Promise<boolean>;
   removeBinding: (bindingId: string, baseHash: string) => Promise<boolean>;
   validateBinding: (match: BindingMatch, agentId?: string) => Promise<ValidationResult | null>;
   simulate: (params: Record<string, unknown>) => Promise<void>;
@@ -74,6 +83,7 @@ export const useDeckRoutingStore = create<DeckRoutingState>((set, get) => ({
   loading: false,
   error: null,
 
+  conflictPairs: [],
   simulating: false,
   simulationResult: null,
   validating: false,
@@ -93,10 +103,12 @@ export const useDeckRoutingStore = create<DeckRoutingState>((set, get) => ({
         return;
       }
       const data = await res.json();
+      const bindingsArray = Array.isArray(data.bindings) ? data.bindings : [];
       set({
-        bindings: Array.isArray(data.bindings) ? data.bindings : [],
+        bindings: bindingsArray,
         configHash: typeof data.configHash === "string" ? data.configHash : null,
         dmScope: typeof data.dmScope === "string" ? data.dmScope : null,
+        conflictPairs: detectConflicts(bindingsArray),
       });
     } catch {
       set({ error: "Failed to fetch bindings" });
@@ -105,12 +117,16 @@ export const useDeckRoutingStore = create<DeckRoutingState>((set, get) => ({
     }
   },
 
-  addBinding: async (match, agentId, baseHash) => {
+  addBinding: async (match, agentId, baseHash, position?) => {
     try {
+      const body: Record<string, unknown> = { action: "add", match, agentId, baseHash };
+      if (position !== undefined) {
+        body.position = position;
+      }
       const res = await fetch("/api/deck/routing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add", match, agentId, baseHash }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         await get().fetchBindings();

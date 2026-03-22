@@ -1,6 +1,18 @@
 "use client";
 
-import { Plus, Trash2, Filter } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Plus, Trash2, Filter } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { AgentBadge } from "@/components/shared/AgentBadge";
 import { BindingDialog } from "@/components/shared/BindingDialog";
@@ -18,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
 import { useChannelsStore } from "@/stores/channels";
 import { useDeckRoutingStore, type Binding, type BindingMatch } from "@/stores/deck-routing";
+import { ConflictBadge } from "./ConflictBadge";
 
 // Tier priority: lower index = higher priority
 const TIER_ORDER = [
@@ -60,9 +73,117 @@ function summarizeMatch(match: Binding["match"]): string {
   return parts.join(" · ") || "—";
 }
 
+// ---------------------------------------------------------------------------
+// SortableRow
+// ---------------------------------------------------------------------------
+
+interface SortableRowProps {
+  binding: Binding;
+  isDefault: boolean;
+  deletingId: string | null;
+  conflicts: Array<{ bindingId: string; overlapType: string }>;
+  onDelete: (id: string) => void;
+}
+
+function SortableRow({ binding, isDefault, deletingId, conflicts, onDelete }: SortableRowProps) {
+  const t = useTranslations("routing");
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: binding.id,
+    data: { tier: binding.tier },
+    disabled: isDefault,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={cn(
+        "border-b border-[var(--border-subtle)] transition-colors",
+        isDefault ? "bg-[var(--bg-primary)]/50" : "hover:bg-[var(--bg-tertiary)]/50",
+      )}
+    >
+      {/* Drag handle */}
+      <td className="w-8 px-1 py-2.5">
+        {!isDefault && (
+          <span
+            {...listeners}
+            className="flex items-center justify-center cursor-grab text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            title={t("dragHandle")}
+          >
+            <GripVertical size={14} />
+          </span>
+        )}
+      </td>
+      <td className="px-3 py-2.5">
+        <div className="flex items-center gap-1.5">
+          <TierBadge tier={binding.tier} />
+          {conflicts.length > 0 && <ConflictBadge conflicts={conflicts} />}
+        </div>
+      </td>
+      <td className="px-3 py-2.5">
+        {binding.match.channel ? (
+          <button
+            type="button"
+            onClick={() => navigateToChannel(binding.match.channel)}
+            className="text-[var(--text-secondary)] font-mono hover:text-[var(--accent)] transition-colors cursor-pointer"
+          >
+            {summarizeMatch(binding.match)}
+          </button>
+        ) : (
+          <span className="text-[var(--text-secondary)] font-mono">
+            {summarizeMatch(binding.match)}
+          </span>
+        )}
+      </td>
+      <td className="px-3 py-2.5">
+        <AgentBadge agentId={binding.agentId} />
+      </td>
+      <td className="px-4 py-2.5 text-right">
+        {!isDefault && (
+          <button
+            type="button"
+            onClick={() => onDelete(binding.id)}
+            disabled={deletingId === binding.id}
+            className={cn(
+              "p-1 rounded-md transition-colors cursor-pointer",
+              "text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-500/10",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50",
+              "disabled:opacity-40 disabled:cursor-not-allowed",
+            )}
+            title={t("deleteBinding")}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BindingTable
+// ---------------------------------------------------------------------------
+
 export function BindingTable() {
-  const { bindings, configHash, dmScope, loading, fetchBindings, addBinding, removeBinding } =
-    useDeckRoutingStore();
+  const t = useTranslations("routing");
+  const tc = useTranslations("common");
+  const {
+    bindings,
+    configHash,
+    dmScope,
+    loading,
+    conflictPairs,
+    fetchBindings,
+    addBinding,
+    removeBinding,
+  } = useDeckRoutingStore();
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
   const agents = useAgentsStore((s) => s.agents);
   const fetchChannels = useChannelsStore((s) => s.fetchChannels);
@@ -95,6 +216,53 @@ export function BindingTable() {
     return [...rest, ...defaults];
   }, [bindings, channelFilter, agentFilter]);
 
+  // Conflict lookup: bindingId → array of conflicting counterparts
+  const conflictMap = useMemo(() => {
+    const map = new Map<string, Array<{ bindingId: string; overlapType: string }>>();
+    for (const pair of conflictPairs) {
+      if (!map.has(pair.bindingA)) {
+        map.set(pair.bindingA, []);
+      }
+      map.get(pair.bindingA)!.push({ bindingId: pair.bindingB, overlapType: pair.overlapType });
+      if (!map.has(pair.bindingB)) {
+        map.set(pair.bindingB, []);
+      }
+      map.get(pair.bindingB)!.push({ bindingId: pair.bindingA, overlapType: pair.overlapType });
+    }
+    return map;
+  }, [conflictPairs]);
+
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !configHash) {
+      return;
+    }
+
+    const activeTier = active.data.current?.tier as string | undefined;
+    const overTier = over.data.current?.tier as string | undefined;
+    if (activeTier !== overTier) {
+      return;
+    } // cross-tier blocked
+
+    const oldIndex = sorted.findIndex((b) => b.id === active.id);
+    const newIndex = sorted.findIndex((b) => b.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+
+    const movedBinding = sorted[oldIndex];
+    void (async () => {
+      await removeBinding(movedBinding.id, configHash);
+      await addBinding(movedBinding.match, movedBinding.agentId, configHash, newIndex);
+    })();
+  };
+
   const handleSave = async (match: BindingMatch, agentId: string) => {
     if (!configHash) {
       return;
@@ -116,14 +284,14 @@ export function BindingTable() {
     <div className="flex flex-col h-full min-h-0">
       {/* Header + filters */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--border-subtle)] shrink-0">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Binding Rules</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("bindings")}</h3>
         <Button
           size="sm"
           onClick={() => setDialogOpen(true)}
           className="h-7 gap-1.5 text-xs cursor-pointer"
         >
           <Plus size={14} />
-          Add Rule
+          {t("addBinding")}
         </Button>
       </div>
 
@@ -132,10 +300,10 @@ export function BindingTable() {
         <Filter size={13} className="text-[var(--text-secondary)] shrink-0" />
         <Select value={channelFilter} onValueChange={(v) => setChannelFilter(v ?? "__all__")}>
           <SelectTrigger className="h-7 w-[130px] text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
-            <SelectValue placeholder="Channel" />
+            <SelectValue placeholder={t("channel")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Channels</SelectItem>
+            <SelectItem value="__all__">{t("allChannels")}</SelectItem>
             {channelOrder.map((ch) => (
               <SelectItem key={ch} value={ch}>
                 {ch}
@@ -145,10 +313,10 @@ export function BindingTable() {
         </Select>
         <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v ?? "__all__")}>
           <SelectTrigger className="h-7 w-[130px] text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
-            <SelectValue placeholder="Agent" />
+            <SelectValue placeholder={t("agentColumn")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Agents</SelectItem>
+            <SelectItem value="__all__">{t("allAgents")}</SelectItem>
             {agents.map((a) => (
               <SelectItem key={a.id} value={a.id}>
                 {a.name || a.id}
@@ -166,77 +334,44 @@ export function BindingTable() {
               className="animate-spin rounded-full h-5 w-5 border-2 border-current mr-2"
               style={{ borderTopColor: "transparent" }}
             />
-            Loading...
+            {tc("loading")}
           </div>
         ) : sorted.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-xs text-[var(--text-secondary)]">
-            No binding rules found
+            {t("noBindings")}
           </div>
         ) : (
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                <th className="text-left px-4 py-2 font-medium">Tier</th>
-                <th className="text-left px-3 py-2 font-medium">Match Conditions</th>
-                <th className="text-left px-3 py-2 font-medium">Agent</th>
-                <th className="text-right px-4 py-2 font-medium w-16">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((binding) => {
-                const isDefault = binding.tier === "default";
-                return (
-                  <tr
-                    key={binding.id}
-                    className={cn(
-                      "border-b border-[var(--border-subtle)] transition-colors",
-                      isDefault ? "bg-[var(--bg-primary)]/50" : "hover:bg-[var(--bg-tertiary)]/50",
-                    )}
-                  >
-                    <td className="px-4 py-2.5">
-                      <TierBadge tier={binding.tier} />
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {binding.match.channel ? (
-                        <button
-                          type="button"
-                          onClick={() => navigateToChannel(binding.match.channel)}
-                          className="text-[var(--text-secondary)] font-mono hover:text-[var(--accent)] transition-colors cursor-pointer"
-                        >
-                          {summarizeMatch(binding.match)}
-                        </button>
-                      ) : (
-                        <span className="text-[var(--text-secondary)] font-mono">
-                          {summarizeMatch(binding.match)}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <AgentBadge agentId={binding.agentId} />
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      {!isDefault && (
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(binding.id)}
-                          disabled={deletingId === binding.id}
-                          className={cn(
-                            "p-1 rounded-md transition-colors cursor-pointer",
-                            "text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-500/10",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50",
-                            "disabled:opacity-40 disabled:cursor-not-allowed",
-                          )}
-                          title="Delete binding"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </td>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={sorted.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                    <th className="w-8" />
+                    <th className="text-left px-3 py-2 font-medium">{t("tier")}</th>
+                    <th className="text-left px-3 py-2 font-medium">{t("matchConditions")}</th>
+                    <th className="text-left px-3 py-2 font-medium">{t("targetAgent")}</th>
+                    <th className="text-right px-4 py-2 font-medium w-16">{t("actions")}</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {sorted.map((binding) => (
+                    <SortableRow
+                      key={binding.id}
+                      binding={binding}
+                      isDefault={binding.tier === "default"}
+                      deletingId={deletingId}
+                      conflicts={conflictMap.get(binding.id) ?? []}
+                      onDelete={(id) => void handleDelete(id)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
@@ -244,7 +379,7 @@ export function BindingTable() {
       {dmScope && (
         <div className="px-4 py-2.5 border-t border-[var(--border-subtle)] shrink-0">
           <span className="text-[10px] text-[var(--text-secondary)] font-mono">
-            DM Scope: <span className="text-[var(--text-primary)]">{dmScope}</span>
+            {t("dmScope")}: <span className="text-[var(--text-primary)]">{dmScope}</span>
           </span>
         </div>
       )}
