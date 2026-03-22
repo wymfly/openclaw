@@ -67,6 +67,7 @@ export type GatewaySessionRow = {
   lastThreadId?: SessionEntry["lastThreadId"];
   compactionCheckpointCount?: number;
   latestCompactionCheckpoint?: SessionCompactionCheckpoint;
+  compactionCount?: number;
 };
 
 export type GatewayAgentRow = SharedGatewayAgentRow;

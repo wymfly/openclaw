@@ -36,6 +36,7 @@ export const DeckRoutingAddParamsSchema = Type.Object(
       { additionalProperties: false },
     ),
     comment: Type.Optional(Type.String()),
+    position: Type.Optional(Type.Integer({ minimum: 0 })),
     baseHash: NonEmptyString,
   },
   { additionalProperties: false },
