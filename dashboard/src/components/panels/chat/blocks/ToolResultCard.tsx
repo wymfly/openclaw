@@ -69,10 +69,9 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
       return "read";
     }
     if (fileOp === "write" || fileOp === "edit") {
-      // P1: Only route to diff when content has actual diff markers
-      const hasDiffMarkers =
-        contentStr.includes("@@") && (contentStr.includes("---") || contentStr.includes("+++"));
-      return hasDiffMarkers ? "diff" : "raw";
+      // Route to DiffPreview — component handles both unified diff and plain content
+      // (plain content rendered as "all added" block for new file / write results)
+      return "diff";
     }
     return "raw";
   }, [toolName, isError, contentStr]);
@@ -176,19 +175,12 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
           {hasEnhancedView && (
             <span
               className="ml-auto"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowRaw((prev) => !prev);
-              }}
+              onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.stopPropagation();
-                  e.preventDefault();
-                  setShowRaw((prev) => !prev);
                 }
               }}
-              role="button"
-              tabIndex={0}
             >
               <ShowRawToggle isRaw={showRaw} onToggle={() => setShowRaw((prev) => !prev)} />
             </span>
