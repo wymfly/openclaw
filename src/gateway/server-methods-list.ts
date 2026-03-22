@@ -146,6 +146,7 @@ const BASE_METHODS = [
   "deck.agents.skills.set",
   "deck.agents.subagents.get",
   "deck.agents.subagents.set",
+  "deck.agents.toolPolicy.preview",
   // deck.subagents
   "deck.subagents.list",
   "deck.subagents.kill",

@@ -122,6 +122,20 @@ export const DeckAgentsSubagentsSetParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+// === deck.agents.toolPolicy.* ===
+export const DeckAgentsToolPolicyPreviewParamsSchema = Type.Object(
+  {
+    agentId: NonEmptyString,
+    context: Type.Optional(
+      Type.Object({
+        channel: Type.Optional(Type.String()),
+        chatType: Type.Optional(Type.String()),
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
+
 // === deck.subagents.* ===
 export const DeckSubagentsListParamsSchema = Type.Object(
   {
