@@ -53,6 +53,30 @@ export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([
   "skills.status",
   "skills.update",
   "skills.install",
+  // deck.agents
+  "deck.agents.detail",
+  "deck.agents.skills.get",
+  "deck.agents.skills.set",
+  "deck.agents.subagents.get",
+  "deck.agents.subagents.set",
+  // deck.agents preview (P6)
+  "deck.agents.toolPolicy.preview",
+  "deck.agents.systemPrompt.preview",
+  // deck.routing
+  "deck.routing.list",
+  "deck.routing.add",
+  "deck.routing.remove",
+  "deck.routing.validate",
+  "deck.routing.simulate",
+  // deck.auth
+  "deck.auth.overview",
+  "deck.auth.probe",
+  // deck.identity
+  "deck.identity.list",
+  "deck.identity.link",
+  "deck.identity.unlink",
+  // deck.threads
+  "deck.threads.list",
   // deck.subagents
   "deck.subagents.list",
   "deck.subagents.kill",

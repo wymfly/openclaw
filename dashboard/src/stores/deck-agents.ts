@@ -22,6 +22,58 @@ export interface AgentDetail {
     effectiveMaxSpawnDepth: number;
     effectiveMaxChildrenPerAgent: number;
   };
+  sandbox?: unknown;
+  identityExists?: boolean;
+  fallbackModels?: string[];
+}
+
+export interface ToolPolicyLayer {
+  label: string;
+  ruleCount: number;
+  effect: "allow" | "deny" | "passthrough";
+}
+
+export interface ToolPolicyTool {
+  name: string;
+  allowed: boolean;
+  decisiveLayer: string;
+  trace: Array<{ layer: string; decision: "allow" | "deny" | "no-opinion" }>;
+}
+
+export interface ToolPolicyPreview {
+  layers: ToolPolicyLayer[];
+  tools: ToolPolicyTool[];
+  configHash: string;
+}
+
+export interface PromptLayer {
+  label: string;
+  source: string;
+  charCount: number;
+  fileCount?: number;
+  content?: string;
+}
+
+export interface BootstrapFileEntry {
+  name: string;
+  exists: boolean;
+  charCount: number;
+}
+
+export interface SystemPromptPreview {
+  layers: PromptLayer[];
+  bootstrapFiles: BootstrapFileEntry[];
+  totalChars: number;
+  configHash: string;
+}
+
+export interface BootstrapFileDetail {
+  name: string;
+  path: string;
+  missing: boolean;
+  size?: number;
+  updatedAtMs?: number;
+  content?: string;
 }
 
 export interface SkillEntry {
@@ -72,6 +124,9 @@ interface DeckAgentsState {
   currentDetail: AgentDetail | null;
   currentSkills: AgentSkills | null;
   currentSubagentConfig: AgentSubagentConfig | null;
+  toolPolicyPreview: ToolPolicyPreview | null;
+  systemPromptPreview: SystemPromptPreview | null;
+  bootstrapFileDetail: BootstrapFileDetail | null;
   loading: boolean;
   error: string | null;
 
@@ -90,6 +145,10 @@ interface DeckAgentsState {
     model: string | null | undefined,
     baseHash: string,
   ) => Promise<boolean>;
+  fetchToolPolicyPreview: (agentId: string) => Promise<void>;
+  fetchSystemPromptPreview: (agentId: string) => Promise<void>;
+  fetchBootstrapFile: (agentId: string, name: string) => Promise<void>;
+  saveBootstrapFile: (agentId: string, name: string, content: string) => Promise<boolean>;
   invalidateCache: (agentId: string) => void;
 }
 
@@ -98,6 +157,9 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   currentDetail: null,
   currentSkills: null,
   currentSubagentConfig: null,
+  toolPolicyPreview: null,
+  systemPromptPreview: null,
+  bootstrapFileDetail: null,
   loading: false,
   error: null,
 
@@ -202,6 +264,68 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
         return true;
       }
       return false;
+    } catch {
+      return false;
+    }
+  },
+
+  fetchToolPolicyPreview: async (agentId: string) => {
+    try {
+      const res = await fetch("/api/deck/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "toolPolicy.preview", agentId }),
+      });
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as ToolPolicyPreview;
+      set({ toolPolicyPreview: data });
+    } catch {
+      // ignore
+    }
+  },
+
+  fetchSystemPromptPreview: async (agentId: string) => {
+    try {
+      const res = await fetch("/api/deck/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "systemPrompt.preview", agentId }),
+      });
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as SystemPromptPreview;
+      set({ systemPromptPreview: data });
+    } catch {
+      // ignore
+    }
+  },
+
+  fetchBootstrapFile: async (agentId: string, name: string) => {
+    try {
+      const res = await fetch(
+        `/api/agents/${encodeURIComponent(agentId)}/files/${encodeURIComponent(name)}`,
+      );
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as { file: BootstrapFileDetail };
+      set({ bootstrapFileDetail: data.file });
+    } catch {
+      // ignore
+    }
+  },
+
+  saveBootstrapFile: async (agentId: string, name: string, content: string) => {
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, content }),
+      });
+      return res.ok;
     } catch {
       return false;
     }
