@@ -14,6 +14,8 @@ import type { DeckEventType } from "./event-bus";
 import { OpenClawGatewayAdapter } from "./gateway-adapter";
 import { ProjectionStore } from "./projection-store";
 import { createRateLimiter } from "./rate-limit";
+import { RunEventPipeline } from "./run-event-pipeline";
+import { getRunEventStore } from "./run-event-store";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,6 +93,8 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "cron.run.complete",
   // P4 additions (A2UI Canvas)
   "a2ui",
+  // Execution Monitor
+  "run.event",
 ]);
 
 /** Events that should be bridged to the activity feed outbox. */
@@ -242,6 +246,14 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   gCleanup.__deckCleanupApproval = initApprovalBridge(runtime);
   gCleanup.__deckCleanupAlerts = initAlertEngine(runtime);
 
+  // Execution Monitor: RunEventPipeline — captures chat/agent events → SQLite
+  const runEventStore = getRunEventStore();
+  const runEventPipeline = new RunEventPipeline((events) => runEventStore.appendEvents(events));
+  const runEventSubscriber = runEventPipeline.handleEvent;
+  eventBus.subscribe(runEventSubscriber);
+  gCleanup.__deckRunEventPipeline = runEventPipeline;
+  gCleanup.__deckRunEventSubscriber = runEventSubscriber;
+
   // F10: Schedule webhook retry processor every 60s
   const retryTimer = setInterval(async () => {
     try {
@@ -299,6 +311,20 @@ export async function shutdownRuntime(): Promise<void> {
   gCleanup.__deckCleanupApproval = undefined;
   gCleanup.__deckCleanupAlerts = undefined;
   gCleanup.__deckRetryTimer = undefined;
+
+  // Execution Monitor: flush and unsubscribe RunEventPipeline
+  const pipeline = gCleanup.__deckRunEventPipeline as RunEventPipeline | undefined;
+  const subscriber = gCleanup.__deckRunEventSubscriber as
+    | ((event: import("./event-bus").ServerEvent) => void)
+    | undefined;
+  if (pipeline) {
+    pipeline.destroy();
+  }
+  if (subscriber) {
+    runtime.eventBus.unsubscribe(subscriber);
+  }
+  gCleanup.__deckRunEventPipeline = undefined;
+  gCleanup.__deckRunEventSubscriber = undefined;
 
   await runtime.adapter.stop();
   runtime.rateLimiter.dispose();
