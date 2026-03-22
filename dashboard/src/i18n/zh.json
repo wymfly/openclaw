@@ -591,7 +591,24 @@
       "subagentLineage": "子智能体谱系"
     },
     "history": {
-      "noRuns": "暂无运行记录"
+      "noRuns": "暂无运行记录",
+      "filterAgent": "智能体",
+      "filterSession": "会话",
+      "clearFilters": "清除筛选",
+      "unknownAgent": "未知智能体",
+      "events": "事件",
+      "completed": "已完成",
+      "error": "错误",
+      "running": "运行中",
+      "failed": "失败",
+      "cancelled": "已取消",
+      "allStatus": "全部状态",
+      "time": {
+        "1h": "最近 1 小时",
+        "24h": "最近 24 小时",
+        "7d": "最近 7 天",
+        "all": "全部时间"
+      }
     }
   },
   "activity": {
