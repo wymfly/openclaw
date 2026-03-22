@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useActivityStore } from "@/stores/activity";
+import { useMonitorStore } from "@/stores/monitor";
 
 /** Format a timestamp into a relative string like "3s ago" / "2m ago". */
 function relativeTime(ts: number, now: number): string {
@@ -37,17 +37,17 @@ const REFRESH_INTERVAL = 10_000;
  */
 export function ActivityFeed() {
   const t = useTranslations("routing");
-  const events = useActivityStore((s) => s.events);
-  const fetchRecent = useActivityStore((s) => s.fetchRecent);
+  const events = useMonitorStore((s) => s.liveEvents);
+  const fetchRecentLiveEvents = useMonitorStore((s) => s.fetchRecentLiveEvents);
   const [agentFilter, setAgentFilter] = useState("__all__");
   const [now, setNow] = useState(Date.now());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Auto-refresh: fetch recent + update "now" every 10s
   useEffect(() => {
-    void fetchRecent();
+    void fetchRecentLiveEvents();
     intervalRef.current = setInterval(() => {
-      void fetchRecent();
+      void fetchRecentLiveEvents();
       setNow(Date.now());
     }, REFRESH_INTERVAL);
     return () => {
@@ -55,7 +55,7 @@ export function ActivityFeed() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [fetchRecent]);
+  }, [fetchRecentLiveEvents]);
 
   // Filter agent/chat events, apply agent filter, limit to 20
   const filtered = useMemo(() => {

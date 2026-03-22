@@ -18,8 +18,8 @@ import { useUIStore, type Panel } from "@/stores/ui";
 const LazyAgentsPanel = lazy(() =>
   import("@/components/panels/agents/AgentsPanel").then((m) => ({ default: m.AgentsPanel })),
 );
-const LazyGatewayPanel = lazy(() =>
-  import("@/components/panels/gateway/GatewayPanel").then((m) => ({ default: m.GatewayPanel })),
+const LazyMonitorPanel = lazy(() =>
+  import("@/components/panels/monitor/MonitorPanel").then((m) => ({ default: m.MonitorPanel })),
 );
 const LazyModelsPanel = lazy(() =>
   import("@/components/panels/models/ModelsPanel").then((m) => ({ default: m.ModelsPanel })),
@@ -35,9 +35,6 @@ const LazyLogsPanel = lazy(() =>
 );
 const LazyMemoryPanel = lazy(() =>
   import("@/components/panels/memory/MemoryPanel").then((m) => ({ default: m.MemoryPanel })),
-);
-const LazyActivityPanel = lazy(() =>
-  import("@/components/panels/activity/ActivityPanel").then((m) => ({ default: m.ActivityPanel })),
 );
 const LazyChannelsPanel = lazy(() =>
   import("@/components/panels/channels/ChannelsPanel").then((m) => ({ default: m.ChannelsPanel })),
@@ -120,8 +117,8 @@ function ActivePanel({ panel }: { panel: Panel }) {
 
   if (panel === "agents") {
     LazyComponent = LazyAgentsPanel;
-  } else if (panel === "gateway") {
-    LazyComponent = LazyGatewayPanel;
+  } else if (panel === "monitor") {
+    LazyComponent = LazyMonitorPanel;
   } else if (panel === "models") {
     LazyComponent = LazyModelsPanel;
   } else if (panel === "usage") {
@@ -132,8 +129,6 @@ function ActivePanel({ panel }: { panel: Panel }) {
     LazyComponent = LazyLogsPanel;
   } else if (panel === "memory") {
     LazyComponent = LazyMemoryPanel;
-  } else if (panel === "activity") {
-    LazyComponent = LazyActivityPanel;
   } else if (panel === "channels") {
     LazyComponent = LazyChannelsPanel;
   } else if (panel === "config") {
