@@ -16,12 +16,21 @@ import { ChannelList } from "./ChannelList";
  */
 export function ChannelsPanel() {
   const t = useTranslations("channels");
-  const { selectedId, fetchChannels } = useChannelsStore();
+  const { selectedId, fetchChannels, throughput } = useChannelsStore();
   const [tab, setTab] = useState("status");
 
   useEffect(() => {
     void fetchChannels();
   }, [fetchChannels]);
+
+  // Aggregate throughput across all channels
+  let totalIn = 0;
+  let totalOut = 0;
+  for (const data of throughput.values()) {
+    totalIn += data.messagesIn;
+    totalOut += data.messagesOut;
+  }
+  const hasThroughput = throughput.size > 0;
 
   return (
     <Tabs
@@ -39,6 +48,11 @@ export function ChannelsPanel() {
             {t("agentBindings")}
           </TabsTrigger>
         </TabsList>
+        {hasThroughput && (
+          <span className="ml-auto text-[10px] text-[var(--text-tertiary)] font-mono">
+            ↓ {totalIn} / ↑ {totalOut} {t("lastHour")}
+          </span>
+        )}
       </div>
 
       {/* Tab 1: Connection status */}
