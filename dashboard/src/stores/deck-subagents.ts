@@ -58,6 +58,10 @@ interface DeckSubagentsState {
   fetchRuns: (status?: string, requesterAgentId?: string) => Promise<void>;
   fetchLineage: (params: { runId?: string; sessionKey?: string }) => Promise<void>;
   killRun: (runId: string) => Promise<boolean>;
+  steerRun: (
+    runId: string,
+    instruction: string,
+  ) => Promise<{ success: boolean; deduped?: boolean } | null>;
   startPolling: () => void;
   stopPolling: () => void;
 }
@@ -115,6 +119,23 @@ export const useDeckSubagentsStore = create<DeckSubagentsState>((set, get) => ({
       set({ lineage: Array.isArray(data.nodes) ? data.nodes : [] });
     } catch {
       // ignore
+    }
+  },
+
+  steerRun: async (runId: string, instruction: string) => {
+    try {
+      const res = await fetch("/api/deck/subagents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "steer", runId, instruction }),
+      });
+      if (!res.ok) {
+        return null;
+      }
+      const data = (await res.json()) as { success: boolean; deduped?: boolean };
+      return data;
+    } catch {
+      return null;
     }
   },
 
