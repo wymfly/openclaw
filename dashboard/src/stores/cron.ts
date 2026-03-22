@@ -53,6 +53,26 @@ export interface CronStatus {
   nextRunAtMs?: number;
 }
 
+export interface HeartbeatConfig {
+  /** UI-derived field (true when `every` is set), not a schema field. */
+  enabled: boolean;
+  /** Interval string, e.g. "30m", "1h". */
+  every?: string;
+  activeHours?: { start?: string; end?: string; timezone?: string };
+  /** Target agent ID. */
+  target?: string;
+  /** Message template. */
+  prompt?: string;
+  model?: string;
+  session?: string;
+}
+
+export interface HeartbeatOverride {
+  agentId: string;
+  agentName?: string;
+  every?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -65,6 +85,11 @@ interface CronState {
   loading: boolean;
   error: string | null;
 
+  // Heartbeat state
+  heartbeatConfig: HeartbeatConfig | null;
+  heartbeatOverrides: HeartbeatOverride[];
+  heartbeatLoading: boolean;
+
   fetchJobs: () => Promise<void>;
   addJob: (job: Omit<CronJob, "id">) => Promise<CronJob | null>;
   updateJob: (jobId: string, patch: Partial<CronJob>) => Promise<boolean>;
@@ -73,15 +98,73 @@ interface CronState {
   fetchRuns: (jobId: string) => Promise<void>;
   fetchStatus: () => Promise<void>;
   selectJob: (jobId: string | null) => void;
+
+  // Heartbeat actions
+  fetchHeartbeatConfig: () => Promise<void>;
+  updateHeartbeatConfig: (patch: Partial<HeartbeatConfig>) => Promise<boolean>;
+  addHeartbeatOverride: (agentId: string, every: string) => Promise<boolean>;
+  removeHeartbeatOverride: (agentId: string) => Promise<boolean>;
 }
 
-export const useCronStore = create<CronState>((set) => ({
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+interface ConfigPayload {
+  agents?: {
+    defaults?: { heartbeat?: Record<string, unknown> };
+    list?: Array<Record<string, unknown>>;
+  };
+  [key: string]: unknown;
+}
+
+function extractHeartbeatConfig(cfg: ConfigPayload): HeartbeatConfig {
+  const hb = cfg?.agents?.defaults?.heartbeat;
+  if (!hb) {
+    return { enabled: false };
+  }
+  const every = typeof hb.every === "string" ? hb.every : undefined;
+  const activeHours = hb.activeHours as HeartbeatConfig["activeHours"] | undefined;
+  return {
+    enabled: !!every,
+    every,
+    activeHours,
+    target: typeof hb.target === "string" ? hb.target : undefined,
+    prompt: typeof hb.prompt === "string" ? hb.prompt : undefined,
+    model: typeof hb.model === "string" ? hb.model : undefined,
+    session: typeof hb.session === "string" ? hb.session : undefined,
+  };
+}
+
+function extractHeartbeatOverrides(cfg: ConfigPayload): HeartbeatOverride[] {
+  const agents = cfg?.agents?.list;
+  if (!Array.isArray(agents)) {
+    return [];
+  }
+  const overrides: HeartbeatOverride[] = [];
+  for (const agent of agents) {
+    const hb = agent.heartbeat as Record<string, unknown> | undefined;
+    if (hb && typeof hb.every === "string") {
+      overrides.push({
+        agentId: typeof agent.id === "string" ? agent.id : JSON.stringify(agent.id ?? ""),
+        agentName: typeof agent.name === "string" ? agent.name : undefined,
+        every: hb.every,
+      });
+    }
+  }
+  return overrides;
+}
+
+export const useCronStore = create<CronState>((set, get) => ({
   jobs: [],
   selectedJobId: null,
   runs: [],
   status: null,
   loading: false,
   error: null,
+  heartbeatConfig: null,
+  heartbeatOverrides: [],
+  heartbeatLoading: false,
 
   selectJob: (jobId) => set({ selectedJobId: jobId }),
 
@@ -186,6 +269,119 @@ export const useCronStore = create<CronState>((set) => ({
       set({ status: data });
     } catch {
       // best-effort
+    }
+  },
+
+  // -------------------------------------------------------------------------
+  // Heartbeat actions
+  // -------------------------------------------------------------------------
+
+  fetchHeartbeatConfig: async () => {
+    set({ heartbeatLoading: true });
+    try {
+      const res = await fetch("/api/config");
+      if (!res.ok) {
+        set({ heartbeatLoading: false });
+        return;
+      }
+      const cfg = (await res.json()) as ConfigPayload;
+      set({
+        heartbeatConfig: extractHeartbeatConfig(cfg),
+        heartbeatOverrides: extractHeartbeatOverrides(cfg),
+        heartbeatLoading: false,
+      });
+    } catch {
+      set({ heartbeatLoading: false });
+    }
+  },
+
+  updateHeartbeatConfig: async (patch) => {
+    // Strip the UI-only `enabled` field before sending to the API.
+    const { enabled: _enabled, ...rest } = patch;
+    // When disabling, clear the `every` field so Gateway stops heartbeat.
+    const heartbeatPatch = patch.enabled === false ? { ...rest, every: undefined } : rest;
+    try {
+      const res = await fetch("/api/config/patch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patch: { agents: { defaults: { heartbeat: heartbeatPatch } } } }),
+      });
+      if (!res.ok) {
+        return false;
+      }
+      // Refresh local state from the server.
+      await get().fetchHeartbeatConfig();
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  addHeartbeatOverride: async (agentId, every) => {
+    try {
+      // Read full config, find or create agent entry, set heartbeat.every, patch back.
+      const cfgRes = await fetch("/api/config");
+      if (!cfgRes.ok) {
+        return false;
+      }
+      const cfg = (await cfgRes.json()) as ConfigPayload;
+      const agents = Array.isArray(cfg?.agents?.list) ? [...cfg.agents.list] : [];
+      const idx = agents.findIndex((a) => a.id === agentId);
+      if (idx >= 0) {
+        const existing = { ...agents[idx] };
+        existing.heartbeat = {
+          ...(existing.heartbeat as Record<string, unknown> | undefined),
+          every,
+        };
+        agents[idx] = existing;
+      } else {
+        agents.push({ id: agentId, heartbeat: { every } });
+      }
+      const res = await fetch("/api/config/patch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patch: { agents: { list: agents } } }),
+      });
+      if (!res.ok) {
+        return false;
+      }
+      await get().fetchHeartbeatConfig();
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  removeHeartbeatOverride: async (agentId) => {
+    try {
+      const cfgRes = await fetch("/api/config");
+      if (!cfgRes.ok) {
+        return false;
+      }
+      const cfg = (await cfgRes.json()) as ConfigPayload;
+      const agents = Array.isArray(cfg?.agents?.list) ? [...cfg.agents.list] : [];
+      const idx = agents.findIndex((a) => a.id === agentId);
+      if (idx < 0) {
+        return true; // nothing to remove
+      }
+      const existing = { ...agents[idx] };
+      const hb = { ...(existing.heartbeat as Record<string, unknown> | undefined) };
+      delete hb.every;
+      // If heartbeat object is empty, remove it entirely.
+      existing.heartbeat = Object.keys(hb).length > 0 ? hb : undefined;
+      agents[idx] = existing;
+      const res = await fetch("/api/config/patch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patch: { agents: { list: agents } } }),
+      });
+      if (!res.ok) {
+        return false;
+      }
+      await get().fetchHeartbeatConfig();
+      return true;
+    } catch {
+      return false;
     }
   },
 }));

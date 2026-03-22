@@ -742,7 +742,25 @@
   },
   "scheduler": {
     "cronJobs": "Cron Jobs",
-    "heartbeat": "Heartbeat"
+    "heartbeat": "Heartbeat",
+    "disabled": "Disabled",
+    "imminent": "Imminent",
+    "nextActiveWindow": "Next active window: {time}",
+    "nextExecution": "Next Execution",
+    "globalConfig": "Global Heartbeat Config",
+    "everyInterval": "Interval",
+    "everyPlaceholder": "e.g. 30m, 1h",
+    "activeHours": "Active Hours",
+    "timezonePlaceholder": "Timezone (e.g. America/New_York)",
+    "targetAgent": "Target Agent",
+    "selectAgent": "Select agent...",
+    "promptTemplate": "Prompt Template",
+    "promptPlaceholder": "Enter heartbeat message template...",
+    "modelOptional": "Model (optional)",
+    "modelPlaceholder": "Leave empty for default model",
+    "perAgentOverrides": "Per-Agent Overrides",
+    "noOverrides": "No overrides configured",
+    "confirmRemoveOverride": "Remove this override?"
   },
   "cron": {
     "title": "Cron Jobs",

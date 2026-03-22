@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCronStore } from "@/stores/cron";
+import { HeartbeatConfig } from "./HeartbeatConfig";
 import { JobForm } from "./JobForm";
 import { JobList } from "./JobList";
+import { NextExecutionCountdown } from "./NextExecutionCountdown";
 import { RunHistory } from "./RunHistory";
 import { RunNowButton } from "./RunNowButton";
 
@@ -93,6 +95,11 @@ function CronJobsContent() {
                 <TabsTrigger value="history">{t("runHistory")}</TabsTrigger>
               </TabsList>
 
+              <NextExecutionCountdown
+                nextRunAtMs={selectedJob.nextRunAtMs}
+                disabled={!selectedJob.enabled}
+              />
+
               <div className="ml-auto flex items-center gap-2">
                 {tab === "history" && <RunNowButton jobId={selectedJob.id} />}
                 <Button variant="destructive" size="sm" onClick={handleDelete}>
@@ -143,11 +150,7 @@ export function SchedulerPanel() {
       {/* Tab content */}
       <div className="flex-1 min-h-0">
         {activeTab === "cron" && <CronJobsContent />}
-        {activeTab === "heartbeat" && (
-          <div className="flex-1 flex items-center justify-center h-full text-[var(--text-secondary)]">
-            <p className="text-sm">{ts("heartbeat")}</p>
-          </div>
-        )}
+        {activeTab === "heartbeat" && <HeartbeatConfig />}
       </div>
     </div>
   );
