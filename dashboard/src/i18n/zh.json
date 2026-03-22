@@ -410,6 +410,10 @@
     "runFailed": "运行失败",
     "depth": "深度",
     "session": "会话",
+    "statusActive": "运行中",
+    "statusCompleted": "已完成",
+    "statusFailed": "失败",
+    "statusTimeout": "超时",
     "timeRange": {
       "1h": "最近 1 小时",
       "6h": "最近 6 小时",
