@@ -493,7 +493,15 @@
         "title": "按账号 + 渠道 + 联系人",
         "description": "完全隔离：按账号、渠道、联系人创建会话。"
       }
-    }
+    },
+    "healthWarning": "上下文接近容量上限，压缩可能丢失早期消息",
+    "compactionWarning": "已压缩 {count} 次",
+    "searchPlaceholder": "搜索转录...",
+    "searchCount": "{current}/{total}",
+    "searchNoResults": "无结果",
+    "exportJson": "导出 JSON",
+    "exportMarkdown": "导出 Markdown",
+    "exportEmpty": "暂无消息可导出"
   },
   "logs": {
     "title": "日志查看器",
@@ -587,7 +595,8 @@
     "confirmUnbind": "确认解绑?",
     "unbindMessage": "此操作将移除该路由绑定，确认继续？",
     "confirmUnbindAction": "确认解绑",
-    "unbind": "解绑"
+    "unbind": "解绑",
+    "configWizard": "配置向导"
   },
   "config": {
     "title": "配置编辑器",
@@ -920,5 +929,73 @@
     "docs": "文档",
     "github": "GitHub",
     "saved": "设置已保存"
+  },
+  "wizard": {
+    "stepProgress": "第 {current} 步，共 {total} 步",
+    "back": "上一步",
+    "next": "下一步",
+    "complete": "完成",
+    "validating": "验证中...",
+    "testing": "测试中...",
+    "testConnection": "测试连接",
+    "recommended": "推荐",
+    "wecom": {
+      "title": "WeCom 配置向导",
+      "step1Title": "选择传输模式",
+      "step2Title": "填写凭证信息",
+      "step3Title": "回调 URL 配置",
+      "step4Title": "连接测试",
+      "transportBotWs": "Bot 长连接 (WebSocket)",
+      "transportBotWsDesc": "推荐方式，无需公网 IP，配置最简单",
+      "transportBotWebhook": "Bot Webhook 回调",
+      "transportBotWebhookDesc": "需要公网可达地址，适合企业部署",
+      "transportAgentCallback": "自建应用回调",
+      "transportAgentCallbackDesc": "完整企业应用能力，需要管理员权限",
+      "transportKfApi": "客服消息 API",
+      "transportKfApiDesc": "客服场景专用，需要客服权限",
+      "pluginNotInstalled": "WeCom 插件未安装。请先通过 openclaw plugin install wecom 安装。",
+      "botId": "Bot ID",
+      "botIdHint": "企业微信机器人 ID",
+      "botSecret": "Bot Secret",
+      "botSecretHint": "企业微信机器人密钥",
+      "token": "Token",
+      "tokenHint": "回调 Token",
+      "encodingAESKey": "EncodingAESKey",
+      "encodingAESKeyHint": "消息加解密密钥",
+      "corpId": "Corp ID",
+      "corpIdHint": "企业 ID",
+      "agentId": "Agent ID",
+      "agentIdHint": "应用 AgentId",
+      "agentSecret": "Agent Secret",
+      "agentSecretHint": "应用密钥",
+      "callbackUrlDesc": "请在企业微信管理后台配置以下回调 URL：",
+      "callbackUrlNote": "请将 {GATEWAY_URL} 替换为您的网关实际公网地址。",
+      "noCallbackNeeded": "WebSocket 模式无需配置回调 URL，连接将由 Gateway 自动建立。",
+      "testDesc": "保存配置并测试与企业微信的连接。",
+      "probeSuccess": "WeCom 渠道连接正常",
+      "probeNoChannel": "未检测到 WeCom 渠道",
+      "probeFailed": "连接测试失败"
+    },
+    "feishu": {
+      "title": "飞书配置向导",
+      "step1Title": "选择传输模式",
+      "step2Title": "填写应用凭证",
+      "step3Title": "连接测试",
+      "modeWebSocket": "WebSocket 长连接",
+      "modeWebSocketDesc": "推荐方式，无需公网 IP，实时双向通信",
+      "modeWebhook": "Webhook 回调",
+      "modeWebhookDesc": "需要公网可达地址，需额外配置 verificationToken",
+      "pluginNotInstalled": "飞书插件未安装。请先通过 openclaw plugin install feishu 安装。",
+      "appId": "App ID",
+      "appIdHint": "飞书应用 App ID",
+      "appIdHelp": "在飞书开放平台「凭证与基础信息」页面获取",
+      "appSecret": "App Secret",
+      "appSecretHint": "飞书应用 App Secret",
+      "appSecretHelp": "与 App ID 配对的应用密钥",
+      "testDesc": "保存配置并测试与飞书的连接。",
+      "probeSuccess": "飞书渠道连接正常",
+      "probeNoChannel": "未检测到飞书渠道",
+      "probeFailed": "连接测试失败"
+    }
   }
 }
