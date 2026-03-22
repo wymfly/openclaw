@@ -1,13 +1,23 @@
 "use client";
 
-import { Route, Zap, GitBranch, MessageSquare, Play } from "lucide-react";
+import {
+  Route,
+  Zap,
+  GitBranch,
+  MessageSquare,
+  Play,
+  Layers,
+  Shield,
+  Cpu,
+  User,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { navigateToSubagents } from "@/lib/panel-navigation";
 import type { AgentDetail } from "@/stores/deck-agents";
 
-type TabValue = "overview" | "routing" | "skills" | "subagent" | "sessions";
+type TabValue = "overview" | "routing" | "skills" | "context" | "subagent" | "sessions";
 
 interface OverviewTabProps {
   detail: AgentDetail;
@@ -26,6 +36,7 @@ interface StatCardDef {
 
 export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
   const t = useTranslations("agentDetail");
+
   const statCards: StatCardDef[] = [
     {
       label: t("statBindings"),
@@ -43,7 +54,7 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
     },
     {
       label: t("statSubagents"),
-      value: detail.subagents?.allowAgents?.length ?? 0,
+      value: detail.activeSubagentCount ?? 0,
       icon: <GitBranch size={14} />,
       tab: "subagent",
       color: "text-purple-400",
@@ -57,10 +68,17 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
     },
     {
       label: t("statActiveRuns"),
-      value: detail.activeSubagentCount ?? 0,
+      value: 0,
       icon: <Play size={14} />,
       panelAction: navigateToSubagents,
       color: "text-emerald-400",
+    },
+    {
+      label: t("statContext"),
+      value: 0,
+      icon: <Layers size={14} />,
+      tab: "context",
+      color: "text-indigo-400",
     },
   ];
 
@@ -99,6 +117,67 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
               </div>
             )}
           </dl>
+        </CardContent>
+      </Card>
+
+      {/* Sandbox & Model */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 text-xs">
+              <Shield size={14} className="text-[var(--accent)]" />
+              <span className="text-[var(--text-secondary)]">{t("sandboxMode")}</span>
+            </div>
+            <p className="text-xs text-[var(--text-primary)] mt-1">
+              {detail.sandbox ? t("sandboxEnabled") : t("sandboxDefault")}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 text-xs">
+              <Cpu size={14} className="text-[var(--accent)]" />
+              <span className="text-[var(--text-secondary)]">{t("modelConfig")}</span>
+            </div>
+            <p className="font-mono text-xs text-[var(--text-primary)] mt-1">
+              {detail.model || t("usingDefault")}
+            </p>
+            {detail.fallbackModels && detail.fallbackModels.length > 0 && (
+              <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+                {t("fallbacks")}: {detail.fallbackModels.join(", ")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Identity preview */}
+      <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2 text-xs mb-2">
+            <User size={14} className="text-[var(--accent)]" />
+            <span className="text-[var(--text-secondary)]">{t("identity")}</span>
+            {detail.identityExists && (
+              <Badge variant="secondary" className="text-[10px]">
+                IDENTITY.md
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--accent)]/20">
+              {detail.name?.charAt(0)?.toUpperCase() ?? "?"}
+            </div>
+            <div className="text-xs">
+              <p className="text-[var(--text-primary)] font-medium">{detail.name}</p>
+              <button
+                onClick={() => onNavigateTab("context")}
+                className="text-[var(--accent)] hover:underline cursor-pointer"
+              >
+                {t("configureIdentity")}
+              </button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
