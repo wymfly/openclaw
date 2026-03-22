@@ -13,7 +13,7 @@ import type { RunEventRow } from "@/stores/monitor";
 const VALID_STATUSES = new Set(["active", "completed", "failed", "timeout"]);
 
 function parseSubagentNodes(events: RunEventRow[]): LineageNode[] {
-  const subagentEvents = events.filter((e) => e.kind === "subagent");
+  const subagentEvents = events.filter((e) => e.stream === "subagent");
   if (subagentEvents.length === 0) {
     return [];
   }
@@ -22,16 +22,16 @@ function parseSubagentNodes(events: RunEventRow[]): LineageNode[] {
   const seen = new Set<string>();
 
   for (const row of subagentEvents) {
-    let payload: Record<string, unknown> = {};
+    let parsed: Record<string, unknown> = {};
     try {
-      payload = JSON.parse(row.payload) as Record<string, unknown>;
+      parsed = JSON.parse(row.data) as Record<string, unknown>;
     } catch {
       continue;
     }
 
     const runId =
-      (payload.runId as string | undefined) ??
-      (payload.childRunId as string | undefined) ??
+      (parsed.runId as string | undefined) ??
+      (parsed.childRunId as string | undefined) ??
       String(row.id);
 
     // Deduplicate by runId
@@ -40,26 +40,28 @@ function parseSubagentNodes(events: RunEventRow[]): LineageNode[] {
     }
     seen.add(runId);
 
-    const rawStatus = (payload.status as string | undefined) ?? "active";
+    const rawStatus = (parsed.status as string | undefined) ?? "active";
     const status = VALID_STATUSES.has(rawStatus) ? (rawStatus as LineageNode["status"]) : "active";
 
     nodes.push({
       runId,
       sessionKey:
-        (payload.sessionKey as string | undefined) ??
-        (payload.childSessionKey as string | undefined) ??
-        row.sessionKey,
+        (parsed.sessionKey as string | undefined) ??
+        (parsed.childSessionKey as string | undefined) ??
+        row.session_key ??
+        "",
       agentId:
-        (payload.agentId as string | undefined) ??
-        (payload.childAgentId as string | undefined) ??
-        row.agentId,
+        (parsed.agentId as string | undefined) ??
+        (parsed.childAgentId as string | undefined) ??
+        row.agent_id ??
+        "",
       agentName:
-        (payload.agentName as string | undefined) ?? (payload.childAgentName as string | undefined),
-      task: payload.task as string | undefined,
-      depth: typeof payload.depth === "number" ? payload.depth : 0,
-      parentRunId: (payload.parentRunId as string | undefined) ?? null,
+        (parsed.agentName as string | undefined) ?? (parsed.childAgentName as string | undefined),
+      task: parsed.task as string | undefined,
+      depth: typeof parsed.depth === "number" ? parsed.depth : 0,
+      parentRunId: (parsed.parentRunId as string | undefined) ?? null,
       status,
-      durationMs: typeof payload.durationMs === "number" ? payload.durationMs : undefined,
+      durationMs: typeof parsed.durationMs === "number" ? parsed.durationMs : undefined,
     });
   }
 

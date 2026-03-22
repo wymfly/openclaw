@@ -19,8 +19,8 @@ import type { RunEventInput } from "./run-event-store";
 const BATCH_SIZE = 50;
 const FLUSH_INTERVAL_MS = 500;
 
-/** Tool names that are classified as file operations. */
-const FILE_TOOLS = new Set(["read_file", "write_file", "edit_file", "create_file", "delete_file"]);
+/** Tool names that are classified as file operations (must match real tool names from SSE). */
+const FILE_TOOLS = new Set(["Read", "Write", "Edit", "MultiEdit", "Glob"]);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -188,11 +188,26 @@ export class RunEventPipeline {
     const sessionKey = p.sessionKey as string | undefined;
     const agentId = extractAgentId(sessionKey);
 
+    // Normalize stored data to a shape expected by RunEventStore SQL/TS:
+    // - top-level `type` field ("tool_use" | "result" | "compaction" | "text" | etc.)
+    // - For agent events: store the inner `data` object (already has `type`/`name`)
+    // - For chat events: construct `{ type: "result", subtype, usage }` from state
+    const chatPayload = p as ChatPayload;
+    const normalizedData =
+      eventType === "agent"
+        ? ((p.data as Record<string, unknown>) ?? payload)
+        : {
+            type: "result",
+            subtype: chatPayload.state === "final" ? "success" : "error",
+            usage: chatPayload.usage,
+            ...(chatPayload.errorMessage ? { errorMessage: chatPayload.errorMessage } : {}),
+          };
+
     const input: RunEventInput = {
       runId,
       seq,
       stream,
-      data: JSON.stringify(payload),
+      data: JSON.stringify(normalizedData),
       agentId,
       sessionKey,
     };

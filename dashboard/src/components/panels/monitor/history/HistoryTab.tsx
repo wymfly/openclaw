@@ -38,27 +38,27 @@ function formatDuration(ms: number): string {
   return `${Math.floor(ms / 60_000)}m`;
 }
 
-/** Map a time-range label to a `since` timestamp (ms). */
-function timeRangeToSince(range: string): number | null {
+/** Map a time-range label to an ISO datetime `since` string. */
+function timeRangeToSince(range: string): string | null {
   const now = Date.now();
   switch (range) {
     case "1h":
-      return now - 60 * 60 * 1000;
+      return new Date(now - 60 * 60 * 1000).toISOString();
     case "24h":
-      return now - 24 * 60 * 60 * 1000;
+      return new Date(now - 24 * 60 * 60 * 1000).toISOString();
     case "7d":
-      return now - 7 * 24 * 60 * 60 * 1000;
+      return new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
     default:
       return null;
   }
 }
 
-/** Derive the current time-range label from the `since` filter value. */
-function sinceToTimeRange(since: number | null): string {
+/** Derive the current time-range label from the `since` filter value (ISO string). */
+function sinceToTimeRange(since: string | null): string {
   if (since == null) {
     return "all";
   }
-  const delta = Date.now() - since;
+  const delta = Date.now() - new Date(since).getTime();
   if (delta <= 60 * 60 * 1000 + 5000) {
     return "1h";
   }
@@ -73,15 +73,13 @@ function sinceToTimeRange(since: number | null): string {
 
 const STATUS_STYLES: Record<string, string> = {
   completed: "bg-[var(--success-muted)] text-[var(--success)]",
-  failed: "bg-[var(--danger-muted)] text-[var(--danger)]",
-  cancelled: "bg-[var(--danger-muted)] text-[var(--danger)]",
+  error: "bg-[var(--danger-muted)] text-[var(--danger)]",
   running: "bg-[var(--accent-muted)] text-[var(--accent)]",
 };
 
 const STATUS_LABEL_KEY: Record<string, string> = {
   completed: "history.completed",
-  failed: "history.failed",
-  cancelled: "history.cancelled",
+  error: "history.error",
   running: "history.running",
 };
 
@@ -89,7 +87,7 @@ const STATUS_LABEL_KEY: Record<string, string> = {
 const TIME_RANGES = ["1h", "24h", "7d", "all"] as const;
 
 // Status options for the status filter (null = all).
-const STATUS_OPTIONS: Array<RunStatus | "all"> = ["all", "running", "completed", "failed"];
+const STATUS_OPTIONS: Array<RunStatus | "all"> = ["all", "running", "completed", "error"];
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -121,8 +119,10 @@ function RunRow({
   t: ReturnType<typeof useTranslations>;
   onClick: () => void;
 }) {
-  const duration = run.endedAt && run.startedAt ? run.endedAt - run.startedAt : null;
-  const totalTokens = (run.inputTokens ?? 0) + (run.outputTokens ?? 0);
+  const startMs = new Date(run.firstEventAt).getTime();
+  const endMs = new Date(run.lastEventAt).getTime();
+  const duration = run.lastEventAt && run.firstEventAt ? endMs - startMs : null;
+  const totalTokens = run.totalTokens ?? 0;
   const statusLabel = t(STATUS_LABEL_KEY[run.status] ?? "history.running");
 
   return (
@@ -145,7 +145,7 @@ function RunRow({
           {run.runId.length > 12 ? `${run.runId.slice(0, 12)}...` : run.runId}
         </span>
         <span className="text-xs text-[var(--text-secondary)] truncate">
-          {run.agentName ?? run.agentId ?? t("history.unknownAgent")}
+          {run.agentId ?? t("history.unknownAgent")}
           {run.sessionKey ? ` / ${run.sessionKey}` : ""}
         </span>
       </div>
@@ -180,7 +180,7 @@ export function HistoryTab() {
   const {
     runs,
     runsLoading,
-    runsHasMore,
+    nextCursor,
     filters,
     fetchRuns,
     loadMoreRuns,
@@ -217,7 +217,7 @@ export function HistoryTab() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && !runsLoading && runsHasMore) {
+        if (entries[0]?.isIntersecting && !runsLoading && nextCursor) {
           void loadMoreRuns();
         }
       },
@@ -226,7 +226,7 @@ export function HistoryTab() {
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [runsLoading, runsHasMore, loadMoreRuns]);
+  }, [runsLoading, nextCursor, loadMoreRuns]);
 
   // ── Handlers ──
   const hasActiveFilters =

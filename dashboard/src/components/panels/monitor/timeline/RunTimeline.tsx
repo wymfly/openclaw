@@ -68,26 +68,27 @@ function parseEvents(rows: RunEventRow[]): TimelineEvent[] {
 
   const events: TimelineEvent[] = [];
   for (const row of rows) {
-    let payload: Record<string, unknown> = {};
+    let parsed: Record<string, unknown> = {};
     try {
-      payload = JSON.parse(row.payload) as Record<string, unknown>;
+      parsed = JSON.parse(row.data) as Record<string, unknown>;
     } catch {
       // skip unparsable
     }
 
     const label =
-      (payload.toolName as string | undefined) ??
-      (payload.name as string | undefined) ??
-      (payload.model as string | undefined) ??
-      row.kind;
+      (parsed.toolName as string | undefined) ??
+      (parsed.name as string | undefined) ??
+      (parsed.model as string | undefined) ??
+      row.stream;
 
-    const duration = typeof payload.durationMs === "number" ? payload.durationMs : 0;
+    const duration = typeof parsed.durationMs === "number" ? parsed.durationMs : 0;
+    const startMs = new Date(row.created_at + "Z").getTime();
 
     events.push({
       id: row.id,
-      kind: classifyKind(row.kind),
+      kind: classifyKind(row.stream),
       label,
-      startMs: row.ts,
+      startMs,
       durationMs: duration,
     });
   }

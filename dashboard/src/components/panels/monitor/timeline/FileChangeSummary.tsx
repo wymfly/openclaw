@@ -55,7 +55,7 @@ export function FileChangeSummary({ events }: FileChangeSummaryProps) {
   const t = useTranslations("monitor");
 
   const groups = useMemo(() => {
-    const fileEvents = events.filter((e) => e.kind === "file_op" || e.kind === "file");
+    const fileEvents = events.filter((e) => e.stream === "file_op");
     if (fileEvents.length === 0) {
       return [];
     }
@@ -63,19 +63,19 @@ export function FileChangeSummary({ events }: FileChangeSummaryProps) {
     const groupMap = new Map<FileOpKind, Set<string>>();
 
     for (const row of fileEvents) {
-      let payload: Record<string, unknown> = {};
+      let parsed: Record<string, unknown> = {};
       try {
-        payload = JSON.parse(row.payload) as Record<string, unknown>;
+        parsed = JSON.parse(row.data) as Record<string, unknown>;
       } catch {
         // skip
       }
 
       const toolName =
-        (payload.toolName as string | undefined) ?? (payload.name as string | undefined) ?? "";
+        (parsed.toolName as string | undefined) ?? (parsed.name as string | undefined) ?? "";
       const filePath =
-        (payload.filePath as string | undefined) ??
-        (payload.path as string | undefined) ??
-        (payload.file as string | undefined) ??
+        (parsed.filePath as string | undefined) ??
+        (parsed.path as string | undefined) ??
+        (parsed.file as string | undefined) ??
         toolName;
 
       const kind = classifyFileOp(toolName);

@@ -553,9 +553,9 @@
     },
     "stats": {
       "totalRuns": "总运行",
-      "activeRuns": "活跃运行",
+      "todayRuns": "今日运行",
       "avgDuration": "平均耗时",
-      "successRate": "成功率"
+      "topAgents": "活跃智能体"
     },
     "diagnostics": "系统诊断",
     "liveFeed": "实时动态",
