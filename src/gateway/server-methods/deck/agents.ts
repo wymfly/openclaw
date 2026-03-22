@@ -107,7 +107,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
       id: agentId,
       name: agentConfig.name,
       workspace: agentConfig.workspace,
-      model: agentConfig.model,
+      model: resolveModelString(agentConfig.model),
       isDefault,
       bindingCount,
       sessionCount,

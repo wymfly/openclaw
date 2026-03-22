@@ -111,11 +111,15 @@ describe("deck.agents.toolPolicy.preview", () => {
     const p = result.payload as {
       layers: Array<{
         label: string;
-        active: boolean;
-        allow: string[] | null;
-        deny: string[] | null;
+        ruleCount: number;
+        effect: "allow" | "deny" | "passthrough";
       }>;
-      tools: Array<{ id: string; allowed: boolean; perLayer: boolean[] }>;
+      tools: Array<{
+        name: string;
+        allowed: boolean;
+        decisiveLayer: string;
+        trace: Array<{ layer: string; decision: "allow" | "deny" | "no-opinion" }>;
+      }>;
       configHash: string;
     };
 
@@ -125,28 +129,28 @@ describe("deck.agents.toolPolicy.preview", () => {
     expect(p.layers[2].label).toBe("tools.allow");
     expect(p.layers[4].label).toContain("agents.main.tools.allow");
 
-    // tools.allow layer should be active (has config)
-    expect(p.layers[2].active).toBe(true);
-    expect(p.layers[2].allow).toEqual(["read", "write", "edit", "exec"]);
-    expect(p.layers[2].deny).toEqual(["gateway"]);
+    // tools.allow layer should have ruleCount and effect (has both allow and deny)
+    expect(p.layers[2].ruleCount).toBe(5); // 4 allow + 1 deny
+    expect(p.layers[2].effect).toBe("deny"); // deny takes priority when present
 
     // Tools array should exist and have entries
     expect(p.tools.length).toBeGreaterThan(0);
-    // Each tool should have perLayer matching number of layers
+    // Each tool should have trace matching number of layers
     for (const tool of p.tools) {
-      expect(tool.perLayer).toHaveLength(7);
+      expect(tool.trace).toHaveLength(7);
+      expect(tool.decisiveLayer).toBeDefined();
     }
 
     // "read" should be allowed (in global allowlist, not in agent deny)
-    const readTool = p.tools.find((t) => t.id === "read");
+    const readTool = p.tools.find((t) => t.name === "read");
     expect(readTool?.allowed).toBe(true);
 
     // "gateway" should be denied (in global deny)
-    const gatewayTool = p.tools.find((t) => t.id === "gateway");
+    const gatewayTool = p.tools.find((t) => t.name === "gateway");
     expect(gatewayTool?.allowed).toBe(false);
 
     // "tts" should be denied (in agent deny)
-    const ttsTool = p.tools.find((t) => t.id === "tts");
+    const ttsTool = p.tools.find((t) => t.name === "tts");
     expect(ttsTool?.allowed).toBe(false);
 
     expect(p.configHash).toBe("hash-preview-123");
@@ -174,17 +178,22 @@ describe("deck.agents.toolPolicy.preview", () => {
     });
     expect(result.ok).toBe(true);
     const p = result.payload as {
-      layers: Array<{ label: string; active: boolean }>;
-      tools: Array<{ id: string; allowed: boolean; perLayer: boolean[] }>;
+      layers: Array<{ label: string; ruleCount: number; effect: string }>;
+      tools: Array<{
+        name: string;
+        allowed: boolean;
+        decisiveLayer: string;
+        trace: Array<{ layer: string; decision: string }>;
+      }>;
     };
 
     // "write" is in global allow but agent only allows "read" and "exec"
-    const writeTool = p.tools.find((t) => t.id === "write");
+    const writeTool = p.tools.find((t) => t.name === "write");
     // write is allowed by global but blocked by agent allowlist
     expect(writeTool).toBeDefined();
 
     // "read" should be allowed (in both global and agent allowlists)
-    const readTool = p.tools.find((t) => t.id === "read");
+    const readTool = p.tools.find((t) => t.name === "read");
     expect(readTool?.allowed).toBe(true);
   });
 });
@@ -210,7 +219,7 @@ describe("deck.agents.systemPrompt.preview", () => {
     const result = await callHandler("deck.agents.systemPrompt.preview", { agentId: "main" });
     expect(result.ok).toBe(true);
     const p = result.payload as {
-      layers: Array<{ label: string; totalChars: number; fileCount: number }>;
+      layers: Array<{ label: string; source: string; charCount: number; fileCount: number }>;
       bootstrapFiles: Array<{ name: string; exists: boolean; charCount: number }>;
       totalChars: number;
       configHash: string;
@@ -219,10 +228,14 @@ describe("deck.agents.systemPrompt.preview", () => {
     // Should have 4 layers: Bootstrap Files, Identity, Skills Prompt, Extra Instructions
     expect(p.layers).toHaveLength(4);
     expect(p.layers[0].label).toBe("Bootstrap Files");
+    expect(p.layers[0].source).toBe("/tmp/main");
     expect(p.layers[1].label).toBe("Identity");
+    expect(p.layers[1].source).toBe("IDENTITY.md");
     expect(p.layers[2].label).toBe("Skills Prompt");
-    expect(p.layers[2].totalChars).toBe(0); // cannot estimate without session
+    expect(p.layers[2].source).toBe("skills injection");
+    expect(p.layers[2].charCount).toBe(0); // cannot estimate without session
     expect(p.layers[3].label).toBe("Extra Instructions");
+    expect(p.layers[3].source).toBe("agents.systemPrompt");
 
     // bootstrapFiles should contain the well-known file list
     expect(p.bootstrapFiles).toBeDefined();

@@ -129,7 +129,17 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
               <span className="text-[var(--text-secondary)]">{t("sandboxMode")}</span>
             </div>
             <p className="text-xs text-[var(--text-primary)] mt-1">
-              {detail.sandbox ? t("sandboxEnabled") : t("sandboxDefault")}
+              {(() => {
+                const sandboxMode =
+                  detail.sandbox &&
+                  typeof detail.sandbox === "object" &&
+                  "mode" in (detail.sandbox as Record<string, unknown>)
+                    ? (detail.sandbox as { mode?: string }).mode
+                    : undefined;
+                return sandboxMode && sandboxMode !== "off"
+                  ? t("sandboxEnabled")
+                  : t("sandboxDefault");
+              })()}
             </p>
           </CardContent>
         </Card>

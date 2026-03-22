@@ -47,12 +47,13 @@ export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps
 
     if (exists) {
       await fetchBootstrapFile(agentId, name);
-      // Read fresh from store after fetch
+      // Read fresh from store after fetch — verify name matches to avoid stale content
       const detail = useDeckAgentsStore.getState().bootstrapFileDetail;
+      const content = detail?.name === name ? (detail.content ?? "") : "";
       setState((s) => ({
         ...s,
         loadingName: null,
-        draftContent: detail?.content ?? "",
+        draftContent: content,
         editorReady: true,
       }));
     } else {
