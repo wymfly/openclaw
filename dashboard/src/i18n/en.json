@@ -493,7 +493,15 @@
         "title": "Per Account + Channel + Peer",
         "description": "Fully isolated: account, channel, and contact."
       }
-    }
+    },
+    "healthWarning": "Context nearing capacity, compaction may lose earlier messages",
+    "compactionWarning": "Compacted {count} times",
+    "searchPlaceholder": "Search transcript...",
+    "searchCount": "{current}/{total}",
+    "searchNoResults": "No results",
+    "exportJson": "Export JSON",
+    "exportMarkdown": "Export Markdown",
+    "exportEmpty": "No messages to export"
   },
   "logs": {
     "title": "Log Viewer",
@@ -587,7 +595,8 @@
     "confirmUnbind": "Confirm Unbind?",
     "unbindMessage": "This will remove the routing binding. Continue?",
     "confirmUnbindAction": "Unbind",
-    "unbind": "Unbind"
+    "unbind": "Unbind",
+    "configWizard": "Config Wizard"
   },
   "config": {
     "title": "Config Editor",
