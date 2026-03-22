@@ -34,12 +34,16 @@ export type ChatEventPayload = {
 
 export type AgentEventPayload = {
   sessionKey: string;
+  /** Run ID — present on all agent events from Gateway */
+  runId?: string;
   stream?: string;
   data?: {
     phase?: string;
     name?: string;
     toolCallId?: string;
     args?: Record<string, unknown>;
+    // Lifecycle-specific fields (accessed via type assertion)
+    [key: string]: unknown;
   };
 };
 
@@ -242,6 +246,49 @@ export function dispatchAgentEvent(payload: AgentEventPayload): void {
   try {
     const stream = payload.stream;
     const data = payload.data;
+
+    // Handle lifecycle events (run start/end/error/fallback)
+    if (stream === "lifecycle" && data) {
+      const runId = payload.runId;
+      if (!runId) {
+        return;
+      }
+
+      const phase = data.phase;
+      useChatStore.getState().ensureSession(sessionKey);
+
+      if (phase === "start") {
+        const startedAt = (data.startedAt as number | undefined) ?? Date.now();
+        useChatStore.getState().setRunMetadata(sessionKey, runId, {
+          startedAt,
+          streaming: true,
+        });
+      } else if (phase === "end") {
+        const endedAt = (data.endedAt as number | undefined) ?? Date.now();
+        const existing = useChatStore.getState().sessions.get(sessionKey)?.runMetadata[runId];
+        const durationMs = existing?.startedAt ? endedAt - existing.startedAt : undefined;
+        useChatStore.getState().setRunMetadata(sessionKey, runId, {
+          durationMs,
+          streaming: false,
+        });
+      } else if (phase === "error") {
+        // Error run — compute duration and clear streaming flag
+        const endedAt = (data.endedAt as number | undefined) ?? Date.now();
+        const existing = useChatStore.getState().sessions.get(sessionKey)?.runMetadata[runId];
+        const durationMs = existing?.startedAt ? endedAt - existing.startedAt : undefined;
+        useChatStore.getState().setRunMetadata(sessionKey, runId, {
+          durationMs,
+          streaming: false,
+        });
+      } else if (phase === "fallback") {
+        const activeModel = data.activeModel as string | undefined;
+        if (activeModel) {
+          useChatStore.getState().setRunMetadata(sessionKey, runId, { model: activeModel });
+        }
+      }
+      return;
+    }
+
     if (stream !== "tool" || !data) {
       return;
     }
