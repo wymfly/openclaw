@@ -1,11 +1,12 @@
 "use client";
 
-import { Bot } from "lucide-react";
+import { ArrowLeft, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { useAgentsStore } from "@/stores/agents";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 import { ContextTab } from "./tabs/ContextTab";
@@ -30,6 +31,8 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const { currentDetail, loading, fetchDetail } = useDeckAgentsStore();
   const pendingTab = useAgentsStore((s) => s.pendingTab);
   const setPendingTab = useAgentsStore((s) => s.setPendingTab);
+  const selectAgent = useAgentsStore((s) => s.selectAgent);
+  const isMobile = useMediaQuery(BREAKPOINTS.mobile);
   const [activeTab, setActiveTab] = useState<TabValue>("overview");
 
   useEffect(() => {
@@ -71,6 +74,14 @@ export function AgentDetail({ agentId }: { agentId: string }) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border)] shrink-0">
+        {isMobile && (
+          <button
+            onClick={() => selectAgent(null)}
+            className="p-1 -ml-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={16} className="text-[var(--text-secondary)]" />
+          </button>
+        )}
         <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20">
           {detail.emoji ? (
             <span className="text-base leading-none">{detail.emoji}</span>
