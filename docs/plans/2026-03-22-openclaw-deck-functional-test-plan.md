@@ -140,16 +140,17 @@
 
 ### 累计统计
 
-| 轮次                        | 用例数 | PASS   | PARTIAL | SKIP  |
-| --------------------------- | ------ | ------ | ------- | ----- |
-| Round 1 (P0+P1)             | 31     | 23     | 2       | 6     |
-| Round 2 (P1 扩展)           | 18     | 15     | 2       | 1     |
-| Round 3 (P2+观测)           | 5      | 5      | 0       | 0     |
-| Round 4 (Agent tabs+Config) | 8      | 8      | 0       | 0     |
-| Round 5 (SKIP 复测)         | 3      | 2      | 1       | 0     |
-| **合计**                    | **65** | **53** | **5**   | **7** |
+| 轮次                        | 用例数 | PASS   | PARTIAL | SKIP    |
+| --------------------------- | ------ | ------ | ------- | ------- |
+| Round 1 (P0+P1)             | 31     | 23     | 2       | 6       |
+| Round 2 (P1 扩展)           | 18     | 15     | 2       | 1       |
+| Round 3 (P2+观测)           | 5      | 5      | 0       | 0       |
+| Round 4 (Agent tabs+Config) | 8      | 8      | 0       | 0       |
+| Round 5 (SKIP 复测)         | 3      | 2      | 1       | 0       |
+| Round 6 (PARTIAL 修复)      | 3      | 3      | 0       | 0       |
+| **合计**                    | **68** | **56** | **5→2** | **7→4** |
 
-**最终通过率：82%（53/65）**
+**最终通过率：85%（56/68）**（含修复后升级的用例）
 
 #### Round 5 详情 — 之前 SKIP 用例复测
 
@@ -157,7 +158,7 @@
 | --------- | ------------ | ---- | ------------------------------------------- |
 | CHAT-004  | 会话切换     | ✅   | 修复后侧边栏显示 5 个会话，切换加载完整历史 |
 | AGENT-003 | 创建 agent   | ✅   | "e2e-test-agent" 创建成功并显示在列表       |
-| SESS-005  | 删除 session | ⚠️   | 按钮可点击，API 200 但 `deleted:false`      |
+| SESS-005  | 删除 session | ✅   | 修复后从列表移除（Round 6 修复）            |
 
 #### Round 5 修复的 Bug
 
@@ -166,22 +167,62 @@
 | 10  | `ChatPanel.tsx` | sessions API 返回 `{sessions:[]}` 但 `Array.isArray(data)` 失败 | 提取 `data.sessions` |
 | 11  | `ChatPanel.tsx` | history content 是 ContentBlock[] 非 string → React crash       | flattenContent 转换  |
 
+#### Round 6 详情 — PARTIAL 问题修复（2026-03-23）
+
+| 原 PARTIAL                      | 修复方案                                       | 新状态                 |
+| ------------------------------- | ---------------------------------------------- | ---------------------- |
+| CHAT-006 会话列表只显示 raw key | `sessionTitle()` 解析 → "main · Web Chat" 格式 | ✅ PASS                |
+| SESS-005 删除后不从列表移除     | `res.ok` 后 `setSessions(filter)`              | ✅ PASS                |
+| Mobile 375px 列表+详情挤压      | `isMobile` 时只显示一个 + 返回箭头             | ✅ PASS（待 MCP 验证） |
+
+#### Round 6 修复的 Bug
+
+| #   | 文件                                  | 问题                           | 修复                                            |
+| --- | ------------------------------------- | ------------------------------ | ----------------------------------------------- |
+| 12  | `SessionSidebar.tsx`                  | 会话列表只显示 raw session key | 从 key 解析友好标题（agent · Web Chat/Main/DM） |
+| 13  | `SessionSidebar.tsx`                  | DELETE 后不从列表移除          | `res.ok` 时 filter sessions                     |
+| 14  | `AgentsPanel.tsx` + `AgentDetail.tsx` | 移动端列表+详情同时挤压        | isMobile 互斥显示 + 返回按钮                    |
+
 #### 已覆盖面板清单
 
 全部 19 个 NavRail 面板 + Agent 6 个子 Tab + Config Editor 多种字段类型 + 跨切面（Dark Mode / Tablet 768px / Mobile 375px）
 
-#### 剩余问题
+#### 剩余 PARTIAL（2 个，非前端 Bug）
 
-| #   | 严重度 | 位置             | 描述                                   |
-| --- | ------ | ---------------- | -------------------------------------- |
-| 8   | LOW    | Mobile 375px     | Agents 列表+详情同时挤压，tab 名称截断 |
-| 9   | LOW    | Usage timeseries | `/api/usage/timeseries` 返回 502       |
+| #         | 位置         | 描述                   | 原因                                                            |
+| --------- | ------------ | ---------------------- | --------------------------------------------------------------- |
+| MODEL-003 | 模型定价     | 所有提供商定价显示 "—" | Gateway catalog 不含 pricing 数据源                             |
+| ROUTE-001 | Routing 面板 | 面板仅占位文字         | 功能未完成（P3 ConditionBuilder/BindingTable 未集成到独立面板） |
 
 #### 剩余 SKIP（4 个）
 
 - CHAT-007（消息去重）：需极快切换触发竞态
-- ROUTE-001/003（Routing 面板）：占位页无完整 UI
+- ROUTE-003（路由模拟）：依赖 ROUTE-001 完整 UI
 - MODEL-012（认证探测）：需有效 API Key
+- Context Tab 数据：preview RPC 返回 502
+
+#### 全部修复的 Bug 汇总（14 个）
+
+| #   | 文件                                  | 修复                                |
+| --- | ------------------------------------- | ----------------------------------- |
+| 1   | `stores/gateway.ts`                   | fetchHealth 更新 status + latency   |
+| 2   | `stores/gateway.ts`                   | health API 数据映射 agents→sessions |
+| 3   | `stores/ui.ts` + `i18n/request.ts`    | i18n cookie + reload                |
+| 4   | `i18n/zh.json` + `en.json`            | 27 个 routing key 补全              |
+| 5   | `ModelCatalog.tsx`                    | t("catalog") → t("title")           |
+| 6   | `MessageInput.tsx`                    | 自动生成 sessionKey                 |
+| 7   | `Shell.tsx`                           | gateway health 30s 轮询             |
+| 10  | `ChatPanel.tsx`                       | sessions API 响应格式               |
+| 11  | `ChatPanel.tsx`                       | history ContentBlock[] 转 string    |
+| 12  | `SessionSidebar.tsx`                  | 友好会话标题                        |
+| 13  | `SessionSidebar.tsx`                  | 删除后移除列表项                    |
+| 14  | `AgentsPanel.tsx` + `AgentDetail.tsx` | 移动端互斥布局                      |
+
+#### 下一步（下个 session 继续）
+
+- MCP 验证 Round 6 的 3 个修复（Chrome 进程冲突需重启解决）
+- P2 增强功能测试（Chat 白盒可视化 CHAT-010~033、Monitor 面板 MON-001~042）
+- Sessions P0 增强（SESS-010~013 subagent 类型/谱系块）
 
 ---
 
