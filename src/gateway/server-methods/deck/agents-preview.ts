@@ -8,6 +8,16 @@ import {
 } from "../../../agents/tool-policy-pipeline.js";
 import { resolveToolProfilePolicy } from "../../../agents/tool-policy.js";
 import {
+  DEFAULT_AGENTS_FILENAME,
+  DEFAULT_BOOTSTRAP_FILENAME,
+  DEFAULT_HEARTBEAT_FILENAME,
+  DEFAULT_IDENTITY_FILENAME,
+  DEFAULT_SOUL_FILENAME,
+  DEFAULT_TOOLS_FILENAME,
+  DEFAULT_USER_FILENAME,
+  loadWorkspaceBootstrapFiles,
+} from "../../../agents/workspace.js";
+import {
   loadConfig,
   readConfigFileSnapshotForWrite,
   resolveConfigSnapshotHash,
@@ -15,6 +25,7 @@ import {
 import {
   ErrorCodes,
   errorShape,
+  validateDeckAgentsSystemPromptPreviewParams,
   validateDeckAgentsToolPolicyPreviewParams,
 } from "../../protocol/index.js";
 import type { GatewayRequestHandlers } from "../types.js";
@@ -104,6 +115,101 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
     respond(true, {
       layers,
       tools,
+      configHash,
+    });
+  },
+
+  "deck.agents.systemPrompt.preview": async ({ params, respond }) => {
+    if (
+      !assertValidParams(
+        params,
+        validateDeckAgentsSystemPromptPreviewParams,
+        "deck.agents.systemPrompt.preview",
+        respond,
+      )
+    ) {
+      return;
+    }
+    const { agentId } = params as {
+      agentId: string;
+      context?: { channel?: string; chatType?: string };
+    };
+
+    const cfg = loadConfig();
+    const agentConfig = resolveAgentConfig(cfg, agentId);
+    if (!agentConfig) {
+      respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
+      return;
+    }
+
+    const workspaceDir = agentConfig.workspace ?? "/tmp";
+
+    // Load bootstrap files from the workspace
+    const bootstrapFiles = await loadWorkspaceBootstrapFiles(workspaceDir);
+
+    // Well-known file list to surface in the response
+    const WELL_KNOWN_FILES = [
+      DEFAULT_AGENTS_FILENAME,
+      DEFAULT_SOUL_FILENAME,
+      DEFAULT_TOOLS_FILENAME,
+      DEFAULT_IDENTITY_FILENAME,
+      DEFAULT_USER_FILENAME,
+      DEFAULT_HEARTBEAT_FILENAME,
+      DEFAULT_BOOTSTRAP_FILENAME,
+    ] as const;
+
+    const fileStats = WELL_KNOWN_FILES.map((name) => {
+      const found = bootstrapFiles.find((f) => f.name === name);
+      if (!found || found.missing) {
+        return { name, exists: false, charCount: 0 };
+      }
+      return { name, exists: true, charCount: found.content?.length ?? 0 };
+    });
+
+    // Compute aggregate char counts for each layer
+    const bootstrapChars = fileStats.reduce((sum, f) => sum + f.charCount, 0);
+    const identityFile = fileStats.find((f) => f.name === DEFAULT_IDENTITY_FILENAME);
+    const identityChars = identityFile?.charCount ?? 0;
+
+    // Extra instructions from agent config systemPrompt field
+    const extraInstructions =
+      typeof (agentConfig as { systemPrompt?: unknown }).systemPrompt === "string"
+        ? ((agentConfig as { systemPrompt: string }).systemPrompt ?? "")
+        : "";
+
+    const layers = [
+      {
+        label: "Bootstrap Files",
+        totalChars: bootstrapChars,
+        fileCount: fileStats.filter((f) => f.exists).length,
+      },
+      {
+        label: "Identity",
+        totalChars: identityChars,
+        fileCount: identityChars > 0 ? 1 : 0,
+      },
+      {
+        label: "Skills Prompt",
+        // Cannot estimate without a live session (skills loaded at runtime)
+        totalChars: 0,
+        fileCount: 0,
+      },
+      {
+        label: "Extra Instructions",
+        totalChars: extraInstructions.length,
+        fileCount: extraInstructions.length > 0 ? 1 : 0,
+      },
+    ];
+
+    const totalChars = bootstrapChars + extraInstructions.length;
+
+    const { snapshot } = await readConfigFileSnapshotForWrite();
+    const configHash = resolveConfigSnapshotHash(snapshot) ?? "";
+
+    respond(true, {
+      layers,
+      bootstrapFiles: fileStats,
+      totalChars,
       configHash,
     });
   },

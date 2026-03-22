@@ -88,6 +88,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "deck.agents.skills.get",
     "deck.agents.subagents.get",
     "deck.agents.toolPolicy.preview",
+    "deck.agents.systemPrompt.preview",
     "deck.subagents.list",
     "deck.subagents.lineage",
     "deck.identity.list",
