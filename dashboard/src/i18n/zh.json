@@ -119,7 +119,13 @@
     "binaryFile": "[二进制文件 — 无法显示差异]",
     "virtualLines": "{start}-{end} / {total} 行",
     "virtualExpand": "展开",
-    "virtualCollapse": "收起"
+    "virtualCollapse": "收起",
+    "runModel": "模型",
+    "runTokensIn": "输入",
+    "runTokensOut": "输出",
+    "runTokensCache": "缓存",
+    "runDuration": "耗时",
+    "runStreaming": "运行中..."
   },
   "gateway": {
     "title": "网关概览",
