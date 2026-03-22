@@ -742,7 +742,25 @@
   },
   "scheduler": {
     "cronJobs": "定时任务",
-    "heartbeat": "心跳检测"
+    "heartbeat": "心跳检测",
+    "disabled": "已停用",
+    "imminent": "即将执行",
+    "nextActiveWindow": "下次活跃窗口: {time}",
+    "nextExecution": "下次执行",
+    "globalConfig": "全局心跳配置",
+    "everyInterval": "执行间隔",
+    "everyPlaceholder": "例如 30m, 1h",
+    "activeHours": "活跃时段",
+    "timezonePlaceholder": "时区 (例如 Asia/Shanghai)",
+    "targetAgent": "目标智能体",
+    "selectAgent": "选择智能体...",
+    "promptTemplate": "消息模板",
+    "promptPlaceholder": "输入心跳消息模板...",
+    "modelOptional": "模型 (可选)",
+    "modelPlaceholder": "留空使用默认模型",
+    "perAgentOverrides": "按智能体覆盖",
+    "noOverrides": "暂无覆盖配置",
+    "confirmRemoveOverride": "确定移除此覆盖配置？"
   },
   "cron": {
     "title": "定时任务",
