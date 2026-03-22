@@ -33,7 +33,9 @@ export type DeckEventType =
   | "webhook.delivery"
   | "cron.run.complete"
   // P4 additions (A2UI Canvas)
-  | "a2ui";
+  | "a2ui"
+  // Execution Monitor
+  | "run.event";
 
 export type ServerEvent = {
   id: number;
