@@ -9,6 +9,8 @@ import {
   type A2UIState,
   type A2UIEvent,
   type ToolProgress,
+  type RunMetadata,
+  type SubagentRun,
   createEmptySessionState,
   DEFAULT_EVICT_IDLE_MS,
   MAX_CACHED_SESSIONS,
@@ -28,6 +30,8 @@ export {
   type A2UIState,
   type A2UIEvent,
   type ToolProgress,
+  type RunMetadata,
+  type SubagentRun,
 } from "./chat-types";
 
 // ---------------------------------------------------------------------------
@@ -60,6 +64,8 @@ interface ChatStore {
   appendA2UIEvent: (sessionKey: string, event: A2UIEvent) => void;
   updateA2UIBridgeStatus: (sessionKey: string, status: "connecting" | "ready" | "error") => void;
   updateA2UISurfaces: (sessionKey: string, surfaces: string[]) => void;
+  setRunMetadata: (sessionKey: string, runId: string, meta: Partial<RunMetadata>) => void;
+  updateSubagentRun: (sessionKey: string, subagentId: string, update: Partial<SubagentRun>) => void;
 
   // ---- Global actions ----
   setActiveSession: (key: string | null) => void;
@@ -291,6 +297,32 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       sessions: updateSession(sessions, sessionKey, (s) => ({
         ...s,
         a2uiState: { ...(s.a2uiState ?? { url: "", visible: false }), surfaces },
+      })),
+    });
+  },
+
+  setRunMetadata(sessionKey: string, runId: string, meta: Partial<RunMetadata>) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        runMetadata: {
+          ...s.runMetadata,
+          [runId]: { ...s.runMetadata[runId], runId, ...meta },
+        },
+      })),
+    });
+  },
+
+  updateSubagentRun(sessionKey: string, subagentId: string, update: Partial<SubagentRun>) {
+    const { sessions } = get();
+    set({
+      sessions: updateSession(sessions, sessionKey, (s) => ({
+        ...s,
+        subagentRuns: {
+          ...s.subagentRuns,
+          [subagentId]: { ...s.subagentRuns[subagentId], ...update } as SubagentRun,
+        },
       })),
     });
   },
