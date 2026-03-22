@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Power, PowerOff, AlertCircle, Wand2, Plus, Trash2 } from "lucide-react";
+import { LogOut, Power, PowerOff, AlertCircle, Wand2, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -146,17 +146,6 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
             <label className="text-xs font-medium text-[var(--text-secondary)]">
               {t("accounts")} ({channel.accounts.length})
             </label>
-            {hasWizard && (
-              <Button
-                variant="outline"
-                size="xs"
-                className="gap-1 text-[10px]"
-                onClick={() => setWizardOpen(true)}
-              >
-                <Plus size={10} />
-                {t("addAccount")}
-              </Button>
-            )}
           </div>
 
           {channel.accounts.length === 0 && (

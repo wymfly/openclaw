@@ -71,6 +71,7 @@ interface DeckRoutingState {
     position?: number,
   ) => Promise<boolean>;
   removeBinding: (bindingId: string, baseHash: string) => Promise<boolean>;
+  reorderBinding: (binding: Binding, newPosition: number, baseHash: string) => Promise<boolean>;
   validateBinding: (match: BindingMatch, agentId?: string) => Promise<ValidationResult | null>;
   simulate: (params: Record<string, unknown>) => Promise<void>;
   clearSimulation: () => void;
@@ -151,6 +152,51 @@ export const useDeckRoutingStore = create<DeckRoutingState>((set, get) => ({
       }
       return false;
     } catch {
+      return false;
+    }
+  },
+
+  reorderBinding: async (binding, newPosition, baseHash) => {
+    try {
+      // Step 1: remove the binding
+      const removeRes = await fetch("/api/deck/routing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "remove", id: binding.id, baseHash }),
+      });
+      if (!removeRes.ok) {
+        return false;
+      }
+
+      // Step 2: fetch updated configHash after removal
+      await get().fetchBindings();
+      const newHash = get().configHash;
+      if (!newHash) {
+        return false;
+      }
+
+      // Step 3: re-add at the new position using the fresh configHash
+      const addRes = await fetch("/api/deck/routing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add",
+          match: binding.match,
+          agentId: binding.agentId,
+          baseHash: newHash,
+          position: newPosition,
+        }),
+      });
+      if (addRes.ok) {
+        await get().fetchBindings();
+        return true;
+      }
+
+      // Add failed — refetch to restore consistent state
+      await get().fetchBindings();
+      return false;
+    } catch {
+      await get().fetchBindings();
       return false;
     }
   },

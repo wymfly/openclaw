@@ -183,6 +183,7 @@ export function BindingTable() {
     fetchBindings,
     addBinding,
     removeBinding,
+    reorderBinding,
   } = useDeckRoutingStore();
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
   const agents = useAgentsStore((s) => s.agents);
@@ -256,11 +257,13 @@ export function BindingTable() {
       return;
     }
 
+    // Map sorted index to global bindings position (F2 fix)
+    const targetBinding = sorted[newIndex];
+    const globalPosition = bindings.findIndex((b) => b.id === targetBinding.id);
+
     const movedBinding = sorted[oldIndex];
-    void (async () => {
-      await removeBinding(movedBinding.id, configHash);
-      await addBinding(movedBinding.match, movedBinding.agentId, configHash, newIndex);
-    })();
+    // Use atomic reorderBinding to avoid configHash mismatch (F1 fix)
+    void reorderBinding(movedBinding, globalPosition >= 0 ? globalPosition : newIndex, configHash);
   };
 
   const handleSave = async (match: BindingMatch, agentId: string) => {

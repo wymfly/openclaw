@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { Copy, CheckCircle2, XCircle, AlertTriangle, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -322,6 +322,10 @@ export function WeComWizard({
   const step4Content = (
     <div className="space-y-4">
       <p className="text-xs text-[var(--text-secondary)]">{t("wecom.testDesc")}</p>
+      <div className="flex items-start gap-2 rounded-lg bg-[var(--accent-muted)] px-3 py-2 text-[10px] text-[var(--text-secondary)]">
+        <Info size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+        <span>{t("wecom.probeConfigNote")}</span>
+      </div>
       <Button
         variant="outline"
         size="sm"

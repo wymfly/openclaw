@@ -27,7 +27,7 @@ export function ScopeSelector() {
     void fetchBindings();
   }, [fetchBindings]);
 
-  const currentScope = dmScope ?? "per-peer";
+  const currentScope = dmScope ?? "main";
 
   const handleCardClick = (mode: string) => {
     if (mode === currentScope) {

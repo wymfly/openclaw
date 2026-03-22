@@ -34,14 +34,20 @@ export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
 
   // 2. Merge channel changes (account-scoped when accountId is provided)
   const channels = (config.channels ?? {}) as Record<string, Record<string, unknown>>;
+  const { _remove, ...mergePatch } = patch;
   if (typeof accountId === "string" && accountId) {
     const channelCfg = channels[channelId] ?? {};
     const accounts = (channelCfg.accounts ?? {}) as Record<string, Record<string, unknown>>;
-    accounts[accountId] = { ...accounts[accountId], ...patch };
+    if (_remove) {
+      // Delete the account entry entirely
+      delete accounts[accountId];
+    } else {
+      accounts[accountId] = { ...accounts[accountId], ...mergePatch };
+    }
     channelCfg.accounts = accounts;
     channels[channelId] = channelCfg;
   } else {
-    channels[channelId] = { ...channels[channelId], ...patch };
+    channels[channelId] = { ...channels[channelId], ...mergePatch };
   }
   config.channels = channels;
 

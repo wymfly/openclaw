@@ -80,7 +80,9 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
     return () => clearTimeout(timer);
   }, [match, agentId, validateBinding]);
 
-  const canSave = Boolean(match.channel && agentId);
+  // Require peer.kind and peer.id to be non-empty when peer dimension is present
+  const peerValid = !match.peer || (match.peer.kind !== "" && match.peer.id !== "");
+  const canSave = Boolean(match.channel && agentId && peerValid);
 
   const handleSave = () => {
     if (!canSave) {
