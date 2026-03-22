@@ -153,7 +153,12 @@ function MessageBubble({
 
         {/* Tool use cards */}
         {toolUseBlocks.map((b, i) => (
-          <ToolUseCard key={`tool-${i}`} name={b.name} input={b.input} />
+          <ToolUseCard
+            key={`tool-${i}`}
+            name={b.name}
+            input={b.input}
+            defaultOpen={message.streaming}
+          />
         ))}
 
         {/* Tool result cards */}
