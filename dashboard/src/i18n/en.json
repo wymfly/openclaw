@@ -885,6 +885,8 @@
     "toggleFailed": "Toggle failed",
     "networkError": "Network error — skill toggle failed",
     "allModeTooltip": "This agent uses all skills. Switch to whitelist mode in Agent detail first.",
+    "matrixSearch": "Search agents or skills…",
+    "ineligibleReason": "Ineligible",
     "removeSkillTitle": "Remove {skill} from {agent}",
     "addSkillTitle": "Add {skill} to {agent}",
     "searchPlaceholder": "Search skills...",
@@ -902,7 +904,14 @@
     "requiredBins": "Requires",
     "installDialogTitle": "Install Skills",
     "installDialogDescription": "Browse installable skills and their dependencies",
-    "noInstallableSkills": "No installable skills available"
+    "noInstallableSkills": "No installable skills available",
+    "infoTab": "Info",
+    "configTab": "Config",
+    "installSkill": "Install Skill",
+    "dependencies": "Dependencies",
+    "envSet": "Set",
+    "envNotSet": "Not set",
+    "uninstallViaCLI": "To uninstall, use the CLI:"
   },
   "budget": {
     "title": "Budget",
