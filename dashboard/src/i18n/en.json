@@ -259,7 +259,16 @@
     "noSessions": "No sessions for this agent",
     "depth": "Depth",
     "parentAgent": "Parent",
-    "context": "Context"
+    "context": "Context",
+    "statContext": "Context",
+    "sandboxMode": "Sandbox Mode",
+    "sandboxEnabled": "Enabled",
+    "sandboxDefault": "Default",
+    "modelConfig": "Model Config",
+    "usingDefault": "Using default",
+    "fallbacks": "Fallbacks",
+    "identity": "Identity",
+    "configureIdentity": "Configure identity →"
   },
   "context": {
     "title": "Prompt Composition",

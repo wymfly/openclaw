@@ -259,7 +259,16 @@
     "noSessions": "此智能体暂无会话",
     "depth": "深度",
     "parentAgent": "父智能体",
-    "context": "上下文"
+    "context": "上下文",
+    "statContext": "上下文",
+    "sandboxMode": "沙箱模式",
+    "sandboxEnabled": "已启用",
+    "sandboxDefault": "默认",
+    "modelConfig": "模型配置",
+    "usingDefault": "使用默认",
+    "fallbacks": "回退链",
+    "identity": "身份",
+    "configureIdentity": "配置身份 →"
   },
   "context": {
     "title": "Prompt 组合",
