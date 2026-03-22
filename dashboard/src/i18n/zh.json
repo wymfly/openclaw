@@ -899,7 +899,10 @@
     "installing": "安装中...",
     "installSuccess": "{name} 安装成功",
     "installFailed": "{name} 安装失败",
-    "requiredBins": "需要"
+    "requiredBins": "需要",
+    "installDialogTitle": "安装技能",
+    "installDialogDescription": "浏览可安装的技能及其依赖项",
+    "noInstallableSkills": "暂无可安装的技能"
   },
   "budget": {
     "title": "预算管理",

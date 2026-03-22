@@ -899,7 +899,10 @@
     "installing": "Installing...",
     "installSuccess": "{name} installed successfully",
     "installFailed": "{name} installation failed",
-    "requiredBins": "Requires"
+    "requiredBins": "Requires",
+    "installDialogTitle": "Install Skills",
+    "installDialogDescription": "Browse installable skills and their dependencies",
+    "noInstallableSkills": "No installable skills available"
   },
   "budget": {
     "title": "Budget",
