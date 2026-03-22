@@ -44,7 +44,8 @@
     "add": "添加",
     "on": "开启",
     "off": "关闭",
-    "noConfigurableFields": "此节无可配置项。"
+    "noConfigurableFields": "此节无可配置项。",
+    "showMore": "展开更多"
   },
   "chat": {
     "placeholder": "输入消息...",
@@ -381,6 +382,8 @@
     "allAgents": "所有智能体",
     "allStatus": "所有状态",
     "activeCount": "活跃",
+    "topologyView": "拓扑视图",
+    "listView": "列表视图",
     "viewList": "列表视图",
     "viewTopology": "拓扑视图",
     "steer": "引导",
@@ -391,9 +394,28 @@
     "steerCancel": "取消",
     "steerConfirm": "发送指令",
     "steerSuccess": "引导指令已发送",
+    "steerDeduped": "指令已发送（去重）",
     "steerError": "发送引导指令失败",
     "steerDisabledTooltip": "仅活跃运行可被引导",
-    "killConfirm": "终止运行"
+    "killConfirm": "终止运行",
+    "parent": "父级",
+    "task": "任务",
+    "duration": "耗时",
+    "status": "状态",
+    "runs": "{count} 次运行",
+    "remaining": "加载更多（剩余 {count}）",
+    "completed": "已完成",
+    "failed": "失败",
+    "timeout": "超时",
+    "runFailed": "运行失败",
+    "depth": "深度",
+    "session": "会话",
+    "timeRange": {
+      "1h": "最近 1 小时",
+      "6h": "最近 6 小时",
+      "24h": "最近 24 小时",
+      "all": "全部"
+    }
   },
   "agentDetail": {
     "overview": "概览",
@@ -741,8 +763,25 @@
     "diffDontShowAgain": "本次会话不再显示"
   },
   "scheduler": {
+    "title": "调度",
     "cronJobs": "定时任务",
     "heartbeat": "心跳检测",
+    "heartbeatEnabled": "启用心跳",
+    "every": "执行频率",
+    "activeHoursStart": "开始时间",
+    "activeHoursEnd": "结束时间",
+    "deliveryTarget": "投递目标",
+    "prompt": "消息模板",
+    "overrides": "Agent 覆盖",
+    "addOverride": "添加覆盖",
+    "removeOverride": "移除覆盖",
+    "nextRun": "下次执行",
+    "nextTomorrow": "明天 {time}",
+    "countdown": {
+      "hours": "{h}h {m}m",
+      "minutes": "{m}m {s}s",
+      "seconds": "{s}s"
+    },
     "disabled": "已停用",
     "imminent": "即将执行",
     "nextActiveWindow": "下次活跃窗口: {time}",
@@ -908,7 +947,14 @@
     "infoTab": "信息",
     "configTab": "配置",
     "installSkill": "安装技能",
+    "version": "版本",
+    "author": "作者",
+    "size": "大小",
+    "installedDate": "安装日期",
     "dependencies": "依赖项",
+    "depMet": "已满足",
+    "depMissing": "缺失",
+    "envVarsStatus": "环境变量",
     "envSet": "已设置",
     "envNotSet": "未设置",
     "uninstallViaCLI": "卸载请使用命令行："

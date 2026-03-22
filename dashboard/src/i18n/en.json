@@ -44,7 +44,8 @@
     "add": "Add",
     "on": "ON",
     "off": "OFF",
-    "noConfigurableFields": "No configurable fields in this section."
+    "noConfigurableFields": "No configurable fields in this section.",
+    "showMore": "Show More"
   },
   "chat": {
     "placeholder": "Type a message...",
@@ -381,6 +382,8 @@
     "allAgents": "All Agents",
     "allStatus": "All Status",
     "activeCount": "Active",
+    "topologyView": "Topology View",
+    "listView": "List View",
     "viewList": "List View",
     "viewTopology": "Topology View",
     "steer": "Steer",
@@ -391,9 +394,28 @@
     "steerCancel": "Cancel",
     "steerConfirm": "Send Instruction",
     "steerSuccess": "Steering instruction sent",
+    "steerDeduped": "Instruction sent (deduped)",
     "steerError": "Failed to send steering instruction",
     "steerDisabledTooltip": "Only active runs can be steered",
-    "killConfirm": "Terminate run"
+    "killConfirm": "Terminate run",
+    "parent": "Parent",
+    "task": "Task",
+    "duration": "Duration",
+    "status": "Status",
+    "runs": "{count} runs",
+    "remaining": "Load more ({count} remaining)",
+    "completed": "Completed",
+    "failed": "Failed",
+    "timeout": "Timeout",
+    "runFailed": "Run failed",
+    "depth": "depth",
+    "session": "session",
+    "timeRange": {
+      "1h": "Last Hour",
+      "6h": "Last 6h",
+      "24h": "Last 24h",
+      "all": "All"
+    }
   },
   "agentDetail": {
     "overview": "Overview",
@@ -741,8 +763,25 @@
     "diffDontShowAgain": "Don't show again this session"
   },
   "scheduler": {
+    "title": "Scheduler",
     "cronJobs": "Cron Jobs",
     "heartbeat": "Heartbeat",
+    "heartbeatEnabled": "Enable Heartbeat",
+    "every": "Frequency",
+    "activeHoursStart": "Start Time",
+    "activeHoursEnd": "End Time",
+    "deliveryTarget": "Delivery Target",
+    "prompt": "Prompt Template",
+    "overrides": "Agent Overrides",
+    "addOverride": "Add Override",
+    "removeOverride": "Remove Override",
+    "nextRun": "Next Run",
+    "nextTomorrow": "Tomorrow {time}",
+    "countdown": {
+      "hours": "{h}h {m}m",
+      "minutes": "{m}m {s}s",
+      "seconds": "{s}s"
+    },
     "disabled": "Disabled",
     "imminent": "Imminent",
     "nextActiveWindow": "Next active window: {time}",
@@ -908,7 +947,14 @@
     "infoTab": "Info",
     "configTab": "Config",
     "installSkill": "Install Skill",
+    "version": "Version",
+    "author": "Author",
+    "size": "Size",
+    "installedDate": "Installed Date",
     "dependencies": "Dependencies",
+    "depMet": "Met",
+    "depMissing": "Missing",
+    "envVarsStatus": "Environment Variables",
     "envSet": "Set",
     "envNotSet": "Not set",
     "uninstallViaCLI": "To uninstall, use the CLI:"
