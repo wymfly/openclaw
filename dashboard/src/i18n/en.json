@@ -125,7 +125,13 @@
     "runTokensOut": "out",
     "runTokensCache": "cache",
     "runDuration": "Duration",
-    "runStreaming": "Running..."
+    "runStreaming": "Running...",
+    "subagentRunning": "Running",
+    "subagentCompleted": "Completed",
+    "subagentFailed": "Failed",
+    "subagentTask": "Task",
+    "subagentResult": "Result",
+    "subagentError": "Error"
   },
   "gateway": {
     "title": "Gateway Overview",

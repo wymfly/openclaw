@@ -14,6 +14,7 @@ import {
   saveBlockPreferences,
   type ChatBlockPreferences,
 } from "@/stores/chat-preferences";
+import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { BlockFilterBar } from "./BlockFilterBar";
 import { FileBlock } from "./blocks/FileBlock";
 import { ImageBlock } from "./blocks/ImageBlock";
@@ -21,6 +22,7 @@ import { ThinkingBlock } from "./blocks/ThinkingBlock";
 import { ToolResultCard } from "./blocks/ToolResultCard";
 import { ToolUseCard } from "./blocks/ToolUseCard";
 import { RunStatusBar } from "./RunStatusBar";
+import { SubagentCard } from "./SubagentCard";
 
 /* ------------------------------------------------------------------ */
 /*  MessageBubble                                                       */
@@ -220,6 +222,15 @@ export function MessageList() {
   const t = useTranslations("chat");
   const messages = useSessionMessages();
   const { isStreaming } = useSessionStreaming();
+  const activeSessionKey = useChatStore((s) => s.activeSessionKey);
+  const subagentRuns = useDeckSubagentsStore((state) => {
+    if (!activeSessionKey) {
+      return [];
+    }
+    return [...state.activeRuns, ...state.historyRuns]
+      .filter((r) => r.requesterSessionKey === activeSessionKey)
+      .toSorted((a, b) => a.createdAt - b.createdAt);
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const [blockPrefs, setBlockPrefs] = useState<ChatBlockPreferences>(loadBlockPreferences);
@@ -281,6 +292,15 @@ export function MessageList() {
                 <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:300ms]" />
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Subagent inline cards — session-level display */}
+        {subagentRuns.length > 0 && (
+          <div className="px-2 mb-4">
+            {subagentRuns.map((run) => (
+              <SubagentCard key={run.runId} run={run} />
+            ))}
           </div>
         )}
       </div>

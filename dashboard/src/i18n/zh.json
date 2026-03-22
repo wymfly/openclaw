@@ -125,7 +125,13 @@
     "runTokensOut": "输出",
     "runTokensCache": "缓存",
     "runDuration": "耗时",
-    "runStreaming": "运行中..."
+    "runStreaming": "运行中...",
+    "subagentRunning": "运行中",
+    "subagentCompleted": "已完成",
+    "subagentFailed": "失败",
+    "subagentTask": "任务",
+    "subagentResult": "结果",
+    "subagentError": "错误"
   },
   "gateway": {
     "title": "网关概览",
