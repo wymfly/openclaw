@@ -23,6 +23,35 @@ vi.mock("../../../config/config.js", () => ({
       ],
     },
   }),
+  STATE_DIR: "/tmp/test-state",
+}));
+
+vi.mock("../../../config/sessions.js", () => ({
+  loadSessionStore: () => ({}),
+  resolveStorePath: () => "/tmp/test-sessions",
+}));
+
+vi.mock("../../../agents/pi-embedded.js", () => ({
+  abortEmbeddedPiRun: vi.fn(() => false),
+}));
+
+vi.mock("../../../auto-reply/reply/queue.js", () => ({
+  clearSessionQueues: vi.fn(() => ({ followupCleared: 0, laneCleared: 0, keys: [] })),
+}));
+
+vi.mock("../../../utils/message-channel.js", () => ({
+  INTERNAL_MESSAGE_CHANNEL: "internal",
+}));
+
+vi.mock("../../../agents/lanes.js", () => ({
+  AGENT_LANE_SUBAGENT: "subagent",
+}));
+
+vi.mock("../../../routing/session-key.js", () => ({
+  parseAgentSessionKey: (key: string) => {
+    const parts = key.split(":");
+    return parts.length >= 2 ? { agentId: parts[1] } : null;
+  },
 }));
 
 // --- Imports (after mocks) ---
@@ -49,7 +78,7 @@ function callHandler(
     if (!handler) {
       throw new Error(`Handler "${method}" not found`);
     }
-    void handler({
+    const result = handler({
       params,
       respond,
       req: { type: "req" as const, id: "test-1", method, params },
@@ -57,6 +86,10 @@ function callHandler(
       isWebchatConnect: () => false,
       context: {} as GatewayRequestHandlerOptions["context"],
     });
+    // Await async handlers
+    if (result && typeof result === "object" && "then" in result) {
+      void result.catch(() => {});
+    }
   });
 }
 
@@ -158,7 +191,7 @@ describe("deck.subagents.steer", () => {
       }),
     );
 
-    // First call — should succeed normally
+    // First call — should succeed (full steer-restart flow executes)
     const result1 = await callHandler("deck.subagents.steer", {
       runId: "run-dedup",
       instruction: "same instruction",
@@ -168,7 +201,21 @@ describe("deck.subagents.steer", () => {
     expect(p1.success).toBe(true);
     expect(p1.deduped).toBeUndefined();
 
-    // Second call with same params — should be deduped
+    // After first steer, the run is replaced (new runId). Re-add original run
+    // to simulate a second request with the same runId (dedup should catch it
+    // before the run lookup matters).
+    addSubagentRunForTests(
+      makeRun({
+        runId: "run-dedup",
+        childSessionKey: "agent:coder:subagent:uuid3",
+        requesterSessionKey: "agent:main:main",
+        task: "some task",
+        createdAt: Date.now() - 5000,
+        startedAt: Date.now() - 5000,
+      }),
+    );
+
+    // Second call with same params — should be deduped (returns before steer flow)
     const result2 = await callHandler("deck.subagents.steer", {
       runId: "run-dedup",
       instruction: "same instruction",
@@ -199,6 +246,18 @@ describe("deck.subagents.steer", () => {
     expect(result1.ok).toBe(true);
     const p1 = result1.payload as { success: boolean; dedupKey: string; deduped?: boolean };
     expect(p1.deduped).toBeUndefined();
+
+    // After first steer, run is replaced. Re-add for second call.
+    addSubagentRunForTests(
+      makeRun({
+        runId: "run-diff",
+        childSessionKey: "agent:coder:subagent:uuid4",
+        requesterSessionKey: "agent:main:main",
+        task: "some task",
+        createdAt: Date.now() - 5000,
+        startedAt: Date.now() - 5000,
+      }),
+    );
 
     const result2 = await callHandler("deck.subagents.steer", {
       runId: "run-diff",

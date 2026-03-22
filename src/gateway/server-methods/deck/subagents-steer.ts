@@ -1,8 +1,19 @@
+import crypto from "node:crypto";
 import { createHash } from "node:crypto";
+import { AGENT_LANE_SUBAGENT } from "../../../agents/lanes.js";
+import { abortEmbeddedPiRun } from "../../../agents/pi-embedded.js";
 import {
+  clearSubagentRunSteerRestart,
   getSubagentRunsForDeck,
   markSubagentRunForSteerRestart,
+  replaceSubagentRunAfterSteer,
 } from "../../../agents/subagent-registry.js";
+import { clearSessionQueues } from "../../../auto-reply/reply/queue.js";
+import { loadConfig } from "../../../config/config.js";
+import { loadSessionStore, resolveStorePath } from "../../../config/sessions.js";
+import { callGateway } from "../../../gateway/call.js";
+import { parseAgentSessionKey } from "../../../routing/session-key.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../../../utils/message-channel.js";
 import { validateDeckSubagentsSteerParams } from "../../protocol/index.js";
 import type { GatewayRequestHandlers } from "../types.js";
 
@@ -12,6 +23,7 @@ import type { GatewayRequestHandlers } from "../types.js";
 
 const DEDUP_TTL_MS = 60_000;
 const SWEEP_INTERVAL_MS = 60_000;
+const STEER_ABORT_SETTLE_TIMEOUT_MS = 5_000;
 
 const dedupMap = new Map<string, number>();
 let sweepTimer: ReturnType<typeof setInterval> | undefined;
@@ -27,13 +39,11 @@ function ensureSweepTimer() {
         dedupMap.delete(key);
       }
     }
-    // Stop timer when map is empty to avoid keeping the process alive
     if (dedupMap.size === 0 && sweepTimer !== undefined) {
       clearInterval(sweepTimer);
       sweepTimer = undefined;
     }
   }, SWEEP_INTERVAL_MS);
-  // Allow the process to exit even if the timer is active
   if (typeof sweepTimer === "object" && "unref" in sweepTimer) {
     sweepTimer.unref();
   }
@@ -41,6 +51,21 @@ function ensureSweepTimer() {
 
 function computeDedupKey(runId: string, instruction: string): string {
   return createHash("sha256").update(`${runId}:${instruction}`).digest("hex");
+}
+
+/** Resolve the Pi session ID for a given session key (needed for abort). */
+function resolveSessionId(childSessionKey: string): string | undefined {
+  const cfg = loadConfig();
+  const parsed = parseAgentSessionKey(childSessionKey);
+  if (!parsed) {
+    return undefined;
+  }
+  const storePath = resolveStorePath(cfg, parsed.agentId);
+  const store = loadSessionStore(storePath);
+  const entry = store[childSessionKey];
+  return typeof entry?.sessionId === "string" && entry.sessionId.trim()
+    ? entry.sessionId.trim()
+    : undefined;
 }
 
 // Exported for tests
@@ -57,7 +82,7 @@ export function resetSteerDedupForTests() {
 // ---------------------------------------------------------------------------
 
 export const deckSubagentsSteerHandlers: GatewayRequestHandlers = {
-  "deck.subagents.steer": ({ params, respond }) => {
+  "deck.subagents.steer": async ({ params, respond }) => {
     if (!validateDeckSubagentsSteerParams(params)) {
       respond(false, undefined, { code: "INVALID_REQUEST", message: "invalid params" });
       return;
@@ -98,9 +123,74 @@ export const deckSubagentsSteerHandlers: GatewayRequestHandlers = {
     dedupMap.set(dedupKey, now + DEDUP_TTL_MS);
     ensureSweepTimer();
 
-    // 5. Mark the run for steer-restart — the subagent tool loop picks up the flag
+    // 5. Execute full steer-restart flow
+    // (replicates src/agents/tools/subagents-tool.ts:600-681)
+
+    // 5a. Suppress announce for the interrupted run
     markSubagentRunForSteerRestart(runId);
 
-    respond(true, { success: true, dedupKey });
+    // 5b. Resolve session ID for abort
+    const sessionId = resolveSessionId(entry.childSessionKey);
+
+    // 5c. Abort current Pi run + clear queues
+    if (sessionId) {
+      abortEmbeddedPiRun(sessionId);
+    }
+    clearSessionQueues([entry.childSessionKey, sessionId]);
+
+    // 5d. Wait for the interrupted run to settle
+    try {
+      await callGateway({
+        method: "agent.wait",
+        params: {
+          runId,
+          timeoutMs: STEER_ABORT_SETTLE_TIMEOUT_MS,
+        },
+        timeoutMs: STEER_ABORT_SETTLE_TIMEOUT_MS + 2_000,
+      });
+    } catch {
+      // Continue even if wait fails; steer should still be attempted.
+    }
+
+    // 5e. Launch new run with the instruction as message
+    const idempotencyKey = crypto.randomUUID();
+    let newRunId: string = idempotencyKey;
+    try {
+      const response = await callGateway<{ runId: string }>({
+        method: "agent",
+        params: {
+          message: instruction,
+          sessionKey: entry.childSessionKey,
+          sessionId,
+          idempotencyKey,
+          deliver: false,
+          channel: INTERNAL_MESSAGE_CHANNEL,
+          lane: AGENT_LANE_SUBAGENT,
+          timeout: 0,
+        },
+        timeoutMs: 10_000,
+      });
+      if (typeof response?.runId === "string" && response.runId) {
+        newRunId = response.runId;
+      }
+    } catch {
+      // Restart failed; restore normal announce behavior
+      clearSubagentRunSteerRestart(runId);
+      respond(false, undefined, {
+        code: "STEER_FAILED",
+        message: "Failed to restart subagent with instruction",
+      });
+      return;
+    }
+
+    // 5f. Replace run record to link old and new
+    replaceSubagentRunAfterSteer({
+      previousRunId: runId,
+      nextRunId: newRunId,
+      fallback: entry,
+      runTimeoutSeconds: entry.runTimeoutSeconds ?? 0,
+    });
+
+    respond(true, { success: true, dedupKey, newRunId });
   },
 };
