@@ -12,7 +12,7 @@ export type Panel =
   | "sessions"
   | "memory"
   | "logs"
-  | "cron"
+  | "scheduler"
   | "webhooks"
   | "approvals"
   | "skills"

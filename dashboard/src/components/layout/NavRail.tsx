@@ -76,7 +76,7 @@ const navGroups: NavGroup[] = [
   {
     titleKey: "automate",
     items: [
-      { panel: "cron", labelKey: "cron", icon: Clock },
+      { panel: "scheduler", labelKey: "scheduler", icon: Clock },
       { panel: "webhooks", labelKey: "webhooks", icon: Webhook },
       { panel: "approvals", labelKey: "approvals", icon: ShieldCheck },
       { panel: "skills", labelKey: "skills", icon: Wrench },
