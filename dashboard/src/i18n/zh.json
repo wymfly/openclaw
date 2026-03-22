@@ -544,6 +544,36 @@
     "tierPeripheral": "外围",
     "decayScore": "衰减分数"
   },
+  "monitor": {
+    "title": "执行监控",
+    "tabs": {
+      "overview": "概览",
+      "timeline": "时间线",
+      "history": "历史"
+    },
+    "stats": {
+      "totalRuns": "总运行",
+      "activeRuns": "活跃运行",
+      "avgDuration": "平均耗时",
+      "successRate": "成功率"
+    },
+    "diagnostics": "系统诊断",
+    "liveFeed": "实时动态",
+    "noEvents": "暂无事件",
+    "eventType": {
+      "tool_call": "工具调用",
+      "chat": "对话",
+      "status": "状态",
+      "agent": "智能体",
+      "system": "系统"
+    },
+    "timeline": {
+      "selectRun": "选择一次运行以查看时间线"
+    },
+    "history": {
+      "noRuns": "暂无运行记录"
+    }
+  },
   "activity": {
     "title": "动态信息流",
     "allAgents": "全部智能体",
