@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, ContentBlock } from "@/stores/chat";
+import { useChatStore } from "@/stores/chat";
 import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import {
   loadBlockPreferences,
@@ -19,6 +20,7 @@ import { ImageBlock } from "./blocks/ImageBlock";
 import { ThinkingBlock } from "./blocks/ThinkingBlock";
 import { ToolResultCard } from "./blocks/ToolResultCard";
 import { ToolUseCard } from "./blocks/ToolUseCard";
+import { RunStatusBar } from "./RunStatusBar";
 
 /* ------------------------------------------------------------------ */
 /*  MessageBubble                                                       */
@@ -32,6 +34,18 @@ function MessageBubble({
   preferences: ChatBlockPreferences;
 }) {
   const isUser = message.role === "user";
+
+  // Reactive selector: re-renders when lifecycle events update runMetadata
+  const runMetadata = useChatStore((state) => {
+    if (isUser) {
+      return undefined;
+    }
+    const activeKey = state.activeSessionKey;
+    if (!activeKey) {
+      return undefined;
+    }
+    return state.sessions.get(activeKey)?.runMetadata[message.id];
+  });
 
   // Apply block filter preferences
   const filteredContent = message.content.filter((b) => {
@@ -183,6 +197,9 @@ function MessageBubble({
             {message.error}
           </span>
         )}
+
+        {/* Run status bar */}
+        {runMetadata && <RunStatusBar metadata={runMetadata} />}
 
         {/* Timestamp */}
         <span className="text-[10px] mt-1 px-1 text-[var(--text-secondary)] font-mono">

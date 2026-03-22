@@ -119,7 +119,13 @@
     "binaryFile": "[Binary file — diff not available]",
     "virtualLines": "{start}-{end} of {total} lines",
     "virtualExpand": "Expand",
-    "virtualCollapse": "Collapse"
+    "virtualCollapse": "Collapse",
+    "runModel": "Model",
+    "runTokensIn": "in",
+    "runTokensOut": "out",
+    "runTokensCache": "cache",
+    "runDuration": "Duration",
+    "runStreaming": "Running..."
   },
   "gateway": {
     "title": "Gateway Overview",
