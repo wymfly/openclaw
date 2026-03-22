@@ -346,7 +346,12 @@
     "overlapSubset": "子集重叠",
     "selectAgent": "选择智能体...",
     "predictedTier": "预测优先级",
-    "validating": "验证中..."
+    "validating": "验证中...",
+    "activityFeed": "活动日志",
+    "noActivity": "暂无活动",
+    "showingActivity": "显示 {count} 条活动",
+    "activityBanner": "显示 Agent 活动事件。完整路由命中日志需要 Gateway 遥测支持（计划中）。",
+    "agentFilter": "筛选智能体"
   },
   "subagents": {
     "title": "子智能体监控",

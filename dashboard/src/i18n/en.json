@@ -346,7 +346,12 @@
     "overlapSubset": "Subset overlap",
     "selectAgent": "Select agent...",
     "predictedTier": "Predicted tier",
-    "validating": "Validating..."
+    "validating": "Validating...",
+    "activityFeed": "Activity",
+    "noActivity": "No activity yet",
+    "showingActivity": "Showing {count} events",
+    "activityBanner": "Showing agent activity events. Full routing hit log requires Gateway telemetry support (planned).",
+    "agentFilter": "Filter by agent"
   },
   "subagents": {
     "title": "Subagent Monitor",
