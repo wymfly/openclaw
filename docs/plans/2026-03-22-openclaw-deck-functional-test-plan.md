@@ -146,24 +146,42 @@
 | Round 2 (P1 扩展)           | 18     | 15     | 2       | 1     |
 | Round 3 (P2+观测)           | 5      | 5      | 0       | 0     |
 | Round 4 (Agent tabs+Config) | 8      | 8      | 0       | 0     |
-| **合计**                    | **62** | **51** | **4**   | **7** |
+| Round 5 (SKIP 复测)         | 3      | 2      | 1       | 0     |
+| **合计**                    | **65** | **53** | **5**   | **7** |
 
-**通过率：82%（51/62）**
+**最终通过率：82%（53/65）**
+
+#### Round 5 详情 — 之前 SKIP 用例复测
+
+| ID        | 测试点       | 结果 | 备注                                        |
+| --------- | ------------ | ---- | ------------------------------------------- |
+| CHAT-004  | 会话切换     | ✅   | 修复后侧边栏显示 5 个会话，切换加载完整历史 |
+| AGENT-003 | 创建 agent   | ✅   | "e2e-test-agent" 创建成功并显示在列表       |
+| SESS-005  | 删除 session | ⚠️   | 按钮可点击，API 200 但 `deleted:false`      |
+
+#### Round 5 修复的 Bug
+
+| #   | 文件            | 问题                                                            | 修复                 |
+| --- | --------------- | --------------------------------------------------------------- | -------------------- |
+| 10  | `ChatPanel.tsx` | sessions API 返回 `{sessions:[]}` 但 `Array.isArray(data)` 失败 | 提取 `data.sessions` |
+| 11  | `ChatPanel.tsx` | history content 是 ContentBlock[] 非 string → React crash       | flattenContent 转换  |
 
 #### 已覆盖面板清单
 
 全部 19 个 NavRail 面板 + Agent 6 个子 Tab + Config Editor 多种字段类型 + 跨切面（Dark Mode / Tablet 768px / Mobile 375px）
 
-#### 新发现的问题
+#### 剩余问题
 
-| #   | 严重度 | 位置             | 描述                                                         |
-| --- | ------ | ---------------- | ------------------------------------------------------------ |
-| 8   | LOW    | Mobile 375px     | Agents 列表+详情同时挤压，tab 名称截断                       |
-| 9   | LOW    | Usage timeseries | `/api/usage/timeseries` 返回 502，分组表格显示"暂无用量数据" |
+| #   | 严重度 | 位置             | 描述                                   |
+| --- | ------ | ---------------- | -------------------------------------- |
+| 8   | LOW    | Mobile 375px     | Agents 列表+详情同时挤压，tab 名称截断 |
+| 9   | LOW    | Usage timeseries | `/api/usage/timeseries` 返回 502       |
 
-#### SKIP 用例说明
+#### 剩余 SKIP（4 个）
 
-7 个 SKIP 均因环境限制，非代码 Bug：preview RPC 502（Context Tab 数据）、避免创建/删除测试数据（AGENT-003/SESS-005）、需要有效 API Key（MODEL-012）、需要极快操作触发（CHAT-007）。
+- CHAT-007（消息去重）：需极快切换触发竞态
+- ROUTE-001/003（Routing 面板）：占位页无完整 UI
+- MODEL-012（认证探测）：需有效 API Key
 
 ---
 
