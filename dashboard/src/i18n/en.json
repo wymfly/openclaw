@@ -544,6 +544,36 @@
     "tierPeripheral": "Peripheral",
     "decayScore": "Decay Score"
   },
+  "monitor": {
+    "title": "Execution Monitor",
+    "tabs": {
+      "overview": "Overview",
+      "timeline": "Timeline",
+      "history": "History"
+    },
+    "stats": {
+      "totalRuns": "Total Runs",
+      "activeRuns": "Active Runs",
+      "avgDuration": "Avg Duration",
+      "successRate": "Success Rate"
+    },
+    "diagnostics": "Diagnostics",
+    "liveFeed": "Live Feed",
+    "noEvents": "No events yet",
+    "eventType": {
+      "tool_call": "Tool Call",
+      "chat": "Chat",
+      "status": "Status",
+      "agent": "Agent",
+      "system": "System"
+    },
+    "timeline": {
+      "selectRun": "Select a run to view timeline"
+    },
+    "history": {
+      "noRuns": "No runs yet"
+    }
+  },
   "activity": {
     "title": "Activity Feed",
     "allAgents": "All Agents",
