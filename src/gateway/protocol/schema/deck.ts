@@ -136,6 +136,20 @@ export const DeckAgentsToolPolicyPreviewParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+// === deck.agents.systemPrompt.* ===
+export const DeckAgentsSystemPromptPreviewParamsSchema = Type.Object(
+  {
+    agentId: NonEmptyString,
+    context: Type.Optional(
+      Type.Object({
+        channel: Type.Optional(Type.String()),
+        chatType: Type.Optional(Type.String()),
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
+
 // === deck.subagents.* ===
 export const DeckSubagentsListParamsSchema = Type.Object(
   {

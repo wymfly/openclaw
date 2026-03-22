@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, type MockedFunction } from "vitest";
 
 // --- Mocks must be hoisted above imports ---
 
@@ -33,6 +33,25 @@ const mockConfig = {
 
 let snapshotHash = "hash-preview-123";
 
+vi.mock("../../../agents/workspace.js", () => ({
+  loadWorkspaceBootstrapFiles: vi.fn(async () => [
+    {
+      name: "AGENTS.md",
+      path: "/tmp/main/AGENTS.md",
+      content: "# Agent instructions",
+      missing: false,
+    },
+    { name: "SOUL.md", path: "/tmp/main/SOUL.md", content: undefined, missing: true },
+  ]),
+  DEFAULT_SOUL_FILENAME: "SOUL.md",
+  DEFAULT_TOOLS_FILENAME: "TOOLS.md",
+  DEFAULT_IDENTITY_FILENAME: "IDENTITY.md",
+  DEFAULT_USER_FILENAME: "USER.md",
+  DEFAULT_HEARTBEAT_FILENAME: "HEARTBEAT.md",
+  DEFAULT_BOOTSTRAP_FILENAME: "BOOTSTRAP.md",
+  DEFAULT_AGENTS_FILENAME: "AGENTS.md",
+}));
+
 vi.mock("../../../config/config.js", () => ({
   loadConfig: () => structuredClone(mockConfig),
   readConfigFileSnapshotForWrite: async () => ({
@@ -54,6 +73,7 @@ vi.mock("../../../config/config.js", () => ({
   resolveConfigSnapshotHash: (snapshot: { hash?: string }) => snapshot.hash ?? null,
 }));
 
+import { loadWorkspaceBootstrapFiles } from "../../../agents/workspace.js";
 import type { GatewayRequestHandlerOptions, RespondFn } from "../types.js";
 import { deckAgentsPreviewHandlers } from "./agents-preview.js";
 
@@ -166,5 +186,76 @@ describe("deck.agents.toolPolicy.preview", () => {
     // "read" should be allowed (in both global and agent allowlists)
     const readTool = p.tools.find((t) => t.id === "read");
     expect(readTool?.allowed).toBe(true);
+  });
+});
+
+describe("deck.agents.systemPrompt.preview", () => {
+  const mockLoadBootstrap = loadWorkspaceBootstrapFiles as MockedFunction<
+    typeof loadWorkspaceBootstrapFiles
+  >;
+
+  beforeEach(() => {
+    mockLoadBootstrap.mockResolvedValue([
+      {
+        name: "AGENTS.md",
+        path: "/tmp/main/AGENTS.md",
+        content: "# Agent instructions",
+        missing: false,
+      },
+      { name: "SOUL.md", path: "/tmp/main/SOUL.md", content: undefined, missing: true },
+    ]);
+  });
+
+  it("returns bootstrap files and prompt stats for valid agent", async () => {
+    const result = await callHandler("deck.agents.systemPrompt.preview", { agentId: "main" });
+    expect(result.ok).toBe(true);
+    const p = result.payload as {
+      layers: Array<{ label: string; totalChars: number; fileCount: number }>;
+      bootstrapFiles: Array<{ name: string; exists: boolean; charCount: number }>;
+      totalChars: number;
+      configHash: string;
+    };
+
+    // Should have 4 layers: Bootstrap Files, Identity, Skills Prompt, Extra Instructions
+    expect(p.layers).toHaveLength(4);
+    expect(p.layers[0].label).toBe("Bootstrap Files");
+    expect(p.layers[1].label).toBe("Identity");
+    expect(p.layers[2].label).toBe("Skills Prompt");
+    expect(p.layers[2].totalChars).toBe(0); // cannot estimate without session
+    expect(p.layers[3].label).toBe("Extra Instructions");
+
+    // bootstrapFiles should contain the well-known file list
+    expect(p.bootstrapFiles).toBeDefined();
+    expect(p.bootstrapFiles.length).toBeGreaterThan(0);
+
+    // AGENTS.md exists with content "# Agent instructions" (20 chars)
+    const agentsFile = p.bootstrapFiles.find((f) => f.name === "AGENTS.md");
+    expect(agentsFile?.exists).toBe(true);
+    expect(agentsFile?.charCount).toBe("# Agent instructions".length);
+
+    // SOUL.md is missing in mock
+    const soulFile = p.bootstrapFiles.find((f) => f.name === "SOUL.md");
+    expect(soulFile?.exists).toBe(false);
+    expect(soulFile?.charCount).toBe(0);
+
+    // totalChars should be sum of bootstrap chars + extra instructions
+    expect(p.totalChars).toBeGreaterThanOrEqual(0);
+    expect(p.configHash).toBe("hash-preview-123");
+  });
+
+  it("returns NOT_FOUND for unknown agent", async () => {
+    const result = await callHandler("deck.agents.systemPrompt.preview", {
+      agentId: "nonexistent",
+    });
+    expect(result.ok).toBe(false);
+    const err = result.error as { code: string };
+    expect(err.code).toBe("NOT_FOUND");
+  });
+
+  it("rejects invalid params (missing agentId)", async () => {
+    const result = await callHandler("deck.agents.systemPrompt.preview", {});
+    expect(result.ok).toBe(false);
+    const err = result.error as { code: string };
+    expect(err.code).toBe("INVALID_REQUEST");
   });
 });

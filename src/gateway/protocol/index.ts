@@ -522,6 +522,7 @@ import {
   DeckAgentsSubagentsGetParamsSchema,
   DeckAgentsSubagentsSetParamsSchema,
   DeckAgentsToolPolicyPreviewParamsSchema,
+  DeckAgentsSystemPromptPreviewParamsSchema,
   DeckSubagentsListParamsSchema,
   DeckSubagentsKillParamsSchema,
   DeckSubagentsLineageParamsSchema,
@@ -547,6 +548,10 @@ export const validateDeckAgentsSubagentsSetParams = ajv.compile(DeckAgentsSubage
 // deck.agents.toolPolicy.*
 export const validateDeckAgentsToolPolicyPreviewParams = ajv.compile(
   DeckAgentsToolPolicyPreviewParamsSchema,
+);
+// deck.agents.systemPrompt.*
+export const validateDeckAgentsSystemPromptPreviewParams = ajv.compile(
+  DeckAgentsSystemPromptPreviewParamsSchema,
 );
 // deck.subagents.*
 export const validateDeckSubagentsListParams = ajv.compile(DeckSubagentsListParamsSchema);
