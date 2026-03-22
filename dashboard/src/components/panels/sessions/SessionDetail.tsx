@@ -7,6 +7,7 @@ import { LineageTree } from "@/components/shared/LineageTree";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { navigateToSubagents } from "@/lib/panel-navigation";
+import { parseSessionKey } from "@/lib/session-key-parser";
 import { cn } from "@/lib/utils";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { useSessionsStore, type HistoryMessage, type SessionEntry } from "@/stores/sessions";
@@ -105,6 +106,7 @@ export function SessionDetail() {
 
   const session = sessions.find((s) => s.key === selectedKey);
   const isSubagent = selectedKey ? selectedKey.includes(":subagent:") : false;
+  const keySegments = selectedKey ? parseSessionKey(selectedKey) : [];
 
   // Fetch lineage for subagent sessions
   useEffect(() => {
@@ -139,6 +141,18 @@ export function SessionDetail() {
           >
             {session.key}
           </h3>
+          {keySegments.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1 mt-1">
+              {keySegments.map((seg) => (
+                <span
+                  key={seg.label}
+                  className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                >
+                  {seg.label}: {seg.value}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-3 mt-0.5">
             {session.model && (
               <span className="text-xs text-[var(--text-secondary)]">

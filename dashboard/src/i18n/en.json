@@ -468,7 +468,32 @@
     "noSessions": "No sessions",
     "model": "Model",
     "updatedAt": "Updated",
-    "confirmDelete": "Delete this session?"
+    "confirmDelete": "Delete this session?",
+    "scopeTab": "Scope",
+    "scopeTitle": "DM Scope Strategy",
+    "scopeDescription": "Controls how direct messages are grouped into sessions.",
+    "scopeCurrent": "Current",
+    "changeScope": "Change Scope",
+    "confirmScopeChange": "Change DM Scope?",
+    "confirmScopeChangeDesc": "This will change the DM scope from \"{from}\" to \"{to}\". Existing sessions will not be affected.",
+    "scopeMode": {
+      "main": {
+        "title": "Main (Shared)",
+        "description": "All DMs share a single session per agent."
+      },
+      "per-peer": {
+        "title": "Per Peer",
+        "description": "Each contact gets their own session."
+      },
+      "per-channel-peer": {
+        "title": "Per Channel + Peer",
+        "description": "Separate sessions per channel and contact."
+      },
+      "per-account-channel-peer": {
+        "title": "Per Account + Channel + Peer",
+        "description": "Fully isolated: account, channel, and contact."
+      }
+    }
   },
   "logs": {
     "title": "Log Viewer",
