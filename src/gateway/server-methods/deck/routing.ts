@@ -338,7 +338,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
       peer: params.peer,
       guildId: params.guildId,
       teamId: params.teamId,
-      memberRoleIds: params.memberRoleIds,
+      memberRoleIds: params.memberRoleIds as string[] | undefined,
     });
 
     const matchedTier = matchedByToTier(result.matchedBy as MatchedByType);
