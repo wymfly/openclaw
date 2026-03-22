@@ -523,13 +523,7 @@ export function TreeDAG({
     setHoveredSubtreeIds(collectDescendants(treeNode));
   }, []);
 
-  // showMore fallback: T9 will add common.showMore; until then use try/catch
-  let showMoreLabel: string;
-  try {
-    showMoreLabel = t("showMore");
-  } catch {
-    showMoreLabel = "Show more";
-  }
+  const showMoreLabel = t("showMore");
 
   if (visibleNodes.length === 0) {
     return null;

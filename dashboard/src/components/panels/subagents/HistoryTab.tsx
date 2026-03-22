@@ -20,11 +20,18 @@ import { useDeckSubagentsStore, type SubagentRun } from "@/stores/deck-subagents
 // Status configuration
 // ---------------------------------------------------------------------------
 
-const statusBadge: Record<string, { label: string; color: string }> = {
-  completed: { label: "Done", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
-  failed: { label: "Failed", color: "bg-red-500/15 text-red-400 border-red-500/25" },
-  timeout: { label: "Timeout", color: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
-  active: { label: "Active", color: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
+const statusBadgeColor: Record<string, string> = {
+  completed: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+  failed: "bg-red-500/15 text-red-400 border-red-500/25",
+  timeout: "bg-amber-500/15 text-amber-400 border-amber-500/25",
+  active: "bg-blue-500/15 text-blue-400 border-blue-500/25",
+};
+
+const statusI18nKey: Record<string, string> = {
+  completed: "completed",
+  failed: "failed",
+  timeout: "timeout",
+  active: "activeCount",
 };
 
 function formatDuration(durationMs?: number, startMs?: number, endMs?: number): string {
@@ -145,19 +152,19 @@ export function HistoryTab() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1h">Last Hour</SelectItem>
-            <SelectItem value="6h">Last 6h</SelectItem>
-            <SelectItem value="24h">Last 24h</SelectItem>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="1h">{t("timeRange.1h")}</SelectItem>
+            <SelectItem value="6h">{t("timeRange.6h")}</SelectItem>
+            <SelectItem value="24h">{t("timeRange.24h")}</SelectItem>
+            <SelectItem value="all">{t("timeRange.all")}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v ?? "all")}>
           <SelectTrigger className="w-[160px] h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
-            <SelectValue placeholder="All Agents" />
+            <SelectValue placeholder={t("allAgents")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Agents</SelectItem>
+            <SelectItem value="all">{t("allAgents")}</SelectItem>
             {agents.map((a) => (
               <SelectItem key={a.id} value={a.id}>
                 {a.name || a.id}
@@ -168,18 +175,18 @@ export function HistoryTab() {
 
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
           <SelectTrigger className="w-[140px] h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
-            <SelectValue placeholder="All Status" />
+            <SelectValue placeholder={t("allStatus")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-            <SelectItem value="timeout">Timeout</SelectItem>
+            <SelectItem value="all">{t("allStatus")}</SelectItem>
+            <SelectItem value="completed">{t("completed")}</SelectItem>
+            <SelectItem value="failed">{t("failed")}</SelectItem>
+            <SelectItem value="timeout">{t("timeout")}</SelectItem>
           </SelectContent>
         </Select>
 
         <span className="ml-auto text-[10px] text-[var(--text-secondary)]">
-          {filtered.length} runs
+          {t("runs", { count: filtered.length })}
         </span>
       </div>
 
@@ -194,7 +201,7 @@ export function HistoryTab() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
-            <p className="text-sm text-[var(--text-secondary)]">No runs found</p>
+            <p className="text-sm text-[var(--text-secondary)]">{t("noRunsFound")}</p>
             <p className="text-xs text-[var(--text-secondary)] opacity-60">{t("ephemeralNote")}</p>
           </div>
         ) : (
@@ -202,11 +209,11 @@ export function HistoryTab() {
             {/* Header row */}
             <div className="grid grid-cols-[auto_1fr_1fr_2fr_80px_80px] gap-3 px-4 py-2 text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider">
               <span className="w-5" />
-              <span>Agent</span>
-              <span>Parent</span>
-              <span>Task</span>
-              <span>Duration</span>
-              <span>Status</span>
+              <span>{t("agent")}</span>
+              <span>{t("parent")}</span>
+              <span>{t("task")}</span>
+              <span>{t("duration")}</span>
+              <span>{t("status")}</span>
             </div>
 
             {visible.map((run) => (
@@ -229,7 +236,7 @@ export function HistoryTab() {
               onClick={() => setVisibleCount((c) => c + 20)}
               className="text-xs cursor-pointer"
             >
-              Load more ({filtered.length - visibleCount} remaining)
+              {t("remaining", { count: filtered.length - visibleCount })}
             </Button>
           </div>
         )}
@@ -251,7 +258,9 @@ function HistoryRow({
   expanded: boolean;
   onToggle: (key: string) => void;
 }) {
-  const badge = statusBadge[run.status] ?? statusBadge.completed;
+  const t = useTranslations("subagents");
+  const badgeColor = statusBadgeColor[run.status] ?? statusBadgeColor.completed;
+  const badgeLabel = t(statusI18nKey[run.status] ?? "completed");
   const isFailed = run.status === "failed";
 
   return (
@@ -309,8 +318,8 @@ function HistoryRow({
 
         {/* Status badge */}
         <span className="flex items-center">
-          <Badge variant="outline" className={cn("text-[10px] border", badge.color)}>
-            {badge.label}
+          <Badge variant="outline" className={cn("text-[10px] border", badgeColor)}>
+            {badgeLabel}
           </Badge>
         </span>
       </button>
@@ -322,7 +331,7 @@ function HistoryRow({
             {run.task && (
               <div>
                 <span className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider">
-                  Task
+                  {t("task")}
                 </span>
                 <p className="text-xs text-[var(--text-primary)] mt-0.5 whitespace-pre-wrap">
                   {run.task}
@@ -330,18 +339,26 @@ function HistoryRow({
               </div>
             )}
             <div className="flex gap-4 text-xs text-[var(--text-secondary)]">
-              <span>depth: {run.depth}</span>
-              {run.model && <span>model: {run.model}</span>}
-              <span>session: {run.childSessionKey}</span>
+              <span>
+                {t("depth")}: {run.depth}
+              </span>
+              {run.model && (
+                <span>
+                  {t("model")}: {run.model}
+                </span>
+              )}
+              <span>
+                {t("session")}: {run.childSessionKey}
+              </span>
             </div>
             {isFailed && (
               <div className="rounded-md p-2 bg-red-500/10 border border-red-500/20">
                 <span className="text-[10px] font-medium text-red-400 uppercase tracking-wider">
-                  Error
+                  {t("failed")}
                 </span>
                 <p className="text-xs text-red-300 mt-0.5">
-                  Run failed
-                  {run.endedAt ? ` at ${new Date(run.endedAt).toLocaleString()}` : ""}
+                  {t("runFailed")}
+                  {run.endedAt ? ` ${new Date(run.endedAt).toLocaleString()}` : ""}
                 </p>
               </div>
             )}
