@@ -192,3 +192,25 @@ describe("isBinaryContent", () => {
     expect(isBinaryContent("")).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Integration: backward compatibility
+// ---------------------------------------------------------------------------
+
+describe("integration: backward compatibility", () => {
+  it("returns raw view type for unknown tool names", () => {
+    expect(isBashTool("unknown_tool")).toBe(false);
+    expect(isFileOpTool("unknown_tool")).toBeNull();
+  });
+
+  it("handles empty content gracefully", () => {
+    expect(parseBashResult("")).toBeNull();
+    expect(countLines("")).toBe(0);
+    expect(isBinaryContent("")).toBe(false);
+  });
+
+  it("detects binary content", () => {
+    expect(isBinaryContent("hello\0world")).toBe(true);
+    expect(isBinaryContent("normal text")).toBe(false);
+  });
+});
