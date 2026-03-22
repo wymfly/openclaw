@@ -221,7 +221,11 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
       ...(params.comment ? { comment: params.comment } : {}),
     };
 
-    bindings.push(newBinding);
+    const position =
+      typeof params.position === "number"
+        ? Math.max(0, Math.min(params.position, bindings.length))
+        : bindings.length;
+    bindings.splice(position, 0, newBinding);
     cfg.bindings = bindings;
     await writeConfigFile(cfg, {});
 

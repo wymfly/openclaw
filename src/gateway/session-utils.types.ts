@@ -47,6 +47,7 @@ export type GatewaySessionRow = {
   lastChannel?: SessionEntry["lastChannel"];
   lastTo?: string;
   lastAccountId?: string;
+  compactionCount?: number;
 };
 
 export type GatewayAgentRow = SharedGatewayAgentRow;

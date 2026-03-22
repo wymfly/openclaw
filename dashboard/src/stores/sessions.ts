@@ -13,6 +13,7 @@ export interface SessionEntry {
   tokensIn: number;
   tokensOut: number;
   contextWindow: number;
+  compactionCount: number;
   updatedAt: number;
 }
 
@@ -77,6 +78,7 @@ function normalizeSession(raw: Record<string, unknown>): SessionEntry {
     tokensIn: Number(raw.inputTokens ?? raw.tokensIn ?? 0),
     tokensOut: Number(raw.outputTokens ?? raw.tokensOut ?? 0),
     contextWindow: Number(raw.contextTokens ?? raw.contextWindow ?? 0),
+    compactionCount: Number(raw.compactionCount ?? 0),
     updatedAt: Number(raw.updatedAt ?? raw.lastActivityAt ?? 0),
   };
 }
