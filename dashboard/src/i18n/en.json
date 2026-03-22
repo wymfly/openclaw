@@ -103,7 +103,13 @@
     "artifactMarkdown": "Document",
     "artifactCode": "Code",
     "artifactJsonInvalid": "Invalid JSON data",
-    "artifactCsvEmpty": "No valid data rows"
+    "artifactCsvEmpty": "No valid data rows",
+    "paramNoParams": "(no parameters)",
+    "paramShowFull": "Show full",
+    "paramShowLess": "Show less",
+    "paramKeys": "{count} keys",
+    "copyJson": "Copy JSON",
+    "copied": "Copied"
   },
   "gateway": {
     "title": "Gateway Overview",

@@ -103,7 +103,13 @@
     "artifactMarkdown": "文档",
     "artifactCode": "代码",
     "artifactJsonInvalid": "无效的 JSON 数据",
-    "artifactCsvEmpty": "无有效数据行"
+    "artifactCsvEmpty": "无有效数据行",
+    "paramNoParams": "（无参数）",
+    "paramShowFull": "展开全文",
+    "paramShowLess": "收起",
+    "paramKeys": "{count} 个字段",
+    "copyJson": "复制 JSON",
+    "copied": "已复制"
   },
   "gateway": {
     "title": "网关概览",
