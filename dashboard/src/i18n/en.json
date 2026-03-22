@@ -568,7 +568,27 @@
       "system": "System"
     },
     "timeline": {
-      "selectRun": "Select a run to view timeline"
+      "selectRun": "Select a run to view timeline",
+      "events": "Events",
+      "tokensIn": "In",
+      "tokensOut": "Out",
+      "tokensCache": "Cache",
+      "ganttTitle": "Execution Timeline",
+      "noTimedEvents": "No timed events",
+      "toolWaterfallTitle": "Tool Call Waterfall",
+      "noToolCalls": "No tool calls",
+      "toolArgs": "Arguments",
+      "toolResult": "Result",
+      "fileChangesTitle": "File Changes",
+      "noFileChanges": "No file changes",
+      "fileOp_read": "Read",
+      "fileOp_write": "Write",
+      "fileOp_modify": "Modify",
+      "modelStatsTitle": "Model Statistics",
+      "noModelData": "No model data",
+      "calls": "Calls",
+      "fallback": "Fallback",
+      "subagentLineage": "Subagent Lineage"
     },
     "history": {
       "noRuns": "No runs yet"

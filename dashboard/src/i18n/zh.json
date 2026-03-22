@@ -568,7 +568,27 @@
       "system": "系统"
     },
     "timeline": {
-      "selectRun": "选择一次运行以查看时间线"
+      "selectRun": "选择一次运行以查看时间线",
+      "events": "事件数",
+      "tokensIn": "输入",
+      "tokensOut": "输出",
+      "tokensCache": "缓存",
+      "ganttTitle": "执行时间线",
+      "noTimedEvents": "无定时事件",
+      "toolWaterfallTitle": "工具调用瀑布图",
+      "noToolCalls": "无工具调用",
+      "toolArgs": "参数",
+      "toolResult": "结果",
+      "fileChangesTitle": "文件变更",
+      "noFileChanges": "无文件变更",
+      "fileOp_read": "读取",
+      "fileOp_write": "写入",
+      "fileOp_modify": "修改",
+      "modelStatsTitle": "模型统计",
+      "noModelData": "无模型数据",
+      "calls": "调用次数",
+      "fallback": "回退",
+      "subagentLineage": "子智能体谱系"
     },
     "history": {
       "noRuns": "暂无运行记录"
