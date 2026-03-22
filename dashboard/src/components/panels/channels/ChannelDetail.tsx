@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Power, PowerOff, AlertCircle, Wand2 } from "lucide-react";
+import { LogOut, Power, PowerOff, AlertCircle, Wand2, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useChannelsStore, type ChannelAccount } from "@/stores/channels";
 import { FeishuWizard } from "./FeishuWizard";
+import { ThroughputChart } from "./ThroughputChart";
 import { WeComWizard } from "./WeComWizard";
 
 function AccountStatusBadge({ account }: { account: ChannelAccount }) {
@@ -51,11 +52,13 @@ function AccountStatusBadge({ account }: { account: ChannelAccount }) {
 export function ChannelDetail({ channelId }: { channelId: string }) {
   const t = useTranslations("channels");
   const tc = useTranslations("common");
-  const { channels, logoutChannel, updateChannelConfig } = useChannelsStore();
+  const { channels, logoutChannel, updateChannelConfig, removeAccount } = useChannelsStore();
 
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [toggling, setToggling] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
 
   const isWecom = channelId.includes("wecom");
@@ -76,16 +79,27 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
 
   const handleToggleEnabled = useCallback(
     async (account: ChannelAccount) => {
-      setToggling(true);
+      setTogglingId(account.accountId);
       try {
-        await updateChannelConfig(channelId, {
-          enabled: !account.enabled,
-        });
+        await updateChannelConfig(channelId, { enabled: !account.enabled }, account.accountId);
       } finally {
-        setToggling(false);
+        setTogglingId(null);
       }
     },
     [channelId, updateChannelConfig],
+  );
+
+  const handleRemoveAccount = useCallback(
+    async (accountId: string) => {
+      setRemovingId(accountId);
+      try {
+        await removeAccount(channelId, accountId);
+      } finally {
+        setRemovingId(null);
+        setConfirmRemoveId(null);
+      }
+    },
+    [channelId, removeAccount],
   );
 
   if (!channel) {
@@ -105,17 +119,19 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">{channel.label}</h2>
             <span className="text-xs text-[var(--text-secondary)] font-mono">ID: {channel.id}</span>
           </div>
-          {hasWizard && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setWizardOpen(true)}
-            >
-              <Wand2 size={12} />
-              {t("configWizard")}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {hasWizard && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setWizardOpen(true)}
+              >
+                <Wand2 size={12} />
+                {t("configWizard")}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -126,9 +142,22 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
       <div className="flex-1 px-4 py-3 space-y-4">
         {/* Accounts section */}
         <div>
-          <label className="block text-xs font-medium mb-2 text-[var(--text-secondary)]">
-            {t("accounts")} ({channel.accounts.length})
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-[var(--text-secondary)]">
+              {t("accounts")} ({channel.accounts.length})
+            </label>
+            {hasWizard && (
+              <Button
+                variant="outline"
+                size="xs"
+                className="gap-1 text-[10px]"
+                onClick={() => setWizardOpen(true)}
+              >
+                <Plus size={10} />
+                {t("addAccount")}
+              </Button>
+            )}
+          </div>
 
           {channel.accounts.length === 0 && (
             <p className="text-xs text-[var(--text-secondary)]">{t("unconfigured")}</p>
@@ -170,7 +199,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
                       variant="outline"
                       size="xs"
                       onClick={() => void handleToggleEnabled(account)}
-                      disabled={toggling}
+                      disabled={togglingId === account.accountId}
                       className="text-[10px] gap-1 transition-colors duration-150"
                     >
                       {account.enabled ? (
@@ -185,11 +214,51 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
                         </>
                       )}
                     </Button>
+
+                    {/* Remove account */}
+                    {confirmRemoveId === account.accountId ? (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="destructive"
+                          size="xs"
+                          onClick={() => void handleRemoveAccount(account.accountId)}
+                          disabled={removingId === account.accountId}
+                          className="text-[10px] gap-1"
+                        >
+                          <Trash2 size={10} />
+                          {t("confirmRemoveAccount")}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => setConfirmRemoveId(null)}
+                          className="text-[10px]"
+                        >
+                          {tc("cancel")}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        onClick={() => setConfirmRemoveId(account.accountId)}
+                        className="text-[10px] gap-1 text-[var(--danger)] hover:text-[var(--danger)]"
+                      >
+                        <Trash2 size={10} />
+                        {t("removeAccount")}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
+        </div>
+
+        {/* Throughput chart */}
+        <div>
+          <Separator className="mb-4 bg-[var(--border-subtle)]" />
+          <ThroughputChart channelId={channelId} />
         </div>
 
         {/* Logout section */}

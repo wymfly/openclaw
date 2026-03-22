@@ -596,7 +596,18 @@
     "unbindMessage": "This will remove the routing binding. Continue?",
     "confirmUnbindAction": "Unbind",
     "unbind": "Unbind",
-    "configWizard": "Config Wizard"
+    "configWizard": "Config Wizard",
+    "addAccount": "Add Account",
+    "removeAccount": "Remove",
+    "confirmRemoveAccount": "Confirm Remove",
+    "throughput": "Throughput",
+    "estimated": "Estimated",
+    "messagesIn": "in",
+    "messagesOut": "out",
+    "noThroughput": "No messages in the past {window}",
+    "lastUpdated": "Updated {time} ago",
+    "refreshPaused": "Refresh paused",
+    "lastHour": "last 1h"
   },
   "config": {
     "title": "Config Editor",

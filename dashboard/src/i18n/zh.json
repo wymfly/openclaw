@@ -596,7 +596,18 @@
     "unbindMessage": "此操作将移除该路由绑定，确认继续？",
     "confirmUnbindAction": "确认解绑",
     "unbind": "解绑",
-    "configWizard": "配置向导"
+    "configWizard": "配置向导",
+    "addAccount": "添加账号",
+    "removeAccount": "移除账号",
+    "confirmRemoveAccount": "确认移除",
+    "throughput": "吞吐量",
+    "estimated": "估算值",
+    "messagesIn": "入站",
+    "messagesOut": "出站",
+    "noThroughput": "过去 {window} 无消息",
+    "lastUpdated": "{time} 前更新",
+    "refreshPaused": "悬停暂停刷新",
+    "lastHour": "近 1h"
   },
   "config": {
     "title": "配置编辑器",
