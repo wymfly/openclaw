@@ -468,7 +468,32 @@
     "noSessions": "暂无会话",
     "model": "模型",
     "updatedAt": "更新于",
-    "confirmDelete": "确定删除该会话？"
+    "confirmDelete": "确定删除该会话？",
+    "scopeTab": "合并策略",
+    "scopeTitle": "DM 会话合并策略",
+    "scopeDescription": "控制私信如何分组到不同会话中。",
+    "scopeCurrent": "当前",
+    "changeScope": "切换策略",
+    "confirmScopeChange": "切换 DM 合并策略？",
+    "confirmScopeChangeDesc": "将 DM 合并策略从「{from}」切换为「{to}」。已有会话不受影响。",
+    "scopeMode": {
+      "main": {
+        "title": "主会话（共享）",
+        "description": "所有私信共用同一个会话。"
+      },
+      "per-peer": {
+        "title": "按联系人",
+        "description": "每个联系人拥有独立会话。"
+      },
+      "per-channel-peer": {
+        "title": "按渠道 + 联系人",
+        "description": "按渠道和联系人分别创建会话。"
+      },
+      "per-account-channel-peer": {
+        "title": "按账号 + 渠道 + 联系人",
+        "description": "完全隔离：按账号、渠道、联系人创建会话。"
+      }
+    }
   },
   "logs": {
     "title": "日志查看器",
