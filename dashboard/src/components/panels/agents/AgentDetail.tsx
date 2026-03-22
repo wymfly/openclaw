@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAgentsStore } from "@/stores/agents";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
+import { ContextTab } from "./tabs/ContextTab";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { RoutingTab } from "./tabs/RoutingTab";
 import { SessionsTab } from "./tabs/SessionsTab";
@@ -21,7 +22,7 @@ const STATUS_BADGE: Record<string, string> = {
   offline: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
 };
 
-type TabValue = "overview" | "routing" | "skills" | "subagent" | "sessions";
+type TabValue = "overview" | "routing" | "skills" | "context" | "subagent" | "sessions";
 
 export function AgentDetail({ agentId }: { agentId: string }) {
   const t = useTranslations("agentDetail");
@@ -71,7 +72,11 @@ export function AgentDetail({ agentId }: { agentId: string }) {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border)] shrink-0">
         <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20">
-          <Bot size={16} className="text-[var(--accent)]" />
+          {detail.emoji ? (
+            <span className="text-base leading-none">{detail.emoji}</span>
+          ) : (
+            <Bot size={16} className="text-[var(--accent)]" />
+          )}
         </div>
         <div className="flex flex-col min-w-0">
           <h2 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
@@ -100,6 +105,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
             <TabsTrigger value="routing">{t("routing")}</TabsTrigger>
             <TabsTrigger value="skills">{t("skills")}</TabsTrigger>
+            <TabsTrigger value="context">{t("context")}</TabsTrigger>
             <TabsTrigger value="subagent">{t("subagent")}</TabsTrigger>
             <TabsTrigger value="sessions">{t("sessions")}</TabsTrigger>
           </TabsList>
@@ -114,6 +120,9 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           </TabsContent>
           <TabsContent value="skills" className="p-4">
             <SkillsTab agentId={agentId} />
+          </TabsContent>
+          <TabsContent value="context" className="p-4">
+            <ContextTab agentId={agentId} />
           </TabsContent>
           <TabsContent value="subagent" className="p-4">
             <SubagentTab agentId={agentId} />
