@@ -72,12 +72,17 @@ function MessageBubble({
     (b): b is ContentBlock & { type: "tool_result" } => b.type === "tool_result",
   );
 
-  // Build a lookup from toolUseId -> tool name for contextual artifact detection
+  // Build lookups from toolUseId -> tool name / input for contextual routing
   // Uses original content (not filtered) so toolName is available even when tool_use is hidden
   const toolUseNameMap = new Map(
     message.content
       .filter((b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use")
       .map((b) => [b.id, b.name]),
+  );
+  const toolUseInputMap = new Map(
+    message.content
+      .filter((b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use")
+      .map((b) => [b.id, b.input]),
   );
 
   const combinedText = textBlocks.map((b) => b.text).join("\n");
@@ -168,6 +173,7 @@ function MessageBubble({
             content={typeof b.content === "string" ? b.content : JSON.stringify(b.content)}
             isError={b.isError}
             toolName={toolUseNameMap.get(b.toolUseId)}
+            toolInput={toolUseInputMap.get(b.toolUseId)}
           />
         ))}
 
