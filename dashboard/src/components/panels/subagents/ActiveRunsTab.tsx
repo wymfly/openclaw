@@ -209,10 +209,10 @@ export function ActiveRunsTab() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("allStatus")}</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-            <SelectItem value="timeout">Timeout</SelectItem>
+            <SelectItem value="active">{t("statusActive")}</SelectItem>
+            <SelectItem value="completed">{t("statusCompleted")}</SelectItem>
+            <SelectItem value="failed">{t("statusFailed")}</SelectItem>
+            <SelectItem value="timeout">{t("statusTimeout")}</SelectItem>
           </SelectContent>
         </Select>
 

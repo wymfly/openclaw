@@ -410,6 +410,10 @@
     "runFailed": "Run failed",
     "depth": "depth",
     "session": "session",
+    "statusActive": "Active",
+    "statusCompleted": "Completed",
+    "statusFailed": "Failed",
+    "statusTimeout": "Timeout",
     "timeRange": {
       "1h": "Last Hour",
       "6h": "Last 6h",

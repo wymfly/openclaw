@@ -89,6 +89,8 @@ interface CronState {
   heartbeatConfig: HeartbeatConfig | null;
   heartbeatOverrides: HeartbeatOverride[];
   heartbeatLoading: boolean;
+  /** baseHash from last config.get — required for config.patch calls. */
+  heartbeatBaseHash: string | null;
 
   fetchJobs: () => Promise<void>;
   addJob: (job: Omit<CronJob, "id">) => Promise<CronJob | null>;
@@ -112,7 +114,7 @@ interface CronState {
 
 interface ConfigPayload {
   agents?: {
-    defaults?: { heartbeat?: Record<string, unknown> };
+    defaults?: { heartbeat?: Record<string, unknown> | null };
     list?: Array<Record<string, unknown>>;
   };
   [key: string]: unknown;
@@ -165,6 +167,7 @@ export const useCronStore = create<CronState>((set, get) => ({
   heartbeatConfig: null,
   heartbeatOverrides: [],
   heartbeatLoading: false,
+  heartbeatBaseHash: null,
 
   selectJob: (jobId) => set({ selectedJobId: jobId }),
 
@@ -284,10 +287,11 @@ export const useCronStore = create<CronState>((set, get) => ({
         set({ heartbeatLoading: false });
         return;
       }
-      const cfg = (await res.json()) as ConfigPayload;
+      const cfg = (await res.json()) as ConfigPayload & { baseHash?: string };
       set({
         heartbeatConfig: extractHeartbeatConfig(cfg),
         heartbeatOverrides: extractHeartbeatOverrides(cfg),
+        heartbeatBaseHash: typeof cfg.baseHash === "string" ? cfg.baseHash : null,
         heartbeatLoading: false,
       });
     } catch {
@@ -298,13 +302,17 @@ export const useCronStore = create<CronState>((set, get) => ({
   updateHeartbeatConfig: async (patch) => {
     // Strip the UI-only `enabled` field before sending to the API.
     const { enabled: _enabled, ...rest } = patch;
-    // When disabling, clear the `every` field so Gateway stops heartbeat.
-    const heartbeatPatch = patch.enabled === false ? { ...rest, every: undefined } : rest;
+    // When disabling, set heartbeat to null so Gateway removes it entirely
+    // (just clearing `every` would cause Gateway to fallback to the default 30m).
+    const heartbeatPatch = patch.enabled === false ? null : rest;
     try {
       const res = await fetch("/api/config/patch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patch: { agents: { defaults: { heartbeat: heartbeatPatch } } } }),
+        body: JSON.stringify({
+          patch: { agents: { defaults: { heartbeat: heartbeatPatch } } },
+          baseHash: get().heartbeatBaseHash,
+        }),
       });
       if (!res.ok) {
         return false;
@@ -324,7 +332,8 @@ export const useCronStore = create<CronState>((set, get) => ({
       if (!cfgRes.ok) {
         return false;
       }
-      const cfg = (await cfgRes.json()) as ConfigPayload;
+      const cfg = (await cfgRes.json()) as ConfigPayload & { baseHash?: string };
+      const baseHash = typeof cfg.baseHash === "string" ? cfg.baseHash : null;
       const agents = Array.isArray(cfg?.agents?.list) ? [...cfg.agents.list] : [];
       const idx = agents.findIndex((a) => a.id === agentId);
       if (idx >= 0) {
@@ -340,7 +349,7 @@ export const useCronStore = create<CronState>((set, get) => ({
       const res = await fetch("/api/config/patch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patch: { agents: { list: agents } } }),
+        body: JSON.stringify({ patch: { agents: { list: agents } }, baseHash }),
       });
       if (!res.ok) {
         return false;
@@ -358,22 +367,22 @@ export const useCronStore = create<CronState>((set, get) => ({
       if (!cfgRes.ok) {
         return false;
       }
-      const cfg = (await cfgRes.json()) as ConfigPayload;
+      const cfg = (await cfgRes.json()) as ConfigPayload & { baseHash?: string };
+      const baseHash = typeof cfg.baseHash === "string" ? cfg.baseHash : null;
       const agents = Array.isArray(cfg?.agents?.list) ? [...cfg.agents.list] : [];
       const idx = agents.findIndex((a) => a.id === agentId);
       if (idx < 0) {
         return true; // nothing to remove
       }
+      // Set the entire heartbeat to null so Gateway fully removes it.
+      // Just deleting `every` would leave other heartbeat fields active.
       const existing = { ...agents[idx] };
-      const hb = { ...(existing.heartbeat as Record<string, unknown> | undefined) };
-      delete hb.every;
-      // If heartbeat object is empty, remove it entirely.
-      existing.heartbeat = Object.keys(hb).length > 0 ? hb : undefined;
+      existing.heartbeat = null;
       agents[idx] = existing;
       const res = await fetch("/api/config/patch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patch: { agents: { list: agents } } }),
+        body: JSON.stringify({ patch: { agents: { list: agents } }, baseHash }),
       });
       if (!res.ok) {
         return false;

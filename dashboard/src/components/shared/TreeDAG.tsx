@@ -242,9 +242,11 @@ function NodeCard({
         </p>
       )}
 
-      {/* Elapsed time */}
+      {/* Elapsed time — fixed width prevents node resize causing SVG edge drift */}
       {displayTime && (
-        <span className="text-[10px] font-mono text-[var(--text-secondary)]">{displayTime}</span>
+        <span className="text-[10px] font-mono text-[var(--text-secondary)] min-w-[4ch] inline-block">
+          {displayTime}
+        </span>
       )}
 
       {/* Custom actions */}
@@ -410,10 +412,22 @@ function SVGEdges({ edges, nodeRefs, containerRef }: SVGEdgesProps) {
     computePaths();
 
     // Recompute on resize
-    const observer = new ResizeObserver(computePaths);
-    observer.observe(container);
+    const resizeObserver = new ResizeObserver(computePaths);
+    resizeObserver.observe(container);
 
-    return () => observer.disconnect();
+    // Recompute when node content changes (e.g. elapsed time text updates
+    // causing subtle size shifts).
+    const mutationObserver = new MutationObserver(computePaths);
+    mutationObserver.observe(container, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
   }, [edges, nodeRefs, containerRef]);
 
   if (paths.length === 0) {
