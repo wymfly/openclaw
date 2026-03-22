@@ -310,12 +310,13 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
         `/api/agents/${encodeURIComponent(agentId)}/files/${encodeURIComponent(name)}`,
       );
       if (!res.ok) {
+        set({ bootstrapFileDetail: null });
         return;
       }
       const data = (await res.json()) as { file: BootstrapFileDetail };
       set({ bootstrapFileDetail: data.file });
     } catch {
-      // ignore
+      set({ bootstrapFileDetail: null });
     }
   },
 

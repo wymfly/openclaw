@@ -84,14 +84,20 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
     // Build list of all core tool ids
     const toolIds = listAllCoreToolIds();
 
-    // For each step, resolve its SandboxToolPolicy and compute per-tool verdict
+    // For each step, compute layer summary matching frontend ToolPolicyLayer shape
     const layers = steps.map((step: ToolPolicyPipelineStep) => {
-      const sandboxPolicy = step.policy ? pickSandboxToolPolicy(step.policy) : undefined;
+      const allowLen = step.policy?.allow?.length ?? 0;
+      const denyLen = step.policy?.deny?.length ?? 0;
       return {
         label: step.label,
-        active: sandboxPolicy !== undefined,
-        allow: step.policy?.allow ?? null,
-        deny: step.policy?.deny ?? null,
+        ruleCount: allowLen + denyLen,
+        effect: !step.policy
+          ? "passthrough"
+          : denyLen > 0
+            ? "deny"
+            : allowLen > 0
+              ? "allow"
+              : "passthrough",
       };
     });
 
@@ -102,10 +108,27 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
       });
       // Final verdict: tool is allowed only if all layers allow it
       const allowed = perLayer.every(Boolean);
+
+      // Build trace with per-layer decisions
+      const trace = steps.map((step, i) => ({
+        layer: step.label,
+        decision: !step.policy ? "no-opinion" : perLayer[i] ? "allow" : "deny",
+      }));
+
+      // Find the last layer that made a decision (not "no-opinion")
+      let decisiveLayer = "default";
+      for (let i = trace.length - 1; i >= 0; i--) {
+        if (trace[i].decision !== "no-opinion") {
+          decisiveLayer = trace[i].layer;
+          break;
+        }
+      }
+
       return {
-        id: toolId,
+        name: toolId,
         allowed,
-        perLayer,
+        decisiveLayer,
+        trace,
       };
     });
 
@@ -180,23 +203,27 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
     const layers = [
       {
         label: "Bootstrap Files",
-        totalChars: bootstrapChars,
+        source: workspaceDir,
+        charCount: bootstrapChars,
         fileCount: fileStats.filter((f) => f.exists).length,
       },
       {
         label: "Identity",
-        totalChars: identityChars,
+        source: DEFAULT_IDENTITY_FILENAME,
+        charCount: identityChars,
         fileCount: identityChars > 0 ? 1 : 0,
       },
       {
         label: "Skills Prompt",
+        source: "skills injection",
         // Cannot estimate without a live session (skills loaded at runtime)
-        totalChars: 0,
+        charCount: 0,
         fileCount: 0,
       },
       {
         label: "Extra Instructions",
-        totalChars: extraInstructions.length,
+        source: "agents.systemPrompt",
+        charCount: extraInstructions.length,
         fileCount: extraInstructions.length > 0 ? 1 : 0,
       },
     ];
