@@ -591,7 +591,24 @@
       "subagentLineage": "Subagent Lineage"
     },
     "history": {
-      "noRuns": "No runs yet"
+      "noRuns": "No runs recorded yet",
+      "filterAgent": "Agent",
+      "filterSession": "Session",
+      "clearFilters": "Clear filters",
+      "unknownAgent": "Unknown agent",
+      "events": "events",
+      "completed": "Completed",
+      "error": "Error",
+      "running": "Running",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "allStatus": "All Status",
+      "time": {
+        "1h": "Last 1h",
+        "24h": "Last 24h",
+        "7d": "Last 7d",
+        "all": "All Time"
+      }
     }
   },
   "activity": {
