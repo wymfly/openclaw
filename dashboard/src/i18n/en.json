@@ -116,7 +116,10 @@
     "bashExitCode": "Exit code",
     "showRaw": "Show Raw",
     "showFormatted": "Show Formatted",
-    "binaryFile": "[Binary file — diff not available]"
+    "binaryFile": "[Binary file — diff not available]",
+    "virtualLines": "{start}-{end} of {total} lines",
+    "virtualExpand": "Expand",
+    "virtualCollapse": "Collapse"
   },
   "gateway": {
     "title": "Gateway Overview",

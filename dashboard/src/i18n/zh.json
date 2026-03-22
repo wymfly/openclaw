@@ -116,7 +116,10 @@
     "bashExitCode": "退出码",
     "showRaw": "查看原始数据",
     "showFormatted": "查看格式化",
-    "binaryFile": "[二进制文件 — 无法显示差异]"
+    "binaryFile": "[二进制文件 — 无法显示差异]",
+    "virtualLines": "{start}-{end} / {total} 行",
+    "virtualExpand": "展开",
+    "virtualCollapse": "收起"
   },
   "gateway": {
     "title": "网关概览",
