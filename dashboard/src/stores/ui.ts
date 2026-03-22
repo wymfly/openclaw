@@ -4,15 +4,14 @@ import type { Locale } from "@/i18n/config";
 export type Panel =
   | "chat"
   | "agents"
-  | "routing"
-  | "monitor"
+  | "gateway"
   | "models"
-  | "subagents"
   | "usage"
   | "sessions"
   | "memory"
   | "logs"
-  | "scheduler"
+  | "activity"
+  | "cron"
   | "webhooks"
   | "approvals"
   | "skills"
@@ -52,5 +51,9 @@ export const useUIStore = create<UIState>((set) => ({
   setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
   setActivePanel: (activePanel) => set({ activePanel }),
   setTheme: (theme) => set({ theme }),
-  setLocale: (locale) => set({ locale }),
+  setLocale: (locale) => {
+    set({ locale });
+    document.cookie = `NEXT_LOCALE=${locale};path=/;max-age=31536000`;
+    window.location.reload();
+  },
 }));
