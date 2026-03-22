@@ -100,6 +100,31 @@ export interface A2UIEvent {
 export const MAX_A2UI_EVENT_LOG = 200;
 
 // ---------------------------------------------------------------------------
+// Run metadata & subagent tracking
+// ---------------------------------------------------------------------------
+
+export interface RunMetadata {
+  runId: string;
+  model?: string;
+  usage?: { input?: number; output?: number; cache?: number };
+  durationMs?: number;
+  startedAt?: number;
+  streaming?: boolean;
+}
+
+export interface SubagentRun {
+  id: string;
+  taskDescription?: string;
+  status: "running" | "completed" | "failed";
+  startedAt: number;
+  completedAt?: number;
+  duration?: number;
+  parentRunId: string;
+  result?: string;
+  error?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Per-session state
 // ---------------------------------------------------------------------------
 
@@ -110,6 +135,8 @@ export interface SessionState {
   error: string | null;
   toolProgress: Record<string, ToolProgress>;
   activeApproval: ApprovalRequest | null;
+  runMetadata: Record<string, RunMetadata>;
+  subagentRuns: Record<string, SubagentRun>;
   a2uiState: A2UIState | null;
   status: "active" | "idle";
   lastAccessedAt: number;
@@ -150,6 +177,8 @@ export function createEmptySessionState(): SessionState {
     error: null,
     toolProgress: {},
     activeApproval: null,
+    runMetadata: {},
+    subagentRuns: {},
     a2uiState: null,
     status: "idle",
     lastAccessedAt: Date.now(),
