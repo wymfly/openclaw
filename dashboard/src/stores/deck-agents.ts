@@ -7,6 +7,7 @@ import { create } from "zustand";
 export interface AgentDetail {
   id: string;
   name: string;
+  emoji?: string;
   model?: string;
   workspace?: string;
   isDefault?: boolean;
