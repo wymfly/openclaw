@@ -53,7 +53,8 @@ export function HeaderBar() {
   const tHeader = useTranslations("header");
   const router = useRouter();
   const { status } = useGatewayStore();
-  const { activePanel, theme, locale, setTheme, setLocale, setMobileNavOpen } = useUIStore();
+  const { activePanel, theme, locale, setTheme, setLocale, setMobileNavOpen, setActivePanel } =
+    useUIStore();
 
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);
 
@@ -87,12 +88,14 @@ export function HeaderBar() {
 
       {/* ── Right: status + controls ── */}
       <div className="flex items-center gap-1.5">
-        {/* Gateway status pill */}
-        <div
+        {/* Gateway status pill — clickable to navigate to Monitor panel */}
+        <button
+          type="button"
           className={cn(
-            "flex items-center gap-1.5 h-6 rounded-full text-[11px] font-medium border px-2.5",
+            "flex items-center gap-1.5 h-6 rounded-full text-[11px] font-medium border px-2.5 cursor-pointer transition-opacity hover:opacity-80",
             cfg.bg,
           )}
+          onClick={() => setActivePanel("monitor")}
         >
           <span
             className={cn(
@@ -102,7 +105,7 @@ export function HeaderBar() {
             )}
           />
           {!isMobile && <span>{statusLabel}</span>}
-        </div>
+        </button>
 
         {/* Divider */}
         <span className="w-px h-4 bg-[var(--border)] mx-1" aria-hidden />
