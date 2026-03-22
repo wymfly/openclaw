@@ -36,7 +36,7 @@ export function ChannelsPanel() {
             {t("title")}
           </TabsTrigger>
           <TabsTrigger value="bindings" className="cursor-pointer">
-            Agent Bindings
+            {t("agentBindings")}
           </TabsTrigger>
         </TabsList>
       </div>
