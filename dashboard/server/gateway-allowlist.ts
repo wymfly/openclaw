@@ -53,4 +53,9 @@ export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([
   "skills.status",
   "skills.update",
   "skills.install",
+  // deck.subagents
+  "deck.subagents.list",
+  "deck.subagents.kill",
+  "deck.subagents.lineage",
+  "deck.subagents.steer",
 ]);

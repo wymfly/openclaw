@@ -157,6 +157,14 @@ export const DeckSubagentsLineageParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const DeckSubagentsSteerParamsSchema = Type.Object(
+  {
+    runId: NonEmptyString,
+    instruction: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
 // === deck.identity.* ===
 export const DeckIdentityListParamsSchema = Type.Object({}, { additionalProperties: false });
 

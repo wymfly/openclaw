@@ -116,6 +116,7 @@ const BASE_METHODS = [
   "deck.subagents.list",
   "deck.subagents.kill",
   "deck.subagents.lineage",
+  "deck.subagents.steer",
   // deck.identity
   "deck.identity.list",
   "deck.identity.link",

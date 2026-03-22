@@ -406,6 +406,7 @@ import {
   DeckSubagentsListParamsSchema,
   DeckSubagentsKillParamsSchema,
   DeckSubagentsLineageParamsSchema,
+  DeckSubagentsSteerParamsSchema,
   DeckIdentityListParamsSchema,
   DeckIdentityLinkParamsSchema,
   DeckIdentityUnlinkParamsSchema,
@@ -428,6 +429,7 @@ export const validateDeckAgentsSubagentsSetParams = ajv.compile(DeckAgentsSubage
 export const validateDeckSubagentsListParams = ajv.compile(DeckSubagentsListParamsSchema);
 export const validateDeckSubagentsKillParams = ajv.compile(DeckSubagentsKillParamsSchema);
 export const validateDeckSubagentsLineageParams = ajv.compile(DeckSubagentsLineageParamsSchema);
+export const validateDeckSubagentsSteerParams = ajv.compile(DeckSubagentsSteerParamsSchema);
 // deck.identity.*
 export const validateDeckIdentityListParams = ajv.compile(DeckIdentityListParamsSchema);
 export const validateDeckIdentityLinkParams = ajv.compile(DeckIdentityLinkParamsSchema);

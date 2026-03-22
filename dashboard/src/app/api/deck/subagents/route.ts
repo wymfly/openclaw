@@ -2,12 +2,13 @@
  * /api/deck/subagents — Subagent monitoring.
  *
  * GET    — List subagent runs (deck.subagents.list)
- * POST   — Dispatch kill/lineage by action field
+ * POST   — Dispatch kill/lineage/steer by action field
  *
  * Gateway contracts:
  *   deck.subagents.list:    { status?, agentId?, requesterAgentId?, limit?, offset? }
  *   deck.subagents.kill:    { runId }
  *   deck.subagents.lineage: { runId?, sessionKey? }
+ *   deck.subagents.steer:   { runId, instruction }
  */
 import { type NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";
@@ -24,7 +25,7 @@ export const GET = withAuth(async (request: NextRequest) => {
   });
 });
 
-type SubagentAction = "kill" | "lineage";
+type SubagentAction = "kill" | "lineage" | "steer";
 
 export const POST = withAuth(async (request: NextRequest) => {
   const body = (await request.json()) as {
@@ -39,6 +40,8 @@ export const POST = withAuth(async (request: NextRequest) => {
       return gatewayRequest("deck.subagents.kill", params);
     case "lineage":
       return gatewayRequest("deck.subagents.lineage", params);
+    case "steer":
+      return gatewayRequest("deck.subagents.steer", params);
     default:
       return Response.json({ error: "Invalid action" }, { status: 400 });
   }
