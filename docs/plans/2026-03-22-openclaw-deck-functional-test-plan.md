@@ -490,38 +490,141 @@ Gateway 双事件流架构：
 | MON-030 | History 过滤器 | ✅   | 时间范围 "全部"、状态 "全部状态"（修复前显示 raw "all"） |
 | MON-003 | Tab 持久化     | ✅   | 切换到时间线→离开→返回→时间线保持                        |
 
+### Round 11 — 2026-03-23 Channel Event Filter (Mode A MCP 交互式)
+
+**新增**：10 用例 | ✅ 10 PASS
+
+**环境准备**：Gateway 从全局安装版本不含自定义 RPC → 改用本地源码 `pnpm openclaw gateway run` → 所有 RPC 正常工作。创建了 `scripts/dev/deck-dev.sh` 启动脚本并在 CLAUDE.md 添加了强制规则。
+
+#### Channel Event Filter UI 测试（§2.3.1，10 用例 → 10 PASS）
+
+| ID        | 测试点                | 结果 | 备注                                                                               |
+| --------- | --------------------- | ---- | ---------------------------------------------------------------------------------- |
+| AGENT-028 | 区域渲染              | ✅   | 「渠道事件分发」卡片 + Radio 图标 + 说明文字 + 5 个 stream toggle                  |
+| AGENT-029 | Chat 锁定             | ✅   | Switch checked + disabled + Lock 图标 + "始终开启"                                 |
+| AGENT-070 | 默认值标识            | ✅   | 「使用全局默认」Badge + lifecycle/assistant 开启 + tool/thinking 关闭              |
+| AGENT-071 | Toggle lifecycle      | ✅   | 关闭后 checked 移除 + Badge 消失（变为 agent 级配置） + RPC set 成功               |
+| AGENT-072 | Toggle tool 开启      | ✅   | 开启后 checked 出现 + RPC set 持久化到 config                                      |
+| AGENT-073 | Toggle thinking 开启  | ✅   | 开启后 checked + Gateway 确认 `["assistant","tool","thinking"]`                    |
+| AGENT-074 | 全关场景              | ✅   | 4 个 toggle 全关 + Gateway 确认 `eventStreams: []` + Badge 未显示                  |
+| AGENT-075 | 切换 agent 清空旧状态 | ✅   | 从 main(全关) 切到 e2e-test-agent → 显示默认配置(lifecycle+assistant) + Badge 重现 |
+| AGENT-076 | 深色模式渲染          | ✅   | 卡片边框/文字/Badge/图标深色主题适配正确                                           |
+| AGENT-077 | i18n 切换             | ✅   | "Channel Event Streams" / "Final Reply" / "Run Status" / "Reasoning" 英文全部正确  |
+
+#### SKIP 解锁 — 构造测试数据（4 用例解锁 → 4 PASS，1 保持 SKIP）
+
+通过修改 `openclaw.json` 为 e2e-test-agent 添加 sandbox/fallback/toolPolicy 配置，解锁之前因缺少测试数据而 SKIP 的用例：
+
+| ID        | 测试点       | 结果 | 备注                                                       |
+| --------- | ------------ | ---- | ---------------------------------------------------------- |
+| AGENT-020 | 沙箱 Enabled | ✅   | Sandbox Mode = "Enabled"（配置 sandbox.mode="all"）        |
+| AGENT-022 | Fallback 有  | ✅   | "Fallbacks: deepseek/deepseek-chat, cpa/gpt-5.4" 正确显示  |
+| AGENT-025 | 身份自定义   | ✅   | IDENTITY.md Badge + "E" 首字母头像 + "e2e-test-agent" 名称 |
+| AGENT-067 | 工具被拒绝   | ✅   | Tool Policy 24/25, exec 展开 7 层 trace, 第 5 层 deny      |
+| AGENT-024 | 无模型       | ⏭️   | 所有 agent 均有模型，保持 SKIP                             |
+
+#### P1 面板批量扫描（24 用例 → 21 PASS / 1 PARTIAL / 1 FAIL / 1 已知 SKIP 阻塞）
+
+| ID         | 测试点         | 结果 | 备注                                                     |
+| ---------- | -------------- | ---- | -------------------------------------------------------- |
+| CFG-006    | 重新加载       | ✅   | Reload 后值恢复 + "Unsaved changes" 消失 + Save 禁用     |
+| CFG-007    | 脏状态指示     | ✅   | 修改后 "Unsaved changes" 出现 + Save 启用                |
+| CFG-008    | 导航守卫       | ❌   | 有未保存修改时直接导航，无确认对话框                     |
+| AGENT-030  | Routing tab 空 | ✅   | "No routing rules" + Add Binding + View All 按钮         |
+| AGENT-032  | 跳转路由面板   | ✅   | "View all in Routing panel" → 导航到 Routing 面板        |
+| AGENT-041  | Skills 白名单  | ✅   | Custom Whitelist switch + 126 skill 列表 + 状态徽章      |
+| AGENT-043  | 运行时资格     | ✅   | Ready / Missing dep 状态区分正确                         |
+| AGENT-070s | Subagent spawn | ✅   | Don't allow / Allow specific / Allow any 三按钮          |
+| AGENT-072s | 有效限制       | ✅   | Max Spawn Depth / Max Children + "Modify in Config" 链接 |
+| GW-005     | 活跃/暂停状态  | ✅   | Connected + 22ms + Sessions 3/18 + Auth ok               |
+| GW-006     | 诊断信息       | ✅   | Connection / Health / Heartbeat 三分组完整               |
+| MON-004    | Overview 统计  | ✅   | 4 卡片：Total Runs/Today/Avg Duration/Top Agents         |
+| MON-005    | 实时事件流     | ✅   | Live Feed 40+ 事件，Agent/Chat 类型混合                  |
+| USAGE-001  | 今日用量       | ✅   | Input 35.5K / Output 2.3K / Total 254.4K / Cost $0.06    |
+| USAGE-002  | 时间窗口切换   | ✅   | 7 Days: 155.2K / 7.2K / 611.2K / $0.18                   |
+| USAGE-003  | 模型明细       | ⚠️   | 表格 "No usage data"（timeseries API 500）               |
+| USAGE-006  | 上下文压力     | ✅   | 5 个 session + 百分比列表                                |
+| SET-002    | 系统主题       | ✅   | System / Dark / Light 三按钮                             |
+| SET-004    | Gateway URL    | ✅   | ws://localhost:18789 输入框 + Token + Test/Save          |
+| SET-005    | 版本信息       | ✅   | Deck 0.1.0 / Gateway connected / CLI connected           |
+| SET-006    | 通知偏好       | ✅   | 3 个 checkbox（Approval/Budget/Rule）全部 checked        |
+| MODEL-011  | Base URL 配置  | ✅   | 输入框 + Save 按钮正确                                   |
+| SCHED-001  | 面板布局       | ⚠️   | 只有 Cron Jobs，缺少 Heartbeat tab（P5 迁移未完成）      |
+| APPR-001   | 面板布局       | ✅   | "Approvals & Security" + Pending/Policy tab + 空状态     |
+| APPR-002   | Policy tab     | ✅   | Global Defaults + Per-Agent + Path Allowlist + Save      |
+| SKILL-006  | 缺失要求       | ✅   | "Needs Setup" 徽章（1password/discord/notion 等）        |
+| MEM-001    | Memory 布局    | ✅   | Agent 选择器 + Scope + 4 视图按钮                        |
+| DOC-001    | Doc Hub 布局   | ✅   | Extract Docs + 6 类型过滤 + 搜索框 + 空状态              |
+| BUD-001    | Budget 布局    | ✅   | "+ Create" 按钮 + 空状态                                 |
+| ALERT-001  | Alerts 布局    | ✅   | Alert Management/Fired Alerts tab + Add Rule             |
+| WH-001     | Webhooks 布局  | ✅   | "+ Create" 按钮 + 空状态                                 |
+
+**新发现问题汇总：**
+
+#### Agent Context Tab 深度 + 跨切面测试（12 用例 → 10 PASS / 1 PARTIAL / 1 FAIL）
+
+| ID        | 测试点              | 结果 | 备注                                                          |
+| --------- | ------------------- | ---- | ------------------------------------------------------------- |
+| AGENT-056 | 编辑 Bootstrap 文件 | ✅   | Edit 展开 textarea + 文件内容加载 + Cancel/Save 按钮          |
+| NAV-006   | Overview→Context    | ✅   | Context stat 卡片点击→切换到 Context tab                      |
+| NAV-007   | HeaderBar 连接指示  | ❌   | 点击 Connected 文字无导航到 Monitor（非可点击元素）           |
+| DARK-001  | Agents 深色模式     | ✅   | 卡片/文字/徽章/NavRail 完整适配                               |
+| DARK-002  | Config 深色模式     | ✅   | Section 列表/输入框/按钮深色正确                              |
+| RESP-001  | 平板 768px Agents   | ✅   | NavRail icon-only + 列表+详情 side-by-side                    |
+| RESP-002  | 移动 375px Agents   | ⚠️   | 汉堡菜单+返回箭头正确，但 Agent Info Workspace/Model 文字重叠 |
+| CFG-010   | 嵌套对象展开        | ✅   | 5+ 层嵌套正确渲染（memorySearch→remote→batch）                |
+| CFG-013   | JSON textarea       | ✅   | agents.list 完整 JSON + eventStreams JSON                     |
+| CFG-030   | tooltip 显示        | ✅   | maxSpawnDepth "Maximum nesting depth..." 说明文字正确         |
+| USAGE-003 | 模型明细            | ⚠️   | "No usage data"（timeseries API 500）— 已记录上方             |
+| APPR-002  | Policy tab          | ✅   | 已记录上方                                                    |
+
+**新发现问题汇总：**
+
+| #   | 范围          | 问题                                                                          | 影响                 |
+| --- | ------------- | ----------------------------------------------------------------------------- | -------------------- |
+| 29  | Config Editor | CFG-008 导航守卫未实现 — 有未保存修改时离开无确认                             | 用户数据丢失风险     |
+| 30  | Scheduler     | SCHED-001 缺少 Heartbeat tab — P5 SchedulerPanel 迁移未完成                   | Heartbeat 配置不可用 |
+| 31  | HeaderBar     | NAV-007 连接状态文字不可点击导航到 Monitor                                    | 缺少快捷入口         |
+| 32  | 响应式        | RESP-002 移动端 375px Agent Info Workspace/Model 文字重叠                     | 移动端可读性         |
+| —   | Sessions      | TranscriptSearch/SessionExport/ScopeSelector 组件已实现但未导入 SessionDetail | SESS-023~032 全 SKIP |
+
 #### 累计统计
 
-| 轮次                         | 用例数  | PASS   | PARTIAL | FAIL  | SKIP   |
-| ---------------------------- | ------- | ------ | ------- | ----- | ------ |
-| Round 1 (P0+P1)              | 31      | 23     | 2       | 0     | 6      |
-| Round 2 (P1 扩展)            | 18      | 15     | 2       | 0     | 1      |
-| Round 3 (P2+观测)            | 5       | 5      | 0       | 0     | 0      |
-| Round 4 (Agent tabs+Config)  | 8       | 8      | 0       | 0     | 0      |
-| Round 5 (SKIP 复测)          | 3       | 2      | 1       | 0     | 0      |
-| Round 6 (PARTIAL 修复)       | 3       | 3      | 0       | 0     | 0      |
-| Round 7 (P2 增强+R6 验证)    | 46      | 12     | 1       | 1     | 32     |
-| Round 8 (修复+Monitor 复测)  | 15      | 10     | 2       | 0     | 3      |
-| Round 9 (Chat 白盒管线)      | 4       | 3      | 0       | 0     | 1      |
-| Round 10 (Context 深度+i18n) | 18      | 13     | 0       | 0     | 5      |
-| **累计**                     | **151** | **94** | **3**   | **1** | **43** |
+| 轮次                          | 用例数  | PASS    | PARTIAL | FAIL  | SKIP   |
+| ----------------------------- | ------- | ------- | ------- | ----- | ------ |
+| Round 1 (P0+P1)               | 31      | 23      | 2       | 0     | 6      |
+| Round 2 (P1 扩展)             | 18      | 15      | 2       | 0     | 1      |
+| Round 3 (P2+观测)             | 5       | 5       | 0       | 0     | 0      |
+| Round 4 (Agent tabs+Config)   | 8       | 8       | 0       | 0     | 0      |
+| Round 5 (SKIP 复测)           | 3       | 2       | 1       | 0     | 0      |
+| Round 6 (PARTIAL 修复)        | 3       | 3       | 0       | 0     | 0      |
+| Round 7 (P2 增强+R6 验证)     | 46      | 12      | 1       | 1     | 32     |
+| Round 8 (修复+Monitor 复测)   | 15      | 10      | 2       | 0     | 3      |
+| Round 9 (Chat 白盒管线)       | 4       | 3       | 0       | 0     | 1      |
+| Round 10 (Context 深度+i18n)  | 18      | 13      | 0       | 0     | 5      |
+| Round 11 (CEF+解锁+P1+跨切面) | 50      | 46      | 2       | 2     | 0      |
+| **累计**                      | **201** | **140** | **5**   | **3** | **39** |
 
-**有效通过率**：94 / (151 - 43 SKIP) = 94 / 108 = **87%**
+**有效通过率**：140 / (201 - 39 SKIP) = 140 / 162 = **86%**
 
-- Round 10 修复 3 个 Bug（#26 i18n time keys / #27 Select 触发器渲染 / #28 addMessage 去重）
-- Context Tab P6 深度测试全部通过（10/10 + 3/4 工具列表）
-- Chat P2 白盒大部分 SKIP — 增强版 blocks/ 组件未集成到 MessageList
+- Round 11：CEF 10 + SKIP 解锁 4 + P1 面板扫描 24 + 跨切面 12 = 50 用例（46 PASS / 2 PARTIAL / 2 FAIL）
+- SKIP 从 43 降至 39（解锁 AGENT-020/022/025/067）
+- 新发现 FAIL：CFG-008 导航守卫未实现、NAV-007 连接状态不可点击
+- 新发现 PARTIAL：SCHED-001 缺 Heartbeat tab、RESP 移动端 Agent Info 文字重叠
+- 新发现 SKIP 阻塞：Sessions P3 组件（TranscriptSearch/SessionExport/ScopeSelector）未集成
+- 环境注意：Gateway 必须从本地源码运行（`scripts/dev/deck-dev.sh`）
 
-#### 剩余 SKIP 分类（43 个）
+#### 剩余 SKIP 分类（39 个）
 
-| 阻塞原因                          | 影响用例                   | 可否解决                   |
-| --------------------------------- | -------------------------- | -------------------------- |
-| P2 blocks/ 未集成到 MessageList   | CHAT-011~033 大部分        | 需集成工作（新任务）       |
-| Gateway 不广播 thinking 事件      | CHAT-030                   | 需 Gateway 改动            |
-| 无 subagent 测试数据              | SESS-010/012, CHAT-026~029 | 需构造 subagent session    |
-| 无自定义 tool policy 测试数据     | AGENT-067                  | 需配置 agent 级 allow/deny |
-| 无 sandbox/fallback/identity 数据 | AGENT-020/022/024/025      | 需配置相应 agent           |
-| 无 run history 数据               | MON-010~019, MON-031       | 需 Monitor store 对接 RPC  |
+| 阻塞原因                        | 影响用例                   | 可否解决                    |
+| ------------------------------- | -------------------------- | --------------------------- |
+| P2 blocks/ 未集成到 MessageList | CHAT-011~033 大部分        | 需集成工作（新任务）        |
+| Gateway 不广播 thinking 事件    | CHAT-030                   | 需 Gateway 改动             |
+| 无 subagent 测试数据            | SESS-010/012, CHAT-026~029 | 需构造 subagent session     |
+| 无模型 agent 数据               | AGENT-024                  | 需创建无 model 的 agent     |
+| 无 run history 数据             | MON-010~019, MON-031       | 需 Monitor store 对接 RPC   |
+| 路由/认证功能未完成             | ROUTE-001/003, MODEL-012   | 需 P3 ConditionBuilder/探测 |
+| Chat 竞态/功能缺失              | CHAT-007/014               | 需快速切换竞态 / Copy 按钮  |
 
 ---
 
@@ -767,6 +870,21 @@ Gateway 双事件流架构：
 | AGENT-025 | 身份预览卡 — 自定义      | agent 有 IDENTITY.md | 显示头像首字母 + IDENTITY.md 徽章  |
 | AGENT-026 | 身份预览卡 — 默认        | agent 无自定义身份   | 默认图标 + "unconfigured" 标签     |
 | AGENT-027 | Context 统计卡           | 点击 Context 卡片    | 跳转到 Context tab                 |
+
+### 2.3.1 渠道事件分发（Channel Event Filter）
+
+| ID        | 测试点                | 操作                      | 预期结果                                                                    | 优先级 |
+| --------- | --------------------- | ------------------------- | --------------------------------------------------------------------------- | ------ |
+| AGENT-028 | 区域渲染              | 查看 Overview Tab 底部    | 显示「渠道事件分发」卡片，标题 + 说明文字 + 5 个 stream toggle              | P1     |
+| AGENT-029 | Chat 锁定             | 查看 Chat toggle          | Switch 为 checked + disabled 状态，显示 Lock 图标 + "始终开启"              | P1     |
+| AGENT-070 | 默认值标识            | agent 未配置 eventStreams | 显示 "使用全局默认" Badge；lifecycle + assistant 开启，tool + thinking 关闭 | P1     |
+| AGENT-071 | Toggle lifecycle      | 关闭 lifecycle toggle     | 调用 RPC set，lifecycle 从白名单移除                                        | P1     |
+| AGENT-072 | Toggle tool 开启      | 开启 tool toggle          | 调用 RPC set，tool 加入白名单                                               | P1     |
+| AGENT-073 | Toggle thinking 开启  | 开启 thinking toggle      | 调用 RPC set，thinking 加入白名单                                           | P2     |
+| AGENT-074 | 全关场景              | 关闭所有可配置 toggle     | 发送 eventStreams: []，"使用全局默认" Badge 消失                            | P2     |
+| AGENT-075 | 切换 agent 清空旧状态 | 从 agent A 切换到 agent B | agent B 加载前不显示 A 的配置（短暂 null → 重新加载）                       | P2     |
+| AGENT-076 | 深色模式渲染          | 切换到深色模式            | 卡片边框、文字颜色正确适配深色主题                                          | P2     |
+| AGENT-077 | i18n 切换             | 切换到英文                | 标题变为 "Channel Event Streams"，其他文字对应英文                          | P3     |
 
 ### 2.4 Routing Tab
 

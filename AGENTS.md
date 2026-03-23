@@ -304,3 +304,32 @@ git push --force-with-lease origin enhanced
 
 设计文档：`docs/plans/2026-02-28-openclaw-migration-design.md`
 实施计划：`docs/plans/2026-02-28-openclaw-migration-plan.md`
+
+### Deck 开发环境
+
+**强制规则：Gateway 必须从本地源码运行，不得使用全局安装的 `openclaw` 命令。**
+
+原因：增强 fork 包含自定义 RPC handlers（Channel Event Filter 等），全局安装版本不包含这些代码。使用全局版本会导致 `unknown method` 错误。
+
+启动脚本：`scripts/dev/deck-dev.sh`
+
+```bash
+# 启动 Gateway + Dashboard（推荐）
+scripts/dev/deck-dev.sh
+
+# 单独启动
+scripts/dev/deck-dev.sh gateway   # Gateway only（从本地源码构建+运行）
+scripts/dev/deck-dev.sh deck      # Dashboard only
+scripts/dev/deck-dev.sh stop      # 停止所有
+```
+
+手动启动时的命令（脚本内部逻辑）：
+
+- Gateway：`NO_PROXY=localhost,127.0.0.1 pnpm openclaw gateway run --bind loopback --port 18789 --force`（注意 `pnpm openclaw` 不是 `openclaw`）
+- Dashboard：`cd dashboard && NO_PROXY=localhost,127.0.0.1 pnpm dev`
+
+**检查清单**（功能测试前）：
+
+- [ ] `NO_PROXY=localhost,127.0.0.1` 已设置（否则 Squid 代理拦截 localhost 请求）
+- [ ] Gateway 从本地源码运行（`pnpm openclaw`，不是全局 `openclaw`）
+- [ ] Gateway 和 Dashboard 启动后验证：`curl -s http://localhost:3000/api/deck/agents -X POST -H 'Content-Type: application/json' -d '{"action":"eventStreams.get","agentId":"main"}'` 应返回 JSON（非 HTML 错误页）
