@@ -20,7 +20,7 @@ The gateway SHALL expose a `deck.agents.toolPolicy.preview` RPC method that retu
 #### Scenario: Unknown agent ID
 
 - **WHEN** client calls `deck.agents.toolPolicy.preview` with a non-existent agent ID
-- **THEN** the response SHALL return an error with code `AGENT_NOT_FOUND`
+- **THEN** the response SHALL return an error with code `NOT_FOUND`
 
 ### Requirement: System prompt preview RPC
 
@@ -30,9 +30,9 @@ The gateway SHALL expose a `deck.agents.systemPrompt.preview` RPC method that re
 
 - **WHEN** client calls `deck.agents.systemPrompt.preview` with `{ agentId: "agent-1" }`
 - **THEN** the response SHALL include:
-  - `layers`: array of prompt layer objects, each with `label`, `source` (file path or config key), `charCount`, and `content` (the layer's text)
-  - `assembledPrompt`: the final concatenated system prompt text
-  - `totalChars`: total character count of the assembled prompt
+  - `layers`: array of prompt layer objects, each with `label`, `source` (file path or config key), `charCount`, and optionally `content` (the layer's text, when available without a live session)
+  - `assembledPrompt` (optional, best-effort): an approximation of the system prompt text. NOTE: accurate prompt assembly requires an active session with live tools, model selection, and session context; this field is approximation-only when returned and MAY be omitted.
+  - `totalChars`: total character count of the known prompt layers (excludes runtime-only layers like skills injection)
   - `bootstrapFiles`: array of bootstrap file entries with `name`, `charCount`, and `exists` (boolean)
   - `configHash`: hash of the config state used for this preview
 
@@ -44,7 +44,7 @@ The gateway SHALL expose a `deck.agents.systemPrompt.preview` RPC method that re
 #### Scenario: Unknown agent ID
 
 - **WHEN** client calls `deck.agents.systemPrompt.preview` with a non-existent agent ID
-- **THEN** the response SHALL return an error with code `AGENT_NOT_FOUND`
+- **THEN** the response SHALL return an error with code `NOT_FOUND`
 
 ### Requirement: Both preview RPCs are read-only
 
