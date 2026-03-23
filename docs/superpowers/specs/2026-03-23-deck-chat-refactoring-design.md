@@ -133,7 +133,7 @@ export function useChatSSE() {
 
 - **Phase 1 不改任何数据结构**。ChatMessage 仍为 `content: string`
 - **行为完全等价**。纯重构，逻辑零变化
-- 预期修复测试错误：dispatcher.test.ts (85) + tool-progress-dispatcher.test.ts (9) = **94 个**
+- 测试影响：dispatcher.test.ts 和 tool-progress-dispatcher.test.ts 的导入路径错误将被修复，但这些测试还期望 Map-based store API（`ensureSession`、`sessions.get()` 等）和额外的 dispatcher 函数（`dispatchApproval`、`dispatchA2UIEvent` 等），这些属于 Phase 2 范围。**Phase 1 仅修复导入路径和已抽取函数的可用性，大部分测试 TS 错误需 Phase 2 解决。**
 
 ---
 
@@ -193,7 +193,7 @@ export interface SessionState {
 设计决策：
 
 - **a2uiState 包含** — 天然 per-session，当前已实现为 `_a2uiState: Map`
-- **subagentRuns 不包含** — 数据源不存在（需 Gateway SSE 扩展），YAGNI，待 Gateway 支持后加入
+- **subagentRuns 不包含** — 数据源不存在（需 Gateway SSE 扩展），YAGNI，待 Gateway 支持后加入。注意：`chat-types.ts` 中现有的 `subagentRuns` 字段需在实施时从 `SessionState` 和 `createEmptySessionState()` 中移除
 
 #### ChatState（store 顶层）
 
@@ -280,11 +280,18 @@ export function getToolUseBlocks(msg: ChatMessage): Extract<ContentBlock, { type
 
 #### ChatStoreAPI 变为 session-scoped
 
+Phase 1 的 ChatStoreAPI 使用 string-based 方法（`appendThinking`、`appendToolUse` 等）。Phase 2 中这些方法被 ContentBlock 操作替代：
+
+- `updateStreamingMessage(id, string)` → `updateStreamingContent(key, id, ContentBlock[])` — 直接存储 Gateway 发送的累积 content blocks
+- `appendThinking` / `appendToolUse` → **移除** — thinking 和 tool_use 现在是 ContentBlock 的一部分，通过 `updateStreamingContent` 一并更新
+- `updateToolUseResult` → `appendContentBlock(key, id, block)` — agent tool result 事件追加 `tool_result` block
+
 ```typescript
 export interface ChatStoreAPI {
   ensureSession: (key: string) => void;
   addMessage: (sessionKey: string, msg: ChatMessage) => void;
   updateStreamingContent: (sessionKey: string, msgId: string, content: ContentBlock[]) => void;
+  appendContentBlock: (sessionKey: string, msgId: string, block: ContentBlock) => void;
   finalizeMessage: (sessionKey: string, msgId: string) => void;
   setSessionStreaming: (sessionKey: string, streaming: boolean) => void;
   setSessionError: (sessionKey: string, error: string | null) => void;
@@ -292,6 +299,8 @@ export interface ChatStoreAPI {
   getSessionMessages: (sessionKey: string) => ChatMessage[];
 }
 ```
+
+**Phase 1 → Phase 2 API 迁移说明**：Phase 1 的 dispatcher 代码在 Phase 2 需要适配新 API。这不是简单的"加 sessionKey"，而是数据模型和函数签名同时变化。但由于 dispatcher 已在 Phase 1 抽取为独立文件，这个变更是集中的（只改 chat-dispatchers.ts），不会扩散到其他模块。
 
 #### DispatcherContext → per-session
 
@@ -324,6 +333,53 @@ export function dispatchChatEvent(
   store.ensureSession(sessionKey);
   // ... 路由到 session-scoped 操作
 }
+```
+
+### A2UIState 统一定义
+
+当前 A2UIState 在三处定义且不一致。Phase 2 统一使用 `chat-types.ts` 中的定义作为 canonical source：
+
+```typescript
+// chat-types.ts — canonical
+export interface A2UIState {
+  visible: boolean;
+  bridgeStatus: "connecting" | "ready" | "error";
+  eventLog: A2UIEvent[];
+  surfaces: string[];
+}
+```
+
+- `chat.ts` 中的 `A2UISessionState` → 删除，替换为 `A2UIState`
+- `chat-hooks.ts` 中的 `A2UIState` type → 删除，改为从 `chat-types.ts` import
+- `url` 字段（chat-types.ts 原有）→ 移除，Canvas URL 通过 SSE 事件传递而非存储在状态中
+
+### 迁移策略
+
+Phase 2 采用 **Big-Bang 重写 + chat-hooks 隔离层** 策略：
+
+1. **chat-hooks.ts 是消费层接口** — 组件应通过 `useSessionMessages()`、`useSessionStreaming()` 等 hooks 访问数据，而非直接 `useChatStore()`
+2. **直接使用 useChatStore 的组件**（MessageList、MessageInput、SessionSidebar、ChatPanel）需在 Phase 2 中同时改为使用 chat-hooks
+3. 由于所有消费者都在同一 dashboard 内（无外部依赖），Big-Bang 的风险可控
+4. **先改 store + dispatcher + hooks，再改渲染组件**（渲染组件只需将 `msg.content`→`getTextContent(msg)` 等机械替换）
+
+### MessageInput ContentBlock 构造
+
+发送消息时，将用户输入转为 ContentBlock[]：
+
+```typescript
+// 纯文本
+content: [{ type: "text", text: userInput }];
+
+// 带文件附件
+content: [
+  { type: "text", text: userInput },
+  ...files.map((f) => ({
+    type: f.type.startsWith("image/") ? "image" : "file",
+    data: f.base64,
+    mimeType: f.type,
+    fileName: f.name,
+  })),
+];
 ```
 
 ### chat-hooks.ts 变更
@@ -375,36 +431,42 @@ MAX_CACHED_SESSIONS = 20;
 
 // ensureSession 内部触发
 if (sessions.size >= MAX_CACHED_SESSIONS) {
-  // 按 lastAccessedAt 排序，淘汰最旧的非活跃、非流式 session
+  // 淘汰条件：!isStreaming && key !== activeSessionKey
+  // 排序依据：lastAccessedAt 最早优先
   // sessionMetas 不受影响（侧边栏始终显示全量）
+  // 边界情况：如果所有 session 都在流式或都是活跃的，允许临时超限
 }
 ```
 
+不使用单独的 `status` 字段——`isStreaming` 已足够判断 session 是否可淘汰。`chat-types.ts` 中现有的 `status: "active" | "idle"` 字段在实施时移除。
+
 ### 渲染组件影响清单
 
-| 组件              | 当前用法                        | 变更                                |
-| ----------------- | ------------------------------- | ----------------------------------- |
-| MessageBubble     | `msg.content` (string)          | `getTextContent(msg)`               |
-| ThinkingAccordion | `msg.thinking` (string)         | `getThinkingContent(msg)`           |
-| ToolUseCard       | `msg.toolUse[]`                 | `getToolUseBlocks(msg)`             |
-| detectArtifact    | 接收 content string             | 接收 `getTextContent(msg)`          |
-| RunStatusBar      | `msg.runMetadata`               | 不变（字段仍在 ChatMessage 上）     |
-| ToolProgressBar   | `useSessionToolProgress()`      | 从 stub → 真实 selector             |
-| CanvasPanel       | `useSessionA2UI()`              | 从 stub → 真实 selector             |
-| SessionSidebar    | `useChatStore(s => s.sessions)` | `useChatStore(s => s.sessionMetas)` |
+| 组件              | 当前用法                        | 变更                                                                             |
+| ----------------- | ------------------------------- | -------------------------------------------------------------------------------- |
+| MessageBubble     | `msg.content` (string)          | `getTextContent(msg)`                                                            |
+| ThinkingAccordion | `msg.thinking` (string)         | `getThinkingContent(msg)`                                                        |
+| ToolUseCard       | `msg.toolUse[]`                 | `getToolUseBlocks(msg)`                                                          |
+| detectArtifact    | 接收 content string             | 接收 `getTextContent(msg)`                                                       |
+| RunStatusBar      | `msg.runMetadata`               | 不变（`runMetadata` 保留在 ChatMessage 上，同时在 SessionState 中按 msgId 索引） |
+| ToolProgressBar   | `useSessionToolProgress()`      | 从 stub → 真实 selector                                                          |
+| CanvasPanel       | `useSessionA2UI()`              | 从 stub → 真实 selector                                                          |
+| SessionSidebar    | `useChatStore(s => s.sessions)` | `useChatStore(s => s.sessionMetas)`                                              |
 
 ### 测试修复预期
 
-预期解决 287 / 301 个测试 TS 错误：
+预期解决 287 / 301 个测试 TS 错误。注意 dispatcher/tool-progress 测试同时依赖 Phase 1（函数抽取）和 Phase 2（Map-based store API），大部分错误在 Phase 2 完成后才会消除：
 
-| 测试文件                         | 错误数 | 修复阶段                 |
-| -------------------------------- | ------ | ------------------------ |
-| dispatcher.test.ts               | 85     | 阶段 1                   |
-| tool-progress-dispatcher.test.ts | 9      | 阶段 1                   |
-| chat-store.test.ts               | 113    | 阶段 2                   |
-| chat-hooks.test.ts               | 69     | 阶段 2                   |
-| a2ui-store-actions.test.ts       | 11     | 阶段 2                   |
-| models.test.ts                   | 14     | 单独修复（与本重构无关） |
+| 测试文件                         | 错误数 | 依赖                                      |
+| -------------------------------- | ------ | ----------------------------------------- |
+| dispatcher.test.ts               | 85     | Phase 1（函数导出）+ Phase 2（Map store） |
+| tool-progress-dispatcher.test.ts | 9      | Phase 1（函数导出）+ Phase 2（Map store） |
+| chat-store.test.ts               | 113    | Phase 2                                   |
+| chat-hooks.test.ts               | 69     | Phase 2                                   |
+| a2ui-store-actions.test.ts       | 11     | Phase 2                                   |
+| models.test.ts                   | 14     | 单独修复（与本重构无关）                  |
+
+测试中的 `dispatchApproval`、`dispatchA2UIEvent`、`reloadFullContent` 等函数目前不存在于生产代码中——它们是 SST 提案的预期 API。Phase 2 实施时需实现这些函数或调整测试。
 
 ---
 
