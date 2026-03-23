@@ -47,6 +47,8 @@ export interface ChatState {
 
   // Session state
   setSessionStreaming: (sessionKey: string, streaming: boolean) => void;
+  /** Convenience: sets isStreaming + streamingRunId in a single mutation. */
+  setStreaming: (sessionKey: string, streaming: boolean, runId?: string) => void;
   setSessionError: (sessionKey: string, error: string | null) => void;
   setRunMetadata: (sessionKey: string, msgId: string, metadata: Partial<RunMetadata>) => void;
 
@@ -267,6 +269,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
       next.set(sessionKey, {
         ...session,
         isStreaming: streaming,
+        lastAccessedAt: Date.now(),
+      });
+      return { sessions: next };
+    }),
+
+  setStreaming: (sessionKey, streaming, runId) =>
+    set((s) => {
+      const session = s.sessions.get(sessionKey);
+      if (!session) {
+        return s;
+      }
+      const next = new Map(s.sessions);
+      next.set(sessionKey, {
+        ...session,
+        isStreaming: streaming,
+        streamingRunId: streaming ? (runId ?? session.streamingRunId) : null,
         lastAccessedAt: Date.now(),
       });
       return { sessions: next };

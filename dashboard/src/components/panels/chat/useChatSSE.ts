@@ -6,7 +6,7 @@ import {
   type ChatStoreAPI,
   type ChatEventPayload,
   type AgentEventPayload,
-  createDispatcherContext,
+  type StreamingTracker,
   dispatchChatEvent,
   dispatchAgentEvent,
 } from "@/stores/chat-dispatchers";
@@ -19,42 +19,38 @@ import {
  */
 export function useChatSSE() {
   const store = useChatStore();
-  const ctxRef = useRef(createDispatcherContext());
+  const trackersRef = useRef(new Map<string, StreamingTracker>());
 
   useEffect(() => {
     const api: ChatStoreAPI = {
+      ensureSession: store.ensureSession,
       addMessage: store.addMessage,
-      updateStreamingMessage: store.updateStreamingMessage,
-      finalizeStreamingMessage: store.finalizeStreamingMessage,
-      appendThinking: store.appendThinking,
-      appendToolUse: store.appendToolUse,
-      updateToolUseResult: store.updateToolUseResult,
-      setIsStreaming: store.setIsStreaming,
-      setError: store.setError,
+      updateStreamingContent: store.updateStreamingContent,
+      appendContentBlock: store.appendContentBlock,
+      finalizeMessage: store.finalizeMessage,
+      setSessionStreaming: store.setSessionStreaming,
+      setStreaming: store.setStreaming,
+      setSessionError: store.setSessionError,
       setRunMetadata: store.setRunMetadata,
-      getMessages: () => useChatStore.getState().messages,
+      setActiveApproval: store.setActiveApproval,
+      appendA2UIEvent: store.appendA2UIEvent,
+      updateA2UISurfaces: store.updateA2UISurfaces,
+      setA2UIState: store.setA2UIState,
+      setMessages: store.setMessages,
+      getSessionMessages: (key) => useChatStore.getState().sessions.get(key)?.messages ?? [],
+      updateToolProgress: store.updateToolProgress,
     };
 
     const es = new EventSource("/api/stream");
 
     es.addEventListener("chat", (e) => {
-      dispatchChatEvent(JSON.parse(e.data) as ChatEventPayload, api, ctxRef.current);
+      dispatchChatEvent(JSON.parse(e.data) as ChatEventPayload, api, trackersRef.current);
     });
 
     es.addEventListener("agent", (e) => {
-      dispatchAgentEvent(JSON.parse(e.data) as AgentEventPayload, api, ctxRef.current);
+      dispatchAgentEvent(JSON.parse(e.data) as AgentEventPayload, api, trackersRef.current);
     });
 
     return () => es.close();
-  }, [
-    store.addMessage,
-    store.updateStreamingMessage,
-    store.finalizeStreamingMessage,
-    store.appendThinking,
-    store.appendToolUse,
-    store.updateToolUseResult,
-    store.setIsStreaming,
-    store.setError,
-    store.setRunMetadata,
-  ]);
+  }, [store]);
 }
