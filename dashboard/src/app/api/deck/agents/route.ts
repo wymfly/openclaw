@@ -1,8 +1,8 @@
 /**
- * /api/deck/agents — Agent detail, skills, and subagent config.
+ * /api/deck/agents — Agent detail, skills, subagent config, and event streams.
  *
  * GET    — Get agent detail (deck.agents.detail)
- * POST   — Dispatch skills.get/set, subagents.get/set by action field
+ * POST   — Dispatch skills.get/set, subagents.get/set, eventStreams.get/set by action field
  *
  * Gateway contracts:
  *   deck.agents.detail:                { agentId }
@@ -12,6 +12,8 @@
  *   deck.agents.subagents.set:         { agentId, allowAgents, model?, baseHash }
  *   deck.agents.toolPolicy.preview:    { agentId }
  *   deck.agents.systemPrompt.preview:  { agentId }
+ *   deck.agents.eventStreams.get:       { agentId }
+ *   deck.agents.eventStreams.set:       { agentId, eventStreams, baseHash }
  */
 import { type NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";
@@ -34,7 +36,9 @@ type AgentAction =
   | "subagents.get"
   | "subagents.set"
   | "toolPolicy.preview"
-  | "systemPrompt.preview";
+  | "systemPrompt.preview"
+  | "eventStreams.get"
+  | "eventStreams.set";
 
 export const POST = withAuth(async (request: NextRequest) => {
   const body = (await request.json()) as {
@@ -57,6 +61,10 @@ export const POST = withAuth(async (request: NextRequest) => {
       return gatewayRequest("deck.agents.toolPolicy.preview", params);
     case "systemPrompt.preview":
       return gatewayRequest("deck.agents.systemPrompt.preview", params);
+    case "eventStreams.get":
+      return gatewayRequest("deck.agents.eventStreams.get", params);
+    case "eventStreams.set":
+      return gatewayRequest("deck.agents.eventStreams.set", params);
     default:
       return Response.json({ error: "Invalid action" }, { status: 400 });
   }

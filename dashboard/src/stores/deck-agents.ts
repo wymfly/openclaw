@@ -105,6 +105,12 @@ export interface AgentSubagentConfig {
   configHash: string;
 }
 
+export interface AgentEventStreamsConfig {
+  eventStreams: string[];
+  isDefault: boolean;
+  configHash: string;
+}
+
 // ---------------------------------------------------------------------------
 // TTL cache
 // ---------------------------------------------------------------------------
@@ -125,6 +131,7 @@ interface DeckAgentsState {
   currentDetail: AgentDetail | null;
   currentSkills: AgentSkills | null;
   currentSubagentConfig: AgentSubagentConfig | null;
+  currentEventStreams: AgentEventStreamsConfig | null;
   toolPolicyPreview: ToolPolicyPreview | null;
   systemPromptPreview: SystemPromptPreview | null;
   bootstrapFileDetail: BootstrapFileDetail | null;
@@ -146,6 +153,8 @@ interface DeckAgentsState {
     model: string | null | undefined,
     baseHash: string,
   ) => Promise<boolean>;
+  fetchEventStreams: (agentId: string) => Promise<void>;
+  setEventStreams: (agentId: string, eventStreams: string[], baseHash: string) => Promise<boolean>;
   fetchToolPolicyPreview: (agentId: string) => Promise<void>;
   fetchSystemPromptPreview: (agentId: string) => Promise<void>;
   fetchBootstrapFile: (agentId: string, name: string) => Promise<void>;
@@ -158,6 +167,7 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   currentDetail: null,
   currentSkills: null,
   currentSubagentConfig: null,
+  currentEventStreams: null,
   toolPolicyPreview: null,
   systemPromptPreview: null,
   bootstrapFileDetail: null,
@@ -266,6 +276,48 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
       }
       return false;
     } catch {
+      return false;
+    }
+  },
+
+  fetchEventStreams: async (agentId: string) => {
+    try {
+      const res = await fetch("/api/deck/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "eventStreams.get", agentId }),
+      });
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as AgentEventStreamsConfig;
+      set({ currentEventStreams: data });
+    } catch {
+      // ignore
+    }
+  },
+
+  setEventStreams: async (agentId, eventStreams, baseHash) => {
+    try {
+      const res = await fetch("/api/deck/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "eventStreams.set", agentId, eventStreams, baseHash }),
+      });
+      if (!res.ok) {
+        return false;
+      }
+      const data = (await res.json()) as { ok: boolean; configHash: string };
+      set({
+        currentEventStreams: {
+          eventStreams,
+          isDefault: false,
+          configHash: data.configHash,
+        },
+      });
+      return true;
+    } catch {
+      set({ error: String("Failed to set event streams") });
       return false;
     }
   },
