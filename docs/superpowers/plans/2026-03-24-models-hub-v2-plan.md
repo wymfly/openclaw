@@ -126,6 +126,11 @@ function getNestedAllowlist(config: Record<string, unknown>): {
       entries[key] = {};
     }
   }
+  // IMPORTANT: Empty object = backend treats as no allowlist (allowAny=true).
+  // Match backend semantics: empty entries → inactive.
+  if (Object.keys(entries).length === 0) {
+    return { active: false, entries: {} };
+  }
   return { active: true, entries };
 }
 
@@ -154,15 +159,31 @@ function getNestedBedrockDiscovery(config: Record<string, unknown>): BedrockDisc
 Add after `getNestedBedrockDiscovery`:
 
 ```typescript
+// Static fallback for implicit (built-in) providers not in config.models.providers.
+// Backend normalizes provider names (e.g. "bedrock" → "amazon-bedrock"), so include aliases.
+const IMPLICIT_PROVIDER_API: Record<string, string> = {
+  anthropic: "anthropic-messages",
+  openai: "openai-responses",
+  google: "google-generative-ai",
+  "google-generative-ai": "google-generative-ai",
+  "github-copilot": "github-copilot",
+  "amazon-bedrock": "bedrock-converse-stream",
+  bedrock: "bedrock-converse-stream",
+  ollama: "ollama",
+};
+
 function getNestedProviderApiMap(config: Record<string, unknown>): Record<string, string> {
+  // Start with implicit provider defaults
+  const map: Record<string, string> = { ...IMPLICIT_PROVIDER_API };
+  // Override with explicit config (user-defined providers take precedence)
   const models = config.models as Record<string, unknown> | undefined;
   const providers = models?.providers as Record<string, unknown> | undefined;
-  if (!providers) return {};
-  const map: Record<string, string> = {};
-  for (const [name, value] of Object.entries(providers)) {
-    if (typeof value === "object" && value !== null) {
-      const api = (value as Record<string, unknown>).api;
-      if (typeof api === "string") map[name] = api;
+  if (providers) {
+    for (const [name, value] of Object.entries(providers)) {
+      if (typeof value === "object" && value !== null) {
+        const api = (value as Record<string, unknown>).api;
+        if (typeof api === "string") map[name] = api;
+      }
     }
   }
   return map;
@@ -319,9 +340,18 @@ Note: Use spread `{ ... }` to create new objects — do NOT mutate parsed config
       delete models[ref];
     }
 
+    // If allowlist becomes empty after removing last model, delete the
+    // models key entirely to match backend semantics (empty = allowAny).
+    const hasEntries = Object.keys(models).length > 0;
+
     const updatedConfig = {
       ...config,
-      agents: { ...agents, defaults: { ...defaults, models } },
+      agents: {
+        ...agents,
+        defaults: hasEntries
+          ? { ...defaults, models }
+          : (() => { const { models: _, ...rest } = defaults; return rest; })(),
+      },
     };
     return await patchConfig(get, set, updatedConfig);
   },
@@ -1233,7 +1263,14 @@ Replace the API Key section with conditional rendering:
         className="font-mono text-xs"
         autoComplete="off"
       />
-      <p className="text-[10px] text-[var(--muted-foreground)]">{t("secretHint")}</p>
+      <div className="flex items-center gap-1">
+        {apiKey.startsWith("${") && apiKey.endsWith("}") && (
+          <span className="text-[var(--primary)]" title="Environment variable reference">
+            🔗
+          </span>
+        )}
+        <p className="text-[10px] text-[var(--muted-foreground)]">{t("secretHint")}</p>
+      </div>
     </div>
   );
 }
@@ -1254,12 +1291,12 @@ Replace the API Key section with conditional rendering:
 }
 ```
 
-Update `canSave` — Base URL is optional for aws-sdk:
+Update `canSave` — Base URL is required for ALL auth types (schema enforces `baseUrl: z.string()`):
 
 ```typescript
 const canSave =
   providerName.trim().length > 0 &&
-  (authType === "aws-sdk" || baseUrl.trim().length > 0) &&
+  baseUrl.trim().length > 0 &&
   models.length > 0 &&
   models.every((m) => m.id.trim().length > 0) &&
   !saving;
@@ -1603,23 +1640,51 @@ After `<CardTitle>` in CardHeader:
 
 - [ ] **Step 3: Add secret hint below API Key input**
 
-After the API Key input `</div>`, add:
+After the API Key input closing `</div>`, add hint + dynamic icon:
 
 ```tsx
-<p className="text-[10px] text-[var(--muted-foreground)]">{t("config.secretHint")}</p>
+<div className="flex items-center gap-1">
+  {apiKey.startsWith("${") && apiKey.endsWith("}") && (
+    <span className="text-[var(--primary)]" title="Environment variable reference">
+      🔗
+    </span>
+  )}
+  <p className="text-[10px] text-[var(--muted-foreground)]">{t("config.secretHint")}</p>
+</div>
 ```
 
-The `secretHint` key was already added in Task 7.
+The `secretHint` key was already added in Task 7. The 🔗 icon appears dynamically when the input matches `${...}` pattern.
 
 - [ ] **Step 4: Pass authType from ProviderConfigTab**
 
-In `ProviderConfigTab.tsx`, pass the auth type from the auth overview entry:
+In `ProviderConfigTab.tsx`, derive auth type from config (primary) with authOverview fallback. Add store access:
+
+```typescript
+const { configRaw } = useModelsStore();
+
+// Derive auth type from config.models.providers[selected].auth (primary source)
+// Fall back to authOverview.auth.type (may lag behind for newly added providers)
+const configAuthType = useMemo(() => {
+  if (!configRaw || !selectedProvider) return null;
+  try {
+    const config = JSON.parse(configRaw) as Record<string, unknown>;
+    const models = config.models as Record<string, unknown> | undefined;
+    const providers = models?.providers as Record<string, unknown> | undefined;
+    const providerCfg = providers?.[selectedProvider] as Record<string, unknown> | undefined;
+    return (providerCfg?.auth as string) ?? null;
+  } catch {
+    return null;
+  }
+}, [configRaw, selectedProvider]);
+```
+
+Pass to ConfigForm:
 
 ```tsx
 <ConfigForm
   provider={selectedProvider!}
   initialConfig={selectedConfig}
-  authType={selectedEntry?.auth?.type ?? null}
+  authType={configAuthType ?? selectedEntry?.auth?.type ?? null}
   onSave={updateProviderConfig}
 />
 ```
