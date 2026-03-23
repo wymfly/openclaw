@@ -92,23 +92,25 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
-            <div>
+            <div className="min-w-0">
               <dt className="text-[var(--text-secondary)]">{t("id")}</dt>
-              <dd className="font-mono text-[var(--text-primary)] mt-0.5">{detail.id}</dd>
+              <dd className="font-mono text-[var(--text-primary)] mt-0.5 truncate">{detail.id}</dd>
             </div>
-            <div>
+            <div className="min-w-0">
               <dt className="text-[var(--text-secondary)]">{t("name")}</dt>
-              <dd className="text-[var(--text-primary)] mt-0.5">{detail.name}</dd>
+              <dd className="text-[var(--text-primary)] mt-0.5 truncate">{detail.name}</dd>
             </div>
-            <div>
+            <div className="min-w-0">
               <dt className="text-[var(--text-secondary)]">{t("workspace")}</dt>
-              <dd className="font-mono text-[var(--text-primary)] mt-0.5">
+              <dd className="font-mono text-[var(--text-primary)] mt-0.5 truncate">
                 {detail.workspace || "—"}
               </dd>
             </div>
-            <div>
+            <div className="min-w-0">
               <dt className="text-[var(--text-secondary)]">{t("model")}</dt>
-              <dd className="font-mono text-[var(--text-primary)] mt-0.5">{detail.model || "—"}</dd>
+              <dd className="font-mono text-[var(--text-primary)] mt-0.5 truncate">
+                {detail.model || "—"}
+              </dd>
             </div>
             {detail.isDefault && (
               <div className="col-span-2">
