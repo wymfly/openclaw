@@ -2,7 +2,7 @@
 
 import { ArrowRight, GitBranch, Trash2, User, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LineageTree } from "@/components/shared/LineageTree";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,6 +10,8 @@ import { navigateToSubagents } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { useSessionsStore, type HistoryMessage, type SessionEntry } from "@/stores/sessions";
+import { SessionExport } from "./SessionExport";
+import { TranscriptSearch } from "./TranscriptSearch";
 
 function pressureBarClass(pct: number): string {
   if (pct >= 80) {
@@ -65,7 +67,7 @@ function HistoryBubble({ message }: { message: HistoryMessage }) {
         className={cn(
           "shrink-0 w-7 h-7 rounded-full flex items-center justify-center ring-1",
           isUser
-            ? "bg-[var(--accent-muted)] text-[var(--accent)] ring-[var(--accent)]/20"
+            ? "bg-[var(--brand-muted)] text-[var(--brand)] ring-[var(--brand)]/20"
             : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] ring-[var(--border)]",
         )}
       >
@@ -80,7 +82,7 @@ function HistoryBubble({ message }: { message: HistoryMessage }) {
           className={cn(
             "px-3 py-2 text-sm leading-relaxed",
             isUser
-              ? "bg-[var(--accent)] text-white rounded-2xl rounded-br-md"
+              ? "bg-[var(--brand)] text-[var(--brand-fg)] rounded-2xl rounded-br-md"
               : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-2xl rounded-bl-md ring-1 ring-[var(--border-subtle)]",
           )}
         >
@@ -102,6 +104,12 @@ export function SessionDetail() {
   const { sessions, selectedKey, history, deleteSession } = useSessionsStore();
   const { lineage, fetchLineage } = useDeckSubagentsStore();
   const [confirming, setConfirming] = useState(false);
+  const [highlightIndices, setHighlightIndices] = useState<number[]>([]);
+  const bubbleRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const handleSearchNavigate = useCallback((index: number) => {
+    bubbleRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   const session = sessions.find((s) => s.key === selectedKey);
   const isSubagent = selectedKey ? selectedKey.includes(":subagent:") : false;
@@ -153,20 +161,23 @@ export function SessionDetail() {
           </div>
         </div>
 
-        <Button
-          variant={confirming ? "destructive" : "ghost"}
-          size="icon-sm"
-          title={confirming ? t("confirmDelete") : tc("delete")}
-          onClick={handleDelete}
-          onBlur={() => setConfirming(false)}
-          className={cn(
-            "cursor-pointer",
-            !confirming &&
-              "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
-          )}
-        >
-          <Trash2 size={15} />
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <SessionExport session={session} messages={history} />
+          <Button
+            variant={confirming ? "destructive" : "ghost"}
+            size="icon-sm"
+            title={confirming ? t("confirmDelete") : tc("delete")}
+            onClick={handleDelete}
+            onBlur={() => setConfirming(false)}
+            className={cn(
+              "cursor-pointer",
+              !confirming &&
+                "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
+            )}
+          >
+            <Trash2 size={15} />
+          </Button>
+        </div>
       </div>
 
       {/* Lineage block for subagent sessions */}
@@ -185,9 +196,9 @@ export function SessionDetail() {
                 onClick={navigateToSubagents}
                 className={cn(
                   "inline-flex items-center gap-1 text-[10px] font-medium cursor-pointer",
-                  "text-[var(--accent)] hover:text-[var(--accent)]/80",
+                  "text-[var(--brand)] hover:text-[var(--brand)]/80",
                   "transition-colors duration-150",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/50",
                 )}
               >
                 View in Subagents panel
@@ -241,6 +252,15 @@ export function SessionDetail() {
         )}
       </div>
 
+      {/* Transcript search */}
+      {history.length > 0 && (
+        <TranscriptSearch
+          messages={history}
+          onHighlight={setHighlightIndices}
+          onNavigate={handleSearchNavigate}
+        />
+      )}
+
       {/* Conversation history */}
       <ScrollArea className="flex-1 px-5 py-4">
         {history.length === 0 ? (
@@ -248,7 +268,19 @@ export function SessionDetail() {
             <p className="text-sm">{t("history")}</p>
           </div>
         ) : (
-          history.map((msg, i) => <HistoryBubble key={`${msg.role}-${i}`} message={msg} />)
+          history.map((msg, i) => (
+            <div
+              key={`${msg.role}-${i}`}
+              ref={(el) => {
+                bubbleRefs.current[i] = el;
+              }}
+              className={cn(
+                highlightIndices.includes(i) && "ring-2 ring-[var(--brand)] rounded-lg",
+              )}
+            >
+              <HistoryBubble message={msg} />
+            </div>
+          ))
         )}
       </ScrollArea>
     </div>

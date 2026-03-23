@@ -473,7 +473,13 @@
     "filterDirect": "Direct",
     "filterGroup": "Group",
     "filterChannel": "Channel",
-    "filterSubagent": "Subagent"
+    "filterSubagent": "Subagent",
+    "searchPlaceholder": "Search transcript...",
+    "searchCount": "{current} / {total}",
+    "searchNoResults": "No matches",
+    "exportJson": "Export JSON",
+    "exportMarkdown": "Export Markdown",
+    "exportEmpty": "Empty session cannot be exported"
   },
   "logs": {
     "title": "Log Viewer",

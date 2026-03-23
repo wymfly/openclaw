@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Locale } from "@/i18n/config";
+import { useConfigStore } from "@/stores/config";
 
 export type Panel =
   | "chat"
@@ -49,7 +50,16 @@ export const useUIStore = create<UIState>((set) => ({
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
-  setActivePanel: (activePanel) => set({ activePanel }),
+  setActivePanel: (activePanel) => {
+    const state = useUIStore.getState();
+    if (state.activePanel === "config" && activePanel !== "config") {
+      const { isDirty } = useConfigStore.getState();
+      if (isDirty && !window.confirm("You have unsaved changes. Discard?")) {
+        return;
+      }
+    }
+    set({ activePanel });
+  },
   setTheme: (theme) => set({ theme }),
   setLocale: (locale) => {
     set({ locale });
