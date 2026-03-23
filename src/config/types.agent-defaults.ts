@@ -284,6 +284,11 @@ export type AgentDefaultsConfig = {
   };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: AgentSandboxConfig;
+  /** Channel delivery controls (eventStreams whitelist for node/channel path). */
+  channels?: {
+    /** Agent event streams allowed to reach external channels. Default: ["lifecycle","assistant"]. */
+    eventStreams?: string[];
+  };
 };
 
 export type AgentCompactionMode = "default" | "safeguard";
