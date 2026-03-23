@@ -80,8 +80,6 @@ export interface ToolProgress {
 // ---------------------------------------------------------------------------
 
 export interface A2UIState {
-  /** Bundle URL or inline HTML to render. */
-  url: string;
   /** Whether the A2UI overlay is currently visible. */
   visible: boolean;
   bridgeStatus?: "connecting" | "ready" | "error";
@@ -100,7 +98,7 @@ export interface A2UIEvent {
 export const MAX_A2UI_EVENT_LOG = 200;
 
 // ---------------------------------------------------------------------------
-// Run metadata & subagent tracking
+// Run metadata
 // ---------------------------------------------------------------------------
 
 export interface RunMetadata {
@@ -110,18 +108,6 @@ export interface RunMetadata {
   durationMs?: number;
   startedAt?: number;
   streaming?: boolean;
-}
-
-export interface SubagentRun {
-  id: string;
-  taskDescription?: string;
-  status: "running" | "completed" | "failed";
-  startedAt: number;
-  completedAt?: number;
-  duration?: number;
-  parentRunId: string;
-  result?: string;
-  error?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -136,9 +122,7 @@ export interface SessionState {
   toolProgress: Record<string, ToolProgress>;
   activeApproval: ApprovalRequest | null;
   runMetadata: Record<string, RunMetadata>;
-  subagentRuns: Record<string, SubagentRun>;
   a2uiState: A2UIState | null;
-  status: "active" | "idle";
   lastAccessedAt: number;
 }
 
@@ -178,9 +162,41 @@ export function createEmptySessionState(): SessionState {
     toolProgress: {},
     activeApproval: null,
     runMetadata: {},
-    subagentRuns: {},
     a2uiState: null,
-    status: "idle",
     lastAccessedAt: Date.now(),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Rendering helpers — extract typed content from ChatMessage
+// ---------------------------------------------------------------------------
+
+export function getTextContent(msg: { content: ContentBlock[] }): string {
+  return msg.content
+    .filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+}
+
+export function getThinkingContent(msg: { content: ContentBlock[] }): string {
+  return msg.content
+    .filter((b): b is Extract<ContentBlock, { type: "thinking" }> => b.type === "thinking")
+    .map((b) => b.text)
+    .join("");
+}
+
+export function getToolUseBlocks(msg: {
+  content: ContentBlock[];
+}): Extract<ContentBlock, { type: "tool_use" }>[] {
+  return msg.content.filter(
+    (b): b is Extract<ContentBlock, { type: "tool_use" }> => b.type === "tool_use",
+  );
+}
+
+export function getToolResultBlocks(msg: {
+  content: ContentBlock[];
+}): Extract<ContentBlock, { type: "tool_result" }>[] {
+  return msg.content.filter(
+    (b): b is Extract<ContentBlock, { type: "tool_result" }> => b.type === "tool_result",
+  );
 }
