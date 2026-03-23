@@ -620,6 +620,28 @@
     "noRuns": "No runs yet",
     "runTriggered": "Job triggered"
   },
+  "scheduler": {
+    "cronJobs": "Cron Jobs",
+    "heartbeat": "Heartbeat",
+    "nextExecution": "Next Execution",
+    "globalConfig": "Global Configuration",
+    "everyInterval": "Interval",
+    "everyPlaceholder": "e.g. 30m, 1h, 2h30m",
+    "activeHours": "Active Hours",
+    "timezonePlaceholder": "e.g. Asia/Shanghai",
+    "targetAgent": "Target Agent",
+    "selectAgent": "Select agent...",
+    "promptTemplate": "Prompt Template",
+    "promptPlaceholder": "Heartbeat prompt sent to agent...",
+    "modelOptional": "Model (optional)",
+    "modelPlaceholder": "e.g. anthropic/claude-sonnet-4",
+    "perAgentOverrides": "Per-Agent Overrides",
+    "noOverrides": "No per-agent overrides configured",
+    "confirmRemoveOverride": "Remove this override?",
+    "disabled": "Disabled",
+    "nextActiveWindow": "Next active at {time}",
+    "imminent": "Imminent"
+  },
   "webhooks": {
     "title": "Webhooks",
     "addWebhook": "New Webhook",
