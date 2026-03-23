@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useChatStore } from "@/stores/chat";
-import { dispatchAgentEvent } from "../useChatSSE";
+import { dispatchAgentEvent } from "@/stores/chat-dispatchers";
 
 describe("dispatchAgentEvent — toolProgress", () => {
   const SESSION = "agent:main:tp-test";
@@ -10,7 +10,7 @@ describe("dispatchAgentEvent — toolProgress", () => {
       sessions: new Map(),
       activeSessionKey: null,
       activeAgentId: null,
-      sessionMeta: [],
+      sessionMetas: [],
     });
     useChatStore.getState().ensureSession(SESSION);
     useChatStore.getState().setStreaming(SESSION, true, "run-1");

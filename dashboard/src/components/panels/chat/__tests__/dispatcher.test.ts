@@ -7,18 +7,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ---------------------------------------------------------------------------
 
 let useChatStore: typeof import("@/stores/chat").useChatStore;
-let dispatchChatEvent: typeof import("../useChatSSE").dispatchChatEvent;
-let dispatchAgentEvent: typeof import("../useChatSSE").dispatchAgentEvent;
-let dispatchApproval: typeof import("../useChatSSE").dispatchApproval;
-let dispatchApprovalResolved: typeof import("../useChatSSE").dispatchApprovalResolved;
-let dispatchA2UIEvent: typeof import("../useChatSSE").dispatchA2UIEvent;
-let reloadFullContent: typeof import("../useChatSSE").reloadFullContent;
+let dispatchChatEvent: typeof import("@/stores/chat-dispatchers").dispatchChatEvent;
+let dispatchAgentEvent: typeof import("@/stores/chat-dispatchers").dispatchAgentEvent;
+let dispatchApproval: typeof import("@/stores/chat-dispatchers").dispatchApproval;
+let dispatchApprovalResolved: typeof import("@/stores/chat-dispatchers").dispatchApprovalResolved;
+let dispatchA2UIEvent: typeof import("@/stores/chat-dispatchers").dispatchA2UIEvent;
+let reloadFullContent: typeof import("@/stores/chat-dispatchers").reloadFullContent;
 
 beforeEach(async () => {
   vi.resetModules();
   const storeMod = await import("@/stores/chat");
   useChatStore = storeMod.useChatStore;
-  const dispatcherMod = await import("../useChatSSE");
+  const dispatcherMod = await import("@/stores/chat-dispatchers");
   dispatchChatEvent = dispatcherMod.dispatchChatEvent;
   dispatchAgentEvent = dispatcherMod.dispatchAgentEvent;
   dispatchApproval = dispatcherMod.dispatchApproval;
