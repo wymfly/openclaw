@@ -37,7 +37,7 @@ export function CanvasDebugPanel() {
             className={cn(
               "px-3 py-1.5 text-[11px] transition-colors cursor-pointer",
               activeTab === tab
-                ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
+                ? "text-[var(--brand)] border-b-2 border-[var(--brand)]"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
             )}
           >
@@ -83,7 +83,7 @@ export function CanvasDebugPanel() {
                       className={cn(
                         "min-w-[90px] font-medium text-[10px]",
                         evt.direction === "inbound"
-                          ? "text-[var(--accent)]"
+                          ? "text-[var(--brand)]"
                           : "text-[var(--warning)]",
                       )}
                     >

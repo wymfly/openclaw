@@ -138,7 +138,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         <button
           type="button"
           onClick={() => setShowDebug(!showDebug)}
-          className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+          className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--brand)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
           title={t("debugTitle")}
         >
           <Bug size={14} />
@@ -165,7 +165,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         {/* Overlay states */}
         {state === "loading" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--bg-primary)]">
-            <Loader2 size={20} className="animate-spin text-[var(--accent)]" />
+            <Loader2 size={20} className="animate-spin text-[var(--brand)]" />
             <span className="text-xs text-[var(--text-secondary)]">{t("canvasLoading")}</span>
           </div>
         )}
@@ -175,7 +175,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
             <button
               type="button"
               onClick={handleRetry}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[var(--accent)] text-white hover:opacity-90 transition-opacity cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[var(--brand)] text-[var(--brand-fg)] hover:opacity-90 transition-opacity cursor-pointer"
             >
               <RefreshCw size={12} />
               {t("canvasRetry")}
