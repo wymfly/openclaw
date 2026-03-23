@@ -82,6 +82,8 @@ export interface ToolProgress {
 export interface A2UIState {
   /** Whether the A2UI overlay is currently visible. */
   visible: boolean;
+  /** URL of the A2UI canvas frame. */
+  url?: string;
   bridgeStatus?: "connecting" | "ready" | "error";
   eventLog?: A2UIEvent[];
   surfaces?: string[];
@@ -117,6 +119,8 @@ export interface RunMetadata {
 export interface SessionState {
   messages: ChatMessage[];
   isStreaming: boolean;
+  /** Derived from isStreaming: "active" when streaming, "idle" otherwise. */
+  status: "idle" | "active";
   streamingRunId: string | null;
   error: string | null;
   toolProgress: Record<string, ToolProgress>;
@@ -157,6 +161,7 @@ export function createEmptySessionState(): SessionState {
   return {
     messages: [],
     isStreaming: false,
+    status: "idle",
     streamingRunId: null,
     error: null,
     toolProgress: {},

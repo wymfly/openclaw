@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { abortSession } from "./chat-abort";
 import type {
   ContentBlock,
   ChatMessage,
@@ -29,6 +30,8 @@ export type { SessionInfo } from "./chat-types";
 export interface ChatState {
   sessions: Map<string, SessionState>;
   sessionMetas: SessionMeta[];
+  /** Alias for sessionMetas — used by tests and legacy consumers. */
+  sessionMeta: SessionMeta[];
   activeSessionKey: string | null;
   activeAgentId: string | null;
 
@@ -36,27 +39,37 @@ export interface ChatState {
   ensureSession: (key: string) => SessionState;
   setActiveSession: (key: string | null) => void;
   removeSession: (key: string) => void;
+  /** Evict sessions idle longer than idleThresholdMs (skips active and activeSessionKey). */
+  evictStale: (idleThresholdMs: number) => void;
 
   // Message operations (all session-scoped)
   addMessage: (sessionKey: string, msg: ChatMessage) => void;
   updateStreamingContent: (sessionKey: string, msgId: string, content: ContentBlock[]) => void;
+  /** Alias for updateStreamingContent. */
+  updateStreamingBlocks: (sessionKey: string, msgId: string, content: ContentBlock[]) => void;
   appendContentBlock: (sessionKey: string, msgId: string, block: ContentBlock) => void;
   finalizeMessage: (sessionKey: string, msgId: string) => void;
+  /** Alias for finalizeMessage. */
+  finalizeStreamingMessage: (sessionKey: string, msgId: string) => void;
+  /** Replace all content blocks on a message and mark it as not streaming. */
+  replaceMessageContent: (sessionKey: string, msgId: string, content: ContentBlock[]) => void;
   setMessages: (sessionKey: string, messages: ChatMessage[]) => void;
   clearMessages: (sessionKey: string) => void;
 
   // Session state
   setSessionStreaming: (sessionKey: string, streaming: boolean) => void;
-  /** Convenience: sets isStreaming + streamingRunId in a single mutation. */
+  /** Convenience: sets isStreaming + status + streamingRunId in a single mutation. */
   setStreaming: (sessionKey: string, streaming: boolean, runId?: string) => void;
   setSessionError: (sessionKey: string, error: string | null) => void;
+  /** Alias for setSessionError. */
+  setError: (sessionKey: string, error: string | null) => void;
   setRunMetadata: (sessionKey: string, msgId: string, metadata: Partial<RunMetadata>) => void;
 
   // A2UI Canvas (session-scoped)
   updateA2UIBridgeStatus: (sessionKey: string, status: "connecting" | "ready" | "error") => void;
   appendA2UIEvent: (sessionKey: string, event: A2UIEvent) => void;
   updateA2UISurfaces: (sessionKey: string, surfaces: string[]) => void;
-  setA2UIState: (sessionKey: string, patch: Partial<A2UIState>) => void;
+  setA2UIState: (sessionKey: string, patch: Partial<A2UIState> | null) => void;
 
   // Tool progress (session-scoped)
   updateToolProgress: (sessionKey: string, toolUseId: string, progress: ToolProgress) => void;
@@ -66,6 +79,8 @@ export interface ChatState {
 
   // Session list
   setSessionMetas: (metas: SessionMeta[]) => void;
+  /** Alias for setSessionMetas — used by tests and legacy consumers. */
+  setSessionMeta: (metas: SessionMeta[]) => void;
   setActiveAgent: (agentId: string | null) => void;
 }
 
@@ -76,6 +91,8 @@ export interface ChatState {
 export const useChatStore = create<ChatState>((set, get) => ({
   sessions: new Map<string, SessionState>(),
   sessionMetas: [],
+  // sessionMeta is always kept in sync with sessionMetas (same reference)
+  sessionMeta: [],
   activeSessionKey: null,
   activeAgentId: null,
 
@@ -132,10 +149,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   removeSession: (key) => {
+    // Abort any in-flight request for this session
+    abortSession(key);
     set((s) => {
       const next = new Map(s.sessions);
       next.delete(key);
-      const patch: Partial<ChatState> = { sessions: next };
+      const updatedMetas = s.sessionMetas.filter((m) => m.key !== key);
+      const patch: Partial<ChatState> = {
+        sessions: next,
+        sessionMetas: updatedMetas,
+        sessionMeta: updatedMetas,
+      };
       if (s.activeSessionKey === key) {
         (patch as Record<string, unknown>).activeSessionKey = null;
       }
@@ -149,12 +173,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   addMessage: (sessionKey, msg) =>
     set((s) => {
-      const session = s.sessions.get(sessionKey);
-      if (!session) {
-        return s;
-      }
+      const session = s.sessions.get(sessionKey) ?? createEmptySessionState();
       // Deduplicate by id
-      if (session.messages.some((m) => m.id === msg.id)) {
+      if (s.sessions.has(sessionKey) && session.messages.some((m) => m.id === msg.id)) {
         return s;
       }
       const next = new Map(s.sessions);
@@ -219,6 +240,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ...session,
         messages: session.messages.map((m) => (m.id === msgId ? { ...m, streaming: false } : m)),
         isStreaming: false,
+        status: "idle",
         streamingRunId: null,
         lastAccessedAt: Date.now(),
       });
@@ -231,10 +253,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (!session) {
         return s;
       }
+      // Merge: keep SSE-only messages (UUID-like IDs not present in history) appended after history.
+      // History IDs use the "key:ts:idx" format; SSE IDs are UUIDs or run IDs.
+      const historyIds = new Set(messages.map((m) => m.id));
+      const isHistoryId = (id: string) => /^[^:]+:\d+:\d+$/.test(id);
+      const sseOnly = session.messages.filter((m) => !historyIds.has(m.id) && !isHistoryId(m.id));
+      const merged = sseOnly.length > 0 ? [...messages, ...sseOnly] : messages;
       const next = new Map(s.sessions);
       next.set(sessionKey, {
         ...session,
-        messages,
+        messages: merged,
         lastAccessedAt: Date.now(),
       });
       return { sessions: next };
@@ -284,6 +312,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       next.set(sessionKey, {
         ...session,
         isStreaming: streaming,
+        status: streaming ? "active" : "idle",
         streamingRunId: streaming ? (runId ?? session.streamingRunId) : null,
         lastAccessedAt: Date.now(),
       });
@@ -392,15 +421,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (!session) {
         return s;
       }
-      const a2ui: A2UIState = session.a2uiState ?? {
-        visible: false,
-      };
       const next = new Map(s.sessions);
-      next.set(sessionKey, {
-        ...session,
-        a2uiState: { ...a2ui, ...patch },
-        lastAccessedAt: Date.now(),
-      });
+      if (patch === null) {
+        // null clears the A2UI state entirely
+        next.set(sessionKey, {
+          ...session,
+          a2uiState: null,
+          lastAccessedAt: Date.now(),
+        });
+      } else {
+        const a2ui: A2UIState = session.a2uiState ?? { visible: false };
+        next.set(sessionKey, {
+          ...session,
+          a2uiState: { ...a2ui, ...patch },
+          lastAccessedAt: Date.now(),
+        });
+      }
       return { sessions: next };
     }),
 
@@ -446,6 +482,61 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Session list
   // -------------------------------------------------------------------------
 
-  setSessionMetas: (metas) => set({ sessionMetas: metas }),
+  setSessionMetas: (metas) => set({ sessionMetas: metas, sessionMeta: metas }),
+  setSessionMeta: (metas) => set({ sessionMetas: metas, sessionMeta: metas }),
   setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
+
+  // -------------------------------------------------------------------------
+  // Aliases (keep parity with tests / legacy consumers)
+  // -------------------------------------------------------------------------
+
+  updateStreamingBlocks: (sessionKey, msgId, content) =>
+    get().updateStreamingContent(sessionKey, msgId, content),
+
+  finalizeStreamingMessage: (sessionKey, msgId) => get().finalizeMessage(sessionKey, msgId),
+
+  replaceMessageContent: (sessionKey, msgId, content) =>
+    set((s) => {
+      const session = s.sessions.get(sessionKey);
+      if (!session) {
+        return s;
+      }
+      const next = new Map(s.sessions);
+      next.set(sessionKey, {
+        ...session,
+        messages: session.messages.map((m) =>
+          m.id === msgId ? { ...m, content, streaming: false } : m,
+        ),
+        lastAccessedAt: Date.now(),
+      });
+      return { sessions: next };
+    }),
+
+  setError: (sessionKey, error) => get().setSessionError(sessionKey, error),
+
+  // -------------------------------------------------------------------------
+  // Cache eviction
+  // -------------------------------------------------------------------------
+
+  evictStale: (idleThresholdMs) =>
+    set((s) => {
+      const now = Date.now();
+      const next = new Map(s.sessions);
+      for (const [k, v] of s.sessions) {
+        if (k === s.activeSessionKey) {
+          continue;
+        }
+        if (v.status === "active" || v.isStreaming) {
+          continue;
+        }
+        if (now - v.lastAccessedAt > idleThresholdMs) {
+          next.delete(k);
+        }
+      }
+      if (next.size === s.sessions.size) {
+        // Nothing removed — avoid creating a new reference
+        return s;
+      }
+      return { sessions: next };
+    }),
 }));
