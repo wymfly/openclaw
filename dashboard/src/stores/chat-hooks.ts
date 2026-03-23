@@ -1,12 +1,10 @@
 // ---------------------------------------------------------------------------
-// Session-scoped selector hooks for the refactored Zustand chat store.
+// Session-scoped selector hooks for the Zustand chat store.
 //
-// Each hook subscribes to a specific slice of a specific session, preventing
-// cross-session re-renders. All hooks accept an optional `sessionKey`; when
-// omitted they fall back to `activeSessionKey`.
+// All hooks read from the Map<string, SessionState> in ChatState.
+// When sessionKey is omitted, the active session is used.
 // ---------------------------------------------------------------------------
 
-import { useShallow } from "zustand/shallow";
 import { useChatStore } from "./chat";
 import type {
   ChatMessage,
@@ -17,11 +15,17 @@ import type {
   SessionMeta,
 } from "./chat-types";
 
+// Re-export types for consumers
+export type { ToolProgress, ApprovalRequest, A2UIState, A2UIEvent, SessionMeta };
+
+// hooks-specific composite type
+export type SessionIndicator = "approval" | "streaming" | "canvas" | "idle" | "none";
+
 // ---------------------------------------------------------------------------
 // Messages
 // ---------------------------------------------------------------------------
 
-/** Subscribe to messages for a single session. */
+/** Subscribe to messages for a session (defaults to active session). */
 export function useSessionMessages(sessionKey?: string): ChatMessage[] {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
@@ -33,28 +37,26 @@ export function useSessionMessages(sessionKey?: string): ChatMessage[] {
 // Streaming state
 // ---------------------------------------------------------------------------
 
-/** Subscribe to streaming status and run ID for a single session. */
+/** Subscribe to streaming status for a session (defaults to active session). */
 export function useSessionStreaming(sessionKey?: string): {
   isStreaming: boolean;
   runId: string | null;
 } {
-  return useChatStore(
-    useShallow((s) => {
-      const key = sessionKey ?? s.activeSessionKey;
-      const session = key ? s.sessions.get(key) : undefined;
-      return {
-        isStreaming: session?.isStreaming ?? false,
-        runId: session?.streamingRunId ?? null,
-      };
-    }),
-  );
+  return useChatStore((s) => {
+    const key = sessionKey ?? s.activeSessionKey;
+    const session = key ? s.sessions.get(key) : undefined;
+    return {
+      isStreaming: session?.isStreaming ?? false,
+      runId: session?.streamingRunId ?? null,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Tool progress
 // ---------------------------------------------------------------------------
 
-/** Subscribe to tool progress for a single session. */
+/** Subscribe to tool progress for a session (defaults to active session). */
 export function useSessionToolProgress(sessionKey?: string): Record<string, ToolProgress> {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
@@ -66,7 +68,7 @@ export function useSessionToolProgress(sessionKey?: string): Record<string, Tool
 // Approval
 // ---------------------------------------------------------------------------
 
-/** Subscribe to the active approval request for a single session. */
+/** Subscribe to the active approval request for a session (defaults to active session). */
 export function useSessionApproval(sessionKey?: string): ApprovalRequest | null {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
@@ -84,19 +86,10 @@ export function useActiveSessionKey(): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// Session meta list
-// ---------------------------------------------------------------------------
-
-/** Subscribe to the session metadata list. */
-export function useSessionMetaList(): SessionMeta[] {
-  return useChatStore((s) => s.sessionMeta);
-}
-
-// ---------------------------------------------------------------------------
 // Session error
 // ---------------------------------------------------------------------------
 
-/** Subscribe to the error for a single session. */
+/** Subscribe to the error for a session (defaults to active session). */
 export function useSessionError(sessionKey?: string): string | null {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
@@ -105,48 +98,8 @@ export function useSessionError(sessionKey?: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// A2UI state
-// ---------------------------------------------------------------------------
-
-/** Subscribe to A2UI overlay state for a single session. */
-export function useSessionA2UI(sessionKey?: string): A2UIState | null {
-  return useChatStore((s) => {
-    const key = sessionKey ?? s.activeSessionKey;
-    return key ? (s.sessions.get(key)?.a2uiState ?? null) : null;
-  });
-}
-
-// ---------------------------------------------------------------------------
-// A2UI event log
-// ---------------------------------------------------------------------------
-
-/** Subscribe to A2UI event log for a single session. */
-export function useSessionA2UIEvents(sessionKey?: string): A2UIEvent[] {
-  return useChatStore((s) => {
-    const key = sessionKey ?? s.activeSessionKey;
-    return key ? (s.sessions.get(key)?.a2uiState?.eventLog ?? []) : [];
-  });
-}
-
-// ---------------------------------------------------------------------------
-// A2UI bridge status
-// ---------------------------------------------------------------------------
-
-/** Subscribe to A2UI bridge status for a single session. */
-export function useSessionA2UIBridgeStatus(
-  sessionKey?: string,
-): "connecting" | "ready" | "error" | undefined {
-  return useChatStore((s) => {
-    const key = sessionKey ?? s.activeSessionKey;
-    return key ? s.sessions.get(key)?.a2uiState?.bridgeStatus : undefined;
-  });
-}
-
-// ---------------------------------------------------------------------------
 // Session indicator (composite selector)
 // ---------------------------------------------------------------------------
-
-export type SessionIndicator = "approval" | "streaming" | "canvas" | "idle" | "none";
 
 /**
  * Derive a single status indicator for a session.
@@ -158,15 +111,54 @@ export function useSessionIndicator(key: string): SessionIndicator {
     if (!session) {
       return "none";
     }
-    if (session.activeApproval) {
+    if (session.activeApproval != null) {
       return "approval";
     }
     if (session.isStreaming) {
       return "streaming";
     }
-    if (session.a2uiState) {
+    if (session.a2uiState?.visible) {
       return "canvas";
     }
-    return "idle";
+    return session.messages.length > 0 ? "idle" : "none";
   });
+}
+
+// ---------------------------------------------------------------------------
+// A2UI Canvas state
+// ---------------------------------------------------------------------------
+
+/** Subscribe to A2UI overlay state for a session (defaults to active session). */
+export function useSessionA2UI(sessionKey?: string): A2UIState | null {
+  return useChatStore((s) => {
+    const key = sessionKey ?? s.activeSessionKey;
+    return key ? (s.sessions.get(key)?.a2uiState ?? null) : null;
+  });
+}
+
+/** Subscribe to A2UI event log for a session (defaults to active session). */
+export function useSessionA2UIEvents(sessionKey?: string): A2UIEvent[] {
+  return useChatStore((s) => {
+    const key = sessionKey ?? s.activeSessionKey;
+    return key ? (s.sessions.get(key)?.a2uiState?.eventLog ?? []) : [];
+  });
+}
+
+/** Subscribe to A2UI bridge status for a session (defaults to active session). */
+export function useSessionA2UIBridgeStatus(
+  sessionKey?: string,
+): "connecting" | "ready" | "error" | undefined {
+  return useChatStore((s) => {
+    const key = sessionKey ?? s.activeSessionKey;
+    return key ? s.sessions.get(key)?.a2uiState?.bridgeStatus : undefined;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Session metadata list
+// ---------------------------------------------------------------------------
+
+/** Subscribe to the full list of session metadata. */
+export function useSessionMetaList(): SessionMeta[] {
+  return useChatStore((s) => s.sessionMetas);
 }
