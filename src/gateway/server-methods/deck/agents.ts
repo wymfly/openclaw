@@ -13,10 +13,13 @@ import {
   resolveConfigSnapshotHash,
   writeConfigFile,
 } from "../../../config/config.js";
+import { DEFAULT_EVENT_STREAMS } from "../../channel-event-filter.js";
 import {
   ErrorCodes,
   errorShape,
   validateDeckAgentsDetailParams,
+  validateDeckAgentsEventStreamsGetParams,
+  validateDeckAgentsEventStreamsSetParams,
   validateDeckAgentsSkillsGetParams,
   validateDeckAgentsSkillsSetParams,
   validateDeckAgentsSubagentsGetParams,
@@ -350,6 +353,103 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
       agentId,
       allowAgents,
       model: resolvedModel,
+      configHash,
+    });
+  },
+
+  "deck.agents.eventStreams.get": async ({ params, respond }) => {
+    if (
+      !assertValidParams(
+        params,
+        validateDeckAgentsEventStreamsGetParams,
+        "deck.agents.eventStreams.get",
+        respond,
+      )
+    ) {
+      return;
+    }
+    const cfg = loadConfig();
+    const agentId = (params as { agentId: string }).agentId;
+    const agentConfig = resolveAgentConfig(cfg, agentId);
+    if (!agentConfig) {
+      respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
+      return;
+    }
+
+    // Resolve effective eventStreams with fallback chain
+    // Semantic: undefined = not set (use fallback), [] = explicitly empty (filter all agent streams)
+    const agentStreams = agentConfig.channels?.eventStreams;
+    const defaultStreams = cfg.agents?.defaults?.channels?.eventStreams;
+    const effectiveStreams =
+      agentStreams !== undefined
+        ? agentStreams
+        : defaultStreams !== undefined
+          ? defaultStreams
+          : [...DEFAULT_EVENT_STREAMS];
+    const isDefault = agentStreams === undefined;
+
+    const { snapshot } = await readConfigFileSnapshotForWrite();
+    const configHash = resolveConfigSnapshotHash(snapshot) ?? "";
+
+    respond(true, {
+      agentId,
+      eventStreams: effectiveStreams,
+      isDefault,
+      configHash,
+    });
+  },
+
+  "deck.agents.eventStreams.set": async ({ params, respond }) => {
+    if (
+      !assertValidParams(
+        params,
+        validateDeckAgentsEventStreamsSetParams,
+        "deck.agents.eventStreams.set",
+        respond,
+      )
+    ) {
+      return;
+    }
+    const { agentId, eventStreams, baseHash } = params as {
+      agentId: string;
+      eventStreams: string[];
+      baseHash: string;
+    };
+
+    const { snapshot, writeOptions } = await readConfigFileSnapshotForWrite();
+    const currentHash = resolveConfigSnapshotHash(snapshot) ?? "";
+    const hashError = validateBaseHash(baseHash, currentHash);
+    if (hashError) {
+      respond(false, undefined, errorShape(hashError.code, hashError.message));
+      return;
+    }
+
+    const cfg = structuredClone(snapshot.config);
+    const agentList = cfg.agents?.list;
+    if (!Array.isArray(agentList)) {
+      respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
+      return;
+    }
+    const agentEntry = agentList.find((a) => a.id === agentId);
+    if (!agentEntry) {
+      respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
+      return;
+    }
+
+    if (!agentEntry.channels) {
+      (agentEntry as Record<string, unknown>).channels = {};
+    }
+    (agentEntry.channels as Record<string, unknown>).eventStreams = eventStreams;
+
+    await writeConfigFile(cfg, writeOptions);
+
+    const { snapshot: newSnapshot } = await readConfigFileSnapshotForWrite();
+    const configHash = resolveConfigSnapshotHash(newSnapshot) ?? "";
+
+    respond(true, {
+      ok: true,
+      agentId,
+      eventStreams,
       configHash,
     });
   },

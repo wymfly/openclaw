@@ -40,6 +40,9 @@ const mockConfig = {
         subagents: {
           allowAgents: ["*"],
         },
+        channels: {
+          eventStreams: ["lifecycle"],
+        },
       },
     ],
   },
@@ -377,5 +380,78 @@ describe("deck.agents.subagents.set", () => {
     });
     expect(result.ok).toBe(false);
     expect(writtenConfig).toBeNull();
+  });
+});
+
+// === Scenario 8: Get eventStreams ===
+describe("deck.agents.eventStreams.get", () => {
+  it("returns agent-level eventStreams when configured", async () => {
+    const result = await callHandler("deck.agents.eventStreams.get", { agentId: "researcher" });
+    expect(result.ok).toBe(true);
+    const p = result.payload as Record<string, unknown>;
+    expect(p.agentId).toBe("researcher");
+    expect(p.eventStreams).toEqual(["lifecycle"]);
+    expect(p.isDefault).toBe(false);
+    expect(p.configHash).toBeTruthy();
+  });
+
+  it("returns DEFAULT_EVENT_STREAMS when not configured", async () => {
+    const result = await callHandler("deck.agents.eventStreams.get", { agentId: "main" });
+    expect(result.ok).toBe(true);
+    const p = result.payload as Record<string, unknown>;
+    expect(p.agentId).toBe("main");
+    // No agent-level or defaults-level eventStreams → falls back to DEFAULT_EVENT_STREAMS
+    expect(p.eventStreams).toEqual(["lifecycle", "assistant"]);
+    expect(p.isDefault).toBe(true);
+    expect(p.configHash).toBeTruthy();
+  });
+
+  it("returns NOT_FOUND for unknown agent", async () => {
+    const result = await callHandler("deck.agents.eventStreams.get", { agentId: "nonexistent" });
+    expect(result.ok).toBe(false);
+  });
+});
+
+// === Scenario 9: Set eventStreams ===
+describe("deck.agents.eventStreams.set", () => {
+  it("writes eventStreams to agent config", async () => {
+    const result = await callHandler("deck.agents.eventStreams.set", {
+      agentId: "main",
+      eventStreams: ["lifecycle", "tool"],
+      baseHash: "hash-abc123",
+    });
+    expect(result.ok).toBe(true);
+    const p = result.payload as Record<string, unknown>;
+    expect(p.agentId).toBe("main");
+    expect(p.eventStreams).toEqual(["lifecycle", "tool"]);
+    expect(p.configHash).toBeTruthy();
+
+    // Verify written config
+    expect(writtenConfig).toBeTruthy();
+    const written = writtenConfig as typeof mockConfig;
+    const mainAgent = written.agents.list.find((a) => a.id === "main");
+    expect((mainAgent as Record<string, unknown>)?.channels).toBeTruthy();
+    expect(
+      ((mainAgent as Record<string, unknown>)?.channels as Record<string, unknown>)?.eventStreams,
+    ).toEqual(["lifecycle", "tool"]);
+  });
+
+  it("rejects on baseHash mismatch", async () => {
+    const result = await callHandler("deck.agents.eventStreams.set", {
+      agentId: "main",
+      eventStreams: ["lifecycle"],
+      baseHash: "wrong-hash",
+    });
+    expect(result.ok).toBe(false);
+    expect(writtenConfig).toBeNull();
+  });
+
+  it("returns NOT_FOUND for unknown agent", async () => {
+    const result = await callHandler("deck.agents.eventStreams.set", {
+      agentId: "nonexistent",
+      eventStreams: ["lifecycle"],
+      baseHash: "hash-abc123",
+    });
+    expect(result.ok).toBe(false);
   });
 });
