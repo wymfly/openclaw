@@ -391,7 +391,24 @@
     "usingDefault": "Using default",
     "fallbacks": "Fallbacks",
     "identity": "Identity",
-    "configureIdentity": "Configure identity →"
+    "configureIdentity": "Configure identity →",
+    "eventStreams": {
+      "title": "Channel Event Streams",
+      "description": "Deck Dashboard always receives all events. This config only affects external channels (WeCom / Telegram etc.).",
+      "chat": "Final Reply",
+      "chatHint": "Always on",
+      "lifecycle": "Run Status",
+      "lifecycleHint": "Start/End/Error",
+      "assistant": "Text Output",
+      "assistantHint": "LLM text stream",
+      "tool": "Tool Calls",
+      "toolHint": "Tool name and results",
+      "thinking": "Reasoning",
+      "thinkingHint": "Model thinking content",
+      "locked": "Always on",
+      "usingDefault": "Using global default",
+      "saveError": "Save failed"
+    }
   },
   "context": {
     "title": "Prompt Composition",

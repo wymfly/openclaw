@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { navigateToSubagents } from "@/lib/panel-navigation";
 import type { AgentDetail } from "@/stores/deck-agents";
+import { ChannelEventStreamSection } from "./ChannelEventStreamSection";
 
 type TabValue = "overview" | "routing" | "skills" | "context" | "subagent" | "sessions";
 
@@ -111,7 +112,7 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
             </div>
             {detail.isDefault && (
               <div className="col-span-2">
-                <Badge className="text-[10px] border-0 bg-[var(--accent-muted)] text-[var(--accent)]">
+                <Badge className="text-[10px] border-0 bg-[var(--brand-muted)] text-[var(--brand)]">
                   {t("defaultAgent")}
                 </Badge>
               </div>
@@ -125,7 +126,7 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
         <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 text-xs">
-              <Shield size={14} className="text-[var(--accent)]" />
+              <Shield size={14} className="text-[var(--brand)]" />
               <span className="text-[var(--text-secondary)]">{t("sandboxMode")}</span>
             </div>
             <p className="text-xs text-[var(--text-primary)] mt-1">
@@ -147,7 +148,7 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
         <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 text-xs">
-              <Cpu size={14} className="text-[var(--accent)]" />
+              <Cpu size={14} className="text-[var(--brand)]" />
               <span className="text-[var(--text-secondary)]">{t("modelConfig")}</span>
             </div>
             <p className="font-mono text-xs text-[var(--text-primary)] mt-1">
@@ -166,7 +167,7 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
       <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
         <CardContent className="p-3">
           <div className="flex items-center gap-2 text-xs mb-2">
-            <User size={14} className="text-[var(--accent)]" />
+            <User size={14} className="text-[var(--brand)]" />
             <span className="text-[var(--text-secondary)]">{t("identity")}</span>
             {detail.identityExists && (
               <Badge variant="secondary" className="text-[10px]">
@@ -175,14 +176,14 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--accent-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--accent)]/20">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--brand)]/20">
               {detail.name?.charAt(0)?.toUpperCase() ?? "?"}
             </div>
             <div className="text-xs">
               <p className="text-[var(--text-primary)] font-medium">{detail.name}</p>
               <button
                 onClick={() => onNavigateTab("context")}
-                className="text-[var(--accent)] hover:underline cursor-pointer"
+                className="text-[var(--brand)] hover:underline cursor-pointer"
               >
                 {t("configureIdentity")}
               </button>
@@ -203,9 +204,9 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
                 onNavigateTab(card.tab);
               }
             }}
-            className="text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded-lg"
+            className="text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/50 rounded-lg"
           >
-            <Card className="bg-[var(--bg-primary)] border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors h-full">
+            <Card className="bg-[var(--bg-primary)] border-[var(--border)] hover:border-[var(--brand)]/30 transition-colors h-full">
               <CardContent className="p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <span className={card.color}>{card.icon}</span>
@@ -221,6 +222,9 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
           </button>
         ))}
       </div>
+
+      {/* Channel Event Streams */}
+      <ChannelEventStreamSection agentId={detail.id} />
     </div>
   );
 }
