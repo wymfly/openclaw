@@ -391,7 +391,24 @@
     "usingDefault": "使用默认",
     "fallbacks": "回退链",
     "identity": "身份",
-    "configureIdentity": "配置身份 →"
+    "configureIdentity": "配置身份 →",
+    "eventStreams": {
+      "title": "渠道事件分发",
+      "description": "Deck Dashboard 始终接收全量事件。此配置仅影响外部消息渠道（WeCom / Telegram 等）。",
+      "chat": "最终回复",
+      "chatHint": "始终开启",
+      "lifecycle": "运行状态",
+      "lifecycleHint": "开始/结束/错误",
+      "assistant": "文本输出",
+      "assistantHint": "LLM 文本流",
+      "tool": "工具调用",
+      "toolHint": "工具名称和结果",
+      "thinking": "推理过程",
+      "thinkingHint": "模型思考内容",
+      "locked": "始终开启",
+      "usingDefault": "使用全局默认",
+      "saveError": "保存失败"
+    }
   },
   "context": {
     "title": "Prompt 组合",
