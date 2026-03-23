@@ -54,6 +54,33 @@
     "noMessages": "No messages yet. Start a conversation!",
     "thinking": "Thinking...",
     "toolUse": "Tool Call",
+    "toolCall": "Tool Call",
+    "toolResult": "Tool Result",
+    "toolError": "Tool Error",
+    "copied": "Copied",
+    "copyJson": "Copy JSON",
+    "binaryFile": "Binary file",
+    "bashCommand": "Command",
+    "bashExitCode": "Exit code",
+    "bashStdout": "STDOUT",
+    "bashStderr": "STDERR",
+    "showRaw": "Show Raw",
+    "showFormatted": "Formatted",
+    "paramShowFull": "Show full",
+    "paramShowLess": "Show less",
+    "paramNoParams": "No parameters",
+    "paramKeys": "{count} keys",
+    "runTokensIn": "In",
+    "runTokensOut": "Out",
+    "runTokensCache": "Cache",
+    "runStreaming": "Streaming",
+    "runDuration": "Duration",
+    "openArtifact": "Open",
+    "artifactJson": "JSON Data",
+    "artifactCode": "Code",
+    "artifactMarkdown": "Document",
+    "artifactTable": "Table",
+    "artifactJsonInvalid": "Invalid JSON",
     "error": "Failed to send"
   },
   "gateway": {
@@ -114,7 +141,13 @@
       "noRuns": "No runs recorded yet",
       "running": "Running",
       "completed": "Completed",
-      "error": "Error"
+      "error": "Error",
+      "time": {
+        "1h": "Last 1 hour",
+        "24h": "Last 24 hours",
+        "7d": "Last 7 days",
+        "all": "All time"
+      }
     },
     "timeline": {
       "selectRun": "Select a run to view details",

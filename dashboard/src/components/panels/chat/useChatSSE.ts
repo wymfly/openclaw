@@ -298,6 +298,54 @@ export function useChatSSE() {
           );
         }
       }
+
+      // Lifecycle events: capture run metadata (model, usage, duration).
+      if (payload.stream === "lifecycle") {
+        const phase = payload.data.phase as string | undefined;
+        if (phase === "end" || phase === "error") {
+          const model = payload.data.model as string | undefined;
+          const provider = payload.data.provider as string | undefined;
+          const usage = payload.data.usage as
+            | { input?: number; output?: number; cacheRead?: number }
+            | undefined;
+          const endedAt = payload.data.endedAt as number | undefined;
+          const startedAt = payload.data.startedAt as number | undefined;
+          if (model || usage) {
+            const targetId = streamingRunIdRef.current ?? agentRunId;
+            useChatStore.getState().setRunMetadata(targetId, {
+              model,
+              provider,
+              usage: usage
+                ? { input: usage.input, output: usage.output, cache: usage.cacheRead }
+                : undefined,
+              durationMs: endedAt && startedAt ? endedAt - startedAt : undefined,
+              startedAt,
+            });
+          }
+        }
+      }
+
+      // Thinking stream: append reasoning traces to the current message.
+      if (payload.stream === "thinking") {
+        const text = payload.data.text as string | undefined;
+        if (text && streamingRunIdRef.current) {
+          appendThinking(streamingRunIdRef.current, text);
+        } else if (text && !streamingRunIdRef.current) {
+          // Thinking arrived before chat delta — create placeholder
+          streamingRunIdRef.current = agentRunId;
+          prevThinkingRef.current = "";
+          prevToolCountRef.current = 0;
+          setIsStreaming(true);
+          addMessage({
+            id: agentRunId,
+            role: "assistant",
+            content: "",
+            timestamp: payload.ts ?? Date.now(),
+            streaming: true,
+            thinking: text,
+          });
+        }
+      }
     });
 
     return () => es.close();

@@ -127,6 +127,12 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext): void | Promise<
       });
       return;
     }
+    // [enhanced] Include model + usage so Deck RunStatusBar can display metadata
+    const usage = ctx.getUsageTotals();
+    const assistantModel =
+      lastAssistant && isAssistantMessage(lastAssistant) ? lastAssistant.model : undefined;
+    const assistantProvider =
+      lastAssistant && isAssistantMessage(lastAssistant) ? lastAssistant.provider : undefined;
     emitAgentEvent({
       runId: ctx.params.runId,
       stream: "lifecycle",
@@ -135,6 +141,9 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext): void | Promise<
         ...(livenessState ? { livenessState } : {}),
         ...(replayInvalid ? { replayInvalid } : {}),
         endedAt: Date.now(),
+        model: assistantModel,
+        provider: assistantProvider,
+        usage,
       },
     });
     void ctx.params.onAgentEvent?.({

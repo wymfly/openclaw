@@ -1,89 +1,38 @@
 "use client";
 
-import { Bot, User, Wrench, Brain, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Bot, User } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useChatStore, type ChatMessage, type ToolUseBlock } from "@/stores/chat";
+import type { RunMetadata } from "@/stores/chat-types";
+import { ThinkingBlock } from "./blocks/ThinkingBlock";
+import { ToolResultCard } from "./blocks/ToolResultCard";
+import { ToolUseCard } from "./blocks/ToolUseCard";
+import { RunStatusBar } from "./RunStatusBar";
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function ThinkingBlock({ text }: { text: string }) {
-  const t = useTranslations("chat");
+function ToolUseWithResult({ tool, streaming }: { tool: ToolUseBlock; streaming?: boolean }) {
   return (
-    <details className="my-1.5 text-xs">
-      <summary
-        className="flex items-center gap-1 cursor-pointer select-none"
-        style={{ color: "var(--text-secondary)" }}
-      >
-        <Brain size={12} />
-        {t("thinking")}
-      </summary>
-      <pre
-        className="mt-1 p-2 rounded text-xs whitespace-pre-wrap overflow-auto"
-        style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
-      >
-        {text}
-      </pre>
-    </details>
-  );
-}
-
-function ToolStatusIcon({ status }: { status?: string }) {
-  if (status === "running") {
-    return <Loader2 size={12} className="animate-spin text-[var(--accent)]" />;
-  }
-  if (status === "error") {
-    return <XCircle size={12} className="text-[var(--danger)]" />;
-  }
-  if (status === "completed") {
-    return <CheckCircle2 size={12} className="text-[var(--success)]" />;
-  }
-  return <Wrench size={12} />;
-}
-
-function ToolUseCard({ tool }: { tool: ToolUseBlock }) {
-  const t = useTranslations("chat");
-  const isRunning = tool.status === "running";
-  return (
-    <details
-      className="my-1.5 text-xs border rounded"
-      style={{ borderColor: "var(--border)" }}
-      open={isRunning}
-    >
-      <summary
-        className="flex items-center gap-1.5 px-2 py-1 cursor-pointer select-none"
-        style={{ color: "var(--text-secondary)" }}
-      >
-        <ToolStatusIcon status={tool.status} />
-        <span className="font-medium">{t("toolUse")}:</span>
-        <code className="font-mono">{tool.name}</code>
-      </summary>
-      <div className="px-2 pb-2">
-        {Object.keys(tool.input).length > 0 && (
-          <pre
-            className="mt-1 p-2 rounded text-xs overflow-auto"
-            style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
-          >
-            {JSON.stringify(tool.input, null, 2)}
-          </pre>
-        )}
-        {tool.result && (
-          <pre
-            className="mt-1 p-2 rounded text-xs overflow-auto"
-            style={{
-              backgroundColor: "var(--bg-secondary)",
-              color: tool.isError ? "var(--danger)" : "var(--text-primary)",
-            }}
-          >
-            {tool.result}
-          </pre>
-        )}
-      </div>
-    </details>
+    <>
+      <ToolUseCard
+        name={tool.name}
+        input={tool.input}
+        defaultOpen={tool.status === "running" || streaming}
+      />
+      {tool.result != null && (
+        <ToolResultCard
+          content={tool.result}
+          isError={tool.isError}
+          toolName={tool.name}
+          toolInput={tool.input}
+        />
+      )}
+    </>
   );
 }
 
@@ -109,9 +58,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         {/* Thinking trace */}
         {message.thinking && <ThinkingBlock text={message.thinking} />}
 
-        {/* Tool use blocks */}
+        {/* Tool use blocks — enhanced cards with result routing */}
         {message.toolUse?.map((tool, i) => (
-          <ToolUseCard key={`${tool.name}-${i}`} tool={tool} />
+          <ToolUseWithResult
+            key={tool.toolCallId ?? `${tool.name}-${i}`}
+            tool={tool}
+            streaming={message.streaming}
+          />
         ))}
 
         {/* Main content */}
@@ -144,6 +97,22 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           <span className="text-xs mt-1" style={{ color: "var(--status-disconnected)" }}>
             {message.error}
           </span>
+        )}
+
+        {/* Run metadata bar (model, tokens, duration) */}
+        {!isUser && message.runMetadata?.model && (
+          <RunStatusBar
+            metadata={
+              {
+                runId: message.id,
+                model: message.runMetadata.model,
+                usage: message.runMetadata.usage,
+                durationMs: message.runMetadata.durationMs,
+                startedAt: message.runMetadata.startedAt,
+                streaming: message.streaming,
+              } satisfies RunMetadata
+            }
+          />
         )}
 
         {/* Timestamp */}

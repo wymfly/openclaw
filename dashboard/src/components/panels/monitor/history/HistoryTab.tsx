@@ -5,13 +5,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { useMonitorStore, type RunListItem, type RunStatus } from "@/stores/monitor";
 
 // ---------------------------------------------------------------------------
@@ -280,7 +274,7 @@ export function HistoryTab() {
         {/* Time range */}
         <Select value={sinceToTimeRange(filters.since)} onValueChange={handleTimeRangeChange}>
           <SelectTrigger size="sm" className="text-xs min-w-[5.5rem]">
-            <SelectValue />
+            <span>{t(`history.time.${sinceToTimeRange(filters.since)}`)}</span>
           </SelectTrigger>
           <SelectContent>
             {TIME_RANGES.map((r) => (
@@ -294,7 +288,11 @@ export function HistoryTab() {
         {/* Status filter */}
         <Select value={filters.status ?? "all"} onValueChange={handleStatusChange}>
           <SelectTrigger size="sm" className="text-xs min-w-[5.5rem]">
-            <SelectValue />
+            <span>
+              {(filters.status ?? "all") === "all"
+                ? t("history.allStatus")
+                : t(STATUS_LABEL_KEY[filters.status!] ?? "history.running")}
+            </span>
           </SelectTrigger>
           <SelectContent>
             {STATUS_OPTIONS.map((s) => (

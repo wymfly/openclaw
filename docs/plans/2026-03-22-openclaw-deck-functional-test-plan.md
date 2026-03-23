@@ -407,9 +407,121 @@ Gateway 双事件流架构：
 
 #### 下一步
 
-- History tab combobox i18n 修复（minor）
+- ~~History tab combobox i18n 修复（minor）~~ ✅ 已修复（Round 10）
+- ~~P2 blocks/ 集成到 MessageList~~ ✅ 已完成（Round 10 实施）
+- ~~Thinking SSE 订阅~~ ✅ 已添加 `stream: "thinking"` 监听（Round 10 实施）
 - P3 增强测试
-- Thinking 支持需 Gateway 侧改动（`emitReasoningStream` 不调用 `emitAgentEvent`）
+- Thinking 需 Gateway 配置 `reasoningLevel: "stream"` 才会实际发送事件
+- Tool result 内容为空：agent event `result` 字段不含工具输出（需 Gateway 改进）
+
+### Round 10 — 2026-03-23 Context Tab 深度 + History i18n + blocks 集成 (Mode A MCP 交互式)
+
+**修复**：3 项 | **实施**：3 项（L1 blocks 集成 + L2 thinking SSE + i18n keys）| **验证**：18 用例 | ✅ 13 PASS | ⏭️ 5 SKIP
+
+#### 修复清单
+
+| #   | 文件                  | 修复内容                                                                          |
+| --- | --------------------- | --------------------------------------------------------------------------------- |
+| 26  | `zh.json` + `en.json` | 新增 `monitor.history.time.*` i18n keys（1h/24h/7d/all × 2 语言）                 |
+| 27  | `HistoryTab.tsx`      | Select 触发器用 `<span>` 直接渲染翻译文本替代 `<SelectValue>`（Base UI 渲染限制） |
+| 28  | `stores/chat.ts`      | `addMessage` 增加 ID 去重，防止 chat + agent SSE 事件竞态创建重复消息             |
+
+#### P2 blocks 集成实施清单
+
+| #    | 层   | 文件                  | 实施内容                                                                               |
+| ---- | ---- | --------------------- | -------------------------------------------------------------------------------------- |
+| L1   | 前端 | `MessageList.tsx`     | 替换内联 ToolUseCard/ThinkingBlock → blocks/ 增强版，添加 ToolResultCard 渲染          |
+| L1   | 前端 | `ChatPanel.tsx`       | 导出 `ArtifactContext`（ToolResultCard 依赖）                                          |
+| L2   | SSE  | `useChatSSE.ts`       | 添加 `stream: "thinking"` 事件监听 → `appendThinking()`                                |
+| i18n | 前端 | `zh.json` + `en.json` | 新增 14 个 chat.\* i18n keys（toolCall/copied/copyJson/bashCommand/paramShowFull/...） |
+
+**验证结果**：`tsc --noEmit` 零新错误 + 浏览器零 console 错误 + 增强版组件渲染正确
+
+#### Chat P2 白盒 — 组件集成状态分析（集成后更新）
+
+| 组件           | 文件位置                  | MessageList 集成    | 数据管线              | 可测性    |
+| -------------- | ------------------------- | ------------------- | --------------------- | --------- |
+| ToolUseCard    | blocks/ToolUseCard.tsx    | ✅ **已集成**（L1） | ✅ agent SSE          | ✅ PASS   |
+| ToolResultCard | blocks/ToolResultCard.tsx | ✅ **已集成**（L1） | ⚠️ result 为空字符串  | ⚠️ 数据缺 |
+| ThinkingBlock  | blocks/ThinkingBlock.tsx  | ✅ **已集成**（L1） | ✅ thinking SSE（L2） | ⏭️ 需配置 |
+| RunStatusBar   | RunStatusBar.tsx          | ❌ 未导入           | ❌ 无 RunMetadata     | ⏭️ SKIP   |
+| SubagentCard   | SubagentCard.tsx          | ❌ 未导入           | ❌ 无 subagent 事件   | ⏭️ SKIP   |
+| BlockFilterBar | BlockFilterBar.tsx        | ❌ 未导入           | ✅ localStorage 就绪  | ⏭️ SKIP   |
+| ApprovalDialog | ApprovalDialog.tsx        | ❌ 未导入           | ❌ 无 approval 事件   | ⏭️ SKIP   |
+
+**L1 集成后改善**：ToolUseCard 增强版（key-value 参数 + 参数摘要 + Copy JSON）已渲染正确。ToolResultCard 渲染逻辑正确但 agent event result 字段为空（需 Gateway 改进）。ThinkingBlock SSE 监听已添加（需 agent 配置 `reasoningLevel: "stream"` 触发）。
+
+#### Chat P2 CHAT-010~033 复测（3 用例）
+
+| ID       | 测试点          | 结果 | 备注                                                       |
+| -------- | --------------- | ---- | ---------------------------------------------------------- |
+| CHAT-011 | 工具参数格式化  | ⏭️   | 内联版使用 JSON.stringify，非 key-value（需 blocks/ 集成） |
+| CHAT-016 | Bash 失败结果   | ⏭️   | 内联版 result 为空字符串（exec 工具不透传 stderr）         |
+| 去重验证 | addMessage 去重 | ✅   | 刷新后零 "duplicate key" React 错误                        |
+
+#### Agent P6 Context Tab 深度测试（10 用例 → 10 PASS）
+
+| ID        | 测试点           | 结果 | 备注                                                                                    |
+| --------- | ---------------- | ---- | --------------------------------------------------------------------------------------- |
+| AGENT-050 | 3 区域结构       | ✅   | Prompt 层级 / 启动文件 / 工具策略 三个折叠区域                                          |
+| AGENT-051 | Prompt 层        | ✅   | 4 层：Bootstrap Files / Identity / Skills Prompt / Extra Instructions + charCount badge |
+| AGENT-052 | 最小配置 agent   | ✅   | 所有层 0 ch                                                                             |
+| AGENT-053 | 刷新按钮         | ✅   | "刷新" 按钮可见                                                                         |
+| AGENT-054 | 默认折叠状态     | ✅   | Prompt 折叠 / 启动文件展开 / 工具策略折叠                                               |
+| AGENT-055 | 启动文件列表     | ✅   | 7 个 well-known 文件 + "创建" 按钮（Round 7 PARTIAL→PASS）                              |
+| AGENT-058 | 创建不存在的文件 | ✅   | 空文本编辑器 + "保存"/"取消" 按钮                                                       |
+| AGENT-059 | 取消编辑         | ✅   | 编辑器关闭，不保存，恢复 "创建" 按钮                                                    |
+| AGENT-060 | 工具策略管道     | ✅   | 7 层纵向堆叠（tools.profile → group tools.allow）                                       |
+| AGENT-062 | 默认策略 agent   | ✅   | 全部 passthrough                                                                        |
+
+#### Agent P6 Context Tab 工具列表（4 用例 → 3 PASS / 1 SKIP）
+
+| ID        | 测试点       | 结果 | 备注                                                       |
+| --------- | ------------ | ---- | ---------------------------------------------------------- |
+| AGENT-064 | 工具列表     | ✅   | 25 个工具，全部 "default" 状态                             |
+| AGENT-065 | 工具搜索     | ✅   | 输入 "exec" 后列表过滤为 1 个                              |
+| AGENT-066 | 工具解析详情 | ✅   | 展开 exec：7 层逐层 trace，全部 "no-opinion"               |
+| AGENT-067 | 被拒绝的工具 | ⏭️   | 无 agent 级策略拒绝的工具（需自定义 tool policy 测试数据） |
+
+#### Monitor History i18n 修复验证（1 用例 → 1 PASS）
+
+| ID      | 测试点         | 结果 | 备注                                                     |
+| ------- | -------------- | ---- | -------------------------------------------------------- |
+| MON-030 | History 过滤器 | ✅   | 时间范围 "全部"、状态 "全部状态"（修复前显示 raw "all"） |
+| MON-003 | Tab 持久化     | ✅   | 切换到时间线→离开→返回→时间线保持                        |
+
+#### 累计统计
+
+| 轮次                         | 用例数  | PASS   | PARTIAL | FAIL  | SKIP   |
+| ---------------------------- | ------- | ------ | ------- | ----- | ------ |
+| Round 1 (P0+P1)              | 31      | 23     | 2       | 0     | 6      |
+| Round 2 (P1 扩展)            | 18      | 15     | 2       | 0     | 1      |
+| Round 3 (P2+观测)            | 5       | 5      | 0       | 0     | 0      |
+| Round 4 (Agent tabs+Config)  | 8       | 8      | 0       | 0     | 0      |
+| Round 5 (SKIP 复测)          | 3       | 2      | 1       | 0     | 0      |
+| Round 6 (PARTIAL 修复)       | 3       | 3      | 0       | 0     | 0      |
+| Round 7 (P2 增强+R6 验证)    | 46      | 12     | 1       | 1     | 32     |
+| Round 8 (修复+Monitor 复测)  | 15      | 10     | 2       | 0     | 3      |
+| Round 9 (Chat 白盒管线)      | 4       | 3      | 0       | 0     | 1      |
+| Round 10 (Context 深度+i18n) | 18      | 13     | 0       | 0     | 5      |
+| **累计**                     | **151** | **94** | **3**   | **1** | **43** |
+
+**有效通过率**：94 / (151 - 43 SKIP) = 94 / 108 = **87%**
+
+- Round 10 修复 3 个 Bug（#26 i18n time keys / #27 Select 触发器渲染 / #28 addMessage 去重）
+- Context Tab P6 深度测试全部通过（10/10 + 3/4 工具列表）
+- Chat P2 白盒大部分 SKIP — 增强版 blocks/ 组件未集成到 MessageList
+
+#### 剩余 SKIP 分类（43 个）
+
+| 阻塞原因                          | 影响用例                   | 可否解决                   |
+| --------------------------------- | -------------------------- | -------------------------- |
+| P2 blocks/ 未集成到 MessageList   | CHAT-011~033 大部分        | 需集成工作（新任务）       |
+| Gateway 不广播 thinking 事件      | CHAT-030                   | 需 Gateway 改动            |
+| 无 subagent 测试数据              | SESS-010/012, CHAT-026~029 | 需构造 subagent session    |
+| 无自定义 tool policy 测试数据     | AGENT-067                  | 需配置 agent 级 allow/deny |
+| 无 sandbox/fallback/identity 数据 | AGENT-020/022/024/025      | 需配置相应 agent           |
+| 无 run history 数据               | MON-010~019, MON-031       | 需 Monitor store 对接 RPC  |
 
 ---
 

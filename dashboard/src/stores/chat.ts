@@ -26,6 +26,14 @@ export interface ChatMessage {
   streaming?: boolean;
   /** Error associated with this message. */
   error?: string;
+  /** Run metadata (model, tokens, duration) — populated from lifecycle end event. */
+  runMetadata?: {
+    model?: string;
+    provider?: string;
+    usage?: { input?: number; output?: number; cache?: number };
+    durationMs?: number;
+    startedAt?: number;
+  };
 }
 
 /**
@@ -72,6 +80,7 @@ interface ChatState {
   setSessions: (sessions: SessionInfo[]) => void;
   setMessages: (messages: ChatMessage[]) => void;
   clearMessages: () => void;
+  setRunMetadata: (messageId: string, metadata: ChatMessage["runMetadata"]) => void;
   setIsStreaming: (streaming: boolean) => void;
   setError: (error: string | null) => void;
 }
@@ -84,7 +93,14 @@ export const useChatStore = create<ChatState>((set) => ({
   sessions: [],
   error: null,
 
-  addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
+  addMessage: (message) =>
+    set((state) => {
+      // Deduplicate by ID — SSE chat + agent events may both attempt to create the same message
+      if (state.messages.some((m) => m.id === message.id)) {
+        return state;
+      }
+      return { messages: [...state.messages, message] };
+    }),
 
   updateStreamingMessage: (id, content) =>
     set((state) => ({
@@ -133,6 +149,13 @@ export const useChatStore = create<ChatState>((set) => ({
           ),
         };
       }),
+    })),
+
+  setRunMetadata: (messageId, metadata) =>
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === messageId ? { ...m, runMetadata: metadata } : m,
+      ),
     })),
 
   setActiveSession: (activeSessionId) => set({ activeSessionId }),
