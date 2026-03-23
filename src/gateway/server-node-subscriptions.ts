@@ -1,3 +1,5 @@
+import { resolveChannelEventStreams, shouldFilterChannelEvent } from "./channel-event-filter.js";
+
 export type NodeSendEventFn = (opts: {
   nodeId: string;
   event: string;
@@ -106,6 +108,14 @@ export function createNodeSubscriptionManager(): NodeSubscriptionManager {
     const normalizedSessionKey = sessionKey.trim();
     if (!normalizedSessionKey || !sendEvent) {
       return;
+    }
+    // [enhanced] Channel event filter — check agent's eventStreams whitelist
+    if (event === "agent") {
+      const stream = (payload as { stream?: string })?.stream;
+      const allowedStreams = resolveChannelEventStreams(normalizedSessionKey);
+      if (shouldFilterChannelEvent(event, stream, allowedStreams)) {
+        return; // filtered out
+      }
     }
     const subs = sessionSubscribers.get(normalizedSessionKey);
     if (!subs || subs.size === 0) {
