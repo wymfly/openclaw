@@ -20,6 +20,9 @@ import { ToolResultCard } from "./blocks/ToolResultCard";
 import { ToolUseCard } from "./blocks/ToolUseCard";
 import { RunStatusBar } from "./RunStatusBar";
 
+// Stable empty reference to avoid Zustand infinite re-render
+const STABLE_EMPTY_RUN_META: Record<string, RunMetadata> = {};
+
 // ---------------------------------------------------------------------------
 // Extracted types for tool rendering
 // ---------------------------------------------------------------------------
@@ -212,7 +215,9 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
   // Read runMetadata from the active session state
   const sessionRunMetadata = useChatStore((s) => {
     const key = s.activeSessionKey;
-    return key ? (s.sessions.get(key)?.runMetadata ?? {}) : {};
+    return key
+      ? (s.sessions.get(key)?.runMetadata ?? STABLE_EMPTY_RUN_META)
+      : STABLE_EMPTY_RUN_META;
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
