@@ -110,6 +110,10 @@ export type AgentConfig = {
   tools?: AgentToolsConfig;
   /** Optional runtime descriptor for this agent. */
   runtime?: AgentRuntimeConfig;
+  /** Optional per-agent channel delivery overrides. */
+  channels?: {
+    eventStreams?: string[];
+  };
 };
 
 export type AgentsConfig = {
