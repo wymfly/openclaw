@@ -326,7 +326,15 @@
     "dimPeer": "Peer",
     "dimGuildId": "Guild",
     "dimRoles": "Roles",
-    "dimTeamId": "Team"
+    "dimTeamId": "Team",
+    "activityFeed": "Activity Feed",
+    "activityBanner": "Showing recent routing events (degraded mode: full hit log requires Gateway routing telemetry)",
+    "agentFilter": "Agent Filter",
+    "allAgents": "All Agents",
+    "noActivity": "No activity events",
+    "conflictDetected": "Conflict Detected",
+    "overlapExact": "Exact overlap with another rule",
+    "overlapSubset": "Shadowed by a more specific rule"
   },
   "subagents": {
     "title": "Subagent Monitor",
@@ -335,7 +343,20 @@
     "config": "Config",
     "kill": "Terminate",
     "lineage": "Call Lineage",
-    "ephemeralNote": "Showing recent runs only"
+    "ephemeralNote": "Showing recent runs only",
+    "allAgents": "All Agents",
+    "allStatus": "All Status",
+    "completed": "Completed",
+    "failed": "Failed",
+    "noRunsFound": "No runs found",
+    "runs": "Runs",
+    "timeout": "Timeout",
+    "timeRange": {
+      "1h": "1 Hour",
+      "6h": "6 Hours",
+      "24h": "24 Hours",
+      "all": "All"
+    }
   },
   "agentDetail": {
     "overview": "Overview",
