@@ -3,7 +3,7 @@
 import { Shield, Check, X, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import type { ApprovalRequest } from "@/stores/chat";
+import type { ApprovalRequest } from "@/stores/chat-types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,7 +38,7 @@ export function ApprovalDialog({ approval, onResolve }: ApprovalDialogProps) {
 
       {/* Tool info */}
       <div className="text-xs text-[var(--text-secondary)] space-y-1.5">
-        <code className="font-mono text-[var(--accent)]">{approval.toolName}</code>
+        <code className="font-mono text-[var(--brand)]">{approval.toolName}</code>
         {approval.command && (
           <pre className="mt-1.5 p-2 rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-auto max-h-[120px] text-xs leading-relaxed whitespace-pre-wrap break-words">
             {approval.command}

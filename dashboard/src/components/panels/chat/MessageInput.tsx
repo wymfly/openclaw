@@ -4,35 +4,41 @@ import { Send, Square, Paperclip } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useCallback } from "react";
 import { useChatStore } from "@/stores/chat";
+import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
 
 export function MessageInput() {
   const t = useTranslations("chat");
-  const { isStreaming, activeSessionId, activeAgentId, addMessage, setIsStreaming, setError } =
-    useChatStore();
+  const activeSessionKey = useActiveSessionKey();
+  const { isStreaming } = useSessionStreaming();
+  const activeAgentId = useChatStore((s) => s.activeAgentId);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { setActiveSession } = useChatStore();
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
     if (!text || isStreaming) {
       return;
     }
-    addMessage({ id: `user-${Date.now()}`, role: "user", content: text, timestamp: Date.now() });
-    setInput("");
-    setIsStreaming(true);
-    setError(null);
 
     // Generate sessionKey for new conversations
     const agentId = activeAgentId || "main";
-    let sessionKey = activeSessionId;
+    let sessionKey = activeSessionKey;
     if (!sessionKey) {
       const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       sessionKey = `agent:${agentId}:web-${suffix}`;
-      setActiveSession(sessionKey);
+      useChatStore.getState().setActiveSession(sessionKey);
     }
+
+    useChatStore.getState().addMessage(sessionKey, {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: [{ type: "text" as const, text }],
+      timestamp: Date.now(),
+    });
+    setInput("");
+    useChatStore.getState().setSessionStreaming(sessionKey, true);
+    useChatStore.getState().setSessionError(sessionKey, null);
 
     try {
       const res = await fetch("/api/chat/send", {
@@ -46,36 +52,28 @@ export function MessageInput() {
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        setError(data.error ?? t("error"));
-        setIsStreaming(false);
+        useChatStore.getState().setSessionError(sessionKey, data.error ?? t("error"));
+        useChatStore.getState().setSessionStreaming(sessionKey, false);
       }
     } catch {
-      setError(t("error"));
-      setIsStreaming(false);
+      useChatStore.getState().setSessionError(sessionKey, t("error"));
+      useChatStore.getState().setSessionStreaming(sessionKey, false);
     }
-  }, [
-    input,
-    isStreaming,
-    activeSessionId,
-    activeAgentId,
-    addMessage,
-    setActiveSession,
-    setIsStreaming,
-    setError,
-    t,
-  ]);
+  }, [input, isStreaming, activeSessionKey, activeAgentId, t]);
 
   const handleAbort = useCallback(async () => {
     await fetch("/api/chat/abort", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sessionKey: activeSessionId ?? undefined,
+        sessionKey: activeSessionKey ?? undefined,
         agentId: activeAgentId ?? undefined,
       }),
     });
-    setIsStreaming(false);
-  }, [activeSessionId, activeAgentId, setIsStreaming]);
+    if (activeSessionKey) {
+      useChatStore.getState().setSessionStreaming(activeSessionKey, false);
+    }
+  }, [activeSessionKey, activeAgentId]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -153,7 +151,7 @@ export function MessageInput() {
           <button
             onClick={() => void handleAbort()}
             className="p-2 rounded-lg shrink-0 hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: "var(--status-disconnected)", color: "var(--accent-fg)" }}
+            style={{ backgroundColor: "var(--status-disconnected)", color: "var(--brand-fg)" }}
             title={t("abort")}
           >
             <Square size={16} />
@@ -163,7 +161,7 @@ export function MessageInput() {
             onClick={() => void sendMessage()}
             disabled={!input.trim()}
             className="p-2 rounded-lg shrink-0 hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+            style={{ backgroundColor: "var(--brand)", color: "var(--brand-fg)" }}
             title={t("send")}
           >
             <Send size={16} />
