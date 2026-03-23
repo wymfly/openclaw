@@ -45,8 +45,10 @@ const LazyChannelsPanel = lazy(() =>
 const LazyConfigPanel = lazy(() =>
   import("@/components/panels/config-editor/ConfigPanel").then((m) => ({ default: m.ConfigPanel })),
 );
-const LazyCronPanel = lazy(() =>
-  import("@/components/panels/cron/CronPanel").then((m) => ({ default: m.CronPanel })),
+const LazySchedulerPanel = lazy(() =>
+  import("@/components/panels/scheduler/SchedulerPanel").then((m) => ({
+    default: m.SchedulerPanel,
+  })),
 );
 const LazyWebhooksPanel = lazy(() =>
   import("@/components/panels/webhooks/WebhooksPanel").then((m) => ({ default: m.WebhooksPanel })),
@@ -131,7 +133,7 @@ function ActivePanel({ panel }: { panel: Panel }) {
   } else if (panel === "config") {
     LazyComponent = LazyConfigPanel;
   } else if (panel === "cron") {
-    LazyComponent = LazyCronPanel;
+    LazyComponent = LazySchedulerPanel;
   } else if (panel === "webhooks") {
     LazyComponent = LazyWebhooksPanel;
   } else if (panel === "approvals") {

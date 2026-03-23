@@ -69,9 +69,10 @@ export function HeaderBar() {
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
-        {/* Gateway status */}
-        <div
-          className="flex items-center gap-1.5 text-xs"
+        {/* Gateway status — click navigates to Monitor */}
+        <button
+          onClick={() => useUIStore.getState().setActivePanel("gateway")}
+          className="flex items-center gap-1.5 text-xs hover:opacity-80 transition-opacity cursor-pointer"
           style={{ color: "var(--text-secondary)" }}
         >
           <span
@@ -80,7 +81,7 @@ export function HeaderBar() {
           />
           {/* Hide status text on mobile to save space */}
           {!isMobile && statusLabel}
-        </div>
+        </button>
 
         {/* Locale toggle */}
         <button
