@@ -114,6 +114,9 @@ const BASE_METHODS = [
   "deck.agents.subagents.set",
   "deck.agents.toolPolicy.preview",
   "deck.agents.systemPrompt.preview",
+  // deck.agents.eventStreams
+  "deck.agents.eventStreams.get",
+  "deck.agents.eventStreams.set",
   // deck.subagents
   "deck.subagents.list",
   "deck.subagents.kill",
