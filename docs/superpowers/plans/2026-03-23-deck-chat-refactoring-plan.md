@@ -508,7 +508,7 @@ export function useChatSSE() {
 - [ ] **Step 2: Verify compilation — zero new errors**
 
 Run: `cd dashboard && npx tsc --noEmit 2>&1 | grep -c "error TS"`
-Expected: Same count as before (301 — all in test files)
+Expected: Same count as before (301 — all in test files). **Phase 1 不修改任何测试文件**，测试仍从 `useChatSSE.ts` 导入不存在的函数。测试导入迁移和缺失函数实现在 Phase 2 范围。
 
 - [ ] **Step 3: Verify the hook still works by checking it renders in ChatPanel**
 
@@ -612,16 +612,16 @@ Key implementation skeleton:
 
 ```typescript
 import { create } from "zustand";
-import type {
-  ContentBlock,
-  ChatMessage,
-  SessionState,
-  SessionMeta,
-  A2UIState,
-  A2UIEvent,
-  ToolProgress,
-  ApprovalRequest,
-  RunMetadata,
+import {
+  type ContentBlock,
+  type ChatMessage,
+  type SessionState,
+  type SessionMeta,
+  type A2UIState,
+  type A2UIEvent,
+  type ToolProgress,
+  type ApprovalRequest,
+  type RunMetadata,
   createEmptySessionState,
   MAX_CACHED_SESSIONS,
 } from "./chat-types";
@@ -649,6 +649,10 @@ export interface ChatState {
   setA2UIState: (sessionKey: string, patch: Partial<A2UIState>) => void;
   updateToolProgress: (sessionKey: string, toolUseId: string, progress: ToolProgress) => void;
   setActiveApproval: (sessionKey: string, approval: ApprovalRequest | null) => void;
+  updateA2UISurfaces: (sessionKey: string, surfaces: string[]) => void;
+  removeSession: (key: string) => void;
+  setMessages: (sessionKey: string, messages: ChatMessage[]) => void;
+  clearMessages: (sessionKey: string) => void;
   setSessionMetas: (metas: SessionMeta[]) => void;
 }
 
@@ -738,6 +742,14 @@ Key change in chat event handling:
 - No more `extractTextFromMessage` / `extractThinking` / `extractToolUse` for storage (keep them exported for any other consumers)
 - Agent tool start: `store.appendContentBlock(sessionKey, msgId, { type: "tool_use", id: toolCallId, name: toolName, input: args })`
 - Agent tool result: `store.appendContentBlock(sessionKey, msgId, { type: "tool_result", toolUseId: toolCallId, content: result, isError })`
+
+7. **新增** 以下 dispatcher 函数（现有测试明确依赖）：
+   - `dispatchApproval(payload, store)` — 处理 approval SSE 事件，调用 `store.setActiveApproval(sessionKey, request)`
+   - `dispatchApprovalResolved(payload, store)` — 处理 approval resolved 事件，调用 `store.setActiveApproval(sessionKey, null)`
+   - `dispatchA2UIEvent(payload, store)` — 处理 A2UI overlay 事件，调用 `store.appendA2UIEvent` / `store.updateA2UISurfaces`
+   - `reloadFullContent(sessionKey, store)` — 从 `/api/chat/history` 重新加载完整消息，调用 `store.setMessages(sessionKey, messages)`
+   - 这些函数在当前 Gateway 中可能还没有对应 SSE 事件（approval/A2UI），但需要**导出 stub 实现**使测试编译通过
+8. **测试导入迁移**：更新 `__tests__/dispatcher.test.ts` 和 `__tests__/tool-progress-dispatcher.test.ts` 的 import 路径从 `"../useChatSSE"` 改为 `"@/stores/chat-dispatchers"`
 
 - [ ] **Step 2: Update useChatSSE.ts — per-session trackers**
 
@@ -853,7 +865,7 @@ Read the current file. Apply:
 1. Replace `addMessage({ id, role: "user", content: text, timestamp })` with `addMessage(activeSessionKey, { id, role: "user", content: [{ type: "text" as const, text }], timestamp })`
 2. Import `useActiveSessionKey` from `@/stores/chat-hooks`
 3. Use `activeSessionKey` from hook instead of `activeSessionId` from store
-4. If file upload exists, map files to ContentBlock: `{ type: "image", data: f.base64, mimeType: f.type, fileName: f.name }` or `{ type: "file", ... }`
+4. 文件附件目前只通过 POST body 的 `attachments` 字段发送（非 ContentBlock），保持不变。ContentBlock 中的 image/file 类型仅用于从 Gateway SSE 接收，不用于发送。
 
 - [ ] **Step 3: Update ChatPanel.tsx**
 
@@ -877,7 +889,7 @@ Read the current file. Apply:
 
 - [ ] **Step 5: Update detectArtifact.ts**
 
-The `detectArtifact` function itself accepts `string` — no change to its signature. But its **call site** (in MessageList or RightPanel) needs to pass `getTextContent(msg)` instead of `msg.content`. Verify the call site and update.
+The `detectArtifact` function itself accepts `string` — no change to its signature. Its call site is in `dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx:108`. If any other call site passes `msg.content` (now `ContentBlock[]`), it needs to pass `getTextContent(msg)` instead. Grep for `detectArtifact` and update all call sites.
 
 - [ ] **Step 6: Update ApprovalDialog.tsx**
 
@@ -992,25 +1004,13 @@ Run: `ls dashboard/src/components/ui/tabs.tsx 2>/dev/null && echo "EXISTS" || ec
 
 If MISSING, install: `cd dashboard && npx shadcn@latest add tabs`
 
-- [ ] **Step 2: Add i18n keys for tab labels**
+- [ ] **Step 2: Verify existing i18n keys**
 
-Add to `zh.json` under the `"models"` namespace:
+The tab label keys **already exist** in both `zh.json` and `en.json` under `models.tabs.*`:
 
-```json
-"tabCatalog": "模型目录",
-"tabProviderConfig": "供应商配置",
-"tabFallbacks": "降级链",
-"tabUsage": "用量统计"
-```
+- `models.tabs.catalog` / `models.tabs.config` / `models.tabs.fallbacks` / `models.tabs.usage`
 
-Add corresponding English keys to `en.json`:
-
-```json
-"tabCatalog": "Catalog",
-"tabProviderConfig": "Provider Config",
-"tabFallbacks": "Fallbacks",
-"tabUsage": "Usage"
-```
+No new keys needed. In ModelsPanel, use `t("tabs.catalog")`, `t("tabs.config")`, etc.
 
 - [ ] **Step 3: Rewrite ModelsPanel.tsx**
 
@@ -1035,10 +1035,10 @@ export function ModelsPanel() {
         className="shrink-0 rounded-none border-b px-2"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
       >
-        <TabsTrigger value="catalog">{t("tabCatalog")}</TabsTrigger>
-        <TabsTrigger value="provider-config">{t("tabProviderConfig")}</TabsTrigger>
-        <TabsTrigger value="fallbacks">{t("tabFallbacks")}</TabsTrigger>
-        <TabsTrigger value="usage">{t("tabUsage")}</TabsTrigger>
+        <TabsTrigger value="catalog">{t("tabs.catalog")}</TabsTrigger>
+        <TabsTrigger value="provider-config">{t("tabs.config")}</TabsTrigger>
+        <TabsTrigger value="fallbacks">{t("tabs.fallbacks")}</TabsTrigger>
+        <TabsTrigger value="usage">{t("tabs.usage")}</TabsTrigger>
       </TabsList>
       <TabsContent value="catalog" className="flex-1 overflow-auto mt-0">
         <CatalogTab />
@@ -1065,9 +1065,7 @@ Expected: No errors
 - [ ] **Step 5: Commit**
 
 ```bash
-git add dashboard/src/components/panels/models/ModelsPanel.tsx \
-       dashboard/src/i18n/zh.json \
-       dashboard/src/i18n/en.json
+git add dashboard/src/components/panels/models/ModelsPanel.tsx
 git commit -m "[impl] feat(deck): ModelsPanel 4-tab layout with Catalog/Config/Fallbacks/Usage"
 ```
 
@@ -1087,7 +1085,7 @@ Expected: **0**
 Run: `cd dashboard && npx tsc --noEmit 2>&1 | grep "error TS" | wc -l`
 Expected: ~14 remaining (all in `models.test.ts`, unrelated to this refactor).
 
-Tests that import `dispatchApproval`, `dispatchA2UIEvent`, `reloadFullContent` — these functions will be created as part of Phase 2 Task 6 dispatcher rewrite (they are SST proposal APIs that need implementing). If any test still fails due to missing functions, either implement the function or add a `// TODO: implement when Gateway supports` stub export.
+`dispatchApproval`、`dispatchA2UIEvent`、`reloadFullContent` 等函数在 Task 6 中创建（至少 stub 导出）。测试导入路径在 Task 6 Step 8 中从 `useChatSSE` 迁移到 `chat-dispatchers`。如果 stub 实现无法满足所有测试断言，对应测试用例标记 `skip` 并注释原因。
 
 - [ ] **Step 3: Lint check**
 
