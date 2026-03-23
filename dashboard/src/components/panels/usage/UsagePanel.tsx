@@ -32,14 +32,14 @@ export function UsagePanel() {
     error,
     setTimeWindow,
     fetchUsage,
-    fetchTimeseries,
   } = useUsageStore();
 
   // Fetch data on mount and when the time window changes.
+  // NOTE: fetchTimeseries disabled — Gateway RPC `sessions.usage.timeseries`
+  // requires a session key, not a time range. Aggregation API doesn't exist yet.
   useEffect(() => {
     void fetchUsage();
-    void fetchTimeseries();
-  }, [timeWindow, fetchUsage, fetchTimeseries]);
+  }, [timeWindow, fetchUsage]);
 
   return (
     <div
@@ -64,8 +64,8 @@ export function UsagePanel() {
               type="button"
               className="px-3 py-1 text-xs rounded-md font-medium transition-colors"
               style={{
-                backgroundColor: timeWindow === w ? "var(--accent)" : "transparent",
-                color: timeWindow === w ? "var(--accent-fg)" : "var(--text-secondary)",
+                backgroundColor: timeWindow === w ? "var(--brand)" : "transparent",
+                color: timeWindow === w ? "var(--brand-fg)" : "var(--text-secondary)",
               }}
               onClick={() => setTimeWindow(w)}
             >

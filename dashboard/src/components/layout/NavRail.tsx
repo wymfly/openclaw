@@ -119,7 +119,13 @@ export function NavRail() {
   const collapsed = isMobile ? false : sidebarCollapsed;
 
   const handleNavClick = (panel: Panel) => {
+    const prevPanel = useUIStore.getState().activePanel;
     setActivePanel(panel);
+    // If nav guard rejected the switch (e.g. unsaved config), blur the button
+    // so browser focus styling doesn't make it look active.
+    if (useUIStore.getState().activePanel === prevPanel && prevPanel !== panel) {
+      (document.activeElement as HTMLElement)?.blur();
+    }
     // Close overlay on mobile after selecting a panel
     if (isMobile) {
       setMobileNavOpen(false);
@@ -180,9 +186,9 @@ export function NavRail() {
                     collapsed ? "justify-center" : ""
                   }`}
                   style={{
-                    color: isActive ? "var(--accent)" : "var(--text-primary)",
+                    color: isActive ? "var(--brand)" : "var(--text-primary)",
                     backgroundColor: isActive
-                      ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                      ? "color-mix(in srgb, var(--brand) 12%, transparent)"
                       : "transparent",
                   }}
                   title={collapsed ? t(item.labelKey) : undefined}
@@ -204,10 +210,10 @@ export function NavRail() {
             collapsed ? "justify-center" : ""
           }`}
           style={{
-            color: activePanel === "settings" ? "var(--accent)" : "var(--text-primary)",
+            color: activePanel === "settings" ? "var(--brand)" : "var(--text-primary)",
             backgroundColor:
               activePanel === "settings"
-                ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                ? "color-mix(in srgb, var(--brand) 12%, transparent)"
                 : "transparent",
           }}
           title={collapsed ? t("settings") : undefined}
