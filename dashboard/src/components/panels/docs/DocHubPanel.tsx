@@ -12,7 +12,7 @@ export function DocHubPanel() {
   const t = useTranslations("docs");
   const tc = useTranslations("common");
   const { loading, error, fetchDocs, extractDocs, searchQuery, setSearchQuery } = useDocsStore();
-  const activeSessionId = useChatStore((s) => s.activeSessionId);
+  const activeSessionKey = useChatStore((s) => s.activeSessionKey);
 
   useEffect(() => {
     void fetchDocs();
@@ -37,8 +37,8 @@ export function DocHubPanel() {
         <button
           type="button"
           className="px-3 py-1 text-xs font-medium rounded-md"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
-          onClick={() => void extractDocs(activeSessionId ?? undefined)}
+          style={{ backgroundColor: "var(--brand)", color: "var(--brand-fg)" }}
+          onClick={() => void extractDocs(activeSessionKey ?? undefined)}
         >
           {t("extract")}
         </button>

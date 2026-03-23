@@ -1,17 +1,20 @@
 "use client";
 
 import { createContext, useCallback, useEffect, useState } from "react";
-import { useChatStore, type ChatMessage } from "@/stores/chat";
+import { useChatStore } from "@/stores/chat";
+import { useSessionMessages, useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
 import {
   loadBlockPreferences,
   saveBlockPreferences,
   type ChatBlockPreferences,
 } from "@/stores/chat-preferences";
+import type { ChatMessage, ContentBlock, SessionMeta } from "@/stores/chat-types";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { BlockFilterBar } from "./BlockFilterBar";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
+import { ToolProgressBar } from "./ToolProgressBar";
 import { useChatSSE } from "./useChatSSE";
 
 /** Context for artifact interactions — consumed by ToolResultCard. */
@@ -19,17 +22,19 @@ export const ArtifactContext = createContext<{
   onOpenArtifact: (artifact: ArtifactInfo) => void;
 }>({ onOpenArtifact: () => {} });
 
-/** Convert Gateway ContentBlock[] to plain string for display. */
-function flattenContent(content: unknown): string {
+/** Convert Gateway ContentBlock[] to ContentBlock[] for storage. */
+function normalizeContent(content: unknown): ContentBlock[] {
   if (typeof content === "string") {
-    return content;
+    return [{ type: "text" as const, text: content }];
   }
   if (Array.isArray(content)) {
-    return content
-      .map((b: { type?: string; text?: string }) => (b.type === "text" ? (b.text ?? "") : ""))
-      .join("");
+    // Already ContentBlock[] — pass through
+    return content as ContentBlock[];
   }
-  return typeof content === "object" && content !== null ? JSON.stringify(content) : "";
+  if (typeof content === "object" && content !== null) {
+    return [{ type: "text" as const, text: JSON.stringify(content) }];
+  }
+  return [{ type: "text" as const, text: "" }];
 }
 
 /**
@@ -37,7 +42,10 @@ function flattenContent(content: unknown): string {
  * Composes session sidebar, message list, and input area.
  */
 export function ChatPanel() {
-  const { activeSessionId, activeAgentId, messages, setSessions, setMessages } = useChatStore();
+  const activeSessionKey = useActiveSessionKey();
+  const activeAgentId = useChatStore((s) => s.activeAgentId);
+  const messages = useSessionMessages();
+  const { isStreaming } = useSessionStreaming();
   const [blockPrefs, setBlockPrefs] = useState<ChatBlockPreferences>(loadBlockPreferences);
 
   const handleBlockPrefsChange = useCallback((prefs: ChatBlockPreferences) => {
@@ -46,8 +54,8 @@ export function ChatPanel() {
   }, []);
 
   // Show filter bar when there are tool/thinking blocks
-  const hasFilterableBlocks = messages.some(
-    (m) => m.thinking || (m.toolUse && m.toolUse.length > 0),
+  const hasFilterableBlocks = messages.some((m) =>
+    m.content.some((b) => b.type === "thinking" || b.type === "tool_use"),
   );
 
   // Connect to SSE stream for real-time chat events.
@@ -61,22 +69,33 @@ export function ChatPanel() {
     void fetch(url)
       .then((r) => r.json())
       .then((data) => {
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.sessions)
-            ? data.sessions
-            : [];
-        setSessions(list);
+        const list: Array<{
+          key?: string;
+          sessionKey?: string;
+          agentId?: string;
+          title?: string;
+          lastMessage?: string;
+          updatedAt?: number;
+        }> = Array.isArray(data) ? data : Array.isArray(data?.sessions) ? data.sessions : [];
+        // Map server response to SessionMeta[]
+        const metas: SessionMeta[] = list.map((s) => ({
+          key: s.key ?? s.sessionKey ?? "",
+          agentId: s.agentId ?? activeAgentId ?? "main",
+          title: s.title,
+          updatedAt: s.updatedAt ?? Date.now(),
+          lastMessagePreview: s.lastMessage,
+        }));
+        useChatStore.getState().setSessionMetas(metas);
       })
       .catch(() => {});
-  }, [activeAgentId, setSessions]);
+  }, [activeAgentId]);
 
   // Fetch history when session changes.
   useEffect(() => {
-    if (!activeSessionId) {
+    if (!activeSessionKey) {
       return;
     }
-    const params = new URLSearchParams({ sessionKey: activeSessionId });
+    const params = new URLSearchParams({ sessionKey: activeSessionKey });
     if (activeAgentId) {
       params.set("agentId", activeAgentId);
     }
@@ -88,20 +107,25 @@ export function ChatPanel() {
           (m: { role?: string; content?: unknown; timestamp?: number }, i: number) => ({
             id: `hist-${i}`,
             role: (m.role as ChatMessage["role"]) ?? "assistant",
-            content: flattenContent(m.content),
+            content: normalizeContent(m.content),
             timestamp: m.timestamp ?? Date.now(),
           }),
         );
         // For brand-new sessions the server returns empty history.
         // Preserve locally-added messages (e.g. the user message just sent)
         // to avoid a race where setMessages([]) wipes a pending outbound message.
-        if (msgs.length === 0 && useChatStore.getState().messages.length > 0) {
+        const currentMessages =
+          useChatStore.getState().sessions.get(activeSessionKey)?.messages ?? [];
+        if (msgs.length === 0 && currentMessages.length > 0) {
           return;
         }
-        setMessages(msgs);
+        useChatStore.getState().setMessages(activeSessionKey, msgs);
       })
       .catch(() => {});
-  }, [activeSessionId, activeAgentId, setMessages]);
+  }, [activeSessionKey, activeAgentId]);
+
+  // Suppress lint — isStreaming and messages are used through the hooks above
+  void isStreaming;
 
   return (
     <div
@@ -114,6 +138,7 @@ export function ChatPanel() {
         {hasFilterableBlocks && (
           <BlockFilterBar preferences={blockPrefs} onChange={handleBlockPrefsChange} />
         )}
+        <ToolProgressBar />
         <MessageInput />
       </div>
     </div>

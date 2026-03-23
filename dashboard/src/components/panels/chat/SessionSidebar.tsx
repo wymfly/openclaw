@@ -2,7 +2,9 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useChatStore, type SessionInfo } from "@/stores/chat";
+import { useChatStore } from "@/stores/chat";
+import { useActiveSessionKey } from "@/stores/chat-hooks";
+import type { SessionMeta } from "@/stores/chat-types";
 
 function formatTime(ts?: number): string {
   if (!ts) {
@@ -17,11 +19,11 @@ function formatTime(ts?: number): string {
 }
 
 /** Derive a friendly display title from session key or metadata. */
-function sessionTitle(session: SessionInfo): string {
+function sessionTitle(session: SessionMeta): string {
   if (session.title) {
     return session.title;
   }
-  // Parse "agent:{agentId}:web-{ts}-{rand}" → "agentId · Web Chat"
+  // Parse "agent:{agentId}:web-{ts}-{rand}" -> "agentId - Web Chat"
   const parts = session.key.split(":");
   if (parts.length >= 3 && parts[0] === "agent") {
     const agentId = parts[1];
@@ -42,28 +44,22 @@ function sessionTitle(session: SessionInfo): string {
 
 export function SessionSidebar() {
   const t = useTranslations("chat");
-  const {
-    sessions,
-    activeSessionId,
-    activeAgentId,
-    setActiveSession,
-    setActiveAgent,
-    clearMessages,
-  } = useChatStore();
+  const activeSessionKey = useActiveSessionKey();
+  const activeAgentId = useChatStore((s) => s.activeAgentId);
+  const sessionMetas = useChatStore((s) => s.sessionMetas);
+  const setActiveSession = useChatStore((s) => s.setActiveSession);
+  const setActiveAgent = useChatStore((s) => s.setActiveAgent);
 
   const handleNew = () => {
     setActiveSession(null);
-    clearMessages();
   };
 
-  const handleSelect = (session: SessionInfo) => {
+  const handleSelect = (session: SessionMeta) => {
     setActiveSession(session.key);
     if (session.agentId) {
       setActiveAgent(session.agentId);
     }
   };
-
-  const { setSessions } = useChatStore();
 
   const handleDelete = async (sessionKey: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,10 +69,10 @@ export function SessionSidebar() {
       body: JSON.stringify({ sessionKey, agentId: activeAgentId }),
     });
     if (res.ok) {
-      setSessions(sessions.filter((s) => s.key !== sessionKey));
-      if (activeSessionId === sessionKey) {
+      useChatStore.getState().setSessionMetas(sessionMetas.filter((s) => s.key !== sessionKey));
+      useChatStore.getState().removeSession(sessionKey);
+      if (activeSessionKey === sessionKey) {
         setActiveSession(null);
-        clearMessages();
       }
     }
   };
@@ -106,7 +102,7 @@ export function SessionSidebar() {
       <button
         onClick={handleNew}
         className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b hover:opacity-80 transition-opacity"
-        style={{ borderColor: "var(--border)", color: "var(--accent)" }}
+        style={{ borderColor: "var(--border)", color: "var(--brand)" }}
       >
         <Plus size={14} />
         {t("newSession")}
@@ -114,8 +110,8 @@ export function SessionSidebar() {
 
       {/* Session list */}
       <div className="flex-1 overflow-y-auto">
-        {sessions.map((session) => {
-          const isActive = activeSessionId === session.key;
+        {sessionMetas.map((session) => {
+          const isActive = activeSessionKey === session.key;
           return (
             <button
               key={session.key}
@@ -123,9 +119,9 @@ export function SessionSidebar() {
               className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group"
               style={{
                 backgroundColor: isActive
-                  ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                  ? "color-mix(in srgb, var(--brand) 12%, transparent)"
                   : "transparent",
-                color: isActive ? "var(--accent)" : "var(--text-primary)",
+                color: isActive ? "var(--brand)" : "var(--text-primary)",
               }}
             >
               <div className="flex flex-col items-start min-w-0">
