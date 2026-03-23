@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { createContext, useEffect } from "react";
 import { useChatStore, type ChatMessage } from "@/stores/chat";
+import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
 import { useChatSSE } from "./useChatSSE";
+
+/** Context for artifact interactions — consumed by ToolResultCard. */
+export const ArtifactContext = createContext<{
+  onOpenArtifact: (artifact: ArtifactInfo) => void;
+}>({ onOpenArtifact: () => {} });
 
 /** Convert Gateway ContentBlock[] to plain string for display. */
 function flattenContent(content: unknown): string {

@@ -54,6 +54,33 @@
     "noMessages": "还没有消息，开始对话吧",
     "thinking": "思考中...",
     "toolUse": "工具调用",
+    "toolCall": "工具调用",
+    "toolResult": "工具结果",
+    "toolError": "工具错误",
+    "copied": "已复制",
+    "copyJson": "复制 JSON",
+    "binaryFile": "二进制文件",
+    "bashCommand": "命令",
+    "bashExitCode": "退出码",
+    "bashStdout": "标准输出",
+    "bashStderr": "标准错误",
+    "showRaw": "原始文本",
+    "showFormatted": "格式化",
+    "paramShowFull": "显示完整",
+    "paramShowLess": "收起",
+    "paramNoParams": "无参数",
+    "paramKeys": "{count} 个键",
+    "runTokensIn": "输入",
+    "runTokensOut": "输出",
+    "runTokensCache": "缓存",
+    "runStreaming": "流式中",
+    "runDuration": "耗时",
+    "openArtifact": "打开",
+    "artifactJson": "JSON 数据",
+    "artifactCode": "代码",
+    "artifactMarkdown": "文档",
+    "artifactTable": "表格",
+    "artifactJsonInvalid": "无效 JSON",
     "error": "发送失败"
   },
   "gateway": {
@@ -114,7 +141,13 @@
       "noRuns": "暂无运行记录",
       "running": "运行中",
       "completed": "已完成",
-      "error": "错误"
+      "error": "错误",
+      "time": {
+        "1h": "最近 1 小时",
+        "24h": "最近 24 小时",
+        "7d": "最近 7 天",
+        "all": "全部"
+      }
     },
     "timeline": {
       "selectRun": "选择一个运行查看详情",

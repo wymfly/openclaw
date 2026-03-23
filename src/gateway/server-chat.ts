@@ -501,7 +501,10 @@ export function createAgentEventHandler({
       // [enhanced] Also broadcast globally so backend clients (Deck adapter)
       // that declare tool-events capability always receive tool events,
       // even when per-run recipient registration fails.
-      broadcast("agent", toolPayload, { dropIfSlow: true });
+      // Use full agentPayload (with result) — Deck needs tool output for
+      // BashResultView/DiffPreview rendering. The verbose filter only applies
+      // to targeted WS clients and channel message surfaces.
+      broadcast("agent", agentPayload, { dropIfSlow: true });
     } else {
       broadcast("agent", agentPayload);
     }

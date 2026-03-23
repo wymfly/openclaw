@@ -58,12 +58,21 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
     });
   } else {
     ctx.log.debug(`embedded run agent end: runId=${ctx.params.runId} isError=${isError}`);
+    // [enhanced] Include model + usage so Deck RunStatusBar can display metadata
+    const usage = ctx.getUsageTotals();
+    const assistantModel =
+      lastAssistant && isAssistantMessage(lastAssistant) ? lastAssistant.model : undefined;
+    const assistantProvider =
+      lastAssistant && isAssistantMessage(lastAssistant) ? lastAssistant.provider : undefined;
     emitAgentEvent({
       runId: ctx.params.runId,
       stream: "lifecycle",
       data: {
         phase: "end",
         endedAt: Date.now(),
+        model: assistantModel,
+        provider: assistantProvider,
+        usage,
       },
     });
     void ctx.params.onAgentEvent?.({
