@@ -473,7 +473,13 @@
     "filterDirect": "直接",
     "filterGroup": "群组",
     "filterChannel": "渠道",
-    "filterSubagent": "子智能体"
+    "filterSubagent": "子智能体",
+    "searchPlaceholder": "搜索对话记录...",
+    "searchCount": "{current} / {total}",
+    "searchNoResults": "无匹配",
+    "exportJson": "导出 JSON",
+    "exportMarkdown": "导出 Markdown",
+    "exportEmpty": "空会话无法导出"
   },
   "logs": {
     "title": "日志查看器",
