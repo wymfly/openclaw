@@ -5,29 +5,16 @@ import {
   shouldFilterChannelEvent,
 } from "./channel-event-filter.js";
 
-vi.mock("./session-utils.js", () => ({
-  loadSessionEntry: vi.fn(),
-}));
 vi.mock("../config/config.js", () => ({
   loadConfig: vi.fn(),
 }));
 
 import { loadConfig } from "../config/config.js";
-import { loadSessionEntry } from "./session-utils.js";
 
-const mockLoadSessionEntry = vi.mocked(loadSessionEntry);
 const mockLoadConfig = vi.mocked(loadConfig);
 
 describe("resolveChannelEventStreams", () => {
   it("returns agent-level eventStreams when configured", () => {
-    mockLoadSessionEntry.mockReturnValue({
-      canonicalKey: "agent:coder:main",
-      cfg: {},
-      storePath: null,
-      store: {},
-      entry: null,
-      legacyKey: undefined,
-    } as unknown as ReturnType<typeof loadSessionEntry>);
     mockLoadConfig.mockReturnValue({
       agents: { list: [{ id: "coder", channels: { eventStreams: ["lifecycle", "tool"] } }] },
     } as ReturnType<typeof loadConfig>);
@@ -35,14 +22,6 @@ describe("resolveChannelEventStreams", () => {
   });
 
   it("falls back to agents.defaults.channels.eventStreams", () => {
-    mockLoadSessionEntry.mockReturnValue({
-      canonicalKey: "agent:main:main",
-      cfg: {},
-      storePath: null,
-      store: {},
-      entry: null,
-      legacyKey: undefined,
-    } as unknown as ReturnType<typeof loadSessionEntry>);
     mockLoadConfig.mockReturnValue({
       agents: { defaults: { channels: { eventStreams: ["lifecycle"] } }, list: [{ id: "main" }] },
     } as ReturnType<typeof loadConfig>);
@@ -50,18 +29,18 @@ describe("resolveChannelEventStreams", () => {
   });
 
   it("falls back to DEFAULT_EVENT_STREAMS when nothing configured", () => {
-    mockLoadSessionEntry.mockReturnValue({
-      canonicalKey: "agent:main:main",
-      cfg: {},
-      storePath: null,
-      store: {},
-      entry: null,
-      legacyKey: undefined,
-    } as unknown as ReturnType<typeof loadSessionEntry>);
     mockLoadConfig.mockReturnValue({
       agents: { list: [{ id: "main" }] },
     } as ReturnType<typeof loadConfig>);
     expect(resolveChannelEventStreams("agent:main:main")).toEqual(DEFAULT_EVENT_STREAMS);
+  });
+
+  it("returns DEFAULT_EVENT_STREAMS for non-agent session keys", () => {
+    mockLoadConfig.mockReturnValue({
+      agents: { list: [{ id: "main" }] },
+    } as ReturnType<typeof loadConfig>);
+    // parseAgentSessionKey returns null for keys with < 3 parts
+    expect(resolveChannelEventStreams("some-legacy-key")).toEqual(DEFAULT_EVENT_STREAMS);
   });
 });
 

@@ -1,17 +1,17 @@
 import { loadConfig } from "../config/config.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
-import { loadSessionEntry } from "./session-utils.js";
 
 export const DEFAULT_EVENT_STREAMS: readonly string[] = ["lifecycle", "assistant"];
 
 /**
  * Resolve the eventStreams whitelist for a given session key.
- * Uses loadSessionEntry for full canonicalization, then parseAgentSessionKey to extract agentId.
+ * Uses parseAgentSessionKey directly — the session key passed to sendToSession
+ * is already canonicalized (via resolveSessionKeyForRun), so loadSessionEntry
+ * (which calls readFileSync) is unnecessary overhead on the hot path.
  * Semantic: undefined = not set (use fallback), [] = explicitly empty (filter all agent streams).
  */
 export function resolveChannelEventStreams(sessionKey: string): readonly string[] {
-  const { canonicalKey } = loadSessionEntry(sessionKey);
-  const parsed = parseAgentSessionKey(canonicalKey);
+  const parsed = parseAgentSessionKey(sessionKey);
   const agentId = normalizeAgentId(parsed?.agentId);
   const cfg = loadConfig();
 

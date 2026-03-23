@@ -109,17 +109,20 @@ export function createNodeSubscriptionManager(): NodeSubscriptionManager {
     if (!normalizedSessionKey || !sendEvent) {
       return;
     }
-    // [enhanced] Channel event filter — check agent's eventStreams whitelist
+
+    // [enhanced] Early subscriber check — avoid heavy work when no one is listening
+    const subs = sessionSubscribers.get(normalizedSessionKey);
+    if (!subs || subs.size === 0) {
+      return;
+    }
+
+    // [enhanced] Channel event filter — only runs when there ARE subscribers
     if (event === "agent") {
       const stream = (payload as { stream?: string })?.stream;
       const allowedStreams = resolveChannelEventStreams(normalizedSessionKey);
       if (shouldFilterChannelEvent(event, stream, allowedStreams)) {
         return; // filtered out
       }
-    }
-    const subs = sessionSubscribers.get(normalizedSessionKey);
-    if (!subs || subs.size === 0) {
-      return;
     }
 
     const payloadJSON = toPayloadJSON(payload);

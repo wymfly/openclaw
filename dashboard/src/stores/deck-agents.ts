@@ -281,6 +281,8 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   },
 
   fetchEventStreams: async (agentId: string) => {
+    // [enhanced] Clear stale data before fetch to prevent showing previous agent's config
+    set({ currentEventStreams: null });
     try {
       const res = await fetch("/api/deck/agents", {
         method: "POST",

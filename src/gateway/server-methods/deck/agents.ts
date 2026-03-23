@@ -416,6 +416,11 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
       baseHash: string;
     };
 
+    // [enhanced] Normalize: lowercase, trim, dedupe — reject non-canonical values like "Assistant" or " lifecycle "
+    const normalized = [
+      ...new Set(eventStreams.map((s) => s.trim().toLowerCase()).filter(Boolean)),
+    ];
+
     const { snapshot, writeOptions } = await readConfigFileSnapshotForWrite();
     const currentHash = resolveConfigSnapshotHash(snapshot) ?? "";
     const hashError = validateBaseHash(baseHash, currentHash);
@@ -439,7 +444,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     if (!agentEntry.channels) {
       (agentEntry as Record<string, unknown>).channels = {};
     }
-    (agentEntry.channels as Record<string, unknown>).eventStreams = eventStreams;
+    (agentEntry.channels as Record<string, unknown>).eventStreams = normalized;
 
     await writeConfigFile(cfg, writeOptions);
 
@@ -449,7 +454,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     respond(true, {
       ok: true,
       agentId,
-      eventStreams,
+      eventStreams: normalized,
       configHash,
     });
   },
