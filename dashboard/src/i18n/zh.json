@@ -81,7 +81,10 @@
     "artifactMarkdown": "文档",
     "artifactTable": "表格",
     "artifactJsonInvalid": "无效 JSON",
-    "error": "发送失败"
+    "error": "发送失败",
+    "filterThinking": "推理",
+    "filterTools": "工具",
+    "filterResults": "结果"
   },
   "gateway": {
     "title": "网关概览",

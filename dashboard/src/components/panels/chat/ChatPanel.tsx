@@ -1,8 +1,14 @@
 "use client";
 
-import { createContext, useEffect } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import { useChatStore, type ChatMessage } from "@/stores/chat";
+import {
+  loadBlockPreferences,
+  saveBlockPreferences,
+  type ChatBlockPreferences,
+} from "@/stores/chat-preferences";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
+import { BlockFilterBar } from "./BlockFilterBar";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
@@ -31,7 +37,18 @@ function flattenContent(content: unknown): string {
  * Composes session sidebar, message list, and input area.
  */
 export function ChatPanel() {
-  const { activeSessionId, activeAgentId, setSessions, setMessages } = useChatStore();
+  const { activeSessionId, activeAgentId, messages, setSessions, setMessages } = useChatStore();
+  const [blockPrefs, setBlockPrefs] = useState<ChatBlockPreferences>(loadBlockPreferences);
+
+  const handleBlockPrefsChange = useCallback((prefs: ChatBlockPreferences) => {
+    setBlockPrefs(prefs);
+    saveBlockPreferences(prefs);
+  }, []);
+
+  // Show filter bar when there are tool/thinking blocks
+  const hasFilterableBlocks = messages.some(
+    (m) => m.thinking || (m.toolUse && m.toolUse.length > 0),
+  );
 
   // Connect to SSE stream for real-time chat events.
   useChatSSE();
@@ -93,7 +110,10 @@ export function ChatPanel() {
     >
       <SessionSidebar />
       <div className="flex flex-col flex-1 min-w-0">
-        <MessageList />
+        <MessageList blockPreferences={blockPrefs} />
+        {hasFilterableBlocks && (
+          <BlockFilterBar preferences={blockPrefs} onChange={handleBlockPrefsChange} />
+        )}
         <MessageInput />
       </div>
     </div>
