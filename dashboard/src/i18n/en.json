@@ -84,7 +84,9 @@
     "error": "Failed to send",
     "filterThinking": "Thinking",
     "filterTools": "Tools",
-    "filterResults": "Results"
+    "filterResults": "Results",
+    "toolsRunning": "Tools running",
+    "toolsCompleted": "Tools completed"
   },
   "gateway": {
     "title": "Gateway Overview",
