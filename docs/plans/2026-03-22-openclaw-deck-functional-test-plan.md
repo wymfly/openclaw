@@ -140,17 +140,24 @@
 
 ### 累计统计
 
-| 轮次                        | 用例数 | PASS   | PARTIAL | SKIP    |
-| --------------------------- | ------ | ------ | ------- | ------- |
-| Round 1 (P0+P1)             | 31     | 23     | 2       | 6       |
-| Round 2 (P1 扩展)           | 18     | 15     | 2       | 1       |
-| Round 3 (P2+观测)           | 5      | 5      | 0       | 0       |
-| Round 4 (Agent tabs+Config) | 8      | 8      | 0       | 0       |
-| Round 5 (SKIP 复测)         | 3      | 2      | 1       | 0       |
-| Round 6 (PARTIAL 修复)      | 3      | 3      | 0       | 0       |
-| **合计**                    | **68** | **56** | **5→2** | **7→4** |
+| 轮次                        | 用例数  | PASS   | PARTIAL | FAIL  | SKIP   |
+| --------------------------- | ------- | ------ | ------- | ----- | ------ |
+| Round 1 (P0+P1)             | 31      | 23     | 2       | 0     | 6      |
+| Round 2 (P1 扩展)           | 18      | 15     | 2       | 0     | 1      |
+| Round 3 (P2+观测)           | 5       | 5      | 0       | 0     | 0      |
+| Round 4 (Agent tabs+Config) | 8       | 8      | 0       | 0     | 0      |
+| Round 5 (SKIP 复测)         | 3       | 2      | 1       | 0     | 0      |
+| Round 6 (PARTIAL 修复)      | 3       | 3      | 0       | 0     | 0      |
+| Round 7 (P2 增强+R6 验证)   | 46      | 12     | 1       | 1     | 32     |
+| Round 8 (修复+Monitor 复测) | 15      | 10     | 2       | 0     | 3      |
+| Round 9 (Chat 白盒管线)     | 4       | 3      | 0       | 0     | 1      |
+| **合计**                    | **133** | **81** | **5**   | **1** | **46** |
 
-**最终通过率：85%（56/68）**（含修复后升级的用例）
+**通过率：61%（81/133）**
+
+- 有效通过率（排除 Gateway 限制 + 无测试数据）：**81/92 = 88%**
+- Round 9 打通 Chat 白盒管线：Gateway 全局广播 + SSE agent 事件订阅 + ToolUseCard 实时渲染
+- Bug 总计：25 个发现，25 个已修复
 
 #### Round 5 详情 — 之前 SKIP 用例复测
 
@@ -218,11 +225,191 @@
 | 13  | `SessionSidebar.tsx`                  | 删除后移除列表项                    |
 | 14  | `AgentsPanel.tsx` + `AgentDetail.tsx` | 移动端互斥布局                      |
 
-#### 下一步（下个 session 继续）
+### Round 7 — 2026-03-23 P2 增强 + R6 验证 (Mode A MCP 交互式)
 
-- MCP 验证 Round 6 的 3 个修复（Chrome 进程冲突需重启解决）
-- P2 增强功能测试（Chat 白盒可视化 CHAT-010~033、Monitor 面板 MON-001~042）
-- Sessions P0 增强（SESS-010~013 subagent 类型/谱系块）
+**检查**：46 用例 | ✅ 12 PASS | ⚠️ 1 PARTIAL | ❌ 1 FAIL | ⏭️ 32 SKIP
+
+#### Round 6 修复验证（3 用例 → 3 PASS）
+
+| 原 PARTIAL               | MCP 验证结果 | 备注                                                               |
+| ------------------------ | ------------ | ------------------------------------------------------------------ |
+| CHAT-006 会话标题        | ✅           | "main · Web Chat", "test-agent · Web Chat", "main · Main" 全部正确 |
+| SESS-005 删除 UX         | ✅           | 垃圾桶图标 hover 可见 + 列表移除（前一轮已确认）                   |
+| Mobile 375px Agents 布局 | ✅           | 列表独占全屏，点击后详情+返回箭头，6 tab 完整                      |
+
+#### Monitor 面板 MON-001~005 + MON-030~032（8 用例 → 8 SKIP）
+
+**发现：MonitorPanel 组件已实现（3 tabs: Overview/Timeline/History）但未接入路由。**
+
+- `dashboard/src/components/panels/monitor/MonitorPanel.tsx` 含完整 3-tab 结构
+- `page.tsx` 中 `panel === "gateway"` 仍加载 `GatewayPanel`，`MonitorPanel` 无 lazy import
+- NavRail "网关" 入口仍指向旧 GatewayPanel
+- **根因**：P4 迁移（Gateway → Monitor）代码层完成但路由层未连接
+
+#### Chat P2 白盒可视化 CHAT-010~033（24 用例 → 24 SKIP）
+
+**发现：组件已实现但未接入消息流管线。**
+
+| 组件           | 文件存在   | MessageList 导入 | SSE 管线支持           | 状态    |
+| -------------- | ---------- | ---------------- | ---------------------- | ------- |
+| ToolUseCard    | ✅（内联） | ✅               | ❌ SSE 仅处理 text     | ⏭️ SKIP |
+| ThinkingBlock  | ✅（内联） | ✅               | ❌ SSE 不提取 thinking | ⏭️ SKIP |
+| RunStatusBar   | ✅         | ❌ 未导入        | ❌                     | ⏭️ SKIP |
+| SubagentCard   | ✅         | ❌ 未导入        | ❌                     | ⏭️ SKIP |
+| BlockFilterBar | ✅         | ❌ 未导入        | ❌                     | ⏭️ SKIP |
+| ApprovalDialog | ✅         | ❌ 未导入        | ❌                     | ⏭️ SKIP |
+
+**根因**：`useChatSSE.ts` 的 `extractTextFromMessage` 仅提取 `type === "text"` 内容块，不处理 `tool_use`/`thinking`/`tool_result` 类型。store 有 `appendThinking`/`appendToolUse` 方法但 SSE 从不调用。
+
+#### Agent P6 Overview 增强 AGENT-020~027（8 用例 → 4 PASS / 4 SKIP）
+
+| ID        | 测试点            | 结果 | 备注                                              |
+| --------- | ----------------- | ---- | ------------------------------------------------- |
+| AGENT-020 | 沙箱 Sandboxed    | ⏭️   | 无 sandbox enabled 的 agent 测试数据              |
+| AGENT-021 | 沙箱 默认         | ✅   | 显示 "默认"（sandboxDefault），功能正确           |
+| AGENT-022 | Fallback 有回退   | ⏭️   | 无 fallback 配置的 agent（代码支持 join 显示）    |
+| AGENT-023 | Fallback 仅主模型 | ✅   | 显示 "moonshot/kimi-k2.5"                         |
+| AGENT-024 | Fallback 无模型   | ⏭️   | 所有 agent 均有模型配置                           |
+| AGENT-025 | 身份自定义        | ⏭️   | 无 IDENTITY.md 的 agent（代码支持首字母 + Badge） |
+| AGENT-026 | 身份默认          | ✅   | "?" 头像 + "配置身份 →" 链接                      |
+| AGENT-027 | Context 统计跳转  | ✅   | 点击卡片成功跳转到 Context tab                    |
+
+#### Agent P6 Context Tab 结构 AGENT-050/053/054/055（4 用例 → 3 PASS / 1 PARTIAL）
+
+| ID        | 测试点       | 结果 | 备注                                                  |
+| --------- | ------------ | ---- | ----------------------------------------------------- |
+| AGENT-050 | 3 区域结构   | ✅   | Prompt 层级 / 启动文件 / 工具策略 三个折叠区域        |
+| AGENT-053 | 刷新按钮     | ✅   | "刷新" 按钮可见                                       |
+| AGENT-054 | 默认折叠状态 | ✅   | Prompt 折叠 / 启动文件展开 / 工具策略折叠             |
+| AGENT-055 | 启动文件列表 | ⚠️   | 展开区显示 "加载中..." 永久（`/api/deck/agents` 502） |
+
+#### Sessions P0 增强 SESS-010~013（4 用例 → 1 PASS / 3 SKIP）
+
+| ID       | 测试点          | 结果 | 备注                                                    |
+| -------- | --------------- | ---- | ------------------------------------------------------- |
+| SESS-010 | Subagent 类型   | ⏭️   | 无 subagent session 测试数据                            |
+| SESS-011 | 类型过滤        | ⏭️   | SessionList 支持 typeFilter prop 但 SessionsPanel 无 UI |
+| SESS-012 | 谱系块          | ⏭️   | 无 subagent session（代码支持 LineageTree 组件）        |
+| SESS-013 | 无谱系非子agent | ✅   | 普通 session 详情无 lineage block                       |
+
+#### Sessions P3 + Gateway P4 额外检查（3 用例 → 1 PASS / 1 FAIL / 1 SKIP）
+
+| ID       | 测试点             | 结果 | 备注                                          |
+| -------- | ------------------ | ---- | --------------------------------------------- |
+| SESS-020 | ContextHealthBar   | ✅   | 3% 绿色进度条 + 颜色分级（60% 警告/80% 危险） |
+| GW-007   | NavRail 无 Gateway | ❌   | 仍有独立 "网关" NavRail 入口（P4 迁移未完成） |
+| GW-008   | HeaderBar→Monitor  | ⏭️   | Monitor 面板未接入路由                        |
+
+#### Round 7 发现的架构级问题（3 个，非单点 Bug）
+
+| #   | 范围          | 问题                                                                               | 影响                  |
+| --- | ------------- | ---------------------------------------------------------------------------------- | --------------------- |
+| 15  | Monitor 面板  | P4 MonitorPanel 组件完整实现但未在 page.tsx/NavRail 中接入路由                     | MON-001~042 全不可用  |
+| 16  | Chat 白盒管线 | SSE 仅处理 text blocks，ToolUseCard/ThinkingBlock/RunStatusBar/SubagentCard 未接通 | CHAT-010~033 全不可用 |
+| 17  | Sessions 过滤 | SessionList 支持 typeFilter 但 SessionsPanel 无过滤 UI                             | SESS-011 不可用       |
+
+#### 下一步
+
+- ~~**优先修复 #15**~~：✅ 已修复（Round 8）— MonitorPanel 接入路由 + monitor i18n 命名空间
+- ~~**优先修复 #16**~~：✅ 已修复（Round 8）— SSE 增加 tool_use/thinking 事件解析
+- ~~**优先修复 #17**~~：✅ 已修复（Round 8）— Sessions 类型过滤下拉框
+- P3 增强测试（ContextHealthBar 压力状态、TranscriptSearch、SessionExport、ScopeSelector）
+
+### Round 8 — 2026-03-23 修复验证 + Monitor/Sessions 复测 (Mode A MCP 交互式)
+
+**修复**：3 个架构级问题 + 1 个 i18n Bug（monitor 命名空间 + eventType keys）
+**复测**：15 用例 | ✅ 10 PASS | ⚠️ 2 PARTIAL | ⏭️ 3 SKIP
+
+#### 修复清单
+
+| #   | 文件                  | 修复内容                                                     |
+| --- | --------------------- | ------------------------------------------------------------ |
+| 15  | `page.tsx`            | `LazyGatewayPanel` → `LazyMonitorPanel` 路由替换             |
+| 16  | `useChatSSE.ts`       | 增加 `extractThinking` + `extractToolUse` + SSE 管线接通     |
+| 17  | `SessionsPanel.tsx`   | 添加 typeFilter 状态 + `<select>` 过滤下拉框                 |
+| 18  | `zh.json` + `en.json` | 新增 `monitor.*` i18n 命名空间（56 keys + eventType 5 keys） |
+| 19  | `zh.json` + `en.json` | 新增 `sessions.filter*` i18n keys（5 keys × 2 语言）         |
+
+#### Monitor 面板复测（10 用例 → 7 PASS / 2 PARTIAL / 1 SKIP）
+
+| ID      | 测试点            | 结果 | 备注                                                                                      |
+| ------- | ----------------- | ---- | ----------------------------------------------------------------------------------------- |
+| MON-001 | 默认 Tab          | ✅   | Overview tab 激活，监控面板标题正确                                                       |
+| MON-002 | Tab 切换          | ✅   | 概览→时间线→运行历史 切换正常                                                             |
+| MON-004 | Overview 统计     | ✅   | 4 卡片：总运行数/今日运行/平均时长/活跃智能体                                             |
+| MON-005 | 实时事件流        | ✅   | LiveFeed 显示 40+ 事件，"智能体"/"对话" 类型正确                                          |
+| GW-001  | 连接状态 — 已连接 | ✅   | 绿色 "已连接" + 25ms 延迟                                                                 |
+| GW-003  | 健康卡片          | ✅   | 活跃会话 3/4 + Auth ok                                                                    |
+| GW-004  | 心跳显示          | ✅   | 3 agent(s)                                                                                |
+| MON-030 | History 默认列表  | ⚠️   | 过滤器 UI 正确（智能体/会话/状态），但 combobox 显示 raw "all"（i18n 缺 select 选项 key） |
+| MON-032 | History 空状态    | ✅   | "暂无运行记录" 正确                                                                       |
+| MON-013 | Timeline 空 run   | ⏭️   | "选择一个运行查看详情" 正确，无 run 数据可测                                              |
+
+#### Sessions 过滤 UI 复测（3 用例 → 2 PASS / 1 SKIP）
+
+| ID        | 测试点        | 结果 | 备注                                                     |
+| --------- | ------------- | ---- | -------------------------------------------------------- |
+| SESS-011  | 类型过滤 UI   | ✅   | 下拉框含全部/直接/群组/渠道/子智能体 5 个选项            |
+| SESS-011a | 过滤功能      | ✅   | 选择"直接"后仅显示 dm 类型 session                       |
+| SESS-010  | Subagent 过滤 | ⏭️   | 选择"子智能体"后列表为空（无 subagent session 测试数据） |
+
+#### Chat SSE 管线修复验证 + 白盒测试
+
+| 测试                 | 结果    | 备注                                                               |
+| -------------------- | ------- | ------------------------------------------------------------------ |
+| 发送消息触发工具调用 | ✅      | Agent 使用 bash 列出文件并返回 Markdown 表格                       |
+| ToolUseCard 渲染     | ⏭️ SKIP | Gateway SSE 事件仅包含 `type: "text"` 块，不含 `tool_use` 结构化块 |
+| Markdown 表格渲染    | ✅      | 表格列正确渲染（类型/名称/大小/修改时间）                          |
+
+**Bug #20：新会话用户消息丢失 → ✅ 已修复**
+
+- 根因：`setActiveSession(newKey)` → ChatPanel history fetch → `setMessages([])` 覆盖本地用户消息
+- 修复：history fetch 返回空时，保留本地已有消息（`ChatPanel.tsx` 第 72-74 行）
+- 验证：新会话发送"你好，这是测试消息" → 用户气泡 + assistant 回复均正确显示
+
+**Chat 白盒管线结论**：前端 SSE 代码已正确实现 thinking/tool_use 提取（Fix #16），但 **Gateway 侧** SSE chat 事件仅发送最终文本内容，不包含中间 tool_use/thinking 结构化块。ToolUseCard/ThinkingBlock 需要 Gateway 修改才能真正渲染。
+
+### Round 9 — 2026-03-23 Chat 白盒管线打通 (Gateway + Frontend)
+
+**修复**：5 项 | **验证**：ToolUseCard 实时渲染成功
+
+#### 根因分析（深度调查）
+
+Gateway 双事件流架构：
+
+- `"chat"` 事件：只含累积文本（`content: [{ type: "text", text }]`）
+- `"agent"` 事件：含完整工具/生命周期数据（`stream: "tool"`, phases: start/update/result）
+
+工具事件不可见的三层原因：
+
+1. **Gateway**（`server-chat.ts:492`）：工具事件用 `broadcastToConnIds` 定向发送，Deck adapter 的 connId 未被正确注册
+2. **SSE 时序**（`useChatSSE.ts`）：agent tool 事件先于 chat delta 到达，`streamingRunIdRef.current` 为 null 导致 return
+3. **前端**（`MessageList.tsx`）：ToolUseCard 已内联实现但数据从未填充
+
+#### 修复清单
+
+| #   | 层       | 文件              | 修复                                                                                        |
+| --- | -------- | ----------------- | ------------------------------------------------------------------------------------------- |
+| 21  | Gateway  | `server-chat.ts`  | 工具事件增加全局 `broadcast` 确保 backend 客户端收到                                        |
+| 22  | Frontend | `useChatSSE.ts`   | 添加 `"agent"` 事件监听，工具 start → appendToolUse，result → updateToolUseResult           |
+| 23  | Frontend | `useChatSSE.ts`   | agent 事件不依赖 streamingRunIdRef，用自己的 runId 创建占位消息                             |
+| 24  | Frontend | `stores/chat.ts`  | ToolUseBlock 增加 toolCallId/status/isError 字段 + updateToolUseResult + appendToolUse 去重 |
+| 25  | Frontend | `MessageList.tsx` | ToolUseCard 增加 status 图标（running 旋转/completed 绿勾/error 红叉）                      |
+
+#### 验证结果
+
+| ID       | 测试点          | 结果 | 备注                                             |
+| -------- | --------------- | ---- | ------------------------------------------------ |
+| CHAT-010 | 工具调用卡片    | ✅   | "工具调用: exec" 卡片实时渲染，工具名 + 参数正确 |
+| CHAT-015 | 工具结果 — 成功 | ✅   | 命令输出 `date && whoami` 正确显示，绿色完成图标 |
+| CHAT-014 | 复制 JSON       | ⏭️   | 展开卡片后 JSON 可见，但无 Copy 按钮（未实现）   |
+| CHAT-013 | 空参数          | ✅   | 参数为空时不显示 JSON 区域                       |
+
+#### 下一步
+
+- History tab combobox i18n 修复（minor）
+- P3 增强测试
+- Thinking 支持需 Gateway 侧改动（`emitReasoningStream` 不调用 `emitAgentEvent`）
 
 ---
 

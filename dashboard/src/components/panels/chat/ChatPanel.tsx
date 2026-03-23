@@ -69,6 +69,12 @@ export function ChatPanel() {
             timestamp: m.timestamp ?? Date.now(),
           }),
         );
+        // For brand-new sessions the server returns empty history.
+        // Preserve locally-added messages (e.g. the user message just sent)
+        // to avoid a race where setMessages([]) wipes a pending outbound message.
+        if (msgs.length === 0 && useChatStore.getState().messages.length > 0) {
+          return;
+        }
         setMessages(msgs);
       })
       .catch(() => {});

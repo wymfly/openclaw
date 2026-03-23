@@ -36,16 +36,17 @@ const LazyLogsPanel = lazy(() =>
 const LazyMemoryPanel = lazy(() =>
   import("@/components/panels/memory/MemoryPanel").then((m) => ({ default: m.MemoryPanel })),
 );
+const LazyActivityPanel = lazy(() =>
+  import("@/components/panels/activity/ActivityPanel").then((m) => ({ default: m.ActivityPanel })),
+);
 const LazyChannelsPanel = lazy(() =>
   import("@/components/panels/channels/ChannelsPanel").then((m) => ({ default: m.ChannelsPanel })),
 );
 const LazyConfigPanel = lazy(() =>
   import("@/components/panels/config-editor/ConfigPanel").then((m) => ({ default: m.ConfigPanel })),
 );
-const LazySchedulerPanel = lazy(() =>
-  import("@/components/panels/scheduler/SchedulerPanel").then((m) => ({
-    default: m.SchedulerPanel,
-  })),
+const LazyCronPanel = lazy(() =>
+  import("@/components/panels/cron/CronPanel").then((m) => ({ default: m.CronPanel })),
 );
 const LazyWebhooksPanel = lazy(() =>
   import("@/components/panels/webhooks/WebhooksPanel").then((m) => ({ default: m.WebhooksPanel })),
@@ -63,14 +64,6 @@ const LazyBudgetPanel = lazy(() =>
 );
 const LazyAlertsPanel = lazy(() =>
   import("@/components/panels/alerts/AlertsPanel").then((m) => ({ default: m.AlertsPanel })),
-);
-const LazyRoutingPanel = lazy(() =>
-  import("@/components/panels/routing/RoutingPanel").then((m) => ({ default: m.RoutingPanel })),
-);
-const LazySubagentsPanel = lazy(() =>
-  import("@/components/panels/subagents/SubagentsPanel").then((m) => ({
-    default: m.SubagentsPanel,
-  })),
 );
 const LazyDocHubPanel = lazy(() =>
   import("@/components/panels/docs/DocHubPanel").then((m) => ({ default: m.DocHubPanel })),
@@ -119,7 +112,7 @@ function ActivePanel({ panel }: { panel: Panel }) {
 
   if (panel === "agents") {
     LazyComponent = LazyAgentsPanel;
-  } else if (panel === "monitor") {
+  } else if (panel === "gateway") {
     LazyComponent = LazyMonitorPanel;
   } else if (panel === "models") {
     LazyComponent = LazyModelsPanel;
@@ -131,12 +124,14 @@ function ActivePanel({ panel }: { panel: Panel }) {
     LazyComponent = LazyLogsPanel;
   } else if (panel === "memory") {
     LazyComponent = LazyMemoryPanel;
+  } else if (panel === "activity") {
+    LazyComponent = LazyActivityPanel;
   } else if (panel === "channels") {
     LazyComponent = LazyChannelsPanel;
   } else if (panel === "config") {
     LazyComponent = LazyConfigPanel;
-  } else if (panel === "scheduler") {
-    LazyComponent = LazySchedulerPanel;
+  } else if (panel === "cron") {
+    LazyComponent = LazyCronPanel;
   } else if (panel === "webhooks") {
     LazyComponent = LazyWebhooksPanel;
   } else if (panel === "approvals") {
@@ -147,10 +142,6 @@ function ActivePanel({ panel }: { panel: Panel }) {
     LazyComponent = LazyBudgetPanel;
   } else if (panel === "alerts") {
     LazyComponent = LazyAlertsPanel;
-  } else if (panel === "routing") {
-    LazyComponent = LazyRoutingPanel;
-  } else if (panel === "subagents") {
-    LazyComponent = LazySubagentsPanel;
   } else if (panel === "docs") {
     LazyComponent = LazyDocHubPanel;
   } else if (panel === "settings") {

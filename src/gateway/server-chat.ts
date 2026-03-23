@@ -498,6 +498,10 @@ export function createAgentEventHandler({
       if (recipients && recipients.size > 0) {
         broadcastToConnIds("agent", toolPayload, recipients);
       }
+      // [enhanced] Also broadcast globally so backend clients (Deck adapter)
+      // that declare tool-events capability always receive tool events,
+      // even when per-run recipient registration fails.
+      broadcast("agent", toolPayload, { dropIfSlow: true });
     } else {
       broadcast("agent", agentPayload);
     }
