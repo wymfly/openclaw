@@ -326,7 +326,15 @@
     "dimPeer": "对象",
     "dimGuildId": "公会",
     "dimRoles": "角色",
-    "dimTeamId": "团队"
+    "dimTeamId": "团队",
+    "activityFeed": "活动事件",
+    "activityBanner": "显示近期路由事件（降级模式：需要 Gateway 路由遥测支持完整 hit log）",
+    "agentFilter": "智能体过滤",
+    "allAgents": "全部智能体",
+    "noActivity": "暂无活动事件",
+    "conflictDetected": "检测到冲突",
+    "overlapExact": "与另一规则条件完全重叠",
+    "overlapSubset": "被更具体的规则覆盖"
   },
   "subagents": {
     "title": "子智能体监控",
@@ -335,7 +343,20 @@
     "config": "配置",
     "kill": "终止",
     "lineage": "调用谱系",
-    "ephemeralNote": "仅显示最近记录"
+    "ephemeralNote": "仅显示最近记录",
+    "allAgents": "全部智能体",
+    "allStatus": "全部状态",
+    "completed": "已完成",
+    "failed": "失败",
+    "noRunsFound": "未找到运行记录",
+    "runs": "运行记录",
+    "timeout": "超时",
+    "timeRange": {
+      "1h": "1 小时",
+      "6h": "6 小时",
+      "24h": "24 小时",
+      "all": "全部"
+    }
   },
   "agentDetail": {
     "overview": "概览",
