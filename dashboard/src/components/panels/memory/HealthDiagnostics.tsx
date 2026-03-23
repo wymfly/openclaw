@@ -1,97 +1,121 @@
 "use client";
 
-import { HeartPulse } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { useMemoryStore } from "@/stores/memory";
 
-const STATUS_BADGE_STYLES: Record<string, string> = {
-  ok: "bg-[var(--success-muted)] text-[var(--success)]",
-  error: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]",
-  unknown: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
+// ---------------------------------------------------------------------------
+// Status colors
+// ---------------------------------------------------------------------------
+
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  ok: {
+    bg: "var(--success-muted)",
+    text: "var(--success)",
+  },
+  error: {
+    bg: "var(--danger-muted)",
+    text: "var(--danger)",
+  },
+  unknown: {
+    bg: "var(--bg-tertiary)",
+    text: "var(--text-secondary)",
+  },
 };
 
+/**
+ * HealthDiagnostics — table showing agent memory health status.
+ * Columns: Agent ID, Provider, Embedding Status, Error details.
+ */
 export function HealthDiagnostics() {
   const t = useTranslations("memory");
   const { healthStatus, isLanceDbEnabled, loading } = useMemoryStore();
 
   return (
-    <ScrollArea className="p-4 h-full">
+    <div className="p-4 overflow-y-auto h-full">
       {/* LanceDB status */}
-      <div className="flex items-center gap-2 mb-4">
-        <HeartPulse size={14} className="text-[var(--text-secondary)]" />
-        <Badge
-          className={cn(
-            "text-xs h-auto py-1",
-            isLanceDbEnabled
-              ? "bg-[var(--success-muted)] text-[var(--success)]"
-              : "bg-[var(--warning-muted)] text-[var(--warning-muted-text)]",
-          )}
-        >
-          {isLanceDbEnabled ? t("lancedbEnabled") : t("lancedbDisabled")}
-        </Badge>
+      <div
+        className="text-xs mb-4 px-3 py-2 rounded inline-block"
+        style={{
+          backgroundColor: isLanceDbEnabled ? "var(--success-muted)" : "var(--warning-muted)",
+          color: isLanceDbEnabled ? "var(--success)" : "var(--warning)",
+        }}
+      >
+        {isLanceDbEnabled ? t("lancedbEnabled") : t("lancedbDisabled")}
       </div>
 
       {/* Health table */}
       {loading && healthStatus.length === 0 ? (
-        <div className="text-[var(--text-secondary)]">
-          <p className="text-sm animate-pulse">...</p>
+        <div style={{ color: "var(--text-secondary)" }}>
+          <p className="text-sm">...</p>
         </div>
       ) : healthStatus.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--text-secondary)]">
-          <HeartPulse size={18} className="text-[var(--accent)]" />
+        <div style={{ color: "var(--text-secondary)" }}>
           <p className="text-sm">{t("noFiles")}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl ring-1 ring-[var(--border)]">
-          <table className="w-full text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs" style={{ color: "var(--text-primary)" }}>
             <thead>
-              <tr className="border-b border-[var(--border)]">
-                <th className="text-left py-2.5 px-4 text-xs font-medium text-[var(--text-secondary)]">
+              <tr className="border-b" style={{ borderColor: "var(--border)" }}>
+                <th
+                  className="text-left py-2 px-3 font-medium"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   {t("agent")}
                 </th>
-                <th className="text-left py-2.5 px-4 text-xs font-medium text-[var(--text-secondary)]">
+                <th
+                  className="text-left py-2 px-3 font-medium"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   Provider
                 </th>
-                <th className="text-left py-2.5 px-4 text-xs font-medium text-[var(--text-secondary)]">
+                <th
+                  className="text-left py-2 px-3 font-medium"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   Status
                 </th>
-                <th className="text-left py-2.5 px-4 text-xs font-medium text-[var(--text-secondary)]">
+                <th
+                  className="text-left py-2 px-3 font-medium"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   Error
                 </th>
               </tr>
             </thead>
             <tbody>
-              {healthStatus.map((entry) => (
-                <tr
-                  key={entry.agentId}
-                  className="border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-tertiary)] transition-colors duration-150"
-                >
-                  <td className="py-2.5 px-4 font-mono text-[var(--text-primary)]">
-                    {entry.agentId}
-                  </td>
-                  <td className="py-2.5 px-4 text-[var(--text-primary)]">{entry.provider}</td>
-                  <td className="py-2.5 px-4">
-                    <Badge
-                      className={cn(
-                        "uppercase font-semibold text-[10px] h-auto py-0.5",
-                        STATUS_BADGE_STYLES[entry.embeddingStatus] ?? STATUS_BADGE_STYLES.unknown,
-                      )}
-                    >
-                      {entry.embeddingStatus}
-                    </Badge>
-                  </td>
-                  <td className="py-2.5 px-4 text-[var(--text-secondary)]">
-                    {entry.error ?? "---"}
-                  </td>
-                </tr>
-              ))}
+              {healthStatus.map((entry) => {
+                const colors = STATUS_COLORS[entry.embeddingStatus] ?? STATUS_COLORS.unknown;
+                return (
+                  <tr
+                    key={entry.agentId}
+                    className="border-b"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <td className="py-2 px-3 font-mono">{entry.agentId}</td>
+                    <td className="py-2 px-3">{entry.provider}</td>
+                    <td className="py-2 px-3">
+                      <span
+                        className="px-2 py-0.5 rounded uppercase font-semibold"
+                        style={{
+                          backgroundColor: colors.bg,
+                          color: colors.text,
+                          fontSize: 10,
+                        }}
+                      >
+                        {entry.embeddingStatus}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3" style={{ color: "var(--text-secondary)" }}>
+                      {entry.error ?? "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
-    </ScrollArea>
+    </div>
   );
 }

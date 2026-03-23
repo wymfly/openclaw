@@ -1,21 +1,11 @@
 import "./globals.css";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import { Outfit, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import { ThemeScript } from "@/components/layout/ThemeScript";
 import { cn } from "@/lib/utils";
 
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
-  display: "swap",
-});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata = {
   title: "openclaw-deck",
@@ -27,11 +17,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const messages = await getMessages();
 
   return (
-    <html
-      lang={locale}
-      suppressHydrationWarning
-      className={cn(outfit.variable, geistMono.variable)}
-    >
+    <html lang={locale} suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <head>
         <ThemeScript />
       </head>

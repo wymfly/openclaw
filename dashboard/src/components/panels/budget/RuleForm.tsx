@@ -2,11 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 import type { BudgetRule, CreateRuleInput, BudgetDimension } from "@/stores/budget";
 
 const DIMENSIONS: BudgetDimension[] = ["tokensIn", "tokensOut", "totalTokens", "cost"];
@@ -82,143 +77,205 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
     onSave(input);
   };
 
+  const inputStyle = {
+    backgroundColor: "var(--bg-primary)",
+    borderColor: "var(--border)",
+    color: "var(--text-primary)",
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
         {rule ? t("editRule") : t("addRule")}
       </h3>
 
       {/* Name */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("name")}</Label>
-        <Input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("name")}
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="px-3 py-2 text-sm rounded-md border"
+          style={inputStyle}
+          required
+        />
       </div>
 
       {/* Scope */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("scope")}</Label>
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("scope")}
+        </label>
         <div className="flex gap-1">
           {SCOPES.map((s) => (
-            <Button
+            <button
               key={s}
               type="button"
-              variant="outline"
-              size="xs"
-              className={cn(
-                "transition-colors duration-150",
-                scope === s &&
-                  "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] hover:bg-[var(--accent-hover)] hover:text-[var(--accent-fg)]",
-              )}
+              className="px-3 py-1 text-xs rounded-md border transition-colors"
+              style={{
+                backgroundColor: scope === s ? "var(--accent)" : "transparent",
+                color: scope === s ? "var(--accent-fg)" : "var(--text-secondary)",
+                borderColor: scope === s ? "var(--accent)" : "var(--border)",
+              }}
               onClick={() => setScope(s)}
             >
               {t(s)}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       {/* Agent ID (conditional) */}
       {scope === "perAgent" && (
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("agentId")}</Label>
-          <Input type="text" value={agentId} onChange={(e) => setAgentId(e.target.value)} />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            {t("agentId")}
+          </label>
+          <input
+            type="text"
+            value={agentId}
+            onChange={(e) => setAgentId(e.target.value)}
+            className="px-3 py-2 text-sm rounded-md border"
+            style={inputStyle}
+          />
         </div>
       )}
 
       {/* Task ID (conditional) */}
       {scope === "perTask" && (
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("taskId")}</Label>
-          <Input type="text" value={taskId} onChange={(e) => setTaskId(e.target.value)} />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            {t("taskId")}
+          </label>
+          <input
+            type="text"
+            value={taskId}
+            onChange={(e) => setTaskId(e.target.value)}
+            className="px-3 py-2 text-sm rounded-md border"
+            style={inputStyle}
+          />
         </div>
       )}
 
       {/* Dimension */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("dimension")}</Label>
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("dimension")}
+        </label>
         <div className="flex gap-1 flex-wrap">
           {DIMENSIONS.map((d) => (
-            <Button
+            <button
               key={d}
               type="button"
-              variant="outline"
-              size="xs"
-              className={cn(
-                "transition-colors duration-150",
-                dimension === d &&
-                  "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] hover:bg-[var(--accent-hover)] hover:text-[var(--accent-fg)]",
-              )}
+              className="px-3 py-1 text-xs rounded-md border transition-colors"
+              style={{
+                backgroundColor: dimension === d ? "var(--accent)" : "transparent",
+                color: dimension === d ? "var(--accent-fg)" : "var(--text-secondary)",
+                borderColor: dimension === d ? "var(--accent)" : "var(--border)",
+              }}
               onClick={() => setDimension(d)}
             >
               {t(d)}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       {/* Thresholds */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("warnThreshold")}</Label>
-          <Input
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            {t("warnThreshold")}
+          </label>
+          <input
             type="number"
             min="0"
             step="any"
             value={warnThreshold}
             onChange={(e) => setWarnThreshold(e.target.value)}
+            className="px-3 py-2 text-sm rounded-md border"
+            style={inputStyle}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("overThreshold")}</Label>
-          <Input
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            {t("overThreshold")}
+          </label>
+          <input
             type="number"
             min="0"
             step="any"
             value={overThreshold}
             onChange={(e) => setOverThreshold(e.target.value)}
+            className="px-3 py-2 text-sm rounded-md border"
+            style={inputStyle}
           />
         </div>
       </div>
 
       {/* Period */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("period")}</Label>
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("period")}
+        </label>
         <div className="flex gap-1">
           {PERIODS.map((p) => (
-            <Button
+            <button
               key={p}
               type="button"
-              variant="outline"
-              size="xs"
-              className={cn(
-                "transition-colors duration-150",
-                period === p &&
-                  "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] hover:bg-[var(--accent-hover)] hover:text-[var(--accent-fg)]",
-              )}
+              className="px-3 py-1 text-xs rounded-md border transition-colors"
+              style={{
+                backgroundColor: period === p ? "var(--accent)" : "transparent",
+                color: period === p ? "var(--accent-fg)" : "var(--text-secondary)",
+                borderColor: period === p ? "var(--accent)" : "var(--border)",
+              }}
               onClick={() => setPeriod(p)}
             >
               {t(p)}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       {/* Enabled toggle */}
       <div className="flex items-center gap-2">
-        <Switch id="budget-enabled" checked={enabled} onCheckedChange={setEnabled} />
-        <Label htmlFor="budget-enabled" className="text-xs text-[var(--text-secondary)]">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
           {t("enabledToggle")}
-        </Label>
+        </label>
+        <button
+          type="button"
+          className="w-10 h-5 rounded-full transition-colors relative"
+          style={{ backgroundColor: enabled ? "var(--accent)" : "var(--border)" }}
+          onClick={() => setEnabled(!enabled)}
+        >
+          <span
+            className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+            style={{ left: enabled ? "calc(100% - 18px)" : "2px" }}
+          />
+        </button>
       </div>
 
       {/* Actions */}
       <div className="flex gap-2 pt-2">
-        <Button type="submit" disabled={saving} size="sm">
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 text-xs rounded-md font-medium transition-colors"
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+        >
           {tc("save")}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+        </button>
+        <button
+          type="button"
+          className="px-4 py-2 text-xs rounded-md font-medium transition-colors border"
+          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+          onClick={onCancel}
+        >
           {tc("cancel")}
-        </Button>
+        </button>
       </div>
     </form>
   );

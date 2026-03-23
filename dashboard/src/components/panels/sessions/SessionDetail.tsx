@@ -2,15 +2,11 @@
 
 import { ArrowRight, GitBranch, Trash2, User, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ContextHealthBar } from "@/components/panels/sessions/ContextHealthBar";
-import { SessionExport } from "@/components/panels/sessions/SessionExport";
-import { TranscriptSearch } from "@/components/panels/sessions/TranscriptSearch";
+import { useEffect, useState } from "react";
 import { LineageTree } from "@/components/shared/LineageTree";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { navigateToSubagents } from "@/lib/panel-navigation";
-import { parseSessionKey } from "@/lib/session-key-parser";
 import { cn } from "@/lib/utils";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { useSessionsStore, type HistoryMessage, type SessionEntry } from "@/stores/sessions";
@@ -60,22 +56,10 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-function HistoryBubble({
-  message,
-  highlighted,
-}: {
-  message: HistoryMessage;
-  highlighted?: boolean;
-}) {
+function HistoryBubble({ message }: { message: HistoryMessage }) {
   const isUser = message.role === "user";
   return (
-    <div
-      className={cn(
-        "flex gap-3 mb-4 transition-panel",
-        isUser && "flex-row-reverse",
-        highlighted && "bg-[var(--warning)]/10 rounded-lg -mx-2 px-2 py-1",
-      )}
-    >
+    <div className={cn("flex gap-3 mb-4 transition-panel", isUser && "flex-row-reverse")}>
       {/* Avatar */}
       <div
         className={cn(
@@ -118,24 +102,16 @@ export function SessionDetail() {
   const { sessions, selectedKey, history, deleteSession } = useSessionsStore();
   const { lineage, fetchLineage } = useDeckSubagentsStore();
   const [confirming, setConfirming] = useState(false);
-  const [highlightedIndices, setHighlightedIndices] = useState<number[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const session = sessions.find((s) => s.key === selectedKey);
   const isSubagent = selectedKey ? selectedKey.includes(":subagent:") : false;
-  const keySegments = selectedKey ? parseSessionKey(selectedKey) : [];
 
   // Fetch lineage for subagent sessions
   useEffect(() => {
     if (isSubagent && selectedKey) {
-      void fetchLineage({ sessionKey: selectedKey });
+      void fetchLineage(selectedKey);
     }
   }, [isSubagent, selectedKey, fetchLineage]);
-
-  const scrollToMessage = useCallback((index: number) => {
-    const el = scrollRef.current?.querySelector(`[data-msg-index="${index}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, []);
 
   if (!session) {
     return null;
@@ -157,27 +133,12 @@ export function SessionDetail() {
       {/* Header */}
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-2 shrink-0">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3
-              className="text-sm font-semibold truncate font-mono text-[var(--text-primary)]"
-              title={session.key}
-            >
-              {session.key}
-            </h3>
-            <ContextHealthBar session={session} />
-          </div>
-          {keySegments.length > 1 && (
-            <div className="flex flex-wrap items-center gap-1 mt-1">
-              {keySegments.map((seg) => (
-                <span
-                  key={seg.label}
-                  className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
-                >
-                  {seg.label}: {seg.value}
-                </span>
-              ))}
-            </div>
-          )}
+          <h3
+            className="text-sm font-semibold truncate font-mono text-[var(--text-primary)]"
+            title={session.key}
+          >
+            {session.key}
+          </h3>
           <div className="flex items-center gap-3 mt-0.5">
             {session.model && (
               <span className="text-xs text-[var(--text-secondary)]">
@@ -192,23 +153,20 @@ export function SessionDetail() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          <SessionExport session={session} messages={history} />
-          <Button
-            variant={confirming ? "destructive" : "ghost"}
-            size="icon-sm"
-            title={confirming ? t("confirmDelete") : tc("delete")}
-            onClick={handleDelete}
-            onBlur={() => setConfirming(false)}
-            className={cn(
-              "cursor-pointer",
-              !confirming &&
-                "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
-            )}
-          >
-            <Trash2 size={15} />
-          </Button>
-        </div>
+        <Button
+          variant={confirming ? "destructive" : "ghost"}
+          size="icon-sm"
+          title={confirming ? t("confirmDelete") : tc("delete")}
+          onClick={handleDelete}
+          onBlur={() => setConfirming(false)}
+          className={cn(
+            "cursor-pointer",
+            !confirming &&
+              "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
+          )}
+        >
+          <Trash2 size={15} />
+        </Button>
       </div>
 
       {/* Lineage block for subagent sessions */}
@@ -283,28 +241,15 @@ export function SessionDetail() {
         )}
       </div>
 
-      {/* Transcript search */}
-      <TranscriptSearch
-        messages={history}
-        onHighlight={setHighlightedIndices}
-        onNavigate={scrollToMessage}
-      />
-
       {/* Conversation history */}
       <ScrollArea className="flex-1 px-5 py-4">
-        <div ref={scrollRef}>
-          {history.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-[var(--text-secondary)]">
-              <p className="text-sm">{t("history")}</p>
-            </div>
-          ) : (
-            history.map((msg, i) => (
-              <div key={`${msg.role}-${i}`} data-msg-index={i}>
-                <HistoryBubble message={msg} highlighted={highlightedIndices.includes(i)} />
-              </div>
-            ))
-          )}
-        </div>
+        {history.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-[var(--text-secondary)]">
+            <p className="text-sm">{t("history")}</p>
+          </div>
+        ) : (
+          history.map((msg, i) => <HistoryBubble key={`${msg.role}-${i}`} message={msg} />)
+        )}
       </ScrollArea>
     </div>
   );

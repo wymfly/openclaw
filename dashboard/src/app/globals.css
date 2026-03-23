@@ -1,293 +1,151 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* ============================================================
-   Design System: Mission Control — Deep Space
-   Typography: Outfit (display) + Geist Mono (data)
-   Signature: Glow borders on active elements
-   ============================================================ */
-
 :root {
-  /* --- Backgrounds --- */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --bg-nav: #ffffff;
-
-  /* --- Typography --- */
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-
-  /* --- Borders --- */
-  --border: #e2e8f0;
-  --border-subtle: rgba(0, 0, 0, 0.06);
-
-  /* --- Accent (Electric Blue) --- */
-  --accent: #3b82f6;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f1f3f5;
+  --bg-nav: #f1f3f5;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --border: oklch(0.922 0 0);
+  --accent: oklch(0.97 0 0);
   --accent-hover: #2563eb;
   --accent-fg: #ffffff;
-  --accent-muted: rgba(59, 130, 246, 0.08);
-  --accent-glow: 0 0 12px rgba(59, 130, 246, 0.3);
-
-  /* --- Status --- */
+  --accent-muted: rgba(59, 130, 246, 0.1);
   --status-connected: #22c55e;
   --status-disconnected: #ef4444;
   --status-reconnecting: #f59e0b;
-
-  /* --- Semantic --- */
   --danger: #ef4444;
   --danger-fg: #ffffff;
-  --danger-muted: rgba(239, 68, 68, 0.1);
+  --danger-muted: rgba(239, 68, 68, 0.15);
   --danger-muted-text: #dc2626;
   --warning: #eab308;
   --warning-fg: #ffffff;
-  --warning-muted: rgba(234, 179, 8, 0.1);
+  --warning-muted: rgba(234, 179, 8, 0.15);
   --warning-muted-text: #ca8a04;
   --success: #22c55e;
   --success-fg: #ffffff;
-  --success-muted: rgba(34, 197, 94, 0.1);
+  --success-muted: rgba(34, 197, 94, 0.15);
   --success-muted-text: #16a34a;
-  --neutral-muted: rgba(100, 116, 139, 0.1);
-  --neutral-muted-text: #64748b;
+  --neutral-muted: rgba(156, 163, 175, 0.15);
+  --neutral-muted-text: #6b7280;
   --purple: #8b5cf6;
-  --purple-muted: rgba(139, 92, 246, 0.1);
+  --purple-muted: rgba(168, 85, 247, 0.15);
   --purple-muted-text: #7c3aed;
   --skill-warning-bg: #fef3c7;
   --skill-warning-text: #92400e;
-
-  /* --- shadcn bridge --- */
-  --background: var(--bg-primary);
-  --foreground: var(--text-primary);
-  --card: var(--bg-secondary);
-  --card-foreground: var(--text-primary);
-  --popover: var(--bg-secondary);
-  --popover-foreground: var(--text-primary);
-  --primary: var(--accent);
-  --primary-foreground: var(--accent-fg);
-  --secondary: var(--bg-tertiary);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--bg-tertiary);
-  --muted-foreground: var(--text-secondary);
-  --accent-foreground: var(--text-primary);
-  --destructive: var(--danger);
-  --input: var(--border);
-  --ring: var(--accent);
-
-  /* --- Metrics --- */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
   --radius: 0.625rem;
-  --nav-width: 240px;
-  --nav-collapsed-width: 56px;
-  --header-height: 48px;
-
-  /* --- Charts --- */
-  --chart-1: #3b82f6;
-  --chart-2: #8b5cf6;
-  --chart-3: #06b6d4;
-  --chart-4: #10b981;
-  --chart-5: #f59e0b;
-
-  /* --- Sidebar (shadcn) --- */
-  --sidebar: var(--bg-nav);
-  --sidebar-foreground: var(--text-primary);
-  --sidebar-primary: var(--accent);
-  --sidebar-primary-foreground: var(--accent-fg);
-  --sidebar-accent: var(--accent-muted);
-  --sidebar-accent-foreground: var(--accent);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--accent);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* ============================================================
-   Dark Theme — Deep Space
-   ============================================================ */
 .dark {
-  --bg-primary: #0a0f1c;
-  --bg-secondary: #111827;
-  --bg-tertiary: rgba(255, 255, 255, 0.04);
-  --bg-nav: #0d1220;
-
-  --text-primary: #e2e8f0;
-  --text-secondary: #64748b;
-
-  --border: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.04);
-
-  --accent: #60a5fa;
+  --bg-primary: #0f0f23;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: rgba(255, 255, 255, 0.05);
+  --bg-nav: #16162a;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --border: oklch(1 0 0 / 10%);
+  --accent: oklch(0.269 0 0);
   --accent-hover: #3b82f6;
   --accent-fg: #ffffff;
-  --accent-muted: rgba(96, 165, 250, 0.1);
-  --accent-glow: 0 0 16px rgba(96, 165, 250, 0.25);
-
+  --accent-muted: rgba(96, 165, 250, 0.15);
   --status-connected: #4ade80;
   --status-disconnected: #f87171;
   --status-reconnecting: #fbbf24;
-
   --danger: #f87171;
   --danger-fg: #ffffff;
-  --danger-muted: rgba(248, 113, 113, 0.12);
+  --danger-muted: rgba(248, 113, 113, 0.15);
   --danger-muted-text: #fca5a5;
   --warning: #fbbf24;
-  --warning-fg: #0a0f1c;
-  --warning-muted: rgba(251, 191, 36, 0.12);
+  --warning-fg: #1a1a2e;
+  --warning-muted: rgba(251, 191, 36, 0.15);
   --warning-muted-text: #fbbf24;
   --success: #4ade80;
-  --success-fg: #0a0f1c;
-  --success-muted: rgba(74, 222, 128, 0.12);
+  --success-fg: #1a1a2e;
+  --success-muted: rgba(74, 222, 128, 0.15);
   --success-muted-text: #4ade80;
-  --neutral-muted: rgba(148, 163, 184, 0.1);
-  --neutral-muted-text: #94a3b8;
+  --neutral-muted: rgba(156, 163, 175, 0.15);
+  --neutral-muted-text: #9ca3af;
   --purple: #a78bfa;
-  --purple-muted: rgba(167, 139, 250, 0.12);
+  --purple-muted: rgba(167, 139, 250, 0.15);
   --purple-muted-text: #a78bfa;
-  --skill-warning-bg: rgba(234, 179, 8, 0.12);
+  --skill-warning-bg: rgba(234, 179, 8, 0.15);
   --skill-warning-text: #fbbf24;
-
-  /* --- shadcn bridge: dark --- */
-  --background: var(--bg-primary);
-  --foreground: var(--text-primary);
-  --card: var(--bg-secondary);
-  --card-foreground: var(--text-primary);
-  --popover: var(--bg-secondary);
-  --popover-foreground: var(--text-primary);
-  --primary: var(--accent);
-  --primary-foreground: var(--accent-fg);
-  --secondary: var(--bg-tertiary);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--bg-tertiary);
-  --muted-foreground: var(--text-secondary);
-  --accent-foreground: var(--text-primary);
-  --destructive: var(--danger);
-  --input: var(--border);
-  --ring: var(--accent);
-
-  --chart-1: #60a5fa;
-  --chart-2: #a78bfa;
-  --chart-3: #22d3ee;
-  --chart-4: #34d399;
-  --chart-5: #fbbf24;
-
-  --sidebar: var(--bg-nav);
-  --sidebar-foreground: var(--text-primary);
-  --sidebar-primary: var(--accent);
-  --sidebar-primary-foreground: var(--accent-fg);
-  --sidebar-accent: var(--accent-muted);
-  --sidebar-accent-foreground: var(--accent);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--accent);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* ============================================================
-   Base Styles
-   ============================================================ */
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family:
-    var(--font-outfit, "Outfit"),
     system-ui,
     -apple-system,
     sans-serif;
-  font-feature-settings: "cv11", "ss01";
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Monospace for data/code elements */
-code,
-kbd,
-.font-mono,
-[data-mono] {
-  font-family: var(--font-geist-mono, "Geist Mono"), ui-monospace, "SF Mono", monospace;
-}
-
-/* ============================================================
-   Signature Effect: Glow Borders
-   ============================================================ */
-.glow-border {
-  box-shadow: var(--accent-glow);
-  border-color: var(--accent) !important;
-}
-
-.glow-border-subtle {
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
-}
-
-/* Card hover glow */
-.card-hover {
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
-}
-.card-hover:hover {
-  box-shadow:
-    0 0 0 1px var(--accent),
-    var(--accent-glow);
-}
-
-/* Active nav item glow */
-.nav-active {
-  background: var(--accent-muted);
-  color: var(--accent);
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-
-/* ============================================================
-   Transitions & Motion
-   ============================================================ */
-.transition-panel {
-  animation: fadeIn 0.15s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 4px var(--status-connected);
-  }
-  50% {
-    box-shadow: 0 0 12px var(--status-connected);
-  }
-}
-
-.status-pulse {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* ============================================================
-   Scrollbar (dark-theme optimized)
-   ============================================================ */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
-}
-
-/* ============================================================
-   Tailwind Theme Mapping (shadcn/ui + custom)
-   ============================================================ */
 @theme inline {
-  --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+  --font-sans: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -326,30 +184,6 @@ kbd,
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-/* ============================================================
-   Reduced Motion
-   ============================================================ */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ============================================================
-   Focus Glow (for inputs and interactive elements)
-   ============================================================ */
-.focus-glow:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px var(--bg-primary),
-    0 0 0 4px var(--accent),
-    var(--accent-glow);
 }
 
 @layer base {

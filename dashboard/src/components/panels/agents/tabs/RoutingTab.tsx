@@ -8,8 +8,8 @@ import { TierBadge } from "@/components/shared/TierBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { navigateToRouting } from "@/lib/panel-navigation";
 import { useDeckRoutingStore, type BindingMatch } from "@/stores/deck-routing";
-import { useUIStore } from "@/stores/ui";
 
 interface RoutingTabProps {
   agentId: string;
@@ -19,7 +19,6 @@ export function RoutingTab({ agentId }: RoutingTabProps) {
   const t = useTranslations("agentDetail");
   const { bindings, configHash, loading, fetchBindings, addBinding, removeBinding } =
     useDeckRoutingStore();
-  const setActivePanel = useUIStore((s) => s.setActivePanel);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -65,7 +64,7 @@ export function RoutingTab({ agentId }: RoutingTabProps) {
           {t("addBinding")}
         </Button>
         <button
-          onClick={() => setActivePanel("routing")}
+          onClick={() => navigateToRouting(agentId)}
           className="flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
         >
           {t("viewAllRouting")}

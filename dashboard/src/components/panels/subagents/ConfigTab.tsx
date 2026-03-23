@@ -287,17 +287,17 @@ export function ConfigTab() {
                         <AgentBadge agentId={agent.id} agentName={agent.name} />
                       </td>
                       <td className="py-2.5 pr-4 text-[var(--text-primary)]">
-                        {config?.allowAny
-                          ? "Any"
-                          : config?.allowAgents?.length
-                            ? config.allowAgents.join(", ")
-                            : "None"}
+                        {config?.allowMode === "none"
+                          ? "None"
+                          : config?.allowMode === "any"
+                            ? "Any"
+                            : config?.allowAgents?.join(", ") || "—"}
                       </td>
                       <td className="py-2.5 pr-4 font-mono text-[var(--text-secondary)]">
-                        {config?.effectiveMaxSpawnDepth ?? defaults.maxSpawnDepth}
+                        {config?.effectiveMaxDepth ?? defaults.maxSpawnDepth}
                       </td>
                       <td className="py-2.5 pr-4 font-mono text-[var(--text-secondary)]">
-                        {config?.effectiveMaxChildrenPerAgent ?? defaults.maxChildrenPerAgent}
+                        {config?.effectiveMaxChildren ?? defaults.maxChildrenPerAgent}
                       </td>
                       <td className="py-2.5 text-[var(--text-secondary)]">
                         {config?.model ?? (defaults.defaultModel || "—")}

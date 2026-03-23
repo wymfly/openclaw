@@ -1,41 +1,42 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CatalogTab } from "./tabs/CatalogTab";
-import { FallbacksTab } from "./tabs/FallbacksTab";
-import { ProviderConfigTab } from "./tabs/ProviderConfigTab";
-import { UsageTab } from "./tabs/UsageTab";
+import { useEffect } from "react";
+import { useModelsStore } from "@/stores/models";
+import { ModelCatalog } from "./ModelCatalog";
+import { ProviderConfig } from "./ProviderConfig";
 
 /**
- * Models panel — four-tab layout:
- *   Catalog | Provider Config | Fallbacks | Usage
+ * Models panel — entry point component.
+ * Composes model catalog (left) and provider config (right).
  */
 export function ModelsPanel() {
   const t = useTranslations("models");
+  const { selectedProvider, fetchModels, fetchProviderConfig } = useModelsStore();
+
+  useEffect(() => {
+    void fetchModels();
+    void fetchProviderConfig();
+  }, [fetchModels, fetchProviderConfig]);
 
   return (
-    <div className="flex h-full flex-col">
-      <Tabs defaultValue="catalog" className="flex h-full flex-col">
-        <TabsList className="mx-4 mt-2 shrink-0">
-          <TabsTrigger value="catalog">{t("tabs.catalog")}</TabsTrigger>
-          <TabsTrigger value="config">{t("tabs.config")}</TabsTrigger>
-          <TabsTrigger value="fallbacks">{t("tabs.fallbacks")}</TabsTrigger>
-          <TabsTrigger value="usage">{t("tabs.usage")}</TabsTrigger>
-        </TabsList>
-        <TabsContent value="catalog" className="flex-1 overflow-hidden mt-0">
-          <CatalogTab />
-        </TabsContent>
-        <TabsContent value="config" className="flex-1 overflow-hidden mt-0">
-          <ProviderConfigTab />
-        </TabsContent>
-        <TabsContent value="fallbacks" className="flex-1 overflow-hidden mt-0">
-          <FallbacksTab />
-        </TabsContent>
-        <TabsContent value="usage" className="flex-1 overflow-hidden mt-0">
-          <UsageTab />
-        </TabsContent>
-      </Tabs>
+    <div
+      className="flex h-full rounded-lg overflow-hidden border"
+      style={{ borderColor: "var(--border)" }}
+    >
+      <ModelCatalog />
+      <div className="flex flex-col flex-1 min-w-0">
+        {selectedProvider ? (
+          <ProviderConfig provider={selectedProvider} />
+        ) : (
+          <div
+            className="flex items-center justify-center h-full"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <p className="text-sm">{t("selectProvider")}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

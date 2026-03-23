@@ -1,54 +1,24 @@
 "use client";
 
-import { Download, ExternalLink, Loader2, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { useNotificationsStore } from "@/stores/notifications";
-import { useSkillsStore, type SkillEntry, type SkillInstallOption } from "@/stores/skills";
+import { useSkillsStore, type SkillEntry } from "@/stores/skills";
 
 interface SkillConfigProps {
   skill: SkillEntry;
 }
 
-function statusDotColor(status: string): string {
-  switch (status) {
-    case "ready":
-      return "bg-[var(--status-connected)]";
-    case "needs-setup":
-      return "bg-[var(--status-reconnecting)]";
-    default:
-      return "bg-[var(--text-secondary)]";
-  }
-}
-
-function sourceBadgeColor(source: SkillEntry["source"]): string {
-  switch (source) {
-    case "bundled":
-      return "bg-[var(--accent-muted)] text-[var(--accent)]";
-    case "managed":
-      return "bg-[var(--purple-muted)] text-[var(--purple-muted-text)]";
-    case "plugin":
-      return "bg-[var(--warning-muted)] text-[var(--warning-muted-text)]";
-  }
-}
-
 export function SkillConfig({ skill }: SkillConfigProps) {
   const t = useTranslations("skills");
   const tc = useTranslations("common");
-  const { updateSkill, installSkill } = useSkillsStore();
-  const addToast = useNotificationsStore((s) => s.addToast);
+  const { updateSkill, installSkill, fetchSkills } = useSkillsStore();
 
   const [apiKey, setApiKey] = useState("");
   const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>([]);
   const [saving, setSaving] = useState(false);
-  const [installingDeps, setInstallingDeps] = useState<Record<string, boolean>>({});
+  const [installing, setInstalling] = useState(false);
 
+  // Initialize env pairs from skill config
   useEffect(() => {
     const env = (skill.config?.env ?? {}) as Record<string, string>;
     setEnvPairs(Object.entries(env).map(([key, value]) => ({ key, value })));
@@ -74,18 +44,14 @@ export function SkillConfig({ skill }: SkillConfigProps) {
     setSaving(false);
   };
 
-  const handleInstallDep = async (opt: SkillInstallOption) => {
-    setInstallingDeps((prev) => ({ ...prev, [opt.id]: true }));
-    try {
-      const ok = await installSkill(skill.name, opt.id);
-      if (ok) {
-        addToast("success", t("installSuccess", { name: opt.label }));
-      } else {
-        addToast("error", t("installFailed", { name: opt.label }));
-      }
-    } finally {
-      setInstallingDeps((prev) => ({ ...prev, [opt.id]: false }));
-    }
+  const handleInstall = async () => {
+    // installId comes from the skill's install metadata (key); Gateway uses it
+    // to look up the installer spec — a random UUID would never match.
+    const installId = (skill.config?.installId as string) ?? skill.key;
+    setInstalling(true);
+    await installSkill(skill.name, installId);
+    await fetchSkills();
+    setInstalling(false);
   };
 
   const addEnvPair = () => setEnvPairs([...envPairs, { key: "", value: "" }]);
@@ -97,173 +63,141 @@ export function SkillConfig({ skill }: SkillConfigProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-3 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{skill.name}</h3>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          {skill.name}
+        </h3>
         <div className="flex items-center gap-2">
           {/* Enable/disable toggle */}
-          <div className="flex items-center gap-2">
-            <Switch checked={skill.enabled} onCheckedChange={handleToggle} />
-            <span className="text-xs text-[var(--text-secondary)]">
-              {skill.enabled ? t("enabled") : t("disabled")}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Description preview */}
-      <div className="text-xs space-y-2">
-        <p className="text-[var(--text-primary)] leading-relaxed">
-          {skill.emoji && <span className="mr-1.5">{skill.emoji}</span>}
-          {skill.description || t("noDescription")}
-        </p>
-
-        {skill.homepage && (
-          <a
-            href={skill.homepage}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
+          <button
+            type="button"
+            className="px-2 py-1 text-[11px] rounded-md transition-colors"
+            style={{
+              backgroundColor: skill.enabled ? "var(--accent)" : "var(--bg-tertiary)",
+              color: skill.enabled ? "var(--accent-fg)" : "var(--text-secondary)",
+            }}
+            onClick={handleToggle}
           >
-            <ExternalLink size={11} />
-            {t("homepage")}
-          </a>
-        )}
+            {skill.enabled ? t("disable") : t("enable")}
+          </button>
 
-        {skill.primaryEnv && (
-          <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-            <span className="font-medium">{t("requiredEnv")}:</span>
-            <code className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] font-mono text-[11px]">
-              {skill.primaryEnv}
-            </code>
-          </div>
-        )}
+          {/* Install button for managed/plugin */}
+          {skill.source !== "bundled" && (
+            <button
+              type="button"
+              className="px-2 py-1 text-[11px] rounded-md transition-colors"
+              style={{ backgroundColor: "var(--purple)", color: "var(--accent-fg)" }}
+              onClick={handleInstall}
+              disabled={installing}
+            >
+              {installing ? "..." : t("install")}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Status + source */}
-      <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
-        <Badge
-          variant="secondary"
-          className={cn("text-[10px] h-4", sourceBadgeColor(skill.source))}
-        >
-          {t(skill.source)}
-        </Badge>
-        <div className="flex items-center gap-1.5">
-          <span
-            className={cn("w-1.5 h-1.5 rounded-full inline-block", statusDotColor(skill.status))}
-          />
-          <span>{skill.status === "needs-setup" ? t("needsSetup") : t(skill.status)}</span>
-        </div>
+      <div className="flex gap-4 text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span>
+          {t("source")}: {t(skill.source)}
+        </span>
+        <span>{skill.status === "needs-setup" ? t("needsSetup") : t(skill.status)}</span>
       </div>
 
-      {/* Actionable dependencies section */}
-      {((skill.missingRequirements && skill.missingRequirements.length > 0) ||
-        (skill.installOptions && skill.installOptions.length > 0)) && (
-        <div className="space-y-2">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("installDeps")}</Label>
-
-          {skill.missingRequirements && skill.missingRequirements.length > 0 && (
-            <div className="text-xs px-3 py-2 rounded-lg bg-[var(--skill-warning-bg)] text-[var(--skill-warning-text)] ring-1 ring-[var(--warning)]/20">
-              <span className="font-medium">{t("missingRequirements")}:</span>{" "}
-              {skill.missingRequirements.join(", ")}
-            </div>
-          )}
-
-          {skill.installOptions?.map((opt) => (
-            <div
-              key={opt.id}
-              className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)]"
-            >
-              <div className="text-xs">
-                <span className="font-medium text-[var(--text-primary)]">{opt.label}</span>
-                {opt.bins.length > 0 && (
-                  <span className="ml-2 text-[var(--text-secondary)]">
-                    {t("requiredBins")}: {opt.bins.join(", ")}
-                  </span>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="xs"
-                className="gap-1 shrink-0"
-                onClick={() => void handleInstallDep(opt)}
-                disabled={!!installingDeps[opt.id]}
-              >
-                {installingDeps[opt.id] ? (
-                  <>
-                    <Loader2 size={12} className="animate-spin" />
-                    {t("installing")}
-                  </>
-                ) : (
-                  <>
-                    <Download size={12} />
-                    {t("install")}
-                  </>
-                )}
-              </Button>
-            </div>
-          ))}
+      {/* Missing requirements */}
+      {skill.missingRequirements && skill.missingRequirements.length > 0 && (
+        <div
+          className="text-xs px-3 py-2 rounded-md"
+          style={{ backgroundColor: "var(--skill-warning-bg)", color: "var(--skill-warning-text)" }}
+        >
+          <span className="font-medium">{t("missingRequirements")}:</span>{" "}
+          {skill.missingRequirements.join(", ")}
         </div>
       )}
 
       {/* API Key */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("apiKey")}</Label>
-        <Input
+      <label className="flex flex-col gap-1">
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          {t("apiKey")}
+        </span>
+        <input
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          className="h-8 text-xs font-mono"
+          className="px-2 py-1.5 text-xs rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
         />
-      </div>
+      </label>
 
       {/* Env vars */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("envVars")}</Label>
-          <Button
-            variant="ghost"
-            size="xs"
-            className="text-[var(--accent)] hover:bg-[var(--accent-muted)] gap-1"
+          <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            {t("envVars")}
+          </span>
+          <button
+            type="button"
+            className="text-[11px] px-1.5 py-0.5 rounded"
+            style={{ color: "var(--accent)" }}
             onClick={addEnvPair}
           >
-            <Plus size={12} />
-            {tc("add")}
-          </Button>
+            + {tc("add")}
+          </button>
         </div>
         {envPairs.map((pair, idx) => (
-          <div key={idx} className="flex gap-1.5 items-center">
-            <Input
+          <div key={idx} className="flex gap-1 items-center">
+            <input
               type="text"
               value={pair.key}
               onChange={(e) => updateEnvPair(idx, "key", e.target.value)}
               placeholder="KEY"
-              className="flex-1 h-8 text-xs font-mono"
+              className="flex-1 px-2 py-1 text-xs rounded-md border font-mono"
+              style={{
+                borderColor: "var(--border)",
+                backgroundColor: "var(--bg-primary)",
+                color: "var(--text-primary)",
+              }}
             />
-            <Input
+            <input
               type="text"
               value={pair.value}
               onChange={(e) => updateEnvPair(idx, "value", e.target.value)}
               placeholder="value"
-              className="flex-1 h-8 text-xs font-mono"
+              className="flex-1 px-2 py-1 text-xs rounded-md border font-mono"
+              style={{
+                borderColor: "var(--border)",
+                backgroundColor: "var(--bg-primary)",
+                color: "var(--text-primary)",
+              }}
             />
             <button
               type="button"
-              className="shrink-0 text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors duration-150 cursor-pointer p-1"
+              className="text-xs px-1"
+              style={{ color: "var(--danger)" }}
               onClick={() => removeEnvPair(idx)}
-              aria-label="Remove"
             >
-              <X size={14} />
+              x
             </button>
           </div>
         ))}
       </div>
 
       {/* Save */}
-      <Button size="sm" className="self-start" onClick={handleSave} disabled={saving}>
+      <button
+        type="button"
+        className="self-start px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+        style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+        onClick={handleSave}
+        disabled={saving}
+      >
         {saving ? tc("loading") : tc("save")}
-      </Button>
+      </button>
     </div>
   );
 }

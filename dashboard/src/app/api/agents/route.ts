@@ -52,6 +52,5 @@ export const DELETE = withAuth(async (request: NextRequest) => {
 
   return gatewayRequest("agents.delete", {
     agentId,
-    deleteFiles: true,
   });
 });

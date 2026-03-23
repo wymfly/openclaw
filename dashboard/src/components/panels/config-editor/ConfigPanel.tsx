@@ -1,26 +1,18 @@
 "use client";
 
-import { Save, RefreshCw, Settings } from "lucide-react";
+import { Save, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useCallback, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { computeConfigDiff } from "@/lib/config-diff";
-import type { DiffEntry } from "@/lib/config-diff";
-import { parseSchemaSection, type FormField } from "@/lib/schema-parser";
-import { applyUiHints, type UiHintsMap } from "@/lib/ui-hints";
+import { useEffect, useMemo, useCallback } from "react";
+import { parseSchemaSection } from "@/lib/schema-parser";
 import { useConfigStore } from "@/stores/config";
 import { ConflictDialog } from "./ConflictDialog";
-import { DiffPreviewDialog } from "./DiffPreviewDialog";
-import { validateField } from "./fields/FieldValidation";
 import { SchemaForm } from "./SchemaForm";
 import { SectionNav } from "./SectionNav";
 
 /**
  * Config Editor panel — entry point component.
- * Split: SectionNav (sidebar) + SchemaForm (main area).
- * Toolbar with Save/Reload buttons and "Unsaved changes" indicator.
+ * Split: SectionNav (20%) + SchemaForm (80%).
+ * Save/Reload buttons in toolbar. "Unsaved changes" indicator.
  */
 export function ConfigPanel() {
   const t = useTranslations("config");
@@ -28,8 +20,6 @@ export function ConfigPanel() {
 
   const {
     schema,
-    uiHints,
-    rawConfig,
     editedConfig,
     isDirty,
     saving,
@@ -45,15 +35,12 @@ export function ConfigPanel() {
     reloadConfig,
   } = useConfigStore();
 
-  const [showDiffPreview, setShowDiffPreview] = useState(false);
-  const [diffEntries, setDiffEntries] = useState<DiffEntry[]>([]);
-  const [skipDiffPreview, setSkipDiffPreview] = useState(false);
-
   useEffect(() => {
     void fetchSchema();
     void fetchConfig();
   }, [fetchSchema, fetchConfig]);
 
+  // Navigation guard: warn about unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
@@ -64,6 +51,7 @@ export function ConfigPanel() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
+  // Derive sections from schema top-level keys
   const sections = useMemo(() => {
     if (!schema) {
       return [];
@@ -75,12 +63,14 @@ export function ConfigPanel() {
     return Object.keys(schema);
   }, [schema]);
 
+  // Auto-select first section
   useEffect(() => {
     if (sections.length > 0 && !activeSection) {
       setActiveSection(sections[0]);
     }
   }, [sections, activeSection, setActiveSection]);
 
+  // Parse config JSON to object for form values
   const configObj = useMemo(() => {
     try {
       return JSON.parse(editedConfig || "{}") as Record<string, unknown>;
@@ -89,6 +79,7 @@ export function ConfigPanel() {
     }
   }, [editedConfig]);
 
+  // Get fields for current section from schema
   const currentFields = useMemo(() => {
     if (!schema || !activeSection) {
       return [];
@@ -98,48 +89,16 @@ export function ConfigPanel() {
     if (!sectionSchema || typeof sectionSchema !== "object") {
       return [];
     }
-    let fields = parseSchemaSection(sectionSchema);
-    if (uiHints && Object.keys(uiHints).length > 0) {
-      fields = applyUiHints(fields, uiHints as UiHintsMap, `${activeSection}.`);
-    }
-    return fields;
-  }, [schema, activeSection, uiHints]);
+    return parseSchemaSection(sectionSchema);
+  }, [schema, activeSection]);
 
+  // Get values for the active section
   const sectionValues = useMemo(() => {
     if (!activeSection) {
       return {};
     }
     return (configObj[activeSection] as Record<string, unknown>) ?? {};
   }, [configObj, activeSection]);
-
-  /**
-   * Recursively walk a FormField[] tree and check each field's value against
-   * its validation constraints. Returns true if any field fails validation.
-   */
-  const hasValidationErrors = useMemo(() => {
-    function checkFields(fields: FormField[], values: Record<string, unknown>): boolean {
-      for (const field of fields) {
-        const value = values[field.key];
-        const err = validateField(value, field.validation, field.format);
-        if (err !== null) {
-          return true;
-        }
-        // Recurse into object children
-        if (
-          field.children &&
-          field.children.length > 0 &&
-          typeof value === "object" &&
-          value !== null
-        ) {
-          if (checkFields(field.children, value as Record<string, unknown>)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-    return checkFields(currentFields, sectionValues);
-  }, [currentFields, sectionValues]);
 
   const handleFieldChange = useCallback(
     (key: string, value: unknown) => {
@@ -150,10 +109,12 @@ export function ConfigPanel() {
           typeof existing === "object" && existing !== null
             ? { ...(existing as Record<string, unknown>) }
             : {};
+        // Handle nested keys like "gateway.port"
         const parts = key.split(".");
         if (parts.length === 1) {
           sectionObj[key] = value;
         } else {
+          // Walk the nesting
           let current: Record<string, unknown> = sectionObj;
           for (let i = 0; i < parts.length - 1; i++) {
             const part = parts[i];
@@ -173,91 +134,83 @@ export function ConfigPanel() {
   );
 
   const handleSave = useCallback(() => {
-    // Block save when any field fails validation
-    if (hasValidationErrors) {
-      return;
-    }
-
-    if (skipDiffPreview) {
-      void saveConfig();
-      return;
-    }
-
-    try {
-      const oldObj = JSON.parse(rawConfig || "{}") as Record<string, unknown>;
-      const newObj = JSON.parse(editedConfig || "{}") as Record<string, unknown>;
-      const entries = computeConfigDiff(oldObj, newObj);
-
-      if (entries.length === 0) {
-        void saveConfig();
-        return;
-      }
-
-      // Single-field change: skip full dialog, save directly
-      if (entries.length === 1) {
-        void saveConfig();
-        return;
-      }
-
-      setDiffEntries(entries);
-      setShowDiffPreview(true);
-    } catch {
-      void saveConfig();
-    }
-  }, [rawConfig, editedConfig, saveConfig, skipDiffPreview, hasValidationErrors]);
+    void saveConfig();
+  }, [saveConfig]);
 
   const handleReload = useCallback(() => {
     void reloadConfig();
   }, [reloadConfig]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
+    <div
+      className="flex flex-col h-full rounded-lg overflow-hidden border"
+      style={{ borderColor: "var(--border)" }}
+    >
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+      <div
+        className="flex items-center justify-between px-4 py-2 border-b"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+      >
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t("title")}</h2>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            {t("title")}
+          </h2>
           {isDirty && (
-            <Badge className="bg-[var(--warning-muted)] text-[var(--warning-muted-text)] border-transparent text-[10px]">
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded-full"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                color: "var(--accent)",
+              }}
+            >
               {t("unsavedChanges")}
-            </Badge>
+            </span>
           )}
           {error && (
-            <Badge className="bg-[var(--danger-muted)] text-[var(--danger-muted-text)] border-transparent text-[10px]">
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded-full"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--status-disconnected) 15%, transparent)",
+                color: "var(--status-disconnected)",
+              }}
+            >
               {error}
-            </Badge>
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="xs"
+          <button
             onClick={handleReload}
             disabled={loading}
-            className="gap-1 transition-colors duration-150"
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
+            style={{
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
+              backgroundColor: "var(--bg-primary)",
+            }}
           >
             <RefreshCw size={12} />
             {t("reload")}
-          </Button>
-          <Button
-            size="xs"
+          </button>
+          <button
             onClick={handleSave}
-            disabled={!isDirty || saving || hasValidationErrors}
-            className="gap-1"
-            title={hasValidationErrors ? t("validationErrors") : undefined}
+            disabled={!isDirty || saving}
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
           >
             <Save size={12} />
             {saving ? t("saving") : t("save")}
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex flex-1 min-h-0">
         {loading && !schema ? (
-          <div className="flex flex-col items-center justify-center gap-3 w-full text-[var(--text-secondary)]">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)]">
-              <Settings size={20} className="text-[var(--accent)] animate-pulse" />
-            </div>
+          <div
+            className="flex items-center justify-center w-full"
+            style={{ color: "var(--text-secondary)" }}
+          >
             <p className="text-sm">{tc("loading")}</p>
           </div>
         ) : (
@@ -267,17 +220,15 @@ export function ConfigPanel() {
               activeSection={activeSection}
               onSelect={setActiveSection}
             />
-            <ScrollArea className="flex-1">
-              <div className="px-4 py-3">
-                {activeSection && (
-                  <SchemaForm
-                    fields={currentFields}
-                    values={sectionValues}
-                    onChange={handleFieldChange}
-                  />
-                )}
-              </div>
-            </ScrollArea>
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+              {activeSection && (
+                <SchemaForm
+                  fields={currentFields}
+                  values={sectionValues}
+                  onChange={handleFieldChange}
+                />
+              )}
+            </div>
           </>
         )}
       </div>
@@ -287,19 +238,6 @@ export function ConfigPanel() {
         <ConflictDialog
           onReload={handleReload}
           onCancel={() => useConfigStore.setState({ conflict: false })}
-        />
-      )}
-
-      {/* Diff preview dialog */}
-      {showDiffPreview && (
-        <DiffPreviewDialog
-          entries={diffEntries}
-          onConfirm={() => {
-            setShowDiffPreview(false);
-            void saveConfig();
-          }}
-          onCancel={() => setShowDiffPreview(false)}
-          onDontShowAgain={() => setSkipDiffPreview(true)}
         />
       )}
     </div>

@@ -3,6 +3,7 @@
 import { Hash, Link2, Smartphone, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { AgentBadge } from "@/components/shared/AgentBadge";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useSessionsStore, type SessionEntry, type SessionKind } from "@/stores/sessions";
@@ -43,6 +44,21 @@ export function inferSessionType(key: string): SessionType {
 function inferSubagentDepth(key: string): number {
   const matches = key.match(/:subagent:/g);
   return matches ? matches.length : 0;
+}
+
+/** Extract the first agent-like segment from a session key. */
+function extractAgentId(key: string): string | null {
+  // Session keys typically start with "kind:agentId:..." or contain ":agent=agentId:"
+  const agentMatch = key.match(/:agent[=:]([^:]+)/);
+  if (agentMatch) {
+    return agentMatch[1];
+  }
+  // Try second segment (kind:agentId:rest)
+  const parts = key.split(":");
+  if (parts.length >= 2 && parts[1]) {
+    return parts[1];
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -111,6 +127,7 @@ export function SessionList({ typeFilter = "all" }: SessionListProps) {
         const isActive = session.key === selectedKey;
         const pct = contextPct(session);
         const sType = inferSessionType(session.key);
+        const agentId = extractAgentId(session.key);
 
         return (
           <button
@@ -150,6 +167,13 @@ export function SessionList({ typeFilter = "all" }: SessionListProps) {
                 {shortKey(session.key)}
               </span>
             </div>
+
+            {/* Agent badge (clickable → agents panel) */}
+            {agentId && (
+              <div className="flex items-center min-w-0 mt-0.5">
+                <AgentBadge agentId={agentId} />
+              </div>
+            )}
 
             {/* Bottom row: model + context bar */}
             <div className="flex items-center gap-2 min-w-0">

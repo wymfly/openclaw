@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { navigateToSession } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useSessionsStore } from "@/stores/sessions";
 
@@ -129,7 +130,11 @@ export function SessionsTab({ agentId }: SessionsTabProps) {
           const parentAgent = isSub ? extractParentAgent(session.key) : null;
 
           return (
-            <Card key={session.key} className="p-3 bg-[var(--bg-primary)] border-[var(--border)]">
+            <Card
+              key={session.key}
+              className="p-3 bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer hover:border-[var(--accent)]/30 transition-colors"
+              onClick={() => navigateToSession(session.key)}
+            >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <Badge

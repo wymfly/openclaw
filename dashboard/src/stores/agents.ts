@@ -12,10 +12,13 @@ const statusSet: Record<string, true> = { idle: true, busy: true, error: true, o
 interface AgentsState {
   agents: Agent[];
   selectedAgentId: string | null;
+  /** Pending tab hint consumed by AgentDetail on navigation. */
+  pendingTab: string | null;
   loading: boolean;
 
   setAgents: (agents: Agent[]) => void;
   selectAgent: (id: string | null) => void;
+  setPendingTab: (tab: string | null) => void;
   updateAgent: (id: string, patch: Partial<Agent>) => void;
   setLoading: (loading: boolean) => void;
 
@@ -27,10 +30,12 @@ interface AgentsState {
 export const useAgentsStore = create<AgentsState>((set, get) => ({
   agents: [],
   selectedAgentId: null,
+  pendingTab: null,
   loading: false,
 
   setAgents: (agents) => set({ agents }),
   selectAgent: (selectedAgentId) => set({ selectedAgentId }),
+  setPendingTab: (pendingTab) => set({ pendingTab }),
   updateAgent: (id, patch) =>
     set((state) => ({
       agents: state.agents.map((a) => (a.id === id ? { ...a, ...patch } : a)),

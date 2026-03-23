@@ -2,18 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import type { AlertAction, AlertRule } from "@/stores/alerts";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type RuleFormData = {
   name: string;
@@ -33,6 +26,10 @@ type RuleFormProps = {
 
 const ENTITY_TYPES = ["usage", "cron", "approval", "agent"] as const;
 const ACTIONS: AlertAction[] = ["toast", "activity", "webhook"];
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
   const t = useTranslations("alerts");
@@ -61,133 +58,173 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+    <form onSubmit={handleSubmit} className="space-y-4 p-4">
+      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
         {rule ? t("editRule") : t("addRule")}
       </h3>
 
       {/* Name */}
-      <div className="space-y-1.5">
-        <Label htmlFor="rule-name" className="text-xs text-[var(--text-secondary)]">
+      <div className="space-y-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
           {t("name")}
-        </Label>
-        <Input
-          id="rule-name"
+        </label>
+        <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
+          className="w-full px-3 py-1.5 text-sm rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
         />
       </div>
 
       {/* Entity Type */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("entityType")}</Label>
-        <Select
+      <div className="space-y-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("entityType")}
+        </label>
+        <select
           value={entityType}
-          onValueChange={(v) => {
-            if (v) {
-              setEntityType(v);
-            }
+          onChange={(e) => setEntityType(e.target.value)}
+          className="w-full px-3 py-1.5 text-sm rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
           }}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ENTITY_TYPES.map((et) => (
-              <SelectItem key={et} value={et}>
-                {et}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {ENTITY_TYPES.map((et) => (
+            <option key={et} value={et}>
+              {et}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Condition */}
-      <div className="space-y-1.5">
-        <Label htmlFor="rule-condition" className="text-xs text-[var(--text-secondary)]">
+      <div className="space-y-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
           {t("condition")}
-        </Label>
-        <Input
-          id="rule-condition"
+        </label>
+        <input
           type="text"
           value={condition}
           onChange={(e) => setCondition(e.target.value)}
           required
           placeholder="e.g. cost > threshold"
+          className="w-full px-3 py-1.5 text-sm rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
         />
       </div>
 
       {/* Threshold */}
-      <div className="space-y-1.5">
-        <Label htmlFor="rule-threshold" className="text-xs text-[var(--text-secondary)]">
+      <div className="space-y-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
           {t("threshold")}
-        </Label>
-        <Input
-          id="rule-threshold"
+        </label>
+        <input
           type="number"
           value={threshold}
           onChange={(e) => setThreshold(Number(e.target.value))}
           required
           step="any"
+          className="w-full px-3 py-1.5 text-sm rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
         />
       </div>
 
       {/* Action */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("action")}</Label>
-        <Select
+      <div className="space-y-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("action")}
+        </label>
+        <select
           value={action}
-          onValueChange={(v) => {
-            if (v) {
-              setAction(v as AlertAction);
-            }
+          onChange={(e) => setAction(e.target.value as AlertAction)}
+          className="w-full px-3 py-1.5 text-sm rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
           }}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ACTIONS.map((a) => (
-              <SelectItem key={a} value={a}>
-                {t(a)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {ACTIONS.map((a) => (
+            <option key={a} value={a}>
+              {t(a)}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Cooldown */}
-      <div className="space-y-1.5">
-        <Label htmlFor="rule-cooldown" className="text-xs text-[var(--text-secondary)]">
+      <div className="space-y-1">
+        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
           {t("cooldown")} ({t("cooldownMinutes")})
-        </Label>
-        <Input
-          id="rule-cooldown"
+        </label>
+        <input
           type="number"
           value={cooldownMinutes}
           onChange={(e) => setCooldownMinutes(Number(e.target.value))}
           min={0}
+          className="w-full px-3 py-1.5 text-sm rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
         />
       </div>
 
       {/* Enabled */}
       <div className="flex items-center gap-2">
-        <Switch id="rule-enabled" checked={enabled} onCheckedChange={setEnabled} />
-        <Label htmlFor="rule-enabled" className="text-xs text-[var(--text-secondary)]">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+          id="rule-enabled"
+          className="rounded"
+        />
+        <label
+          htmlFor="rule-enabled"
+          className="text-xs font-medium"
+          style={{ color: "var(--text-secondary)" }}
+        >
           {t("enabled")}
-        </Label>
+        </label>
       </div>
 
       {/* Buttons */}
       <div className="flex gap-2 pt-2">
-        <Button type="submit" size="sm">
+        <button
+          type="submit"
+          className="px-4 py-1.5 text-xs font-medium rounded-md"
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+        >
           {rule ? t("editRule") : t("addRule")}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-1.5 text-xs font-medium rounded-md border"
+          style={{
+            borderColor: "var(--border)",
+            color: "var(--text-secondary)",
+          }}
+        >
           {t("cancel")}
-        </Button>
+        </button>
       </div>
     </form>
   );

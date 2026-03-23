@@ -12,14 +12,14 @@ import { Label } from "@/components/ui/label";
 import { navigateToSubagents } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
-import { useDeckAgentsStore } from "@/stores/deck-agents";
+import { useDeckAgentsStore, type AgentSubagentConfig } from "@/stores/deck-agents";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 
 interface SubagentTabProps {
   agentId: string;
 }
 
-type AllowMode = "none" | "list" | "any";
+type AllowMode = AgentSubagentConfig["allowMode"];
 
 const MODES: { value: AllowMode; labelKey: string }[] = [
   { value: "none", labelKey: "spawnNone" },
@@ -46,15 +46,8 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
 
   useEffect(() => {
     if (currentSubagentConfig) {
-      // Derive UI allowMode from backend allowAgents/allowAny
-      if (currentSubagentConfig.allowAny) {
-        setAllowMode("any");
-      } else if (currentSubagentConfig.allowAgents.length > 0) {
-        setAllowMode("list");
-      } else {
-        setAllowMode("none");
-      }
-      setAllowAgents(currentSubagentConfig.allowAgents.filter((id) => id !== "*"));
+      setAllowMode(currentSubagentConfig.allowMode);
+      setAllowAgents(currentSubagentConfig.allowAgents);
       setModelOverride(currentSubagentConfig.model ?? "");
     }
   }, [currentSubagentConfig]);
@@ -67,29 +60,21 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaved(false);
-    // Convert UI allowMode to backend allowAgents format
-    const effectiveAllowAgents =
-      allowMode === "any" ? ["*"] : allowMode === "list" ? allowAgents : [];
-    const baseHash = currentSubagentConfig?.configHash ?? "";
     const ok = await updateSubagentConfig(
       agentId,
-      effectiveAllowAgents,
-      modelOverride || null,
-      baseHash,
+      {
+        allowMode,
+        allowAgents,
+        model: modelOverride || undefined,
+      },
+      "",
     );
     if (ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }
     setSaving(false);
-  }, [
-    agentId,
-    allowMode,
-    allowAgents,
-    modelOverride,
-    currentSubagentConfig?.configHash,
-    updateSubagentConfig,
-  ]);
+  }, [agentId, allowMode, allowAgents, modelOverride, updateSubagentConfig]);
 
   // Filter active runs for this agent
   const agentRuns = activeRuns.filter((r) => r.requesterAgentId === agentId);
@@ -191,13 +176,13 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
             <div>
               <span className="text-[10px] text-[var(--text-secondary)]">{t("maxDepth")}</span>
               <p className="text-sm font-mono text-[var(--text-primary)]">
-                {currentSubagentConfig?.effectiveMaxSpawnDepth ?? "—"}
+                {currentSubagentConfig?.effectiveMaxDepth ?? "—"}
               </p>
             </div>
             <div>
               <span className="text-[10px] text-[var(--text-secondary)]">{t("maxChildren")}</span>
               <p className="text-sm font-mono text-[var(--text-primary)]">
-                {currentSubagentConfig?.effectiveMaxChildrenPerAgent ?? "—"}
+                {currentSubagentConfig?.effectiveMaxChildren ?? "—"}
               </p>
             </div>
           </div>
@@ -242,7 +227,7 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
             </Badge>
           </h3>
           {agentRuns.map((run) => (
-            <SubagentRunCard key={run.runId} run={run} />
+            <SubagentRunCard key={run.sessionKey} run={run} />
           ))}
         </div>
       )}
