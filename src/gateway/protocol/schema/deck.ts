@@ -122,6 +122,23 @@ export const DeckAgentsSubagentsSetParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+// === deck.agents.eventStreams.* ===
+export const DeckAgentsEventStreamsGetParamsSchema = Type.Object(
+  {
+    agentId: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const DeckAgentsEventStreamsSetParamsSchema = Type.Object(
+  {
+    agentId: NonEmptyString,
+    eventStreams: Type.Array(Type.String()),
+    baseHash: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
 // === deck.agents.toolPolicy.* ===
 export const DeckAgentsToolPolicyPreviewParamsSchema = Type.Object(
   {
