@@ -1,22 +1,17 @@
 # 由 dev-workflow 自动生成，writing-plans 消费后可保留供 G2 参考
-mode: 2                          # Mode 2 (OpenSpec 主导)
-pre_g2: likely                   # specs/ = 4, tasks = 9
+mode: 2 # Mode 2 (OpenSpec 主导)
+pre_g2: unlikely # 任务高度串行，文件交叉严重
 
-# 并行感知
-parallel:
-  enabled: true
-  requirements:
-    - file_list_per_task
-    - cross_file_matrix
-    - task_0_if_shared_interface
-    - task_n_integration
-    - resolve_conflicts
+# 非 Team 执行模式建议
+execution:
+  mode: subagent-driven
+  reason: "任务串行依赖链长（RPC→Store→UI），核心文件(deck-agents.ts/AgentDetail.tsx/i18n)被多任务共享"
 
 # OpenSpec 需求映射
 openspec:
-  change_name: "deck-execution-monitor"
-  specs_path: "openspec/changes/deck-execution-monitor/specs/"
-  design_path: "openspec/changes/deck-execution-monitor/design.md"
+  change_name: "deck-agent-workspace"
+  specs_path: "openspec/changes/deck-agent-workspace/specs/"
+  design_path: "openspec/changes/deck-agent-workspace/design.md"
   requirements:
     - covers_field_per_task
     - coverage_matrix
@@ -24,20 +19,43 @@ openspec:
 
 # 任务分组提示（来自 OpenSpec tasks.md 分析）
 task_groups:
-  - name: "Backend: Persistence + Pipeline + API"
-    description: "RunEventStore SQLite、Event Write Pipeline、Monitor API Routes"
+  - name: "Backend: Workspace Files RPC"
+    description: "deck.agents.files.get/set 新增 (不存在于上游)"
     domain: "[backend]"
-    serial: true  # 1→2→3 强串行依赖
-  - name: "Frontend: Store + Panel Migration"
-    description: "UI Store 迁移（activity→monitor）、NavRail/HeaderBar 更新"
+    serial: true
+    note: "提案标注为 existing 但实际不存在，需创建"
+  - name: "Backend: Tool Policy Preview RPC"
+    description: "deck.agents.toolPolicy.preview — dry-run mode 包装"
+    domain: "[backend]"
+    serial: true
+    note: "applyToolPolicyPipeline 只返回过滤结果，需包装捕获 per-tool traces"
+  - name: "Backend: System Prompt Preview RPC"
+    description: "deck.agents.systemPrompt.preview — 调用链参数多"
+    domain: "[backend]"
+    serial: true
+    note: "buildEmbeddedSystemPrompt 需 20+ 参数，需从 config 组装 dry-run 上下文"
+  - name: "Dashboard Store Extensions"
+    description: "deck-agents store + API route 扩展"
     domain: "[frontend]"
-    depends_on: "Backend (API shape)"
-  - name: "Frontend: Monitor Panel Tabs"
-    description: "Overview + Timeline + History 三个 tab"
+    depends_on: "All 3 Backend RPCs"
+  - name: "Context Tab — Prompt/Files/ToolPolicy"
+    description: "新 tab + 3 子功能"
     domain: "[frontend]"
-    depends_on: "Store migration"
-    parallel_within: true  # 5/6/7 可并行（不同 tab 组件）
-  - name: "i18n + Integration"
-    description: "国际化键 + 端到端验证"
-    domain: "[frontend] [test]"
+    depends_on: "Store extensions"
+  - name: "Overview Tab Enhancements"
+    description: "FallbackChain 复用 + Sandbox + Identity preview"
+    domain: "[frontend]"
+    depends_on: "Store (for data)"
+  - name: "Integration & Verification"
+    description: "tsc + lint + tests"
+    domain: "[test]"
     depends_on: "All above"
+
+# 代码对齐注意事项
+code_alignment_notes:
+  - "deck.agents.files.get/set 不存在 — 需新增 RPC + handler + schema + 注册"
+  - "applyToolPolicyPipeline 返回过滤后 AnyAgentTool[]，无 per-tool traces — 需新建 dry-run wrapper"
+  - "buildEmbeddedSystemPrompt 需 20+ 参数 — preview RPC 需从 loadConfig + loadWorkspaceBootstrapFiles 组装"
+  - "FallbackChain 组件在 models 面板，需 adapter 映射 agent model config → props"
+  - "Workspace 文件常量: DEFAULT_*_FILENAME (7 个) in workspace.ts"
+  - "SessionSystemPromptReport 类型在 src/config/sessions/types.ts"
