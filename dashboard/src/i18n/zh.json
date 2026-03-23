@@ -620,6 +620,28 @@
     "noRuns": "暂无运行记录",
     "runTriggered": "任务已触发"
   },
+  "scheduler": {
+    "cronJobs": "定时任务",
+    "heartbeat": "心跳",
+    "nextExecution": "下次执行",
+    "globalConfig": "全局配置",
+    "everyInterval": "间隔",
+    "everyPlaceholder": "例如 30m, 1h, 2h30m",
+    "activeHours": "活跃时段",
+    "timezonePlaceholder": "例如 Asia/Shanghai",
+    "targetAgent": "目标智能体",
+    "selectAgent": "选择智能体…",
+    "promptTemplate": "提示词模板",
+    "promptPlaceholder": "发送给智能体的心跳提示词…",
+    "modelOptional": "模型（可选）",
+    "modelPlaceholder": "例如 anthropic/claude-sonnet-4",
+    "perAgentOverrides": "按智能体覆盖",
+    "noOverrides": "暂无按智能体覆盖配置",
+    "confirmRemoveOverride": "移除此覆盖？",
+    "disabled": "已禁用",
+    "nextActiveWindow": "下个活跃时段 {time}",
+    "imminent": "即将执行"
+  },
   "webhooks": {
     "title": "Webhook",
     "addWebhook": "新建 Webhook",

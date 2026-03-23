@@ -53,6 +53,21 @@ export interface CronStatus {
   nextRunAtMs?: number;
 }
 
+export interface HeartbeatConfig {
+  enabled: boolean;
+  every?: string;
+  activeHours?: { start?: string; end?: string; timezone?: string };
+  target?: string;
+  prompt?: string;
+  model?: string;
+}
+
+export interface HeartbeatOverride {
+  agentId: string;
+  agentName?: string;
+  every: string;
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -64,6 +79,15 @@ interface CronState {
   status: CronStatus | null;
   loading: boolean;
   error: string | null;
+
+  // Heartbeat (P5 — stub state, API pending)
+  heartbeatConfig: HeartbeatConfig | null;
+  heartbeatOverrides: HeartbeatOverride[];
+  heartbeatLoading: boolean;
+  fetchHeartbeatConfig: () => Promise<void>;
+  updateHeartbeatConfig: (patch: Partial<HeartbeatConfig>) => Promise<void>;
+  addHeartbeatOverride: (agentId: string, every: string) => Promise<void>;
+  removeHeartbeatOverride: (agentId: string) => Promise<void>;
 
   fetchJobs: () => Promise<void>;
   addJob: (job: Omit<CronJob, "id">) => Promise<CronJob | null>;
@@ -82,6 +106,25 @@ export const useCronStore = create<CronState>((set) => ({
   status: null,
   loading: false,
   error: null,
+
+  // Heartbeat stubs — backend API not yet implemented
+  heartbeatConfig: null,
+  heartbeatOverrides: [],
+  heartbeatLoading: false,
+  fetchHeartbeatConfig: async () => {
+    set({ heartbeatLoading: true });
+    // TODO: call /api/cron/heartbeat when backend RPC is available
+    set({ heartbeatConfig: { enabled: false }, heartbeatLoading: false });
+  },
+  updateHeartbeatConfig: async (_patch) => {
+    // TODO: call backend
+  },
+  addHeartbeatOverride: async (_agentId, _every) => {
+    // TODO: call backend
+  },
+  removeHeartbeatOverride: async (_agentId) => {
+    // TODO: call backend
+  },
 
   selectJob: (jobId) => set({ selectedJobId: jobId }),
 
