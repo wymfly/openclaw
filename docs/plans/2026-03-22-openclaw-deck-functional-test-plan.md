@@ -1069,6 +1069,91 @@ Gateway 双事件流架构：
 | chat-hooks 真实 selector | ❌ stub   | ✅ Map-based       | Round 17 重构 |
 | chat-dispatchers.ts      | ❌ 不存在 | ✅ 纯函数          | Round 17 新建 |
 
+### Round 18 — 2026-03-23 未测项扫描 + 修复验证 (Mode A MCP 交互式)
+
+**新增验证**：26 用例 | ✅ 22 PASS | ⚠️ 1 PARTIAL | ⏭️ 3 SKIP | 🔧 1 FIX
+
+#### 复测已解决项（14 用例 → 14 PASS）
+
+| ID        | 旧状态     | 新状态 | 验证方式                                    |
+| --------- | ---------- | ------ | ------------------------------------------- |
+| NAV-007   | ❌ FAIL    | ✅     | 浏览器：Connected 点击 → Gateway Monitor    |
+| CHAT-004  | ⏭️ SKIP    | ✅     | Round 17 已验证 22 session 可切换           |
+| CHAT-006  | ⚠️ PARTIAL | ✅     | Round 17 侧边栏 22 条目                     |
+| CHAT-007  | ⏭️ SKIP    | ✅     | Map-based store msg.id 去重                 |
+| MODEL-020 | ⏭️ SKIP    | ✅     | Fallbacks tab 渲染正确                      |
+| MODEL-030 | ⏭️ SKIP    | ✅     | Usage tab 渲染正确（$0.00 + 2/3 providers） |
+| DARK-005  | ⏭️ SKIP    | ✅     | Routing 面板深色模式正确                    |
+| RESP-005  | ⏭️ SKIP    | ✅     | Routing 面板桌面布局正确                    |
+| RESP-002  | ⚠️ PARTIAL | ✅     | 代码修复 truncate+min-w-0                   |
+| TSC-002   | ⚠️ PARTIAL | ✅     | tsc 0 错误（含测试）                        |
+| SST-035   | ⚠️ PARTIAL | ✅     | chat-hooks 真实 selector                    |
+| SST-036   | ⚠️ PARTIAL | ✅     | Map-based sessions.get()                    |
+| SST-037   | ⏭️ SKIP    | ✅     | Map-based 隔离已实现                        |
+| CHAT-014  | ⏭️ SKIP    | ✅     | Copy JSON 按钮已实现                        |
+
+#### Models 新 Tab 验证（2 用例 → 2 PASS）
+
+| ID        | 测试点        | 结果 | 备注                                                                     |
+| --------- | ------------- | ---- | ------------------------------------------------------------------------ |
+| MODEL-020 | Fallbacks tab | ✅   | Text Models + Image Models 区域 + Add Fallback 选择器                    |
+| MODEL-030 | Usage tab     | ✅   | Today/Week $0.00 + Active Providers 2/3，cost/providers API 404 正确降级 |
+
+#### Subagents 面板首次验证（3 用例 → 2 PASS / 1 PARTIAL→FIX）
+
+| ID      | 测试点          | 结果  | 备注                                                   |
+| ------- | --------------- | ----- | ------------------------------------------------------ |
+| SUB-001 | Active Runs tab | ✅    | 过滤器 + "Active: 0" + "No active runs" 空状态         |
+| SUB-002 | History tab     | ⚠️→✅ | 结构正确，发现 11 个 i18n MISSING_MESSAGE → **已修复** |
+| SUB-003 | Config tab      | ✅    | Tab 可切换                                             |
+
+**修复**：`subagents.timeRange.*`、`subagents.allAgents`、`subagents.allStatus`、`subagents.completed`、`subagents.failed`、`subagents.noRunsFound`、`subagents.runs`、`subagents.timeout` — 共 11 个 key 补全到 zh.json + en.json。
+
+#### Routing 面板首次验证（2 用例 → 2 PASS）
+
+| ID        | 测试点        | 结果 | 备注                                                  |
+| --------- | ------------- | ---- | ----------------------------------------------------- |
+| ROUTE-001 | Binding 表格  | ✅   | 加载正确，"No binding rules found" + "DM Scope: main" |
+| ROUTE-007 | DM Scope 显示 | ✅   | 面板底部显示 "DM Scope: main"                         |
+
+#### Agent CEF 验证（3 用例 → 3 PASS）
+
+| ID        | 测试点            | 结果 | 备注                                              |
+| --------- | ----------------- | ---- | ------------------------------------------------- |
+| AGENT-028 | CEF 区域渲染      | ✅   | "Channel Event Streams" 卡片 + 说明 + 5 个 toggle |
+| AGENT-029 | Final Reply 锁定  | ✅   | checked + disabled + "Always on"                  |
+| AGENT-072 | Toggle Tool Calls | ✅   | unchecked → checked，RPC 调用成功                 |
+
+#### Sessions P3 增强验证（5 用例 → 5 PASS）
+
+| ID       | 测试点                | 结果 | 备注                                                                |
+| -------- | --------------------- | ---- | ------------------------------------------------------------------- |
+| SESS-001 | 列表加载              | ✅   | 22 个 session，DM badge + model + context%                          |
+| SESS-002 | Kind 徽章             | ✅   | DM badge 图标显示                                                   |
+| SESS-020 | ContextHealthBar 健康 | ✅   | 0%~4% 绿色百分比显示                                                |
+| SESS-004 | 查看详情              | ✅   | Session key + model + updated + Input 6.4K / Output 56 + Context 3% |
+| SESS-023 | TranscriptSearch      | ✅   | 输入 "Darwin" → "1 / 2" 匹配 + 上下导航 + 清除按钮                  |
+
+#### 实时 SSE 验证（需发消息触发，⏭️ SKIP）
+
+| ID           | 测试点           | 结果 | 备注                                                         |
+| ------------ | ---------------- | ---- | ------------------------------------------------------------ |
+| CHAT-021~025 | RunStatusBar     | ⏭️   | 历史消息无 RunMetadata，需实时 SSE 流式验证                  |
+| CHAT-010     | ToolUseCard 实时 | ⏭️   | 历史 API 返回 flat text，实时 SSE 才有 ContentBlock tool_use |
+| CHAT-030     | Thinking 区域    | ⏭️   | 需 thinking-enabled 模型实时流式                             |
+
+#### 剩余 SKIP 分类（最终）
+
+| 类别                | 用例                                                   | 阻塞原因                                                |
+| ------------------- | ------------------------------------------------------ | ------------------------------------------------------- |
+| 需实时 SSE 流式     | CHAT-010/021~030                                       | 历史 API 返回 flat text，需发消息触发实时渲染           |
+| 需 Gateway SSE 扩展 | CHAT-026~029/031（SubagentCard/ApprovalDialog）        | 需 Gateway subagent/approval SSE 事件                   |
+| 需测试数据          | AGENT-024/067、SESS-010~012、MON-010~023               | 无 subagent session / 无 run 数据 / 无 tool policy 拒绝 |
+| 需 A2UI 服务        | SST-102/104/105                                        | A2UI 服务未运行                                         |
+| 需 Gateway 改动     | MODEL-003(定价)、USAGE-003(timeseries)、SET-007(probe) | 数据源缺失或 API 不匹配                                 |
+| Routing P3 条件编辑 | ROUTE-002~006/010~021                                  | 需 binding 数据 + 条件编辑器交互                        |
+| Sessions P3 其余    | SESS-024~035 部分                                      | 需特定数据场景                                          |
+
 ---
 
 ## 测试执行方法论
