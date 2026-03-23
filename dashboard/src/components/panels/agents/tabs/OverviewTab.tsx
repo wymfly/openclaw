@@ -91,7 +91,7 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
           <CardTitle className="text-xs">{t("info")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
             <div>
               <dt className="text-[var(--text-secondary)]">{t("id")}</dt>
               <dd className="font-mono text-[var(--text-primary)] mt-0.5">{detail.id}</dd>
