@@ -9,14 +9,21 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import type { TimeseriesPoint } from "@/stores/usage";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function formatDate(ts: number): string {
   const d = new Date(ts);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 interface UsageChartProps {
   timeseries: TimeseriesPoint[];
@@ -30,53 +37,43 @@ export function UsageChart({ timeseries }: UsageChartProps) {
   }
 
   return (
-    <div className="rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)] p-4">
-      <h3 className="text-sm font-medium text-[var(--text-primary)] mb-3">{t("chart")}</h3>
-      <ResponsiveContainer width="100%" height={220}>
+    <div
+      className="rounded-lg border p-4"
+      style={{
+        backgroundColor: "var(--bg-secondary)",
+        borderColor: "var(--border)",
+      }}
+    >
+      <p className="text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>
+        {t("chart")}
+      </p>
+      <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={timeseries}>
-          <defs>
-            <linearGradient id="gradIn" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
-            </linearGradient>
-            <linearGradient id="gradOut" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--success)" stopOpacity={0.25} />
-              <stop offset="100%" stopColor="var(--success)" stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis
             dataKey="timestamp"
             tickFormatter={formatDate}
-            tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
-            axisLine={{ stroke: "var(--border)" }}
-            tickLine={false}
+            tick={{ fontSize: 12, fill: "var(--text-secondary)" }}
+            stroke="var(--border)"
           />
-          <YAxis
-            tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
-            axisLine={false}
-            tickLine={false}
-            width={48}
-          />
+          <YAxis tick={{ fontSize: 12, fill: "var(--text-secondary)" }} stroke="var(--border)" />
           <Tooltip
             contentStyle={{
               backgroundColor: "var(--bg-secondary)",
               borderColor: "var(--border)",
               color: "var(--text-primary)",
-              borderRadius: 10,
+              borderRadius: 8,
               fontSize: 12,
-              boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
             }}
             labelFormatter={(label) => formatDate(Number(label))}
           />
-          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
           <Area
             type="monotone"
             dataKey="tokensIn"
             stackId="tokens"
             stroke="var(--accent)"
-            strokeWidth={2}
-            fill="url(#gradIn)"
+            fill="var(--accent)"
+            fillOpacity={0.4}
             name={t("tokensIn")}
           />
           <Area
@@ -84,8 +81,8 @@ export function UsageChart({ timeseries }: UsageChartProps) {
             dataKey="tokensOut"
             stackId="tokens"
             stroke="var(--success)"
-            strokeWidth={2}
-            fill="url(#gradOut)"
+            fill="var(--success)"
+            fillOpacity={0.3}
             name={t("tokensOut")}
           />
         </AreaChart>

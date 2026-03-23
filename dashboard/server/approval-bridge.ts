@@ -21,7 +21,6 @@ export interface PendingApproval {
   commandArgv?: string[];
   agentId?: string;
   cwd?: string;
-  sessionKey?: string;
   createdAtMs: number;
   expiresAtMs: number;
 }
@@ -102,7 +101,6 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
           : undefined,
         agentId: typeof request.agentId === "string" ? request.agentId : undefined,
         cwd: typeof request.cwd === "string" ? request.cwd : undefined,
-        sessionKey: typeof request.sessionKey === "string" ? request.sessionKey : undefined,
         createdAtMs: Number(innerPayload.createdAtMs ?? Date.now()),
         expiresAtMs: Number(innerPayload.expiresAtMs ?? Date.now() + 300_000),
       };
@@ -114,18 +112,8 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
     } else if (innerEvent === "exec.approval.resolved" && innerPayload) {
       const id = typeof innerPayload.id === "string" ? innerPayload.id : "";
       if (id) {
-        // Retrieve sessionKey from pending map before deleting; fall back to
-        // the Gateway's request.sessionKey if the entry was already expired.
-        const pending = pendingMap.get(id);
-        const request =
-          typeof innerPayload.request === "object" && innerPayload.request !== null
-            ? (innerPayload.request as Record<string, unknown>)
-            : undefined;
-        const sessionKey =
-          pending?.sessionKey ??
-          (typeof request?.sessionKey === "string" ? request.sessionKey : undefined);
         pendingMap.delete(id);
-        eventBus.broadcast("approval.resolved", { id, sessionKey, ...innerPayload });
+        eventBus.broadcast("approval.resolved", { id, ...innerPayload });
       }
     }
   };

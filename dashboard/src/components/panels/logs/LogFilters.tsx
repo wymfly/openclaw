@@ -1,27 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import { useLogsStore, type LogLevel, type LogSource } from "@/stores/logs";
 
 const ALL_LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
 const ALL_SOURCES: (LogSource | "all")[] = ["all", "gateway", "agent", "channel"];
 
-const LEVEL_DOT_COLORS: Record<LogLevel, string> = {
-  debug: "bg-[var(--neutral-muted-text)]",
-  info: "bg-[var(--accent)]",
-  warn: "bg-[var(--warning)]",
-  error: "bg-[var(--danger)]",
-};
-
+/**
+ * LogFilters — level checkboxes, source dropdown, session text input.
+ */
 export function LogFilters() {
   const t = useTranslations("logs");
   const { filters, setLevelFilter, setSourceFilter, setSessionFilter } = useLogsStore();
@@ -37,60 +24,70 @@ export function LogFilters() {
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      {/* Level toggles */}
-      <div className="flex items-center gap-1">
-        {ALL_LEVELS.map((level) => {
-          const active = filters.levels.includes(level);
-          return (
-            <button
-              key={level}
-              className={cn(
-                "flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-                active
-                  ? "bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-              )}
-              onClick={() => toggleLevel(level)}
-            >
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full shrink-0 transition-opacity",
-                  LEVEL_DOT_COLORS[level],
-                  !active && "opacity-30",
-                )}
-              />
-              {t(level)}
-            </button>
-          );
-        })}
+      {/* Level checkboxes */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("level")}:
+        </span>
+        {ALL_LEVELS.map((level) => (
+          <label
+            key={level}
+            className="flex items-center gap-1 text-xs cursor-pointer"
+            style={{ color: "var(--text-primary)" }}
+          >
+            <input
+              type="checkbox"
+              checked={filters.levels.includes(level)}
+              onChange={() => toggleLevel(level)}
+              style={{ accentColor: "var(--accent)" }}
+            />
+            {t(level)}
+          </label>
+        ))}
       </div>
 
       {/* Source dropdown */}
-      <Select
-        value={filters.source}
-        onValueChange={(val) => setSourceFilter(val as LogSource | "all")}
-      >
-        <SelectTrigger className="w-[100px] h-7 text-xs" size="sm">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("source")}:
+        </span>
+        <select
+          value={filters.source}
+          onChange={(e) => setSourceFilter(e.target.value as LogSource | "all")}
+          className="text-xs rounded px-2 py-1 border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-secondary)",
+            color: "var(--text-primary)",
+          }}
+        >
           {ALL_SOURCES.map((src) => (
-            <SelectItem key={src} value={src}>
+            <option key={src} value={src}>
               {t(src)}
-            </SelectItem>
+            </option>
           ))}
-        </SelectContent>
-      </Select>
+        </select>
+      </div>
 
       {/* Session filter */}
-      <Input
-        type="text"
-        value={filters.sessionKey}
-        onChange={(e) => setSessionFilter(e.target.value)}
-        placeholder="session key..."
-        className="text-xs h-7 w-[140px]"
-      />
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {t("session")}:
+        </span>
+        <input
+          type="text"
+          value={filters.sessionKey}
+          onChange={(e) => setSessionFilter(e.target.value)}
+          placeholder="session key..."
+          className="text-xs rounded px-2 py-1 border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-secondary)",
+            color: "var(--text-primary)",
+            width: 140,
+          }}
+        />
+      </div>
     </div>
   );
 }

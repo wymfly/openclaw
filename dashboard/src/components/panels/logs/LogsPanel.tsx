@@ -1,73 +1,65 @@
 "use client";
 
-import { Pause, Play, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { useLogsStore } from "@/stores/logs";
 import { LogFilters } from "./LogFilters";
 import { LogStream } from "./LogStream";
 import { useLogPolling } from "./useLogPolling";
 
+/**
+ * LogsPanel — top toolbar with filters + clear/pause, and log stream below.
+ */
 export function LogsPanel() {
   const t = useTranslations("logs");
   const { streaming, setStreaming, clearLogs } = useLogsStore();
 
+  // Start polling on mount.
   useLogPolling();
 
   return (
-    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
+    <div
+      className="flex flex-col h-full rounded-lg overflow-hidden border"
+      style={{ borderColor: "var(--border)" }}
+    >
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)] gap-3 flex-wrap shrink-0">
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b gap-3 flex-wrap"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "var(--bg-secondary)",
+        }}
+      >
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t("title")}</h2>
-            {/* Live indicator */}
-            {streaming && (
-              <span className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--success)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
-                LIVE
-              </span>
-            )}
-          </div>
+          <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--text-primary)" }}>
+            {t("title")}
+          </h2>
           <LogFilters />
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-1">
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <button
-                  className="flex items-center justify-center w-7 h-7 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                  onClick={clearLogs}
-                />
-              }
-            >
-              <Trash2 size={14} />
-            </TooltipTrigger>
-            <TooltipContent>{t("clear")}</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <button
-                  className={cn(
-                    "flex items-center justify-center w-7 h-7 rounded-lg transition-colors cursor-pointer",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-                    streaming
-                      ? "bg-[var(--accent-muted)] text-[var(--accent)]"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
-                  )}
-                  onClick={() => setStreaming(!streaming)}
-                />
-              }
-            >
-              {streaming ? <Pause size={14} /> : <Play size={14} />}
-            </TooltipTrigger>
-            <TooltipContent>{streaming ? t("pause") : t("resume")}</TooltipContent>
-          </Tooltip>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={clearLogs}
+            className="text-xs px-3 py-1 rounded border cursor-pointer"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--bg-primary)",
+              color: "var(--text-primary)",
+            }}
+          >
+            {t("clear")}
+          </button>
+          <button
+            onClick={() => setStreaming(!streaming)}
+            className="text-xs px-3 py-1 rounded border cursor-pointer"
+            style={{
+              borderColor: streaming ? "var(--accent)" : "var(--border)",
+              backgroundColor: streaming ? "var(--accent-muted)" : "var(--bg-primary)",
+              color: streaming ? "var(--accent)" : "var(--text-primary)",
+            }}
+          >
+            {streaming ? t("pause") : t("resume")}
+          </button>
         </div>
       </div>
 

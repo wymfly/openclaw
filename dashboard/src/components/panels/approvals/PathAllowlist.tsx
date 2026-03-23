@@ -1,17 +1,16 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 interface PathAllowlistProps {
   paths: string[];
   onChange: (paths: string[]) => void;
 }
 
+/**
+ * PathAllowlist — editable list of allowed paths with add/remove.
+ */
 export function PathAllowlist({ paths, onChange }: PathAllowlistProps) {
   const t = useTranslations("approvals");
   const [newPath, setNewPath] = useState("");
@@ -37,24 +36,28 @@ export function PathAllowlist({ paths, onChange }: PathAllowlistProps) {
   };
 
   return (
-    <div className="space-y-2.5">
-      <Label className="text-xs text-[var(--text-secondary)]">{t("pathAllowlist")}</Label>
+    <div className="space-y-2">
+      <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        {t("pathAllowlist")}
+      </label>
 
       {/* Existing paths */}
       <div className="space-y-1">
         {paths.map((path) => (
           <div
             key={path}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)] text-xs group"
+            className="flex items-center gap-2 px-2 py-1 rounded text-xs"
+            style={{ backgroundColor: "var(--bg-primary)" }}
           >
-            <code className="flex-1 truncate font-mono text-[var(--text-primary)]">{path}</code>
+            <code className="flex-1 truncate" style={{ color: "var(--text-primary)" }}>
+              {path}
+            </code>
             <button
-              type="button"
-              className="shrink-0 text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors duration-150 cursor-pointer opacity-0 group-hover:opacity-100"
               onClick={() => handleRemove(path)}
-              aria-label={t("removePath")}
+              className="text-xs px-1 cursor-pointer shrink-0"
+              style={{ color: "var(--status-disconnected)" }}
             >
-              <X size={14} />
+              {t("removePath")}
             </button>
           </div>
         ))}
@@ -62,24 +65,32 @@ export function PathAllowlist({ paths, onChange }: PathAllowlistProps) {
 
       {/* Add new path */}
       <div className="flex items-center gap-2">
-        <Input
+        <input
           type="text"
           value={newPath}
           onChange={(e) => setNewPath(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="/path/to/allow"
-          className="flex-1 h-8 text-xs font-mono"
+          className="flex-1 text-xs rounded px-2 py-1 border"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
         />
-        <Button
-          variant="outline"
-          size="xs"
+        <button
           onClick={handleAdd}
           disabled={!newPath.trim()}
-          className="gap-1"
+          className="text-xs px-3 py-1 rounded border cursor-pointer"
+          style={{
+            borderColor: "var(--accent)",
+            color: "var(--accent)",
+            backgroundColor: "transparent",
+            opacity: newPath.trim() ? 1 : 0.5,
+          }}
         >
-          <Plus size={12} />
           {t("addPath")}
-        </Button>
+        </button>
       </div>
     </div>
   );

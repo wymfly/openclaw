@@ -1,7 +1,7 @@
 "use client";
 
+import { navigateToAgent } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
-import { useUIStore } from "@/stores/ui";
 
 interface AgentBadgeProps {
   agentId: string;
@@ -15,13 +15,11 @@ interface AgentBadgeProps {
  * to the agent detail panel.
  */
 export function AgentBadge({ agentId, agentName, emoji, onClick }: AgentBadgeProps) {
-  const setActivePanel = useUIStore((s) => s.setActivePanel);
-
   const handleClick = () => {
     if (onClick) {
       onClick();
     } else {
-      setActivePanel("agents");
+      navigateToAgent(agentId);
     }
   };
 

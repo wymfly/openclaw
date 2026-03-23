@@ -1,17 +1,8 @@
 "use client";
 
-import { Plus, Webhook } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useCallback } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import {
-  useWebhookStore,
-  type Webhook as WebhookType,
-  type CreateWebhookInput,
-} from "@/stores/webhooks";
+import { useWebhookStore, type Webhook, type CreateWebhookInput } from "@/stores/webhooks";
 import { DeliveryHistory } from "./DeliveryHistory";
 import { WebhookForm } from "./WebhookForm";
 
@@ -37,7 +28,7 @@ export function WebhooksPanel() {
   } = useWebhookStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [editingWebhook, setEditingWebhook] = useState<WebhookType | null>(null);
+  const [editingWebhook, setEditingWebhook] = useState<Webhook | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -49,7 +40,7 @@ export function WebhooksPanel() {
   const selectedWebhook = webhooks.find((w) => w.id === selectedWebhookId) ?? null;
 
   const handleSelect = useCallback(
-    (webhook: WebhookType) => {
+    (webhook: Webhook) => {
       selectWebhook(webhook.id);
       setViewMode("deliveries");
       void fetchDeliveries(webhook.id);
@@ -97,81 +88,95 @@ export function WebhooksPanel() {
   };
 
   return (
-    <div className="flex h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
+    <div
+      className="flex h-full rounded-lg overflow-hidden border"
+      style={{ borderColor: "var(--border)" }}
+    >
       {/* Left sidebar — webhook list */}
-      <aside className="w-64 shrink-0 flex flex-col border-r border-[var(--border)] h-full">
-        {/* Create button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCreate}
-          className="justify-start gap-1.5 rounded-none border-b border-[var(--border-subtle)] text-[var(--accent)] hover:bg-[var(--accent-muted)] hover:text-[var(--accent)]"
+      <div
+        className="w-64 flex-shrink-0 flex flex-col border-r"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+      >
+        <div
+          className="flex items-center justify-between px-3 py-3 border-b"
+          style={{ borderColor: "var(--border)" }}
         >
-          <Plus size={14} />
-          {tc("create")}
-        </Button>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            {t("title")}
+          </h2>
+          <button
+            type="button"
+            className="px-2 py-1 text-xs rounded-md font-medium"
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+            onClick={handleCreate}
+          >
+            + {tc("create")}
+          </button>
+        </div>
 
-        <ScrollArea className="flex-1">
-          {loading && <p className="text-xs p-3 text-[var(--text-secondary)]">{tc("loading")}</p>}
+        <div className="flex-1 overflow-y-auto">
+          {loading && (
+            <p className="text-xs p-3" style={{ color: "var(--text-secondary)" }}>
+              {tc("loading")}
+            </p>
+          )}
 
           {!loading && webhooks.length === 0 && (
-            <p className="text-xs p-3 text-center text-[var(--text-secondary)]">
+            <p className="text-xs p-3 text-center" style={{ color: "var(--text-secondary)" }}>
               {t("noWebhooks")}
             </p>
           )}
 
-          <div className="p-1.5 space-y-0.5">
-            {webhooks.map((wh) => {
-              const isActive = selectedWebhookId === wh.id;
-              return (
-                <button
-                  key={wh.id}
-                  type="button"
-                  className={cn(
-                    "relative w-full text-left px-3 py-2.5 rounded-lg transition-colors duration-150 cursor-pointer",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-                    isActive
-                      ? "bg-[var(--accent-muted)] text-[var(--accent)]"
-                      : "text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
-                  )}
-                  onClick={() => handleSelect(wh)}
+          {webhooks.map((wh) => (
+            <button
+              key={wh.id}
+              type="button"
+              className="w-full text-left px-3 py-2.5 border-b transition-colors"
+              style={{
+                borderColor: "var(--border)",
+                backgroundColor: selectedWebhookId === wh.id ? "var(--bg-primary)" : "transparent",
+              }}
+              onClick={() => handleSelect(wh)}
+            >
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-sm font-medium truncate"
+                  style={{ color: "var(--text-primary)" }}
                 >
-                  {/* Active indicator */}
-                  {isActive && (
-                    <span
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
-                      aria-hidden
-                    />
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium truncate">{wh.name}</span>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "text-[10px] h-4",
-                        wh.enabled
-                          ? "bg-[var(--success-muted)] text-[var(--success-muted-text)]"
-                          : "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
-                      )}
-                    >
-                      {wh.enabled ? t("enabled") : t("disabled")}
-                    </Badge>
-                  </div>
-                  <p className="text-[10px] truncate mt-0.5 font-mono text-[var(--text-secondary)]">
-                    {wh.url}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </ScrollArea>
-      </aside>
+                  {wh.name}
+                </span>
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded"
+                  style={{
+                    backgroundColor: wh.enabled ? "var(--success-muted)" : "var(--neutral-muted)",
+                    color: wh.enabled ? "var(--success)" : "var(--neutral-muted-text)",
+                  }}
+                >
+                  {wh.enabled ? t("enabled") : t("disabled")}
+                </span>
+              </div>
+              <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                {wh.url}
+              </p>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Right detail area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{ backgroundColor: "var(--bg-primary)" }}
+      >
         {error && (
-          <div className="px-4 py-2 text-xs border-b border-[var(--border)] bg-[var(--danger-muted)] text-[var(--danger-muted-text)]">
+          <div
+            className="px-4 py-2 text-xs border-b"
+            style={{
+              borderColor: "var(--border)",
+              color: "var(--danger)",
+              backgroundColor: "var(--danger-muted)",
+            }}
+          >
             {error}
           </div>
         )}
@@ -194,53 +199,64 @@ export function WebhooksPanel() {
               {/* Webhook detail header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                  <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                     {selectedWebhook.name}
                   </h3>
-                  <p className="text-xs mt-0.5 font-mono text-[var(--text-secondary)]">
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
                     {selectedWebhook.url}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleEdit}>
+                  <button
+                    type="button"
+                    className="px-3 py-1 text-xs rounded-md border"
+                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                    onClick={handleEdit}
+                  >
                     {tc("edit")}
-                  </Button>
+                  </button>
                   {confirmDeleteId === selectedWebhook.id ? (
                     <div className="flex gap-1">
-                      <Button
-                        variant="destructive"
-                        size="sm"
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-xs rounded-md font-medium"
+                        style={{ backgroundColor: "var(--danger)", color: "var(--accent-fg)" }}
                         onClick={() => void handleDelete(selectedWebhook.id)}
                       >
                         {tc("delete")}
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => setConfirmDeleteId(null)}>
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-xs rounded-md border"
+                        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                        onClick={() => setConfirmDeleteId(null)}
+                      >
                         {tc("cancel")}
-                      </Button>
+                      </button>
                     </div>
                   ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-[var(--danger)] border-[var(--danger)]/30 hover:bg-[var(--danger-muted)]"
+                    <button
+                      type="button"
+                      className="px-3 py-1 text-xs rounded-md border"
+                      style={{ borderColor: "var(--border)", color: "var(--danger)" }}
                       onClick={() => setConfirmDeleteId(selectedWebhook.id)}
                     >
                       {tc("delete")}
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* Events badges */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {selectedWebhook.events.map((ev) => (
-                  <Badge
+                  <span
                     key={ev}
-                    variant="secondary"
-                    className="text-xs bg-[var(--accent-muted)] text-[var(--accent)]"
+                    className="px-2 py-0.5 text-xs rounded-md border"
+                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
                   >
                     {ev}
-                  </Badge>
+                  </span>
                 ))}
               </div>
 
@@ -250,13 +266,10 @@ export function WebhooksPanel() {
           )}
 
           {viewMode === "list" && !selectedWebhookId && (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--text-secondary)]">
-              <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
-                <Webhook size={20} className="text-[var(--accent)]" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-[var(--text-primary)]">{t("noWebhooks")}</p>
-              </div>
+            <div className="flex items-center justify-center h-full">
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                {t("noWebhooks")}
+              </p>
             </div>
           )}
         </div>

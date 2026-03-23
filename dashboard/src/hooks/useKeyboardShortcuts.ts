@@ -10,13 +10,13 @@ import { useUIStore, type Panel } from "@/stores/ui";
 const NAV_PANELS: Panel[] = [
   "chat",
   "agents",
-  "monitor",
+  "gateway",
   "models",
   "usage",
   "sessions",
   "memory",
   "logs",
-  "routing",
+  "activity",
 ];
 
 /** Returns true when the active element is a text input or editable area. */

@@ -1,138 +1,174 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useState } from "react";
 import type { ModelBreakdown, AgentBreakdown } from "@/stores/usage";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type Tab = "model" | "agent";
 
 interface BreakdownTableProps {
   modelBreakdown: ModelBreakdown[];
   agentBreakdown: AgentBreakdown[];
 }
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function formatCost(value: number): string {
   return `$${value.toFixed(4)}`;
 }
 
-function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
-  return (
-    <tr>
-      <td colSpan={colSpan} className="px-4 py-8 text-center text-[var(--text-secondary)] text-sm">
-        {message}
-      </td>
-    </tr>
-  );
-}
+// ---------------------------------------------------------------------------
+// Shared table styles
+// ---------------------------------------------------------------------------
+
+const headerCellStyle: React.CSSProperties = {
+  color: "var(--text-secondary)",
+  borderBottomWidth: 1,
+  borderBottomStyle: "solid",
+  borderBottomColor: "var(--border)",
+};
+
+const cellStyle: React.CSSProperties = {
+  color: "var(--text-primary)",
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function BreakdownTable({ modelBreakdown, agentBreakdown }: BreakdownTableProps) {
   const t = useTranslations("usage");
+  const [tab, setTab] = useState<Tab>("model");
 
+  // Sort by totalTokens descending.
   const sortedModels = [...modelBreakdown].toSorted((a, b) => b.totalTokens - a.totalTokens);
   const sortedAgents = [...agentBreakdown].toSorted((a, b) => b.totalTokens - a.totalTokens);
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "model", label: t("modelBreakdown") },
+    { key: "agent", label: t("agentBreakdown") },
+  ];
+
   return (
-    <div className="rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)] overflow-hidden">
-      <Tabs defaultValue="model">
-        <TabsList variant="line" className="w-full justify-start px-4 pt-3">
-          <TabsTrigger value="model">{t("modelBreakdown")}</TabsTrigger>
-          <TabsTrigger value="agent">{t("agentBreakdown")}</TabsTrigger>
-        </TabsList>
+    <div
+      className="rounded-lg border overflow-hidden"
+      style={{
+        backgroundColor: "var(--bg-secondary)",
+        borderColor: "var(--border)",
+      }}
+    >
+      {/* Tab bar */}
+      <div className="flex gap-0 border-b" style={{ borderColor: "var(--border)" }}>
+        {tabs.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className="px-4 py-2 text-sm font-medium transition-colors"
+            style={{
+              color: tab === item.key ? "var(--accent)" : "var(--text-secondary)",
+              borderBottom: tab === item.key ? "2px solid var(--accent)" : "2px solid transparent",
+              backgroundColor: "transparent",
+            }}
+            onClick={() => setTab(item.key)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="model">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)]">
-                    Name
-                  </th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)]">
-                    {t("tokensIn")}
-                  </th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)]">
-                    {t("tokensOut")}
-                  </th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)]">
-                    {t("totalCost")}
-                  </th>
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <th className="text-left px-4 py-2 font-medium" style={headerCellStyle}>
+                Name
+              </th>
+              <th className="text-right px-4 py-2 font-medium" style={headerCellStyle}>
+                {t("tokensIn")}
+              </th>
+              <th className="text-right px-4 py-2 font-medium" style={headerCellStyle}>
+                {t("tokensOut")}
+              </th>
+              <th className="text-right px-4 py-2 font-medium" style={headerCellStyle}>
+                {t("totalCost")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {tab === "model" &&
+              sortedModels.map((row) => (
+                <tr
+                  key={row.model}
+                  className="border-b last:border-b-0"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <td className="px-4 py-2" style={cellStyle}>
+                    {row.model}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums" style={cellStyle}>
+                    {row.tokensIn.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums" style={cellStyle}>
+                    {row.tokensOut.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums" style={cellStyle}>
+                    {formatCost(row.cost)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {sortedModels.length === 0 ? (
-                  <EmptyRow colSpan={4} message={t("noData")} />
-                ) : (
-                  sortedModels.map((row) => (
-                    <tr
-                      key={row.model}
-                      className="border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-tertiary)] transition-colors duration-150"
-                    >
-                      <td className="px-4 py-2.5 text-[var(--text-primary)] font-medium">
-                        {row.model}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[var(--text-primary)]">
-                        {row.tokensIn.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[var(--text-primary)]">
-                        {row.tokensOut.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[var(--text-primary)]">
-                        {formatCost(row.cost)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="agent">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)]">
-                    Name
-                  </th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)]">
-                    {t("tokensIn")}
-                  </th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)]">
-                    {t("tokensOut")}
-                  </th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)]">
-                    {t("totalCost")}
-                  </th>
+              ))}
+            {tab === "agent" &&
+              sortedAgents.map((row) => (
+                <tr
+                  key={row.agentId}
+                  className="border-b last:border-b-0"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <td className="px-4 py-2" style={cellStyle}>
+                    {row.agentName || row.agentId}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums" style={cellStyle}>
+                    {row.tokensIn.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums" style={cellStyle}>
+                    {row.tokensOut.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums" style={cellStyle}>
+                    {formatCost(row.cost)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {sortedAgents.length === 0 ? (
-                  <EmptyRow colSpan={4} message={t("noData")} />
-                ) : (
-                  sortedAgents.map((row) => (
-                    <tr
-                      key={row.agentId}
-                      className="border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-tertiary)] transition-colors duration-150"
-                    >
-                      <td className="px-4 py-2.5 text-[var(--text-primary)] font-medium">
-                        {row.agentName || row.agentId}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[var(--text-primary)]">
-                        {row.tokensIn.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[var(--text-primary)]">
-                        {row.tokensOut.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[var(--text-primary)]">
-                        {formatCost(row.cost)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-      </Tabs>
+              ))}
+            {tab === "model" && sortedModels.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-6 text-center"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {t("noData")}
+                </td>
+              </tr>
+            )}
+            {tab === "agent" && sortedAgents.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-6 text-center"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {t("noData")}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

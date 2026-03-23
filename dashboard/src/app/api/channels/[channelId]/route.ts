@@ -16,8 +16,7 @@ type RouteContext = { params: Promise<{ channelId: string }> };
 
 export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
   const { channelId } = await (ctx as RouteContext).params;
-  const body = (await request.json()) as Record<string, unknown>;
-  const { accountId, ...patch } = body;
+  const patch = (await request.json()) as Record<string, unknown>;
 
   // 1. Read current config
   const configRes = await gatewayRequest("config.get", {});
@@ -32,23 +31,9 @@ export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
   const config = configData.config ?? {};
   const baseHash = configData.baseHash;
 
-  // 2. Merge channel changes (account-scoped when accountId is provided)
+  // 2. Merge channel changes
   const channels = (config.channels ?? {}) as Record<string, Record<string, unknown>>;
-  const { _remove, ...mergePatch } = patch;
-  if (typeof accountId === "string" && accountId) {
-    const channelCfg = channels[channelId] ?? {};
-    const accounts = (channelCfg.accounts ?? {}) as Record<string, Record<string, unknown>>;
-    if (_remove) {
-      // Delete the account entry entirely
-      delete accounts[accountId];
-    } else {
-      accounts[accountId] = { ...accounts[accountId], ...mergePatch };
-    }
-    channelCfg.accounts = accounts;
-    channels[channelId] = channelCfg;
-  } else {
-    channels[channelId] = { ...channels[channelId], ...mergePatch };
-  }
+  channels[channelId] = { ...channels[channelId], ...patch };
   config.channels = channels;
 
   // 3. Send full config via config.patch

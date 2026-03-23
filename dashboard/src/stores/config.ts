@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { classifyChanges, computeMergePatch } from "@/lib/config-diff";
 
 // ---------------------------------------------------------------------------
 // Store
@@ -7,7 +6,6 @@ import { classifyChanges, computeMergePatch } from "@/lib/config-diff";
 
 interface ConfigState {
   schema: Record<string, unknown> | null;
-  uiHints: Record<string, unknown>;
   rawConfig: string;
   baseHash: string | null;
   editedConfig: string;
@@ -26,76 +24,8 @@ interface ConfigState {
   reloadConfig: () => Promise<void>;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers (outside the store to avoid closure issues with set/get types)
-// ---------------------------------------------------------------------------
-
-async function tryPatch(
-  patch: Record<string, unknown>,
-  baseHash: string | null,
-): Promise<"success" | "conflict" | "error"> {
-  try {
-    const res = await fetch("/api/config/patch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ patch, baseHash }),
-    });
-    if (res.ok) {
-      return "success";
-    }
-
-    const data = (await res.json().catch(() => ({}))) as {
-      error?: string;
-      message?: string;
-      code?: string;
-    };
-    const msg = (data.error ?? data.message ?? "").toLowerCase();
-    if (msg.includes("config changed") || msg.includes("base hash")) {
-      return "conflict";
-    }
-    return "error";
-  } catch {
-    return "error";
-  }
-}
-
-async function applyConfig(
-  editedConfig: string,
-  baseHash: string | null,
-  set: (state: Partial<ConfigState>) => void,
-  get: () => ConfigState,
-): Promise<boolean> {
-  const res = await fetch("/api/config/apply", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ raw: editedConfig, baseHash }),
-  });
-  if (!res.ok) {
-    const data = (await res.json().catch(() => ({ error: "Save failed" }))) as {
-      error?: string;
-      message?: string;
-      code?: string;
-    };
-    const errorMsg = data.error ?? data.message ?? "Save failed";
-    const msg = errorMsg.toLowerCase();
-    if (msg.includes("config changed") || msg.includes("base hash")) {
-      set({ conflict: true });
-      return false;
-    }
-    set({ error: errorMsg });
-    return false;
-  }
-  await get().fetchConfig();
-  return true;
-}
-
-// ---------------------------------------------------------------------------
-// Store
-// ---------------------------------------------------------------------------
-
 export const useConfigStore = create<ConfigState>((set, get) => ({
   schema: null,
-  uiHints: {},
   rawConfig: "",
   baseHash: null,
   editedConfig: "",
@@ -114,10 +44,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       }
       const data = (await res.json()) as Record<string, unknown>;
       // config.schema returns `{ schema, uiHints, version }` — unwrap.
-      set({
-        schema: (data.schema as Record<string, unknown>) ?? data,
-        uiHints: (data.uiHints as Record<string, unknown>) ?? {},
-      });
+      set({ schema: (data.schema as Record<string, unknown>) ?? data });
     } catch {
       // Schema fetch is best-effort
     }
@@ -162,36 +89,44 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   setActiveSection: (activeSection) => set({ activeSection }),
 
   saveConfig: async () => {
-    const { editedConfig, rawConfig, baseHash } = get();
+    const { editedConfig, baseHash } = get();
     set({ saving: true, error: null, conflict: false });
-
     try {
-      const oldObj = JSON.parse(rawConfig || "{}") as Record<string, unknown>;
-      const newObj = JSON.parse(editedConfig || "{}") as Record<string, unknown>;
+      const res = await fetch("/api/config/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw: editedConfig, baseHash }),
+      });
 
-      const strategy = classifyChanges(oldObj, newObj);
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({ error: "Save failed" }))) as {
+          error?: string;
+          message?: string;
+          code?: string;
+        };
+        const errorMsg = data.error ?? data.message ?? "Save failed";
 
-      if (strategy === "patch-safe") {
-        const patch = computeMergePatch(oldObj, newObj);
-        if (Object.keys(patch).length === 0) {
-          set({ saving: false });
-          return true;
-        }
-
-        const patchResult = await tryPatch(patch, baseHash);
-        if (patchResult === "success") {
-          await get().fetchConfig();
-          return true;
-        }
-        if (patchResult === "conflict") {
+        // Conflict detection: INVALID_REQUEST with config-change-related messages
+        const msg = errorMsg.toLowerCase();
+        if (
+          data.code === "INVALID_REQUEST" &&
+          (msg.includes("config changed") || msg.includes("base hash"))
+        ) {
           set({ conflict: true });
           return false;
         }
-        // patchResult === "error" → fall through to apply
+        // Also catch conflict without explicit code, if message matches
+        if (msg.includes("config changed") || msg.includes("base hash")) {
+          set({ conflict: true });
+          return false;
+        }
+        set({ error: errorMsg });
+        return false;
       }
 
-      // Use config.apply (structural changes or patch fallback)
-      return await applyConfig(editedConfig, baseHash, set, get);
+      // After successful save, reload to get fresh baseHash
+      await get().fetchConfig();
+      return true;
     } catch {
       set({ error: "Save failed" });
       return false;

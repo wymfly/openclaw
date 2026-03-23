@@ -1,20 +1,7 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import {
   useApprovalsStore,
   type ApprovalPolicy,
@@ -37,20 +24,30 @@ interface PolicySelectProps {
 function PolicySelect({ label, value, options, onChange }: PolicySelectProps) {
   return (
     <div className="flex items-center gap-2">
-      <Label className="text-xs w-28 shrink-0 text-[var(--text-secondary)]">{label}</Label>
-      <Select value={value ?? ""} onValueChange={(v) => onChange(v ?? "")}>
-        <SelectTrigger size="sm" className="max-w-[180px]">
-          <SelectValue placeholder="--" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">--</SelectItem>
-          {options.map((opt) => (
-            <SelectItem key={opt} value={opt}>
-              {opt}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <span
+        className="text-xs font-medium w-28 shrink-0"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        {label}
+      </span>
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="text-xs rounded px-2 py-1 border flex-1"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "var(--bg-primary)",
+          color: "var(--text-primary)",
+          maxWidth: 180,
+        }}
+      >
+        <option value="">--</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -62,14 +59,31 @@ interface PolicyToggleProps {
 }
 
 function PolicyToggle({ label, value, onChange }: PolicyToggleProps) {
+  const tc = useTranslations("common");
   return (
     <div className="flex items-center gap-2">
-      <Label className="text-xs w-28 shrink-0 text-[var(--text-secondary)]">{label}</Label>
-      <Switch checked={!!value} onCheckedChange={onChange} />
+      <span
+        className="text-xs font-medium w-28 shrink-0"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        {label}
+      </span>
+      <button
+        onClick={() => onChange(!value)}
+        className="text-xs px-3 py-1 rounded border cursor-pointer"
+        style={{
+          borderColor: value ? "var(--status-connected)" : "var(--border)",
+          color: value ? "var(--status-connected)" : "var(--text-secondary)",
+          backgroundColor: value ? "var(--success-muted)" : "transparent",
+        }}
+      >
+        {value ? tc("on") : tc("off")}
+      </button>
     </div>
   );
 }
 
+/** Edit a single defaults block (security, ask, askFallback, autoAllowSkills). */
 function DefaultsEditor({
   defaults,
   onChange,
@@ -84,7 +98,7 @@ function DefaultsEditor({
   };
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <PolicySelect
         label={t("security")}
         value={defaults.security}
@@ -112,6 +126,13 @@ function DefaultsEditor({
   );
 }
 
+/**
+ * PolicyEditor — 4-dimensional approval policy editor.
+ *
+ * Global defaults from ExecApprovalsFile.defaults.
+ * Per-agent overrides from ExecApprovalsFile.agents.
+ * Path allowlist from ExecApprovalsFile.allowlist.
+ */
 export function PolicyEditor() {
   const t = useTranslations("approvals");
   const tc = useTranslations("common");
@@ -119,11 +140,13 @@ export function PolicyEditor() {
   const fetchPolicy = useApprovalsStore((s) => s.fetchPolicy);
   const updatePolicy = useApprovalsStore((s) => s.updatePolicy);
 
+  // Local draft for editing
   const [draft, setDraft] = useState<ApprovalPolicy | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newAgentId, setNewAgentId] = useState("");
 
+  // Sync draft from store
   useEffect(() => {
     if (policy && !draft) {
       setDraft(structuredClone(policy));
@@ -172,7 +195,9 @@ export function PolicyEditor() {
   if (!draft) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <span className="text-sm text-[var(--text-secondary)]">{tc("loading")}</span>
+        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+          {tc("loading")}
+        </span>
       </div>
     );
   }
@@ -181,7 +206,7 @@ export function PolicyEditor() {
     <div className="flex-1 overflow-y-auto p-4 space-y-6">
       {/* Global defaults */}
       <section>
-        <h3 className="text-sm font-semibold mb-3 text-[var(--text-primary)]">
+        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
           {t("globalDefaults")}
         </h3>
         <DefaultsEditor
@@ -192,53 +217,63 @@ export function PolicyEditor() {
 
       {/* Per-agent overrides */}
       <section>
-        <h3 className="text-sm font-semibold mb-3 text-[var(--text-primary)]">{t("perAgent")}</h3>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+          {t("perAgent")}
+        </h3>
 
         {Object.entries(draft.agents).map(([agentId, agentDefaults]) => (
-          <Card key={agentId} size="sm" className="mb-3">
-            <CardContent>
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs font-semibold font-mono text-[var(--accent)]">
-                  {agentId}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="text-[var(--danger)] hover:text-[var(--danger)] hover:bg-[var(--danger-muted)] gap-1"
-                  onClick={() => handleRemoveAgent(agentId)}
-                >
-                  <Trash2 size={12} />
-                  {tc("delete")}
-                </Button>
-              </div>
-              <DefaultsEditor
-                defaults={agentDefaults}
-                onChange={(d) => setDraft({ ...draft, agents: { ...draft.agents, [agentId]: d } })}
-              />
-            </CardContent>
-          </Card>
+          <div
+            key={agentId}
+            className="mb-4 p-3 rounded-lg border"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>
+                {agentId}
+              </span>
+              <button
+                onClick={() => handleRemoveAgent(agentId)}
+                className="text-xs cursor-pointer"
+                style={{ color: "var(--status-disconnected)" }}
+              >
+                {tc("delete")}
+              </button>
+            </div>
+            <DefaultsEditor
+              defaults={agentDefaults}
+              onChange={(d) => setDraft({ ...draft, agents: { ...draft.agents, [agentId]: d } })}
+            />
+          </div>
         ))}
 
         {/* Add agent */}
         <div className="flex items-center gap-2 mt-2">
-          <Input
+          <input
             type="text"
             value={newAgentId}
             onChange={(e) => setNewAgentId(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddAgent()}
             placeholder={t("addAgentPlaceholder")}
-            className="h-8 text-xs min-w-[160px] max-w-[240px]"
+            className="text-xs rounded px-2 py-1 border"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--bg-primary)",
+              color: "var(--text-primary)",
+              minWidth: 160,
+            }}
           />
-          <Button
-            variant="outline"
-            size="xs"
+          <button
             onClick={handleAddAgent}
             disabled={!newAgentId.trim()}
-            className="gap-1"
+            className="text-xs px-3 py-1 rounded border cursor-pointer"
+            style={{
+              borderColor: "var(--accent)",
+              color: "var(--accent)",
+              opacity: newAgentId.trim() ? 1 : 0.5,
+            }}
           >
-            <Plus size={12} />
             {tc("create")}
-          </Button>
+          </button>
         </div>
       </section>
 
@@ -251,11 +286,25 @@ export function PolicyEditor() {
       </section>
 
       {/* Save button */}
-      <div className="flex items-center gap-3 pt-1">
-        <Button size="sm" onClick={handleSave} disabled={saving}>
+      <div className="flex items-center gap-3 pt-2">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="text-xs px-4 py-1.5 rounded border cursor-pointer"
+          style={{
+            borderColor: "var(--accent)",
+            backgroundColor: "var(--accent)",
+            color: "var(--accent-fg)",
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
           {saving ? tc("loading") : tc("save")}
-        </Button>
-        {saved && <span className="text-xs text-[var(--success-muted-text)]">{t("saved")}</span>}
+        </button>
+        {saved && (
+          <span className="text-xs" style={{ color: "var(--status-connected)" }}>
+            {t("saved")}
+          </span>
+        )}
       </div>
     </div>
   );

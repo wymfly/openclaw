@@ -2,9 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatStore } from "@/stores/chat";
 import { useDocsStore } from "@/stores/docs";
 import { CategoryFilter } from "./CategoryFilter";
@@ -15,58 +12,89 @@ export function DocHubPanel() {
   const t = useTranslations("docs");
   const tc = useTranslations("common");
   const { loading, error, fetchDocs, extractDocs, searchQuery, setSearchQuery } = useDocsStore();
-  const activeSessionId = useChatStore((s) => s.activeSessionKey);
+  const activeSessionId = useChatStore((s) => s.activeSessionId);
 
   useEffect(() => {
     void fetchDocs();
   }, [fetchDocs]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
+    <div
+      className="flex flex-col h-full rounded-lg overflow-hidden border"
+      style={{ borderColor: "var(--border)" }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-        <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t("title")}</h2>
-        <Button size="xs" onClick={() => void extractDocs(activeSessionId ?? undefined)}>
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "var(--bg-secondary)",
+        }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          {t("title")}
+        </h2>
+        <button
+          type="button"
+          className="px-3 py-1 text-xs font-medium rounded-md"
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+          onClick={() => void extractDocs(activeSessionId ?? undefined)}
+        >
           {t("extract")}
-        </Button>
+        </button>
       </div>
 
       {/* Category Filter */}
-      <div className="px-4 py-2 border-b border-[var(--border-subtle)]">
+      <div className="px-4 py-2 border-b" style={{ borderColor: "var(--border)" }}>
         <CategoryFilter />
       </div>
 
       {/* Search */}
-      <div className="px-4 py-2 border-b border-[var(--border-subtle)]">
-        <Input
+      <div className="px-4 py-2 border-b" style={{ borderColor: "var(--border)" }}>
+        <input
           data-panel-search
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t("search")}
+          className="w-full px-3 py-1.5 text-sm rounded-md border outline-none"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          }}
         />
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--bg-primary)" }}>
         {loading && (
-          <div className="flex items-center justify-center py-12 text-[var(--text-secondary)]">
+          <div
+            className="flex items-center justify-center py-12"
+            style={{ color: "var(--text-secondary)" }}
+          >
             <p className="text-sm">{tc("loading")}</p>
           </div>
         )}
 
         {error && !loading && (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-[var(--danger)]">{error}</p>
+          <div
+            className="flex items-center justify-center py-12"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <p className="text-sm">{error}</p>
           </div>
         )}
 
         {!loading && !error && (
           <div className="flex h-full">
             {/* Left: Doc list */}
-            <ScrollArea className="w-1/3 min-w-[200px] border-r border-[var(--border)] p-3">
+            <div
+              className="w-1/3 min-w-[200px] border-r overflow-y-auto p-3"
+              style={{ borderColor: "var(--border)" }}
+            >
               <DocList />
-            </ScrollArea>
+            </div>
             {/* Right: Doc viewer */}
             <div className="flex-1 overflow-hidden">
               <DocViewer />

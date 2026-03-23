@@ -3,23 +3,7 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import type { FormField } from "@/lib/schema-parser";
-import { cn } from "@/lib/utils";
-import { PasswordField } from "./fields/PasswordField";
-import { RecordField } from "./fields/RecordField";
-import { TypedArrayField } from "./fields/TypedArrayField";
-import { UnionField } from "./fields/UnionField";
 
 interface SchemaFormProps {
   fields: FormField[];
@@ -30,13 +14,15 @@ interface SchemaFormProps {
 
 function FieldLabel({ field }: { field: FormField }) {
   return (
-    <Label className="text-xs text-[var(--text-secondary)] mb-1">
-      <span className="font-mono">{field.key}</span>
-      {field.required && <span className="text-[var(--danger)]"> *</span>}
+    <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+      {field.key}
+      {field.required && <span style={{ color: "var(--status-disconnected)" }}> *</span>}
       {field.description && (
-        <span className="ml-1.5 font-normal opacity-70">— {field.description}</span>
+        <span className="ml-1 font-normal" style={{ color: "var(--text-secondary)", opacity: 0.7 }}>
+          — {field.description}
+        </span>
       )}
-    </Label>
+    </label>
   );
 }
 
@@ -52,14 +38,17 @@ function StringField({
   return (
     <div className="mb-3">
       <FieldLabel field={field} />
-      <Input
+      <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={
-          field.placeholder ?? (typeof field.defaultValue === "string" ? field.defaultValue : "")
-        }
-        className="w-full max-w-md text-xs h-7"
+        placeholder={typeof field.defaultValue === "string" ? field.defaultValue : ""}
+        className="w-full max-w-md text-xs rounded px-2 py-1.5"
+        style={{
+          backgroundColor: "var(--bg-secondary)",
+          color: "var(--text-primary)",
+          border: "1px solid var(--border)",
+        }}
       />
     </div>
   );
@@ -77,12 +66,17 @@ function NumberField({
   return (
     <div className="mb-3">
       <FieldLabel field={field} />
-      <Input
+      <input
         type="number"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         placeholder={field.defaultValue != null ? JSON.stringify(field.defaultValue) : ""}
-        className="w-full max-w-xs text-xs h-7 font-mono"
+        className="w-full max-w-xs text-xs rounded px-2 py-1.5"
+        style={{
+          backgroundColor: "var(--bg-secondary)",
+          color: "var(--text-primary)",
+          border: "1px solid var(--border)",
+        }}
       />
     </div>
   );
@@ -99,7 +93,25 @@ function BooleanField({
 }) {
   return (
     <div className="mb-3 flex items-center gap-2">
-      <Switch checked={value} onCheckedChange={onChange} />
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        onClick={() => onChange(!value)}
+        className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+        style={{
+          backgroundColor: value ? "var(--accent)" : "var(--bg-secondary)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <span
+          className="inline-block h-3.5 w-3.5 rounded-full transition-transform"
+          style={{
+            backgroundColor: value ? "var(--accent-fg)" : "var(--text-secondary)",
+            transform: value ? "translateX(17px)" : "translateX(2px)",
+          }}
+        />
+      </button>
       <FieldLabel field={field} />
     </div>
   );
@@ -117,18 +129,23 @@ function EnumField({
   return (
     <div className="mb-3">
       <FieldLabel field={field} />
-      <Select value={value || undefined} onValueChange={(v) => onChange(v as string)}>
-        <SelectTrigger size="sm" className="w-full max-w-md text-xs">
-          <SelectValue placeholder="—" />
-        </SelectTrigger>
-        <SelectContent>
-          {field.options?.map((opt) => (
-            <SelectItem key={opt} value={opt}>
-              {opt}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full max-w-md text-xs rounded px-2 py-1.5"
+        style={{
+          backgroundColor: "var(--bg-secondary)",
+          color: "var(--text-primary)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <option value="">—</option>
+        {field.options?.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -154,13 +171,12 @@ function ArrayField({
         value={text}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
-        className={cn(
-          "w-full max-w-md text-xs rounded-lg px-2.5 py-1.5 font-mono resize-y",
-          "border border-[var(--border)] bg-transparent text-[var(--text-primary)]",
-          "placeholder:text-[var(--text-secondary)]",
-          "focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-          "outline-none transition-colors duration-150",
-        )}
+        className="w-full max-w-md text-xs rounded px-2 py-1.5 font-mono resize-y"
+        style={{
+          backgroundColor: "var(--bg-secondary)",
+          color: "var(--text-primary)",
+          border: "1px solid var(--border)",
+        }}
       />
     </div>
   );
@@ -177,84 +193,45 @@ function ObjectField({
   onChange: (key: string, value: unknown) => void;
   prefix: string;
 }) {
-  const [open, setOpen] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="mb-3">
-      <CollapsibleTrigger
-        className={cn(
-          "flex items-center gap-1 text-xs font-medium mb-1 cursor-pointer transition-colors duration-150",
-          "text-[var(--text-primary)] hover:text-[var(--accent)]",
-        )}
+    <div className="mb-3">
+      <button
+        type="button"
+        onClick={() => setCollapsed(!collapsed)}
+        className="flex items-center gap-1 text-xs font-medium mb-1"
+        style={{ color: "var(--text-primary)" }}
       >
-        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <span className="font-mono">{field.key}</span>
+        {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+        {field.key}
         {field.description && (
-          <span className="ml-1.5 font-normal text-[var(--text-secondary)] opacity-70">
+          <span
+            className="ml-1 font-normal"
+            style={{ color: "var(--text-secondary)", opacity: 0.7 }}
+          >
             — {field.description}
           </span>
         )}
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        {field.children && (
-          <div className="ml-3 pl-3 border-l border-[var(--border-subtle)]">
-            <SchemaForm
-              fields={field.children}
-              values={(values[field.key] as Record<string, unknown>) ?? {}}
-              onChange={(childKey, value) => {
-                onChange(`${prefix}${field.key}.${childKey}`, value);
-              }}
-              prefix={`${prefix}${field.key}.`}
-            />
-          </div>
-        )}
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
-function JsonFallbackField({
-  field,
-  value,
-  onChange,
-}: {
-  field: FormField;
-  value: unknown;
-  onChange: (v: unknown) => void;
-}) {
-  const t = useTranslations("config");
-  const text = typeof value === "string" ? value : JSON.stringify(value ?? null, null, 2);
-  return (
-    <div className="mb-3">
-      <FieldLabel field={field} />
-      <p className="text-[10px] text-[var(--text-secondary)] mb-1 italic">{t("rawJsonFallback")}</p>
-      <textarea
-        value={text}
-        onChange={(e) => {
-          try {
-            onChange(JSON.parse(e.target.value));
-          } catch {
-            onChange(e.target.value);
-          }
-        }}
-        rows={4}
-        className={cn(
-          "w-full max-w-md text-xs rounded-lg px-2.5 py-1.5 font-mono resize-y",
-          "border border-[var(--border)] bg-transparent text-[var(--text-primary)]",
-          "placeholder:text-[var(--text-secondary)]",
-          "focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-          "outline-none transition-colors duration-150",
-        )}
-      />
+      </button>
+      {!collapsed && field.children && (
+        <div className="ml-3 pl-3 border-l" style={{ borderColor: "var(--border)" }}>
+          <SchemaForm
+            fields={field.children}
+            values={(values[field.key] as Record<string, unknown>) ?? {}}
+            onChange={(childKey, value) => {
+              onChange(`${prefix}${field.key}.${childKey}`, value);
+            }}
+            prefix={`${prefix}${field.key}.`}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaFormProps) {
   const tc = useTranslations("common");
-  const t = useTranslations("config");
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-
   const handleChange = useCallback(
     (key: string, value: unknown) => {
       onChange(key, value);
@@ -262,163 +239,91 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
     [onChange],
   );
 
-  const normalFields = fields.filter((f) => !f.collapsed);
-  const advancedFields = fields.filter((f) => f.collapsed);
-
   if (fields.length === 0) {
     return (
-      <div className="text-xs py-2 text-[var(--text-secondary)]">{tc("noConfigurableFields")}</div>
+      <div className="text-xs py-2" style={{ color: "var(--text-secondary)" }}>
+        {tc("noConfigurableFields")}
+      </div>
     );
-  }
-
-  function renderField(field: FormField) {
-    const fullKey = `${prefix}${field.key}`;
-    const value = values[field.key];
-
-    switch (field.type) {
-      case "string":
-        // Sensitive fields render as password input
-        if (field.sensitive) {
-          return (
-            <PasswordField
-              key={fullKey}
-              field={field}
-              value={typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""}
-              onChange={(v) => handleChange(field.key, v)}
-            />
-          );
-        }
-        return (
-          <StringField
-            key={fullKey}
-            field={field}
-            value={typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""}
-            onChange={(v) => handleChange(field.key, v)}
-          />
-        );
-      case "number":
-        return (
-          <NumberField
-            key={fullKey}
-            field={field}
-            value={typeof value === "number" ? value : ""}
-            onChange={(v) => handleChange(field.key, v)}
-          />
-        );
-      case "boolean":
-        return (
-          <BooleanField
-            key={fullKey}
-            field={field}
-            value={Boolean(value ?? field.defaultValue ?? false)}
-            onChange={(v) => handleChange(field.key, v)}
-          />
-        );
-      case "enum":
-        return (
-          <EnumField
-            key={fullKey}
-            field={field}
-            value={typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""}
-            onChange={(v) => handleChange(field.key, v)}
-          />
-        );
-      case "array":
-        // Typed array with itemSchema renders item-level editor
-        if (field.itemSchema) {
-          return (
-            <TypedArrayField
-              key={fullKey}
-              field={field}
-              value={Array.isArray(value) ? value : []}
-              onChange={(v) => handleChange(field.key, v)}
-              prefix={prefix}
-            />
-          );
-        }
-        return (
-          <ArrayField
-            key={fullKey}
-            field={field}
-            value={value}
-            onChange={(v) => {
-              try {
-                handleChange(field.key, JSON.parse(v));
-              } catch {
-                handleChange(field.key, v);
-              }
-            }}
-          />
-        );
-      case "object":
-        return (
-          <ObjectField
-            key={fullKey}
-            field={field}
-            values={values}
-            onChange={handleChange}
-            prefix={prefix}
-          />
-        );
-      case "union":
-        return (
-          <UnionField
-            key={fullKey}
-            field={field}
-            value={value}
-            onChange={handleChange}
-            prefix={prefix}
-          />
-        );
-      case "record":
-        return (
-          <RecordField
-            key={fullKey}
-            field={field}
-            value={(value as Record<string, unknown>) ?? {}}
-            onChange={handleChange}
-            prefix={prefix}
-          />
-        );
-      case "json":
-        return (
-          <JsonFallbackField
-            key={fullKey}
-            field={field}
-            value={value}
-            onChange={(v) => handleChange(field.key, v)}
-          />
-        );
-      default:
-        return null;
-    }
   }
 
   return (
     <div>
-      {normalFields.map((field) => renderField(field))}
+      {fields.map((field) => {
+        const fullKey = `${prefix}${field.key}`;
+        const value = values[field.key];
 
-      {advancedFields.length > 0 && (
-        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="mt-2">
-          <CollapsibleTrigger
-            className={cn(
-              "flex items-center gap-1.5 text-xs font-medium cursor-pointer transition-colors duration-150 mb-2",
-              "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-            )}
-          >
-            {advancedOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            <span>{advancedOpen ? t("hideAdvanced") : t("showAdvanced")}</span>
-            <span className="text-[var(--text-secondary)] opacity-60">
-              ({advancedFields.length})
-            </span>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="pl-3 border-l border-[var(--border-subtle)]">
-              {advancedFields.map((field) => renderField(field))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+        switch (field.type) {
+          case "string":
+            return (
+              <StringField
+                key={fullKey}
+                field={field}
+                value={
+                  typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""
+                }
+                onChange={(v) => handleChange(field.key, v)}
+              />
+            );
+          case "number":
+            return (
+              <NumberField
+                key={fullKey}
+                field={field}
+                value={typeof value === "number" ? value : ""}
+                onChange={(v) => handleChange(field.key, v)}
+              />
+            );
+          case "boolean":
+            return (
+              <BooleanField
+                key={fullKey}
+                field={field}
+                value={Boolean(value ?? field.defaultValue ?? false)}
+                onChange={(v) => handleChange(field.key, v)}
+              />
+            );
+          case "enum":
+            return (
+              <EnumField
+                key={fullKey}
+                field={field}
+                value={
+                  typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""
+                }
+                onChange={(v) => handleChange(field.key, v)}
+              />
+            );
+          case "array":
+            return (
+              <ArrayField
+                key={fullKey}
+                field={field}
+                value={value}
+                onChange={(v) => {
+                  try {
+                    handleChange(field.key, JSON.parse(v));
+                  } catch {
+                    // Keep raw string if not valid JSON
+                    handleChange(field.key, v);
+                  }
+                }}
+              />
+            );
+          case "object":
+            return (
+              <ObjectField
+                key={fullKey}
+                field={field}
+                values={values}
+                onChange={handleChange}
+                prefix={prefix}
+              />
+            );
+          default:
+            return null;
+        }
+      })}
     </div>
   );
 }

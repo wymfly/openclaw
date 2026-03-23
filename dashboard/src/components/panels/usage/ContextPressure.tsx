@@ -1,31 +1,25 @@
 "use client";
 
-import { Gauge } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { cn } from "@/lib/utils";
 import { useSessionsStore, type SessionEntry } from "@/stores/sessions";
 
-function pressureBarClass(pct: number): string {
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Return color based on context usage percentage. */
+function pressureColor(pct: number): string {
   if (pct >= 80) {
-    return "bg-[var(--danger)]";
+    return "var(--danger)";
   }
   if (pct >= 60) {
-    return "bg-[var(--warning)]";
+    return "var(--warning)";
   }
-  return "bg-[var(--success)]";
+  return "var(--success)";
 }
 
-function pressureTextClass(pct: number): string {
-  if (pct >= 80) {
-    return "text-[var(--danger)]";
-  }
-  if (pct >= 60) {
-    return "text-[var(--warning)]";
-  }
-  return "text-[var(--success)]";
-}
-
+/** Compute context usage percentage (0-100). */
 function contextPct(session: SessionEntry): number {
   if (session.contextWindow <= 0) {
     return 0;
@@ -34,20 +28,31 @@ function contextPct(session: SessionEntry): number {
   return Math.min(100, Math.round((used / session.contextWindow) * 100));
 }
 
+/** Truncate session key for display. */
 function shortKey(key: string, maxLen = 24): string {
   return key.length > maxLen ? `${key.slice(0, maxLen)}...` : key;
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+/**
+ * ContextPressure — shows per-session context window usage as colored
+ * progress bars. Renders the top 5 sessions by pressure.
+ */
 export function ContextPressure() {
   const t = useTranslations("usage");
   const { sessions, fetchSessions } = useSessionsStore();
 
   useEffect(() => {
+    // Only fetch if sessions are not yet loaded.
     if (sessions.length === 0) {
       void fetchSessions();
     }
   }, [sessions.length, fetchSessions]);
 
+  // Pick sessions that have a known context window, sort by pressure descending, take top 5.
   const ranked = sessions
     .filter((s) => s.contextWindow > 0)
     .map((s) => ({ ...s, pct: contextPct(s) }))
@@ -59,38 +64,50 @@ export function ContextPressure() {
   }
 
   return (
-    <div className="rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)] p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Gauge size={14} className="text-[var(--text-secondary)]" />
-        <h3 className="text-sm font-medium text-[var(--text-primary)]">{t("contextPressure")}</h3>
-      </div>
-      <div className="space-y-3">
-        {ranked.map((s) => (
-          <div key={s.key}>
-            <div className="flex items-center justify-between mb-1.5">
-              <span
-                className="text-xs truncate mr-2 font-mono text-[var(--text-secondary)]"
-                title={s.key}
-              >
-                {shortKey(s.key)}
-              </span>
-              <span
-                className={cn("text-xs font-semibold font-mono shrink-0", pressureTextClass(s.pct))}
-              >
-                {s.pct}%
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
+    <div
+      className="rounded-lg border p-4"
+      style={{
+        backgroundColor: "var(--bg-secondary)",
+        borderColor: "var(--border)",
+      }}
+    >
+      <p className="text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>
+        {t("contextPressure")}
+      </p>
+      <div className="space-y-2.5">
+        {ranked.map((s) => {
+          const color = pressureColor(s.pct);
+          return (
+            <div key={s.key}>
+              {/* Label row */}
+              <div className="flex items-center justify-between mb-1">
+                <span
+                  className="text-xs truncate mr-2 font-mono"
+                  style={{ color: "var(--text-secondary)" }}
+                  title={s.key}
+                >
+                  {shortKey(s.key)}
+                </span>
+                <span className="text-xs font-medium shrink-0" style={{ color }}>
+                  {s.pct}%
+                </span>
+              </div>
+              {/* Bar */}
               <div
-                className={cn(
-                  "h-full rounded-full transition-all duration-300",
-                  pressureBarClass(s.pct),
-                )}
-                style={{ width: `${s.pct}%` }}
-              />
+                className="h-2 rounded-full overflow-hidden"
+                style={{ backgroundColor: "var(--bg-primary)" }}
+              >
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${s.pct}%`,
+                    backgroundColor: color,
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

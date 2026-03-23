@@ -1,11 +1,8 @@
 "use client";
 
-import { MessageCircle, Send, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { MessageCircle, Send, Loader2, CheckCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import type { OnboardingData } from "./OnboardingWizard";
 
 type Props = { data: OnboardingData; onComplete: () => void; onBack: () => void };
@@ -28,6 +25,7 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const savedRef = useRef(false);
 
+  /** Save configuration first, then the runtime can initialize. */
   const ensureSettingsSaved = useCallback(async (): Promise<boolean> => {
     if (savedRef.current) {
       return true;
@@ -46,6 +44,7 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
       }
       savedRef.current = true;
       setSettingsSaved(true);
+      // Brief delay to let the adapter start connecting.
       await new Promise((resolve) => setTimeout(resolve, 1500));
       return true;
     } catch {
@@ -62,6 +61,7 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
       return;
     }
 
+    // Ensure settings are saved and runtime is initialized before sending.
     const ok = await ensureSettingsSaved();
     if (!ok) {
       return;
@@ -80,6 +80,8 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
         setError(((await res.json()) as { error?: string }).error ?? t("chatError"));
         return;
       }
+      // chat.send returns { runId, status: "started" } — the actual
+      // response will arrive via SSE. Show a confirmation for now.
       setReply(t("chatSuccess"));
     } catch {
       setError(t("chatError"));
@@ -95,26 +97,34 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
     }
   }, [ensureSettingsSaved, onComplete]);
 
+  const iStyle = {
+    backgroundColor: "var(--bg-primary)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border)",
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2.5 mb-1">
-        <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--accent-muted)]">
-          <MessageCircle size={14} className="text-[var(--accent)]" />
-        </div>
-        <span className="text-sm font-semibold text-[var(--text-primary)]">{t("stepChat")}</span>
+      <div className="flex items-center gap-2 mb-2">
+        <MessageCircle size={16} style={{ color: "var(--accent)" }} />
+        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          {t("stepChat")}
+        </span>
       </div>
-
-      {/* Settings saved indicator */}
       {settingsSaved && (
-        <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium bg-[var(--success-muted)] text-[var(--success-muted-text)] ring-1 ring-[var(--success)]/20 transition-panel">
+        <div
+          className="text-xs p-2 rounded flex items-center gap-1"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+            color: "var(--accent)",
+          }}
+        >
           <CheckCircle size={12} />
           {t("settingsSaved") ?? "Settings saved"}
         </div>
       )}
-
-      {/* Chat input */}
       <div className="flex gap-2">
-        <Input
+        <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -124,53 +134,51 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
             }
           }}
           placeholder={t("chatPlaceholder")}
-          className="flex-1 h-9 text-sm focus-glow"
+          className="flex-1 text-sm rounded px-3 py-2"
+          style={iStyle}
         />
-        <Button
-          size="icon"
+        <button
           onClick={() => void sendTest()}
           disabled={sending || saving || !message.trim()}
-          className="w-9 h-9 shrink-0"
+          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
+          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
         >
           {sending || saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-        </Button>
+        </button>
       </div>
-
-      {/* Reply */}
       {reply && (
-        <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs bg-[var(--bg-tertiary)] text-[var(--text-primary)] ring-1 ring-[var(--border-subtle)] transition-panel">
-          <CheckCircle size={12} className="text-[var(--success)] shrink-0" />
+        <div
+          className="text-xs p-3 rounded"
+          style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}
+        >
           {reply}
         </div>
       )}
-
-      {/* Error */}
       {error && (
         <div
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-medium transition-panel",
-            "bg-[var(--danger-muted)] text-[var(--danger-muted-text)] ring-1 ring-[var(--danger)]/20",
-          )}
+          className="text-xs p-2 rounded"
+          style={{ backgroundColor: "var(--status-disconnected)", color: "#fff" }}
         >
-          <AlertCircle size={12} />
           {error}
         </div>
       )}
-
-      {/* Actions */}
-      <div className="flex justify-between pt-2 border-t border-[var(--border-subtle)]">
-        <Button variant="outline" size="sm" onClick={onBack} className="text-xs">
+      <div className="flex justify-between pt-2">
+        <button
+          onClick={onBack}
+          className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
+          style={{ border: "1px solid var(--border)", color: "var(--text-primary)" }}
+        >
           {t("back")}
-        </Button>
-        <Button
-          size="sm"
+        </button>
+        <button
           onClick={() => void handleComplete()}
           disabled={saving}
-          className="gap-1.5 text-xs"
+          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
+          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
         >
-          {saving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
           {t("finish")}
-        </Button>
+        </button>
       </div>
     </div>
   );
