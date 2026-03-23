@@ -1134,13 +1134,19 @@ Gateway 双事件流架构：
 | SESS-004 | 查看详情              | ✅   | Session key + model + updated + Input 6.4K / Output 56 + Context 3% |
 | SESS-023 | TranscriptSearch      | ✅   | 输入 "Darwin" → "1 / 2" 匹配 + 上下导航 + 清除按钮                  |
 
-#### 实时 SSE 验证（需发消息触发，⏭️ SKIP）
+#### 实时 SSE 验证（Round 19 — 发送消息触发）
 
-| ID           | 测试点           | 结果 | 备注                                                         |
-| ------------ | ---------------- | ---- | ------------------------------------------------------------ |
-| CHAT-021~025 | RunStatusBar     | ⏭️   | 历史消息无 RunMetadata，需实时 SSE 流式验证                  |
-| CHAT-010     | ToolUseCard 实时 | ⏭️   | 历史 API 返回 flat text，实时 SSE 才有 ContentBlock tool_use |
-| CHAT-030     | Thinking 区域    | ⏭️   | 需 thinking-enabled 模型实时流式                             |
+| ID       | 测试点            | 结果 | 备注                                                                       |
+| -------- | ----------------- | ---- | -------------------------------------------------------------------------- |
+| CHAT-001 | 发送消息          | ✅   | 消息发送 + agent 回复完整                                                  |
+| CHAT-002 | 流式渲染          | ✅   | "Thinking..." → 逐步渲染 → 完成                                            |
+| CHAT-003 | 中止按钮          | ✅   | 流式中 "Stop" 按钮可见                                                     |
+| CHAT-021 | RunStatusBar 完成 | ✅   | kimi-k2.5 + In 6.4k / Out 40 / Cache 14.3k + Duration                      |
+| CHAT-024 | Token 格式化      | ✅   | "6.4k" / "14.3k" / "20.5k" 正确简写                                        |
+| CHAT-010 | ToolUseCard 实时  | ⏭️   | agent 内化了工具调用，chat SSE 不含 tool_use block（需 agent tool stream） |
+| CHAT-030 | Thinking 区域     | ⏭️   | 需 thinking-enabled 模型（当前 kimi-k2.5 不暴露 thinking 内容）            |
+
+**修复**：`chat.toolsRunning` / `chat.toolsCompleted` — 2 个 i18n key 补全。
 
 #### 剩余 SKIP 分类（最终）
 
