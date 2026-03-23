@@ -5,6 +5,7 @@
 // When sessionKey is omitted, the active session is used.
 // ---------------------------------------------------------------------------
 
+import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "./chat";
 import type {
   ChatMessage,
@@ -21,6 +22,12 @@ export type { ToolProgress, ApprovalRequest, A2UIState, A2UIEvent, SessionMeta }
 // hooks-specific composite type
 export type SessionIndicator = "approval" | "streaming" | "canvas" | "idle" | "none";
 
+// Stable default references to avoid infinite re-render loops in Zustand selectors
+const EMPTY_MESSAGES: ChatMessage[] = [];
+const EMPTY_TOOL_PROGRESS: Record<string, ToolProgress> = {};
+const EMPTY_EVENTS: A2UIEvent[] = [];
+const EMPTY_METAS: SessionMeta[] = [];
+
 // ---------------------------------------------------------------------------
 // Messages
 // ---------------------------------------------------------------------------
@@ -29,7 +36,7 @@ export type SessionIndicator = "approval" | "streaming" | "canvas" | "idle" | "n
 export function useSessionMessages(sessionKey?: string): ChatMessage[] {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
-    return key ? (s.sessions.get(key)?.messages ?? []) : [];
+    return key ? (s.sessions.get(key)?.messages ?? EMPTY_MESSAGES) : EMPTY_MESSAGES;
   });
 }
 
@@ -42,14 +49,16 @@ export function useSessionStreaming(sessionKey?: string): {
   isStreaming: boolean;
   runId: string | null;
 } {
-  return useChatStore((s) => {
-    const key = sessionKey ?? s.activeSessionKey;
-    const session = key ? s.sessions.get(key) : undefined;
-    return {
-      isStreaming: session?.isStreaming ?? false,
-      runId: session?.streamingRunId ?? null,
-    };
-  });
+  return useChatStore(
+    useShallow((s) => {
+      const key = sessionKey ?? s.activeSessionKey;
+      const session = key ? s.sessions.get(key) : undefined;
+      return {
+        isStreaming: session?.isStreaming ?? false,
+        runId: session?.streamingRunId ?? null,
+      };
+    }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -60,7 +69,7 @@ export function useSessionStreaming(sessionKey?: string): {
 export function useSessionToolProgress(sessionKey?: string): Record<string, ToolProgress> {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
-    return key ? (s.sessions.get(key)?.toolProgress ?? {}) : {};
+    return key ? (s.sessions.get(key)?.toolProgress ?? EMPTY_TOOL_PROGRESS) : EMPTY_TOOL_PROGRESS;
   });
 }
 
@@ -140,7 +149,7 @@ export function useSessionA2UI(sessionKey?: string): A2UIState | null {
 export function useSessionA2UIEvents(sessionKey?: string): A2UIEvent[] {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
-    return key ? (s.sessions.get(key)?.a2uiState?.eventLog ?? []) : [];
+    return key ? (s.sessions.get(key)?.a2uiState?.eventLog ?? EMPTY_EVENTS) : EMPTY_EVENTS;
   });
 }
 
@@ -160,5 +169,5 @@ export function useSessionA2UIBridgeStatus(
 
 /** Subscribe to the full list of session metadata. */
 export function useSessionMetaList(): SessionMeta[] {
-  return useChatStore((s) => s.sessionMetas);
+  return useChatStore((s) => s.sessionMetas ?? EMPTY_METAS);
 }
