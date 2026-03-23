@@ -71,6 +71,8 @@ export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([
   "deck.agents.subagents.set",
   "deck.agents.toolPolicy.preview",
   "deck.agents.systemPrompt.preview",
+  "deck.agents.eventStreams.get",
+  "deck.agents.eventStreams.set",
   // deck.subagents
   "deck.subagents.list",
   "deck.subagents.kill",
