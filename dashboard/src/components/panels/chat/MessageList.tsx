@@ -1,210 +1,153 @@
 "use client";
 
-import { Bot, User, MessageSquare } from "lucide-react";
+import { Bot, User, Wrench, Brain, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { cn } from "@/lib/utils";
-import type { ChatMessage, ContentBlock } from "@/stores/chat";
-import { useChatStore } from "@/stores/chat";
-import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
-import {
-  loadBlockPreferences,
-  saveBlockPreferences,
-  type ChatBlockPreferences,
-} from "@/stores/chat-preferences";
-import { useDeckSubagentsStore } from "@/stores/deck-subagents";
-import { BlockFilterBar } from "./BlockFilterBar";
-import { FileBlock } from "./blocks/FileBlock";
-import { ImageBlock } from "./blocks/ImageBlock";
-import { ThinkingBlock } from "./blocks/ThinkingBlock";
-import { ToolResultCard } from "./blocks/ToolResultCard";
-import { ToolUseCard } from "./blocks/ToolUseCard";
-import { RunStatusBar } from "./RunStatusBar";
-import { SubagentCard } from "./SubagentCard";
+import { useChatStore, type ChatMessage, type ToolUseBlock } from "@/stores/chat";
 
-/* ------------------------------------------------------------------ */
-/*  MessageBubble                                                       */
-/* ------------------------------------------------------------------ */
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
 
-function MessageBubble({
-  message,
-  preferences,
-}: {
-  message: ChatMessage;
-  preferences: ChatBlockPreferences;
-}) {
-  const isUser = message.role === "user";
-
-  // Reactive selector: re-renders when lifecycle events update runMetadata
-  const runMetadata = useChatStore((state) => {
-    if (isUser) {
-      return undefined;
-    }
-    const activeKey = state.activeSessionKey;
-    if (!activeKey) {
-      return undefined;
-    }
-    return state.sessions.get(activeKey)?.runMetadata[message.id];
-  });
-
-  // Apply block filter preferences
-  const filteredContent = message.content.filter((b) => {
-    if (b.type === "thinking" && !preferences.showThinking) {
-      return false;
-    }
-    if (b.type === "tool_use" && !preferences.showToolUse) {
-      return false;
-    }
-    if (b.type === "tool_result" && !preferences.showToolResult) {
-      return false;
-    }
-    return true;
-  });
-
-  // Skip rendering if all blocks are filtered out (avoid empty message shells)
-  if (filteredContent.length === 0 && !message.error) {
-    return null;
-  }
-
-  // Group content blocks by type
-  const thinkingBlocks = filteredContent.filter(
-    (b): b is ContentBlock & { type: "thinking" } => b.type === "thinking",
-  );
-  const imageBlocks = filteredContent.filter(
-    (b): b is ContentBlock & { type: "image" } => b.type === "image",
-  );
-  const fileBlocks = filteredContent.filter(
-    (b): b is ContentBlock & { type: "file" } => b.type === "file",
-  );
-  const textBlocks = filteredContent.filter(
-    (b): b is ContentBlock & { type: "text" } => b.type === "text",
-  );
-  const toolUseBlocks = filteredContent.filter(
-    (b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use",
-  );
-  const toolResultBlocks = filteredContent.filter(
-    (b): b is ContentBlock & { type: "tool_result" } => b.type === "tool_result",
-  );
-
-  // Build lookups from toolUseId -> tool name / input for contextual routing
-  // Uses original content (not filtered) so toolName is available even when tool_use is hidden
-  const toolUseNameMap = new Map(
-    message.content
-      .filter((b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use")
-      .map((b) => [b.id, b.name]),
-  );
-  const toolUseInputMap = new Map(
-    message.content
-      .filter((b): b is ContentBlock & { type: "tool_use" } => b.type === "tool_use")
-      .map((b) => [b.id, b.input]),
-  );
-
-  const combinedText = textBlocks.map((b) => b.text).join("\n");
-
+function ThinkingBlock({ text }: { text: string }) {
+  const t = useTranslations("chat");
   return (
-    <div className={cn("flex gap-3 mb-5 transition-panel", isUser && "flex-row-reverse")}>
+    <details className="my-1.5 text-xs">
+      <summary
+        className="flex items-center gap-1 cursor-pointer select-none"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        <Brain size={12} />
+        {t("thinking")}
+      </summary>
+      <pre
+        className="mt-1 p-2 rounded text-xs whitespace-pre-wrap overflow-auto"
+        style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+      >
+        {text}
+      </pre>
+    </details>
+  );
+}
+
+function ToolStatusIcon({ status }: { status?: string }) {
+  if (status === "running") {
+    return <Loader2 size={12} className="animate-spin text-[var(--accent)]" />;
+  }
+  if (status === "error") {
+    return <XCircle size={12} className="text-[var(--danger)]" />;
+  }
+  if (status === "completed") {
+    return <CheckCircle2 size={12} className="text-[var(--success)]" />;
+  }
+  return <Wrench size={12} />;
+}
+
+function ToolUseCard({ tool }: { tool: ToolUseBlock }) {
+  const t = useTranslations("chat");
+  const isRunning = tool.status === "running";
+  return (
+    <details
+      className="my-1.5 text-xs border rounded"
+      style={{ borderColor: "var(--border)" }}
+      open={isRunning}
+    >
+      <summary
+        className="flex items-center gap-1.5 px-2 py-1 cursor-pointer select-none"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        <ToolStatusIcon status={tool.status} />
+        <span className="font-medium">{t("toolUse")}:</span>
+        <code className="font-mono">{tool.name}</code>
+      </summary>
+      <div className="px-2 pb-2">
+        {Object.keys(tool.input).length > 0 && (
+          <pre
+            className="mt-1 p-2 rounded text-xs overflow-auto"
+            style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+          >
+            {JSON.stringify(tool.input, null, 2)}
+          </pre>
+        )}
+        {tool.result && (
+          <pre
+            className="mt-1 p-2 rounded text-xs overflow-auto"
+            style={{
+              backgroundColor: "var(--bg-secondary)",
+              color: tool.isError ? "var(--danger)" : "var(--text-primary)",
+            }}
+          >
+            {tool.result}
+          </pre>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function MessageBubble({ message }: { message: ChatMessage }) {
+  const isUser = message.role === "user";
+  return (
+    <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""} mb-4`}>
       {/* Avatar */}
       <div
-        className={cn(
-          "shrink-0 w-8 h-8 rounded-full flex items-center justify-center ring-1",
-          isUser
-            ? "bg-[var(--accent-muted)] text-[var(--accent)] ring-[var(--accent)]/20"
-            : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] ring-[var(--border)]",
-        )}
+        className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+        style={{
+          backgroundColor: isUser
+            ? "color-mix(in srgb, var(--accent) 20%, transparent)"
+            : "var(--bg-secondary)",
+          color: isUser ? "var(--accent)" : "var(--text-secondary)",
+        }}
       >
         {isUser ? <User size={14} /> : <Bot size={14} />}
       </div>
 
-      {/* Content column */}
-      <div
-        className={cn("flex flex-col max-w-[75%] min-w-0", isUser ? "items-end" : "items-start")}
-      >
+      {/* Content */}
+      <div className={`flex flex-col max-w-[75%] min-w-0 ${isUser ? "items-end" : "items-start"}`}>
         {/* Thinking trace */}
-        {thinkingBlocks.map((b, i) => (
-          <ThinkingBlock key={`think-${i}`} text={b.text} />
+        {message.thinking && <ThinkingBlock text={message.thinking} />}
+
+        {/* Tool use blocks */}
+        {message.toolUse?.map((tool, i) => (
+          <ToolUseCard key={`${tool.name}-${i}`} tool={tool} />
         ))}
 
-        {/* Attachment strip — images and files */}
-        {(imageBlocks.length > 0 || fileBlocks.length > 0) && (
-          <div className="flex flex-wrap gap-2 mb-1.5">
-            {imageBlocks.map((b, i) => (
-              <ImageBlock
-                key={`img-${i}`}
-                data={b.data}
-                mimeType={b.mimeType}
-                fileName={b.fileName}
-              />
-            ))}
-            {fileBlocks.map((b, i) => (
-              <FileBlock
-                key={`file-${i}`}
-                data={b.data}
-                mimeType={b.mimeType}
-                fileName={b.fileName}
-                size={b.size}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Main text bubble */}
-        {combinedText && (
+        {/* Main content */}
+        {message.content && (
           <div
-            className={cn(
-              "px-3.5 py-2.5 text-sm leading-relaxed",
-              isUser
-                ? "bg-[var(--accent)] text-white rounded-2xl rounded-br-md"
-                : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-2xl rounded-bl-md ring-1 ring-[var(--border-subtle)]",
-            )}
+            className="rounded-lg px-3 py-2 text-sm leading-relaxed"
+            style={{
+              backgroundColor: isUser ? "var(--accent)" : "var(--bg-secondary)",
+              color: isUser ? "var(--accent-fg)" : "var(--text-primary)",
+            }}
           >
             {isUser ? (
-              <p className="whitespace-pre-wrap">{combinedText}</p>
+              <p className="whitespace-pre-wrap">{message.content}</p>
             ) : (
-              <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:overflow-auto [&_pre]:text-xs [&_code]:text-xs [&_pre]:bg-[var(--bg-primary)] [&_pre]:rounded-lg [&_pre]:p-2.5 [&_code]:font-mono">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{combinedText}</ReactMarkdown>
+              <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:overflow-auto [&_pre]:text-xs [&_code]:text-xs">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
               </div>
             )}
             {message.streaming && (
-              <span className="inline-block w-1.5 h-4 ml-0.5 animate-pulse rounded-sm bg-current opacity-70" />
+              <span
+                className="inline-block w-1.5 h-4 ml-0.5 animate-pulse rounded-sm"
+                style={{ backgroundColor: "var(--accent)" }}
+              />
             )}
           </div>
         )}
 
-        {/* Tool use cards */}
-        {toolUseBlocks.map((b, i) => (
-          <ToolUseCard
-            key={`tool-${i}`}
-            name={b.name}
-            input={b.input}
-            defaultOpen={message.streaming}
-          />
-        ))}
-
-        {/* Tool result cards */}
-        {toolResultBlocks.map((b, i) => (
-          <ToolResultCard
-            key={`result-${i}`}
-            content={typeof b.content === "string" ? b.content : JSON.stringify(b.content)}
-            isError={b.isError}
-            toolName={toolUseNameMap.get(b.toolUseId)}
-            toolInput={toolUseInputMap.get(b.toolUseId)}
-          />
-        ))}
-
         {/* Error */}
         {message.error && (
-          <span className="text-xs mt-1.5 px-2 py-0.5 rounded bg-[var(--danger-muted)] text-[var(--danger-muted-text)]">
+          <span className="text-xs mt-1" style={{ color: "var(--status-disconnected)" }}>
             {message.error}
           </span>
         )}
 
-        {/* Run status bar */}
-        {runMetadata && <RunStatusBar metadata={runMetadata} />}
-
         {/* Timestamp */}
-        <span className="text-[10px] mt-1 px-1 text-[var(--text-secondary)] font-mono">
+        <span className="text-[10px] mt-0.5 px-1" style={{ color: "var(--text-secondary)" }}>
           {new Date(message.timestamp).toLocaleTimeString()}
         </span>
       </div>
@@ -212,34 +155,20 @@ function MessageBubble({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  MessageList                                                        */
-/* ------------------------------------------------------------------ */
+// ---------------------------------------------------------------------------
+// MessageList
+// ---------------------------------------------------------------------------
 
+/** Threshold in pixels: if user is within this distance from bottom, auto-scroll. */
 const NEAR_BOTTOM_PX = 80;
 
 export function MessageList() {
   const t = useTranslations("chat");
-  const messages = useSessionMessages();
-  const { isStreaming } = useSessionStreaming();
-  const activeSessionKey = useChatStore((s) => s.activeSessionKey);
-  const subagentRuns = useDeckSubagentsStore((state) => {
-    if (!activeSessionKey) {
-      return [];
-    }
-    return [...state.activeRuns, ...state.historyRuns]
-      .filter((r) => r.requesterSessionKey === activeSessionKey)
-      .toSorted((a, b) => a.createdAt - b.createdAt);
-  });
+  const { messages, isStreaming } = useChatStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
-  const [blockPrefs, setBlockPrefs] = useState<ChatBlockPreferences>(loadBlockPreferences);
 
-  const handlePrefsChange = (prefs: ChatBlockPreferences) => {
-    setBlockPrefs(prefs);
-    saveBlockPreferences(prefs);
-  };
-
+  // Track whether user is near the bottom.
   const handleScroll = () => {
     const el = containerRef.current;
     if (!el) {
@@ -248,6 +177,7 @@ export function MessageList() {
     isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
   };
 
+  // Auto-scroll when messages change (only if near bottom).
   useEffect(() => {
     const el = containerRef.current;
     if (el && isNearBottomRef.current) {
@@ -255,55 +185,33 @@ export function MessageList() {
     }
   }, [messages]);
 
-  /* Empty state */
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--text-secondary)]">
-        <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
-          <MessageSquare size={20} className="text-[var(--accent)]" />
-        </div>
-        <div className="text-center">
-          <p className="text-sm font-medium text-[var(--text-primary)]">{t("noMessages")}</p>
-          <p className="text-xs mt-0.5">{t("placeholder")}</p>
-        </div>
+      <div
+        className="flex-1 flex items-center justify-center"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        <p className="text-sm">{t("noMessages")}</p>
       </div>
     );
   }
 
   return (
-    <>
-      <BlockFilterBar preferences={blockPrefs} onChange={handlePrefsChange} />
-      <div ref={containerRef} className="flex-1 overflow-y-auto px-5 py-4" onScroll={handleScroll}>
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} preferences={blockPrefs} />
-        ))}
+    <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-3" onScroll={handleScroll}>
+      {messages.map((msg) => (
+        <MessageBubble key={msg.id} message={msg} />
+      ))}
 
-        {/* Streaming indicator when waiting for first delta */}
-        {isStreaming && !messages.some((m) => m.streaming) && (
-          <div className="flex items-center gap-2.5 mb-4 text-xs text-[var(--text-secondary)]">
-            <div className="w-8 h-8 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border)]">
-              <Bot size={14} />
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl rounded-bl-md bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)]">
-              <span className="animate-pulse">{t("thinking")}</span>
-              <span className="flex gap-0.5">
-                <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:0ms]" />
-                <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:150ms]" />
-                <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:300ms]" />
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Subagent inline cards — session-level display */}
-        {subagentRuns.length > 0 && (
-          <div className="px-2 mb-4">
-            {subagentRuns.map((run) => (
-              <SubagentCard key={run.runId} run={run} />
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+      {/* Streaming indicator when waiting for first delta */}
+      {isStreaming && !messages.some((m) => m.streaming) && (
+        <div
+          className="flex items-center gap-2 mb-4 text-xs"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          <Bot size={14} />
+          <span className="animate-pulse">{t("thinking")}</span>
+        </div>
+      )}
+    </div>
   );
 }

@@ -73,6 +73,70 @@
     "active": "Active",
     "paused": "Paused"
   },
+  "monitor": {
+    "title": "Monitor",
+    "connection": "Connection",
+    "health": "Health",
+    "heartbeat": "Heartbeat",
+    "latency": "Latency",
+    "sessions": "Sessions",
+    "channels": "Channels",
+    "lastHeartbeat": "Last Heartbeat",
+    "gatewayState": "Gateway State",
+    "liveFeed": "Live Feed",
+    "noEvents": "No events",
+    "eventType": {
+      "tool_call": "Tool Call",
+      "chat": "Chat",
+      "status": "Status",
+      "agent": "Agent",
+      "system": "System"
+    },
+    "diagnostics": "Diagnostics",
+    "tabs": {
+      "overview": "Overview",
+      "timeline": "Timeline",
+      "history": "History"
+    },
+    "stats": {
+      "totalRuns": "Total Runs",
+      "todayRuns": "Today",
+      "avgDuration": "Avg Duration",
+      "topAgents": "Top Agents"
+    },
+    "history": {
+      "unknownAgent": "Unknown Agent",
+      "events": "events",
+      "filterAgent": "Filter by agent",
+      "filterSession": "Filter by session",
+      "allStatus": "All status",
+      "clearFilters": "Clear Filters",
+      "noRuns": "No runs recorded yet",
+      "running": "Running",
+      "completed": "Completed",
+      "error": "Error"
+    },
+    "timeline": {
+      "selectRun": "Select a run to view details",
+      "noTimedEvents": "No timed events",
+      "events": "events",
+      "tokensIn": "In",
+      "tokensOut": "Out",
+      "tokensCache": "Cache",
+      "noModelData": "No model data",
+      "fallback": "Fallback",
+      "calls": "calls",
+      "noToolCalls": "No tool calls",
+      "toolArgs": "Args",
+      "toolResult": "Result",
+      "subagentLineage": "Subagent Lineage",
+      "noFileChanges": "No file changes",
+      "ganttTitle": "Run Timeline",
+      "toolWaterfallTitle": "Tool Waterfall",
+      "fileChangesTitle": "File Changes",
+      "modelStatsTitle": "Model Stats"
+    }
+  },
   "agents": {
     "create": "New Agent",
     "namePlaceholder": "Enter name...",
@@ -354,7 +418,12 @@
     "noSessions": "No sessions",
     "model": "Model",
     "updatedAt": "Updated",
-    "confirmDelete": "Delete this session?"
+    "confirmDelete": "Delete this session?",
+    "filterAll": "All",
+    "filterDirect": "Direct",
+    "filterGroup": "Group",
+    "filterChannel": "Channel",
+    "filterSubagent": "Subagent"
   },
   "logs": {
     "title": "Log Viewer",

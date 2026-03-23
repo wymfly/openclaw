@@ -962,6 +962,10 @@ export function createAgentEventHandler({
           );
         }
       }
+      // [enhanced] Also broadcast globally so backend clients (Deck adapter)
+      // that declare tool-events capability always receive tool events,
+      // even when per-run recipient registration fails.
+      broadcast("agent", toolPayload, { dropIfSlow: true });
     } else {
       const itemPhase = isItemEvent && typeof evt.data?.phase === "string" ? evt.data.phase : "";
       if (itemPhase === "start" && isControlUiVisible && sessionKey && !isAborted) {

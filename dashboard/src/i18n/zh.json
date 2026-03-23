@@ -73,6 +73,70 @@
     "active": "运行中",
     "paused": "已暂停"
   },
+  "monitor": {
+    "title": "监控面板",
+    "connection": "连接状态",
+    "health": "健康状态",
+    "heartbeat": "心跳监控",
+    "latency": "延迟",
+    "sessions": "活跃会话",
+    "channels": "渠道状态",
+    "lastHeartbeat": "最后心跳",
+    "gatewayState": "网关状态",
+    "liveFeed": "实时事件流",
+    "noEvents": "暂无事件",
+    "eventType": {
+      "tool_call": "工具调用",
+      "chat": "对话",
+      "status": "状态",
+      "agent": "智能体",
+      "system": "系统"
+    },
+    "diagnostics": "诊断信息",
+    "tabs": {
+      "overview": "概览",
+      "timeline": "时间线",
+      "history": "运行历史"
+    },
+    "stats": {
+      "totalRuns": "总运行数",
+      "todayRuns": "今日运行",
+      "avgDuration": "平均时长",
+      "topAgents": "活跃智能体"
+    },
+    "history": {
+      "unknownAgent": "未知智能体",
+      "events": "事件",
+      "filterAgent": "按智能体过滤",
+      "filterSession": "按会话过滤",
+      "allStatus": "全部状态",
+      "clearFilters": "清除过滤",
+      "noRuns": "暂无运行记录",
+      "running": "运行中",
+      "completed": "已完成",
+      "error": "错误"
+    },
+    "timeline": {
+      "selectRun": "选择一个运行查看详情",
+      "noTimedEvents": "无计时事件",
+      "events": "事件",
+      "tokensIn": "输入",
+      "tokensOut": "输出",
+      "tokensCache": "缓存",
+      "noModelData": "无模型数据",
+      "fallback": "回退",
+      "calls": "调用",
+      "noToolCalls": "无工具调用",
+      "toolArgs": "参数",
+      "toolResult": "结果",
+      "subagentLineage": "子智能体谱系",
+      "noFileChanges": "无文件变更",
+      "ganttTitle": "运行时间线",
+      "toolWaterfallTitle": "工具调用瀑布",
+      "fileChangesTitle": "文件变更",
+      "modelStatsTitle": "模型统计"
+    }
+  },
   "agents": {
     "create": "新建智能体",
     "namePlaceholder": "输入名称...",
@@ -354,7 +418,12 @@
     "noSessions": "暂无会话",
     "model": "模型",
     "updatedAt": "更新于",
-    "confirmDelete": "确定删除该会话？"
+    "confirmDelete": "确定删除该会话？",
+    "filterAll": "全部",
+    "filterDirect": "直接",
+    "filterGroup": "群组",
+    "filterChannel": "渠道",
+    "filterSubagent": "子智能体"
   },
   "logs": {
     "title": "日志查看器",
