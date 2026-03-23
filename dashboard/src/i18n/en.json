@@ -81,7 +81,10 @@
     "artifactMarkdown": "Document",
     "artifactTable": "Table",
     "artifactJsonInvalid": "Invalid JSON",
-    "error": "Failed to send"
+    "error": "Failed to send",
+    "filterThinking": "Thinking",
+    "filterTools": "Tools",
+    "filterResults": "Results"
   },
   "gateway": {
     "title": "Gateway Overview",
