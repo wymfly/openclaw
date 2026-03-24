@@ -12,6 +12,7 @@ import type { ProviderConfig } from "@/stores/models";
 interface ConfigFormProps {
   provider: string;
   initialConfig?: { apiKey?: string; baseUrl?: string; modelId?: string };
+  authType?: string | null;
   onSave: (config: ProviderConfig) => Promise<boolean>;
 }
 
@@ -43,7 +44,7 @@ function defaultUrlPlaceholder(provider: string): string {
  * Provider configuration form — API key (with show/hide toggle),
  * base URL, and optional model ID override.
  */
-export function ConfigForm({ provider, initialConfig, onSave }: ConfigFormProps) {
+export function ConfigForm({ provider, initialConfig, authType, onSave }: ConfigFormProps) {
   const t = useTranslations("models");
 
   const [apiKey, setApiKey] = useState(initialConfig?.apiKey ?? "");
@@ -85,6 +86,16 @@ export function ConfigForm({ provider, initialConfig, onSave }: ConfigFormProps)
     <Card className="transition-panel">
       <CardHeader className="border-b pb-3">
         <CardTitle className="text-sm">{t("config.advanced")}</CardTitle>
+        {authType && (
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-[10px] text-[var(--muted-foreground)]">
+              {t("config.authType")}:
+            </span>
+            <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] font-mono">
+              {authType}
+            </span>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
         {/* API Key */}
@@ -105,11 +116,19 @@ export function ConfigForm({ provider, initialConfig, onSave }: ConfigFormProps)
             <button
               type="button"
               onClick={() => setShowKey((v) => !v)}
-              className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
               aria-label={showKey ? "Hide API key" : "Show API key"}
             >
               {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
+          </div>
+          <div className="flex items-center gap-1">
+            {apiKey.startsWith("${") && apiKey.endsWith("}") && (
+              <span className="text-[var(--primary)]" title="Environment variable reference">
+                &#x1F517;
+              </span>
+            )}
+            <p className="text-[10px] text-[var(--muted-foreground)]">{t("config.secretHint")}</p>
           </div>
         </div>
 
