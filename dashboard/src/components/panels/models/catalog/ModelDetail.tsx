@@ -4,9 +4,10 @@ import { Layers, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import type { AuthOverviewEntry, Model } from "@/stores/models";
+import type { AllowlistEntry, AuthOverviewEntry, Model } from "@/stores/models";
 import { AuthStatusDot } from "../shared/AuthStatusDot";
 import { ModelBadges } from "../shared/ModelBadges";
+import { ModelParamsEditor } from "./ModelParamsEditor";
 import { formatContextWindow } from "./ProviderList";
 
 interface ModelDetailProps {
@@ -17,6 +18,9 @@ interface ModelDetailProps {
   allowlistActive?: boolean;
   isEnabled?: boolean;
   onToggleEnabled?: (provider: string, modelId: string, enabled: boolean) => void;
+  allowlistEntry?: AllowlistEntry;
+  providerApi?: string;
+  onUpdateEntry?: (ref: string, entry: Partial<AllowlistEntry>) => void;
 }
 
 /** Format price per million tokens with /M suffix. */
@@ -42,6 +46,9 @@ export function ModelDetail({
   allowlistActive,
   isEnabled,
   onToggleEnabled,
+  allowlistEntry,
+  providerApi,
+  onUpdateEntry,
 }: ModelDetailProps) {
   const t = useTranslations("models");
 
@@ -142,6 +149,16 @@ export function ModelDetail({
           {t("catalog.addToFallback")}
         </Button>
       </div>
+
+      {/* Per-model parameters (when allowlist is active and model is enabled) */}
+      {allowlistActive && isEnabled && allowlistEntry && onUpdateEntry && (
+        <ModelParamsEditor
+          modelRef={`${model.provider}/${model.id}`}
+          entry={allowlistEntry}
+          providerApi={providerApi}
+          onUpdate={onUpdateEntry}
+        />
+      )}
     </div>
   );
 }

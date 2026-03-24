@@ -225,7 +225,17 @@
       "enabled": "已启用",
       "disabled": "未启用",
       "enableModel": "启用",
-      "disableModel": "禁用"
+      "disableModel": "禁用",
+      "params": "模型参数",
+      "alias": "别名",
+      "aliasPlaceholder": "例如 opus, sonnet",
+      "streaming": "流式输出",
+      "thinkingType": "思考模式",
+      "thinkingDisabled": "关闭",
+      "thinkingEnabled": "开启",
+      "thinkingBudget": "思考预算 (tokens)",
+      "advancedParams": "高级参数",
+      "invalidJson": "JSON 格式无效"
     },
     "provider": "供应商配置",
     "name": "模型名称",
