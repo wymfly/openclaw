@@ -22,6 +22,7 @@ import {
   Settings,
   FileCode,
   Fingerprint,
+  MessagesSquare,
   PanelLeftClose,
   PanelLeft,
   X,
@@ -61,6 +62,7 @@ const navGroups: NavGroup[] = [
       { panel: "memory", labelKey: "memory", icon: Brain },
       { panel: "logs", labelKey: "logs", icon: FileText },
       { panel: "activity", labelKey: "activity", icon: Activity },
+      { panel: "threads", labelKey: "threads", icon: MessagesSquare },
     ],
   },
   {

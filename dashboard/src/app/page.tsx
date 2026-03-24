@@ -83,6 +83,11 @@ const LazyIdentityPanel = lazy(() =>
     default: m.IdentityPanel,
   })),
 );
+const LazyThreadsPanel = lazy(() =>
+  import("@/components/panels/threads/ThreadsPanel").then((m) => ({
+    default: m.ThreadsPanel,
+  })),
+);
 const LazySettingsPanel = lazy(() =>
   import("@/components/panels/settings/SettingsPanel").then((m) => ({ default: m.SettingsPanel })),
 );
@@ -165,6 +170,8 @@ function ActivePanel({ panel }: { panel: Panel }) {
     LazyComponent = LazySubagentsPanel;
   } else if (panel === "identity") {
     LazyComponent = LazyIdentityPanel;
+  } else if (panel === "threads") {
+    LazyComponent = LazyThreadsPanel;
   } else if (panel === "settings") {
     LazyComponent = LazySettingsPanel;
   }
