@@ -54,7 +54,7 @@ export function SummaryCards({ cost, auth }: SummaryCardsProps) {
             ? { label: t("vsYesterday"), pct: pctChange(todayCost, yesterdayCost) }
             : undefined
         }
-        icon={<DollarSign size={14} className="text-[var(--accent)]" />}
+        icon={<DollarSign size={14} className="text-[var(--primary)]" />}
       />
 
       {/* This Week */}
@@ -103,14 +103,14 @@ function MetricCard({ label, value, comparison, icon }: MetricCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <p className="text-2xl font-bold font-mono text-[var(--text-primary)]">{value}</p>
+        <p className="text-2xl font-bold font-mono text-[var(--foreground)]">{value}</p>
         {comparison != null && (
           <p
             className={cn(
               "mt-1 flex items-center gap-1 text-xs",
               isDecrease && "text-[var(--success-muted-text)]",
-              isIncrease && "text-[var(--danger-muted-text)]",
-              !isDecrease && !isIncrease && "text-[var(--text-secondary)]",
+              isIncrease && "text-[var(--destructive-muted-text)]",
+              !isDecrease && !isIncrease && "text-[var(--muted-foreground)]",
             )}
           >
             {isDecrease ? <TrendingDown size={12} /> : isIncrease ? <TrendingUp size={12} /> : null}

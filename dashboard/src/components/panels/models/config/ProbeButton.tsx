@@ -57,7 +57,7 @@ export function ProbeButton({ result, onProbe, loading }: ProbeButtonProps) {
             "inline-flex items-center gap-1.5 text-xs font-mono transition-opacity",
             result.status === "ok"
               ? "text-[var(--success-muted-text)]"
-              : "text-[var(--danger-muted-text)]",
+              : "text-[var(--destructive-muted-text)]",
           )}
         >
           {result.status === "ok" ? <CheckCircle size={14} /> : <XCircle size={14} />}

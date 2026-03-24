@@ -67,7 +67,7 @@ export function PrimaryModelCard({
     <div
       className={cn(
         "relative rounded-lg border bg-card p-3 transition-all duration-200",
-        "border-accent/30 shadow-[0_0_0_1px_var(--accent-muted)]",
+        "border-accent/30 shadow-[0_0_0_1px_var(--primary-muted)]",
         isMissingAuth && "border-dashed border-red-500/50 shadow-none",
       )}
     >
