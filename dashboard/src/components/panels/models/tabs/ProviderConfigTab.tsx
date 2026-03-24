@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useModelsStore } from "@/stores/models";
 import { AddProviderDialog } from "../config/AddProviderDialog";
 import { AuthHealthCard } from "../config/AuthHealthCard";
@@ -29,6 +29,7 @@ export function ProviderConfigTab({
     providers,
     probeResults,
     bedrockDiscovery,
+    configRaw,
     fetchAuthOverview,
     fetchProviderConfig,
     fetchFallbacks,
@@ -67,6 +68,22 @@ export function ProviderConfigTab({
 
   // Find matching provider config for the selected entry
   const selectedConfig = providers.find((p) => p.provider === selectedProvider);
+
+  // Derive auth type from raw config (primary), with authOverview as fallback
+  const configAuthType = useMemo(() => {
+    if (!configRaw || !selectedProvider) {
+      return null;
+    }
+    try {
+      const config = JSON.parse(configRaw) as Record<string, unknown>;
+      const models = config.models as Record<string, unknown> | undefined;
+      const providersCfg = models?.providers as Record<string, unknown> | undefined;
+      const providerCfg = providersCfg?.[selectedProvider] as Record<string, unknown> | undefined;
+      return (providerCfg?.auth as string) ?? null;
+    } catch {
+      return null;
+    }
+  }, [configRaw, selectedProvider]);
 
   const handleAddProvider = useCallback(
     async (params: Parameters<typeof addCustomProvider>[0]) => {
@@ -114,6 +131,7 @@ export function ProviderConfigTab({
             <ConfigForm
               provider={selectedProvider!}
               initialConfig={selectedConfig}
+              authType={configAuthType ?? selectedEntry?.auth?.type ?? null}
               onSave={updateProviderConfig}
             />
           </>
