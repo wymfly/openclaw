@@ -288,6 +288,38 @@ function getNestedProviderApiMap(config: Record<string, unknown>): Record<string
 }
 
 // ---------------------------------------------------------------------------
+// Shared PATCH + 409-conflict + refetch helper
+// ---------------------------------------------------------------------------
+
+async function patchConfig(
+  get: () => ModelsState,
+  _set: (partial: Partial<ModelsState>) => void,
+  updatedConfig: Record<string, unknown>,
+): Promise<boolean> {
+  try {
+    const res = await fetch("/api/models/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        raw: JSON.stringify(updatedConfig),
+        baseHash: get().configHash,
+      }),
+    });
+    if (res.status === 409) {
+      await get().fetchFallbacks();
+      return false;
+    }
+    if (!res.ok) {
+      return false;
+    }
+    await get().fetchFallbacks();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
@@ -454,15 +486,14 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     if (!state.configRaw) {
       return false;
     }
-
     const config = parseConfig(state.configRaw);
     if (!config) {
       return false;
     }
 
     // Deep-merge: update only model.primary and model.fallbacks, preserve everything else
-    const agents = (config.agents as Record<string, unknown> | undefined) ?? {};
-    const defaults = (agents.defaults as Record<string, unknown> | undefined) ?? {};
+    const agents = (config.agents as Record<string, unknown>) ?? {};
+    const defaults = (agents.defaults as Record<string, unknown>) ?? {};
     const existingModel = defaults.model as Record<string, unknown> | string | undefined;
     const modelObj =
       typeof existingModel === "object" && existingModel !== null ? existingModel : {};
@@ -473,43 +504,11 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         ...agents,
         defaults: {
           ...defaults,
-          model: {
-            ...modelObj,
-            primary,
-            fallbacks,
-          },
+          model: { ...modelObj, primary, fallbacks },
         },
       },
     };
-
-    const body = JSON.stringify({
-      raw: JSON.stringify(updatedConfig),
-      baseHash: state.configHash,
-    });
-
-    try {
-      const res = await fetch("/api/models/config", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-
-      if (res.status === 409) {
-        // Conflict — re-sync
-        await get().fetchFallbacks();
-        return false;
-      }
-
-      if (!res.ok) {
-        return false;
-      }
-
-      // Refetch to confirm persisted state
-      await get().fetchFallbacks();
-      return true;
-    } catch {
-      return false;
-    }
+    return await patchConfig(get, set, updatedConfig);
   },
 
   updateImageFallbacks: async (primary, fallbacks) => {
@@ -517,14 +516,13 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     if (!state.configRaw) {
       return false;
     }
-
     const config = parseConfig(state.configRaw);
     if (!config) {
       return false;
     }
 
-    const agents = (config.agents as Record<string, unknown> | undefined) ?? {};
-    const defaults = (agents.defaults as Record<string, unknown> | undefined) ?? {};
+    const agents = (config.agents as Record<string, unknown>) ?? {};
+    const defaults = (agents.defaults as Record<string, unknown>) ?? {};
     const existingImageModel = defaults.imageModel as Record<string, unknown> | string | undefined;
     const imageModelObj =
       typeof existingImageModel === "object" && existingImageModel !== null
@@ -537,41 +535,11 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         ...agents,
         defaults: {
           ...defaults,
-          imageModel: {
-            ...imageModelObj,
-            primary,
-            fallbacks,
-          },
+          imageModel: { ...imageModelObj, primary, fallbacks },
         },
       },
     };
-
-    const body = JSON.stringify({
-      raw: JSON.stringify(updatedConfig),
-      baseHash: state.configHash,
-    });
-
-    try {
-      const res = await fetch("/api/models/config", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-
-      if (res.status === 409) {
-        await get().fetchFallbacks();
-        return false;
-      }
-
-      if (!res.ok) {
-        return false;
-      }
-
-      await get().fetchFallbacks();
-      return true;
-    } catch {
-      return false;
-    }
+    return await patchConfig(get, set, updatedConfig);
   },
 
   runProbe: async (provider: string): Promise<ProbeResult | null> => {
@@ -651,10 +619,144 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     }
   },
 
-  // Placeholder stubs — implemented in Task 2
-  toggleAllowlist: async (_active: boolean) => Promise.resolve(false),
-  toggleModelEnabled: async (_ref: string, _enabled: boolean) => Promise.resolve(false),
-  updateModelAllowlistEntry: async (_ref: string, _entry: Partial<AllowlistEntry>) =>
-    Promise.resolve(false),
-  updateBedrockDiscovery: async (_config: BedrockDiscoveryConfig) => Promise.resolve(false),
+  toggleAllowlist: async (active) => {
+    const state = get();
+    if (!state.configRaw) {
+      return false;
+    }
+    const config = parseConfig(state.configRaw);
+    if (!config) {
+      return false;
+    }
+
+    const agents = (config.agents as Record<string, unknown>) ?? {};
+    const defaults = (agents.defaults as Record<string, unknown>) ?? {};
+
+    if (active) {
+      // Auto-populate with current primary + fallbacks
+      const initial: Record<string, Record<string, unknown>> = {};
+      if (state.primaryModel) {
+        initial[state.primaryModel] = {};
+      }
+      for (const fb of state.fallbacks) {
+        initial[fb] = {};
+      }
+      if (state.imagePrimaryModel) {
+        initial[state.imagePrimaryModel] = {};
+      }
+      for (const fb of state.imageFallbacks) {
+        initial[fb] = {};
+      }
+
+      const updatedConfig = {
+        ...config,
+        agents: { ...agents, defaults: { ...defaults, models: initial } },
+      };
+      return await patchConfig(get, set, updatedConfig);
+    } else {
+      // Remove models key entirely
+      const { models: _removed, ...restDefaults } = defaults;
+      const updatedConfig = {
+        ...config,
+        agents: { ...agents, defaults: restDefaults },
+      };
+      return await patchConfig(get, set, updatedConfig);
+    }
+  },
+
+  toggleModelEnabled: async (ref, enabled) => {
+    const state = get();
+    if (!state.configRaw) {
+      return false;
+    }
+    const config = parseConfig(state.configRaw);
+    if (!config) {
+      return false;
+    }
+
+    const agents = (config.agents as Record<string, unknown>) ?? {};
+    const defaults = (agents.defaults as Record<string, unknown>) ?? {};
+    const existingModels = (defaults.models as Record<string, unknown>) ?? {};
+    // Immutable update — spread to new object
+    const models = { ...existingModels };
+
+    if (enabled) {
+      models[ref] = {};
+    } else {
+      delete models[ref];
+    }
+
+    // If allowlist becomes empty after removing last model, delete the
+    // models key entirely to match backend semantics (empty = allowAny).
+    const hasEntries = Object.keys(models).length > 0;
+
+    const updatedConfig = {
+      ...config,
+      agents: {
+        ...agents,
+        defaults: hasEntries
+          ? { ...defaults, models }
+          : (() => {
+              const { models: _, ...rest } = defaults;
+              return rest;
+            })(),
+      },
+    };
+    return await patchConfig(get, set, updatedConfig);
+  },
+
+  updateModelAllowlistEntry: async (ref, entry) => {
+    const state = get();
+    if (!state.configRaw) {
+      return false;
+    }
+    const config = parseConfig(state.configRaw);
+    if (!config) {
+      return false;
+    }
+
+    const agents = (config.agents as Record<string, unknown>) ?? {};
+    const defaults = (agents.defaults as Record<string, unknown>) ?? {};
+    const existingModels = (defaults.models as Record<string, unknown>) ?? {};
+    // Immutable update
+    const models = { ...existingModels };
+    const existing = (models[ref] as Record<string, unknown>) ?? {};
+
+    const merged = { ...existing };
+    if (entry.alias !== undefined) {
+      merged.alias = entry.alias || undefined;
+    }
+    if (entry.streaming !== undefined) {
+      merged.streaming = entry.streaming;
+    }
+    if (entry.params !== undefined) {
+      merged.params = entry.params;
+    }
+
+    models[ref] = merged;
+
+    const updatedConfig = {
+      ...config,
+      agents: { ...agents, defaults: { ...defaults, models } },
+    };
+    return await patchConfig(get, set, updatedConfig);
+  },
+
+  updateBedrockDiscovery: async (bdConfig) => {
+    const state = get();
+    if (!state.configRaw) {
+      return false;
+    }
+    const config = parseConfig(state.configRaw);
+    if (!config) {
+      return false;
+    }
+
+    const models = (config.models as Record<string, unknown>) ?? {};
+    const updatedConfig = {
+      ...config,
+      models: { ...models, bedrockDiscovery: bdConfig },
+    };
+    return await patchConfig(get, set, updatedConfig);
+  },
 }));
