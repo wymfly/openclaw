@@ -2,9 +2,17 @@ import { create } from "zustand";
 
 export type GatewayStatus = "connected" | "connecting" | "reconnecting" | "disconnected" | "error";
 
+export type ChannelHealth = {
+  configured?: boolean;
+  lastError?: string | null;
+  lastInboundAt?: string | null;
+  lastOutboundAt?: string | null;
+  accountId?: string;
+};
+
 export type HealthSummary = {
-  sessions?: { active: number; total: number };
-  channels?: Record<string, string>;
+  sessions?: { active: number; total: number; count?: number };
+  channels?: Record<string, string | ChannelHealth>;
   auth?: string;
 };
 
