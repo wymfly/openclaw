@@ -11,7 +11,8 @@ import { useThreadsStore, type ThreadEntry } from "@/stores/deck-threads";
 
 function relativeTime(
   ts: number,
-  t: (key: string, values?: Record<string, string | number | Date>) => string,
+  // next-intl Translator generic is not directly assignable to plain function type
+  t: (key: string, values?: Record<string, number>) => string,
 ): string {
   const now = Date.now();
   const diff = now - ts;
