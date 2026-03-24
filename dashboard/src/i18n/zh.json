@@ -319,7 +319,14 @@
       "authAwsSdk": "AWS SDK",
       "authToken": "Token",
       "oauthHint": "OAuth 通过 CLI 配置",
-      "secretHint": "支持环境变量引用：${OPENAI_API_KEY}"
+      "secretHint": "支持环境变量引用：${OPENAI_API_KEY}",
+      "bedrockTitle": "AWS Bedrock 动态发现",
+      "bedrockEnabled": "启用发现",
+      "bedrockRegion": "区域",
+      "bedrockProviderFilter": "提供商过滤",
+      "bedrockRefreshInterval": "刷新间隔（秒）",
+      "bedrockDefaultContext": "默认上下文窗口",
+      "bedrockDefaultMaxTokens": "默认最大输出"
     },
     "addProviderTitle": "添加供应商",
     "providerName": "供应商名称",
