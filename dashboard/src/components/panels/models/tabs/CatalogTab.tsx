@@ -38,6 +38,7 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
     allowlistActive,
     allowlist,
     toggleAllowlist,
+    toggleModelEnabled,
   } = useModelsStore();
   const [selected, setSelected] = useState<Selection | null>(null);
 
@@ -114,6 +115,13 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
     }
   }, [selectedProvider, onGoConfig]);
 
+  const handleToggleEnabled = useCallback(
+    (provider: string, modelId: string, enabled: boolean) => {
+      void toggleModelEnabled(`${provider}/${modelId}`, enabled);
+    },
+    [toggleModelEnabled],
+  );
+
   return (
     <div className="flex h-full flex-col">
       {/* Allowlist toggle bar */}
@@ -161,6 +169,9 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
               auth={selectedAuth}
               onSetDefault={handleSetDefault}
               onGoConfig={handleGoConfig}
+              allowlistActive={allowlistActive}
+              allowlist={allowlist}
+              onToggleEnabled={handleToggleEnabled}
             />
           )}
 
@@ -170,6 +181,9 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
               auth={selectedAuth}
               onSetDefault={handleSetDefault}
               onAddToFallback={handleAddToFallback}
+              allowlistActive={allowlistActive}
+              isEnabled={allowlist[`${selectedModelObj.provider}/${selectedModelObj.id}`] != null}
+              onToggleEnabled={handleToggleEnabled}
             />
           )}
 

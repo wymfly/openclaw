@@ -221,7 +221,11 @@
       "allowlistToggle": "Model Allowlist",
       "allowlistOff": "All models available — enable allowlist to restrict",
       "allowlistConfirm": "Enabling the allowlist restricts access to only explicitly enabled models. Current primary and fallback models will be auto-added. Continue?",
-      "enabledCount": "{count}/{total} enabled"
+      "enabledCount": "{count}/{total} enabled",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enableModel": "Enable",
+      "disableModel": "Disable"
     },
     "provider": "Provider Config",
     "name": "Model Name",
