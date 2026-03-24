@@ -20,11 +20,23 @@ export interface Model {
   maxTokens?: number;
 }
 
+export interface ProviderModelEntry {
+  id: string;
+  name: string;
+  api?: string;
+  reasoning?: boolean;
+  input?: string[];
+  contextWindow?: number;
+  maxTokens?: number;
+}
+
 export interface ProviderConfig {
   provider: string;
   apiKey?: string;
   baseUrl?: string;
-  modelId?: string;
+  auth?: string; // "api-key" | "aws-sdk" | "oauth" | "token"
+  api?: string; // "openai-completions" | "openai-responses" | etc.
+  models?: ProviderModelEntry[];
 }
 
 export interface AuthOverviewEntry {
@@ -273,7 +285,19 @@ function getNestedProviders(config: Record<string, unknown>): ProviderConfig[] {
         provider: name,
         apiKey: typeof v.apiKey === "string" ? v.apiKey : undefined,
         baseUrl: typeof v.baseUrl === "string" ? v.baseUrl : undefined,
-        modelId: typeof v.modelId === "string" ? v.modelId : undefined,
+        auth: typeof v.auth === "string" ? v.auth : undefined,
+        api: typeof v.api === "string" ? v.api : undefined,
+        models: Array.isArray(v.models)
+          ? (v.models as Array<Record<string, unknown>>).map((m) => ({
+              id: typeof m.id === "string" ? m.id : "",
+              name: typeof m.name === "string" ? m.name : "",
+              api: typeof m.api === "string" ? m.api : undefined,
+              reasoning: typeof m.reasoning === "boolean" ? m.reasoning : undefined,
+              input: Array.isArray(m.input) ? (m.input as string[]) : undefined,
+              contextWindow: typeof m.contextWindow === "number" ? m.contextWindow : undefined,
+              maxTokens: typeof m.maxTokens === "number" ? m.maxTokens : undefined,
+            }))
+          : undefined,
       });
     }
   }
@@ -445,8 +469,14 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     if (providerConfig.baseUrl !== undefined) {
       updated.baseUrl = providerConfig.baseUrl || undefined;
     }
-    if (providerConfig.modelId !== undefined) {
-      updated.modelId = providerConfig.modelId || undefined;
+    if (providerConfig.auth !== undefined) {
+      updated.auth = providerConfig.auth || undefined;
+    }
+    if (providerConfig.api !== undefined) {
+      updated.api = providerConfig.api || undefined;
+    }
+    if (providerConfig.models !== undefined) {
+      updated.models = providerConfig.models;
     }
     providers[providerConfig.provider] = updated;
 

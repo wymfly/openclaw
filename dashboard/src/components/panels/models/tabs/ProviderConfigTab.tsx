@@ -49,10 +49,11 @@ export function ProviderConfigTab({
     void fetchFallbacks();
   }, [fetchAuthOverview, fetchProviderConfig, fetchFallbacks]);
 
-  // Auto-select the first provider once auth overview loads
+  // Auto-select the first configured provider once auth overview loads
   useEffect(() => {
     if (!selectedProvider && authOverview.length > 0) {
-      setSelectedProvider(authOverview[0].provider);
+      const firstConfigured = authOverview.find((a) => a.status !== "unknown");
+      setSelectedProvider((firstConfigured ?? authOverview[0]).provider);
     }
   }, [selectedProvider, authOverview]);
 

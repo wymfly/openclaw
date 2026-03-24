@@ -3,15 +3,38 @@
 import { Eye, EyeOff, Loader2, Save, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useCallback } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ProviderConfig } from "@/stores/models";
+
+const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
+
+const MODEL_APIS = [
+  "openai-completions",
+  "openai-responses",
+  "openai-codex-responses",
+  "anthropic-messages",
+  "google-generative-ai",
+  "github-copilot",
+  "bedrock-converse-stream",
+  "ollama",
+] as const;
+
+const AUTH_MODES = ["api-key", "aws-sdk", "oauth", "token"] as const;
 
 interface ConfigFormProps {
   provider: string;
-  initialConfig?: { apiKey?: string; baseUrl?: string; modelId?: string };
+  initialConfig?: ProviderConfig;
   authType?: string | null;
   onSave: (config: ProviderConfig) => Promise<boolean>;
 }
@@ -40,39 +63,77 @@ function defaultUrlPlaceholder(provider: string): string {
   return "https://api.example.com/v1";
 }
 
+/** Format large numbers with K suffix for display. */
+function formatTokenCount(n: number | undefined): string {
+  if (n == null) {
+    return "-";
+  }
+  if (n >= 1000) {
+    return `${(n / 1000).toFixed(0)}K`;
+  }
+  return String(n);
+}
+
 /**
- * Provider configuration form — API key (with show/hide toggle),
- * base URL, and optional model ID override.
+ * Provider configuration form — API key, base URL, auth type, API protocol,
+ * and a read-only model list table.
  */
 export function ConfigForm({ provider, initialConfig, authType, onSave }: ConfigFormProps) {
   const t = useTranslations("models");
 
-  const [apiKey, setApiKey] = useState(initialConfig?.apiKey ?? "");
+  const isRedacted = initialConfig?.apiKey === REDACTED_SENTINEL;
+
+  const [apiKey, setApiKey] = useState(isRedacted ? "" : (initialConfig?.apiKey ?? ""));
+  const [apiKeyDirty, setApiKeyDirty] = useState(false);
   const [baseUrl, setBaseUrl] = useState(initialConfig?.baseUrl ?? "");
-  const [modelId, setModelId] = useState(initialConfig?.modelId ?? "");
+  const [authMode, setAuthMode] = useState(initialConfig?.auth ?? "");
+  const [apiProtocol, setApiProtocol] = useState(initialConfig?.api ?? "");
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Derive effective auth type (form state > initialConfig > authOverview)
+  const effectiveAuth = authMode || initialConfig?.auth || authType || null;
+  const isOAuth = effectiveAuth === "oauth";
+  const isAwsSdk = effectiveAuth === "aws-sdk";
+
   // Reset form when provider changes
   useEffect(() => {
-    setApiKey(initialConfig?.apiKey ?? "");
+    const redacted = initialConfig?.apiKey === REDACTED_SENTINEL;
+    setApiKey(redacted ? "" : (initialConfig?.apiKey ?? ""));
+    setApiKeyDirty(false);
     setBaseUrl(initialConfig?.baseUrl ?? "");
-    setModelId(initialConfig?.modelId ?? "");
+    setAuthMode(initialConfig?.auth ?? "");
+    setApiProtocol(initialConfig?.api ?? "");
     setShowKey(false);
     setSaved(false);
-  }, [provider, initialConfig?.apiKey, initialConfig?.baseUrl, initialConfig?.modelId]);
+  }, [
+    provider,
+    initialConfig?.apiKey,
+    initialConfig?.baseUrl,
+    initialConfig?.auth,
+    initialConfig?.api,
+  ]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaved(false);
     try {
-      const ok = await onSave({
+      const config: ProviderConfig = {
         provider,
-        apiKey: apiKey || undefined,
         baseUrl: baseUrl || undefined,
-        modelId: modelId || undefined,
-      });
+        auth: authMode || undefined,
+        api: apiProtocol || undefined,
+      };
+
+      // Only send apiKey if user changed it (not the redacted placeholder)
+      if (apiKeyDirty) {
+        config.apiKey = apiKey || undefined;
+      } else if (!isRedacted && apiKey) {
+        config.apiKey = apiKey;
+      }
+
+      const ok = await onSave(config);
       if (ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -80,57 +141,71 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
     } finally {
       setSaving(false);
     }
-  }, [provider, apiKey, baseUrl, modelId, onSave]);
+  }, [provider, apiKey, apiKeyDirty, isRedacted, baseUrl, authMode, apiProtocol, onSave]);
+
+  const models = initialConfig?.models;
 
   return (
     <Card className="transition-panel">
       <CardHeader className="border-b pb-3">
         <CardTitle className="text-sm">{t("config.advanced")}</CardTitle>
-        {authType && (
+        {effectiveAuth && (
           <div className="mt-1 flex items-center gap-2">
             <span className="text-[10px] text-[var(--muted-foreground)]">
               {t("config.authType")}:
             </span>
             <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] font-mono">
-              {authType}
+              {effectiveAuth}
             </span>
           </div>
         )}
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
-        {/* API Key */}
-        <div className="space-y-1.5">
-          <Label htmlFor={`apiKey-${provider}`} className="text-xs text-muted-foreground">
-            {t("config.apiKey")}
-          </Label>
-          <div className="relative max-w-md">
-            <Input
-              id={`apiKey-${provider}`}
-              type={showKey ? "text" : "password"}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-..."
-              className="pr-9 font-mono text-xs"
-              autoComplete="off"
-            />
-            <button
-              type="button"
-              onClick={() => setShowKey((v) => !v)}
-              className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
-              aria-label={showKey ? "Hide API key" : "Show API key"}
-            >
-              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
+        {/* API Key — hidden for aws-sdk, hint for oauth */}
+        {isOAuth ? (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t("config.apiKey")}</Label>
+            <p className="text-xs text-[var(--muted-foreground)] italic">{t("config.oauthHint")}</p>
           </div>
-          <div className="flex items-center gap-1">
-            {apiKey.startsWith("${") && apiKey.endsWith("}") && (
-              <span className="text-[var(--primary)]" title={t("config.envVarRef")}>
-                &#x1F517;
-              </span>
-            )}
-            <p className="text-[10px] text-[var(--muted-foreground)]">{t("config.secretHint")}</p>
+        ) : isAwsSdk ? null : (
+          <div className="space-y-1.5">
+            <Label htmlFor={`apiKey-${provider}`} className="text-xs text-muted-foreground">
+              {t("config.apiKey")}
+            </Label>
+            <div className="relative max-w-md">
+              <Input
+                id={`apiKey-${provider}`}
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  setApiKeyDirty(true);
+                }}
+                placeholder={
+                  isRedacted ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "sk-..."
+                }
+                className="pr-9 font-mono text-xs"
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
+                className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
+                aria-label={showKey ? "Hide API key" : "Show API key"}
+              >
+                {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              {apiKey.startsWith("${") && apiKey.endsWith("}") && (
+                <span className="text-[var(--primary)]" title={t("config.envVarRef")}>
+                  &#x1F517;
+                </span>
+              )}
+              <p className="text-[10px] text-[var(--muted-foreground)]">{t("config.secretHint")}</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Base URL */}
         <div className="space-y-1.5">
@@ -147,19 +222,95 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
           />
         </div>
 
-        {/* Model ID Override */}
+        {/* Auth Mode */}
         <div className="space-y-1.5">
-          <Label htmlFor={`modelId-${provider}`} className="text-xs text-muted-foreground">
-            {t("config.modelId")}
-          </Label>
-          <Input
-            id={`modelId-${provider}`}
-            type="text"
-            value={modelId}
-            onChange={(e) => setModelId(e.target.value)}
-            placeholder="Override model"
-            className="max-w-md font-mono text-xs"
-          />
+          <Label className="text-xs text-muted-foreground">{t("config.auth")}</Label>
+          <Select value={authMode} onValueChange={(v) => setAuthMode(v ?? "")}>
+            <SelectTrigger className="max-w-md text-xs" size="sm">
+              <SelectValue placeholder={t("config.authSelect")} />
+            </SelectTrigger>
+            <SelectContent>
+              {AUTH_MODES.map((mode) => (
+                <SelectItem key={mode} value={mode}>
+                  {mode}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* API Protocol */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">{t("config.apiProtocol")}</Label>
+          <Select value={apiProtocol} onValueChange={(v) => setApiProtocol(v ?? "")}>
+            <SelectTrigger className="max-w-md text-xs" size="sm">
+              <SelectValue placeholder={t("config.apiProtocolSelect")} />
+            </SelectTrigger>
+            <SelectContent>
+              {MODEL_APIS.map((api) => (
+                <SelectItem key={api} value={api}>
+                  {api}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Models table (read-only) */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">{t("config.providerModels")}</Label>
+            {models && models.length > 0 && (
+              <Badge variant="secondary" className="text-[10px]">
+                {t("config.modelCount", { count: models.length })}
+              </Badge>
+            )}
+          </div>
+          {models && models.length > 0 ? (
+            <div className="max-w-2xl overflow-auto rounded-md border border-[var(--border)]">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
+                    <th className="px-3 py-1.5 text-left font-medium text-[var(--muted-foreground)]">
+                      ID
+                    </th>
+                    <th className="px-3 py-1.5 text-left font-medium text-[var(--muted-foreground)]">
+                      {t("name")}
+                    </th>
+                    <th className="px-3 py-1.5 text-right font-medium text-[var(--muted-foreground)]">
+                      {t("contextWindow")}
+                    </th>
+                    <th className="px-3 py-1.5 text-right font-medium text-[var(--muted-foreground)]">
+                      {t("catalog.maxOutput")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {models.map((m) => (
+                    <tr
+                      key={m.id}
+                      className="border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--accent)]"
+                    >
+                      <td className="px-3 py-1.5 font-mono text-[var(--foreground)]">{m.id}</td>
+                      <td className="px-3 py-1.5 text-[var(--muted-foreground)]">
+                        {m.name || m.id}
+                      </td>
+                      <td className="px-3 py-1.5 text-right text-[var(--muted-foreground)]">
+                        {formatTokenCount(m.contextWindow)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right text-[var(--muted-foreground)]">
+                        {formatTokenCount(m.maxTokens)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-[var(--muted-foreground)] italic">
+              {t("config.noModelsConfigured")}
+            </p>
+          )}
         </div>
 
         {/* Save */}
