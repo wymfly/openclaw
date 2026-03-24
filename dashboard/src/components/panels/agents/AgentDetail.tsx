@@ -18,8 +18,8 @@ import { SubagentTab } from "./tabs/SubagentTab";
 
 const STATUS_BADGE: Record<string, string> = {
   idle: "bg-[var(--success-muted)] text-[var(--success-muted-text)]",
-  busy: "bg-[var(--accent-muted)] text-[var(--accent)]",
-  error: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]",
+  busy: "bg-[var(--primary-muted)] text-[var(--primary)]",
+  error: "bg-[var(--destructive-muted)] text-[var(--destructive-muted-text)]",
   offline: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
 };
 
@@ -52,7 +52,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   if (loading && !currentDetail) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <span className="text-xs text-[var(--text-secondary)]">Loading...</span>
+        <span className="text-xs text-[var(--muted-foreground)]">Loading...</span>
       </div>
     );
   }
@@ -61,9 +61,9 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   if (!detail) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--text-secondary)]">
-        <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
-          <Bot size={20} className="text-[var(--accent)]" />
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--muted-foreground)]">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--muted)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
+          <Bot size={20} className="text-[var(--primary)]" />
         </div>
         <p className="text-sm">{ta("notFound")}</p>
       </div>
@@ -77,27 +77,27 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         {isMobile && (
           <button
             onClick={() => selectAgent(null)}
-            className="p-1 -ml-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+            className="p-1 -ml-1 rounded hover:bg-[var(--muted)] transition-colors cursor-pointer"
           >
-            <ArrowLeft size={16} className="text-[var(--text-secondary)]" />
+            <ArrowLeft size={16} className="text-[var(--muted-foreground)]" />
           </button>
         )}
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20">
+        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--primary-muted)] ring-1 ring-[var(--primary)]/20">
           {detail.emoji ? (
             <span className="text-base leading-none">{detail.emoji}</span>
           ) : (
-            <Bot size={16} className="text-[var(--accent)]" />
+            <Bot size={16} className="text-[var(--primary)]" />
           )}
         </div>
         <div className="flex flex-col min-w-0">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+          <h2 className="text-sm font-semibold text-[var(--foreground)] tracking-tight">
             {detail.name}
           </h2>
-          <span className="text-[10px] font-mono text-[var(--text-secondary)]">{detail.id}</span>
+          <span className="text-[10px] font-mono text-[var(--muted-foreground)]">{detail.id}</span>
         </div>
         <div className="ml-auto flex items-center gap-2 shrink-0">
           {detail.isDefault && (
-            <Badge className="text-[10px] border-0 bg-[var(--accent-muted)] text-[var(--accent)]">
+            <Badge className="text-[10px] border-0 bg-[var(--primary-muted)] text-[var(--primary)]">
               {t("defaultAgent")}
             </Badge>
           )}
@@ -122,7 +122,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           </TabsList>
         </div>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <TabsContent value="overview" className="p-4">
             <OverviewTab detail={detail} onNavigateTab={setActiveTab} />
           </TabsContent>
