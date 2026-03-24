@@ -312,7 +312,14 @@
       "envHint": "环境变量：{envVar}",
       "advanced": "高级",
       "profiles": "认证配置",
-      "addProvider": "添加供应商"
+      "addProvider": "添加供应商",
+      "authType": "认证类型",
+      "authApiKey": "API Key",
+      "authOAuth": "OAuth",
+      "authAwsSdk": "AWS SDK",
+      "authToken": "Token",
+      "oauthHint": "OAuth 通过 CLI 配置",
+      "secretHint": "支持环境变量引用：${OPENAI_API_KEY}"
     },
     "addProviderTitle": "添加供应商",
     "providerName": "供应商名称",
