@@ -1,8 +1,8 @@
 "use client";
 
-import { BookOpen, ChevronRight, FileText, RefreshCw, Shield } from "lucide-react";
+import { BookOpen, Brain, ChevronRight, FileText, RefreshCw, Shield } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,9 @@ import { cn } from "@/lib/utils";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 import { BootstrapFileEditor } from "./BootstrapFileEditor";
 import { ToolPolicyViz } from "./ToolPolicyViz";
+
+type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "adaptive";
+const THINKING_LEVELS: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "adaptive"];
 
 interface ContextTabProps {
   agentId: string;
@@ -23,22 +26,55 @@ export function ContextTab({ agentId }: ContextTabProps) {
     toolPolicyPreview,
     fetchSystemPromptPreview,
     fetchToolPolicyPreview,
+    patchAgentConfig,
   } = useDeckAgentsStore();
 
   const [promptLayersOpen, setPromptLayersOpen] = useState(false);
   const [bootstrapFilesOpen, setBootstrapFilesOpen] = useState(true);
   const [toolPolicyOpen, setToolPolicyOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("off");
+  const [thinkingSaving, setThinkingSaving] = useState(false);
+
+  // Fetch the current thinking level from config
+  const fetchThinkingLevel = useCallback(async () => {
+    try {
+      const res = await fetch("/api/config");
+      if (!res.ok) return;
+      const data = (await res.json()) as { config?: { agents?: { defaults?: { thinkingDefault?: string } } } };
+      const level = data.config?.agents?.defaults?.thinkingDefault;
+      if (level && THINKING_LEVELS.includes(level as ThinkingLevel)) {
+        setThinkingLevel(level as ThinkingLevel);
+      }
+    } catch {
+      // best-effort
+    }
+  }, []);
 
   useEffect(() => {
     void fetchSystemPromptPreview(agentId);
     void fetchToolPolicyPreview(agentId);
-  }, [agentId, fetchSystemPromptPreview, fetchToolPolicyPreview]);
+    void fetchThinkingLevel();
+  }, [agentId, fetchSystemPromptPreview, fetchToolPolicyPreview, fetchThinkingLevel]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchSystemPromptPreview(agentId), fetchToolPolicyPreview(agentId)]);
+    await Promise.all([
+      fetchSystemPromptPreview(agentId),
+      fetchToolPolicyPreview(agentId),
+      fetchThinkingLevel(),
+    ]);
     setRefreshing(false);
+  };
+
+  const handleThinkingChange = async (level: ThinkingLevel) => {
+    if (level === thinkingLevel || thinkingSaving) return;
+    setThinkingSaving(true);
+    const ok = await patchAgentConfig(agentId, "agents.defaults.thinkingDefault", level);
+    if (ok) {
+      setThinkingLevel(level);
+    }
+    setThinkingSaving(false);
   };
 
   const layers = systemPromptPreview?.layers ?? [];
@@ -50,32 +86,66 @@ export function ContextTab({ agentId }: ContextTabProps) {
     <div className="space-y-3">
       {/* Header row with refresh button */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-[var(--text-primary)]">{t("title")}</h3>
+        <h3 className="text-xs font-semibold text-[var(--foreground)]">{t("title")}</h3>
         <Button
           size="sm"
           variant="ghost"
           onClick={() => void handleRefresh()}
           disabled={refreshing}
-          className="h-7 px-2 gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+          className="h-7 px-2 gap-1 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
         >
           <RefreshCw size={12} className={cn(refreshing && "animate-spin")} />
           {t("refresh")}
         </Button>
       </div>
 
+      {/* Section 0: Thinking Level */}
+      <Card className="bg-[var(--background)] border-[var(--border)] overflow-hidden">
+        <div className="px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Brain size={14} className="text-[var(--primary)] shrink-0" />
+            <span className="text-xs font-medium text-[var(--foreground)]">
+              {t("thinkingTitle")}
+            </span>
+          </div>
+          <p className="text-[10px] text-[var(--muted-foreground)]">
+            {t("thinkingDescription")}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {THINKING_LEVELS.map((level) => (
+              <button
+                key={level}
+                type="button"
+                disabled={thinkingSaving}
+                onClick={() => void handleThinkingChange(level)}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  level === thinkingLevel
+                    ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                    : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]",
+                )}
+              >
+                {t(`thinking${level.charAt(0).toUpperCase() + level.slice(1)}` as "thinkingOff")}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
       {/* Section 1: Prompt Layers */}
-      <Card className="bg-[var(--bg-primary)] border-[var(--border)] overflow-hidden">
+      <Card className="bg-[var(--background)] border-[var(--border)] overflow-hidden">
         <Collapsible open={promptLayersOpen} onOpenChange={setPromptLayersOpen}>
           <CollapsibleTrigger render={<button className="w-full cursor-pointer" />}>
             <div className="flex items-center gap-2 px-4 py-3">
-              <BookOpen size={14} className="text-[var(--accent)] shrink-0" />
-              <span className="text-xs font-medium text-[var(--text-primary)] flex-1 text-left">
+              <BookOpen size={14} className="text-[var(--primary)] shrink-0" />
+              <span className="text-xs font-medium text-[var(--foreground)] flex-1 text-left">
                 {t("promptLayers")}
               </span>
               {layers.length > 0 && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] border-[var(--border)] text-[var(--text-secondary)] mr-1"
+                  className="text-[10px] border-[var(--border)] text-[var(--muted-foreground)] mr-1"
                 >
                   {layers.length}
                 </Badge>
@@ -83,7 +153,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
               <ChevronRight
                 size={14}
                 className={cn(
-                  "text-[var(--text-secondary)] transition-transform duration-150 shrink-0",
+                  "text-[var(--muted-foreground)] transition-transform duration-150 shrink-0",
                   promptLayersOpen && "rotate-90",
                 )}
               />
@@ -92,7 +162,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
           <CollapsibleContent>
             <div className="border-t border-[var(--border-subtle)] px-4 py-3 space-y-2">
               {layers.length === 0 ? (
-                <p className="text-xs text-[var(--text-secondary)]">{t("loading")}</p>
+                <p className="text-xs text-[var(--muted-foreground)]">{t("loading")}</p>
               ) : (
                 layers.map((layer, i) => (
                   <div
@@ -100,14 +170,14 @@ export function ContextTab({ agentId }: ContextTabProps) {
                     className="flex items-start justify-between gap-2 py-1.5 border-b border-[var(--border-subtle)] last:border-0"
                   >
                     <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-medium text-[var(--text-primary)] truncate">
+                      <span className="text-xs font-medium text-[var(--foreground)] truncate">
                         {layer.label}
                       </span>
-                      <span className="text-[10px] text-[var(--text-secondary)] font-mono truncate">
+                      <span className="text-[10px] text-[var(--muted-foreground)] font-mono truncate">
                         {layer.source}
                       </span>
                     </div>
-                    <span className="text-[10px] text-[var(--text-secondary)] shrink-0 font-mono">
+                    <span className="text-[10px] text-[var(--muted-foreground)] shrink-0 font-mono">
                       {layer.charCount.toLocaleString()} ch
                     </span>
                   </div>
@@ -115,7 +185,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
               )}
               {systemPromptPreview && (
                 <div className="flex items-center justify-end pt-1">
-                  <span className="text-[10px] text-[var(--text-secondary)] font-mono">
+                  <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
                     {t("allowed")} {systemPromptPreview.totalChars.toLocaleString()} ch
                   </span>
                 </div>
@@ -126,18 +196,18 @@ export function ContextTab({ agentId }: ContextTabProps) {
       </Card>
 
       {/* Section 2: Bootstrap Files */}
-      <Card className="bg-[var(--bg-primary)] border-[var(--border)] overflow-hidden">
+      <Card className="bg-[var(--background)] border-[var(--border)] overflow-hidden">
         <Collapsible open={bootstrapFilesOpen} onOpenChange={setBootstrapFilesOpen}>
           <CollapsibleTrigger render={<button className="w-full cursor-pointer" />}>
             <div className="flex items-center gap-2 px-4 py-3">
-              <FileText size={14} className="text-[var(--accent)] shrink-0" />
-              <span className="text-xs font-medium text-[var(--text-primary)] flex-1 text-left">
+              <FileText size={14} className="text-[var(--primary)] shrink-0" />
+              <span className="text-xs font-medium text-[var(--foreground)] flex-1 text-left">
                 {t("bootstrapFiles")}
               </span>
               {bootstrapFiles.length > 0 && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] border-[var(--border)] text-[var(--text-secondary)] mr-1"
+                  className="text-[10px] border-[var(--border)] text-[var(--muted-foreground)] mr-1"
                 >
                   {bootstrapFiles.length}
                 </Badge>
@@ -145,7 +215,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
               <ChevronRight
                 size={14}
                 className={cn(
-                  "text-[var(--text-secondary)] transition-transform duration-150 shrink-0",
+                  "text-[var(--muted-foreground)] transition-transform duration-150 shrink-0",
                   bootstrapFilesOpen && "rotate-90",
                 )}
               />
@@ -154,7 +224,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
           <CollapsibleContent>
             <div className="border-t border-[var(--border-subtle)] px-4 py-3 space-y-1.5">
               {bootstrapFiles.length === 0 ? (
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="text-xs text-[var(--muted-foreground)]">
                   {systemPromptPreview ? t("notCreated") : t("loading")}
                 </p>
               ) : (
@@ -171,18 +241,18 @@ export function ContextTab({ agentId }: ContextTabProps) {
       </Card>
 
       {/* Section 3: Tool Policy */}
-      <Card className="bg-[var(--bg-primary)] border-[var(--border)] overflow-hidden">
+      <Card className="bg-[var(--background)] border-[var(--border)] overflow-hidden">
         <Collapsible open={toolPolicyOpen} onOpenChange={setToolPolicyOpen}>
           <CollapsibleTrigger render={<button className="w-full cursor-pointer" />}>
             <div className="flex items-center gap-2 px-4 py-3">
-              <Shield size={14} className="text-[var(--accent)] shrink-0" />
-              <span className="text-xs font-medium text-[var(--text-primary)] flex-1 text-left">
+              <Shield size={14} className="text-[var(--primary)] shrink-0" />
+              <span className="text-xs font-medium text-[var(--foreground)] flex-1 text-left">
                 {t("toolPolicy")}
               </span>
               {toolPolicyTools.length > 0 && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] border-[var(--border)] text-[var(--text-secondary)] mr-1"
+                  className="text-[10px] border-[var(--border)] text-[var(--muted-foreground)] mr-1"
                 >
                   {allowedToolCount}/{toolPolicyTools.length}
                 </Badge>
@@ -190,7 +260,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
               <ChevronRight
                 size={14}
                 className={cn(
-                  "text-[var(--text-secondary)] transition-transform duration-150 shrink-0",
+                  "text-[var(--muted-foreground)] transition-transform duration-150 shrink-0",
                   toolPolicyOpen && "rotate-90",
                 )}
               />
@@ -201,7 +271,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
               {toolPolicyPreview ? (
                 <ToolPolicyViz preview={toolPolicyPreview} />
               ) : (
-                <p className="text-xs text-[var(--text-secondary)]">{t("loading")}</p>
+                <p className="text-xs text-[var(--muted-foreground)]">{t("loading")}</p>
               )}
             </div>
           </CollapsibleContent>

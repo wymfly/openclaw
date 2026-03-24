@@ -527,7 +527,15 @@
     "editorPlaceholder": "Enter file content...",
     "policyLayers": "Pipeline Layers",
     "toolList": "Tool List",
-    "searchTools": "Search tools..."
+    "searchTools": "Search tools...",
+    "thinkingTitle": "Thinking Level",
+    "thinkingDescription": "Controls the depth of reasoning the agent uses",
+    "thinkingOff": "Off",
+    "thinkingMinimal": "Minimal",
+    "thinkingLow": "Low",
+    "thinkingMedium": "Medium",
+    "thinkingHigh": "High",
+    "thinkingAdaptive": "Adaptive"
   },
   "notifications": {
     "info": "Info",

@@ -1,4 +1,4 @@
-import { resolveAgentConfig } from "../../../agents/agent-scope.js";
+import { resolveAgentConfig, resolveAgentWorkspaceDir } from "../../../agents/agent-scope.js";
 import { isToolAllowedByPolicyName } from "../../../agents/pi-tools.policy.js";
 import { pickSandboxToolPolicy } from "../../../agents/sandbox-tool-policy.js";
 import { listCoreToolSections } from "../../../agents/tool-catalog.js";
@@ -165,7 +165,7 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const workspaceDir = agentConfig.workspace ?? "/tmp";
+    const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
 
     // Load bootstrap files from the workspace
     const bootstrapFiles = await loadWorkspaceBootstrapFiles(workspaceDir);
