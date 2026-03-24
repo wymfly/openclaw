@@ -81,6 +81,10 @@
     "artifactMarkdown": "文档",
     "artifactTable": "表格",
     "artifactJsonInvalid": "无效 JSON",
+    "artifactCopy": "复制",
+    "artifactClose": "关闭",
+    "artifactFullscreen": "全屏",
+    "artifactCsvEmpty": "无数据",
     "error": "发送失败",
     "filterThinking": "推理",
     "filterTools": "工具",
@@ -213,7 +217,11 @@
       "authSummary": "API Key 来源: {source}",
       "authNone": "未配置认证",
       "modelName": "名称",
-      "models": "个模型"
+      "models": "个模型",
+      "allowlistToggle": "模型白名单",
+      "allowlistOff": "所有模型可用 — 开启白名单以限制可用范围",
+      "allowlistConfirm": "开启白名单后，只有显式启用的模型可用。当前主模型和备选模型将自动加入。确定继续？",
+      "enabledCount": "{count}/{total} 已启用"
     },
     "provider": "供应商配置",
     "name": "模型名称",
@@ -289,8 +297,21 @@
       "apiFormat": "API 格式",
       "envHint": "环境变量：{envVar}",
       "advanced": "高级",
-      "profiles": "认证配置"
-    }
+      "profiles": "认证配置",
+      "addProvider": "添加供应商"
+    },
+    "addProviderTitle": "添加供应商",
+    "providerName": "供应商名称",
+    "providerNamePlaceholder": "例如 my-openai-proxy",
+    "providerNameHint": "小写字母、数字和连字符",
+    "addModel": "添加模型",
+    "modelIdPlaceholder": "模型 ID",
+    "modelNamePlaceholder": "显示名称",
+    "contextWindowLabel": "上下文窗口",
+    "maxTokensLabel": "最大输出",
+    "noModelsAdded": "暂无模型",
+    "providerAdding": "添加中...",
+    "addProvider": "添加供应商"
   },
   "routing": {
     "title": "消息路由",
