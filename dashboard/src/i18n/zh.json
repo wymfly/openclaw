@@ -956,6 +956,11 @@
     "title": "身份",
     "noLinks": "未配置身份关联",
     "unlink": "解除关联",
-    "unlinkConfirm": "确定要解除此 peer 的关联吗？"
+    "unlinkConfirm": "确定要解除此 peer 的关联吗？",
+    "linkIdentity": "关联身份",
+    "canonical": "统一标识",
+    "channel": "渠道",
+    "peerId": "Peer ID",
+    "linkFailed": "身份关联失败"
   }
 }

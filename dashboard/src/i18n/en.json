@@ -956,6 +956,11 @@
     "title": "Identities",
     "noLinks": "No identity links configured",
     "unlink": "Unlink peer",
-    "unlinkConfirm": "Are you sure you want to unlink this peer?"
+    "unlinkConfirm": "Are you sure you want to unlink this peer?",
+    "linkIdentity": "Link Identity",
+    "canonical": "Canonical Name",
+    "channel": "Channel",
+    "peerId": "Peer ID",
+    "linkFailed": "Failed to link identity"
   }
 }
