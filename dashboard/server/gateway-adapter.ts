@@ -284,9 +284,13 @@ export class OpenClawGatewayAdapter {
   private async connect(): Promise<void> {
     const settings = this.loadSettings();
     this.connectionEpoch = randomUUID();
-    const ws = this.createWebSocket(settings.url, {
-      origin: resolveOriginForUpstream(settings.url),
-    });
+    // Backend clients with device identity should NOT send Origin header —
+    // shouldSkipBackendSelfPairing() requires !hasBrowserOriginHeader.
+    // Only send Origin in legacy (Control UI) mode for browser compat.
+    const wsOpts = this.useLegacyControlUiProfile
+      ? { origin: resolveOriginForUpstream(settings.url) }
+      : {};
+    const ws = this.createWebSocket(settings.url, wsOpts as { origin: string });
     this.ws = ws;
     this.connectRequestId = null;
     this.updateStatus(this.reconnectAttempt > 0 ? "reconnecting" : "connecting", null);
@@ -448,7 +452,7 @@ export class OpenClawGatewayAdapter {
         signedAtMs: signedAt,
         token,
         nonce,
-        platform: process.platform,
+        platform: CONNECT_CLIENT_PLATFORM,
         deviceFamily: "",
       });
       device = {
@@ -469,8 +473,7 @@ export class OpenClawGatewayAdapter {
     }
 
     try {
-      ws.send(
-        JSON.stringify({
+      const connectFrame = {
           type: "req",
           id,
           method: "connect",
@@ -489,8 +492,8 @@ export class OpenClawGatewayAdapter {
             auth,
             ...(device ? { device } : {}),
           },
-        }),
-      );
+        };
+      ws.send(JSON.stringify(connectFrame));
     } catch (err) {
       this.connectRequestId = null;
       const reason = err instanceof Error ? err.message : "connect_send_failed";
