@@ -951,5 +951,11 @@
     "docs": "文档",
     "github": "GitHub",
     "saved": "设置已保存"
+  },
+  "identity": {
+    "title": "身份",
+    "noLinks": "未配置身份关联",
+    "unlink": "解除关联",
+    "unlinkConfirm": "确定要解除此 peer 的关联吗？"
   }
 }

@@ -951,5 +951,11 @@
     "docs": "Documentation",
     "github": "GitHub",
     "saved": "Settings saved"
+  },
+  "identity": {
+    "title": "Identities",
+    "noLinks": "No identity links configured",
+    "unlink": "Unlink peer",
+    "unlinkConfirm": "Are you sure you want to unlink this peer?"
   }
 }
