@@ -254,6 +254,162 @@ describe("runProbe", () => {
 });
 
 // ---------------------------------------------------------------------------
+// §3.3b fetchProviderConfig (parses raw config)
+// ---------------------------------------------------------------------------
+
+describe("fetchProviderConfig", () => {
+  it("S-FPC-01: extracts providers from raw config", async () => {
+    const raw = JSON.stringify({
+      models: {
+        providers: {
+          openai: { apiKey: "sk-test", baseUrl: "https://api.openai.com/v1" },
+          moonshot: { apiKey: "${MOONSHOT_KEY}" },
+        },
+      },
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "h1" }),
+    });
+
+    await useModelsStore.getState().fetchProviderConfig();
+
+    const state = useModelsStore.getState();
+    expect(state.providers).toHaveLength(2);
+    expect(state.providers.find((p) => p.provider === "openai")?.apiKey).toBe("sk-test");
+    expect(state.providers.find((p) => p.provider === "moonshot")?.apiKey).toBe("${MOONSHOT_KEY}");
+  });
+
+  it("S-FPC-02: returns empty when no providers in config", async () => {
+    const raw = JSON.stringify({ agents: { defaults: {} } });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "h2" }),
+    });
+
+    await useModelsStore.getState().fetchProviderConfig();
+
+    expect(useModelsStore.getState().providers).toEqual([]);
+  });
+
+  it("S-FPC-03: handles API failure gracefully", async () => {
+    const existing = [{ provider: "old", apiKey: "key" }];
+    useModelsStore.setState({ providers: existing });
+
+    mockFetch.mockResolvedValueOnce({ ok: false });
+
+    await useModelsStore.getState().fetchProviderConfig();
+
+    expect(useModelsStore.getState().providers).toEqual(existing);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §3.3c updateProviderConfig (deep-merge via patchConfig)
+// ---------------------------------------------------------------------------
+
+describe("updateProviderConfig", () => {
+  beforeEach(() => {
+    const raw = JSON.stringify({
+      models: {
+        providers: {
+          openai: { apiKey: "old-key", baseUrl: "https://api.openai.com/v1" },
+        },
+      },
+      agents: { defaults: { model: "openai/gpt-5.1-codex" } },
+    });
+    useModelsStore.setState({ configRaw: raw, configHash: "h1" });
+  });
+
+  it("S-UPC-01: sends PATCH with merged provider config", async () => {
+    // PATCH success
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    // fetchFallbacks refetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw: useModelsStore.getState().configRaw, hash: "h2" }),
+    });
+    // fetchProviderConfig refetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw: useModelsStore.getState().configRaw, hash: "h2" }),
+    });
+
+    const result = await useModelsStore
+      .getState()
+      .updateProviderConfig({ provider: "openai", apiKey: "new-key" });
+
+    expect(result).toBe(true);
+
+    const patchCall = mockFetch.mock.calls[0];
+    expect(patchCall[0]).toBe("/api/models/config");
+    expect(patchCall[1].method).toBe("PATCH");
+
+    const body = JSON.parse(patchCall[1].body);
+    const parsed = JSON.parse(body.raw);
+    // apiKey updated
+    expect(parsed.models.providers.openai.apiKey).toBe("new-key");
+    // baseUrl preserved
+    expect(parsed.models.providers.openai.baseUrl).toBe("https://api.openai.com/v1");
+    // rest of config preserved
+    expect(parsed.agents.defaults.model).toBe("openai/gpt-5.1-codex");
+  });
+
+  it("S-UPC-02: adds new provider to config", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw: useModelsStore.getState().configRaw, hash: "h3" }),
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw: useModelsStore.getState().configRaw, hash: "h3" }),
+    });
+
+    await useModelsStore
+      .getState()
+      .updateProviderConfig({ provider: "anthropic", apiKey: "sk-ant-new" });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const parsed = JSON.parse(body.raw);
+    expect(parsed.models.providers.anthropic.apiKey).toBe("sk-ant-new");
+    // Existing provider preserved
+    expect(parsed.models.providers.openai.apiKey).toBe("old-key");
+  });
+
+  it("S-UPC-03: fetches config if configRaw is null", async () => {
+    useModelsStore.setState({ configRaw: null, configHash: null });
+
+    // fetchFallbacks call to load config
+    const raw = JSON.stringify({ models: { providers: {} } });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "fresh" }),
+    });
+    // PATCH
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    // refetch after patch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "fresh2" }),
+    });
+    // fetchProviderConfig refetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ raw, hash: "fresh2" }),
+    });
+
+    const result = await useModelsStore
+      .getState()
+      .updateProviderConfig({ provider: "deepseek", apiKey: "ds-key" });
+
+    expect(result).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // §3.4 fetchFallbacks
 // ---------------------------------------------------------------------------
 
@@ -490,27 +646,34 @@ describe("updateFallbacks", () => {
 
 describe("fetchUsageSummary", () => {
   it("S-US-01: fetches both cost and provider status", async () => {
-    const mockCost = [
-      { date: "2026-03-18", cost: 7.6 },
-      { date: "2026-03-19", cost: 12.38 },
-    ];
-    const mockProviders = [
-      {
-        provider: "moonshot",
-        displayName: "Moonshot",
-        windows: [{ label: "Daily", usedPercent: 72, resetsInMs: 19380000 }],
-        plan: "Standard",
-      },
-    ];
-
+    // Gateway usage.cost returns CostUsageSummary { daily: CostUsageDailyEntry[], totals }
+    const now = Date.now();
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ costs: mockCost }),
+        json: async () => ({
+          updatedAt: now,
+          days: 7,
+          daily: [
+            { date: "2026-03-18", totalCost: 7.6 },
+            { date: "2026-03-19", totalCost: 12.38 },
+          ],
+        }),
       })
+      // Gateway usage.status returns UsageSummary { providers: ProviderUsageSnapshot[] }
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ providers: mockProviders }),
+        json: async () => ({
+          updatedAt: now,
+          providers: [
+            {
+              provider: "moonshot",
+              displayName: "Moonshot",
+              windows: [{ label: "Daily", usedPercent: 72, resetAt: now + 19380000 }],
+              plan: "Standard",
+            },
+          ],
+        }),
       });
 
     await useModelsStore.getState().fetchUsageSummary();
@@ -520,13 +683,17 @@ describe("fetchUsageSummary", () => {
     expect(state.usageCost[1].cost).toBe(12.38);
     expect(state.usageProviders).toHaveLength(1);
     expect(state.usageProviders[0].provider).toBe("moonshot");
+    // resetAt is transformed to resetsInMs
+    expect(state.usageProviders[0].windows[0].resetsInMs).toBeGreaterThan(0);
   });
 
   it("S-US-02: partial failure — cost ok but status fails", async () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => [{ date: "2026-03-19", cost: 5.0 }],
+        json: async () => ({
+          daily: [{ date: "2026-03-19", totalCost: 5.0 }],
+        }),
       })
       .mockResolvedValueOnce({ ok: false });
 
@@ -616,32 +783,37 @@ describe("boundary conditions", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("BC-07: fetchUsageSummary handles array response directly", async () => {
-    // Some APIs return arrays directly instead of { costs: [...] }
+  it("BC-07: fetchUsageSummary handles gateway response shape", async () => {
+    const now = Date.now();
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => [{ date: "2026-03-19", cost: 5.0 }],
+        json: async () => ({
+          daily: [{ date: "2026-03-19", totalCost: 5.0 }],
+        }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => [
-          {
-            provider: "moonshot",
-            displayName: "Moonshot",
-            windows: [
-              { label: "Daily", usedPercent: 30, resetsInMs: 10000 },
-              { label: "Monthly", usedPercent: 10, resetsInMs: 500000 },
-            ],
-            plan: "Pro",
-          },
-        ],
+        json: async () => ({
+          providers: [
+            {
+              provider: "moonshot",
+              displayName: "Moonshot",
+              windows: [
+                { label: "Daily", usedPercent: 30, resetAt: now + 10000 },
+                { label: "Monthly", usedPercent: 10, resetAt: now + 500000 },
+              ],
+              plan: "Pro",
+            },
+          ],
+        }),
       });
 
     await useModelsStore.getState().fetchUsageSummary();
 
     const state = useModelsStore.getState();
     expect(state.usageCost).toHaveLength(1);
+    expect(state.usageCost[0].cost).toBe(5.0);
     // Provider with multiple windows
     expect(state.usageProviders).toHaveLength(1);
     expect(state.usageProviders[0].windows).toHaveLength(2);

@@ -51,18 +51,18 @@ export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: Pro
         onClick={() => onSelect(entry.provider)}
         className={cn(
           "relative flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-xs transition-all duration-150",
-          "hover:bg-[var(--bg-tertiary)]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+          "hover:bg-[var(--muted)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
           isSelected && [
-            "bg-[var(--accent-muted)]",
-            "shadow-[inset_0_0_0_1px_var(--accent),var(--accent-glow)]",
+            "bg-[var(--primary-muted)]",
+            "shadow-[inset_0_0_0_1px_var(--primary),var(--primary-glow)]",
           ],
         )}
       >
         {/* Active accent bar */}
         {isSelected && (
           <span
-            className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
+            className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)]"
             aria-hidden
           />
         )}
@@ -72,7 +72,7 @@ export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: Pro
         <span
           className={cn(
             "truncate font-medium uppercase tracking-[0.04em]",
-            isSelected ? "text-[var(--accent)]" : "text-[var(--text-primary)]",
+            isSelected ? "text-[var(--primary)]" : "text-[var(--foreground)]",
           )}
         >
           {entry.provider}
@@ -92,13 +92,13 @@ export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: Pro
   };
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]">
+    <aside className="flex w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--card)]">
       <ScrollArea className="flex-1">
         <div className="py-2 space-y-1">
           {/* Configured section */}
           {configured.length > 0 && (
             <div>
-              <h3 className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">
+              <h3 className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
                 {t("config.configured")}
               </h3>
               <div className="space-y-0.5 px-2">{configured.map(renderRow)}</div>
@@ -108,7 +108,7 @@ export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: Pro
           {/* Unconfigured section */}
           {unconfigured.length > 0 && (
             <div>
-              <h3 className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">
+              <h3 className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
                 {t("config.unconfigured")}
               </h3>
               <div className="space-y-0.5 px-2">{unconfigured.map(renderRow)}</div>
@@ -117,7 +117,7 @@ export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: Pro
 
           {/* Empty state */}
           {auth.length === 0 && (
-            <div className="px-4 py-8 text-center text-xs text-[var(--text-secondary)]">
+            <div className="px-4 py-8 text-center text-xs text-[var(--muted-foreground)]">
               {t("selectProvider")}
             </div>
           )}
@@ -128,7 +128,7 @@ export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: Pro
           <button
             type="button"
             onClick={onAddProvider}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-muted)] transition-colors cursor-pointer"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-[var(--primary)] hover:bg-[var(--primary-muted)] transition-colors cursor-pointer"
           >
             <Plus size={12} />
             {t("config.addProvider")}

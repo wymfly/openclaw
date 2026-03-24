@@ -94,7 +94,7 @@ export function AuthHealthCard({ entry, probeResult, probeLoading, onProbe }: Au
         {/* Auth type */}
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">{t("auth.type")}</span>
-          <span className="font-medium text-[var(--text-primary)]">
+          <span className="font-medium text-[var(--foreground)]">
             {authTypeLabel(entry.auth?.type)}
           </span>
         </div>
@@ -103,7 +103,7 @@ export function AuthHealthCard({ entry, probeResult, probeLoading, onProbe }: Au
         {entry.auth?.source && (
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">{t("auth.source")}</span>
-            <span className="font-mono text-[var(--text-primary)] text-[11px]">
+            <span className="font-mono text-[var(--foreground)] text-[11px]">
               {entry.auth.source}
             </span>
           </div>
@@ -117,10 +117,10 @@ export function AuthHealthCard({ entry, probeResult, probeLoading, onProbe }: Au
               className={cn(
                 "font-mono text-[11px] font-medium",
                 oauthExpiryMs < 3_600_000
-                  ? "text-[var(--danger)]"
+                  ? "text-[var(--destructive)]"
                   : oauthExpiryMs < 86_400_000
                     ? "text-[var(--warning)]"
-                    : "text-[var(--text-primary)]",
+                    : "text-[var(--foreground)]",
               )}
             >
               {formatCountdown(oauthExpiryMs)}
@@ -138,7 +138,7 @@ export function AuthHealthCard({ entry, probeResult, probeLoading, onProbe }: Au
               </span>
             </div>
             {/* Simple progress bar */}
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]">
               <div
                 className="h-full rounded-full bg-[var(--warning)] transition-all duration-500"
                 style={{ width: `${cooldownProgress}%` }}

@@ -259,6 +259,27 @@ function getNestedBedrockDiscovery(config: Record<string, unknown>): BedrockDisc
   };
 }
 
+function getNestedProviders(config: Record<string, unknown>): ProviderConfig[] {
+  const models = config.models as Record<string, unknown> | undefined;
+  const providers = models?.providers as Record<string, unknown> | undefined;
+  if (!providers) {
+    return [];
+  }
+  const list: ProviderConfig[] = [];
+  for (const [name, value] of Object.entries(providers)) {
+    if (typeof value === "object" && value !== null) {
+      const v = value as Record<string, unknown>;
+      list.push({
+        provider: name,
+        apiKey: typeof v.apiKey === "string" ? v.apiKey : undefined,
+        baseUrl: typeof v.baseUrl === "string" ? v.baseUrl : undefined,
+        modelId: typeof v.modelId === "string" ? v.modelId : undefined,
+      });
+    }
+  }
+  return list;
+}
+
 // Static fallback for implicit (built-in) providers not in config.models.providers.
 const IMPLICIT_PROVIDER_API: Record<string, string> = {
   anthropic: "anthropic-messages",
@@ -390,28 +411,55 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         return;
       }
       const data = await res.json();
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.providers)
-          ? data.providers
-          : [];
-      set({ providers: list });
+      const raw = typeof data.raw === "string" ? data.raw : null;
+      const config = parseConfig(raw);
+      if (!config) {
+        set({ providers: [] });
+        return;
+      }
+      set({ providers: getNestedProviders(config) });
     } catch {
       // ignore
     }
   },
 
-  updateProviderConfig: async (config: ProviderConfig) => {
-    const res = await fetch("/api/models/config", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(config),
-    });
-    if (res.ok) {
-      await get().fetchProviderConfig();
-      return true;
+  updateProviderConfig: async (providerConfig: ProviderConfig) => {
+    // Ensure raw config is loaded
+    if (!get().configRaw) {
+      await get().fetchFallbacks();
     }
-    return false;
+    const config = parseConfig(get().configRaw);
+    if (!config) {
+      return false;
+    }
+
+    const modelsSection = (config.models as Record<string, unknown>) ?? {};
+    const providers = { ...(modelsSection.providers as Record<string, unknown>) };
+    const existing = (providers[providerConfig.provider] as Record<string, unknown>) ?? {};
+
+    // Deep-merge: preserve existing fields, update only provided ones
+    const updated: Record<string, unknown> = { ...existing };
+    if (providerConfig.apiKey !== undefined) {
+      updated.apiKey = providerConfig.apiKey || undefined;
+    }
+    if (providerConfig.baseUrl !== undefined) {
+      updated.baseUrl = providerConfig.baseUrl || undefined;
+    }
+    if (providerConfig.modelId !== undefined) {
+      updated.modelId = providerConfig.modelId || undefined;
+    }
+    providers[providerConfig.provider] = updated;
+
+    const updatedConfig = {
+      ...config,
+      models: { ...modelsSection, providers },
+    };
+
+    const ok = await patchConfig(get, set, updatedConfig);
+    if (ok) {
+      await get().fetchProviderConfig();
+    }
+    return ok;
   },
 
   fetchAuthOverview: async () => {
@@ -453,6 +501,7 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
           configHash: null,
           primaryModel: null,
           fallbacks: [],
+          providers: [],
           allowlist: {},
           allowlistActive: false,
           bedrockDiscovery: {},
@@ -466,6 +515,7 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
       const { active: allowlistActive, entries: allowlist } = getNestedAllowlist(config);
       const bedrockDiscovery = getNestedBedrockDiscovery(config);
       const providerApiMap = getNestedProviderApiMap(config);
+      const providers = getNestedProviders(config);
 
       set({
         configRaw: raw,
@@ -478,6 +528,7 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         allowlist,
         bedrockDiscovery,
         providerApiMap,
+        providers,
       });
     } catch {
       // best-effort
@@ -606,7 +657,6 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
 
   fetchUsageSummary: async () => {
     try {
-      // Two parallel requests: cost history and provider status
       const [costRes, statusRes] = await Promise.all([
         fetch("/api/models/usage/cost"),
         fetch("/api/models/usage/providers"),
@@ -614,23 +664,43 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
 
       if (costRes.ok) {
         const data = await costRes.json();
-        const costs = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.costs)
-            ? data.costs
-            : Array.isArray(data?.dailyCosts)
-              ? data.dailyCosts
-              : [];
+        // Gateway returns CostUsageSummary { daily: CostUsageDailyEntry[], totals }
+        // Map to store's DailyCost[] shape
+        const dailyEntries = Array.isArray(data?.daily) ? data.daily : [];
+        const costs: DailyCost[] = dailyEntries.map(
+          (e: { date: string; totalCost?: number; cost?: number }) => ({
+            date: e.date,
+            cost: e.totalCost ?? e.cost ?? 0,
+          }),
+        );
         set({ usageCost: costs });
       }
 
       if (statusRes.ok) {
         const data = await statusRes.json();
-        const providers = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.providers)
-            ? data.providers
-            : [];
+        // Gateway returns UsageSummary { providers: ProviderUsageSnapshot[] }
+        // Map resetAt (timestamp) → resetsInMs (duration from now)
+        const now = Date.now();
+        const rawProviders = Array.isArray(data?.providers) ? data.providers : [];
+        const providers: UsageProviderStatus[] = rawProviders.map(
+          (p: {
+            provider: string;
+            displayName: string;
+            plan?: string;
+            error?: string;
+            windows?: Array<{ label: string; usedPercent: number; resetAt?: number }>;
+          }) => ({
+            provider: p.provider,
+            displayName: p.displayName,
+            plan: p.plan,
+            error: p.error,
+            windows: (p.windows ?? []).map((w) => ({
+              label: w.label,
+              usedPercent: w.usedPercent,
+              resetsInMs: w.resetAt ? Math.max(0, w.resetAt - now) : 0,
+            })),
+          }),
+        );
         set({ usageProviders: providers });
       }
     } catch {

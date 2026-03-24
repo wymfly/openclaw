@@ -16,7 +16,7 @@ const statusStyles: Record<AuthStatus, string> = {
   ready: "bg-green-500 dark:shadow-[0_0_4px_theme(colors.green.500)]",
   warning: "bg-yellow-500",
   missing: "bg-red-500",
-  unknown: "bg-gray-500",
+  unknown: "bg-[var(--neutral-muted-text)]",
 };
 
 const sizeStyles: Record<"sm" | "md", string> = {
@@ -35,7 +35,10 @@ export function AuthStatusDot({ status, size = "sm", className }: AuthStatusDotP
 
   return (
     <Tooltip>
-      <TooltipTrigger className={cn("inline-flex items-center justify-center", className)}>
+      <TooltipTrigger
+        render={<span />}
+        className={cn("inline-flex items-center justify-center", className)}
+      >
         <span
           aria-label={t(labelKey)}
           className={cn(

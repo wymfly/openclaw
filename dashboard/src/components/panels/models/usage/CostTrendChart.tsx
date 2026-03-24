@@ -30,7 +30,7 @@ export function CostTrendChart({ data }: CostTrendChartProps) {
     return (
       <Card>
         <CardContent className="flex h-[200px] items-center justify-center">
-          <p className="text-sm text-[var(--text-secondary)]">No cost data available</p>
+          <p className="text-sm text-[var(--muted-foreground)]">No cost data available</p>
         </CardContent>
       </Card>
     );
@@ -40,7 +40,7 @@ export function CostTrendChart({ data }: CostTrendChartProps) {
     <Card className="card-hover">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xs">
-          <BarChart3 size={14} className="text-[var(--accent)]" />
+          <BarChart3 size={14} className="text-[var(--primary)]" />
           {t("weekCost")}
         </CardTitle>
       </CardHeader>
@@ -50,18 +50,18 @@ export function CostTrendChart({ data }: CostTrendChartProps) {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis
               dataKey="shortDate"
-              tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `$${v}`}
               width={48}
             />
-            <Tooltip content={<CostTooltip />} cursor={{ fill: "var(--accent-muted)" }} />
+            <Tooltip content={<CostTooltip />} cursor={{ fill: "var(--primary-muted)" }} />
             <Bar dataKey="cost" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={40} />
           </BarChart>
         </ResponsiveContainer>
@@ -69,7 +69,7 @@ export function CostTrendChart({ data }: CostTrendChartProps) {
         {/* Footer link */}
         <button
           type="button"
-          className="mt-3 flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors cursor-pointer"
+          className="mt-3 flex items-center gap-1 text-xs text-[var(--primary)] hover:text-[var(--primary-hover)] transition-colors cursor-pointer"
         >
           {t("viewDetails")}
           <ArrowRight size={12} />
@@ -101,9 +101,9 @@ function CostTooltip({ active, payload }: CostTooltipProps) {
 
   const entry = payload[0];
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 shadow-lg">
-      <p className="text-[11px] text-[var(--text-secondary)]">{entry.payload.date}</p>
-      <p className="text-sm font-mono font-bold text-[var(--text-primary)]">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 shadow-lg">
+      <p className="text-[11px] text-[var(--muted-foreground)]">{entry.payload.date}</p>
+      <p className="text-sm font-mono font-bold text-[var(--foreground)]">
         ${entry.value.toFixed(2)}
       </p>
     </div>
