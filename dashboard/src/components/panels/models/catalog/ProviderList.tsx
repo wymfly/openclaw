@@ -17,6 +17,8 @@ interface ProviderListProps {
   selectedModel: string | null;
   onSelectProvider: (provider: string) => void;
   onSelectModel: (provider: string, modelId: string) => void;
+  allowlist?: Record<string, unknown>;
+  allowlistActive?: boolean;
 }
 
 /** Format context window size to human-readable (e.g. 128K, 1M). */
@@ -58,6 +60,8 @@ export function ProviderList({
   selectedModel,
   onSelectProvider,
   onSelectModel,
+  allowlist,
+  allowlistActive,
 }: ProviderListProps) {
   const t = useTranslations("models");
 
@@ -90,7 +94,7 @@ export function ProviderList({
   };
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]">
+    <aside className="flex w-72 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--card)]">
       <ScrollArea className="flex-1">
         <div className="py-2">
           {/* Loading skeleton */}
@@ -108,7 +112,7 @@ export function ProviderList({
 
           {/* Empty state */}
           {!loading && models.length === 0 && (
-            <div className="px-4 py-8 text-center text-xs text-[var(--text-secondary)]">
+            <div className="px-4 py-8 text-center text-xs text-[var(--muted-foreground)]">
               {t("catalog.noModels")}
             </div>
           )}
@@ -128,10 +132,10 @@ export function ProviderList({
                 <CollapsibleTrigger
                   className={cn(
                     "group relative flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide transition-colors duration-150",
-                    "hover:bg-[var(--bg-tertiary)]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
-                    isProviderSelected && "bg-[var(--accent-muted)] text-[var(--accent)]",
-                    !isProviderSelected && "text-[var(--text-primary)]",
+                    "hover:bg-[var(--muted)]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
+                    isProviderSelected && "bg-[var(--primary-muted)] text-[var(--primary)]",
+                    !isProviderSelected && "text-[var(--foreground)]",
                   )}
                   onClick={(e) => {
                     // Also select the provider on click
@@ -146,7 +150,7 @@ export function ProviderList({
                   {/* Active glow indicator */}
                   {isProviderSelected && (
                     <span
-                      className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
+                      className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)]"
                       aria-hidden
                     />
                   )}
@@ -154,7 +158,7 @@ export function ProviderList({
                   <ChevronRight
                     size={12}
                     className={cn(
-                      "shrink-0 text-[var(--text-secondary)] transition-transform duration-200",
+                      "shrink-0 text-[var(--muted-foreground)] transition-transform duration-200",
                       isOpen && "rotate-90",
                     )}
                   />
@@ -163,8 +167,15 @@ export function ProviderList({
 
                   <span className="truncate uppercase tracking-[0.05em]">{provider}</span>
 
-                  <span className="ml-auto shrink-0 rounded-full bg-[var(--bg-tertiary)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-secondary)]">
-                    {providerModels.length}
+                  <span className="ml-auto shrink-0 rounded-full bg-[var(--muted)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted-foreground)]">
+                    {allowlistActive
+                      ? t("catalog.enabledCount", {
+                          count: providerModels.filter(
+                            (m) => allowlist?.[`${provider}/${m.id}`] != null,
+                          ).length,
+                          total: providerModels.length,
+                        })
+                      : providerModels.length}
                   </span>
                 </CollapsibleTrigger>
 
@@ -181,12 +192,12 @@ export function ProviderList({
                           onClick={() => onSelectModel(provider, model.id)}
                           className={cn(
                             "relative flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-left text-xs transition-all duration-150",
-                            "hover:bg-[var(--bg-tertiary)]",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                            "hover:bg-[var(--muted)]",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
                             isSelected && [
-                              "bg-[var(--accent-muted)]",
-                              "border-l-2 border-[var(--accent)]",
-                              "shadow-[inset_0_0_0_1px_var(--accent),var(--accent-glow)]",
+                              "bg-[var(--primary-muted)]",
+                              "border-l-2 border-[var(--primary)]",
+                              "shadow-[inset_0_0_0_1px_var(--primary),var(--primary-glow)]",
                             ],
                             !isSelected && "border-l-2 border-transparent",
                           )}
@@ -196,9 +207,7 @@ export function ProviderList({
                               <span
                                 className={cn(
                                   "truncate font-medium",
-                                  isSelected
-                                    ? "text-[var(--accent)]"
-                                    : "text-[var(--text-primary)]",
+                                  isSelected ? "text-[var(--primary)]" : "text-[var(--foreground)]",
                                 )}
                               >
                                 {model.name}
@@ -206,7 +215,7 @@ export function ProviderList({
                               {model.isDefault && (
                                 <Star
                                   size={10}
-                                  className="shrink-0 fill-[var(--accent)] text-[var(--accent)]"
+                                  className="shrink-0 fill-[var(--primary)] text-[var(--primary)]"
                                   aria-label={t("default")}
                                 />
                               )}
@@ -214,7 +223,7 @@ export function ProviderList({
                           </div>
 
                           {/* Context window badge */}
-                          <span className="shrink-0 rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-secondary)]">
+                          <span className="shrink-0 rounded bg-[var(--muted)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted-foreground)]">
                             {formatContextWindow(model.contextWindow)}
                           </span>
                         </button>

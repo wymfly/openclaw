@@ -81,6 +81,10 @@
     "artifactMarkdown": "Document",
     "artifactTable": "Table",
     "artifactJsonInvalid": "Invalid JSON",
+    "artifactCopy": "Copy",
+    "artifactClose": "Close",
+    "artifactFullscreen": "Fullscreen",
+    "artifactCsvEmpty": "No data",
     "error": "Failed to send",
     "filterThinking": "Thinking",
     "filterTools": "Tools",
@@ -213,7 +217,11 @@
       "authSummary": "API Key from {source}",
       "authNone": "No authentication configured",
       "modelName": "Name",
-      "models": "models"
+      "models": "models",
+      "allowlistToggle": "Model Allowlist",
+      "allowlistOff": "All models available — enable allowlist to restrict",
+      "allowlistConfirm": "Enabling the allowlist restricts access to only explicitly enabled models. Current primary and fallback models will be auto-added. Continue?",
+      "enabledCount": "{count}/{total} enabled"
     },
     "provider": "Provider Config",
     "name": "Model Name",
@@ -289,8 +297,21 @@
       "apiFormat": "API Format",
       "envHint": "Environment variable: {envVar}",
       "advanced": "Advanced",
-      "profiles": "Auth Profiles"
-    }
+      "profiles": "Auth Profiles",
+      "addProvider": "Add Provider"
+    },
+    "addProviderTitle": "Add Provider",
+    "providerName": "Provider Name",
+    "providerNamePlaceholder": "e.g. my-openai-proxy",
+    "providerNameHint": "Lowercase letters, numbers and hyphens",
+    "addModel": "Add Model",
+    "modelIdPlaceholder": "Model ID",
+    "modelNamePlaceholder": "Display name",
+    "contextWindowLabel": "Context Window",
+    "maxTokensLabel": "Max Output",
+    "noModelsAdded": "No models added",
+    "providerAdding": "Adding...",
+    "addProvider": "Add Provider"
   },
   "routing": {
     "title": "Message Routing",
