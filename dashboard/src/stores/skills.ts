@@ -6,6 +6,12 @@ import { create } from "zustand";
 
 export type SkillStatus = "ready" | "needs-setup" | "disabled";
 
+export interface SkillInstallOption {
+  id: string;
+  label: string;
+  bins: string[];
+}
+
 export interface SkillEntry {
   key: string;
   name: string;
@@ -14,6 +20,16 @@ export interface SkillEntry {
   enabled: boolean;
   missingRequirements?: string[];
   config?: Record<string, unknown>;
+  /** Skill description text. */
+  description?: string;
+  /** Emoji icon for the skill. */
+  emoji?: string;
+  /** Homepage / docs URL. */
+  homepage?: string;
+  /** Available install options (binaries/packages). */
+  installOptions?: SkillInstallOption[];
+  /** Primary environment variable name required by the skill. */
+  primaryEnv?: string;
 }
 
 export type StatusFilter = SkillStatus | "all";
@@ -26,6 +42,7 @@ interface SkillsState {
   skills: SkillEntry[];
   selectedSkillKey: string | null;
   statusFilter: StatusFilter;
+  searchQuery: string;
   loading: boolean;
   error: string | null;
 
@@ -36,6 +53,7 @@ interface SkillsState {
   ) => Promise<boolean>;
   installSkill: (name: string, installId: string) => Promise<boolean>;
   setStatusFilter: (filter: StatusFilter) => void;
+  setSearchQuery: (query: string) => void;
   selectSkill: (key: string | null) => void;
 }
 
@@ -76,6 +94,11 @@ function normalizeSkill(raw: Record<string, unknown>): SkillEntry {
       typeof raw.config === "object" && raw.config !== null
         ? (raw.config as Record<string, unknown>)
         : undefined,
+    description: typeof raw.description === "string" ? raw.description : undefined,
+    emoji: typeof raw.emoji === "string" ? raw.emoji : undefined,
+    homepage: typeof raw.homepage === "string" ? raw.homepage : undefined,
+    primaryEnv: typeof raw.primaryEnv === "string" ? raw.primaryEnv : undefined,
+    installOptions: Array.isArray(raw.install) ? (raw.install as SkillInstallOption[]) : undefined,
   };
 }
 
@@ -83,11 +106,13 @@ export const useSkillsStore = create<SkillsState>((set) => ({
   skills: [],
   selectedSkillKey: null,
   statusFilter: "all",
+  searchQuery: "",
   loading: false,
   error: null,
 
   selectSkill: (key) => set({ selectedSkillKey: key }),
   setStatusFilter: (filter) => set({ statusFilter: filter }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
 
   fetchSkills: async (agentId) => {
     set({ loading: true, error: null });
