@@ -12,8 +12,16 @@ import { useDeckAgentsStore } from "@/stores/deck-agents";
 import { BootstrapFileEditor } from "./BootstrapFileEditor";
 import { ToolPolicyViz } from "./ToolPolicyViz";
 
-type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "adaptive";
-const THINKING_LEVELS: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "adaptive"];
+type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive";
+const THINKING_LEVELS: ThinkingLevel[] = [
+  "off",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "adaptive",
+];
 
 interface ContextTabProps {
   agentId: string;
@@ -106,6 +114,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
       </div>
 
       {/* Section 0: Thinking Level */}
+      {/* Note: edits agents.defaults.thinkingDefault (global), not per-agent override */}
       <Card className="bg-[var(--background)] border-[var(--border)] overflow-hidden">
         <div className="px-4 py-3 space-y-2">
           <div className="flex items-center gap-2">
@@ -134,6 +143,9 @@ export function ContextTab({ agentId }: ContextTabProps) {
               </button>
             ))}
           </div>
+          <p className="text-[10px] text-[var(--muted-foreground)] italic">
+            {t("thinkingGlobalNote")}
+          </p>
         </div>
       </Card>
 

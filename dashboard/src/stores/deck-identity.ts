@@ -76,8 +76,14 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
         await get().fetchLinks();
         return true;
       }
+      // Refresh configHash even on failure to self-heal optimistic lock
+      await get().fetchLinks();
       return false;
     } catch {
+      // Refresh configHash even on failure to self-heal optimistic lock
+      await get()
+        .fetchLinks()
+        .catch(() => {});
       return false;
     }
   },
@@ -99,8 +105,14 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
         await get().fetchLinks();
         return true;
       }
+      // Refresh configHash even on failure to self-heal optimistic lock
+      await get().fetchLinks();
       return false;
     } catch {
+      // Refresh configHash even on failure to self-heal optimistic lock
+      await get()
+        .fetchLinks()
+        .catch(() => {});
       return false;
     }
   },

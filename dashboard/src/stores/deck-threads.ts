@@ -35,6 +35,8 @@ interface ThreadsState {
   setFilterStatus: (status: "active" | "all") => void;
 }
 
+let _filterDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 export const useThreadsStore = create<ThreadsState>((set, get) => ({
   threads: [],
   loading: false,
@@ -75,12 +77,22 @@ export const useThreadsStore = create<ThreadsState>((set, get) => ({
 
   setFilterAgent: (agentId) => {
     set({ filterAgent: agentId });
-    void get().fetchThreads();
+    if (_filterDebounceTimer) {
+      clearTimeout(_filterDebounceTimer);
+    }
+    _filterDebounceTimer = setTimeout(() => {
+      void get().fetchThreads();
+    }, 300);
   },
 
   setFilterChannel: (channel) => {
     set({ filterChannel: channel });
-    void get().fetchThreads();
+    if (_filterDebounceTimer) {
+      clearTimeout(_filterDebounceTimer);
+    }
+    _filterDebounceTimer = setTimeout(() => {
+      void get().fetchThreads();
+    }, 300);
   },
 
   setFilterStatus: (status) => {

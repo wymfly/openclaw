@@ -535,7 +535,9 @@
     "thinkingLow": "低",
     "thinkingMedium": "中",
     "thinkingHigh": "高",
-    "thinkingAdaptive": "自适应"
+    "thinkingAdaptive": "自适应",
+    "thinkingXhigh": "极高",
+    "thinkingGlobalNote": "更改将应用于所有未设置独立覆盖的 Agent"
   },
   "notifications": {
     "info": "提示",
@@ -819,7 +821,26 @@
     "plugin": "插件",
     "missingRequirements": "缺少依赖",
     "noSkills": "暂无技能",
-    "saved": "配置已保存"
+    "saved": "配置已保存",
+    "searchPlaceholder": "搜索技能...",
+    "noSearchResults": "未找到匹配的技能",
+    "selectSkillHint": "从左侧选择一个技能查看详情",
+    "tabInfo": "信息",
+    "tabConfig": "配置",
+    "skillCount": "个技能",
+    "noDescription": "暂无描述",
+    "homepage": "主页",
+    "dependencies": "依赖",
+    "envSet": "已配置",
+    "envNotSet": "未配置",
+    "uninstallViaCLI": "卸载请通过 CLI 执行：",
+    "installDialogTitle": "安装技能",
+    "installDialogDescription": "从可用的安装选项中选择并安装技能",
+    "installSuccess": "已成功安装 {name}",
+    "installFailed": "安装 {name} 失败",
+    "noInstallableSkills": "暂无可安装的技能",
+    "requiredBins": "需要",
+    "installing": "安装中..."
   },
   "budget": {
     "title": "预算管理",
@@ -976,7 +997,12 @@
     "canonical": "统一标识",
     "channel": "渠道",
     "peerId": "Peer ID",
-    "linkFailed": "身份关联失败"
+    "linkFailed": "身份关联失败",
+    "selectIdentity": "选择身份以查看详情",
+    "noPeers": "暂无关联的 peer",
+    "canonicalPlaceholder": "例如 john-doe",
+    "channelPlaceholder": "例如 telegram",
+    "peerIdPlaceholder": "例如 123456789"
   },
   "threads": {
     "title": "线程绑定",
@@ -990,6 +1016,11 @@
     "filterAgent": "按智能体过滤",
     "filterChannel": "按渠道过滤",
     "statusActive": "活跃",
-    "statusAll": "全部"
+    "statusAll": "全部",
+    "justNow": "刚刚",
+    "secondsAgo": "{n} 秒前",
+    "minutesAgo": "{n} 分钟前",
+    "hoursAgo": "{n} 小时前",
+    "daysAgo": "{n} 天前"
   }
 }

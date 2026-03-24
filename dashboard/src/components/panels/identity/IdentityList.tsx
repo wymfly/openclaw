@@ -41,11 +41,18 @@ export function IdentityList() {
           const isSelected = selectedCanonical === link.canonical;
 
           return (
-            <button
+            <div
               key={link.canonical}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => selectCanonical(link.canonical)}
-              className="flex flex-col w-full px-3 py-2 text-left text-xs transition-colors"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  selectCanonical(link.canonical);
+                }
+              }}
+              className="flex flex-col w-full px-3 py-2 text-left text-xs transition-colors cursor-pointer"
               style={{
                 borderLeft: isSelected ? "2px solid var(--primary)" : "2px solid transparent",
                 backgroundColor: isSelected
@@ -98,7 +105,7 @@ export function IdentityList() {
                   ))}
                 </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>

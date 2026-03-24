@@ -80,7 +80,7 @@ export function LinkDialog({ open, onClose }: LinkDialogProps) {
             <Input
               value={canonical}
               onChange={(e) => setCanonical(e.target.value)}
-              placeholder="john-doe"
+              placeholder={t("canonicalPlaceholder")}
               className="h-8 text-xs"
             />
           </div>
@@ -91,7 +91,7 @@ export function LinkDialog({ open, onClose }: LinkDialogProps) {
             <Input
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
-              placeholder="telegram"
+              placeholder={t("channelPlaceholder")}
               className="h-8 text-xs"
             />
           </div>
@@ -102,7 +102,7 @@ export function LinkDialog({ open, onClose }: LinkDialogProps) {
             <Input
               value={peerId}
               onChange={(e) => setPeerId(e.target.value)}
-              placeholder="123456789"
+              placeholder={t("peerIdPlaceholder")}
               className="h-8 text-xs"
             />
           </div>
