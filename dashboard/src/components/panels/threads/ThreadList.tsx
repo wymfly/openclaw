@@ -6,34 +6,37 @@ import { AgentBadge } from "@/components/shared/AgentBadge";
 import { useThreadsStore, type ThreadEntry } from "@/stores/deck-threads";
 
 // ---------------------------------------------------------------------------
-// Relative-time helper
+// Relative-time helper (i18n-aware)
 // ---------------------------------------------------------------------------
 
-function relativeTime(ts: number): string {
+function relativeTime(
+  ts: number,
+  t: (key: string, values?: Record<string, string | number | Date>) => string,
+): string {
   const now = Date.now();
   const diff = now - ts;
   if (diff < 0) {
-    return "just now";
+    return t("justNow");
   }
 
   const seconds = Math.floor(diff / 1000);
   if (seconds < 60) {
-    return `${seconds}s ago`;
+    return t("secondsAgo", { n: seconds });
   }
 
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) {
-    return `${minutes}m ago`;
+    return t("minutesAgo", { n: minutes });
   }
 
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return `${hours}h ago`;
+    return t("hoursAgo", { n: hours });
   }
 
   const days = Math.floor(hours / 24);
   if (days < 30) {
-    return `${days}d ago`;
+    return t("daysAgo", { n: days });
   }
 
   return new Date(ts).toLocaleDateString();
@@ -132,11 +135,11 @@ export function ThreadList() {
             </span>
 
             {/* Bound at */}
-            <span style={{ color: "var(--text-tertiary)" }}>{relativeTime(thread.boundAt)}</span>
+            <span style={{ color: "var(--text-tertiary)" }}>{relativeTime(thread.boundAt, t)}</span>
 
             {/* Last activity */}
             <span style={{ color: "var(--text-tertiary)" }}>
-              {relativeTime(thread.lastActivityAt)}
+              {relativeTime(thread.lastActivityAt, t)}
             </span>
           </div>
         ))}

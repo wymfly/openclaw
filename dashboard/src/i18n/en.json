@@ -535,7 +535,9 @@
     "thinkingLow": "Low",
     "thinkingMedium": "Medium",
     "thinkingHigh": "High",
-    "thinkingAdaptive": "Adaptive"
+    "thinkingAdaptive": "Adaptive",
+    "thinkingXhigh": "XHigh",
+    "thinkingGlobalNote": "Changes apply to all agents without a per-agent override"
   },
   "notifications": {
     "info": "Info",
@@ -819,7 +821,26 @@
     "plugin": "Plugin",
     "missingRequirements": "Missing Requirements",
     "noSkills": "No skills available",
-    "saved": "Configuration saved"
+    "saved": "Configuration saved",
+    "searchPlaceholder": "Search skills...",
+    "noSearchResults": "No matching skills found",
+    "selectSkillHint": "Select a skill from the list to view details",
+    "tabInfo": "Info",
+    "tabConfig": "Config",
+    "skillCount": "skills",
+    "noDescription": "No description available",
+    "homepage": "Homepage",
+    "dependencies": "Dependencies",
+    "envSet": "Configured",
+    "envNotSet": "Not configured",
+    "uninstallViaCLI": "To uninstall, use the CLI:",
+    "installDialogTitle": "Install Skills",
+    "installDialogDescription": "Choose from available install options",
+    "installSuccess": "Successfully installed {name}",
+    "installFailed": "Failed to install {name}",
+    "noInstallableSkills": "No installable skills available",
+    "requiredBins": "Requires",
+    "installing": "Installing..."
   },
   "budget": {
     "title": "Budget",
@@ -976,7 +997,12 @@
     "canonical": "Canonical Name",
     "channel": "Channel",
     "peerId": "Peer ID",
-    "linkFailed": "Failed to link identity"
+    "linkFailed": "Failed to link identity",
+    "selectIdentity": "Select an identity to view details",
+    "noPeers": "No peers linked",
+    "canonicalPlaceholder": "e.g. john-doe",
+    "channelPlaceholder": "e.g. telegram",
+    "peerIdPlaceholder": "e.g. 123456789"
   },
   "threads": {
     "title": "Thread Bindings",
@@ -990,6 +1016,11 @@
     "filterAgent": "Filter by agent",
     "filterChannel": "Filter by channel",
     "statusActive": "Active",
-    "statusAll": "All"
+    "statusAll": "All",
+    "justNow": "just now",
+    "secondsAgo": "{n}s ago",
+    "minutesAgo": "{n}m ago",
+    "hoursAgo": "{n}h ago",
+    "daysAgo": "{n}d ago"
   }
 }

@@ -14,7 +14,7 @@
  *   deck.agents.systemPrompt.preview:  { agentId }
  *   deck.agents.eventStreams.get:       { agentId }
  *   deck.agents.eventStreams.set:       { agentId, eventStreams, baseHash }
- *   config.patch:                      { raw } (merge-patch JSON string)
+ *   config.patch:                      { raw, baseHash } (merge-patch JSON string)
  */
 import { type NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";
@@ -86,11 +86,23 @@ export const POST = withAuth(async (request: NextRequest) => {
       return gatewayRequest("deck.agents.eventStreams.set", params);
     case "config.patch": {
       const { path, value } = params as { path?: string; value?: unknown };
-      if (!path || typeof path !== "string") {
-        return Response.json({ error: "path is required" }, { status: 400 });
+      if (!path || typeof path !== "string" || path.split(".").some((s) => s === "")) {
+        return Response.json({ error: "Invalid config path" }, { status: 400 });
       }
       const patch = buildMergePatch(path, value);
-      return gatewayRequest("config.patch", { raw: JSON.stringify(patch) });
+
+      // Fetch current configHash for optimistic locking
+      const configRes = await gatewayRequest("config.get", {});
+      if (configRes.status !== 200) {
+        return configRes;
+      }
+      const configData = (await configRes.json()) as { baseHash?: string };
+      const baseHash = configData.baseHash;
+
+      return gatewayRequest("config.patch", {
+        raw: JSON.stringify(patch),
+        ...(baseHash ? { baseHash } : {}),
+      });
     }
     default:
       return Response.json({ error: "Invalid action" }, { status: 400 });
