@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Loader2, Save, Check } from "lucide-react";
+import { Eye, EyeOff, Loader2, Save, Check, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ProviderConfig } from "@/stores/models";
+import type { ProviderConfig, ProviderModelEntry } from "@/stores/models";
 
 const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
 
@@ -80,6 +80,7 @@ function formatTokenCount(n: number | undefined): string {
  */
 export function ConfigForm({ provider, initialConfig, authType, onSave }: ConfigFormProps) {
   const t = useTranslations("models");
+  const tc = useTranslations("common");
 
   const isRedacted = initialConfig?.apiKey === REDACTED_SENTINEL;
 
@@ -91,6 +92,15 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Editable models list
+  const [localModels, setLocalModels] = useState<ProviderModelEntry[]>(initialConfig?.models ?? []);
+  const [showAddModel, setShowAddModel] = useState(false);
+  const [newModelId, setNewModelId] = useState("");
+  const [newModelName, setNewModelName] = useState("");
+  const [newModelApi, setNewModelApi] = useState("");
+  const [newModelCtx, setNewModelCtx] = useState("");
+  const [newModelMax, setNewModelMax] = useState("");
 
   // Derive effective auth type (form state > initialConfig > authOverview)
   const effectiveAuth = authMode || initialConfig?.auth || authType || null;
@@ -105,15 +115,44 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
     setBaseUrl(initialConfig?.baseUrl ?? "");
     setAuthMode(initialConfig?.auth ?? "");
     setApiProtocol(initialConfig?.api ?? "");
+    setLocalModels(initialConfig?.models ?? []);
     setShowKey(false);
     setSaved(false);
+    setShowAddModel(false);
   }, [
     provider,
     initialConfig?.apiKey,
     initialConfig?.baseUrl,
     initialConfig?.auth,
     initialConfig?.api,
+    initialConfig?.models,
   ]);
+
+  const handleAddModel = useCallback(() => {
+    if (!newModelId.trim()) {
+      return;
+    }
+    const entry: ProviderModelEntry = {
+      id: newModelId.trim(),
+      name: newModelName.trim() || newModelId.trim(),
+      ...(newModelApi ? { api: newModelApi } : {}),
+      reasoning: false,
+      input: ["text"],
+      contextWindow: newModelCtx ? Number(newModelCtx) : 128000,
+      maxTokens: newModelMax ? Number(newModelMax) : 4096,
+    };
+    setLocalModels((prev) => [...prev, entry]);
+    setNewModelId("");
+    setNewModelName("");
+    setNewModelApi("");
+    setNewModelCtx("");
+    setNewModelMax("");
+    setShowAddModel(false);
+  }, [newModelId, newModelName, newModelApi, newModelCtx, newModelMax]);
+
+  const handleRemoveModel = useCallback((id: string) => {
+    setLocalModels((prev) => prev.filter((m) => m.id !== id));
+  }, []);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -124,6 +163,7 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
         baseUrl: baseUrl || undefined,
         auth: authMode || undefined,
         api: apiProtocol || undefined,
+        models: localModels.length > 0 ? localModels : undefined,
       };
 
       // Only send apiKey if user changed it (not the redacted placeholder)
@@ -141,9 +181,17 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
     } finally {
       setSaving(false);
     }
-  }, [provider, apiKey, apiKeyDirty, isRedacted, baseUrl, authMode, apiProtocol, onSave]);
-
-  const models = initialConfig?.models;
+  }, [
+    provider,
+    apiKey,
+    apiKeyDirty,
+    isRedacted,
+    baseUrl,
+    authMode,
+    apiProtocol,
+    localModels,
+    onSave,
+  ]);
 
   return (
     <Card className="transition-panel">
@@ -256,17 +304,17 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
           </Select>
         </div>
 
-        {/* Models table (read-only) */}
-        <div className="space-y-1.5">
+        {/* Models table (editable) */}
+        <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">{t("config.providerModels")}</Label>
-            {models && models.length > 0 && (
+            {localModels.length > 0 && (
               <Badge variant="secondary" className="text-[10px]">
-                {t("config.modelCount", { count: models.length })}
+                {t("config.modelCount", { count: localModels.length })}
               </Badge>
             )}
           </div>
-          {models && models.length > 0 ? (
+          {localModels.length > 0 ? (
             <div className="max-w-2xl overflow-auto rounded-md border border-[var(--border)]">
               <table className="w-full text-xs">
                 <thead>
@@ -283,13 +331,14 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
                     <th className="px-3 py-1.5 text-right font-medium text-[var(--muted-foreground)]">
                       {t("catalog.maxOutput")}
                     </th>
+                    <th className="w-8" />
                   </tr>
                 </thead>
                 <tbody>
-                  {models.map((m) => (
+                  {localModels.map((m) => (
                     <tr
                       key={m.id}
-                      className="border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--accent)]"
+                      className="border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--accent)] group"
                     >
                       <td className="px-3 py-1.5 font-mono text-[var(--foreground)]">{m.id}</td>
                       <td className="px-3 py-1.5 text-[var(--muted-foreground)]">
@@ -301,6 +350,16 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
                       <td className="px-3 py-1.5 text-right text-[var(--muted-foreground)]">
                         {formatTokenCount(m.maxTokens)}
                       </td>
+                      <td className="px-1">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveModel(m.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--destructive-muted)] text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-all cursor-pointer"
+                          title={tc("delete")}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -310,6 +369,109 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
             <p className="text-xs text-[var(--muted-foreground)] italic">
               {t("config.noModelsConfigured")}
             </p>
+          )}
+
+          {/* Add model inline form */}
+          {showAddModel ? (
+            <div className="max-w-2xl space-y-2 rounded-md border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    {t("config.modelIdPlaceholder")}
+                  </Label>
+                  <Input
+                    value={newModelId}
+                    onChange={(e) => setNewModelId(e.target.value)}
+                    placeholder="e.g. deepseek-r1"
+                    className="text-xs font-mono h-7"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    {t("config.modelNamePlaceholder")}
+                  </Label>
+                  <Input
+                    value={newModelName}
+                    onChange={(e) => setNewModelName(e.target.value)}
+                    placeholder="e.g. DeepSeek R1"
+                    className="text-xs h-7"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    {t("config.apiProtocol")}
+                  </Label>
+                  <Select value={newModelApi} onValueChange={setNewModelApi}>
+                    <SelectTrigger className="text-xs h-7" size="sm">
+                      <SelectValue placeholder={t("config.apiProtocolSelect")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MODEL_APIS.map((a) => (
+                        <SelectItem key={a} value={a}>
+                          {a}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    {t("config.contextWindowLabel")}
+                  </Label>
+                  <Input
+                    type="number"
+                    value={newModelCtx}
+                    onChange={(e) => setNewModelCtx(e.target.value)}
+                    placeholder="128000"
+                    className="text-xs font-mono h-7"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    {t("config.maxTokensLabel")}
+                  </Label>
+                  <Input
+                    type="number"
+                    value={newModelMax}
+                    onChange={(e) => setNewModelMax(e.target.value)}
+                    placeholder="4096"
+                    className="text-xs font-mono h-7"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleAddModel}
+                  disabled={!newModelId.trim()}
+                  className="h-7 text-xs gap-1"
+                >
+                  <Plus size={12} />
+                  {t("config.addModel")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowAddModel(false)}
+                  className="h-7 text-xs"
+                >
+                  {tc("cancel")}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowAddModel(true)}
+              className="h-7 text-xs gap-1"
+            >
+              <Plus size={12} />
+              {t("config.addModel")}
+            </Button>
           )}
         </div>
 
