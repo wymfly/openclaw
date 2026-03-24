@@ -72,6 +72,21 @@ export interface UsageProviderStatus {
   }>;
 }
 
+export interface AllowlistEntry {
+  alias?: string;
+  streaming?: boolean;
+  params?: Record<string, unknown>;
+}
+
+export interface BedrockDiscoveryConfig {
+  enabled?: boolean;
+  region?: string;
+  providerFilter?: string[];
+  refreshInterval?: number;
+  defaultContextWindow?: number;
+  defaultMaxTokens?: number;
+}
+
 interface ModelsState {
   models: Model[];
   providers: ProviderConfig[];
@@ -85,6 +100,16 @@ interface ModelsState {
   fallbacks: string[];
   imagePrimaryModel: string | null;
   imageFallbacks: string[];
+
+  // Model allowlist
+  allowlist: Record<string, AllowlistEntry>;
+  allowlistActive: boolean;
+
+  // Bedrock discovery
+  bedrockDiscovery: BedrockDiscoveryConfig;
+
+  // Provider API format map (derived from config.models.providers)
+  providerApiMap: Record<string, string>;
 
   // Probe results
   probeResults: Record<string, ProbeResult>;
@@ -112,6 +137,10 @@ interface ModelsState {
     apiKey?: string;
   }) => Promise<boolean>;
   fetchUsageSummary: () => Promise<void>;
+  toggleAllowlist: (active: boolean) => Promise<boolean>;
+  toggleModelEnabled: (ref: string, enabled: boolean) => Promise<boolean>;
+  updateModelAllowlistEntry: (ref: string, entry: Partial<AllowlistEntry>) => Promise<boolean>;
+  updateBedrockDiscovery: (config: BedrockDiscoveryConfig) => Promise<boolean>;
 }
 
 // ---------------------------------------------------------------------------
@@ -173,6 +202,91 @@ function getNestedImageModel(config: Record<string, unknown>): {
   };
 }
 
+function getNestedAllowlist(config: Record<string, unknown>): {
+  active: boolean;
+  entries: Record<string, AllowlistEntry>;
+} {
+  const agents = config.agents as Record<string, unknown> | undefined;
+  const defaults = agents?.defaults as Record<string, unknown> | undefined;
+  const models = defaults?.models;
+  if (!models || typeof models !== "object" || Array.isArray(models)) {
+    return { active: false, entries: {} };
+  }
+  const m = models as Record<string, unknown>;
+  const entries: Record<string, AllowlistEntry> = {};
+  for (const [key, value] of Object.entries(m)) {
+    if (typeof value === "object" && value !== null) {
+      const v = value as Record<string, unknown>;
+      entries[key] = {
+        alias: typeof v.alias === "string" ? v.alias : undefined,
+        streaming: typeof v.streaming === "boolean" ? v.streaming : undefined,
+        params:
+          typeof v.params === "object" && v.params !== null
+            ? (v.params as Record<string, unknown>)
+            : undefined,
+      };
+    } else {
+      entries[key] = {};
+    }
+  }
+  // IMPORTANT: Empty object = backend treats as no allowlist (allowAny=true).
+  // Match backend semantics: empty entries → inactive.
+  if (Object.keys(entries).length === 0) {
+    return { active: false, entries: {} };
+  }
+  return { active: true, entries };
+}
+
+function getNestedBedrockDiscovery(config: Record<string, unknown>): BedrockDiscoveryConfig {
+  const models = config.models as Record<string, unknown> | undefined;
+  const bd = models?.bedrockDiscovery as Record<string, unknown> | undefined;
+  if (!bd) {
+    return {};
+  }
+  return {
+    enabled: typeof bd.enabled === "boolean" ? bd.enabled : undefined,
+    region: typeof bd.region === "string" ? bd.region : undefined,
+    providerFilter: Array.isArray(bd.providerFilter)
+      ? (bd.providerFilter as string[]).filter((s) => typeof s === "string")
+      : undefined,
+    refreshInterval: typeof bd.refreshInterval === "number" ? bd.refreshInterval : undefined,
+    defaultContextWindow:
+      typeof bd.defaultContextWindow === "number" ? bd.defaultContextWindow : undefined,
+    defaultMaxTokens: typeof bd.defaultMaxTokens === "number" ? bd.defaultMaxTokens : undefined,
+  };
+}
+
+// Static fallback for implicit (built-in) providers not in config.models.providers.
+const IMPLICIT_PROVIDER_API: Record<string, string> = {
+  anthropic: "anthropic-messages",
+  openai: "openai-responses",
+  google: "google-generative-ai",
+  "google-generative-ai": "google-generative-ai",
+  "github-copilot": "github-copilot",
+  "amazon-bedrock": "bedrock-converse-stream",
+  bedrock: "bedrock-converse-stream",
+  ollama: "ollama",
+};
+
+function getNestedProviderApiMap(config: Record<string, unknown>): Record<string, string> {
+  // Start with implicit provider defaults
+  const map: Record<string, string> = { ...IMPLICIT_PROVIDER_API };
+  // Override with explicit config (user-defined providers take precedence)
+  const models = config.models as Record<string, unknown> | undefined;
+  const providers = models?.providers as Record<string, unknown> | undefined;
+  if (providers) {
+    for (const [name, value] of Object.entries(providers)) {
+      if (typeof value === "object" && value !== null) {
+        const api = (value as Record<string, unknown>).api;
+        if (typeof api === "string") {
+          map[name] = api;
+        }
+      }
+    }
+  }
+  return map;
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -194,6 +308,10 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
   configHash: null,
   usageCost: [],
   usageProviders: [],
+  allowlist: {},
+  allowlistActive: false,
+  bedrockDiscovery: {},
+  providerApiMap: {},
 
   selectProvider: (selectedProvider) => set({ selectedProvider }),
 
@@ -205,7 +323,25 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         return;
       }
       const data = await res.json();
-      const list = Array.isArray(data) ? data : Array.isArray(data?.models) ? data.models : [];
+      const raw = Array.isArray(data) ? data : Array.isArray(data?.models) ? data.models : [];
+      // Map API shape (cost.input/output) → store shape (inputPrice/outputPrice)
+      const list: Model[] = raw.map((m: Record<string, unknown>) => {
+        const cost = m.cost as Record<string, number> | undefined;
+        return {
+          id: m.id as string,
+          name: (m.name as string) || (m.id as string),
+          provider: m.provider as string,
+          contextWindow: (m.contextWindow as number) ?? 0,
+          inputPrice: cost?.input ?? (m.inputPrice as number) ?? 0,
+          outputPrice: cost?.output ?? (m.outputPrice as number) ?? 0,
+          cacheReadPrice: cost?.cacheRead ?? (m.cacheReadPrice as number),
+          cacheWritePrice: cost?.cacheWrite ?? (m.cacheWritePrice as number),
+          isDefault: m.isDefault as boolean | undefined,
+          reasoning: m.reasoning as boolean | undefined,
+          input: m.input as string[] | undefined,
+          maxTokens: m.maxTokens as number | undefined,
+        };
+      });
       set({ models: list });
     } finally {
       set({ loading: false });
@@ -277,12 +413,24 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
 
       const config = parseConfig(raw);
       if (!config) {
-        set({ configRaw: null, configHash: null, primaryModel: null, fallbacks: [] });
+        set({
+          configRaw: null,
+          configHash: null,
+          primaryModel: null,
+          fallbacks: [],
+          allowlist: {},
+          allowlistActive: false,
+          bedrockDiscovery: {},
+          providerApiMap: {},
+        });
         return;
       }
 
       const { primary, fallbacks } = getNestedModel(config);
       const { primary: imagePrimary, fallbacks: imageFallbacks } = getNestedImageModel(config);
+      const { active: allowlistActive, entries: allowlist } = getNestedAllowlist(config);
+      const bedrockDiscovery = getNestedBedrockDiscovery(config);
+      const providerApiMap = getNestedProviderApiMap(config);
 
       set({
         configRaw: raw,
@@ -291,6 +439,10 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         fallbacks,
         imagePrimaryModel: imagePrimary ?? null,
         imageFallbacks,
+        allowlistActive,
+        allowlist,
+        bedrockDiscovery,
+        providerApiMap,
       });
     } catch {
       // best-effort
@@ -498,4 +650,11 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
       // best-effort
     }
   },
+
+  // Placeholder stubs — implemented in Task 2
+  toggleAllowlist: async (_active: boolean) => Promise.resolve(false),
+  toggleModelEnabled: async (_ref: string, _enabled: boolean) => Promise.resolve(false),
+  updateModelAllowlistEntry: async (_ref: string, _entry: Partial<AllowlistEntry>) =>
+    Promise.resolve(false),
+  updateBedrockDiscovery: async (_config: BedrockDiscoveryConfig) => Promise.resolve(false),
 }));
