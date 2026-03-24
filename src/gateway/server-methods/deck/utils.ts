@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { type ErrorCode, ErrorCodes } from "../../protocol/schema/error-codes.js";
 
 /** Normalize a binding match for deterministic hashing. */
 export function normalizeBindingMatchForHash(
@@ -35,12 +36,18 @@ export function computeBindingId(match: Record<string, unknown>): string {
 export function validateBaseHash(
   baseHash: string | undefined,
   currentHash: string,
-): { code: string; message: string } | null {
+): { code: ErrorCode; message: string } | null {
   if (!baseHash || typeof baseHash !== "string") {
-    return { code: "INVALID_REQUEST", message: "baseHash is required for write operations" };
+    return {
+      code: ErrorCodes.INVALID_REQUEST,
+      message: "baseHash is required for write operations",
+    };
   }
   if (baseHash !== currentHash) {
-    return { code: "CONFLICT", message: "config has changed since last read (baseHash mismatch)" };
+    return {
+      code: ErrorCodes.INVALID_REQUEST,
+      message: "config has changed since last read (baseHash mismatch)",
+    };
   }
   return null;
 }

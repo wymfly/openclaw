@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GatewayRequestHandler } from "../types.js";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ import { deckThreadsHandlers } from "./threads.js";
 type RespondCall = [boolean, unknown?, { code: string; message: string }?];
 
 function createInvoke(
-  handlers: Record<string, (...args: unknown[]) => unknown>,
+  handlers: Record<string, GatewayRequestHandler>,
   method: string,
   params: Record<string, unknown>,
 ) {

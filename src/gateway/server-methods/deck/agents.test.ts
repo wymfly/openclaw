@@ -147,7 +147,7 @@ function callHandler(
     void handler({
       params,
       respond,
-      req: { id: "1", method, params },
+      req: { type: "req" as const, id: "1", method, params },
       client: null,
       isWebchatConnect: () => false,
       context: {} as GatewayRequestHandlerOptions["context"],

@@ -60,7 +60,7 @@ function resolveSessionId(childSessionKey: string): string | undefined {
   if (!parsed) {
     return undefined;
   }
-  const storePath = resolveStorePath(cfg, parsed.agentId);
+  const storePath = resolveStorePath(cfg.session?.store, { agentId: parsed.agentId });
   const store = loadSessionStore(storePath);
   const entry = store[childSessionKey];
   return typeof entry?.sessionId === "string" && entry.sessionId.trim()

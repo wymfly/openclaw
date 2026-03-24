@@ -65,7 +65,7 @@ function callHandler(method: string, params: Record<string, unknown>) {
   }
   const { fn, calls } = makeRespond();
   void handler({
-    req: { id: "1", method, params },
+    req: { type: "req" as const, id: "1", method, params },
     params,
     client: null as never,
     isWebchatConnect: () => false,
@@ -82,7 +82,7 @@ async function callHandlerAsync(method: string, params: Record<string, unknown>)
   }
   const { fn, calls } = makeRespond();
   await handler({
-    req: { id: "1", method, params },
+    req: { type: "req" as const, id: "1", method, params },
     params,
     client: null,
     isWebchatConnect: () => false,

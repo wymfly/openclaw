@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { resolveDefaultAgentId } from "../../../agents/agent-scope.js";
 import { loadConfig, writeConfigFile } from "../../../config/config.js";
-import type { AgentBinding } from "../../../config/types.agents.js";
-import { resolveAgentRoute } from "../../../routing/resolve-route.js";
+import type { AgentBinding, AgentRouteBinding } from "../../../config/types.agents.js";
+import { type RoutePeer, resolveAgentRoute } from "../../../routing/resolve-route.js";
 import {
   ErrorCodes,
   errorShape,
@@ -215,10 +215,10 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
     const warnings = detectConflicts({ agentId: params.agentId, match: params.match }, bindings);
 
     // Build new binding
-    const newBinding: AgentBinding = {
+    const newBinding: AgentRouteBinding = {
       agentId: params.agentId,
       match: params.match,
-      ...(params.comment ? { comment: params.comment } : {}),
+      ...(typeof params.comment === "string" && params.comment ? { comment: params.comment } : {}),
     };
 
     const position =
@@ -270,7 +270,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
       respond(
         false,
         undefined,
-        errorShape("NOT_FOUND", `binding with id "${params.id}" not found`),
+        errorShape(ErrorCodes.NOT_FOUND, `binding with id "${params.id}" not found`),
       );
       return;
     }
@@ -334,10 +334,10 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
     const result = resolveAgentRoute({
       cfg,
       channel: params.channel,
-      accountId: params.accountId,
-      peer: params.peer,
-      guildId: params.guildId,
-      teamId: params.teamId,
+      accountId: params.accountId as string | null | undefined,
+      peer: params.peer as RoutePeer | null | undefined,
+      guildId: params.guildId as string | null | undefined,
+      teamId: params.teamId as string | null | undefined,
       memberRoleIds: params.memberRoleIds as string[] | undefined,
     });
 
