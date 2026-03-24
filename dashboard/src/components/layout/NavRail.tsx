@@ -17,8 +17,11 @@ import {
   Wallet,
   Bell,
   Share2,
+  GitBranch,
+  Network,
   Settings,
   FileCode,
+  Fingerprint,
   PanelLeftClose,
   PanelLeft,
   X,
@@ -75,6 +78,9 @@ const navGroups: NavGroup[] = [
       { panel: "budget", labelKey: "budget", icon: Wallet },
       { panel: "alerts", labelKey: "alerts", icon: Bell },
       { panel: "channels", labelKey: "channels", icon: Share2 },
+      { panel: "routing", labelKey: "routing", icon: GitBranch },
+      { panel: "subagents", labelKey: "subagents", icon: Network },
+      { panel: "identity", labelKey: "identity", icon: Fingerprint },
       { panel: "config", labelKey: "config", icon: Settings },
       { panel: "docs", labelKey: "docs", icon: FileCode },
     ],
@@ -139,7 +145,7 @@ export function NavRail() {
       }`}
       style={{
         borderColor: "var(--border)",
-        backgroundColor: "var(--bg-nav)",
+        backgroundColor: "var(--sidebar)",
       }}
     >
       {/* Header: collapse toggle (desktop/tablet) or close button (mobile) */}
@@ -152,7 +158,7 @@ export function NavRail() {
           }
         }}
         className="flex items-center justify-center h-12 hover:opacity-80 transition-opacity"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         {isMobile ? (
           <X size={18} />
@@ -170,7 +176,7 @@ export function NavRail() {
             {!collapsed && (
               <div
                 className="px-3 py-1 text-xs font-semibold uppercase tracking-wider"
-                style={{ color: "var(--text-secondary)" }}
+                style={{ color: "var(--muted-foreground)" }}
               >
                 {t(group.titleKey)}
               </div>
@@ -186,9 +192,9 @@ export function NavRail() {
                     collapsed ? "justify-center" : ""
                   }`}
                   style={{
-                    color: isActive ? "var(--brand)" : "var(--text-primary)",
+                    color: isActive ? "var(--primary)" : "var(--foreground)",
                     backgroundColor: isActive
-                      ? "color-mix(in srgb, var(--brand) 12%, transparent)"
+                      ? "color-mix(in srgb, var(--primary) 12%, transparent)"
                       : "transparent",
                   }}
                   title={collapsed ? t(item.labelKey) : undefined}
@@ -210,10 +216,10 @@ export function NavRail() {
             collapsed ? "justify-center" : ""
           }`}
           style={{
-            color: activePanel === "settings" ? "var(--brand)" : "var(--text-primary)",
+            color: activePanel === "settings" ? "var(--primary)" : "var(--foreground)",
             backgroundColor:
               activePanel === "settings"
-                ? "color-mix(in srgb, var(--brand) 12%, transparent)"
+                ? "color-mix(in srgb, var(--primary) 12%, transparent)"
                 : "transparent",
           }}
           title={collapsed ? t("settings") : undefined}

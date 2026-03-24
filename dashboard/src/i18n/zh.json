@@ -24,6 +24,7 @@
     "routing": "消息路由",
     "subagents": "子智能体",
     "docs": "文档",
+    "identity": "身份",
     "settings": "设置"
   },
   "header": {
@@ -479,6 +480,11 @@
     "sandboxMode": "沙箱模式",
     "sandboxEnabled": "已启用",
     "sandboxDefault": "默认",
+    "sandboxElevation": "权限级别",
+    "sandboxFilesystem": "文件系统",
+    "sandboxStandard": "标准",
+    "sandboxElevated": "提权",
+    "sandboxRestricted": "受限",
     "modelConfig": "模型配置",
     "usingDefault": "使用默认",
     "fallbacks": "回退链",
@@ -962,5 +968,15 @@
     "channel": "渠道",
     "peerId": "Peer ID",
     "linkFailed": "身份关联失败"
+  },
+  "threads": {
+    "title": "线程绑定",
+    "noThreads": "暂无线程绑定",
+    "channel": "渠道",
+    "agent": "智能体",
+    "threadId": "标识",
+    "kind": "类型",
+    "boundAt": "绑定时间",
+    "lastActivity": "最近活动"
   }
 }

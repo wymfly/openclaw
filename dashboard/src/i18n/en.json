@@ -24,6 +24,7 @@
     "routing": "Routing",
     "subagents": "Subagents",
     "docs": "Docs",
+    "identity": "Identities",
     "settings": "Settings"
   },
   "header": {
@@ -479,6 +480,11 @@
     "sandboxMode": "Sandbox Mode",
     "sandboxEnabled": "Enabled",
     "sandboxDefault": "Default",
+    "sandboxElevation": "Elevation",
+    "sandboxFilesystem": "Filesystem",
+    "sandboxStandard": "Standard",
+    "sandboxElevated": "Elevated",
+    "sandboxRestricted": "Restricted",
     "modelConfig": "Model Config",
     "usingDefault": "Using default",
     "fallbacks": "Fallbacks",
@@ -962,5 +968,15 @@
     "channel": "Channel",
     "peerId": "Peer ID",
     "linkFailed": "Failed to link identity"
+  },
+  "threads": {
+    "title": "Thread Bindings",
+    "noThreads": "No thread bindings found",
+    "channel": "Channel",
+    "agent": "Agent",
+    "threadId": "Label",
+    "kind": "Kind",
+    "boundAt": "Bound",
+    "lastActivity": "Last Activity"
   }
 }
