@@ -225,6 +225,7 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
       return latest ?? gwSettings;
     },
     onDomainEvent: (event) => bridgeDomainEvent(event, eventBus, store),
+    db,
   });
 
   // Start the adapter (non-blocking — reconnection is handled internally).
