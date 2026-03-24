@@ -86,35 +86,35 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
   return (
     <div className="space-y-4">
       {/* Basic info card */}
-      <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
+      <Card className="bg-[var(--background)] border-[var(--border)]">
         <CardHeader className="pb-2">
           <CardTitle className="text-xs">{t("info")}</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
             <div className="min-w-0">
-              <dt className="text-[var(--text-secondary)]">{t("id")}</dt>
-              <dd className="font-mono text-[var(--text-primary)] mt-0.5 truncate">{detail.id}</dd>
+              <dt className="text-[var(--muted-foreground)]">{t("id")}</dt>
+              <dd className="font-mono text-[var(--foreground)] mt-0.5 truncate">{detail.id}</dd>
             </div>
             <div className="min-w-0">
-              <dt className="text-[var(--text-secondary)]">{t("name")}</dt>
-              <dd className="text-[var(--text-primary)] mt-0.5 truncate">{detail.name}</dd>
+              <dt className="text-[var(--muted-foreground)]">{t("name")}</dt>
+              <dd className="text-[var(--foreground)] mt-0.5 truncate">{detail.name}</dd>
             </div>
             <div className="min-w-0">
-              <dt className="text-[var(--text-secondary)]">{t("workspace")}</dt>
-              <dd className="font-mono text-[var(--text-primary)] mt-0.5 truncate">
+              <dt className="text-[var(--muted-foreground)]">{t("workspace")}</dt>
+              <dd className="font-mono text-[var(--foreground)] mt-0.5 truncate">
                 {detail.workspace || "—"}
               </dd>
             </div>
             <div className="min-w-0">
-              <dt className="text-[var(--text-secondary)]">{t("model")}</dt>
-              <dd className="font-mono text-[var(--text-primary)] mt-0.5 truncate">
+              <dt className="text-[var(--muted-foreground)]">{t("model")}</dt>
+              <dd className="font-mono text-[var(--foreground)] mt-0.5 truncate">
                 {detail.model || "—"}
               </dd>
             </div>
             {detail.isDefault && (
               <div className="col-span-2">
-                <Badge className="text-[10px] border-0 bg-[var(--brand-muted)] text-[var(--brand)]">
+                <Badge className="text-[10px] border-0 bg-[var(--primary-muted)] text-[var(--primary)]">
                   {t("defaultAgent")}
                 </Badge>
               </div>
@@ -125,13 +125,13 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
 
       {/* Sandbox & Model */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
+        <Card className="bg-[var(--background)] border-[var(--border)]">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 text-xs">
-              <Shield size={14} className="text-[var(--brand)]" />
-              <span className="text-[var(--text-secondary)]">{t("sandboxMode")}</span>
+              <Shield size={14} className="text-[var(--primary)]" />
+              <span className="text-[var(--muted-foreground)]">{t("sandboxMode")}</span>
             </div>
-            <p className="text-xs text-[var(--text-primary)] mt-1">
+            <p className="text-xs text-[var(--foreground)] mt-1">
               {(() => {
                 const sandboxMode =
                   detail.sandbox &&
@@ -144,20 +144,51 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
                   : t("sandboxDefault");
               })()}
             </p>
+            {(() => {
+              if (!detail.sandbox || typeof detail.sandbox !== "object") {
+                return null;
+              }
+              const sb = detail.sandbox as Record<string, unknown>;
+              const elevation = typeof sb.elevation === "string" ? sb.elevation : undefined;
+              const filesystem = typeof sb.filesystem === "string" ? sb.filesystem : undefined;
+              if (!elevation && !filesystem) {
+                return null;
+              }
+              return (
+                <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                  {elevation && (
+                    <div>
+                      <dt className="text-[var(--muted-foreground)]">{t("sandboxElevation")}</dt>
+                      <dd className="text-[var(--foreground)] capitalize">
+                        {elevation === "elevated" ? t("sandboxElevated") : t("sandboxStandard")}
+                      </dd>
+                    </div>
+                  )}
+                  {filesystem && (
+                    <div>
+                      <dt className="text-[var(--muted-foreground)]">{t("sandboxFilesystem")}</dt>
+                      <dd className="text-[var(--foreground)] capitalize">
+                        {filesystem === "restricted" ? t("sandboxRestricted") : filesystem}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              );
+            })()}
           </CardContent>
         </Card>
 
-        <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
+        <Card className="bg-[var(--background)] border-[var(--border)]">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 text-xs">
-              <Cpu size={14} className="text-[var(--brand)]" />
-              <span className="text-[var(--text-secondary)]">{t("modelConfig")}</span>
+              <Cpu size={14} className="text-[var(--primary)]" />
+              <span className="text-[var(--muted-foreground)]">{t("modelConfig")}</span>
             </div>
-            <p className="font-mono text-xs text-[var(--text-primary)] mt-1">
+            <p className="font-mono text-xs text-[var(--foreground)] mt-1">
               {detail.model || t("usingDefault")}
             </p>
             {detail.fallbackModels && detail.fallbackModels.length > 0 && (
-              <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+              <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
                 {t("fallbacks")}: {detail.fallbackModels.join(", ")}
               </p>
             )}
@@ -166,11 +197,11 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
       </div>
 
       {/* Identity preview */}
-      <Card className="bg-[var(--bg-primary)] border-[var(--border)]">
+      <Card className="bg-[var(--background)] border-[var(--border)]">
         <CardContent className="p-3">
           <div className="flex items-center gap-2 text-xs mb-2">
-            <User size={14} className="text-[var(--brand)]" />
-            <span className="text-[var(--text-secondary)]">{t("identity")}</span>
+            <User size={14} className="text-[var(--primary)]" />
+            <span className="text-[var(--muted-foreground)]">{t("identity")}</span>
             {detail.identityExists && (
               <Badge variant="secondary" className="text-[10px]">
                 IDENTITY.md
@@ -178,14 +209,14 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--brand-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--brand)]/20">
+            <div className="w-10 h-10 rounded-xl bg-[var(--primary-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--primary)]/20">
               {detail.name?.charAt(0)?.toUpperCase() ?? "?"}
             </div>
             <div className="text-xs">
-              <p className="text-[var(--text-primary)] font-medium">{detail.name}</p>
+              <p className="text-[var(--foreground)] font-medium">{detail.name}</p>
               <button
                 onClick={() => onNavigateTab("context")}
-                className="text-[var(--brand)] hover:underline cursor-pointer"
+                className="text-[var(--primary)] hover:underline cursor-pointer"
               >
                 {t("configureIdentity")}
               </button>
@@ -206,17 +237,17 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
                 onNavigateTab(card.tab);
               }
             }}
-            className="text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/50 rounded-lg"
+            className="text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50 rounded-lg"
           >
-            <Card className="bg-[var(--bg-primary)] border-[var(--border)] hover:border-[var(--brand)]/30 transition-colors h-full">
+            <Card className="bg-[var(--background)] border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors h-full">
               <CardContent className="p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <span className={card.color}>{card.icon}</span>
-                  <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider">
+                  <span className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-wider">
                     {card.label}
                   </span>
                 </div>
-                <span className="text-xl font-semibold text-[var(--text-primary)] tabular-nums">
+                <span className="text-xl font-semibold text-[var(--foreground)] tabular-nums">
                   {card.value}
                 </span>
               </CardContent>

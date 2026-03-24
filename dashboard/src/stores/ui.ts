@@ -1,6 +1,19 @@
 import { create } from "zustand";
 import type { Locale } from "@/i18n/config";
+import { locales, defaultLocale } from "@/i18n/config";
 import { useConfigStore } from "@/stores/config";
+
+/** Read locale from cookie, falling back to default. */
+function readLocaleFromCookie(): Locale {
+  if (typeof document === "undefined") {
+    return defaultLocale;
+  }
+  const match = document.cookie.match(/(?:^|;\s*)NEXT_LOCALE=([^;]*)/);
+  const value = match?.[1];
+  return value && (locales as readonly string[]).includes(value)
+    ? (value as Locale)
+    : defaultLocale;
+}
 
 export type Panel =
   | "chat"
@@ -21,6 +34,9 @@ export type Panel =
   | "channels"
   | "config"
   | "docs"
+  | "routing"
+  | "subagents"
+  | "identity"
   | "settings";
 
 export type Theme = "dark" | "light" | "system";
@@ -45,7 +61,7 @@ export const useUIStore = create<UIState>((set) => ({
   mobileNavOpen: false,
   activePanel: "chat",
   theme: "system",
-  locale: "zh",
+  locale: readLocaleFromCookie(),
 
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),

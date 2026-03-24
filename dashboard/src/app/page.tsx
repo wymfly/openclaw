@@ -70,6 +70,19 @@ const LazyAlertsPanel = lazy(() =>
 const LazyDocHubPanel = lazy(() =>
   import("@/components/panels/docs/DocHubPanel").then((m) => ({ default: m.DocHubPanel })),
 );
+const LazyRoutingPanel = lazy(() =>
+  import("@/components/panels/routing/RoutingPanel").then((m) => ({ default: m.RoutingPanel })),
+);
+const LazySubagentsPanel = lazy(() =>
+  import("@/components/panels/subagents/SubagentsPanel").then((m) => ({
+    default: m.SubagentsPanel,
+  })),
+);
+const LazyIdentityPanel = lazy(() =>
+  import("@/components/panels/identity/IdentityPanel").then((m) => ({
+    default: m.IdentityPanel,
+  })),
+);
 const LazySettingsPanel = lazy(() =>
   import("@/components/panels/settings/SettingsPanel").then((m) => ({ default: m.SettingsPanel })),
 );
@@ -81,7 +94,7 @@ function PanelLoadingFallback() {
   return (
     <div
       className="flex items-center justify-center h-full"
-      style={{ color: "var(--text-secondary)" }}
+      style={{ color: "var(--muted-foreground)" }}
     >
       <div
         className="animate-spin rounded-full h-8 w-8 border-2 border-current"
@@ -96,7 +109,7 @@ function PanelPlaceholder({ panel }: { panel: Panel }) {
   return (
     <div
       className="flex items-center justify-center h-full rounded-lg border border-dashed"
-      style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+      style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
     >
       <p className="text-lg">{t(panel)}</p>
     </div>
@@ -146,6 +159,12 @@ function ActivePanel({ panel }: { panel: Panel }) {
     LazyComponent = LazyAlertsPanel;
   } else if (panel === "docs") {
     LazyComponent = LazyDocHubPanel;
+  } else if (panel === "routing") {
+    LazyComponent = LazyRoutingPanel;
+  } else if (panel === "subagents") {
+    LazyComponent = LazySubagentsPanel;
+  } else if (panel === "identity") {
+    LazyComponent = LazyIdentityPanel;
   } else if (panel === "settings") {
     LazyComponent = LazySettingsPanel;
   }
@@ -188,7 +207,7 @@ export default function Home() {
         <ThemeSync />
         <div
           className="flex items-center justify-center h-screen"
-          style={{ backgroundColor: "var(--bg-primary)" }}
+          style={{ backgroundColor: "var(--background)" }}
         />
       </>
     );
