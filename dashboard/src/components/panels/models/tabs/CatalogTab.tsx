@@ -90,21 +90,22 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
   }, [fetchFallbacks]);
 
   const handleSetDefault = useCallback(
-    (_provider: string, modelId: string) => {
+    (provider: string, modelId: string) => {
       const { fallbacks } = useModelsStore.getState();
-      void updateFallbacks(modelId, fallbacks);
+      void updateFallbacks(`${provider}/${modelId}`, fallbacks);
     },
     [updateFallbacks],
   );
 
   const handleAddToFallback = useCallback(
-    (_provider: string, modelId: string) => {
+    (provider: string, modelId: string) => {
       const { primaryModel, fallbacks } = useModelsStore.getState();
+      const ref = `${provider}/${modelId}`;
       if (!primaryModel) {
         // No primary set — set this as primary instead
-        void updateFallbacks(modelId, fallbacks);
-      } else if (!fallbacks.includes(modelId)) {
-        void updateFallbacks(primaryModel, [...fallbacks, modelId]);
+        void updateFallbacks(ref, fallbacks);
+      } else if (!fallbacks.includes(ref)) {
+        void updateFallbacks(primaryModel, [...fallbacks, ref]);
       }
       onGoFallbacks?.();
     },

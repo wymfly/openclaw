@@ -124,7 +124,7 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
           </div>
           <div className="flex items-center gap-1">
             {apiKey.startsWith("${") && apiKey.endsWith("}") && (
-              <span className="text-[var(--primary)]" title="Environment variable reference">
+              <span className="text-[var(--primary)]" title={t("config.envVarRef")}>
                 &#x1F517;
               </span>
             )}
