@@ -144,37 +144,40 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
                   : t("sandboxDefault");
               })()}
             </p>
-            {(() => {
-              if (!detail.sandbox || typeof detail.sandbox !== "object") {
-                return null;
-              }
-              const sb = detail.sandbox as Record<string, unknown>;
-              const elevation = typeof sb.elevation === "string" ? sb.elevation : undefined;
-              const filesystem = typeof sb.filesystem === "string" ? sb.filesystem : undefined;
-              if (!elevation && !filesystem) {
-                return null;
-              }
-              return (
-                <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-                  {elevation && (
-                    <div>
-                      <dt className="text-[var(--muted-foreground)]">{t("sandboxElevation")}</dt>
-                      <dd className="text-[var(--foreground)] capitalize">
-                        {elevation === "elevated" ? t("sandboxElevated") : t("sandboxStandard")}
-                      </dd>
-                    </div>
-                  )}
-                  {filesystem && (
-                    <div>
-                      <dt className="text-[var(--muted-foreground)]">{t("sandboxFilesystem")}</dt>
-                      <dd className="text-[var(--foreground)] capitalize">
-                        {filesystem === "restricted" ? t("sandboxRestricted") : filesystem}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              );
-            })()}
+            {detail.sandbox && typeof detail.sandbox === "object"
+              ? (() => {
+                  const sb = detail.sandbox as Record<string, unknown>;
+                  const elevation = typeof sb.elevation === "string" ? sb.elevation : undefined;
+                  const filesystem = typeof sb.filesystem === "string" ? sb.filesystem : undefined;
+                  if (!elevation && !filesystem) {
+                    return null;
+                  }
+                  return (
+                    <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                      {elevation ? (
+                        <div>
+                          <dt className="text-[var(--muted-foreground)]">
+                            {t("sandboxElevation")}
+                          </dt>
+                          <dd className="text-[var(--foreground)] capitalize">
+                            {elevation === "elevated" ? t("sandboxElevated") : t("sandboxStandard")}
+                          </dd>
+                        </div>
+                      ) : null}
+                      {filesystem ? (
+                        <div>
+                          <dt className="text-[var(--muted-foreground)]">
+                            {t("sandboxFilesystem")}
+                          </dt>
+                          <dd className="text-[var(--foreground)] capitalize">
+                            {filesystem === "restricted" ? t("sandboxRestricted") : filesystem}
+                          </dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                  );
+                })()
+              : null}
           </CardContent>
         </Card>
 

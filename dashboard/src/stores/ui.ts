@@ -37,6 +37,7 @@ export type Panel =
   | "routing"
   | "subagents"
   | "identity"
+  | "threads"
   | "settings";
 
 export type Theme = "dark" | "light" | "system";

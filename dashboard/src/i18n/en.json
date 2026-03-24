@@ -25,6 +25,7 @@
     "subagents": "Subagents",
     "docs": "Docs",
     "identity": "Identities",
+    "threads": "Threads",
     "settings": "Settings"
   },
   "header": {
@@ -977,6 +978,10 @@
     "threadId": "Label",
     "kind": "Kind",
     "boundAt": "Bound",
-    "lastActivity": "Last Activity"
+    "lastActivity": "Last Activity",
+    "filterAgent": "Filter by agent",
+    "filterChannel": "Filter by channel",
+    "statusActive": "Active",
+    "statusAll": "All"
   }
 }

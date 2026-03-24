@@ -25,6 +25,7 @@
     "subagents": "子智能体",
     "docs": "文档",
     "identity": "身份",
+    "threads": "线程",
     "settings": "设置"
   },
   "header": {
@@ -977,6 +978,10 @@
     "threadId": "标识",
     "kind": "类型",
     "boundAt": "绑定时间",
-    "lastActivity": "最近活动"
+    "lastActivity": "最近活动",
+    "filterAgent": "按智能体过滤",
+    "filterChannel": "按渠道过滤",
+    "statusActive": "活跃",
+    "statusAll": "全部"
   }
 }
