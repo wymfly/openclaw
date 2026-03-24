@@ -221,7 +221,11 @@
       "allowlistToggle": "模型白名单",
       "allowlistOff": "所有模型可用 — 开启白名单以限制可用范围",
       "allowlistConfirm": "开启白名单后，只有显式启用的模型可用。当前主模型和备选模型将自动加入。确定继续？",
-      "enabledCount": "{count}/{total} 已启用"
+      "enabledCount": "{count}/{total} 已启用",
+      "enabled": "已启用",
+      "disabled": "未启用",
+      "enableModel": "启用",
+      "disableModel": "禁用"
     },
     "provider": "供应商配置",
     "name": "模型名称",
