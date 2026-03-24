@@ -135,6 +135,9 @@ interface ModelsState {
     name: string;
     baseUrl?: string;
     apiKey?: string;
+    api?: string;
+    auth?: string;
+    models?: Array<{ id: string; name: string; contextWindow: number; maxTokens: number }>;
   }) => Promise<boolean>;
   fetchUsageSummary: () => Promise<void>;
   toggleAllowlist: (active: boolean) => Promise<boolean>;
@@ -568,21 +571,36 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
   },
 
   addCustomProvider: async (params) => {
-    try {
-      const res = await fetch("/api/models/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
-      });
-      if (res.ok) {
-        await get().fetchProviderConfig();
-        await get().fetchAuthOverview();
-        return true;
-      }
-      return false;
-    } catch {
+    // Ensure config is loaded
+    if (!get().configRaw) {
+      await get().fetchFallbacks();
+    }
+    const config = parseConfig(get().configRaw);
+    if (!config) {
       return false;
     }
+
+    const modelsConfig = (config.models as Record<string, unknown>) ?? {};
+    const providers = { ...(modelsConfig.providers as Record<string, unknown>) };
+
+    providers[params.name] = {
+      ...(params.baseUrl ? { baseUrl: params.baseUrl } : {}),
+      ...(params.apiKey ? { apiKey: params.apiKey } : {}),
+      ...(params.auth ? { auth: params.auth } : {}),
+      ...(params.api ? { api: params.api } : {}),
+      ...(params.models ? { models: params.models } : {}),
+    };
+
+    const updatedConfig = {
+      ...config,
+      models: { ...modelsConfig, providers },
+    };
+
+    const ok = await patchConfig(get, set, updatedConfig);
+    if (ok) {
+      await get().fetchAuthOverview();
+    }
+    return ok;
   },
 
   fetchUsageSummary: async () => {
