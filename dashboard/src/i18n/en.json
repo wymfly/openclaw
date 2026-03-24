@@ -319,7 +319,14 @@
       "authAwsSdk": "AWS SDK",
       "authToken": "Token",
       "oauthHint": "OAuth configured via CLI",
-      "secretHint": "Supports environment variable references: ${OPENAI_API_KEY}"
+      "secretHint": "Supports environment variable references: ${OPENAI_API_KEY}",
+      "bedrockTitle": "AWS Bedrock Discovery",
+      "bedrockEnabled": "Enable Discovery",
+      "bedrockRegion": "Region",
+      "bedrockProviderFilter": "Provider Filter",
+      "bedrockRefreshInterval": "Refresh Interval (seconds)",
+      "bedrockDefaultContext": "Default Context Window",
+      "bedrockDefaultMaxTokens": "Default Max Output"
     },
     "addProviderTitle": "Add Provider",
     "providerName": "Provider Name",

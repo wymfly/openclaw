@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useModelsStore } from "@/stores/models";
 import { AddProviderDialog } from "../config/AddProviderDialog";
 import { AuthHealthCard } from "../config/AuthHealthCard";
+import { BedrockDiscoveryCard } from "../config/BedrockDiscoveryCard";
 import { ConfigForm } from "../config/ConfigForm";
 import { ProviderSidebar } from "../config/ProviderSidebar";
 
@@ -27,11 +28,14 @@ export function ProviderConfigTab({
     authOverview,
     providers,
     probeResults,
+    bedrockDiscovery,
     fetchAuthOverview,
     fetchProviderConfig,
+    fetchFallbacks,
     runProbe,
     updateProviderConfig,
     addCustomProvider,
+    updateBedrockDiscovery,
   } = useModelsStore();
 
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
@@ -41,7 +45,8 @@ export function ProviderConfigTab({
   useEffect(() => {
     void fetchAuthOverview();
     void fetchProviderConfig();
-  }, [fetchAuthOverview, fetchProviderConfig]);
+    void fetchFallbacks();
+  }, [fetchAuthOverview, fetchProviderConfig, fetchFallbacks]);
 
   // Auto-select the first provider once auth overview loads
   useEffect(() => {
@@ -115,9 +120,12 @@ export function ProviderConfigTab({
         ) : (
           /* Empty state */
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-[var(--text-secondary)]">{t("selectProvider")}</p>
+            <p className="text-sm text-[var(--muted-foreground)]">{t("selectProvider")}</p>
           </div>
         )}
+
+        {/* Bedrock Discovery — global config */}
+        <BedrockDiscoveryCard config={bedrockDiscovery} onUpdate={updateBedrockDiscovery} />
       </div>
       <AddProviderDialog
         open={addDialogOpen}
