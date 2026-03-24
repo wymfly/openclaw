@@ -141,8 +141,9 @@ function selectProbeModel(params: {
   provider: string;
   candidates: Map<string, string[]>;
   catalog: Array<{ provider: string; id: string }>;
+  config?: OpenClawConfig;
 }): { provider: string; model: string } | null {
-  const { provider, candidates, catalog } = params;
+  const { provider, candidates, catalog, config } = params;
   const direct = candidates.get(provider);
   if (direct && direct.length > 0) {
     return { provider, model: direct[0] };
@@ -150,6 +151,11 @@ function selectProbeModel(params: {
   const fromCatalog = catalog.find((entry) => entry.provider === provider);
   if (fromCatalog) {
     return { provider: fromCatalog.provider, model: fromCatalog.id };
+  }
+  // Fallback: use first model from config.models.providers (custom providers)
+  const configModels = config?.models?.providers?.[provider]?.models;
+  if (configModels && configModels.length > 0) {
+    return { provider, model: configModels[0].id };
   }
   return null;
 }
@@ -265,6 +271,7 @@ export async function buildProbeTargets(params: {
       provider: providerKey,
       candidates,
       catalog,
+      config: cfg,
     });
 
     const profileIds = listProfilesForProvider(store, providerKey);
