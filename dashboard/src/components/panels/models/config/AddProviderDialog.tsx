@@ -233,7 +233,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
               />
               <div className="flex items-center gap-1">
                 {apiKey.startsWith("${") && apiKey.endsWith("}") && (
-                  <span className="text-[var(--primary)]" title="Environment variable reference">
+                  <span className="text-[var(--primary)]" title={t("envVarRef")}>
                     &#x1F517;
                   </span>
                 )}

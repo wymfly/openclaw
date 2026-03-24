@@ -44,6 +44,7 @@ export function ModelParamsEditor({
 }: ModelParamsEditorProps) {
   const t = useTranslations("models");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<Partial<AllowlistEntry>>({});
 
   // --- Local state derived from entry ---
   const [alias, setAlias] = useState(entry.alias ?? "");
@@ -84,26 +85,35 @@ export function ModelParamsEditor({
     };
   }, []);
 
-  // Debounced save
+  // Debounced save — accumulates pending changes so rapid edits aren't lost
   const debouncedUpdate = useCallback(
-    (partial: Partial<AllowlistEntry>) => {
+    (update: Partial<AllowlistEntry>) => {
+      pendingRef.current = { ...pendingRef.current, ...update };
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
       timerRef.current = setTimeout(() => {
-        onUpdate(modelRef, partial);
+        onUpdate(modelRef, pendingRef.current);
+        pendingRef.current = {};
       }, DEBOUNCE_MS);
     },
     [modelRef, onUpdate],
   );
 
-  // Build params object from dedicated controls, preserving unknown fields
+  // Build params object from dedicated controls, preserving unknown fields.
+  // Uses local jsonText state as base so JSON editor changes aren't overwritten
+  // by stale store state.
   const buildParams = useCallback(
     (
       overrideThinkingType?: "disabled" | "enabled",
       overrideBudget?: number,
     ): Record<string, unknown> => {
-      const base = { ...entry.params };
+      let base: Record<string, unknown> = {};
+      try {
+        base = JSON.parse(jsonText) as Record<string, unknown>;
+      } catch {
+        base = { ...entry.params };
+      }
       const tt = overrideThinkingType ?? thinkingType;
       const budget = overrideBudget ?? thinkingBudget;
 
@@ -114,7 +124,7 @@ export function ModelParamsEditor({
       }
       return base;
     },
-    [entry.params, thinkingType, thinkingBudget, showThinking],
+    [jsonText, entry.params, thinkingType, thinkingBudget, showThinking],
   );
 
   const handleAliasChange = (value: string) => {

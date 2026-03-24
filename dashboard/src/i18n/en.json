@@ -320,6 +320,7 @@
       "authToken": "Token",
       "oauthHint": "OAuth configured via CLI",
       "secretHint": "Supports environment variable references: ${OPENAI_API_KEY}",
+      "envVarRef": "Environment variable reference",
       "bedrockTitle": "AWS Bedrock Discovery",
       "bedrockEnabled": "Enable Discovery",
       "bedrockRegion": "Region",

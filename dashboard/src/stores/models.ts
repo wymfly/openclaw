@@ -599,6 +599,7 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     const ok = await patchConfig(get, set, updatedConfig);
     if (ok) {
       await get().fetchAuthOverview();
+      await get().fetchProviderConfig();
     }
     return ok;
   },

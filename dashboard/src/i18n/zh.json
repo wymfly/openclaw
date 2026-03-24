@@ -320,6 +320,7 @@
       "authToken": "Token",
       "oauthHint": "OAuth 通过 CLI 配置",
       "secretHint": "支持环境变量引用：${OPENAI_API_KEY}",
+      "envVarRef": "环境变量引用",
       "bedrockTitle": "AWS Bedrock 动态发现",
       "bedrockEnabled": "启用发现",
       "bedrockRegion": "区域",
