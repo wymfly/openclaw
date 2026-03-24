@@ -312,7 +312,14 @@
       "envHint": "Environment variable: {envVar}",
       "advanced": "Advanced",
       "profiles": "Auth Profiles",
-      "addProvider": "Add Provider"
+      "addProvider": "Add Provider",
+      "authType": "Auth Type",
+      "authApiKey": "API Key",
+      "authOAuth": "OAuth",
+      "authAwsSdk": "AWS SDK",
+      "authToken": "Token",
+      "oauthHint": "OAuth configured via CLI",
+      "secretHint": "Supports environment variable references: ${OPENAI_API_KEY}"
     },
     "addProviderTitle": "Add Provider",
     "providerName": "Provider Name",

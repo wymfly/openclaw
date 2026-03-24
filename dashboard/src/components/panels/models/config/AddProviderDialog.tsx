@@ -46,6 +46,7 @@ interface AddProviderDialogProps {
   onAdd: (params: {
     name: string;
     api: string;
+    auth: string;
     baseUrl: string;
     apiKey?: string;
     models: ModelEntry[];
@@ -65,6 +66,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
 
   const [providerName, setProviderName] = useState("");
   const [api, setApi] = useState<string>("openai-completions");
+  const [authType, setAuthType] = useState<string>("api-key");
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [models, setModels] = useState<ModelEntry[]>([emptyModel()]);
@@ -73,6 +75,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
   const reset = useCallback(() => {
     setProviderName("");
     setApi("openai-completions");
+    setAuthType("api-key");
     setBaseUrl("");
     setApiKey("");
     setModels([emptyModel()]);
@@ -100,6 +103,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
       const ok = await onAdd({
         name: providerName.trim(),
         api,
+        auth: authType,
         baseUrl: baseUrl.trim(),
         apiKey: apiKey.trim() || undefined,
         models: models.map((m) => ({
@@ -144,7 +148,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
               placeholder={t("providerNamePlaceholder")}
               className="font-mono text-xs"
             />
-            <p className="text-[10px] text-[var(--text-secondary)]">{t("providerNameHint")}</p>
+            <p className="text-[10px] text-[var(--muted-foreground)]">{t("providerNameHint")}</p>
           </div>
 
           {/* API Format */}
@@ -171,6 +175,37 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
             </Select>
           </div>
 
+          {/* Auth Type */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t("authType")}</Label>
+            <Select
+              value={authType}
+              onValueChange={(v) => {
+                if (v) {
+                  setAuthType(v);
+                }
+              }}
+            >
+              <SelectTrigger className="text-xs cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="api-key" className="text-xs">
+                  {t("authApiKey")}
+                </SelectItem>
+                <SelectItem value="oauth" className="text-xs">
+                  {t("authOAuth")}
+                </SelectItem>
+                <SelectItem value="aws-sdk" className="text-xs">
+                  {t("authAwsSdk")}
+                </SelectItem>
+                <SelectItem value="token" className="text-xs">
+                  {t("authToken")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Base URL */}
           <div className="space-y-1.5">
             <Label className="text-xs">{t("baseUrl")}</Label>
@@ -182,18 +217,37 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
             />
           </div>
 
-          {/* API Key */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t("apiKey")}</Label>
-            <Input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-..."
-              className="font-mono text-xs"
-              autoComplete="off"
-            />
-          </div>
+          {/* API Key — shown for api-key and token auth types */}
+          {(authType === "api-key" || authType === "token") && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">
+                {authType === "token" ? t("authToken") : t("apiKey")}
+              </Label>
+              <Input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                className="font-mono text-xs"
+                autoComplete="off"
+              />
+              <div className="flex items-center gap-1">
+                {apiKey.startsWith("${") && apiKey.endsWith("}") && (
+                  <span className="text-[var(--primary)]" title="Environment variable reference">
+                    &#x1F517;
+                  </span>
+                )}
+                <p className="text-[10px] text-[var(--muted-foreground)]">{t("secretHint")}</p>
+              </div>
+            </div>
+          )}
+
+          {/* OAuth hint */}
+          {authType === "oauth" && (
+            <p className="text-xs text-[var(--muted-foreground)] rounded-lg bg-[var(--muted)] p-3">
+              {t("oauthHint")}
+            </p>
+          )}
 
           {/* Models */}
           <div className="space-y-2">
@@ -232,7 +286,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
                   </div>
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <Label className="text-[10px] text-[var(--text-secondary)]">
+                      <Label className="text-[10px] text-[var(--muted-foreground)]">
                         {t("contextWindowLabel")}
                       </Label>
                       <Input
@@ -243,7 +297,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
                       />
                     </div>
                     <div className="flex-1">
-                      <Label className="text-[10px] text-[var(--text-secondary)]">
+                      <Label className="text-[10px] text-[var(--muted-foreground)]">
                         {t("maxTokensLabel")}
                       </Label>
                       <Input
@@ -261,7 +315,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
                     variant="ghost"
                     size="sm"
                     onClick={() => removeModelRow(idx)}
-                    className="h-6 w-6 p-0 shrink-0 text-[var(--danger)] cursor-pointer"
+                    className="h-6 w-6 p-0 shrink-0 text-[var(--destructive)] cursor-pointer"
                   >
                     <Trash2 size={12} />
                   </Button>
@@ -270,7 +324,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
             ))}
 
             {models.length === 0 && (
-              <p className="text-xs text-[var(--text-secondary)] text-center py-2">
+              <p className="text-xs text-[var(--muted-foreground)] text-center py-2">
                 {t("noModelsAdded")}
               </p>
             )}
