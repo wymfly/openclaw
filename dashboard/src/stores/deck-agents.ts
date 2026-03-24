@@ -427,7 +427,9 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
         return false;
       }
       const { fetchDetail } = get();
-      if (agentId) await fetchDetail(agentId, true);
+      if (agentId) {
+        await fetchDetail(agentId, true);
+      }
       return true;
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "Network error" });

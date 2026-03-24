@@ -40,8 +40,12 @@ export function ContextTab({ agentId }: ContextTabProps) {
   const fetchThinkingLevel = useCallback(async () => {
     try {
       const res = await fetch("/api/config");
-      if (!res.ok) return;
-      const data = (await res.json()) as { config?: { agents?: { defaults?: { thinkingDefault?: string } } } };
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as {
+        config?: { agents?: { defaults?: { thinkingDefault?: string } } };
+      };
       const level = data.config?.agents?.defaults?.thinkingDefault;
       if (level && THINKING_LEVELS.includes(level as ThinkingLevel)) {
         setThinkingLevel(level as ThinkingLevel);
@@ -68,7 +72,9 @@ export function ContextTab({ agentId }: ContextTabProps) {
   };
 
   const handleThinkingChange = async (level: ThinkingLevel) => {
-    if (level === thinkingLevel || thinkingSaving) return;
+    if (level === thinkingLevel || thinkingSaving) {
+      return;
+    }
     setThinkingSaving(true);
     const ok = await patchAgentConfig(agentId, "agents.defaults.thinkingDefault", level);
     if (ok) {
@@ -108,9 +114,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
               {t("thinkingTitle")}
             </span>
           </div>
-          <p className="text-[10px] text-[var(--muted-foreground)]">
-            {t("thinkingDescription")}
-          </p>
+          <p className="text-[10px] text-[var(--muted-foreground)]">{t("thinkingDescription")}</p>
           <div className="flex flex-wrap gap-1.5">
             {THINKING_LEVELS.map((level) => (
               <button
