@@ -90,6 +90,8 @@ export interface AgentSkills {
   skills: string[];
   available: SkillEntry[];
   configHash: string;
+  /** Explicit whitelist of skill keys when mode is "whitelist". */
+  whitelist: string[];
 }
 
 export interface AgentSubagentConfig {
@@ -103,6 +105,12 @@ export interface AgentSubagentConfig {
   allowedAgents: Array<{ id: string; name?: string }>;
   allAgents: Array<{ id: string; name?: string }>;
   configHash: string;
+  /** Spawn permission mode: none / list / any. Derived from allowAny + allowAgents. */
+  allowMode: "none" | "list" | "any";
+  /** Alias for effectiveMaxSpawnDepth. */
+  effectiveMaxDepth: number;
+  /** Alias for effectiveMaxChildrenPerAgent. */
+  effectiveMaxChildren: number;
 }
 
 export interface AgentEventStreamsConfig {
@@ -149,9 +157,9 @@ interface DeckAgentsState {
   fetchSubagentConfig: (agentId: string) => Promise<void>;
   updateSubagentConfig: (
     agentId: string,
-    allowAgents: string[],
-    model: string | null | undefined,
-    baseHash: string,
+    configOrAllowAgents: string[] | { allowMode?: string; allowAgents?: string[]; model?: string },
+    modelOrBaseHash?: string | null,
+    baseHash?: string,
   ) => Promise<boolean>;
   fetchEventStreams: (agentId: string) => Promise<void>;
   setEventStreams: (agentId: string, eventStreams: string[], baseHash: string) => Promise<boolean>;
@@ -159,6 +167,7 @@ interface DeckAgentsState {
   fetchSystemPromptPreview: (agentId: string) => Promise<void>;
   fetchBootstrapFile: (agentId: string, name: string) => Promise<void>;
   saveBootstrapFile: (agentId: string, name: string, content: string) => Promise<boolean>;
+  patchAgentConfig: (agentId: string, path: string, value: unknown) => Promise<boolean>;
   invalidateCache: (agentId: string) => void;
 }
 
@@ -256,7 +265,24 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
     }
   },
 
-  updateSubagentConfig: async (agentId, allowAgents, model, baseHash) => {
+  updateSubagentConfig: async (agentId, configOrAllowAgents, modelOrBaseHash, baseHash) => {
+    // Support both calling conventions:
+    //   (agentId, allowAgents[], model, baseHash) — legacy
+    //   (agentId, { allowMode, allowAgents, model }, baseHash) — object-based
+    let resolvedAllowAgents: string[];
+    let resolvedModel: string | null | undefined;
+    let resolvedBaseHash: string;
+
+    if (Array.isArray(configOrAllowAgents)) {
+      resolvedAllowAgents = configOrAllowAgents;
+      resolvedModel = modelOrBaseHash;
+      resolvedBaseHash = baseHash ?? "";
+    } else {
+      resolvedAllowAgents = configOrAllowAgents.allowAgents ?? [];
+      resolvedModel = configOrAllowAgents.model;
+      resolvedBaseHash = typeof modelOrBaseHash === "string" ? modelOrBaseHash : "";
+    }
+
     try {
       const res = await fetch("/api/deck/agents", {
         method: "POST",
@@ -264,9 +290,9 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
         body: JSON.stringify({
           action: "subagents.set",
           agentId,
-          allowAgents,
-          ...(model !== undefined ? { model } : {}),
-          baseHash,
+          allowAgents: resolvedAllowAgents,
+          ...(resolvedModel !== undefined ? { model: resolvedModel } : {}),
+          baseHash: resolvedBaseHash,
         }),
       });
       if (res.ok) {
@@ -383,6 +409,28 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
       });
       return res.ok;
     } catch {
+      return false;
+    }
+  },
+
+  patchAgentConfig: async (agentId: string, path: string, value: unknown) => {
+    set({ error: null });
+    try {
+      const res = await fetch("/api/deck/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "config.patch", agentId, path, value }),
+      });
+      if (!res.ok) {
+        const d = (await res.json()) as { error?: string };
+        set({ error: d.error ?? "Failed to update config" });
+        return false;
+      }
+      const { fetchDetail } = get();
+      if (agentId) await fetchDetail(agentId, true);
+      return true;
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "Network error" });
       return false;
     }
   },

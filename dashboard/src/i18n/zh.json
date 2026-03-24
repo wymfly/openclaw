@@ -527,7 +527,15 @@
     "editorPlaceholder": "输入文件内容...",
     "policyLayers": "策略层级",
     "toolList": "工具列表",
-    "searchTools": "搜索工具..."
+    "searchTools": "搜索工具...",
+    "thinkingTitle": "思维深度",
+    "thinkingDescription": "控制智能体的推理深度",
+    "thinkingOff": "关闭",
+    "thinkingMinimal": "极简",
+    "thinkingLow": "低",
+    "thinkingMedium": "中",
+    "thinkingHigh": "高",
+    "thinkingAdaptive": "自适应"
   },
   "notifications": {
     "info": "提示",

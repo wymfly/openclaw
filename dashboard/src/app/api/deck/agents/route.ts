@@ -14,6 +14,7 @@
  *   deck.agents.systemPrompt.preview:  { agentId }
  *   deck.agents.eventStreams.get:       { agentId }
  *   deck.agents.eventStreams.set:       { agentId, eventStreams, baseHash }
+ *   config.patch:                      { raw } (merge-patch JSON string)
  */
 import { type NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";
@@ -38,7 +39,25 @@ type AgentAction =
   | "toolPolicy.preview"
   | "systemPrompt.preview"
   | "eventStreams.get"
-  | "eventStreams.set";
+  | "eventStreams.set"
+  | "config.patch";
+
+/**
+ * Build a nested merge-patch object from a dotted config path and value.
+ * e.g. ("agents.defaults.thinkingDefault", "low") => { agents: { defaults: { thinkingDefault: "low" } } }
+ */
+function buildMergePatch(path: string, value: unknown): Record<string, unknown> {
+  const keys = path.split(".");
+  let obj: Record<string, unknown> = {};
+  const root = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const child: Record<string, unknown> = {};
+    obj[keys[i]] = child;
+    obj = child;
+  }
+  obj[keys[keys.length - 1]] = value;
+  return root;
+}
 
 export const POST = withAuth(async (request: NextRequest) => {
   const body = (await request.json()) as {
@@ -65,6 +84,14 @@ export const POST = withAuth(async (request: NextRequest) => {
       return gatewayRequest("deck.agents.eventStreams.get", params);
     case "eventStreams.set":
       return gatewayRequest("deck.agents.eventStreams.set", params);
+    case "config.patch": {
+      const { path, value } = params as { path?: string; value?: unknown };
+      if (!path || typeof path !== "string") {
+        return Response.json({ error: "path is required" }, { status: 400 });
+      }
+      const patch = buildMergePatch(path, value);
+      return gatewayRequest("config.patch", { raw: JSON.stringify(patch) });
+    }
     default:
       return Response.json({ error: "Invalid action" }, { status: 400 });
   }
