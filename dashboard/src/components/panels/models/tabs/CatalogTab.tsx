@@ -39,6 +39,8 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
     allowlist,
     toggleAllowlist,
     toggleModelEnabled,
+    updateModelAllowlistEntry,
+    providerApiMap,
   } = useModelsStore();
   const [selected, setSelected] = useState<Selection | null>(null);
 
@@ -184,6 +186,9 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
               allowlistActive={allowlistActive}
               isEnabled={allowlist[`${selectedModelObj.provider}/${selectedModelObj.id}`] != null}
               onToggleEnabled={handleToggleEnabled}
+              allowlistEntry={allowlist[`${selectedModelObj.provider}/${selectedModelObj.id}`]}
+              providerApi={providerApiMap[selectedModelObj.provider]}
+              onUpdateEntry={updateModelAllowlistEntry}
             />
           )}
 

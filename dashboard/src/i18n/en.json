@@ -225,7 +225,17 @@
       "enabled": "Enabled",
       "disabled": "Disabled",
       "enableModel": "Enable",
-      "disableModel": "Disable"
+      "disableModel": "Disable",
+      "params": "Model Parameters",
+      "alias": "Alias",
+      "aliasPlaceholder": "e.g. opus, sonnet",
+      "streaming": "Streaming",
+      "thinkingType": "Thinking Mode",
+      "thinkingDisabled": "Disabled",
+      "thinkingEnabled": "Enabled",
+      "thinkingBudget": "Thinking Budget (tokens)",
+      "advancedParams": "Advanced Parameters",
+      "invalidJson": "Invalid JSON"
     },
     "provider": "Provider Config",
     "name": "Model Name",
