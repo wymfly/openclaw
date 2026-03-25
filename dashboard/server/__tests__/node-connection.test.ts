@@ -201,6 +201,39 @@ describe("NodeConnection", () => {
 
       await conn.stop();
     });
+
+    it("broadcasts a2ui_push action for canvas.a2ui.pushJSONL command", async () => {
+      vi.useRealTimers();
+      const { conn, eventBus, mockWs } = createNodeConnection();
+      await startAndHandshake(conn, mockWs);
+
+      const received: ServerEvent[] = [];
+      eventBus.subscribe((e) => received.push(e));
+
+      // Send a canvas.a2ui.pushJSONL invoke with JSONL data.
+      const jsonlData = { lines: ['{"type":"text","text":"hello"}'] };
+      mockWs.emit(
+        "message",
+        makeInvokeEvent("inv-a2ui-1", "canvas.a2ui.pushJSONL", jsonlData),
+      );
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(received.length).toBeGreaterThanOrEqual(1);
+      const canvasEvent = received.find((e) => e.type === "canvas");
+      expect(canvasEvent).toBeDefined();
+      expect((canvasEvent!.data as Record<string, unknown>).action).toBe("a2ui_push");
+      expect((canvasEvent!.data as Record<string, unknown>).invokeId).toBe("inv-a2ui-1");
+      expect((canvasEvent!.data as Record<string, unknown>).params).toEqual(jsonlData);
+
+      // Should also send a success invoke result back.
+      const resultFrames = mockWs.sent.slice(-1);
+      const resultFrame = JSON.parse(resultFrames[0]);
+      expect(resultFrame.method).toBe("node.invoke.result");
+      expect(resultFrame.params.id).toBe("inv-a2ui-1");
+      expect(resultFrame.params.ok).toBe(true);
+
+      await conn.stop();
+    });
   });
 
   // 4. canvas command → sends node.invoke.result
