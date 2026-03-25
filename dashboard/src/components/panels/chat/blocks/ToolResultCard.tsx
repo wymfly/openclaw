@@ -116,7 +116,9 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
     ? toolInput.file_path
     : typeof toolInput?.path === "string"
       ? toolInput.path
-      : undefined;
+      : typeof toolInput?.filePath === "string"
+        ? toolInput.filePath
+        : undefined;
   const artifact = !isError
     ? detectArtifact(contentStr, toolName ? { toolName, filePath } : undefined)
     : null;

@@ -14,13 +14,13 @@ describe("download", () => {
     ).toBe("page.html");
   });
 
-  it("falls back to title", () => {
+  it("falls back to artifact.{ext} when no source.fileName", () => {
     expect(
-      buildDownloadFilename({ id: "1", title: "My Report", language: "json", content: "" }),
-    ).toBe("My Report");
+      buildDownloadFilename({ id: "1", title: "artifactJson", language: "json", content: "" }),
+    ).toBe("artifact.json");
   });
 
-  it("falls back to artifact.{ext}", () => {
+  it("falls back to artifact.{ext} for any title (title is never used as filename)", () => {
     expect(
       buildDownloadFilename({ id: "1", title: "", language: "csv", content: "" }),
     ).toBe("artifact.csv");
