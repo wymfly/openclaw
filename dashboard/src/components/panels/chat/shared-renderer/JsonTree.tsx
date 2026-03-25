@@ -14,14 +14,14 @@ export function JsonTree({ content }: JsonTreeProps) {
     parsed = JSON.parse(content);
   } catch {
     return (
-      <pre className="p-4 text-xs font-mono text-[var(--danger)] whitespace-pre-wrap">
+      <pre className="p-4 text-xs font-mono text-[var(--destructive)] whitespace-pre-wrap">
         {t("artifactJsonInvalid")}
       </pre>
     );
   }
 
   return (
-    <div className="p-3 overflow-auto flex-1 text-xs font-mono text-[var(--text-primary)]">
+    <div className="p-3 text-xs font-mono text-[var(--foreground)]">
       <JsonNode value={parsed} depth={0} />
     </div>
   );
@@ -29,13 +29,13 @@ export function JsonTree({ content }: JsonTreeProps) {
 
 function JsonNode({ value, depth }: { value: unknown; depth: number }) {
   if (value === null) {
-    return <span className="text-[var(--text-secondary)]">null</span>;
+    return <span className="text-[var(--muted-foreground)]">null</span>;
   }
   if (typeof value === "boolean") {
     return <span className="text-[var(--warning)]">{String(value)}</span>;
   }
   if (typeof value === "number") {
-    return <span className="text-[var(--accent)]">{String(value)}</span>;
+    return <span className="text-[var(--primary)]">{String(value)}</span>;
   }
   if (typeof value === "string") {
     return <span className="text-[var(--success)]">&quot;{value}&quot;</span>;
@@ -81,13 +81,13 @@ function CollapsibleNode({
     <span>
       <button
         onClick={toggle}
-        className="inline-flex items-center gap-0.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer"
+        className="inline-flex items-center gap-0.5 hover:bg-[var(--muted)] rounded cursor-pointer"
         type="button"
       >
         {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         <span>{bracket[0]}</span>
         {!open && (
-          <span className="text-[var(--text-secondary)]">
+          <span className="text-[var(--muted-foreground)]">
             {isArray ? `${entries.length} items` : `${entries.length} keys`}
           </span>
         )}
@@ -102,17 +102,17 @@ function CollapsibleNode({
                 return (
                   <div key={i}>
                     <JsonNode value={entry} depth={depth + 1} />
-                    {!isLast && <span className="text-[var(--text-secondary)]">,</span>}
+                    {!isLast && <span className="text-[var(--muted-foreground)]">,</span>}
                   </div>
                 );
               }
               const [key, val] = entry as [string, unknown];
               return (
                 <div key={key}>
-                  <span className="text-[var(--text-primary)]">&quot;{key}&quot;</span>
-                  <span className="text-[var(--text-secondary)]">: </span>
+                  <span className="text-[var(--foreground)]">&quot;{key}&quot;</span>
+                  <span className="text-[var(--muted-foreground)]">: </span>
                   <JsonNode value={val} depth={depth + 1} />
-                  {!isLast && <span className="text-[var(--text-secondary)]">,</span>}
+                  {!isLast && <span className="text-[var(--muted-foreground)]">,</span>}
                 </div>
               );
             })}

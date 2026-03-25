@@ -4,34 +4,16 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CodeViewer } from "./CodeViewer";
+import { CodeViewer } from "../shared-renderer/CodeViewer";
+import { JsonTree } from "../shared-renderer/JsonTree";
+import { MarkdownViewer } from "../shared-renderer/MarkdownViewer";
+import { buildSrcdoc, usesIframe } from "../shared-renderer/srcdoc";
+import { TableViewer } from "../shared-renderer/TableViewer";
 import type { ArtifactInfo } from "./detectArtifact";
-import { JsonTree } from "./JsonTree";
-import { MarkdownViewer } from "./MarkdownViewer";
-import { TableViewer } from "./TableViewer";
 
 interface ArtifactPanelProps {
   artifact: ArtifactInfo;
   onClose: () => void;
-}
-
-/** Build an HTML srcdoc for iframe-rendered artifact types. */
-function buildSrcdoc(artifact: ArtifactInfo): string {
-  switch (artifact.language) {
-    case "html":
-      return artifact.content;
-    case "svg":
-      return `<!DOCTYPE html><html><body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fff">${artifact.content}</body></html>`;
-    case "mermaid":
-      return `<!DOCTYPE html><html><head><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script></head><body><pre class="mermaid">${artifact.content.replace(/</g, "&lt;")}</pre><script>mermaid.initialize({startOnLoad:true,theme:'default'});</script></body></html>`;
-    default:
-      return `<!DOCTYPE html><html><body><pre style="margin:16px;font-family:monospace;white-space:pre-wrap">${artifact.content.replace(/</g, "&lt;")}</pre></body></html>`;
-  }
-}
-
-/** Whether this artifact type uses an iframe for rendering. */
-function usesIframe(language: ArtifactInfo["language"]): boolean {
-  return language === "html" || language === "svg" || language === "mermaid" || language === "text";
 }
 
 export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
@@ -52,16 +34,16 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
   return (
     <div
       className={cn(
-        "flex flex-col border-l border-[var(--border)] bg-[var(--bg-secondary)]",
-        fullscreen ? "fixed inset-0 z-50" : "w-1/2",
+        "flex flex-col bg-[var(--card)]",
+        fullscreen ? "fixed inset-0 z-50 border border-[var(--border)]" : "h-full",
       )}
     >
       {/* Title bar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)] shrink-0">
-        <span className="flex-1 text-xs font-medium text-[var(--text-primary)] truncate">
+        <span className="flex-1 text-xs font-medium text-[var(--foreground)] truncate">
           {t.has(artifact.title) ? t(artifact.title) : artifact.title}
         </span>
-        <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider">
+        <span className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-wider">
           {artifact.language}
         </span>
         <Button
@@ -94,22 +76,24 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
       </div>
 
       {/* Content area — route by artifact type */}
-      {usesIframe(artifact.language) ? (
-        <iframe
-          srcDoc={srcdoc}
-          sandbox="allow-scripts"
-          className="flex-1 w-full border-0"
-          title={artifact.title}
-        />
-      ) : artifact.language === "json" ? (
-        <JsonTree content={artifact.content} />
-      ) : artifact.language === "csv" ? (
-        <TableViewer content={artifact.content} />
-      ) : artifact.language === "markdown" ? (
-        <MarkdownViewer content={artifact.content} />
-      ) : artifact.language === "code" ? (
-        <CodeViewer content={artifact.content} language={artifact.codeLang} />
-      ) : null}
+      <div className="flex-1 min-h-0 overflow-auto">
+        {usesIframe(artifact.language) ? (
+          <iframe
+            srcDoc={srcdoc}
+            sandbox="allow-scripts"
+            className="w-full h-full border-0"
+            title={artifact.title}
+          />
+        ) : artifact.language === "json" ? (
+          <JsonTree content={artifact.content} />
+        ) : artifact.language === "csv" ? (
+          <TableViewer content={artifact.content} />
+        ) : artifact.language === "markdown" ? (
+          <MarkdownViewer content={artifact.content} />
+        ) : artifact.language === "code" ? (
+          <CodeViewer content={artifact.content} language={artifact.codeLang} />
+        ) : null}
+      </div>
     </div>
   );
 }

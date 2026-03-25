@@ -9,21 +9,21 @@ export function TableViewer({ content }: TableViewerProps) {
   const t = useTranslations("chat");
   const lines = content.split("\n").filter((l) => l.trim());
   if (lines.length < 2) {
-    return <p className="p-4 text-xs text-[var(--text-secondary)]">{t("artifactCsvEmpty")}</p>;
+    return <p className="p-4 text-xs text-[var(--muted-foreground)]">{t("artifactCsvEmpty")}</p>;
   }
 
   const headers = parseLine(lines[0]);
   const rows = lines.slice(1).map(parseLine);
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div>
       <table className="w-full text-xs border-collapse">
         <thead>
-          <tr className="bg-[var(--bg-tertiary)]">
+          <tr className="bg-[var(--muted)]">
             {headers.map((h, i) => (
               <th
                 key={i}
-                className="px-3 py-2 text-left font-semibold text-[var(--text-primary)] border-b border-[var(--border)]"
+                className="px-3 py-2 text-left font-semibold text-[var(--foreground)] border-b border-[var(--border)]"
               >
                 {h}
               </th>
@@ -32,11 +32,11 @@ export function TableViewer({ content }: TableViewerProps) {
         </thead>
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={ri} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
+            <tr key={ri} className="hover:bg-[var(--muted)]/50 transition-colors">
               {row.map((cell, ci) => (
                 <td
                   key={ci}
-                  className="px-3 py-1.5 text-[var(--text-primary)] border-b border-[var(--border-subtle)]"
+                  className="px-3 py-1.5 text-[var(--foreground)] border-b border-[var(--border-subtle)]"
                 >
                   {cell}
                 </td>
