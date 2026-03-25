@@ -22,6 +22,7 @@ export class A2UIBridge {
   private iframe: HTMLIFrameElement | null = null;
   private listener: ((e: MessageEvent) => void) | null = null;
   private iframeOrigin = "";
+  private evalCallbacks = new Map<string, (result: unknown) => void>();
 
   constructor(private callbacks: A2UIBridgeCallbacks) {}
 
@@ -53,6 +54,12 @@ export class A2UIBridge {
         case "a2ui:tree-data":
           this.callbacks.onTreeData?.(e.data.tree);
           break;
+        case "a2ui:eval-result":
+          if (e.data.evalId && this.evalCallbacks.has(e.data.evalId)) {
+            this.evalCallbacks.get(e.data.evalId)!(e.data.result);
+            this.evalCallbacks.delete(e.data.evalId);
+          }
+          break;
       }
     };
     window.addEventListener("message", this.listener);
@@ -64,6 +71,7 @@ export class A2UIBridge {
       this.listener = null;
     }
     this.iframe = null;
+    this.evalCallbacks.clear();
   }
 
   pushMessages(messages: unknown[]): void {
@@ -83,6 +91,16 @@ export class A2UIBridge {
 
   requestTree(): void {
     this.iframe?.contentWindow?.postMessage({ type: "a2ui:get-tree" }, this.iframeOrigin);
+  }
+
+  eval(javaScript: string, evalId: string): Promise<unknown> {
+    return new Promise((resolve) => {
+      this.evalCallbacks.set(evalId, resolve);
+      this.iframe?.contentWindow?.postMessage(
+        { type: "a2ui:eval", evalId, javaScript },
+        this.iframeOrigin,
+      );
+    });
   }
 }
 
