@@ -15,7 +15,14 @@ import { useUIStore } from "@/stores/ui";
 // Agent panel
 // ---------------------------------------------------------------------------
 
-export type AgentTab = "overview" | "routing" | "skills" | "context" | "subagent" | "sessions";
+export type AgentTab =
+  | "overview"
+  | "config"
+  | "routing"
+  | "skills"
+  | "context"
+  | "subagent"
+  | "sessions";
 
 /**
  * Navigate to the agents panel, select a specific agent, and optionally

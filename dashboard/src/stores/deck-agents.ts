@@ -146,6 +146,13 @@ interface CacheEntry<T> {
 // Store
 // ---------------------------------------------------------------------------
 
+export interface AgentRawConfig {
+  defaults: Record<string, unknown>;
+  entry: Record<string, unknown> | null;
+  list: Record<string, unknown>[];
+  baseHash: string | null;
+}
+
 interface DeckAgentsState {
   _cache: Map<string, CacheEntry<AgentDetail>>;
   currentDetail: AgentDetail | null;
@@ -159,6 +166,7 @@ interface DeckAgentsState {
   effectiveToolsLoading: boolean;
   loading: boolean;
   error: string | null;
+  agentRawConfig: AgentRawConfig | null;
 
   fetchDetail: (agentId: string, force?: boolean) => Promise<void>;
   fetchSkills: (agentId: string) => Promise<void>;
@@ -183,6 +191,8 @@ interface DeckAgentsState {
   saveBootstrapFile: (agentId: string, name: string, content: string) => Promise<boolean>;
   patchAgentConfig: (agentId: string, path: string, value: unknown) => Promise<boolean>;
   fetchEffectiveTools: (agentId: string, sessionKey?: string) => Promise<void>;
+  fetchAgentRawConfig: (agentId: string) => Promise<void>;
+  saveAgentConfig: (agentId: string, updates: Record<string, unknown>) => Promise<boolean>;
   invalidateCache: (agentId: string) => void;
 }
 
@@ -199,6 +209,7 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   effectiveToolsLoading: false,
   loading: false,
   error: null,
+  agentRawConfig: null,
 
   fetchDetail: async (agentId: string, force = false) => {
     // Check TTL cache
@@ -469,6 +480,97 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
       set({ effectiveTools: data.groups ?? [], effectiveToolsLoading: false });
     } catch {
       set({ effectiveToolsLoading: false });
+    }
+  },
+
+  fetchAgentRawConfig: async (agentId: string) => {
+    set({ agentRawConfig: null });
+    try {
+      const res = await fetch("/api/config");
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as {
+        config: Record<string, unknown> | string;
+        baseHash?: string;
+      };
+      const parsed: Record<string, unknown> =
+        typeof data.config === "string"
+          ? (JSON.parse(data.config) as Record<string, unknown>)
+          : data.config;
+
+      const agents = (parsed.agents ?? {}) as Record<string, unknown>;
+      const defaults = (agents.defaults ?? {}) as Record<string, unknown>;
+      const list = (agents.list ?? []) as Record<string, unknown>[];
+      const entry = list.find((a) => (a as { id?: string }).id === agentId) ?? null;
+
+      set({
+        agentRawConfig: {
+          defaults,
+          entry,
+          list,
+          baseHash: typeof data.baseHash === "string" ? data.baseHash : null,
+        },
+      });
+    } catch {
+      // best-effort
+    }
+  },
+
+  saveAgentConfig: async (agentId: string, updates: Record<string, unknown>) => {
+    const { agentRawConfig } = get();
+    if (!agentRawConfig) {
+      return false;
+    }
+
+    try {
+      // Build the updated agents.list array with the mutated entry
+      const newList = agentRawConfig.list.map((item) => {
+        if ((item as { id?: string }).id !== agentId) {
+          return item;
+        }
+        const merged = { ...item };
+        for (const [key, value] of Object.entries(updates)) {
+          if (value === null) {
+            // JSON Merge Patch: null = delete key
+            delete merged[key];
+          } else {
+            merged[key] = value;
+          }
+        }
+        return merged;
+      });
+
+      // If the entry didn't exist in the list, append it
+      if (!agentRawConfig.entry) {
+        const newEntry: Record<string, unknown> = { id: agentId, ...updates };
+        for (const key of Object.keys(newEntry)) {
+          if (newEntry[key] === null) {
+            delete newEntry[key];
+          }
+        }
+        newList.push(newEntry);
+      }
+
+      const res = await fetch("/api/config/patch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patch: { agents: { list: newList } },
+          ...(agentRawConfig.baseHash ? { baseHash: agentRawConfig.baseHash } : {}),
+        }),
+      });
+
+      if (!res.ok) {
+        return false;
+      }
+
+      // Refresh raw config after successful save
+      await get().fetchAgentRawConfig(agentId);
+      get().invalidateCache(agentId);
+      return true;
+    } catch {
+      return false;
     }
   },
 
