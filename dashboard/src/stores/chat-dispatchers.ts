@@ -643,6 +643,9 @@ export function dispatchSessionStateEvent(
   if (phase === "end") {
     api.setStreaming(sessionKey, false);
   }
+  if (reason === "abort") {
+    api.setStreaming(sessionKey, false);
+  }
   if (phase === "error") {
     api.setStreaming(sessionKey, false);
     api.setSessionError(
