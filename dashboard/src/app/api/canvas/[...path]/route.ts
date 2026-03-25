@@ -39,6 +39,19 @@ const BRIDGE_SCRIPT = `
         }
       } catch {}
       window.parent.postMessage({ type: "a2ui:tree-data", tree }, DECK_ORIGIN);
+    } else if (e.data?.type === "a2ui:eval") {
+      try {
+        var result = eval(e.data.javaScript);
+        window.parent.postMessage(
+          { type: "a2ui:eval-result", evalId: e.data.evalId, result: result },
+          DECK_ORIGIN,
+        );
+      } catch (err) {
+        window.parent.postMessage(
+          { type: "a2ui:eval-result", evalId: e.data.evalId, result: null, error: String(err) },
+          DECK_ORIGIN,
+        );
+      }
     }
   });
   window.openclawCanvasA2UIAction = {
