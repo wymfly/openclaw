@@ -94,7 +94,14 @@
     "toolsRunning": "Tools running",
     "toolsCompleted": "Tools completed",
     "canvasConnected": "Canvas connected",
-    "canvasDisconnected": "Canvas disconnected"
+    "canvasDisconnected": "Canvas disconnected",
+    "canvasTitle": "Canvas",
+    "canvasCollapse": "Collapse canvas",
+    "canvasLoading": "Loading canvas...",
+    "canvasError": "Canvas failed to load",
+    "canvasRetry": "Retry",
+    "canvasEmpty": "No canvas content",
+    "debugTitle": "Debug panel"
   },
   "gateway": {
     "title": "Gateway Overview",
@@ -197,7 +204,11 @@
     "error": "Error",
     "offline": "Offline",
     "confirmDelete": "Are you sure you want to delete this agent?",
-    "selectAgent": "Select an agent to view details"
+    "selectAgent": "Select an agent to view details",
+    "effectiveTools": "Effective Tools",
+    "toolAllowed": "Allowed",
+    "toolDenied": "Denied",
+    "toolSource": "Source"
   },
   "models": {
     "title": "Models",
@@ -590,7 +601,27 @@
     "searchNoResults": "No matches",
     "exportJson": "Export JSON",
     "exportMarkdown": "Export Markdown",
-    "exportEmpty": "Empty session cannot be exported"
+    "exportEmpty": "Empty session cannot be exported",
+    "statusIdle": "Idle",
+    "statusRunning": "Running",
+    "statusDone": "Done",
+    "statusFailed": "Failed",
+    "statusKilled": "Killed",
+    "statusTimeout": "Timeout",
+    "fastMode": "Fast Mode",
+    "subagentRole": "Subagent Role",
+    "subagentRoleOrchestrator": "Orchestrator",
+    "subagentRoleLeaf": "Leaf",
+    "subagentControlScope": "Control Scope",
+    "subagentControlScopeChildren": "Children",
+    "subagentControlScopeNone": "None",
+    "spawnedWorkspaceDir": "Workspace Dir",
+    "parentSession": "Parent Session",
+    "childSessions": "Child Sessions",
+    "startedAt": "Started At",
+    "endedAt": "Ended At",
+    "runtimeMs": "Runtime",
+    "interruptedRun": "Interrupted active run"
   },
   "logs": {
     "title": "Log Viewer",
@@ -681,7 +712,8 @@
     "hooks": "Hooks",
     "models": "Models",
     "channels": "Channels",
-    "advanced": "Advanced"
+    "advanced": "Advanced",
+    "schemaLookupFallback": "Schema lookup unavailable, using full load"
   },
   "cron": {
     "title": "Cron Jobs",
