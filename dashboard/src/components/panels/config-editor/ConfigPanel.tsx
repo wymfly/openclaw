@@ -4,6 +4,7 @@ import { Save, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useCallback } from "react";
 import { parseSchemaSection } from "@/lib/schema-parser";
+import { applyUiHints } from "@/lib/ui-hints";
 import { useConfigStore } from "@/stores/config";
 import { ConflictDialog } from "./ConflictDialog";
 import { SchemaForm } from "./SchemaForm";
@@ -21,6 +22,7 @@ export function ConfigPanel() {
 
   const {
     schema,
+    uiHints,
     editedConfig,
     isDirty,
     saving,
@@ -81,6 +83,7 @@ export function ConfigPanel() {
   }, [editedConfig]);
 
   // Get fields for current section from schema (supports dotted paths like "agents.main")
+  // After parsing, decorate with uiHints (help, group, tags, sensitive, etc.)
   const currentFields = useMemo(() => {
     if (!schema || !activeSection) {
       return [];
@@ -96,8 +99,15 @@ export function ConfigPanel() {
     if (!node || typeof node !== "object") {
       return [];
     }
-    return parseSchemaSection(node);
-  }, [schema, activeSection]);
+    const fields = parseSchemaSection(node);
+    // Gateway hint paths include section prefix (e.g. "agents.list[].model"),
+    // but parseSchemaSection returns keys without it (e.g. "list[].model").
+    // Prepend activeSection + "." so applyUiHints can match correctly.
+    if (uiHints) {
+      return applyUiHints(fields, uiHints, `${activeSection}.`);
+    }
+    return fields;
+  }, [schema, activeSection, uiHints]);
 
   // Get values for the active section (supports dotted paths)
   const sectionValues = useMemo(() => {
