@@ -8,13 +8,13 @@ import {
   useSessionStreaming,
   useSessionA2UI,
 } from "@/stores/chat-hooks";
-import { useUIStore } from "@/stores/ui";
 import {
   loadBlockPreferences,
   saveBlockPreferences,
   type ChatBlockPreferences,
 } from "@/stores/chat-preferences";
 import type { ChatMessage, ContentBlock, SessionMeta } from "@/stores/chat-types";
+import { useUIStore } from "@/stores/ui";
 import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { BlockFilterBar } from "./BlockFilterBar";
@@ -26,10 +26,12 @@ import { SessionSidebar } from "./SessionSidebar";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { useChatSSE } from "./useChatSSE";
 
-/** Context for artifact interactions — consumed by ToolResultCard. */
+/** Context for artifact interactions — consumed by ToolResultCard and MessageInput. */
 export const ArtifactContext = createContext<{
   onOpenArtifact: (artifact: ArtifactInfo) => void;
-}>({ onOpenArtifact: () => {} });
+  onToggleArtifactPanel: () => void;
+  artifactPanelOpen: boolean;
+}>({ onOpenArtifact: () => {}, onToggleArtifactPanel: () => {}, artifactPanelOpen: false });
 
 /**
  * Convert Gateway ContentBlock[] to normalized ContentBlock[] for storage.
@@ -224,11 +226,26 @@ export function ChatPanel() {
 
   const handleCloseRightPanel = useCallback(() => {
     setRightPanelMode("hidden");
-    setActiveArtifact(null);
+    // Keep activeArtifact so the toggle button can reopen it
     useUIStore.getState().setCanvasVisible(false);
   }, []);
 
-  const artifactCtx = useMemo(() => ({ onOpenArtifact: handleOpenArtifact }), [handleOpenArtifact]);
+  const handleToggleArtifactPanel = useCallback(() => {
+    if (rightPanelMode === "artifact") {
+      setRightPanelMode("hidden");
+    } else if (activeArtifact) {
+      setRightPanelMode("artifact");
+    }
+  }, [rightPanelMode, activeArtifact]);
+
+  const artifactCtx = useMemo(
+    () => ({
+      onOpenArtifact: handleOpenArtifact,
+      onToggleArtifactPanel: handleToggleArtifactPanel,
+      artifactPanelOpen: rightPanelMode === "artifact",
+    }),
+    [handleOpenArtifact, handleToggleArtifactPanel, rightPanelMode],
+  );
 
   const handleBlockPrefsChange = useCallback((prefs: ChatBlockPreferences) => {
     setBlockPrefs(prefs);

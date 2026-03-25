@@ -1,11 +1,12 @@
 "use client";
 
-import { Send, Square, Paperclip, X, FileIcon, ImageIcon, Loader2, PanelRight } from "lucide-react";
+import { Send, Square, Paperclip, X, FileIcon, ImageIcon, Loader2, PanelRight, SquareCode } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
 import { useUIStore } from "@/stores/ui";
+import { ArtifactContext } from "./ChatPanel";
 
 /** Max attachment size — matches macOS client (5MB). */
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -84,6 +85,21 @@ function CanvasToggle({ label }: { label: string }) {
       title={label}
     >
       <PanelRight size={16} />
+    </button>
+  );
+}
+
+/** Artifact panel toggle — uses ArtifactContext from ChatPanel. */
+function ArtifactToggle({ label }: { label: string }) {
+  const { onToggleArtifactPanel, artifactPanelOpen } = useContext(ArtifactContext);
+  return (
+    <button
+      onClick={onToggleArtifactPanel}
+      className="p-1.5 rounded hover:opacity-80 transition-opacity shrink-0 cursor-pointer"
+      style={{ color: artifactPanelOpen ? "var(--primary)" : "var(--muted-foreground)" }}
+      title={label}
+    >
+      <SquareCode size={16} />
     </button>
   );
 }
@@ -309,6 +325,7 @@ export function MessageInput() {
           <Paperclip size={16} />
         </button>
         <CanvasToggle label={t("canvasToggle")} />
+        <ArtifactToggle label={t("artifactToggle")} />
         <input
           ref={fileInputRef}
           type="file"
