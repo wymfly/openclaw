@@ -31,12 +31,13 @@ All levels: developers/ops (need discoverability across 1,200+ fields), team adm
 
 All data needed is already available via existing Gateway RPC methods:
 
-| RPC Method           | Returns                                                                    | Used For                                        |
-| -------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
-| `config.schema`      | JSON Schema + `uiHints` (label, help, tags, group, placeholder, sensitive) | Field descriptions, grouping, advanced tagging  |
-| `config.get`         | Current config + baseHash                                                  | Reading values, detecting overrides vs defaults |
-| `config.patch`       | Write result + new baseHash                                                | Saving changes                                  |
-| `deck.agents.detail` | Agent effective config (merged defaults + overrides)                       | Agent Config Editor                             |
+| RPC Method      | Returns                                                                    | Used For                                                             |
+| ---------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `config.schema`  | JSON Schema + `uiHints` (label, help, tags, group, placeholder, sensitive) | Field descriptions, grouping, advanced tagging                       |
+| `config.get`     | Current config (full JSON) + baseHash                                      | Reading values, detecting agent overrides vs defaults, channel config |
+| `config.patch`   | Write result + new baseHash                                                | Saving changes (JSON Merge Patch; `null` = delete key)               |
+
+Note: `deck.agents.detail` returns agent metadata (id, name, model, status, subagents, skills, sandbox) but does **not** include inference parameters like `thinkingDefault`, `temperature`, `tools.profile`, `fastModeDefault`, or `reasoningDefault`. Therefore, the Agent Config Editor reads **all** agent fields from `config.get` raw config, not from `deck.agents.detail`.
 
 **uiHints coverage:** 825 field paths with high-quality, action-oriented descriptions (e.g., "Enable image understanding so attached or referenced images can be interpreted into textual context. Disable if you need text-only operation or want to avoid image-processing cost."). 26 predefined groups. Tags include `advanced`, `sensitive`, `access`.
 
@@ -124,7 +125,10 @@ The main `SchemaForm` switch currently handles 6 basic types. Already-built comp
 | `TypedArrayField` | `field.type === "array" && field.itemSchema`   | ❌ Not wired    |
 | `FieldValidation` | `field.validation` constraints exist           | ❌ Not wired    |
 
-**Change:** Extend `SchemaForm`'s switch to route to these components when their trigger conditions are met. Also extend `schema-parser.ts` `parseProperty()` to populate `sensitive`, `variants`, `valueSchema`, `itemSchema`, `validation` fields from uiHints and JSON Schema.
+**Change:** Extend `SchemaForm`'s switch to route to these components when their trigger conditions are met. Also extend `schema-parser.ts`:
+- Add `group`, `tags`, `help` properties to the `FormField` interface (alongside existing `sensitive`, `variants`, `valueSchema`, `itemSchema`)
+- Populate these in `parseProperty()` from the merged schema + uiHints data
+- This approach (extending `FormField`) is preferred over passing a parallel uiHints map to SchemaForm, because the recursive rendering tree already expects all display metadata on the field object, and `applyUiHints()` already follows a "decorate then render" pattern.
 
 ### 3.7 SectionNav Enhancement
 
@@ -144,6 +148,7 @@ The current `config.ts` store discards `uiHints` from the `config.schema` RPC re
 2. Extend `config.ts` store: persist `uiHints` map alongside `schema` from `fetchSchema()` response
 3. Pass `uiHints` from `ConfigPanel` to `SchemaForm` so field decorators (`sensitive`, `group`, `tags`) are available
 4. Call `applyUiHints()` after `parseSchemaSection()` in ConfigPanel to decorate parsed fields with uiHints data
+5. **Path normalization:** The Gateway's hint paths use `[]` for array indices (e.g., `agents.list[].thinkingDefault`), but the frontend matcher in `ui-hints.ts` only recognizes `*` as wildcard. The matcher must normalize `[]` to `*` when loading hints, or support both syntaxes. Additionally, `ConfigPanel` parses sections by extracting sub-schemas — the resulting field keys lack the section prefix (e.g., `model` instead of `agents.defaults.model`). The `applyUiHints()` call must prepend the active section name to field paths when looking up hints.
 
 ### Files Changed
 
@@ -212,20 +217,33 @@ function effectiveValue(fieldPath: string): unknown {
 }
 ```
 
-**Reset to default:** Override fields show a `✕` button. Clicking removes the field from `agents.list[N]` via `config.patch` (setting the field to `undefined` / deleting the key), reverting to global default.
+**Reset to default:** Override fields show a `✕` button. Clicking removes the field from the agent entry by setting it to `null` in the merge patch (JSON Merge Patch semantics: `null` = delete key).
 
-### 4.4 Tools Profile Selector
+### 4.4 Write Strategy: Full Agent Entry Replacement
+
+`config.patch` uses JSON Merge Patch (RFC 7396). For `agents.list` (an array), merge patch cannot target individual array items by index safely. Instead, the write strategy is:
+
+1. Read the full `agents.list` array from `config.get` raw config
+2. Find the target agent entry by `id`
+3. Modify the field in the agent entry object (set value for override, delete key for reset)
+4. Write back the entire `agents.list` array via `config.patch({ agents: { list: [...] } })`
+
+This is the same pattern used by existing `deck.agents.skills.set` and `deck.agents.subagents.set` RPC handlers, which read the full list, mutate one entry, and write back.
+
+**Alternative considered:** `config.apply` (full replacement) — rejected because it's heavier and doesn't support incremental changes to other sections.
+
+### 4.5 Tools Profile Selector
 
 Visual pill buttons instead of a select dropdown:
 
 - `minimal (1)` | `coding (18)` | `messaging (5)` | `full (30)`
 - Each pill shows the number of tools in that profile
 - Selecting a profile updates the effective tools summary below
-- "→ View full policy trace" link navigates to the ToolPolicyViz tab
+- "→ View full policy trace" link navigates to the **Context tab** (where ToolPolicyViz is rendered as a collapsible section in `ContextTab.tsx:259`)
 
-**Tool counts source:** Static from `tool-catalog.ts` profile definitions (hardcoded in platform, stable).
+**Tool counts source:** Hardcoded in dashboard (matching `src/agents/tool-catalog.ts` CORE_TOOL_PROFILES). These counts are stable platform constants, not user-configurable. If upstream changes profile contents, the dashboard constants are updated during sync.
 
-### 4.5 Save Bar
+### 4.6 Save Bar
 
 Bottom bar displays:
 
@@ -236,10 +254,10 @@ Bottom bar displays:
 ### Data Flow
 
 ```
-Read:  deck.agents.detail → effective config
-       config.get         → raw config (to detect overrides)
-Write: config.patch       → agents.list[N].{field}
-Reset: config.patch       → delete agents.list[N].{field}
+Read:  config.get → parse rawConfig → extract agents.defaults + agents.list[find by id]
+       (deck.agents.detail is NOT used for config fields — only for metadata/status)
+Write: config.patch → { agents: { list: [full array with mutated entry] } }
+Reset: set field to null in agent entry → write back full agents.list
 ```
 
 ### Files Changed
@@ -262,9 +280,12 @@ Reset: config.patch       → delete agents.list[N].{field}
 The current `ChannelDetail.tsx` is a flat layout (accounts list + logout section) with no tab structure. Before adding a "Settings" tab, ChannelDetail must be refactored into a tabbed layout:
 
 - **Tab 1: "Status"** — current content (accounts list, enable/disable, connection status, logout)
-- **Tab 2: "Bindings"** — existing BindingsTab component (already exists separately)
-- **Tab 3: "Throughput"** — existing ThroughputChart component
-- **Tab 4: "Settings"** — new settings tab (this design)
+- **Tab 2: "Bindings"** — existing BindingsTab component, **filtered by channelId** (see note below)
+- **Tab 3: "Settings"** — new settings tab (this design)
+
+**Removed:** ThroughputChart was originally planned as a tab, but it depends on `/api/channels/{id}/throughput` which does not exist (no Gateway RPC, no API route, not in gateway-allowlist). Including it would break the "no backend changes" constraint. ThroughputChart can be added later when a throughput data source is implemented.
+
+**BindingsTab channel filtering:** The existing `BindingsTab` component has no `channelId` prop — it renders all bindings across channels with an internal channel filter dropdown (default: all). When embedded in ChannelDetail, it must be wrapped or extended to pre-filter by the current `channelId` so users see only relevant bindings. Implementation: pass `channelId` as a new optional prop; when set, auto-select that channel in the internal filter and hide the channel dropdown.
 
 This refactoring uses the same `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` pattern as AgentsPanel and MonitorPanel. The existing ChannelDetail content moves into the "Status" tab with minimal changes.
 
@@ -274,27 +295,37 @@ Displays per-channel configuration grouped into 3 sections.
 
 ### 5.3 DM Policy Selector
 
-Radio card UI (not a select dropdown) with 3 options:
+Radio card UI (not a select dropdown) with 4 options matching the real `DmPolicy` type (`src/config/types.base.ts`):
 
-- **pairing** — "Users must pair with a code before chatting." + `recommended` badge
-- **open** — "Anyone can DM the bot. Requires allowFrom: ['*']."
-- **closed** — "Bot ignores all DMs."
+- **pairing** — "Users must pair with a code before chatting. Most secure for public bots." + `recommended` badge
+- **allowlist** — "Only pre-approved users can DM the bot. Configure the allowlist in channel settings."
+- **open** — "Anyone can DM the bot. Requires allowFrom: ['*']. Use only for internal/trusted channels."
+- **disabled** — "Bot ignores all DMs. Use when you only need group/channel interactions."
 
 Each card has a title, one-sentence explanation, and optional badge. This directly addresses the understanding gap — users don't need to know what "pairing" means in OpenClaw's context because the card explains it.
 
+**Note:** The real enum is `pairing | allowlist | open | disabled` (not `closed`). The `allowlist` option has explicit validation logic in `zod-schema.core.ts` and is used in production configurations.
+
 ### 5.4 Retry Strategy Editor
 
-Form fields for: `maxRetries`, `baseDelayMs`, `jitter`.
+Form fields matching the real `RetryConfig` type (`src/config/types.base.ts`):
+
+- **`attempts`** — Total attempt count (including first try). E.g., `attempts: 3` = 1 try + 2 retries
+- **`minDelayMs`** — Minimum delay before first retry (ms)
+- **`maxDelayMs`** — Maximum delay cap (ms)
+- **`jitter`** — Randomness factor (0-1) to avoid thundering herd
+
+**Note:** The schema uses `strict()` validation — unknown keys like `maxRetries` or `baseDelayMs` will be rejected.
 
 Below the fields, a **retry timeline visualization** renders in real-time as values change:
 
 ```
-[1] → 1.0s → [R1] → 2.0s → [R2] → 4.0s → [R3]  total ≈ 7s
+[1] → 1.0s → [R1] → 2.0s → [R2]  total ≈ 3s  (attempts=3, minDelay=1000, maxDelay=10000)
 ```
 
-Circles represent attempts, arrows show delays (exponential backoff × jitter). Total elapsed time displayed at the end. This gives non-technical users an intuitive sense of what "3 retries with 1s base delay" means.
+Circles represent attempts, arrows show delays (capped exponential backoff × jitter). Total elapsed time displayed at the end. This gives non-technical users an intuitive sense of what the retry configuration means.
 
-**Visualization logic:** Pure client-side calculation: `delay(n) = baseDelayMs × 2^n × (1 ± jitter)`. Since jitter is random, the visualization shows the expected (mid-range) case with a parenthetical note "(±jitter)". An `aria-label` on the visualization container provides a text description for screen readers (e.g., "3 retries with exponential backoff, total estimated 7 seconds").
+**Visualization logic:** Pure client-side calculation: `delay(n) = min(minDelayMs × 2^n, maxDelayMs) × (1 ± jitter)`. Since jitter is random, the visualization shows the expected (mid-range) case with a parenthetical note "(±jitter)". An `aria-label` on the visualization container provides a text description for screen readers (e.g., "3 retries with exponential backoff, total estimated 7 seconds").
 
 ### 5.5 Advanced Fields (Schema-driven)
 
