@@ -40,6 +40,13 @@ const BRIDGE_SCRIPT = `
       } catch {}
       window.parent.postMessage({ type: "a2ui:tree-data", tree }, DECK_ORIGIN);
     } else if (e.data?.type === "a2ui:eval") {
+      if (DECK_ORIGIN === "*") {
+        window.parent.postMessage(
+          { type: "a2ui:eval-result", evalId: e.data.evalId, result: null, error: "origin verification failed" },
+          "*"
+        );
+        return;
+      }
       try {
         var result = eval(e.data.javaScript);
         window.parent.postMessage(

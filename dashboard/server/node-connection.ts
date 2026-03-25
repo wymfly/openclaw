@@ -40,14 +40,14 @@ const NODE_CLIENT_ID = "node-host";
 const NODE_CLIENT_MODE = "node";
 const NODE_CLIENT_PLATFORM = "node";
 
-/** Canvas commands the node advertises. */
-const NODE_CANVAS_COMMANDS = [
-  { command: "canvas.present", description: "Show the canvas panel" },
-  { command: "canvas.hide", description: "Hide the canvas panel" },
-  { command: "canvas.navigate", description: "Navigate the canvas to a URL" },
-  { command: "canvas.eval", description: "Evaluate JavaScript in the canvas" },
-  { command: "canvas.a2ui.pushJSONL", description: "Push A2UI JSONL to the canvas" },
-  { command: "canvas.a2ui.reset", description: "Reset the A2UI canvas state" },
+/** Canvas commands the node advertises (Gateway expects string[]). */
+const NODE_CANVAS_COMMANDS: string[] = [
+  "canvas.present",
+  "canvas.hide",
+  "canvas.navigate",
+  "canvas.eval",
+  "canvas.a2ui.pushJSONL",
+  "canvas.a2ui.reset",
 ];
 
 /** Map canvas command names to EventBus action strings. */
@@ -498,13 +498,14 @@ export class NodeConnection {
 
       this.eventBus.broadcast("canvas", {
         action,
-        invokeId,
+        evalId: invokeId,
+        javaScript: isObject(params) ? (params as Record<string, unknown>).javaScript : undefined,
         params,
       });
 
       try {
         const result = await evalPromise;
-        this.sendInvokeResult(invokeId, true, { data: result });
+        this.sendInvokeResult(invokeId, true, { data: { result } });
       } catch (err) {
         const message = err instanceof Error ? err.message : "eval failed";
         this.sendInvokeResult(invokeId, false, {

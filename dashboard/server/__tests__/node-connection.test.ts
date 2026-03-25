@@ -158,7 +158,7 @@ describe("NodeConnection", () => {
       expect(frame.params.scopes).toEqual([]);
       expect(frame.params.caps).toEqual(["canvas"]);
       expect(frame.params.commands).toHaveLength(6);
-      expect(frame.params.commands[0].command).toBe("canvas.present");
+      expect(frame.params.commands[0]).toBe("canvas.present");
 
       // Device identity is included.
       expect(frame.params.device).toBeDefined();
@@ -304,7 +304,7 @@ describe("NodeConnection", () => {
       const canvasEvent = received.find((e) => e.type === "canvas");
       expect(canvasEvent).toBeDefined();
       expect((canvasEvent!.data as Record<string, unknown>).action).toBe("eval");
-      expect((canvasEvent!.data as Record<string, unknown>).invokeId).toBe("inv-eval-2");
+      expect((canvasEvent!.data as Record<string, unknown>).evalId).toBe("inv-eval-2");
 
       // Resolve the eval to avoid timeout.
       conn.resolveEval("inv-eval-2", { result: 4 });
@@ -337,7 +337,7 @@ describe("NodeConnection", () => {
       const resultFrame = JSON.parse(resultFrames[resultFrames.length - 1]);
       expect(resultFrame.method).toBe("node.invoke.result");
       expect(resultFrame.params.ok).toBe(true);
-      expect(JSON.parse(resultFrame.params.payloadJSON)).toEqual({ value: 6 });
+      expect(JSON.parse(resultFrame.params.payloadJSON)).toEqual({ result: { value: 6 } });
 
       await conn.stop();
     });

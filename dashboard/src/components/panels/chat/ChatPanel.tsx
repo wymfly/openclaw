@@ -225,6 +225,7 @@ export function ChatPanel() {
   const handleCloseRightPanel = useCallback(() => {
     setRightPanelMode("hidden");
     setActiveArtifact(null);
+    useUIStore.getState().setCanvasVisible(false);
   }, []);
 
   const artifactCtx = useMemo(() => ({ onOpenArtifact: handleOpenArtifact }), [handleOpenArtifact]);
