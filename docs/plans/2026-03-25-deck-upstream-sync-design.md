@@ -20,6 +20,11 @@ Upgrade the enhanced fork's web UI (openclaw-deck) to natively adopt upstream Op
 - `talk.speak` (low value for web UI)
 - `gateway.identity.get` (low value)
 
+**Prerequisites:**
+
+- Rebase `enhanced` onto latest `upstream/main` — required for `tools.effective` handler (`src/gateway/server-methods/tools-effective.ts` exists upstream but not yet in our branch)
+- `sessions.steer` and `sessions.get` have handlers but are not listed in `src/gateway/server-methods-list.ts` BASE_METHODS upstream. They work at runtime (registered via `sessionsHandlers` spread), but may need to be added to BASE_METHODS for method enumeration consistency
+
 ## Key Design Decisions
 
 | Decision                | Choice                               | Rationale                                                                                                                                                                                                            |
@@ -75,15 +80,10 @@ New session:
     → returns { key, sessionId, entry, runStarted, messageSeq? }
     → store.setActiveSession(key)
 
-Subsequent messages (session idle):
+Subsequent messages (always uses steer — safe for both idle and running):
   MessageInput → POST /api/chat/send
-    → gatewayRequest("sessions.send", { key, message, thinking?, attachments? })
-    → returns { messageSeq, runId, status }
-
-Message during active run (auto-steer):
-  MessageInput → POST /api/chat/send { steer: true }
     → gatewayRequest("sessions.steer", { key, message, thinking?, attachments? })
-    → returns { messageSeq, runId, interruptedActiveRun: true }
+    → returns { messageSeq, runId, status, interruptedActiveRun? }
 
 Explicit abort (stop button):
   → gatewayRequest("sessions.abort", { key, runId? })
@@ -91,6 +91,8 @@ Explicit abort (stop button):
 History load:
   → gatewayRequest("sessions.get", { key, limit })
   Large exports: GET /sessions/{key}/history?limit=1000&cursor=...
+  Cursor format: numeric string (sequence number), pagination moves backward through transcript.
+  Supports Accept: text/event-stream for SSE streaming mode.
 ```
 
 ## Module Design
@@ -110,6 +112,7 @@ tools.effective, config.schema.lookup
 
 1. Call `sessions.subscribe` to register for `sessions.changed` events
 2. The adapter already receives Layer 1 events via broadcast; Layer 2 events now arrive via subscription
+3. **Reconnection**: after WebSocket reconnect, re-issue `sessions.subscribe` and any active `sessions.messages.subscribe` calls (connection ID changes on reconnect, so subscriptions must be re-established). Add a post-connect hook to the adapter's reconnection flow for this.
 
 **SSE pipeline extension** — in `run-event-pipeline.ts`:
 
@@ -137,21 +140,23 @@ tools.effective, config.schema.lookup
 
 - Before: frontend generates `agent:{agentId}:web-{timestamp}-{random}`
 - After: Gateway generates `agent:{agentId}:dashboard:{uuid}` via `sessions.create`
+- Backward compatibility: existing sessions with old key format (`web-*`) continue to work — `loadSessionEntry` resolves legacy keys. New sessions use the new format. No migration needed for sidebar entries.
 
 **Auto-steer behavior:**
 
-- Frontend checks `sessionState.status === "running"` before sending
-- If running → POST with `steer: true` → backend calls `sessions.steer`
-- If idle → POST without steer → backend calls `sessions.send`
+- **Simplification: always use `sessions.steer`** for all message sends. `sessions.steer` is safe for idle sessions (no-op interrupt on idle, then sends normally). This eliminates the race condition where session status could change between the frontend check and the actual RPC call. The backend route always calls `sessions.steer` regardless of client-side status.
 - No extra UI button; transparent to user
+- The `interruptedActiveRun` field in the response tells the frontend whether a run was actually interrupted (for optional UI feedback like a toast)
 
 **SessionState type extension:**
 
 ```typescript
 interface SessionState {
   // existing fields retained...
+  // NOTE: current `status: "idle" | "active"` is replaced by the lifecycle enum below.
+  // The old `"active"` state maps to `"running"`. Update all consumers accordingly.
 
-  // new lifecycle fields
+  // new lifecycle fields (replaces old 2-value status)
   status: "idle" | "running" | "done" | "failed" | "killed" | "timeout";
   startedAt?: number;
   endedAt?: number;
@@ -195,10 +200,12 @@ Initial load still uses `sessions.list`; events handle subsequent updates.
 | `startedAt`/`endedAt`/`runtimeMs`  | Time info area                                        | Read-only                              |
 | `fastMode`                         | Session config area                                   | Editable toggle via `sessions.patch`   |
 | `model`                            | Session config area                                   | Editable dropdown via `sessions.patch` |
-| `subagentRole`                     | Subagent info area (hidden for non-subagent sessions) | Read-only                              |
-| `subagentControlScope`             | Subagent info area                                    | Read-only                              |
-| `spawnedWorkspaceDir`              | Subagent info area                                    | Read-only                              |
+| `subagentRole`                     | Subagent info area (hidden for non-subagent sessions) | Read-only (loaded via `sessions.list`, not from events) |
+| `subagentControlScope`             | Subagent info area                                    | Read-only (loaded via `sessions.list`, not from events) |
+| `spawnedWorkspaceDir`              | Subagent info area                                    | Read-only (loaded via `sessions.list`, not from events) |
 | `parentSessionKey`/`childSessions` | Session relationship area                             | Clickable navigation                   |
+
+**Note on subagent fields**: `subagentRole`, `subagentControlScope`, and `spawnedWorkspaceDir` exist on `SessionEntry` but are NOT included in `GatewaySessionRow` or the `sessions.changed` event snapshot. These must be loaded via `sessions.list` (which returns full entries) or by reading the session store directly. They are static after initial set (write-once), so no real-time updates needed.
 
 **ContextHealthBar** — update `contextTokens` from `sessions.changed` events in real-time.
 
@@ -284,8 +291,8 @@ Modules 2, 3, 4 can be parallelized after Module 0 + Module 1 complete.
 
 ### sessions.get
 
-- Params: `{ key, limit? }` (default limit 200)
-- Returns: `{ messages }` — session transcript messages
+- Params: `{ key, limit? }` (also accepts `sessionKey` as alias for `key`; default limit 200)
+- Returns: `{ messages }` — session transcript messages (empty array if session not found, not an error)
 
 ### tools.effective
 
