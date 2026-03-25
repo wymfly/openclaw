@@ -114,6 +114,63 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
     }
   }, [events]);
 
+  // Consume real-time canvas commands from the store queue (pushed by useChatSSE).
+  // The store does not use subscribeWithSelector, so we use plain subscribe with
+  // a manual length comparison to detect new commands.
+  useEffect(() => {
+    let prevLen = 0;
+    const unsub = useChatStore.subscribe((state) => {
+      if (state.canvasCommands.length <= prevLen) {
+        prevLen = state.canvasCommands.length;
+        return;
+      }
+      const cmds = useChatStore.getState().consumeCanvasCommands();
+      prevLen = 0; // consumed — reset
+      const bridge = bridgeRef.current;
+      const iframe = iframeRef.current;
+
+      for (const cmd of cmds) {
+        switch (cmd.action) {
+          case "navigate":
+            if (iframe && cmd.params?.url) {
+              iframe.src = `/api/canvas/${cmd.params.url as string}`;
+            }
+            break;
+          case "eval":
+            if (bridge && cmd.evalId && cmd.javaScript) {
+              void bridge.eval(cmd.javaScript, cmd.evalId).then((result) => {
+                fetch("/api/deck/canvas", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ evalId: cmd.evalId, result }),
+                }).catch(() => {});
+              });
+            }
+            break;
+          case "a2ui_push":
+            if (bridge && cmd.params?.jsonl) {
+              bridge.pushMessages([cmd.params.jsonl]);
+              setState("ready");
+            }
+            break;
+          case "a2ui_reset":
+            bridge?.reset();
+            setState("empty");
+            break;
+          case "present":
+            // canvasVisible is already handled in useChatSSE via useUIStore.
+            // Here we handle the optional url/path parameter for navigation.
+            if (iframe && cmd.params?.url) {
+              iframe.src = `/api/canvas/${cmd.params.url as string}`;
+            }
+            setState("ready");
+            break;
+        }
+      }
+    });
+    return unsub;
+  }, []);
+
   const handleRetry = useCallback(() => {
     setState("loading");
     const iframe = iframeRef.current;
@@ -132,13 +189,13 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)] shrink-0">
-        <span className="flex-1 text-xs font-medium text-[var(--text-primary)]">
+        <span className="flex-1 text-xs font-medium text-[var(--foreground)]">
           {t("canvasTitle")}
         </span>
         <button
           type="button"
           onClick={() => setShowDebug(!showDebug)}
-          className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--brand)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+          className="p-1 rounded text-[var(--muted-foreground)] hover:text-[var(--primary)] hover:bg-[var(--muted)] transition-colors cursor-pointer"
           title={t("debugTitle")}
         >
           <Bug size={14} />
@@ -146,7 +203,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         <button
           type="button"
           onClick={onClose}
-          className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+          className="p-1 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors cursor-pointer"
           title={t("canvasCollapse")}
         >
           <X size={14} />
@@ -164,18 +221,18 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         />
         {/* Overlay states */}
         {state === "loading" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--bg-primary)]">
-            <Loader2 size={20} className="animate-spin text-[var(--brand)]" />
-            <span className="text-xs text-[var(--text-secondary)]">{t("canvasLoading")}</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--background)]">
+            <Loader2 size={20} className="animate-spin text-[var(--primary)]" />
+            <span className="text-xs text-[var(--muted-foreground)]">{t("canvasLoading")}</span>
           </div>
         )}
         {state === "error" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[var(--bg-primary)]">
-            <span className="text-xs text-[var(--danger)]">{t("canvasError")}</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[var(--background)]">
+            <span className="text-xs text-[var(--destructive)]">{t("canvasError")}</span>
             <button
               type="button"
               onClick={handleRetry}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[var(--brand)] text-[var(--brand-fg)] hover:opacity-90 transition-opacity cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 transition-opacity cursor-pointer"
             >
               <RefreshCw size={12} />
               {t("canvasRetry")}
@@ -183,8 +240,8 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
           </div>
         )}
         {state === "empty" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-primary)]">
-            <span className="text-xs text-[var(--text-secondary)]">{t("canvasEmpty")}</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-[var(--background)]">
+            <span className="text-xs text-[var(--muted-foreground)]">{t("canvasEmpty")}</span>
           </div>
         )}
       </div>
