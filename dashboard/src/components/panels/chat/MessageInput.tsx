@@ -1,10 +1,11 @@
 "use client";
 
-import { Send, Square, Paperclip, X, FileIcon, ImageIcon, Loader2 } from "lucide-react";
+import { Send, Square, Paperclip, X, FileIcon, ImageIcon, Loader2, PanelRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
+import { useUIStore } from "@/stores/ui";
 
 /** Max attachment size — matches macOS client (5MB). */
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -69,6 +70,21 @@ function ImagePreview({ file, onRemove }: { file: File; onRemove: () => void }) 
         {file.name}
       </div>
     </div>
+  );
+}
+
+/** Isolated canvas toggle — subscribes to canvasVisible for reactive color. */
+function CanvasToggle({ label }: { label: string }) {
+  const canvasVisible = useUIStore((s) => s.canvasVisible);
+  return (
+    <button
+      onClick={() => useUIStore.getState().setCanvasVisible(!canvasVisible)}
+      className="p-1.5 rounded hover:opacity-80 transition-opacity shrink-0 cursor-pointer"
+      style={{ color: canvasVisible ? "var(--primary)" : "var(--muted-foreground)" }}
+      title={label}
+    >
+      <PanelRight size={16} />
+    </button>
   );
 }
 
@@ -292,6 +308,7 @@ export function MessageInput() {
         >
           <Paperclip size={16} />
         </button>
+        <CanvasToggle label={t("canvasToggle")} />
         <input
           ref={fileInputRef}
           type="file"

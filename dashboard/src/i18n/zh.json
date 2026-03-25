@@ -101,7 +101,8 @@
     "canvasError": "画布加载失败",
     "canvasRetry": "重试",
     "canvasEmpty": "暂无画布内容",
-    "debugTitle": "调试面板"
+    "debugTitle": "调试面板",
+    "canvasToggle": "画布面板"
   },
   "gateway": {
     "title": "网关概览",
