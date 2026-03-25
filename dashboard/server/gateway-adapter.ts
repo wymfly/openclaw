@@ -19,8 +19,6 @@ import type {
   GatewayEventFrame,
   GatewayResponseFrame,
 } from "./contracts";
-import { DEFAULT_METHOD_ALLOWLIST } from "./gateway-allowlist";
-import { ControlPlaneGatewayError } from "./gateway-errors";
 import {
   loadOrCreateDeviceIdentity,
   loadDeviceToken,
@@ -32,6 +30,10 @@ import {
   type DeviceIdentity,
   type DbLike,
 } from "./device-identity";
+import { getEventBus } from "./event-bus";
+import { DEFAULT_METHOD_ALLOWLIST } from "./gateway-allowlist";
+import { ControlPlaneGatewayError } from "./gateway-errors";
+import { NodeConnection } from "./node-connection";
 
 // Re-export for consumers that import from this file.
 export { DEFAULT_METHOD_ALLOWLIST } from "./gateway-allowlist";
@@ -148,6 +150,7 @@ export class OpenClawGatewayAdapter {
   private deviceIdentity: DeviceIdentity | null = null;
   private db: DbLike | undefined;
   private legacyProfileSwitchPromise: Promise<void> | null = null;
+  private nodeConnection: NodeConnection | null = null;
 
   constructor(options: OpenClawAdapterOptions) {
     this.loadSettings = options.loadSettings;
@@ -158,6 +161,14 @@ export class OpenClawGatewayAdapter {
     if (this.db) {
       this.deviceIdentity = loadOrCreateDeviceIdentity(this.db);
     }
+    if (this.db && this.deviceIdentity) {
+      this.nodeConnection = new NodeConnection({
+        deviceIdentity: this.deviceIdentity,
+        eventBus: getEventBus(),
+        loadSettings: () => this.loadSettings(),
+        db: this.db,
+      });
+    }
   }
 
   getStatus(): ControlPlaneConnectionStatus {
@@ -166,6 +177,10 @@ export class OpenClawGatewayAdapter {
 
   getStatusReason(): string | null {
     return this.statusReason;
+  }
+
+  getNodeConnection(): NodeConnection | null {
+    return this.nodeConnection;
   }
 
   async start(): Promise<void> {
@@ -184,6 +199,9 @@ export class OpenClawGatewayAdapter {
 
   async stop(): Promise<void> {
     this.stopping = true;
+    if (this.nodeConnection) {
+      await this.nodeConnection.stop();
+    }
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -355,6 +373,11 @@ export class OpenClawGatewayAdapter {
             }
             this.reconnectAttempt = 0;
             this.updateStatus("connected", null);
+            if (this.nodeConnection) {
+              void this.nodeConnection.start().catch((err) => {
+                console.error("[NodeConnection] failed to start:", err);
+              });
+            }
             settle(() => resolve());
             return;
           }
@@ -377,6 +400,9 @@ export class OpenClawGatewayAdapter {
             reject(new Error("Control-plane gateway connection closed during connect.")),
           );
           return;
+        }
+        if (this.nodeConnection) {
+          void this.nodeConnection.stop().catch(() => {});
         }
         this.rejectPending("Control-plane gateway connection closed.");
         this.connectionEpoch = null;
@@ -474,25 +500,25 @@ export class OpenClawGatewayAdapter {
 
     try {
       const connectFrame = {
-          type: "req",
-          id,
-          method: "connect",
-          params: {
-            minProtocol: CONNECT_PROTOCOL,
-            maxProtocol: CONNECT_PROTOCOL,
-            client: {
-              id: legacy ? CONNECT_CLIENT_ID_LEGACY : CONNECT_CLIENT_ID,
-              version: "dev",
-              platform: legacy ? CONNECT_CLIENT_PLATFORM_LEGACY : CONNECT_CLIENT_PLATFORM,
-              mode: legacy ? CONNECT_CLIENT_MODE_LEGACY : CONNECT_CLIENT_MODE,
-            },
-            role: "operator",
-            scopes,
-            caps: CONNECT_CAPABILITIES,
-            auth,
-            ...(device ? { device } : {}),
+        type: "req",
+        id,
+        method: "connect",
+        params: {
+          minProtocol: CONNECT_PROTOCOL,
+          maxProtocol: CONNECT_PROTOCOL,
+          client: {
+            id: legacy ? CONNECT_CLIENT_ID_LEGACY : CONNECT_CLIENT_ID,
+            version: "dev",
+            platform: legacy ? CONNECT_CLIENT_PLATFORM_LEGACY : CONNECT_CLIENT_PLATFORM,
+            mode: legacy ? CONNECT_CLIENT_MODE_LEGACY : CONNECT_CLIENT_MODE,
           },
-        };
+          role: "operator",
+          scopes,
+          caps: CONNECT_CAPABILITIES,
+          auth,
+          ...(device ? { device } : {}),
+        },
+      };
       ws.send(JSON.stringify(connectFrame));
     } catch (err) {
       this.connectRequestId = null;
