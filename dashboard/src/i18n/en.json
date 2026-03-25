@@ -45,7 +45,12 @@
     "add": "Add",
     "on": "ON",
     "off": "OFF",
-    "noConfigurableFields": "No configurable fields in this section."
+    "noConfigurableFields": "No configurable fields in this section.",
+    "inherit": "default",
+    "override": "override",
+    "reset": "Reset to default",
+    "inheritTitle": "This value is inherited from agent defaults",
+    "overrideTitle": "This value is explicitly set for this agent"
   },
   "chat": {
     "placeholder": "Type a message...",
@@ -522,6 +527,15 @@
       "locked": "Always on",
       "usingDefault": "Using global default",
       "saveError": "Save failed"
+    },
+    "config": {
+      "toolProfile": "Tool Profile",
+      "profileMinimal": "Minimal",
+      "profileCoding": "Coding",
+      "profileMessaging": "Messaging",
+      "profileFull": "Full",
+      "toolCount": "{count} tools",
+      "viewPolicyTrace": "View full policy trace"
     }
   },
   "context": {
