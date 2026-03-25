@@ -16,6 +16,18 @@ export interface UiHint {
   sensitive?: boolean;
   collapsed?: boolean;
   placeholder?: string;
+  /** Action-oriented help text for the field. */
+  help?: string;
+  /** Human-readable label override. */
+  label?: string;
+  /** Tags for categorization (e.g. "advanced", "sensitive", "access"). */
+  tags?: string[];
+  /** Group key for section-based layout. */
+  group?: string;
+  /** Sort order within a group (lower = earlier). */
+  order?: number;
+  /** Whether this field is an advanced setting (collapsed by default). */
+  advanced?: boolean;
 }
 
 export type UiHintsMap = Record<string, UiHint>;
@@ -35,14 +47,18 @@ export function matchUiHint(fieldPath: string, hints: UiHintsMap): UiHint | unde
     return hints[fieldPath];
   }
 
-  // 2. Wildcard match — iterate all hint keys that contain `*`
+  // 2. Wildcard match — iterate all hint keys that contain `*` or `[]`
   const fieldParts = fieldPath.split(".");
 
   for (const [hintPath, hint] of Object.entries(hints)) {
-    if (!hintPath.includes("*")) {
+    // Normalize Gateway's `[]` array wildcard to `.*` for matching.
+    // Gateway uses e.g. `agents.list[].model` where `[]` means "any array index",
+    // which corresponds to `agents.list.*.model` in our dot-separated wildcard format.
+    const normalizedPath = hintPath.replace(/\[\]/g, ".*");
+    if (!normalizedPath.includes("*")) {
       continue;
     }
-    const hintParts = hintPath.split(".");
+    const hintParts = normalizedPath.split(".");
     if (hintParts.length !== fieldParts.length) {
       continue;
     }
@@ -79,6 +95,9 @@ export function applyUiHints(fields: FormField[], hints: UiHintsMap, prefix = ""
           ...(hint.sensitive !== undefined ? { sensitive: hint.sensitive } : {}),
           ...(hint.collapsed !== undefined ? { collapsed: hint.collapsed } : {}),
           ...(hint.placeholder !== undefined ? { placeholder: hint.placeholder } : {}),
+          ...(hint.help !== undefined ? { help: hint.help } : {}),
+          ...(hint.group !== undefined ? { group: hint.group } : {}),
+          ...(hint.tags !== undefined ? { tags: hint.tags } : {}),
         }
       : { ...field };
 
