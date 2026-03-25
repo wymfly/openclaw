@@ -737,7 +737,50 @@
     "advanced": "高级",
     "schemaLookupFallback": "配置查询不可用，使用完整加载",
     "showPassword": "显示",
-    "hidePassword": "隐藏"
+    "hidePassword": "隐藏",
+    "viewDocs": "查看文档",
+    "sectionIntro": {
+      "agents": {
+        "title": "Agent 配置",
+        "description": "配置 AI Agent 的模型、工具、推理参数和行为策略。"
+      },
+      "tools": {
+        "title": "工具配置",
+        "description": "管理内置工具和外部工具的启用、权限和参数设置。"
+      },
+      "gateway": {
+        "title": "网关配置",
+        "description": "管理网关绑定地址、端口、认证方式和运行模式。"
+      },
+      "channels": {
+        "title": "渠道配置",
+        "description": "配置消息渠道（Telegram、Discord、Slack 等）的连接和行为参数。"
+      },
+      "models": {
+        "title": "模型配置",
+        "description": "配置 LLM 提供商、模型选择、回退策略和推理参数。"
+      },
+      "hooks": {
+        "title": "钩子配置",
+        "description": "定义生命周期钩子，在特定事件触发时执行自定义逻辑。"
+      },
+      "secrets": {
+        "title": "密钥管理",
+        "description": "管理 API 密钥、令牌和其他敏感凭据的安全存储。"
+      },
+      "logging": {
+        "title": "日志配置",
+        "description": "调整日志级别、输出格式和存储策略。"
+      },
+      "update": {
+        "title": "更新配置",
+        "description": "管理自动更新检查和更新通道设置。"
+      },
+      "browser": {
+        "title": "浏览器配置",
+        "description": "配置内置浏览器工具的行为、超时和安全限制。"
+      }
+    }
   },
   "cron": {
     "title": "定时任务",
