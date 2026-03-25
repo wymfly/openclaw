@@ -495,6 +495,7 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
       const data = (await res.json()) as {
         config: Record<string, unknown> | string;
         baseHash?: string;
+        hash?: string;
       };
       const parsed: Record<string, unknown> =
         typeof data.config === "string"
@@ -511,7 +512,7 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
           defaults,
           entry,
           list,
-          baseHash: typeof data.baseHash === "string" ? data.baseHash : null,
+          baseHash: typeof data.baseHash === "string" ? data.baseHash : typeof data.hash === "string" ? data.hash : null,
         },
       });
     } catch {

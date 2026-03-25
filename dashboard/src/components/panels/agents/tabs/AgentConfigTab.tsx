@@ -31,7 +31,11 @@ function setNestedKey(updates: Record<string, unknown>, path: string, value: unk
   }
   let current = updates;
   for (let i = 0; i < parts.length - 1; i++) {
-    if (!(parts[i] in current) || typeof current[parts[i]] !== "object" || current[parts[i]] === null) {
+    if (
+      !(parts[i] in current) ||
+      typeof current[parts[i]] !== "object" ||
+      current[parts[i]] === null
+    ) {
       current[parts[i]] = {};
     }
     current = current[parts[i]] as Record<string, unknown>;
@@ -44,7 +48,6 @@ function setNestedKey(updates: Record<string, unknown>, path: string, value: unk
 // ---------------------------------------------------------------------------
 
 const THINKING_OPTIONS = ["off", "minimal", "low", "medium", "high", "xhigh", "adaptive"] as const;
-type ThinkingMode = (typeof THINKING_OPTIONS)[number];
 
 // ---------------------------------------------------------------------------
 // Event stream options
@@ -91,10 +94,13 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
   );
 
   // Effective value: local edit > entry > defaults
+  // When localEdits[path] is explicitly null (reset), skip entry and fall through to defaults.
   const effectiveValue = useCallback(
     (path: string): unknown => {
-      if (path in localEdits && localEdits[path] !== null) {
-        return localEdits[path];
+      if (path in localEdits) {
+        if (localEdits[path] !== null) return localEdits[path];
+        // Reset: skip entry, show defaults
+        return getNestedValue(defaults, path);
       }
       const entryVal = getNestedValue(entry, path);
       if (entryVal !== undefined) return entryVal;
@@ -390,29 +396,29 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
           </p>
         )}
         <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
-          {t("overrideCount", { count: overrideCount })}
-          {" / "}
-          {t("inheritedCount", { count: inheritedCount })}
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleResetAll}
-            disabled={overrideCount === 0}
-            className="rounded-md px-3 py-1.5 text-xs font-medium text-destructive hover:bg-[var(--destructive-muted)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {t("resetAll")}
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={!isDirty || saving}
-            className="rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? tc("loading") : tc("save")}
-          </button>
-        </div>
+          <span className="text-xs text-muted-foreground">
+            {t("overrideCount", { count: overrideCount })}
+            {" / "}
+            {t("inheritedCount", { count: inheritedCount })}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleResetAll}
+              disabled={overrideCount === 0}
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-destructive hover:bg-[var(--destructive-muted)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t("resetAll")}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={!isDirty || saving}
+              className="rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? tc("loading") : tc("save")}
+            </button>
+          </div>
         </div>
       </div>
     </div>
