@@ -30,6 +30,7 @@
 | `dashboard/src/hooks/useSessionEvents.ts`             | Frontend hook for Layer 2 session events |
 
 ### Notes
+
 - TTS `edge` → `microsoft` rename: **no dashboard references exist** (verified via grep). No task needed.
 - `sessions.patch` is already in the allowlist (no addition needed for fastMode toggle in Task 7).
 - `chat-abort.ts` is a client-side AbortController manager, NOT a gateway caller. The gateway abort call lives in `dashboard/src/app/api/chat/abort/route.ts`.

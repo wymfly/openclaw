@@ -18,6 +18,7 @@ Deck Server 维护两条独立连接到 Gateway：
 ### 为什么复用 GatewayClient 而非手写 WebSocket
 
 `src/gateway/client.ts` 的 `GatewayClient` 已封装完整的 node 连接能力：
+
 - connect challenge 握手 + device identity 签名
 - device-token 缓存与自动重试
 - 自动重连（指数退避）
@@ -58,9 +59,9 @@ import { GatewayClient } from "openclaw/gateway/client"; // 或相对路径
 const client = new GatewayClient({
   url: gatewayUrl,
   token: gatewayToken,
-  clientName: "node-host",          // GATEWAY_CLIENT_IDS 枚举值
+  clientName: "node-host", // GATEWAY_CLIENT_IDS 枚举值
   clientDisplayName: "Deck Dashboard",
-  mode: "node",                     // GATEWAY_CLIENT_MODES.NODE
+  mode: "node", // GATEWAY_CLIENT_MODES.NODE
   role: "node",
   platform: "web",
   caps: ["canvas"],
@@ -91,6 +92,7 @@ Agent 在 `nodes status` 中会看到 displayName "Deck Dashboard"，可以据�
 ### 认证与配对
 
 `GatewayClient` 内置完整的认证流程：
+
 1. 首次连接：使用 gateway token + device identity 签名
 2. Gateway 返回 `auth.deviceToken` → `GatewayClient` 自动缓存
 3. 后续连接：自动使用 deviceToken（如果有效）
@@ -189,14 +191,14 @@ Deck Server 收到 eval-result
 
 ### 各 Action 前端行为
 
-| Action       | 前端行为                                                                                    |
-| ------------ | ------------------------------------------------------------------------------------------- |
-| `present`    | `canvasVisible = true`，RightPanel 切换 Canvas 模式。如有 url/path，iframe 加载             |
-| `hide`       | `canvasVisible = false`，RightPanel 恢复默认                                                |
-| `navigate`   | iframe src 切换到新 URL（通过 `/api/canvas/` 代理）                                         |
-| `eval`       | A2UI Bridge eval 方法发到 iframe，iframe 执行后回传结果，调 eval-result 端点                |
-| `a2ui_push`  | A2UI Bridge postMessage 推送 JSONL 到 iframe A2UI 渲染引擎                                  |
-| `a2ui_reset` | A2UI Bridge postMessage 清空所有 surface                                                    |
+| Action       | 前端行为                                                                        |
+| ------------ | ------------------------------------------------------------------------------- |
+| `present`    | `canvasVisible = true`，RightPanel 切换 Canvas 模式。如有 url/path，iframe 加载 |
+| `hide`       | `canvasVisible = false`，RightPanel 恢复默认                                    |
+| `navigate`   | iframe src 切换到新 URL（通过 `/api/canvas/` 代理）                             |
+| `eval`       | A2UI Bridge eval 方法发到 iframe，iframe 执行后回传结果，调 eval-result 端点    |
+| `a2ui_push`  | A2UI Bridge postMessage 推送 JSONL 到 iframe A2UI 渲染引擎                      |
+| `a2ui_reset` | A2UI Bridge postMessage 清空所有 surface                                        |
 
 ### iframe bridge eval 扩展
 
@@ -248,16 +250,16 @@ canvas 事件丢弃，通过 `node.invoke.result` 返回 `ok: true`。与 Mac Ap
 
 ### 修改
 
-| 文件                                                      | 改动                                            |
-| --------------------------------------------------------- | ----------------------------------------------- |
-| `dashboard/server/event-bus.ts`                           | 添加 `"canvas"` 到 DeckEventType                |
-| `dashboard/server/runtime.ts`                             | 添加 `"canvas"` 到 VALID_DECK_EVENTS            |
-| `dashboard/server/gateway-adapter.ts`                     | operator 连接成功后启动 node 连接               |
-| `dashboard/src/components/panels/chat/useChatSSE.ts`      | 添加 canvas 事件分发                            |
-| `dashboard/src/components/panels/chat/CanvasPanel.tsx`     | 增加实时 canvas 渲染（在已挂载状态下）          |
-| `dashboard/src/components/panels/chat/a2ui-bridge.ts`     | 添加 eval 方法                                  |
-| `dashboard/src/app/api/canvas/[...path]/route.ts`         | 扩展 bridge script 支持 a2ui:eval               |
-| `dashboard/src/stores/ui.ts`                              | 新增 canvasVisible / canvasMode 状态            |
+| 文件                                                   | 改动                                   |
+| ------------------------------------------------------ | -------------------------------------- |
+| `dashboard/server/event-bus.ts`                        | 添加 `"canvas"` 到 DeckEventType       |
+| `dashboard/server/runtime.ts`                          | 添加 `"canvas"` 到 VALID_DECK_EVENTS   |
+| `dashboard/server/gateway-adapter.ts`                  | operator 连接成功后启动 node 连接      |
+| `dashboard/src/components/panels/chat/useChatSSE.ts`   | 添加 canvas 事件分发                   |
+| `dashboard/src/components/panels/chat/CanvasPanel.tsx` | 增加实时 canvas 渲染（在已挂载状态下） |
+| `dashboard/src/components/panels/chat/a2ui-bridge.ts`  | 添加 eval 方法                         |
+| `dashboard/src/app/api/canvas/[...path]/route.ts`      | 扩展 bridge script 支持 a2ui:eval      |
+| `dashboard/src/stores/ui.ts`                           | 新增 canvasVisible / canvasMode 状态   |
 
 ### Gateway 侧改动
 

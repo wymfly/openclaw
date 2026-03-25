@@ -10,9 +10,9 @@
 
 **Skill dependencies:**
 
-| Domain | Skills | Loading |
-|--------|--------|---------|
-| [backend] | superpowers:test-driven-development | session first-load |
+| Domain     | Skills                              | Loading            |
+| ---------- | ----------------------------------- | ------------------ |
+| [backend]  | superpowers:test-driven-development | session first-load |
 | [frontend] | superpowers:test-driven-development | session first-load |
 
 **Design spec:** `docs/plans/2026-03-25-deck-canvas-virtual-node-design.md`
@@ -37,6 +37,7 @@ Task 7 (iframe bridge eval)  ─┘                                        │
 ```
 
 **Protocol reference files** (implementers must read):
+
 - `src/gateway/client.ts` — GatewayClient connect frame structure (lines 420-466)
 - `src/node-host/runner.ts` — node-host usage of GatewayClient (lines 177-218)
 - `src/node-host/invoke.ts` — node.invoke.request handling + node.invoke.result response (lines 417-609)
@@ -52,26 +53,26 @@ Task 7 (iframe bridge eval)  ─┘                                        │
 
 ### New files
 
-| File | Responsibility |
-|------|---------------|
-| `dashboard/server/node-connection.ts` | Second WebSocket to Gateway as canvas node: connect challenge, device identity auth, `node.invoke.request` event handling, `node.invoke.result` response, eval pending map |
-| `dashboard/server/__tests__/node-connection.test.ts` | Unit + integration tests |
-| `dashboard/src/app/api/deck/canvas/route.ts` | POST: eval-result callback + canvas session register/unregister |
+| File                                                 | Responsibility                                                                                                                                                             |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dashboard/server/node-connection.ts`                | Second WebSocket to Gateway as canvas node: connect challenge, device identity auth, `node.invoke.request` event handling, `node.invoke.result` response, eval pending map |
+| `dashboard/server/__tests__/node-connection.test.ts` | Unit + integration tests                                                                                                                                                   |
+| `dashboard/src/app/api/deck/canvas/route.ts`         | POST: eval-result callback + canvas session register/unregister                                                                                                            |
 
 ### Modified files
 
-| File | Change |
-|------|--------|
-| `dashboard/server/event-bus.ts` | Add `"canvas"` to `DeckEventType` |
-| `dashboard/server/runtime.ts` | Add `"canvas"` to `VALID_DECK_EVENTS` |
-| `dashboard/server/gateway-adapter.ts` | Start/stop NodeConnection on operator connect/disconnect |
-| `dashboard/src/components/panels/chat/useChatSSE.ts` | Add canvas event dispatch (always-mounted) |
-| `dashboard/src/components/panels/chat/a2ui-bridge.ts` | Add `eval(js, evalId)` method |
-| `dashboard/src/app/api/canvas/[...path]/route.ts` | Extend injected bridge script for `a2ui:eval` |
-| `dashboard/src/components/panels/chat/CanvasPanel.tsx` | Wire real-time canvas rendering (when mounted) |
-| `dashboard/src/stores/ui.ts` | Add `canvasVisible` / `canvasMode` / `setCanvasVisible` |
-| `dashboard/src/i18n/zh.json` | Add canvas i18n keys under `"chat"` namespace |
-| `dashboard/src/i18n/en.json` | Add canvas i18n keys under `"chat"` namespace |
+| File                                                   | Change                                                   |
+| ------------------------------------------------------ | -------------------------------------------------------- |
+| `dashboard/server/event-bus.ts`                        | Add `"canvas"` to `DeckEventType`                        |
+| `dashboard/server/runtime.ts`                          | Add `"canvas"` to `VALID_DECK_EVENTS`                    |
+| `dashboard/server/gateway-adapter.ts`                  | Start/stop NodeConnection on operator connect/disconnect |
+| `dashboard/src/components/panels/chat/useChatSSE.ts`   | Add canvas event dispatch (always-mounted)               |
+| `dashboard/src/components/panels/chat/a2ui-bridge.ts`  | Add `eval(js, evalId)` method                            |
+| `dashboard/src/app/api/canvas/[...path]/route.ts`      | Extend injected bridge script for `a2ui:eval`            |
+| `dashboard/src/components/panels/chat/CanvasPanel.tsx` | Wire real-time canvas rendering (when mounted)           |
+| `dashboard/src/stores/ui.ts`                           | Add `canvasVisible` / `canvasMode` / `setCanvasVisible`  |
+| `dashboard/src/i18n/zh.json`                           | Add canvas i18n keys under `"chat"` namespace            |
+| `dashboard/src/i18n/en.json`                           | Add canvas i18n keys under `"chat"` namespace            |
 
 ---
 
@@ -113,6 +114,7 @@ import crypto from "node:crypto";
 Run: `bun /tmp/deck-node-probe.ts`
 
 Verify:
+
 - hello-ok response received (connection accepted)
 - No pairing prompt required (local + no Origin → silent auto-pair)
 - nodeId in hello-ok or visible in `node.list` from operator connection
@@ -120,6 +122,7 @@ Verify:
 - [ ] **Step 4: Test node.invoke round-trip**
 
 From another terminal, use the operator connection to send a test invoke:
+
 ```bash
 # Via Deck's existing API or direct Gateway RPC
 # Verify the probe script receives event "node.invoke.request"
@@ -141,6 +144,7 @@ rm /tmp/deck-node-probe.ts
 ### Task 1: Add `"canvas"` event type to EventBus and runtime
 
 **Files:**
+
 - Modify: `dashboard/server/event-bus.ts:16-34`
 - Modify: `dashboard/server/runtime.ts:74-92`
 - Test: `dashboard/server/__tests__/event-bus.test.ts`
@@ -199,12 +203,14 @@ git commit -m "[enhanced] feat(deck): add canvas event type to EventBus and runt
 ### Task 2: Create NodeConnection module
 
 **Files:**
+
 - Create: `dashboard/server/node-connection.ts`
 - Create: `dashboard/server/__tests__/node-connection.test.ts`
 
 **Depends on:** Task 0 (protocol knowledge), Task 1
 
 **Protocol model** (from `src/node-host/runner.ts` + `src/gateway/node-registry.ts`):
+
 - Gateway sends **event** `node.invoke.request` to node
 - Node responds via **request** `node.invoke.result`
 - Connect frame: `client.id = "node-host"`, `client.mode = "node"`, `device.id = deviceIdentity.deviceId`
@@ -267,16 +273,20 @@ import {
 import { getEventBus } from "./event-bus";
 
 // Protocol constants — match src/gateway/protocol/client-info.ts
-const NODE_CLIENT_ID = "node-host";       // GATEWAY_CLIENT_IDS.NODE_HOST
-const NODE_CLIENT_MODE = "node";          // GATEWAY_CLIENT_MODES.NODE
+const NODE_CLIENT_ID = "node-host"; // GATEWAY_CLIENT_IDS.NODE_HOST
+const NODE_CLIENT_MODE = "node"; // GATEWAY_CLIENT_MODES.NODE
 const NODE_PLATFORM = "web";
 const CONNECT_PROTOCOL = 3;
 const CONNECT_TIMEOUT_MS = 8_000;
 const EVAL_TIMEOUT_MS = 10_000;
 
 const CANVAS_COMMANDS = [
-  "canvas.present", "canvas.hide", "canvas.navigate",
-  "canvas.eval", "canvas.a2ui.pushJSONL", "canvas.a2ui.reset",
+  "canvas.present",
+  "canvas.hide",
+  "canvas.navigate",
+  "canvas.eval",
+  "canvas.a2ui.pushJSONL",
+  "canvas.a2ui.reset",
 ] as const;
 
 // Command-to-action mapping for EventBus
@@ -295,9 +305,9 @@ const COMMAND_ACTION_MAP: Record<string, string> = {
 ```typescript
 export class NodeConnection {
   private ws: WebSocket | null = null;
-  private nodeId: string;                    // = deviceIdentity.deviceId
+  private nodeId: string; // = deviceIdentity.deviceId
   private pendingEvals = new Map<string, PendingEval>();
-  private canvasSessionCount = 0;            // reference count from browser tabs
+  private canvasSessionCount = 0; // reference count from browser tabs
   private nextReqId = 1;
   // ... constructor, start, stop, resolveEval, registerCanvas, unregisterCanvas
 
@@ -342,6 +352,7 @@ export class NodeConnection {
 ```
 
 **Connect frame** follows `src/gateway/client.ts:443-466` pattern:
+
 - `client.id = "node-host"` (from `GATEWAY_CLIENT_IDS` enum)
 - `client.mode = "node"`
 - `device.id = deviceIdentity.deviceId` (crypto-derived, not customizable)
@@ -367,6 +378,7 @@ git commit -m "[enhanced] feat(deck): add NodeConnection for canvas virtual node
 ### Task 3: Integrate NodeConnection into gateway-adapter lifecycle
 
 **Files:**
+
 - Modify: `dashboard/server/gateway-adapter.ts`
 
 **Depends on:** Task 2
@@ -374,6 +386,7 @@ git commit -m "[enhanced] feat(deck): add NodeConnection for canvas virtual node
 - [ ] **Step 1: Read gateway-adapter.ts connect/disconnect/reconnect flow**
 
 Key locations:
+
 - Constructor: `~line 152-161` (device identity load)
 - Connect success: `~line 357` (`this.updateStatus("connected", null)`)
 - WebSocket close handler: `~line 371-388` (triggers reconnect)
@@ -450,6 +463,7 @@ git commit -m "[enhanced] feat(deck): integrate NodeConnection lifecycle with ga
 ### Task 4: Create canvas API route (eval-result + session register)
 
 **Files:**
+
 - Create: `dashboard/src/app/api/deck/canvas/route.ts`
 
 **Depends on:** Task 3
@@ -520,6 +534,7 @@ git commit -m "[enhanced] feat(deck): add canvas eval-result and session registe
 ### Task 5: Add canvas UI state to store
 
 **Files:**
+
 - Modify: `dashboard/src/stores/ui.ts`
 
 No dependencies.
@@ -562,6 +577,7 @@ git commit -m "[enhanced] feat(deck): add canvas visibility state to UI store"
 ### Task 6: Add `eval()` method to A2UIBridge
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/chat/a2ui-bridge.ts`
 
 No dependencies.
@@ -620,6 +636,7 @@ git commit -m "[enhanced] feat(deck): add eval method to A2UIBridge"
 ### Task 7: Extend iframe bridge script for `a2ui:eval`
 
 **Files:**
+
 - Modify: `dashboard/src/app/api/canvas/[...path]/route.ts`
 
 No dependencies.
@@ -666,6 +683,7 @@ git commit -m "[enhanced] feat(deck): extend iframe bridge script for a2ui:eval"
 ### Task 8: Add canvas event dispatch to useChatSSE (always-mounted)
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/chat/useChatSSE.ts`
 - Modify: `dashboard/src/i18n/zh.json`
 - Modify: `dashboard/src/i18n/en.json`
@@ -696,7 +714,12 @@ es.addEventListener("canvas", (e: MessageEvent) => {
 Create `dispatchCanvasEvent` in `chat-dispatchers.ts` or inline:
 
 ```typescript
-function dispatchCanvasEvent(data: { action: string; params?: unknown; evalId?: string; javaScript?: string }) {
+function dispatchCanvasEvent(data: {
+  action: string;
+  params?: unknown;
+  evalId?: string;
+  javaScript?: string;
+}) {
   const { setCanvasVisible } = useUIStore.getState();
   switch (data.action) {
     case "present":
@@ -768,6 +791,7 @@ git commit -m "[enhanced] feat(deck): add canvas event dispatch to useChatSSE"
 ### Task 9: Wire CanvasPanel for real-time canvas rendering
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/chat/CanvasPanel.tsx`
 - Modify: `dashboard/src/components/panels/chat/ChatPanel.tsx` (if needed for layout)
 
@@ -776,6 +800,7 @@ git commit -m "[enhanced] feat(deck): add canvas event dispatch to useChatSSE"
 - [ ] **Step 1: Read CanvasPanel.tsx and ChatPanel.tsx fully**
 
 Understand:
+
 - How CanvasPanel currently replays history A2UI events
 - How ChatPanel controls `rightPanelMode` (which determines CanvasPanel visibility)
 - Where `canvasVisible` from ui.ts should be wired to show/hide CanvasPanel
@@ -786,39 +811,44 @@ In CanvasPanel, add a `useEffect` that reads from the canvas command queue (set 
 
 ```typescript
 // Pseudo-code — exact implementation depends on store shape from Task 8
-useEffect(() => {
-  const commands = useChatStore.getState().getAndClearCanvasCommands();
-  for (const cmd of commands) {
-    switch (cmd.action) {
-      case "navigate":
-        if (iframeRef.current && cmd.params?.url) {
-          iframeRef.current.src = `/api/canvas/${cmd.params.url}`;
-        }
-        break;
-      case "eval":
-        if (bridgeRef.current && cmd.evalId && cmd.javaScript) {
-          bridgeRef.current.eval(cmd.javaScript, cmd.evalId).then((result) => {
-            fetch("/api/deck/canvas", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ evalId: cmd.evalId, result }),
+useEffect(
+  () => {
+    const commands = useChatStore.getState().getAndClearCanvasCommands();
+    for (const cmd of commands) {
+      switch (cmd.action) {
+        case "navigate":
+          if (iframeRef.current && cmd.params?.url) {
+            iframeRef.current.src = `/api/canvas/${cmd.params.url}`;
+          }
+          break;
+        case "eval":
+          if (bridgeRef.current && cmd.evalId && cmd.javaScript) {
+            bridgeRef.current.eval(cmd.javaScript, cmd.evalId).then((result) => {
+              fetch("/api/deck/canvas", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ evalId: cmd.evalId, result }),
+              });
             });
-          });
-        }
-        break;
-      case "a2ui_push":
-        if (bridgeRef.current && cmd.params?.jsonl) {
-          bridgeRef.current.pushMessages([cmd.params.jsonl]);
-          setState("ready");
-        }
-        break;
-      case "a2ui_reset":
-        bridgeRef.current?.reset();
-        setState("empty");
-        break;
+          }
+          break;
+        case "a2ui_push":
+          if (bridgeRef.current && cmd.params?.jsonl) {
+            bridgeRef.current.pushMessages([cmd.params.jsonl]);
+            setState("ready");
+          }
+          break;
+        case "a2ui_reset":
+          bridgeRef.current?.reset();
+          setState("empty");
+          break;
+      }
     }
-  }
-}, [/* subscribe to canvas command queue changes */]);
+  },
+  [
+    /* subscribe to canvas command queue changes */
+  ],
+);
 ```
 
 - [ ] **Step 3: Wire canvasVisible to ChatPanel layout**
@@ -842,6 +872,7 @@ git commit -m "[enhanced] feat(deck): wire CanvasPanel for real-time canvas rend
 ### Task 10: Integration tests
 
 **Files:**
+
 - Modify: `dashboard/server/__tests__/node-connection.test.ts`
 
 **Depends on:** Tasks 2-4
@@ -887,6 +918,7 @@ Expected: All PASS
 Start dev environment: `scripts/dev/deck-dev.sh`
 
 Verify in browser:
+
 1. Gateway status shows "已连接"
 2. In Gateway panel or console, verify Deck node appears in node list
 3. (If possible) trigger a canvas command and verify CanvasPanel renders
