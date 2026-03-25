@@ -15,6 +15,8 @@ interface ConfigState {
   loading: boolean;
   error: string | null;
   activeSection: string | null;
+  schemaCache: Map<string, unknown>;
+  lookupFallbackMode: boolean;
 
   fetchSchema: () => Promise<void>;
   fetchConfig: () => Promise<void>;
@@ -22,6 +24,7 @@ interface ConfigState {
   setActiveSection: (section: string | null) => void;
   saveConfig: () => Promise<boolean>;
   reloadConfig: () => Promise<void>;
+  lookupSchema: (path: string) => Promise<unknown>;
 }
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
@@ -35,6 +38,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   loading: false,
   error: null,
   activeSection: null,
+  schemaCache: new Map(),
+  lookupFallbackMode: false,
 
   fetchSchema: async () => {
     try {
@@ -124,7 +129,26 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         return false;
       }
 
-      // After successful save, reload to get fresh baseHash
+      // Try to extract new baseHash from save response to avoid race with
+      // concurrent config mutations (heartbeat, cron). If the response body
+      // includes a baseHash we use it immediately; otherwise fall back to a
+      // full reload which has a small window for TOCTOU conflict.
+      try {
+        const saveData = (await res.json()) as { baseHash?: string };
+        if (typeof saveData.baseHash === "string") {
+          set({
+            rawConfig: editedConfig,
+            baseHash: saveData.baseHash,
+            isDirty: false,
+            conflict: false,
+          });
+          return true;
+        }
+      } catch {
+        // Response may not be JSON — fall through to reload
+      }
+
+      // Fallback: reload full config to get fresh baseHash
       await get().fetchConfig();
       return true;
     } catch {
@@ -138,5 +162,31 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   reloadConfig: async () => {
     set({ conflict: false });
     await get().fetchConfig();
+  },
+
+  lookupSchema: async (path: string) => {
+    if (get().lookupFallbackMode) return null;
+    const cached = get().schemaCache.get(path);
+    if (cached) return cached;
+
+    try {
+      const res = await fetch("/api/config/schema-lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      if (!res.ok) throw new Error("lookup failed");
+      const data = await res.json();
+      set((state) => {
+        const cache = new Map(state.schemaCache);
+        cache.set(path, data);
+        return { schemaCache: cache };
+      });
+      return data;
+    } catch {
+      // Single failed lookup triggers fallback mode for the session
+      set({ lookupFallbackMode: true });
+      return null;
+    }
   },
 }));

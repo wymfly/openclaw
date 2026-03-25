@@ -713,7 +713,9 @@
     "models": "模型",
     "channels": "渠道",
     "advanced": "高级",
-    "schemaLookupFallback": "配置查询不可用，使用完整加载"
+    "schemaLookupFallback": "配置查询不可用，使用完整加载",
+    "showPassword": "显示",
+    "hidePassword": "隐藏"
   },
   "cron": {
     "title": "定时任务",
