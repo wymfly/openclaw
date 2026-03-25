@@ -711,7 +711,13 @@
     "noChannels": "No channels configured",
     "saveConfig": "Save Config",
     "confirmLogout": "Disconnect this channel?",
-    "accounts": "Accounts"
+    "accounts": "Accounts",
+    "tabs": {
+      "status": "Status",
+      "bindings": "Bindings",
+      "settings": "Settings",
+      "settingsPlaceholder": "Settings coming soon"
+    }
   },
   "config": {
     "title": "Config Editor",
