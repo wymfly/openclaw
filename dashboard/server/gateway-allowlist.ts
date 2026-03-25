@@ -84,4 +84,17 @@ export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([
   "deck.identity.unlink",
   // deck.threads
   "deck.threads.list",
+  // --- upstream sessions API (2026-03-25 sync) ---
+  "sessions.create",
+  "sessions.send",
+  "sessions.steer",
+  "sessions.abort",
+  "sessions.get",
+  "sessions.subscribe",
+  "sessions.unsubscribe",
+  "sessions.messages.subscribe",
+  "sessions.messages.unsubscribe",
+  // --- upstream tools/config API ---
+  "tools.effective",
+  "config.schema.lookup",
 ]);
