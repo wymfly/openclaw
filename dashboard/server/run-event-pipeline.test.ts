@@ -352,7 +352,10 @@ describe("RunEventPipeline", () => {
 
     expect(flushed).toHaveLength(1);
     const stored = flushed[0][0];
-    expect(stored.data).toBe(JSON.stringify(payload));
+    // Chat "final" events are normalized to { type: "result", subtype, usage }
+    expect(stored.data).toBe(
+      JSON.stringify({ type: "result", subtype: "success", usage: payload.usage }),
+    );
     expect(stored.sessionKey).toBe("agent:bot:session");
     expect(stored.agentId).toBe("bot");
   });
@@ -379,5 +382,48 @@ describe("RunEventPipeline", () => {
 
     consoleSpy.mockRestore();
     errPipeline.destroy();
+  });
+
+  // -------------------------------------------------------------------------
+  // Session events — Layer 2 bypass verification
+  // -------------------------------------------------------------------------
+
+  describe("session events (Layer 2 bypass)", () => {
+    // Session events are routed directly to EventBus in gateway-adapter.ts,
+    // so they arrive as "session-state"/"session-msg"/"session-tool" type.
+    // RunEventPipeline should ignore them (not "chat" or "agent").
+
+    it("skips session-state events", () => {
+      pipeline.handleEvent({
+        id: 100,
+        type: "session-state" as ServerEvent["type"],
+        data: { sessionKey: "agent:main:dashboard:123", reason: "send" },
+        timestamp: Date.now(),
+      });
+      vi.advanceTimersByTime(1000);
+      expect(flushed).toHaveLength(0);
+    });
+
+    it("skips session-msg events", () => {
+      pipeline.handleEvent({
+        id: 101,
+        type: "session-msg" as ServerEvent["type"],
+        data: { sessionKey: "agent:main:dashboard:123", message: {} },
+        timestamp: Date.now(),
+      });
+      vi.advanceTimersByTime(1000);
+      expect(flushed).toHaveLength(0);
+    });
+
+    it("skips session-tool events", () => {
+      pipeline.handleEvent({
+        id: 102,
+        type: "session-tool" as ServerEvent["type"],
+        data: { runId: "run-1", stream: "tool" },
+        timestamp: Date.now(),
+      });
+      vi.advanceTimersByTime(1000);
+      expect(flushed).toHaveLength(0);
+    });
   });
 });

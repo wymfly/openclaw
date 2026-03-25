@@ -32,7 +32,11 @@ export type DeckEventType =
   | "alert.fired"
   | "webhook.delivery"
   | "cron.run.complete"
-  | "canvas";
+  | "canvas"
+  // Upstream session events (Layer 2 — bypass RunEventPipeline)
+  | "session-state"
+  | "session-msg"
+  | "session-tool";
 
 export type ServerEvent = {
   id: number;
