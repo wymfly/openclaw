@@ -31,7 +31,8 @@ export type DeckEventType =
   | "budget.over"
   | "alert.fired"
   | "webhook.delivery"
-  | "cron.run.complete";
+  | "cron.run.complete"
+  | "canvas";
 
 export type ServerEvent = {
   id: number;

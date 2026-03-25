@@ -186,4 +186,14 @@ describe("DeckEventType coverage", () => {
       expect(event.type).toBe(t);
     }
   });
+
+  it("broadcasts canvas events", () => {
+    const bus = new EventBus();
+    const received: ServerEvent[] = [];
+    bus.subscribe((e) => received.push(e));
+    bus.broadcast("canvas", { action: "a2ui_push", jsonl: "{}" });
+    expect(received).toHaveLength(1);
+    expect(received[0].type).toBe("canvas");
+    expect((received[0].data as Record<string, unknown>).action).toBe("a2ui_push");
+  });
 });
