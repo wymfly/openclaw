@@ -28,7 +28,7 @@
 | `dashboard/src/components/panels/channels/DmPolicySelector.tsx` | DM policy radio card selector |
 | `dashboard/src/components/panels/channels/RetryStrategyEditor.tsx` | Retry fields + timeline visualization |
 
-### Modified Files (13)
+### Modified Files (14)
 
 | File | Change |
 |------|--------|
@@ -39,6 +39,7 @@
 | `dashboard/src/components/panels/config-editor/SchemaForm.tsx` | Wire Password/Record/Union/TypedArray/Validation + group layout + advanced collapse |
 | `dashboard/src/components/panels/config-editor/SectionNav.tsx` | Icons, field counts, advanced hint |
 | `dashboard/src/components/panels/agents/AgentDetail.tsx` | Register "config" tab |
+| `dashboard/src/lib/panel-navigation.ts` | Add `"config"` to `AgentTab` type union |
 | `dashboard/src/stores/deck-agents.ts` | Add `fetchAgentRawConfig()`, `saveAgentConfig()` |
 | `dashboard/src/components/panels/channels/ChannelDetail.tsx` | Refactor to tabbed layout |
 | `dashboard/src/components/panels/channels/BindingsTab.tsx` | Add optional `channelId` prop for filtering |
@@ -98,8 +99,13 @@ export interface FormField {
   help?: string;
   group?: string;
   tags?: string[];
+  validation?: ValidationConstraints;
 }
 ```
+
+Also extend `parseProperty()` to populate `validation` from JSON Schema constraints (`minLength`, `maxLength`, `minimum`, `maximum`, `pattern`), and to populate `variants`/`valueSchema`/`itemSchema` from `oneOf`/`additionalProperties`/`items` sub-schemas. Currently these fields exist on the interface but `parseProperty()` never sets them — the existing advanced field components (`UnionField`, `RecordField`, `TypedArrayField`) will remain inert until this parsing is added.
+
+Note: `PasswordField` is **already wired** in `SchemaForm.tsx` (line 280-289). Task 3 should skip re-wiring it and focus on the other 4 components.
 
 - [ ] **Step 3: Extend `config.ts` store to persist uiHints**
 
@@ -288,7 +294,7 @@ Props: `value: string`, `onChange: (profile: string) => void`.
 
 Renders 4 pill buttons: `minimal (1)` | `coding (18)` | `messaging (5)` | `full (30)`. Tool counts hardcoded (from `src/agents/tool-catalog.ts` CORE_TOOL_PROFILES). Active pill uses `var(--primary)` styling.
 
-Below pills: effective tools summary (list of tool names as chips). A link "→ View full policy trace" calls `navigateToAgentTab("context")` (existing helper in `panel-navigation.ts`).
+Below pills: effective tools summary (list of tool names as chips). A link "→ View full policy trace" calls `navigateToAgent(agentId, "context")` from `@/lib/panel-navigation` (note: requires `agentId` in scope, passed as prop from `AgentConfigTab`).
 
 Uses `role="radiogroup"` with `role="radio"` + `aria-checked` per spec accessibility section.
 
@@ -309,6 +315,7 @@ scripts/committer "[enhanced] feat(deck): add ToolProfileSelector component" das
 **Files:**
 - Create: `dashboard/src/components/panels/agents/tabs/AgentConfigTab.tsx`
 - Modify: `dashboard/src/components/panels/agents/AgentDetail.tsx`
+- Modify: `dashboard/src/lib/panel-navigation.ts`
 - Modify: `dashboard/src/stores/deck-agents.ts`
 
 - [ ] **Step 1: Extend deck-agents store**
@@ -322,7 +329,7 @@ saveAgentConfig: (agentId: string, updates: Record<string, unknown>) => Promise<
 
 `fetchAgentRawConfig`: calls `/api/config` (GET), parses JSON, extracts `agents.defaults`, finds `agents.list[].id === agentId`, stores both + full list + baseHash.
 
-`saveAgentConfig`: reads current `agentRawConfig.list`, finds entry by id, merges `updates` (null values delete keys), calls `/api/config/patch` with `{ agents: { list: [...] } }` + baseHash.
+`saveAgentConfig`: reads current `agentRawConfig.list`, finds entry by id, merges `updates` (null values delete keys), writes back via the existing config store's save mechanism. Implementation: parse `useConfigStore.rawConfig` as JSON, mutate the `agents.list` entry, call `useConfigStore.setEditedConfig(JSON.stringify(updated))` then `useConfigStore.saveConfig()` — this reuses the existing `/api/config/apply` endpoint with baseHash conflict detection. Alternatively, can call `/api/config/patch` directly (route exists at `dashboard/src/app/api/config/patch/route.ts`).
 
 - [ ] **Step 2: Create AgentConfigTab**
 
@@ -341,13 +348,16 @@ Save bar at bottom: override/inherit count summary + Reset All + Save buttons.
 Override detection: `isOverride(field)` checks `agentRawConfig.entry[field] !== undefined`.
 Effective value: `entry[field] ?? defaults[field] ?? schemaDefault`.
 
-- [ ] **Step 3: Register tab in AgentDetail**
+- [ ] **Step 3: Register tab in AgentDetail + update panel-navigation types**
 
 In `AgentDetail.tsx`:
 1. Add `"config"` to `TabValue` union
 2. Import `AgentConfigTab`
 3. Add `<TabsTrigger value="config">{t("tabs.config")}</TabsTrigger>` after "overview"
 4. Add `<TabsContent value="config"><AgentConfigTab agentId={agentId} /></TabsContent>`
+
+In `dashboard/src/lib/panel-navigation.ts`:
+5. Add `"config"` to the `AgentTab` type union (line 18): `type AgentTab = "overview" | "config" | "routing" | "skills" | "context" | "subagent" | "sessions"`
 
 - [ ] **Step 4: Add i18n keys**
 
@@ -361,7 +371,7 @@ Expected: 0 errors
 - [ ] **Step 6: Commit**
 
 ```bash
-scripts/committer "[enhanced] feat(deck): add Agent Config Editor tab with inherit/override badges" dashboard/src/components/panels/agents/tabs/AgentConfigTab.tsx dashboard/src/components/panels/agents/AgentDetail.tsx dashboard/src/stores/deck-agents.ts dashboard/src/i18n/zh.json dashboard/src/i18n/en.json
+scripts/committer "[enhanced] feat(deck): add Agent Config Editor tab with inherit/override badges" dashboard/src/components/panels/agents/tabs/AgentConfigTab.tsx dashboard/src/components/panels/agents/AgentDetail.tsx dashboard/src/lib/panel-navigation.ts dashboard/src/stores/deck-agents.ts dashboard/src/i18n/zh.json dashboard/src/i18n/en.json
 ```
 
 ---
@@ -512,3 +522,8 @@ Task 9 (Integration) ← depends on all
 - Group C: Tasks 7 → 8 (Channel Settings, sequential)
 - Groups A, B, C are **independent** and can run in parallel
 - Task 9 runs after all groups complete
+
+**i18n serialization constraint:** `zh.json` and `en.json` are touched by all three groups. To avoid merge conflicts when running in parallel:
+- Each group commits i18n keys in its own namespace (e.g., `config.sectionIntro.*`, `agentDetail.config.*`, `channels.settings.*`) — these are in different sections of the JSON
+- If using Agent Team with worktrees, each group adds keys to its own namespace section only; the final merge resolves positionally (no overlapping keys)
+- If merge conflicts still occur, Task 9 (integration) resolves them as a fixup step
