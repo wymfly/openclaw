@@ -1,8 +1,8 @@
 /**
- * POST /api/chat/abort — Abort an in-progress chat response.
+ * POST /api/chat/abort — Abort an in-progress run via sessions.abort.
  *
- * Gateway contract (`ChatAbortParamsSchema`):
- *   { sessionKey, runId? }
+ * Gateway contract (`SessionsAbortParamsSchema`):
+ *   { key, runId? }
  */
 import { NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";
@@ -18,8 +18,8 @@ export const POST = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "sessionKey is required" }, { status: 400 });
   }
 
-  return gatewayRequest("chat.abort", {
-    sessionKey: body.sessionKey,
+  return gatewayRequest("sessions.abort", {
+    key: body.sessionKey,
     runId: body.runId ?? undefined,
   });
 });

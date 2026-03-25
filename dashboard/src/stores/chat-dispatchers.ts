@@ -128,31 +128,25 @@ export interface ChatStoreAPI {
 /** Shared tracker map for convenience (no-args) dispatch calls. */
 const defaultTrackers = new Map<string, StreamingTracker>();
 
-/** Build a ChatStoreAPI from the Zustand store (lazy to avoid circular import). */
+/**
+ * Registered default API — populated by chat.ts on store creation.
+ * Avoids circular `require("./chat")` that breaks ESM / Vitest.
+ */
+let _registeredAPI: ChatStoreAPI | null = null;
+
+/** Called by chat.ts after store creation to wire the default API. */
+export function registerDefaultChatStoreAPI(api: ChatStoreAPI): void {
+  _registeredAPI = api;
+}
+
 function getDefaultAPI(): ChatStoreAPI {
-  // Dynamic import avoids circular dependency at parse time.
-  // Safe because dispatchers only run after the store is initialized.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { useChatStore } = require("./chat") as typeof import("./chat");
-  const s = useChatStore.getState();
-  return {
-    ensureSession: s.ensureSession,
-    addMessage: s.addMessage,
-    updateStreamingContent: s.updateStreamingContent,
-    appendContentBlock: s.appendContentBlock,
-    finalizeMessage: s.finalizeMessage,
-    setSessionStreaming: s.setSessionStreaming,
-    setStreaming: s.setStreaming,
-    setSessionError: s.setSessionError,
-    setRunMetadata: s.setRunMetadata,
-    setActiveApproval: s.setActiveApproval,
-    appendA2UIEvent: s.appendA2UIEvent,
-    updateA2UISurfaces: s.updateA2UISurfaces,
-    setA2UIState: s.setA2UIState,
-    setMessages: s.setMessages,
-    getSessionMessages: (key) => useChatStore.getState().sessions.get(key)?.messages ?? [],
-    updateToolProgress: s.updateToolProgress,
-  };
+  if (!_registeredAPI) {
+    throw new Error(
+      "Default ChatStoreAPI not registered. " +
+        "Either pass `store` explicitly or ensure chat.ts has been imported before dispatchers run.",
+    );
+  }
+  return _registeredAPI;
 }
 
 // ---------------------------------------------------------------------------
@@ -234,8 +228,14 @@ export function dispatchChatEvent(
         streaming: true,
       });
     } else {
-      // Subsequent delta — update content blocks (gateway sends full accumulated content)
-      api.updateStreamingContent(sessionKey, payload.runId, content);
+      // Subsequent delta — gateway sends accumulated text/thinking content but
+      // does NOT include tool_use/tool_result blocks (those arrive via agent events).
+      // Merge: keep locally-added tool blocks, replace text/thinking with gateway content.
+      const existingToolBlocks = existing.content.filter(
+        (b) => b.type === "tool_use" || b.type === "tool_result",
+      );
+      const merged = existingToolBlocks.length > 0 ? [...content, ...existingToolBlocks] : content;
+      api.updateStreamingContent(sessionKey, payload.runId, merged);
     }
     return;
   }
@@ -246,9 +246,14 @@ export function dispatchChatEvent(
     const existing = existingMessages.find((m) => m.id === payload.runId);
 
     if (existing) {
-      // Was streaming — update with final content and finalize
+      // Was streaming — merge final content with locally-added tool blocks
       if (content.length > 0) {
-        api.updateStreamingContent(sessionKey, payload.runId, content);
+        const existingToolBlocks = existing.content.filter(
+          (b) => b.type === "tool_use" || b.type === "tool_result",
+        );
+        const merged =
+          existingToolBlocks.length > 0 ? [...content, ...existingToolBlocks] : content;
+        api.updateStreamingContent(sessionKey, payload.runId, merged);
       }
       api.finalizeMessage(sessionKey, payload.runId);
     } else if (content.length > 0 && payload.runId) {
@@ -520,8 +525,13 @@ export function dispatchA2UIEvent(
 }
 
 /**
- * Fetch full message content from the gateway history API and replace
- * the streaming-collected content with the authoritative server version.
+ * Fetch full message content from the gateway history API and refresh
+ * the text/thinking blocks with the authoritative server version,
+ * while preserving tool_use/tool_result blocks collected via SSE.
+ *
+ * Gateway history uses Anthropic message format where tool_use blocks
+ * live in earlier assistant messages, not the final one. So we merge
+ * history text with locally-collected tool blocks.
  *
  * Retries once on failure. If both attempts fail, the original content
  * is preserved.
@@ -537,7 +547,7 @@ export async function reloadFullContent(
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const res = await fetch(
-        `/api/deck/chat/history?sessionKey=${encodeURIComponent(sessionKey)}&limit=5`,
+        `/api/chat/history?sessionKey=${encodeURIComponent(sessionKey)}&limit=5`,
       );
       if (!res.ok) {
         continue;
@@ -561,7 +571,7 @@ export async function reloadFullContent(
       }
 
       // Map content blocks (normalize tool_result toolUseId)
-      const blocks: ContentBlock[] = assistantMsg.content.map((block) => {
+      const historyBlocks: ContentBlock[] = assistantMsg.content.map((block) => {
         // Handle snake_case tool_use_id → camelCase toolUseId
         const raw = block as Record<string, unknown>;
         if (raw.type === "tool_result" && raw.tool_use_id && !raw.toolUseId) {
@@ -575,15 +585,29 @@ export async function reloadFullContent(
         return block;
       });
 
-      // Replace message content — re-read messages to handle concurrent updates
+      // Re-read messages to handle concurrent updates
       const messages = api.getSessionMessages(sessionKey);
       const msgIdx = messages.findIndex((m) => m.id === runId);
       if (msgIdx === -1) {
         return; // Session or message was removed during fetch
       }
 
+      // Preserve locally-collected tool blocks (from agent SSE events).
+      // Gateway history's last assistant message typically only has text —
+      // tool_use/tool_result live in earlier messages per Anthropic format.
+      const currentMsg = messages[msgIdx];
+      const existingToolBlocks = currentMsg.content.filter(
+        (b) => b.type === "tool_use" || b.type === "tool_result",
+      );
+      // History text/thinking blocks + preserved tool blocks
+      const historyNonTool = historyBlocks.filter(
+        (b) => b.type !== "tool_use" && b.type !== "tool_result",
+      );
+      const merged =
+        existingToolBlocks.length > 0 ? [...existingToolBlocks, ...historyNonTool] : historyBlocks;
+
       const updated = [...messages];
-      updated[msgIdx] = { ...updated[msgIdx], content: blocks };
+      updated[msgIdx] = { ...updated[msgIdx], content: merged };
       api.setMessages(sessionKey, updated);
       return;
     } catch {
@@ -591,4 +615,39 @@ export async function reloadFullContent(
     }
   }
   // Both retries failed — keep original content
+}
+
+// ---------------------------------------------------------------------------
+// Session state event dispatcher (Layer 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Handle a session-state event from SSE.
+ * Updates session lifecycle state (streaming, error) based on phase/reason.
+ */
+export function dispatchSessionStateEvent(
+  payload: Record<string, unknown>,
+  store?: ChatStoreAPI,
+): void {
+  const api = store ?? getDefaultAPI();
+  const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : "";
+  if (!sessionKey) return;
+
+  const phase = typeof payload.phase === "string" ? payload.phase : undefined;
+  const reason = typeof payload.reason === "string" ? payload.reason : undefined;
+
+  // Update streaming state based on lifecycle phase
+  if (phase === "start" || reason === "send" || reason === "steer") {
+    api.setStreaming(sessionKey, true, payload.runId as string | undefined);
+  }
+  if (phase === "end") {
+    api.setStreaming(sessionKey, false);
+  }
+  if (phase === "error") {
+    api.setStreaming(sessionKey, false);
+    api.setSessionError(
+      sessionKey,
+      typeof payload.errorMessage === "string" ? payload.errorMessage : "Run failed",
+    );
+  }
 }
