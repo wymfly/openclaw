@@ -79,42 +79,68 @@ export function ConfigPanel() {
     }
   }, [editedConfig]);
 
-  // Get fields for current section from schema
+  // Get fields for current section from schema (supports dotted paths like "agents.main")
   const currentFields = useMemo(() => {
     if (!schema || !activeSection) {
       return [];
     }
     const props = schema.properties as Record<string, Record<string, unknown>> | undefined;
-    const sectionSchema = props?.[activeSection];
-    if (!sectionSchema || typeof sectionSchema !== "object") {
+    if (!props) return [];
+    const parts = activeSection.split(".");
+    let node: Record<string, unknown> | undefined = props[parts[0]];
+    for (let i = 1; i < parts.length && node; i++) {
+      const nested = node.properties as Record<string, Record<string, unknown>> | undefined;
+      node = nested?.[parts[i]];
+    }
+    if (!node || typeof node !== "object") {
       return [];
     }
-    return parseSchemaSection(sectionSchema);
+    return parseSchemaSection(node);
   }, [schema, activeSection]);
 
-  // Get values for the active section
+  // Get values for the active section (supports dotted paths)
   const sectionValues = useMemo(() => {
     if (!activeSection) {
       return {};
     }
-    return (configObj[activeSection] as Record<string, unknown>) ?? {};
+    const parts = activeSection.split(".");
+    let val: unknown = configObj;
+    for (const p of parts) {
+      if (val && typeof val === "object") {
+        val = (val as Record<string, unknown>)[p];
+      } else {
+        return {};
+      }
+    }
+    return (val as Record<string, unknown>) ?? {};
   }, [configObj, activeSection]);
 
   const handleFieldChange = useCallback(
     (key: string, value: unknown) => {
       const newConfig = { ...configObj };
       if (activeSection) {
-        const existing = newConfig[activeSection];
-        const sectionObj: Record<string, unknown> =
-          typeof existing === "object" && existing !== null
-            ? { ...(existing as Record<string, unknown>) }
-            : {};
-        // Handle nested keys like "gateway.port"
+        // Walk into the config object along the section path (supports dotted paths like "agents.main")
+        const sectionParts = activeSection.split(".");
+        // Deep-clone path to section
+        let parent: Record<string, unknown> = newConfig;
+        for (let i = 0; i < sectionParts.length; i++) {
+          const sp = sectionParts[i];
+          const existing = parent[sp];
+          parent[sp] =
+            typeof existing === "object" && existing !== null
+              ? { ...(existing as Record<string, unknown>) }
+              : {};
+          if (i < sectionParts.length - 1) {
+            parent = parent[sp] as Record<string, unknown>;
+          }
+        }
+        const sectionObj = parent[sectionParts[sectionParts.length - 1]] as Record<string, unknown>;
+
+        // Handle nested field keys like "port" or "nested.field"
         const parts = key.split(".");
         if (parts.length === 1) {
           sectionObj[key] = value;
         } else {
-          // Walk the nesting
           let current: Record<string, unknown> = sectionObj;
           for (let i = 0; i < parts.length - 1; i++) {
             const part = parts[i];
@@ -126,7 +152,6 @@ export function ConfigPanel() {
           }
           current[parts[parts.length - 1]] = value;
         }
-        newConfig[activeSection] = sectionObj;
       }
       setEditedConfig(JSON.stringify(newConfig, null, 2));
     },
@@ -149,18 +174,18 @@ export function ConfigPanel() {
       {/* Toolbar */}
       <div
         className="flex items-center justify-between px-4 py-2 border-b"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
             {t("title")}
           </h2>
           {isDirty && (
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-full"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
-                color: "var(--accent)",
+                backgroundColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                color: "var(--primary)",
               }}
             >
               {t("unsavedChanges")}
@@ -185,8 +210,8 @@ export function ConfigPanel() {
             className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
             style={{
               border: "1px solid var(--border)",
-              color: "var(--text-primary)",
-              backgroundColor: "var(--bg-primary)",
+              color: "var(--foreground)",
+              backgroundColor: "var(--background)",
             }}
           >
             <RefreshCw size={12} />
@@ -196,7 +221,7 @@ export function ConfigPanel() {
             onClick={handleSave}
             disabled={!isDirty || saving}
             className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+            style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
           >
             <Save size={12} />
             {saving ? t("saving") : t("save")}
@@ -209,7 +234,7 @@ export function ConfigPanel() {
         {loading && !schema ? (
           <div
             className="flex items-center justify-center w-full"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{tc("loading")}</p>
           </div>
