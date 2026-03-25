@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { useAgentsStore } from "@/stores/agents";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
+import { AgentConfigTab } from "./tabs/AgentConfigTab";
 import { ContextTab } from "./tabs/ContextTab";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { RoutingTab } from "./tabs/RoutingTab";
@@ -23,7 +24,7 @@ const STATUS_BADGE: Record<string, string> = {
   offline: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
 };
 
-type TabValue = "overview" | "routing" | "skills" | "context" | "subagent" | "sessions";
+type TabValue = "overview" | "config" | "routing" | "skills" | "context" | "subagent" | "sessions";
 
 export function AgentDetail({ agentId }: { agentId: string }) {
   const t = useTranslations("agentDetail");
@@ -114,6 +115,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         <div className="px-4 pt-2 shrink-0 border-b border-[var(--border-subtle)]">
           <TabsList variant="line">
             <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
+            <TabsTrigger value="config">{t("tabs.config")}</TabsTrigger>
             <TabsTrigger value="routing">{t("routing")}</TabsTrigger>
             <TabsTrigger value="skills">{t("skills")}</TabsTrigger>
             <TabsTrigger value="context">{t("context")}</TabsTrigger>
@@ -125,6 +127,9 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         <ScrollArea className="flex-1 min-h-0">
           <TabsContent value="overview" className="p-4">
             <OverviewTab detail={detail} onNavigateTab={setActiveTab} />
+          </TabsContent>
+          <TabsContent value="config" className="p-4">
+            <AgentConfigTab agentId={agentId} />
           </TabsContent>
           <TabsContent value="routing" className="p-4">
             <RoutingTab agentId={agentId} />
