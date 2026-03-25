@@ -737,7 +737,50 @@
     "advanced": "Advanced",
     "schemaLookupFallback": "Schema lookup unavailable, using full load",
     "showPassword": "Show",
-    "hidePassword": "Hide"
+    "hidePassword": "Hide",
+    "viewDocs": "View docs",
+    "sectionIntro": {
+      "agents": {
+        "title": "Agent Configuration",
+        "description": "Configure AI agent models, tools, inference parameters, and behavior policies."
+      },
+      "tools": {
+        "title": "Tool Configuration",
+        "description": "Manage built-in and external tool enablement, permissions, and parameter settings."
+      },
+      "gateway": {
+        "title": "Gateway Configuration",
+        "description": "Manage gateway bind address, port, authentication, and runtime mode."
+      },
+      "channels": {
+        "title": "Channel Configuration",
+        "description": "Configure messaging channel connections and behavior for Telegram, Discord, Slack, and more."
+      },
+      "models": {
+        "title": "Model Configuration",
+        "description": "Configure LLM providers, model selection, fallback strategies, and inference parameters."
+      },
+      "hooks": {
+        "title": "Hooks Configuration",
+        "description": "Define lifecycle hooks that execute custom logic on specific events."
+      },
+      "secrets": {
+        "title": "Secrets Management",
+        "description": "Manage secure storage of API keys, tokens, and other sensitive credentials."
+      },
+      "logging": {
+        "title": "Logging Configuration",
+        "description": "Adjust log levels, output formats, and storage policies."
+      },
+      "update": {
+        "title": "Update Configuration",
+        "description": "Manage automatic update checks and update channel settings."
+      },
+      "browser": {
+        "title": "Browser Configuration",
+        "description": "Configure the built-in browser tool behavior, timeouts, and security restrictions."
+      }
+    }
   },
   "cron": {
     "title": "Cron Jobs",

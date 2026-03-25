@@ -7,6 +7,7 @@ import { parseSchemaSection } from "@/lib/schema-parser";
 import { useConfigStore } from "@/stores/config";
 import { ConflictDialog } from "./ConflictDialog";
 import { SchemaForm } from "./SchemaForm";
+import { SectionIntroCard } from "./SectionIntroCard";
 import { SectionNav } from "./SectionNav";
 
 /**
@@ -246,6 +247,7 @@ export function ConfigPanel() {
               onSelect={setActiveSection}
             />
             <div className="flex-1 overflow-y-auto px-4 py-3">
+              {activeSection && <SectionIntroCard sectionKey={activeSection} />}
               {activeSection && (
                 <SchemaForm
                   fields={currentFields}
