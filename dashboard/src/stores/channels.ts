@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useConfigStore } from "./config";
 
 // ---------------------------------------------------------------------------
 // Types derived from channels.status gateway response
@@ -23,6 +24,24 @@ export interface ChannelInfo {
 }
 
 // ---------------------------------------------------------------------------
+// Throughput types
+// ---------------------------------------------------------------------------
+
+export type ThroughputWindow = "1h" | "6h" | "24h";
+
+export interface ThroughputBucket {
+  time: number;
+  in: number;
+  out: number;
+}
+
+export interface ThroughputData {
+  buckets: ThroughputBucket[];
+  messagesIn: number;
+  messagesOut: number;
+}
+
+// ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
@@ -33,10 +52,21 @@ interface ChannelsState {
   loading: boolean;
   error: string | null;
 
+  // Throughput state
+  throughput: Map<string, ThroughputData>;
+  throughputWindow: ThroughputWindow;
+
+  // Channel config state (per-channel settings from raw config)
+  channelConfig: Record<string, unknown> | null;
+
   fetchChannels: () => Promise<void>;
   selectChannel: (id: string | null) => void;
   updateChannelConfig: (channelId: string, patch: Record<string, unknown>) => Promise<boolean>;
   logoutChannel: (channelId: string) => Promise<boolean>;
+  fetchThroughput: (channelId: string) => void;
+  setThroughputWindow: (window: ThroughputWindow) => void;
+  fetchChannelConfig: (channelId: string) => Promise<void>;
+  saveChannelConfig: (channelId: string, patch: Record<string, unknown>) => Promise<boolean>;
 }
 
 export const useChannelsStore = create<ChannelsState>((set, get) => ({
@@ -45,6 +75,9 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
   selectedId: null,
   loading: false,
   error: null,
+  throughput: new Map(),
+  throughputWindow: "1h" as ThroughputWindow,
+  channelConfig: null,
 
   fetchChannels: async () => {
     set({ loading: true, error: null });
@@ -126,6 +159,74 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
       });
       if (res.ok) {
         await get().fetchChannels();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+
+  fetchThroughput: (channelId: string) => {
+    const window = get().throughputWindow;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/channels/${encodeURIComponent(channelId)}/throughput?window=${window}`,
+        );
+        if (!res.ok) {
+          return;
+        }
+        const data = (await res.json()) as ThroughputData;
+        const map = new Map(get().throughput);
+        map.set(channelId, data);
+        set({ throughput: map });
+      } catch {
+        // best-effort
+      }
+    })();
+  },
+
+  setThroughputWindow: (window: ThroughputWindow) => set({ throughputWindow: window }),
+
+  fetchChannelConfig: async (channelId: string) => {
+    const configStore = useConfigStore.getState();
+    // Ensure rawConfig is loaded
+    if (!configStore.rawConfig) {
+      await configStore.fetchConfig();
+    }
+    const { rawConfig } = useConfigStore.getState();
+    if (!rawConfig) {
+      set({ channelConfig: null });
+      return;
+    }
+    try {
+      const parsed = JSON.parse(rawConfig) as Record<string, unknown>;
+      const channels = (parsed.channels ?? {}) as Record<string, unknown>;
+      const channelCfg = (channels[channelId] ?? {}) as Record<string, unknown>;
+      set({ channelConfig: channelCfg });
+    } catch {
+      set({ channelConfig: null });
+    }
+  },
+
+  saveChannelConfig: async (channelId: string, patch: Record<string, unknown>) => {
+    const configStore = useConfigStore.getState();
+    const baseHash = configStore.baseHash;
+    try {
+      const res = await fetch("/api/config/patch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patch: { channels: { [channelId]: patch } },
+          baseHash,
+        }),
+      });
+      if (res.ok) {
+        // Refresh config store to get new baseHash
+        await configStore.fetchConfig();
+        // Refresh channel config from updated rawConfig
+        await get().fetchChannelConfig(channelId);
         return true;
       }
       return false;

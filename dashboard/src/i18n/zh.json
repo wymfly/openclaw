@@ -717,6 +717,29 @@
       "bindings": "绑定",
       "settings": "设置",
       "settingsPlaceholder": "设置功能即将推出"
+    },
+    "settings": {
+      "dmPolicy": {
+        "title": "私信策略",
+        "pairing": "需要配对",
+        "pairingDesc": "用户需要先通过配对码验证身份才能与 Bot 对话。适用于公开 Bot 的最安全选项。",
+        "allowlist": "仅允许列表",
+        "allowlistDesc": "仅预先批准的用户可以向 Bot 发送私信。在渠道设置中管理允许列表。",
+        "open": "开放",
+        "openDesc": "任何人都可以向 Bot 发送私信。需要设置 allowFrom: ['*']。仅用于内部或可信渠道。",
+        "disabled": "禁用",
+        "disabledDesc": "Bot 忽略所有私信。仅当你只需要群组/频道交互时使用。",
+        "recommended": "推荐"
+      },
+      "retry": {
+        "title": "重试策略",
+        "attempts": "重试次数",
+        "minDelay": "最小延迟 (ms)",
+        "maxDelay": "最大延迟 (ms)",
+        "jitter": "抖动系数",
+        "totalTime": "总耗时: {time}"
+      },
+      "reset": "重置"
     }
   },
   "config": {

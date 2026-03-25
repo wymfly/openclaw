@@ -6,6 +6,7 @@ import { useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useChannelsStore, type ChannelAccount } from "@/stores/channels";
 import { BindingsTab } from "./BindingsTab";
+import { ChannelSettingsTab } from "./ChannelSettingsTab";
 
 function AccountStatusBadge({ account }: { account: ChannelAccount }) {
   const t = useTranslations("channels");
@@ -291,11 +292,9 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
           <BindingsTab channelId={channelId} />
         </TabsContent>
 
-        {/* Settings tab — placeholder for Task 8 */}
-        <TabsContent value="settings" className="flex-1 overflow-y-auto">
-          <div className="p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
-            {t("tabs.settingsPlaceholder")}
-          </div>
+        {/* Settings tab — DM policy, retry, channel-specific fields */}
+        <TabsContent value="settings" className="flex-1 overflow-hidden">
+          <ChannelSettingsTab channelId={channelId} />
         </TabsContent>
       </Tabs>
     </div>

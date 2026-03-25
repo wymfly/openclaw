@@ -528,6 +528,9 @@
       "usingDefault": "Using global default",
       "saveError": "Save failed"
     },
+    "tabs": {
+      "config": "Config"
+    },
     "config": {
       "toolProfile": "Tool Profile",
       "profileMinimal": "Minimal",
@@ -535,7 +538,38 @@
       "profileMessaging": "Messaging",
       "profileFull": "Full",
       "toolCount": "{count} tools",
-      "viewPolicyTrace": "View full policy trace"
+      "viewPolicyTrace": "View full policy trace",
+      "modelInference": "Model & Inference",
+      "model": "Model",
+      "thinkingDefault": "Thinking",
+      "thinking_enable": "Enable",
+      "thinking_disable": "Disable",
+      "thinking_auto": "Auto",
+      "temperature": "Temperature",
+      "toolsProfile": "Tools Profile",
+      "subagents": "Subagents",
+      "allowAgents": "Allow Agents",
+      "allowAgentsOff": "Off",
+      "allowAgentsList": "Allow specific",
+      "allowAgentsAny": "Allow any",
+      "subagentModelOverride": "Model Override",
+      "subagentModelPlaceholder": "Use agent default",
+      "delivery": "Delivery",
+      "blockStreaming": "Block Streaming",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "eventStreams": "Event Streams",
+      "eventStream_lifecycle": "Lifecycle",
+      "eventStream_assistant": "Assistant",
+      "eventStream_tool": "Tool",
+      "eventStream_thinking": "Thinking",
+      "typingIndicator": "Typing Indicator",
+      "typingAuto": "Auto",
+      "typingAlways": "Always",
+      "typingNever": "Never",
+      "overrideCount": "{count} overrides",
+      "inheritedCount": "{count} inherited",
+      "resetAll": "Reset All"
     }
   },
   "context": {
@@ -717,6 +751,29 @@
       "bindings": "Bindings",
       "settings": "Settings",
       "settingsPlaceholder": "Settings coming soon"
+    },
+    "settings": {
+      "dmPolicy": {
+        "title": "DM Policy",
+        "pairing": "Pairing Required",
+        "pairingDesc": "Users must pair their account with a verification code before chatting. Most secure option for public bots.",
+        "allowlist": "Allowlist Only",
+        "allowlistDesc": "Only pre-approved users can DM the bot. Manage the allowlist in channel settings.",
+        "open": "Open",
+        "openDesc": "Anyone can DM the bot. Requires allowFrom: ['*']. Use only for internal or trusted channels.",
+        "disabled": "Disabled",
+        "disabledDesc": "Bot ignores all DMs. Use when you only need group or channel interactions.",
+        "recommended": "Recommended"
+      },
+      "retry": {
+        "title": "Retry Strategy",
+        "attempts": "Attempts",
+        "minDelay": "Min Delay (ms)",
+        "maxDelay": "Max Delay (ms)",
+        "jitter": "Jitter",
+        "totalTime": "Total time: {time}"
+      },
+      "reset": "Reset"
     }
   },
   "config": {
