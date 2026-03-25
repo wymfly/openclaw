@@ -9,6 +9,7 @@ import {
   type StreamingTracker,
   dispatchChatEvent,
   dispatchAgentEvent,
+  dispatchSessionStateEvent,
 } from "@/stores/chat-dispatchers";
 import { useUIStore } from "@/stores/ui";
 
@@ -88,6 +89,15 @@ export function useChatSSE() {
 
     es.addEventListener("agent", (e) => {
       dispatchAgentEvent(JSON.parse(e.data) as AgentEventPayload, api, trackersRef.current);
+    });
+
+    es.addEventListener("session-state", (e) => {
+      try {
+        const payload = JSON.parse(e.data) as Record<string, unknown>;
+        dispatchSessionStateEvent(payload, api);
+      } catch {
+        // ignore parse errors
+      }
     });
 
     es.addEventListener("canvas", (e: MessageEvent) => {

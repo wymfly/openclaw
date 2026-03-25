@@ -24,51 +24,14 @@ function formatDate(): string {
 }
 
 /**
- * Fetch full paginated session history from the sessions-history-http API.
- * Falls back to the provided in-memory messages if the API is unavailable.
+ * Return session messages for export.
+ *
+ * TODO: Wire up a paginated REST history endpoint via the deck proxy
+ * (e.g. sessions.getHistory) once the Gateway exposes one. For now we
+ * use the in-memory messages that the chat store already has loaded.
  */
-async function fetchFullHistory(
-  sessionKey: string,
-  fallback: HistoryMessage[],
-): Promise<HistoryMessage[]> {
-  const allMessages: HistoryMessage[] = [];
-  let cursor: string | undefined;
-  const limit = 100;
-
-  try {
-    for (let page = 0; page < 50; page++) {
-      const params = new URLSearchParams({ limit: String(limit) });
-      if (cursor) {
-        params.set("cursor", cursor);
-      }
-      const res = await fetch(
-        `/api/sessions/${encodeURIComponent(sessionKey)}/history?${params.toString()}`,
-      );
-      if (!res.ok) {
-        // API not available — fall back to in-memory messages
-        return fallback;
-      }
-      const data = (await res.json()) as {
-        messages?: Record<string, unknown>[];
-        nextCursor?: string;
-      };
-      const rawMsgs = data.messages ?? [];
-      for (const m of rawMsgs) {
-        allMessages.push({
-          role: (m.role as HistoryMessage["role"]) ?? "user",
-          content: typeof m.content === "string" ? m.content : "",
-          timestamp: typeof m.timestamp === "number" ? m.timestamp : undefined,
-        });
-      }
-      if (!data.nextCursor || rawMsgs.length < limit) {
-        break;
-      }
-      cursor = data.nextCursor;
-    }
-    return allMessages.length > 0 ? allMessages : fallback;
-  } catch {
-    return fallback;
-  }
+function getExportMessages(fallback: HistoryMessage[]): HistoryMessage[] {
+  return fallback;
 }
 
 export function SessionExport({ session, messages }: SessionExportProps) {
@@ -78,10 +41,10 @@ export function SessionExport({ session, messages }: SessionExportProps) {
   const keySlug = session.key.replace(/[^a-zA-Z0-9\-_]/g, "-").slice(0, 40);
   const date = formatDate();
 
-  const handleJson = async () => {
+  const handleJson = () => {
     setExporting(true);
     try {
-      const fullMessages = await fetchFullHistory(session.key, messages);
+      const fullMessages = getExportMessages(messages);
       const content = exportAsJson(session, fullMessages);
       downloadBlob(content, `session-${keySlug}-${date}.json`, "application/json");
     } finally {
@@ -89,10 +52,10 @@ export function SessionExport({ session, messages }: SessionExportProps) {
     }
   };
 
-  const handleMarkdown = async () => {
+  const handleMarkdown = () => {
     setExporting(true);
     try {
-      const fullMessages = await fetchFullHistory(session.key, messages);
+      const fullMessages = getExportMessages(messages);
       const content = exportAsMarkdown(session, fullMessages);
       downloadBlob(content, `session-${keySlug}-${date}.md`, "text/markdown");
     } finally {

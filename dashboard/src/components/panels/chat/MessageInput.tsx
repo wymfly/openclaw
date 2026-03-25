@@ -166,21 +166,30 @@ export function MessageInput() {
 
       if (!sessionKey) {
         // First message — create session via Gateway (key generated server-side)
+        const hasAttachments = attachments.length > 0;
         const messageText =
           text || (pendingFiles.length > 0 ? pendingFiles.map((f) => f.name).join(", ") : "");
+
+        // Create session (with message only if no attachments — attachments
+        // are not supported by sessions.create, so we send them via steer)
         const createRes = await fetch("/api/chat/sessions/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentId, message: messageText }),
+          body: JSON.stringify({
+            agentId,
+            ...(!hasAttachments && messageText ? { message: messageText } : {}),
+          }),
         });
         const createData = (await createRes.json()) as {
           key?: string;
+          runStarted?: boolean;
+          runError?: string;
           error?: string;
         };
         if (!createRes.ok || !createData.key) {
-          useChatStore
-            .getState()
-            .setSessionError("pending", createData.error ?? t("error"));
+          // Restore input on failure so the user doesn't lose their message
+          setInput(text);
+          setFiles(pendingFiles);
           return;
         }
         sessionKey = createData.key;
@@ -203,8 +212,31 @@ export function MessageInput() {
           content: [{ type: "text" as const, text: displayText }],
           timestamp: Date.now(),
         });
-        useChatStore.getState().setSessionStreaming(sessionKey, true);
-        // Message already sent via sessions.create's message param — done
+
+        if (hasAttachments || !createData.runStarted) {
+          // Send message+attachments via sessions.steer (create didn't include the message)
+          useChatStore.getState().setSessionStreaming(sessionKey, true);
+          const sendRes = await fetch("/api/chat/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: messageText,
+              sessionKey,
+              ...(hasAttachments ? { attachments } : {}),
+            }),
+          });
+          if (!sendRes.ok) {
+            const data = (await sendRes.json()) as { error?: string };
+            useChatStore.getState().setSessionError(sessionKey, data.error ?? t("error"));
+            useChatStore.getState().setSessionStreaming(sessionKey, false);
+          }
+        } else if (createData.runError) {
+          // Handle runError from create
+          useChatStore.getState().setSessionError(sessionKey, createData.runError);
+        } else {
+          // Message was sent via sessions.create, run started — done
+          useChatStore.getState().setSessionStreaming(sessionKey, true);
+        }
       } else {
         // Existing session — add user message then send via sessions.steer
         useChatStore.getState().addMessage(sessionKey, {
