@@ -1,9 +1,8 @@
 /**
- * POST /api/chat/send — Send a chat message through the Gateway.
+ * POST /api/chat/send — Send a message via sessions.steer (safe for idle and running).
  *
- * Gateway contract (`ChatSendParamsSchema`):
- *   { sessionKey, message, thinking?, deliver?, attachments?, timeoutMs?, idempotencyKey }
- * Note: `additionalProperties: false` — do NOT inject platform headers into params.
+ * Gateway contract (`SessionsSendParamsSchema`):
+ *   { key, message, thinking?, attachments?, timeoutMs?, idempotencyKey? }
  */
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
@@ -16,10 +15,16 @@ export const POST = withAuth(async (request: NextRequest) => {
     sessionKey?: string;
     thinking?: string;
     idempotencyKey?: string;
+    attachments?: Array<{
+      type?: string;
+      mimeType?: string;
+      fileName?: string;
+      content: string;
+    }>;
   };
 
-  if (!body.message?.trim()) {
-    return Response.json({ error: "message is required" }, { status: 400 });
+  if (!body.message?.trim() && (!body.attachments || body.attachments.length === 0)) {
+    return Response.json({ error: "message or attachment required" }, { status: 400 });
   }
   if (!body.sessionKey?.trim()) {
     return Response.json({ error: "sessionKey is required" }, { status: 400 });
@@ -27,10 +32,11 @@ export const POST = withAuth(async (request: NextRequest) => {
 
   const idempotencyKey = body.idempotencyKey?.trim() || randomUUID();
 
-  return gatewayRequest("chat.send", {
-    sessionKey: body.sessionKey,
-    message: body.message,
+  return gatewayRequest("sessions.steer", {
+    key: body.sessionKey,
+    message: body.message ?? "",
     thinking: body.thinking ?? undefined,
     idempotencyKey,
+    ...(body.attachments && body.attachments.length > 0 ? { attachments: body.attachments } : {}),
   });
 });
