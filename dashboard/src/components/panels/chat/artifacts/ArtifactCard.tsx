@@ -12,13 +12,13 @@ interface ArtifactCardProps {
 export function ArtifactCard({ artifact, onOpen }: ArtifactCardProps) {
   const t = useTranslations("chat");
   return (
-    <div className="my-1.5 flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20 text-xs">
-      <Play size={14} className="text-[var(--accent)] shrink-0" />
+    <div className="my-1.5 flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--primary-muted)] ring-1 ring-[var(--primary)]/20 text-xs">
+      <Play size={14} className="text-[var(--primary)] shrink-0" />
       <div className="flex-1 min-w-0">
-        <span className="font-medium text-[var(--text-primary)]">
+        <span className="font-medium text-[var(--foreground)]">
           {t.has(artifact.title) ? t(artifact.title) : artifact.title}
         </span>
-        <span className="ml-2 text-[var(--text-secondary)] uppercase tracking-wider text-[10px]">
+        <span className="ml-2 text-[var(--muted-foreground)] uppercase tracking-wider text-[10px]">
           {artifact.language}
         </span>
       </div>

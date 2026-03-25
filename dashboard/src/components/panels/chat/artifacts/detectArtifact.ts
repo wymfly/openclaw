@@ -1,12 +1,23 @@
+export type ArtifactLanguage =
+  | "html"
+  | "svg"
+  | "mermaid"
+  | "json"
+  | "csv"
+  | "markdown"
+  | "code"
+  | "text"
+  | "image";
+
 export interface ArtifactInfo {
   id: string;
   title: string;
-  language: "html" | "mermaid" | "svg" | "json" | "markdown" | "csv" | "code" | "text";
+  language: ArtifactLanguage;
   content: string;
-  /** Language hint for code artifacts (file extension). */
+  /** For code: file extension; for image: subtype (png/jpeg/etc.) */
   codeLang?: string;
-  /** Source context for code artifacts. */
-  source?: { toolName?: string; fileName?: string };
+  /** Source context. */
+  source?: { toolName?: string; fileName?: string; filePath?: string };
 }
 
 let artifactCounter = 0;
