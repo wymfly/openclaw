@@ -98,6 +98,9 @@ export function applyUiHints(fields: FormField[], hints: UiHintsMap, prefix = ""
           ...(hint.help !== undefined ? { help: hint.help } : {}),
           ...(hint.group !== undefined ? { group: hint.group } : {}),
           ...(hint.tags !== undefined ? { tags: hint.tags } : {}),
+          ...(hint.label !== undefined ? { label: hint.label } : {}),
+          ...(hint.order !== undefined ? { order: hint.order } : {}),
+          ...(hint.advanced !== undefined ? { advanced: hint.advanced } : {}),
         }
       : { ...field };
 

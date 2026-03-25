@@ -22,16 +22,28 @@ function getNestedValue(obj: Record<string, unknown> | null | undefined, path: s
   return current;
 }
 
-/** Set a dot-separated path in an updates map (flat keys). */
+/** Set a dot-separated path in an updates map as a nested structure. */
 function setNestedKey(updates: Record<string, unknown>, path: string, value: unknown): void {
-  updates[path] = value;
+  const parts = path.split(".");
+  if (parts.length === 1) {
+    updates[path] = value;
+    return;
+  }
+  let current = updates;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!(parts[i] in current) || typeof current[parts[i]] !== "object" || current[parts[i]] === null) {
+      current[parts[i]] = {};
+    }
+    current = current[parts[i]] as Record<string, unknown>;
+  }
+  current[parts[parts.length - 1]] = value;
 }
 
 // ---------------------------------------------------------------------------
 // Thinking mode options
 // ---------------------------------------------------------------------------
 
-const THINKING_OPTIONS = ["enable", "disable", "auto"] as const;
+const THINKING_OPTIONS = ["off", "minimal", "low", "medium", "high", "xhigh", "adaptive"] as const;
 type ThinkingMode = (typeof THINKING_OPTIONS)[number];
 
 // ---------------------------------------------------------------------------
@@ -52,7 +64,8 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
   const t = useTranslations("agentDetail.config");
   const tc = useTranslations("common");
 
-  const { agentRawConfig, fetchAgentRawConfig, saveAgentConfig } = useDeckAgentsStore();
+  const { agentRawConfig, fetchAgentRawConfig, saveAgentConfig, configSaveError } =
+    useDeckAgentsStore();
 
   // Local edits tracking — flat dot-path keys to new values (null = reset)
   const [localEdits, setLocalEdits] = useState<Record<string, unknown>>({});
@@ -194,13 +207,13 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
             onReset={() => handleReset("thinkingDefault")}
           >
             <select
-              value={String(effectiveValue("thinkingDefault") ?? "auto")}
+              value={String(effectiveValue("thinkingDefault") ?? "adaptive")}
               onChange={(e) => handleChange("thinkingDefault", e.target.value)}
               className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
             >
               {THINKING_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
-                  {t(`thinking_${opt}` as "thinking_enable")}
+                  {t(`thinking_${opt}` as "thinking_off")}
                 </option>
               ))}
             </select>
@@ -370,7 +383,13 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
       </div>
 
       {/* Save Bar */}
-      <div className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-card px-4 py-3">
+      <div className="flex flex-col gap-1 rounded-lg border border-[var(--border-subtle)] bg-card px-4 py-3">
+        {configSaveError && (
+          <p className="text-xs" style={{ color: "var(--destructive)" }}>
+            {configSaveError}
+          </p>
+        )}
+        <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
           {t("overrideCount", { count: overrideCount })}
           {" / "}
@@ -393,6 +412,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
           >
             {saving ? tc("loading") : tc("save")}
           </button>
+        </div>
         </div>
       </div>
     </div>

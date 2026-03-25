@@ -58,6 +58,7 @@ interface ChannelsState {
 
   // Channel config state (per-channel settings from raw config)
   channelConfig: Record<string, unknown> | null;
+  channelConfigSaveError: string | null;
 
   fetchChannels: () => Promise<void>;
   selectChannel: (id: string | null) => void;
@@ -78,6 +79,7 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
   throughput: new Map(),
   throughputWindow: "1h" as ThroughputWindow,
   channelConfig: null,
+  channelConfigSaveError: null,
 
   fetchChannels: async () => {
     set({ loading: true, error: null });
@@ -213,6 +215,7 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
   saveChannelConfig: async (channelId: string, patch: Record<string, unknown>) => {
     const configStore = useConfigStore.getState();
     const baseHash = configStore.baseHash;
+    set({ channelConfigSaveError: null });
     try {
       const res = await fetch("/api/config/patch", {
         method: "POST",
@@ -229,8 +232,17 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
         await get().fetchChannelConfig(channelId);
         return true;
       }
+      const d = await res.json().catch(() => ({ error: "Failed to save channel config" }));
+      set({
+        channelConfigSaveError:
+          (d as { error?: string }).error ?? "Failed to save channel config",
+      });
       return false;
-    } catch {
+    } catch (err) {
+      set({
+        channelConfigSaveError:
+          err instanceof Error ? err.message : "Network error saving channel config",
+      });
       return false;
     }
   },
