@@ -170,4 +170,167 @@ describe("parseSchemaSection", () => {
     const fields = parseSchemaSection(schema as Record<string, unknown>);
     expect(fields).toHaveLength(2);
   });
+
+  // ---------------------------------------------------------------------------
+  // Validation constraints
+  // ---------------------------------------------------------------------------
+
+  it("extracts string validation constraints (minLength, maxLength, pattern)", () => {
+    const schema = {
+      properties: {
+        name: { type: "string", minLength: 1, maxLength: 100, pattern: "^[a-z]+$" },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.validation).toEqual({
+      minLength: 1,
+      maxLength: 100,
+      pattern: "^[a-z]+$",
+    });
+  });
+
+  it("extracts number validation constraints (minimum, maximum)", () => {
+    const schema = {
+      properties: {
+        port: { type: "number", minimum: 1, maximum: 65535 },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.validation).toEqual({
+      minimum: 1,
+      maximum: 65535,
+    });
+  });
+
+  it("does not set validation when no constraints present", () => {
+    const schema = {
+      properties: {
+        name: { type: "string" },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.validation).toBeUndefined();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Array itemSchema
+  // ---------------------------------------------------------------------------
+
+  it("parses array items sub-schema", () => {
+    const schema = {
+      properties: {
+        tags: { type: "array", items: { type: "string" }, description: "Tag list" },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.type).toBe("array");
+    expect(fields[0]?.itemSchema).toBeDefined();
+    expect(fields[0]?.itemSchema?.type).toBe("string");
+    expect(fields[0]?.itemSchema?.key).toBe("item");
+  });
+
+  it("parses array with object items", () => {
+    const schema = {
+      properties: {
+        rules: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { name: { type: "string" }, priority: { type: "number" } },
+          },
+        },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.itemSchema?.type).toBe("object");
+    expect(fields[0]?.itemSchema?.children).toHaveLength(2);
+  });
+
+  it("returns undefined itemSchema for untyped array", () => {
+    const schema = {
+      properties: {
+        data: { type: "array" },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.itemSchema).toBeUndefined();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Object valueSchema (record/map)
+  // ---------------------------------------------------------------------------
+
+  it("parses object additionalProperties as valueSchema", () => {
+    const schema = {
+      properties: {
+        env: {
+          type: "object",
+          additionalProperties: { type: "string" },
+        },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.type).toBe("object");
+    expect(fields[0]?.valueSchema).toBeDefined();
+    expect(fields[0]?.valueSchema?.type).toBe("string");
+    expect(fields[0]?.valueSchema?.key).toBe("value");
+  });
+
+  it("does not set valueSchema when additionalProperties is boolean", () => {
+    const schema = {
+      properties: {
+        data: { type: "object", additionalProperties: true },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.valueSchema).toBeUndefined();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Union variants (oneOf / anyOf)
+  // ---------------------------------------------------------------------------
+
+  it("parses oneOf with const values as union variants", () => {
+    const schema = {
+      properties: {
+        mode: {
+          oneOf: [
+            { const: "local", title: "Local" },
+            { const: "remote", title: "Remote" },
+          ],
+        },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.type).toBe("object");
+    expect(fields[0]?.variants).toHaveLength(2);
+    expect(fields[0]?.variants?.[0]).toEqual({ value: "local", label: "Local" });
+    expect(fields[0]?.variants?.[1]).toEqual({ value: "remote", label: "Remote" });
+  });
+
+  it("parses anyOf with object variants", () => {
+    const schema = {
+      properties: {
+        provider: {
+          anyOf: [
+            {
+              type: "object",
+              title: "OpenAI",
+              properties: { apiKey: { type: "string" } },
+            },
+            {
+              type: "object",
+              title: "Anthropic",
+              properties: { apiKey: { type: "string" } },
+            },
+          ],
+        },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.variants).toHaveLength(2);
+    expect(fields[0]?.variants?.[0]?.value).toBe("OpenAI");
+    expect(fields[0]?.variants?.[0]?.fields).toBeDefined();
+    expect(fields[0]?.variants?.[1]?.value).toBe("Anthropic");
+  });
 });

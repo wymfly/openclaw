@@ -52,6 +52,35 @@ describe("matchUiHint", () => {
     expect(matchUiHint("a.x.c.y", hints)).toEqual({ collapsed: true });
     expect(matchUiHint("a.x.d.y", hints)).toBeUndefined();
   });
+
+  // [] path normalization tests (Gateway uses [] for array wildcards)
+  it("matches [] wildcard paths from Gateway hints", () => {
+    const hints = { "agents.list[].model": { help: "Select the LLM model" } };
+    const result = matchUiHint("agents.list.0.model", hints);
+    expect(result).toEqual({ help: "Select the LLM model" });
+  });
+
+  it("matches nested [] wildcards", () => {
+    const hints = { "agents.list[].tools[].name": { help: "Tool name" } };
+    expect(matchUiHint("agents.list.0.tools.2.name", hints)).toEqual({ help: "Tool name" });
+  });
+
+  it("matches mixed [] and * wildcards in same hints map", () => {
+    const hints = {
+      "agents.list[].model": { help: "from brackets" },
+      "agents.defaults.*.timeout": { help: "from star" },
+    };
+    expect(matchUiHint("agents.list.0.model", hints)).toEqual({ help: "from brackets" });
+    expect(matchUiHint("agents.defaults.x.timeout", hints)).toEqual({ help: "from star" });
+  });
+
+  it("exact match still takes precedence over [] wildcard", () => {
+    const hints = {
+      "agents.list[].model": { help: "wildcard" },
+      "agents.list.0.model": { help: "exact" },
+    };
+    expect(matchUiHint("agents.list.0.model", hints)).toEqual({ help: "exact" });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -128,6 +157,51 @@ describe("applyUiHints", () => {
     expect(resultParent.children?.[0].sensitive).toBe(true);
     // parent itself unaffected
     expect(resultParent.sensitive).toBeUndefined();
+  });
+
+  it("decorates field with help hint", () => {
+    const fields: FormField[] = [makeField("model")];
+    const hints = { model: { help: "Select the LLM model to use" } };
+    const [result] = applyUiHints(fields, hints);
+    expect(result.help).toBe("Select the LLM model to use");
+  });
+
+  it("decorates field with group hint", () => {
+    const fields: FormField[] = [makeField("temperature")];
+    const hints = { temperature: { group: "inference" } };
+    const [result] = applyUiHints(fields, hints);
+    expect(result.group).toBe("inference");
+  });
+
+  it("decorates field with tags hint", () => {
+    const fields: FormField[] = [makeField("debugMode")];
+    const hints = { debugMode: { tags: ["advanced", "debug"] } };
+    const [result] = applyUiHints(fields, hints);
+    expect(result.tags).toEqual(["advanced", "debug"]);
+  });
+
+  it("decorates field with all new hint fields at once", () => {
+    const fields: FormField[] = [makeField("apiKey")];
+    const hints = {
+      apiKey: { sensitive: true, help: "Your API key", group: "auth", tags: ["sensitive"] },
+    };
+    const [result] = applyUiHints(fields, hints);
+    expect(result.sensitive).toBe(true);
+    expect(result.help).toBe("Your API key");
+    expect(result.group).toBe("auth");
+    expect(result.tags).toEqual(["sensitive"]);
+  });
+
+  it("applies [] wildcard hints to nested fields via applyUiHints", () => {
+    const indexChild = makeField("0", {
+      type: "object",
+      children: [makeField("model")],
+    });
+    const fields: FormField[] = [makeField("list", { type: "object", children: [indexChild] })];
+    // When using [] wildcards, the hint key "list[].model" normalizes to "list.*.model"
+    // which matches path "list.0.model" built during recursion
+    const [decorated] = applyUiHints(fields, { "list[].model": { help: "Agent model" } });
+    expect(decorated.children?.[0].children?.[0].help).toBe("Agent model");
   });
 
   it("applies wildcard hints to nested children", () => {

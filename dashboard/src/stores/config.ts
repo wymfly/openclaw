@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { UiHintsMap } from "@/lib/ui-hints";
 
 // ---------------------------------------------------------------------------
 // Store
@@ -6,6 +7,7 @@ import { create } from "zustand";
 
 interface ConfigState {
   schema: Record<string, unknown> | null;
+  uiHints: UiHintsMap | null;
   rawConfig: string;
   baseHash: string | null;
   editedConfig: string;
@@ -29,6 +31,7 @@ interface ConfigState {
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
   schema: null,
+  uiHints: null,
   rawConfig: "",
   baseHash: null,
   editedConfig: "",
@@ -49,7 +52,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       }
       const data = (await res.json()) as Record<string, unknown>;
       // config.schema returns `{ schema, uiHints, version }` — unwrap.
-      set({ schema: (data.schema as Record<string, unknown>) ?? data });
+      set({
+        schema: (data.schema as Record<string, unknown>) ?? data,
+        uiHints: (data.uiHints as UiHintsMap) ?? null,
+      });
     } catch {
       // Schema fetch is best-effort
     }
@@ -165,9 +171,13 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   },
 
   lookupSchema: async (path: string) => {
-    if (get().lookupFallbackMode) return null;
+    if (get().lookupFallbackMode) {
+      return null;
+    }
     const cached = get().schemaCache.get(path);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
 
     try {
       const res = await fetch("/api/config/schema-lookup", {
@@ -175,7 +185,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path }),
       });
-      if (!res.ok) throw new Error("lookup failed");
+      if (!res.ok) {
+        throw new Error("lookup failed");
+      }
       const data = await res.json();
       set((state) => {
         const cache = new Map(state.schemaCache);
