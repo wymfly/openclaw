@@ -152,6 +152,9 @@ export class OpenClawGatewayAdapter {
   private legacyProfileSwitchPromise: Promise<void> | null = null;
   private nodeConnection: NodeConnection | null = null;
 
+  /** Tracks active per-session message subscriptions for reconnect re-subscribe. */
+  private activeMessageSubscriptions = new Set<string>();
+
   constructor(options: OpenClawAdapterOptions) {
     this.loadSettings = options.loadSettings;
     this.createWebSocket = options.createWebSocket ?? ((url, opts) => new WebSocket(url, opts));
@@ -181,6 +184,18 @@ export class OpenClawGatewayAdapter {
 
   getNodeConnection(): NodeConnection | null {
     return this.nodeConnection;
+  }
+
+  /** Subscribe to per-session message events and track for reconnect re-subscribe. */
+  async subscribeSessionMessages(key: string): Promise<void> {
+    this.activeMessageSubscriptions.add(key);
+    await this.request("sessions.messages.subscribe", { key });
+  }
+
+  /** Unsubscribe from per-session message events and stop tracking. */
+  async unsubscribeSessionMessages(key: string): Promise<void> {
+    this.activeMessageSubscriptions.delete(key);
+    await this.request("sessions.messages.unsubscribe", { key });
   }
 
   async start(): Promise<void> {
@@ -377,6 +392,12 @@ export class OpenClawGatewayAdapter {
               void this.nodeConnection.start().catch((err) => {
                 console.error("[NodeConnection] failed to start:", err);
               });
+            }
+            // Subscribe to Layer 2 session events (non-fatal if fails)
+            this.request("sessions.subscribe", {}).catch(() => {});
+            // Re-subscribe per-session message subscriptions after reconnect
+            for (const key of this.activeMessageSubscriptions) {
+              this.request("sessions.messages.subscribe", { key }).catch(() => {});
             }
             settle(() => resolve());
             return;
