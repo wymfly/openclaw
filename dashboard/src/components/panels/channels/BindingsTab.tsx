@@ -24,8 +24,11 @@ import { useDeckRoutingStore, type Binding, type BindingMatch } from "@/stores/d
 /**
  * Channel → Agent binding management tab.
  * Select a channel + account, view bound agents, add/remove bindings.
+ *
+ * When `channelId` is provided (e.g. embedded in ChannelDetail), the channel
+ * filter is pre-set and hidden so users only see bindings for that channel.
  */
-export function BindingsTab() {
+export function BindingsTab({ channelId }: { channelId?: string } = {}) {
   const tc = useTranslations("common");
 
   const channelOrder = useChannelsStore((s) => s.channelOrder);
@@ -34,7 +37,8 @@ export function BindingsTab() {
   const { bindings, configHash, dmScope, loading, fetchBindings, removeBinding } =
     useDeckRoutingStore();
 
-  const [selectedChannel, setSelectedChannel] = useState("");
+  // When channelId is provided, lock the channel filter to that value
+  const [selectedChannel, setSelectedChannel] = useState(channelId ?? "");
   const [selectedAccount, setSelectedAccount] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -92,38 +96,41 @@ export function BindingsTab() {
       {/* Filter bar */}
       <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
         <div className="flex items-center gap-3">
-          <div className="space-y-1 flex-1">
-            <Label className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
-              Channel
-            </Label>
-            <Select
-              value={selectedChannel}
-              onValueChange={(v) => {
-                setSelectedChannel(v ?? "");
-                setSelectedAccount("");
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
-                <SelectValue placeholder="All channels" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All channels</SelectItem>
-                {channelOrder.map((ch) => (
-                  <SelectItem key={ch} value={ch}>
-                    {channelMap.get(ch)?.label ?? ch}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Channel filter — hidden when channelId is provided (embedded mode) */}
+          {!channelId && (
+            <div className="space-y-1 flex-1">
+              <Label className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+                Channel
+              </Label>
+              <Select
+                value={selectedChannel}
+                onValueChange={(v) => {
+                  setSelectedChannel(v ?? "");
+                  setSelectedAccount("");
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
+                  <SelectValue placeholder="All channels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All channels</SelectItem>
+                  {channelOrder.map((ch) => (
+                    <SelectItem key={ch} value={ch}>
+                      {channelMap.get(ch)?.label ?? ch}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {selectedChannel && selectedChannel !== "__all__" && accounts.length > 0 && (
             <div className="space-y-1 flex-1">
-              <Label className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
+              <Label className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
                 Account
               </Label>
               <Select value={selectedAccount} onValueChange={(v) => setSelectedAccount(v ?? "")}>
-                <SelectTrigger className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+                <SelectTrigger className="h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
                   <SelectValue placeholder="All accounts" />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,7 +157,7 @@ export function BindingsTab() {
             </Button>
             <button
               onClick={() => navigateToRouting()}
-              className="flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
+              className="flex items-center gap-1 text-[10px] text-[var(--primary)] hover:underline cursor-pointer"
             >
               View all routing rules
               <ExternalLink size={10} />
@@ -162,14 +169,14 @@ export function BindingsTab() {
       {/* Bindings table */}
       <ScrollArea className="flex-1">
         {loading && (
-          <div className="flex items-center justify-center py-12 text-[var(--text-secondary)]">
+          <div className="flex items-center justify-center py-12 text-[var(--muted-foreground)]">
             <Loader2 size={16} className="animate-spin mr-2" />
             <span className="text-sm">{tc("loading")}</span>
           </div>
         )}
 
         {!loading && filteredBindings.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--text-secondary)]">
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--muted-foreground)]">
             <p className="text-sm">No bindings found</p>
             <p className="text-xs">
               Use the &quot;Add Binding&quot; button to create a routing rule
@@ -182,17 +189,17 @@ export function BindingsTab() {
             <div className="rounded-lg border border-[var(--border)] overflow-hidden">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-[var(--border)] bg-[var(--bg-tertiary)]">
-                    <th className="text-left px-3 py-2 font-medium text-[var(--text-secondary)]">
+                  <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
+                    <th className="text-left px-3 py-2 font-medium text-[var(--muted-foreground)]">
                       Channel / Peer
                     </th>
-                    <th className="text-left px-3 py-2 font-medium text-[var(--text-secondary)]">
+                    <th className="text-left px-3 py-2 font-medium text-[var(--muted-foreground)]">
                       Target Agent
                     </th>
-                    <th className="text-left px-3 py-2 font-medium text-[var(--text-secondary)]">
+                    <th className="text-left px-3 py-2 font-medium text-[var(--muted-foreground)]">
                       Tier
                     </th>
-                    <th className="text-right px-3 py-2 font-medium text-[var(--text-secondary)]">
+                    <th className="text-right px-3 py-2 font-medium text-[var(--muted-foreground)]">
                       Actions
                     </th>
                   </tr>
@@ -218,20 +225,20 @@ export function BindingsTab() {
         {/* DM policy summary */}
         {dmScope && (
           <div className="px-4 pb-4">
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] p-3">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] p-3">
               <div className="flex items-center gap-2 mb-2">
-                <Shield size={14} className="text-[var(--accent)]" />
-                <span className="text-xs font-medium text-[var(--text-primary)]">
+                <Shield size={14} className="text-[var(--primary)]" />
+                <span className="text-xs font-medium text-[var(--foreground)]">
                   DM Policy Summary
                 </span>
               </div>
-              <div className="space-y-1.5 text-[10px] text-[var(--text-secondary)]">
+              <div className="space-y-1.5 text-[10px] text-[var(--muted-foreground)]">
                 <p>
-                  <span className="font-medium text-[var(--text-primary)]">Merge mode:</span>{" "}
+                  <span className="font-medium text-[var(--foreground)]">Merge mode:</span>{" "}
                   {dmScope}
                 </p>
                 <p>
-                  <span className="font-medium text-[var(--text-primary)]">Paired users:</span>{" "}
+                  <span className="font-medium text-[var(--foreground)]">Paired users:</span>{" "}
                   {pairedUserCount}
                 </p>
               </div>
@@ -278,19 +285,19 @@ function BindingRow({
     <tr
       className={cn(
         "border-b border-[var(--border)] last:border-b-0",
-        isEven && "bg-[var(--bg-tertiary)]/50",
+        isEven && "bg-[var(--muted)]/50",
       )}
     >
       <td className="px-3 py-2">
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-[var(--text-primary)]">{peerLabel}</span>
+          <span className="font-mono text-[var(--foreground)]">{peerLabel}</span>
           {binding.match.accountId && (
-            <span className="text-[10px] text-[var(--text-secondary)]">
+            <span className="text-[10px] text-[var(--muted-foreground)]">
               account: {binding.match.accountId}
             </span>
           )}
           {binding.match.guild && (
-            <span className="text-[10px] text-[var(--text-secondary)]">
+            <span className="text-[10px] text-[var(--muted-foreground)]">
               guild: {binding.match.guild}
             </span>
           )}
@@ -308,7 +315,7 @@ function BindingRow({
       </td>
       <td className="px-3 py-2 text-right">
         {removing ? (
-          <Loader2 size={14} className="animate-spin ml-auto text-[var(--text-secondary)]" />
+          <Loader2 size={14} className="animate-spin ml-auto text-[var(--muted-foreground)]" />
         ) : (
           <Button
             variant={confirming ? "destructive" : "ghost"}
@@ -317,7 +324,7 @@ function BindingRow({
             onBlur={onBlurConfirm}
             className={cn(
               "cursor-pointer ml-auto",
-              !confirming && "text-[var(--text-secondary)] hover:text-[var(--danger)]",
+              !confirming && "text-[var(--muted-foreground)] hover:text-[var(--destructive)]",
             )}
             title={confirming ? "Click again to confirm" : "Unbind"}
           >

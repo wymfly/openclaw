@@ -711,7 +711,13 @@
     "noChannels": "未配置任何渠道",
     "saveConfig": "保存配置",
     "confirmLogout": "确定断开该渠道？",
-    "accounts": "账号"
+    "accounts": "账号",
+    "tabs": {
+      "status": "状态",
+      "bindings": "绑定",
+      "settings": "设置",
+      "settingsPlaceholder": "设置功能即将推出"
+    }
   },
   "config": {
     "title": "配置编辑器",
