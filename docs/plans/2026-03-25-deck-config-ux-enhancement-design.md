@@ -139,6 +139,7 @@ Current `SectionNav` shows plain key names. Enhanced version:
 The current `config.ts` store discards `uiHints` from the `config.schema` RPC response — it only stores the raw JSON Schema in `schema`. The dashboard-side `UiHint` type in `ui-hints.ts` only defines 3 properties (`sensitive`, `collapsed`, `placeholder`), but the Gateway returns 9 properties including `help`, `label`, `tags`, `group`, `order`, `advanced`.
 
 **Required changes:**
+
 1. Extend `UiHint` interface in `ui-hints.ts` to match Gateway's `ConfigUiHint`: add `help`, `label`, `tags`, `group`, `order`, `advanced`
 2. Extend `config.ts` store: persist `uiHints` map alongside `schema` from `fetchSchema()` response
 3. Pass `uiHints` from `ConfigPanel` to `SchemaForm` so field decorators (`sensitive`, `group`, `tags`) are available
@@ -148,9 +149,9 @@ The current `config.ts` store discards `uiHints` from the `config.schema` RPC re
 
 | File                           | Change                                                                                                 |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `config.ts` (store)           | Persist `uiHints` from `config.schema` RPC; expose via `useConfigStore`                               |
-| `ui-hints.ts`                  | Extend `UiHint` interface with `help`, `label`, `tags`, `group`, `order`, `advanced`                  |
-| `ConfigPanel.tsx`              | Import SectionIntroCard, call `applyUiHints()`, pass uiHints to SchemaForm                            |
+| `config.ts` (store)            | Persist `uiHints` from `config.schema` RPC; expose via `useConfigStore`                                |
+| `ui-hints.ts`                  | Extend `UiHint` interface with `help`, `label`, `tags`, `group`, `order`, `advanced`                   |
+| `ConfigPanel.tsx`              | Import SectionIntroCard, call `applyUiHints()`, pass uiHints to SchemaForm                             |
 | `SchemaForm.tsx`               | Extended switch for Password/Record/Union/TypedArray/Validation; group-based layout; advanced collapse |
 | `SectionNav.tsx`               | Icons, field counts, advanced hint                                                                     |
 | `schema-parser.ts`             | Parse sensitive/variants/valueSchema/itemSchema/validation/group/tags from schema+uiHints              |
@@ -191,9 +192,7 @@ const rawConfig = JSON.parse(configStore.rawConfig);
 const defaults = rawConfig.agents?.defaults ?? {};
 
 // 2. Find the agent entry by ID (agents.list is an array of objects with `id` field)
-const agentEntry = (rawConfig.agents?.list ?? []).find(
-  (a: { id: string }) => a.id === agentId
-);
+const agentEntry = (rawConfig.agents?.list ?? []).find((a: { id: string }) => a.id === agentId);
 
 // 3. For each editable field, determine inherit vs override
 function isOverride(fieldPath: string): boolean {
@@ -205,9 +204,11 @@ function isOverride(fieldPath: string): boolean {
 
 // 4. Effective value = agentEntry[field] ?? defaults[field] ?? schema.default
 function effectiveValue(fieldPath: string): unknown {
-  return getNestedValue(agentEntry, fieldPath)
-    ?? getNestedValue(defaults, fieldPath)
-    ?? schemaDefault(fieldPath);
+  return (
+    getNestedValue(agentEntry, fieldPath) ??
+    getNestedValue(defaults, fieldPath) ??
+    schemaDefault(fieldPath)
+  );
 }
 ```
 
@@ -318,14 +319,14 @@ Write: config.patch  → channels.{channelId}.{field}
 
 ### Files Changed
 
-| File                              | Change                                            |
-| --------------------------------- | ------------------------------------------------- |
+| File                              | Change                                              |
+| --------------------------------- | --------------------------------------------------- |
 | `ChannelDetail.tsx`               | Refactor to tabbed layout + register "Settings" tab |
-| **New** `ChannelSettingsTab.tsx`  | Main settings tab                                 |
-| **New** `DmPolicySelector.tsx`    | Radio card policy selector                        |
-| **New** `RetryStrategyEditor.tsx` | Retry fields + timeline visualization             |
-| `channels` store                  | Add `fetchChannelConfig()`, `saveChannelConfig()` |
-| `zh.json` / `en.json`             | ~25 new i18n keys                                 |
+| **New** `ChannelSettingsTab.tsx`  | Main settings tab                                   |
+| **New** `DmPolicySelector.tsx`    | Radio card policy selector                          |
+| **New** `RetryStrategyEditor.tsx` | Retry fields + timeline visualization               |
+| `channels` store                  | Add `fetchChannelConfig()`, `saveChannelConfig()`   |
+| `zh.json` / `en.json`             | ~25 new i18n keys                                   |
 
 ---
 

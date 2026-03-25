@@ -194,16 +194,16 @@ Initial load still uses `sessions.list`; events handle subsequent updates.
 
 **SessionDetail new fields:**
 
-| Field                              | Display                                               | Interaction                            |
-| ---------------------------------- | ----------------------------------------------------- | -------------------------------------- |
-| `status`                           | Top badge (colored by state)                          | Read-only, real-time                   |
-| `startedAt`/`endedAt`/`runtimeMs`  | Time info area                                        | Read-only                              |
-| `fastMode`                         | Session config area                                   | Editable toggle via `sessions.patch`   |
-| `model`                            | Session config area                                   | Editable dropdown via `sessions.patch` |
+| Field                              | Display                                               | Interaction                                             |
+| ---------------------------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| `status`                           | Top badge (colored by state)                          | Read-only, real-time                                    |
+| `startedAt`/`endedAt`/`runtimeMs`  | Time info area                                        | Read-only                                               |
+| `fastMode`                         | Session config area                                   | Editable toggle via `sessions.patch`                    |
+| `model`                            | Session config area                                   | Editable dropdown via `sessions.patch`                  |
 | `subagentRole`                     | Subagent info area (hidden for non-subagent sessions) | Read-only (loaded via `sessions.list`, not from events) |
 | `subagentControlScope`             | Subagent info area                                    | Read-only (loaded via `sessions.list`, not from events) |
 | `spawnedWorkspaceDir`              | Subagent info area                                    | Read-only (loaded via `sessions.list`, not from events) |
-| `parentSessionKey`/`childSessions` | Session relationship area                             | Clickable navigation                   |
+| `parentSessionKey`/`childSessions` | Session relationship area                             | Clickable navigation                                    |
 
 **Note on subagent fields**: `subagentRole`, `subagentControlScope`, and `spawnedWorkspaceDir` exist on `SessionEntry` but are NOT included in `GatewaySessionRow` or the `sessions.changed` event snapshot. These must be loaded via `sessions.list` (which returns full entries) or by reading the session store directly. They are static after initial set (write-once), so no real-time updates needed.
 

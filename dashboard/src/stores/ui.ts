@@ -90,8 +90,9 @@ export const useUIStore = create<UIState>((set) => ({
     document.cookie = `NEXT_LOCALE=${locale};path=/;max-age=31536000`;
     window.location.reload();
   },
-  setCanvasVisible: (visible) => set({
-    canvasVisible: visible,
-    canvasMode: visible ? "active" : "idle",
-  }),
+  setCanvasVisible: (visible) =>
+    set({
+      canvasVisible: visible,
+      canvasMode: visible ? "active" : "idle",
+    }),
 }));

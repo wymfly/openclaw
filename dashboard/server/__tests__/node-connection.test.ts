@@ -212,10 +212,7 @@ describe("NodeConnection", () => {
 
       // Send a canvas.a2ui.pushJSONL invoke with JSONL data.
       const jsonlData = { lines: ['{"type":"text","text":"hello"}'] };
-      mockWs.emit(
-        "message",
-        makeInvokeEvent("inv-a2ui-1", "canvas.a2ui.pushJSONL", jsonlData),
-      );
+      mockWs.emit("message", makeInvokeEvent("inv-a2ui-1", "canvas.a2ui.pushJSONL", jsonlData));
       await new Promise((r) => setTimeout(r, 10));
 
       expect(received.length).toBeGreaterThanOrEqual(1);

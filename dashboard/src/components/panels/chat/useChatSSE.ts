@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { useChatStore } from "@/stores/chat";
-import { useUIStore } from "@/stores/ui";
 import {
   type ChatStoreAPI,
   type ChatEventPayload,
@@ -11,6 +10,7 @@ import {
   dispatchChatEvent,
   dispatchAgentEvent,
 } from "@/stores/chat-dispatchers";
+import { useUIStore } from "@/stores/ui";
 
 // ---------------------------------------------------------------------------
 // Canvas event handler — invoked from the SSE "canvas" event listener.
