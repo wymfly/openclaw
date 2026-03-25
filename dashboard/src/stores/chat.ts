@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { abortSession } from "./chat-abort";
+import { registerDefaultChatStoreAPI } from "./chat-dispatchers";
 import type {
   ContentBlock,
   ChatMessage,
@@ -76,6 +77,26 @@ export interface ChatState {
 
   // Approval (session-scoped)
   setActiveApproval: (sessionKey: string, approval: ApprovalRequest | null) => void;
+
+  // Canvas command queue (consumed by CanvasPanel when mounted)
+  canvasCommands: Array<{
+    action: string;
+    params?: Record<string, unknown>;
+    evalId?: string;
+    javaScript?: string;
+  }>;
+  pushCanvasCommand: (cmd: {
+    action: string;
+    params?: Record<string, unknown>;
+    evalId?: string;
+    javaScript?: string;
+  }) => void;
+  consumeCanvasCommands: () => Array<{
+    action: string;
+    params?: Record<string, unknown>;
+    evalId?: string;
+    javaScript?: string;
+  }>;
 
   // Session list
   setSessionMetas: (metas: SessionMeta[]) => void;
@@ -479,6 +500,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }),
 
   // -------------------------------------------------------------------------
+  // Canvas command queue
+  // -------------------------------------------------------------------------
+
+  canvasCommands: [],
+  pushCanvasCommand: (cmd) => set((s) => ({ canvasCommands: [...s.canvasCommands, cmd] })),
+  consumeCanvasCommands: () => {
+    const cmds = get().canvasCommands;
+    if (cmds.length > 0) set({ canvasCommands: [] });
+    return cmds;
+  },
+
+  // -------------------------------------------------------------------------
   // Session list
   // -------------------------------------------------------------------------
 
@@ -540,3 +573,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return { sessions: next };
     }),
 }));
+
+// ---------------------------------------------------------------------------
+// Wire the default ChatStoreAPI so dispatchers can work without explicit store
+// ---------------------------------------------------------------------------
+
+registerDefaultChatStoreAPI({
+  ensureSession: (...a) => useChatStore.getState().ensureSession(...a),
+  addMessage: (...a) => useChatStore.getState().addMessage(...a),
+  updateStreamingContent: (...a) => useChatStore.getState().updateStreamingContent(...a),
+  appendContentBlock: (...a) => useChatStore.getState().appendContentBlock(...a),
+  finalizeMessage: (...a) => useChatStore.getState().finalizeMessage(...a),
+  setSessionStreaming: (...a) => useChatStore.getState().setSessionStreaming(...a),
+  setStreaming: (...a) => useChatStore.getState().setStreaming(...a),
+  setSessionError: (...a) => useChatStore.getState().setSessionError(...a),
+  setRunMetadata: (...a) => useChatStore.getState().setRunMetadata(...a),
+  setActiveApproval: (...a) => useChatStore.getState().setActiveApproval(...a),
+  appendA2UIEvent: (...a) => useChatStore.getState().appendA2UIEvent(...a),
+  updateA2UISurfaces: (...a) => useChatStore.getState().updateA2UISurfaces(...a),
+  setA2UIState: (...a) => useChatStore.getState().setA2UIState(...a),
+  setMessages: (...a) => useChatStore.getState().setMessages(...a),
+  getSessionMessages: (key) => useChatStore.getState().sessions.get(key)?.messages ?? [],
+  updateToolProgress: (...a) => useChatStore.getState().updateToolProgress(...a),
+});

@@ -92,7 +92,9 @@
     "filterTools": "Tools",
     "filterResults": "Results",
     "toolsRunning": "Tools running",
-    "toolsCompleted": "Tools completed"
+    "toolsCompleted": "Tools completed",
+    "canvasConnected": "Canvas connected",
+    "canvasDisconnected": "Canvas disconnected"
   },
   "gateway": {
     "title": "Gateway Overview",
