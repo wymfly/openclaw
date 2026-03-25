@@ -285,7 +285,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
           <CollapsibleContent>
             <div className="border-t border-[var(--border-subtle)] px-4 py-3">
               {toolPolicyPreview ? (
-                <ToolPolicyViz preview={toolPolicyPreview} />
+                <ToolPolicyViz preview={toolPolicyPreview} agentId={agentId} />
               ) : (
                 <p className="text-xs text-[var(--muted-foreground)]">{t("loading")}</p>
               )}

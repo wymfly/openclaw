@@ -119,6 +119,18 @@ export interface AgentEventStreamsConfig {
   configHash: string;
 }
 
+export interface EffectiveToolEntry {
+  id: string;
+  name: string;
+  allowed: boolean;
+  source: string;
+}
+
+export interface EffectiveToolGroup {
+  name: string;
+  tools: EffectiveToolEntry[];
+}
+
 // ---------------------------------------------------------------------------
 // TTL cache
 // ---------------------------------------------------------------------------
@@ -143,6 +155,8 @@ interface DeckAgentsState {
   toolPolicyPreview: ToolPolicyPreview | null;
   systemPromptPreview: SystemPromptPreview | null;
   bootstrapFileDetail: BootstrapFileDetail | null;
+  effectiveTools: EffectiveToolGroup[];
+  effectiveToolsLoading: boolean;
   loading: boolean;
   error: string | null;
 
@@ -168,6 +182,7 @@ interface DeckAgentsState {
   fetchBootstrapFile: (agentId: string, name: string) => Promise<void>;
   saveBootstrapFile: (agentId: string, name: string, content: string) => Promise<boolean>;
   patchAgentConfig: (agentId: string, path: string, value: unknown) => Promise<boolean>;
+  fetchEffectiveTools: (agentId: string, sessionKey?: string) => Promise<void>;
   invalidateCache: (agentId: string) => void;
 }
 
@@ -180,6 +195,8 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   toolPolicyPreview: null,
   systemPromptPreview: null,
   bootstrapFileDetail: null,
+  effectiveTools: [],
+  effectiveToolsLoading: false,
   loading: false,
   error: null,
 
@@ -434,6 +451,24 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "Network error" });
       return false;
+    }
+  },
+
+  fetchEffectiveTools: async (agentId: string, sessionKey?: string) => {
+    set({ effectiveToolsLoading: true });
+    try {
+      const res = await fetch("/api/deck/tools-effective", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentId,
+          ...(sessionKey ? { sessionKey } : {}),
+        }),
+      });
+      const data = (await res.json()) as { groups?: EffectiveToolGroup[] };
+      set({ effectiveTools: data.groups ?? [], effectiveToolsLoading: false });
+    } catch {
+      set({ effectiveToolsLoading: false });
     }
   },
 
