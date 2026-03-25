@@ -89,6 +89,7 @@
     "artifactTable": "表格",
     "artifactJsonInvalid": "无效 JSON",
     "artifactCopy": "复制",
+    "artifactDownload": "下载",
     "artifactClose": "关闭",
     "artifactFullscreen": "全屏",
     "artifactCsvEmpty": "无数据",
