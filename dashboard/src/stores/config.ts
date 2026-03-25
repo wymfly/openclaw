@@ -73,7 +73,12 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       const data = await res.json();
       const raw =
         typeof data.config === "string" ? data.config : JSON.stringify(data.config ?? {}, null, 2);
-      const baseHash = typeof data.baseHash === "string" ? data.baseHash : null;
+      const baseHash =
+        typeof data.baseHash === "string"
+          ? data.baseHash
+          : typeof data.hash === "string"
+            ? data.hash
+            : null;
 
       set({
         rawConfig: raw,
