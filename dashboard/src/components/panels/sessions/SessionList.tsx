@@ -62,11 +62,24 @@ function extractAgentId(key: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Status badge config
+// ---------------------------------------------------------------------------
+
+const STATUS_CONFIG: Record<string, { cssVar: string; key: string }> = {
+  running: { cssVar: "var(--primary)", key: "statusRunning" },
+  done: { cssVar: "var(--success)", key: "statusDone" },
+  failed: { cssVar: "var(--destructive)", key: "statusFailed" },
+  killed: { cssVar: "var(--warning)", key: "statusKilled" },
+  timeout: { cssVar: "var(--warning)", key: "statusTimeout" },
+  idle: { cssVar: "var(--neutral-muted-text)", key: "statusIdle" },
+};
+
+// ---------------------------------------------------------------------------
 // Existing helpers
 // ---------------------------------------------------------------------------
 
 const KIND_BADGE_STYLES: Record<SessionKind, string> = {
-  direct: "bg-[var(--accent-muted)] text-[var(--accent)]",
+  direct: "bg-[var(--primary-muted)] text-[var(--primary)]",
   group: "bg-[var(--success-muted)] text-[var(--success)]",
   global: "bg-[var(--purple-muted)] text-[var(--purple)]",
   unknown: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
@@ -74,7 +87,7 @@ const KIND_BADGE_STYLES: Record<SessionKind, string> = {
 
 function pressureBarClass(pct: number): string {
   if (pct >= 80) {
-    return "bg-[var(--danger)]";
+    return "bg-[var(--destructive)]";
   }
   if (pct >= 60) {
     return "bg-[var(--warning)]";
@@ -84,7 +97,7 @@ function pressureBarClass(pct: number): string {
 
 function pressureTextClass(pct: number): string {
   if (pct >= 80) {
-    return "text-[var(--danger)]";
+    return "text-[var(--destructive)]";
   }
   if (pct >= 60) {
     return "text-[var(--warning)]";
@@ -135,17 +148,17 @@ export function SessionList({ typeFilter = "all" }: SessionListProps) {
             type="button"
             className={cn(
               "relative flex flex-col gap-1.5 px-4 py-2.5 text-left transition-colors duration-150 cursor-pointer",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 focus-visible:ring-inset",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50 focus-visible:ring-inset",
               isActive
-                ? "bg-[var(--accent-muted)] text-[var(--accent)]"
-                : "text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]",
+                ? "bg-[var(--primary-muted)] text-[var(--primary)]"
+                : "text-[var(--foreground)] hover:bg-[var(--muted)]",
             )}
             onClick={() => selectSession(session.key)}
           >
             {/* Active indicator */}
             {isActive && (
               <span
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)]"
                 aria-hidden
               />
             )}
@@ -163,6 +176,18 @@ export function SessionList({ typeFilter = "all" }: SessionListProps) {
                   d{inferSubagentDepth(session.key)}
                 </span>
               )}
+              {/* Status badge */}
+              {session.status && STATUS_CONFIG[session.status] && (
+                <span
+                  className="text-[9px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
+                  style={{
+                    color: STATUS_CONFIG[session.status].cssVar,
+                    backgroundColor: `color-mix(in srgb, ${STATUS_CONFIG[session.status].cssVar} 12%, transparent)`,
+                  }}
+                >
+                  {t(STATUS_CONFIG[session.status].key)}
+                </span>
+              )}
               <span className="text-xs font-mono truncate" title={session.key}>
                 {shortKey(session.key)}
               </span>
@@ -178,13 +203,13 @@ export function SessionList({ typeFilter = "all" }: SessionListProps) {
             {/* Bottom row: model + context bar */}
             <div className="flex items-center gap-2 min-w-0">
               {session.model && (
-                <span className="text-[10px] truncate shrink-0 text-[var(--text-secondary)]">
+                <span className="text-[10px] truncate shrink-0 text-[var(--muted-foreground)]">
                   {session.model}
                 </span>
               )}
               {session.contextWindow > 0 && (
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                  <div className="flex-1 h-1 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
+                  <div className="flex-1 h-1 rounded-full overflow-hidden bg-[var(--muted)]">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-300",
