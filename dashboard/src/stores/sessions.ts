@@ -14,6 +14,16 @@ export interface SessionEntry {
   tokensOut: number;
   contextWindow: number;
   updatedAt: number;
+  compactionCount?: number;
+  // Extended lifecycle fields (populated by sessions.changed events)
+  status?: string;
+  totalTokens?: number;
+  estimatedCostUsd?: number;
+  parentSessionKey?: string;
+  childSessions?: string[];
+  subagentRole?: "orchestrator" | "leaf";
+  subagentControlScope?: "children" | "none";
+  spawnedWorkspaceDir?: string;
 }
 
 export interface HistoryMessage {
@@ -96,6 +106,8 @@ interface SessionsState {
   selectSession: (key: string | null) => void;
   fetchHistory: (sessionKey: string) => Promise<void>;
   deleteSession: (sessionKey: string) => Promise<void>;
+  /** Apply an incoming sessions.changed event to update or insert a session. */
+  applySessionChangedEvent: (payload: Record<string, unknown>) => void;
 }
 
 export const useSessionsStore = create<SessionsState>((set, get) => ({
@@ -181,5 +193,75 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
     } catch {
       // silently ignore
     }
+  },
+
+  applySessionChangedEvent: (payload: Record<string, unknown>) => {
+    const key = payload.sessionKey as string;
+    if (!key) return;
+
+    set((state) => {
+      const sessions = [...state.sessions];
+      const idx = sessions.findIndex((s) => s.key === key);
+
+      // Build patch from typed payload fields
+      const patch: Partial<SessionEntry> = {
+        updatedAt: (payload.ts as number) ?? Date.now(),
+        ...(typeof payload.status === "string" ? { status: payload.status } : {}),
+        ...(typeof payload.model === "string" ? { model: payload.model } : {}),
+        ...(typeof payload.totalTokens === "number" ? { totalTokens: payload.totalTokens } : {}),
+        ...(typeof payload.estimatedCostUsd === "number"
+          ? { estimatedCostUsd: payload.estimatedCostUsd }
+          : {}),
+        ...(typeof payload.contextTokens === "number"
+          ? { contextWindow: payload.contextTokens }
+          : {}),
+        ...(typeof payload.parentSessionKey === "string"
+          ? { parentSessionKey: payload.parentSessionKey }
+          : {}),
+        ...(Array.isArray(payload.childSessions)
+          ? { childSessions: payload.childSessions as string[] }
+          : {}),
+        ...(typeof payload.subagentRole === "string"
+          ? { subagentRole: payload.subagentRole as SessionEntry["subagentRole"] }
+          : {}),
+        ...(typeof payload.subagentControlScope === "string"
+          ? {
+              subagentControlScope:
+                payload.subagentControlScope as SessionEntry["subagentControlScope"],
+            }
+          : {}),
+        ...(typeof payload.spawnedWorkspaceDir === "string"
+          ? { spawnedWorkspaceDir: payload.spawnedWorkspaceDir }
+          : {}),
+      };
+
+      if (idx >= 0) {
+        sessions[idx] = { ...sessions[idx], ...patch };
+      } else if (payload.reason === "create") {
+        // New session — infer agentId and kind from key
+        const agentMatch = key.match(/^[^:]*:([^:]+)/);
+        const agentId = agentMatch?.[1] ?? "main";
+        sessions.unshift({
+          key,
+          kind: inferKind(key),
+          model: patch.model ?? "",
+          tokensIn: 0,
+          tokensOut: 0,
+          contextWindow: patch.contextWindow ?? 0,
+          updatedAt: patch.updatedAt ?? Date.now(),
+          status: patch.status,
+          totalTokens: patch.totalTokens,
+          estimatedCostUsd: patch.estimatedCostUsd,
+          parentSessionKey: patch.parentSessionKey,
+          childSessions: patch.childSessions,
+          subagentRole: patch.subagentRole,
+          subagentControlScope: patch.subagentControlScope,
+          spawnedWorkspaceDir: patch.spawnedWorkspaceDir,
+        } as SessionEntry);
+        void agentId; // agentId is encoded in session key, used for display only
+      }
+
+      return { sessions };
+    });
   },
 }));
