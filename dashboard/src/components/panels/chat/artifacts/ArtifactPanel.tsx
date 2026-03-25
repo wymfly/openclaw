@@ -1,14 +1,11 @@
 "use client";
-import { Copy, Check, X, Maximize2 } from "lucide-react";
+import { Copy, Check, Download, X, Maximize2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CodeViewer } from "../shared-renderer/CodeViewer";
-import { JsonTree } from "../shared-renderer/JsonTree";
-import { MarkdownViewer } from "../shared-renderer/MarkdownViewer";
-import { buildSrcdoc, usesIframe } from "../shared-renderer/srcdoc";
-import { TableViewer } from "../shared-renderer/TableViewer";
+import { SharedRenderer } from "../shared-renderer/SharedRenderer";
+import { downloadArtifact } from "../shared-renderer/download";
 import type { ArtifactInfo } from "./detectArtifact";
 
 interface ArtifactPanelProps {
@@ -20,10 +17,6 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
   const t = useTranslations("chat");
   const [copied, setCopied] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const srcdoc = useMemo(
-    () => (usesIframe(artifact.language) ? buildSrcdoc(artifact) : ""),
-    [artifact],
-  );
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(artifact.content);
@@ -46,6 +39,15 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
         <span className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-wider">
           {artifact.language}
         </span>
+        <Button
+          size="icon-xs"
+          variant="ghost"
+          onClick={() => downloadArtifact(artifact)}
+          title={t("artifactDownload")}
+          className="cursor-pointer"
+        >
+          <Download size={12} />
+        </Button>
         <Button
           size="icon-xs"
           variant="ghost"
@@ -75,25 +77,8 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
         </Button>
       </div>
 
-      {/* Content area — route by artifact type */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        {usesIframe(artifact.language) ? (
-          <iframe
-            srcDoc={srcdoc}
-            sandbox="allow-scripts"
-            className="w-full h-full border-0"
-            title={artifact.title}
-          />
-        ) : artifact.language === "json" ? (
-          <JsonTree content={artifact.content} />
-        ) : artifact.language === "csv" ? (
-          <TableViewer content={artifact.content} />
-        ) : artifact.language === "markdown" ? (
-          <MarkdownViewer content={artifact.content} />
-        ) : artifact.language === "code" ? (
-          <CodeViewer content={artifact.content} language={artifact.codeLang} />
-        ) : null}
-      </div>
+      {/* Content — delegated to SharedRenderer */}
+      <SharedRenderer artifact={artifact} />
     </div>
   );
 }

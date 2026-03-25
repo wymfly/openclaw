@@ -89,6 +89,7 @@
     "artifactTable": "Table",
     "artifactJsonInvalid": "Invalid JSON",
     "artifactCopy": "Copy",
+    "artifactDownload": "Download",
     "artifactClose": "Close",
     "artifactFullscreen": "Fullscreen",
     "artifactCsvEmpty": "No data",
