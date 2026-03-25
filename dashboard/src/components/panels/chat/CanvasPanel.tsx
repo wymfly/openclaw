@@ -118,14 +118,12 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
   // The store does not use subscribeWithSelector, so we use plain subscribe with
   // a manual length comparison to detect new commands.
   useEffect(() => {
-    let prevLen = 0;
-    const unsub = useChatStore.subscribe((state) => {
-      if (state.canvasCommands.length <= prevLen) {
-        prevLen = state.canvasCommands.length;
-        return;
-      }
-      const cmds = useChatStore.getState().consumeCanvasCommands();
-      prevLen = 0; // consumed — reset
+    const processCanvasCommands = (cmds: Array<{
+      action: string;
+      params?: Record<string, unknown>;
+      evalId?: string;
+      javaScript?: string;
+    }>) => {
       const bridge = bridgeRef.current;
       const iframe = iframeRef.current;
 
@@ -167,6 +165,24 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
             break;
         }
       }
+    };
+
+    // Drain any commands that arrived before mount
+    const initial = useChatStore.getState().consumeCanvasCommands();
+    if (initial.length > 0) {
+      processCanvasCommands(initial);
+    }
+
+    // Then subscribe for future changes
+    let prevLen = 0;
+    const unsub = useChatStore.subscribe((state) => {
+      if (state.canvasCommands.length <= prevLen) {
+        prevLen = state.canvasCommands.length;
+        return;
+      }
+      const cmds = useChatStore.getState().consumeCanvasCommands();
+      prevLen = 0; // consumed — reset
+      processCanvasCommands(cmds);
     });
     return unsub;
   }, []);
