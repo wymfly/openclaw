@@ -94,7 +94,14 @@
     "toolsRunning": "工具运行中",
     "toolsCompleted": "工具已完成",
     "canvasConnected": "Canvas 已连接",
-    "canvasDisconnected": "Canvas 未连接"
+    "canvasDisconnected": "Canvas 未连接",
+    "canvasTitle": "画布",
+    "canvasCollapse": "收起画布",
+    "canvasLoading": "画布加载中...",
+    "canvasError": "画布加载失败",
+    "canvasRetry": "重试",
+    "canvasEmpty": "暂无画布内容",
+    "debugTitle": "调试面板"
   },
   "gateway": {
     "title": "网关概览",
@@ -197,7 +204,11 @@
     "error": "异常",
     "offline": "离线",
     "confirmDelete": "确定删除该智能体？",
-    "selectAgent": "选择智能体查看详情"
+    "selectAgent": "选择智能体查看详情",
+    "effectiveTools": "生效工具",
+    "toolAllowed": "已允许",
+    "toolDenied": "已拒绝",
+    "toolSource": "来源"
   },
   "models": {
     "title": "模型管理",
@@ -590,7 +601,27 @@
     "searchNoResults": "无匹配",
     "exportJson": "导出 JSON",
     "exportMarkdown": "导出 Markdown",
-    "exportEmpty": "空会话无法导出"
+    "exportEmpty": "空会话无法导出",
+    "statusIdle": "空闲",
+    "statusRunning": "运行中",
+    "statusDone": "已完成",
+    "statusFailed": "失败",
+    "statusKilled": "已中止",
+    "statusTimeout": "超时",
+    "fastMode": "快速模式",
+    "subagentRole": "子代理角色",
+    "subagentRoleOrchestrator": "编排器",
+    "subagentRoleLeaf": "叶子节点",
+    "subagentControlScope": "控制范围",
+    "subagentControlScopeChildren": "子级",
+    "subagentControlScopeNone": "无",
+    "spawnedWorkspaceDir": "工作区目录",
+    "parentSession": "父会话",
+    "childSessions": "子会话",
+    "startedAt": "开始时间",
+    "endedAt": "结束时间",
+    "runtimeMs": "运行时长",
+    "interruptedRun": "已中断当前运行"
   },
   "logs": {
     "title": "日志查看器",
@@ -681,7 +712,8 @@
     "hooks": "钩子",
     "models": "模型",
     "channels": "渠道",
-    "advanced": "高级"
+    "advanced": "高级",
+    "schemaLookupFallback": "配置查询不可用，使用完整加载"
   },
   "cron": {
     "title": "定时任务",
