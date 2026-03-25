@@ -713,7 +713,9 @@
     "models": "Models",
     "channels": "Channels",
     "advanced": "Advanced",
-    "schemaLookupFallback": "Schema lookup unavailable, using full load"
+    "schemaLookupFallback": "Schema lookup unavailable, using full load",
+    "showPassword": "Show",
+    "hidePassword": "Hide"
   },
   "cron": {
     "title": "Cron Jobs",

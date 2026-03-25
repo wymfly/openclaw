@@ -4,21 +4,33 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
 import type { FormField } from "@/lib/schema-parser";
+import { PasswordField } from "./fields/PasswordField";
+
+/** Hint data from config.schema.lookup for a given field path. */
+export interface FieldHint {
+  inputType?: string;
+  enum?: string[];
+}
 
 interface SchemaFormProps {
   fields: FormField[];
   values: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   prefix?: string;
+  /** Optional hints keyed by field path (from config.schema.lookup). Progressive enhancement only. */
+  hints?: Record<string, FieldHint>;
 }
 
 function FieldLabel({ field }: { field: FormField }) {
   return (
-    <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+    <label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>
       {field.key}
       {field.required && <span style={{ color: "var(--status-disconnected)" }}> *</span>}
       {field.description && (
-        <span className="ml-1 font-normal" style={{ color: "var(--text-secondary)", opacity: 0.7 }}>
+        <span
+          className="ml-1 font-normal"
+          style={{ color: "var(--muted-foreground)", opacity: 0.7 }}
+        >
           — {field.description}
         </span>
       )}
@@ -45,8 +57,8 @@ function StringField({
         placeholder={typeof field.defaultValue === "string" ? field.defaultValue : ""}
         className="w-full max-w-md text-xs rounded px-2 py-1.5"
         style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
+          backgroundColor: "var(--card)",
+          color: "var(--foreground)",
           border: "1px solid var(--border)",
         }}
       />
@@ -73,8 +85,8 @@ function NumberField({
         placeholder={field.defaultValue != null ? JSON.stringify(field.defaultValue) : ""}
         className="w-full max-w-xs text-xs rounded px-2 py-1.5"
         style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
+          backgroundColor: "var(--card)",
+          color: "var(--foreground)",
           border: "1px solid var(--border)",
         }}
       />
@@ -100,14 +112,14 @@ function BooleanField({
         onClick={() => onChange(!value)}
         className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
         style={{
-          backgroundColor: value ? "var(--accent)" : "var(--bg-secondary)",
+          backgroundColor: value ? "var(--primary)" : "var(--card)",
           border: "1px solid var(--border)",
         }}
       >
         <span
           className="inline-block h-3.5 w-3.5 rounded-full transition-transform"
           style={{
-            backgroundColor: value ? "var(--accent-fg)" : "var(--text-secondary)",
+            backgroundColor: value ? "var(--primary-foreground)" : "var(--muted-foreground)",
             transform: value ? "translateX(17px)" : "translateX(2px)",
           }}
         />
@@ -121,11 +133,14 @@ function EnumField({
   field,
   value,
   onChange,
+  options,
 }: {
   field: FormField;
   value: string;
   onChange: (v: string) => void;
+  options?: string[];
 }) {
+  const effectiveOptions = options ?? field.options;
   return (
     <div className="mb-3">
       <FieldLabel field={field} />
@@ -134,13 +149,13 @@ function EnumField({
         onChange={(e) => onChange(e.target.value)}
         className="w-full max-w-md text-xs rounded px-2 py-1.5"
         style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
+          backgroundColor: "var(--card)",
+          color: "var(--foreground)",
           border: "1px solid var(--border)",
         }}
       >
         <option value="">—</option>
-        {field.options?.map((opt) => (
+        {effectiveOptions?.map((opt) => (
           <option key={opt} value={opt}>
             {opt}
           </option>
@@ -173,8 +188,8 @@ function ArrayField({
         rows={3}
         className="w-full max-w-md text-xs rounded px-2 py-1.5 font-mono resize-y"
         style={{
-          backgroundColor: "var(--bg-secondary)",
-          color: "var(--text-primary)",
+          backgroundColor: "var(--card)",
+          color: "var(--foreground)",
           border: "1px solid var(--border)",
         }}
       />
@@ -187,11 +202,13 @@ function ObjectField({
   values,
   onChange,
   prefix,
+  hints,
 }: {
   field: FormField;
   values: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   prefix: string;
+  hints?: Record<string, FieldHint>;
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -201,14 +218,14 @@ function ObjectField({
         type="button"
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center gap-1 text-xs font-medium mb-1"
-        style={{ color: "var(--text-primary)" }}
+        style={{ color: "var(--foreground)" }}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
         {field.key}
         {field.description && (
           <span
             className="ml-1 font-normal"
-            style={{ color: "var(--text-secondary)", opacity: 0.7 }}
+            style={{ color: "var(--muted-foreground)", opacity: 0.7 }}
           >
             — {field.description}
           </span>
@@ -223,6 +240,7 @@ function ObjectField({
               onChange(`${prefix}${field.key}.${childKey}`, value);
             }}
             prefix={`${prefix}${field.key}.`}
+            hints={hints}
           />
         </div>
       )}
@@ -230,7 +248,7 @@ function ObjectField({
   );
 }
 
-export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaFormProps) {
+export function SchemaForm({ fields, values, onChange, prefix = "", hints }: SchemaFormProps) {
   const tc = useTranslations("common");
   const handleChange = useCallback(
     (key: string, value: unknown) => {
@@ -241,7 +259,7 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
 
   if (fields.length === 0) {
     return (
-      <div className="text-xs py-2" style={{ color: "var(--text-secondary)" }}>
+      <div className="text-xs py-2" style={{ color: "var(--muted-foreground)" }}>
         {tc("noConfigurableFields")}
       </div>
     );
@@ -252,19 +270,45 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
       {fields.map((field) => {
         const fullKey = `${prefix}${field.key}`;
         const value = values[field.key];
+        // Merge hint data: lookup result takes precedence over schema-derived info
+        const hint = hints?.[fullKey];
 
         switch (field.type) {
-          case "string":
+          case "string": {
+            const strVal =
+              typeof value === "string" ? value : value != null ? JSON.stringify(value) : "";
+            // Use PasswordField when field is sensitive (from schema) or hint says password
+            if (field.sensitive || hint?.inputType === "password") {
+              return (
+                <PasswordField
+                  key={fullKey}
+                  field={field}
+                  value={strVal}
+                  onChange={(v) => handleChange(field.key, v)}
+                />
+              );
+            }
+            // Use EnumField when hint provides enum options (progressive enhancement)
+            if (hint?.enum && hint.enum.length > 0) {
+              return (
+                <EnumField
+                  key={fullKey}
+                  field={field}
+                  value={strVal}
+                  options={hint.enum}
+                  onChange={(v) => handleChange(field.key, v)}
+                />
+              );
+            }
             return (
               <StringField
                 key={fullKey}
                 field={field}
-                value={
-                  typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""
-                }
+                value={strVal}
                 onChange={(v) => handleChange(field.key, v)}
               />
             );
+          }
           case "number":
             return (
               <NumberField
@@ -318,6 +362,7 @@ export function SchemaForm({ fields, values, onChange, prefix = "" }: SchemaForm
                 values={values}
                 onChange={handleChange}
                 prefix={prefix}
+                hints={hints}
               />
             );
           default:
