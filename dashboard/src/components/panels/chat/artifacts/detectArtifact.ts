@@ -103,10 +103,11 @@ export function detectArtifact(
   if (imageMatch) {
     return {
       id: `artifact-${++artifactCounter}`,
-      title: "Image",
+      title: fileName ?? "Image",
       language: "image",
       content,
       codeLang: imageMatch[1],
+      source: toolContext ? { toolName: toolContext.toolName, fileName, filePath } : undefined,
     };
   }
 
