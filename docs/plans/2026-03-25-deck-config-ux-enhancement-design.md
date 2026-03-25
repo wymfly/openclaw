@@ -245,7 +245,7 @@ Reset: config.patch       → delete agents.list[N].{field}
 
 | File                              | Change                                                                |
 | --------------------------------- | --------------------------------------------------------------------- |
-| `AgentsPanel.tsx`                 | Register new "Config" tab                                             |
+| `AgentDetail.tsx`                 | Register new "Config" tab in TabValue type + TabsTrigger/TabsContent  |
 | **New** `AgentConfigTab.tsx`      | Main config tab component (4-card grid)                               |
 | **New** `InheritBadge.tsx`        | Reusable inherit/override badge                                       |
 | **New** `ToolProfileSelector.tsx` | Visual profile pill selector                                          |
