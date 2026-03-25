@@ -38,7 +38,7 @@ const CONNECT_PROTOCOL = 3;
 
 const NODE_CLIENT_ID = "node-host";
 const NODE_CLIENT_MODE = "node";
-const NODE_CLIENT_PLATFORM = "node";
+const NODE_CLIENT_PLATFORM = "web";
 
 /** Canvas commands the node advertises (Gateway expects string[]). */
 const NODE_CANVAS_COMMANDS: string[] = [
@@ -499,7 +499,7 @@ export class NodeConnection {
       this.eventBus.broadcast("canvas", {
         action,
         evalId: invokeId,
-        javaScript: isObject(params) ? (params as Record<string, unknown>).javaScript : undefined,
+        javaScript: isObject(params) ? params.javaScript : undefined,
         params,
       });
 
