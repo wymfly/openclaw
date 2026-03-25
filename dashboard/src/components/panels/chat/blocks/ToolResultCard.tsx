@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { Check, Download, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useContext, useMemo, useState } from "react";
 import {
@@ -36,6 +36,14 @@ import { VirtualScrollResult } from "./VirtualScrollResult";
 // ---------------------------------------------------------------------------
 
 const VIRTUAL_SCROLL_THRESHOLD = 200;
+const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg"]);
+
+/** Check if a file path points to an image. */
+function isImagePath(filePath: unknown): boolean {
+  if (typeof filePath !== "string") return false;
+  const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+  return IMAGE_EXTENSIONS.has(ext);
+}
 
 type ViewType = "raw" | "bash" | "read" | "diff";
 
@@ -104,8 +112,13 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
 
   // --- Artifact detection (preserved from original) --------------------------
 
+  const filePath = typeof toolInput?.file_path === "string"
+    ? toolInput.file_path
+    : typeof toolInput?.path === "string"
+      ? toolInput.path
+      : undefined;
   const artifact = !isError
-    ? detectArtifact(contentStr, toolName ? { toolName } : undefined)
+    ? detectArtifact(contentStr, toolName ? { toolName, filePath } : undefined)
     : null;
 
   // --- Render helpers --------------------------------------------------------
@@ -115,7 +128,7 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
       return <VirtualScrollResult content={contentStr} />;
     }
     return (
-      <pre className="px-2.5 py-2 text-xs whitespace-pre-wrap overflow-auto bg-[var(--bg-primary)] text-[var(--text-primary)] max-h-[300px]">
+      <pre className="px-2.5 py-2 text-xs whitespace-pre-wrap overflow-auto bg-[var(--background)] text-[var(--foreground)] max-h-[300px]">
         {contentStr}
       </pre>
     );
@@ -138,9 +151,24 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
       case "diff":
         return <DiffPreview content={contentStr} />;
       case "read": {
+        // Image file: render as <img> via /api/media endpoint
+        const readPath = toolInput?.file_path;
+        if (isImagePath(readPath)) {
+          return (
+            <div className="p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/media?path=${encodeURIComponent(String(readPath))}`}
+                alt={String(readPath).split("/").pop() ?? "image"}
+                className="max-h-[300px] rounded-md"
+                loading="lazy"
+              />
+            </div>
+          );
+        }
         if (isBinaryContent(contentStr)) {
           return (
-            <div className="px-2.5 py-2 text-xs bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+            <div className="px-2.5 py-2 text-xs bg-[var(--muted)] text-[var(--muted-foreground)]">
               {t("binaryFile")}
             </div>
           );
@@ -157,7 +185,7 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
       <details
         className={cn(
           "my-1.5 text-xs rounded-lg border overflow-hidden",
-          isError ? "border-[var(--danger)]/30" : "border-[var(--border-subtle)]",
+          isError ? "border-[var(--destructive)]/30" : "border-[var(--border-subtle)]",
         )}
         open={isError}
       >
@@ -165,8 +193,8 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
           className={cn(
             "flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none",
             isError
-              ? "bg-[var(--danger-muted)] text-[var(--danger-muted-text)]"
-              : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)]",
+              ? "bg-[var(--destructive-muted)] text-[var(--destructive-muted-text)]"
+              : "bg-[var(--muted)] text-[var(--muted-foreground)]",
           )}
         >
           {isError ? <X size={12} /> : <Check size={12} />}
@@ -189,6 +217,23 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
         {renderContent()}
       </details>
       {artifact && <ArtifactCard artifact={artifact} onOpen={onOpenArtifact} />}
+      {/* Download button for file write operations */}
+      {!isError &&
+        toolInput?.file_path &&
+        (viewType === "diff" || isImagePath(toolInput.file_path)) && (
+          <a
+            href={`/api/media?path=${encodeURIComponent(String(toolInput.file_path))}&dl=1`}
+            download
+            className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 mt-0.5 rounded-md hover:opacity-80 transition-opacity"
+            style={{
+              backgroundColor: "var(--muted)",
+              color: "var(--muted-foreground)",
+            }}
+          >
+            <Download size={10} />
+            {String(toolInput.file_path).split("/").pop()}
+          </a>
+        )}
     </>
   );
 }

@@ -49,10 +49,10 @@ describe("detectArtifact enhanced", () => {
     expect(detectArtifact(md)?.language).toBe("markdown");
   });
 
-  it("rejects text with only one markdown pattern (B2)", () => {
+  it("detects text with one markdown pattern when long enough (relaxed threshold)", () => {
     const prose =
       "This is some normal text that happens to contain **one bold phrase** but nothing else that looks like markdown formatting at all in this line.";
-    expect(detectArtifact(prose)).toBeNull();
+    expect(detectArtifact(prose)?.language).toBe("markdown");
   });
 
   it("returns null for short text", () => {
@@ -86,5 +86,65 @@ describe("detectArtifact enhanced", () => {
   it("sets correct title for Markdown artifact", () => {
     const md = "# Title\n\nThis is a **bold** paragraph.\n\n- Item 1\n- Item 2";
     expect(detectArtifact(md)?.title).toBe("artifactMarkdown");
+  });
+
+  // --- Extension priority tests ---
+
+  it("detects language from .html extension", () => {
+    const result = detectArtifact("some generic content that is long enough to pass the minimum length check", {
+      toolName: "write",
+      filePath: "/tmp/output.html",
+    });
+    expect(result?.language).toBe("html");
+    expect(result?.source?.filePath).toBe("/tmp/output.html");
+  });
+
+  it("detects code from .py extension", () => {
+    const result = detectArtifact("def hello():\n    print('hello world')\n    return True", {
+      toolName: "write",
+      filePath: "script.py",
+    });
+    expect(result?.language).toBe("code");
+    expect(result?.codeLang).toBe("py");
+  });
+
+  it("validates JSON even with .json extension", () => {
+    const result = detectArtifact("this is not json but long enough to pass twenty chars", {
+      toolName: "write",
+      filePath: "data.json",
+    });
+    expect(result?.language).not.toBe("json");
+  });
+
+  it("uses extension title from filePath", () => {
+    const result = detectArtifact("body { color: red; }\n.container { display: flex; }", {
+      toolName: "write",
+      filePath: "/app/styles/main.css",
+    });
+    expect(result?.title).toBe("main.css");
+  });
+
+  // --- Image detection tests ---
+
+  it("detects base64 PNG image", () => {
+    const dataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk";
+    const result = detectArtifact(dataUri);
+    expect(result?.language).toBe("image");
+    expect(result?.codeLang).toBe("png");
+    expect(result?.content).toBe(dataUri);
+  });
+
+  it("detects base64 JPEG image", () => {
+    const dataUri = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJ";
+    const result = detectArtifact(dataUri);
+    expect(result?.language).toBe("image");
+    expect(result?.codeLang).toBe("jpeg");
+  });
+
+  // --- Relaxed markdown tests ---
+
+  it("detects markdown with single bold pattern and 40+ chars", () => {
+    const md = "This text has **one bold section** and is long enough to be useful content.";
+    expect(detectArtifact(md)?.language).toBe("markdown");
   });
 });

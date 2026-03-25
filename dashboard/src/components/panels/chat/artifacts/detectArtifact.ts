@@ -22,6 +22,18 @@ export interface ArtifactInfo {
 
 let artifactCounter = 0;
 
+const EXT_MAP: Record<string, ArtifactLanguage> = {
+  ".html": "html", ".htm": "html",
+  ".svg": "svg",
+  ".json": "json",
+  ".csv": "csv",
+  ".md": "markdown",
+  ".py": "code", ".ts": "code", ".js": "code", ".tsx": "code",
+  ".jsx": "code", ".go": "code", ".rs": "code", ".java": "code",
+  ".rb": "code", ".sh": "code", ".yaml": "code", ".yml": "code",
+  ".xml": "code", ".css": "code", ".sql": "code",
+};
+
 export function detectArtifact(
   content: string,
   toolContext?: { toolName?: string; filePath?: string },
@@ -30,7 +42,75 @@ export function detectArtifact(
     return null;
   }
 
-  // 1. HTML content
+  const filePath = toolContext?.filePath;
+  const fileName = filePath ? filePath.split("/").pop() ?? filePath : undefined;
+
+  // 1. File extension priority
+  if (filePath) {
+    const dotIdx = filePath.lastIndexOf(".");
+    if (dotIdx !== -1) {
+      const ext = filePath.slice(dotIdx).toLowerCase();
+      const lang = EXT_MAP[ext];
+      if (lang) {
+        if (lang === "json") {
+          try {
+            const parsed = JSON.parse(content);
+            if (typeof parsed === "object" && parsed !== null) {
+              return {
+                id: `artifact-${++artifactCounter}`,
+                title: fileName ?? "JSON",
+                language: "json",
+                content,
+                source: { toolName: toolContext?.toolName, fileName, filePath },
+              };
+            }
+          } catch { /* fall through */ }
+        } else if (lang === "csv") {
+          if (isLikelyCSV(content)) {
+            return {
+              id: `artifact-${++artifactCounter}`,
+              title: fileName ?? "CSV",
+              language: "csv",
+              content,
+              source: { toolName: toolContext?.toolName, fileName, filePath },
+            };
+          }
+        } else if (lang === "code") {
+          const codeExt = ext.slice(1);
+          return {
+            id: `artifact-${++artifactCounter}`,
+            title: fileName ?? "Code",
+            language: "code",
+            content,
+            codeLang: codeExt,
+            source: { toolName: toolContext?.toolName, fileName, filePath },
+          };
+        } else {
+          return {
+            id: `artifact-${++artifactCounter}`,
+            title: fileName ?? lang.toUpperCase(),
+            language: lang,
+            content,
+            source: { toolName: toolContext?.toolName, fileName, filePath },
+          };
+        }
+      }
+    }
+  }
+
+  // 2. Image detection (base64 data URI)
+  const imageMatch = content.match(/^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/);
+  if (imageMatch) {
+    return {
+      id: `artifact-${++artifactCounter}`,
+      title: "Image",
+      language: "image",
+      content,
+      codeLang: imageMatch[1],
+    };
+  }
+
+  // 3. Content heuristics (existing order)
   if (/<html|<body|<!doctype/i.test(content)) {
     const titleMatch = /<title>(.*?)<\/title>/i.exec(content);
     return {
@@ -41,12 +121,10 @@ export function detectArtifact(
     };
   }
 
-  // 2. SVG content
   if (content.trimStart().startsWith("<svg")) {
     return { id: `artifact-${++artifactCounter}`, title: "SVG", language: "svg", content };
   }
 
-  // 3. Mermaid diagram
   const mermaidMatch = /```mermaid\n([\s\S]+?)```/.exec(content);
   if (mermaidMatch) {
     return {
@@ -57,7 +135,6 @@ export function detectArtifact(
     };
   }
 
-  // 4. JSON (must be > 40 chars to avoid trivial objects)
   if (content.length > 40) {
     try {
       const parsed = JSON.parse(content);
@@ -69,13 +146,9 @@ export function detectArtifact(
           content,
         };
       }
-    } catch {
-      /* not JSON */
-    }
+    } catch { /* not JSON */ }
   }
 
-  // 5. Markdown (headings, bold, links, checklists) — checked before CSV to avoid
-  // misclassifying comma-heavy prose as table data
   if (isLikelyMarkdown(content)) {
     return {
       id: `artifact-${++artifactCounter}`,
@@ -85,21 +158,24 @@ export function detectArtifact(
     };
   }
 
-  // 6. CSV (consistent comma-separated lines)
   if (isLikelyCSV(content)) {
-    return { id: `artifact-${++artifactCounter}`, title: "artifactCsv", language: "csv", content };
-  }
-
-  // 7. Code (contextual — only when triggered by a write/create/edit tool)
-  if (toolContext?.toolName && /write|create|edit/i.test(toolContext.toolName)) {
-    const ext = toolContext.filePath?.split(".").pop() ?? "";
     return {
       id: `artifact-${++artifactCounter}`,
-      title: toolContext.filePath ?? "Code",
+      title: "artifactCsv",
+      language: "csv",
+      content,
+    };
+  }
+
+  if (toolContext?.toolName && /write|create|edit/i.test(toolContext.toolName)) {
+    const ext = filePath?.split(".").pop() ?? "";
+    return {
+      id: `artifact-${++artifactCounter}`,
+      title: fileName ?? "Code",
       language: "code",
       content,
       codeLang: ext,
-      source: { toolName: toolContext.toolName, fileName: toolContext.filePath },
+      source: { toolName: toolContext.toolName, fileName, filePath },
     };
   }
 
@@ -135,10 +211,10 @@ function isLikelyMarkdown(content: string): boolean {
   if (/^#{1,3}\s/.test(trimmed)) {
     return true;
   }
-  if (content.length < 80) {
+  if (content.length < 40) {
     return false;
   }
-  // Require at least 2 distinct markdown patterns for non-heading content
+  // Require at least 1 distinct markdown pattern for non-heading content
   let patterns = 0;
   if (/\*\*[^*]+\*\*/.test(content)) {
     patterns++;
@@ -164,5 +240,5 @@ function isLikelyMarkdown(content: string): boolean {
   if (/```[\s\S]*?```/.test(content)) {
     patterns++;
   }
-  return patterns >= 2;
+  return patterns >= 1;
 }
