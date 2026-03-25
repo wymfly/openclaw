@@ -134,11 +134,23 @@ Current `SectionNav` shows plain key names. Enhanced version:
 - Field count badge (number of configurable fields in section)
 - "N advanced hidden" indicator at bottom
 
+### 3.8 Prerequisite: Config Store uiHints Persistence
+
+The current `config.ts` store discards `uiHints` from the `config.schema` RPC response — it only stores the raw JSON Schema in `schema`. The dashboard-side `UiHint` type in `ui-hints.ts` only defines 3 properties (`sensitive`, `collapsed`, `placeholder`), but the Gateway returns 9 properties including `help`, `label`, `tags`, `group`, `order`, `advanced`.
+
+**Required changes:**
+1. Extend `UiHint` interface in `ui-hints.ts` to match Gateway's `ConfigUiHint`: add `help`, `label`, `tags`, `group`, `order`, `advanced`
+2. Extend `config.ts` store: persist `uiHints` map alongside `schema` from `fetchSchema()` response
+3. Pass `uiHints` from `ConfigPanel` to `SchemaForm` so field decorators (`sensitive`, `group`, `tags`) are available
+4. Call `applyUiHints()` after `parseSchemaSection()` in ConfigPanel to decorate parsed fields with uiHints data
+
 ### Files Changed
 
 | File                           | Change                                                                                                 |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `ConfigPanel.tsx`              | Import SectionIntroCard, pass uiHints to SchemaForm                                                    |
+| `config.ts` (store)           | Persist `uiHints` from `config.schema` RPC; expose via `useConfigStore`                               |
+| `ui-hints.ts`                  | Extend `UiHint` interface with `help`, `label`, `tags`, `group`, `order`, `advanced`                  |
+| `ConfigPanel.tsx`              | Import SectionIntroCard, call `applyUiHints()`, pass uiHints to SchemaForm                            |
 | `SchemaForm.tsx`               | Extended switch for Password/Record/Union/TypedArray/Validation; group-based layout; advanced collapse |
 | `SectionNav.tsx`               | Icons, field counts, advanced hint                                                                     |
 | `schema-parser.ts`             | Parse sensitive/variants/valueSchema/itemSchema/validation/group/tags from schema+uiHints              |
@@ -171,9 +183,35 @@ Each field displays one of:
 - **`↑ default`** (amber badge) — value inherited from `agents.defaults.*`
 - **`✎ override`** (blue badge) — value explicitly set in `agents.list[N].*`
 
-**Detection logic:** Compare `config.get()` raw config's `agents.list[N]` against `agents.defaults`. If the field exists in agent-level config → override; otherwise → inherited.
+**Detection logic (pseudocode):**
 
-**Reset to default:** Override fields show a `✕` button. Clicking removes the field from `agents.list[N]` via `config.patch`, reverting to global default.
+```typescript
+// 1. Fetch raw config via config.get
+const rawConfig = JSON.parse(configStore.rawConfig);
+const defaults = rawConfig.agents?.defaults ?? {};
+
+// 2. Find the agent entry by ID (agents.list is an array of objects with `id` field)
+const agentEntry = (rawConfig.agents?.list ?? []).find(
+  (a: { id: string }) => a.id === agentId
+);
+
+// 3. For each editable field, determine inherit vs override
+function isOverride(fieldPath: string): boolean {
+  // Walk the dot-path into agentEntry
+  // e.g., "thinkingDefault" → agentEntry?.thinkingDefault
+  // e.g., "tools.profile" → agentEntry?.tools?.profile
+  return getNestedValue(agentEntry, fieldPath) !== undefined;
+}
+
+// 4. Effective value = agentEntry[field] ?? defaults[field] ?? schema.default
+function effectiveValue(fieldPath: string): unknown {
+  return getNestedValue(agentEntry, fieldPath)
+    ?? getNestedValue(defaults, fieldPath)
+    ?? schemaDefault(fieldPath);
+}
+```
+
+**Reset to default:** Override fields show a `✕` button. Clicking removes the field from `agents.list[N]` via `config.patch` (setting the field to `undefined` / deleting the key), reverting to global default.
 
 ### 4.4 Tools Profile Selector
 
@@ -218,11 +256,22 @@ Reset: config.patch       → delete agents.list[N].{field}
 
 ## 5. Design: Channel Post-Setup Config (P1)
 
-### 5.1 New "Settings" Tab in ChannelDetail
+### 5.1 Prerequisite: ChannelDetail Tabbed Refactoring
 
-Added as the last tab in ChannelDetail. Displays per-channel configuration grouped into 3 sections.
+The current `ChannelDetail.tsx` is a flat layout (accounts list + logout section) with no tab structure. Before adding a "Settings" tab, ChannelDetail must be refactored into a tabbed layout:
 
-### 5.2 DM Policy Selector
+- **Tab 1: "Status"** — current content (accounts list, enable/disable, connection status, logout)
+- **Tab 2: "Bindings"** — existing BindingsTab component (already exists separately)
+- **Tab 3: "Throughput"** — existing ThroughputChart component
+- **Tab 4: "Settings"** — new settings tab (this design)
+
+This refactoring uses the same `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` pattern as AgentsPanel and MonitorPanel. The existing ChannelDetail content moves into the "Status" tab with minimal changes.
+
+### 5.2 Settings Tab Content
+
+Displays per-channel configuration grouped into 3 sections.
+
+### 5.3 DM Policy Selector
 
 Radio card UI (not a select dropdown) with 3 options:
 
@@ -232,7 +281,7 @@ Radio card UI (not a select dropdown) with 3 options:
 
 Each card has a title, one-sentence explanation, and optional badge. This directly addresses the understanding gap — users don't need to know what "pairing" means in OpenClaw's context because the card explains it.
 
-### 5.3 Retry Strategy Editor
+### 5.4 Retry Strategy Editor
 
 Form fields for: `maxRetries`, `baseDelayMs`, `jitter`.
 
@@ -244,13 +293,13 @@ Below the fields, a **retry timeline visualization** renders in real-time as val
 
 Circles represent attempts, arrows show delays (exponential backoff × jitter). Total elapsed time displayed at the end. This gives non-technical users an intuitive sense of what "3 retries with 1s base delay" means.
 
-**Visualization logic:** Pure client-side calculation: `delay(n) = baseDelayMs × 2^n × (1 ± jitter)`.
+**Visualization logic:** Pure client-side calculation: `delay(n) = baseDelayMs × 2^n × (1 ± jitter)`. Since jitter is random, the visualization shows the expected (mid-range) case with a parenthetical note "(±jitter)". An `aria-label` on the visualization container provides a text description for screen readers (e.g., "3 retries with exponential backoff, total estimated 7 seconds").
 
-### 5.4 Advanced Fields (Schema-driven)
+### 5.5 Advanced Fields (Schema-driven)
 
 Beyond DM policy and retry, each channel has unique fields (Telegram: `ipv4First`, Discord: `helloTimeout`, etc.). These render dynamically from the channel's JSON Schema section using SchemaForm, ensuring upstream additions appear automatically.
 
-### 5.5 Per-Channel Schema Adaptation
+### 5.6 Per-Channel Schema Adaptation
 
 Different channels have different schemas. The Settings tab:
 
@@ -271,7 +320,7 @@ Write: config.patch  → channels.{channelId}.{field}
 
 | File                              | Change                                            |
 | --------------------------------- | ------------------------------------------------- |
-| `ChannelDetail.tsx`               | Register new "Settings" tab                       |
+| `ChannelDetail.tsx`               | Refactor to tabbed layout + register "Settings" tab |
 | **New** `ChannelSettingsTab.tsx`  | Main settings tab                                 |
 | **New** `DmPolicySelector.tsx`    | Radio card policy selector                        |
 | **New** `RetryStrategyEditor.tsx` | Retry fields + timeline visualization             |
@@ -303,6 +352,14 @@ All write operations carry `baseHash` from the last `config.get` read. On confli
 
 `config.patch` automatically triggers Gateway SIGUSR1 restart. The existing restart notification flow handles this — no new mechanism needed.
 
+### Accessibility
+
+- `FieldHelpPopover`: uses `aria-describedby` linking popover content to the field input
+- `DmPolicySelector`: renders as `role="radiogroup"` with `role="radio"` items and `aria-checked`
+- `ToolProfileSelector`: renders as `role="radiogroup"` with keyboard navigation
+- `RetryStrategyEditor` visualization: `aria-label` with descriptive text summary
+- `InheritBadge`: `title` attribute explains inherit/override semantics on hover
+
 ### Upstream Compatibility
 
 - ConfigPanel's schema-driven approach means new upstream config fields appear automatically in the generic editor
@@ -315,9 +372,9 @@ All write operations carry `baseHash` from the last `config.get` read. On confli
 
 | #         | Deliverable                     | Priority | Type    | New Files | Modified Files  |
 | --------- | ------------------------------- | -------- | ------- | --------- | --------------- |
-| 1         | ConfigPanel understanding layer | P0       | Enhance | 3         | 5               |
+| 1         | ConfigPanel understanding layer | P0       | Enhance | 3         | 7               |
 | 2         | Agent Config Editor tab         | P0       | New tab | 3         | 3               |
 | 3         | Channel Settings tab            | P1       | New tab | 3         | 3               |
-| **Total** |                                 |          |         | **9 new** | **11 modified** |
+| **Total** |                                 |          |         | **9 new** | **13 modified** |
 
 No backend / Gateway changes required. All data available via existing RPC methods.
