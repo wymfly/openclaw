@@ -101,7 +101,8 @@
     "canvasError": "Canvas failed to load",
     "canvasRetry": "Retry",
     "canvasEmpty": "No canvas content",
-    "debugTitle": "Debug panel"
+    "debugTitle": "Debug panel",
+    "canvasToggle": "Canvas panel"
   },
   "gateway": {
     "title": "Gateway Overview",
