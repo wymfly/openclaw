@@ -106,12 +106,32 @@ function parseProperty(
   // Union detection: oneOf / anyOf with object variants
   const unionCandidates = (schema.oneOf ?? schema.anyOf) as Record<string, unknown>[] | undefined;
   if (Array.isArray(unionCandidates) && unionCandidates.length > 0) {
-    const variants = parseUnionVariants(
-      unionCandidates,
-      schema.discriminator as Record<string, unknown> | undefined,
-    );
+    const disc = schema.discriminator as Record<string, unknown> | undefined;
+    const discKey =
+      typeof disc?.propertyName === "string" ? (disc.propertyName as string) : undefined;
+    const variants = parseUnionVariants(unionCandidates, disc);
     if (variants.length > 0) {
-      return { key, type: "object", description, defaultValue, required: isRequired, variants };
+      // All-const variants (no type/fields) are effectively enums — use "enum" type
+      const allConst = variants.every((v) => !v.type && !v.fields);
+      if (allConst) {
+        return {
+          key,
+          type: "enum",
+          description,
+          defaultValue,
+          options: variants.map((v) => v.value),
+          required: isRequired,
+        };
+      }
+      return {
+        key,
+        type: "object",
+        description,
+        defaultValue,
+        required: isRequired,
+        variants,
+        ...(discKey ? { discriminator: discKey } : {}),
+      };
     }
   }
 

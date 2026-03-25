@@ -290,7 +290,7 @@ describe("parseSchemaSection", () => {
   // Union variants (oneOf / anyOf)
   // ---------------------------------------------------------------------------
 
-  it("parses oneOf with const values as union variants", () => {
+  it("parses oneOf with const values as enum (all-const shortcut)", () => {
     const schema = {
       properties: {
         mode: {
@@ -302,10 +302,9 @@ describe("parseSchemaSection", () => {
       },
     };
     const fields = parseSchemaSection(schema);
-    expect(fields[0]?.type).toBe("object");
-    expect(fields[0]?.variants).toHaveLength(2);
-    expect(fields[0]?.variants?.[0]).toEqual({ value: "local", label: "Local" });
-    expect(fields[0]?.variants?.[1]).toEqual({ value: "remote", label: "Remote" });
+    // All-const variants are promoted to enum type for direct selection
+    expect(fields[0]?.type).toBe("enum");
+    expect(fields[0]?.options).toEqual(["local", "remote"]);
   });
 
   it("parses anyOf with object variants", () => {
@@ -332,5 +331,32 @@ describe("parseSchemaSection", () => {
     expect(fields[0]?.variants?.[0]?.value).toBe("OpenAI");
     expect(fields[0]?.variants?.[0]?.fields).toBeDefined();
     expect(fields[0]?.variants?.[1]?.value).toBe("Anthropic");
+  });
+
+  it("passes discriminator propertyName to field for discriminated unions", () => {
+    const schema = {
+      properties: {
+        output: {
+          discriminator: { propertyName: "kind" },
+          oneOf: [
+            {
+              type: "object",
+              title: "File",
+              properties: { kind: { const: "file" }, path: { type: "string" } },
+            },
+            {
+              type: "object",
+              title: "Stream",
+              properties: { kind: { const: "stream" }, url: { type: "string" } },
+            },
+          ],
+        },
+      },
+    };
+    const fields = parseSchemaSection(schema);
+    expect(fields[0]?.discriminator).toBe("kind");
+    expect(fields[0]?.variants).toHaveLength(2);
+    expect(fields[0]?.variants?.[0]?.value).toBe("file");
+    expect(fields[0]?.variants?.[1]?.value).toBe("stream");
   });
 });
