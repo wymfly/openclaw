@@ -28,7 +28,8 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
   const t = useTranslations("channels.settings");
   const tc = useTranslations("common");
 
-  const { channelConfig, fetchChannelConfig, saveChannelConfig } = useChannelsStore();
+  const { channelConfig, fetchChannelConfig, saveChannelConfig, channelConfigSaveError } =
+    useChannelsStore();
 
   const [dmPolicy, setDmPolicy] = useState("pairing");
   const [retry, setRetry] = useState<RetryState>(DEFAULT_RETRY);
@@ -40,14 +41,17 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
   const [initialDmPolicy, setInitialDmPolicy] = useState("pairing");
   const [initialRetry, setInitialRetry] = useState<RetryState>(DEFAULT_RETRY);
 
-  // Fetch config on mount
+  // Fetch config on mount — always mark loaded once fetch completes
   useEffect(() => {
-    void fetchChannelConfig(channelId);
+    setLoaded(false);
+    void fetchChannelConfig(channelId).then(() => {
+      setLoaded(true);
+    });
   }, [channelId, fetchChannelConfig]);
 
   // Populate local state from fetched config
   useEffect(() => {
-    if (!channelConfig) return;
+    if (!channelConfig) return; // null or empty = no config found, keep defaults
 
     const cfg = channelConfig as Record<string, unknown>;
     const policy = typeof cfg.dmPolicy === "string" ? cfg.dmPolicy : "pairing";
@@ -67,7 +71,6 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
     setInitialDmPolicy(policy);
     setInitialRetry(retryState);
     setDirty(false);
-    setLoaded(true);
   }, [channelConfig]);
 
   const handleDmPolicyChange = useCallback((policy: string) => {
@@ -81,17 +84,23 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
   }, []);
 
   const handleSave = useCallback(async () => {
+    // Only include changed fields in the patch
+    const patch: Record<string, unknown> = {};
+    if (dmPolicy !== initialDmPolicy) {
+      patch.dmPolicy = dmPolicy;
+    }
+    if (JSON.stringify(retry) !== JSON.stringify(initialRetry)) {
+      patch.retry = {
+        attempts: retry.attempts,
+        minDelayMs: retry.minDelayMs,
+        maxDelayMs: retry.maxDelayMs,
+        jitter: retry.jitter,
+      };
+    }
+    if (Object.keys(patch).length === 0) return; // no actual changes
+
     setSaving(true);
     try {
-      const patch: Record<string, unknown> = {
-        dmPolicy,
-        retry: {
-          attempts: retry.attempts,
-          minDelayMs: retry.minDelayMs,
-          maxDelayMs: retry.maxDelayMs,
-          jitter: retry.jitter,
-        },
-      };
       const ok = await saveChannelConfig(channelId, patch);
       if (ok) {
         setInitialDmPolicy(dmPolicy);
@@ -101,7 +110,7 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
     } finally {
       setSaving(false);
     }
-  }, [channelId, dmPolicy, retry, saveChannelConfig]);
+  }, [channelId, dmPolicy, retry, initialDmPolicy, initialRetry, saveChannelConfig]);
 
   const handleReset = useCallback(() => {
     setDmPolicy(initialDmPolicy);
@@ -130,6 +139,15 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
           onChange={handleRetryChange}
         />
       </div>
+
+      {/* Error feedback */}
+      {channelConfigSaveError && (
+        <div className="shrink-0 px-4 py-1">
+          <p className="text-xs" style={{ color: "var(--destructive)" }}>
+            {channelConfigSaveError}
+          </p>
+        </div>
+      )}
 
       {/* Save/Reset bar */}
       {dirty && (

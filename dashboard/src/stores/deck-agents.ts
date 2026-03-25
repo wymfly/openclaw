@@ -167,6 +167,7 @@ interface DeckAgentsState {
   loading: boolean;
   error: string | null;
   agentRawConfig: AgentRawConfig | null;
+  configSaveError: string | null;
 
   fetchDetail: (agentId: string, force?: boolean) => Promise<void>;
   fetchSkills: (agentId: string) => Promise<void>;
@@ -210,6 +211,7 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   loading: false,
   error: null,
   agentRawConfig: null,
+  configSaveError: null,
 
   fetchDetail: async (agentId: string, force = false) => {
     // Check TTL cache
@@ -520,35 +522,52 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   saveAgentConfig: async (agentId: string, updates: Record<string, unknown>) => {
     const { agentRawConfig } = get();
     if (!agentRawConfig) {
+      set({ configSaveError: "No config loaded" });
       return false;
     }
 
+    set({ configSaveError: null });
+
     try {
-      // Build the updated agents.list array with the mutated entry
+      // Deep merge helper: recursively merge src into target
+      const deepMerge = (
+        target: Record<string, unknown>,
+        src: Record<string, unknown>,
+      ): Record<string, unknown> => {
+        const result = { ...target };
+        for (const [key, value] of Object.entries(src)) {
+          if (value === null) {
+            // JSON Merge Patch: null = delete key
+            delete result[key];
+          } else if (
+            typeof value === "object" &&
+            !Array.isArray(value) &&
+            typeof result[key] === "object" &&
+            result[key] !== null &&
+            !Array.isArray(result[key])
+          ) {
+            result[key] = deepMerge(
+              result[key] as Record<string, unknown>,
+              value as Record<string, unknown>,
+            );
+          } else {
+            result[key] = value;
+          }
+        }
+        return result;
+      };
+
+      // Build the updated agents.list array with the deep-merged entry
       const newList = agentRawConfig.list.map((item) => {
         if ((item as { id?: string }).id !== agentId) {
           return item;
         }
-        const merged = { ...item };
-        for (const [key, value] of Object.entries(updates)) {
-          if (value === null) {
-            // JSON Merge Patch: null = delete key
-            delete merged[key];
-          } else {
-            merged[key] = value;
-          }
-        }
-        return merged;
+        return deepMerge(item, updates);
       });
 
       // If the entry didn't exist in the list, append it
       if (!agentRawConfig.entry) {
-        const newEntry: Record<string, unknown> = { id: agentId, ...updates };
-        for (const key of Object.keys(newEntry)) {
-          if (newEntry[key] === null) {
-            delete newEntry[key];
-          }
-        }
+        const newEntry: Record<string, unknown> = deepMerge({ id: agentId }, updates);
         newList.push(newEntry);
       }
 
@@ -562,6 +581,8 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
       });
 
       if (!res.ok) {
+        const d = await res.json().catch(() => ({ error: "Failed to save config" }));
+        set({ configSaveError: (d as { error?: string }).error ?? "Failed to save config" });
         return false;
       }
 
@@ -569,7 +590,10 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
       await get().fetchAgentRawConfig(agentId);
       get().invalidateCache(agentId);
       return true;
-    } catch {
+    } catch (err) {
+      set({
+        configSaveError: err instanceof Error ? err.message : "Network error saving config",
+      });
       return false;
     }
   },

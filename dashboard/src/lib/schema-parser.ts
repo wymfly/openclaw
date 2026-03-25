@@ -48,6 +48,12 @@ export interface FormField {
   group?: string;
   /** Tags for categorization, e.g. "advanced" (from uiHints). */
   tags?: string[];
+  /** Human-readable label override (from uiHints). */
+  label?: string;
+  /** Sort order within a group — lower = earlier (from uiHints). */
+  order?: number;
+  /** Whether this field is an advanced setting, collapsed by default (from uiHints). */
+  advanced?: boolean;
   /** Validation constraints extracted from JSON Schema. */
   validation?: ValidationConstraints;
 }

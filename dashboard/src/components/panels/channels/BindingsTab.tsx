@@ -44,6 +44,13 @@ export function BindingsTab({ channelId }: { channelId?: string } = {}) {
   const [removing, setRemoving] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
+  // Sync selectedChannel when channelId prop changes
+  useEffect(() => {
+    if (channelId) {
+      setSelectedChannel(channelId);
+    }
+  }, [channelId]);
+
   // Load bindings on mount
   useEffect(() => {
     void fetchBindings();
