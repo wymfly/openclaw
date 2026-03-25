@@ -118,12 +118,14 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
   // The store does not use subscribeWithSelector, so we use plain subscribe with
   // a manual length comparison to detect new commands.
   useEffect(() => {
-    const processCanvasCommands = (cmds: Array<{
-      action: string;
-      params?: Record<string, unknown>;
-      evalId?: string;
-      javaScript?: string;
-    }>) => {
+    const processCanvasCommands = (
+      cmds: Array<{
+        action: string;
+        params?: Record<string, unknown>;
+        evalId?: string;
+        javaScript?: string;
+      }>,
+    ) => {
       const bridge = bridgeRef.current;
       const iframe = iframeRef.current;
 
@@ -131,7 +133,8 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         switch (cmd.action) {
           case "navigate":
             if (iframe && cmd.params?.url) {
-              iframe.src = `/api/canvas/${cmd.params.url as string}`;
+              const url = cmd.params.url as string;
+              iframe.src = /^https?:\/\//.test(url) ? url : `/api/canvas/${url}`;
             }
             break;
           case "eval":
@@ -159,7 +162,8 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
             // canvasVisible is already handled in useChatSSE via useUIStore.
             // Here we handle the optional url/path parameter for navigation.
             if (iframe && cmd.params?.url) {
-              iframe.src = `/api/canvas/${cmd.params.url as string}`;
+              const url = cmd.params.url as string;
+              iframe.src = /^https?:\/\//.test(url) ? url : `/api/canvas/${url}`;
             }
             setState("ready");
             break;
@@ -230,7 +234,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
       <div className="flex-1 relative min-h-0">
         <iframe
           ref={iframeRef}
-          src="/api/canvas/"
+          src="/api/canvas/index.html"
           className="w-full h-full border-0"
           sandbox="allow-scripts allow-same-origin"
           title="A2UI Canvas"
