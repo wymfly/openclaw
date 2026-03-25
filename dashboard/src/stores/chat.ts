@@ -333,7 +333,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       next.set(sessionKey, {
         ...session,
         isStreaming: streaming,
-        status: streaming ? "active" : "idle",
+        status: streaming ? "running" : "idle",
         streamingRunId: streaming ? (runId ?? session.streamingRunId) : null,
         lastAccessedAt: Date.now(),
       });
@@ -507,7 +507,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   pushCanvasCommand: (cmd) => set((s) => ({ canvasCommands: [...s.canvasCommands, cmd] })),
   consumeCanvasCommands: () => {
     const cmds = get().canvasCommands;
-    if (cmds.length > 0) set({ canvasCommands: [] });
+    if (cmds.length > 0) {
+      set({ canvasCommands: [] });
+    }
     return cmds;
   },
 
@@ -559,7 +561,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (k === s.activeSessionKey) {
           continue;
         }
-        if (v.status === "active" || v.isStreaming) {
+        if (v.status === "running" || v.isStreaming) {
           continue;
         }
         if (now - v.lastAccessedAt > idleThresholdMs) {
