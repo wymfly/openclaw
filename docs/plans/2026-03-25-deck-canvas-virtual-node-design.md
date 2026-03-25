@@ -17,7 +17,7 @@ Deck Server 维护两条独立 WebSocket 连接到 Gateway：
 
 ### 数据流
 
-Agent 调用 `canvas.a2ui_push({ node: "deck-a1b2c3d4", jsonl: "..." })` 为例：
+Agent 调用 canvas 工具（`action: "a2ui_push"`, `node: "deck-a1b2c3d4"`）为例：
 
 1. Agent canvas tool → Gateway `node.invoke("canvas.a2ui.pushJSONL", {...})`
 2. Gateway 路由到 Deck 的 node WebSocket 连接
@@ -27,16 +27,18 @@ Agent 调用 `canvas.a2ui_push({ node: "deck-a1b2c3d4", jsonl: "..." })` 为例�
 
 ### 多设备选择
 
-不改 Gateway 路由逻辑。当多个 canvas node 在线时，依赖 Agent 自然语言交互能力：
+不改 Gateway 路由逻辑。`pickDefaultNode()` 有 `preferLocalMac: true` 偏好，当 Mac + Deck 同时在线时默认选择 Mac。因此：
 
+- 用户必须显式指定 `node: "deck-..."` 才能将 canvas 定向到 Deck
 - Agent 可通过 `nodes status` 查看在线设备列表
-- 有多个 canvas 设备时，Agent 询问用户"在哪个设备上显示？"
-- 用户选择后，Agent 在 canvas 调用中指定 `node: "deck-a1b2c3d4"` 或 `node: "mac-main"`
-- 优化 canvas 工具描述以引导此行为
+- 优化 canvas 工具描述，引导 Agent 在有多个 canvas 设备时询问用户"在哪个设备上显示？"
+- 仅 Deck 一个 canvas node 在线时，`pickDefaultNode()` 自动选中，无需显式指定
 
 ## Node Connection Protocol
 
 ### 连接参数
+
+`ConnectParams` 的 `caps` 和 `commands` 是顶层字段（非嵌套），`nodeId` 由 Gateway 从 `device.id ?? client.id` 推导：
 
 ```json
 {
@@ -44,38 +46,39 @@ Agent 调用 `canvas.a2ui_push({ node: "deck-a1b2c3d4", jsonl: "..." })` 为例�
   "maxProtocol": 3,
   "client": {
     "id": "deck-a1b2c3d4",
+    "displayName": "Deck Dashboard",
     "version": "dev",
-    "platform": "node",
+    "platform": "web",
     "mode": "node"
   },
-  "role": "node",
   "auth": { "token": "...", "deviceToken": "..." },
-  "device": { "id": "...", "publicKey": "...", "signature": "..." },
-  "node": {
-    "nodeId": "deck-a1b2c3d4",
-    "displayName": "Deck Dashboard",
-    "platform": "web",
-    "caps": ["canvas"],
-    "commands": [
-      "canvas.present",
-      "canvas.hide",
-      "canvas.navigate",
-      "canvas.eval",
-      "canvas.a2ui.pushJSONL",
-      "canvas.a2ui.reset"
-    ],
-    "silent": true
-  }
+  "device": { "id": "deck-a1b2c3d4", "publicKey": "...", "signature": "..." },
+  "caps": ["canvas"],
+  "commands": [
+    "canvas.present",
+    "canvas.hide",
+    "canvas.navigate",
+    "canvas.eval",
+    "canvas.a2ui.pushJSONL",
+    "canvas.a2ui.reset"
+  ]
 }
 ```
 
 ### nodeId 生成
 
-复用 Deck Server 已有的 Ed25519 device identity，格式 `deck-{deviceId前8位}`。多实例不冲突，与现有认证体系一致。
+复用 Deck Server 已有的 Ed25519 device identity，格式 `deck-{deviceId前8位}`。Gateway 的 `nodeRegistry` 从 `device.id` 提取 nodeId，因此 `device.id` 和 `client.id` 保持一致。多实例不冲突。
 
 ### 认证方式
 
-跳过配对流程。扩展 `shouldSkipBackendSelfPairing()` 逻辑：同一个 device identity 已有一条通过认证的 operator 连接 → 该 device 的 node 连接自动信任，不弹配对确认。
+不走传统的设备配对确认流程。使用 device-token 认证（`auth.deviceToken`）：
+
+- Deck 的 operator 连接已通过 Ed25519 device identity 认证
+- Node 连接复用同一套 device identity，在 `auth` 中提供 `deviceToken`
+- Gateway 的 `usesDeviceTokenAuth()` 检查会识别有效的 device token → 跳过配对确认
+- 不需要修改 `shouldSkipBackendSelfPairing()`——该函数是 backend operator 专用的纯函数，不适合扩展
+
+如果 `usesDeviceTokenAuth` 路径不可直接复用，备选方案：在 Gateway 的 node 注册逻辑中新增检查——当 `client.id` 对应的 device identity 已有通过认证的 operator 连接时，自动接受 node 注册。
 
 ### 支持的 Canvas Actions（6/7）
 
@@ -93,13 +96,13 @@ Agent 调用 `canvas.a2ui_push({ node: "deck-a1b2c3d4", jsonl: "..." })` 为例�
 
 ## Command Handling
 
-### 通用命令处理
+### 通用命令处理（非 eval）
 
 ```
-Deck Server 收到 node.invoke
-    → 解析 command 和 params
-    → 通过 EventBus emit canvas SSE 事件
-    → respond(true) 给 Gateway
+Deck Server 收到 node.invoke (command ≠ "canvas.eval")
+    → 检查是否有活跃的 SSE 消费者（浏览器标签页）
+    → 有消费者：emit canvas SSE 事件 → respond(true)
+    → 无消费者：仍然 respond(true)（与 Mac App 行为一致，不报错）
 ```
 
 ### canvas.eval 异步回调
@@ -107,10 +110,13 @@ Deck Server 收到 node.invoke
 eval 需要返回 JS 执行结果，涉及 Server ↔ Browser 往返：
 
 ```
-Deck Server 收到 eval 命令
-    → 生成 evalId
-    → SSE 推送 { type: "canvas", action: "eval", evalId, javaScript }
-    → 等待 Promise（10s timeout）
+Deck Server 收到 node.invoke (command = "canvas.eval")
+    → 检查是否有活跃的 SSE 消费者
+    → 无消费者：立即 respond(false, { error: "no active browser session" })
+    → 有消费者：
+        → 生成 evalId（crypto.randomUUID，单次使用 nonce）
+        → SSE 推送 { type: "canvas", action: "eval", evalId, javaScript }
+        → 等待 Promise（10s timeout）
 
 Browser CanvasPanel 收到
     → iframe.postMessage({ type: "eval", js })
@@ -118,9 +124,23 @@ Browser CanvasPanel 收到
     → CanvasPanel 调用 POST /api/deck/canvas/eval-result { evalId, result }
 
 Deck Server 收到 eval-result
+    → 验证 evalId 存在于 pending map 中（单次使用，验证后删除）
     → resolve 对应 Promise
     → respond 给 Gateway
+
+超时（10s 无响应）
+    → 从 pending map 删除 evalId
+    → respond(false, { error: "eval timeout" })
 ```
+
+### eval-result 端点认证
+
+`POST /api/deck/canvas/eval-result` 的安全设计：
+
+- **evalId 作为单次使用 nonce** — 由 Deck Server 生成的 crypto.randomUUID，不可预测，使用后立即从 pending map 删除
+- **仅接受 pending 中存在的 evalId** — 重复提交或伪造 evalId 被拒绝（返回 404）
+- **Same-origin 保护** — Next.js API route 天然受浏览器同源策略保护
+- **TTL 限制** — eval 超时后 evalId 自动清除，不会无限期有效
 
 ## Frontend Rendering
 
@@ -159,17 +179,21 @@ ChatPanel 布局：`canvasVisible = true` 时，右侧显示 CanvasPanel（与 R
 
 Operator 断开 → node 同步断开 → Gateway 移除 Deck node。Operator 重连 → 自动重建 node 连接。不需要独立重连逻辑。
 
-### 浏览器未打开
+### 浏览器未打开（非 eval 命令）
 
 Node 连接在线但无浏览器消费 SSE：canvas 事件丢弃，Deck Server 仍 respond(true)。与 Mac App 行为一致——不管用户是否在看屏幕。
 
+### 浏览器未打开（eval 命令）
+
+无活跃 SSE 消费者时，eval 命令立即返回错误 respond(false, { error: "no active browser session" })。不等待超时，因为不可能有响应。Agent 会收到明确的失败信号。
+
 ### eval 超时
 
-浏览器关闭时 eval 无法执行：10 秒超时后 respond(false, { error: "eval timeout: no active browser session" })。唯一会返回错误的场景。
+浏览器在线但 iframe 执行 JS 无响应：10 秒超时后 respond(false, { error: "eval timeout" })。
 
 ### 多浏览器标签页
 
-所有标签页同步渲染 canvas 事件。eval 结果由第一个响应的标签页决定，eval-result 端点做幂等检查。
+所有标签页同步渲染 canvas 事件。eval 结果由第一个响应的标签页决定——evalId 在 pending map 中被第一个响应消费后删除，后续响应被丢弃（幂等）。
 
 ## File Changes
 
@@ -182,15 +206,23 @@ Node 连接在线但无浏览器消费 SSE：canvas 事件丢弃，Deck Server �
 
 ### 修改
 
-| 文件                                                         | 改动                                  |
-| ------------------------------------------------------------ | ------------------------------------- |
-| `dashboard/server/gateway-adapter.ts`                        | operator 连接成功后触发 node 连接建立 |
-| `dashboard/src/components/panels/chat/CanvasPanel.tsx`       | 增加实时 canvas 事件监听              |
-| `dashboard/src/stores/ui.ts`                                 | 新增 canvasVisible / canvasMode 状态  |
-| `src/gateway/server/ws-connection/handshake-auth-helpers.ts` | 扩展 shouldSkipBackendSelfPairing()   |
+| 文件                                                   | 改动                                  |
+| ------------------------------------------------------ | ------------------------------------- |
+| `dashboard/server/gateway-adapter.ts`                  | operator 连接成功后触发 node 连接建立 |
+| `dashboard/src/components/panels/chat/CanvasPanel.tsx` | 增加实时 canvas 事件监听              |
+| `dashboard/src/stores/ui.ts`                           | 新增 canvasVisible / canvasMode 状态  |
+
+### Gateway 侧改动（最小侵入）
+
+Gateway 侧可能需要的调整取决于 device-token auth 路径是否直接可用：
+
+- **理想情况**：Deck 的 node 连接使用 deviceToken 认证，Gateway 现有的 `usesDeviceTokenAuth()` 自动处理，零改动
+- **备选方案**：在 node 注册逻辑中新增一个检查函数，识别已有 operator 连接的 device → 自动接受 node 注册
+
+具体路径在实现阶段确认，设计目标是 Gateway 零改动或最小改动。
 
 ## Testing Strategy
 
-- **单元测试**：node-connection.ts 的命令路由、eval 超时、幂等检查
-- **集成测试**：Gateway ↔ Deck node 连接建立、canvas 命令往返
+- **单元测试**：node-connection.ts 的命令路由、eval 超时、evalId 幂等检查、无浏览器 eval 快速失败
+- **集成测试**：Gateway ↔ Deck node 连接建立、device-token 认证、canvas 命令往返
 - **E2E 测试**：Agent 调用 canvas → Deck 浏览器渲染验证
