@@ -187,7 +187,7 @@ describe("setMessages", () => {
 // ---------------------------------------------------------------------------
 
 describe("setStreaming", () => {
-  it("setStreaming(key, true, runId) sets status=active + streamingRunId", () => {
+  it("setStreaming(key, true, runId) sets status=running + streamingRunId", () => {
     const store = useChatStore.getState();
     store.ensureSession("sess-1");
 
@@ -196,7 +196,7 @@ describe("setStreaming", () => {
     const sess = useChatStore.getState().sessions.get("sess-1")!;
     expect(sess.isStreaming).toBe(true);
     expect(sess.streamingRunId).toBe("run-abc");
-    expect(sess.status).toBe("active");
+    expect(sess.status).toBe("running");
   });
 
   it("setStreaming(key, false) sets status=idle + clears streamingRunId", () => {

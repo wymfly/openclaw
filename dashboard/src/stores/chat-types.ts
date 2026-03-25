@@ -119,8 +119,8 @@ export interface RunMetadata {
 export interface SessionState {
   messages: ChatMessage[];
   isStreaming: boolean;
-  /** Derived from isStreaming: "active" when streaming, "idle" otherwise. */
-  status: "idle" | "active";
+  /** Session lifecycle status from Gateway. Replaces old "idle"|"active" enum. */
+  status: "idle" | "running" | "done" | "failed" | "killed" | "timeout";
   streamingRunId: string | null;
   error: string | null;
   toolProgress: Record<string, ToolProgress>;
@@ -128,6 +128,11 @@ export interface SessionState {
   runMetadata: Record<string, RunMetadata>;
   a2uiState: A2UIState | null;
   lastAccessedAt: number;
+  // New lifecycle fields
+  startedAt?: number;
+  endedAt?: number;
+  runtimeMs?: number;
+  fastMode?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +145,18 @@ export interface SessionMeta {
   title?: string;
   updatedAt: number;
   lastMessagePreview?: string;
+  // New fields from sessions.changed snapshots
+  status?: string;
+  model?: string;
+  totalTokens?: number;
+  estimatedCostUsd?: number;
+  parentSessionKey?: string;
+  childSessions?: string[];
+  contextTokens?: number;
+  // Subagent fields (loaded via sessions.list, not events)
+  subagentRole?: "orchestrator" | "leaf";
+  subagentControlScope?: "children" | "none";
+  spawnedWorkspaceDir?: string;
 }
 
 // ---------------------------------------------------------------------------
