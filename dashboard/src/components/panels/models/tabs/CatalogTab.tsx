@@ -28,10 +28,10 @@ interface CatalogTabProps {
 export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) {
   const t = useTranslations("models");
   const {
-    models,
+    usableModels: models,
     authOverview,
-    loading,
-    fetchModels,
+    usableLoading: loading,
+    fetchUsableModels,
     fetchAuthOverview,
     updateFallbacks,
     fetchFallbacks,
@@ -45,9 +45,9 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
   const [selected, setSelected] = useState<Selection | null>(null);
 
   useEffect(() => {
-    void fetchModels();
+    void fetchUsableModels();
     void fetchAuthOverview();
-  }, [fetchModels, fetchAuthOverview]);
+  }, [fetchUsableModels, fetchAuthOverview]);
 
   const selectedProvider = selected?.provider ?? null;
   const selectedModel = selected?.type === "model" ? (selected.model ?? null) : null;

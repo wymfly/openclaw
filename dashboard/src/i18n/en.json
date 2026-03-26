@@ -231,6 +231,8 @@
       "cacheWrite": "Cache Write",
       "maxOutput": "Max Output",
       "noModels": "No models found",
+      "noConfiguredModels": "No usable models",
+      "noConfiguredModelsHint": "Add a provider and configure its API key in Provider Config first",
       "selectModel": "Select a provider or model to view details",
       "text": "Text",
       "reasoning": "Reasoning",

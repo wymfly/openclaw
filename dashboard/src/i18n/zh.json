@@ -231,6 +231,8 @@
       "cacheWrite": "缓存写入",
       "maxOutput": "最大输出",
       "noModels": "未发现模型",
+      "noConfiguredModels": "暂无可用模型",
+      "noConfiguredModelsHint": "请先在「提供商配置」中添加并配置 API Key",
       "selectModel": "选择供应商或模型以查看详情",
       "text": "文本",
       "reasoning": "推理",

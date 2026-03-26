@@ -112,8 +112,13 @@ export function ProviderList({
 
           {/* Empty state */}
           {!loading && models.length === 0 && (
-            <div className="px-4 py-8 text-center text-xs text-[var(--muted-foreground)]">
-              {t("catalog.noModels")}
+            <div className="px-4 py-8 text-center">
+              <p className="text-xs text-[var(--muted-foreground)]">
+                {t("catalog.noConfiguredModels")}
+              </p>
+              <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">
+                {t("catalog.noConfiguredModelsHint")}
+              </p>
             </div>
           )}
 
