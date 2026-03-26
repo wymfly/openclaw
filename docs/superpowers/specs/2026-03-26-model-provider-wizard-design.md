@@ -22,7 +22,8 @@ ProviderConfigTab 侧边栏底部的"添加供应商"按钮 → 打开 AddProvid
 
 - 搜索框 + 网格/列表，展示从全量目录提取的 distinct provider 列表。
 - 每个 provider 卡片：名称、模型数量 badge、认证类型标签。
-- 已配置 provider：灰色底 + "已配置"标记，不可点击。
+- 已配置 provider：灰色底 + "已配置"标记，不可点击。判断规则：`config.models.providers` 中存在该 provider key 即视为已配置。
+- 不在 `KNOWN_PROVIDER_DEFAULTS` 映射中的目录 provider 仍然显示在列表中，`defaultBaseUrl` 为空（用户需手动填写），`authType` 默认 `"api-key"`，`api` 默认 `"openai-completions"`。
 - 点击未配置 provider → Step 2A。
 
 **自定义供应商**
@@ -40,9 +41,10 @@ ProviderConfigTab 侧边栏底部的"添加供应商"按钮 → 打开 AddProvid
 ### Step 2A：已知供应商配置
 
 - 标题：`配置 {provider名称}`。
-- Base URL：自动填充（从 `KNOWN_PROVIDER_DEFAULTS` 映射），可修改。
-- API Key：输入框，支持环境变量引用（`$DEEPSEEK_API_KEY`）。
-- 模型列表：从全量目录过滤该 provider 的所有模型，checkbox 列表，默认全选。每个模型显示名称、上下文窗口、推理能力标记。顶部有全选/全不选 toggle。
+- Base URL：自动填充（从 `KNOWN_PROVIDER_DEFAULTS` 映射），可修改。无默认值时为空。
+- API 格式：自动填充（从 `KNOWN_PROVIDER_DEFAULTS.api` 映射），可修改。无默认值时默认 `"openai-completions"`。
+- API Key：输入框，支持环境变量引用（`$DEEPSEEK_API_KEY`）。前端通过 `$` 前缀判定为环境变量引用。
+- 模型列表：从全量目录过滤该 provider 的所有模型，checkbox 列表，默认全选。每个模型显示名称、上下文窗口、推理能力标记。顶部有全选/全不选 toggle。目录模型的 `contextWindow` 为 undefined 时默认 128000，`maxTokens` 为 undefined 时默认 4096。
 - 确认按钮："添加供应商"。
 
 ### Step 2B：自定义供应商配置
@@ -100,44 +102,53 @@ export const KNOWN_PROVIDER_DEFAULTS: Record<
     displayName: string;
     defaultBaseUrl: string;
     authType: "api-key" | "oauth" | "aws-sdk" | "token";
+    api: "openai-completions" | "anthropic-messages" | "google-generative-ai" | "ollama" | string;
   }
 > = {
   anthropic: {
     displayName: "Anthropic",
     defaultBaseUrl: "https://api.anthropic.com",
     authType: "api-key",
+    api: "anthropic-messages",
   },
   openai: {
     displayName: "OpenAI",
     defaultBaseUrl: "https://api.openai.com/v1",
     authType: "api-key",
+    api: "openai-completions",
   },
   deepseek: {
     displayName: "DeepSeek",
     defaultBaseUrl: "https://api.deepseek.com",
     authType: "api-key",
+    api: "openai-completions",
   },
   google: {
     displayName: "Google",
     defaultBaseUrl: "https://generativelanguage.googleapis.com",
     authType: "api-key",
+    api: "google-generative-ai",
   },
   moonshot: {
     displayName: "Moonshot",
     defaultBaseUrl: "https://api.moonshot.cn/v1",
     authType: "api-key",
+    api: "openai-completions",
   },
   mistral: {
     displayName: "Mistral",
     defaultBaseUrl: "https://api.mistral.ai/v1",
     authType: "api-key",
+    api: "openai-completions",
   },
   groq: {
     displayName: "Groq",
     defaultBaseUrl: "https://api.groq.com/openai/v1",
     authType: "api-key",
+    api: "openai-completions",
   },
   // ... 其他已知 provider
+  // 不在此映射中的目录 provider：defaultBaseUrl=""，authType="api-key"，api="openai-completions"
 };
 ```
 
@@ -195,9 +206,13 @@ AddProviderWizard.tsx (Dialog 容器，管理步骤状态)
 
 **WizardStepCustom**：从现有 AddProviderDialog 提取表单逻辑，不重写，只改容器。
 
+### 文件位置
+
+所有新组件放在 `dashboard/src/components/panels/models/config/` 目录下（与现有 `AddProviderDialog.tsx` 同级）。
+
 ### 替换策略
 
-- 新增 `AddProviderWizard.tsx` 及子组件。
+- 新增 `AddProviderWizard.tsx` 及子组件（`WizardStepSelect.tsx`、`WizardStepKnown.tsx`、`WizardStepCustom.tsx`、`KnownProviderGrid.tsx`、`ModelCheckboxList.tsx`、`CustomProviderEntry.tsx`、`OAuthProviderSection.tsx`）。
 - 删除旧 `AddProviderDialog.tsx`。
 - `ProviderConfigTab.tsx` 中将 Dialog 引用替换为 Wizard。
 
@@ -220,7 +235,10 @@ AddProviderWizard.tsx (Dialog 容器，管理步骤状态)
 所有新增用户可见文字通过 `useTranslations("models")` 调用。`zh.json` 和 `en.json` 同步新增以下 key：
 
 - `wizardTitle` / `wizardStepSelect` / `wizardStepConfigure`
+- `configureProvider`（带 `{provider}` 插值，用于 Step 2A 标题）
 - `knownProviders` / `customProvider` / `customProviderHint`
 - `oauthProviders` / `authorized` / `connectable` / `oauthCliHint`
 - `selectAll` / `deselectAll` / `noModelsInCatalog` / `addModelManually`
 - `configured` / `catalogLoadError` / `retry`
+- `addProvider`（确认按钮）/ `contextWindow` / `reasoning` / `maxOutput`（模型列表列标题）
+- `saving` / `loadingProviders`（加载/保存状态文案）
