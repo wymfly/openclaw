@@ -4,6 +4,7 @@ import {
   listAgentIds,
   resolveAgentConfig,
   resolveAgentSkillsFilter,
+  resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../../../agents/agent-scope.js";
 import { buildWorkspaceSkillStatus } from "../../../agents/skills-status.js";
@@ -67,7 +68,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     // Skills
     const skillFilter = resolveAgentSkillsFilter(cfg, agentId);
     const skillMode = skillFilter === undefined ? "all" : "whitelist";
-    const workspaceDir = agentConfig.workspace ?? "/tmp";
+    const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
     const skillReport = buildWorkspaceSkillStatus(workspaceDir, { config: cfg });
     const allSkillKeys = skillReport.skills.map((s) => s.skillKey);
     const effectiveSkills = skillMode === "all" ? allSkillKeys : (skillFilter ?? []);
@@ -88,8 +89,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
 
     // Effective model: per-agent → defaults fallback
     const effectiveModel =
-      resolveModelString(agentConfig.model) ??
-      resolveModelString(cfg.agents?.defaults?.model);
+      resolveModelString(agentConfig.model) ?? resolveModelString(cfg.agents?.defaults?.model);
 
     // Fallback models: per-agent → defaults fallback
     const agentModelObj = agentConfig.model ?? cfg.agents?.defaults?.model;
@@ -111,7 +111,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     respond(true, {
       id: agentId,
       name: agentConfig.name,
-      workspace: agentConfig.workspace,
+      workspace: workspaceDir,
       model: effectiveModel,
       isDefault,
       bindingCount,
@@ -156,7 +156,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     const skills = skillFilter ?? [];
     const assignedSet = new Set(skills);
 
-    const workspaceDir = agentConfig.workspace ?? "/tmp";
+    const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
     const skillReport = buildWorkspaceSkillStatus(workspaceDir, { config: cfg });
     const available = skillReport.skills.map((s) => ({
       key: s.skillKey,

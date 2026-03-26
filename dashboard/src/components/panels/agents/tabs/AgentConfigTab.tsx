@@ -523,12 +523,15 @@ function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
           if (!open) setOpen(true);
         }}
         onFocus={() => {
-          setSearch(value);
+          setSearch("");
           setOpen(true);
         }}
         onBlur={() => {
-          // Revert to current value on blur (no free-text entry)
-          setTimeout(() => setSearch(""), 150);
+          // Close dropdown after short delay (allow click on option)
+          setTimeout(() => {
+            setOpen(false);
+            setSearch("");
+          }, 150);
         }}
         placeholder={placeholder}
         className="w-full rounded-md border border-[var(--border)] bg-background px-2 py-1 pr-6 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer"
