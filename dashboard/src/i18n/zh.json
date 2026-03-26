@@ -414,8 +414,8 @@
       "baseUrl": "Base URL",
       "apiFormat": "API 格式",
       "apiKey": "API Key",
-      "apiKeyPlaceholder": "sk-... 或 ${ENV_VAR_NAME}",
-      "envVarHint": "以 ${ 开头将作为环境变量引用"
+      "apiKeyPlaceholder": "sk-... 或 $'{ENV_VAR_NAME}'",
+      "envVarHint": "以 $'{' 开头将作为环境变量引用"
     }
   },
   "routing": {

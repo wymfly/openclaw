@@ -414,8 +414,8 @@
       "baseUrl": "Base URL",
       "apiFormat": "API Format",
       "apiKey": "API Key",
-      "apiKeyPlaceholder": "sk-... or ${ENV_VAR_NAME}",
-      "envVarHint": "Prefix with ${ to reference an environment variable"
+      "apiKeyPlaceholder": "sk-... or $'{ENV_VAR_NAME}'",
+      "envVarHint": "Prefix with $'{' to reference an environment variable"
     }
   },
   "routing": {
