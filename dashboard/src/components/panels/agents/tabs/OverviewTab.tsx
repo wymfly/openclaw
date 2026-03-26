@@ -105,7 +105,7 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
             <div className="min-w-0">
               <dt className="text-[var(--muted-foreground)]">{t("workspace")}</dt>
               <dd className="font-mono text-[var(--foreground)] mt-0.5 truncate">
-                {detail.workspace || t("workspaceDefault")}
+                {detail.workspace || "—"}
               </dd>
             </div>
             <div className="min-w-0">
