@@ -2,6 +2,7 @@ import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
 import { buildAuthOverview } from "../../agents/auth-diagnostics.js";
 import { DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import { buildAllowedModelSet, buildConfiguredModelCatalog } from "../../agents/model-selection.js";
+import { normalizeProviderId } from "../../agents/provider-id.js";
 import { loadConfig } from "../../config/config.js";
 import {
   ErrorCodes,
@@ -74,7 +75,8 @@ export const modelsHandlers: GatewayRequestHandlers = {
       const authMap = new Map<string, string>();
       for (const entry of authProviders) {
         if (entry.provider && entry.status) {
-          authMap.set(entry.provider, entry.status);
+          // Normalize provider key to match configuredModels (which uses normalizeProviderId)
+          authMap.set(normalizeProviderId(entry.provider), entry.status);
         }
       }
 
