@@ -1,8 +1,8 @@
 "use client";
 
-import { Eye, EyeOff, Loader2, Save, Check, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Save, Check, Plus, Trash2, ListPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ProviderConfig, ProviderModelEntry } from "@/stores/models";
+import { useModelsStore } from "@/stores/models";
+import { ModelCheckboxList } from "./ModelCheckboxList";
 
 const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
 
@@ -102,6 +104,43 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
   const [newModelCtx, setNewModelCtx] = useState("");
   const [newModelMax, setNewModelMax] = useState("");
 
+  // Catalog models for "add from catalog" feature
+  const [showCatalogPicker, setShowCatalogPicker] = useState(false);
+  const [catalogSelected, setCatalogSelected] = useState<Set<string>>(new Set());
+  const { catalogProviders, fetchCatalogProviders } = useModelsStore();
+
+  const catalogModelsForProvider = useMemo(() => {
+    const entry = catalogProviders.find((p) => p.id === provider);
+    if (!entry) return [];
+    // Filter out already-added models
+    const existingIds = new Set(localModels.map((m) => m.id));
+    return entry.models.filter((m) => !existingIds.has(m.id));
+  }, [catalogProviders, provider, localModels]);
+
+  const handleOpenCatalogPicker = useCallback(() => {
+    if (catalogProviders.length === 0) {
+      void fetchCatalogProviders();
+    }
+    setCatalogSelected(new Set(catalogModelsForProvider.map((m) => m.id)));
+    setShowCatalogPicker(true);
+  }, [catalogProviders.length, fetchCatalogProviders, catalogModelsForProvider]);
+
+  const handleAddFromCatalog = useCallback(() => {
+    const toAdd = catalogModelsForProvider
+      .filter((m) => catalogSelected.has(m.id))
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        contextWindow: m.contextWindow,
+        maxTokens: m.maxTokens,
+        reasoning: m.reasoning,
+        input: ["text"] as string[],
+      }));
+    setLocalModels((prev) => [...prev, ...toAdd]);
+    setShowCatalogPicker(false);
+    setCatalogSelected(new Set());
+  }, [catalogModelsForProvider, catalogSelected]);
+
   // Derive effective auth type (form state > initialConfig > authOverview)
   const effectiveAuth = authMode || initialConfig?.auth || authType || null;
   const isOAuth = effectiveAuth === "oauth";
@@ -119,6 +158,8 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
     setShowKey(false);
     setSaved(false);
     setShowAddModel(false);
+    setShowCatalogPicker(false);
+    setCatalogSelected(new Set());
   }, [
     provider,
     initialConfig?.apiKey,
@@ -463,15 +504,74 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
               </div>
             </div>
           ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowAddModel(true)}
-              className="h-7 text-xs gap-1"
-            >
-              <Plus size={12} />
-              {t("config.addModel")}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowAddModel(true)}
+                className="h-7 text-xs gap-1"
+              >
+                <Plus size={12} />
+                {t("config.addModel")}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleOpenCatalogPicker}
+                className="h-7 text-xs gap-1"
+              >
+                <ListPlus size={12} />
+                {t("config.addFromCatalog")}
+              </Button>
+            </div>
+          )}
+
+          {/* Catalog model picker */}
+          {showCatalogPicker && (
+            <div className="space-y-2 rounded-md border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
+              {catalogModelsForProvider.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  {t("wizard.noModelsInCatalog")}
+                </p>
+              ) : (
+                <ModelCheckboxList
+                  models={catalogModelsForProvider}
+                  selected={catalogSelected}
+                  onToggle={(id) => {
+                    setCatalogSelected((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(id)) next.delete(id);
+                      else next.add(id);
+                      return next;
+                    });
+                  }}
+                  onSelectAll={() =>
+                    setCatalogSelected(new Set(catalogModelsForProvider.map((m) => m.id)))
+                  }
+                  onDeselectAll={() => setCatalogSelected(new Set())}
+                />
+              )}
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleAddFromCatalog}
+                  disabled={catalogSelected.size === 0}
+                  className="h-7 text-xs gap-1"
+                >
+                  <Plus size={12} />
+                  {t("config.addModel")} ({catalogSelected.size})
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowCatalogPicker(false)}
+                  className="h-7 text-xs"
+                >
+                  {tc("cancel")}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
