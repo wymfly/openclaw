@@ -465,7 +465,7 @@ interface ModelComboboxProps {
 }
 
 function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
-  const { models, fetchModels } = useModelsStore();
+  const { usableModels: models, fetchUsableModels } = useModelsStore();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -473,9 +473,9 @@ function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
 
   useEffect(() => {
     if (models.length === 0) {
-      void fetchModels();
+      void fetchUsableModels();
     }
-  }, [models.length, fetchModels]);
+  }, [models.length, fetchUsableModels]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -497,7 +497,9 @@ function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     if (!q) return models.slice(0, 50);
-    return models.filter((m) => m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q)).slice(0, 50);
+    return models
+      .filter((m) => m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q))
+      .slice(0, 50);
   }, [models, search]);
 
   // Group by provider

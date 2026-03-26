@@ -14,14 +14,14 @@ import { FallbackChain } from "../fallbacks/FallbackChain";
  */
 export function FallbacksTab() {
   const {
-    models,
+    usableModels: models,
     authOverview,
     primaryModel,
     fallbacks,
     imagePrimaryModel,
     imageFallbacks,
     fetchFallbacks,
-    fetchModels,
+    fetchUsableModels,
     fetchAuthOverview,
     updateFallbacks,
     updateImageFallbacks,
@@ -29,9 +29,9 @@ export function FallbacksTab() {
 
   useEffect(() => {
     void fetchFallbacks();
-    void fetchModels();
+    void fetchUsableModels();
     void fetchAuthOverview();
-  }, [fetchFallbacks, fetchModels, fetchAuthOverview]);
+  }, [fetchFallbacks, fetchUsableModels, fetchAuthOverview]);
 
   return (
     <ScrollArea className="h-full">
