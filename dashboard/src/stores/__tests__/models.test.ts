@@ -10,10 +10,12 @@ global.fetch = mockFetch;
 
 function resetStore() {
   useModelsStore.setState({
-    models: [],
+    catalogModels: [],
     providers: [],
     selectedProvider: null,
-    loading: false,
+    catalogLoading: false,
+    usableModels: [],
+    usableLoading: false,
     authOverview: [],
     authLoading: false,
     probeResults: {},
@@ -107,10 +109,10 @@ function makeConfigRaw(overrides?: Record<string, unknown>): string {
 }
 
 // ---------------------------------------------------------------------------
-// §3.1 fetchModels
+// §3.1 fetchCatalog (renamed from fetchModels)
 // ---------------------------------------------------------------------------
 
-describe("fetchModels", () => {
+describe("fetchCatalog", () => {
   it("S-FM-01: fetches models and updates state", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -118,12 +120,12 @@ describe("fetchModels", () => {
     });
 
     const store = useModelsStore.getState();
-    await store.fetchModels();
+    await store.fetchCatalog();
 
     const state = useModelsStore.getState();
-    expect(state.models).toHaveLength(3);
-    expect(state.models[0].id).toBe("kimi-k2.5");
-    expect(state.loading).toBe(false);
+    expect(state.catalogModels).toHaveLength(3);
+    expect(state.catalogModels[0].id).toBe("kimi-k2.5");
+    expect(state.catalogLoading).toBe(false);
   });
 
   it("S-FM-02: handles empty list", async () => {
@@ -132,23 +134,23 @@ describe("fetchModels", () => {
       json: async () => ({ models: [] }),
     });
 
-    await useModelsStore.getState().fetchModels();
+    await useModelsStore.getState().fetchCatalog();
 
     const state = useModelsStore.getState();
-    expect(state.models).toEqual([]);
-    expect(state.loading).toBe(false);
+    expect(state.catalogModels).toEqual([]);
+    expect(state.catalogLoading).toBe(false);
   });
 
   it("S-FM-03: keeps original models on API failure", async () => {
-    useModelsStore.setState({ models: mockModels });
+    useModelsStore.setState({ catalogModels: mockModels });
 
     mockFetch.mockResolvedValueOnce({ ok: false });
 
-    await useModelsStore.getState().fetchModels();
+    await useModelsStore.getState().fetchCatalog();
 
     const state = useModelsStore.getState();
-    expect(state.models).toEqual(mockModels);
-    expect(state.loading).toBe(false);
+    expect(state.catalogModels).toEqual(mockModels);
+    expect(state.catalogLoading).toBe(false);
   });
 });
 
@@ -721,15 +723,15 @@ describe("fetchUsageSummary", () => {
 // ---------------------------------------------------------------------------
 
 describe("boundary conditions", () => {
-  it("BC-01: fetchModels propagates network error but resets loading", async () => {
+  it("BC-01: fetchCatalog propagates network error but resets loading", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
-    // fetchModels lets the error propagate but still resets loading via finally
-    await expect(useModelsStore.getState().fetchModels()).rejects.toThrow("Network error");
+    // fetchCatalog lets the error propagate but still resets catalogLoading via finally
+    await expect(useModelsStore.getState().fetchCatalog()).rejects.toThrow("Network error");
 
     const state = useModelsStore.getState();
-    expect(state.models).toEqual([]);
-    expect(state.loading).toBe(false);
+    expect(state.catalogModels).toEqual([]);
+    expect(state.catalogLoading).toBe(false);
   });
 
   it("BC-05: fetchFallbacks handles malformed JSON in raw", async () => {
@@ -819,15 +821,15 @@ describe("boundary conditions", () => {
     expect(state.usageProviders[0].windows).toHaveLength(2);
   });
 
-  it("fetchModels handles plain array response", async () => {
+  it("fetchCatalog handles plain array response", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => mockModels,
     });
 
-    await useModelsStore.getState().fetchModels();
+    await useModelsStore.getState().fetchCatalog();
 
-    expect(useModelsStore.getState().models).toHaveLength(3);
+    expect(useModelsStore.getState().catalogModels).toHaveLength(3);
   });
 
   it("fetchAuthOverview handles plain array response", async () => {
@@ -839,5 +841,65 @@ describe("boundary conditions", () => {
     await useModelsStore.getState().fetchAuthOverview();
 
     expect(useModelsStore.getState().authOverview).toHaveLength(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §3.8 fetchUsableModels
+// ---------------------------------------------------------------------------
+
+describe("fetchUsableModels", () => {
+  it("fetches configured models and filters by auth status", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        models: [
+          { id: "deepseek-chat", name: "DeepSeek Chat", provider: "deepseek", authStatus: "ready" },
+          { id: "gpt-5.4", name: "GPT 5.4", provider: "openai", authStatus: "missing" },
+        ],
+      }),
+    });
+
+    await useModelsStore.getState().fetchUsableModels();
+    const state = useModelsStore.getState();
+    // Only "ready" models should be included
+    expect(state.usableModels).toHaveLength(1);
+    expect(state.usableModels[0].id).toBe("deepseek-chat");
+  });
+
+  it("falls back to catalog when configured endpoint fails", async () => {
+    // First call to /api/models/configured fails
+    // Second call to /api/models succeeds (fetchCatalog fallback)
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          models: [{ id: "claude-4", name: "Claude 4", provider: "anthropic" }],
+        }),
+      });
+
+    await useModelsStore.getState().fetchUsableModels();
+    const state = useModelsStore.getState();
+    expect(state.usableModels).toHaveLength(1);
+    expect(state.usableModels[0].id).toBe("claude-4");
+  });
+
+  it("includes warning status models as usable", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        models: [
+          { id: "kimi-k2.5", name: "Kimi K2.5", provider: "moonshot", authStatus: "warning" },
+          { id: "gpt-5.4", name: "GPT 5.4", provider: "openai", authStatus: "ready" },
+          { id: "claude-4", name: "Claude 4", provider: "anthropic", authStatus: "unknown" },
+        ],
+      }),
+    });
+
+    await useModelsStore.getState().fetchUsableModels();
+    const state = useModelsStore.getState();
+    expect(state.usableModels).toHaveLength(2);
+    expect(state.usableModels.map((m) => m.id)).toEqual(["kimi-k2.5", "gpt-5.4"]);
   });
 });
