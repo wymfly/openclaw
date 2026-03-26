@@ -225,6 +225,16 @@ export function ChatPanel() {
     useUIStore.getState().setCanvasVisible(false);
   }, []);
 
+  // Dev-only: expose handleOpenArtifact for browser-based functional testing
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      (window as unknown as Record<string, unknown>).__TEST_OPEN_ARTIFACT__ = handleOpenArtifact;
+      return () => {
+        delete (window as unknown as Record<string, unknown>).__TEST_OPEN_ARTIFACT__;
+      };
+    }
+  }, [handleOpenArtifact]);
+
   const handleCloseRightPanel = useCallback(() => {
     setRightPanelMode("hidden");
     // Keep activeArtifact so the toggle button can reopen it
