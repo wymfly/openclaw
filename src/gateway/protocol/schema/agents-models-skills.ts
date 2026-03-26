@@ -173,6 +173,34 @@ export const ModelsListResultSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ModelsConfiguredParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const ModelsConfiguredResultSchema = Type.Object(
+  {
+    models: Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+        provider: Type.String(),
+        contextWindow: Type.Optional(Type.Number()),
+        reasoning: Type.Optional(Type.Boolean()),
+        input: Type.Optional(Type.Array(Type.String())),
+        cost: Type.Optional(
+          Type.Object({
+            input: Type.Number(),
+            output: Type.Number(),
+            cacheRead: Type.Number(),
+            cacheWrite: Type.Number(),
+          }),
+        ),
+        maxTokens: Type.Optional(Type.Number()),
+        authStatus: Type.String(),
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
+
 export const SkillsStatusParamsSchema = Type.Object(
   {
     agentId: Type.Optional(NonEmptyString),
