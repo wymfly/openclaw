@@ -146,6 +146,11 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
   const isOAuth = effectiveAuth === "oauth";
   const isAwsSdk = effectiveAuth === "aws-sdk";
 
+  // Provider has explicit config entry (models are user-managed)?
+  // If no initialConfig or no models array → implicit/OAuth provider,
+  // models come from catalog fallback and should not be editable here.
+  const hasExplicitConfig = Boolean(initialConfig?.models && initialConfig.models.length > 0);
+
   // Reset form when provider changes
   useEffect(() => {
     const redacted = initialConfig?.apiKey === REDACTED_SENTINEL;
@@ -372,7 +377,7 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
                     <th className="px-3 py-1.5 text-right font-medium text-[var(--muted-foreground)]">
                       {t("catalog.maxOutput")}
                     </th>
-                    <th className="w-8" />
+                    {hasExplicitConfig && <th className="w-8" />}
                   </tr>
                 </thead>
                 <tbody>
@@ -391,16 +396,18 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
                       <td className="px-3 py-1.5 text-right text-[var(--muted-foreground)]">
                         {formatTokenCount(m.maxTokens)}
                       </td>
-                      <td className="px-1">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveModel(m.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--destructive-muted)] text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-all cursor-pointer"
-                          title={tc("delete")}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </td>
+                      {hasExplicitConfig && (
+                        <td className="px-1">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveModel(m.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--destructive-muted)] text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-all cursor-pointer"
+                            title={tc("delete")}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -412,8 +419,8 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
             </p>
           )}
 
-          {/* Add model inline form */}
-          {showAddModel ? (
+          {/* Add model inline form — only for explicitly configured providers */}
+          {!hasExplicitConfig ? null : showAddModel ? (
             <div className="max-w-2xl space-y-2 rounded-md border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -526,8 +533,8 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
             </div>
           )}
 
-          {/* Catalog model picker */}
-          {showCatalogPicker && (
+          {/* Catalog model picker — only for explicitly configured providers */}
+          {hasExplicitConfig && showCatalogPicker && (
             <div className="space-y-2 rounded-md border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
               {catalogModelsForProvider.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">

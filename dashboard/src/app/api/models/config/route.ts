@@ -63,17 +63,10 @@ export const PATCH = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "raw config content is required" }, { status: 400 });
   }
 
-  // Client sends JSON; convert to YAML for the Gateway to preserve config format.
-  let raw = body.raw;
-  try {
-    const obj = JSON.parse(raw);
-    raw = YAML.stringify(obj);
-  } catch {
-    // Already YAML or unparseable — send as-is
-  }
-
+  // Client sends JSON raw config — pass through as-is.
+  // Gateway config.patch accepts JSON/JSON5/YAML; JSON is safest.
   return gatewayRequest("config.patch", {
-    raw,
+    raw: body.raw,
     ...(body.baseHash ? { baseHash: body.baseHash } : {}),
     ...(body.note ? { note: body.note } : {}),
   });
