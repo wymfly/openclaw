@@ -52,12 +52,12 @@ export function AddProviderWizard({ open, onOpenChange, onAdd }: AddProviderWiza
     [providers],
   );
 
-  // Lazy load catalog providers when dialog opens
+  // Lazy load catalog providers when dialog opens (once per open; errors use retry button)
   useEffect(() => {
-    if (open && catalogProviders.length === 0 && !catalogProvidersLoading) {
+    if (open && catalogProviders.length === 0 && !catalogProvidersLoading && !catalogProvidersError) {
       void fetchCatalogProviders();
     }
-  }, [open, catalogProviders.length, catalogProvidersLoading, fetchCatalogProviders]);
+  }, [open, catalogProviders.length, catalogProvidersLoading, catalogProvidersError, fetchCatalogProviders]);
 
   // Reset step when dialog closes
   const handleClose = useCallback(
