@@ -439,7 +439,7 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     set({ usableLoading: true });
     try {
       const res = await fetch("/api/models/configured");
-      if (!res.ok) {
+      if (!res || !res.ok) {
         // Fallback: if new endpoint not available, use full catalog
         await get().fetchCatalog();
         set({ usableModels: get().catalogModels });

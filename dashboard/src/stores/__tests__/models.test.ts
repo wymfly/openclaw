@@ -338,6 +338,8 @@ describe("updateProviderConfig", () => {
       ok: true,
       json: async () => ({ raw: useModelsStore.getState().configRaw, hash: "h2" }),
     });
+    // fetchUsableModels (auto-refresh after config change)
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ models: [] }) });
 
     const result = await useModelsStore
       .getState()
@@ -369,6 +371,8 @@ describe("updateProviderConfig", () => {
       ok: true,
       json: async () => ({ raw: useModelsStore.getState().configRaw, hash: "h3" }),
     });
+    // fetchUsableModels (auto-refresh after config change)
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ models: [] }) });
 
     await useModelsStore
       .getState()
@@ -402,6 +406,8 @@ describe("updateProviderConfig", () => {
       ok: true,
       json: async () => ({ raw, hash: "fresh2" }),
     });
+    // fetchUsableModels (auto-refresh after config change)
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ models: [] }) });
 
     const result = await useModelsStore
       .getState()
@@ -849,8 +855,13 @@ describe("boundary conditions", () => {
 // ---------------------------------------------------------------------------
 
 describe("fetchUsableModels", () => {
+  afterEach(() => {
+    // Restore shared mockFetch after tests that override global.fetch
+    global.fetch = mockFetch;
+  });
+
   it("fetches configured models and filters by auth status", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
         models: [
@@ -870,7 +881,7 @@ describe("fetchUsableModels", () => {
   it("falls back to catalog when configured endpoint fails", async () => {
     // First call to /api/models/configured fails
     // Second call to /api/models succeeds (fetchCatalog fallback)
-    global.fetch = vi.fn()
+    mockFetch
       .mockResolvedValueOnce({ ok: false })
       .mockResolvedValueOnce({
         ok: true,
@@ -886,7 +897,7 @@ describe("fetchUsableModels", () => {
   });
 
   it("includes warning status models as usable", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
         models: [
