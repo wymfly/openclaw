@@ -536,6 +536,7 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     const ok = await patchConfig(get, set, updatedConfig);
     if (ok) {
       await get().fetchProviderConfig();
+      await get().fetchUsableModels();
     }
     return ok;
   },
@@ -692,6 +693,10 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
       set((s) => ({
         probeResults: { ...s.probeResults, [provider]: data },
       }));
+      // Refresh usable models if probe succeeded (auth status may have changed)
+      if (data.status === "ok") {
+        void get().fetchUsableModels();
+      }
       return data;
     } catch {
       // Network error — return null without storing
@@ -729,6 +734,7 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     if (ok) {
       await get().fetchAuthOverview();
       await get().fetchProviderConfig();
+      await get().fetchUsableModels();
     }
     return ok;
   },
