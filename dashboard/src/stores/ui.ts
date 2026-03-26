@@ -96,3 +96,8 @@ export const useUIStore = create<UIState>((set) => ({
       canvasMode: visible ? "active" : "idle",
     }),
 }));
+
+// Dev-only: expose store for browser-based functional testing
+if (process.env.NODE_ENV === "development") {
+  (window as unknown as Record<string, unknown>).__TEST_UI_STORE__ = useUIStore;
+}
