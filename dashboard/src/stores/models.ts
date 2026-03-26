@@ -99,6 +99,24 @@ export interface BedrockDiscoveryConfig {
   defaultMaxTokens?: number;
 }
 
+export interface CatalogProviderModel {
+  id: string;
+  name: string;
+  contextWindow: number;
+  reasoning: boolean;
+  maxTokens: number;
+}
+
+export interface CatalogProvider {
+  id: string;
+  displayName: string;
+  modelCount: number;
+  defaultBaseUrl: string;
+  authType: string;
+  api: string;
+  models: CatalogProviderModel[];
+}
+
 interface ModelsState {
   catalogModels: Model[];
   providers: ProviderConfig[];
@@ -138,6 +156,11 @@ interface ModelsState {
   usageCost: DailyCost[];
   usageProviders: UsageProviderStatus[];
 
+  // Catalog providers (for wizard, lazy loaded)
+  catalogProviders: CatalogProvider[];
+  catalogProvidersLoading: boolean;
+  catalogProvidersError: boolean;
+
   selectProvider: (provider: string | null) => void;
   fetchCatalog: () => Promise<void>;
   fetchUsableModels: () => Promise<void>;
@@ -161,6 +184,7 @@ interface ModelsState {
   toggleModelEnabled: (ref: string, enabled: boolean) => Promise<boolean>;
   updateModelAllowlistEntry: (ref: string, entry: Partial<AllowlistEntry>) => Promise<boolean>;
   updateBedrockDiscovery: (config: BedrockDiscoveryConfig) => Promise<boolean>;
+  fetchCatalogProviders: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -399,6 +423,9 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
   allowlistActive: false,
   bedrockDiscovery: {},
   providerApiMap: {},
+  catalogProviders: [],
+  catalogProvidersLoading: false,
+  catalogProvidersError: false,
 
   selectProvider: (selectedProvider) => set({ selectedProvider }),
 
@@ -432,6 +459,24 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
       set({ catalogModels: list });
     } finally {
       set({ catalogLoading: false });
+    }
+  },
+
+  fetchCatalogProviders: async () => {
+    set({ catalogProvidersLoading: true, catalogProvidersError: false });
+    try {
+      const res = await fetch("/api/models/catalog-providers");
+      if (!res.ok) {
+        set({ catalogProviders: [], catalogProvidersError: true });
+        return;
+      }
+      const data = (await res.json()) as { providers?: unknown };
+      const providers = Array.isArray(data.providers) ? (data.providers as CatalogProvider[]) : [];
+      set({ catalogProviders: providers });
+    } catch {
+      set({ catalogProviders: [], catalogProvidersError: true });
+    } finally {
+      set({ catalogProvidersLoading: false });
     }
   },
 

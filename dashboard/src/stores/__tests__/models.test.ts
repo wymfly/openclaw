@@ -27,6 +27,9 @@ function resetStore() {
     usageProviders: [],
     configRaw: null,
     configHash: null,
+    catalogProviders: [],
+    catalogProvidersLoading: false,
+    catalogProvidersError: false,
   });
 }
 
@@ -881,14 +884,12 @@ describe("fetchUsableModels", () => {
   it("falls back to catalog when configured endpoint fails", async () => {
     // First call to /api/models/configured fails
     // Second call to /api/models succeeds (fetchCatalog fallback)
-    mockFetch
-      .mockResolvedValueOnce({ ok: false })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          models: [{ id: "claude-4", name: "Claude 4", provider: "anthropic" }],
-        }),
-      });
+    mockFetch.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        models: [{ id: "claude-4", name: "Claude 4", provider: "anthropic" }],
+      }),
+    });
 
     await useModelsStore.getState().fetchUsableModels();
     const state = useModelsStore.getState();
@@ -912,5 +913,46 @@ describe("fetchUsableModels", () => {
     const state = useModelsStore.getState();
     expect(state.usableModels).toHaveLength(2);
     expect(state.usableModels.map((m) => m.id)).toEqual(["kimi-k2.5", "gpt-5.4"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fetchCatalogProviders
+// ---------------------------------------------------------------------------
+
+describe("fetchCatalogProviders", () => {
+  it("populates catalogProviders on success", async () => {
+    const mockProviders = [
+      {
+        id: "deepseek",
+        displayName: "DeepSeek",
+        modelCount: 2,
+        defaultBaseUrl: "https://api.deepseek.com",
+        authType: "api-key",
+        api: "openai-completions",
+        models: [],
+      },
+    ];
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ providers: mockProviders }) });
+    await useModelsStore.getState().fetchCatalogProviders();
+    expect(useModelsStore.getState().catalogProviders).toEqual(mockProviders);
+    expect(useModelsStore.getState().catalogProvidersError).toBe(false);
+    expect(useModelsStore.getState().catalogProvidersLoading).toBe(false);
+  });
+
+  it("sets error flag on HTTP failure and clears stale data", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 502 });
+    await useModelsStore.getState().fetchCatalogProviders();
+    expect(useModelsStore.getState().catalogProviders).toEqual([]);
+    expect(useModelsStore.getState().catalogProvidersError).toBe(true);
+    expect(useModelsStore.getState().catalogProvidersLoading).toBe(false);
+  });
+
+  it("sets error flag on network exception", async () => {
+    mockFetch.mockRejectedValueOnce(new Error("network error"));
+    await useModelsStore.getState().fetchCatalogProviders();
+    expect(useModelsStore.getState().catalogProviders).toEqual([]);
+    expect(useModelsStore.getState().catalogProvidersError).toBe(true);
+    expect(useModelsStore.getState().catalogProvidersLoading).toBe(false);
   });
 });

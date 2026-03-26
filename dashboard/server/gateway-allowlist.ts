@@ -34,6 +34,7 @@ export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([
   "config.apply",
   "models.list",
   "models.configured",
+  "models.catalog.providers",
   "exec.approval.resolve",
   "exec.approvals.get",
   "exec.approvals.set",
