@@ -368,7 +368,8 @@
       "apiProtocolSelect": "选择 API 协议",
       "providerModels": "模型列表",
       "noModelsConfigured": "该供应商未配置模型列表",
-      "modelCount": "{count} 个模型"
+      "modelCount": "{count} 个模型",
+      "addFromCatalog": "从目录添加"
     },
     "addProviderTitle": "添加供应商",
     "providerName": "供应商名称",

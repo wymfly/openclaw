@@ -368,7 +368,8 @@
       "apiProtocolSelect": "Select API protocol",
       "providerModels": "Model List",
       "noModelsConfigured": "No models configured for this provider",
-      "modelCount": "{count} models"
+      "modelCount": "{count} models",
+      "addFromCatalog": "Add from Catalog"
     },
     "addProviderTitle": "Add Provider",
     "providerName": "Provider Name",
