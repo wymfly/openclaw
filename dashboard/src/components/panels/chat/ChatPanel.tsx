@@ -222,6 +222,7 @@ export function ChatPanel() {
   const handleOpenArtifact = useCallback((artifact: ArtifactInfo) => {
     setActiveArtifact(artifact);
     setRightPanelMode("artifact");
+    useUIStore.getState().setCanvasVisible(false);
   }, []);
 
   const handleCloseRightPanel = useCallback(() => {
