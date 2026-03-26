@@ -100,10 +100,14 @@ export interface BedrockDiscoveryConfig {
 }
 
 interface ModelsState {
-  models: Model[];
+  catalogModels: Model[];
   providers: ProviderConfig[];
   selectedProvider: string | null;
-  loading: boolean;
+  catalogLoading: boolean;
+
+  // Usable models (provider auth ready/warning only)
+  usableModels: Model[];
+  usableLoading: boolean;
 
   // Auth & fallback state
   authOverview: AuthOverviewEntry[];
@@ -135,7 +139,8 @@ interface ModelsState {
   usageProviders: UsageProviderStatus[];
 
   selectProvider: (provider: string | null) => void;
-  fetchModels: () => Promise<void>;
+  fetchCatalog: () => Promise<void>;
+  fetchUsableModels: () => Promise<void>;
   fetchProviderConfig: () => Promise<void>;
   updateProviderConfig: (config: ProviderConfig) => Promise<boolean>;
   fetchAuthOverview: () => Promise<void>;
@@ -372,10 +377,12 @@ async function patchConfig(
 // ---------------------------------------------------------------------------
 
 export const useModelsStore = create<ModelsState>((set, get) => ({
-  models: [],
+  catalogModels: [],
   providers: [],
   selectedProvider: null,
-  loading: false,
+  catalogLoading: false,
+  usableModels: [],
+  usableLoading: false,
 
   authOverview: [],
   authLoading: false,
@@ -395,8 +402,8 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
 
   selectProvider: (selectedProvider) => set({ selectedProvider }),
 
-  fetchModels: async () => {
-    set({ loading: true });
+  fetchCatalog: async () => {
+    set({ catalogLoading: true });
     try {
       const res = await fetch("/api/models");
       if (!res.ok) {
@@ -422,9 +429,50 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
           maxTokens: m.maxTokens as number | undefined,
         };
       });
-      set({ models: list });
+      set({ catalogModels: list });
     } finally {
-      set({ loading: false });
+      set({ catalogLoading: false });
+    }
+  },
+
+  fetchUsableModels: async () => {
+    set({ usableLoading: true });
+    try {
+      const res = await fetch("/api/models/configured");
+      if (!res.ok) {
+        // Fallback: if new endpoint not available, use full catalog
+        await get().fetchCatalog();
+        set({ usableModels: get().catalogModels });
+        return;
+      }
+      const data = await res.json();
+      const raw = Array.isArray(data) ? data : Array.isArray(data?.models) ? data.models : [];
+      const list: Model[] = raw
+        .filter((m: Record<string, unknown>) => {
+          // Only include models whose provider auth is ready or warning (usable)
+          const status = m.authStatus as string;
+          return status === "ready" || status === "warning";
+        })
+        .map((m: Record<string, unknown>) => {
+          const cost = m.cost as Record<string, number> | undefined;
+          return {
+            id: m.id as string,
+            name: (m.name as string) || (m.id as string),
+            provider: m.provider as string,
+            contextWindow: (m.contextWindow as number) ?? 0,
+            inputPrice: cost?.input ?? (m.inputPrice as number) ?? 0,
+            outputPrice: cost?.output ?? (m.outputPrice as number) ?? 0,
+            cacheReadPrice: cost?.cacheRead ?? (m.cacheReadPrice as number),
+            cacheWritePrice: cost?.cacheWrite ?? (m.cacheWritePrice as number),
+            isDefault: m.isDefault as boolean | undefined,
+            reasoning: m.reasoning as boolean | undefined,
+            input: m.input as string[] | undefined,
+            maxTokens: m.maxTokens as number | undefined,
+          };
+        });
+      set({ usableModels: list });
+    } finally {
+      set({ usableLoading: false });
     }
   },
 
