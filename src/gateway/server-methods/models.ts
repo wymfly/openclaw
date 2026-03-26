@@ -1,8 +1,11 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
-import { ensureAuthProfileStore } from "../../agents/auth-profiles.js";
 import { buildAuthOverview } from "../../agents/auth-diagnostics.js";
+import { ensureAuthProfileStore } from "../../agents/auth-profiles.js";
 import { DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import { resolveEnvApiKey } from "../../agents/model-auth.js";
+import type { ModelCatalogEntry, ModelInputType } from "../../agents/model-catalog.js";
 import {
   buildAllowedModelSet,
   buildConfiguredModelCatalog,
@@ -19,8 +22,57 @@ import {
 } from "../protocol/index.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
+/** Read agent-level models.json (best-effort, returns empty on failure). */
+function readModelsJsonSync(agentDir: string): Record<string, unknown> {
+  try {
+    const raw = fs.readFileSync(path.join(agentDir, "models.json"), "utf8");
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return (parsed?.providers as Record<string, unknown>) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** Build model catalog entries from agent-level models.json providers. */
+function buildModelsJsonCatalog(agentDir: string): ModelCatalogEntry[] {
+  const providers = readModelsJsonSync(agentDir);
+  const catalog: ModelCatalogEntry[] = [];
+  for (const [providerRaw, providerData] of Object.entries(providers)) {
+    const providerId = normalizeProviderId(providerRaw);
+    if (!providerId) {
+      continue;
+    }
+    const p = providerData as Record<string, unknown> | undefined;
+    if (!p || !Array.isArray(p.models)) {
+      continue;
+    }
+    for (const model of p.models as Array<Record<string, unknown>>) {
+      const id = typeof model?.id === "string" ? model.id.trim() : "";
+      if (!id) {
+        continue;
+      }
+      catalog.push({
+        provider: providerId,
+        id,
+        name: typeof model?.name === "string" && model.name.trim() ? model.name.trim() : id,
+        contextWindow:
+          typeof model?.contextWindow === "number" && model.contextWindow > 0
+            ? model.contextWindow
+            : undefined,
+        reasoning: typeof model?.reasoning === "boolean" ? model.reasoning : undefined,
+        input: Array.isArray(model?.input)
+          ? (model.input as unknown[]).filter(
+              (i): i is ModelInputType => i === "text" || i === "image" || i === "document",
+            )
+          : undefined,
+      });
+    }
+  }
+  return catalog;
+}
+
 /**
- * Resolve visible providers from config + auth profiles + env vars.
+ * Resolve visible providers from config + auth profiles + env vars + models.json.
  * Mirrors deck-auth.ts resolveVisibleProviders logic.
  */
 function resolveAllVisibleProviders(cfg: ReturnType<typeof loadConfig>): string[] {
@@ -75,7 +127,17 @@ function resolveAllVisibleProviders(cfg: ReturnType<typeof loadConfig>): string[
     }
   }
 
-  return Array.from(new Set([...fromStore, ...fromConfig, ...fromModels, ...fromEnv]))
+  // Also discover providers from agent-level models.json
+  // (custom providers added via UI or manually, not yet in openclaw.json)
+  const fromModelsJson = new Set(
+    Object.keys(readModelsJsonSync(agentDir))
+      .map((p) => normalizeProviderId(p))
+      .filter(Boolean),
+  );
+
+  return Array.from(
+    new Set([...fromStore, ...fromConfig, ...fromModels, ...fromEnv, ...fromModelsJson]),
+  )
     .map((p) => (typeof p === "string" ? p.trim() : ""))
     .filter(Boolean);
 }
@@ -161,24 +223,68 @@ export const modelsHandlers: GatewayRequestHandlers = {
       });
 
       // For providers with auth ready/warning but NO models in config,
-      // fallback to full catalog models so OAuth/implicit providers show up
+      // fallback to full catalog models, then to models.json entries
       const configuredProviderIds = new Set(configuredModels.map((m) => m.provider));
+      const modelsJsonCatalog = buildModelsJsonCatalog(agentDir);
       for (const [provider, status] of authMap) {
-        if (configuredProviderIds.has(provider)) continue;
-        if (status !== "ready" && status !== "warning") continue;
-        // Pull all catalog models for this provider
+        if (configuredProviderIds.has(provider)) {
+          continue;
+        }
+        if (status !== "ready" && status !== "warning") {
+          continue;
+        }
+        // Try full catalog first (Pi SDK built-in models)
         const catalogModels = fullCatalog.filter((c) => c.provider === provider);
-        for (const c of catalogModels) {
-          models.push({
-            ...c,
-            cost: c.cost ?? undefined,
-            maxTokens: c.maxTokens ?? undefined,
-            authStatus: status,
-          });
+        if (catalogModels.length > 0) {
+          for (const c of catalogModels) {
+            models.push({
+              ...c,
+              cost: c.cost ?? undefined,
+              maxTokens: c.maxTokens ?? undefined,
+              authStatus: status,
+            });
+          }
+        } else {
+          // Fallback to agent-level models.json (custom providers not in Pi SDK)
+          const mjModels = modelsJsonCatalog.filter((c) => c.provider === provider);
+          for (const c of mjModels) {
+            models.push({
+              ...c,
+              cost: c.cost ?? undefined,
+              maxTokens: c.maxTokens ?? undefined,
+              authStatus: status,
+            });
+          }
         }
       }
 
-      respond(true, { models }, undefined);
+      // Also include models.json providers that have models but no auth yet
+      // (so they appear in UI for the user to configure auth)
+      const modelProviderIds = new Set(models.map((m) => m.provider));
+      for (const entry of modelsJsonCatalog) {
+        if (modelProviderIds.has(entry.provider)) {
+          continue;
+        }
+        // Include with "missing" auth status so UI shows them greyed out
+        models.push({
+          ...entry,
+          cost: entry.cost ?? undefined,
+          maxTokens: entry.maxTokens ?? undefined,
+          authStatus: authMap.get(entry.provider) ?? "missing",
+        });
+      }
+      // Deduplicate by provider+id (models.json may overlap with config)
+      const seen = new Set<string>();
+      const dedupedModels = models.filter((m) => {
+        const key = `${m.provider}/${m.id}`;
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+
+      respond(true, { models: dedupedModels }, undefined);
     } catch (err) {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
