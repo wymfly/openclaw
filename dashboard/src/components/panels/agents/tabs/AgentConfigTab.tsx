@@ -1,9 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InheritBadge } from "@/components/shared/InheritBadge";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
+import { useModelsStore } from "@/stores/models";
 import ToolProfileSelector from "./ToolProfileSelector";
 
 // ---------------------------------------------------------------------------
@@ -206,12 +207,10 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
             isOverride={isOverride("model")}
             onReset={() => handleReset("model")}
           >
-            <input
-              type="text"
+            <ModelCombobox
               value={resolveModelString(effectiveValue("model"))}
-              onChange={(e) => handleChange("model", e.target.value || null)}
-              className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
               placeholder={resolveModelString(defaults.model) || "default"}
+              onChange={(v) => handleChange("model", v || null)}
             />
           </FieldRow>
 
@@ -451,6 +450,119 @@ function FieldRow({ label, isOverride: isOvr, onReset, children }: FieldRowProps
       <span className="text-xs font-medium text-muted-foreground w-24 shrink-0">{label}</span>
       {children}
       {isOvr ? <InheritBadge mode="override" onReset={onReset} /> : <InheritBadge mode="inherit" />}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ModelCombobox — searchable dropdown with available models
+// ---------------------------------------------------------------------------
+
+interface ModelComboboxProps {
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}
+
+function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
+  const { models, fetchModels } = useModelsStore();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (models.length === 0) {
+      void fetchModels();
+    }
+  }, [models.length, fetchModels]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        listRef.current &&
+        !listRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return models.slice(0, 50);
+    return models.filter((m) => m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q)).slice(0, 50);
+  }, [models, search]);
+
+  // Group by provider
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof filtered>();
+    for (const m of filtered) {
+      const arr = map.get(m.provider) ?? [];
+      arr.push(m);
+      map.set(m.provider, arr);
+    }
+    return map;
+  }, [filtered]);
+
+  return (
+    <div className="relative flex-1 min-w-0">
+      <input
+        ref={inputRef}
+        type="text"
+        value={open ? search : value}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          if (!open) setOpen(true);
+        }}
+        onFocus={() => {
+          setSearch(value);
+          setOpen(true);
+        }}
+        placeholder={placeholder}
+        className="w-full rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+        role="combobox"
+        aria-expanded={open}
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <div
+          ref={listRef}
+          className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-md border border-[var(--border)] bg-popover shadow-md"
+          role="listbox"
+        >
+          {[...grouped.entries()].map(([provider, items]) => (
+            <div key={provider}>
+              <div className="sticky top-0 px-2 py-1 text-[10px] font-semibold text-muted-foreground bg-muted/50 backdrop-blur-sm">
+                {provider}
+              </div>
+              {items.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="option"
+                  aria-selected={m.id === value}
+                  className={`w-full text-left px-2 py-1 text-xs cursor-pointer hover:bg-accent transition-colors ${m.id === value ? "bg-accent font-medium" : ""}`}
+                  onClick={() => {
+                    onChange(m.id);
+                    setSearch("");
+                    setOpen(false);
+                  }}
+                >
+                  <span className="text-foreground">{m.name}</span>
+                  <span className="ml-1 text-muted-foreground text-[10px]">{m.id}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
