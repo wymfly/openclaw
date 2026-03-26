@@ -98,12 +98,14 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
             </div>
             <div className="min-w-0">
               <dt className="text-[var(--muted-foreground)]">{t("name")}</dt>
-              <dd className="text-[var(--foreground)] mt-0.5 truncate">{detail.name}</dd>
+              <dd className="text-[var(--foreground)] mt-0.5 truncate">
+                {detail.name || detail.id}
+              </dd>
             </div>
             <div className="min-w-0">
               <dt className="text-[var(--muted-foreground)]">{t("workspace")}</dt>
               <dd className="font-mono text-[var(--foreground)] mt-0.5 truncate">
-                {detail.workspace || "—"}
+                {detail.workspace || t("workspaceDefault")}
               </dd>
             </div>
             <div className="min-w-0">
@@ -213,10 +215,10 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
           </div>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[var(--primary-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--primary)]/20">
-              {detail.name?.charAt(0)?.toUpperCase() ?? "?"}
+              {(detail.name || detail.id)?.charAt(0)?.toUpperCase() ?? "?"}
             </div>
             <div className="text-xs">
-              <p className="text-[var(--foreground)] font-medium">{detail.name}</p>
+              <p className="text-[var(--foreground)] font-medium">{detail.name || detail.id}</p>
               <button
                 onClick={() => onNavigateTab("context")}
                 className="text-[var(--primary)] hover:underline cursor-pointer"
