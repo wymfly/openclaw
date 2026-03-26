@@ -108,6 +108,8 @@ describe("DEFAULT_METHOD_ALLOWLIST", () => {
     // upstream tools/config API
     "tools.effective",
     "config.schema.lookup",
+    // models catalog
+    "models.catalog.providers",
   ];
 
   it("contains all original studio methods", () => {
