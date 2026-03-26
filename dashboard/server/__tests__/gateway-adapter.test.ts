@@ -47,6 +47,7 @@ describe("DEFAULT_METHOD_ALLOWLIST", () => {
     "config.schema",
     "config.apply",
     "models.list",
+    "models.configured",
     "exec.approval.resolve",
     "exec.approvals.get",
     "exec.approvals.set",

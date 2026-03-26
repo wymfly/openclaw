@@ -471,6 +471,8 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
           };
         });
       set({ usableModels: list });
+    } catch {
+      // Network error — keep existing usableModels
     } finally {
       set({ usableLoading: false });
     }
