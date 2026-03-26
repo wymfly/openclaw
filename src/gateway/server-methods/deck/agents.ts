@@ -86,14 +86,16 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
       // File does not exist
     }
 
-    // Fallback models
+    // Effective model: per-agent → defaults fallback
+    const effectiveModel =
+      resolveModelString(agentConfig.model) ??
+      resolveModelString(cfg.agents?.defaults?.model);
+
+    // Fallback models: per-agent → defaults fallback
+    const agentModelObj = agentConfig.model ?? cfg.agents?.defaults?.model;
     let fallbackModels: string[] | undefined;
-    if (
-      agentConfig.model &&
-      typeof agentConfig.model === "object" &&
-      "fallbacks" in agentConfig.model
-    ) {
-      const fb = (agentConfig.model as { fallbacks?: string[] }).fallbacks;
+    if (agentModelObj && typeof agentModelObj === "object" && "fallbacks" in agentModelObj) {
+      const fb = (agentModelObj as { fallbacks?: string[] }).fallbacks;
       if (Array.isArray(fb)) {
         fallbackModels = fb;
       }
@@ -110,7 +112,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
       id: agentId,
       name: agentConfig.name,
       workspace: agentConfig.workspace,
-      model: resolveModelString(agentConfig.model),
+      model: effectiveModel,
       isDefault,
       bindingCount,
       sessionCount,
