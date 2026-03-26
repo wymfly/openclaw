@@ -10,6 +10,15 @@ import ToolProfileSelector from "./ToolProfileSelector";
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Extract model string from either a plain string or {primary: string} config object. */
+function resolveModelString(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (val && typeof val === "object" && "primary" in val) {
+    return String((val as Record<string, unknown>).primary ?? "");
+  }
+  return "";
+}
+
 /** Read a dot-separated path from a nested object. */
 function getNestedValue(obj: Record<string, unknown> | null | undefined, path: string): unknown {
   if (!obj) return undefined;
@@ -199,10 +208,10 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
           >
             <input
               type="text"
-              value={String(effectiveValue("model") ?? "")}
+              value={resolveModelString(effectiveValue("model"))}
               onChange={(e) => handleChange("model", e.target.value || null)}
               className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-              placeholder={String(defaults.model ?? "default")}
+              placeholder={resolveModelString(defaults.model) || "default"}
             />
           </FieldRow>
 
