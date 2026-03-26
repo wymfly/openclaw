@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InheritBadge } from "@/components/shared/InheritBadge";
@@ -310,12 +311,10 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
             isOverride={isOverride("subagents.model")}
             onReset={() => handleReset("subagents.model")}
           >
-            <input
-              type="text"
+            <ModelCombobox
               value={String(effectiveValue("subagents.model") ?? "")}
-              onChange={(e) => handleChange("subagents.model", e.target.value || null)}
-              className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
               placeholder={t("subagentModelPlaceholder")}
+              onChange={(v) => handleChange("subagents.model", v || null)}
             />
           </FieldRow>
         </div>
@@ -527,11 +526,20 @@ function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
           setSearch(value);
           setOpen(true);
         }}
+        onBlur={() => {
+          // Revert to current value on blur (no free-text entry)
+          setTimeout(() => setSearch(""), 150);
+        }}
         placeholder={placeholder}
-        className="w-full rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+        className="w-full rounded-md border border-[var(--border)] bg-background px-2 py-1 pr-6 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer"
         role="combobox"
         aria-expanded={open}
         autoComplete="off"
+        readOnly={!open}
+      />
+      <ChevronDown
+        size={12}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
       />
       {open && filtered.length > 0 && (
         <div
