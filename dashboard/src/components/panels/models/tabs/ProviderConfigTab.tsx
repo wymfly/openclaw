@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useModelsStore } from "@/stores/models";
-import { AddProviderDialog } from "../config/AddProviderDialog";
+import { AddProviderWizard } from "../config/AddProviderWizard";
 import { AuthHealthCard } from "../config/AuthHealthCard";
 import { BedrockDiscoveryCard } from "../config/BedrockDiscoveryCard";
 import { ConfigForm } from "../config/ConfigForm";
@@ -146,7 +146,7 @@ export function ProviderConfigTab({
         {/* Bedrock Discovery — global config */}
         <BedrockDiscoveryCard config={bedrockDiscovery} onUpdate={updateBedrockDiscovery} />
       </div>
-      <AddProviderDialog
+      <AddProviderWizard
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onAdd={handleAddProvider}
