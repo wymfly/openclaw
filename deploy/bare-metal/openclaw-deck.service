@@ -1,0 +1,29 @@
+[Unit]
+Description=OpenClaw Deck Dashboard
+Documentation=https://docs.openclaw.ai
+After=openclaw-gateway.service
+Wants=openclaw-gateway.service
+
+[Service]
+Type=simple
+User=openclaw
+Group=openclaw
+WorkingDirectory=/opt/openclaw/dashboard
+Environment=NODE_ENV=production
+Environment=DECK_DB_PATH=/var/lib/openclaw-deck/deck.db
+EnvironmentFile=-/etc/openclaw/deck.env
+ExecStart=/usr/bin/node .next/standalone/server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=openclaw-deck
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/openclaw-deck
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
