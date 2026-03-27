@@ -1,0 +1,15 @@
+# Sandbox overlay — enables agent execution isolation.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up -d
+#
+# Prerequisites:
+#   1. Build sandbox images: scripts/sandbox-setup.sh (from repo root)
+#   2. Set DOCKER_GID in .env: stat -c '%g' /var/run/docker.sock
+
+services:
+  gateway:
+    volumes:
+      - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+    group_add:
+      - "${DOCKER_GID:-999}"
