@@ -164,6 +164,8 @@ const BASE_METHODS = [
   "deck.identity.unlink",
   // deck.threads
   "deck.threads.list",
+  // gateway introspection
+  "gateway.describe",
 ];
 
 export function listGatewayMethods(): string[] {
