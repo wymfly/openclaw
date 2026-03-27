@@ -14,6 +14,10 @@ import type { DeckEventType } from "./event-bus";
 import { OpenClawGatewayAdapter } from "./gateway-adapter";
 import { ProjectionStore } from "./projection-store";
 import { createRateLimiter } from "./rate-limit";
+import {
+  createGatewayClient,
+  type GatewayClient,
+} from "../src/types/gateway-client.generated";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -21,6 +25,7 @@ import { createRateLimiter } from "./rate-limit";
 
 export type DeckRuntime = {
   adapter: OpenClawGatewayAdapter;
+  gw: GatewayClient;
   eventBus: EventBus;
   db: Database;
   store: ProjectionStore;
@@ -234,7 +239,11 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
     console.error("[DeckRuntime] adapter start failed:", err);
   });
 
-  const runtime: DeckRuntime = { adapter, eventBus, db, store, rateLimiter };
+  const gw = createGatewayClient((method, params, options) =>
+    adapter.request(method, params, options),
+  );
+
+  const runtime: DeckRuntime = { adapter, gw, eventBus, db, store, rateLimiter };
   g[GLOBAL_KEY] = runtime;
 
   // Initialize P2 subsystem bridges — store cleanup refs on globalThis for HMR safety (F12)
