@@ -176,109 +176,113 @@ export interface GatewayClient {
       list(
         params: import("./gateway-protocol.generated").DeckRoutingListParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckRoutingListResult>;
       add(
         params: import("./gateway-protocol.generated").DeckRoutingAddParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckRoutingAddResult>;
       remove(
         params: import("./gateway-protocol.generated").DeckRoutingRemoveParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckRoutingRemoveResult>;
       validate(
         params: import("./gateway-protocol.generated").DeckRoutingValidateParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckRoutingValidateResult>;
       simulate(
         params: import("./gateway-protocol.generated").DeckRoutingSimulateParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckRoutingSimulateResult>;
     };
     agents: {
       detail(
         params: import("./gateway-protocol.generated").DeckAgentsDetailParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckAgentsDetailResult>;
       skills: {
         get(
           params: import("./gateway-protocol.generated").DeckAgentsSkillsGetParams,
           options?: { timeoutMs?: number },
-        ): Promise<unknown>;
+        ): Promise<import("./gateway-protocol.generated").DeckAgentsSkillsGetResult>;
         set(
           params: import("./gateway-protocol.generated").DeckAgentsSkillsSetParams,
           options?: { timeoutMs?: number },
-        ): Promise<unknown>;
+        ): Promise<import("./gateway-protocol.generated").DeckAgentsSkillsSetResult>;
       };
       subagents: {
         get(
           params: import("./gateway-protocol.generated").DeckAgentsSubagentsGetParams,
           options?: { timeoutMs?: number },
-        ): Promise<unknown>;
+        ): Promise<import("./gateway-protocol.generated").DeckAgentsSubagentsGetResult>;
         set(
           params: import("./gateway-protocol.generated").DeckAgentsSubagentsSetParams,
           options?: { timeoutMs?: number },
-        ): Promise<unknown>;
+        ): Promise<import("./gateway-protocol.generated").DeckAgentsSubagentsSetResult>;
       };
       eventStreams: {
         get(
           params: import("./gateway-protocol.generated").DeckAgentsEventStreamsGetParams,
           options?: { timeoutMs?: number },
-        ): Promise<unknown>;
+        ): Promise<import("./gateway-protocol.generated").DeckAgentsEventStreamsGetResult>;
         set(
           params: import("./gateway-protocol.generated").DeckAgentsEventStreamsSetParams,
           options?: { timeoutMs?: number },
-        ): Promise<unknown>;
+        ): Promise<import("./gateway-protocol.generated").DeckAgentsEventStreamsSetResult>;
       };
       toolPolicy: {
         preview(
           params: import("./gateway-protocol.generated").DeckAgentsToolPolicyPreviewParams,
           options?: { timeoutMs?: number },
-        ): Promise<unknown>;
+        ): Promise<import("./gateway-protocol.generated").DeckAgentsToolPolicyPreviewResult>;
       };
       systemPrompt: {
         preview(
           params: import("./gateway-protocol.generated").DeckAgentsSystemPromptPreviewParams,
           options?: { timeoutMs?: number },
-        ): Promise<unknown>;
+        ): Promise<import("./gateway-protocol.generated").DeckAgentsSystemPromptPreviewResult>;
       };
     };
     subagents: {
       list(
         params: import("./gateway-protocol.generated").DeckSubagentsListParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckSubagentsListResult>;
       kill(
         params: import("./gateway-protocol.generated").DeckSubagentsKillParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckSubagentsKillResult>;
       lineage(
         params: import("./gateway-protocol.generated").DeckSubagentsLineageParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckSubagentsLineageResult>;
       steer(
         params: import("./gateway-protocol.generated").DeckSubagentsSteerParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckSubagentsSteerResult>;
     };
     identity: {
       list(
         params: import("./gateway-protocol.generated").DeckIdentityListParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckIdentityListResult>;
       link(
         params: import("./gateway-protocol.generated").DeckIdentityLinkParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckIdentityLinkResult>;
       unlink(
         params: import("./gateway-protocol.generated").DeckIdentityUnlinkParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckIdentityUnlinkResult>;
     };
     threads: {
       list(
         params: import("./gateway-protocol.generated").DeckThreadsListParams,
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<import("./gateway-protocol.generated").DeckThreadsListResult>;
+    };
+    auth: {
+      overview(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<unknown>;
+      probe(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<unknown>;
     };
   };
 }
@@ -332,6 +336,10 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       },
       threads: {
         list: call("deck.threads.list"),
+      },
+      auth: {
+        overview: call("deck.auth.overview"),
+        probe: call("deck.auth.probe"),
       },
     },
   };

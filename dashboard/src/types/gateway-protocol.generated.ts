@@ -8,6 +8,29 @@ export interface DeckRoutingListParams {
   accountId?: string;
 }
 
+export interface DeckRoutingListResult {
+  bindings: {
+    id: string;
+    agentId: string;
+    tier: string;
+    match: {
+      channel: string;
+      accountId?: string;
+      peer?: {
+        kind: string;
+        id: string;
+      };
+      guildId?: string;
+      roles?: string[];
+      teamId?: string;
+    };
+    comment?: string;
+  }[];
+  defaultAgentId: string;
+  dmScope: string;
+  configHash: string;
+}
+
 export interface DeckRoutingAddParams {
   agentId: string;
   match: {
@@ -26,9 +49,60 @@ export interface DeckRoutingAddParams {
   baseHash: string;
 }
 
+export interface DeckRoutingAddResult {
+  ok: boolean;
+  binding: {
+    id: string;
+    agentId: string;
+    tier: string;
+    match: {
+      channel: string;
+      accountId?: string;
+      peer?: {
+        kind: string;
+        id: string;
+      };
+      guildId?: string;
+      roles?: string[];
+      teamId?: string;
+    };
+    comment?: string;
+  };
+  configHash: string;
+  warnings: {
+    type: string;
+    bindingId: string;
+    agentId: string;
+    detail: string;
+  }[];
+}
+
 export interface DeckRoutingRemoveParams {
   id: string;
   baseHash: string;
+}
+
+export interface DeckRoutingRemoveResult {
+  ok: boolean;
+  removed: {
+    id: string;
+    agentId: string;
+    tier: string;
+    match: {
+      channel: string;
+      accountId?: string;
+      peer?: {
+        kind: string;
+        id: string;
+      };
+      guildId?: string;
+      roles?: string[];
+      teamId?: string;
+    };
+    comment?: string;
+  };
+  configHash: string;
+  impact: string;
 }
 
 export interface DeckRoutingValidateParams {
@@ -46,6 +120,17 @@ export interface DeckRoutingValidateParams {
   };
 }
 
+export interface DeckRoutingValidateResult {
+  ok: boolean;
+  tier: string;
+  conflicts: {
+    type: string;
+    bindingId: string;
+    agentId: string;
+    detail: string;
+  }[];
+}
+
 export interface DeckRoutingSimulateParams {
   channel: string;
   accountId?: string;
@@ -58,12 +143,59 @@ export interface DeckRoutingSimulateParams {
   memberRoleIds?: string[];
 }
 
+export interface DeckRoutingSimulateResult {
+  agentId: string;
+  matchedBy: string;
+  sessionKey: string;
+  tiers: {
+    tier: string;
+    matched: boolean;
+    checked: boolean;
+  }[];
+}
+
 export interface DeckAgentsDetailParams {
   agentId: string;
 }
 
+export interface DeckAgentsDetailResult {
+  id: string;
+  name?: string;
+  workspace: string;
+  model?: string;
+  isDefault: boolean;
+  bindingCount: number;
+  sessionCount: number;
+  activeSubagentCount: number;
+  skillMode: string;
+  effectiveSkills: string[];
+  totalAvailableSkills: number;
+  subagents: {
+    allowAgents: string[];
+    model?: string;
+    effectiveMaxSpawnDepth: number;
+    effectiveMaxChildrenPerAgent: number;
+  };
+  sandbox?: unknown;
+  identityExists: boolean;
+  fallbackModels?: string[];
+}
+
 export interface DeckAgentsSkillsGetParams {
   agentId: string;
+}
+
+export interface DeckAgentsSkillsGetResult {
+  agentId: string;
+  mode: string;
+  skills: string[];
+  available: {
+    key: string;
+    name: string;
+    eligible: boolean;
+    assigned: boolean;
+  }[];
+  configHash: string;
 }
 
 export interface DeckAgentsSkillsSetParams {
@@ -73,8 +205,35 @@ export interface DeckAgentsSkillsSetParams {
   baseHash: string;
 }
 
+export interface DeckAgentsSkillsSetResult {
+  ok: boolean;
+  agentId: string;
+  mode: string;
+  skills: string[];
+  configHash: string;
+}
+
 export interface DeckAgentsSubagentsGetParams {
   agentId: string;
+}
+
+export interface DeckAgentsSubagentsGetResult {
+  agentId: string;
+  allowAgents: string[];
+  allowAny: boolean;
+  model?: string;
+  effectiveMaxSpawnDepth: number;
+  effectiveMaxChildrenPerAgent: number;
+  effectiveThinking?: unknown;
+  allowedAgents: {
+    id: string;
+    name?: string;
+  }[];
+  allAgents: {
+    id: string;
+    name?: string;
+  }[];
+  configHash: string;
 }
 
 export interface DeckAgentsSubagentsSetParams {
@@ -84,14 +243,36 @@ export interface DeckAgentsSubagentsSetParams {
   baseHash: string;
 }
 
+export interface DeckAgentsSubagentsSetResult {
+  ok: boolean;
+  agentId: string;
+  allowAgents: string[];
+  model?: string;
+  configHash: string;
+}
+
 export interface DeckAgentsEventStreamsGetParams {
   agentId: string;
+}
+
+export interface DeckAgentsEventStreamsGetResult {
+  agentId: string;
+  eventStreams: string[];
+  isDefault: boolean;
+  configHash: string;
 }
 
 export interface DeckAgentsEventStreamsSetParams {
   agentId: string;
   eventStreams: string[];
   baseHash: string;
+}
+
+export interface DeckAgentsEventStreamsSetResult {
+  ok: boolean;
+  agentId: string;
+  eventStreams: string[];
+  configHash: string;
 }
 
 export interface DeckAgentsToolPolicyPreviewParams {
@@ -102,12 +283,46 @@ export interface DeckAgentsToolPolicyPreviewParams {
   };
 }
 
+export interface DeckAgentsToolPolicyPreviewResult {
+  layers: {
+    label: string;
+    ruleCount: number;
+    effect: string;
+  }[];
+  tools: {
+    name: string;
+    allowed: boolean;
+    decisiveLayer: string;
+    trace: {
+      layer: string;
+      decision: string;
+    }[];
+  }[];
+  configHash: string;
+}
+
 export interface DeckAgentsSystemPromptPreviewParams {
   agentId: string;
   context?: {
     channel?: string;
     chatType?: string;
   };
+}
+
+export interface DeckAgentsSystemPromptPreviewResult {
+  layers: {
+    label: string;
+    source: string;
+    charCount: number;
+    fileCount: number;
+  }[];
+  bootstrapFiles: {
+    name: string;
+    exists: boolean;
+    charCount: number;
+  }[];
+  totalChars: number;
+  configHash: string;
 }
 
 export interface DeckSubagentsListParams {
@@ -118,8 +333,38 @@ export interface DeckSubagentsListParams {
   offset?: number;
 }
 
+export interface DeckSubagentsListResult {
+  runs: {
+    runId: string;
+    childSessionKey: string;
+    childAgentId: string;
+    childAgentName?: string;
+    requesterSessionKey: string;
+    requesterAgentId: string;
+    requesterAgentName?: string;
+    task?: string;
+    label?: string;
+    model?: string;
+    spawnMode: string;
+    depth: number;
+    createdAt: number;
+    startedAt?: number;
+    endedAt?: number;
+    durationMs?: number;
+    status: string;
+    outcome?: unknown;
+  }[];
+  total: number;
+}
+
 export interface DeckSubagentsKillParams {
   runId: string;
+}
+
+export interface DeckSubagentsKillResult {
+  ok: boolean;
+  runId: string;
+  childSessionKey: string;
 }
 
 export interface DeckSubagentsLineageParams {
@@ -127,18 +372,60 @@ export interface DeckSubagentsLineageParams {
   sessionKey?: string;
 }
 
+export interface DeckSubagentsLineageResult {
+  root: {
+    sessionKey: string;
+    agentId: string;
+    agentName?: string;
+  };
+  nodes: {
+    runId: string;
+    sessionKey: string;
+    agentId: string;
+    agentName?: string;
+    task?: string;
+    depth: number;
+    parentRunId: string | null;
+    status: string;
+    durationMs?: number;
+  }[];
+}
+
 export interface DeckSubagentsSteerParams {
   runId: string;
   instruction: string;
 }
 
+export interface DeckSubagentsSteerResult {
+  success: boolean;
+  dedupKey?: string;
+  deduped?: boolean;
+  newRunId?: string;
+}
+
 export type DeckIdentityListParams = Record<string, never>;
+
+export interface DeckIdentityListResult {
+  links: {
+    canonical: string;
+    peers: {
+      channel: string;
+      peerId: string;
+    }[];
+  }[];
+  configHash: string;
+}
 
 export interface DeckIdentityLinkParams {
   canonical: string;
   channel: string;
   peerId: string;
   baseHash: string;
+}
+
+export interface DeckIdentityLinkResult {
+  ok: boolean;
+  configHash: string;
 }
 
 export interface DeckIdentityUnlinkParams {
@@ -148,38 +435,127 @@ export interface DeckIdentityUnlinkParams {
   baseHash: string;
 }
 
+export interface DeckIdentityUnlinkResult {
+  ok: boolean;
+  configHash: string;
+}
+
 export interface DeckThreadsListParams {
   agentId?: string;
   channel?: string;
   status?: "active" | "all";
 }
 
+export interface DeckThreadsListResult {
+  threads: {
+    threadId: string;
+    channelId: string;
+    agentId: string;
+    targetSessionKey: string;
+    targetKind: string;
+    boundAt: number;
+    lastActivityAt: number;
+    accountId: string;
+    boundBy: string;
+    label?: string;
+  }[];
+}
+
+export interface DeckAuthOverviewResult {
+  providers: {
+    provider: string;
+    status: string;
+    auth: {
+      type: string | null;
+      source: string;
+      profileId?: string;
+    } | null;
+    oauth?: {
+      expiresAt: number;
+      remainingMs: number;
+      status: string;
+    };
+    cooldown?: {
+      reason: string;
+      remainingMs: number;
+      until: number;
+    };
+    usage?: {
+      windows: {
+        label: string;
+        usedPercent: number;
+        resetsInMs: number;
+      }[];
+      plan?: string;
+    };
+  }[];
+}
+
+export interface DeckAuthProbeResult {
+  provider: string;
+  model?: string;
+  profileId?: string;
+  label: string;
+  source: string;
+  mode?: string;
+  status: string;
+  reasonCode?: string;
+  error?: string;
+  latencyMs?: number;
+}
+
 export interface GatewayMethodMap {
-  "deck.routing.list": { params: DeckRoutingListParams; result: unknown };
-  "deck.routing.add": { params: DeckRoutingAddParams; result: unknown };
-  "deck.routing.remove": { params: DeckRoutingRemoveParams; result: unknown };
-  "deck.routing.validate": { params: DeckRoutingValidateParams; result: unknown };
-  "deck.routing.simulate": { params: DeckRoutingSimulateParams; result: unknown };
-  "deck.agents.detail": { params: DeckAgentsDetailParams; result: unknown };
-  "deck.agents.skills.get": { params: DeckAgentsSkillsGetParams; result: unknown };
-  "deck.agents.skills.set": { params: DeckAgentsSkillsSetParams; result: unknown };
-  "deck.agents.subagents.get": { params: DeckAgentsSubagentsGetParams; result: unknown };
-  "deck.agents.subagents.set": { params: DeckAgentsSubagentsSetParams; result: unknown };
-  "deck.agents.eventStreams.get": { params: DeckAgentsEventStreamsGetParams; result: unknown };
-  "deck.agents.eventStreams.set": { params: DeckAgentsEventStreamsSetParams; result: unknown };
-  "deck.agents.toolPolicy.preview": { params: DeckAgentsToolPolicyPreviewParams; result: unknown };
+  "deck.routing.list": { params: DeckRoutingListParams; result: DeckRoutingListResult };
+  "deck.routing.add": { params: DeckRoutingAddParams; result: DeckRoutingAddResult };
+  "deck.routing.remove": { params: DeckRoutingRemoveParams; result: DeckRoutingRemoveResult };
+  "deck.routing.validate": { params: DeckRoutingValidateParams; result: DeckRoutingValidateResult };
+  "deck.routing.simulate": { params: DeckRoutingSimulateParams; result: DeckRoutingSimulateResult };
+  "deck.agents.detail": { params: DeckAgentsDetailParams; result: DeckAgentsDetailResult };
+  "deck.agents.skills.get": {
+    params: DeckAgentsSkillsGetParams;
+    result: DeckAgentsSkillsGetResult;
+  };
+  "deck.agents.skills.set": {
+    params: DeckAgentsSkillsSetParams;
+    result: DeckAgentsSkillsSetResult;
+  };
+  "deck.agents.subagents.get": {
+    params: DeckAgentsSubagentsGetParams;
+    result: DeckAgentsSubagentsGetResult;
+  };
+  "deck.agents.subagents.set": {
+    params: DeckAgentsSubagentsSetParams;
+    result: DeckAgentsSubagentsSetResult;
+  };
+  "deck.agents.eventStreams.get": {
+    params: DeckAgentsEventStreamsGetParams;
+    result: DeckAgentsEventStreamsGetResult;
+  };
+  "deck.agents.eventStreams.set": {
+    params: DeckAgentsEventStreamsSetParams;
+    result: DeckAgentsEventStreamsSetResult;
+  };
+  "deck.agents.toolPolicy.preview": {
+    params: DeckAgentsToolPolicyPreviewParams;
+    result: DeckAgentsToolPolicyPreviewResult;
+  };
   "deck.agents.systemPrompt.preview": {
     params: DeckAgentsSystemPromptPreviewParams;
-    result: unknown;
+    result: DeckAgentsSystemPromptPreviewResult;
   };
-  "deck.subagents.list": { params: DeckSubagentsListParams; result: unknown };
-  "deck.subagents.kill": { params: DeckSubagentsKillParams; result: unknown };
-  "deck.subagents.lineage": { params: DeckSubagentsLineageParams; result: unknown };
-  "deck.subagents.steer": { params: DeckSubagentsSteerParams; result: unknown };
-  "deck.identity.list": { params: DeckIdentityListParams; result: unknown };
-  "deck.identity.link": { params: DeckIdentityLinkParams; result: unknown };
-  "deck.identity.unlink": { params: DeckIdentityUnlinkParams; result: unknown };
-  "deck.threads.list": { params: DeckThreadsListParams; result: unknown };
+  "deck.subagents.list": { params: DeckSubagentsListParams; result: DeckSubagentsListResult };
+  "deck.subagents.kill": { params: DeckSubagentsKillParams; result: DeckSubagentsKillResult };
+  "deck.subagents.lineage": {
+    params: DeckSubagentsLineageParams;
+    result: DeckSubagentsLineageResult;
+  };
+  "deck.subagents.steer": { params: DeckSubagentsSteerParams; result: DeckSubagentsSteerResult };
+  "deck.identity.list": { params: DeckIdentityListParams; result: DeckIdentityListResult };
+  "deck.identity.link": { params: DeckIdentityLinkParams; result: DeckIdentityLinkResult };
+  "deck.identity.unlink": { params: DeckIdentityUnlinkParams; result: DeckIdentityUnlinkResult };
+  "deck.threads.list": { params: DeckThreadsListParams; result: DeckThreadsListResult };
+  "deck.auth.overview": { params: Record<string, unknown>; result: DeckAuthOverviewResult };
+  "deck.auth.probe": { params: Record<string, unknown>; result: DeckAuthProbeResult };
 }
 
 export type GatewayMethodName = keyof GatewayMethodMap;

@@ -1,92 +1,21 @@
 // Side-effect-free export for codegen consumption.
-// MUST NOT import handler implementations or modules with side-effects.
+// MUST NOT import modules with side-effects at module scope.
 //
 // Verify: bun -e 'import("./src/gateway/method-registry-data.ts")'
 import type { MethodMetadata } from "./method-registry.js";
-import {
-  DeckAgentsDetailParamsSchema,
-  DeckAgentsEventStreamsGetParamsSchema,
-  DeckAgentsEventStreamsSetParamsSchema,
-  DeckAgentsSkillsGetParamsSchema,
-  DeckAgentsSkillsSetParamsSchema,
-  DeckAgentsSubagentsGetParamsSchema,
-  DeckAgentsSubagentsSetParamsSchema,
-  DeckAgentsSystemPromptPreviewParamsSchema,
-  DeckAgentsToolPolicyPreviewParamsSchema,
-  DeckIdentityLinkParamsSchema,
-  DeckIdentityListParamsSchema,
-  DeckIdentityUnlinkParamsSchema,
-  DeckRoutingAddParamsSchema,
-  DeckRoutingListParamsSchema,
-  DeckRoutingRemoveParamsSchema,
-  DeckRoutingSimulateParamsSchema,
-  DeckRoutingValidateParamsSchema,
-  DeckSubagentsKillParamsSchema,
-  DeckSubagentsLineageParamsSchema,
-  DeckSubagentsListParamsSchema,
-  DeckSubagentsSteerParamsSchema,
-  DeckThreadsListParamsSchema,
-} from "./protocol/schema/deck.js";
 import { PROTOCOL_VERSION } from "./protocol/schema/protocol-schemas.js";
+import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
+import { deckMethodDefs } from "./server-methods/deck/index.js";
 
 export { PROTOCOL_VERSION };
 
 // ---------------------------------------------------------------------------
-// P0 methodDefs — deck.* params only (stub).
-// Result schemas + real methodDefs will be populated by gateway-dev (Task 2/3)
-// and re-exported here once available.
+// All P0 methodDefs (deck.* + deck.auth.*) — real schemas from gateway-dev.
 // ---------------------------------------------------------------------------
 
 export const allMethodDefs: Record<string, MethodMetadata> = {
-  // deck.routing
-  "deck.routing.list": { params: DeckRoutingListParamsSchema, scope: "operator.read" },
-  "deck.routing.add": { params: DeckRoutingAddParamsSchema, scope: "operator.write" },
-  "deck.routing.remove": { params: DeckRoutingRemoveParamsSchema, scope: "operator.write" },
-  "deck.routing.validate": { params: DeckRoutingValidateParamsSchema, scope: "operator.read" },
-  "deck.routing.simulate": { params: DeckRoutingSimulateParamsSchema, scope: "operator.read" },
-
-  // deck.agents
-  "deck.agents.detail": { params: DeckAgentsDetailParamsSchema, scope: "operator.read" },
-  "deck.agents.skills.get": { params: DeckAgentsSkillsGetParamsSchema, scope: "operator.read" },
-  "deck.agents.skills.set": { params: DeckAgentsSkillsSetParamsSchema, scope: "operator.write" },
-  "deck.agents.subagents.get": {
-    params: DeckAgentsSubagentsGetParamsSchema,
-    scope: "operator.read",
-  },
-  "deck.agents.subagents.set": {
-    params: DeckAgentsSubagentsSetParamsSchema,
-    scope: "operator.write",
-  },
-  "deck.agents.eventStreams.get": {
-    params: DeckAgentsEventStreamsGetParamsSchema,
-    scope: "operator.read",
-  },
-  "deck.agents.eventStreams.set": {
-    params: DeckAgentsEventStreamsSetParamsSchema,
-    scope: "operator.write",
-  },
-  "deck.agents.toolPolicy.preview": {
-    params: DeckAgentsToolPolicyPreviewParamsSchema,
-    scope: "operator.read",
-  },
-  "deck.agents.systemPrompt.preview": {
-    params: DeckAgentsSystemPromptPreviewParamsSchema,
-    scope: "operator.read",
-  },
-
-  // deck.subagents
-  "deck.subagents.list": { params: DeckSubagentsListParamsSchema, scope: "operator.read" },
-  "deck.subagents.kill": { params: DeckSubagentsKillParamsSchema, scope: "operator.write" },
-  "deck.subagents.lineage": { params: DeckSubagentsLineageParamsSchema, scope: "operator.read" },
-  "deck.subagents.steer": { params: DeckSubagentsSteerParamsSchema, scope: "operator.write" },
-
-  // deck.identity
-  "deck.identity.list": { params: DeckIdentityListParamsSchema, scope: "operator.read" },
-  "deck.identity.link": { params: DeckIdentityLinkParamsSchema, scope: "operator.write" },
-  "deck.identity.unlink": { params: DeckIdentityUnlinkParamsSchema, scope: "operator.write" },
-
-  // deck.threads
-  "deck.threads.list": { params: DeckThreadsListParamsSchema, scope: "operator.read" },
+  ...deckMethodDefs,
+  ...deckAuthMethodDefs,
 };
 
 // ---------------------------------------------------------------------------
