@@ -1,41 +1,24 @@
 import { create } from "zustand";
+import type {
+  DeckSubagentsListResult,
+  DeckSubagentsLineageResult,
+} from "@/types/gateway-protocol.generated";
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — derived from generated protocol types + local extensions
 // ---------------------------------------------------------------------------
 
-export interface SubagentRun {
-  runId: string;
-  childSessionKey: string;
-  childAgentId: string;
-  childAgentName?: string;
-  requesterSessionKey?: string;
-  requesterAgentId?: string;
-  requesterAgentName?: string;
-  task?: string;
-  label?: string;
-  model?: string;
-  spawnMode?: string;
-  status: "active" | "completed" | "failed" | "timeout";
-  depth: number;
-  createdAt: number;
-  startedAt?: number;
-  endedAt?: number;
-  durationMs?: number;
-  outcome?: { status?: string; error?: string };
-}
-
-export interface LineageNode {
-  runId: string;
+/** Subagent run with UI alias fields (not in gateway response). */
+export type SubagentRun = DeckSubagentsListResult["runs"][number] & {
+  /** Alias for childSessionKey — used by UI components for keying. */
   sessionKey: string;
+  /** Alias for childAgentId — used by UI components for filtering. */
   agentId: string;
-  agentName?: string;
-  task?: string;
-  depth: number;
-  parentRunId: string | null;
-  status: "active" | "completed" | "failed" | "timeout";
-  durationMs?: number;
-}
+  /** Alias for requesterSessionKey — used by tree-nesting in ActiveRunsTab. */
+  parentSessionKey?: string;
+};
+
+export type LineageNode = DeckSubagentsLineageResult["nodes"][number];
 
 // ---------------------------------------------------------------------------
 // Store — visibility-gated polling
