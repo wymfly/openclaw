@@ -1,0 +1,63 @@
+# OpenClaw Gateway + Deck Dashboard
+#
+# Usage:
+#   cd deploy
+#   cp .env.example .env && vim .env
+#   docker compose up -d
+#
+# Sandbox mode:
+#   docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up -d
+
+services:
+  gateway:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        OPENCLAW_DOCKER_APT_PACKAGES: "${OPENCLAW_DOCKER_APT_PACKAGES:-python3 python3-pip ripgrep jq wget}"
+        OPENCLAW_INSTALL_DOCKER_CLI: "${OPENCLAW_SANDBOX:-}"
+    ports:
+      - "${GATEWAY_PORT:-18789}:18789"
+    volumes:
+      - ${OPENCLAW_STATE_DIR:-./data/gateway}:/home/node/.openclaw
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      [
+        "node", "openclaw.mjs", "gateway", "run",
+        "--bind", "lan",
+        "--port", "18789",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD", "node", "-e",
+          "fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    init: true
+    restart: unless-stopped
+
+  deck:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.deck
+    ports:
+      - "${DECK_PORT:-3000}:3000"
+    volumes:
+      - ${DECK_DATA_DIR:-./data/deck}:/data
+    environment:
+      DECK_GATEWAY_URL: ws://gateway:18789
+      DECK_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      DECK_DB_PATH: /data/deck.db
+    depends_on:
+      gateway:
+        condition: service_healthy
+    init: true
+    restart: unless-stopped
