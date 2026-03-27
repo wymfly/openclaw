@@ -8,7 +8,7 @@
  *   { provider: string, profileId?: string, timeoutMs?: number, maxTokens?: number }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const POST = withAuth(async (request: NextRequest) => {
@@ -16,7 +16,7 @@ export const POST = withAuth(async (request: NextRequest) => {
   if (!body?.provider || typeof body.provider !== "string") {
     return Response.json({ error: "provider is required" }, { status: 400 });
   }
-  return gatewayRequest(
+  return gwRequest(
     "deck.auth.probe",
     {
       provider: body.provider,
