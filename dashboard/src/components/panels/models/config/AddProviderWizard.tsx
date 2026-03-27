@@ -2,12 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useModelsStore } from "@/stores/models";
 import type { CatalogProvider } from "@/stores/models";
 import { WizardStepCustom } from "./WizardStepCustom";
@@ -47,17 +42,25 @@ export function AddProviderWizard({ open, onOpenChange, onAdd }: AddProviderWiza
   const [step, setStep] = useState<WizardStep>({ type: "select" });
 
   // Derive configured provider set from store
-  const configuredProviders = useMemo(
-    () => new Set(providers.map((p) => p.provider)),
-    [providers],
-  );
+  const configuredProviders = useMemo(() => new Set(providers.map((p) => p.provider)), [providers]);
 
   // Lazy load catalog providers when dialog opens (once per open; errors use retry button)
   useEffect(() => {
-    if (open && catalogProviders.length === 0 && !catalogProvidersLoading && !catalogProvidersError) {
+    if (
+      open &&
+      catalogProviders.length === 0 &&
+      !catalogProvidersLoading &&
+      !catalogProvidersError
+    ) {
       void fetchCatalogProviders();
     }
-  }, [open, catalogProviders.length, catalogProvidersLoading, catalogProvidersError, fetchCatalogProviders]);
+  }, [
+    open,
+    catalogProviders.length,
+    catalogProvidersLoading,
+    catalogProvidersError,
+    fetchCatalogProviders,
+  ]);
 
   // Reset step when dialog closes
   const handleClose = useCallback(

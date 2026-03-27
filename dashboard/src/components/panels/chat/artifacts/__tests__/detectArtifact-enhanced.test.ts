@@ -240,7 +240,8 @@ describe("detectArtifact enhanced", () => {
 
   // D24: HTML with <title> tag → extract title
   it("HTML title extracted from <title> tag", () => {
-    const html = '<!DOCTYPE html><html><head><title>My Custom Page</title></head><body><p>Content here</p></body></html>';
+    const html =
+      "<!DOCTYPE html><html><head><title>My Custom Page</title></head><body><p>Content here</p></body></html>";
     const result = detectArtifact(html);
     expect(result?.language).toBe("html");
     expect(result?.title).toBe("My Custom Page");

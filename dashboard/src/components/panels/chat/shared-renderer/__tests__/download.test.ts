@@ -49,9 +49,9 @@ describe("download", () => {
   it("P4: HTML → .html extension, text/html MIME", () => {
     expect(EXTENSION_MAP.html).toBe("html");
     expect(MIME_MAP.html).toBe("text/html");
-    expect(
-      buildDownloadFilename({ id: "1", title: "HTML", language: "html", content: "" }),
-    ).toBe("artifact.html");
+    expect(buildDownloadFilename({ id: "1", title: "HTML", language: "html", content: "" })).toBe(
+      "artifact.html",
+    );
   });
 
   it("P5: JSON → .json extension, application/json MIME", () => {
