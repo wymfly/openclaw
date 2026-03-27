@@ -6,7 +6,12 @@ import { resolveEnvApiKey } from "../../agents/model-auth.js";
 import { parseModelRef } from "../../agents/model-selection.js";
 import { runAuthProbes, type AuthProbeResult } from "../../commands/models/list.probe.js";
 import { loadConfig } from "../../config/config.js";
+import type { MethodMetadata } from "../method-registry.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
+import {
+  DeckAuthOverviewResultSchema,
+  DeckAuthProbeResultSchema,
+} from "../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
 const DEFAULT_PROVIDER = "anthropic";
@@ -216,5 +221,16 @@ export const deckAuthHandlers: GatewayRequestHandlers = {
     } finally {
       inflightProbes.delete(dedupeKey);
     }
+  },
+};
+
+export const deckAuthMethodDefs: Record<string, MethodMetadata> = {
+  "deck.auth.overview": {
+    result: DeckAuthOverviewResultSchema,
+    scope: "operator.read",
+  },
+  "deck.auth.probe": {
+    result: DeckAuthProbeResultSchema,
+    scope: "operator.write",
   },
 };

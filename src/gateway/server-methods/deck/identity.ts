@@ -5,12 +5,21 @@ import {
   writeConfigFile,
 } from "../../../config/config.js";
 import type { OpenClawConfig } from "../../../config/types.openclaw.js";
+import type { MethodMetadata } from "../../method-registry.js";
 import {
   errorShape,
   validateDeckIdentityLinkParams,
   validateDeckIdentityListParams,
   validateDeckIdentityUnlinkParams,
 } from "../../protocol/index.js";
+import {
+  DeckIdentityLinkParamsSchema,
+  DeckIdentityLinkResultSchema,
+  DeckIdentityListParamsSchema,
+  DeckIdentityListResultSchema,
+  DeckIdentityUnlinkParamsSchema,
+  DeckIdentityUnlinkResultSchema,
+} from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
 import { validateBaseHash } from "./utils.js";
@@ -142,5 +151,23 @@ export const deckIdentityHandlers: GatewayRequestHandlers = {
     const newHash = resolveConfigSnapshotHash(newSnap) ?? "";
 
     respond(true, { ok: true, configHash: newHash });
+  },
+};
+
+export const deckIdentityMethodDefs: Record<string, MethodMetadata> = {
+  "deck.identity.list": {
+    params: DeckIdentityListParamsSchema,
+    result: DeckIdentityListResultSchema,
+    scope: "operator.read",
+  },
+  "deck.identity.link": {
+    params: DeckIdentityLinkParamsSchema,
+    result: DeckIdentityLinkResultSchema,
+    scope: "operator.admin",
+  },
+  "deck.identity.unlink": {
+    params: DeckIdentityUnlinkParamsSchema,
+    result: DeckIdentityUnlinkResultSchema,
+    scope: "operator.admin",
   },
 };

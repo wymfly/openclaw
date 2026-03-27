@@ -3,6 +3,7 @@ import { resolveDefaultAgentId } from "../../../agents/agent-scope.js";
 import { loadConfig, writeConfigFile } from "../../../config/config.js";
 import type { AgentBinding, AgentRouteBinding } from "../../../config/types.agents.js";
 import { type RoutePeer, resolveAgentRoute } from "../../../routing/resolve-route.js";
+import type { MethodMetadata } from "../../method-registry.js";
 import {
   ErrorCodes,
   errorShape,
@@ -13,6 +14,18 @@ import {
   validateDeckRoutingSimulateParams,
   validateDeckRoutingValidateParams,
 } from "../../protocol/index.js";
+import {
+  DeckRoutingAddParamsSchema,
+  DeckRoutingAddResultSchema,
+  DeckRoutingListParamsSchema,
+  DeckRoutingListResultSchema,
+  DeckRoutingRemoveParamsSchema,
+  DeckRoutingRemoveResultSchema,
+  DeckRoutingSimulateParamsSchema,
+  DeckRoutingSimulateResultSchema,
+  DeckRoutingValidateParamsSchema,
+  DeckRoutingValidateResultSchema,
+} from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { computeBindingId, validateBaseHash } from "./utils.js";
 
@@ -362,5 +375,33 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
       sessionKey: result.sessionKey,
       tiers,
     });
+  },
+};
+
+export const deckRoutingMethodDefs: Record<string, MethodMetadata> = {
+  "deck.routing.list": {
+    params: DeckRoutingListParamsSchema,
+    result: DeckRoutingListResultSchema,
+    scope: "operator.read",
+  },
+  "deck.routing.add": {
+    params: DeckRoutingAddParamsSchema,
+    result: DeckRoutingAddResultSchema,
+    scope: "operator.admin",
+  },
+  "deck.routing.remove": {
+    params: DeckRoutingRemoveParamsSchema,
+    result: DeckRoutingRemoveResultSchema,
+    scope: "operator.admin",
+  },
+  "deck.routing.validate": {
+    params: DeckRoutingValidateParamsSchema,
+    result: DeckRoutingValidateResultSchema,
+    scope: "operator.read",
+  },
+  "deck.routing.simulate": {
+    params: DeckRoutingSimulateParamsSchema,
+    result: DeckRoutingSimulateResultSchema,
+    scope: "operator.read",
   },
 };

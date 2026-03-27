@@ -22,12 +22,19 @@ import {
   readConfigFileSnapshotForWrite,
   resolveConfigSnapshotHash,
 } from "../../../config/config.js";
+import type { MethodMetadata } from "../../method-registry.js";
 import {
   ErrorCodes,
   errorShape,
   validateDeckAgentsSystemPromptPreviewParams,
   validateDeckAgentsToolPolicyPreviewParams,
 } from "../../protocol/index.js";
+import {
+  DeckAgentsSystemPromptPreviewParamsSchema,
+  DeckAgentsSystemPromptPreviewResultSchema,
+  DeckAgentsToolPolicyPreviewParamsSchema,
+  DeckAgentsToolPolicyPreviewResultSchema,
+} from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
 
@@ -239,5 +246,18 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
       totalChars,
       configHash,
     });
+  },
+};
+
+export const deckAgentsPreviewMethodDefs: Record<string, MethodMetadata> = {
+  "deck.agents.toolPolicy.preview": {
+    params: DeckAgentsToolPolicyPreviewParamsSchema,
+    result: DeckAgentsToolPolicyPreviewResultSchema,
+    scope: "operator.read",
+  },
+  "deck.agents.systemPrompt.preview": {
+    params: DeckAgentsSystemPromptPreviewParamsSchema,
+    result: DeckAgentsSystemPromptPreviewResultSchema,
+    scope: "operator.read",
   },
 };
