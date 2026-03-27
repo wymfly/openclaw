@@ -12,14 +12,14 @@
  *   deck.routing.simulate: { channel, accountId?, peer?, guildId?, teamId?, memberRoleIds? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
   const { searchParams } = request.nextUrl;
   const agentId = searchParams.get("agentId");
 
-  return gatewayRequest("deck.routing.list", agentId ? { agentId } : {});
+  return gwRequest("deck.routing.list", agentId ? { agentId } : {});
 });
 
 type RoutingAction = "add" | "remove" | "validate" | "simulate";
@@ -31,16 +31,17 @@ export const POST = withAuth(async (request: NextRequest) => {
   };
 
   const { action, ...params } = body;
+  const p = params as never;
 
   switch (action) {
     case "add":
-      return gatewayRequest("deck.routing.add", params);
+      return gwRequest("deck.routing.add", p);
     case "remove":
-      return gatewayRequest("deck.routing.remove", params);
+      return gwRequest("deck.routing.remove", p);
     case "validate":
-      return gatewayRequest("deck.routing.validate", params);
+      return gwRequest("deck.routing.validate", p);
     case "simulate":
-      return gatewayRequest("deck.routing.simulate", params);
+      return gwRequest("deck.routing.simulate", p);
     default:
       return Response.json({ error: "Invalid action" }, { status: 400 });
   }

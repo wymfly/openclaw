@@ -11,7 +11,7 @@
  *   deck.subagents.steer:   { runId, instruction }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
@@ -19,8 +19,8 @@ export const GET = withAuth(async (request: NextRequest) => {
   const status = searchParams.get("status");
   const requesterAgentId = searchParams.get("requesterAgentId");
 
-  return gatewayRequest("deck.subagents.list", {
-    ...(status ? { status } : {}),
+  return gwRequest("deck.subagents.list", {
+    ...(status ? { status: status as "active" | "completed" | "failed" | "timeout" | "all" } : {}),
     ...(requesterAgentId ? { requesterAgentId } : {}),
   });
 });
@@ -34,14 +34,15 @@ export const POST = withAuth(async (request: NextRequest) => {
   };
 
   const { action, ...params } = body;
+  const p = params as never;
 
   switch (action) {
     case "kill":
-      return gatewayRequest("deck.subagents.kill", params);
+      return gwRequest("deck.subagents.kill", p);
     case "lineage":
-      return gatewayRequest("deck.subagents.lineage", params);
+      return gwRequest("deck.subagents.lineage", p);
     case "steer":
-      return gatewayRequest("deck.subagents.steer", params);
+      return gwRequest("deck.subagents.steer", p);
     default:
       return Response.json({ error: "Invalid action" }, { status: 400 });
   }

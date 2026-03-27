@@ -17,7 +17,7 @@
  *   config.patch:                      { raw, baseHash } (merge-patch JSON string)
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gatewayRequest, gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
@@ -28,7 +28,7 @@ export const GET = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "agentId is required" }, { status: 400 });
   }
 
-  return gatewayRequest("deck.agents.detail", { agentId });
+  return gwRequest("deck.agents.detail", { agentId });
 });
 
 type AgentAction =
@@ -67,23 +67,27 @@ export const POST = withAuth(async (request: NextRequest) => {
 
   const { action, ...params } = body;
 
+  // Route-level params come from HTTP JSON body — assert as any for the typed call.
+  // Method name typing catches typos; runtime validation happens in the Gateway.
+  const p = params as never;
+
   switch (action) {
     case "skills.get":
-      return gatewayRequest("deck.agents.skills.get", params);
+      return gwRequest("deck.agents.skills.get", p);
     case "skills.set":
-      return gatewayRequest("deck.agents.skills.set", params);
+      return gwRequest("deck.agents.skills.set", p);
     case "subagents.get":
-      return gatewayRequest("deck.agents.subagents.get", params);
+      return gwRequest("deck.agents.subagents.get", p);
     case "subagents.set":
-      return gatewayRequest("deck.agents.subagents.set", params);
+      return gwRequest("deck.agents.subagents.set", p);
     case "toolPolicy.preview":
-      return gatewayRequest("deck.agents.toolPolicy.preview", params);
+      return gwRequest("deck.agents.toolPolicy.preview", p);
     case "systemPrompt.preview":
-      return gatewayRequest("deck.agents.systemPrompt.preview", params);
+      return gwRequest("deck.agents.systemPrompt.preview", p);
     case "eventStreams.get":
-      return gatewayRequest("deck.agents.eventStreams.get", params);
+      return gwRequest("deck.agents.eventStreams.get", p);
     case "eventStreams.set":
-      return gatewayRequest("deck.agents.eventStreams.set", params);
+      return gwRequest("deck.agents.eventStreams.set", p);
     case "config.patch": {
       const { path, value } = params as { path?: string; value?: unknown };
       if (!path || typeof path !== "string" || path.split(".").some((s) => s === "")) {

@@ -10,18 +10,11 @@
  *   deck.identity.unlink: { canonical, channel, peerId, baseHash }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
-export const GET = withAuth(async (request: NextRequest) => {
-  const { searchParams } = request.nextUrl;
-  const channel = searchParams.get("channel");
-  const accountId = searchParams.get("accountId");
-
-  return gatewayRequest("deck.identity.list", {
-    ...(channel ? { channel } : {}),
-    ...(accountId ? { accountId } : {}),
-  });
+export const GET = withAuth(async (_request: NextRequest) => {
+  return gwRequest("deck.identity.list", {});
 });
 
 type IdentityAction = "link" | "unlink";
@@ -33,12 +26,13 @@ export const POST = withAuth(async (request: NextRequest) => {
   };
 
   const { action, ...params } = body;
+  const p = params as never;
 
   switch (action) {
     case "link":
-      return gatewayRequest("deck.identity.link", params);
+      return gwRequest("deck.identity.link", p);
     case "unlink":
-      return gatewayRequest("deck.identity.unlink", params);
+      return gwRequest("deck.identity.unlink", p);
     default:
       return Response.json({ error: "Invalid action" }, { status: 400 });
   }

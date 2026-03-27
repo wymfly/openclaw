@@ -7,7 +7,7 @@
  *   deck.threads.list: { agentId?, channel?, limit?, status? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
@@ -17,10 +17,10 @@ export const GET = withAuth(async (request: NextRequest) => {
   const limit = searchParams.get("limit");
   const status = searchParams.get("status");
 
-  return gatewayRequest("deck.threads.list", {
+  return gwRequest("deck.threads.list", {
     ...(agentId ? { agentId } : {}),
     ...(channel ? { channel } : {}),
     ...(limit ? { limit: Number(limit) } : {}),
-    ...(status ? { status } : {}),
+    ...(status ? { status: status as "active" | "all" } : {}),
   });
 });
