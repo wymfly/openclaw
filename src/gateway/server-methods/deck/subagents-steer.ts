@@ -14,7 +14,12 @@ import { loadSessionStore, resolveStorePath } from "../../../config/sessions.js"
 import { callGateway } from "../../../gateway/call.js";
 import { parseAgentSessionKey } from "../../../routing/session-key.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../../utils/message-channel.js";
+import type { MethodMetadata } from "../../method-registry.js";
 import { validateDeckSubagentsSteerParams } from "../../protocol/index.js";
+import {
+  DeckSubagentsSteerParamsSchema,
+  DeckSubagentsSteerResultSchema,
+} from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 
 // ---------------------------------------------------------------------------
@@ -192,5 +197,13 @@ export const deckSubagentsSteerHandlers: GatewayRequestHandlers = {
     });
 
     respond(true, { success: true, dedupKey, newRunId });
+  },
+};
+
+export const deckSubagentsSteerMethodDefs: Record<string, MethodMetadata> = {
+  "deck.subagents.steer": {
+    params: DeckSubagentsSteerParamsSchema,
+    result: DeckSubagentsSteerResultSchema,
+    scope: "operator.admin",
   },
 };

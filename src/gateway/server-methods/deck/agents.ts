@@ -15,6 +15,7 @@ import {
   writeConfigFile,
 } from "../../../config/config.js";
 import { DEFAULT_EVENT_STREAMS } from "../../channel-event-filter.js";
+import type { MethodMetadata } from "../../method-registry.js";
 import {
   ErrorCodes,
   errorShape,
@@ -26,6 +27,22 @@ import {
   validateDeckAgentsSubagentsGetParams,
   validateDeckAgentsSubagentsSetParams,
 } from "../../protocol/index.js";
+import {
+  DeckAgentsDetailParamsSchema,
+  DeckAgentsDetailResultSchema,
+  DeckAgentsEventStreamsGetParamsSchema,
+  DeckAgentsEventStreamsGetResultSchema,
+  DeckAgentsEventStreamsSetParamsSchema,
+  DeckAgentsEventStreamsSetResultSchema,
+  DeckAgentsSkillsGetParamsSchema,
+  DeckAgentsSkillsGetResultSchema,
+  DeckAgentsSkillsSetParamsSchema,
+  DeckAgentsSkillsSetResultSchema,
+  DeckAgentsSubagentsGetParamsSchema,
+  DeckAgentsSubagentsGetResultSchema,
+  DeckAgentsSubagentsSetParamsSchema,
+  DeckAgentsSubagentsSetResultSchema,
+} from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
 import { validateBaseHash } from "./utils.js";
@@ -459,5 +476,43 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
       eventStreams: normalized,
       configHash,
     });
+  },
+};
+
+export const deckAgentsMethodDefs: Record<string, MethodMetadata> = {
+  "deck.agents.detail": {
+    params: DeckAgentsDetailParamsSchema,
+    result: DeckAgentsDetailResultSchema,
+    scope: "operator.read",
+  },
+  "deck.agents.skills.get": {
+    params: DeckAgentsSkillsGetParamsSchema,
+    result: DeckAgentsSkillsGetResultSchema,
+    scope: "operator.read",
+  },
+  "deck.agents.skills.set": {
+    params: DeckAgentsSkillsSetParamsSchema,
+    result: DeckAgentsSkillsSetResultSchema,
+    scope: "operator.admin",
+  },
+  "deck.agents.subagents.get": {
+    params: DeckAgentsSubagentsGetParamsSchema,
+    result: DeckAgentsSubagentsGetResultSchema,
+    scope: "operator.read",
+  },
+  "deck.agents.subagents.set": {
+    params: DeckAgentsSubagentsSetParamsSchema,
+    result: DeckAgentsSubagentsSetResultSchema,
+    scope: "operator.admin",
+  },
+  "deck.agents.eventStreams.get": {
+    params: DeckAgentsEventStreamsGetParamsSchema,
+    result: DeckAgentsEventStreamsGetResultSchema,
+    scope: "operator.read",
+  },
+  "deck.agents.eventStreams.set": {
+    params: DeckAgentsEventStreamsSetParamsSchema,
+    result: DeckAgentsEventStreamsSetResultSchema,
+    scope: "operator.admin",
   },
 };

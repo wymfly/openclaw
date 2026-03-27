@@ -6,11 +6,20 @@ import {
 import type { SubagentRunRecord } from "../../../agents/subagent-registry.types.js";
 import { loadConfig } from "../../../config/config.js";
 import { getSubagentDepth, resolveAgentIdFromSessionKey } from "../../../routing/session-key.js";
+import type { MethodMetadata } from "../../method-registry.js";
 import {
   validateDeckSubagentsKillParams,
   validateDeckSubagentsLineageParams,
   validateDeckSubagentsListParams,
 } from "../../protocol/index.js";
+import {
+  DeckSubagentsKillParamsSchema,
+  DeckSubagentsKillResultSchema,
+  DeckSubagentsLineageParamsSchema,
+  DeckSubagentsLineageResultSchema,
+  DeckSubagentsListParamsSchema,
+  DeckSubagentsListResultSchema,
+} from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 
 const MAX_LINEAGE_NODES = 50;
@@ -256,5 +265,23 @@ export const deckSubagentsHandlers: GatewayRequestHandlers = {
       },
       nodes,
     });
+  },
+};
+
+export const deckSubagentsMethodDefs: Record<string, MethodMetadata> = {
+  "deck.subagents.list": {
+    params: DeckSubagentsListParamsSchema,
+    result: DeckSubagentsListResultSchema,
+    scope: "operator.read",
+  },
+  "deck.subagents.kill": {
+    params: DeckSubagentsKillParamsSchema,
+    result: DeckSubagentsKillResultSchema,
+    scope: "operator.admin",
+  },
+  "deck.subagents.lineage": {
+    params: DeckSubagentsLineageParamsSchema,
+    result: DeckSubagentsLineageResultSchema,
+    scope: "operator.read",
   },
 };

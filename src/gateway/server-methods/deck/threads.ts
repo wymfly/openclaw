@@ -1,7 +1,12 @@
 import path from "node:path";
 import { resolveStateDir } from "../../../config/paths.js";
 import { loadJsonFile } from "../../../infra/json-file.js";
+import type { MethodMetadata } from "../../method-registry.js";
 import { validateDeckThreadsListParams } from "../../protocol/index.js";
+import {
+  DeckThreadsListParamsSchema,
+  DeckThreadsListResultSchema,
+} from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
 
@@ -84,5 +89,13 @@ export const deckThreadsHandlers: GatewayRequestHandlers = {
         label: t.label,
       })),
     });
+  },
+};
+
+export const deckThreadsMethodDefs: Record<string, MethodMetadata> = {
+  "deck.threads.list": {
+    params: DeckThreadsListParamsSchema,
+    result: DeckThreadsListResultSchema,
+    scope: "operator.read",
   },
 };
