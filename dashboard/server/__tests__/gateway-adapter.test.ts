@@ -124,9 +124,13 @@ describe("DEFAULT_METHOD_ALLOWLIST", () => {
     }
   });
 
-  it("has exactly the expected number of methods", () => {
-    const expectedTotal = originalStudioMethods.length + deckAdditions.length;
-    expect(DEFAULT_METHOD_ALLOWLIST.size).toBe(expectedTotal);
+  it("includes at least the expected studio + deck methods", () => {
+    // After migration to GENERATED_METHOD_ALLOWLIST, the allowlist includes
+    // all gateway methods (not just the hand-curated set). Verify the
+    // previously-known methods are still present and that the total size
+    // is at least as large as the old hand-curated count.
+    const expectedMinimum = originalStudioMethods.length + deckAdditions.length;
+    expect(DEFAULT_METHOD_ALLOWLIST.size).toBeGreaterThanOrEqual(expectedMinimum);
   });
 
   it("rejects methods not in the allowlist", () => {
