@@ -106,6 +106,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "deck.subagents.lineage",
     "deck.identity.list",
     "deck.threads.list",
+    "gateway.describe",
   ],
   [WRITE_SCOPE]: [
     "send",

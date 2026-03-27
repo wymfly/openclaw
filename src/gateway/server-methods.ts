@@ -12,8 +12,10 @@ import { chatHandlers } from "./server-methods/chat.js";
 import { configHandlers } from "./server-methods/config.js";
 import { connectHandlers } from "./server-methods/connect.js";
 import { cronHandlers } from "./server-methods/cron.js";
-import { deckAuthHandlers } from "./server-methods/deck-auth.js";
-import { deckHandlers } from "./server-methods/deck/index.js";
+import { buildMethodRegistry } from "./method-registry.js";
+import { deckAuthHandlers, deckAuthMethodDefs } from "./server-methods/deck-auth.js";
+import { deckHandlers, deckMethodDefs } from "./server-methods/deck/index.js";
+import { describeHandlers, setDescribeRegistry } from "./server-methods/describe.js";
 import { deviceHandlers } from "./server-methods/devices.js";
 import { doctorHandlers } from "./server-methods/doctor.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
@@ -101,7 +103,17 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...browserHandlers,
   ...deckAuthHandlers,
   ...deckHandlers,
+  ...describeHandlers,
 };
+
+// Assemble the method registry (metadata-only, no runtime behavior change)
+export const gatewayMethodRegistry = buildMethodRegistry(coreGatewayHandlers, [
+  deckMethodDefs,
+  deckAuthMethodDefs,
+]);
+
+// Wire describe handler to registry
+setDescribeRegistry(gatewayMethodRegistry);
 
 export async function handleGatewayRequest(
   opts: GatewayRequestOptions & { extraHandlers?: GatewayRequestHandlers },

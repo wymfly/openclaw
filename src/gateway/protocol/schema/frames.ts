@@ -84,6 +84,7 @@ export const HelloOkSchema = Type.Object(
       {
         methods: Type.Array(NonEmptyString),
         events: Type.Array(NonEmptyString),
+        schemaVersion: Type.Optional(NonEmptyString),
       },
       { additionalProperties: false },
     ),
