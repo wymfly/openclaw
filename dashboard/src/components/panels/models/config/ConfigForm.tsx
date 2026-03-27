@@ -111,7 +111,9 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
 
   const catalogModelsForProvider = useMemo(() => {
     const entry = catalogProviders.find((p) => p.id === provider);
-    if (!entry) return [];
+    if (!entry) {
+      return [];
+    }
     // Filter out already-added models
     const existingIds = new Set(localModels.map((m) => m.id));
     return entry.models.filter((m) => !existingIds.has(m.id));
@@ -451,7 +453,14 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
                   <Label className="text-[10px] text-muted-foreground">
                     {t("config.apiProtocol")}
                   </Label>
-                  <Select value={newModelApi} onValueChange={setNewModelApi}>
+                  <Select
+                    value={newModelApi}
+                    onValueChange={(v) => {
+                      if (v) {
+                        setNewModelApi(v);
+                      }
+                    }}
+                  >
                     <SelectTrigger className="text-xs h-7" size="sm">
                       <SelectValue placeholder={t("config.apiProtocolSelect")} />
                     </SelectTrigger>
@@ -547,8 +556,11 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
                   onToggle={(id) => {
                     setCatalogSelected((prev) => {
                       const next = new Set(prev);
-                      if (next.has(id)) next.delete(id);
-                      else next.add(id);
+                      if (next.has(id)) {
+                        next.delete(id);
+                      } else {
+                        next.add(id);
+                      }
                       return next;
                     });
                   }}
