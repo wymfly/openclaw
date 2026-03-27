@@ -231,21 +231,18 @@ function renderClientInterface(tree: MethodTree, lines: string[], depth: number)
     if (typeof value === "string") {
       const method = value;
       const def = allMethodDefs[method];
-      if (def?.params && def?.result) {
-        const name = methodToInterfaceName(method);
-        lines.push(
-          `${pad}${qk}(params: import("./gateway-protocol.generated").${name}Params, options?: { timeoutMs?: number }): Promise<import("./gateway-protocol.generated").${name}Result>;`,
-        );
-      } else if (def?.params) {
-        const name = methodToInterfaceName(method);
-        lines.push(
-          `${pad}${qk}(params: import("./gateway-protocol.generated").${name}Params, options?: { timeoutMs?: number }): Promise<unknown>;`,
-        );
-      } else {
-        lines.push(
-          `${pad}${qk}(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<unknown>;`,
-        );
-      }
+      const name = methodToInterfaceName(method);
+      const hasParams = !!def?.params;
+      const hasResult = !!def?.result;
+      const paramsType = hasParams
+        ? `import("./gateway-protocol.generated").${name}Params`
+        : "Record<string, unknown>";
+      const resultType = hasResult
+        ? `import("./gateway-protocol.generated").${name}Result`
+        : "unknown";
+      lines.push(
+        `${pad}${qk}(params: ${paramsType}, options?: { timeoutMs?: number }): Promise<${resultType}>;`,
+      );
     } else {
       lines.push(`${pad}${qk}: {`);
       renderClientInterface(value, lines, depth + 1);
@@ -284,7 +281,7 @@ function generateClient(): string {
 
   // Allowlist of ALL known methods (including untyped)
   lines.push("export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([");
-  for (const m of [...allMethodNames].toSorted()) {
+  for (const m of [...allMethodNames].sort()) {
     lines.push(`  "${m}",`);
   }
   lines.push("]);");
@@ -292,7 +289,7 @@ function generateClient(): string {
 
   // Event names
   lines.push("export const GENERATED_EVENT_NAMES: ReadonlySet<string> = new Set([");
-  for (const e of [...allEventNames].toSorted()) {
+  for (const e of [...allEventNames].sort()) {
     lines.push(`  "${e}",`);
   }
   lines.push("]);");

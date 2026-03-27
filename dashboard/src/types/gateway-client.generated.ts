@@ -76,6 +76,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "exec.approvals.node.get",
   "exec.approvals.node.set",
   "exec.approvals.set",
+  "gateway.describe",
   "gateway.identity.get",
   "health",
   "last-heartbeat",
@@ -215,8 +216,8 @@ export interface GatewayClient {
       list(params: import("./gateway-protocol.generated").DeckThreadsListParams, options?: { timeoutMs?: number }): Promise<import("./gateway-protocol.generated").DeckThreadsListResult>;
     };
     auth: {
-      overview(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<unknown>;
-      probe(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<unknown>;
+      overview(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<import("./gateway-protocol.generated").DeckAuthOverviewResult>;
+      probe(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<import("./gateway-protocol.generated").DeckAuthProbeResult>;
     };
   };
 }
