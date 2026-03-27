@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenClaw Skill Lifecycle Data Flow</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+
+      :root {
+        --bg-primary: #f5f5f7;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #e5e5e7;
+        --border: #d1d1d6;
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --text-tertiary: #aeaeb2;
+        --accent: #0071e3;
+        --accent-hover: #0077ed;
+        --success: #34c759;
+        --shadow: rgba(0, 0, 0, 0.08);
+        --shadow-lg: rgba(0, 0, 0, 0.12);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-primary: #1d1d1f;
+          --bg-secondary: #2d2d2f;
+          --bg-tertiary: #3d3d3f;
+          --border: #424245;
+          --text-primary: #f5f5f7;
+          --text-secondary: #98989d;
+          --text-tertiary: #636366;
+          --accent: #0a84ff;
+          --accent-hover: #409cff;
+          --shadow: rgba(0, 0, 0, 0.3);
+          --shadow-lg: rgba(0, 0, 0, 0.5);
+        }
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        display: flex;
+        flex-direction: column;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .header {
+        background: var(--bg-secondary);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px var(--shadow);
+      }
+
+      .header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .header .subtitle {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+      }
+      .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .btn {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.85rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: inherit;
+      }
+      .btn:hover {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+
+      .diagram-container {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        min-height: 0;
+      }
+
+      .diagram-wrapper {
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        padding: 2rem;
+        box-shadow: 0 2px 8px var(--shadow);
+        max-width: 100%;
+        overflow: auto;
+      }
+
+      .diagram-wrapper .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+      .diagram-wrapper .mermaid svg {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .description {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+        padding: 0.75rem 2rem;
+        flex-shrink: 0;
+      }
+      .description p {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        max-width: 80ch;
+      }
+      .description:empty {
+        display: none;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--text-primary);
+        color: var(--bg-primary);
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 100;
+        box-shadow: 0 4px 16px var(--shadow-lg);
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      @media (max-width: 640px) {
+        .header {
+          padding: 0.75rem 1rem;
+        }
+        .diagram-container {
+          padding: 1rem;
+        }
+        .diagram-wrapper {
+          padding: 1rem;
+          border-radius: 12px;
+        }
+        .description {
+          padding: 0.6rem 1rem;
+        }
+        .header h1 {
+          font-size: 0.95rem;
+        }
+        .btn {
+          padding: 0.35rem 0.65rem;
+          font-size: 0.75rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-left">
+        <h1>OpenClaw Skill Lifecycle Data Flow</h1>
+        <span class="subtitle">From SKILL.md on disk to agent execution</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="exportSVG()" title="Export as SVG">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          SVG
+        </button>
+        <button class="btn" onclick="exportPNG()" title="Export as PNG">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          PNG
+        </button>
+      </div>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-wrapper">
+        <pre class="mermaid">
+flowchart TD
+    subgraph Sources["📦 Skill Sources (Priority Low → High)"]
+        S1["Bundled<br/><code>install-dir/skills/</code>"]
+        S2["Extra Dirs<br/><code>config.extraDirs[]</code>"]
+        S3["Managed / ClawHub<br/><code>~/.openclaw/skills/</code>"]
+        S4["Plugin Skills<br/><code>openclaw.plugin.json</code>"]
+        S5["Personal<br/><code>~/.agents/skills/</code>"]
+        S6["Project<br/><code>.agents/skills/</code>"]
+        S7["Workspace<br/><code>workspace/skills/</code>"]
+    end
+
+    subgraph Loading["📖 Loading & Parsing"]
+        L1["loadSkillsFromDir()<br/>Scan for SKILL.md"]
+        L2["Security Checks<br/>realpath · symlink escape<br/>256KB limit · 200/source"]
+        L3["parseFrontmatter()<br/>YAML → metadata"]
+        L4["resolveOpenClawMetadata()<br/>os · requires · install"]
+        L5["resolveInvocationPolicy()<br/>userInvocable · disableModel"]
+    end
+
+    subgraph Merge["🔀 Merge"]
+        M1["Map&lt;name, SkillEntry&gt;<br/>Later sources override"]
+    end
+
+    subgraph Filter["🔍 Filtering (shouldIncludeSkill)"]
+        F1{"config.enabled<br/>= false?"}
+        F2{"Bundled +<br/>not in allowlist?"}
+        F3{"OS mismatch?"}
+        F4{"Required bins<br/>missing?"}
+        F5{"Required env<br/>missing?"}
+        F6{"always: true?"}
+        F7["✅ Include"]
+        F8["❌ Exclude"]
+    end
+
+    subgraph Prompt["📐 Prompt Construction"]
+        P1["compactSkillPaths()<br/>/Users/x → ~/"]
+        P2["applySkillsPromptLimits()<br/>max 150 skills · 30K chars"]
+        P3{"Over budget?"}
+        P4["formatSkillsForPrompt()<br/>Full: name + desc + path"]
+        P5["formatSkillsCompact()<br/>Compact: name + path only"]
+        P6["Binary search truncate<br/>Reduce skill count"]
+        P7["SkillSnapshot<br/>Cached for session"]
+    end
+
+    subgraph Exec["⚡ Execution"]
+        E1["System Prompt Injection<br/>buildSkillsSection()"]
+        E2["/skill-name args<br/>User Slash Command"]
+        E3["LLM Auto-Select<br/>Reads SKILL.md via read tool"]
+        E4["findSkillCommand()<br/>Name matching + dispatch"]
+        E5["tool.execute()<br/>Forward to tool handler"]
+        E6["Follow SKILL.md<br/>instructions autonomously"]
+    end
+
+    Sources --> L1
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+    L5 --> M1
+
+    M1 --> F1
+    F1 -->|Yes| F8
+    F1 -->|No| F2
+    F2 -->|Yes| F8
+    F2 -->|No| F3
+    F3 -->|Yes| F8
+    F3 -->|No| F4
+    F4 -->|Yes| F8
+    F4 -->|No| F5
+    F5 -->|Yes| F8
+    F5 -->|No| F6
+    F6 -->|Yes| F7
+    F6 -->|No| F7
+
+    F7 --> P1
+    P1 --> P2
+    P2 --> P3
+    P3 -->|No| P4
+    P3 -->|Chars exceeded| P5
+    P3 -->|Still over| P6
+    P4 --> P7
+    P5 --> P7
+    P6 --> P7
+
+    P7 --> E1
+    E1 --> E2
+    E1 --> E3
+    E2 --> E4
+    E4 --> E5
+    E3 --> E6
+
+    style Sources fill:#e8f4fd,stroke:#b3d9f2,color:#0055a5
+    style Loading fill:#fef3e2,stroke:#f5d89a,color:#8a6d00
+    style Merge fill:#fef3e2,stroke:#f5d89a,color:#8a6d00
+    style Filter fill:#e8fce8,stroke:#a8dca8,color:#1a7a1a
+    style Prompt fill:#f3e8fc,stroke:#d0a8e8,color:#6b2fa0
+    style Exec fill:#fce8e8,stroke:#e8a8a8,color:#a02f2f
+      </pre>
+      </div>
+    </div>
+
+    <div class="description">
+      <p>
+        Complete data flow of the OpenClaw Skill system: 7 discovery sources merge into a priority
+        map, pass through 5-gate eligibility filtering, undergo token-budget-aware prompt
+        construction (3-tier degradation), and reach the agent via dual execution paths (user slash
+        commands or LLM autonomous selection).
+      </p>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script>
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: isDark ? "dark" : "default",
+        securityLevel: "loose",
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+        flowchart: { curve: "basis", padding: 20, htmlLabels: true },
+        themeVariables: isDark
+          ? {
+              primaryColor: "#3d3d3f",
+              primaryTextColor: "#f5f5f7",
+              primaryBorderColor: "#636366",
+              lineColor: "#86868b",
+              secondaryColor: "#2d2d2f",
+              tertiaryColor: "#424245",
+              noteBkgColor: "#3d3d3f",
+              noteTextColor: "#f5f5f7",
+              noteBorderColor: "#636366",
+            }
+          : {
+              primaryColor: "#e8f4fd",
+              primaryTextColor: "#1d1d1f",
+              primaryBorderColor: "#0071e3",
+              lineColor: "#86868b",
+              secondaryColor: "#f0f0f2",
+              tertiaryColor: "#e5e5e7",
+              noteBkgColor: "#fff9db",
+              noteTextColor: "#1d1d1f",
+              noteBorderColor: "#d4a017",
+            },
+      });
+
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        location.reload();
+      });
+
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2000);
+      }
+
+      function getSvgElement() {
+        return document.querySelector(".mermaid svg");
+      }
+
+      function exportSVG() {
+        const svg = getSvgElement();
+        if (!svg) {
+          showToast("Diagram not ready");
+          return;
+        }
+        const clone = svg.cloneNode(true);
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        const styles = document.querySelectorAll("style");
+        const styleEl = document.createElementNS("http://www.w3.org/2000/svg", "style");
+        let cssText = "";
+        styles.forEach((s) => {
+          cssText += s.textContent;
+        });
+        styleEl.textContent = cssText;
+        clone.insertBefore(styleEl, clone.firstChild);
+        const blob = new Blob([clone.outerHTML], { type: "image/svg+xml;charset=utf-8" });
+        downloadBlob(blob, getFilename("svg"));
+        showToast("SVG exported");
+      }
+
+      function exportPNG() {
+        const svg = getSvgElement();
+        if (!svg) {
+          showToast("Diagram not ready");
+          return;
+        }
+        const scale = 2;
+        const bbox = svg.getBoundingClientRect();
+        const canvas = document.createElement("canvas");
+        canvas.width = bbox.width * scale;
+        canvas.height = bbox.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+        ctx.fillStyle = isDark ? "#1d1d1f" : "#ffffff";
+        ctx.fillRect(0, 0, bbox.width, bbox.height);
+        const clone = svg.cloneNode(true);
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clone.setAttribute("width", bbox.width);
+        clone.setAttribute("height", bbox.height);
+        const data = new XMLSerializer().serializeToString(clone);
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, bbox.width, bbox.height);
+          canvas.toBlob((blob) => {
+            downloadBlob(blob, getFilename("png"));
+            showToast("PNG exported");
+          }, "image/png");
+        };
+        img.onerror = () => showToast("PNG export failed");
+        img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(data);
+      }
+
+      function getFilename(ext) {
+        const title = document.querySelector(".header h1")?.textContent || "diagram";
+        const safe = title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/-+$/, "");
+        return safe + "." + ext;
+      }
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+      }
+    </script>
+  </body>
+</html>
