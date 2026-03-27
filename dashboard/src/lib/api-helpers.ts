@@ -4,16 +4,53 @@ import { getRuntime } from "@server/runtime";
  * Shared API route helpers for openclaw-deck.
  *
  * Establishes the canonical pattern for all panel API routes:
- *   1. `gatewayRequest()` — send an RPC through the Gateway adapter
- *   2. `extractPlatformHeaders()` — forward tenant/user context (for Deck-layer logging only)
+ *   1. `gwRequest()` — typed RPC through the Gateway adapter
+ *   2. `gatewayRequest()` — deprecated untyped fallback
+ *   3. `extractPlatformHeaders()` — forward tenant/user context (for Deck-layer logging only)
  */
 import { NextResponse } from "next/server";
+import type { GatewayMethodMap, GatewayMethodName } from "@/types/gateway-protocol.generated";
 
 type ErrorBody = { error: string; code?: string };
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
-/** Send an RPC request through the Gateway adapter. */
+/** Send a typed RPC request through the Gateway adapter. */
+export async function gwRequest<M extends GatewayMethodName>(
+  method: M,
+  params: GatewayMethodMap[M]["params"],
+  options?: { timeoutMs?: number },
+): Promise<NextResponse> {
+  const runtime = getRuntime();
+  if (!runtime) {
+    return NextResponse.json({ error: "Gateway not configured" } satisfies ErrorBody, {
+      status: 503,
+    });
+  }
+
+  try {
+    const data = await runtime.adapter.request(method, params, options);
+    return NextResponse.json(data);
+  } catch (err) {
+    if (err instanceof ControlPlaneGatewayError) {
+      return NextResponse.json({ error: err.message, code: err.code } satisfies ErrorBody, {
+        status: 502,
+      });
+    }
+    // In production, do not leak internal error details to the client.
+    const message = IS_PRODUCTION
+      ? "Internal server error"
+      : err instanceof Error
+        ? err.message
+        : "Unknown error";
+    return NextResponse.json({ error: message } satisfies ErrorBody, { status: 500 });
+  }
+}
+
+/**
+ * @deprecated Use `gwRequest()` instead for type-safe gateway calls.
+ * Send an untyped RPC request through the Gateway adapter.
+ */
 export async function gatewayRequest(
   method: string,
   params: unknown,
@@ -35,7 +72,6 @@ export async function gatewayRequest(
         status: 502,
       });
     }
-    // In production, do not leak internal error details to the client.
     const message = IS_PRODUCTION
       ? "Internal server error"
       : err instanceof Error

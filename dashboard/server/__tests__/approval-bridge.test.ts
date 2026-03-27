@@ -12,6 +12,7 @@ function createMockRuntime(eventBus: EventBus): DeckRuntime {
   return {
     eventBus,
     adapter: {} as DeckRuntime["adapter"],
+    gw: {} as DeckRuntime["gw"],
     db: {} as DeckRuntime["db"],
     store: {} as DeckRuntime["store"],
     rateLimiter: {} as DeckRuntime["rateLimiter"],
