@@ -1,73 +1,34 @@
 import { create } from "zustand";
+import type {
+  DeckAgentsDetailResult,
+  DeckAgentsToolPolicyPreviewResult,
+  DeckAgentsSystemPromptPreviewResult,
+  DeckAgentsSkillsGetResult,
+  DeckAgentsSubagentsGetResult,
+  DeckAgentsEventStreamsGetResult,
+} from "@/types/gateway-protocol.generated";
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — derived from generated protocol types + local extensions
 // ---------------------------------------------------------------------------
 
-export interface AgentDetail {
-  id: string;
-  name: string;
-  emoji?: string;
-  model?: string;
-  workspace?: string;
-  isDefault?: boolean;
-  bindingCount: number;
-  sessionCount: number;
-  activeSubagentCount: number;
-  skillMode: "all" | "whitelist";
-  effectiveSkills: string[];
-  totalAvailableSkills: number;
-  subagents: {
-    allowAgents: string[];
-    model?: string;
-    effectiveMaxSpawnDepth: number;
-    effectiveMaxChildrenPerAgent: number;
-  };
-  sandbox?: unknown;
-  identityExists?: boolean;
-  fallbackModels?: string[];
-}
+/** Agent detail with local-only `emoji` field (not returned by Gateway). */
+export type AgentDetail = DeckAgentsDetailResult & { emoji?: string };
 
-export interface ToolPolicyLayer {
-  label: string;
-  ruleCount: number;
-  effect: "allow" | "deny" | "passthrough";
-}
+export type ToolPolicyLayer = DeckAgentsToolPolicyPreviewResult["layers"][number];
+export type ToolPolicyTool = DeckAgentsToolPolicyPreviewResult["tools"][number];
+export type ToolPolicyPreview = DeckAgentsToolPolicyPreviewResult;
 
-export interface ToolPolicyTool {
-  name: string;
-  allowed: boolean;
-  decisiveLayer: string;
-  trace: Array<{ layer: string; decision: "allow" | "deny" | "no-opinion" }>;
-}
-
-export interface ToolPolicyPreview {
-  layers: ToolPolicyLayer[];
-  tools: ToolPolicyTool[];
-  configHash: string;
-}
-
-export interface PromptLayer {
-  label: string;
-  source: string;
-  charCount: number;
-  fileCount?: number;
+/** Prompt layer with local-only `content` field (loaded separately via file API). */
+export type PromptLayer = DeckAgentsSystemPromptPreviewResult["layers"][number] & {
   content?: string;
-}
-
-export interface BootstrapFileEntry {
-  name: string;
-  exists: boolean;
-  charCount: number;
-}
-
-export interface SystemPromptPreview {
+};
+export type BootstrapFileEntry = DeckAgentsSystemPromptPreviewResult["bootstrapFiles"][number];
+export type SystemPromptPreview = Omit<DeckAgentsSystemPromptPreviewResult, "layers"> & {
   layers: PromptLayer[];
-  bootstrapFiles: BootstrapFileEntry[];
-  totalChars: number;
-  configHash: string;
-}
+};
 
+/** Bootstrap file detail — loaded via file API, not a deck.* gateway response. */
 export interface BootstrapFileDetail {
   name: string;
   path: string;
@@ -77,48 +38,28 @@ export interface BootstrapFileDetail {
   content?: string;
 }
 
-export interface SkillEntry {
-  key: string;
-  name: string;
-  eligible: boolean;
-  assigned: boolean;
-}
+export type SkillEntry = DeckAgentsSkillsGetResult["available"][number];
 
-export interface AgentSkills {
-  agentId: string;
-  mode: "all" | "whitelist";
-  skills: string[];
-  available: SkillEntry[];
-  configHash: string;
+/** Agent skills with derived `whitelist` field (not in gateway response). */
+export type AgentSkills = DeckAgentsSkillsGetResult & {
   /** Explicit whitelist of skill keys when mode is "whitelist". */
   whitelist: string[];
-}
+};
 
-export interface AgentSubagentConfig {
-  agentId: string;
-  allowAgents: string[];
-  allowAny: boolean;
-  model?: string;
-  effectiveMaxSpawnDepth: number;
-  effectiveMaxChildrenPerAgent: number;
-  effectiveThinking?: unknown;
-  allowedAgents: Array<{ id: string; name?: string }>;
-  allAgents: Array<{ id: string; name?: string }>;
-  configHash: string;
+/** Agent subagent config with derived alias fields (not in gateway response). */
+export type AgentSubagentConfig = DeckAgentsSubagentsGetResult & {
   /** Spawn permission mode: none / list / any. Derived from allowAny + allowAgents. */
   allowMode: "none" | "list" | "any";
   /** Alias for effectiveMaxSpawnDepth. */
   effectiveMaxDepth: number;
   /** Alias for effectiveMaxChildrenPerAgent. */
   effectiveMaxChildren: number;
-}
+};
 
-export interface AgentEventStreamsConfig {
-  eventStreams: string[];
-  isDefault: boolean;
-  configHash: string;
-}
+/** Event streams config — store omits agentId (tracked separately). */
+export type AgentEventStreamsConfig = Omit<DeckAgentsEventStreamsGetResult, "agentId">;
 
+/** Effective tool entry — from tools.effective, not a deck.* gateway response. */
 export interface EffectiveToolEntry {
   id: string;
   name: string;
@@ -512,7 +453,12 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
           defaults,
           entry,
           list,
-          baseHash: typeof data.baseHash === "string" ? data.baseHash : typeof data.hash === "string" ? data.hash : null,
+          baseHash:
+            typeof data.baseHash === "string"
+              ? data.baseHash
+              : typeof data.hash === "string"
+                ? data.hash
+                : null,
         },
       });
     } catch {

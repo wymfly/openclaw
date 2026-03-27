@@ -27,7 +27,7 @@ const EFFECT_STYLES = {
   },
 } as const;
 
-function decisionColor(decision: "allow" | "deny" | "no-opinion"): string {
+function decisionColor(decision: string): string {
   if (decision === "allow") {
     return "text-[var(--success)]";
   }
@@ -37,7 +37,7 @@ function decisionColor(decision: "allow" | "deny" | "no-opinion"): string {
   return "text-[var(--muted-foreground)]";
 }
 
-function decisionIcon(decision: "allow" | "deny" | "no-opinion") {
+function decisionIcon(decision: string) {
   if (decision === "allow") {
     return <Check size={10} className="text-[var(--success)] shrink-0" />;
   }
@@ -73,7 +73,9 @@ export function ToolPolicyViz({ preview, agentId }: ToolPolicyVizProps) {
         </p>
         <div className="space-y-1">
           {preview.layers.map((layer, i) => {
-            const effect = layer.effect in EFFECT_STYLES ? layer.effect : "passthrough";
+            const effect = (
+              layer.effect in EFFECT_STYLES ? layer.effect : "passthrough"
+            ) as keyof typeof EFFECT_STYLES;
             const styles = EFFECT_STYLES[effect];
             return (
               <div

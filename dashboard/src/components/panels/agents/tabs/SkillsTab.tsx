@@ -68,7 +68,7 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
     setSaving(true);
     setSaved(false);
     const baseHash = currentSkills?.configHash ?? "";
-    const ok = await updateSkills(agentId, mode, skills, baseHash);
+    const ok = await updateSkills(agentId, mode as "all" | "whitelist", skills, baseHash);
     if (ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -79,13 +79,13 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
   return (
     <div className="space-y-4">
       {/* Mode switcher */}
-      <Card className="p-4 bg-[var(--bg-primary)] border-[var(--border)]">
+      <Card className="p-4 bg-[var(--background)] border-[var(--border)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-[var(--text-primary)]">
+            <p className="text-xs font-medium text-[var(--foreground)]">
               {isWhitelistMode ? t("skillModeWhitelist") : t("skillModeAll")}
             </p>
-            <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+            <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
               {isWhitelistMode
                 ? "Only selected skills are available to this agent"
                 : "All skills are available to this agent"}
@@ -105,7 +105,7 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
       {isWhitelistMode && (
         <div className="space-y-1.5">
           {availableSkills.length === 0 && (
-            <div className="py-4 text-center text-xs text-[var(--text-secondary)]">
+            <div className="py-4 text-center text-xs text-[var(--muted-foreground)]">
               {t("noSkillsAvailable")}
             </div>
           )}
@@ -119,10 +119,10 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
                 onClick={() => toggleSkill(entry.key)}
                 className={cn(
                   "flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer",
-                  "border border-[var(--border)] bg-[var(--bg-primary)]",
-                  "hover:border-[var(--accent)]/30",
-                  isAssigned && "ring-1 ring-[var(--accent)]/30 border-[var(--accent)]/20",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                  "border border-[var(--border)] bg-[var(--background)]",
+                  "hover:border-[var(--primary)]/30",
+                  isAssigned && "ring-1 ring-[var(--primary)]/30 border-[var(--primary)]/20",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -130,13 +130,13 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
                     className={cn(
                       "w-4 h-4 rounded border flex items-center justify-center transition-colors",
                       isAssigned
-                        ? "bg-[var(--accent)] border-[var(--accent)] text-white"
+                        ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)]"
                         : "border-[var(--border)] bg-transparent",
                     )}
                   >
                     {isAssigned && <Check size={10} />}
                   </div>
-                  <span className="font-mono text-[var(--text-primary)]">
+                  <span className="font-mono text-[var(--foreground)]">
                     {entry.name || entry.key}
                   </span>
                 </div>

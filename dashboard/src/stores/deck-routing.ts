@@ -1,45 +1,35 @@
 import { create } from "zustand";
 import { detectConflicts, type ConflictPair } from "@/lib/detect-conflicts";
+import type {
+  DeckRoutingListResult,
+  DeckRoutingValidateResult,
+  DeckRoutingSimulateResult,
+} from "@/types/gateway-protocol.generated";
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — derived from generated protocol types + local extensions
 // ---------------------------------------------------------------------------
 
-export interface BindingMatch {
-  channel: string;
-  accountId?: string;
-  peer?: { kind: string; id: string };
-  guildId?: string;
-  roles?: string[];
-  teamId?: string;
-}
+/** Binding match with UI-only guild/team aliases (not in gateway response). */
+export type BindingMatch = DeckRoutingListResult["bindings"][number]["match"] & {
+  /** Alias for guildId — used by some UI components. */
+  guild?: string;
+  /** Alias for teamId — used by some UI components. */
+  team?: string;
+};
 
-export interface Binding {
-  id: string;
-  tier: string;
+/** Binding with UI-enriched fields (not in gateway response). */
+export type Binding = Omit<DeckRoutingListResult["bindings"][number], "match"> & {
   match: BindingMatch;
-  agentId: string;
-  comment?: string;
-}
+  /** Resolved agent display name. */
+  agentName?: string;
+  /** Resolved agent emoji. */
+  agentEmoji?: string;
+};
 
-export interface ValidationResult {
-  ok: boolean;
-  tier?: string;
-  conflicts?: Array<{ type: string; bindingId: string; agentId: string; detail: string }>;
-}
-
-export interface SimulationTier {
-  tier: string;
-  matched: boolean;
-  checked: boolean;
-}
-
-export interface SimulationResult {
-  agentId: string;
-  matchedBy: string;
-  sessionKey: string;
-  tiers: SimulationTier[];
-}
+export type ValidationResult = DeckRoutingValidateResult;
+export type SimulationTier = DeckRoutingSimulateResult["tiers"][number];
+export type SimulationResult = DeckRoutingSimulateResult;
 
 // ---------------------------------------------------------------------------
 // Store

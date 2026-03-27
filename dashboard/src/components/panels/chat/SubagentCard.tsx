@@ -41,39 +41,39 @@ export function SubagentCard({ run }: { run: SubagentRun }) {
   }, [isActive]);
 
   const displayName = run.childAgentName ?? run.childAgentId;
-  const errorMessage = run.outcome?.error;
+  const errorMessage = (run.outcome as { error?: string } | undefined)?.error;
 
   return (
     <div
       className={cn(
         "mb-2 rounded-lg ring-1 overflow-hidden transition-panel",
-        isActive && "ring-[var(--accent)]/40 bg-[var(--accent-muted)]",
-        isCompleted && "ring-[var(--success)]/30 bg-[var(--bg-tertiary)]",
-        isFailed && "ring-[var(--danger)]/30 bg-[var(--danger-muted)]",
+        isActive && "ring-[var(--primary)]/40 bg-[var(--primary-muted)]",
+        isCompleted && "ring-[var(--success)]/30 bg-[var(--muted)]",
+        isFailed && "ring-[var(--destructive)]/30 bg-[var(--destructive-muted)]",
       )}
     >
       {/* Header — collapsible toggle */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm cursor-pointer hover:bg-[var(--bg-tertiary)]/50 transition-colors"
+        className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm cursor-pointer hover:bg-[var(--muted)]/50 transition-colors"
       >
         <ChevronRight
           size={14}
           className={cn(
-            "shrink-0 text-[var(--text-secondary)] transition-transform duration-150",
+            "shrink-0 text-[var(--muted-foreground)] transition-transform duration-150",
             expanded && "rotate-90",
           )}
         />
-        <Bot size={14} className="shrink-0 text-[var(--text-secondary)]" />
-        <span className="font-medium text-[var(--text-primary)] truncate">{displayName}</span>
+        <Bot size={14} className="shrink-0 text-[var(--muted-foreground)]" />
+        <span className="font-medium text-[var(--foreground)] truncate">{displayName}</span>
 
         {/* Status badge */}
         <span
           className={cn(
             "ml-auto shrink-0 flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full",
-            isActive && "bg-[var(--accent)]/15 text-[var(--accent)]",
+            isActive && "bg-[var(--primary)]/15 text-[var(--primary)]",
             isCompleted && "bg-[var(--success)]/15 text-[var(--success)]",
-            isFailed && "bg-[var(--danger)]/15 text-[var(--danger)]",
+            isFailed && "bg-[var(--destructive)]/15 text-[var(--destructive)]",
           )}
         >
           {isActive && <Loader2 size={10} className="animate-spin" />}
@@ -83,22 +83,22 @@ export function SubagentCard({ run }: { run: SubagentRun }) {
         </span>
 
         {/* Duration */}
-        <span className="shrink-0 text-[10px] font-mono text-[var(--text-secondary)]">
+        <span className="shrink-0 text-[10px] font-mono text-[var(--muted-foreground)]">
           {formatDuration(elapsed)}
         </span>
       </button>
 
       {/* Expanded content */}
       {expanded && (
-        <div className="px-3 pb-2 text-xs text-[var(--text-secondary)] space-y-1">
+        <div className="px-3 pb-2 text-xs text-[var(--muted-foreground)] space-y-1">
           {run.task && (
             <p>
-              <span className="font-medium text-[var(--text-primary)]">{t("subagentTask")}:</span>{" "}
+              <span className="font-medium text-[var(--foreground)]">{t("subagentTask")}:</span>{" "}
               {run.task}
             </p>
           )}
           {errorMessage && (
-            <p className="text-[var(--danger)]">
+            <p className="text-[var(--destructive)]">
               <span className="font-medium">{t("subagentError")}:</span> {errorMessage}
             </p>
           )}
