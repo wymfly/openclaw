@@ -18,6 +18,7 @@ services:
         OPENCLAW_INSTALL_DOCKER_CLI: "${OPENCLAW_SANDBOX:-}"
     ports:
       - "${GATEWAY_PORT:-18789}:18789"
+      - "${DECK_PORT:-3000}:3000"
     volumes:
       - ${OPENCLAW_STATE_DIR:-./data/gateway}:/home/node/.openclaw
     environment:
@@ -30,6 +31,7 @@ services:
         "node", "openclaw.mjs", "gateway", "run",
         "--bind", "lan",
         "--port", "18789",
+        "--force",
       ]
     healthcheck:
       test:
@@ -48,12 +50,13 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.deck
-    ports:
-      - "${DECK_PORT:-3000}:3000"
+    # Share Gateway's network namespace so Deck connects via loopback.
+    # This enables automatic Ed25519 device pairing (isLocalClient=true).
+    network_mode: "service:gateway"
     volumes:
       - ${DECK_DATA_DIR:-./data/deck}:/data
     environment:
-      DECK_GATEWAY_URL: ws://gateway:18789
+      DECK_GATEWAY_URL: ws://localhost:18789
       DECK_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       DECK_DB_PATH: /data/deck.db
     depends_on:
