@@ -477,7 +477,12 @@ export const agentsHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const workspaceDir = resolveUserPath(params.workspace.trim());
+    // Use explicit workspace if provided; otherwise fall back to
+    // agents.defaults.workspace so Docker deployments keep all agents
+    // under the mounted workspace volume.
+    const explicitWorkspace = String(params.workspace ?? "").trim();
+    const defaultsWorkspace = cfg.agents?.defaults?.workspace?.trim() ?? "";
+    const workspaceDir = resolveUserPath(explicitWorkspace || defaultsWorkspace || agentId);
 
     const safeName = sanitizeIdentityLine(rawName);
     const model = resolveOptionalStringParam(params.model);
