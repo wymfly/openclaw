@@ -6,6 +6,7 @@
 #   deploy/scripts/package.sh                    # Docker + bare-metal package
 #   deploy/scripts/package.sh --docker-only      # Docker images only (smaller)
 #   deploy/scripts/package.sh --source-only      # Source package only (no Docker)
+#   deploy/scripts/package.sh --with-local       # Include runtime plugins + skills from ~/.openclaw
 #   deploy/scripts/package.sh --output /path     # Custom output directory
 #
 # Output:
@@ -26,15 +27,17 @@ REPO_DIR="$(cd "$DEPLOY_DIR/.." && pwd)"
 # Parse args
 DOCKER_ONLY=false
 SOURCE_ONLY=false
+WITH_LOCAL=false
 OUTPUT_DIR="$DEPLOY_DIR"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --docker-only)  DOCKER_ONLY=true; shift ;;
     --source-only)  SOURCE_ONLY=true; shift ;;
+    --with-local)   WITH_LOCAL=true; shift ;;
     --output)       OUTPUT_DIR="$2"; shift 2 ;;
     -h|--help)
-      echo "Usage: $0 [--docker-only|--source-only] [--output /path]"
+      echo "Usage: $0 [--docker-only|--source-only] [--with-local] [--output /path]"
       exit 0
       ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -230,6 +233,80 @@ stage_source() {
     "$REPO_DIR/" "$STAGING_DIR/source/"
 
   log "Source code staged"
+}
+
+# ---------------------------------------------------------------------------
+# Collect local runtime plugins and skills from ~/.openclaw
+# ---------------------------------------------------------------------------
+stage_local() {
+  local state_dir="${HOME}/.openclaw"
+  if [ ! -d "$state_dir" ]; then
+    log "WARN: ~/.openclaw not found, skipping local collection"
+    return
+  fi
+
+  local seed_dir="$STAGING_DIR/deploy/seed"
+
+  # 1. Runtime-installed extensions (e.g. openclaw-weixin)
+  if [ -d "$state_dir/extensions" ]; then
+    local ext_count=0
+    for ext_dir in "$state_dir/extensions"/*/; do
+      [ -d "$ext_dir" ] || continue
+      local ext_name
+      ext_name="$(basename "$ext_dir")"
+      # Skip backup dirs and hidden dirs
+      [[ "$ext_name" == .* ]] && continue
+
+      mkdir -p "$seed_dir/extensions/$ext_name"
+      rsync -a \
+        --exclude='node_modules' \
+        --exclude='.git' \
+        --exclude='*.log' \
+        "$ext_dir" "$seed_dir/extensions/$ext_name/"
+      log "collected extension: $ext_name"
+      ext_count=$((ext_count + 1))
+    done
+    log "Total extensions collected: $ext_count"
+  fi
+
+  # 2. Custom skills from agents' workspace
+  #    Look in common locations where users might put custom skills
+  local skills_collected=0
+
+  # Check ~/.openclaw/skills/ (if user has a local skills dir)
+  if [ -d "$state_dir/skills" ]; then
+    for skill_dir in "$state_dir/skills"/*/; do
+      [ -d "$skill_dir" ] || continue
+      local skill_name
+      skill_name="$(basename "$skill_dir")"
+      mkdir -p "$seed_dir/skills/$skill_name"
+      cp -a "$skill_dir"* "$seed_dir/skills/$skill_name/" 2>/dev/null || true
+      log "collected skill: $skill_name (from ~/.openclaw/skills/)"
+      skills_collected=$((skills_collected + 1))
+    done
+  fi
+
+  # 3. Plugins config from openclaw.json (extract plugins.entries section)
+  if [ -f "$state_dir/openclaw.json" ]; then
+    python3 -c "
+import json, sys
+with open('$state_dir/openclaw.json') as f:
+    cfg = json.load(f)
+plugins = cfg.get('plugins', {})
+if plugins:
+    print(json.dumps(plugins, indent=2))
+    sys.exit(0)
+sys.exit(1)
+" > "$seed_dir/plugins-config.json" 2>/dev/null || true
+
+    if [ -f "$seed_dir/plugins-config.json" ] && [ -s "$seed_dir/plugins-config.json" ]; then
+      log "collected plugins config"
+    else
+      rm -f "$seed_dir/plugins-config.json"
+    fi
+  fi
+
+  log "Local content collection complete (extensions: $ext_count, skills: $skills_collected)"
 }
 
 # ---------------------------------------------------------------------------
@@ -496,6 +573,11 @@ fi
 # Source code
 if [ "$DOCKER_ONLY" = false ]; then
   stage_source
+fi
+
+# Local runtime plugins and skills
+if [ "$WITH_LOCAL" = true ]; then
+  stage_local
 fi
 
 # Create installer and readme
