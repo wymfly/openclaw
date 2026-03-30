@@ -68,7 +68,18 @@ mkdir -p "$TARGET_DIR"
 
 if [ -f "$MARKER" ] && [ "$FORCE" != "--force" ]; then
   log "Target already initialized ($(cat "$MARKER")). Use --force to re-seed."
-  log "Skipping init-once files, only syncing always-sync content."
+  log "Skipping init-once files, syncing always-sync content..."
+
+  # always-sync: custom skills (overwrite on every deploy/upgrade)
+  if [ -d "$SEED_DIR/skills" ]; then
+    for skill_dir in "$SEED_DIR/skills"/*/; do
+      [ -d "$skill_dir" ] || continue
+      skill_name="$(basename "$skill_dir")"
+      mkdir -p "$TARGET_DIR/skills/$skill_name"
+      cp -a "$skill_dir"* "$TARGET_DIR/skills/$skill_name/" 2>/dev/null || true
+      log "synced skill: $skill_name"
+    done
+  fi
 else
   log "Initializing $TARGET_DIR from seed..."
 
@@ -93,6 +104,48 @@ else
   if [ -d "$SEED_DIR/cron" ]; then
     mkdir -p "$TARGET_DIR/cron"
     seed_init_once "$SEED_DIR/cron/jobs.json" "$TARGET_DIR/cron/jobs.json"
+  fi
+
+  # 4. Extensions / plugins (init-once, directory copy)
+  if [ -d "$SEED_DIR/extensions" ]; then
+    for ext_dir in "$SEED_DIR/extensions"/*/; do
+      [ -d "$ext_dir" ] || continue
+      ext_name="$(basename "$ext_dir")"
+      if [ ! -d "$TARGET_DIR/extensions/$ext_name" ] || [ "$FORCE" = "--force" ]; then
+        mkdir -p "$TARGET_DIR/extensions/$ext_name"
+        cp -a "$ext_dir"* "$TARGET_DIR/extensions/$ext_name/" 2>/dev/null || true
+        log "seeded extension: $ext_name"
+      else
+        log "skip extension (exists): $ext_name"
+      fi
+    done
+  fi
+
+  # 5. Custom skills (always-sync — overwrite on every deploy/upgrade)
+  if [ -d "$SEED_DIR/skills" ]; then
+    for skill_dir in "$SEED_DIR/skills"/*/; do
+      [ -d "$skill_dir" ] || continue
+      skill_name="$(basename "$skill_dir")"
+      # skills 始终覆盖（always-sync 策略）
+      mkdir -p "$TARGET_DIR/skills/$skill_name"
+      cp -a "$skill_dir"* "$TARGET_DIR/skills/$skill_name/" 2>/dev/null || true
+      log "synced skill: $skill_name"
+    done
+  fi
+
+  # 6. Merge plugins config into openclaw.json (if plugins-config.json exists)
+  if [ -f "$SEED_DIR/plugins-config.json" ] && [ -f "$TARGET_DIR/openclaw.json" ]; then
+    python3 -c "
+import json, sys
+with open('$TARGET_DIR/openclaw.json') as f:
+    cfg = json.load(f)
+with open('$SEED_DIR/plugins-config.json') as f:
+    plugins = json.load(f)
+cfg.setdefault('plugins', {}).update(plugins)
+with open('$TARGET_DIR/openclaw.json', 'w') as f:
+    json.dump(cfg, f, indent=2, ensure_ascii=False)
+print('[seed] merged plugins config into openclaw.json')
+" 2>/dev/null || log "WARN: failed to merge plugins config"
   fi
 
   # Write marker
