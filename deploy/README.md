@@ -81,6 +81,26 @@ vim .env                         # 填写 API keys
 
 Docker 模式下 Deck 与 Gateway 共享网络命名空间（`network_mode: service:gateway`），通过 localhost 通信，自动完成 Ed25519 设备配对。
 
+## 数据目录
+
+所有 OpenClaw 运行时状态存放在一个目录（`OPENCLAW_STATE_DIR`）：
+
+```
+OPENCLAW_STATE_DIR/                 # Docker: ./data/openclaw → /home/node/.openclaw
+├── openclaw.json                   # 配置文件
+├── workspace/                      # main agent 工作目录（含规则文件）
+├── workspace-{id}/                 # 其他 agent 各自的工作目录
+├── agents/                         # agent 元数据 + sessions
+├── extensions/                     # 运行时插件
+├── cron/                           # 定时任务
+├── devices/                        # 设备密钥
+└── logs/                           # 日志
+```
+
+Deck 的 SQLite 数据库单独存放在 `DECK_DATA_DIR`，与 Gateway 状态分离。
+
+裸机和 Docker 使用同一目录结构，只需修改 `.env` 切换模式，数据可无缝迁移。
+
 ## 环境变量
 
 | 变量 | 必填 | 说明 |
@@ -93,6 +113,8 @@ Docker 模式下 Deck 与 Gateway 共享网络命名空间（`network_mode: serv
 | `GATEWAY_PORT` | 否 | Gateway 端口（默认 18789） |
 | `DECK_PORT` | 否 | Deck 端口（默认 3000） |
 | `TZ` | 否 | 时区（默认 `Asia/Shanghai`） |
+| `OPENCLAW_STATE_DIR` | 否 | OpenClaw 数据目录（默认 `./data/openclaw`） |
+| `DECK_DATA_DIR` | 否 | Deck 数据库目录（默认 `./data/openclaw-deck`） |
 | `OPENCLAW_SANDBOX` | 否 | 设为 1 启用 sandbox |
 | `DOCKER_GID` | sandbox | Docker socket GID |
 
