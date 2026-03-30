@@ -151,6 +151,9 @@ analysis/
 .artifacts/qa-e2e/
 extensions/qa-lab/web/dist/
 
-# deploy secrets
+# deploy secrets and artifacts
 deploy/.env
 deploy/data/
+deploy/*.tar.gz
+deploy/docker-compose.package.yml
+deploy/docker-compose.package.sandbox.yml

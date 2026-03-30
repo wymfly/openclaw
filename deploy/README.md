@@ -2,7 +2,30 @@
 
 部署 OpenClaw Gateway 和 Deck Dashboard，支持三种模式。
 
-## 快速开始
+## 打包部署到其他机器
+
+```bash
+# 在开发机上打包（构建镜像 + 打包源码）
+deploy/scripts/package.sh
+
+# 仅 Docker 镜像（更小）
+deploy/scripts/package.sh --docker-only
+
+# 仅源码（裸机部署用）
+deploy/scripts/package.sh --source-only
+```
+
+生成 `openclaw-deploy-YYYYMMDD-HHMMSS.tar.gz`，传输到目标机器后：
+
+```bash
+tar xzf openclaw-deploy-*.tar.gz
+cd openclaw-deploy-*
+./install.sh              # 交互式
+./install.sh docker       # Docker 模式（使用预构建镜像，无需编译）
+./install.sh bare-metal   # 裸机模式（从源码构建）
+```
+
+## 快速开始（本地开发机）
 
 ### Docker 部署（推荐）
 
