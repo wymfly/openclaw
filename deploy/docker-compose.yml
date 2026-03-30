@@ -20,8 +20,7 @@ services:
       - "${GATEWAY_PORT:-18789}:18789"
       - "${DECK_PORT:-3000}:3000"
     volumes:
-      - ${OPENCLAW_STATE_DIR:-./data/gateway}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR:-./data/workspace}:/home/node/.openclaw/workspace
+      - ${OPENCLAW_STATE_DIR:-./data/openclaw}:/home/node/.openclaw
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -55,7 +54,7 @@ services:
     # This enables automatic Ed25519 device pairing (isLocalClient=true).
     network_mode: "service:gateway"
     volumes:
-      - ${DECK_DATA_DIR:-./data/deck}:/data
+      - ${DECK_DATA_DIR:-./data/openclaw-deck}:/data
     environment:
       DECK_GATEWAY_URL: ws://localhost:18789
       DECK_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}

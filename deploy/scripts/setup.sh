@@ -65,7 +65,7 @@ docker_up() {
 
   ensure_env
 
-  local state_dir="${OPENCLAW_STATE_DIR:-$DEPLOY_DIR/data/gateway}"
+  local state_dir="${OPENCLAW_STATE_DIR:-$DEPLOY_DIR/data/openclaw}"
   mkdir -p "$state_dir"
   "$SCRIPT_DIR/seed.sh" "$state_dir"
 
