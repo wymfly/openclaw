@@ -150,6 +150,7 @@ services:
       - "${DECK_PORT:-3000}:3000"
     volumes:
       - ${OPENCLAW_STATE_DIR:-./data/gateway}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-./data/workspace}:/home/node/.openclaw/workspace
     environment:
       HOME: /home/node
       TERM: xterm-256color
