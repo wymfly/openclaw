@@ -535,7 +535,12 @@ export const agentsHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const workspaceDir = resolveUserPath(String(params.workspace ?? "").trim());
+    // Use explicit workspace if provided; otherwise fall back to
+    // agents.defaults.workspace so Docker deployments keep all agents
+    // under the mounted workspace volume.
+    const explicitWorkspace = String(params.workspace ?? "").trim();
+    const defaultsWorkspace = cfg.agents?.defaults?.workspace?.trim() ?? "";
+    const workspaceDir = resolveUserPath(explicitWorkspace || defaultsWorkspace || agentId);
 
     // Resolve agentDir against the config we're about to persist (vs the pre-write config),
     // so subsequent resolutions can't disagree about the agent's directory.

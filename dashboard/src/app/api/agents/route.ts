@@ -31,12 +31,14 @@ export const POST = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "name is required" }, { status: 400 });
   }
 
-  // Default workspace to name — Gateway resolves it relative to the user home.
-  const workspace = body.workspace?.trim() || name;
+  // Only send workspace when explicitly provided by the caller.
+  // When omitted, Gateway uses agents.defaults.workspace from config,
+  // which points to the mounted workspace volume in Docker deployments.
+  const workspace = body.workspace?.trim() || undefined;
 
   return gatewayRequest("agents.create", {
     name,
-    workspace,
+    ...(workspace ? { workspace } : {}),
     ...(body.emoji ? { emoji: body.emoji } : {}),
     ...(body.avatar ? { avatar: body.avatar } : {}),
   });
