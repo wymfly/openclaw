@@ -111,6 +111,8 @@ export function ChannelSchemaSettings({ channelId, schemaInfo }: ChannelSchemaSe
         setInitialValues({ ...values });
         setDirty(false);
       }
+    } catch (err) {
+      console.error("[ChannelSchemaSettings] Unexpected save error:", err);
     } finally {
       setSaving(false);
     }
