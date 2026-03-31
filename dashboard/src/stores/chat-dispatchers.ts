@@ -119,6 +119,11 @@ export interface ChatStoreAPI {
       completedAt?: number;
     },
   ) => void;
+  /** Update session metadata (totalTokens, estimatedCostUsd) from SSE events. */
+  updateSessionMeta: (
+    sessionKey: string,
+    patch: { totalTokens?: number; estimatedCostUsd?: number },
+  ) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -652,5 +657,38 @@ export function dispatchSessionStateEvent(
       sessionKey,
       typeof payload.errorMessage === "string" ? payload.errorMessage : "Run failed",
     );
+  }
+
+  // ── Compaction detection ──
+  // Gateway sends compacted: true in sessions.changed payload (src/gateway/server-methods/sessions.ts:127)
+  if (payload.compacted === true) {
+    // Dedup: check if last message is a recent compaction notice (within 5s)
+    const messages = api.getSessionMessages(sessionKey);
+    const lastMsg = messages[messages.length - 1];
+    const isRecentCompaction =
+      lastMsg?.role === "system" &&
+      lastMsg.id.startsWith("compaction-") &&
+      Date.now() - lastMsg.timestamp < 5000;
+
+    if (!isRecentCompaction) {
+      api.addMessage(sessionKey, {
+        id: `compaction-${Date.now()}`,
+        role: "system",
+        content: [{ type: "text" as const, text: "compacted" }],
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  // ── Session meta sync (totalTokens, estimatedCostUsd) ──
+  // These fields come from sessions.changed events and feed RunStatusBar's session-level display
+  const totalTokens = typeof payload.totalTokens === "number" ? payload.totalTokens : undefined;
+  const estimatedCostUsd =
+    typeof payload.estimatedCostUsd === "number" ? payload.estimatedCostUsd : undefined;
+  if (totalTokens !== undefined || estimatedCostUsd !== undefined) {
+    api.updateSessionMeta(sessionKey, {
+      ...(totalTokens !== undefined ? { totalTokens } : {}),
+      ...(estimatedCostUsd !== undefined ? { estimatedCostUsd } : {}),
+    });
   }
 }

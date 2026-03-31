@@ -3,8 +3,7 @@
 import { Bot, ChevronRight, User } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Streamdown } from "streamdown";
 import { useChatStore } from "@/stores/chat";
 import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import type { ChatBlockPreferences } from "@/stores/chat-preferences";
@@ -15,6 +14,7 @@ import {
   getToolResultBlocks,
 } from "@/stores/chat-types";
 import type { ContentBlock, ChatMessage, RunMetadata } from "@/stores/chat-types";
+import { CompactionNotice } from "./CompactionNotice";
 import { ThinkingBlock } from "./blocks/ThinkingBlock";
 import { ToolResultCard } from "./blocks/ToolResultCard";
 import { ToolUseCard } from "./blocks/ToolUseCard";
@@ -52,7 +52,7 @@ function CollapsedBlock({
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="flex items-center gap-1 text-[10px] px-2 py-1 mb-1 rounded-md cursor-pointer bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+      className="flex items-center gap-1 text-[10px] px-2 py-1 mb-1 rounded-md cursor-pointer bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
     >
       <ChevronRight size={10} />
       {label} ({count})
@@ -112,16 +112,18 @@ function MessageBubble({
         className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
         style={{
           backgroundColor: isUser
-            ? "color-mix(in srgb, var(--brand) 20%, transparent)"
-            : "var(--bg-secondary)",
-          color: isUser ? "var(--brand)" : "var(--text-secondary)",
+            ? "color-mix(in srgb, var(--primary) 20%, transparent)"
+            : "var(--card)",
+          color: isUser ? "var(--primary)" : "var(--muted-foreground)",
         }}
       >
         {isUser ? <User size={14} /> : <Bot size={14} />}
       </div>
 
       {/* Content */}
-      <div className={`flex flex-col max-w-[75%] min-w-0 ${isUser ? "items-end" : "items-start"}`}>
+      <div
+        className={`flex flex-col min-w-0 ${isUser ? "items-end max-w-[75%]" : "items-start max-w-[90%]"}`}
+      >
         {/* Thinking trace — collapse when filter is off */}
         {thinkingContent.length > 0 &&
           (blockPrefs?.showThinking === false ? (
@@ -159,24 +161,23 @@ function MessageBubble({
         {/* Main content */}
         {textContent && (
           <div
-            className="rounded-lg px-3 py-2 text-sm leading-relaxed"
+            className={`rounded-lg text-sm ${isUser ? "px-3 py-2" : "px-4 py-3"}`}
             style={{
-              backgroundColor: isUser ? "var(--brand)" : "var(--bg-secondary)",
-              color: isUser ? "var(--brand-fg)" : "var(--text-primary)",
+              backgroundColor: isUser ? "var(--primary)" : "var(--card)",
+              color: isUser ? "var(--primary-foreground)" : "var(--foreground)",
             }}
           >
             {isUser ? (
               <p className="whitespace-pre-wrap">{textContent}</p>
             ) : (
-              <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:overflow-auto [&_pre]:text-xs [&_code]:text-xs">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{textContent}</ReactMarkdown>
+              <div className="chat-prose max-w-none text-sm">
+                <Streamdown
+                  mode={message.streaming ? "streaming" : "static"}
+                  className="streamdown-chat"
+                >
+                  {textContent}
+                </Streamdown>
               </div>
-            )}
-            {message.streaming && (
-              <span
-                className="inline-block w-1.5 h-4 ml-0.5 animate-pulse rounded-sm"
-                style={{ backgroundColor: "var(--brand)" }}
-              />
             )}
           </div>
         )}
@@ -192,7 +193,7 @@ function MessageBubble({
         {!isUser && runMetadata?.model && <RunStatusBar metadata={runMetadata} />}
 
         {/* Timestamp */}
-        <span className="text-[10px] mt-0.5 px-1" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-[10px] mt-0.5 px-1" style={{ color: "var(--muted-foreground)" }}>
           {new Date(message.timestamp).toLocaleTimeString()}
         </span>
       </div>
@@ -244,7 +245,7 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
     return (
       <div
         className="flex-1 flex items-center justify-center"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">{t("noMessages")}</p>
       </div>
@@ -254,6 +255,11 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-3" onScroll={handleScroll}>
       {messages.map((msg) => {
+        // Render compaction notices as system cards (not message bubbles)
+        if (msg.role === "system" && msg.id.startsWith("compaction-")) {
+          return <CompactionNotice key={msg.id} timestamp={msg.timestamp} />;
+        }
+
         // Build RunMetadata from session state for this message
         const meta = sessionRunMetadata[msg.id];
         const runMeta: RunMetadata | undefined = meta?.model
@@ -281,7 +287,7 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
       {isStreaming && !messages.some((m) => m.streaming) && (
         <div
           className="flex items-center gap-2 mb-4 text-xs"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <Bot size={14} />
           <span className="animate-pulse">{t("thinking")}</span>
