@@ -600,10 +600,10 @@ registerDefaultChatStoreAPI({
   updateSessionMeta: (sessionKey, patch) => {
     useChatStore.setState((s) => {
       const idx = s.sessionMetas.findIndex((m) => m.key === sessionKey);
-      if (idx < 0) return {}; // Session not in metas — no state change needed
+      if (idx < 0) return {};
       const metas = [...s.sessionMetas];
       metas[idx] = { ...metas[idx], ...patch };
-      return { sessionMetas: metas };
+      return { sessionMetas: metas, sessionMeta: metas };
     });
   },
 });
