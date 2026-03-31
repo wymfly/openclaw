@@ -89,13 +89,8 @@ export function InlineEdit(props: InlineEditProps) {
   );
 
   const handleBlur = useCallback(() => {
-    // Small delay to allow click on confirm button
-    setTimeout(() => {
-      if (editing) {
-        cancel();
-      }
-    }, 150);
-  }, [editing, cancel]);
+    cancel();
+  }, [cancel]);
 
   // ----- Read-only mode -----
   if (!editing) {

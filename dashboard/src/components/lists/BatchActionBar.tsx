@@ -4,9 +4,11 @@ import { Minus, Square, SquareCheck, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
-interface BatchActionBarProps {
+interface BatchActionBarProps<T = unknown> {
   /** Set of selected item IDs. */
   selectedIds: Set<string>;
+  /** Selected items array (resolved from IDs). */
+  selectedItems?: T[];
   /** Whether all filtered items are selected. */
   isAllSelected: boolean;
   /** Whether some but not all filtered items are selected. */
@@ -15,21 +17,22 @@ interface BatchActionBarProps {
   onSelectAll: () => void;
   /** Clear all selections. */
   onClearSelection: () => void;
-  /** Render prop for custom action buttons. */
-  actions?: (props: { selectedIds: Set<string> }) => React.ReactNode;
+  /** Render prop for custom action buttons. Receives both selectedIds and selectedItems. */
+  actions?: (props: { selectedIds: Set<string>; selectedItems: T[] }) => React.ReactNode;
   /** Optional className. */
   className?: string;
 }
 
-export function BatchActionBar({
+export function BatchActionBar<T = unknown>({
   selectedIds,
+  selectedItems = [],
   isAllSelected,
   isPartialSelected,
   onSelectAll,
   onClearSelection,
   actions,
   className,
-}: BatchActionBarProps) {
+}: BatchActionBarProps<T>) {
   const t = useTranslations("lists");
 
   // Don't render when nothing is selected
@@ -42,12 +45,13 @@ export function BatchActionBar({
         className,
       )}
     >
-      {/* Select-all checkbox */}
+      {/* Select-all checkbox — toggles between select all and clear */}
       <button
         type="button"
-        onClick={onSelectAll}
+        onClick={isAllSelected ? onClearSelection : onSelectAll}
         className="text-primary cursor-pointer"
         aria-label={t("selectAll")}
+        aria-checked={isAllSelected ? "true" : isPartialSelected ? "mixed" : "false"}
       >
         {isAllSelected ? (
           <SquareCheck size={16} />
@@ -64,7 +68,11 @@ export function BatchActionBar({
       </span>
 
       {/* Action buttons slot */}
-      {actions && <div className="flex items-center gap-2">{actions({ selectedIds })}</div>}
+      {actions && (
+        <div className="flex items-center gap-2">
+          {actions({ selectedIds, selectedItems })}
+        </div>
+      )}
 
       {/* Clear button */}
       <button

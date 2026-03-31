@@ -42,8 +42,14 @@ export function useListState<T, F extends FilterState = FilterState>(
         if (typeof aVal === "string" && typeof bVal === "string") {
           return sort.direction === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         }
-        const diff = (aVal as number) - (bVal as number);
-        return sort.direction === "asc" ? diff : -diff;
+        if (typeof aVal === "number" && typeof bVal === "number") {
+          const diff = aVal - bVal;
+          return sort.direction === "asc" ? diff : -diff;
+        }
+        // Fallback: string comparison for non-numeric types
+        const aStr = String(aVal);
+        const bStr = String(bVal);
+        return sort.direction === "asc" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
       });
     }
     return sorted;
@@ -60,7 +66,9 @@ export function useListState<T, F extends FilterState = FilterState>(
 
   const paginatedData = useMemo(() => {
     if (pageSize <= 0) return sortedData;
-    const start = (page - 1) * pageSize;
+    // Clamp page to totalPages when data shrinks externally
+    const effectivePage = Math.min(page, totalPages);
+    const start = (effectivePage - 1) * pageSize;
     return sortedData.slice(start, start + pageSize);
   }, [sortedData, page, pageSize]);
 
