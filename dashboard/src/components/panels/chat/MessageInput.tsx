@@ -174,63 +174,88 @@ export function MessageInput() {
     [history],
   );
 
+  const handleAbort = useCallback(async () => {
+    try {
+      const res = await fetch("/api/chat/abort", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionKey: activeSessionKey ?? undefined }),
+      });
+      if (!res.ok) console.error("[abort]", res.status);
+    } catch (err) {
+      console.error("[abort] network error:", err);
+    }
+    if (activeSessionKey) {
+      useChatStore.getState().setSessionStreaming(activeSessionKey, false);
+    }
+  }, [activeSessionKey]);
+
   // ── Slash command execution ──
   const handleSlashCommand = useCallback(
-    async (cmd: SlashCommandDef) => {
+    async (cmd: SlashCommandDef, cmdArgs = "") => {
       setShowPalette(false);
       setInput("");
-      const parsed = parseSlashCommand(`/${cmd.name}${input.includes(" ") ? input.slice(input.indexOf(" ")) : ""}`);
-      const result = await executeSlashCommand(
-        activeSessionKey ?? "",
-        cmd.name,
-        parsed?.args ?? "",
-      );
 
-      // Handle action
-      const action = result.action;
-      if (action === "new-session" || action === "reset") {
-        // Create new session via existing API
-        const agentId = activeAgentId || "main";
-        try {
+      const addSystemMsg = (text: string) => {
+        if (activeSessionKey) {
+          useChatStore.getState().addMessage(activeSessionKey, {
+            id: `system-cmd-${Date.now()}`,
+            role: "system",
+            content: [{ type: "text" as const, text }],
+            timestamp: Date.now(),
+          });
+        }
+      };
+
+      try {
+        const result = await executeSlashCommand(
+          activeSessionKey ?? "",
+          cmd.name,
+          cmdArgs,
+        );
+
+        // Handle action
+        const action = result.action;
+        if (action === "new-session" || action === "reset") {
+          const agentId = activeAgentId || "main";
           const res = await fetch("/api/chat/sessions/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ agentId }),
           });
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({}));
+            addSystemMsg((d as { error?: string }).error ?? `/${cmd.name} failed`);
+            return;
+          }
           const data = (await res.json()) as { key?: string };
           if (data.key) {
             useChatStore.getState().setActiveSession(data.key);
           }
-        } catch {
-          // silently ignore
+        } else if (action === "stop") {
+          void handleAbort();
+        } else if (action === "clear") {
+          if (activeSessionKey) {
+            useChatStore.getState().setMessages(activeSessionKey, []);
+          }
+        } else if (action === "export") {
+          if (activeSessionKey) {
+            exportSessionAsMarkdown(activeSessionKey);
+          }
         }
-      } else if (action === "stop") {
-        void handleAbort();
-      } else if (action === "clear") {
-        if (activeSessionKey) {
-          useChatStore.getState().setMessages(activeSessionKey, []);
-        }
-      } else if (action === "export") {
-        if (activeSessionKey) {
-          exportSessionAsMarkdown(activeSessionKey);
-        }
-      }
-      // "toggle-focus": UI store has no focus mode yet — no-op until implemented
-      // "refresh": no-op — SSE events will push updated state
+        // "toggle-focus": no-op until UI store has focusMode
+        // "refresh": no-op — SSE events will push updated state
 
-      // Display command output as system message
-      if (result.content) {
-        if (activeSessionKey) {
-          useChatStore.getState().addMessage(activeSessionKey, {
-            id: `system-cmd-${Date.now()}`,
-            role: "system",
-            content: [{ type: "text" as const, text: result.content }],
-            timestamp: Date.now(),
-          });
+        // Display command output as system message
+        if (result.content) {
+          addSystemMsg(result.content);
         }
+      } catch (err) {
+        console.error(`[/${cmd.name}]`, err);
+        addSystemMsg(`/${cmd.name}: ${err instanceof Error ? err.message : "Command failed"}`);
       }
     },
-    [activeSessionKey, activeAgentId, input],
+    [activeSessionKey, activeAgentId, handleAbort],
   );
 
   const sendMessage = useCallback(async () => {
@@ -239,10 +264,10 @@ export function MessageInput() {
       return;
     }
 
-    // Check for slash command
+    // Check for slash command — pass parsed args to avoid double-parse
     const parsed = parseSlashCommand(text);
     if (parsed) {
-      await handleSlashCommand(parsed.command);
+      await handleSlashCommand(parsed.command, parsed.args);
       return;
     }
 
@@ -381,19 +406,6 @@ export function MessageInput() {
       setIsSending(false);
     }
   }, [input, files, isStreaming, isSending, activeSessionKey, activeAgentId, t, handleSlashCommand, history]);
-
-  const handleAbort = useCallback(async () => {
-    await fetch("/api/chat/abort", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionKey: activeSessionKey ?? undefined,
-      }),
-    });
-    if (activeSessionKey) {
-      useChatStore.getState().setSessionStreaming(activeSessionKey, false);
-    }
-  }, [activeSessionKey]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Priority 1: Slash command palette (when open, it owns ArrowUp/Down/Enter/Escape)
