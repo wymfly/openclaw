@@ -12,5 +12,8 @@ data/
 # Generated PM2 config
 ecosystem.config.cjs
 
+# Pre-downloaded dependency installers
+deps/
+
 # macOS
 .DS_Store

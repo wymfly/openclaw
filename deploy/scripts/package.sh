@@ -8,6 +8,7 @@
 #   deploy/scripts/package.sh --with-prebuilt     # A+C: source + pre-built artifacts
 #   deploy/scripts/package.sh --full              # A+B+C: everything
 #   deploy/scripts/package.sh --with-local        # Include runtime plugins + skills
+#   deploy/scripts/package.sh --with-deps         # Include pre-downloaded deps (deploy/deps/)
 #   deploy/scripts/package.sh --platform linux    # Docker platform: linux/amd64
 #   deploy/scripts/package.sh --platform mac      # Docker platform: linux/arm64
 #   deploy/scripts/package.sh --output /path      # Custom output directory
@@ -33,10 +34,12 @@ OUTPUT_DIR="${DEPLOY_DIR}"
 WITH_IMAGES=false
 WITH_PREBUILT=false
 WITH_LOCAL=false
+WITH_DEPS=false
 DOCKER_PLATFORM=""
 HAS_IMAGES=false
 HAS_PREBUILT=false
 HAS_LOCAL=false
+HAS_DEPS=false
 
 log() { echo "[package] $*"; }
 err() { echo "[package] ERROR: $*" >&2; exit 1; }
@@ -50,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --with-prebuilt) WITH_PREBUILT=true; shift ;;
     --full)          WITH_IMAGES=true; WITH_PREBUILT=true; shift ;;
     --with-local)    WITH_LOCAL=true; shift ;;
+    --with-deps)     WITH_DEPS=true; shift ;;
     --platform)
       shift
       case "${1:-}" in
@@ -214,6 +218,24 @@ stage_local() {
 }
 
 # ---------------------------------------------------------------------------
+# Pre-downloaded dependencies (deploy/deps/)
+# ---------------------------------------------------------------------------
+stage_deps() {
+  local deps_src="$DEPLOY_DIR/deps"
+  if [ ! -d "$deps_src" ]; then
+    err "deploy/deps/ not found. Run 'deploy/scripts/prepare-deps.sh' first."
+  fi
+
+  local deps_dst="$STAGING_DIR/$PKG_NAME/deps"
+  cp -r "$deps_src" "$deps_dst"
+
+  local count
+  count=$(find "$deps_dst" -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.tar.*" \) | wc -l | tr -d ' ')
+  HAS_DEPS=true
+  log "Dependencies staged ($count installer files)"
+}
+
+# ---------------------------------------------------------------------------
 # Manifest
 # ---------------------------------------------------------------------------
 write_manifest() {
@@ -228,7 +250,8 @@ write_manifest() {
     "prebuilt": $HAS_PREBUILT,
     "dockerImages": $HAS_IMAGES,
     "dockerPlatform": "$DOCKER_PLATFORM",
-    "localExtensions": $HAS_LOCAL
+    "localExtensions": $HAS_LOCAL,
+    "offlineDeps": $HAS_DEPS
   }
 }
 EOF
@@ -290,6 +313,11 @@ if [ "$WITH_PREBUILT" = true ]; then
   stage_prebuilt
 fi
 
+# Deps: optional
+if [ "$WITH_DEPS" = true ]; then
+  stage_deps
+fi
+
 # Local content: optional
 if [ "$WITH_LOCAL" = true ]; then
   stage_local
@@ -313,7 +341,7 @@ local_size=$(du -sh "$local_tar" | cut -f1)
 log "=== Package complete ==="
 log "File: $local_tar"
 log "Size: $local_size"
-log "Layers: source$([ "$HAS_IMAGES" = true ] && echo " + images")$([ "$HAS_PREBUILT" = true ] && echo " + prebuilt")$([ "$HAS_LOCAL" = true ] && echo " + local")"
+log "Layers: source$([ "$HAS_IMAGES" = true ] && echo " + images")$([ "$HAS_PREBUILT" = true ] && echo " + prebuilt")$([ "$HAS_LOCAL" = true ] && echo " + local")$([ "$HAS_DEPS" = true ] && echo " + deps")"
 log ""
 log "To deploy:"
 log "  scp $local_tar user@target:/tmp/"
