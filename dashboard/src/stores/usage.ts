@@ -1,160 +1,273 @@
 import { create } from "zustand";
 
 // ---------------------------------------------------------------------------
-// Types
+// Gateway response types (mirrors src/shared/usage-types.ts)
 // ---------------------------------------------------------------------------
 
-export interface UsageSummary {
-  tokensIn: number;
-  tokensOut: number;
+export interface CostUsageTotals {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
   totalTokens: number;
   totalCost: number;
+  inputCost: number;
+  outputCost: number;
+  cacheReadCost: number;
+  cacheWriteCost: number;
+  missingCostEntries: number;
 }
 
-export interface ModelBreakdown {
-  model: string;
-  tokensIn: number;
-  tokensOut: number;
-  totalTokens: number;
+export interface SessionModelUsage {
+  provider?: string;
+  model?: string;
+  count: number;
+  totals: CostUsageTotals;
+}
+
+export interface SessionMessageCounts {
+  total: number;
+  user: number;
+  assistant: number;
+  toolCalls: number;
+  toolResults: number;
+  errors: number;
+}
+
+export interface SessionToolUsage {
+  totalCalls: number;
+  uniqueTools: number;
+  tools: Array<{ name: string; count: number }>;
+}
+
+export interface SessionLatencyStats {
+  count: number;
+  avgMs: number;
+  p95Ms: number;
+  minMs: number;
+  maxMs: number;
+}
+
+export interface SessionDailyLatency extends SessionLatencyStats {
+  date: string;
+}
+
+export interface SessionDailyModelUsage {
+  date: string;
+  provider?: string;
+  model?: string;
+  tokens: number;
   cost: number;
+  count: number;
 }
 
-export interface AgentBreakdown {
-  agentId: string;
-  agentName: string;
-  tokensIn: number;
-  tokensOut: number;
-  totalTokens: number;
+export interface DailyAggregate {
+  date: string;
+  tokens: number;
   cost: number;
+  messages: number;
+  toolCalls: number;
+  errors: number;
 }
 
-export interface TimeseriesPoint {
+export interface SessionsUsageAggregates {
+  messages: SessionMessageCounts;
+  tools: SessionToolUsage;
+  byModel: SessionModelUsage[];
+  byProvider: SessionModelUsage[];
+  byAgent: Array<{ agentId: string; totals: CostUsageTotals }>;
+  byChannel: Array<{ channel: string; totals: CostUsageTotals }>;
+  latency?: SessionLatencyStats;
+  dailyLatency?: SessionDailyLatency[];
+  modelDaily?: SessionDailyModelUsage[];
+  daily: DailyAggregate[];
+}
+
+export interface SessionUsageEntry {
+  key: string;
+  label?: string;
+  sessionId?: string;
+  updatedAt?: number;
+  agentId?: string;
+  channel?: string;
+  usage: {
+    input: number;
+    output: number;
+    totalTokens: number;
+    totalCost: number;
+  } | null;
+}
+
+export interface SessionsUsageResult {
+  updatedAt: number;
+  startDate: string;
+  endDate: string;
+  sessions: SessionUsageEntry[];
+  totals: CostUsageTotals;
+  aggregates: SessionsUsageAggregates;
+}
+
+export interface SessionLogEntry {
   timestamp: number;
-  tokensIn: number;
-  tokensOut: number;
-  cost: number;
+  role: "user" | "assistant" | "tool" | "toolResult";
+  content: string;
+  tokens?: number;
+  cost?: number;
 }
 
-export type TimeWindow = "today" | "7d" | "30d";
+// Legacy type for usage.cost fallback
+export interface UsageCostResult {
+  updatedAt: number;
+  days: number;
+  totals: CostUsageTotals;
+}
+
+export type TimeWindow = "today" | "7d" | "30d" | "custom";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const TIME_WINDOW_DAYS: Record<TimeWindow, number> = {
+const TIME_WINDOW_DAYS: Record<Exclude<TimeWindow, "custom">, number> = {
   today: 1,
   "7d": 7,
   "30d": 30,
 };
+
+function dateNDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
 interface UsageState {
-  summary: UsageSummary | null;
-  modelBreakdown: ModelBreakdown[];
-  agentBreakdown: AgentBreakdown[];
-  timeseries: TimeseriesPoint[];
+  // Date range
   timeWindow: TimeWindow;
-  loading: boolean;
+  startDate: string;
+  endDate: string;
+
+  // Data
+  costFallback: UsageCostResult | null;
+  sessionsUsage: SessionsUsageResult | null;
+
+  // Loading
+  costLoading: boolean;
+  sessionsLoading: boolean;
   error: string | null;
 
+  // Request dedup
+  _lastFetchKey: string;
+  _lastFetchTime: number;
+
+  // Actions
   setTimeWindow: (window: TimeWindow) => void;
-  fetchUsage: () => Promise<void>;
-  fetchTimeseries: () => Promise<void>;
+  setCustomRange: (startDate: string, endDate: string) => void;
+  fetchAll: () => Promise<void>;
+  fetchSessionLogs: (key: string) => Promise<SessionLogEntry[]>;
 }
 
 export const useUsageStore = create<UsageState>((set, get) => ({
-  summary: null,
-  modelBreakdown: [],
-  agentBreakdown: [],
-  timeseries: [],
-  timeWindow: "today",
-  loading: false,
+  timeWindow: "7d",
+  startDate: dateNDaysAgo(7),
+  endDate: todayStr(),
+
+  costFallback: null,
+  sessionsUsage: null,
+
+  costLoading: false,
+  sessionsLoading: false,
   error: null,
 
-  setTimeWindow: (timeWindow) => set({ timeWindow }),
+  _lastFetchKey: "",
+  _lastFetchTime: 0,
 
-  fetchUsage: async () => {
-    set({ loading: true, error: null });
-    const days = TIME_WINDOW_DAYS[get().timeWindow];
+  setTimeWindow: (timeWindow) => {
+    if (timeWindow === "custom") return;
+    const days = TIME_WINDOW_DAYS[timeWindow];
+    set({
+      timeWindow,
+      startDate: dateNDaysAgo(days),
+      endDate: todayStr(),
+    });
+  },
+
+  setCustomRange: (startDate, endDate) => {
+    set({ timeWindow: "custom", startDate, endDate });
+  },
+
+  fetchAll: async () => {
+    const { startDate, endDate, _lastFetchKey, _lastFetchTime } = get();
+    const fetchKey = `${startDate}:${endDate}`;
+
+    // Request dedup: same params within 30s
+    if (fetchKey === _lastFetchKey && Date.now() - _lastFetchTime < 30_000) {
+      return;
+    }
+
+    set({
+      costLoading: true,
+      sessionsLoading: true,
+      error: null,
+      _lastFetchKey: fetchKey,
+      _lastFetchTime: Date.now(),
+    });
+
+    // Phase 1: Fast load via usage.cost (cached, ~<500ms)
+    const days = Math.max(
+      1,
+      Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000) + 1,
+    );
 
     try {
-      const [statusRes, costRes] = await Promise.all([
-        fetch("/api/usage"),
-        fetch(`/api/usage/cost?days=${days}`),
-      ]);
+      const costRes = await fetch(`/api/usage/cost?days=${days}`);
+      if (costRes.ok) {
+        const costData = (await costRes.json()) as UsageCostResult;
+        set({ costFallback: costData, costLoading: false });
+      } else {
+        set({ costLoading: false });
+      }
+    } catch {
+      set({ costLoading: false });
+    }
 
-      if (!statusRes.ok || !costRes.ok) {
-        const errBody = !statusRes.ok ? await statusRes.json() : await costRes.json();
+    // Phase 2: Full load via sessions.usage
+    try {
+      const sessRes = await fetch(
+        `/api/usage/sessions?startDate=${startDate}&endDate=${endDate}`,
+      );
+      if (!sessRes.ok) {
+        const errBody = (await sessRes.json()) as { error?: string };
         set({
-          error: (errBody as { error?: string }).error ?? "Failed to fetch usage",
-          loading: false,
+          error: errBody.error ?? "Failed to fetch usage",
+          sessionsLoading: false,
         });
         return;
       }
 
-      // usage.status response consumed to confirm connectivity; token data is in cost response.
-      await statusRes.json();
-      const costData = (await costRes.json()) as Record<string, unknown>;
-
-      // usage.status returns `{ updatedAt, providers: [{ provider, displayName, windows }] }` — rate limit info only.
-      // usage.cost returns `{ updatedAt, days, daily, totals: { input, output, totalTokens, totalCost, ... } }` — the real token/cost data.
-      const totals = (costData.totals ?? {}) as Record<string, unknown>;
-      const tokensIn = Number(totals.input ?? 0);
-      const tokensOut = Number(totals.output ?? 0);
-      const totalTokens = Number(totals.totalTokens ?? tokensIn + tokensOut);
-      const totalCost = Number(totals.totalCost ?? 0);
-
-      // Note: usage.status providers contain rate-limit windows, not token breakdowns.
-      // Model/agent breakdown may come from cost data in future Gateway versions.
-
-      set({
-        summary: { tokensIn, tokensOut, totalTokens, totalCost },
-        modelBreakdown: (costData.modelBreakdown as ModelBreakdown[]) ?? [],
-        agentBreakdown: (costData.agentBreakdown as AgentBreakdown[]) ?? [],
-        loading: false,
-      });
+      const sessData = (await sessRes.json()) as SessionsUsageResult;
+      set({ sessionsUsage: sessData, sessionsLoading: false });
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Failed to fetch usage",
-        loading: false,
+        sessionsLoading: false,
       });
     }
   },
 
-  fetchTimeseries: async () => {
-    const days = TIME_WINDOW_DAYS[get().timeWindow];
-
-    try {
-      const res = await fetch(`/api/usage/timeseries?days=${days}`);
-      if (!res.ok) {
-        // Timeseries may not be available (requires session key); degrade gracefully.
-        set({ timeseries: [] });
-        return;
-      }
-
-      const data = (await res.json()) as Record<string, unknown>;
-      // Gateway returns `{ points: [...] }` — unwrap from `points` if present.
-      const raw = Array.isArray(data.points)
-        ? data.points
-        : Array.isArray(data.timeseries)
-          ? data.timeseries
-          : Array.isArray(data)
-            ? data
-            : [];
-      // Map gateway field names (input/output) to store field names (tokensIn/tokensOut).
-      const timeseries: TimeseriesPoint[] = (raw as Record<string, unknown>[]).map((p) => ({
-        timestamp: Number(p.timestamp ?? 0),
-        tokensIn: Number(p.input ?? p.tokensIn ?? 0),
-        tokensOut: Number(p.output ?? p.tokensOut ?? 0),
-        cost: Number(p.cost ?? 0),
-      }));
-      set({ timeseries });
-    } catch {
-      // Timeseries fetch is best-effort; don't set error state.
-      set({ timeseries: [] });
-    }
+  fetchSessionLogs: async (key) => {
+    const res = await fetch(
+      `/api/usage/sessions/logs?key=${encodeURIComponent(key)}`,
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as { logs: SessionLogEntry[] };
+    return data.logs ?? [];
   },
 }));
