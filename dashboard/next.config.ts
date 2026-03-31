@@ -4,8 +4,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  // Server needs native modules (better-sqlite3, ws)
-  serverExternalPackages: ["better-sqlite3", "ws"],
+  // Server needs native modules (ws)
+  serverExternalPackages: ["ws"],
   // Support standalone output for Docker deployment
   output: "standalone",
 
