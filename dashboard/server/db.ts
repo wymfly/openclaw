@@ -88,18 +88,20 @@ class StatementAdapter {
 // ---------------------------------------------------------------------------
 
 class DatabaseAdapter {
+	private _inTransaction = false;
+
 	constructor(
 		private db: SqlJsDatabase,
 		private dbPath: string,
 	) {}
 
 	prepare(sql: string): StatementAdapter {
-		return new StatementAdapter(this.db, sql, () => this.save());
+		return new StatementAdapter(this.db, sql, () => this.maybeSave());
 	}
 
 	exec(sql: string): void {
 		this.db.run(sql);
-		this.save();
+		this.maybeSave();
 	}
 
 	pragma(str: string, opts?: { simple?: boolean }): unknown {
@@ -117,14 +119,17 @@ class DatabaseAdapter {
 
 	transaction<T extends (...args: any[]) => any>(fn: T): T {
 		const wrapped = ((...args: any[]) => {
+			this._inTransaction = true;
 			this.db.run("BEGIN");
 			try {
 				const result = fn(...args);
 				this.db.run("COMMIT");
-				this.save();
+				this._inTransaction = false;
+				this.save(); // Single save after commit — not per-statement
 				return result;
 			} catch (e) {
 				this.db.run("ROLLBACK");
+				this._inTransaction = false;
 				throw e;
 			}
 		}) as unknown as T;
@@ -134,6 +139,11 @@ class DatabaseAdapter {
 	close(): void {
 		this.save();
 		this.db.close();
+	}
+
+	/** Save only if not inside a transaction (deferred to commit) */
+	private maybeSave(): void {
+		if (!this._inTransaction) this.save();
 	}
 
 	/** Atomic persist: write to tmp then rename */
