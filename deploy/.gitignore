@@ -1,0 +1,16 @@
+# Package artifacts
+openclaw-deploy-*.tar.gz
+openclaw-deploy-*.zip
+*.tar
+
+# Runtime data
+data/
+
+# Sensitive config
+.env
+
+# Generated PM2 config
+ecosystem.config.cjs
+
+# macOS
+.DS_Store
