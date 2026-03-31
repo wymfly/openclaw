@@ -2,115 +2,128 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { useUsageStore, type TimeWindow } from "@/stores/usage";
+import { useUsageStore } from "@/stores/usage";
 import { BreakdownTable } from "./BreakdownTable";
 import { ContextPressure } from "./ContextPressure";
+import { DateRangePicker } from "./DateRangePicker";
+import { LatencyCard } from "./LatencyCard";
+import { SessionUsageList } from "./SessionUsageList";
 import { SummaryCards } from "./SummaryCards";
 import { UsageChart } from "./UsageChart";
 
-// ---------------------------------------------------------------------------
-// Time-window selector buttons
-// ---------------------------------------------------------------------------
-
-const TIME_WINDOWS: TimeWindow[] = ["today", "7d", "30d"];
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export function UsagePanel() {
   const t = useTranslations("usage");
-  const tc = useTranslations("common");
 
   const {
-    summary,
-    modelBreakdown,
-    agentBreakdown,
-    timeseries,
     timeWindow,
-    loading,
+    startDate,
+    endDate,
+    costFallback,
+    sessionsUsage,
+    costLoading,
+    sessionsLoading,
     error,
     setTimeWindow,
-    fetchUsage,
+    setCustomRange,
+    fetchAll,
   } = useUsageStore();
 
-  // Fetch data on mount and when the time window changes.
-  // NOTE: fetchTimeseries disabled — Gateway RPC `sessions.usage.timeseries`
-  // requires a session key, not a time range. Aggregation API doesn't exist yet.
+  // Fetch data on mount and when date range changes
   useEffect(() => {
-    void fetchUsage();
-  }, [timeWindow, fetchUsage]);
+    void fetchAll();
+  }, [startDate, endDate, fetchAll]);
+
+  // Derive display data: prefer sessionsUsage, fall back to costFallback for totals
+  const totals = sessionsUsage?.totals ?? costFallback?.totals ?? null;
+  const aggregates = sessionsUsage?.aggregates ?? null;
+  const isLoading = costLoading || sessionsLoading;
+
+  // Force refresh (reset dedup)
+  const handleRefresh = () => {
+    useUsageStore.setState({ _lastFetchKey: "", _lastFetchTime: 0 });
+    void fetchAll();
+  };
 
   return (
     <div
       className="flex flex-col h-full rounded-lg overflow-hidden border"
       style={{ borderColor: "var(--border)" }}
     >
-      {/* Header with time-window selector */}
+      {/* Header: date range + refresh */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b"
+        className="px-4 py-3 border-b"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
+          backgroundColor: "var(--card)",
         }}
       >
-        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {t("title")}
-        </h2>
-        <div className="flex gap-1">
-          {TIME_WINDOWS.map((w) => (
-            <button
-              key={w}
-              type="button"
-              className="px-3 py-1 text-xs rounded-md font-medium transition-colors"
-              style={{
-                backgroundColor: timeWindow === w ? "var(--brand)" : "transparent",
-                color: timeWindow === w ? "var(--brand-fg)" : "var(--text-secondary)",
-              }}
-              onClick={() => setTimeWindow(w)}
-            >
-              {t(w)}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-2">
+          <h2
+            className="text-sm font-semibold"
+            style={{ color: "var(--foreground)" }}
+          >
+            {t("title")}
+          </h2>
         </div>
+        <DateRangePicker
+          timeWindow={timeWindow}
+          startDate={startDate}
+          endDate={endDate}
+          onWindowChange={setTimeWindow}
+          onCustomRange={setCustomRange}
+          onRefresh={handleRefresh}
+          loading={isLoading}
+        />
       </div>
 
       {/* Body */}
       <div
         className="flex-1 overflow-y-auto p-4 space-y-4"
-        style={{ backgroundColor: "var(--bg-primary)" }}
+        style={{ backgroundColor: "var(--background)" }}
       >
-        {loading && (
+        {error && !isLoading && (
           <div
             className="flex items-center justify-center py-12"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            <p className="text-sm">{tc("loading")}</p>
-          </div>
-        )}
-
-        {error && !loading && (
-          <div
-            className="flex items-center justify-center py-12"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{error}</p>
           </div>
         )}
 
-        {!loading && !error && summary && (
-          <>
-            <SummaryCards summary={summary} />
-            <UsageChart timeseries={timeseries} />
-            <ContextPressure />
-            <BreakdownTable modelBreakdown={modelBreakdown} agentBreakdown={agentBreakdown} />
-          </>
+        {/* Summary cards — show as soon as any totals available */}
+        <SummaryCards totals={totals} aggregates={aggregates} loading={isLoading} />
+
+        {/* Time series chart */}
+        {aggregates && (
+          <UsageChart daily={aggregates.daily} modelDaily={aggregates.modelDaily} />
         )}
 
-        {!loading && !error && !summary && (
+        {/* Main content: breakdown + context pressure side by side on large screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-3">
+            <BreakdownTable aggregates={aggregates} totals={totals} />
+          </div>
+          <div className="lg:col-span-2 space-y-4">
+            <ContextPressure />
+            {aggregates && (
+              <LatencyCard
+                latency={aggregates.latency}
+                dailyLatency={aggregates.dailyLatency}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Session drilldown */}
+        {sessionsUsage && (
+          <SessionUsageList sessions={sessionsUsage.sessions} />
+        )}
+
+        {/* Empty state */}
+        {!isLoading && !error && !totals && (
           <div
             className="flex items-center justify-center py-12"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{t("noData")}</p>
           </div>

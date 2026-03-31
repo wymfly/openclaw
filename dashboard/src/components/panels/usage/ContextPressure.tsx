@@ -11,7 +11,7 @@ import { useSessionsStore, type SessionEntry } from "@/stores/sessions";
 /** Return color based on context usage percentage. */
 function pressureColor(pct: number): string {
   if (pct >= 80) {
-    return "var(--danger)";
+    return "var(--destructive)";
   }
   if (pct >= 60) {
     return "var(--warning)";
@@ -67,11 +67,11 @@ export function ContextPressure() {
     <div
       className="rounded-lg border p-4"
       style={{
-        backgroundColor: "var(--bg-secondary)",
+        backgroundColor: "var(--card)",
         borderColor: "var(--border)",
       }}
     >
-      <p className="text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>
+      <p className="text-sm font-medium mb-3" style={{ color: "var(--foreground)" }}>
         {t("contextPressure")}
       </p>
       <div className="space-y-2.5">
@@ -83,7 +83,7 @@ export function ContextPressure() {
               <div className="flex items-center justify-between mb-1">
                 <span
                   className="text-xs truncate mr-2 font-mono"
-                  style={{ color: "var(--text-secondary)" }}
+                  style={{ color: "var(--muted-foreground)" }}
                   title={s.key}
                 >
                   {shortKey(s.key)}
@@ -95,7 +95,7 @@ export function ContextPressure() {
               {/* Bar */}
               <div
                 className="h-2 rounded-full overflow-hidden"
-                style={{ backgroundColor: "var(--bg-primary)" }}
+                style={{ backgroundColor: "var(--background)" }}
               >
                 <div
                   className="h-full rounded-full transition-all"
