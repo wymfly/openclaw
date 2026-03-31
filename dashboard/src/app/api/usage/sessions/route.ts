@@ -22,7 +22,10 @@ export const GET = withAuth(async (request: NextRequest) => {
     params.endDate = endDate;
   }
   if (limit) {
-    params.limit = parseInt(limit, 10);
+    const parsed = parseInt(limit, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      params.limit = parsed;
+    }
   }
 
   return gatewayRequest("sessions.usage", params);

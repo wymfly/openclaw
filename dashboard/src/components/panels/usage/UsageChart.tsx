@@ -54,7 +54,8 @@ export function UsageChart({ daily, modelDaily }: UsageChartProps) {
     const names = new Set<string>();
 
     for (const entry of modelDaily) {
-      const name = entry.model ?? entry.provider ?? "unknown";
+      // Replace dots in model names to prevent Recharts path-based key resolution
+      const name = (entry.model ?? entry.provider ?? "unknown").replaceAll(".", "_");
       names.add(name);
       const row = dateMap.get(entry.date) ?? { date: entry.date };
       row[name] = ((row[name] as number) ?? 0) + entry.tokens;

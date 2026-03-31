@@ -134,14 +134,21 @@ const TIME_WINDOW_DAYS: Record<Exclude<TimeWindow, "custom">, number> = {
   "30d": 30,
 };
 
+function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function dateNDaysAgo(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days + 1);
-  return d.toISOString().slice(0, 10);
+  return localDateStr(d);
 }
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDateStr(new Date());
 }
 
 // ---------------------------------------------------------------------------
@@ -163,9 +170,10 @@ interface UsageState {
   sessionsLoading: boolean;
   error: string | null;
 
-  // Request dedup
+  // Request dedup + abort
   _lastFetchKey: string;
   _lastFetchTime: number;
+  _abortController: AbortController | null;
 
   // Actions
   setTimeWindow: (window: TimeWindow) => void;
@@ -188,6 +196,7 @@ export const useUsageStore = create<UsageState>((set, get) => ({
 
   _lastFetchKey: "",
   _lastFetchTime: 0,
+  _abortController: null,
 
   setTimeWindow: (timeWindow) => {
     if (timeWindow === "custom") return;
@@ -204,7 +213,7 @@ export const useUsageStore = create<UsageState>((set, get) => ({
   },
 
   fetchAll: async () => {
-    const { startDate, endDate, _lastFetchKey, _lastFetchTime } = get();
+    const { startDate, endDate, _lastFetchKey, _lastFetchTime, _abortController } = get();
     const fetchKey = `${startDate}:${endDate}`;
 
     // Request dedup: same params within 30s
@@ -212,29 +221,37 @@ export const useUsageStore = create<UsageState>((set, get) => ({
       return;
     }
 
+    // Abort any in-flight requests from a previous call
+    _abortController?.abort();
+    const ac = new AbortController();
+
     set({
       costLoading: true,
       sessionsLoading: true,
       error: null,
       _lastFetchKey: fetchKey,
       _lastFetchTime: Date.now(),
+      _abortController: ac,
     });
 
     // Phase 1: Fast load via usage.cost (cached, ~<500ms)
+    // Note: usage.cost only accepts `days` param, not startDate/endDate.
+    // For custom ranges this is an approximation; sessions.usage (phase 2) provides exact data.
     const days = Math.max(
       1,
       Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000) + 1,
     );
 
     try {
-      const costRes = await fetch(`/api/usage/cost?days=${days}`);
+      const costRes = await fetch(`/api/usage/cost?days=${days}`, { signal: ac.signal });
       if (costRes.ok) {
         const costData = (await costRes.json()) as UsageCostResult;
         set({ costFallback: costData, costLoading: false });
       } else {
         set({ costLoading: false });
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       set({ costLoading: false });
     }
 
@@ -242,6 +259,7 @@ export const useUsageStore = create<UsageState>((set, get) => ({
     try {
       const sessRes = await fetch(
         `/api/usage/sessions?startDate=${startDate}&endDate=${endDate}`,
+        { signal: ac.signal },
       );
       if (!sessRes.ok) {
         const errBody = (await sessRes.json()) as { error?: string };
@@ -255,6 +273,7 @@ export const useUsageStore = create<UsageState>((set, get) => ({
       const sessData = (await sessRes.json()) as SessionsUsageResult;
       set({ sessionsUsage: sessData, sessionsLoading: false });
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       set({
         error: err instanceof Error ? err.message : "Failed to fetch usage",
         sessionsLoading: false,
