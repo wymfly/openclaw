@@ -154,9 +154,9 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
       const qs = params.toString();
       const res = await fetch(`/api/sessions${qs ? `?${qs}` : ""}`);
       if (!res.ok) {
-        const body = await res.json();
+        const body = await res.json().catch(() => ({}));
         set({
-          error: (body as { error?: string }).error ?? "Failed to fetch sessions",
+          error: (body as { error?: string }).error ?? `Failed to fetch sessions (${res.status})`,
           loading: false,
         });
         return;
