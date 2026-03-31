@@ -88,16 +88,15 @@ export function InlineEdit(props: InlineEditProps) {
     [confirm, cancel],
   );
 
-  const handleBlur = useCallback(() => {
-    cancel();
-  }, [cancel]);
-
   // ----- Read-only mode -----
   if (!editing) {
     const displayValue =
       props.type === "select"
         ? props.options.find((o) => o.value === value)?.label ?? value
         : value;
+
+    const placeholder =
+      props.type !== "select" && props.placeholder ? props.placeholder : "—";
 
     return (
       <button
@@ -111,7 +110,7 @@ export function InlineEdit(props: InlineEditProps) {
         title={t("inlineEditConfirm")}
       >
         <span className={cn(!displayValue && "text-muted-foreground italic")}>
-          {displayValue || (props.type !== "select" ? props.placeholder ?? "—" : "—")}
+          {displayValue || placeholder}
         </span>
         <Pencil
           size={12}
@@ -136,7 +135,7 @@ export function InlineEdit(props: InlineEditProps) {
             }
           }}
           onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
+          onBlur={cancel}
           className="text-sm bg-transparent border border-primary rounded px-1.5 py-0.5 outline-none text-foreground"
         >
           {props.options.map((opt) => (
@@ -158,7 +157,7 @@ export function InlineEdit(props: InlineEditProps) {
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
+        onBlur={cancel}
         className="text-sm bg-transparent border border-primary rounded px-1.5 py-0.5 outline-none text-foreground min-w-[80px]"
       />
     </div>
