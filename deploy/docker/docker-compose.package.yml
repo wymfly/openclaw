@@ -1,0 +1,13 @@
+# Overlay for pre-built package images.
+# Used when openclaw-gateway:package and openclaw-deck:package are loaded.
+#
+# Usage (via install.sh, automatic):
+#   docker compose -f docker-compose.yml -f docker-compose.package.yml up -d
+
+services:
+  gateway:
+    image: openclaw-gateway:package
+    build: !reset null
+  deck:
+    image: openclaw-deck:package
+    build: !reset null

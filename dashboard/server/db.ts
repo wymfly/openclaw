@@ -120,17 +120,21 @@ class DatabaseAdapter {
 	transaction<T extends (...args: any[]) => any>(fn: T): T {
 		const wrapped = ((...args: any[]) => {
 			this._inTransaction = true;
-			this.db.run("BEGIN");
 			try {
+				this.db.run("BEGIN");
 				const result = fn(...args);
 				this.db.run("COMMIT");
-				this._inTransaction = false;
 				this.save(); // Single save after commit — not per-statement
 				return result;
 			} catch (e) {
-				this.db.run("ROLLBACK");
-				this._inTransaction = false;
+				try {
+					this.db.run("ROLLBACK");
+				} catch {
+					// ROLLBACK may fail if BEGIN itself failed
+				}
 				throw e;
+			} finally {
+				this._inTransaction = false;
 			}
 		}) as unknown as T;
 		return wrapped;
