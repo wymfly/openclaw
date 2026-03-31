@@ -20,7 +20,9 @@
 | `scripts/seed.js` | 种子注入（Node.js 跨平台） | 新增 seed 内容或模板变量时 |
 | `scripts/generate-ecosystem.js` | PM2 配置生成 | 修改启动参数或 env 时 |
 | `scripts/teardown.sh` | 卸载清理 | 修改安装路径时 |
+| `scripts/prepare-deps.sh` | Windows 离线依赖下载 | Node.js 版本升级时 |
 | `docker/docker-compose.yml` | Docker 编排 | 修改容器配置时 |
+| `docker/docker-compose.package.yml` | 预构建镜像 overlay | 修改镜像 tag 时 |
 | `docker/docker-compose.sandbox.yml` | Sandbox overlay | 修改沙箱配置时 |
 | `docker/Dockerfile.deck` | Deck 镜像（无 native addon） | 修改 Deck 依赖时 |
 | `ecosystem.config.cjs.tmpl` | PM2 模板 | 修改启动参数时 |
@@ -40,7 +42,7 @@
 | `openclaw.json` schema | `seed/openclaw.json.tmpl` |
 | `dashboard/server/db.ts` (sql.js) | `docker/Dockerfile.deck`（确认无 native addon 残留） |
 | `dashboard/migrations/` | `docker/Dockerfile.deck` COPY 步骤 |
-| Node.js 版本升级 | `docker/Dockerfile.deck` FROM, `scripts/install.sh` check_node |
+| Node.js 版本升级 | `docker/Dockerfile.deck` FROM, `scripts/install.sh` check_node, `scripts/prepare-deps.sh` NODE_VERSION |
 | pnpm 版本升级 | `docker/Dockerfile.deck` corepack prepare |
 
 ## 部署命令序列
@@ -73,8 +75,10 @@ curl -sf http://localhost:3000
 ```bash
 deploy/scripts/package.sh                     # A: 仅源码
 deploy/scripts/package.sh --with-prebuilt     # A+C: 含预构建
-deploy/scripts/package.sh --with-images       # A+B: 含 Docker 镜像
+deploy/scripts/package.sh --with-images       # A+B: 含 Docker 镜像（建议在目标机构建）
 deploy/scripts/package.sh --full              # A+B+C: 全部
+deploy/scripts/prepare-deps.sh               # 下载 Windows 离线依赖
+deploy/scripts/package.sh --with-deps         # 打包时包含离线依赖
 deploy/scripts/package.sh --with-local        # 收集本地插件/skills
 ```
 

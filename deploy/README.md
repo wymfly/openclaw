@@ -67,6 +67,10 @@ deploy/scripts/package.sh --full --platform linux
 
 # 收集本地插件和 skills
 deploy/scripts/package.sh --with-local
+
+# 包含 Windows 离线安装包（Node.js MSI + Docker Desktop）
+deploy/scripts/prepare-deps.sh   # 先下载依赖
+deploy/scripts/package.sh --with-deps
 ```
 
 ### 打包层说明
@@ -74,8 +78,26 @@ deploy/scripts/package.sh --with-local
 | 层 | 内容 | 大小 | 用途 |
 |----|------|------|------|
 | A (source) | 源码 + 部署脚本 + seed | ~50MB | 始终包含 |
-| B (images) | Docker 镜像 (.tar.gz) | ~800MB | 离线 Docker 部署 |
+| B (images) | Docker 镜像 (.tar.gz) | ~800MB | 离线 Docker 部署（建议在目标机构建） |
 | C (prebuilt) | Gateway dist + Deck standalone | ~10MB | 跳过裸机构建 |
+| deps | Windows 离线安装包 | ~610MB | Node.js MSI + Docker Desktop |
+
+### Windows 离线部署
+
+提前下载 Windows 依赖，避免目标机下载缓慢：
+
+```bash
+# 下载全部（Node.js + Docker Desktop）
+deploy/scripts/prepare-deps.sh
+
+# 仅 Node.js（~60MB）
+deploy/scripts/prepare-deps.sh --node-only
+
+# 打包时带上
+deploy/scripts/package.sh --with-prebuilt --with-deps
+```
+
+安装包内 `deps/` 目录包含 MSI/EXE 安装程序，目标机按 `deps/README.md` 手动安装后再运行 `install.sh`。
 
 ### 部署安装包
 
