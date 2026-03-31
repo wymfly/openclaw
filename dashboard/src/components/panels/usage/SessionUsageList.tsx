@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { ListSearchBar, useListState } from "@/components/lists";
 import {
@@ -50,6 +50,7 @@ export function SessionUsageList({
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [logs, setLogs] = useState<SessionLogEntry[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const expandedKeyRef = useRef<string | null>(null);
 
   // List state with search and pagination
   const { filteredData, paginatedData, page, totalPages, setPage, filters, setFilters } =
@@ -78,16 +79,23 @@ export function SessionUsageList({
     async (key: string) => {
       if (expandedKey === key) {
         setExpandedKey(null);
+        expandedKeyRef.current = null;
         return;
       }
       setExpandedKey(key);
+      expandedKeyRef.current = key;
+      setLogs([]);
       setLogsLoading(true);
       try {
         const result = await fetchSessionLogs(key);
-        setLogs(result);
+        // Only update if this key is still the expanded one (prevents stale response overwrite)
+        if (expandedKeyRef.current === key) {
+          setLogs(result);
+        }
       } catch {
-        setLogs([]);
-      } finally {
+        // Ignore errors for stale requests
+      }
+      if (expandedKeyRef.current === key) {
         setLogsLoading(false);
       }
     },
@@ -137,7 +145,7 @@ export function SessionUsageList({
 
       {/* Session rows */}
       <div>
-        {paginatedData.map((session) => {
+        {paginatedData.map((session: SessionUsageEntry) => {
           const isExpanded = expandedKey === session.key;
           return (
             <div key={session.key}>

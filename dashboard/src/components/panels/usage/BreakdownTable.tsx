@@ -103,10 +103,17 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
   }, [aggregates, totals, dimension]);
 
   const { paginatedData, sort, setSort, page, totalPages, setPage } =
-    useListState({
+    useListState<BreakdownRow>({
       data: rows,
       pageSize: 20,
     });
+
+  // Reset page when dimension changes
+  const handleDimensionChange = (d: Dimension) => {
+    setDimension(d);
+    setPage(1);
+    setSort({ key: "cost", direction: "desc" });
+  };
 
   const tabs: { key: Dimension; label: string }[] = [
     { key: "model", label: t("modelBreakdown") },
@@ -138,7 +145,7 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
                   : "2px solid transparent",
               backgroundColor: "transparent",
             }}
-            onClick={() => setDimension(tab.key)}
+            onClick={() => handleDimensionChange(tab.key)}
           >
             {tab.label}
           </button>
@@ -157,7 +164,7 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
                   borderColor: "var(--border)",
                 }}
               >
-                Name
+                {tabs.find((tab) => tab.key === dimension)?.label ?? dimension}
               </th>
               <th
                 className="text-right px-4 py-2 border-b"
@@ -218,7 +225,7 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
                 </td>
               </tr>
             )}
-            {paginatedData.map((row) => (
+            {paginatedData.map((row: BreakdownRow) => (
               <tr
                 key={row.id}
                 className="border-b last:border-b-0"
