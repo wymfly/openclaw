@@ -74,12 +74,7 @@ export function useLogPolling(): void {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const streaming = useLogsStore((s) => s.streaming);
-  const filters = useLogsStore((s) => s.filters);
   const addEntries = useLogsStore((s) => s.addEntries);
-
-  // Stable ref for filters so the poll callback doesn't go stale.
-  const filtersRef = useRef(filters);
-  filtersRef.current = filters;
 
   const poll = useCallback(async () => {
     try {
@@ -88,9 +83,15 @@ export function useLogPolling(): void {
         params.set("cursor", String(cursorRef.current));
       }
       params.set("limit", "500");
+      params.set("maxBytes", "65536");
 
       const res = await fetch(`/api/logs?${params.toString()}`);
       if (!res.ok) {
+        // On persistent errors, reset cursor to recover
+        if (cursorRef.current !== null) {
+          console.warn("[logs] fetch error, resetting cursor");
+          cursorRef.current = null;
+        }
         return;
       }
 
@@ -115,7 +116,7 @@ export function useLogPolling(): void {
         return;
       }
 
-      // Parse raw lines into structured entries.
+      // Parse raw lines into structured entries — store ALL, filter at render time.
       const parsed: LogEntry[] = [];
       for (const line of rawLines) {
         if (typeof line !== "string") {
@@ -127,34 +128,8 @@ export function useLogPolling(): void {
         }
       }
 
-      if (parsed.length === 0) {
-        return;
-      }
-
-      // Apply client-side filters.
-      const f = filtersRef.current;
-      const filtered = parsed.filter((entry) => {
-        // Level filter
-        if (f.levels.length > 0 && !f.levels.includes(entry.level)) {
-          return false;
-        }
-        // Source filter
-        if (f.source !== "all" && entry.source !== f.source) {
-          return false;
-        }
-        // Session filter
-        if (
-          f.sessionKey &&
-          entry.sessionKey !== f.sessionKey &&
-          !entry.message.includes(f.sessionKey)
-        ) {
-          return false;
-        }
-        return true;
-      });
-
-      if (filtered.length > 0) {
-        addEntries(filtered);
+      if (parsed.length > 0) {
+        addEntries(parsed);
       }
     } catch {
       // Silently ignore polling errors — will retry on next tick.

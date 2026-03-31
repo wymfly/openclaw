@@ -3,6 +3,7 @@
 import { ArrowRight, ExternalLink, GitBranch, Trash2, User, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { InlineEdit } from "@/components/lists";
 import { LineageTree } from "@/components/shared/LineageTree";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -115,7 +116,7 @@ function HistoryBubble({ message }: { message: HistoryMessage }) {
 export function SessionDetail() {
   const t = useTranslations("sessions");
   const tc = useTranslations("common");
-  const { sessions, selectedKey, history, deleteSession } = useSessionsStore();
+  const { sessions, selectedKey, history, deleteSession, patchSession } = useSessionsStore();
   const { lineage, fetchLineage } = useDeckSubagentsStore();
   const [confirming, setConfirming] = useState(false);
   const [highlightIndices, setHighlightIndices] = useState<number[]>([]);
@@ -156,12 +157,16 @@ export function SessionDetail() {
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-2 shrink-0">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3
-              className="text-sm font-semibold truncate font-mono text-[var(--foreground)]"
-              title={session.key}
-            >
-              {session.key}
-            </h3>
+            {/* Editable label */}
+            <InlineEdit
+              type="text"
+              value={session.label ?? ""}
+              placeholder={session.key.length > 30 ? `${session.key.slice(0, 30)}…` : session.key}
+              onConfirm={(newLabel: string) => {
+                void patchSession(session.key, { label: newLabel || null });
+              }}
+              className="text-sm font-semibold text-[var(--foreground)]"
+            />
             {/* Status badge */}
             {session.status && STATUS_CONFIG[session.status] && (
               <Badge
@@ -176,6 +181,13 @@ export function SessionDetail() {
               </Badge>
             )}
           </div>
+          {/* Session key (always visible, non-editable) */}
+          <span
+            className="text-[10px] font-mono text-[var(--muted-foreground)] truncate block mt-0.5"
+            title={session.key}
+          >
+            {session.key}
+          </span>
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
             {session.model && (
               <span className="text-xs text-[var(--muted-foreground)]">
@@ -301,50 +313,108 @@ export function SessionDetail() {
         )}
       </div>
 
-      {/* Subagent info section (only for subagent sessions) */}
-      {isSubagent && (session.subagentRole || session.subagentControlScope || session.spawnedWorkspaceDir) && (
-        <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
-          <div className="flex items-center gap-4 flex-wrap">
-            {session.subagentRole && (
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
-                  {t("subagentRole")}
-                </span>
-                <p className="text-xs font-medium text-[var(--foreground)]">
-                  {session.subagentRole === "orchestrator"
-                    ? t("subagentRoleOrchestrator")
-                    : t("subagentRoleLeaf")}
-                </p>
-              </div>
-            )}
-            {session.subagentControlScope && (
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
-                  {t("subagentControlScope")}
-                </span>
-                <p className="text-xs font-medium text-[var(--foreground)]">
-                  {session.subagentControlScope === "children"
-                    ? t("subagentControlScopeChildren")
-                    : t("subagentControlScopeNone")}
-                </p>
-              </div>
-            )}
-            {session.spawnedWorkspaceDir && (
-              <div className="min-w-0">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
-                  {t("spawnedWorkspaceDir")}
-                </span>
-                <p className="text-xs font-mono text-[var(--foreground)] truncate" title={session.spawnedWorkspaceDir}>
-                  {session.spawnedWorkspaceDir}
-                </p>
-              </div>
-            )}
+      {/* Session directives: thinkingLevel + fastMode */}
+      <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
+        <div className="flex items-center gap-6 flex-wrap">
+          {/* thinkingLevel */}
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+              {t("thinkingLevel")}
+            </span>
+            <div className="mt-0.5">
+              <InlineEdit
+                type="select"
+                value={session.thinkingLevel ?? "off"}
+                options={[
+                  { value: "off", label: t("thinkingOff") },
+                  { value: "low", label: t("thinkingLow") },
+                  { value: "medium", label: t("thinkingMedium") },
+                  { value: "high", label: t("thinkingHigh") },
+                ]}
+                onConfirm={(val: string) => {
+                  void patchSession(session.key, { thinkingLevel: val });
+                }}
+                className="text-xs"
+              />
+            </div>
+          </div>
+          {/* fastMode */}
+          <div>
+            <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+              {t("fastMode")}
+            </span>
+            <div className="mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  void patchSession(session.key, { fastMode: !session.fastMode });
+                }}
+                className="relative w-8 h-4 rounded-full transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: session.fastMode ? "var(--primary)" : "var(--muted)",
+                }}
+              >
+                <span
+                  className="absolute top-0.5 w-3 h-3 rounded-full bg-[var(--primary-foreground)] transition-transform shadow-sm"
+                  style={{
+                    transform: session.fastMode ? "translateX(16px)" : "translateX(2px)",
+                  }}
+                />
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Subagent info section (only for subagent sessions) */}
+      {isSubagent &&
+        (session.subagentRole || session.subagentControlScope || session.spawnedWorkspaceDir) && (
+          <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
+            <div className="flex items-center gap-4 flex-wrap">
+              {session.subagentRole && (
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+                    {t("subagentRole")}
+                  </span>
+                  <p className="text-xs font-medium text-[var(--foreground)]">
+                    {session.subagentRole === "orchestrator"
+                      ? t("subagentRoleOrchestrator")
+                      : t("subagentRoleLeaf")}
+                  </p>
+                </div>
+              )}
+              {session.subagentControlScope && (
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+                    {t("subagentControlScope")}
+                  </span>
+                  <p className="text-xs font-medium text-[var(--foreground)]">
+                    {session.subagentControlScope === "children"
+                      ? t("subagentControlScopeChildren")
+                      : t("subagentControlScopeNone")}
+                  </p>
+                </div>
+              )}
+              {session.spawnedWorkspaceDir && (
+                <div className="min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+                    {t("spawnedWorkspaceDir")}
+                  </span>
+                  <p
+                    className="text-xs font-mono text-[var(--foreground)] truncate"
+                    title={session.spawnedWorkspaceDir}
+                  >
+                    {session.spawnedWorkspaceDir}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       {/* Parent/child session navigation */}
-      {(session.parentSessionKey || (session.childSessions && session.childSessions.length > 0)) && (
+      {(session.parentSessionKey ||
+        (session.childSessions && session.childSessions.length > 0)) && (
         <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
           {session.parentSessionKey && (
             <div className="flex items-center gap-2 mb-1">

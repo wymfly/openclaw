@@ -15,6 +15,10 @@ export interface SessionEntry {
   contextWindow: number;
   updatedAt: number;
   compactionCount?: number;
+  // Patchable fields
+  label?: string;
+  thinkingLevel?: string;
+  fastMode?: boolean;
   // Extended lifecycle fields (populated by sessions.changed events)
   status?: string;
   totalTokens?: number;
@@ -88,12 +92,21 @@ function normalizeSession(raw: Record<string, unknown>): SessionEntry {
     tokensOut: Number(raw.outputTokens ?? raw.tokensOut ?? 0),
     contextWindow: Number(raw.contextTokens ?? raw.contextWindow ?? 0),
     updatedAt: Number(raw.updatedAt ?? raw.lastActivityAt ?? 0),
+    label: typeof raw.label === "string" ? raw.label : undefined,
+    thinkingLevel: typeof raw.thinkingLevel === "string" ? raw.thinkingLevel : undefined,
+    fastMode: typeof raw.fastMode === "boolean" ? raw.fastMode : undefined,
   };
 }
 
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
+
+export interface SessionsFetchOpts {
+  search?: string;
+  limit?: number;
+  activeMinutes?: number;
+}
 
 interface SessionsState {
   sessions: SessionEntry[];
@@ -102,10 +115,11 @@ interface SessionsState {
   loading: boolean;
   error: string | null;
 
-  fetchSessions: () => Promise<void>;
+  fetchSessions: (opts?: SessionsFetchOpts) => Promise<void>;
   selectSession: (key: string | null) => void;
   fetchHistory: (sessionKey: string) => Promise<void>;
   deleteSession: (sessionKey: string) => Promise<void>;
+  patchSession: (sessionKey: string, patch: Record<string, unknown>) => Promise<boolean>;
   /** Apply an incoming sessions.changed event to update or insert a session. */
   applySessionChangedEvent: (payload: Record<string, unknown>) => void;
 }
@@ -117,10 +131,21 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
   loading: false,
   error: null,
 
-  fetchSessions: async () => {
+  fetchSessions: async (opts) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/sessions");
+      const params = new URLSearchParams();
+      if (opts?.search?.trim()) {
+        params.set("search", opts.search.trim());
+      }
+      if (opts?.limit != null) {
+        params.set("limit", String(opts.limit));
+      }
+      if (opts?.activeMinutes != null) {
+        params.set("activeMinutes", String(opts.activeMinutes));
+      }
+      const qs = params.toString();
+      const res = await fetch(`/api/sessions${qs ? `?${qs}` : ""}`);
       if (!res.ok) {
         const body = await res.json();
         set({
@@ -192,6 +217,31 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
       });
     } catch {
       // silently ignore
+    }
+  },
+
+  patchSession: async (sessionKey, patch) => {
+    try {
+      const res = await fetch("/api/chat/sessions/patch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionKey, ...patch }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Patch failed" }));
+        console.error("[sessions] patch failed:", (data as { error?: string }).error);
+        return false;
+      }
+      // Optimistic update: apply patched fields locally
+      set((state) => ({
+        sessions: state.sessions.map((s) =>
+          s.key === sessionKey ? { ...s, ...patch } : s,
+        ),
+      }));
+      return true;
+    } catch (err) {
+      console.error("[sessions] patch error:", err);
+      return false;
     }
   },
 

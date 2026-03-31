@@ -48,7 +48,7 @@ export const useLogsStore = create<LogsState>((set) => ({
     sessionKey: "",
   },
   streaming: true,
-  maxEntries: 500,
+  maxEntries: 5000,
 
   addEntries: (newEntries) =>
     set((state) => {

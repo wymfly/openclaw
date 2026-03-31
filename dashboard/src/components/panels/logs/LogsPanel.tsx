@@ -12,6 +12,8 @@ import { useLogPolling } from "./useLogPolling";
 export function LogsPanel() {
   const t = useTranslations("logs");
   const { streaming, setStreaming, clearLogs } = useLogsStore();
+  const totalEntries = useLogsStore((s) => s.entries.length);
+  const maxEntries = useLogsStore((s) => s.maxEntries);
 
   // Start polling on mount.
   useLogPolling();
@@ -26,13 +28,16 @@ export function LogsPanel() {
         className="flex items-center justify-between px-4 py-3 border-b gap-3 flex-wrap"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
+          backgroundColor: "var(--card)",
         }}
       >
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--text-primary)" }}>
+          <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--foreground)" }}>
             {t("title")}
           </h2>
+          <span className="text-[10px] font-mono shrink-0" style={{ color: "var(--muted-foreground)" }}>
+            {t("bufferCount", { current: totalEntries, max: maxEntries })}
+          </span>
           <LogFilters />
         </div>
 
@@ -43,8 +48,8 @@ export function LogsPanel() {
             className="text-xs px-3 py-1 rounded border cursor-pointer"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
             }}
           >
             {t("clear")}
@@ -53,9 +58,9 @@ export function LogsPanel() {
             onClick={() => setStreaming(!streaming)}
             className="text-xs px-3 py-1 rounded border cursor-pointer"
             style={{
-              borderColor: streaming ? "var(--accent)" : "var(--border)",
-              backgroundColor: streaming ? "var(--accent-muted)" : "var(--bg-primary)",
-              color: streaming ? "var(--accent)" : "var(--text-primary)",
+              borderColor: streaming ? "var(--primary)" : "var(--border)",
+              backgroundColor: streaming ? "var(--primary-muted)" : "var(--background)",
+              color: streaming ? "var(--primary)" : "var(--foreground)",
             }}
           >
             {streaming ? t("pause") : t("resume")}

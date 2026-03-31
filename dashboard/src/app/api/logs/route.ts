@@ -6,7 +6,7 @@
  *   Returns: { file, cursor, size, lines[], truncated?, reset? }
  *
  * Note: logs.tail does NOT support level/source/session filters.
- * Client-side filtering is done in the useLogPolling hook.
+ * All filtering is done at render time in LogStream.
  */
 import { NextRequest } from "next/server";
 import { gatewayRequest } from "@/lib/api-helpers";
@@ -15,8 +15,10 @@ import { withAuth } from "@/lib/with-auth";
 export const GET = withAuth(async (request: NextRequest) => {
   const cursor = request.nextUrl.searchParams.get("cursor");
   const limit = request.nextUrl.searchParams.get("limit") ?? "500";
+  const maxBytes = request.nextUrl.searchParams.get("maxBytes");
   return gatewayRequest("logs.tail", {
     ...(cursor ? { cursor: parseInt(cursor, 10) } : {}),
     limit: parseInt(limit, 10),
+    ...(maxBytes ? { maxBytes: parseInt(maxBytes, 10) } : {}),
   });
 });
