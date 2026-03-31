@@ -72,6 +72,7 @@ const POLL_INTERVAL_MS = 2000;
 export function useLogPolling(): void {
   const cursorRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollFailCountRef = useRef(0);
 
   const streaming = useLogsStore((s) => s.streaming);
   const addEntries = useLogsStore((s) => s.addEntries);
@@ -87,13 +88,16 @@ export function useLogPolling(): void {
 
       const res = await fetch(`/api/logs?${params.toString()}`);
       if (!res.ok) {
-        // On persistent errors, reset cursor to recover
+        pollFailCountRef.current++;
         if (cursorRef.current !== null) {
-          console.warn("[logs] fetch error, resetting cursor");
+          console.warn("[logs] fetch error (status %d), resetting cursor", res.status);
           cursorRef.current = null;
+        } else if (pollFailCountRef.current % 10 === 1) {
+          console.warn("[logs] polling failed %d times (status %d)", pollFailCountRef.current, res.status);
         }
         return;
       }
+      pollFailCountRef.current = 0;
 
       const data = (await res.json()) as {
         cursor?: number;
@@ -131,8 +135,12 @@ export function useLogPolling(): void {
       if (parsed.length > 0) {
         addEntries(parsed);
       }
-    } catch {
-      // Silently ignore polling errors — will retry on next tick.
+    } catch (err) {
+      // Network fetch failures are expected during connectivity blips — suppress.
+      // Log everything else so parsing/state bugs don't go unnoticed.
+      if (!(err instanceof TypeError && String(err.message).includes("fetch"))) {
+        console.error("[logs] unexpected polling error:", err);
+      }
     }
   }, [addEntries]);
 
