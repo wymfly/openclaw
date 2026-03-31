@@ -676,7 +676,9 @@
     "updateSuccess": "Update successful",
     "avatarAlt": "Agent avatar",
     "identityName": "Name",
-    "identityEmoji": "Emoji"
+    "identityEmoji": "Emoji",
+    "skillModeWhitelistDesc": "Only selected skills are available to this agent",
+    "skillModeAllDesc": "All skills are available to this agent"
   },
   "context": {
     "title": "Prompt Composition",
