@@ -91,11 +91,17 @@ deploy/scripts/package.sh --with-images --platform linux  # 指定平台镜像
 ```
 1. 验证 repo 状态
 2. stage_source()   — git archive 导出（天然排除 .git/.env/node_modules）
-3. stage_prebuilt() — [可选] 复制 dist/ + .next/standalone/
+3. stage_prebuilt() — [可选] 复制预构建产物：
+   - Gateway: dist/（含 cli-startup-metadata.json）
+   - Deck: dashboard/.next/standalone/（含 standalone/node_modules）
+   - Deck: dashboard/.next/static/（CSS/JS bundles）
+   - Deck: dashboard/public/（静态资源）
+   - Deck: dashboard/migrations/（SQL migration 文件）
 4. stage_images()   — [可选] docker build + docker save
 5. stage_local()    — [可选] 收集 ~/.openclaw/extensions + skills
 6. 写入 manifest.json
-7. 打包为 .tar.gz
+7. 验证包完整性（manifest 与实体一致、关键目录存在）
+8. 打包为 .tar.gz
 ```
 
 ### manifest.json
@@ -160,11 +166,19 @@ docker_install() {
     docker load < images/gateway.tar.gz
     docker load < images/deck.tar.gz
   fi
-  node deploy/scripts/seed.js "$STATE_DIR"
+
+  # Seed 注入：在 Gateway 容器内运行（不依赖宿主机 Node.js）
+  # docker-compose.yml 的 gateway 容器启动后自带 Node.js
+  # 通过 docker compose run 一次性执行 seed
   cd deploy/docker
+  docker compose run --rm --no-deps gateway \
+    node /app/deploy/scripts/seed.js /home/node/.openclaw
   docker compose up -d [--build]
 }
 ```
+
+> **关键决策**：Docker 模式下 seed.js 在容器内执行，宿主机不需要 Node.js。
+> 裸机模式下 seed.js 在宿主机执行（Node.js 是裸机前置依赖）。
 
 ### 裸机模式
 
@@ -233,8 +247,7 @@ module.exports = {
         OPENCLAW_GATEWAY_TOKEN: "__TOKEN__",
         NO_PROXY: "localhost,127.0.0.1",
       },
-      wait_ready: true,
-      listen_timeout: 30000,
+      // 不使用 wait_ready（Gateway 未实现 process.send('ready')）
       restart_delay: 5000,
       max_restarts: 10,
     },
@@ -259,8 +272,13 @@ module.exports = {
 
 ### install.sh 生成实际配置
 
-install.sh 读取 .env，sed 替换占位符生成 `ecosystem.config.cjs`。
-Provider API keys 从 .env 注入到 gateway app 的 env 块。
+install.sh 调用 Node.js 脚本（而非 sed）生成 `ecosystem.config.cjs`，确保值安全序列化：
+
+```bash
+node deploy/scripts/generate-ecosystem.js  # 读取 .env，输出 ecosystem.config.cjs
+```
+
+generate-ecosystem.js 使用 `JSON.stringify` 处理 provider keys，避免特殊字符破坏 JS 语法。
 
 ### PM2 startup 各平台行为
 
@@ -268,7 +286,7 @@ Provider API keys 从 .env 注入到 gateway app 的 env 块。
 | --------------- | ----------------------------------------------------------- |
 | Linux (systemd) | `/etc/systemd/system/pm2-<user>.service`                    |
 | macOS           | `~/Library/LaunchAgents/pm2.<user>.plist`                   |
-| Windows         | 需 `pm2-installer` 或 Task Scheduler（install.sh 给出指引） |
+| Windows         | 可选：Task Scheduler 手动配置或 `pm2-installer`（需 PowerShell，视为高级功能） |
 
 ### 日常运维
 
@@ -295,16 +313,76 @@ pm2 monit      # 实时监控
 | `dashboard/next.config.ts`             | 移除 `serverExternalPackages: ['better-sqlite3']`      |
 | `deploy/docker/Dockerfile.deck`        | 删除 native addon 编译阶段                             |
 
+### 异步初始化方案
+
+**问题**：sql.js 的 `initSqlJs()` 是异步的，但现有 `getDb()` 被同步调用。
+
+**方案**：Next.js instrumentation hook（`dashboard/instrumentation.ts`）在服务启动时预加载 sql.js WASM：
+
+```ts
+// dashboard/instrumentation.ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { preloadSqlJs } = await import('./server/db');
+    await preloadSqlJs();  // 加载 WASM，缓存到模块级变量
+  }
+}
+```
+
+`db.ts` 内部维护一个模块级缓存的 SQL 引擎实例，`openDb()` / `getDb()` 保持同步接口：
+
+```ts
+let _sqlEngine: SqlJsStatic | null = null;
+
+export async function preloadSqlJs() {
+  _sqlEngine = await initSqlJs();
+}
+
+export function openDb(dbPath?: string): DatabaseAdapter {
+  if (!_sqlEngine) throw new Error('sql.js not preloaded — call preloadSqlJs() first');
+  // 同步读取文件 → 打开内存 DB
+  const buffer = fs.existsSync(resolvedPath) ? fs.readFileSync(resolvedPath) : undefined;
+  const db = new _sqlEngine.Database(buffer);
+  return new DatabaseAdapter(db, resolvedPath);
+}
+```
+
 ### 适配层设计
 
-db.ts 内部创建 `DatabaseAdapter` 类，封装 sql.js 的差异：
+db.ts 内部创建 `DatabaseAdapter` 类，暴露完整的 better-sqlite3 兼容接口：
 
-| better-sqlite3 行为                            | sql.js 差异           | 适配方式                |
-| ---------------------------------------------- | --------------------- | ----------------------- |
-| 自动持久化到磁盘                               | 内存操作，需手动 save | `save()` 在写操作后调用 |
-| WAL 模式                                       | WASM 不支持 WAL       | 跳过（单进程无需 WAL）  |
-| `prepare().all()` 返回对象数组                 | 返回列名 + 值数组     | StatementAdapter 转换   |
-| `prepare().run()` 返回 changes/lastInsertRowid | 无返回值              | 适配层读取 SQLite 函数  |
+| better-sqlite3 API | sql.js 适配方式 |
+|---------------------|----------------|
+| `new Database(path)` | `new _sqlEngine.Database(buffer)` + 文件读取 |
+| `db.prepare(sql)` | `StatementAdapter` 包装 |
+| `stmt.all(...params)` → 对象数组 | 列名 + 值数组 → 转换为对象数组 |
+| `stmt.get(...params)` → 单对象 | `.all()` 取第一行 |
+| `stmt.run(...params)` → `{changes, lastInsertRowid}` | 执行后查询 `changes()` + `last_insert_rowid()` |
+| `db.exec(sql)` | `db.run(sql)` + save |
+| `db.pragma(str)` | `db.run('PRAGMA ' + str)` |
+| `db.transaction(fn)` | BEGIN/COMMIT/ROLLBACK 包装 + save |
+| `db.close()` | save + `db.close()` |
+| WAL 模式 | 跳过（单进程无需 WAL） |
+
+### 持久化策略
+
+**原子写**：避免进程崩溃时数据损坏：
+
+```ts
+private save() {
+  if (this.dbPath === ':memory:') return;
+  const data = this.db.export();
+  const tmp = this.dbPath + '.tmp';
+  fs.writeFileSync(tmp, Buffer.from(data));
+  fs.renameSync(tmp, this.dbPath);  // 原子替换
+}
+```
+
+**写入频率**：仅在写操作（`run`/`exec`/`transaction` 结束）后 save，读操作不触发。
+Dashboard 写入频率极低（配置变更、session 记录），性能影响可忽略。
+
+**崩溃恢复**：最坏情况丢失最后一次未完成的写操作（transaction 内的多次 write）。
+对 dashboard 场景可接受——不是金融交易系统。
 
 ### 数据兼容
 
@@ -334,9 +412,9 @@ sql.js 读写标准 SQLite 格式，与 better-sqlite3 的 .db 文件完全兼�
 
 检测项：
 
-- Docker 模式：docker + docker compose v2
+- Docker 模式：docker + docker compose v2（**不需要 Node.js**，seed 在容器内执行）
 - 裸机模式：Node.js 22+ + pnpm + PM2（自动安装）
-- 通用：端口占用（18789/3000）、磁盘空间
+- 通用：端口占用（18789/3000）、磁盘空间（Docker 需 2GB+，裸机需 1GB+）
 
 ### INSTALL.md
 
