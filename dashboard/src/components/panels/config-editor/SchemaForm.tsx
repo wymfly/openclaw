@@ -10,6 +10,7 @@ import { PasswordField } from "./fields/PasswordField";
 import { RecordField } from "./fields/RecordField";
 import { TypedArrayField } from "./fields/TypedArrayField";
 import { UnionField } from "./fields/UnionField";
+import { SearchHighlight } from "./SearchHighlight";
 
 /** Hint data from config.schema.lookup for a given field path. */
 export interface FieldHint {
@@ -24,43 +25,62 @@ interface SchemaFormProps {
   prefix?: string;
   /** Optional hints keyed by field path (from config.schema.lookup). Progressive enhancement only. */
   hints?: Record<string, FieldHint>;
+  /** Current search text for highlighting. Empty string = no highlight. */
+  searchQuery?: string;
 }
 
-function FieldLabel({ field }: { field: FormField }) {
+function FieldLabel({ field, searchQuery }: { field: FormField; searchQuery?: string }) {
+  const displayKey = searchQuery ? (
+    <SearchHighlight text={field.key} query={searchQuery} />
+  ) : (
+    field.key
+  );
+  const displayDesc =
+    field.description && searchQuery ? (
+      <SearchHighlight text={field.description} query={searchQuery} />
+    ) : (
+      field.description
+    );
+
   return (
     <label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>
-      {field.key}
+      {displayKey}
       {field.required && <span style={{ color: "var(--status-disconnected)" }}> *</span>}
       {field.description && (
         <span
           className="ml-1 font-normal"
           style={{ color: "var(--muted-foreground)", opacity: 0.7 }}
         >
-          — {field.description}
+          — {displayDesc}
         </span>
       )}
       <FieldHelpPopover help={field.help} />
       {field.defaultValue != null && (
         <span className="text-[10px] ml-1" style={{ color: "var(--text-tertiary)" }}>
-          (default: {String(field.defaultValue)})
+          (default: {JSON.stringify(field.defaultValue)})
         </span>
       )}
     </label>
   );
 }
 
+/** Exported for use by advanced field components (PasswordField, RecordField, etc.) */
+export { FieldLabel };
+
 function StringField({
   field,
   value,
   onChange,
+  searchQuery,
 }: {
   field: FormField;
   value: string;
   onChange: (v: string) => void;
+  searchQuery?: string;
 }) {
   return (
     <div className="mb-3">
-      <FieldLabel field={field} />
+      <FieldLabel field={field} searchQuery={searchQuery} />
       <input
         type="text"
         value={value}
@@ -83,14 +103,16 @@ function NumberField({
   field,
   value,
   onChange,
+  searchQuery,
 }: {
   field: FormField;
   value: number | string;
   onChange: (v: number) => void;
+  searchQuery?: string;
 }) {
   return (
     <div className="mb-3">
-      <FieldLabel field={field} />
+      <FieldLabel field={field} searchQuery={searchQuery} />
       <input
         type="number"
         value={value}
@@ -111,10 +133,12 @@ function BooleanField({
   field,
   value,
   onChange,
+  searchQuery,
 }: {
   field: FormField;
   value: boolean;
   onChange: (v: boolean) => void;
+  searchQuery?: string;
 }) {
   return (
     <div className="mb-3 flex items-center gap-2">
@@ -137,7 +161,7 @@ function BooleanField({
           }}
         />
       </button>
-      <FieldLabel field={field} />
+      <FieldLabel field={field} searchQuery={searchQuery} />
     </div>
   );
 }
@@ -147,16 +171,18 @@ function EnumField({
   value,
   onChange,
   options,
+  searchQuery,
 }: {
   field: FormField;
   value: string;
   onChange: (v: string) => void;
   options?: string[];
+  searchQuery?: string;
 }) {
   const effectiveOptions = options ?? field.options;
   return (
     <div className="mb-3">
-      <FieldLabel field={field} />
+      <FieldLabel field={field} searchQuery={searchQuery} />
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -182,10 +208,12 @@ function ArrayField({
   field,
   value,
   onChange,
+  searchQuery,
 }: {
   field: FormField;
   value: unknown;
   onChange: (v: string) => void;
+  searchQuery?: string;
 }) {
   const text = Array.isArray(value)
     ? JSON.stringify(value, null, 2)
@@ -194,7 +222,7 @@ function ArrayField({
       : JSON.stringify(value ?? "[]");
   return (
     <div className="mb-3">
-      <FieldLabel field={field} />
+      <FieldLabel field={field} searchQuery={searchQuery} />
       <textarea
         value={text}
         onChange={(e) => onChange(e.target.value)}
@@ -216,14 +244,28 @@ function ObjectField({
   onChange,
   prefix,
   hints,
+  searchQuery,
 }: {
   field: FormField;
   values: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   prefix: string;
   hints?: Record<string, FieldHint>;
+  searchQuery?: string;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+
+  const displayKey = searchQuery ? (
+    <SearchHighlight text={field.key} query={searchQuery} />
+  ) : (
+    field.key
+  );
+  const displayDesc =
+    field.description && searchQuery ? (
+      <SearchHighlight text={field.description} query={searchQuery} />
+    ) : (
+      field.description
+    );
 
   return (
     <div className="mb-3">
@@ -234,13 +276,13 @@ function ObjectField({
         style={{ color: "var(--foreground)" }}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-        {field.key}
+        {displayKey}
         {field.description && (
           <span
             className="ml-1 font-normal"
             style={{ color: "var(--muted-foreground)", opacity: 0.7 }}
           >
-            — {field.description}
+            — {displayDesc}
           </span>
         )}
         <FieldHelpPopover help={field.help} />
@@ -255,6 +297,7 @@ function ObjectField({
             }}
             prefix={`${prefix}${field.key}.`}
             hints={hints}
+            searchQuery={searchQuery}
           />
         </div>
       )}
@@ -281,12 +324,14 @@ function FieldRenderer({
   onChange,
   prefix,
   hints,
+  searchQuery,
 }: {
   field: FormField;
   values: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   prefix: string;
   hints?: Record<string, FieldHint>;
+  searchQuery?: string;
 }) {
   const fullKey = `${prefix}${field.key}`;
   const value = values[field.key];
@@ -303,6 +348,7 @@ function FieldRenderer({
         field={field}
         value={strVal}
         onChange={(v) => onChange(field.key, v)}
+        searchQuery={searchQuery}
       />
     );
   }
@@ -310,7 +356,14 @@ function FieldRenderer({
   // Union field (discriminated or simple)
   if (field.variants && field.variants.length > 0) {
     return (
-      <UnionField key={fullKey} field={field} value={value} onChange={onChange} prefix={prefix} />
+      <UnionField
+        key={fullKey}
+        field={field}
+        value={value}
+        onChange={onChange}
+        prefix={prefix}
+        searchQuery={searchQuery}
+      />
     );
   }
 
@@ -323,6 +376,7 @@ function FieldRenderer({
         value={(value as Record<string, unknown>) ?? {}}
         onChange={onChange}
         prefix={prefix}
+        searchQuery={searchQuery}
       />
     );
   }
@@ -336,6 +390,7 @@ function FieldRenderer({
         value={Array.isArray(value) ? value : []}
         onChange={(v) => onChange(field.key, v)}
         prefix={prefix}
+        searchQuery={searchQuery}
       />
     );
   }
@@ -353,6 +408,7 @@ function FieldRenderer({
             value={strVal}
             options={hint.enum}
             onChange={(v) => onChange(field.key, v)}
+            searchQuery={searchQuery}
           />
         );
       }
@@ -362,6 +418,7 @@ function FieldRenderer({
           field={field}
           value={strVal}
           onChange={(v) => onChange(field.key, v)}
+          searchQuery={searchQuery}
         />
       );
     }
@@ -372,6 +429,7 @@ function FieldRenderer({
           field={field}
           value={typeof value === "number" ? value : ""}
           onChange={(v) => onChange(field.key, v)}
+          searchQuery={searchQuery}
         />
       );
     case "boolean":
@@ -381,6 +439,7 @@ function FieldRenderer({
           field={field}
           value={Boolean(value ?? field.defaultValue ?? false)}
           onChange={(v) => onChange(field.key, v)}
+          searchQuery={searchQuery}
         />
       );
     case "enum":
@@ -390,6 +449,7 @@ function FieldRenderer({
           field={field}
           value={typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""}
           onChange={(v) => onChange(field.key, v)}
+          searchQuery={searchQuery}
         />
       );
     case "array":
@@ -398,6 +458,7 @@ function FieldRenderer({
           key={fullKey}
           field={field}
           value={value}
+          searchQuery={searchQuery}
           onChange={(v) => {
             try {
               onChange(field.key, JSON.parse(v));
@@ -416,6 +477,7 @@ function FieldRenderer({
           onChange={onChange}
           prefix={prefix}
           hints={hints}
+          searchQuery={searchQuery}
         />
       );
     default:
@@ -423,7 +485,14 @@ function FieldRenderer({
   }
 }
 
-export function SchemaForm({ fields, values, onChange, prefix = "", hints }: SchemaFormProps) {
+export function SchemaForm({
+  fields,
+  values,
+  onChange,
+  prefix = "",
+  hints,
+  searchQuery,
+}: SchemaFormProps) {
   const t = useTranslations("config");
   const tc = useTranslations("common");
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -490,6 +559,7 @@ export function SchemaForm({ fields, values, onChange, prefix = "", hints }: Sch
           onChange={handleChange}
           prefix={prefix}
           hints={hints}
+          searchQuery={searchQuery}
         />
       ))}
 
@@ -505,6 +575,7 @@ export function SchemaForm({ fields, values, onChange, prefix = "", hints }: Sch
               onChange={handleChange}
               prefix={prefix}
               hints={hints}
+              searchQuery={searchQuery}
             />
           ))}
         </div>
@@ -540,6 +611,7 @@ export function SchemaForm({ fields, values, onChange, prefix = "", hints }: Sch
                   onChange={handleChange}
                   prefix={prefix}
                   hints={hints}
+                  searchQuery={searchQuery}
                 />
               ))}
             </div>

@@ -1044,7 +1044,20 @@
         "title": "浏览器配置",
         "description": "配置内置浏览器工具的行为、超时和安全限制。"
       }
-    }
+    },
+    "searchPlaceholder": "搜索配置... (支持 tag:sensitive 语法)",
+    "filterByTag": "标签:",
+    "noSearchResults": "未找到匹配的配置项",
+    "conflictTitle": "配置冲突",
+    "conflictDescription": "配置已被其他操作修改，请选择保留方式。",
+    "conflictFieldCount": "{count} 个字段存在冲突",
+    "conflictQuickResolve": "快速处理：",
+    "conflictKeepAllLocal": "全部保留本地",
+    "conflictAcceptAllRemote": "全部采用远端",
+    "conflictLocal": "本地",
+    "conflictRemote": "远端",
+    "conflictApplyMerge": "应用合并",
+    "conflictDiscardLocal": "放弃本地更改"
   },
   "cron": {
     "title": "定时任务",
