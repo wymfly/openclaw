@@ -12,10 +12,11 @@ import {
   User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { navigateToSubagents } from "@/lib/panel-navigation";
-import type { AgentDetail } from "@/stores/deck-agents";
+import { useDeckAgentsStore, type AgentDetail } from "@/stores/deck-agents";
 import { ChannelEventStreamSection } from "./ChannelEventStreamSection";
 
 type TabValue = "overview" | "routing" | "skills" | "context" | "subagent" | "sessions";
@@ -37,6 +38,11 @@ interface StatCardDef {
 
 export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
   const t = useTranslations("agentDetail");
+  const { agentIdentity, fetchIdentity } = useDeckAgentsStore();
+
+  useEffect(() => {
+    void fetchIdentity(detail.id);
+  }, [detail.id, fetchIdentity]);
 
   const statCards: StatCardDef[] = [
     {
@@ -201,7 +207,7 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
         </Card>
       </div>
 
-      {/* Identity preview */}
+      {/* Identity preview — enhanced with agent.identity.get data */}
       <Card className="bg-[var(--background)] border-[var(--border)]">
         <CardContent className="p-3">
           <div className="flex items-center gap-2 text-xs mb-2">
@@ -214,14 +220,27 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--primary-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--primary)]/20">
-              {(detail.name || detail.id)?.charAt(0)?.toUpperCase() ?? "?"}
-            </div>
+            {agentIdentity?.avatar ? (
+              <img
+                src={agentIdentity.avatar}
+                alt={t("avatarAlt")}
+                className="w-10 h-10 rounded-xl ring-1 ring-[var(--primary)]/20 object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-[var(--primary-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--primary)]/20">
+                {agentIdentity?.emoji ?? (detail.name || detail.id)?.charAt(0)?.toUpperCase() ?? "?"}
+              </div>
+            )}
             <div className="text-xs">
-              <p className="text-[var(--foreground)] font-medium">{detail.name || detail.id}</p>
+              <p className="text-[var(--foreground)] font-medium">
+                {agentIdentity?.name || detail.name || detail.id}
+              </p>
+              {agentIdentity?.emoji && (
+                <span className="text-[var(--muted-foreground)]">{agentIdentity.emoji}</span>
+              )}
               <button
                 onClick={() => onNavigateTab("context")}
-                className="text-[var(--primary)] hover:underline cursor-pointer"
+                className="block text-[var(--primary)] hover:underline cursor-pointer mt-0.5"
               >
                 {t("configureIdentity")}
               </button>

@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
-import { BootstrapFileEditor } from "./BootstrapFileEditor";
+import { FilesBrowser } from "./FilesBrowser";
 import { ToolPolicyViz } from "./ToolPolicyViz";
 
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive";
@@ -218,7 +218,7 @@ export function ContextTab({ agentId }: ContextTabProps) {
             <div className="flex items-center gap-2 px-4 py-3">
               <FileText size={14} className="text-[var(--primary)] shrink-0" />
               <span className="text-xs font-medium text-[var(--foreground)] flex-1 text-left">
-                {t("bootstrapFiles")}
+                {t("filesBrowser")}
               </span>
               {bootstrapFiles.length > 0 && (
                 <Badge
@@ -238,19 +238,8 @@ export function ContextTab({ agentId }: ContextTabProps) {
             </div>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="border-t border-[var(--border-subtle)] px-4 py-3 space-y-1.5">
-              {bootstrapFiles.length === 0 ? (
-                <p className="text-xs text-[var(--muted-foreground)]">
-                  {systemPromptPreview ? t("notCreated") : t("loading")}
-                </p>
-              ) : (
-                systemPromptPreview?.bootstrapFiles && (
-                  <BootstrapFileEditor
-                    agentId={agentId}
-                    files={systemPromptPreview.bootstrapFiles}
-                  />
-                )
-              )}
+            <div className="border-t border-[var(--border-subtle)] px-4 py-3">
+              <FilesBrowser agentId={agentId} />
             </div>
           </CollapsibleContent>
         </Collapsible>

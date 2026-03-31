@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InheritBadge } from "@/components/shared/InheritBadge";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 import { useModelsStore } from "@/stores/models";
+import { FallbackChainEditor } from "./FallbackChainEditor";
+import { ToolsCatalog } from "./ToolsCatalog";
 import ToolProfileSelector from "./ToolProfileSelector";
 
 // ---------------------------------------------------------------------------
@@ -14,7 +16,7 @@ import ToolProfileSelector from "./ToolProfileSelector";
 
 /** Extract model string from either a plain string or {primary: string} config object. */
 function resolveModelString(val: unknown): string {
-  if (typeof val === "string") return val;
+  if (typeof val === "string") {return val;}
   if (val && typeof val === "object" && "primary" in val) {
     return String((val as Record<string, unknown>).primary ?? "");
   }
@@ -23,11 +25,11 @@ function resolveModelString(val: unknown): string {
 
 /** Read a dot-separated path from a nested object. */
 function getNestedValue(obj: Record<string, unknown> | null | undefined, path: string): unknown {
-  if (!obj) return undefined;
+  if (!obj) {return undefined;}
   const parts = path.split(".");
   let current: unknown = obj;
   for (const part of parts) {
-    if (current == null || typeof current !== "object") return undefined;
+    if (current == null || typeof current !== "object") {return undefined;}
     current = (current as Record<string, unknown>)[part];
   }
   return current;
@@ -109,12 +111,12 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
   const effectiveValue = useCallback(
     (path: string): unknown => {
       if (path in localEdits) {
-        if (localEdits[path] !== null) return localEdits[path];
+        if (localEdits[path] !== null) {return localEdits[path];}
         // Reset: skip entry, show defaults
         return getNestedValue(defaults, path);
       }
       const entryVal = getNestedValue(entry, path);
-      if (entryVal !== undefined) return entryVal;
+      if (entryVal !== undefined) {return entryVal;}
       return getNestedValue(defaults, path);
     },
     [entry, defaults, localEdits],
@@ -129,13 +131,16 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
   }, []);
 
   const handleResetAll = useCallback(() => {
-    if (!entry) return;
+    if (!entry) {return;}
     const resets: Record<string, unknown> = {};
     const editableFields = [
       "model",
+      "model.fallbacks",
       "thinkingDefault",
       "temperature",
       "tools.profile",
+      "tools.allow",
+      "tools.deny",
       "blockStreaming",
       "typingIndicator",
     ];
@@ -151,17 +156,20 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
   const { overrideCount, inheritedCount } = useMemo(() => {
     const trackFields = [
       "model",
+      "model.fallbacks",
       "thinkingDefault",
       "temperature",
       "tools.profile",
+      "tools.allow",
+      "tools.deny",
       "blockStreaming",
       "typingIndicator",
     ];
     let oc = 0;
     let ic = 0;
     for (const f of trackFields) {
-      if (isOverride(f)) oc++;
-      else ic++;
+      if (isOverride(f)) {oc++;}
+      else {ic++;}
     }
     return { overrideCount: oc, inheritedCount: ic };
   }, [isOverride]);
@@ -170,7 +178,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
   const isDirty = Object.keys(localEdits).length > 0;
 
   const handleSave = useCallback(async () => {
-    if (!isDirty) return;
+    if (!isDirty) {return;}
     setSaving(true);
 
     // Build the flat updates to apply to the agent entry
@@ -271,6 +279,18 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
           {!isOverride("tools.profile") && <InheritBadge mode="inherit" />}
         </div>
 
+        {/* Card 2b: Model Fallback */}
+        <div className="rounded-lg border border-[var(--border-subtle)] bg-card p-4 flex flex-col gap-3">
+          <FallbackChainEditor
+            fallbacks={
+              Array.isArray(effectiveValue("model.fallbacks"))
+                ? (effectiveValue("model.fallbacks") as string[])
+                : []
+            }
+            onChange={(fb) => handleChange("model.fallbacks", fb.length > 0 ? fb : null)}
+          />
+        </div>
+
         {/* Card 3: Subagents */}
         <div className="rounded-lg border border-[var(--border-subtle)] bg-card p-4 flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-foreground">{t("subagents")}</h3>
@@ -293,9 +313,9 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
               }
               onChange={(e) => {
                 const mode = e.target.value;
-                if (mode === "any") handleChange("allowAgents", ["*"]);
-                else if (mode === "off") handleChange("allowAgents", []);
-                else handleChange("allowAgents", effectiveValue("allowAgents") ?? []);
+                if (mode === "any") {handleChange("allowAgents", ["*"]);}
+                else if (mode === "off") {handleChange("allowAgents", []);}
+                else {handleChange("allowAgents", effectiveValue("allowAgents") ?? []);}
               }}
               className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
             >
@@ -395,6 +415,25 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
         </div>
       </div>
 
+      {/* Tools Catalog (collapsible, below grid) */}
+      <ToolsCatalog
+        agentId={agentId}
+        toolsAllow={
+          Array.isArray(effectiveValue("tools.allow"))
+            ? (effectiveValue("tools.allow") as string[])
+            : []
+        }
+        toolsDeny={
+          Array.isArray(effectiveValue("tools.deny"))
+            ? (effectiveValue("tools.deny") as string[])
+            : []
+        }
+        onOverrideChange={(allow, deny) => {
+          handleChange("tools.allow", allow.length > 0 ? allow : null);
+          handleChange("tools.deny", deny.length > 0 ? deny : null);
+        }}
+      />
+
       {/* Save Bar */}
       <div className="flex flex-col gap-1 rounded-lg border border-[var(--border-subtle)] bg-card px-4 py-3">
         {configSaveError && (
@@ -478,7 +517,7 @@ function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
 
   // Close dropdown on outside click
   useEffect(() => {
-    if (!open) return;
+    if (!open) {return;}
     const handler = (e: MouseEvent) => {
       if (
         listRef.current &&
@@ -495,7 +534,7 @@ function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    if (!q) return models.slice(0, 50);
+    if (!q) {return models.slice(0, 50);}
     return models
       .filter((m) => m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q))
       .slice(0, 50);
@@ -520,7 +559,7 @@ function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
         value={open ? search : value}
         onChange={(e) => {
           setSearch(e.target.value);
-          if (!open) setOpen(true);
+          if (!open) {setOpen(true);}
         }}
         onFocus={() => {
           setSearch("");
