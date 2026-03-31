@@ -119,6 +119,20 @@ export function SessionDetail() {
   const { sessions, selectedKey, history, deleteSession, patchSession } = useSessionsStore();
   const { lineage, fetchLineage } = useDeckSubagentsStore();
   const [confirming, setConfirming] = useState(false);
+  const [patchError, setPatchError] = useState<string | null>(null);
+
+  const handlePatch = useCallback(
+    async (patch: Parameters<typeof patchSession>[1]) => {
+      setPatchError(null);
+      if (!selectedKey) return;
+      const ok = await patchSession(selectedKey, patch);
+      if (!ok) {
+        setPatchError(t("patchFailed"));
+        setTimeout(() => setPatchError(null), 3000);
+      }
+    },
+    [selectedKey, patchSession, t],
+  );
   const [highlightIndices, setHighlightIndices] = useState<number[]>([]);
   const bubbleRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -153,6 +167,15 @@ export function SessionDetail() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Patch error banner */}
+      {patchError && (
+        <div
+          className="px-4 py-2 text-xs shrink-0"
+          style={{ backgroundColor: "var(--destructive-muted)", color: "var(--destructive)" }}
+        >
+          {patchError}
+        </div>
+      )}
       {/* Header */}
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-2 shrink-0">
         <div className="min-w-0">
@@ -163,7 +186,7 @@ export function SessionDetail() {
               value={session.label ?? ""}
               placeholder={session.key.length > 30 ? `${session.key.slice(0, 30)}…` : session.key}
               onConfirm={(newLabel: string) => {
-                void patchSession(session.key, { label: newLabel || null });
+                void handlePatch({ label: newLabel || null });
               }}
               className="text-sm font-semibold text-[var(--foreground)]"
             />
@@ -332,7 +355,7 @@ export function SessionDetail() {
                   { value: "high", label: t("thinkingHigh") },
                 ]}
                 onConfirm={(val: string) => {
-                  void patchSession(session.key, { thinkingLevel: val });
+                  void handlePatch({ thinkingLevel: val });
                 }}
                 className="text-xs"
               />
@@ -347,7 +370,7 @@ export function SessionDetail() {
               <button
                 type="button"
                 onClick={() => {
-                  void patchSession(session.key, { fastMode: !session.fastMode });
+                  void handlePatch({ fastMode: !session.fastMode });
                 }}
                 className="relative w-8 h-4 rounded-full transition-colors cursor-pointer"
                 style={{
