@@ -1,229 +1,217 @@
-# OpenClaw + Deck 部署指南
+# OpenClaw Deploy
 
-部署 OpenClaw Gateway 和 Deck Dashboard，支持三种模式。
-
-## 打包部署到其他机器（推荐）
-
-```bash
-# 在开发机上打包（构建镜像 + 打包源码）
-deploy/scripts/package.sh
-
-# 包含本机已安装的插件和自定义 skills
-deploy/scripts/package.sh --with-local
-
-# 仅 Docker 镜像（更小，目标机器只需 Docker）
-deploy/scripts/package.sh --docker-only --with-local
-
-# 仅源码（裸机部署用）
-deploy/scripts/package.sh --source-only --with-local
-```
-
-生成 `openclaw-deploy-YYYYMMDD-HHMMSS.tar.gz`，传输到目标机器后：
-
-```bash
-tar xzf openclaw-deploy-*.tar.gz
-cd openclaw-deploy-*
-./install.sh              # 交互式
-./install.sh docker       # Docker 模式（使用预构建镜像，无需编译）
-./install.sh bare-metal   # 裸机模式（从源码构建）
-```
-
-### --with-local 收集的内容
-
-| 内容 | 来源 | 部署行为 |
-|------|------|---------|
-| 运行时插件 | `~/.openclaw/extensions/` | 首次部署写入，不覆盖已修改的 |
-| 自定义 skills | `~/.openclaw/skills/` | 每次部署/升级都同步 |
-| 插件启用配置 | `openclaw.json` plugins 段 | 合并到目标配置 |
-
-## 快速开始（本地开发机直接部署）
-
-### Docker 部署
-
-```bash
-cd deploy
-cp .env.example .env
-vim .env                    # 填写 API keys
-./scripts/setup.sh docker   # 构建并启动
-```
-
-访问 `http://localhost:3000` 打开 Deck 面板。
-
-### Docker + Sandbox
-
-```bash
-cd deploy
-cp .env.example .env
-vim .env                              # 填写 API keys + OPENCLAW_SANDBOX=1
-./scripts/setup.sh docker --sandbox   # 构建 sandbox 镜像 + 启动
-```
-
-### 裸机部署
-
-```bash
-cd deploy
-cp .env.example .env
-vim .env                         # 填写 API keys
-./scripts/setup.sh bare-metal    # 安装依赖、构建、启动 systemd 服务
-```
+OpenClaw Gateway + Deck Dashboard 的统一部署方案。
 
 ## 架构
 
 ```
-浏览器 → Deck (:3000) → Gateway (:18789) → AI Providers / Channels
-                                    ↓ (可选)
-                              Sandbox 容器
+Browser ──→ Deck(:3000) ──ws──→ Gateway(:18789) ──→ AI Providers
+                ↓                       ↓
+          deck.db (SQLite)      .openclaw/ (config/agents/sessions)
 ```
 
-- **Gateway**: OpenClaw 核心，管理 agent、通道、模型路由
-- **Deck**: Web Dashboard，通过 WebSocket 连接 Gateway
-- **Sandbox**: 可选的 agent 执行隔离环境
+- **Gateway** — OpenClaw 核心引擎，处理 AI 调用、工具执行、会话管理
+- **Deck** — Next.js Web 仪表板，通过 WebSocket 连接 Gateway
+- Docker 模式下 Deck 与 Gateway 共享网络命名空间，通过 localhost 自动完成设备配对
 
-Docker 模式下 Deck 与 Gateway 共享网络命名空间（`network_mode: service:gateway`），通过 localhost 通信，自动完成 Ed25519 设备配对。
+## 部署模式
 
-## 数据目录
+| 模式 | 适用场景 | 依赖 |
+|------|---------|------|
+| Docker | 推荐。隔离环境，一键部署 | Docker + Compose v2 |
+| Docker Build | 同上，强制重建镜像 | Docker + Compose v2 |
+| 裸机 (PM2) | 开发环境、无 Docker 的服务器 | Node.js 22+, pnpm |
 
-所有 OpenClaw 运行时状态存放在一个目录（`OPENCLAW_STATE_DIR`）：
+## 快速开始
 
+### 1. 配置环境变量
+
+```bash
+cd deploy
+cp .env.example .env
+vim .env  # 至少设置一个 AI Provider API Key
 ```
-OPENCLAW_STATE_DIR/                 # Docker: ./data/openclaw → /home/node/.openclaw
-├── openclaw.json                   # 配置文件
-├── workspace/                      # main agent 工作目录（含规则文件）
-├── workspace-{id}/                 # 其他 agent 各自的工作目录
-├── agents/                         # agent 元数据 + sessions
-├── extensions/                     # 运行时插件
-├── cron/                           # 定时任务
-├── devices/                        # 设备密钥
-└── logs/                           # 日志
+
+### 2. 安装部署
+
+```bash
+# 交互式菜单
+bash scripts/install.sh
+
+# 或直接指定模式
+bash scripts/install.sh docker       # Docker 模式
+bash scripts/install.sh bare-metal   # 裸机模式
 ```
 
-Deck 的 SQLite 数据库单独存放在 `DECK_DATA_DIR`，与 Gateway 状态分离。
+### 3. 验证
 
-裸机和 Docker 使用同一目录结构，只需修改 `.env` 切换模式，数据可无缝迁移。
+```bash
+curl -s http://localhost:18789/healthz  # Gateway
+curl -s http://localhost:3000           # Deck
+```
+
+## 打包（跨机器部署）
+
+```bash
+# A-layer: 仅源码 (~50MB)
+deploy/scripts/package.sh
+
+# A+C: 源码 + 预构建产物 (~60MB)
+deploy/scripts/package.sh --with-prebuilt
+
+# A+B: 源码 + Docker 镜像 (~800MB)
+deploy/scripts/package.sh --with-images --platform linux
+
+# A+B+C: 全部
+deploy/scripts/package.sh --full --platform linux
+
+# 收集本地插件和 skills
+deploy/scripts/package.sh --with-local
+```
+
+### 打包层说明
+
+| 层 | 内容 | 大小 | 用途 |
+|----|------|------|------|
+| A (source) | 源码 + 部署脚本 + seed | ~50MB | 始终包含 |
+| B (images) | Docker 镜像 (.tar.gz) | ~800MB | 离线 Docker 部署 |
+| C (prebuilt) | Gateway dist + Deck standalone | ~10MB | 跳过裸机构建 |
+
+### 部署安装包
+
+```bash
+scp openclaw-deploy-*.tar.gz user@target:/tmp/
+ssh user@target
+tar xzf /tmp/openclaw-deploy-*.tar.gz
+cd openclaw-deploy-*
+vim source/deploy/.env   # 配置 API Keys
+./install.sh             # 交互式安装
+```
 
 ## 环境变量
 
-| 变量 | 必填 | 说明 |
-|------|------|------|
-| `DEEPSEEK_API_KEY` | 至少一个 | DeepSeek API Key |
-| `ANTHROPIC_API_KEY` | 至少一个 | Anthropic API Key |
-| `OPENAI_API_KEY` | 至少一个 | OpenAI API Key |
-| `OPENCLAW_GATEWAY_TOKEN` | 自动生成 | Gateway 认证 token |
-| `DEFAULT_MODEL` | 否 | 默认模型（默认 `deepseek/deepseek-chat`） |
-| `GATEWAY_PORT` | 否 | Gateway 端口（默认 18789） |
-| `DECK_PORT` | 否 | Deck 端口（默认 3000） |
-| `TZ` | 否 | 时区（默认 `Asia/Shanghai`） |
-| `OPENCLAW_STATE_DIR` | 否 | OpenClaw 数据目录（默认 `./data/openclaw`） |
-| `DECK_DATA_DIR` | 否 | Deck 数据库目录（默认 `./data/openclaw-deck`） |
-| `OPENCLAW_SANDBOX` | 否 | 设为 1 启用 sandbox |
-| `DOCKER_GID` | sandbox | Docker socket GID |
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `CPA_API_KEY` | * | | CPA API Key |
+| `CPA_BASE_URL` | * | | CPA Base URL |
+| `DEEPSEEK_API_KEY` | * | | DeepSeek API Key |
+| `ANTHROPIC_API_KEY` | * | | Anthropic API Key |
+| `OPENAI_API_KEY` | * | | OpenAI API Key |
+| `OPENCLAW_GATEWAY_TOKEN` | 自动生成 | | Gateway 认证令牌 |
+| `DEFAULT_MODEL` | | `cpa/deepseek-chat` | 默认 AI 模型 |
+| `GATEWAY_PORT` | | `18789` | Gateway 端口 |
+| `DECK_PORT` | | `3000` | Deck 端口 |
+| `TZ` | | `Asia/Shanghai` | 时区 |
+| `OPENCLAW_STATE_DIR` | | `./data/.openclaw` | Gateway 数据目录 |
+| `DECK_DATA_DIR` | | `./data/openclaw-deck` | Deck 数据库目录 |
 
-## 管理命令
+\* 至少配置一个 AI Provider
 
-```bash
-# Docker（本地构建部署）
-./scripts/setup.sh status          # 查看状态
-./scripts/setup.sh stop            # 停止
-docker compose logs -f gateway     # Gateway 日志
-docker compose logs -f deck        # Deck 日志
-docker compose up -d --build       # 重新构建并启动
+## 数据目录结构
 
-# Docker（打包部署，使用 package compose）
-docker compose -f docker-compose.package.yml logs -f
-docker compose -f docker-compose.package.yml restart
-docker compose -f docker-compose.package.yml down
-
-# 裸机
-systemctl status openclaw-gateway  # Gateway 状态
-systemctl status openclaw-deck     # Deck 状态
-journalctl -u openclaw-gateway -f  # Gateway 日志
-journalctl -u openclaw-deck -f     # Deck 日志
-sudo systemctl restart openclaw-gateway openclaw-deck  # 重启
+```
+deploy/data/
+  .openclaw/              # Gateway 状态 (config, agents, sessions, logs)
+    openclaw.json         # 主配置文件
+    agents/main/          # Agent 目录
+    cron/jobs.json        # 定时任务
+  openclaw-deck/          # Deck 数据
+    deck.db               # SQLite 数据库
 ```
 
 ## 种子定制
 
-`seed/` 目录包含预置配置，部署时自动注入：
+`deploy/seed/` 目录包含初始数据模板：
 
-- `seed/openclaw.json.tmpl` — 主配置模板（模型、agent、通道、gateway controlUi）
-- `seed/agents/` — 预置 agent 定义
-- `seed/cron/jobs.json` — 预置定时任务
-- `seed/extensions/` — 预置插件（`--with-local` 自动收集或手动添加）
-- `seed/skills/` — 自定义 skills（`--with-local` 自动收集或手动添加）
-- `seed/plugins-config.json` — 插件启用配置（合并到 openclaw.json）
+| 文件/目录 | 策略 | 说明 |
+|-----------|------|------|
+| `openclaw.json.tmpl` | init-once | 配置模板，`${VAR}` 变量自动替换 |
+| `agents/` | init-once | Agent 目录结构 |
+| `cron/jobs.json` | init-once | 定时任务 |
+| `extensions/` | init-once | 扩展插件 |
+| `skills/` | always-sync | Skills（每次运行覆盖） |
 
-修改种子后重新部署即可生效。详见 `seed/README.md`。
+**策略说明**：
+- **init-once** — 首次 seed 时创建，之后不覆盖（保护用户修改）
+- **always-sync** — 每次 seed 都覆盖（保持最新）
+- `--force` 参数可强制全量重新 seed
+
+## 管理命令
+
+### Docker 模式
+
+```bash
+cd deploy/docker
+docker compose --env-file ../.env ps          # 状态
+docker compose --env-file ../.env logs -f     # 日志
+docker compose --env-file ../.env restart     # 重启
+docker compose --env-file ../.env down        # 停止
+docker compose --env-file ../.env up -d --build  # 重建
+```
+
+### 裸机模式 (PM2)
+
+```bash
+pm2 status                 # 状态
+pm2 logs                   # 日志
+pm2 restart all            # 重启
+pm2 stop all               # 停止
+pm2 startup                # 开机自启
+```
 
 ## 升级
 
-### Docker（打包部署）
+### Docker 模式
 
-在开发机上重新打包并传输：
 ```bash
-deploy/scripts/package.sh --with-local
-# 传输新包到目标机器
-# 在目标机器上:
-./install.sh docker
+cd <repo>
+git pull
+cd deploy/docker
+docker compose --env-file ../.env up -d --build
 ```
 
-### Docker（本地构建）
+### 裸机模式
 
 ```bash
-cd /path/to/openclaw
-git pull --rebase origin enhanced
-cd deploy
-docker compose up -d --build
-```
-
-### 裸机
-
-```bash
-cd /opt/openclaw
-git pull --rebase origin enhanced
+cd <repo>
+git pull
 pnpm install && pnpm build
-cd dashboard && pnpm build && cd ..
-sudo systemctl restart openclaw-gateway openclaw-deck
+cd dashboard && npx next build --webpack
+pm2 restart all
 ```
 
-## 分离部署
+## 卸载
 
-Gateway 和 Deck 可以部署在不同机器上。注意：分离部署时无法使用共享网络模式，需要手动配对设备。
-
-1. 在 Gateway 机器上只启动 gateway 服务
-2. 在 Deck 机器上修改 `.env`：
-   ```
-   DECK_GATEWAY_URL=ws://<gateway-host>:18789
-   ```
-3. Gateway 需要 `--bind lan`（Docker 默认已配置）
-4. 首次连接通过 Deck onboarding 向导完成设备配对
+```bash
+bash deploy/scripts/teardown.sh docker      # 移除 Docker
+bash deploy/scripts/teardown.sh bare-metal   # 移除 PM2 进程
+bash deploy/scripts/teardown.sh all          # 移除全部（含数据）
+```
 
 ## 故障排查
 
-| 问题 | 排查 |
-|------|------|
-| Deck 无法连接 Gateway | 检查 `DECK_GATEWAY_URL` 和 `DECK_GATEWAY_TOKEN` |
-| NOT_PAIRED 错误 | Docker: 确认 Deck 使用 `network_mode: service:gateway`；裸机: Gateway 绑 loopback |
-| controlUi allowedOrigins 错误 | 确认 `openclaw.json` 包含 `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback: true` |
-| Gateway 启动失败 | 检查端口占用：`lsof -i :18789` |
-| Docker 构建 OOM | 增加 Docker 内存或添加 `NODE_OPTIONS=--max-old-space-size=2048` |
-| Sandbox 无法启动 | 检查 docker.sock 权限和 DOCKER_GID |
-| 首次访问 Deck 白屏 | 等待 Gateway 健康检查通过后刷新 |
-| 打包后插件缺失 | 确认使用了 `--with-local` 参数打包 |
+| 问题 | 排查方向 |
+|------|---------|
+| Gateway 连接失败 | 检查 `OPENCLAW_GATEWAY_TOKEN` 匹配、端口未占用 |
+| Deck 白屏/500 | 检查 `DECK_GATEWAY_URL`、migrations 目录 |
+| NOT_PAIRED 配对失败 | Docker: 确认 `network_mode: service:gateway`；裸机: 确认 localhost 连接 |
+| Seed 变量未替换 | 检查 `.env` 中变量已设置 |
+| PM2 启动失败 | `pm2 logs` 查看错误、检查 `ecosystem.config.cjs` 路径 |
 
-## 清理
+## 前置依赖安装
 
-```bash
-./scripts/teardown.sh docker      # 删除 Docker 容器和镜像
-./scripts/teardown.sh bare-metal  # 删除 systemd 服务
-./scripts/teardown.sh all         # 删除所有（含数据）
-```
+### Docker 模式
 
-## 脚本索引
+| 平台 | 安装命令 |
+|------|---------|
+| Linux (Ubuntu) | `curl -fsSL https://get.docker.com \| sh` |
+| macOS | `brew install --cask docker` 或 Docker Desktop |
+| Windows | Docker Desktop + WSL 2 backend |
 
-| 脚本 | 用途 |
-|------|------|
-| `scripts/setup.sh` | 统一部署入口（本地构建模式） |
-| `scripts/package.sh` | 打包部署包（跨机器部署） |
-| `scripts/seed.sh` | 种子数据注入 |
-| `scripts/teardown.sh` | 清理卸载 |
-| `bare-metal/install.sh` | 裸机安装（systemd） |
+### 裸机模式
+
+| 平台 | Node.js 22+ | pnpm |
+|------|-------------|------|
+| Linux | `curl -fsSL https://deb.nodesource.com/setup_22.x \| sudo -E bash -` | `npm i -g pnpm` |
+| macOS | `brew install node@22` | `npm i -g pnpm` |
+| Windows | [nodejs.org](https://nodejs.org/) | `npm i -g pnpm` |
