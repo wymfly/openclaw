@@ -73,6 +73,69 @@ export interface EffectiveToolGroup {
 }
 
 // ---------------------------------------------------------------------------
+// Tools Catalog types (from tools.catalog RPC)
+// ---------------------------------------------------------------------------
+
+export interface ToolCatalogEntry {
+  id: string;
+  label: string;
+  description: string;
+  source: "core" | "plugin";
+  pluginId?: string;
+  optional?: boolean;
+  defaultProfiles: string[];
+}
+
+export interface ToolCatalogGroup {
+  id: string;
+  label: string;
+  source: "core" | "plugin";
+  pluginId?: string;
+  tools: ToolCatalogEntry[];
+}
+
+export interface ToolCatalogProfile {
+  id: string;
+  label: string;
+}
+
+export interface ToolsCatalogResult {
+  agentId: string;
+  profiles: ToolCatalogProfile[];
+  groups: ToolCatalogGroup[];
+}
+
+// ---------------------------------------------------------------------------
+// Agent Identity types (from agent.identity.get RPC)
+// ---------------------------------------------------------------------------
+
+export interface AgentIdentityResult {
+  agentId: string;
+  name?: string;
+  avatar?: string;
+  emoji?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Agent Files types (from agents.files.list RPC)
+// ---------------------------------------------------------------------------
+
+export interface AgentFileEntry {
+  name: string;
+  path: string;
+  missing: boolean;
+  size?: number;
+  updatedAtMs?: number;
+  content?: string;
+}
+
+export interface AgentFilesListResult {
+  agentId: string;
+  workspace: string;
+  files: AgentFileEntry[];
+}
+
+// ---------------------------------------------------------------------------
 // TTL cache
 // ---------------------------------------------------------------------------
 
@@ -109,6 +172,11 @@ interface DeckAgentsState {
   error: string | null;
   agentRawConfig: AgentRawConfig | null;
   configSaveError: string | null;
+  toolsCatalog: ToolsCatalogResult | null;
+  toolsCatalogLoading: boolean;
+  agentFilesList: AgentFileEntry[];
+  filesListLoading: boolean;
+  agentIdentity: AgentIdentityResult | null;
 
   fetchDetail: (agentId: string, force?: boolean) => Promise<void>;
   fetchSkills: (agentId: string) => Promise<void>;
@@ -135,6 +203,9 @@ interface DeckAgentsState {
   fetchEffectiveTools: (agentId: string, sessionKey?: string) => Promise<void>;
   fetchAgentRawConfig: (agentId: string) => Promise<void>;
   saveAgentConfig: (agentId: string, updates: Record<string, unknown>) => Promise<boolean>;
+  fetchToolsCatalog: (agentId: string) => Promise<void>;
+  fetchFilesList: (agentId: string) => Promise<void>;
+  fetchIdentity: (agentId: string) => Promise<void>;
   invalidateCache: (agentId: string) => void;
 }
 
@@ -153,6 +224,11 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   error: null,
   agentRawConfig: null,
   configSaveError: null,
+  toolsCatalog: null,
+  toolsCatalogLoading: false,
+  agentFilesList: [],
+  filesListLoading: false,
+  agentIdentity: null,
 
   fetchDetail: async (agentId: string, force = false) => {
     // Check TTL cache
@@ -542,6 +618,54 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
         configSaveError: err instanceof Error ? err.message : "Network error saving config",
       });
       return false;
+    }
+  },
+
+  fetchToolsCatalog: async (agentId: string) => {
+    set({ toolsCatalogLoading: true });
+    try {
+      const res = await fetch("/api/tools/catalog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId }),
+      });
+      if (!res.ok) {
+        set({ toolsCatalog: null, toolsCatalogLoading: false });
+        return;
+      }
+      const data = (await res.json()) as ToolsCatalogResult;
+      set({ toolsCatalog: data, toolsCatalogLoading: false });
+    } catch {
+      set({ toolsCatalog: null, toolsCatalogLoading: false });
+    }
+  },
+
+  fetchFilesList: async (agentId: string) => {
+    set({ filesListLoading: true });
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/files`);
+      if (!res.ok) {
+        set({ agentFilesList: [], filesListLoading: false });
+        return;
+      }
+      const data = (await res.json()) as AgentFilesListResult;
+      set({ agentFilesList: data.files, filesListLoading: false });
+    } catch {
+      set({ agentFilesList: [], filesListLoading: false });
+    }
+  },
+
+  fetchIdentity: async (agentId: string) => {
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/identity`);
+      if (!res.ok) {
+        set({ agentIdentity: null });
+        return;
+      }
+      const data = (await res.json()) as AgentIdentityResult;
+      set({ agentIdentity: data });
+    } catch {
+      set({ agentIdentity: null });
     }
   },
 
