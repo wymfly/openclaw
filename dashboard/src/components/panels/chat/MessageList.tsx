@@ -94,10 +94,14 @@ function MessageBubble({
   message,
   blockPrefs,
   runMetadata,
+  sessionTotalTokens,
+  sessionCostUsd,
 }: {
   message: ChatMessage;
   blockPrefs?: ChatBlockPreferences;
   runMetadata?: RunMetadata;
+  sessionTotalTokens?: number;
+  sessionCostUsd?: number;
 }) {
   const isUser = message.role === "user";
   const textContent = getTextContent(message);
@@ -190,7 +194,13 @@ function MessageBubble({
         )}
 
         {/* Run metadata bar (model, tokens, duration) */}
-        {!isUser && runMetadata?.model && <RunStatusBar metadata={runMetadata} />}
+        {!isUser && runMetadata?.model && (
+          <RunStatusBar
+            metadata={runMetadata}
+            sessionTotalTokens={sessionTotalTokens}
+            sessionCostUsd={sessionCostUsd}
+          />
+        )}
 
         {/* Timestamp */}
         <span className="text-[10px] mt-0.5 px-1" style={{ color: "var(--muted-foreground)" }}>
@@ -219,6 +229,12 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
     return key
       ? (s.sessions.get(key)?.runMetadata ?? STABLE_EMPTY_RUN_META)
       : STABLE_EMPTY_RUN_META;
+  });
+
+  // Read session-level cumulative tokens/cost from sessionMetas (synced via SSE)
+  const sessionMeta = useChatStore((s) => {
+    const key = s.activeSessionKey;
+    return key ? s.sessionMetas.find((m) => m.key === key) : undefined;
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -279,6 +295,8 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
             message={msg}
             blockPrefs={blockPreferences}
             runMetadata={runMeta}
+            sessionTotalTokens={sessionMeta?.totalTokens}
+            sessionCostUsd={sessionMeta?.estimatedCostUsd}
           />
         );
       })}

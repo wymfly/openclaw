@@ -215,6 +215,8 @@ export function MessageInput() {
           exportSessionAsMarkdown(activeSessionKey);
         }
       }
+      // "toggle-focus": UI store has no focus mode yet — no-op until implemented
+      // "refresh": no-op — SSE events will push updated state
 
       // Display command output as system message
       if (result.content) {
@@ -378,7 +380,7 @@ export function MessageInput() {
     } finally {
       setIsSending(false);
     }
-  }, [input, files, isStreaming, isSending, activeSessionKey, activeAgentId, t]);
+  }, [input, files, isStreaming, isSending, activeSessionKey, activeAgentId, t, handleSlashCommand, history]);
 
   const handleAbort = useCallback(async () => {
     await fetch("/api/chat/abort", {
@@ -523,6 +525,8 @@ export function MessageInput() {
           {showPalette && (
             <SlashCommandPalette
               filter={slashFilter}
+              selectedIndex={paletteIndex}
+              onSelectedIndexChange={setPaletteIndex}
               onSelect={(cmd) => void handleSlashCommand(cmd)}
               onDismiss={() => setShowPalette(false)}
             />
