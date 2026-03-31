@@ -216,3 +216,54 @@ describe("useListState — auto-reset", () => {
     expect(result.current.selectedIds.size).toBe(0);
   });
 });
+
+describe("useListState — edge cases", () => {
+  it("sorts null values to the end", () => {
+    const data = [
+      { id: "1", name: "Alice", score: 90 },
+      { id: "2", name: "Bob", score: null as unknown as number },
+      { id: "3", name: "Charlie", score: 85 },
+    ];
+    const { result } = renderHook(() => useListState({ data }));
+
+    act(() => result.current.setSort({ key: "score", direction: "asc" }));
+    expect(result.current.sortedData.map((i) => i.score)).toEqual([85, 90, null]);
+  });
+
+  it("sorts string fields without custom sortFn", () => {
+    const { result } = renderHook(() => useListState({ data: ITEMS }));
+
+    act(() => result.current.setSort({ key: "name", direction: "asc" }));
+    expect(result.current.sortedData.map((i) => i.name)).toEqual([
+      "Alice", "Bob", "Charlie", "Diana", "Eve",
+    ]);
+  });
+
+  it("clamps setPage to minimum 1", () => {
+    const { result } = renderHook(() => useListState({ data: ITEMS, pageSize: 2 }));
+
+    act(() => result.current.setPage(0));
+    expect(result.current.page).toBe(1);
+
+    act(() => result.current.setPage(-1));
+    expect(result.current.page).toBe(1);
+  });
+
+  it("selectAll selects only filtered items when filter is active", () => {
+    const { result } = renderHook(() =>
+      useListState({
+        data: ITEMS,
+        filterFn: (item, filters: { search?: string }) => {
+          if (!filters.search) return true;
+          return item.name.toLowerCase().includes(filters.search.toLowerCase());
+        },
+      }),
+    );
+
+    act(() => result.current.setFilters({ search: "ali" }));
+    // "ali" matches only Alice
+    act(() => result.current.selectAll());
+    expect(result.current.selectedIds.size).toBe(1);
+    expect(result.current.isAllSelected).toBe(true);
+  });
+});

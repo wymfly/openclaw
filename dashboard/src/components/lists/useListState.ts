@@ -70,7 +70,7 @@ export function useListState<T, F extends FilterState = FilterState>(
     const effectivePage = Math.min(page, totalPages);
     const start = (effectivePage - 1) * pageSize;
     return sortedData.slice(start, start + pageSize);
-  }, [sortedData, page, pageSize]);
+  }, [sortedData, page, pageSize, totalPages]);
 
   // ----- Selection state -----
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

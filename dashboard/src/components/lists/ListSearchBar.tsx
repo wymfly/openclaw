@@ -50,17 +50,11 @@ export function ListSearchBar<F extends FilterState = FilterState>({
     debounceRef.current = setTimeout(() => {
       onSearch(query);
     }, debounceMs);
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
+    return () => clearTimeout(debounceRef.current);
   }, [query, debounceMs, onSearch]);
 
   const clearSearch = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
+    clearTimeout(debounceRef.current);
     skipNextDebounceRef.current = true;
     setQuery("");
     onSearch("");
@@ -70,9 +64,7 @@ export function ListSearchBar<F extends FilterState = FilterState>({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter") {
-        if (debounceRef.current) {
-          clearTimeout(debounceRef.current);
-        }
+        clearTimeout(debounceRef.current);
         skipNextDebounceRef.current = true;
         onSearch(query);
       } else if (e.key === "Escape") {
@@ -111,7 +103,7 @@ export function ListSearchBar<F extends FilterState = FilterState>({
             type="button"
             onClick={clearSearch}
             className="p-0.5 rounded hover:bg-muted text-muted-foreground cursor-pointer"
-            aria-label="Clear search"
+            aria-label={t("clearSearch")}
           >
             <X size={14} />
           </button>

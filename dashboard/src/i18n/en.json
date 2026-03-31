@@ -61,6 +61,7 @@
     "loadMore": "Load more",
     "noMoreData": "All loaded",
     "searchPlaceholder": "Search...",
+    "clearSearch": "Clear search",
     "clearFilters": "Clear filters",
     "matchCount": "{count} results",
     "advancedFilters": "Advanced filters",

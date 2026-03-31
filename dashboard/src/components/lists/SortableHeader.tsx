@@ -47,33 +47,28 @@ export function SortableHeader({
     onSortChange(nextSort(columnKey, sort));
   }, [columnKey, sort, onSortChange]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        handleClick();
-      }
-    },
-    [handleClick],
-  );
-
   return (
     <button
       type="button"
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
       className={cn(
         "inline-flex items-center gap-1 text-xs font-medium cursor-pointer select-none",
         "text-muted-foreground hover:text-foreground transition-colors",
         isActive && "text-foreground",
         className,
       )}
-      aria-sort={direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "none"}
+      aria-sort={ariaSortValue(direction)}
     >
       {children}
       <SortIcon direction={direction} />
     </button>
   );
+}
+
+function ariaSortValue(direction: SortDirection | null): "ascending" | "descending" | "none" {
+  if (direction === "asc") return "ascending";
+  if (direction === "desc") return "descending";
+  return "none";
 }
 
 function SortIcon({ direction }: { direction: SortDirection | null }) {

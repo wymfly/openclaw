@@ -27,7 +27,7 @@ export interface SelectionState {
 /** Options for useListState hook. */
 export interface UseListStateOptions<T, F extends FilterState = FilterState> {
   data: T[];
-  /** Function to extract a unique ID from each item. Default: `(item) => (item as any).id` */
+  /** Function to extract a unique ID from each item. Default: reads `item.id`. */
   idKey?: (item: T) => string;
   /** Filter function: receives an item and current filters, returns true to include. */
   filterFn?: (item: T, filters: F) => boolean;

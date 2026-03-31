@@ -51,15 +51,9 @@ export function BatchActionBar<T = unknown>({
         onClick={isAllSelected ? onClearSelection : onSelectAll}
         className="text-primary cursor-pointer"
         aria-label={t("selectAll")}
-        aria-checked={isAllSelected ? "true" : isPartialSelected ? "mixed" : "false"}
+        aria-checked={ariaChecked(isAllSelected, isPartialSelected)}
       >
-        {isAllSelected ? (
-          <SquareCheck size={16} />
-        ) : isPartialSelected ? (
-          <Minus size={16} className="text-primary" />
-        ) : (
-          <Square size={16} />
-        )}
+        <SelectionIcon isAllSelected={isAllSelected} isPartialSelected={isPartialSelected} />
       </button>
 
       {/* Selection count */}
@@ -85,4 +79,26 @@ export function BatchActionBar<T = unknown>({
       </button>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function ariaChecked(allSelected: boolean, partialSelected: boolean): "true" | "mixed" | "false" {
+  if (allSelected) return "true";
+  if (partialSelected) return "mixed";
+  return "false";
+}
+
+function SelectionIcon({
+  isAllSelected,
+  isPartialSelected,
+}: {
+  isAllSelected: boolean;
+  isPartialSelected: boolean;
+}) {
+  if (isAllSelected) return <SquareCheck size={16} />;
+  if (isPartialSelected) return <Minus size={16} className="text-primary" />;
+  return <Square size={16} />;
 }
