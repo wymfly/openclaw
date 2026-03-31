@@ -1,0 +1,80 @@
+"use client";
+
+import { Minus, Square, SquareCheck, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
+
+interface BatchActionBarProps {
+  /** Set of selected item IDs. */
+  selectedIds: Set<string>;
+  /** Whether all filtered items are selected. */
+  isAllSelected: boolean;
+  /** Whether some but not all filtered items are selected. */
+  isPartialSelected: boolean;
+  /** Toggle select all / clear all. */
+  onSelectAll: () => void;
+  /** Clear all selections. */
+  onClearSelection: () => void;
+  /** Render prop for custom action buttons. */
+  actions?: (props: { selectedIds: Set<string> }) => React.ReactNode;
+  /** Optional className. */
+  className?: string;
+}
+
+export function BatchActionBar({
+  selectedIds,
+  isAllSelected,
+  isPartialSelected,
+  onSelectAll,
+  onClearSelection,
+  actions,
+  className,
+}: BatchActionBarProps) {
+  const t = useTranslations("lists");
+
+  // Don't render when nothing is selected
+  if (selectedIds.size === 0) return null;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 px-3 py-2 rounded-md border border-primary/20 bg-[var(--primary-muted)]",
+        className,
+      )}
+    >
+      {/* Select-all checkbox */}
+      <button
+        type="button"
+        onClick={onSelectAll}
+        className="text-primary cursor-pointer"
+        aria-label={t("selectAll")}
+      >
+        {isAllSelected ? (
+          <SquareCheck size={16} />
+        ) : isPartialSelected ? (
+          <Minus size={16} className="text-primary" />
+        ) : (
+          <Square size={16} />
+        )}
+      </button>
+
+      {/* Selection count */}
+      <span className="text-xs font-medium text-foreground">
+        {t("selected", { count: selectedIds.size })}
+      </span>
+
+      {/* Action buttons slot */}
+      {actions && <div className="flex items-center gap-2">{actions({ selectedIds })}</div>}
+
+      {/* Clear button */}
+      <button
+        type="button"
+        onClick={onClearSelection}
+        className="p-0.5 rounded hover:bg-muted text-muted-foreground cursor-pointer ml-auto"
+        aria-label={t("clearSelection")}
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
