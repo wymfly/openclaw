@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useLogsStore, type LogLevel } from "@/stores/logs";
 
 // ---------------------------------------------------------------------------
@@ -9,10 +9,10 @@ import { useLogsStore, type LogLevel } from "@/stores/logs";
 // ---------------------------------------------------------------------------
 
 const LEVEL_COLORS: Record<LogLevel, { bg: string; text: string }> = {
-  debug: { bg: "var(--bg-tertiary)", text: "var(--text-secondary)" },
-  info: { bg: "var(--accent-muted)", text: "var(--accent)" },
+  debug: { bg: "var(--muted)", text: "var(--muted-foreground)" },
+  info: { bg: "var(--primary-muted)", text: "var(--primary)" },
   warn: { bg: "var(--warning-muted)", text: "var(--warning)" },
-  error: { bg: "var(--danger-muted)", text: "var(--danger)" },
+  error: { bg: "var(--destructive-muted)", text: "var(--destructive)" },
 };
 
 /**
@@ -20,9 +20,33 @@ const LEVEL_COLORS: Record<LogLevel, { bg: string; text: string }> = {
  */
 export function LogStream() {
   const t = useTranslations("logs");
-  const entries = useLogsStore((s) => s.entries);
+  const allEntries = useLogsStore((s) => s.entries);
+  const filters = useLogsStore((s) => s.filters);
   const streaming = useLogsStore((s) => s.streaming);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Render-time filtering — ring buffer retains ALL entries
+  const entries = useMemo(() => {
+    return allEntries.filter((entry) => {
+      // Level filter
+      if (filters.levels.length > 0 && filters.levels.length < 4 && !filters.levels.includes(entry.level)) {
+        return false;
+      }
+      // Source filter
+      if (filters.source !== "all" && entry.source !== filters.source) {
+        return false;
+      }
+      // Session filter
+      if (
+        filters.sessionKey &&
+        entry.sessionKey !== filters.sessionKey &&
+        !entry.message.includes(filters.sessionKey)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [allEntries, filters]);
 
   // Auto-scroll to bottom when new entries arrive, unless paused.
   useEffect(() => {
@@ -39,7 +63,7 @@ export function LogStream() {
     return (
       <div
         className="flex items-center justify-center flex-1"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">{t("noLogs")}</p>
       </div>
@@ -54,7 +78,7 @@ export function LogStream() {
         fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace",
         fontSize: 12,
         lineHeight: "1.6",
-        backgroundColor: "var(--bg-primary)",
+        backgroundColor: "var(--background)",
       }}
     >
       {entries.map((entry, idx) => {
@@ -63,10 +87,10 @@ export function LogStream() {
           <div
             key={idx}
             className="flex items-start gap-2 py-0.5"
-            style={{ color: "var(--text-primary)" }}
+            style={{ color: "var(--foreground)" }}
           >
             {/* Timestamp */}
-            <span className="shrink-0" style={{ color: "var(--text-secondary)", minWidth: 180 }}>
+            <span className="shrink-0" style={{ color: "var(--muted-foreground)", minWidth: 180 }}>
               {entry.timestamp}
             </span>
 
@@ -89,7 +113,7 @@ export function LogStream() {
             <span
               className="shrink-0"
               style={{
-                color: "var(--text-secondary)",
+                color: "var(--muted-foreground)",
                 minWidth: 64,
               }}
             >

@@ -844,7 +844,23 @@
     "startedAt": "开始时间",
     "endedAt": "结束时间",
     "runtimeMs": "运行时长",
-    "interruptedRun": "已中断当前运行"
+    "interruptedRun": "已中断当前运行",
+    "filterType": "类型",
+    "filterActiveTime": "活跃时间",
+    "filterActive5m": "最近 5 分钟",
+    "filterActive1h": "最近 1 小时",
+    "filterActive24h": "最近 24 小时",
+    "filterGlobal": "全局",
+    "loadMore": "加载更多",
+    "sessionCount": "{count} 个会话",
+    "thinkingLevel": "思考级别",
+    "thinkingOff": "关闭",
+    "thinkingLow": "低",
+    "thinkingMedium": "中",
+    "thinkingHigh": "高",
+    "patchFailed": "修改失败",
+    "label": "标签",
+    "editLabel": "编辑标签"
   },
   "logs": {
     "title": "日志查看器",
@@ -862,7 +878,9 @@
     "clear": "清空",
     "pause": "暂停",
     "resume": "恢复",
-    "noLogs": "暂无日志"
+    "noLogs": "暂无日志",
+    "bufferCount": "{current} / {max}",
+    "bufferFull": "缓存已满，最早的日志已被淘汰"
   },
   "memory": {
     "title": "记忆浏览器",

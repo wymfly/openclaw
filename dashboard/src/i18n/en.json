@@ -844,7 +844,23 @@
     "startedAt": "Started At",
     "endedAt": "Ended At",
     "runtimeMs": "Runtime",
-    "interruptedRun": "Interrupted active run"
+    "interruptedRun": "Interrupted active run",
+    "filterType": "Type",
+    "filterActiveTime": "Active Time",
+    "filterActive5m": "Last 5 min",
+    "filterActive1h": "Last 1 hour",
+    "filterActive24h": "Last 24 hours",
+    "filterGlobal": "Global",
+    "loadMore": "Load More",
+    "sessionCount": "{count} sessions",
+    "thinkingLevel": "Thinking Level",
+    "thinkingOff": "Off",
+    "thinkingLow": "Low",
+    "thinkingMedium": "Medium",
+    "thinkingHigh": "High",
+    "patchFailed": "Patch failed",
+    "label": "Label",
+    "editLabel": "Edit label"
   },
   "logs": {
     "title": "Log Viewer",
@@ -862,7 +878,9 @@
     "clear": "Clear",
     "pause": "Pause",
     "resume": "Resume",
-    "noLogs": "No logs"
+    "noLogs": "No logs",
+    "bufferCount": "{current} / {max}",
+    "bufferFull": "Buffer full, oldest entries evicted"
   },
   "memory": {
     "title": "Memory Browser",

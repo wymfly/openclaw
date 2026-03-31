@@ -1,33 +1,114 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
-import { useSessionsStore } from "@/stores/sessions";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ListSearchBar, PaginatedList } from "@/components/lists";
+import type { FilterFieldDef, FilterState } from "@/components/lists/types";
+import { useSessionsStore, type SessionsFetchOpts } from "@/stores/sessions";
 import { SessionDetail } from "./SessionDetail";
-import { SessionList, type SessionType } from "./SessionList";
+import { SessionList } from "./SessionList";
+import { inferSessionType } from "./SessionList";
 
-type FilterValue = SessionType | "all";
+const PAGE_SIZE = 20;
+
+interface SessionFilters extends FilterState {
+  types?: string[];
+  activeMinutes?: string;
+}
 
 /**
  * SessionsPanel — split layout with session list (left) and detail (right).
+ * Search is server-side via sessions.list `search` param.
+ * Type filter is client-side (sessions.list has no type param).
+ * ActiveMinutes filter is server-side.
  */
 export function SessionsPanel() {
   const t = useTranslations("sessions");
   const tc = useTranslations("common");
   const { sessions, selectedKey, loading, error, fetchSessions } = useSessionsStore();
-  const [typeFilter, setTypeFilter] = useState<FilterValue>("all");
+
+  // Local filter state — NOT in global store to avoid polluting other consumers
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterValues, setFilterValues] = useState<SessionFilters>({});
+  const [page, setPage] = useState(1);
+
+  const filterDefs: FilterFieldDef[] = useMemo(
+    () => [
+      {
+        key: "types",
+        label: t("filterType"),
+        type: "multiselect" as const,
+        options: [
+          { value: "direct", label: t("filterDirect") },
+          { value: "group", label: t("filterGroup") },
+          { value: "global", label: t("filterGlobal") },
+          { value: "subagent", label: t("filterSubagent") },
+        ],
+      },
+      {
+        key: "activeMinutes",
+        label: t("filterActiveTime"),
+        type: "select" as const,
+        options: [
+          { value: "5", label: t("filterActive5m") },
+          { value: "60", label: t("filterActive1h") },
+          { value: "1440", label: t("filterActive24h") },
+        ],
+      },
+    ],
+    [t],
+  );
+
+  // Build fetch opts from local state
+  const fetchOpts = useMemo((): SessionsFetchOpts => {
+    const opts: SessionsFetchOpts = {};
+    if (searchQuery.trim()) {
+      opts.search = searchQuery.trim();
+    }
+    if (filterValues.activeMinutes) {
+      opts.activeMinutes = parseInt(filterValues.activeMinutes, 10);
+    }
+    return opts;
+  }, [searchQuery, filterValues.activeMinutes]);
 
   useEffect(() => {
-    void fetchSessions();
-  }, [fetchSessions]);
+    void fetchSessions(fetchOpts);
+  }, [fetchSessions, fetchOpts]);
 
-  const filterOptions: { value: FilterValue; label: string }[] = [
-    { value: "all", label: t("filterAll") },
-    { value: "dm", label: t("filterDirect") },
-    { value: "group", label: t("filterGroup") },
-    { value: "channel", label: t("filterChannel") },
-    { value: "subagent", label: t("filterSubagent") },
-  ];
+  // Client-side type filter
+  const typeFilter = filterValues.types;
+  const filteredSessions = useMemo(() => {
+    if (!typeFilter || typeFilter.length === 0) {
+      return sessions;
+    }
+    return sessions.filter((s) => {
+      const sType = inferSessionType(s.key);
+      // Map inferSessionType values to spec values
+      const specType =
+        sType === "dm" ? "direct" : sType === "channel" ? "global" : sType;
+      return typeFilter.includes(specType);
+    });
+  }, [sessions, typeFilter]);
+
+  // Client-side pagination
+  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / PAGE_SIZE));
+  const pagedSessions = useMemo(
+    () => filteredSessions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filteredSessions, page],
+  );
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filterValues]);
+
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
+  const handleFilterChange = useCallback((filters: SessionFilters) => {
+    setFilterValues(filters);
+  }, []);
 
   return (
     <div
@@ -41,30 +122,22 @@ export function SessionsPanel() {
           width: "30%",
           minWidth: 220,
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
+          backgroundColor: "var(--card)",
         }}
       >
-        {/* Header + filter */}
-        <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
-          <h2 className="text-sm font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+        {/* Header + search */}
+        <div className="px-3 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+          <h2 className="text-sm font-semibold mb-2" style={{ color: "var(--foreground)" }}>
             {t("title")}
           </h2>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as FilterValue)}
-            className="w-full text-xs rounded px-2 py-1"
-            style={{
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            {filterOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <ListSearchBar
+            onSearch={handleSearch}
+            matchCount={searchQuery ? filteredSessions.length : undefined}
+            placeholder={t("searchPlaceholder")}
+            filters={filterDefs}
+            filterValues={filterValues}
+            onFilterChange={handleFilterChange}
+          />
         </div>
 
         {/* List body */}
@@ -72,7 +145,7 @@ export function SessionsPanel() {
           {loading && (
             <div
               className="flex items-center justify-center py-12"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               <p className="text-sm">{tc("loading")}</p>
             </div>
@@ -81,7 +154,7 @@ export function SessionsPanel() {
           {error && !loading && (
             <div
               className="flex items-center justify-center py-12 px-4"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               <p className="text-sm">{error}</p>
             </div>
@@ -90,27 +163,37 @@ export function SessionsPanel() {
           {!loading && !error && sessions.length === 0 && (
             <div
               className="flex items-center justify-center py-12"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               <p className="text-sm">{t("noSessions")}</p>
             </div>
           )}
 
-          {!loading && !error && sessions.length > 0 && <SessionList typeFilter={typeFilter} />}
+          {!loading && !error && sessions.length > 0 && (
+            <PaginatedList
+              mode="button"
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalCount={filteredSessions.length}
+            >
+              <SessionList sessions={pagedSessions} />
+            </PaginatedList>
+          )}
         </div>
       </div>
 
       {/* Right detail (70%) */}
       <div
         className="flex flex-col flex-1 min-w-0"
-        style={{ backgroundColor: "var(--bg-primary)" }}
+        style={{ backgroundColor: "var(--background)" }}
       >
         {selectedKey ? (
           <SessionDetail />
         ) : (
           <div
             className="flex items-center justify-center h-full"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{t("noSessions")}</p>
           </div>

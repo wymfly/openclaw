@@ -122,17 +122,15 @@ function shortKey(key: string, maxLen = 20): string {
 // ---------------------------------------------------------------------------
 
 interface SessionListProps {
-  typeFilter?: SessionType | "all";
+  /** Pre-filtered + paginated sessions from parent. Falls back to store if omitted. */
+  sessions?: SessionEntry[];
 }
 
-export function SessionList({ typeFilter = "all" }: SessionListProps) {
+export function SessionList({ sessions: propSessions }: SessionListProps) {
   const t = useTranslations("sessions");
-  const { sessions, selectedKey, selectSession } = useSessionsStore();
+  const { sessions: storeSessions, selectedKey, selectSession } = useSessionsStore();
 
-  const filtered =
-    typeFilter === "all"
-      ? sessions
-      : sessions.filter((s) => inferSessionType(s.key) === typeFilter);
+  const filtered = propSessions ?? storeSessions;
 
   return (
     <div className="flex flex-col py-1">
