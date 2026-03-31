@@ -622,7 +622,7 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
   },
 
   fetchToolsCatalog: async (agentId: string) => {
-    set({ toolsCatalogLoading: true });
+    set({ toolsCatalog: null, toolsCatalogLoading: true });
     try {
       const res = await fetch("/api/tools/catalog", {
         method: "POST",
@@ -634,14 +634,19 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
         return;
       }
       const data = (await res.json()) as ToolsCatalogResult;
-      set({ toolsCatalog: data, toolsCatalogLoading: false });
+      // Guard against stale response: only update if agentId matches
+      if (data.agentId === agentId) {
+        set({ toolsCatalog: data, toolsCatalogLoading: false });
+      } else {
+        set({ toolsCatalogLoading: false });
+      }
     } catch {
       set({ toolsCatalog: null, toolsCatalogLoading: false });
     }
   },
 
   fetchFilesList: async (agentId: string) => {
-    set({ filesListLoading: true });
+    set({ agentFilesList: [], filesListLoading: true });
     try {
       const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/files`);
       if (!res.ok) {
@@ -649,13 +654,18 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
         return;
       }
       const data = (await res.json()) as AgentFilesListResult;
-      set({ agentFilesList: data.files, filesListLoading: false });
+      if (data.agentId === agentId) {
+        set({ agentFilesList: data.files, filesListLoading: false });
+      } else {
+        set({ filesListLoading: false });
+      }
     } catch {
       set({ agentFilesList: [], filesListLoading: false });
     }
   },
 
   fetchIdentity: async (agentId: string) => {
+    set({ agentIdentity: null });
     try {
       const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/identity`);
       if (!res.ok) {
@@ -663,7 +673,9 @@ export const useDeckAgentsStore = create<DeckAgentsState>((set, get) => ({
         return;
       }
       const data = (await res.json()) as AgentIdentityResult;
-      set({ agentIdentity: data });
+      if (data.agentId === agentId) {
+        set({ agentIdentity: data });
+      }
     } catch {
       set({ agentIdentity: null });
     }
