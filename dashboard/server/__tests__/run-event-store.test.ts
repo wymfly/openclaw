@@ -1,8 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { openDb } from "../db.js";
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
+import { openDb, preloadSqlJs } from "../db.js";
 import type { Database } from "../db.js";
 import { RunEventStore } from "../run-event-store.js";
 import type { RunEventInput } from "../run-event-store.js";
+
+beforeAll(async () => {
+  await preloadSqlJs();
+});
 
 // ---------------------------------------------------------------------------
 // Setup — each test gets a fresh in-memory database

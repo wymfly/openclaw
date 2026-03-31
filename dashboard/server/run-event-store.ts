@@ -4,15 +4,19 @@
  * Follows the same patterns as ProjectionStore: lazy prepared statements,
  * getDb() connection sharing, and globalThis singleton.
  */
-import type BetterSqlite3 from "better-sqlite3";
+import type { Database, RunResult } from "./db";
 import { getDb } from "./db";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type Database = BetterSqlite3.Database;
-type Statement<B extends unknown[], R> = BetterSqlite3.Statement<B, R>;
+/** Minimal statement interface matching the sql.js adapter. */
+type Statement<_B extends unknown[], _R> = {
+	run(...params: unknown[]): RunResult;
+	get(...params: unknown[]): Record<string, unknown> | undefined;
+	all(...params: unknown[]): Array<Record<string, unknown>>;
+};
 
 export type RunStatus = "completed" | "error" | "running";
 
@@ -181,7 +185,7 @@ export class RunEventStore {
 
   /** Return all events for a run, ordered by seq ASC. */
   getRunEvents(runId: string): RunEventRow[] {
-    return this.selectRunEventsStmt.all(runId);
+    return this.selectRunEventsStmt.all(runId) as RunEventRow[];
   }
 
   /**
@@ -430,14 +434,14 @@ export class RunEventStore {
    * - Otherwise → "error" (stale / abandoned)
    */
   deriveRunStatus(runId: string, lastEventAt: string): RunStatus {
-    const lastEvent = this.lastEventStmt.get(runId);
+    const lastEvent = this.lastEventStmt.get(runId) as RunEventRow | undefined;
     if (!lastEvent) {
       return "error";
     }
 
     // Try to parse the last event's data for terminal status.
     try {
-      const parsed = JSON.parse(lastEvent.data) as Record<string, unknown>;
+      const parsed = JSON.parse(lastEvent.data as string) as Record<string, unknown>;
       if (parsed.type === "result") {
         const subtype = parsed.subtype as string | undefined;
         if (subtype === "success") {
