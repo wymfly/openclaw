@@ -312,7 +312,9 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
       const res = await fetch("/api/channels/probe", { method: "POST" });
 
       if (!res.ok) {
-        result = { status: "failure", error: "Failed to probe", probedAt: Date.now() };
+        const errData = await res.json().catch(() => ({ error: `Probe failed (HTTP ${res.status})` }));
+        const errMsg = (errData as { error?: string }).error ?? `Probe failed (HTTP ${res.status})`;
+        result = { status: "failure", error: errMsg, probedAt: Date.now() };
       } else {
         const data = (await res.json()) as Record<string, unknown>;
         // channelAccounts[channelId] is an Array of ChannelAccountSnapshot
@@ -336,8 +338,12 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
           };
         }
       }
-    } catch {
-      result = { status: "timeout", error: "Network error or timeout", probedAt: Date.now() };
+    } catch (err) {
+      result = {
+        status: "failure",
+        error: err instanceof Error ? err.message : "Unexpected error during probe",
+        probedAt: Date.now(),
+      };
     }
 
     // Functional update to avoid race when multiple probes run concurrently
