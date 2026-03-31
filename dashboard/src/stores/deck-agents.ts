@@ -83,7 +83,7 @@ export interface ToolCatalogEntry {
   source: "core" | "plugin";
   pluginId?: string;
   optional?: boolean;
-  defaultProfiles: string[];
+  defaultProfiles: ToolProfileId[];
 }
 
 export interface ToolCatalogGroup {
@@ -94,8 +94,10 @@ export interface ToolCatalogGroup {
   tools: ToolCatalogEntry[];
 }
 
+export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
+
 export interface ToolCatalogProfile {
-  id: string;
+  id: ToolProfileId;
   label: string;
 }
 

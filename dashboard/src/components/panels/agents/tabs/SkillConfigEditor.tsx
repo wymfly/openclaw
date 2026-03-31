@@ -26,6 +26,7 @@ export function SkillConfigEditor({
     initialEnv ? Object.entries(initialEnv).map(([key, value]) => ({ key, value })) : [],
   );
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const addEnvPair = useCallback(() => {
     setEnvPairs((prev) => [...prev, { key: "", value: "" }]);
@@ -43,6 +44,7 @@ export function SkillConfigEditor({
 
   const handleSave = useCallback(async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const env: Record<string, string> = {};
       for (const pair of envPairs) {
@@ -60,9 +62,12 @@ export function SkillConfigEditor({
 
       if (res.ok) {
         onSaved();
+      } else {
+        const d = await res.json().catch(() => ({ error: "Save failed" }));
+        setSaveError((d as { error?: string }).error ?? "Save failed");
       }
     } catch {
-      // best-effort
+      setSaveError("Network error");
     } finally {
       setSaving(false);
     }
@@ -130,6 +135,9 @@ export function SkillConfigEditor({
         </div>
       </div>
 
+      {saveError && (
+        <p className="text-xs text-[var(--destructive)]">{saveError}</p>
+      )}
       <Button
         size="sm"
         onClick={() => void handleSave()}

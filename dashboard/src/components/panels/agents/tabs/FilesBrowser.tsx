@@ -89,10 +89,12 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
       {/* File list */}
       <div className="space-y-0.5">
         {files.map((file) => (
-          <button
+          <div
             key={file.name}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={() => handleFileClick(file)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleFileClick(file); }}
             className="flex items-center gap-3 w-full px-2 py-1.5 rounded text-left transition-colors cursor-pointer hover:bg-[var(--accent)]"
           >
             <File size={14} className="text-[var(--muted-foreground)] shrink-0" />
@@ -128,7 +130,7 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
                 </span>
               </>
             )}
-          </button>
+          </div>
         ))}
       </div>
 

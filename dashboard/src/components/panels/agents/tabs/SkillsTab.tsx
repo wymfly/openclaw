@@ -81,21 +81,28 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
     setSaving(false);
   }, [agentId, mode, skills, currentSkills?.configHash, updateSkills]);
 
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
   const handleUpdateAllClawHub = useCallback(async () => {
     setUpdateAllLoading(true);
+    setUpdateError(null);
     try {
-      await fetch("/api/skills/update-clawhub", {
+      const res = await fetch("/api/skills/update-clawhub", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ all: true }),
       });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setUpdateError((d as { error?: string }).error ?? t("installFailed"));
+      }
       await fetchSkills(agentId);
     } catch {
-      // best-effort
+      setUpdateError(t("installFailed"));
     } finally {
       setUpdateAllLoading(false);
     }
-  }, [agentId, fetchSkills]);
+  }, [agentId, fetchSkills, t]);
 
   return (
     <div className="space-y-4">
@@ -130,6 +137,10 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
         onInstalled={() => void fetchSkills(agentId)}
       />
 
+      {updateError && (
+        <p className="text-xs text-[var(--destructive)] px-1">{updateError}</p>
+      )}
+
       {/* Mode switcher */}
       <Card className="p-4 bg-[var(--background)] border-[var(--border)]">
         <div className="flex items-center justify-between">
@@ -139,8 +150,8 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
             </p>
             <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
               {isWhitelistMode
-                ? "Only selected skills are available to this agent"
-                : "All skills are available to this agent"}
+                ? t("skillModeWhitelistDesc")
+                : t("skillModeAllDesc")}
             </p>
           </div>
           <Switch
@@ -168,17 +179,17 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
             const entryConfig = (entry as unknown as { config?: { apiKey?: string; env?: Record<string, string> } }).config;
             return (
               <div key={entry.key} className="space-y-1">
-                <button
-                  onClick={() => toggleSkill(entry.key)}
-                  className={cn(
-                    "flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer",
-                    "border border-[var(--border)] bg-[var(--background)]",
-                    "hover:border-[var(--primary)]/30",
-                    isAssigned && "ring-1 ring-[var(--primary)]/30 border-[var(--primary)]/20",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between w-full">
+                  <button
+                    onClick={() => toggleSkill(entry.key)}
+                    className={cn(
+                      "flex items-center gap-2 flex-1 min-w-0 px-3 py-2 rounded-l-lg text-xs transition-colors cursor-pointer",
+                      "border border-r-0 border-[var(--border)] bg-[var(--background)]",
+                      "hover:border-[var(--primary)]/30",
+                      isAssigned && "ring-1 ring-[var(--primary)]/30 border-[var(--primary)]/20",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
+                    )}
+                  >
                     <div
                       className={cn(
                         "w-4 h-4 rounded border flex items-center justify-center transition-colors",
@@ -189,38 +200,26 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
                     >
                       {isAssigned && <Check size={10} />}
                     </div>
-                    <span className="font-mono text-[var(--foreground)]">
+                    <span className="font-mono text-[var(--foreground)] truncate">
                       {entry.name || entry.key}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
                     <Badge
                       variant="outline"
-                      className={cn("text-[10px] border gap-1", eligibility.color)}
+                      className={cn("text-[10px] border gap-1 ml-auto shrink-0", eligibility.color)}
                     >
                       {eligibility.icon}
-                      {entry.eligible ? t("skillReady") : "Missing dep"}
+                      {entry.eligible ? t("skillReady") : t("skillMissingDep")}
                     </Badge>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="p-1 rounded hover:bg-[var(--accent)] text-[var(--muted-foreground)] cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedSkillKey(expandedSkillKey === entry.key ? null : entry.key);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.stopPropagation();
-                          setExpandedSkillKey(expandedSkillKey === entry.key ? null : entry.key);
-                        }
-                      }}
-                      title={t("configureSkill")}
-                    >
-                      <Settings size={12} />
-                    </span>
-                  </div>
-                </button>
+                  </button>
+                  <button
+                    type="button"
+                    className="p-2 rounded-r-lg border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent)] text-[var(--muted-foreground)] cursor-pointer transition-colors"
+                    onClick={() => setExpandedSkillKey(expandedSkillKey === entry.key ? null : entry.key)}
+                    title={t("configureSkill")}
+                  >
+                    <Settings size={12} />
+                  </button>
+                </div>
                 {expandedSkillKey === entry.key && (
                   <SkillConfigEditor
                     skillKey={entry.key}

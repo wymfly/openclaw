@@ -676,7 +676,9 @@
     "updateSuccess": "更新成功",
     "avatarAlt": "Agent 头像",
     "identityName": "名称",
-    "identityEmoji": "Emoji"
+    "identityEmoji": "Emoji",
+    "skillModeWhitelistDesc": "仅所选技能对此 agent 可用",
+    "skillModeAllDesc": "所有技能对此 agent 可用"
   },
   "context": {
     "title": "Prompt 组合",
