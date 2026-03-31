@@ -45,7 +45,7 @@ export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillIns
         skills?: Array<{
           key: string;
           label?: string;
-          metadata?: { install?: Array<{ type?: string; id?: string }> };
+          metadata?: { install?: Array<{ kind?: string; id?: string }> };
         }>;
       };
       const options: InstallOption[] = [];
@@ -54,8 +54,8 @@ export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillIns
         for (const [idx, spec] of installs.entries()) {
           options.push({
             skillName: skill.key,
-            installId: spec.id ?? `${spec.type ?? "unknown"}-${idx}`,
-            label: `${skill.label ?? skill.key} (${spec.type ?? "install"})`,
+            installId: spec.id ?? `${spec.kind ?? "unknown"}-${idx}`,
+            label: `${skill.label ?? skill.key} (${spec.kind ?? "install"})`,
           });
         }
       }

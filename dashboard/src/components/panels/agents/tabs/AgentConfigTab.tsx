@@ -181,9 +181,22 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
     if (!isDirty) {return;}
     setSaving(true);
 
-    // Build the flat updates to apply to the agent entry
+    // Build the flat updates to apply to the agent entry.
+    // Special handling: "model" is a union type (string | { primary, fallbacks }).
+    // If both "model" and "model.fallbacks" are edited, combine into object form
+    // to avoid setNestedKey overwriting one with the other.
+    const edits = { ...localEdits };
+    if ("model" in edits && "model.fallbacks" in edits) {
+      const primary = edits["model"];
+      const fallbacks = edits["model.fallbacks"];
+      delete edits["model"];
+      delete edits["model.fallbacks"];
+      edits["model"] = primary != null || fallbacks != null
+        ? { primary: primary ?? undefined, fallbacks: fallbacks ?? undefined }
+        : null;
+    }
     const updates: Record<string, unknown> = {};
-    for (const [path, value] of Object.entries(localEdits)) {
+    for (const [path, value] of Object.entries(edits)) {
       setNestedKey(updates, path, value);
     }
 

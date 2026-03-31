@@ -41,14 +41,19 @@ export function ToolsCatalog({
   const t = useTranslations("agentDetail.config");
   const { toolsCatalog, toolsCatalogLoading, fetchToolsCatalog } = useDeckAgentsStore();
   const [open, setOpen] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [loadedForAgent, setLoadedForAgent] = useState<string | null>(null);
+
+  // Reset loaded state when agent changes
+  useEffect(() => {
+    setLoadedForAgent(null);
+  }, [agentId]);
 
   useEffect(() => {
-    if (open && !loaded) {
+    if (open && loadedForAgent !== agentId) {
       void fetchToolsCatalog(agentId);
-      setLoaded(true);
+      setLoadedForAgent(agentId);
     }
-  }, [open, loaded, agentId, fetchToolsCatalog]);
+  }, [open, loadedForAgent, agentId, fetchToolsCatalog]);
 
   const handleOverrideChange = useCallback(
     (toolId: string, newState: OverrideState) => {
@@ -62,7 +67,7 @@ export function ToolsCatalog({
   );
 
   // Graceful degradation: don't render if catalog failed to load
-  if (loaded && !toolsCatalogLoading && !toolsCatalog) {
+  if (loadedForAgent === agentId && !toolsCatalogLoading && !toolsCatalog) {
     return null;
   }
 
