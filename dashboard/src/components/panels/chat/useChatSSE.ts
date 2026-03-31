@@ -85,7 +85,7 @@ export function useChatSSE() {
           if (idx < 0) return {};
           const metas = [...s.sessionMetas];
           metas[idx] = { ...metas[idx], ...patch };
-          return { sessionMetas: metas };
+          return { sessionMetas: metas, sessionMeta: metas };
         });
       },
     };
