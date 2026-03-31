@@ -105,6 +105,7 @@ export function RecordField({ field, value, onChange, prefix, searchQuery }: Rec
                     handleValueChange(entryKey, newEntryValue);
                   }}
                   prefix={`${prefix}${field.key}.${entryKey}.`}
+                  searchQuery={searchQuery}
                 />
               </div>
             )}

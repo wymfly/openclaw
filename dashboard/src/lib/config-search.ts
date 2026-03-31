@@ -123,18 +123,29 @@ export function filterFields(fields: FormField[], search: ParsedSearch, prefix =
       }
     }
 
-    // Check valueSchema (record/map fields)
+    // Check valueSchema (record/map fields) — match self and recurse children
     if (!matched && field.valueSchema) {
       if (matchesSearch(field.valueSchema, search, childPrefix)) {
         result.push(field);
         matched = true;
+      } else if (field.valueSchema.children) {
+        const filtered = filterFields(field.valueSchema.children, search, childPrefix);
+        if (filtered.length > 0) {
+          result.push(field);
+          matched = true;
+        }
       }
     }
 
-    // Check itemSchema (typed array fields)
+    // Check itemSchema (typed array fields) — match self and recurse children
     if (!matched && field.itemSchema) {
       if (matchesSearch(field.itemSchema, search, childPrefix)) {
         result.push(field);
+      } else if (field.itemSchema.children) {
+        const filtered = filterFields(field.itemSchema.children, search, childPrefix);
+        if (filtered.length > 0) {
+          result.push(field);
+        }
       }
     }
   }

@@ -108,6 +108,7 @@ export function TypedArrayField({
                   handleItemChange(index, updated);
                 }}
                 prefix={`${prefix}${field.key}[${index}].`}
+                searchQuery={searchQuery}
               />
             ) : (
               <Input

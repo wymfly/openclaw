@@ -62,6 +62,7 @@ export function UnionField({ field, value, onChange, prefix, searchQuery }: Unio
                 onChange(`${prefix}${field.key}.${childKey}`, childValue);
               }}
               prefix={`${prefix}${field.key}.`}
+              searchQuery={searchQuery}
             />
           </div>
         )}
