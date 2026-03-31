@@ -1,12 +1,26 @@
 "use client";
 
-import { Send, Square, Paperclip, X, FileIcon, ImageIcon, Loader2, PanelRight, SquareCode } from "lucide-react";
+import {
+  Send,
+  Square,
+  Paperclip,
+  X,
+  FileIcon,
+  PanelRight,
+  SquareCode,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
 import { useUIStore } from "@/stores/ui";
 import { ArtifactContext } from "./ChatPanel";
+import { SlashCommandPalette } from "./SlashCommandPalette";
+import { executeSlashCommand } from "./slash-command-executor";
+import { getSlashCommandCompletions, parseSlashCommand } from "./slash-commands";
+import type { SlashCommandDef } from "./slash-commands";
+import { exportSessionAsMarkdown } from "./export-session";
+import { useInputHistory } from "./useInputHistory";
 
 /** Max attachment size — matches macOS client (5MB). */
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -114,6 +128,14 @@ export function MessageInput() {
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Slash command state ──
+  const [showPalette, setShowPalette] = useState(false);
+  const [slashFilter, setSlashFilter] = useState("");
+  const [paletteIndex, setPaletteIndex] = useState(0);
+
+  // ── Input history ──
+  const history = useInputHistory();
+
   const addFiles = useCallback(
     (newFiles: File[]) => {
       const valid = newFiles.filter((f) => {
@@ -135,11 +157,95 @@ export function MessageInput() {
     [activeSessionKey],
   );
 
+  // ── Slash command input detection ──
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setInput(value);
+      // Show palette when input starts with `/` and no spaces yet (still typing command name)
+      if (value.startsWith("/") && !value.includes(" ")) {
+        setShowPalette(true);
+        setSlashFilter(value.slice(1));
+        setPaletteIndex(0);
+      } else {
+        setShowPalette(false);
+      }
+      history.reset();
+    },
+    [history],
+  );
+
+  // ── Slash command execution ──
+  const handleSlashCommand = useCallback(
+    async (cmd: SlashCommandDef) => {
+      setShowPalette(false);
+      setInput("");
+      const parsed = parseSlashCommand(`/${cmd.name}${input.includes(" ") ? input.slice(input.indexOf(" ")) : ""}`);
+      const result = await executeSlashCommand(
+        activeSessionKey ?? "",
+        cmd.name,
+        parsed?.args ?? "",
+      );
+
+      // Handle action
+      const action = result.action;
+      if (action === "new-session" || action === "reset") {
+        // Create new session via existing API
+        const agentId = activeAgentId || "main";
+        try {
+          const res = await fetch("/api/chat/sessions/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agentId }),
+          });
+          const data = (await res.json()) as { key?: string };
+          if (data.key) {
+            useChatStore.getState().setActiveSession(data.key);
+          }
+        } catch {
+          // silently ignore
+        }
+      } else if (action === "stop") {
+        void handleAbort();
+      } else if (action === "clear") {
+        if (activeSessionKey) {
+          useChatStore.getState().setMessages(activeSessionKey, []);
+        }
+      } else if (action === "export") {
+        if (activeSessionKey) {
+          exportSessionAsMarkdown(activeSessionKey);
+        }
+      }
+
+      // Display command output as system message
+      if (result.content) {
+        if (activeSessionKey) {
+          useChatStore.getState().addMessage(activeSessionKey, {
+            id: `system-cmd-${Date.now()}`,
+            role: "system",
+            content: [{ type: "text" as const, text: result.content }],
+            timestamp: Date.now(),
+          });
+        }
+      }
+    },
+    [activeSessionKey, activeAgentId, input],
+  );
+
   const sendMessage = useCallback(async () => {
     const text = input.trim();
     if ((!text && files.length === 0) || isStreaming || isSending) {
       return;
     }
+
+    // Check for slash command
+    const parsed = parseSlashCommand(text);
+    if (parsed) {
+      await handleSlashCommand(parsed.command);
+      return;
+    }
+
+    // Push to input history
+    history.push(text);
 
     const agentId = activeAgentId || "main";
     let sessionKey = activeSessionKey;
@@ -253,8 +359,7 @@ export function MessageInput() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message:
-              text ||
-              (pendingFiles.length > 0 ? pendingFiles.map((f) => f.name).join(", ") : ""),
+              text || (pendingFiles.length > 0 ? pendingFiles.map((f) => f.name).join(", ") : ""),
             sessionKey,
             ...(attachments.length > 0 ? { attachments } : {}),
           }),
@@ -289,6 +394,50 @@ export function MessageInput() {
   }, [activeSessionKey]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Priority 1: Slash command palette (when open, it owns ArrowUp/Down/Enter/Escape)
+    if (showPalette) {
+      const commands = getSlashCommandCompletions(slashFilter);
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setPaletteIndex((prev) => (prev + 1) % commands.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setPaletteIndex((prev) => (prev - 1 + commands.length) % commands.length);
+        return;
+      }
+      if (e.key === "Enter" && commands.length > 0) {
+        e.preventDefault();
+        void handleSlashCommand(commands[paletteIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowPalette(false);
+        return;
+      }
+    }
+
+    // Priority 2: Input history (ArrowUp/Down when input is empty)
+    if (e.key === "ArrowUp" && !input.trim()) {
+      const prev = history.up(input);
+      if (prev !== null) {
+        e.preventDefault();
+        setInput(prev);
+        return;
+      }
+    }
+    if (e.key === "ArrowDown") {
+      const next = history.down();
+      if (next !== null) {
+        e.preventDefault();
+        setInput(next);
+        return;
+      }
+    }
+
+    // Priority 3: Send on Enter
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void sendMessage();
@@ -370,22 +519,31 @@ export function MessageInput() {
             }
           }}
         />
-        <textarea
-          data-chat-input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          placeholder={t("placeholder")}
-          rows={1}
-          className="flex-1 resize-none text-sm rounded-lg px-3 py-2 outline-none"
-          style={{
-            backgroundColor: "var(--card)",
-            color: "var(--foreground)",
-            border: "1px solid var(--border)",
-            maxHeight: 120,
-          }}
-        />
+        <div className="relative flex-1">
+          {showPalette && (
+            <SlashCommandPalette
+              filter={slashFilter}
+              onSelect={(cmd) => void handleSlashCommand(cmd)}
+              onDismiss={() => setShowPalette(false)}
+            />
+          )}
+          <textarea
+            data-chat-input
+            value={input}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            placeholder={t("placeholder")}
+            rows={1}
+            className="w-full resize-none text-sm rounded-lg px-3 py-2 outline-none"
+            style={{
+              backgroundColor: "var(--card)",
+              color: "var(--foreground)",
+              border: "1px solid var(--border)",
+              maxHeight: 120,
+            }}
+          />
+        </div>
         {isStreaming ? (
           <button
             onClick={() => void handleAbort()}

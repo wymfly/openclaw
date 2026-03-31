@@ -597,4 +597,14 @@ registerDefaultChatStoreAPI({
   setMessages: (...a) => useChatStore.getState().setMessages(...a),
   getSessionMessages: (key) => useChatStore.getState().sessions.get(key)?.messages ?? [],
   updateToolProgress: (...a) => useChatStore.getState().updateToolProgress(...a),
+  updateSessionMeta: (sessionKey, patch) => {
+    useChatStore.setState((s) => {
+      const metas = [...s.sessionMetas];
+      const idx = metas.findIndex((m) => m.key === sessionKey);
+      if (idx >= 0) {
+        metas[idx] = { ...metas[idx], ...patch };
+      }
+      return { sessionMetas: metas };
+    });
+  },
 });

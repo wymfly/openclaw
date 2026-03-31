@@ -79,6 +79,16 @@ export function useChatSSE() {
       setMessages: (...a) => getStore().setMessages(...a),
       getSessionMessages: (key) => getStore().sessions.get(key)?.messages ?? [],
       updateToolProgress: (...a) => getStore().updateToolProgress(...a),
+      updateSessionMeta: (sessionKey, patch) => {
+        useChatStore.setState((s) => {
+          const metas = [...s.sessionMetas];
+          const idx = metas.findIndex((m) => m.key === sessionKey);
+          if (idx >= 0) {
+            metas[idx] = { ...metas[idx], ...patch };
+          }
+          return { sessionMetas: metas };
+        });
+      },
     };
 
     const es = new EventSource("/api/stream");
