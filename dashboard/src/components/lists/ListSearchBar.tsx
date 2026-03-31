@@ -39,9 +39,14 @@ export function ListSearchBar<F extends FilterState = FilterState>({
   const [query, setQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const skipNextDebounceRef = useRef(false);
 
   // Debounced search
   useEffect(() => {
+    if (skipNextDebounceRef.current) {
+      skipNextDebounceRef.current = false;
+      return;
+    }
     debounceRef.current = setTimeout(() => {
       onSearch(query);
     }, debounceMs);
@@ -53,10 +58,11 @@ export function ListSearchBar<F extends FilterState = FilterState>({
   }, [query, debounceMs, onSearch]);
 
   const clearSearch = useCallback(() => {
-    setQuery("");
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
+    skipNextDebounceRef.current = true;
+    setQuery("");
     onSearch("");
     setFiltersOpen(false);
   }, [onSearch]);
@@ -67,6 +73,7 @@ export function ListSearchBar<F extends FilterState = FilterState>({
         if (debounceRef.current) {
           clearTimeout(debounceRef.current);
         }
+        skipNextDebounceRef.current = true;
         onSearch(query);
       } else if (e.key === "Escape") {
         clearSearch();

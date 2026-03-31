@@ -39,7 +39,7 @@ type PaginatedListProps = {
   loading?: boolean;
   /** Total item count for display. */
   totalCount?: number;
-  /** Number of skeleton rows in button mode loading. Default: 3, max: 5. */
+  /** Number of skeleton rows in button mode loading. Defaults to pageSize (max 5). */
   skeletonCount?: number;
 } & (PaginatedListButtonProps | PaginatedListInfiniteProps);
 
@@ -101,8 +101,9 @@ function ButtonPagination({
 }) {
   // Show up to 5 page numbers centered around current page
   const pages: number[] = [];
-  const start = Math.max(1, page - 2);
-  const end = Math.min(totalPages, start + 4);
+  let end = Math.min(totalPages, page + 2);
+  let start = Math.max(1, end - 4);
+  end = Math.min(totalPages, start + 4);
   for (let i = start; i <= end; i++) {
     pages.push(i);
   }
