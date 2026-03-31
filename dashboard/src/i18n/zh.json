@@ -947,6 +947,18 @@
         "totalTime": "总耗时: {time}"
       },
       "reset": "重置"
+    },
+    "schemaForm": {
+      "noSchemaFields": "此渠道无可配置项。",
+      "requiredFields": "以下必填字段未填写"
+    },
+    "probe": {
+      "title": "连接探测",
+      "testConnection": "测试连接",
+      "testing": "探测中...",
+      "success": "连接成功",
+      "failure": "连接失败",
+      "timeout": "连接超时"
     }
   },
   "config": {

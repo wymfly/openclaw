@@ -947,6 +947,18 @@
         "totalTime": "Total time: {time}"
       },
       "reset": "Reset"
+    },
+    "schemaForm": {
+      "noSchemaFields": "No configurable fields for this channel.",
+      "requiredFields": "Required fields missing"
+    },
+    "probe": {
+      "title": "Connection Probe",
+      "testConnection": "Test Connection",
+      "testing": "Probing...",
+      "success": "Connected",
+      "failure": "Connection Failed",
+      "timeout": "Connection Timeout"
     }
   },
   "config": {
