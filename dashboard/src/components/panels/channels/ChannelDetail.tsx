@@ -6,6 +6,7 @@ import { useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useChannelsStore, type ChannelAccount } from "@/stores/channels";
 import { BindingsTab } from "./BindingsTab";
+import { ChannelProbeStatus } from "./ChannelProbeStatus";
 import { ChannelSettingsTab } from "./ChannelSettingsTab";
 
 function AccountStatusBadge({ account }: { account: ChannelAccount }) {
@@ -77,7 +78,7 @@ function AccountStatusBadge({ account }: { account: ChannelAccount }) {
 export function ChannelDetail({ channelId }: { channelId: string }) {
   const t = useTranslations("channels");
   const tc = useTranslations("common");
-  const { channels, logoutChannel, updateChannelConfig } = useChannelsStore();
+  const { channels, logoutChannel, updateChannelConfig, channelSchemas } = useChannelsStore();
 
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -108,6 +109,27 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
     },
     [channelId, updateChannelConfig],
   );
+
+  const schemaInfo = channelSchemas.get(channelId);
+
+  // Schema-only channel (discovered but not yet configured via channels.status)
+  if (!channel && schemaInfo) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="px-4 py-3 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+            {channelId}
+          </h2>
+          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+            {t("unconfigured")}
+          </span>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <ChannelSettingsTab channelId={channelId} />
+        </div>
+      </div>
+    );
+  }
 
   if (!channel) {
     return (
@@ -146,9 +168,20 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
           </TabsTrigger>
         </TabsList>
 
-        {/* Status tab — original accounts + logout content */}
+        {/* Status tab — probe + accounts + logout */}
         <TabsContent value="status" className="flex-1 overflow-y-auto">
           <div className="px-4 py-3 space-y-4">
+            {/* Connection probe */}
+            <div className="pb-3 border-b" style={{ borderColor: "var(--border)" }}>
+              <label
+                className="block text-xs font-medium mb-2"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                {t("probe.title")}
+              </label>
+              <ChannelProbeStatus channelId={channelId} />
+            </div>
+
             {/* Accounts section */}
             <div>
               <label

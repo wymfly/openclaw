@@ -12,11 +12,12 @@ import { ChannelList } from "./ChannelList";
  */
 export function ChannelsPanel() {
   const t = useTranslations("channels");
-  const { selectedId, fetchChannels } = useChannelsStore();
+  const { selectedId, fetchChannels, fetchChannelSchemas } = useChannelsStore();
 
   useEffect(() => {
     void fetchChannels();
-  }, [fetchChannels]);
+    void fetchChannelSchemas();
+  }, [fetchChannels, fetchChannelSchemas]);
 
   return (
     <div
@@ -30,7 +31,7 @@ export function ChannelsPanel() {
         ) : (
           <div
             className="flex items-center justify-center h-full"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{t("noChannels")}</p>
           </div>

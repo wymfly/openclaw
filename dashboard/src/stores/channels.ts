@@ -14,6 +14,9 @@ export interface ChannelAccount {
   running?: boolean;
   connected?: boolean;
   lastError?: string;
+  /** Probe result from channels.status with probe: true */
+  probe?: { ok?: boolean; error?: string; latencyMs?: number; elapsedMs?: number };
+  lastProbeAt?: number | null;
 }
 
 export interface ChannelInfo {
@@ -21,6 +24,21 @@ export interface ChannelInfo {
   label: string;
   accounts: ChannelAccount[];
   defaultAccountId?: string;
+}
+
+/** Schema info for a channel extracted from config.schema */
+export interface ChannelSchemaInfo {
+  /** Config path (e.g. "channels.telegram") */
+  configPath: string;
+  /** JSON Schema for this channel's config section */
+  schema: Record<string, unknown>;
+}
+
+export interface ProbeResult {
+  status: "success" | "failure" | "timeout";
+  latencyMs?: number;
+  error?: string;
+  probedAt: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,6 +78,13 @@ interface ChannelsState {
   channelConfig: Record<string, unknown> | null;
   channelConfigSaveError: string | null;
 
+  // Schema discovery state
+  channelSchemas: Map<string, ChannelSchemaInfo>;
+
+  // Probe state
+  probeResults: Map<string, ProbeResult>;
+  probing: Set<string>;
+
   fetchChannels: () => Promise<void>;
   selectChannel: (id: string | null) => void;
   updateChannelConfig: (channelId: string, patch: Record<string, unknown>) => Promise<boolean>;
@@ -68,6 +93,8 @@ interface ChannelsState {
   setThroughputWindow: (window: ThroughputWindow) => void;
   fetchChannelConfig: (channelId: string) => Promise<void>;
   saveChannelConfig: (channelId: string, patch: Record<string, unknown>) => Promise<boolean>;
+  fetchChannelSchemas: () => Promise<void>;
+  probeChannel: (channelId: string) => Promise<void>;
 }
 
 export const useChannelsStore = create<ChannelsState>((set, get) => ({
@@ -80,6 +107,9 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
   throughputWindow: "1h" as ThroughputWindow,
   channelConfig: null,
   channelConfigSaveError: null,
+  channelSchemas: new Map(),
+  probeResults: new Map(),
+  probing: new Set(),
 
   fetchChannels: async () => {
     set({ loading: true, error: null });
@@ -234,8 +264,7 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
       }
       const d = await res.json().catch(() => ({ error: "Failed to save channel config" }));
       set({
-        channelConfigSaveError:
-          (d as { error?: string }).error ?? "Failed to save channel config",
+        channelConfigSaveError: (d as { error?: string }).error ?? "Failed to save channel config",
       });
       return false;
     } catch (err) {
@@ -245,5 +274,79 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
       });
       return false;
     }
+  },
+
+  fetchChannelSchemas: async () => {
+    const configStore = useConfigStore.getState();
+    if (!configStore.schema) {
+      await configStore.fetchSchema();
+    }
+    const { schema } = useConfigStore.getState();
+    if (!schema) return;
+
+    const schemas = new Map<string, ChannelSchemaInfo>();
+    const properties = (schema.properties ?? {}) as Record<string, Record<string, unknown>>;
+
+    // All channels (core + plugin) are under schema.properties.channels.*
+    const channelsSection = properties.channels;
+    if (channelsSection?.properties) {
+      const channelProps = channelsSection.properties as Record<string, Record<string, unknown>>;
+      for (const [chId, chSchema] of Object.entries(channelProps)) {
+        if (chSchema && typeof chSchema === "object") {
+          schemas.set(chId, {
+            configPath: `channels.${chId}`,
+            schema: chSchema,
+          });
+        }
+      }
+    }
+
+    set({ channelSchemas: schemas });
+  },
+
+  probeChannel: async (channelId: string) => {
+    set((s) => ({ probing: new Set(s.probing).add(channelId) }));
+
+    let result: ProbeResult;
+    try {
+      const res = await fetch("/api/channels/probe", { method: "POST" });
+
+      if (!res.ok) {
+        result = { status: "failure", error: "Failed to probe", probedAt: Date.now() };
+      } else {
+        const data = (await res.json()) as Record<string, unknown>;
+        // channelAccounts[channelId] is an Array of ChannelAccountSnapshot
+        const allAccounts = (data.channelAccounts ?? {}) as Record<string, ChannelAccount[]>;
+        const channelAccounts = allAccounts[channelId];
+
+        if (!channelAccounts || !Array.isArray(channelAccounts) || channelAccounts.length === 0) {
+          result = { status: "failure", error: "Channel not found", probedAt: Date.now() };
+        } else {
+          // Aggregate probe results — field is "probe" on ChannelAccountSnapshot
+          const anyOk = channelAccounts.some((a) => a.probe?.ok);
+          const firstError = channelAccounts.find((a) => a.probe?.error)?.probe?.error;
+          const latency =
+            channelAccounts.find((a) => a.probe?.latencyMs)?.probe?.latencyMs ??
+            channelAccounts.find((a) => a.probe?.elapsedMs)?.probe?.elapsedMs;
+          result = {
+            status: anyOk ? "success" : "failure",
+            latencyMs: latency,
+            error: anyOk ? undefined : firstError,
+            probedAt: Date.now(),
+          };
+        }
+      }
+    } catch {
+      result = { status: "timeout", error: "Network error or timeout", probedAt: Date.now() };
+    }
+
+    // Functional update to avoid race when multiple probes run concurrently
+    set((s) => {
+      const next = new Map(s.probeResults);
+      next.set(channelId, result);
+      const probing = new Set(s.probing);
+      probing.delete(channelId);
+      return { probeResults: next, probing };
+    });
   },
 }));

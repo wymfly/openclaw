@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useCallback } from "react";
 import { useChannelsStore } from "@/stores/channels";
+import { ChannelSchemaSettings } from "./ChannelSchemaSettings";
 import { DmPolicySelector } from "./DmPolicySelector";
 import { RetryStrategyEditor } from "./RetryStrategyEditor";
 
@@ -24,7 +25,33 @@ const DEFAULT_RETRY: RetryState = {
   jitter: 0.2,
 };
 
+/**
+ * Settings tab for a channel.
+ *
+ * When schema info is available (from config.schema discovery), renders the
+ * schema-driven form which covers ALL fields including dmPolicy and retry.
+ * Falls back to hardcoded DmPolicy + Retry fields when schema is unavailable.
+ */
 export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
+  const { channelSchemas } = useChannelsStore();
+  const schemaInfo = channelSchemas.get(channelId);
+
+  // Schema available with renderable fields → schema-driven form
+  // Falls back to legacy when schema has no properties (empty schema edge case)
+  if (schemaInfo) {
+    const props = schemaInfo.schema.properties;
+    const hasFields = props && typeof props === "object" && Object.keys(props).length > 0;
+    if (hasFields) {
+      return <ChannelSchemaSettings channelId={channelId} schemaInfo={schemaInfo} />;
+    }
+  }
+
+  // Fallback → hardcoded fields for channels without schema info or empty schema
+  return <LegacyChannelSettings channelId={channelId} />;
+}
+
+/** Hardcoded DmPolicy + Retry settings (legacy fallback when no schema) */
+function LegacyChannelSettings({ channelId }: { channelId: string }) {
   const t = useTranslations("channels.settings");
   const tc = useTranslations("common");
 
@@ -37,11 +64,9 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  // Initial values for reset
   const [initialDmPolicy, setInitialDmPolicy] = useState("pairing");
   const [initialRetry, setInitialRetry] = useState<RetryState>(DEFAULT_RETRY);
 
-  // Fetch config on mount — always mark loaded once fetch completes
   useEffect(() => {
     setLoaded(false);
     void fetchChannelConfig(channelId).then(() => {
@@ -49,9 +74,8 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
     });
   }, [channelId, fetchChannelConfig]);
 
-  // Populate local state from fetched config
   useEffect(() => {
-    if (!channelConfig) return; // null or empty = no config found, keep defaults
+    if (!channelConfig) return;
 
     const cfg = channelConfig as Record<string, unknown>;
     const policy = typeof cfg.dmPolicy === "string" ? cfg.dmPolicy : "pairing";
@@ -84,7 +108,6 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
   }, []);
 
   const handleSave = useCallback(async () => {
-    // Only include changed fields in the patch
     const patch: Record<string, unknown> = {};
     if (dmPolicy !== initialDmPolicy) {
       patch.dmPolicy = dmPolicy;
@@ -97,7 +120,7 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
         jitter: retry.jitter,
       };
     }
-    if (Object.keys(patch).length === 0) return; // no actual changes
+    if (Object.keys(patch).length === 0) return;
 
     setSaving(true);
     try {
@@ -128,7 +151,6 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
         <DmPolicySelector value={dmPolicy} onChange={handleDmPolicyChange} />
         <RetryStrategyEditor
@@ -140,7 +162,6 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
         />
       </div>
 
-      {/* Error feedback */}
       {channelConfigSaveError && (
         <div className="shrink-0 px-4 py-1">
           <p className="text-xs" style={{ color: "var(--destructive)" }}>
@@ -149,7 +170,6 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
         </div>
       )}
 
-      {/* Save/Reset bar */}
       {dirty && (
         <div
           className="shrink-0 flex items-center justify-end gap-2 px-4 py-2 border-t"
