@@ -2,7 +2,9 @@
 # openclaw-deck — Multi-stage Dockerfile (Next.js standalone)
 #
 # Build context: repository root (not dashboard/)
-#   docker build -f deploy/Dockerfile.deck -t openclaw-deck .
+#   docker build -f deploy/docker/Dockerfile.deck -t openclaw-deck .
+#
+# Uses sql.js (WASM SQLite) — no native addon compilation needed.
 #
 # Runtime env vars:
 #   DECK_DB_PATH       — SQLite database path (default: /data/deck.db)
@@ -40,16 +42,8 @@ RUN --mount=type=bind,source=extensions,target=/tmp/extensions \
     done
 
 # -- Layer 2: install dependencies --------------------------------
-# better-sqlite3 is not in pnpm-workspace.yaml's onlyBuiltDependencies
-# (to avoid building it in CI where it's unused). We add it before install.
-RUN sed -i '/onlyBuiltDependencies:/a\  - better-sqlite3' pnpm-workspace.yaml && \
-    pnpm install --frozen-lockfile --filter openclaw-deck...
-
-# Compile better-sqlite3 native addon for Linux.
-# pnpm rebuild doesn't always trigger for hoisted deps, so we run
-# the install script directly inside the package directory.
-RUN cd node_modules/better-sqlite3 && \
-    npx --yes prebuild-install || npx --yes node-gyp rebuild --release
+# sql.js is pure WASM — no native addon compilation needed.
+RUN pnpm install --frozen-lockfile --filter openclaw-deck...
 
 # -- Layer 3: dashboard source + build ----------------------------
 COPY dashboard/ ./dashboard/
@@ -76,7 +70,7 @@ ENV PORT=3000
 # Copy standalone server output.
 # Next.js standalone mirrors the workspace directory structure:
 #   .next/standalone/
-#     node_modules/     ← traced root deps (better-sqlite3, ws, etc.)
+#     node_modules/     ← traced root deps (sql.js, ws, etc.)
 #     dashboard/
 #       server.js       ← entry point
 #       .next/          ← server chunks
@@ -90,12 +84,6 @@ COPY --from=builder /app/dashboard/.next/static ./dashboard/.next/static
 # the bundled server code path, which maps to dashboard/migrations
 # in the standalone output directory structure.
 COPY --from=builder /app/dashboard/migrations ./dashboard/migrations
-
-# better-sqlite3 native addon — Next.js standalone file tracing does not
-# follow the dynamic binary resolution done by the `bindings` package.
-# Copy the Linux-compiled native addon from the builder's node_modules.
-COPY --from=builder /app/node_modules/better-sqlite3/build \
-  ./node_modules/better-sqlite3/build
 
 # Create data volume mount point
 RUN mkdir -p /data && chown node:node /data
