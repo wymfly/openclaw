@@ -87,7 +87,8 @@ export function ConflictDialog({ onReload, onCancel }: ConflictDialogProps) {
       const local = JSON.parse(editedConfig || "{}") as Record<string, unknown>;
       const remote = JSON.parse(remoteConfig) as Record<string, unknown>;
       return computeConfigDiff(remote, local);
-    } catch {
+    } catch (err) {
+      console.error("[ConflictDialog] Failed to parse config for diff:", err);
       return [];
     }
   }, [editedConfig, remoteConfig]);
@@ -131,8 +132,14 @@ export function ConflictDialog({ onReload, onCancel }: ConflictDialogProps) {
       }
 
       await resolveConflict(merged);
-    } catch {
-      // Error handled by store
+    } catch (err) {
+      console.error("[ConflictDialog] Failed to apply merged config:", err);
+      useConfigStore.setState({
+        error:
+          err instanceof SyntaxError
+            ? "Remote config is malformed. Please reload and try again."
+            : "Failed to apply merged config",
+      });
     }
   }, [remoteConfig, diffs, choices, resolveConflict]);
 

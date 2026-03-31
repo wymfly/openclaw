@@ -153,9 +153,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
                     : null;
               set({ conflict: true, remoteConfig: remoteRaw, baseHash: remoteHash });
             } else {
+              console.error(
+                "[config] Remote config fetch failed during conflict:",
+                remoteRes.status,
+              );
               set({ conflict: true, remoteConfig: null });
             }
-          } catch {
+          } catch (fetchErr) {
+            console.error("[config] Failed to fetch remote config for conflict diff:", fetchErr);
             set({ conflict: true, remoteConfig: null });
           }
           return false;
@@ -237,9 +242,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
                     : null;
               set({ remoteConfig: remoteRaw, baseHash: remoteHash, error: errorMsg });
             } else {
+              console.error(
+                "[config] Remote config re-fetch failed during merge conflict:",
+                remoteRes.status,
+              );
               set({ error: errorMsg });
             }
-          } catch {
+          } catch (fetchErr) {
+            console.error("[config] Failed to refresh remote config during re-conflict:", fetchErr);
             set({ error: errorMsg });
           }
           return false;
