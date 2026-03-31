@@ -45,8 +45,33 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
   const [expandedSkillKey, setExpandedSkillKey] = useState<string | null>(null);
   const [updateAllLoading, setUpdateAllLoading] = useState(false);
 
+  // skills.status provides config data (apiKey, env) that deck.agents.skills.get doesn't have
+  const [skillConfigs, setSkillConfigs] = useState<
+    Map<string, { apiKey?: string; env?: Record<string, string> }>
+  >(new Map());
+
   useEffect(() => {
     void fetchSkills(agentId);
+    // Parallel fetch: skills.status for config data
+    void (async () => {
+      try {
+        const res = await fetch("/api/skills");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          skills?: Array<{
+            key: string;
+            config?: { apiKey?: string; env?: Record<string, string> };
+          }>;
+        };
+        const map = new Map<string, { apiKey?: string; env?: Record<string, string> }>();
+        for (const s of data.skills ?? []) {
+          if (s.config) map.set(s.key, s.config);
+        }
+        setSkillConfigs(map);
+      } catch {
+        // best-effort
+      }
+    })();
   }, [agentId, fetchSkills]);
 
   // Sync local state when store data arrives
@@ -176,7 +201,7 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
             const isAssigned = skills.includes(entry.key);
             const eligibilityKey = entry.eligible ? "ready" : "missing_dep";
             const eligibility = ELIGIBILITY_STYLES[eligibilityKey] ?? ELIGIBILITY_STYLES.ready;
-            const entryConfig = (entry as unknown as { config?: { apiKey?: string; env?: Record<string, string> } }).config;
+            const entryConfig = skillConfigs.get(entry.key);
             return (
               <div key={entry.key} className="space-y-1">
                 <div className="flex items-center justify-between w-full">

@@ -29,7 +29,6 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
     agentFilesList,
     filesListLoading,
     fetchFilesList,
-    systemPromptPreview,
   } = useDeckAgentsStore();
 
   const [editorVisible, setEditorVisible] = useState(false);
@@ -50,23 +49,14 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
     setEditorVisible(true);
   }, []);
 
-  // Use files from agents.files.list if available, fall back to systemPromptPreview.bootstrapFiles
-  const files: AgentFileEntry[] =
-    agentFilesList.length > 0
-      ? agentFilesList
-      : (systemPromptPreview?.bootstrapFiles ?? []).map((f) => ({
-          name: f.name,
-          path: f.name,
-          missing: !f.exists,
-          size: undefined,
-          updatedAtMs: undefined,
-        }));
+  // Single data source: agents.files.list
+  const files = agentFilesList;
 
-  // BootstrapFileEditor expects { name, exists, charCount } from systemPromptPreview
-  const editorFiles = systemPromptPreview?.bootstrapFiles ?? files.map((f) => ({
+  // Convert to BootstrapFileEditor format: { name, exists, charCount }
+  const editorFiles = files.map((f) => ({
     name: f.name,
     exists: !f.missing,
-    charCount: 0,
+    charCount: f.size ?? 0,
   }));
 
   if (filesListLoading) {
