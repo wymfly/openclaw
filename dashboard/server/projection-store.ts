@@ -2,15 +2,19 @@
  * Projection Store — thin persistence layer on top of SQLite for openclaw-deck.
  * Simplified from openclaw-studio: outbox + settings tables only.
  */
-import type BetterSqlite3 from "better-sqlite3";
+import type { Database, RunResult } from "./db";
 import { getDb } from "./db";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type Database = BetterSqlite3.Database;
-type Statement<B extends unknown[], R> = BetterSqlite3.Statement<B, R>;
+/** Minimal statement interface matching the sql.js adapter. */
+type Statement<_B extends unknown[], _R> = {
+	run(...params: unknown[]): RunResult;
+	get(...params: unknown[]): Record<string, unknown> | undefined;
+	all(...params: unknown[]): Array<Record<string, unknown>>;
+};
 
 export type OutboxRow = {
   id: number;
@@ -126,7 +130,7 @@ export class ProjectionStore {
   getEventsSince(lastId: number, limit = 500): OutboxEntry[] {
     const safeLastId = Number.isFinite(lastId) && lastId >= 0 ? lastId : 0;
     const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 500;
-    return this.selectAfterStmt.all(safeLastId, safeLimit).map(toOutboxEntry);
+    return (this.selectAfterStmt.all(safeLastId, safeLimit) as OutboxRow[]).map(toOutboxEntry);
   }
 
   /** Return the highest outbox ID (0 if empty). */
@@ -139,7 +143,7 @@ export class ProjectionStore {
 
   /** Get a setting value by key. Returns `undefined` if not found. */
   getSetting(key: string): string | undefined {
-    const row = this.getSettingStmt.get(key);
+    const row = this.getSettingStmt.get(key) as SettingRow | undefined;
     return row?.value;
   }
 

@@ -1,9 +1,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import type { Database } from "../db.js";
-import { openDb } from "../db.js";
+import { openDb, preloadSqlJs } from "../db.js";
+
+beforeAll(async () => {
+  await preloadSqlJs();
+});
 
 // ---------------------------------------------------------------------------
 // Helpers — use temp files so we never touch ~/.openclaw
@@ -126,13 +130,11 @@ describe("schema_version tracking", () => {
 // WAL mode
 // ---------------------------------------------------------------------------
 
-describe("WAL mode", () => {
-  it("enables WAL journal mode", () => {
+describe("journal mode", () => {
+  it("reports journal mode via pragma (sql.js uses memory mode)", () => {
     const db = createTempDb();
     const mode = db.pragma("journal_mode", { simple: true }) as string;
-    expect(mode).toBe("wal");
+    // sql.js WASM does not support WAL — returns "memory" instead
+    expect(mode).toBe("memory");
   });
-
-  // Note: :memory: databases silently ignore WAL (stay in "memory" mode),
-  // so we test with a real temp file above.
 });
