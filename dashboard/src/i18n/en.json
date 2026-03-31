@@ -1044,7 +1044,20 @@
         "title": "Browser Configuration",
         "description": "Configure the built-in browser tool behavior, timeouts, and security restrictions."
       }
-    }
+    },
+    "searchPlaceholder": "Search config... (supports tag:sensitive syntax)",
+    "filterByTag": "Tags:",
+    "noSearchResults": "No matching configuration fields",
+    "conflictTitle": "Config Conflict",
+    "conflictDescription": "Configuration was modified externally. Choose how to resolve.",
+    "conflictFieldCount": "{count} fields have conflicts",
+    "conflictQuickResolve": "Quick resolve:",
+    "conflictKeepAllLocal": "Keep all local",
+    "conflictAcceptAllRemote": "Accept all remote",
+    "conflictLocal": "Local",
+    "conflictRemote": "Remote",
+    "conflictApplyMerge": "Apply merge",
+    "conflictDiscardLocal": "Discard local changes"
   },
   "cron": {
     "title": "Cron Jobs",

@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,16 +10,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { FormField } from "@/lib/schema-parser";
-import { SchemaForm } from "../SchemaForm";
+import { FieldLabel, SchemaForm } from "../SchemaForm";
 
 interface UnionFieldProps {
   field: FormField;
   value: unknown;
   onChange: (key: string, value: unknown) => void;
   prefix: string;
+  searchQuery?: string;
 }
 
-export function UnionField({ field, value, onChange, prefix }: UnionFieldProps) {
+export function UnionField({ field, value, onChange, prefix, searchQuery }: UnionFieldProps) {
   const t = useTranslations("config");
   const variants = field.variants ?? [];
 
@@ -37,13 +37,7 @@ export function UnionField({ field, value, onChange, prefix }: UnionFieldProps) 
 
     return (
       <div className="mb-3">
-        <Label className="text-xs text-[var(--text-secondary)] mb-1">
-          <span className="font-mono">{field.key}</span>
-          {field.required && <span className="text-[var(--danger)]"> *</span>}
-          {field.description && (
-            <span className="ml-1.5 font-normal opacity-70">— {field.description}</span>
-          )}
-        </Label>
+        <FieldLabel field={field} searchQuery={searchQuery} />
         <Select
           value={activeVariantValue || undefined}
           onValueChange={(v) => handleVariantSwitch(v as string)}
@@ -107,13 +101,7 @@ export function UnionField({ field, value, onChange, prefix }: UnionFieldProps) 
 
   return (
     <div className="mb-3">
-      <Label className="text-xs text-[var(--text-secondary)] mb-1">
-        <span className="font-mono">{field.key}</span>
-        {field.required && <span className="text-[var(--danger)]"> *</span>}
-        {field.description && (
-          <span className="ml-1.5 font-normal opacity-70">— {field.description}</span>
-        )}
-      </Label>
+      <FieldLabel field={field} searchQuery={searchQuery} />
       <div className="flex gap-2 max-w-md">
         <Select value={selectedType} onValueChange={(v) => handleTypeSwitch(v as string)}>
           <SelectTrigger size="sm" className="w-28 text-xs">

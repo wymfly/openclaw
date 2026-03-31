@@ -4,18 +4,24 @@ import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { FormField } from "@/lib/schema-parser";
-import { SchemaForm } from "../SchemaForm";
+import { FieldLabel, SchemaForm } from "../SchemaForm";
 
 interface TypedArrayFieldProps {
   field: FormField;
   value: unknown[];
   onChange: (v: unknown[]) => void;
   prefix: string;
+  searchQuery?: string;
 }
 
-export function TypedArrayField({ field, value, onChange, prefix }: TypedArrayFieldProps) {
+export function TypedArrayField({
+  field,
+  value,
+  onChange,
+  prefix,
+  searchQuery,
+}: TypedArrayFieldProps) {
   const t = useTranslations("config");
   const items = Array.isArray(value) ? value : [];
   const itemSchema = field.itemSchema;
@@ -48,22 +54,16 @@ export function TypedArrayField({ field, value, onChange, prefix }: TypedArrayFi
 
   return (
     <div className="mb-3">
-      <Label className="text-xs text-[var(--text-secondary)] mb-1">
-        <span className="font-mono">{field.key}</span>
-        {field.required && <span className="text-[var(--danger)]"> *</span>}
-        {field.description && (
-          <span className="ml-1.5 font-normal opacity-70">— {field.description}</span>
-        )}
-      </Label>
+      <FieldLabel field={field} searchQuery={searchQuery} />
 
       <div className="ml-3 pl-3 border-l border-[var(--border-subtle)] space-y-2">
         {items.map((item, index) => (
           <div
             key={index}
-            className="group rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-2"
+            className="group rounded-lg border border-[var(--border)] bg-[var(--card)] p-2"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-[var(--text-secondary)] font-mono">
+              <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
                 {t("itemIndex", { index: index + 1 })}
               </span>
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -71,7 +71,7 @@ export function TypedArrayField({ field, value, onChange, prefix }: TypedArrayFi
                   type="button"
                   onClick={() => handleMove(index, -1)}
                   disabled={index === 0}
-                  className="p-0.5 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 transition-colors"
+                  className="p-0.5 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-30 transition-colors"
                   title={t("moveUp")}
                 >
                   <ArrowUp size={12} />
@@ -80,7 +80,7 @@ export function TypedArrayField({ field, value, onChange, prefix }: TypedArrayFi
                   type="button"
                   onClick={() => handleMove(index, 1)}
                   disabled={index === items.length - 1}
-                  className="p-0.5 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 transition-colors"
+                  className="p-0.5 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-30 transition-colors"
                   title={t("moveDown")}
                 >
                   <ArrowDown size={12} />
@@ -88,7 +88,7 @@ export function TypedArrayField({ field, value, onChange, prefix }: TypedArrayFi
                 <button
                   type="button"
                   onClick={() => handleRemove(index)}
-                  className="p-0.5 rounded text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors"
+                  className="p-0.5 rounded text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-colors"
                   title={t("removeItem")}
                 >
                   <X size={12} />

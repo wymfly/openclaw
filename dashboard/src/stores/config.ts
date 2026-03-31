@@ -19,6 +19,8 @@ interface ConfigState {
   activeSection: string | null;
   schemaCache: Map<string, unknown>;
   lookupFallbackMode: boolean;
+  /** Remote config snapshot captured when a conflict is detected */
+  remoteConfig: string | null;
 
   fetchSchema: () => Promise<void>;
   fetchConfig: () => Promise<void>;
@@ -27,6 +29,8 @@ interface ConfigState {
   saveConfig: () => Promise<boolean>;
   reloadConfig: () => Promise<void>;
   lookupSchema: (path: string) => Promise<unknown>;
+  /** Resolve conflict by saving a merged config with the latest baseHash */
+  resolveConflict: (mergedConfig: Record<string, unknown>) => Promise<boolean>;
 }
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
@@ -43,6 +47,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   activeSection: null,
   schemaCache: new Map(),
   lookupFallbackMode: false,
+  remoteConfig: null,
 
   fetchSchema: async () => {
     try {
@@ -124,16 +129,35 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
         // Conflict detection: INVALID_REQUEST with config-change-related messages
         const msg = errorMsg.toLowerCase();
-        if (
-          data.code === "INVALID_REQUEST" &&
-          (msg.includes("config changed") || msg.includes("base hash"))
-        ) {
-          set({ conflict: true });
-          return false;
-        }
-        // Also catch conflict without explicit code, if message matches
-        if (msg.includes("config changed") || msg.includes("base hash")) {
-          set({ conflict: true });
+        const isConflict =
+          (data.code === "INVALID_REQUEST" &&
+            (msg.includes("config changed") || msg.includes("base hash"))) ||
+          msg.includes("config changed") ||
+          msg.includes("base hash");
+
+        if (isConflict) {
+          // Fetch latest remote config for field-level diff in ConflictDialog
+          try {
+            const remoteRes = await fetch("/api/config");
+            if (remoteRes.ok) {
+              const remoteData = await remoteRes.json();
+              const remoteRaw =
+                typeof remoteData.config === "string"
+                  ? remoteData.config
+                  : JSON.stringify(remoteData.config ?? {}, null, 2);
+              const remoteHash =
+                typeof remoteData.baseHash === "string"
+                  ? remoteData.baseHash
+                  : typeof remoteData.hash === "string"
+                    ? remoteData.hash
+                    : null;
+              set({ conflict: true, remoteConfig: remoteRaw, baseHash: remoteHash });
+            } else {
+              set({ conflict: true, remoteConfig: null });
+            }
+          } catch {
+            set({ conflict: true, remoteConfig: null });
+          }
           return false;
         }
         set({ error: errorMsg });
@@ -171,8 +195,86 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   },
 
   reloadConfig: async () => {
-    set({ conflict: false });
+    set({ conflict: false, remoteConfig: null });
     await get().fetchConfig();
+  },
+
+  resolveConflict: async (mergedConfig) => {
+    const { baseHash } = get();
+    const raw = JSON.stringify(mergedConfig, null, 2);
+    set({ saving: true, error: null });
+    try {
+      const res = await fetch("/api/config/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw, baseHash }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({ error: "Save failed" }))) as {
+          error?: string;
+          message?: string;
+          code?: string;
+        };
+        const errorMsg = data.error ?? data.message ?? "Merge save failed";
+        const msg = errorMsg.toLowerCase();
+
+        // Handle re-conflict: refresh remote config + baseHash so user can retry
+        if (msg.includes("config changed") || msg.includes("base hash")) {
+          try {
+            const remoteRes = await fetch("/api/config");
+            if (remoteRes.ok) {
+              const remoteData = await remoteRes.json();
+              const remoteRaw =
+                typeof remoteData.config === "string"
+                  ? remoteData.config
+                  : JSON.stringify(remoteData.config ?? {}, null, 2);
+              const remoteHash =
+                typeof remoteData.baseHash === "string"
+                  ? remoteData.baseHash
+                  : typeof remoteData.hash === "string"
+                    ? remoteData.hash
+                    : null;
+              set({ remoteConfig: remoteRaw, baseHash: remoteHash, error: errorMsg });
+            } else {
+              set({ error: errorMsg });
+            }
+          } catch {
+            set({ error: errorMsg });
+          }
+          return false;
+        }
+
+        set({ error: errorMsg });
+        return false;
+      }
+
+      try {
+        const saveData = (await res.json()) as { baseHash?: string };
+        if (typeof saveData.baseHash === "string") {
+          set({
+            rawConfig: raw,
+            editedConfig: raw,
+            baseHash: saveData.baseHash,
+            isDirty: false,
+            conflict: false,
+            remoteConfig: null,
+          });
+          return true;
+        }
+      } catch {
+        // Fall through to reload
+      }
+
+      await get().fetchConfig();
+      set({ conflict: false, remoteConfig: null });
+      return true;
+    } catch {
+      set({ error: "Merge save failed" });
+      return false;
+    } finally {
+      set({ saving: false });
+    }
   },
 
   lookupSchema: async (path: string) => {

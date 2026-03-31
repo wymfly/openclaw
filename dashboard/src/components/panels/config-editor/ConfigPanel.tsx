@@ -1,8 +1,10 @@
 "use client";
 
-import { Save, RefreshCw } from "lucide-react";
+import { RefreshCw, Save, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
+import { parseConfigSearch, filterFields, buildTagIndex } from "@/lib/config-search";
+import type { FormField } from "@/lib/schema-parser";
 import { parseSchemaSection } from "@/lib/schema-parser";
 import { applyUiHints } from "@/lib/ui-hints";
 import { useConfigStore } from "@/stores/config";
@@ -10,6 +12,7 @@ import { ConflictDialog } from "./ConflictDialog";
 import { SchemaForm } from "./SchemaForm";
 import { SectionIntroCard } from "./SectionIntroCard";
 import { SectionNav } from "./SectionNav";
+import { TagFilterPanel } from "./TagFilterPanel";
 
 /**
  * Config Editor panel — entry point component.
@@ -37,6 +40,8 @@ export function ConfigPanel() {
     saveConfig,
     reloadConfig,
   } = useConfigStore();
+
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     void fetchSchema();
@@ -73,6 +78,49 @@ export function ConfigPanel() {
     }
   }, [sections, activeSection, setActiveSection]);
 
+  // Build tag index from all fields across all sections
+  const allSectionFields = useMemo(() => {
+    if (!schema) {
+      return [] as FormField[];
+    }
+    const props = schema.properties as Record<string, Record<string, unknown>> | undefined;
+    if (!props) {
+      return [] as FormField[];
+    }
+
+    const all: FormField[] = [];
+    for (const sectionKey of Object.keys(props)) {
+      const sectionSchema = props[sectionKey];
+      if (!sectionSchema || typeof sectionSchema !== "object") {
+        continue;
+      }
+      let fields = parseSchemaSection(sectionSchema);
+      if (uiHints) {
+        fields = applyUiHints(fields, uiHints, `${sectionKey}.`);
+      }
+      all.push(...fields);
+    }
+    return all;
+  }, [schema, uiHints]);
+
+  const tagIndex = useMemo(() => buildTagIndex(allSectionFields), [allSectionFields]);
+  const parsedSearch = useMemo(() => parseConfigSearch(searchQuery), [searchQuery]);
+
+  const handleToggleTag = useCallback((tag: string) => {
+    setSearchQuery((prev) => {
+      const parsed = parseConfigSearch(prev);
+      const tagToken = `tag:${tag}`;
+      if (parsed.tags.includes(tag)) {
+        return prev
+          .split(/\s+/)
+          .filter((t) => t.toLowerCase() !== tagToken.toLowerCase())
+          .join(" ")
+          .trim();
+      }
+      return prev ? `${prev} ${tagToken}` : tagToken;
+    });
+  }, []);
+
   // Parse config JSON to object for form values
   const configObj = useMemo(() => {
     try {
@@ -82,14 +130,15 @@ export function ConfigPanel() {
     }
   }, [editedConfig]);
 
-  // Get fields for current section from schema (supports dotted paths like "agents.main")
-  // After parsing, decorate with uiHints (help, group, tags, sensitive, etc.)
+  // Get fields for current section from schema, apply uiHints, then apply search filter
   const currentFields = useMemo(() => {
     if (!schema || !activeSection) {
       return [];
     }
     const props = schema.properties as Record<string, Record<string, unknown>> | undefined;
-    if (!props) return [];
+    if (!props) {
+      return [];
+    }
     const parts = activeSection.split(".");
     let node: Record<string, unknown> | undefined = props[parts[0]];
     for (let i = 1; i < parts.length && node; i++) {
@@ -99,15 +148,12 @@ export function ConfigPanel() {
     if (!node || typeof node !== "object") {
       return [];
     }
-    const fields = parseSchemaSection(node);
-    // Gateway hint paths include section prefix (e.g. "agents.list[].model"),
-    // but parseSchemaSection returns keys without it (e.g. "list[].model").
-    // Prepend activeSection + "." so applyUiHints can match correctly.
+    let fields = parseSchemaSection(node);
     if (uiHints) {
-      return applyUiHints(fields, uiHints, `${activeSection}.`);
+      fields = applyUiHints(fields, uiHints, `${activeSection}.`);
     }
-    return fields;
-  }, [schema, activeSection, uiHints]);
+    return filterFields(fields, parsedSearch, `${activeSection}.`);
+  }, [schema, activeSection, uiHints, parsedSearch]);
 
   // Get values for the active section (supports dotted paths)
   const sectionValues = useMemo(() => {
@@ -214,6 +260,36 @@ export function ConfigPanel() {
             </span>
           )}
         </div>
+        {/* Search bar */}
+        <div className="flex-1 max-w-xs mx-4 relative">
+          <Search
+            size={13}
+            className="absolute left-2 top-1/2 -translate-y-1/2"
+            style={{ color: "var(--muted-foreground)" }}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t("searchPlaceholder")}
+            className="w-full text-xs rounded pl-7 pr-7 py-1.5"
+            style={{
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
+              border: "1px solid var(--border)",
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
         <div className="flex items-center gap-2">
           <button
             onClick={handleReload}
@@ -240,6 +316,13 @@ export function ConfigPanel() {
         </div>
       </div>
 
+      {/* Tag filter chips */}
+      <TagFilterPanel
+        tags={tagIndex}
+        activeTags={parsedSearch.tags}
+        onToggleTag={handleToggleTag}
+      />
+
       {/* Content */}
       <div className="flex flex-1 min-h-0">
         {loading && !schema ? (
@@ -258,12 +341,19 @@ export function ConfigPanel() {
             />
             <div className="flex-1 overflow-y-auto px-4 py-3">
               {activeSection && <SectionIntroCard sectionKey={activeSection} />}
-              {activeSection && (
-                <SchemaForm
-                  fields={currentFields}
-                  values={sectionValues}
-                  onChange={handleFieldChange}
-                />
+              {activeSection && currentFields.length === 0 && searchQuery ? (
+                <div className="text-xs py-4" style={{ color: "var(--muted-foreground)" }}>
+                  {t("noSearchResults")}
+                </div>
+              ) : (
+                activeSection && (
+                  <SchemaForm
+                    fields={currentFields}
+                    values={sectionValues}
+                    onChange={handleFieldChange}
+                    searchQuery={parsedSearch.text}
+                  />
+                )
               )}
             </div>
           </>
@@ -274,7 +364,7 @@ export function ConfigPanel() {
       {conflict && (
         <ConflictDialog
           onReload={handleReload}
-          onCancel={() => useConfigStore.setState({ conflict: false })}
+          onCancel={() => useConfigStore.setState({ conflict: false, remoteConfig: null })}
         />
       )}
     </div>

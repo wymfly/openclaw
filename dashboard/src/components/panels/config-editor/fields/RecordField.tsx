@@ -5,19 +5,19 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { FormField } from "@/lib/schema-parser";
-import { SchemaForm } from "../SchemaForm";
+import { FieldLabel, SchemaForm } from "../SchemaForm";
 
 interface RecordFieldProps {
   field: FormField;
   value: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   prefix: string;
+  searchQuery?: string;
 }
 
-export function RecordField({ field, value, onChange, prefix }: RecordFieldProps) {
+export function RecordField({ field, value, onChange, prefix, searchQuery }: RecordFieldProps) {
   const t = useTranslations("config");
   const [newKey, setNewKey] = useState("");
 
@@ -49,19 +49,13 @@ export function RecordField({ field, value, onChange, prefix }: RecordFieldProps
 
   return (
     <div className="mb-3">
-      <Label className="text-xs text-[var(--text-secondary)] mb-1">
-        <span className="font-mono">{field.key}</span>
-        {field.required && <span className="text-[var(--danger)]"> *</span>}
-        {field.description && (
-          <span className="ml-1.5 font-normal opacity-70">— {field.description}</span>
-        )}
-      </Label>
+      <FieldLabel field={field} searchQuery={searchQuery} />
 
       <div className="ml-3 pl-3 border-l border-[var(--border-subtle)] space-y-2">
         {entries.map(([entryKey, entryValue]) => (
           <div key={entryKey} className="group">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-[var(--text-secondary)] font-mono min-w-[3rem]">
+              <span className="text-[10px] text-[var(--muted-foreground)] font-mono min-w-[3rem]">
                 {entryKey}
               </span>
               {isComplexValue && field.valueSchema?.children ? (
@@ -92,7 +86,7 @@ export function RecordField({ field, value, onChange, prefix }: RecordFieldProps
               <button
                 type="button"
                 onClick={() => handleRemove(entryKey)}
-                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-[var(--text-secondary)] hover:text-[var(--danger)] transition-all"
+                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-all"
                 title={t("removeEntry")}
               >
                 <X size={12} />
