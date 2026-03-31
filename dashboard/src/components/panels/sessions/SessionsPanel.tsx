@@ -7,7 +7,6 @@ import type { FilterFieldDef, FilterState } from "@/components/lists/types";
 import { useSessionsStore, type SessionsFetchOpts } from "@/stores/sessions";
 import { SessionDetail } from "./SessionDetail";
 import { SessionList } from "./SessionList";
-import { inferSessionType } from "./SessionList";
 
 const PAGE_SIZE = 20;
 
@@ -61,7 +60,7 @@ export function SessionsPanel() {
 
   // Build fetch opts from local state
   const fetchOpts = useMemo((): SessionsFetchOpts => {
-    const opts: SessionsFetchOpts = {};
+    const opts: SessionsFetchOpts = { limit: 200 };
     if (searchQuery.trim()) {
       opts.search = searchQuery.trim();
     }
@@ -75,18 +74,20 @@ export function SessionsPanel() {
     void fetchSessions(fetchOpts);
   }, [fetchSessions, fetchOpts]);
 
-  // Client-side type filter
+  // Client-side type filter — uses session.kind for direct/group/global,
+  // key inference only for subagent (kind doesn't track subagent)
   const typeFilter = filterValues.types;
   const filteredSessions = useMemo(() => {
     if (!typeFilter || typeFilter.length === 0) {
       return sessions;
     }
     return sessions.filter((s) => {
-      const sType = inferSessionType(s.key);
-      // Map inferSessionType values to spec values
-      const specType =
-        sType === "dm" ? "direct" : sType === "channel" ? "global" : sType;
-      return typeFilter.includes(specType);
+      const isSubagent = s.key.includes(":subagent:");
+      if (isSubagent) {
+        return typeFilter.includes("subagent");
+      }
+      // Use session.kind (direct/group/global/unknown)
+      return typeFilter.includes(s.kind);
     });
   }, [sessions, typeFilter]);
 

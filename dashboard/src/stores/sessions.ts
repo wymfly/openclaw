@@ -108,6 +108,13 @@ export interface SessionsFetchOpts {
   activeMinutes?: number;
 }
 
+/** Fields that can be modified via sessions.patch. */
+export interface SessionPatchFields {
+  label?: string | null;
+  thinkingLevel?: string | null;
+  fastMode?: boolean | null;
+}
+
 interface SessionsState {
   sessions: SessionEntry[];
   selectedKey: string | null;
@@ -119,7 +126,7 @@ interface SessionsState {
   selectSession: (key: string | null) => void;
   fetchHistory: (sessionKey: string) => Promise<void>;
   deleteSession: (sessionKey: string) => Promise<void>;
-  patchSession: (sessionKey: string, patch: Record<string, unknown>) => Promise<boolean>;
+  patchSession: (sessionKey: string, patch: SessionPatchFields) => Promise<boolean>;
   /** Apply an incoming sessions.changed event to update or insert a session. */
   applySessionChangedEvent: (payload: Record<string, unknown>) => void;
 }
@@ -232,10 +239,14 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
         console.error("[sessions] patch failed:", (data as { error?: string }).error);
         return false;
       }
-      // Optimistic update: apply patched fields locally
+      // Optimistic update: apply patched fields locally (convert null → undefined)
+      const localPatch: Partial<SessionEntry> = {};
+      for (const [k, v] of Object.entries(patch)) {
+        (localPatch as Record<string, unknown>)[k] = v === null ? undefined : v;
+      }
       set((state) => ({
         sessions: state.sessions.map((s) =>
-          s.key === sessionKey ? { ...s, ...patch } : s,
+          s.key === sessionKey ? { ...s, ...localPatch } : s,
         ),
       }));
       return true;
