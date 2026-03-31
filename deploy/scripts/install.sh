@@ -11,10 +11,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEPLOY_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Detect package root (install.sh may be invoked from package or repo)
-if [ -f "$DEPLOY_DIR/../manifest.json" ]; then
-  PACKAGE_ROOT="$(cd "$DEPLOY_DIR/.." && pwd)"
+# Detect package root.
+# In a package: <pkg>/source/deploy/scripts/install.sh → PACKAGE_ROOT=<pkg>
+# In the repo:  <repo>/deploy/scripts/install.sh       → PACKAGE_ROOT=<repo>
+# The package top-level forwarder (install.sh) already resolves to source/deploy/scripts/install.sh.
+if [ -f "$DEPLOY_DIR/../../manifest.json" ]; then
+  # Inside a package: deploy is at <pkg>/source/deploy, package root is two levels up
+  PACKAGE_ROOT="$(cd "$DEPLOY_DIR/../.." && pwd)"
 else
+  # Inside the repo: deploy is at <repo>/deploy, repo root is one level up
   PACKAGE_ROOT="$(cd "$DEPLOY_DIR/.." && pwd)"
 fi
 
@@ -185,9 +190,14 @@ docker_install() {
   check_dependencies docker
   ensure_env
 
+  # Resolve paths to absolute to avoid ambiguity between install.sh CWD and compose file dir
   local state_dir="${OPENCLAW_STATE_DIR:-$DEPLOY_DIR/data/.openclaw}"
   local deck_data="${DECK_DATA_DIR:-$DEPLOY_DIR/data/openclaw-deck}"
   mkdir -p "$state_dir" "$deck_data"
+  state_dir="$(cd "$state_dir" && pwd)"
+  deck_data="$(cd "$deck_data" && pwd)"
+  export OPENCLAW_STATE_DIR="$state_dir"
+  export DECK_DATA_DIR="$deck_data"
 
   cd "$DEPLOY_DIR/docker"
 
@@ -200,17 +210,36 @@ docker_install() {
     done
   fi
 
-  # Seed: run inside gateway container if no host Node.js, otherwise use host
+  # Seed: prefer host Node.js, fallback to running inside gateway container
   if check_node; then
     node "$SCRIPT_DIR/seed.js" "$state_dir"
   else
-    log "No host Node.js detected. Seeding will happen after first gateway start."
+    log "No host Node.js — building gateway image for seed..."
+    docker compose --env-file "$DEPLOY_DIR/.env" build gateway
+    # Run seed.js inside the gateway container, mounting state dir and seed script
+    docker compose --env-file "$DEPLOY_DIR/.env" run --rm --no-deps \
+      -v "$SCRIPT_DIR/seed.js:/tmp/seed.js:ro" \
+      -v "$DEPLOY_DIR/seed:/tmp/seed:ro" \
+      -v "$state_dir:/tmp/state" \
+      -e OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-}" \
+      -e DEFAULT_MODEL="${DEFAULT_MODEL:-}" \
+      -e CPA_API_KEY="${CPA_API_KEY:-}" \
+      -e CPA_BASE_URL="${CPA_BASE_URL:-}" \
+      -e DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-}" \
+      -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
+      -e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
+      gateway node /tmp/seed.js /tmp/state
+    log "Seed completed via Docker container"
   fi
 
-  # Start
+  # Start — use pre-built images if loaded, otherwise build from source
   local compose_args=(--env-file "$DEPLOY_DIR/.env")
   if [ "${FORCE_BUILD:-}" = "1" ]; then
     compose_args+=(up -d --build)
+  elif docker image inspect openclaw-gateway:package >/dev/null 2>&1 && \
+       docker image inspect openclaw-deck:package >/dev/null 2>&1; then
+    log "Using pre-built Docker images (openclaw-*:package)"
+    compose_args+=(-f docker-compose.yml -f docker-compose.package.yml up -d)
   else
     compose_args+=(up -d --build)
   fi
