@@ -52,6 +52,26 @@
     "inheritTitle": "该值继承自智能体默认配置",
     "overrideTitle": "该值已为此智能体单独设置"
   },
+  "lists": {
+    "empty": "暂无数据",
+    "totalCount": "共 {count} 项",
+    "selected": "已选 {count} 项",
+    "selectAll": "全选",
+    "clearSelection": "取消选择",
+    "loadMore": "加载更多",
+    "noMoreData": "已加载全部",
+    "searchPlaceholder": "搜索...",
+    "clearFilters": "清除过滤",
+    "matchCount": "{count} 个结果",
+    "advancedFilters": "高级过滤",
+    "sortAsc": "升序",
+    "sortDesc": "降序",
+    "sortClear": "取消排序",
+    "inlineEditConfirm": "按 Enter 确认",
+    "inlineEditCancel": "按 Esc 取消",
+    "pageInfo": "第 {current} / {total} 页",
+    "loading": "加载中..."
+  },
   "chat": {
     "placeholder": "输入消息...",
     "send": "发送",

@@ -52,6 +52,26 @@
     "inheritTitle": "This value is inherited from agent defaults",
     "overrideTitle": "This value is explicitly set for this agent"
   },
+  "lists": {
+    "empty": "No data",
+    "totalCount": "{count} items",
+    "selected": "{count} selected",
+    "selectAll": "Select all",
+    "clearSelection": "Clear selection",
+    "loadMore": "Load more",
+    "noMoreData": "All loaded",
+    "searchPlaceholder": "Search...",
+    "clearFilters": "Clear filters",
+    "matchCount": "{count} results",
+    "advancedFilters": "Advanced filters",
+    "sortAsc": "Ascending",
+    "sortDesc": "Descending",
+    "sortClear": "Clear sort",
+    "inlineEditConfirm": "Press Enter to confirm",
+    "inlineEditCancel": "Press Esc to cancel",
+    "pageInfo": "Page {current} / {total}",
+    "loading": "Loading..."
+  },
   "chat": {
     "placeholder": "Type a message...",
     "send": "Send",
