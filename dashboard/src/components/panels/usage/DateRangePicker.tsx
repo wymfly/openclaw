@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCw, ChevronDown } from "lucide-react";
 import type { TimeWindow } from "@/stores/usage";
 
@@ -30,6 +30,12 @@ export function DateRangePicker({
   const [expanded, setExpanded] = useState(false);
   const [localStart, setLocalStart] = useState(startDate);
   const [localEnd, setLocalEnd] = useState(endDate);
+
+  // Sync local state when parent props change (e.g., user clicks shortcut button)
+  useEffect(() => {
+    setLocalStart(startDate);
+    setLocalEnd(endDate);
+  }, [startDate, endDate]);
 
   const handleApplyCustom = () => {
     if (localStart && localEnd && localStart <= localEnd) {

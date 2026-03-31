@@ -13,6 +13,7 @@ describe("useUsageStore", () => {
       error: null,
       _lastFetchKey: "",
       _lastFetchTime: 0,
+      _abortController: null,
     });
   });
 
@@ -23,8 +24,10 @@ describe("useUsageStore", () => {
   it("setTimeWindow updates date range for 7d", () => {
     useUsageStore.getState().setTimeWindow("7d");
     const state = useUsageStore.getState();
+    const now = new Date();
+    const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     expect(state.timeWindow).toBe("7d");
-    expect(state.endDate).toBe(new Date().toISOString().slice(0, 10));
+    expect(state.endDate).toBe(localToday);
   });
 
   it("setTimeWindow updates date range for today", () => {
