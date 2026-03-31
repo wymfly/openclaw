@@ -5,9 +5,14 @@
  * Keyboard events are piped from MessageInput (not global listeners) to avoid conflicts.
  */
 
-import * as icons from "lucide-react";
+import {
+  Plus, RefreshCw, Minimize2, Square, Trash2, Eye,
+  Cpu, Brain, Terminal, Zap,
+  BookOpen, Download, BarChart2,
+  Monitor, X,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   getSlashCommandCompletions,
@@ -17,32 +22,49 @@ import type { SlashCommandDef, SlashCommandCategory } from "./slash-commands";
 
 interface SlashCommandPaletteProps {
   filter: string;
+  /** Controlled selection index — parent owns this state for keyboard/mouse unification. */
+  selectedIndex: number;
+  onSelectedIndexChange: (index: number) => void;
   onSelect: (command: SlashCommandDef) => void;
   onDismiss: () => void;
 }
 
-/** Render a lucide icon by kebab-case name. */
+/** Map from kebab-case icon names to lucide components. */
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
+  "plus": Plus,
+  "refresh-cw": RefreshCw,
+  "minimize-2": Minimize2,
+  "square": Square,
+  "trash-2": Trash2,
+  "eye": Eye,
+  "cpu": Cpu,
+  "brain": Brain,
+  "terminal": Terminal,
+  "zap": Zap,
+  "book-open": BookOpen,
+  "download": Download,
+  "bar-chart-2": BarChart2,
+  "monitor": Monitor,
+  "x": X,
+};
+
 function CommandIcon({ name, size = 14 }: { name: string; size?: number }) {
-  const pascal = name
-    .split("-")
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join("");
-  const Icon = (icons as unknown as Record<string, React.ComponentType<{ size?: number }>>)[pascal];
+  const Icon = ICON_MAP[name];
   if (!Icon) return null;
   return <Icon size={size} />;
 }
 
-export function SlashCommandPalette({ filter, onSelect, onDismiss }: SlashCommandPaletteProps) {
+export function SlashCommandPalette({
+  filter,
+  selectedIndex,
+  onSelectedIndexChange,
+  onSelect,
+  onDismiss,
+}: SlashCommandPaletteProps) {
   const t = useTranslations("chat");
   const commands = getSlashCommandCompletions(filter);
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Reset selection when filter changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [filter]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -102,7 +124,7 @@ export function SlashCommandPalette({ filter, onSelect, onDismiss }: SlashComman
                   e.preventDefault();
                   onSelect(cmd);
                 }}
-                onMouseEnter={() => setSelectedIndex(idx)}
+                onMouseEnter={() => onSelectedIndexChange(idx)}
               >
                 <span className="text-[var(--muted-foreground)] shrink-0">
                   <CommandIcon name={cmd.icon} />
@@ -123,41 +145,4 @@ export function SlashCommandPalette({ filter, onSelect, onDismiss }: SlashComman
   );
 }
 
-// Re-export the handleKeyDown type for the parent component
 export type { SlashCommandPaletteProps };
-
-/**
- * Helper to create a palette keyboard handler.
- * Usage: const paletteKeyHandler = usePaletteKeyHandler(paletteRef);
- */
-export function createPaletteKeyHandler(
-  commands: SlashCommandDef[],
-  selectedIndex: number,
-  setSelectedIndex: (fn: (prev: number) => number) => void,
-  onSelect: (cmd: SlashCommandDef) => void,
-  onDismiss: () => void,
-) {
-  return (e: React.KeyboardEvent): boolean => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % commands.length);
-      return true;
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev - 1 + commands.length) % commands.length);
-      return true;
-    }
-    if (e.key === "Enter" && commands.length > 0) {
-      e.preventDefault();
-      onSelect(commands[selectedIndex]);
-      return true;
-    }
-    if (e.key === "Escape") {
-      e.preventDefault();
-      onDismiss();
-      return true;
-    }
-    return false;
-  };
-}
