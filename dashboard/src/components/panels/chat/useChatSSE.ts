@@ -81,11 +81,10 @@ export function useChatSSE() {
       updateToolProgress: (...a) => getStore().updateToolProgress(...a),
       updateSessionMeta: (sessionKey, patch) => {
         useChatStore.setState((s) => {
+          const idx = s.sessionMetas.findIndex((m) => m.key === sessionKey);
+          if (idx < 0) return {};
           const metas = [...s.sessionMetas];
-          const idx = metas.findIndex((m) => m.key === sessionKey);
-          if (idx >= 0) {
-            metas[idx] = { ...metas[idx], ...patch };
-          }
+          metas[idx] = { ...metas[idx], ...patch };
           return { sessionMetas: metas };
         });
       },
