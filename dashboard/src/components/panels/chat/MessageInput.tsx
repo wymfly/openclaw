@@ -9,9 +9,9 @@ import { useNotificationsStore } from "@/stores/notifications";
 import { useUIStore } from "@/stores/ui";
 import { ArtifactContext } from "./ChatPanel";
 import { exportSessionAsMarkdown } from "./export-session";
+import { commandRegistry } from "@/lib/command-registry";
 import { executeSlashCommand } from "./slash-command-executor";
-import { getSlashCommandCompletions, parseSlashCommand } from "./slash-commands";
-import type { SlashCommandDef } from "./slash-commands";
+import { parseSlashCommand } from "./slash-commands";
 import { SlashCommandPalette } from "./SlashCommandPalette";
 import { useInputHistory } from "./useInputHistory";
 
@@ -198,7 +198,7 @@ export function MessageInput() {
 
   // ── Slash command execution ──
   const handleSlashCommand = useCallback(
-    async (cmd: SlashCommandDef, cmdArgs = "") => {
+    async (cmd: { name: string }, cmdArgs = "") => {
       setShowPalette(false);
       setInput("");
 
@@ -301,11 +301,14 @@ export function MessageInput() {
       return;
     }
 
-    // Check for slash command — pass parsed args to avoid double-parse
+    // Check for slash command via registry
     const parsed = parseSlashCommand(text);
     if (parsed) {
-      await handleSlashCommand(parsed.command, parsed.args);
-      return;
+      const regCmd = commandRegistry.get(parsed.command.name);
+      if (regCmd) {
+        await handleSlashCommand(regCmd, parsed.args);
+        return;
+      }
     }
 
     // Catch unregistered slash commands (e.g. removed /focus) — don't send as message
@@ -466,7 +469,7 @@ export function MessageInput() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Priority 1: Slash command palette (when open, it owns ArrowUp/Down/Enter/Escape)
     if (showPalette) {
-      const commands = getSlashCommandCompletions(slashFilter);
+      const commands = commandRegistry.filter(slashFilter);
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setPaletteIndex((prev) => (prev + 1) % commands.length);

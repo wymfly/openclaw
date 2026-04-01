@@ -3,10 +3,11 @@
  * Calls dashboard API routes and returns formatted results.
  * Mirrors official ui/src/ui/chat/slash-command-executor.ts patterns.
  */
+import { commandRegistry } from "@/lib/command-registry";
 import { formatTokenCount } from "@/lib/format-utils";
 import type { SessionMeta } from "@/stores/chat-types";
 import type { ToastType } from "@/stores/notifications";
-import { SLASH_COMMANDS } from "./slash-commands";
+import { LOCAL_COMMAND_DEFS } from "./slash-commands";
 
 export type SlashCommandAction = "new-session" | "reset" | "stop" | "clear" | "export" | "refresh";
 
@@ -27,49 +28,84 @@ export interface SlashCommandResult {
   >;
 }
 
+let initialized = false;
+
+export function initializeLocalCommands(): void {
+  if (initialized) return;
+  initialized = true;
+
+  // Register all local defs into registry
+  commandRegistry.registerLocalCommands(LOCAL_COMMAND_DEFS);
+
+  // Attach execute handlers to each registered local command
+  const handlers: Record<string, (sk: string, args: string) => Promise<SlashCommandResult>> = {
+    help: (_sk) => Promise.resolve(executeHelp()),
+    new: () => Promise.resolve({ content: "", action: "new-session" as const }),
+    reset: () => Promise.resolve({ content: "", action: "reset" as const }),
+    stop: () => Promise.resolve({ content: "", action: "stop" as const }),
+    clear: () => Promise.resolve({ content: "", action: "clear" as const }),
+    export: () => Promise.resolve({ content: "", action: "export" as const }),
+    compact: (sk) => executeCompact(sk),
+    model: (sk, a) => executeModel(sk, a),
+    think: (sk, a) => executeThink(sk, a),
+    fast: (sk, a) => executeFast(sk, a),
+    verbose: (sk, a) => executeVerbose(sk, a),
+    usage: (sk) => executeUsage(sk),
+    agents: () => executeAgents(),
+    kill: (sk, a) => executeKill(sk, a),
+  };
+
+  for (const [name, handler] of Object.entries(handlers)) {
+    const cmd = commandRegistry.get(name);
+    if (cmd) {
+      cmd.execute = handler;
+    }
+  }
+}
+
 export async function executeSlashCommand(
   sessionKey: string,
   commandName: string,
   args: string,
 ): Promise<SlashCommandResult> {
-  switch (commandName) {
-    case "help":
-      return executeHelp();
-    case "new":
-      return { content: "", action: "new-session" };
-    case "reset":
-      return { content: "", action: "reset" };
-    case "stop":
-      return { content: "", action: "stop" };
-    case "clear":
-      return { content: "", action: "clear" };
-    case "export":
-      return { content: "", action: "export" };
-    case "compact":
-      return executeCompact(sessionKey);
-    case "model":
-      return executeModel(sessionKey, args);
-    case "think":
-      return executeThink(sessionKey, args);
-    case "fast":
-      return executeFast(sessionKey, args);
-    case "verbose":
-      return executeVerbose(sessionKey, args);
-    case "usage":
-      return executeUsage(sessionKey);
-    case "agents":
-      return executeAgents();
-    case "kill":
-      return executeKill(sessionKey, args);
-    default:
-      return { content: `Unknown command: /${commandName}` };
+  const cmd = commandRegistry.get(commandName);
+  if (!cmd) {
+    return { content: "", toastKey: "toastUnknownCommand", toastValue: commandName, toastType: "error" };
+  }
+  if (cmd.execMode === "local" && cmd.execute) {
+    return cmd.execute(sessionKey, args);
+  }
+  if (cmd.execMode === "remote") {
+    return executeRemoteCommand(sessionKey, commandName, args);
+  }
+  return { content: `Unknown command: /${commandName}` };
+}
+
+async function executeRemoteCommand(
+  sessionKey: string,
+  commandName: string,
+  args: string,
+): Promise<SlashCommandResult> {
+  try {
+    const message = args ? `/${commandName} ${args}` : `/${commandName}`;
+    const res = await fetch("/api/chat/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, sessionKey }),
+    });
+    if (!res.ok) {
+      return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
+    }
+    return { content: "", toastKey: "toastCommandSent", toastValue: commandName, toastType: "success" };
+  } catch {
+    return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
   }
 }
 
 // ── Helpers ──
 
 function executeHelp(): SlashCommandResult {
-  const lines = SLASH_COMMANDS.map((cmd) => `/${cmd.name}${cmd.args ? ` ${cmd.args}` : ""}`);
+  const lines = LOCAL_COMMAND_DEFS.map((cmd) => `/${cmd.name}${cmd.args ? ` ${cmd.args}` : ""}`);
   return { content: lines.join("\n") };
 }
 
