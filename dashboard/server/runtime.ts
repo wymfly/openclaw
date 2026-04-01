@@ -92,6 +92,8 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "webhook.delivery",
   "cron.run.complete",
   "canvas",
+  // deck.commands
+  "commands.changed",
 ]);
 
 /** Events that should be bridged to the activity feed outbox. */
