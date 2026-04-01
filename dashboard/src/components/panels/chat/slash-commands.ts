@@ -19,7 +19,7 @@ export interface SlashCommandDef {
   argOptions?: string[];
 }
 
-export const SLASH_COMMANDS: SlashCommandDef[] = [
+export const LOCAL_COMMAND_DEFS: SlashCommandDef[] = [
   // ── Session ──
   { name: "new", descriptionKey: "cmd_new", icon: "plus", category: "session" },
   { name: "reset", descriptionKey: "cmd_reset", icon: "refresh-cw", category: "session" },
@@ -72,6 +72,9 @@ export const SLASH_COMMANDS: SlashCommandDef[] = [
     category: "agents",
   },
 ];
+
+/** @deprecated Use LOCAL_COMMAND_DEFS or commandRegistry. */
+export const SLASH_COMMANDS = LOCAL_COMMAND_DEFS;
 
 const CATEGORY_ORDER: SlashCommandCategory[] = ["session", "model", "tools", "agents"];
 

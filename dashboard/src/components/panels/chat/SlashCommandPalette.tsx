@@ -24,16 +24,27 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
+import { commandRegistry } from "@/lib/command-registry";
 import { cn } from "@/lib/utils";
-import { getSlashCommandCompletions, CATEGORY_LABEL_KEYS } from "./slash-commands";
-import type { SlashCommandDef, SlashCommandCategory } from "./slash-commands";
+import { CATEGORY_LABEL_KEYS } from "./slash-commands";
+import type { SlashCommandCategory } from "./slash-commands";
+
+interface PaletteCommand {
+  name: string;
+  descriptionKey: string;
+  description?: string;
+  args?: string;
+  icon: string;
+  category: SlashCommandCategory;
+  argOptions?: string[];
+}
 
 interface SlashCommandPaletteProps {
   filter: string;
   /** Controlled selection index — parent owns this state for keyboard/mouse unification. */
   selectedIndex: number;
   onSelectedIndexChange: (index: number) => void;
-  onSelect: (command: SlashCommandDef) => void;
+  onSelect: (command: PaletteCommand) => void;
   onDismiss: () => void;
 }
 
@@ -70,7 +81,17 @@ export function SlashCommandPalette({
   onDismiss,
 }: SlashCommandPaletteProps) {
   const t = useTranslations("chat");
-  const commands = getSlashCommandCompletions(filter);
+  const registryCommands = commandRegistry.filter(filter);
+  // Map to the shape the existing rendering expects
+  const commands: PaletteCommand[] = registryCommands.map((cmd) => ({
+    name: cmd.name,
+    descriptionKey: cmd.descriptionKey ?? "",
+    description: cmd.description,
+    args: cmd.args,
+    icon: cmd.icon ?? "terminal",
+    category: cmd.category as SlashCommandCategory,
+    argOptions: cmd.argOptions,
+  }));
   const listRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -140,7 +161,7 @@ export function SlashCommandPalette({
                 <span className="font-mono text-[var(--primary)]">/{cmd.name}</span>
                 {cmd.args && <span className="text-[var(--muted-foreground)]">{cmd.args}</span>}
                 <span className="ml-auto text-[10px] text-[var(--muted-foreground)] truncate max-w-[200px]">
-                  {t(cmd.descriptionKey)}
+                  {cmd.descriptionKey ? t(cmd.descriptionKey) : cmd.description ?? ""}
                 </span>
               </div>
             </div>

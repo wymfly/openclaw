@@ -176,6 +176,8 @@
     "toastStopFailed": "停止失败",
     "toastCommandFailed": "命令执行失败",
     "toastUnknownCommand": "未知命令: /{value}",
+    "toastCommandSent": "命令 /{value} 已发送",
+    "toastCommandSentFailed": "命令发送失败",
     "configModelDefault": "default",
     "configOn": "on",
     "configOff": "off"

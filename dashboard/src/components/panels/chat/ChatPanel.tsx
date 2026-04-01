@@ -19,6 +19,7 @@ import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { BlockFilterBar } from "./BlockFilterBar";
 import { CanvasPanel } from "./CanvasPanel";
+import { initializeLocalCommands } from "./slash-command-executor";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { RightPanel } from "./RightPanel";
@@ -26,6 +27,9 @@ import { SessionConfigBar } from "./SessionConfigBar";
 import { SessionSidebar } from "./SessionSidebar";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { useChatSSE } from "./useChatSSE";
+
+// Register local slash commands into the dynamic CommandRegistry (idempotent).
+initializeLocalCommands();
 
 /** Context for artifact interactions — consumed by ToolResultCard and MessageInput. */
 export const ArtifactContext = createContext<{
