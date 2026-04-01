@@ -12,7 +12,8 @@ export function exportSessionAsMarkdown(sessionKey: string): void {
   const lines: string[] = [`# Session Export\n`];
 
   for (const msg of session.messages) {
-    const roleLabel = msg.role === "user" ? "User" : msg.role === "assistant" ? "Assistant" : "System";
+    const roleLabel =
+      msg.role === "user" ? "User" : msg.role === "assistant" ? "Assistant" : "System";
     lines.push(`## ${roleLabel}\n`);
 
     const text = getTextContent(msg);

@@ -100,8 +100,7 @@ describe("useUsageStore", () => {
   it("fetchSessionLogs calls logs endpoint", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () =>
-        Promise.resolve({ logs: [{ timestamp: 1, role: "user", content: "hi" }] }),
+      json: () => Promise.resolve({ logs: [{ timestamp: 1, role: "user", content: "hi" }] }),
     });
     globalThis.fetch = mockFetch;
 

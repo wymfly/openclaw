@@ -80,13 +80,13 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
         {job ? t("editJob") : t("addJob")}
       </h3>
 
       {/* Name */}
       <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {t("name")}
         </span>
         <input
@@ -96,15 +96,15 @@ export function JobForm({ job, onDone }: JobFormProps) {
           className="px-2 py-1.5 text-xs rounded-md border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
       </label>
 
       {/* Schedule template */}
       <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {t("schedule")}
         </span>
         <div className="flex gap-1 flex-wrap">
@@ -114,8 +114,8 @@ export function JobForm({ job, onDone }: JobFormProps) {
               type="button"
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
               style={{
-                backgroundColor: template === key ? "var(--accent)" : "var(--bg-tertiary)",
-                color: template === key ? "var(--accent-fg)" : "var(--text-secondary)",
+                backgroundColor: template === key ? "var(--primary)" : "var(--muted)",
+                color: template === key ? "var(--primary-foreground)" : "var(--muted-foreground)",
               }}
               onClick={() => setTemplate(key)}
             >
@@ -132,8 +132,8 @@ export function JobForm({ job, onDone }: JobFormProps) {
             className="mt-1 px-2 py-1.5 text-xs rounded-md border font-mono"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
             }}
           />
         )}
@@ -141,7 +141,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
       {/* Session target */}
       <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {t("sessionTarget")}
         </span>
         <div className="flex gap-2">
@@ -151,8 +151,9 @@ export function JobForm({ job, onDone }: JobFormProps) {
               type="button"
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
               style={{
-                backgroundColor: sessionTarget === mode ? "var(--accent)" : "var(--bg-tertiary)",
-                color: sessionTarget === mode ? "var(--accent-fg)" : "var(--text-secondary)",
+                backgroundColor: sessionTarget === mode ? "var(--primary)" : "var(--muted)",
+                color:
+                  sessionTarget === mode ? "var(--primary-foreground)" : "var(--muted-foreground)",
               }}
               onClick={() => setSessionTarget(mode)}
             >
@@ -164,7 +165,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
       {/* Wake mode */}
       <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {t("wakeMode")}
         </span>
         <div className="flex gap-2">
@@ -174,8 +175,8 @@ export function JobForm({ job, onDone }: JobFormProps) {
               type="button"
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
               style={{
-                backgroundColor: wakeMode === mode ? "var(--accent)" : "var(--bg-tertiary)",
-                color: wakeMode === mode ? "var(--accent-fg)" : "var(--text-secondary)",
+                backgroundColor: wakeMode === mode ? "var(--primary)" : "var(--muted)",
+                color: wakeMode === mode ? "var(--primary-foreground)" : "var(--muted-foreground)",
               }}
               onClick={() => setWakeMode(mode)}
             >
@@ -187,7 +188,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
       {/* Payload type + value */}
       <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {t("payloadType")}
         </span>
         <div className="flex gap-2">
@@ -197,8 +198,9 @@ export function JobForm({ job, onDone }: JobFormProps) {
               type="button"
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
               style={{
-                backgroundColor: payloadKind === kind ? "var(--accent)" : "var(--bg-tertiary)",
-                color: payloadKind === kind ? "var(--accent-fg)" : "var(--text-secondary)",
+                backgroundColor: payloadKind === kind ? "var(--primary)" : "var(--muted)",
+                color:
+                  payloadKind === kind ? "var(--primary-foreground)" : "var(--muted-foreground)",
               }}
               onClick={() => setPayloadKind(kind)}
             >
@@ -215,8 +217,8 @@ export function JobForm({ job, onDone }: JobFormProps) {
             className="mt-1 px-2 py-1.5 text-xs rounded-md border"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
             }}
           />
         ) : (
@@ -228,8 +230,8 @@ export function JobForm({ job, onDone }: JobFormProps) {
             className="mt-1 px-2 py-1.5 text-xs rounded-md border resize-none"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
             }}
           />
         )}
@@ -237,7 +239,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
       {/* Description */}
       <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {t("description")}
         </span>
         <textarea
@@ -247,8 +249,8 @@ export function JobForm({ job, onDone }: JobFormProps) {
           className="px-2 py-1.5 text-xs rounded-md border resize-none"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
       </label>
@@ -256,7 +258,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
       {/* Enabled */}
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-        <span className="text-xs" style={{ color: "var(--text-primary)" }}>
+        <span className="text-xs" style={{ color: "var(--foreground)" }}>
           {t("enabled")}
         </span>
       </label>
@@ -266,7 +268,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
         <button
           type="button"
           className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
           onClick={handleSave}
           disabled={saving || !name.trim()}
         >
@@ -275,7 +277,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
         <button
           type="button"
           className="px-3 py-1.5 text-xs rounded-md transition-colors"
-          style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--text-secondary)" }}
+          style={{ backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}
           onClick={onDone}
         >
           {tc("cancel")}

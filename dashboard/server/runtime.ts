@@ -1,3 +1,4 @@
+import { createGatewayClient, type GatewayClient } from "../src/types/gateway-client.generated";
 import { initAlertEngine } from "./alert-engine";
 // P2 subsystem bridges (stubs — Phase 1 agents will implement)
 import { initApprovalBridge } from "./approval-bridge";
@@ -14,10 +15,6 @@ import type { DeckEventType } from "./event-bus";
 import { OpenClawGatewayAdapter } from "./gateway-adapter";
 import { ProjectionStore } from "./projection-store";
 import { createRateLimiter } from "./rate-limit";
-import {
-  createGatewayClient,
-  type GatewayClient,
-} from "../src/types/gateway-client.generated";
 
 // ---------------------------------------------------------------------------
 // Types

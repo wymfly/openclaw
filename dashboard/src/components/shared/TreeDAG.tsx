@@ -90,9 +90,9 @@ function collectDescendants(tree: InternalTreeNode): Set<string> {
 // ---------------------------------------------------------------------------
 
 const statusColors: Record<TreeDAGNode["status"], string> = {
-  active: "var(--accent)",
+  active: "var(--primary)",
   completed: "var(--success)",
-  failed: "var(--danger)",
+  failed: "var(--destructive)",
   timeout: "var(--warning)",
 };
 
@@ -201,10 +201,10 @@ function NodeCard({
       data-node-id={node.id}
       className={cn(
         "relative rounded-lg border px-3 py-2 min-w-[140px] max-w-[220px] transition-all duration-150 cursor-default select-none",
-        "bg-[var(--bg-secondary)] border-[var(--border)]",
-        isHighlighted && "ring-2 ring-[var(--accent)] shadow-[var(--accent-glow)]",
-        isSubtreeHighlighted && !isHighlighted && "border-[var(--accent)] opacity-90",
-        onClick && "cursor-pointer hover:border-[var(--accent)]",
+        "bg-[var(--card)] border-[var(--border)]",
+        isHighlighted && "ring-2 ring-[var(--primary)] shadow-[var(--primary-glow)]",
+        isSubtreeHighlighted && !isHighlighted && "border-[var(--primary)] opacity-90",
+        onClick && "cursor-pointer hover:border-[var(--primary)]",
       )}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
@@ -225,26 +225,26 @@ function NodeCard({
       <div className="flex items-center gap-2 mb-1">
         <span
           className="flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0"
-          style={{ backgroundColor: statusColor, color: "var(--bg-primary)" }}
+          style={{ backgroundColor: statusColor, color: "var(--background)" }}
           aria-label={node.status}
         >
           {icon}
         </span>
-        <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
+        <span className="text-xs font-semibold text-[var(--foreground)] truncate">
           {node.label}
         </span>
       </div>
 
       {/* Task summary */}
       {node.sublabel && (
-        <p className="text-[11px] text-[var(--text-secondary)] line-clamp-2 mb-1">
+        <p className="text-[11px] text-[var(--muted-foreground)] line-clamp-2 mb-1">
           {node.sublabel}
         </p>
       )}
 
       {/* Elapsed time — fixed width prevents node resize causing SVG edge drift */}
       {displayTime && (
-        <span className="text-[10px] font-mono text-[var(--text-secondary)] min-w-[4ch] inline-block">
+        <span className="text-[10px] font-mono text-[var(--muted-foreground)] min-w-[4ch] inline-block">
           {displayTime}
         </span>
       )}
@@ -474,14 +474,14 @@ function AttachmentBadge({ x, y, attachments }: AttachmentBadgeProps) {
       <Tooltip>
         <TooltipTrigger
           render={<span />}
-          className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border)] cursor-default"
+          className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--card)] border border-[var(--border)] cursor-default"
         >
           <svg
             width={12}
             height={12}
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--text-secondary)"
+            stroke="var(--muted-foreground)"
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -569,7 +569,7 @@ export function TreeDAG({
         <div className="mt-4 text-center">
           <button
             type="button"
-            className="text-xs text-[var(--accent)] hover:underline cursor-pointer"
+            className="text-xs text-[var(--primary)] hover:underline cursor-pointer"
             onClick={() => setShowAll(true)}
           >
             {showMoreLabel} ({nodes.length - maxNodes})

@@ -43,15 +43,15 @@ export function CronPanel() {
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3 border-b"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
-        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           {t("title")}
         </h2>
       </div>
 
       {/* Body */}
-      <div className="flex flex-1 overflow-hidden" style={{ backgroundColor: "var(--bg-primary)" }}>
+      <div className="flex flex-1 overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
         {/* Sidebar — job list */}
         <div
           className="w-56 flex-shrink-0 overflow-y-auto border-r p-2"
@@ -65,7 +65,7 @@ export function CronPanel() {
           {loading && (
             <div
               className="flex items-center justify-center py-12"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               <p className="text-sm">{tc("loading")}</p>
             </div>
@@ -74,7 +74,7 @@ export function CronPanel() {
           {error && !loading && (
             <div
               className="flex items-center justify-center py-12"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               <p className="text-sm">{error}</p>
             </div>
@@ -83,7 +83,7 @@ export function CronPanel() {
           {!loading && !error && !selectedJobId && (
             <div
               className="flex items-center justify-center py-12"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               <p className="text-sm">{t("noJobs")}</p>
             </div>
@@ -109,9 +109,9 @@ export function CronPanel() {
                   type="button"
                   className="text-xs font-medium pb-1 transition-colors"
                   style={{
-                    color: tab === "config" ? "var(--accent)" : "var(--text-secondary)",
+                    color: tab === "config" ? "var(--primary)" : "var(--muted-foreground)",
                     borderBottom:
-                      tab === "config" ? "2px solid var(--accent)" : "2px solid transparent",
+                      tab === "config" ? "2px solid var(--primary)" : "2px solid transparent",
                   }}
                   onClick={() => setTab("config")}
                 >
@@ -121,9 +121,9 @@ export function CronPanel() {
                   type="button"
                   className="text-xs font-medium pb-1 transition-colors"
                   style={{
-                    color: tab === "history" ? "var(--accent)" : "var(--text-secondary)",
+                    color: tab === "history" ? "var(--primary)" : "var(--muted-foreground)",
                     borderBottom:
-                      tab === "history" ? "2px solid var(--accent)" : "2px solid transparent",
+                      tab === "history" ? "2px solid var(--primary)" : "2px solid transparent",
                   }}
                   onClick={() => setTab("history")}
                 >
@@ -136,7 +136,10 @@ export function CronPanel() {
                   <button
                     type="button"
                     className="px-2 py-1 text-xs rounded-md transition-colors"
-                    style={{ backgroundColor: "var(--danger)", color: "var(--danger-fg)" }}
+                    style={{
+                      backgroundColor: "var(--destructive)",
+                      color: "var(--destructive-fg)",
+                    }}
                     onClick={handleDelete}
                   >
                     {t("deleteJob")}

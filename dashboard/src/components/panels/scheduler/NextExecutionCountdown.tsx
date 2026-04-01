@@ -106,7 +106,7 @@ export function NextExecutionCountdown({
   }
 
   return (
-    <span className="text-xs font-mono tabular-nums text-[var(--text-secondary)]">
+    <span className="text-xs font-mono tabular-nums text-[var(--muted-foreground)]">
       {formatRemaining(remaining)}
     </span>
   );

@@ -4,11 +4,11 @@ import { useTranslations } from "next-intl";
 import { useDocsStore, type Doc, type DocCategory } from "@/stores/docs";
 
 const CATEGORY_COLORS: Record<DocCategory, string> = {
-  summary: "#3b82f6",
-  plan: "#8b5cf6",
-  spec: "#f59e0b",
-  manual: "#10b981",
-  draft: "#6b7280",
+  summary: "var(--doc-summary)",
+  plan: "var(--doc-plan)",
+  spec: "var(--doc-spec)",
+  manual: "var(--doc-manual)",
+  draft: "var(--doc-draft)",
 };
 
 export function DocList() {
@@ -35,7 +35,7 @@ export function DocList() {
     return (
       <div
         className="flex items-center justify-center h-full"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">{t("noResults")}</p>
       </div>
@@ -76,7 +76,7 @@ function DocCard({
       className="text-left w-full p-3 rounded-lg border transition-colors"
       style={{
         borderColor: isSelected ? color : "var(--border)",
-        backgroundColor: isSelected ? "var(--bg-secondary)" : "transparent",
+        backgroundColor: isSelected ? "var(--card)" : "transparent",
       }}
       onClick={onSelect}
     >
@@ -89,10 +89,10 @@ function DocCard({
           {categoryLabel}
         </span>
       </div>
-      <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
+      <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
         {doc.title}
       </p>
-      <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+      <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
         {new Date(doc.extractedAt).toLocaleDateString()}
       </p>
     </button>

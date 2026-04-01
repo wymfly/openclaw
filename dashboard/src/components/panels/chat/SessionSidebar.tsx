@@ -2,6 +2,8 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
+import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
@@ -49,6 +51,12 @@ export function SessionSidebar() {
   const sessionMetas = useChatStore((s) => s.sessionMetas);
   const setActiveSession = useChatStore((s) => s.setActiveSession);
   const setActiveAgent = useChatStore((s) => s.setActiveAgent);
+  const agents = useAgentsStore((s) => s.agents);
+  const fetchAgents = useAgentsStore((s) => s.fetchAgents);
+
+  useEffect(() => {
+    void fetchAgents();
+  }, [fetchAgents]);
 
   const handleNew = () => {
     setActiveSession(null);
@@ -80,7 +88,7 @@ export function SessionSidebar() {
   return (
     <aside
       className="flex flex-col w-56 shrink-0 border-r h-full"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
     >
       {/* Agent selector */}
       <div className="p-2 border-b" style={{ borderColor: "var(--border)" }}>
@@ -89,12 +97,17 @@ export function SessionSidebar() {
           onChange={(e) => setActiveAgent(e.target.value || null)}
           className="w-full text-xs rounded px-2 py-1.5"
           style={{
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
             border: "1px solid var(--border)",
           }}
         >
           <option value="">{t("defaultAgent")}</option>
+          {agents.map((agent) => (
+            <option key={agent.id} value={agent.id}>
+              {agent.name || agent.id}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -102,7 +115,7 @@ export function SessionSidebar() {
       <button
         onClick={handleNew}
         className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b hover:opacity-80 transition-opacity"
-        style={{ borderColor: "var(--border)", color: "var(--brand)" }}
+        style={{ borderColor: "var(--border)", color: "var(--primary)" }}
       >
         <Plus size={14} />
         {t("newSession")}
@@ -119,14 +132,14 @@ export function SessionSidebar() {
               className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group"
               style={{
                 backgroundColor: isActive
-                  ? "color-mix(in srgb, var(--brand) 12%, transparent)"
+                  ? "color-mix(in srgb, var(--primary) 12%, transparent)"
                   : "transparent",
-                color: isActive ? "var(--brand)" : "var(--text-primary)",
+                color: isActive ? "var(--primary)" : "var(--foreground)",
               }}
             >
               <div className="flex flex-col items-start min-w-0">
                 <span className="truncate w-full text-left">{sessionTitle(session)}</span>
-                <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                   {formatTime(session.updatedAt)}
                 </span>
               </div>
@@ -135,7 +148,7 @@ export function SessionSidebar() {
                 onClick={(e) => void handleDelete(session.key, e)}
                 role="button"
                 tabIndex={-1}
-                style={{ color: "var(--text-secondary)" }}
+                style={{ color: "var(--muted-foreground)" }}
               >
                 <Trash2 size={12} />
               </span>

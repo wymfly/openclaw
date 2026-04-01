@@ -1,0 +1,159 @@
+<h2>Revised Priority — After Codex Audit</h2>
+<p class="subtitle">
+  Corrected assessment: Models panel exists (24 components), Identity & Threads panels found
+</p>
+
+<style>
+  .correction {
+    background: rgba(239, 68, 68, 0.08);
+    border-left: 3px solid #ef4444;
+    padding: 10px 14px;
+    margin: 16px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: #ccc;
+  }
+  .correction strong {
+    color: #ef4444;
+  }
+  .item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 14px;
+    margin: 8px 0;
+  }
+  .item h3 {
+    font-size: 14px;
+    margin: 0 0 6px;
+    color: #e5e5e5;
+  }
+  .item .meta {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 8px;
+  }
+  .item .desc {
+    font-size: 12px;
+    color: #bbb;
+    line-height: 1.6;
+  }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .tag.p0 {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  .tag.p1 {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+  }
+  .tag.drop {
+    background: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+  }
+  .tag.enhance {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+  }
+  .tag.new {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+  .section {
+    margin: 24px 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e5e5;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+  }
+</style>
+
+<div class="correction">
+  <strong>Codex 纠正：</strong>Models 面板并未删除，而是重构为 4-tab 布局（Catalog / ProviderConfig
+  / Fallbacks / Usage），共 24 个组件。从 P1 降级为"已够用"。
+</div>
+
+<div class="section">P0 — 核心体验（必须做）</div>
+
+<div class="item">
+  <h3>1. ConfigPanel 理解层改造</h3>
+  <div class="meta">
+    <span class="tag p0">P0</span> <span class="tag enhance">Enhance</span> 改动范围：ConfigPanel +
+    SchemaForm + SectionNav + schema-parser
+  </div>
+  <div class="desc">
+    <strong>现状：</strong>机械 schema→form 映射，无语境。SchemaForm 的 switch 只有 6
+    种基本类型，但已有 PasswordField / RecordField / UnionField / TypedArrayField
+    未被主路径使用。<br /><br />
+    <strong>目标：</strong><br />
+    • Section 概述卡片（每个顶级 section 附一段"这是什么"的说明）<br />
+    • 字段 help popover（利用 uiHints.help 的 825 条高质量描述）<br />
+    • 默认值可见提示（placeholder 或灰色标注"默认: xxx"）<br />
+    • docs.openclaw.ai 深链（每个 section 链接到对应文档页）<br />
+    • group-based 视觉分组（利用 uiHints.group 的 26 个分组）<br />
+    • advanced 标签字段默认折叠（利用 uiHints.tags）<br />
+    • SchemaForm 集成已有的高级字段组件（Password / Record / Union / TypedArray）<br />
+    • sensitive 字段自动脱敏显示
+  </div>
+</div>
+
+<div class="item">
+  <h3>2. Agent Config Editor（AgentsPanel 新 tab）</h3>
+  <div class="meta">
+    <span class="tag p0">P0</span> <span class="tag new">New tab</span> 改动范围：AgentsPanel + 新增
+    ConfigTab 组件 + deck-agents store 扩展
+  </div>
+  <div class="desc">
+    <strong>现状：</strong>AgentsPanel 有 6 个 tab（Routing / Skills / Subagent / EventStreams /
+    ToolPolicy / Bootstrap），但<strong>核心代理字段没有编辑 UI</strong
+    >——model、thinkingDefault、temperature、tools.profile、fastModeDefault 等只能通过 ConfigPanel 或
+    CLI 修改。<br /><br />
+    <strong>目标：</strong><br />
+    • 新增 "Config" tab（或融入 Overview），展示+编辑代理核心字段<br />
+    • 模型选择器（关联 ModelsPanel 的数据）<br />
+    • Thinking level selector（枚举下拉）<br />
+    • Tools profile selector（minimal/coding/messaging/full）<br />
+    • 显示"有效配置"：agent 级覆盖 vs 全局默认（标注哪些是继承的）<br />
+    • 与 ToolPolicyViz 联动：从 profile 选择直接看到工具集变化
+  </div>
+</div>
+
+<div class="section">P1 — 重要提升</div>
+
+<div class="item">
+  <h3>3. Channel 后期配置表单</h3>
+  <div class="meta">
+    <span class="tag p1">P1</span> <span class="tag enhance">Enhance</span> 改动范围：ChannelDetail
+    增加 settings tab
+  </div>
+  <div class="desc">
+    <strong>现状：</strong>有 setup wizard 和 enable/disable，但初始设置后没有修改 DM policy、retry
+    策略等的 UI。<br />
+    <strong>目标：</strong>ChannelDetail 增加 "Settings" tab，展示可修改的渠道级配置。
+  </div>
+</div>
+
+<div class="section">已降级 / 已够用</div>
+
+<div class="item" style="opacity: 0.6">
+  <h3><s>Model Provider Panel</s></h3>
+  <div class="meta"><span class="tag drop">降级</span> 原评估 P1 → 实际已够用</div>
+  <div class="desc">
+    Codex 审查发现 ModelsPanel 已有 24 个组件：模型目录 + 提供商配置 + 回退链拖拽编辑 + 用量统计 +
+    API key 探测。无需新建。
+  </div>
+</div>
+
+<div class="item" style="opacity: 0.6">
+  <h3>Routing / Scheduler / Budget / Alerts / Approvals / Identity / Threads</h3>
+  <div class="meta"><span class="tag drop">已够用</span></div>
+  <div class="desc">各有 form-based CRUD 和领域化交互。不在本次范围内。</div>
+</div>

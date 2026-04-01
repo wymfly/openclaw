@@ -38,7 +38,7 @@ const OP_ICONS: Record<FileOpKind, typeof FileText> = {
 };
 
 const OP_COLORS: Record<FileOpKind, string> = {
-  read: "var(--accent)",
+  read: "var(--primary)",
   write: "var(--success)",
   modify: "var(--warning)",
 };
@@ -96,7 +96,7 @@ export function FileChangeSummary({ events }: FileChangeSummaryProps) {
 
   if (groups.length === 0) {
     return (
-      <p className="text-xs text-[var(--text-secondary)] italic py-2">
+      <p className="text-xs text-[var(--muted-foreground)] italic py-2">
         {t("timeline.noFileChanges")}
       </p>
     );
@@ -112,7 +112,7 @@ export function FileChangeSummary({ events }: FileChangeSummaryProps) {
           <div key={group.kind}>
             <div className="flex items-center gap-2 mb-1">
               <Icon size={12} style={{ color }} />
-              <span className="text-xs font-medium text-[var(--text-primary)]">
+              <span className="text-xs font-medium text-[var(--foreground)]">
                 {t(`timeline.fileOp_${group.kind}`)}
               </span>
               <span
@@ -129,7 +129,7 @@ export function FileChangeSummary({ events }: FileChangeSummaryProps) {
               {group.files.map((file) => (
                 <li
                   key={file}
-                  className="text-[11px] text-[var(--text-secondary)] font-mono truncate"
+                  className="text-[11px] text-[var(--muted-foreground)] font-mono truncate"
                 >
                   {file}
                 </li>

@@ -1,16 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { useUIStore } from "@/stores/ui";
+
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
  * Syncs the Zustand theme state to the document class and localStorage.
- * Render this component once in the layout tree.
+ * Uses useLayoutEffect to apply the dark class before the browser paints,
+ * replacing the previous blocking <script> anti-FOUC approach.
  */
 export function ThemeSync() {
   const theme = useUIStore((s) => s.theme);
 
-  useEffect(() => {
+  // Restore persisted theme on first mount (before paint)
+  useIsomorphicLayoutEffect(() => {
+    const stored = localStorage.getItem("openclaw-deck-theme");
+    if (stored && stored !== theme) {
+      useUIStore.setState({ theme: stored as typeof theme });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Apply resolved theme to DOM
+  useIsomorphicLayoutEffect(() => {
     const resolved =
       theme === "system"
         ? window.matchMedia("(prefers-color-scheme: dark)").matches

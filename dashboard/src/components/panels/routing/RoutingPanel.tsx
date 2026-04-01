@@ -26,15 +26,15 @@ export function RoutingPanel() {
     return (
       <div className="flex h-full gap-4 overflow-hidden">
         {/* Left: Binding Table */}
-        <div className="flex-[3] min-w-0 rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)] overflow-hidden flex flex-col">
+        <div className="flex-[3] min-w-0 rounded-xl bg-[var(--card)] ring-1 ring-[var(--border)] overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] shrink-0">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("bindings")}</h3>
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">{t("bindings")}</h3>
             <Button
               variant="ghost"
               size="sm"
               className={cn(
                 "gap-1.5 text-xs h-7",
-                rightPane === "activity" && "text-[var(--accent)]",
+                rightPane === "activity" && "text-[var(--primary)]",
               )}
               onClick={() => setRightPane((p) => (p === "simulator" ? "activity" : "simulator"))}
             >
@@ -48,7 +48,7 @@ export function RoutingPanel() {
         </div>
 
         {/* Right: Simulator or Activity Feed */}
-        <div className="flex-[2] min-w-0 rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)] overflow-hidden">
+        <div className="flex-[2] min-w-0 rounded-xl bg-[var(--card)] ring-1 ring-[var(--border)] overflow-hidden">
           {rightPane === "simulator" ? <RouteSimulator /> : <ActivityFeed />}
         </div>
       </div>
@@ -60,7 +60,7 @@ export function RoutingPanel() {
     <Tabs
       value={mobileTab}
       onValueChange={setMobileTab}
-      className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]"
+      className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--card)] ring-1 ring-[var(--border)]"
     >
       <div className="flex items-center px-4 py-2 border-b border-[var(--border)] shrink-0">
         <TabsList variant="line">

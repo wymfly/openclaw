@@ -44,7 +44,7 @@ function classifyKind(kind: string): StreamKind {
 /** Color config per stream kind — uses CSS variables only. */
 const STREAM_COLORS: Record<StreamKind, { bar: string; bg: string }> = {
   tool_call: { bar: "var(--purple)", bg: "var(--purple-muted)" },
-  model: { bar: "var(--accent)", bg: "var(--accent-muted)" },
+  model: { bar: "var(--primary)", bg: "var(--primary-muted)" },
   file_op: { bar: "var(--success)", bg: "var(--success-muted)" },
   subagent: { bar: "var(--warning)", bg: "var(--warning-muted)" },
   compaction: { bar: "var(--warning)", bg: "var(--warning-muted)" },
@@ -113,7 +113,7 @@ function TimeAxis({ totalMs }: { totalMs: number }) {
       {ticks.map((tick) => (
         <span
           key={tick.pct}
-          className="absolute text-[10px] text-[var(--text-secondary)] -translate-x-1/2 top-0"
+          className="absolute text-[10px] text-[var(--muted-foreground)] -translate-x-1/2 top-0"
           style={{ left: `${tick.pct}%` }}
         >
           {tick.label}
@@ -138,7 +138,7 @@ export function RunTimeline({ events }: RunTimelineProps) {
 
   if (timelineEvents.length === 0) {
     return (
-      <p className="text-xs text-[var(--text-secondary)] italic py-2">
+      <p className="text-xs text-[var(--muted-foreground)] italic py-2">
         {t("timeline.noTimedEvents")}
       </p>
     );

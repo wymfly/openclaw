@@ -14,8 +14,10 @@ const tierColors: Record<string, string> = {
   guild: "bg-indigo-500/15 text-indigo-400 border-indigo-500/25",
   team: "bg-teal-500/15 text-teal-400 border-teal-500/25",
   account: "bg-amber-500/15 text-amber-400 border-amber-500/25",
-  channel: "bg-gray-500/15 text-gray-400 border-gray-500/25",
-  default: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+  channel:
+    "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)] border-[var(--neutral-muted)]",
+  default:
+    "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)] border-[var(--neutral-muted)]",
 };
 
 /** Badge displaying a routing tier with color-coded priority. */

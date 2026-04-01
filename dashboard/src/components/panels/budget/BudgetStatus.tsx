@@ -6,7 +6,7 @@ import type { RuleEvaluation } from "@/stores/budget";
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   ok: { bg: "var(--success-muted)", text: "var(--success)" },
   warn: { bg: "var(--warning-muted)", text: "var(--warning)" },
-  over: { bg: "var(--danger-muted)", text: "var(--danger)" },
+  over: { bg: "var(--destructive-muted)", text: "var(--destructive)" },
 };
 
 interface BudgetStatusProps {
@@ -22,7 +22,7 @@ export function BudgetStatus({ evaluations }: BudgetStatusProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
         {t("status")}
       </h3>
 
@@ -40,7 +40,7 @@ export function BudgetStatus({ evaluations }: BudgetStatusProps) {
               style={{ borderColor: "var(--border)" }}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
                   {ev.ruleName}
                 </span>
                 <span
@@ -67,7 +67,7 @@ export function BudgetStatus({ evaluations }: BudgetStatusProps) {
 
               <div
                 className="flex justify-between text-xs"
-                style={{ color: "var(--text-secondary)" }}
+                style={{ color: "var(--muted-foreground)" }}
               >
                 <span>
                   {t("current")}: {formatValue(ev.current, ev.dimension)}

@@ -46,13 +46,13 @@ function TreeNodeView({
         <span className="text-sm leading-none shrink-0" aria-label={data.node.status}>
           {icon}
         </span>
-        <span className="text-xs font-medium text-[var(--text-primary)] truncate">
+        <span className="text-xs font-medium text-[var(--foreground)] truncate">
           {data.node.agentName ?? data.node.agentId}
         </span>
         {isOrphan && (
           <span className="text-[10px] text-[var(--warning)] italic shrink-0">(orphan)</span>
         )}
-        <span className="text-[10px] font-mono text-[var(--text-secondary)] opacity-60 shrink-0">
+        <span className="text-[10px] font-mono text-[var(--muted-foreground)] opacity-60 shrink-0">
           d{data.node.depth}
         </span>
       </div>
@@ -125,7 +125,7 @@ export function LineageTree({ nodes, rootSessionKey }: LineageTreeProps) {
 
   if (nodes.length === 0) {
     return (
-      <p className="text-xs text-[var(--text-secondary)] italic">
+      <p className="text-xs text-[var(--muted-foreground)] italic">
         No lineage data for {rootSessionKey}
       </p>
     );

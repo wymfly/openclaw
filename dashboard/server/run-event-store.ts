@@ -13,9 +13,9 @@ import { getDb } from "./db";
 
 /** Minimal statement interface matching the sql.js adapter. */
 type Statement<_B extends unknown[], _R> = {
-	run(...params: unknown[]): RunResult;
-	get(...params: unknown[]): Record<string, unknown> | undefined;
-	all(...params: unknown[]): Array<Record<string, unknown>>;
+  run(...params: unknown[]): RunResult;
+  get(...params: unknown[]): Record<string, unknown> | undefined;
+  all(...params: unknown[]): Array<Record<string, unknown>>;
 };
 
 export type RunStatus = "completed" | "error" | "running";

@@ -32,8 +32,8 @@ function relativeTime(ts: number, now: number): string {
 /** CSS variable based colors for event types. */
 const TYPE_COLORS: Record<LiveEventType, { dot: string; badge: string }> = {
   tool_call: {
-    dot: "bg-[var(--accent)]",
-    badge: "bg-[var(--accent-muted)] text-[var(--accent)] border-0",
+    dot: "bg-[var(--primary)]",
+    badge: "bg-[var(--primary-muted)] text-[var(--primary)] border-0",
   },
   chat: {
     dot: "bg-[var(--success)]",
@@ -44,11 +44,11 @@ const TYPE_COLORS: Record<LiveEventType, { dot: string; badge: string }> = {
     badge: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)] border-0",
   },
   agent: {
-    dot: "bg-[var(--danger)]",
-    badge: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)] border-0",
+    dot: "bg-[var(--destructive)]",
+    badge: "bg-[var(--destructive-muted)] text-[var(--destructive-muted-text)] border-0",
   },
   system: {
-    dot: "bg-[var(--text-secondary)]",
+    dot: "bg-[var(--muted-foreground)]",
     badge: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)] border-0",
   },
 };
@@ -134,7 +134,7 @@ export function LiveFeed() {
             return (
               <li
                 key={event.id}
-                className="flex items-start gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="flex items-start gap-3 px-4 py-2.5 hover:bg-[var(--muted)] transition-colors"
               >
                 {/* Status dot */}
                 <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${colors.dot}`} />
@@ -146,12 +146,12 @@ export function LiveFeed() {
                       {t(`eventType.${event.type}`)}
                     </Badge>
                     {event.agentName && (
-                      <span className="text-[11px] text-[var(--text-secondary)] truncate">
+                      <span className="text-[11px] text-[var(--muted-foreground)] truncate">
                         {event.agentName}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-[var(--text-primary)] leading-relaxed break-words">
+                  <p className="text-xs text-[var(--foreground)] leading-relaxed break-words">
                     {event.description}
                   </p>
                   {event.details && (

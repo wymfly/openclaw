@@ -142,7 +142,11 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
             disabled={updateAllLoading}
             className="h-7 text-xs gap-1 cursor-pointer"
           >
-            {updateAllLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            {updateAllLoading ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <RefreshCw size={12} />
+            )}
             {t("updateAll")}
           </Button>
           <Button
@@ -162,9 +166,7 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
         onInstalled={() => void fetchSkills(agentId)}
       />
 
-      {updateError && (
-        <p className="text-xs text-[var(--destructive)] px-1">{updateError}</p>
-      )}
+      {updateError && <p className="text-xs text-[var(--destructive)] px-1">{updateError}</p>}
 
       {/* Mode switcher */}
       <Card className="p-4 bg-[var(--background)] border-[var(--border)]">
@@ -174,9 +176,7 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
               {isWhitelistMode ? t("skillModeWhitelist") : t("skillModeAll")}
             </p>
             <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
-              {isWhitelistMode
-                ? t("skillModeWhitelistDesc")
-                : t("skillModeAllDesc")}
+              {isWhitelistMode ? t("skillModeWhitelistDesc") : t("skillModeAllDesc")}
             </p>
           </div>
           <Switch
@@ -239,7 +239,9 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
                   <button
                     type="button"
                     className="p-2 rounded-r-lg border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent)] text-[var(--muted-foreground)] cursor-pointer transition-colors"
-                    onClick={() => setExpandedSkillKey(expandedSkillKey === entry.key ? null : entry.key)}
+                    onClick={() =>
+                      setExpandedSkillKey(expandedSkillKey === entry.key ? null : entry.key)
+                    }
                     title={t("configureSkill")}
                   >
                     <Settings size={12} />

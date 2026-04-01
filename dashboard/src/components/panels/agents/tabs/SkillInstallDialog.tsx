@@ -4,12 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 interface InstallOption {
@@ -40,7 +35,9 @@ export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillIns
     setOptionsLoading(true);
     try {
       const res = await fetch("/api/skills");
-      if (!res.ok) {return;}
+      if (!res.ok) {
+        return;
+      }
       const data = (await res.json()) as {
         skills?: Array<{
           key: string;
@@ -85,7 +82,12 @@ export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillIns
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: opt.skillName, installId: opt.installId }),
       });
-      const data = (await res.json()) as { ok?: boolean; message?: string; stderr?: string; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        stderr?: string;
+        error?: string;
+      };
       if (!res.ok || data.ok === false) {
         setError(data.stderr || data.error || data.message || t("installFailed"));
       } else {
@@ -109,7 +111,12 @@ export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillIns
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source: "clawhub", slug: slug.trim() }),
       });
-      const data = (await res.json()) as { ok?: boolean; message?: string; stderr?: string; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        stderr?: string;
+        error?: string;
+      };
       if (!res.ok || data.ok === false) {
         setError(data.stderr || data.error || data.message || t("installFailed"));
       } else {

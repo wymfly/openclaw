@@ -16,11 +16,11 @@ Browser ──→ Deck(:3000) ──ws──→ Gateway(:18789) ──→ AI Pro
 
 ## 部署模式
 
-| 模式 | 适用场景 | 依赖 |
-|------|---------|------|
-| Docker | 推荐。隔离环境，一键部署 | Docker + Compose v2 |
-| Docker Build | 同上，强制重建镜像 | Docker + Compose v2 |
-| 裸机 (PM2) | 开发环境、无 Docker 的服务器 | Node.js 22+, pnpm |
+| 模式         | 适用场景                     | 依赖                |
+| ------------ | ---------------------------- | ------------------- |
+| Docker       | 推荐。隔离环境，一键部署     | Docker + Compose v2 |
+| Docker Build | 同上，强制重建镜像           | Docker + Compose v2 |
+| 裸机 (PM2)   | 开发环境、无 Docker 的服务器 | Node.js 22+, pnpm   |
 
 ## 快速开始
 
@@ -75,12 +75,12 @@ deploy/scripts/package.sh --with-deps
 
 ### 打包层说明
 
-| 层 | 内容 | 大小 | 用途 |
-|----|------|------|------|
-| A (source) | 源码 + 部署脚本 + seed | ~50MB | 始终包含 |
-| B (images) | Docker 镜像 (.tar.gz) | ~800MB | 离线 Docker 部署（建议在目标机构建） |
-| C (prebuilt) | Gateway dist + Deck standalone | ~10MB | 跳过裸机构建 |
-| deps | Windows 离线安装包 | ~610MB | Node.js MSI + Docker Desktop |
+| 层           | 内容                           | 大小   | 用途                                 |
+| ------------ | ------------------------------ | ------ | ------------------------------------ |
+| A (source)   | 源码 + 部署脚本 + seed         | ~50MB  | 始终包含                             |
+| B (images)   | Docker 镜像 (.tar.gz)          | ~800MB | 离线 Docker 部署（建议在目标机构建） |
+| C (prebuilt) | Gateway dist + Deck standalone | ~10MB  | 跳过裸机构建                         |
+| deps         | Windows 离线安装包             | ~610MB | Node.js MSI + Docker Desktop         |
 
 ### Windows 离线部署
 
@@ -112,20 +112,20 @@ vim source/deploy/.env   # 配置 API Keys
 
 ## 环境变量
 
-| 变量 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
-| `CPA_API_KEY` | * | | CPA API Key |
-| `CPA_BASE_URL` | * | | CPA Base URL |
-| `DEEPSEEK_API_KEY` | * | | DeepSeek API Key |
-| `ANTHROPIC_API_KEY` | * | | Anthropic API Key |
-| `OPENAI_API_KEY` | * | | OpenAI API Key |
-| `OPENCLAW_GATEWAY_TOKEN` | 自动生成 | | Gateway 认证令牌 |
-| `DEFAULT_MODEL` | | `cpa/deepseek-chat` | 默认 AI 模型 |
-| `GATEWAY_PORT` | | `18789` | Gateway 端口 |
-| `DECK_PORT` | | `3000` | Deck 端口 |
-| `TZ` | | `Asia/Shanghai` | 时区 |
-| `OPENCLAW_STATE_DIR` | | `./data/.openclaw` | Gateway 数据目录 |
-| `DECK_DATA_DIR` | | `./data/openclaw-deck` | Deck 数据库目录 |
+| 变量                     | 必填     | 默认值                 | 说明              |
+| ------------------------ | -------- | ---------------------- | ----------------- |
+| `CPA_API_KEY`            | \*       |                        | CPA API Key       |
+| `CPA_BASE_URL`           | \*       |                        | CPA Base URL      |
+| `DEEPSEEK_API_KEY`       | \*       |                        | DeepSeek API Key  |
+| `ANTHROPIC_API_KEY`      | \*       |                        | Anthropic API Key |
+| `OPENAI_API_KEY`         | \*       |                        | OpenAI API Key    |
+| `OPENCLAW_GATEWAY_TOKEN` | 自动生成 |                        | Gateway 认证令牌  |
+| `DEFAULT_MODEL`          |          | `cpa/deepseek-chat`    | 默认 AI 模型      |
+| `GATEWAY_PORT`           |          | `18789`                | Gateway 端口      |
+| `DECK_PORT`              |          | `3000`                 | Deck 端口         |
+| `TZ`                     |          | `Asia/Shanghai`        | 时区              |
+| `OPENCLAW_STATE_DIR`     |          | `./data/.openclaw`     | Gateway 数据目录  |
+| `DECK_DATA_DIR`          |          | `./data/openclaw-deck` | Deck 数据库目录   |
 
 \* 至少配置一个 AI Provider
 
@@ -145,15 +145,16 @@ deploy/data/
 
 `deploy/seed/` 目录包含初始数据模板：
 
-| 文件/目录 | 策略 | 说明 |
-|-----------|------|------|
-| `openclaw.json.tmpl` | init-once | 配置模板，`${VAR}` 变量自动替换 |
-| `agents/` | init-once | Agent 目录结构 |
-| `cron/jobs.json` | init-once | 定时任务 |
-| `extensions/` | init-once | 扩展插件 |
-| `skills/` | always-sync | Skills（每次运行覆盖） |
+| 文件/目录            | 策略        | 说明                            |
+| -------------------- | ----------- | ------------------------------- |
+| `openclaw.json.tmpl` | init-once   | 配置模板，`${VAR}` 变量自动替换 |
+| `agents/`            | init-once   | Agent 目录结构                  |
+| `cron/jobs.json`     | init-once   | 定时任务                        |
+| `extensions/`        | init-once   | 扩展插件                        |
+| `skills/`            | always-sync | Skills（每次运行覆盖）          |
 
 **策略说明**：
+
 - **init-once** — 首次 seed 时创建，之后不覆盖（保护用户修改）
 - **always-sync** — 每次 seed 都覆盖（保持最新）
 - `--force` 参数可强制全量重新 seed
@@ -212,28 +213,28 @@ bash deploy/scripts/teardown.sh all          # 移除全部（含数据）
 
 ## 故障排查
 
-| 问题 | 排查方向 |
-|------|---------|
-| Gateway 连接失败 | 检查 `OPENCLAW_GATEWAY_TOKEN` 匹配、端口未占用 |
-| Deck 白屏/500 | 检查 `DECK_GATEWAY_URL`、migrations 目录 |
+| 问题                | 排查方向                                                                |
+| ------------------- | ----------------------------------------------------------------------- |
+| Gateway 连接失败    | 检查 `OPENCLAW_GATEWAY_TOKEN` 匹配、端口未占用                          |
+| Deck 白屏/500       | 检查 `DECK_GATEWAY_URL`、migrations 目录                                |
 | NOT_PAIRED 配对失败 | Docker: 确认 `network_mode: service:gateway`；裸机: 确认 localhost 连接 |
-| Seed 变量未替换 | 检查 `.env` 中变量已设置 |
-| PM2 启动失败 | `pm2 logs` 查看错误、检查 `ecosystem.config.cjs` 路径 |
+| Seed 变量未替换     | 检查 `.env` 中变量已设置                                                |
+| PM2 启动失败        | `pm2 logs` 查看错误、检查 `ecosystem.config.cjs` 路径                   |
 
 ## 前置依赖安装
 
 ### Docker 模式
 
-| 平台 | 安装命令 |
-|------|---------|
-| Linux (Ubuntu) | `curl -fsSL https://get.docker.com \| sh` |
-| macOS | `brew install --cask docker` 或 Docker Desktop |
-| Windows | Docker Desktop + WSL 2 backend |
+| 平台           | 安装命令                                       |
+| -------------- | ---------------------------------------------- |
+| Linux (Ubuntu) | `curl -fsSL https://get.docker.com \| sh`      |
+| macOS          | `brew install --cask docker` 或 Docker Desktop |
+| Windows        | Docker Desktop + WSL 2 backend                 |
 
 ### 裸机模式
 
-| 平台 | Node.js 22+ | pnpm |
-|------|-------------|------|
-| Linux | `curl -fsSL https://deb.nodesource.com/setup_22.x \| sudo -E bash -` | `npm i -g pnpm` |
-| macOS | `brew install node@22` | `npm i -g pnpm` |
-| Windows | [nodejs.org](https://nodejs.org/) | `npm i -g pnpm` |
+| 平台    | Node.js 22+                                                          | pnpm            |
+| ------- | -------------------------------------------------------------------- | --------------- |
+| Linux   | `curl -fsSL https://deb.nodesource.com/setup_22.x \| sudo -E bash -` | `npm i -g pnpm` |
+| macOS   | `brew install node@22`                                               | `npm i -g pnpm` |
+| Windows | [nodejs.org](https://nodejs.org/)                                    | `npm i -g pnpm` |

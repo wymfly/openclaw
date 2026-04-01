@@ -1,6 +1,7 @@
 import { withPluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway-request-scope.js";
 import { formatControlPlaneActor, resolveControlPlaneActor } from "./control-plane-audit.js";
 import { consumeControlPlaneWriteBudget } from "./control-plane-rate-limit.js";
+import { buildMethodRegistry } from "./method-registry.js";
 import { ADMIN_SCOPE, authorizeOperatorScopesForMethod } from "./method-scopes.js";
 import { ErrorCodes, errorShape } from "./protocol/index.js";
 import { isRoleAuthorizedForMethod, parseGatewayRole } from "./role-policy.js";
@@ -12,7 +13,6 @@ import { chatHandlers } from "./server-methods/chat.js";
 import { configHandlers } from "./server-methods/config.js";
 import { connectHandlers } from "./server-methods/connect.js";
 import { cronHandlers } from "./server-methods/cron.js";
-import { buildMethodRegistry } from "./method-registry.js";
 import { deckAuthHandlers, deckAuthMethodDefs } from "./server-methods/deck-auth.js";
 import { deckHandlers, deckMethodDefs } from "./server-methods/deck/index.js";
 import { describeHandlers, setDescribeRegistry } from "./server-methods/describe.js";

@@ -63,9 +63,7 @@ export function SummaryCards({ totals, aggregates, loading }: SummaryCardsProps)
     },
     {
       label: t("avgLatency"),
-      value: aggregates?.latency
-        ? formatLatency(aggregates.latency.avgMs)
-        : t("na"),
+      value: aggregates?.latency ? formatLatency(aggregates.latency.avgMs) : t("na"),
       loading: !aggregates && loading,
     },
   ];
@@ -81,10 +79,7 @@ export function SummaryCards({ totals, aggregates, loading }: SummaryCardsProps)
             borderColor: "var(--border)",
           }}
         >
-          <p
-            className="text-xs font-medium mb-1"
-            style={{ color: "var(--muted-foreground)" }}
-          >
+          <p className="text-xs font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>
             {card.label}
           </p>
           {card.loading ? (

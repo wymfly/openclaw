@@ -49,7 +49,7 @@ export function InstallSkillDialog({ open, onOpenChange }: InstallSkillDialogPro
     }
     const q = search.toLowerCase();
     return withOptions.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
+      (s) => s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q),
     );
   }, [skills, search]);
 
@@ -87,7 +87,7 @@ export function InstallSkillDialog({ open, onOpenChange }: InstallSkillDialogPro
         <div className="relative">
           <Search
             size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]"
           />
           <Input
             value={search}
@@ -99,7 +99,7 @@ export function InstallSkillDialog({ open, onOpenChange }: InstallSkillDialogPro
 
         {/* Error message */}
         {errorMsg && (
-          <div className="text-xs px-3 py-2 rounded-lg bg-[var(--skill-warning-bg)] text-[var(--danger)]">
+          <div className="text-xs px-3 py-2 rounded-lg bg-[var(--skill-warning-bg)] text-[var(--destructive)]">
             {errorMsg}
           </div>
         )}
@@ -107,28 +107,28 @@ export function InstallSkillDialog({ open, onOpenChange }: InstallSkillDialogPro
         {/* Skills list */}
         <div className="flex flex-col gap-2 min-h-[120px]">
           {refreshing ? (
-            <div className="flex items-center justify-center py-8 text-[var(--text-secondary)]">
+            <div className="flex items-center justify-center py-8 text-[var(--muted-foreground)]">
               <Loader2 size={18} className="animate-spin" />
             </div>
           ) : installableSkills.length === 0 ? (
-            <div className="text-xs text-center py-8 text-[var(--text-secondary)]">
+            <div className="text-xs text-center py-8 text-[var(--muted-foreground)]">
               {t("noInstallableSkills")}
             </div>
           ) : (
             installableSkills.map((skill) => (
               <div
                 key={skill.key}
-                className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3 space-y-2"
+                className="rounded-lg border border-[var(--border-subtle)] bg-[var(--card)] p-3 space-y-2"
               >
                 {/* Skill header */}
                 <div className="flex items-start gap-2">
                   {skill.emoji && <span className="text-sm shrink-0">{skill.emoji}</span>}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">
+                    <p className="text-xs font-medium text-[var(--foreground)] truncate">
                       {skill.name}
                     </p>
                     {skill.description && (
-                      <p className="text-[11px] text-[var(--text-secondary)] line-clamp-2 mt-0.5">
+                      <p className="text-[11px] text-[var(--muted-foreground)] line-clamp-2 mt-0.5">
                         {skill.description}
                       </p>
                     )}
@@ -142,12 +142,12 @@ export function InstallSkillDialog({ open, onOpenChange }: InstallSkillDialogPro
                   return (
                     <div
                       key={opt.id}
-                      className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)]"
+                      className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-[var(--muted)] ring-1 ring-[var(--border-subtle)]"
                     >
                       <div className="text-xs min-w-0">
-                        <span className="font-medium text-[var(--text-primary)]">{opt.label}</span>
+                        <span className="font-medium text-[var(--foreground)]">{opt.label}</span>
                         {opt.bins.length > 0 && (
-                          <span className="ml-1.5 text-[var(--text-secondary)]">
+                          <span className="ml-1.5 text-[var(--muted-foreground)]">
                             ({t("requiredBins")}: {opt.bins.join(", ")})
                           </span>
                         )}

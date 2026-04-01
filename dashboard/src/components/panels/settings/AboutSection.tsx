@@ -21,25 +21,25 @@ export function AboutSection() {
 
   return (
     <section>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
         {t("about")}
       </h3>
       <div
         className="rounded-lg border p-4 flex flex-col gap-3"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
         {/* Version badges */}
         <div className="flex flex-wrap gap-3">
           {versions.map(({ label, value }) => (
             <div key={label} className="flex items-center gap-1.5">
-              <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
                 {label}:
               </span>
               <span
                 className="text-xs px-2 py-0.5 rounded-full font-mono"
                 style={{
-                  backgroundColor: "var(--bg-primary)",
-                  color: "var(--text-primary)",
+                  backgroundColor: "var(--background)",
+                  color: "var(--foreground)",
                   border: "1px solid var(--border)",
                 }}
               >
@@ -56,7 +56,7 @@ export function AboutSection() {
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs font-medium underline"
-            style={{ color: "var(--accent)" }}
+            style={{ color: "var(--primary)" }}
           >
             {t("docs")}
           </a>
@@ -65,7 +65,7 @@ export function AboutSection() {
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs font-medium underline"
-            style={{ color: "var(--accent)" }}
+            style={{ color: "var(--primary)" }}
           >
             {t("github")}
           </a>

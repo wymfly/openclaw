@@ -61,8 +61,8 @@ export function ScopeSelector() {
   return (
     <div className="p-4">
       <div className="mb-4">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("scopeTitle")}</h3>
-        <p className="text-xs text-[var(--text-secondary)] mt-1">{t("scopeDescription")}</p>
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">{t("scopeTitle")}</h3>
+        <p className="text-xs text-[var(--muted-foreground)] mt-1">{t("scopeDescription")}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

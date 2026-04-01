@@ -1,0 +1,438 @@
+<h2>Debug 面板设计</h2>
+<p class="subtitle">Canvas 底部调试面板的两个 Tab</p>
+
+<div style="display: flex; flex-direction: column; gap: 28px">
+  <!-- Tab 1: Messages -->
+  <div>
+    <div class="label" style="margin-bottom: 8px">Tab 1: Messages — JSONL 消息流实时查看器</div>
+    <div
+      style="background: #0d0d1a; border-radius: 10px; border: 1px solid #222244; overflow: hidden"
+    >
+      <!-- Tab Bar -->
+      <div style="display: flex; border-bottom: 1px solid #222244">
+        <div
+          style="
+            padding: 8px 16px;
+            font-size: 11px;
+            color: #88aaff;
+            border-bottom: 2px solid #3366ff;
+            background: rgba(51, 102, 255, 0.08);
+            font-weight: 500;
+          "
+        >
+          Messages
+        </div>
+        <div style="padding: 8px 16px; font-size: 11px; color: #555">Tree</div>
+        <div style="flex: 1"></div>
+        <div
+          style="
+            padding: 8px 12px;
+            font-size: 9px;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          "
+        >
+          <span
+            style="
+              background: #1a2a1a;
+              color: #66aa66;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-size: 8px;
+            "
+            >12 events</span
+          >
+          <span style="cursor: pointer; color: #555">Clear</span>
+        </div>
+      </div>
+      <!-- Message List -->
+      <div
+        style="
+          padding: 4px 0;
+          font-family: &quot;SF Mono&quot;, Monaco, monospace;
+          font-size: 11px;
+          max-height: 220px;
+          overflow: auto;
+        "
+      >
+        <!-- Event Row: surfaceUpdate -->
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            padding: 5px 12px;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #444; min-width: 62px; font-size: 10px">12:34:01</span>
+          <span style="min-width: 14px; font-size: 10px">⬇️</span>
+          <span style="color: #88aaff; min-width: 110px; font-weight: 500; font-size: 10px"
+            >surfaceUpdate</span
+          >
+          <span style="color: #777; font-size: 10px"
+            >surface=<span style="color: #aaa">main</span>, 3 components (root, text, btn1)</span
+          >
+        </div>
+        <!-- Event Row: beginRendering -->
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            padding: 5px 12px;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #444; min-width: 62px; font-size: 10px">12:34:01</span>
+          <span style="min-width: 14px; font-size: 10px">⬇️</span>
+          <span style="color: #88ff88; min-width: 110px; font-weight: 500; font-size: 10px"
+            >beginRendering</span
+          >
+          <span style="color: #777; font-size: 10px"
+            >surface=<span style="color: #aaa">main</span>, root=<span style="color: #aaa"
+              >root</span
+            ></span
+          >
+        </div>
+        <!-- Event Row: surfaceUpdate (more components) -->
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            padding: 5px 12px;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #444; min-width: 62px; font-size: 10px">12:34:03</span>
+          <span style="min-width: 14px; font-size: 10px">⬇️</span>
+          <span style="color: #88aaff; min-width: 110px; font-weight: 500; font-size: 10px"
+            >surfaceUpdate</span
+          >
+          <span style="color: #777; font-size: 10px"
+            >surface=<span style="color: #aaa">main</span>, 7 components (form, name, date,
+            ...)</span
+          >
+        </div>
+        <!-- Event Row: userAction (outgoing) -->
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            padding: 5px 12px;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            background: rgba(255, 170, 68, 0.04);
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,170,68,0.08)'"
+          onmouseout="this.style.background = 'rgba(255,170,68,0.04)'"
+        >
+          <span style="color: #444; min-width: 62px; font-size: 10px">12:34:05</span>
+          <span style="min-width: 14px; font-size: 10px">⬆️</span>
+          <span style="color: #ffaa44; min-width: 110px; font-weight: 500; font-size: 10px"
+            >userAction</span
+          >
+          <span style="color: #777; font-size: 10px"
+            >action=<span style="color: #ffcc66">Book</span>, surface=main, component=btn1</span
+          >
+        </div>
+        <!-- Event Row: action-status -->
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            padding: 5px 12px;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #444; min-width: 62px; font-size: 10px">12:34:05</span>
+          <span style="min-width: 14px; font-size: 10px">✅</span>
+          <span style="color: #66cc66; min-width: 110px; font-weight: 500; font-size: 10px"
+            >action-status</span
+          >
+          <span style="color: #777; font-size: 10px"
+            >id=<span style="color: #aaa">a2ui_xxx</span>, ok=true</span
+          >
+        </div>
+        <!-- Event Row: subsequent surfaceUpdate -->
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            padding: 5px 12px;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #444; min-width: 62px; font-size: 10px">12:34:06</span>
+          <span style="min-width: 14px; font-size: 10px">⬇️</span>
+          <span style="color: #88aaff; min-width: 110px; font-weight: 500; font-size: 10px"
+            >surfaceUpdate</span
+          >
+          <span style="color: #777; font-size: 10px"
+            >surface=<span style="color: #aaa">main</span>, 9 components (+confirm, +status)</span
+          >
+        </div>
+      </div>
+      <!-- Expanded Event Detail (click to expand) -->
+      <div
+        style="border-top: 1px solid #222244; padding: 10px 12px; background: rgba(0, 0, 0, 0.3)"
+      >
+        <div style="font-size: 9px; color: #555; margin-bottom: 6px">
+          RAW PAYLOAD (click row to inspect)
+        </div>
+        <pre
+          style="margin: 0; font-size: 10px; color: #888; line-height: 1.5; overflow-x: auto"
+        ><code>{
+  "surfaceUpdate": {
+    "surfaceId": "main",
+    "components": [
+      { "id": "root", "component": { "Column": { "children": { "explicitList": ["form"] } } } },
+      { "id": "form", "component": { "Card": { "children": { "explicitList": ["name","date","btn1"] } } } },
+      { "id": "btn1", "component": { "Button": { "label": "Book", "action": { "name": "Book" } } } }
+    ]
+  }
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Tree -->
+  <div>
+    <div class="label" style="margin-bottom: 8px">Tab 2: Tree — Surface 组件树检查器</div>
+    <div
+      style="background: #0d0d1a; border-radius: 10px; border: 1px solid #222244; overflow: hidden"
+    >
+      <!-- Tab Bar -->
+      <div style="display: flex; border-bottom: 1px solid #222244">
+        <div style="padding: 8px 16px; font-size: 11px; color: #555">Messages</div>
+        <div
+          style="
+            padding: 8px 16px;
+            font-size: 11px;
+            color: #88aaff;
+            border-bottom: 2px solid #3366ff;
+            background: rgba(51, 102, 255, 0.08);
+            font-weight: 500;
+          "
+        >
+          Tree
+        </div>
+        <div style="flex: 1"></div>
+        <div
+          style="
+            padding: 8px 12px;
+            font-size: 9px;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          "
+        >
+          <span
+            style="
+              background: #1a2a1a;
+              color: #66aa66;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-size: 8px;
+            "
+            >1 surface</span
+          >
+          <span
+            style="
+              background: #1a1a2a;
+              color: #6666aa;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-size: 8px;
+            "
+            >9 nodes</span
+          >
+        </div>
+      </div>
+      <!-- Tree View -->
+      <div
+        style="padding: 8px 0; font-family: &quot;SF Mono&quot;, Monaco, monospace; font-size: 11px"
+      >
+        <!-- Surface -->
+        <div
+          style="
+            padding: 4px 12px;
+            color: #88ff88;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          "
+        >
+          <span style="color: #555">▼</span>
+          <span>🎨 main</span>
+          <span style="font-size: 8px; color: #444; font-weight: normal">(root: root)</span>
+        </div>
+        <!-- Tree nodes with indentation -->
+        <div
+          style="
+            padding: 3px 12px 3px 32px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #555">▼</span>
+          <span style="color: #88aaff">Column</span>
+          <span style="color: #555; font-size: 9px">id=root</span>
+        </div>
+        <div
+          style="
+            padding: 3px 12px 3px 56px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #555">▼</span>
+          <span style="color: #cc88ff">Card</span>
+          <span style="color: #555; font-size: 9px">id=form</span>
+        </div>
+        <div
+          style="
+            padding: 3px 12px 3px 80px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #555">·</span>
+          <span style="color: #ffcc66">Text</span>
+          <span style="color: #555; font-size: 9px">id=title</span>
+          <span style="color: #444; font-size: 9px">"预约表单"</span>
+        </div>
+        <div
+          style="
+            padding: 3px 12px 3px 80px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #555">·</span>
+          <span style="color: #ffcc66">TextField</span>
+          <span style="color: #555; font-size: 9px">id=name</span>
+          <span style="color: #444; font-size: 9px">placeholder="姓名"</span>
+        </div>
+        <div
+          style="
+            padding: 3px 12px 3px 80px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #555">·</span>
+          <span style="color: #ffcc66">TextField</span>
+          <span style="color: #555; font-size: 9px">id=date</span>
+          <span style="color: #444; font-size: 9px">placeholder="日期"</span>
+        </div>
+        <div
+          style="
+            padding: 3px 12px 3px 80px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            background: rgba(51, 102, 255, 0.06);
+          "
+        >
+          <span style="color: #555">·</span>
+          <span style="color: #ff8866">Button</span>
+          <span style="color: #555; font-size: 9px">id=btn1</span>
+          <span style="color: #444; font-size: 9px">label="Book"</span>
+          <span style="color: #333; font-size: 8px">action=Book</span>
+        </div>
+        <div
+          style="
+            padding: 3px 12px 3px 80px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #555">·</span>
+          <span style="color: #ff8866">Button</span>
+          <span style="color: #555; font-size: 9px">id=btn2</span>
+          <span style="color: #444; font-size: 9px">label="Cancel"</span>
+        </div>
+        <div
+          style="
+            padding: 3px 12px 3px 80px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+          "
+          onmouseover="this.style.background = 'rgba(255,255,255,0.03)'"
+          onmouseout="this.style.background = ''"
+        >
+          <span style="color: #555">·</span>
+          <span style="color: #aaaaaa">Divider</span>
+          <span style="color: #555; font-size: 9px">id=div1</span>
+        </div>
+      </div>
+      <!-- Node Properties (selected node) -->
+      <div
+        style="border-top: 1px solid #222244; padding: 10px 12px; background: rgba(0, 0, 0, 0.3)"
+      >
+        <div style="font-size: 9px; color: #555; margin-bottom: 6px">
+          PROPERTIES — Button id=btn1
+        </div>
+        <div
+          style="display: grid; grid-template-columns: 100px 1fr; gap: 4px 12px; font-size: 10px"
+        >
+          <span style="color: #555">label</span><span style="color: #aaa">"Book"</span>
+          <span style="color: #555">action.name</span><span style="color: #ffcc66">"Book"</span>
+          <span style="color: #555">style</span><span style="color: #aaa">primary</span>
+          <span style="color: #555">disabled</span><span style="color: #666">false</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

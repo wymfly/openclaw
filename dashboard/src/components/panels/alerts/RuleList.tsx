@@ -25,7 +25,7 @@ export function RuleList({ rules, onEdit, onDelete, onToggle }: RuleListProps) {
     return (
       <div
         className="flex items-center justify-center py-12"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">{t("noRules")}</p>
       </div>
@@ -40,39 +40,36 @@ export function RuleList({ rules, onEdit, onDelete, onToggle }: RuleListProps) {
           className="flex items-center justify-between px-4 py-3 rounded-lg border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-secondary)",
+            backgroundColor: "var(--card)",
           }}
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span
-                className="text-sm font-medium truncate"
-                style={{ color: "var(--text-primary)" }}
-              >
+              <span className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
                 {rule.name}
               </span>
               <span
                 className="px-2 py-0.5 text-xs rounded-full"
                 style={{
-                  backgroundColor: rule.enabled ? "var(--accent)" : "var(--border)",
-                  color: rule.enabled ? "var(--accent-fg)" : "var(--text-secondary)",
+                  backgroundColor: rule.enabled ? "var(--primary)" : "var(--border)",
+                  color: rule.enabled ? "var(--primary-foreground)" : "var(--muted-foreground)",
                 }}
               >
                 {rule.enabled ? t("enabled") : t("disabled")}
               </span>
             </div>
             <div className="flex items-center gap-3 mt-1">
-              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                 {rule.entityType} | {rule.condition} &ge; {rule.threshold}
               </span>
-              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                 {t("action")}: {t(rule.action)}
               </span>
-              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                 {t("cooldown")}: {Math.round(rule.cooldownMs / 60000)}
                 {t("cooldownMinutes")}
               </span>
-              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                 {t("lastFired")}: {rule.lastFiredAt ?? t("never")}
               </span>
             </div>
@@ -85,7 +82,7 @@ export function RuleList({ rules, onEdit, onDelete, onToggle }: RuleListProps) {
               className="px-2 py-1 text-xs rounded border"
               style={{
                 borderColor: "var(--border)",
-                color: "var(--text-secondary)",
+                color: "var(--muted-foreground)",
               }}
             >
               {rule.enabled ? t("disabled") : t("enabled")}
@@ -96,7 +93,7 @@ export function RuleList({ rules, onEdit, onDelete, onToggle }: RuleListProps) {
               className="px-2 py-1 text-xs rounded border"
               style={{
                 borderColor: "var(--border)",
-                color: "var(--text-secondary)",
+                color: "var(--muted-foreground)",
               }}
             >
               {t("editRule")}
@@ -111,7 +108,7 @@ export function RuleList({ rules, onEdit, onDelete, onToggle }: RuleListProps) {
               className="px-2 py-1 text-xs rounded border"
               style={{
                 borderColor: "var(--border)",
-                color: "var(--danger)",
+                color: "var(--destructive)",
               }}
             >
               {t("deleteRule")}

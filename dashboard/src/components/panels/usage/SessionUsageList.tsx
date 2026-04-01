@@ -1,8 +1,8 @@
 "use client";
 
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { ListSearchBar, useListState } from "@/components/lists";
 import {
   Pagination,
@@ -12,11 +12,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  useUsageStore,
-  type SessionUsageEntry,
-  type SessionLogEntry,
-} from "@/stores/usage";
+import { useUsageStore, type SessionUsageEntry, type SessionLogEntry } from "@/stores/usage";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -39,10 +35,7 @@ interface SessionUsageListProps {
   onNavigateToSession?: (key: string) => void;
 }
 
-export function SessionUsageList({
-  sessions,
-  onNavigateToSession,
-}: SessionUsageListProps) {
+export function SessionUsageList({ sessions, onNavigateToSession }: SessionUsageListProps) {
   const t = useTranslations("usage");
   const fetchSessionLogs = useUsageStore((s) => s.fetchSessionLogs);
 
@@ -135,11 +128,7 @@ export function SessionUsageList({
           {t("sessions")} ({filteredData.length})
         </p>
         <div className="w-64">
-          <ListSearchBar
-            value={filters.search ?? ""}
-            onSearch={handleSearch}
-            placeholder={t("sessionKey")}
-          />
+          <ListSearchBar onSearch={handleSearch} placeholder={t("sessionKey")} />
         </div>
       </div>
 
@@ -157,15 +146,9 @@ export function SessionUsageList({
               >
                 {/* Expand icon */}
                 {isExpanded ? (
-                  <ChevronDown
-                    size={14}
-                    style={{ color: "var(--muted-foreground)" }}
-                  />
+                  <ChevronDown size={14} style={{ color: "var(--muted-foreground)" }} />
                 ) : (
-                  <ChevronRight
-                    size={14}
-                    style={{ color: "var(--muted-foreground)" }}
-                  />
+                  <ChevronRight size={14} style={{ color: "var(--muted-foreground)" }} />
                 )}
 
                 {/* Session info */}
@@ -178,10 +161,7 @@ export function SessionUsageList({
                     {session.key}
                   </p>
                   {session.agentId && (
-                    <p
-                      className="text-xs"
-                      style={{ color: "var(--muted-foreground)" }}
-                    >
+                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                       {session.agentId}
                     </p>
                   )}
@@ -189,18 +169,10 @@ export function SessionUsageList({
 
                 {/* Tokens + Cost */}
                 <div className="text-right shrink-0">
-                  <p
-                    className="text-xs tabular-nums"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {session.usage
-                      ? `${session.usage.totalTokens.toLocaleString()} tokens`
-                      : "—"}
+                  <p className="text-xs tabular-nums" style={{ color: "var(--foreground)" }}>
+                    {session.usage ? `${session.usage.totalTokens.toLocaleString()} tokens` : "—"}
                   </p>
-                  <p
-                    className="text-xs tabular-nums"
-                    style={{ color: "var(--muted-foreground)" }}
-                  >
+                  <p className="text-xs tabular-nums" style={{ color: "var(--muted-foreground)" }}>
                     {session.usage ? formatCost(session.usage.totalCost) : "—"}
                   </p>
                 </div>
@@ -239,17 +211,11 @@ export function SessionUsageList({
                   }}
                 >
                   {logsLoading ? (
-                    <p
-                      className="text-xs"
-                      style={{ color: "var(--muted-foreground)" }}
-                    >
+                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                       {t("loadingDetail")}
                     </p>
                   ) : logs.length === 0 ? (
-                    <p
-                      className="text-xs"
-                      style={{ color: "var(--muted-foreground)" }}
-                    >
+                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                       {t("noData")}
                     </p>
                   ) : (
@@ -295,10 +261,7 @@ export function SessionUsageList({
                             >
                               {formatTime(log.timestamp)}
                             </td>
-                            <td
-                              className="py-1"
-                              style={{ color: "var(--foreground)" }}
-                            >
+                            <td className="py-1" style={{ color: "var(--foreground)" }}>
                               {log.role}
                             </td>
                             <td
@@ -327,10 +290,7 @@ export function SessionUsageList({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div
-          className="px-4 py-2 border-t"
-          style={{ borderColor: "var(--border)" }}
-        >
+        <div className="px-4 py-2 border-t" style={{ borderColor: "var(--border)" }}>
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -340,18 +300,12 @@ export function SessionUsageList({
                 />
               </PaginationItem>
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const start = Math.max(
-                  1,
-                  Math.min(page - 2, totalPages - 4),
-                );
+                const start = Math.max(1, Math.min(page - 2, totalPages - 4));
                 const p = start + i;
                 if (p > totalPages) return null;
                 return (
                   <PaginationItem key={p}>
-                    <PaginationLink
-                      isActive={p === page}
-                      onClick={() => setPage(p)}
-                    >
+                    <PaginationLink isActive={p === page} onClick={() => setPage(p)}>
                       {p}
                     </PaginationLink>
                   </PaginationItem>

@@ -21,16 +21,22 @@ export function FallbackChainEditor({ fallbacks, onChange }: FallbackChainEditor
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (models.length === 0) {void fetchUsableModels();}
+    if (models.length === 0) {
+      void fetchUsableModels();
+    }
   }, [models.length, fetchUsableModels]);
 
   useEffect(() => {
-    if (adding) {inputRef.current?.focus();}
+    if (adding) {
+      inputRef.current?.focus();
+    }
   }, [adding]);
 
   // Close dropdown on outside click
   useEffect(() => {
-    if (!adding) {return;}
+    if (!adding) {
+      return;
+    }
     const handler = (e: MouseEvent) => {
       if (
         listRef.current &&
@@ -77,7 +83,9 @@ export function FallbackChainEditor({ fallbacks, onChange }: FallbackChainEditor
   const handleMove = useCallback(
     (index: number, direction: -1 | 1) => {
       const newIndex = index + direction;
-      if (newIndex < 0 || newIndex >= fallbacks.length) {return;}
+      if (newIndex < 0 || newIndex >= fallbacks.length) {
+        return;
+      }
       const next = [...fallbacks];
       [next[index], next[newIndex]] = [next[newIndex], next[index]];
       onChange(next);
@@ -93,9 +101,7 @@ export function FallbackChainEditor({ fallbacks, onChange }: FallbackChainEditor
       <p className="text-[10px] text-[var(--muted-foreground)]">{t("fallbackDescription")}</p>
 
       {fallbacks.length === 0 ? (
-        <p className="text-[10px] text-[var(--muted-foreground)] italic py-2">
-          {t("noFallback")}
-        </p>
+        <p className="text-[10px] text-[var(--muted-foreground)] italic py-2">{t("noFallback")}</p>
       ) : (
         <div className="space-y-1">
           {fallbacks.map((modelId, i) => (

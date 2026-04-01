@@ -83,17 +83,17 @@ function TreeNode({
     <>
       <button
         onClick={handleClick}
-        className="flex items-center gap-1.5 w-full text-left px-2 py-1 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer"
+        className="flex items-center gap-1.5 w-full text-left px-2 py-1 rounded hover:bg-[var(--muted)] cursor-pointer"
         style={{
           paddingLeft: `${depth * 16 + 8}px`,
-          color: "var(--text-primary)",
+          color: "var(--foreground)",
           fontSize: 13,
         }}
       >
         {node.type === "directory" ? <FolderIcon open={expanded} /> : <FileIcon />}
         <span className="truncate">{node.name}</span>
         {node.size !== undefined && node.type === "file" && (
-          <span className="ml-auto text-xs shrink-0" style={{ color: "var(--text-secondary)" }}>
+          <span className="ml-auto text-xs shrink-0" style={{ color: "var(--muted-foreground)" }}>
             {formatSize(node.size)}
           </span>
         )}
@@ -153,7 +153,7 @@ export function FileTree() {
     return (
       <div
         className="flex items-center justify-center h-full"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">{t("agent")}</p>
       </div>
@@ -164,7 +164,7 @@ export function FileTree() {
     return (
       <div
         className="flex items-center justify-center h-full"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">...</p>
       </div>
@@ -179,7 +179,7 @@ export function FileTree() {
         style={{ borderColor: "var(--border)" }}
       >
         {files.length === 0 ? (
-          <p className="text-xs px-3 py-2" style={{ color: "var(--text-secondary)" }}>
+          <p className="text-xs px-3 py-2" style={{ color: "var(--muted-foreground)" }}>
             {t("noFiles")}
           </p>
         ) : (
@@ -190,13 +190,13 @@ export function FileTree() {
       </div>
 
       {/* File content preview */}
-      <div className="flex-1 overflow-auto p-4" style={{ backgroundColor: "var(--bg-primary)" }}>
+      <div className="flex-1 overflow-auto p-4" style={{ backgroundColor: "var(--background)" }}>
         {selectedFilePath && selectedFileContent !== null ? (
           <div>
             <div
               className="text-xs mb-2 pb-2 border-b"
               style={{
-                color: "var(--text-secondary)",
+                color: "var(--muted-foreground)",
                 borderColor: "var(--border)",
               }}
             >
@@ -205,7 +205,7 @@ export function FileTree() {
             <pre
               className="text-xs whitespace-pre-wrap break-words"
               style={{
-                color: "var(--text-primary)",
+                color: "var(--foreground)",
                 fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace",
               }}
             >
@@ -215,7 +215,7 @@ export function FileTree() {
         ) : (
           <div
             className="flex items-center justify-center h-full"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{t("content")}</p>
           </div>

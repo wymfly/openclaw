@@ -84,7 +84,7 @@ export function AlertsPanel() {
         className="flex items-center justify-between px-4 py-3 border-b"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
+          backgroundColor: "var(--card)",
         }}
       >
         <div className="flex gap-1">
@@ -94,8 +94,8 @@ export function AlertsPanel() {
               type="button"
               className="px-3 py-1 text-xs rounded-md font-medium transition-colors"
               style={{
-                backgroundColor: tab === t.key ? "var(--accent)" : "transparent",
-                color: tab === t.key ? "var(--accent-fg)" : "var(--text-secondary)",
+                backgroundColor: tab === t.key ? "var(--primary)" : "transparent",
+                color: tab === t.key ? "var(--primary-foreground)" : "var(--muted-foreground)",
               }}
               onClick={() => setTab(t.key)}
             >
@@ -111,7 +111,7 @@ export function AlertsPanel() {
               setShowForm(true);
             }}
             className="px-3 py-1 text-xs font-medium rounded-md"
-            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+            style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
           >
             {t("addRule")}
           </button>
@@ -119,11 +119,11 @@ export function AlertsPanel() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto p-4" style={{ backgroundColor: "var(--bg-primary)" }}>
+      <div className="flex-1 overflow-y-auto p-4" style={{ backgroundColor: "var(--background)" }}>
         {loading && (
           <div
             className="flex items-center justify-center py-12"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{tc("loading")}</p>
           </div>
@@ -132,7 +132,7 @@ export function AlertsPanel() {
         {error && !loading && (
           <div
             className="flex items-center justify-center py-12"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{error}</p>
           </div>

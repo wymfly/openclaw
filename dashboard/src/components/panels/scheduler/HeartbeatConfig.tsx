@@ -119,7 +119,7 @@ export function HeartbeatConfig() {
 
   if (heartbeatLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center h-full text-[var(--text-secondary)]">
+      <div className="flex-1 flex items-center justify-center h-full text-[var(--muted-foreground)]">
         <p className="text-sm">{tc("loading")}</p>
       </div>
     );
@@ -133,7 +133,7 @@ export function HeartbeatConfig() {
     <div className="flex flex-col gap-6 p-4 max-w-xl">
       {/* Countdown */}
       <div className="flex items-center gap-3">
-        <span className="text-xs font-medium text-[var(--text-secondary)]">
+        <span className="text-xs font-medium text-[var(--muted-foreground)]">
           {t("nextExecution")}
         </span>
         <NextExecutionCountdown
@@ -148,20 +148,20 @@ export function HeartbeatConfig() {
       {/* ----------------------------------------------------------------- */}
       {/* Global config card                                                */}
       {/* ----------------------------------------------------------------- */}
-      <section className="flex flex-col gap-4 rounded-lg p-4 ring-1 ring-[var(--border)] bg-[var(--bg-primary)]">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("globalConfig")}</h3>
+      <section className="flex flex-col gap-4 rounded-lg p-4 ring-1 ring-[var(--border)] bg-[var(--background)]">
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">{t("globalConfig")}</h3>
 
         {/* Enabled toggle */}
         <div className="flex items-center gap-2.5">
           <Switch checked={enabled} onCheckedChange={setEnabled} />
-          <Label className="text-xs text-[var(--text-primary)]">
+          <Label className="text-xs text-[var(--foreground)]">
             {enabled ? tc("on") : tc("off")}
           </Label>
         </div>
 
         {/* Every interval */}
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("everyInterval")}</Label>
+          <Label className="text-xs text-[var(--muted-foreground)]">{t("everyInterval")}</Label>
           <Input
             type="text"
             value={every}
@@ -174,22 +174,22 @@ export function HeartbeatConfig() {
 
         {/* Active hours */}
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("activeHours")}</Label>
+          <Label className="text-xs text-[var(--muted-foreground)]">{t("activeHours")}</Label>
           <div className="flex items-center gap-2">
             <input
               type="time"
               value={activeStart}
               onChange={(e) => setActiveStart(e.target.value)}
               disabled={!enabled}
-              className="h-8 rounded-lg border border-[var(--border)] bg-transparent px-2 text-xs text-[var(--text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-50"
+              className="h-8 rounded-lg border border-[var(--border)] bg-transparent px-2 text-xs text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50 disabled:opacity-50"
             />
-            <span className="text-xs text-[var(--text-secondary)]">—</span>
+            <span className="text-xs text-[var(--muted-foreground)]">—</span>
             <input
               type="time"
               value={activeEnd}
               onChange={(e) => setActiveEnd(e.target.value)}
               disabled={!enabled}
-              className="h-8 rounded-lg border border-[var(--border)] bg-transparent px-2 text-xs text-[var(--text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-50"
+              className="h-8 rounded-lg border border-[var(--border)] bg-transparent px-2 text-xs text-[var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50 disabled:opacity-50"
             />
           </div>
           <Input
@@ -204,7 +204,7 @@ export function HeartbeatConfig() {
 
         {/* Target agent */}
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("targetAgent")}</Label>
+          <Label className="text-xs text-[var(--muted-foreground)]">{t("targetAgent")}</Label>
           <Select value={target} onValueChange={(v) => setTarget(v ?? "")} disabled={!enabled}>
             <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder={t("selectAgent")} />
@@ -221,20 +221,20 @@ export function HeartbeatConfig() {
 
         {/* Prompt */}
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("promptTemplate")}</Label>
+          <Label className="text-xs text-[var(--muted-foreground)]">{t("promptTemplate")}</Label>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t("promptPlaceholder")}
             disabled={!enabled}
             rows={3}
-            className="w-full min-w-0 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-xs transition-colors duration-150 outline-none placeholder:text-[var(--text-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 resize-none disabled:opacity-50"
+            className="w-full min-w-0 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-xs transition-colors duration-150 outline-none placeholder:text-[var(--muted-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50 resize-none disabled:opacity-50"
           />
         </div>
 
         {/* Model (optional) */}
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">{t("modelOptional")}</Label>
+          <Label className="text-xs text-[var(--muted-foreground)]">{t("modelOptional")}</Label>
           <Input
             type="text"
             value={model}
@@ -256,9 +256,9 @@ export function HeartbeatConfig() {
       {/* ----------------------------------------------------------------- */}
       {/* Per-agent overrides                                               */}
       {/* ----------------------------------------------------------------- */}
-      <section className="flex flex-col gap-3 rounded-lg p-4 ring-1 ring-[var(--border)] bg-[var(--bg-primary)]">
+      <section className="flex flex-col gap-3 rounded-lg p-4 ring-1 ring-[var(--border)] bg-[var(--background)]">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">
             {t("perAgentOverrides")}
           </h3>
           <Button
@@ -272,9 +272,9 @@ export function HeartbeatConfig() {
 
         {/* Add override form */}
         {showOverrideForm && (
-          <div className="flex items-end gap-2 rounded-md bg-[var(--bg-secondary)] p-3">
+          <div className="flex items-end gap-2 rounded-md bg-[var(--card)] p-3">
             <div className="flex flex-col gap-1 flex-1">
-              <Label className="text-xs text-[var(--text-secondary)]">{t("targetAgent")}</Label>
+              <Label className="text-xs text-[var(--muted-foreground)]">{t("targetAgent")}</Label>
               <Select value={overrideAgentId} onValueChange={(v) => setOverrideAgentId(v ?? "")}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder={t("selectAgent")} />
@@ -289,7 +289,7 @@ export function HeartbeatConfig() {
               </Select>
             </div>
             <div className="flex flex-col gap-1 w-28">
-              <Label className="text-xs text-[var(--text-secondary)]">{t("everyInterval")}</Label>
+              <Label className="text-xs text-[var(--muted-foreground)]">{t("everyInterval")}</Label>
               <Input
                 type="text"
                 value={overrideEvery}
@@ -320,20 +320,22 @@ export function HeartbeatConfig() {
             {heartbeatOverrides.map((o) => (
               <div
                 key={o.agentId}
-                className="flex items-center justify-between rounded-md px-3 py-2 bg-[var(--bg-secondary)]"
+                className="flex items-center justify-between rounded-md px-3 py-2 bg-[var(--card)]"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-[var(--text-primary)]">
+                  <span className="text-xs font-medium text-[var(--foreground)]">
                     {o.agentName || o.agentId}
                   </span>
-                  <span className="text-xs font-mono text-[var(--text-secondary)]">{o.every}</span>
+                  <span className="text-xs font-mono text-[var(--muted-foreground)]">
+                    {o.every}
+                  </span>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon-xs"
                   onClick={() => handleRemoveOverride(o.agentId)}
                 >
-                  <Trash2 size={14} className="text-[var(--danger)]" />
+                  <Trash2 size={14} className="text-[var(--destructive)]" />
                 </Button>
               </div>
             ))}

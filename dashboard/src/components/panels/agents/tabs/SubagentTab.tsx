@@ -82,8 +82,8 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
   return (
     <div className="space-y-4">
       {/* Permission selector */}
-      <Card className="p-4 bg-[var(--bg-primary)] border-[var(--border)]">
-        <Label className="text-xs text-[var(--text-secondary)] mb-2 block">
+      <Card className="p-4 bg-[var(--background)] border-[var(--border)]">
+        <Label className="text-xs text-[var(--muted-foreground)] mb-2 block">
           {t("spawnPermission")}
         </Label>
         <div className="flex gap-1">
@@ -96,10 +96,10 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
               }}
               className={cn(
                 "flex-1 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
                 allowMode === m.value
-                  ? "bg-[var(--accent)] text-white"
-                  : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
               )}
             >
               {t(m.labelKey)}
@@ -110,7 +110,7 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
 
       {/* Agent checklist (list mode) */}
       {allowMode === "list" && (
-        <Card className="p-4 bg-[var(--bg-primary)] border-[var(--border)]">
+        <Card className="p-4 bg-[var(--background)] border-[var(--border)]">
           <div className="space-y-1.5">
             {allAgents
               .filter((a) => a.id !== agentId)
@@ -121,17 +121,17 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
                   className={cn(
                     "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer",
                     "border border-[var(--border)]",
-                    "hover:border-[var(--accent)]/30",
+                    "hover:border-[var(--primary)]/30",
                     allowAgents.includes(agent.id) &&
-                      "ring-1 ring-[var(--accent)]/30 border-[var(--accent)]/20",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                      "ring-1 ring-[var(--primary)]/30 border-[var(--primary)]/20",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
                   )}
                 >
                   <div
                     className={cn(
                       "w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0",
                       allowAgents.includes(agent.id)
-                        ? "bg-[var(--accent)] border-[var(--accent)] text-white"
+                        ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)]"
                         : "border-[var(--border)] bg-transparent",
                     )}
                   >
@@ -141,7 +141,7 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
                       </svg>
                     )}
                   </div>
-                  <span className="font-medium text-[var(--text-primary)]">
+                  <span className="font-medium text-[var(--foreground)]">
                     {agent.name || agent.id}
                   </span>
                 </button>
@@ -151,8 +151,8 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
       )}
 
       {/* Model override */}
-      <Card className="p-4 bg-[var(--bg-primary)] border-[var(--border)]">
-        <Label className="text-xs text-[var(--text-secondary)] mb-1.5 block">
+      <Card className="p-4 bg-[var(--background)] border-[var(--border)]">
+        <Label className="text-xs text-[var(--muted-foreground)] mb-1.5 block">
           {t("modelOverride")}
         </Label>
         <Input
@@ -162,31 +162,31 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
             setSaved(false);
           }}
           placeholder={t("modelOverridePlaceholder")}
-          className="text-xs font-mono bg-[var(--bg-tertiary)]"
+          className="text-xs font-mono bg-[var(--muted)]"
         />
       </Card>
 
       {/* Effective limits (read-only) */}
-      <Card className="p-4 bg-[var(--bg-primary)] border-[var(--border)]">
+      <Card className="p-4 bg-[var(--background)] border-[var(--border)]">
         <CardHeader className="p-0 pb-2">
           <CardTitle className="text-xs">{t("effectiveLimits")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <span className="text-[10px] text-[var(--text-secondary)]">{t("maxDepth")}</span>
-              <p className="text-sm font-mono text-[var(--text-primary)]">
+              <span className="text-[10px] text-[var(--muted-foreground)]">{t("maxDepth")}</span>
+              <p className="text-sm font-mono text-[var(--foreground)]">
                 {currentSubagentConfig?.effectiveMaxDepth ?? "—"}
               </p>
             </div>
             <div>
-              <span className="text-[10px] text-[var(--text-secondary)]">{t("maxChildren")}</span>
-              <p className="text-sm font-mono text-[var(--text-primary)]">
+              <span className="text-[10px] text-[var(--muted-foreground)]">{t("maxChildren")}</span>
+              <p className="text-sm font-mono text-[var(--foreground)]">
                 {currentSubagentConfig?.effectiveMaxChildren ?? "—"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-2 text-[10px] text-[var(--text-secondary)]">
+          <div className="flex items-center gap-1 mt-2 text-[10px] text-[var(--muted-foreground)]">
             <Info size={10} />
             {t("limitsNote")}
           </div>
@@ -210,7 +210,7 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
       <div className="flex justify-end">
         <button
           onClick={navigateToSubagents}
-          className="flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
+          className="flex items-center gap-1 text-[10px] text-[var(--primary)] hover:underline cursor-pointer"
         >
           {t("viewInSubagentsPanel")}
           <ExternalLink size={10} />
@@ -220,7 +220,7 @@ export function SubagentTab({ agentId }: SubagentTabProps) {
       {/* Active runs summary */}
       {agentRuns.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-medium text-[var(--text-primary)]">
+          <h3 className="text-xs font-medium text-[var(--foreground)]">
             {t("activeRunsSummary")}
             <Badge variant="outline" className="ml-2 text-[10px]">
               {agentRuns.length}

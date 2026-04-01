@@ -2,16 +2,15 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Streamdown } from "streamdown";
 import { useDocsStore, type DocCategory } from "@/stores/docs";
 
 const CATEGORY_COLORS: Record<DocCategory, string> = {
-  summary: "#3b82f6",
-  plan: "#8b5cf6",
-  spec: "#f59e0b",
-  manual: "#10b981",
-  draft: "#6b7280",
+  summary: "var(--doc-summary)",
+  plan: "var(--doc-plan)",
+  spec: "var(--doc-spec)",
+  manual: "var(--doc-manual)",
+  draft: "var(--doc-draft)",
 };
 
 export function DocViewer() {
@@ -24,7 +23,7 @@ export function DocViewer() {
     return (
       <div
         className="flex items-center justify-center h-full"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">{t("noResults")}</p>
       </div>
@@ -49,17 +48,17 @@ export function DocViewer() {
             {t(`category.${selectedDoc.category}`)}
           </span>
         </div>
-        <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+        <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>
           {selectedDoc.title}
         </h2>
       </div>
 
       {/* Content */}
       <div
-        className="flex-1 overflow-y-auto px-4 py-3 prose prose-sm max-w-none dark:prose-invert"
-        style={{ color: "var(--text-primary)" }}
+        className="flex-1 overflow-y-auto px-4 py-3 chat-prose max-w-none text-sm"
+        style={{ color: "var(--foreground)" }}
       >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{selectedDoc.content}</ReactMarkdown>
+        <Streamdown mode="static">{selectedDoc.content}</Streamdown>
       </div>
 
       {/* Footer */}
@@ -67,7 +66,7 @@ export function DocViewer() {
         className="px-4 py-3 border-t flex items-center justify-between"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
+          backgroundColor: "var(--card)",
         }}
       >
         <div className="flex flex-col gap-1">
@@ -79,8 +78,8 @@ export function DocViewer() {
                   key={kw}
                   className="text-xs px-2 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: "var(--bg-primary)",
-                    color: "var(--text-secondary)",
+                    backgroundColor: "var(--background)",
+                    color: "var(--muted-foreground)",
                     border: "1px solid var(--border)",
                   }}
                 >
@@ -89,7 +88,7 @@ export function DocViewer() {
               ))}
             </div>
           )}
-          <div className="flex gap-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+          <div className="flex gap-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
             {selectedDoc.sourceSession && (
               <span>
                 {t("source")}: {selectedDoc.sourceSession}
@@ -107,7 +106,7 @@ export function DocViewer() {
             <button
               type="button"
               className="px-3 py-1 text-xs rounded-md font-medium"
-              style={{ backgroundColor: "var(--danger)", color: "var(--danger-fg)" }}
+              style={{ backgroundColor: "var(--destructive)", color: "var(--destructive-fg)" }}
               onClick={() => void handleDelete()}
             >
               {t("confirmDelete")}
@@ -115,7 +114,7 @@ export function DocViewer() {
             <button
               type="button"
               className="px-3 py-1 text-xs rounded-md font-medium"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
               onClick={() => setConfirmDelete(false)}
             >
               {tc("cancel")}
@@ -125,7 +124,7 @@ export function DocViewer() {
           <button
             type="button"
             className="px-3 py-1 text-xs rounded-md font-medium"
-            style={{ color: "var(--danger)" }}
+            style={{ color: "var(--destructive)" }}
             onClick={() => setConfirmDelete(true)}
           >
             {t("delete")}

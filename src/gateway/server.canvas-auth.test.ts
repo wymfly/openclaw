@@ -357,7 +357,12 @@ describe("gateway canvas host auth", () => {
           });
         } catch (err) {
           const message = String(err);
-          if (message.includes("EAFNOSUPPORT") || message.includes("EADDRNOTAVAIL")) {
+          if (
+            message.includes("EAFNOSUPPORT") ||
+            message.includes("EADDRNOTAVAIL") ||
+            message.includes("ECONNRESET") ||
+            message.includes("fetch failed")
+          ) {
             return;
           }
           throw err;

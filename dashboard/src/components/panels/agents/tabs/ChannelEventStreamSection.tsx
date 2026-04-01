@@ -45,7 +45,7 @@ export function ChannelEventStreamSection({ agentId }: Props) {
     <Card className="border-[var(--border)]">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <Radio size={16} className="text-[var(--brand)]" />
+          <Radio size={16} className="text-[var(--primary)]" />
           <CardTitle className="text-sm font-medium">{t("title")}</CardTitle>
           {currentEventStreams.isDefault && (
             <Badge variant="outline" className="text-[10px] font-normal">
@@ -53,16 +53,16 @@ export function ChannelEventStreamSection({ agentId }: Props) {
             </Badge>
           )}
         </div>
-        <p className="text-xs text-[var(--text-secondary)] mt-1">{t("description")}</p>
+        <p className="text-xs text-[var(--muted-foreground)] mt-1">{t("description")}</p>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Chat — always on, locked */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Lock size={12} className="text-[var(--text-secondary)]" />
+            <Lock size={12} className="text-[var(--muted-foreground)]" />
             <div>
               <span className="text-sm">{t("chat")}</span>
-              <span className="text-xs text-[var(--text-secondary)] ml-2">{t("chatHint")}</span>
+              <span className="text-xs text-[var(--muted-foreground)] ml-2">{t("chatHint")}</span>
             </div>
           </div>
           <Switch checked disabled aria-label={t("chat")} />
@@ -73,7 +73,7 @@ export function ChannelEventStreamSection({ agentId }: Props) {
           <div key={stream} className="flex items-center justify-between">
             <div>
               <span className="text-sm">{t(stream)}</span>
-              <span className="text-xs text-[var(--text-secondary)] ml-2">
+              <span className="text-xs text-[var(--muted-foreground)] ml-2">
                 {t(`${stream}Hint`)}
               </span>
             </div>

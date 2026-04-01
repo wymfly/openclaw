@@ -26,7 +26,7 @@ function PolicySelect({ label, value, options, onChange }: PolicySelectProps) {
     <div className="flex items-center gap-2">
       <span
         className="text-xs font-medium w-28 shrink-0"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         {label}
       </span>
@@ -36,8 +36,8 @@ function PolicySelect({ label, value, options, onChange }: PolicySelectProps) {
         className="text-xs rounded px-2 py-1 border flex-1"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-primary)",
-          color: "var(--text-primary)",
+          backgroundColor: "var(--background)",
+          color: "var(--foreground)",
           maxWidth: 180,
         }}
       >
@@ -64,7 +64,7 @@ function PolicyToggle({ label, value, onChange }: PolicyToggleProps) {
     <div className="flex items-center gap-2">
       <span
         className="text-xs font-medium w-28 shrink-0"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         {label}
       </span>
@@ -73,7 +73,7 @@ function PolicyToggle({ label, value, onChange }: PolicyToggleProps) {
         className="text-xs px-3 py-1 rounded border cursor-pointer"
         style={{
           borderColor: value ? "var(--status-connected)" : "var(--border)",
-          color: value ? "var(--status-connected)" : "var(--text-secondary)",
+          color: value ? "var(--status-connected)" : "var(--muted-foreground)",
           backgroundColor: value ? "var(--success-muted)" : "transparent",
         }}
       >
@@ -195,7 +195,7 @@ export function PolicyEditor() {
   if (!draft) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {tc("loading")}
         </span>
       </div>
@@ -206,7 +206,7 @@ export function PolicyEditor() {
     <div className="flex-1 overflow-y-auto p-4 space-y-6">
       {/* Global defaults */}
       <section>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
           {t("globalDefaults")}
         </h3>
         <DefaultsEditor
@@ -217,7 +217,7 @@ export function PolicyEditor() {
 
       {/* Per-agent overrides */}
       <section>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
           {t("perAgent")}
         </h3>
 
@@ -225,10 +225,10 @@ export function PolicyEditor() {
           <div
             key={agentId}
             className="mb-4 p-3 rounded-lg border"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>
+              <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>
                 {agentId}
               </span>
               <button
@@ -257,8 +257,8 @@ export function PolicyEditor() {
             className="text-xs rounded px-2 py-1 border"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
               minWidth: 160,
             }}
           />
@@ -267,8 +267,8 @@ export function PolicyEditor() {
             disabled={!newAgentId.trim()}
             className="text-xs px-3 py-1 rounded border cursor-pointer"
             style={{
-              borderColor: "var(--accent)",
-              color: "var(--accent)",
+              borderColor: "var(--primary)",
+              color: "var(--primary)",
               opacity: newAgentId.trim() ? 1 : 0.5,
             }}
           >
@@ -292,9 +292,9 @@ export function PolicyEditor() {
           disabled={saving}
           className="text-xs px-4 py-1.5 rounded border cursor-pointer"
           style={{
-            borderColor: "var(--accent)",
-            backgroundColor: "var(--accent)",
-            color: "var(--accent-fg)",
+            borderColor: "var(--primary)",
+            backgroundColor: "var(--primary)",
+            color: "var(--primary-foreground)",
             opacity: saving ? 0.6 : 1,
           }}
         >

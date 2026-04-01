@@ -13,13 +13,13 @@ export function MonitorPanel() {
   const { activeTab, setActiveTab } = useMonitorStore();
 
   return (
-    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
+    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--card)] ring-1 ring-[var(--border)]">
       {/* Header */}
       <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-[var(--border)] shrink-0">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent-muted)]">
-          <MonitorDot size={14} className="text-[var(--accent)]" />
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--primary-muted)]">
+          <MonitorDot size={14} className="text-[var(--primary)]" />
         </div>
-        <h2 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+        <h2 className="text-sm font-semibold text-[var(--foreground)] tracking-tight">
           {t("title")}
         </h2>
       </div>

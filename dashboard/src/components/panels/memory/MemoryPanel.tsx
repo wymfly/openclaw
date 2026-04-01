@@ -72,16 +72,16 @@ export function MemoryPanel() {
         className="flex items-center gap-3 px-4 py-3 border-b flex-wrap"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
+          backgroundColor: "var(--card)",
         }}
       >
-        <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--text-primary)" }}>
+        <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--foreground)" }}>
           {t("title")}
         </h2>
 
         {/* Agent selector */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("agent")}:
           </span>
           <select
@@ -90,8 +90,8 @@ export function MemoryPanel() {
             className="text-xs rounded px-2 py-1 border"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
               minWidth: 120,
             }}
           >
@@ -106,7 +106,7 @@ export function MemoryPanel() {
 
         {/* Scope filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("scope")}:
           </span>
           <select
@@ -115,8 +115,8 @@ export function MemoryPanel() {
             className="text-xs rounded px-2 py-1 border"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
               minWidth: 90,
             }}
           >
@@ -136,9 +136,9 @@ export function MemoryPanel() {
               onClick={() => setActiveTab(tab)}
               className="text-xs px-3 py-1 rounded border cursor-pointer"
               style={{
-                borderColor: activeTab === tab ? "var(--accent)" : "var(--border)",
-                backgroundColor: activeTab === tab ? "var(--accent-muted)" : "var(--bg-primary)",
-                color: activeTab === tab ? "var(--accent)" : "var(--text-primary)",
+                borderColor: activeTab === tab ? "var(--primary)" : "var(--border)",
+                backgroundColor: activeTab === tab ? "var(--primary-muted)" : "var(--background)",
+                color: activeTab === tab ? "var(--primary)" : "var(--foreground)",
               }}
             >
               {t(TAB_LABEL_KEYS[tab])}

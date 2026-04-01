@@ -278,12 +278,17 @@ git rebase upstream/main
 # 4. 解决冲突（如果有），逐 commit 处理
 # git rebase --continue
 
-# 5. 验证
+# 5. Protocol SDK 同步（如果上游改了 Gateway 方法/schema）
+#    详见下方「Gateway Protocol SDK → 上游 rebase 后的 Protocol 同步流程」
+pnpm protocol:gen:ts
+pnpm tsc --noEmit  # 检查 Deck 类型是否需要修复
+
+# 6. 验证
 pnpm install
 pnpm check
 pnpm test
 
-# 6. 推送
+# 7. 推送
 git push --force-with-lease origin enhanced
 ```
 
@@ -334,3 +339,85 @@ scripts/dev/deck-dev.sh stop      # 停止所有
 - [ ] `NO_PROXY=localhost,127.0.0.1` 已设置（否则 Squid 代理拦截 localhost 请求）
 - [ ] Gateway 从本地源码运行（`pnpm openclaw`，不是全局 `openclaw`）
 - [ ] Gateway 和 Dashboard 启动后验证：`curl -s http://localhost:3000/api/deck/agents -X POST -H 'Content-Type: application/json' -d '{"action":"eventStreams.get","agentId":"main"}'` 应返回 JSON（非 HTML 错误页）
+
+### Gateway Protocol SDK
+
+Deck dashboard 通过 typed client（`gw.*`）调用 Gateway RPC，类型和 client wrapper 从 Gateway 的 TypeBox schema 自动生成。
+
+设计文档：`docs/plans/2026-03-27-gateway-protocol-sdk-design.md`
+
+**架构**：
+
+```
+ProtocolSchemas (TypeBox) + Result Schemas → MethodRegistry
+    ↓ scripts/protocol-gen-ts.ts           ↓ gateway.describe RPC
+dashboard/src/types/gateway-*.generated.ts  运行时 API 发现
+    ↓
+GatewayClient (typed) → Deck stores/routes
+```
+
+**开发规则**：
+
+- Deck 必须通过 typed client (`gw.*`) 调用 Gateway，**禁止** `gatewayRequest()` 字符串调用
+- `dashboard/src/types/gateway-*.generated.ts` 是自动生成的，**不要手工编辑**
+- 新增 Gateway RPC 方法时必须同步四处：handler → result schema → methodDefs → `pnpm protocol:gen:ts`
+- `pnpm protocol:gen:check` 必须通过才能 push enhanced 分支
+
+**上游 rebase 后的 Protocol 同步流程**：
+
+```bash
+# 在常规 rebase + 冲突解决之后：
+
+# 1. 检测上游新增/修改的方法
+git diff upstream/main~1..upstream/main -- src/gateway/server-methods-list.ts
+git diff upstream/main~1..upstream/main -- src/gateway/protocol/schema/
+
+# 2. 对新增方法：
+#    Deck 需要 → 补 result schema + methodDefs 元数据
+#    Deck 不需要 → 标记 result: undefined（P2 层级）
+
+# 3. 重新生成 typed client
+pnpm protocol:gen:ts
+
+# 4. 修复 Deck 消费侧类型错误
+pnpm tsc --noEmit
+
+# 5. 完整验证（接续常规 rebase 验证步骤）
+```
+
+**关键文件**：
+
+| 文件                                                | 角色                                                     |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| `src/gateway/method-registry.ts`                    | MethodRegistry 核心（method → handler + schema + scope） |
+| `src/gateway/server-methods/describe.ts`            | `gateway.describe` introspection RPC                     |
+| `scripts/protocol-gen-ts.ts`                        | TypeScript codegen 脚本                                  |
+| `dashboard/src/types/gateway-protocol.generated.ts` | 生成的类型定义（不要手编）                               |
+| `dashboard/src/types/gateway-client.generated.ts`   | 生成的 typed client + allowlist（不要手编）              |
+
+**Method Registry 元数据模式**：每个 handler 文件导出并行的 `methodDefs`：
+
+```typescript
+// src/gateway/server-methods/deck/agents.ts
+export const deckAgentsHandlers: GatewayRequestHandlers = { ... };  // 现有 handler
+export const deckAgentsMethodDefs: Record<string, Omit<MethodDefinition, "handler">> = {
+  "deck.agents.detail": {
+    params: DeckAgentsDetailParamsSchema,
+    result: DeckAgentsDetailResultSchema,
+    scope: "operator.read",
+  },
+};
+```
+
+**Result Schema 优先级**：P0（`deck.*` 全部）+ P1（Deck 已用的上游方法）必须有 result schema；P2（Deck 未用的）标记 `result: undefined`。
+
+**上游改动热区参考**（近 4 个月 commit 频率）：
+
+| 文件                         | 频率  | 冲突风险                                      |
+| ---------------------------- | ----- | --------------------------------------------- |
+| `server-methods/chat.ts`     | 92    | 高（但 methodDefs 是追加，不改 handler 逻辑） |
+| `server-methods/agent.ts`    | 82    | 同上                                          |
+| `server-methods/sessions.ts` | 56    | 同上                                          |
+| `server-methods.ts`          | 56    | 中（尾部 spread 追加，通常自动合并）          |
+| `protocol/schema/`           | 141   | 中（schema 追加，偶有字段修改）               |
+| `server-methods/deck/*`      | **0** | **无冲突**——完全是 fork 自有代码              |

@@ -98,16 +98,16 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
   }, [ensureSettingsSaved, onComplete]);
 
   const iStyle = {
-    backgroundColor: "var(--bg-primary)",
-    color: "var(--text-primary)",
+    backgroundColor: "var(--background)",
+    color: "var(--foreground)",
     border: "1px solid var(--border)",
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <MessageCircle size={16} style={{ color: "var(--accent)" }} />
-        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <MessageCircle size={16} style={{ color: "var(--primary)" }} />
+        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           {t("stepChat")}
         </span>
       </div>
@@ -115,8 +115,8 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
         <div
           className="text-xs p-2 rounded flex items-center gap-1"
           style={{
-            backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
-            color: "var(--accent)",
+            backgroundColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+            color: "var(--primary)",
           }}
         >
           <CheckCircle size={12} />
@@ -141,7 +141,7 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
           onClick={() => void sendTest()}
           disabled={sending || saving || !message.trim()}
           className="flex items-center gap-1.5 text-xs px-3 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
         >
           {sending || saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         </button>
@@ -149,7 +149,7 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
       {reply && (
         <div
           className="text-xs p-3 rounded"
-          style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}
+          style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}
         >
           {reply}
         </div>
@@ -157,7 +157,7 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
       {error && (
         <div
           className="text-xs p-2 rounded"
-          style={{ backgroundColor: "var(--status-disconnected)", color: "#fff" }}
+          style={{ backgroundColor: "var(--status-disconnected)", color: "var(--destructive-fg)" }}
         >
           {error}
         </div>
@@ -166,7 +166,7 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
         <button
           onClick={onBack}
           className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
-          style={{ border: "1px solid var(--border)", color: "var(--text-primary)" }}
+          style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
         >
           {t("back")}
         </button>
@@ -174,7 +174,7 @@ export function StepFirstChat({ data, onComplete, onBack }: Props) {
           onClick={() => void handleComplete()}
           disabled={saving}
           className="flex items-center gap-1.5 text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
         >
           {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
           {t("finish")}

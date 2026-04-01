@@ -79,7 +79,7 @@ export function RunStatusBar({ metadata, sessionTotalTokens, sessionCostUsd }: R
       </span>
 
       {/* Session-level cumulative (from SSE sessions.changed events) */}
-      {(sessionTotalTokens != null && sessionTotalTokens > 0) && (
+      {sessionTotalTokens != null && sessionTotalTokens > 0 && (
         <span className="flex items-center gap-1 ml-auto border-l border-[var(--border-subtle)] pl-3">
           <span className="text-[var(--text-tertiary)]">{t("sessionTokens")}</span>
           <span>{formatTokenCount(sessionTotalTokens)}</span>

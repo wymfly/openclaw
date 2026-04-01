@@ -9,7 +9,7 @@ const STATUS_CONFIG: Record<GatewayStatus, { color: string; icon: typeof Wifi }>
   connecting: { color: "var(--warning)", icon: RefreshCw },
   reconnecting: { color: "var(--warning)", icon: RefreshCw },
   disconnected: { color: "var(--neutral-muted-text)", icon: WifiOff },
-  error: { color: "var(--danger)", icon: AlertCircle },
+  error: { color: "var(--destructive)", icon: AlertCircle },
 };
 
 function statusI18nKey(status: GatewayStatus): string {
@@ -28,10 +28,10 @@ export function ConnectionCard() {
   return (
     <div
       className="rounded-lg border p-4 flex flex-col gap-3"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           {t("connection")}
         </h3>
         <div
@@ -43,16 +43,16 @@ export function ConnectionCard() {
 
       <div className="flex items-center gap-2">
         <Icon size={16} style={{ color: config.color }} />
-        <span className="text-sm" style={{ color: "var(--text-primary)" }}>
+        <span className="text-sm" style={{ color: "var(--foreground)" }}>
           {t(statusI18nKey(status))}
         </span>
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {t("latency")}
         </span>
-        <span className="text-xs font-mono" style={{ color: "var(--text-primary)" }}>
+        <span className="text-xs font-mono" style={{ color: "var(--foreground)" }}>
           {latency !== null ? `${latency}ms` : "—"}
         </span>
       </div>

@@ -23,12 +23,12 @@ export function NotificationSection() {
 
   return (
     <section>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
         {t("notifications")}
       </h3>
       <div
         className="rounded-lg border p-4 flex flex-col gap-3"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
         {NOTIFICATION_OPTIONS.map(({ key, labelKey }) => (
           <label key={key} className="flex items-center gap-2 cursor-pointer">
@@ -37,9 +37,9 @@ export function NotificationSection() {
               checked={notificationPrefs[key]}
               onChange={() => handleToggle(key)}
               className="rounded"
-              style={{ accentColor: "var(--accent)" }}
+              style={{ accentColor: "var(--primary)" }}
             />
-            <span className="text-xs" style={{ color: "var(--text-primary)" }}>
+            <span className="text-xs" style={{ color: "var(--foreground)" }}>
               {t(labelKey)}
             </span>
           </label>

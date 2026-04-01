@@ -1,0 +1,529 @@
+<h2>Section 3: Channel Post-Setup Configuration</h2>
+<p class="subtitle">
+  Add "Settings" tab to ChannelDetail for editing DM policy, retry strategy, and advanced options
+  after initial setup
+</p>
+
+<style>
+  .wireframe {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0;
+    font-size: 12px;
+  }
+  .wire-header {
+    background: #222;
+    padding: 10px 14px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wire-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #333;
+    background: #1e1e1e;
+  }
+  .wire-tab {
+    padding: 8px 14px;
+    color: #888;
+    font-size: 11px;
+    border-bottom: 2px solid transparent;
+    cursor: default;
+  }
+  .wire-tab.active {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+  }
+  .wire-tab.new-tab {
+    position: relative;
+  }
+  .wire-tab.new-tab::after {
+    content: "NEW";
+    position: absolute;
+    top: 2px;
+    right: -2px;
+    font-size: 8px;
+    background: #10b981;
+    color: white;
+    padding: 0 3px;
+    border-radius: 2px;
+  }
+  .wire-body {
+    display: flex;
+    min-height: 400px;
+  }
+  .wire-sidebar {
+    width: 180px;
+    border-right: 1px solid #333;
+    background: #1e1e1e;
+    padding: 8px 0;
+  }
+  .wire-sidebar-item {
+    padding: 7px 12px;
+    color: #888;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .wire-sidebar-item.active {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.06);
+    border-left: 2px solid #60a5fa;
+  }
+  .wire-sidebar-item .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .wire-sidebar-item .dot.on {
+    background: #34d399;
+  }
+  .wire-sidebar-item .dot.off {
+    background: #555;
+  }
+  .wire-content {
+    flex: 1;
+    padding: 16px;
+  }
+
+  .settings-section {
+    margin-bottom: 20px;
+  }
+  .settings-section h4 {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+  }
+  .setting-label {
+    min-width: 160px;
+  }
+  .setting-label .name {
+    color: #ccc;
+    font-size: 11px;
+  }
+  .setting-label .desc {
+    color: #666;
+    font-size: 10px;
+    line-height: 1.4;
+    margin-top: 2px;
+  }
+  .setting-control {
+    flex: 1;
+    max-width: 260px;
+  }
+  .setting-control select,
+  .setting-control input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #ccc;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  .setting-control select {
+    appearance: auto;
+  }
+
+  .policy-card {
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .policy-card.selected {
+    border-color: rgba(96, 165, 250, 0.4);
+    background: rgba(96, 165, 250, 0.06);
+  }
+  .policy-radio {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #555;
+    flex-shrink: 0;
+  }
+  .policy-radio.checked {
+    border-color: #60a5fa;
+    background: #60a5fa;
+    box-shadow: inset 0 0 0 3px #1a1a1a;
+  }
+  .policy-info {
+    flex: 1;
+  }
+  .policy-info .title {
+    color: #ccc;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .policy-info .hint {
+    color: #666;
+    font-size: 10px;
+    margin-top: 1px;
+  }
+  .policy-badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+  }
+  .policy-badge.rec {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+  }
+
+  .retry-viz {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: #222;
+    border-radius: 4px;
+  }
+  .retry-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: #ccc;
+  }
+  .retry-dot.ok {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .retry-dot.wait {
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.2);
+  }
+  .retry-arrow {
+    color: #555;
+    font-size: 10px;
+  }
+  .retry-label {
+    font-size: 9px;
+    color: #666;
+  }
+
+  .save-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #333;
+    margin-top: 16px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e5e5e5;
+    margin: 24px 0 8px;
+  }
+  .change-list {
+    font-size: 12px;
+    color: #bbb;
+    line-height: 1.8;
+  }
+  .change-list li {
+    margin-bottom: 4px;
+  }
+  .change-list strong {
+    color: #e5e5e5;
+  }
+  .new-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    margin-left: 4px;
+  }
+  .enhance-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    margin-left: 4px;
+  }
+</style>
+
+<div class="wireframe">
+  <div class="wire-header">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <span style="font-size: 16px">📡</span>
+      <span style="color: #ccc; font-weight: 600">Channels</span>
+    </div>
+  </div>
+
+  <div class="wire-body">
+    <!-- Channel sidebar -->
+    <div class="wire-sidebar">
+      <div class="wire-sidebar-item active">
+        <span class="dot on"></span>
+        Telegram
+      </div>
+      <div class="wire-sidebar-item">
+        <span class="dot on"></span>
+        Discord
+      </div>
+      <div class="wire-sidebar-item">
+        <span class="dot off"></span>
+        Slack
+      </div>
+      <div class="wire-sidebar-item">
+        <span class="dot on"></span>
+        Feishu
+      </div>
+      <div class="wire-sidebar-item">
+        <span class="dot off"></span>
+        WeCom
+      </div>
+    </div>
+
+    <!-- Channel detail -->
+    <div style="flex: 1; display: flex; flex-direction: column">
+      <div class="wire-tabs">
+        <div class="wire-tab">Status</div>
+        <div class="wire-tab">Bindings</div>
+        <div class="wire-tab">Throughput</div>
+        <div class="wire-tab active new-tab">Settings</div>
+      </div>
+
+      <div class="wire-content">
+        <!-- DM Policy section -->
+        <div class="settings-section">
+          <h4>🔒 DM Access Policy</h4>
+
+          <div class="policy-card selected">
+            <span class="policy-radio checked"></span>
+            <div class="policy-info">
+              <div class="title">pairing</div>
+              <div class="hint">
+                Users must pair with a code before chatting. Most secure for public bots.
+              </div>
+            </div>
+            <span class="policy-badge rec">recommended</span>
+          </div>
+
+          <div class="policy-card">
+            <span class="policy-radio"></span>
+            <div class="policy-info">
+              <div class="title">open</div>
+              <div class="hint">
+                Anyone can DM the bot. Requires allowFrom: ["*"]. Use only for internal/trusted
+                channels.
+              </div>
+            </div>
+          </div>
+
+          <div class="policy-card">
+            <span class="policy-radio"></span>
+            <div class="policy-info">
+              <div class="title">closed</div>
+              <div class="hint">
+                Bot ignores all DMs. Use when you only need group/channel interactions.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Retry section -->
+        <div class="settings-section">
+          <h4>🔄 Retry Strategy</h4>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="name">maxRetries</div>
+              <div class="desc">Max retry attempts on transient failures</div>
+            </div>
+            <div class="setting-control">
+              <input type="number" value="3" min="0" max="10" />
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="name">baseDelayMs</div>
+              <div class="desc">Initial delay before first retry</div>
+            </div>
+            <div class="setting-control">
+              <input type="number" value="1000" step="100" />
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="name">jitter</div>
+              <div class="desc">Randomness factor (0-1) to avoid thundering herd</div>
+            </div>
+            <div class="setting-control">
+              <input type="number" value="0.2" step="0.1" min="0" max="1" />
+            </div>
+          </div>
+
+          <!-- Retry visualization -->
+          <div class="retry-viz">
+            <div class="retry-dot ok" title="Attempt 1">1</div>
+            <span class="retry-arrow">→</span>
+            <span class="retry-label">1.0s</span>
+            <span class="retry-arrow">→</span>
+            <div class="retry-dot wait" title="Retry 1">R1</div>
+            <span class="retry-arrow">→</span>
+            <span class="retry-label">2.0s</span>
+            <span class="retry-arrow">→</span>
+            <div class="retry-dot wait" title="Retry 2">R2</div>
+            <span class="retry-arrow">→</span>
+            <span class="retry-label">4.0s</span>
+            <span class="retry-arrow">→</span>
+            <div class="retry-dot wait" title="Retry 3">R3</div>
+            <span style="color: #555; font-size: 9px; margin-left: 4px">total ≈ 7s</span>
+          </div>
+        </div>
+
+        <!-- Advanced section -->
+        <div class="settings-section">
+          <h4>⚙️ Advanced</h4>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="name">rateLimitPerMinute</div>
+              <div class="desc">Max outbound messages per minute per account</div>
+            </div>
+            <div class="setting-control">
+              <input type="number" value="30" />
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="name">groupPolicy</div>
+              <div class="desc">How the bot behaves in group chats</div>
+            </div>
+            <div class="setting-control">
+              <select>
+                <option selected>mention-only</option>
+                <option>all-messages</option>
+                <option>disabled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-bar">
+          <span
+            style="
+              color: #888;
+              font-size: 11px;
+              padding: 3px 8px;
+              border: 1px solid #333;
+              border-radius: 4px;
+              cursor: pointer;
+            "
+            >Reset</span
+          >
+          <span
+            style="
+              color: #fff;
+              font-size: 11px;
+              padding: 3px 8px;
+              background: #3b82f6;
+              border-radius: 4px;
+              cursor: pointer;
+            "
+            >💾 Save</span
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">Design Decisions</div>
+
+<ul class="change-list">
+  <li>
+    <strong>DM Policy Radio Cards</strong> <span class="new-badge">NEW</span> — 不是简单的 select
+    下拉，而是带说明的卡片式单选。每个策略附带一句话解释 + recommended 标签。解决了"pairing vs open
+    vs closed 是什么意思"的理解问题。
+  </li>
+  <li>
+    <strong>Retry Strategy Visualization</strong> <span class="new-badge">NEW</span> — 修改 retry
+    参数后，下方即时显示重试时序图（attempt → delay → retry → delay → ...）。让用户直观感受"3
+    次重试，基础延迟 1s"在时间轴上意味着什么。
+  </li>
+  <li>
+    <strong>Schema-driven fields</strong> — DM policy 和 retry 以外的字段从渠道的 JSON Schema
+    动态渲染（复用 ConfigPanel 的 SchemaForm），确保上游新增字段自动出现。
+  </li>
+  <li>
+    <strong>Per-channel schema adaptation</strong> — 不同渠道有不同的可配字段（Telegram 有
+    ipv4First, Discord 有 helloTimeout 等）。Settings tab 读取渠道特定的 schema section
+    渲染对应字段。
+  </li>
+</ul>
+
+<div class="section-title">Data Flow</div>
+
+<ul class="change-list">
+  <li>
+    <strong>Read</strong>：调用 <code>config.get</code> 提取
+    <code>channels.{channelId}</code> section + <code>config.schema</code> 获取渠道 schema。
+  </li>
+  <li>
+    <strong>Write</strong>：通过 <code>config.patch</code> 写入
+    <code>channels.{channelId}.{field}</code>。
+  </li>
+  <li>
+    <strong>渠道感知</strong>：根据 channelId 确定 schema 分支。Telegram/Discord/Slack/Feishu/WeCom
+    各有独立 schema（已在 Gateway 的 plugin schema composition 中定义）。
+  </li>
+  <li>
+    <strong>无需新 Gateway RPC</strong>：复用 <code>config.get</code> + <code>config.patch</code> +
+    <code>config.schema</code>。
+  </li>
+</ul>
+
+<div class="section-title">Implementation Scope</div>
+
+<ul class="change-list">
+  <li>
+    <strong>新增文件</strong
+    >：ChannelSettingsTab.tsx（主组件）、DmPolicySelector.tsx、RetryStrategyEditor.tsx（含时序可视化）
+  </li>
+  <li>
+    <strong>修改文件</strong>：ChannelDetail.tsx（注册新 tab）、channels store（扩展
+    fetchChannelConfig/saveChannelConfig）
+  </li>
+  <li>
+    <strong>复用</strong>：SchemaForm（渲染 schema-driven 的 advanced 字段）、ConfigPanel 的 field
+    组件
+  </li>
+</ul>

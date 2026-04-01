@@ -51,10 +51,7 @@ export function downloadArtifact(artifact: ArtifactInfo): void {
       triggerDownload(new Blob([artifact.content], { type: "text/plain" }), filename);
     }
   } else {
-    triggerDownload(
-      new Blob([artifact.content], { type: MIME_MAP[artifact.language] }),
-      filename,
-    );
+    triggerDownload(new Blob([artifact.content], { type: MIME_MAP[artifact.language] }), filename);
   }
 }
 

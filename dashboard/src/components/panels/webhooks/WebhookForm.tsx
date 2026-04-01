@@ -71,20 +71,20 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
   };
 
   const inputStyle = {
-    backgroundColor: "var(--bg-primary)",
+    backgroundColor: "var(--background)",
     borderColor: "var(--border)",
-    color: "var(--text-primary)",
+    color: "var(--foreground)",
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
         {webhook ? t("editWebhook") : t("addWebhook")}
       </h3>
 
       {/* Name */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("name")}
         </label>
         <input
@@ -99,7 +99,7 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
 
       {/* URL */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("url")}
         </label>
         <input
@@ -115,7 +115,7 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
 
       {/* Secret */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("secret")}
         </label>
         <div className="flex gap-2">
@@ -129,7 +129,7 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
           <button
             type="button"
             className="px-3 py-2 text-xs rounded-md border"
-            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+            style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
             onClick={() => setShowSecret(!showSecret)}
           >
             {showSecret ? t("hide") : t("show")}
@@ -139,7 +139,7 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
 
       {/* Events multi-select */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("events")}
         </label>
         <div className="flex flex-wrap gap-1.5">
@@ -149,9 +149,11 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
               type="button"
               className="px-2 py-1 text-xs rounded-md border transition-colors"
               style={{
-                backgroundColor: events.includes(event) ? "var(--accent)" : "transparent",
-                color: events.includes(event) ? "var(--accent-fg)" : "var(--text-secondary)",
-                borderColor: events.includes(event) ? "var(--accent)" : "var(--border)",
+                backgroundColor: events.includes(event) ? "var(--primary)" : "transparent",
+                color: events.includes(event)
+                  ? "var(--primary-foreground)"
+                  : "var(--muted-foreground)",
+                borderColor: events.includes(event) ? "var(--primary)" : "var(--border)",
               }}
               onClick={() => toggleEvent(event)}
             >
@@ -163,17 +165,17 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
 
       {/* Enabled toggle */}
       <div className="flex items-center gap-2">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("enabledToggle")}
         </label>
         <button
           type="button"
           className="w-10 h-5 rounded-full transition-colors relative"
-          style={{ backgroundColor: enabled ? "var(--accent)" : "var(--border)" }}
+          style={{ backgroundColor: enabled ? "var(--primary)" : "var(--border)" }}
           onClick={() => setEnabled(!enabled)}
         >
           <span
-            className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+            className="absolute top-0.5 w-4 h-4 rounded-full bg-[var(--primary-foreground)] transition-transform"
             style={{ left: enabled ? "calc(100% - 18px)" : "2px" }}
           />
         </button>
@@ -185,14 +187,14 @@ export function WebhookForm({ webhook, onSave, onCancel, saving }: WebhookFormPr
           type="submit"
           disabled={saving}
           className="px-4 py-2 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
         >
           {tc("save")}
         </button>
         <button
           type="button"
           className="px-4 py-2 text-xs rounded-md font-medium transition-colors border"
-          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+          style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
           onClick={onCancel}
         >
           {tc("cancel")}

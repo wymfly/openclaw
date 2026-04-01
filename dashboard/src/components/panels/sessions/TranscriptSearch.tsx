@@ -82,7 +82,7 @@ export function TranscriptSearch({ messages, onHighlight, onNavigate }: Transcri
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border)] shrink-0">
-      <Search size={14} className="text-[var(--text-secondary)] shrink-0" />
+      <Search size={14} className="text-[var(--muted-foreground)] shrink-0" />
       <input
         type="text"
         value={query}
@@ -90,12 +90,12 @@ export function TranscriptSearch({ messages, onHighlight, onNavigate }: Transcri
         placeholder={t("searchPlaceholder")}
         className={cn(
           "flex-1 min-w-0 text-sm bg-transparent outline-none",
-          "text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]",
+          "text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]",
         )}
       />
       {hasQuery && (
         <>
-          <span className="text-[10px] text-[var(--text-secondary)] shrink-0 whitespace-nowrap">
+          <span className="text-[10px] text-[var(--muted-foreground)] shrink-0 whitespace-nowrap">
             {matchIndices.length > 0
               ? t("searchCount", { current: currentMatch + 1, total: matchIndices.length })
               : t("searchNoResults")}
@@ -105,14 +105,14 @@ export function TranscriptSearch({ messages, onHighlight, onNavigate }: Transcri
               <button
                 type="button"
                 onClick={goPrev}
-                className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] cursor-pointer"
+                className="p-0.5 rounded hover:bg-[var(--muted)] text-[var(--muted-foreground)] cursor-pointer"
               >
                 <ChevronUp size={14} />
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] cursor-pointer"
+                className="p-0.5 rounded hover:bg-[var(--muted)] text-[var(--muted-foreground)] cursor-pointer"
               >
                 <ChevronDown size={14} />
               </button>
@@ -121,7 +121,7 @@ export function TranscriptSearch({ messages, onHighlight, onNavigate }: Transcri
           <button
             type="button"
             onClick={clear}
-            className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] cursor-pointer"
+            className="p-0.5 rounded hover:bg-[var(--muted)] text-[var(--muted-foreground)] cursor-pointer"
           >
             <X size={14} />
           </button>

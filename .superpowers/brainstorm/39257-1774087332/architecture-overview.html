@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Architecture Overview</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --bg-card: #1a1d27;
+        --bg-card-hover: #22263a;
+        --border: #2a2e3d;
+        --accent: #6366f1;
+        --accent-glow: rgba(99, 102, 241, 0.15);
+        --green: #22c55e;
+        --yellow: #eab308;
+        --orange: #f97316;
+        --pink: #ec4899;
+        --cyan: #06b6d4;
+        --red: #ef4444;
+        --text: #e2e8f0;
+        --text-dim: #94a3b8;
+        --text-muted: #64748b;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+        background: var(--bg);
+        color: var(--text);
+        padding: 24px;
+        min-height: 100vh;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .subtitle {
+        color: var(--text-dim);
+        font-size: 14px;
+        margin-bottom: 32px;
+      }
+
+      /* Architecture layers */
+      .layer {
+        margin-bottom: 16px;
+        position: relative;
+      }
+      .layer-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        padding-left: 4px;
+      }
+      .layer-content {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      /* Module cards */
+      .module {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        flex: 1;
+        min-width: 200px;
+        transition: all 0.2s;
+        cursor: default;
+      }
+      .module:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--accent);
+        box-shadow: 0 0 20px var(--accent-glow);
+        transform: translateY(-2px);
+      }
+      .module-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .module-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .module-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .module-path {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .module-desc {
+        font-size: 12px;
+        color: var(--text-dim);
+        line-height: 1.6;
+        margin-bottom: 10px;
+      }
+      .module-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .tag {
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--accent);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+      }
+
+      /* Flow arrows between layers */
+      .flow-arrow {
+        text-align: center;
+        padding: 6px 0;
+        color: var(--text-muted);
+        font-size: 20px;
+        letter-spacing: 12px;
+      }
+
+      /* Color variants */
+      .c-green .module-icon {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--green);
+      }
+      .c-green .tag {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--green);
+        border-color: rgba(34, 197, 94, 0.2);
+      }
+      .c-accent .module-icon {
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--accent);
+      }
+      .c-accent .tag {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--accent);
+        border-color: rgba(99, 102, 241, 0.2);
+      }
+      .c-yellow .module-icon {
+        background: rgba(234, 179, 8, 0.15);
+        color: var(--yellow);
+      }
+      .c-yellow .tag {
+        background: rgba(234, 179, 8, 0.1);
+        color: var(--yellow);
+        border-color: rgba(234, 179, 8, 0.2);
+      }
+      .c-orange .module-icon {
+        background: rgba(249, 115, 22, 0.15);
+        color: var(--orange);
+      }
+      .c-orange .tag {
+        background: rgba(249, 115, 22, 0.1);
+        color: var(--orange);
+        border-color: rgba(249, 115, 22, 0.2);
+      }
+      .c-pink .module-icon {
+        background: rgba(236, 72, 153, 0.15);
+        color: var(--pink);
+      }
+      .c-pink .tag {
+        background: rgba(236, 72, 153, 0.1);
+        color: var(--pink);
+        border-color: rgba(236, 72, 153, 0.2);
+      }
+      .c-cyan .module-icon {
+        background: rgba(6, 182, 212, 0.15);
+        color: var(--cyan);
+      }
+      .c-cyan .tag {
+        background: rgba(6, 182, 212, 0.1);
+        color: var(--cyan);
+        border-color: rgba(6, 182, 212, 0.2);
+      }
+      .c-red .module-icon {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--red);
+      }
+      .c-red .tag {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--red);
+        border-color: rgba(239, 68, 68, 0.2);
+      }
+
+      /* Data flow section */
+      .flow-section {
+        margin-top: 40px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+      }
+      .flow-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pipeline {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
+      .pipeline-step {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        min-width: 130px;
+      }
+      .step-box {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        width: 120px;
+        transition: all 0.2s;
+      }
+      .step-box:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 12px var(--accent-glow);
+      }
+      .step-detail {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 6px;
+        font-weight: 400;
+        line-height: 1.4;
+      }
+      .step-arrow {
+        display: flex;
+        align-items: center;
+        color: var(--text-muted);
+        font-size: 18px;
+        padding: 0 4px;
+        flex-shrink: 0;
+      }
+      .step-file {
+        font-size: 9px;
+        color: var(--accent);
+        margin-top: 4px;
+        opacity: 0.8;
+      }
+
+      /* Legend */
+      .legend {
+        margin-top: 32px;
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        padding: 16px;
+        background: var(--bg-card);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      /* Responsive */
+      @media (max-width: 900px) {
+        .layer-content {
+          flex-direction: column;
+        }
+        .module {
+          min-width: unset;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>OpenClaw Architecture Overview</h1>
+    <p class="subtitle">模块分层架构 · 数据流向 · 关键文件路径</p>
+
+    <!-- Layer 1: External Channels -->
+    <div class="layer">
+      <div class="layer-label">⬆ 外部渠道 (Inbound / Outbound)</div>
+      <div class="layer-content">
+        <div class="module c-green">
+          <div class="module-header">
+            <div class="module-icon">💬</div>
+            <div>
+              <div class="module-name">WeCom</div>
+              <div class="module-path">extensions/wecom/</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            企业微信扩展，4 种传输模式（Bot WS/Webhook、Agent API/Callback）
+          </div>
+          <div class="module-items">
+            <span class="tag">80+ 源文件</span>
+            <span class="tag">多账户</span>
+            <span class="tag">媒体处理</span>
+          </div>
+        </div>
+        <div class="module c-green">
+          <div class="module-header">
+            <div class="module-icon">🐦</div>
+            <div>
+              <div class="module-name">Feishu / Lark</div>
+              <div class="module-path">extensions/feishu/</div>
+            </div>
+          </div>
+          <div class="module-desc">飞书扩展，支持文档/Wiki/Drive/BitTable/流式卡片</div>
+          <div class="module-items">
+            <span class="tag">85+ 源文件</span>
+            <span class="tag">4 个技能</span>
+            <span class="tag">富文本</span>
+          </div>
+        </div>
+        <div class="module c-green">
+          <div class="module-header">
+            <div class="module-icon">🌐</div>
+            <div>
+              <div class="module-name">Deck Dashboard</div>
+              <div class="module-path">dashboard/</div>
+            </div>
+          </div>
+          <div class="module-desc">Web 管理面板（Next.js），60+ API 路由，23 个 Zustand Store</div>
+          <div class="module-items">
+            <span class="tag">SSE 流式</span>
+            <span class="tag">i18n</span>
+            <span class="tag">暗色主题</span>
+          </div>
+        </div>
+        <div class="module c-green">
+          <div class="module-header">
+            <div class="module-icon">⌨️</div>
+            <div>
+              <div class="module-name">CLI</div>
+              <div class="module-path">src/cli/</div>
+            </div>
+          </div>
+          <div class="module-desc">命令行接口，agent/message/config 命令组</div>
+          <div class="module-items">
+            <span class="tag">agent</span>
+            <span class="tag">send</span>
+            <span class="tag">config</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">↕ ↕ ↕ ↕</div>
+
+    <!-- Layer 2: Gateway -->
+    <div class="layer">
+      <div class="layer-label">🏗 Gateway (控制平面)</div>
+      <div class="layer-content">
+        <div class="module c-accent">
+          <div class="module-header">
+            <div class="module-icon">🔌</div>
+            <div>
+              <div class="module-name">RPC Server</div>
+              <div class="module-path">src/gateway/server.impl.ts</div>
+            </div>
+          </div>
+          <div class="module-desc">WebSocket + HTTP RPC 服务，管理客户端连接和方法路由</div>
+          <div class="module-items">
+            <span class="tag">80+ 方法</span>
+            <span class="tag">WS 帧协议</span>
+            <span class="tag">认证</span>
+          </div>
+        </div>
+        <div class="module c-accent">
+          <div class="module-header">
+            <div class="module-icon">📡</div>
+            <div>
+              <div class="module-name">Event Broadcaster</div>
+              <div class="module-path">src/gateway/server-broadcast.ts</div>
+            </div>
+          </div>
+          <div class="module-desc">将 Agent 事件实时广播到连接的客户端（SSE/WebSocket）</div>
+          <div class="module-items">
+            <span class="tag">chat events</span>
+            <span class="tag">tool events</span>
+            <span class="tag">scope guards</span>
+          </div>
+        </div>
+        <div class="module c-accent">
+          <div class="module-header">
+            <div class="module-icon">🛡</div>
+            <div>
+              <div class="module-name">Approval Manager</div>
+              <div class="module-path">src/gateway/exec-approval-manager.ts</div>
+            </div>
+          </div>
+          <div class="module-desc">工具执行审批管理（创建→注册→等待决策→超时）</div>
+          <div class="module-items">
+            <span class="tag">allow-once</span>
+            <span class="tag">allow-always</span>
+            <span class="tag">deny</span>
+          </div>
+        </div>
+        <div class="module c-accent">
+          <div class="module-header">
+            <div class="module-icon">🗂</div>
+            <div>
+              <div class="module-name">Method Handlers</div>
+              <div class="module-path">src/gateway/server-methods/</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            RPC 方法实现：chat、agents、sessions、config、models、cron、deck
+          </div>
+          <div class="module-items">
+            <span class="tag">chat.send</span>
+            <span class="tag">agents.*</span>
+            <span class="tag">deck.*</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">↕ ↕ ↕ ↕</div>
+
+    <!-- Layer 3: Agent Runtime -->
+    <div class="layer">
+      <div class="layer-label">🧠 Agent Runtime (执行平面)</div>
+      <div class="layer-content">
+        <div class="module c-orange">
+          <div class="module-header">
+            <div class="module-icon">🤖</div>
+            <div>
+              <div class="module-name">Pi Embedded Runner</div>
+              <div class="module-path">src/agents/pi-embedded-runner/</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            核心执行引擎：API 调用循环、模型 fallback、上下文 compaction、overflow 处理
+          </div>
+          <div class="module-items">
+            <span class="tag">run.ts</span>
+            <span class="tag">compact.ts</span>
+            <span class="tag">model.ts</span>
+            <span class="tag">runs.ts</span>
+          </div>
+        </div>
+        <div class="module c-orange">
+          <div class="module-header">
+            <div class="module-icon">🔧</div>
+            <div>
+              <div class="module-name">Tool Catalog</div>
+              <div class="module-path">src/agents/tools/</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            30+ 内置工具：bash、read、write、web_search、image、canvas、cron、nodes...
+          </div>
+          <div class="module-items">
+            <span class="tag">5层策略</span>
+            <span class="tag">审批</span>
+            <span class="tag">沙箱</span>
+          </div>
+        </div>
+        <div class="module c-orange">
+          <div class="module-header">
+            <div class="module-icon">👶</div>
+            <div>
+              <div class="module-name">Subagent System</div>
+              <div class="module-path">src/agents/subagent-*.ts</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            子 Agent 生成：run/session 模式、深度限制(5)、注册表、生命周期事件
+          </div>
+          <div class="module-items">
+            <span class="tag">spawn</span>
+            <span class="tag">registry</span>
+            <span class="tag">lifecycle</span>
+            <span class="tag">announce</span>
+          </div>
+        </div>
+        <div class="module c-orange">
+          <div class="module-header">
+            <div class="module-icon">📜</div>
+            <div>
+              <div class="module-name">Skills Engine</div>
+              <div class="module-path">src/agents/skills/</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            Skills 发现/加载/注入系统提示，支持工作区、捆绑、插件三种来源
+          </div>
+          <div class="module-items">
+            <span class="tag">workspace</span>
+            <span class="tag">bundled</span>
+            <span class="tag">plugin</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">↕ ↕ ↕ ↕</div>
+
+    <!-- Layer 4: Auto-Reply Pipeline -->
+    <div class="layer">
+      <div class="layer-label">📨 消息管线 (Auto-Reply Pipeline)</div>
+      <div class="layer-content">
+        <div class="module c-pink">
+          <div class="module-header">
+            <div class="module-icon">🔀</div>
+            <div>
+              <div class="module-name">Message Router</div>
+              <div class="module-path">src/auto-reply/</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            入站消息分发：AgentBinding 匹配 → Session Key 构建 → Dispatcher 排队
+          </div>
+          <div class="module-items">
+            <span class="tag">dispatch.ts</span>
+            <span class="tag">routing</span>
+            <span class="tag">directives</span>
+          </div>
+        </div>
+        <div class="module c-pink">
+          <div class="module-header">
+            <div class="module-icon">🔁</div>
+            <div>
+              <div class="module-name">Reply Pipeline</div>
+              <div class="module-path">src/auto-reply/reply/</div>
+            </div>
+          </div>
+          <div class="module-desc">回复生成：策略检查 → Agent 运行 → Block 流式 → 投递</div>
+          <div class="module-items">
+            <span class="tag">get-reply.ts</span>
+            <span class="tag">agent-runner.ts</span>
+            <span class="tag">block-streaming.ts</span>
+          </div>
+        </div>
+        <div class="module c-pink">
+          <div class="module-header">
+            <div class="module-icon">📤</div>
+            <div>
+              <div class="module-name">Outbound Delivery</div>
+              <div class="module-path">src/infra/outbound/</div>
+            </div>
+          </div>
+          <div class="module-desc">消息投递：Delivery Plan → Channel 选择 → 分块 → 发送</div>
+          <div class="module-items">
+            <span class="tag">agent-delivery.ts</span>
+            <span class="tag">deliver.js</span>
+            <span class="tag">envelope.ts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">↕ ↕ ↕ ↕</div>
+
+    <!-- Layer 5: Infrastructure -->
+    <div class="layer">
+      <div class="layer-label">🗄 基础设施</div>
+      <div class="layer-content">
+        <div class="module c-cyan">
+          <div class="module-header">
+            <div class="module-icon">💾</div>
+            <div>
+              <div class="module-name">Session Store</div>
+              <div class="module-path">src/sessions/</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            会话持久化：~/.openclaw/sessions/{agentId}/，消息历史、模型选择
+          </div>
+          <div class="module-items">
+            <span class="tag">session-key.ts</span>
+            <span class="tag">per-peer</span>
+            <span class="tag">per-channel</span>
+          </div>
+        </div>
+        <div class="module c-cyan">
+          <div class="module-header">
+            <div class="module-icon">🎞</div>
+            <div>
+              <div class="module-name">Media Pipeline</div>
+              <div class="module-path">src/media/</div>
+            </div>
+          </div>
+          <div class="module-desc">
+            媒体处理：MIME 检测、SSRF 防护、图片/音频/PDF 处理（37 文件）
+          </div>
+          <div class="module-items">
+            <span class="tag">fetch.ts</span>
+            <span class="tag">mime.ts</span>
+            <span class="tag">image-ops.ts</span>
+          </div>
+        </div>
+        <div class="module c-cyan">
+          <div class="module-header">
+            <div class="module-icon">⚙️</div>
+            <div>
+              <div class="module-name">Config System</div>
+              <div class="module-path">src/config/types.*.ts</div>
+            </div>
+          </div>
+          <div class="module-desc">200+ 配置字段，YAML 加载，Schema 验证，31 个顶层配置节</div>
+          <div class="module-items">
+            <span class="tag">agents</span>
+            <span class="tag">models</span>
+            <span class="tag">channels</span>
+            <span class="tag">skills</span>
+          </div>
+        </div>
+        <div class="module c-cyan">
+          <div class="module-header">
+            <div class="module-icon">🔌</div>
+            <div>
+              <div class="module-name">Plugin Runtime</div>
+              <div class="module-path">src/plugins/</div>
+            </div>
+          </div>
+          <div class="module-desc">插件发现/加载/初始化，SDK 暴露，钩子系统（11+ 钩子）</div>
+          <div class="module-items">
+            <span class="tag">manifest</span>
+            <span class="tag">runtime</span>
+            <span class="tag">hooks</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow">↕ ↕ ↕ ↕</div>
+
+    <!-- Layer 6: Model Providers -->
+    <div class="layer">
+      <div class="layer-label">☁️ 模型提供商 (Model Providers)</div>
+      <div class="layer-content">
+        <div class="module c-yellow" style="flex: 0.5">
+          <div class="module-header">
+            <div class="module-icon">🅰️</div>
+            <div><div class="module-name">Anthropic</div></div>
+          </div>
+          <div class="module-items"><span class="tag">Claude 4.x</span></div>
+        </div>
+        <div class="module c-yellow" style="flex: 0.5">
+          <div class="module-header">
+            <div class="module-icon">🟢</div>
+            <div><div class="module-name">OpenAI</div></div>
+          </div>
+          <div class="module-items"><span class="tag">GPT-5.x</span></div>
+        </div>
+        <div class="module c-yellow" style="flex: 0.5">
+          <div class="module-header">
+            <div class="module-icon">🔵</div>
+            <div><div class="module-name">Google</div></div>
+          </div>
+          <div class="module-items"><span class="tag">Gemini</span></div>
+        </div>
+        <div class="module c-yellow" style="flex: 0.5">
+          <div class="module-header">
+            <div class="module-icon">☁️</div>
+            <div><div class="module-name">Bedrock / Others</div></div>
+          </div>
+          <div class="module-items"><span class="tag">AWS</span><span class="tag">Azure</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conversation Pipeline -->
+    <div class="flow-section">
+      <div class="flow-title">🔄 对话管线 (Conversation Pipeline)</div>
+      <div class="pipeline">
+        <div class="pipeline-step">
+          <div class="step-box" style="border-color: var(--green)">
+            📩 消息到达
+            <div class="step-detail">Channel 接收<br />用户消息</div>
+          </div>
+          <div class="step-file">chat.send RPC</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-box" style="border-color: var(--accent)">
+            🔀 路由匹配
+            <div class="step-detail">AgentBinding<br />→ Agent ID</div>
+          </div>
+          <div class="step-file">dispatch.ts</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-box" style="border-color: var(--accent)">
+            🔑 Session 解析
+            <div class="step-detail">agent:{id}:{key}<br />加载/创建</div>
+          </div>
+          <div class="step-file">session-key.ts</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-box" style="border-color: var(--orange)">
+            🧠 Agent 运行
+            <div class="step-detail">Pi Embedded<br />模型推理</div>
+          </div>
+          <div class="step-file">run.ts</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-box" style="border-color: var(--orange)">
+            🔧 工具调用
+            <div class="step-detail">Tool Catalog<br />执行+审批</div>
+          </div>
+          <div class="step-file">tools/*.ts</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-box" style="border-color: var(--pink)">
+            📡 事件流式
+            <div class="step-detail">delta→final<br />SSE 推送</div>
+          </div>
+          <div class="step-file">server-chat.ts</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-box" style="border-color: var(--pink)">
+            ✂️ Block 分块
+            <div class="step-detail">Coalesce<br />Chunk</div>
+          </div>
+          <div class="step-file">block-streaming.ts</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-box" style="border-color: var(--green)">
+            📤 投递
+            <div class="step-detail">Channel 发送<br />最终回复</div>
+          </div>
+          <div class="step-file">deliver.js</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--green)"></div>
+        外部渠道
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--accent)"></div>
+        Gateway 控制平面
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--orange)"></div>
+        Agent 执行平面
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--pink)"></div>
+        消息管线
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--cyan)"></div>
+        基础设施
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--yellow)"></div>
+        模型提供商
+      </div>
+    </div>
+  </body>
+</html>

@@ -29,23 +29,23 @@ export function ApprovalDialog({ approval, onResolve }: ApprovalDialogProps) {
   const t = useTranslations("chat");
 
   return (
-    <div className="mx-4 my-2 p-4 rounded-xl bg-[var(--bg-tertiary)] ring-1 ring-[var(--warning)]/30 space-y-3">
+    <div className="mx-4 my-2 p-4 rounded-xl bg-[var(--muted)] ring-1 ring-[var(--warning)]/30 space-y-3">
       {/* Header */}
-      <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
+      <div className="flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
         <Shield size={16} className="text-[var(--warning)] shrink-0" />
         <span>{t("approvalTitle")}</span>
       </div>
 
       {/* Tool info */}
-      <div className="text-xs text-[var(--text-secondary)] space-y-1.5">
-        <code className="font-mono text-[var(--brand)]">{approval.toolName}</code>
+      <div className="text-xs text-[var(--muted-foreground)] space-y-1.5">
+        <code className="font-mono text-[var(--primary)]">{approval.toolName}</code>
         {approval.command && (
-          <pre className="mt-1.5 p-2 rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-auto max-h-[120px] text-xs leading-relaxed whitespace-pre-wrap break-words">
+          <pre className="mt-1.5 p-2 rounded-lg bg-[var(--background)] text-[var(--foreground)] overflow-auto max-h-[120px] text-xs leading-relaxed whitespace-pre-wrap break-words">
             {approval.command}
           </pre>
         )}
         {approval.description && !approval.command && (
-          <p className="text-[var(--text-secondary)]">{approval.description}</p>
+          <p className="text-[var(--muted-foreground)]">{approval.description}</p>
         )}
       </div>
 

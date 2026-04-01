@@ -55,10 +55,7 @@ export function VirtualList<T>({
 
     const handleScroll = () => {
       try {
-        sessionStorage.setItem(
-          SCROLL_STORAGE_PREFIX + scrollRestorationKey,
-          String(el.scrollTop),
-        );
+        sessionStorage.setItem(SCROLL_STORAGE_PREFIX + scrollRestorationKey, String(el.scrollTop));
       } catch {
         // sessionStorage full or unavailable — ignore
       }

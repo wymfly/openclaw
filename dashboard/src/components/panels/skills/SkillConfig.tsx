@@ -66,7 +66,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
     <div className="flex flex-col gap-3 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           {skill.name}
         </h3>
         <div className="flex items-center gap-2">
@@ -75,8 +75,8 @@ export function SkillConfig({ skill }: SkillConfigProps) {
             type="button"
             className="px-2 py-1 text-[11px] rounded-md transition-colors"
             style={{
-              backgroundColor: skill.enabled ? "var(--accent)" : "var(--bg-tertiary)",
-              color: skill.enabled ? "var(--accent-fg)" : "var(--text-secondary)",
+              backgroundColor: skill.enabled ? "var(--primary)" : "var(--muted)",
+              color: skill.enabled ? "var(--primary-foreground)" : "var(--muted-foreground)",
             }}
             onClick={handleToggle}
           >
@@ -88,7 +88,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
             <button
               type="button"
               className="px-2 py-1 text-[11px] rounded-md transition-colors"
-              style={{ backgroundColor: "var(--purple)", color: "var(--accent-fg)" }}
+              style={{ backgroundColor: "var(--purple)", color: "var(--primary-foreground)" }}
               onClick={handleInstall}
               disabled={installing}
             >
@@ -99,7 +99,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
       </div>
 
       {/* Status + source */}
-      <div className="flex gap-4 text-xs" style={{ color: "var(--text-secondary)" }}>
+      <div className="flex gap-4 text-xs" style={{ color: "var(--muted-foreground)" }}>
         <span>
           {t("source")}: {t(skill.source)}
         </span>
@@ -119,7 +119,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
 
       {/* API Key */}
       <label className="flex flex-col gap-1">
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {t("apiKey")}
         </span>
         <input
@@ -129,8 +129,8 @@ export function SkillConfig({ skill }: SkillConfigProps) {
           className="px-2 py-1.5 text-xs rounded-md border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
       </label>
@@ -138,13 +138,13 @@ export function SkillConfig({ skill }: SkillConfigProps) {
       {/* Env vars */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
             {t("envVars")}
           </span>
           <button
             type="button"
             className="text-[11px] px-1.5 py-0.5 rounded"
-            style={{ color: "var(--accent)" }}
+            style={{ color: "var(--primary)" }}
             onClick={addEnvPair}
           >
             + {tc("add")}
@@ -160,8 +160,8 @@ export function SkillConfig({ skill }: SkillConfigProps) {
               className="flex-1 px-2 py-1 text-xs rounded-md border font-mono"
               style={{
                 borderColor: "var(--border)",
-                backgroundColor: "var(--bg-primary)",
-                color: "var(--text-primary)",
+                backgroundColor: "var(--background)",
+                color: "var(--foreground)",
               }}
             />
             <input
@@ -172,14 +172,14 @@ export function SkillConfig({ skill }: SkillConfigProps) {
               className="flex-1 px-2 py-1 text-xs rounded-md border font-mono"
               style={{
                 borderColor: "var(--border)",
-                backgroundColor: "var(--bg-primary)",
-                color: "var(--text-primary)",
+                backgroundColor: "var(--background)",
+                color: "var(--foreground)",
               }}
             />
             <button
               type="button"
               className="text-xs px-1"
-              style={{ color: "var(--danger)" }}
+              style={{ color: "var(--destructive)" }}
               onClick={() => removeEnvPair(idx)}
             >
               x
@@ -192,7 +192,7 @@ export function SkillConfig({ skill }: SkillConfigProps) {
       <button
         type="button"
         className="self-start px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-        style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+        style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
         onClick={handleSave}
         disabled={saving}
       >

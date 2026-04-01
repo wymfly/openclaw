@@ -29,8 +29,8 @@ export function BlockFilterBar({ preferences, onChange }: BlockFilterBarProps) {
           className={cn(
             "flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] transition-colors cursor-pointer",
             preferences[key]
-              ? "bg-[var(--accent-muted)] text-[var(--accent)]"
-              : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] opacity-50",
+              ? "bg-[var(--primary-muted)] text-[var(--primary)]"
+              : "bg-[var(--muted)] text-[var(--muted-foreground)] opacity-50",
           )}
         >
           <Icon size={10} />

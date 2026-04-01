@@ -36,14 +36,14 @@ export function OverviewTab() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card className="card-hover">
           <CardContent className="flex items-center gap-3 p-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent-muted)]">
-              <BarChart3 size={14} className="text-[var(--accent)]" />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--primary-muted)]">
+              <BarChart3 size={14} className="text-[var(--primary)]" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] text-[var(--text-secondary)] truncate">
+              <p className="text-[11px] text-[var(--muted-foreground)] truncate">
                 {t("stats.totalRuns")}
               </p>
-              <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums">
+              <p className="text-base font-semibold text-[var(--foreground)] tabular-nums">
                 {statsLoading && !stats ? tc("loading") : (stats?.totalRuns ?? 0)}
               </p>
             </div>
@@ -56,10 +56,10 @@ export function OverviewTab() {
               <CalendarClock size={14} className="text-[var(--success)]" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] text-[var(--text-secondary)] truncate">
+              <p className="text-[11px] text-[var(--muted-foreground)] truncate">
                 {t("stats.todayRuns")}
               </p>
-              <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums">
+              <p className="text-base font-semibold text-[var(--foreground)] tabular-nums">
                 {statsLoading && !stats ? tc("loading") : (stats?.todayRuns ?? 0)}
               </p>
             </div>
@@ -72,10 +72,10 @@ export function OverviewTab() {
               <Clock size={14} className="text-[var(--warning)]" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] text-[var(--text-secondary)] truncate">
+              <p className="text-[11px] text-[var(--muted-foreground)] truncate">
                 {t("stats.avgDuration")}
               </p>
-              <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums">
+              <p className="text-base font-semibold text-[var(--foreground)] tabular-nums">
                 {statsLoading && !stats
                   ? tc("loading")
                   : stats?.avgDurationMs
@@ -88,14 +88,14 @@ export function OverviewTab() {
 
         <Card className="card-hover">
           <CardContent className="flex items-center gap-3 p-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent-muted)]">
-              <Cpu size={14} className="text-[var(--accent)]" />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--primary-muted)]">
+              <Cpu size={14} className="text-[var(--primary)]" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] text-[var(--text-secondary)] truncate">
+              <p className="text-[11px] text-[var(--muted-foreground)] truncate">
                 {t("stats.topAgents")}
               </p>
-              <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums">
+              <p className="text-base font-semibold text-[var(--foreground)] tabular-nums">
                 {statsLoading && !stats ? tc("loading") : (stats?.topAgents?.length ?? 0)}
               </p>
             </div>
@@ -105,7 +105,7 @@ export function OverviewTab() {
 
       {/* Diagnostics cards */}
       <div>
-        <h3 className="text-xs font-medium text-[var(--text-secondary)] mb-3 px-0.5">
+        <h3 className="text-xs font-medium text-[var(--muted-foreground)] mb-3 px-0.5">
           {t("diagnostics")}
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -117,7 +117,7 @@ export function OverviewTab() {
 
       {/* Live feed */}
       <div>
-        <h3 className="text-xs font-medium text-[var(--text-secondary)] mb-3 px-0.5">
+        <h3 className="text-xs font-medium text-[var(--muted-foreground)] mb-3 px-0.5">
           {t("liveFeed")}
         </h3>
         <LiveFeed />

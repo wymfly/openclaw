@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Config UI Classification Framework</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --bg2: #161922;
+        --bg3: #1a1d27;
+        --bg4: #22263a;
+        --border: #2a2e3d;
+        --accent: #6366f1;
+        --accent2: #818cf8;
+        --glow: rgba(99, 102, 241, 0.12);
+        --green: #22c55e;
+        --yellow: #eab308;
+        --orange: #f97316;
+        --pink: #ec4899;
+        --cyan: #06b6d4;
+        --red: #ef4444;
+        --purple: #a855f7;
+        --text: #e2e8f0;
+        --dim: #94a3b8;
+        --muted: #64748b;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "SF Mono", "Fira Code", monospace;
+        background: var(--bg);
+        color: var(--text);
+        padding: 24px;
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+      }
+      .sub {
+        color: var(--dim);
+        font-size: 13px;
+        margin-bottom: 32px;
+      }
+      h2 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 28px 0 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Decision Matrix */
+      .matrix {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+      .criterion {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.2s;
+      }
+      .criterion:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 16px var(--glow);
+      }
+      .cr-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .cr-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .cr-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .cr-desc {
+        font-size: 11px;
+        color: var(--dim);
+        line-height: 1.6;
+      }
+      .cr-scale {
+        display: flex;
+        gap: 4px;
+        margin-top: 10px;
+      }
+      .cr-scale span {
+        flex: 1;
+        text-align: center;
+        font-size: 9px;
+        padding: 4px;
+        border-radius: 4px;
+      }
+
+      /* Classification result */
+      .tier {
+        margin-bottom: 20px;
+      }
+      .tier-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        padding: 10px 16px;
+        border-radius: 10px;
+      }
+      .tier-header h3 {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .tier-header .count {
+        font-size: 11px;
+        opacity: 0.7;
+      }
+      .tier-desc {
+        font-size: 11px;
+        color: var(--dim);
+        margin-left: auto;
+      }
+
+      .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 8px;
+        padding-left: 8px;
+      }
+      .config-item {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        transition: all 0.2s;
+        font-size: 11px;
+      }
+      .config-item:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 10px var(--glow);
+      }
+      .item-icon {
+        font-size: 16px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .item-name {
+        font-weight: 600;
+        margin-bottom: 3px;
+        font-size: 12px;
+      }
+      .item-reason {
+        color: var(--dim);
+        line-height: 1.5;
+      }
+      .item-fields {
+        margin-top: 4px;
+      }
+      .field-tag {
+        display: inline-block;
+        font-size: 9px;
+        padding: 1px 6px;
+        border-radius: 3px;
+        margin: 1px;
+        background: rgba(99, 102, 241, 0.08);
+        color: var(--accent);
+        border: 1px solid rgba(99, 102, 241, 0.15);
+      }
+
+      /* Score bars */
+      .scores {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .score-bar {
+        height: 4px;
+        border-radius: 2px;
+        flex: 1;
+      }
+
+      /* Flowchart */
+      .flowchart {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 28px;
+      }
+      .flow-row {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        justify-content: center;
+        margin-bottom: 6px;
+      }
+      .flow-box {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 16px;
+        text-align: center;
+        font-size: 11px;
+        min-width: 140px;
+        transition: all 0.2s;
+      }
+      .flow-box:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 12px var(--glow);
+      }
+      .flow-diamond {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        transform: rotate(0deg);
+        border-radius: 8px;
+        padding: 10px 16px;
+        text-align: center;
+        font-size: 11px;
+        min-width: 160px;
+        transition: all 0.2s;
+      }
+      .flow-diamond:hover {
+        border-color: var(--accent);
+      }
+      .flow-arrow {
+        color: var(--muted);
+        font-size: 14px;
+        padding: 0 8px;
+      }
+      .flow-down {
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+        padding: 2px 0;
+      }
+      .flow-label {
+        font-size: 9px;
+        color: var(--muted);
+        padding: 0 6px;
+      }
+
+      /* Summary table */
+      .summary-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 11px;
+        background: var(--bg2);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .summary-table th {
+        background: var(--bg3);
+        padding: 10px 14px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--dim);
+      }
+      .summary-table td {
+        padding: 8px 14px;
+        border-top: 1px solid var(--border);
+      }
+      .summary-table tr:hover td {
+        background: var(--bg3);
+      }
+
+      @media (max-width: 800px) {
+        .matrix,
+        .items-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>配置 UI 分级框架</h1>
+    <p class="sub">哪些配置需要精心设计的交互 UI？哪些用 Schema 自动表单就够了？</p>
+
+    <!-- ================ Decision Framework ================ -->
+    <h2>🧭 判断维度：四个问题</h2>
+
+    <div class="matrix">
+      <div class="criterion">
+        <div class="cr-header">
+          <div class="cr-icon" style="background: rgba(99, 102, 241, 0.15); color: var(--accent)">
+            🔄
+          </div>
+          <div class="cr-name">① 操作频率</div>
+        </div>
+        <div class="cr-desc">用户多久调一次这个配置？高频操作值得投入 UI 设计。</div>
+        <div class="cr-scale">
+          <span style="background: rgba(34, 197, 94, 0.1); color: var(--green)">每天</span>
+          <span style="background: rgba(234, 179, 8, 0.1); color: var(--yellow)">每周</span>
+          <span style="background: rgba(249, 115, 22, 0.1); color: var(--orange)">首次</span>
+          <span style="background: rgba(100, 116, 139, 0.1); color: var(--muted)">几乎不</span>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="cr-header">
+          <div class="cr-icon" style="background: rgba(236, 72, 153, 0.15); color: var(--pink)">
+            🔗
+          </div>
+          <div class="cr-name">② 关联复杂度</div>
+        </div>
+        <div class="cr-desc">改一个字段会影响其他字段吗？有没有组合约束、级联效应？</div>
+        <div class="cr-scale">
+          <span style="background: rgba(239, 68, 68, 0.1); color: var(--red)">强耦合</span>
+          <span style="background: rgba(249, 115, 22, 0.1); color: var(--orange)">有依赖</span>
+          <span style="background: rgba(234, 179, 8, 0.1); color: var(--yellow)">弱关联</span>
+          <span style="background: rgba(100, 116, 139, 0.1); color: var(--muted)">独立</span>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="cr-header">
+          <div class="cr-icon" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan)">
+            👁
+          </div>
+          <div class="cr-name">③ 需要可视化吗</div>
+        </div>
+        <div class="cr-desc">纯数值填写能理解，还是需要"看到"效果？（如路由规则、优先级链）</div>
+        <div class="cr-scale">
+          <span style="background: rgba(6, 182, 212, 0.1); color: var(--cyan)">必须可视化</span>
+          <span style="background: rgba(234, 179, 8, 0.1); color: var(--yellow)">有帮助</span>
+          <span style="background: rgba(100, 116, 139, 0.1); color: var(--muted)">不需要</span>
+        </div>
+      </div>
+      <div class="criterion">
+        <div class="cr-header">
+          <div class="cr-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--red)">
+            ⚡
+          </div>
+          <div class="cr-name">④ 误配风险</div>
+        </div>
+        <div class="cr-desc">配错了会怎样？静默失败？服务中断？安全漏洞？风险高需要引导式 UI。</div>
+        <div class="cr-scale">
+          <span style="background: rgba(239, 68, 68, 0.1); color: var(--red)">危险</span>
+          <span style="background: rgba(249, 115, 22, 0.1); color: var(--orange)">会出错</span>
+          <span style="background: rgba(234, 179, 8, 0.1); color: var(--yellow)">不理想</span>
+          <span style="background: rgba(100, 116, 139, 0.1); color: var(--muted)">无影响</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================ Decision Flowchart ================ -->
+    <h2>🔀 决策流程图</h2>
+
+    <div class="flowchart">
+      <div class="flow-row">
+        <div class="flow-box" style="border-color: var(--accent); font-weight: 600">
+          📋 一个配置域
+        </div>
+      </div>
+      <div class="flow-down">↓</div>
+      <div class="flow-row">
+        <div class="flow-diamond" style="border-color: var(--cyan)">
+          👁 需要可视化才能理解？<br /><span style="font-size: 9px; color: var(--dim)"
+            >（路由规则、优先级链、拓扑图）</span
+          >
+        </div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-label" style="color: var(--green)">Yes ↙</div>
+        <div style="width: 120px"></div>
+        <div class="flow-label" style="color: var(--muted)">↘ No</div>
+      </div>
+      <div class="flow-row">
+        <div
+          class="flow-box"
+          style="border-color: var(--green); background: rgba(34, 197, 94, 0.06)"
+        >
+          <strong style="color: var(--green)">🎨 Tier 1</strong><br />专用交互 UI
+        </div>
+        <div style="width: 40px"></div>
+        <div class="flow-diamond" style="border-color: var(--yellow)">
+          🔗 字段间有耦合？<br /><span style="font-size: 9px; color: var(--dim)"
+            >（改 A 会影响 B 的可选项）</span
+          >
+        </div>
+      </div>
+      <div class="flow-row">
+        <div style="width: 200px"></div>
+        <div class="flow-label" style="color: var(--yellow)">Yes ↙</div>
+        <div style="width: 80px"></div>
+        <div class="flow-label" style="color: var(--muted)">↘ No</div>
+      </div>
+      <div class="flow-row">
+        <div style="width: 160px"></div>
+        <div
+          class="flow-box"
+          style="border-color: var(--yellow); background: rgba(234, 179, 8, 0.06)"
+        >
+          <strong style="color: var(--yellow)">🧩 Tier 2</strong><br />增强表单 + 引导
+        </div>
+        <div style="width: 40px"></div>
+        <div class="flow-diamond" style="border-color: var(--orange)">
+          ⚡ 配错有风险？<br /><span style="font-size: 9px; color: var(--dim)"
+            >（服务中断 / 安全问题）</span
+          >
+        </div>
+      </div>
+      <div class="flow-row">
+        <div style="width: 400px"></div>
+        <div class="flow-label" style="color: var(--orange)">Yes ↙</div>
+        <div style="width: 60px"></div>
+        <div class="flow-label" style="color: var(--muted)">↘ No</div>
+      </div>
+      <div class="flow-row">
+        <div style="width: 360px"></div>
+        <div
+          class="flow-box"
+          style="border-color: var(--orange); background: rgba(249, 115, 22, 0.06)"
+        >
+          <strong style="color: var(--orange)">🛡 Tier 2.5</strong><br />表单 + 校验提示
+        </div>
+        <div style="width: 40px"></div>
+        <div
+          class="flow-box"
+          style="border-color: var(--muted); background: rgba(100, 116, 139, 0.04)"
+        >
+          <strong style="color: var(--dim)">📝 Tier 3</strong><br />Schema 自动表单
+        </div>
+      </div>
+    </div>
+
+    <!-- ================ Classification Result ================ -->
+    <h2>📊 OpenClaw 配置分级结果</h2>
+
+    <!-- Tier 1 -->
+    <div class="tier">
+      <div
+        class="tier-header"
+        style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2)"
+      >
+        <h3 style="color: var(--green)">🎨 Tier 1 — 专用交互 UI</h3>
+        <div class="count" style="color: var(--green)">6 个配置域</div>
+        <div class="tier-desc">需要可视化 + 高频 + 强耦合 → 值得精心设计</div>
+      </div>
+      <div class="items-grid">
+        <div class="config-item" style="border-left: 3px solid var(--green)">
+          <div class="item-icon">🔀</div>
+          <div>
+            <div class="item-name">Agent 路由规则 (Bindings)</div>
+            <div class="item-reason">
+              多条件组合匹配（channel + account + peer + role），需要<strong
+                >规则编辑器 + 匹配测试器</strong
+              >，纯表单无法表达优先级和条件逻辑
+            </div>
+            <div class="item-fields">
+              <span class="field-tag">bindings[]</span><span class="field-tag">match.*</span>
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--green)">
+          <div class="item-icon">🔗</div>
+          <div>
+            <div class="item-name">模型 Fallback 链</div>
+            <div class="item-reason">
+              顺序敏感的降级链，需要<strong>拖拽排序 + 状态指示</strong>（哪个 key 在
+              cooldown），改一个会影响整体可靠性
+            </div>
+            <div class="item-fields">
+              <span class="field-tag">model.primary</span
+              ><span class="field-tag">model.fallbacks[]</span
+              ><span class="field-tag">auth profiles</span>
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--green)">
+          <div class="item-icon">🔧</div>
+          <div>
+            <div class="item-name">工具策略管线 (Tool Policy)</div>
+            <div class="item-reason">
+              5 层策略的叠加效果难以靠表单理解，需要<strong>可视化层叠 + 最终结果预览</strong
+              >（这个工具最终是允许还是拒绝？）
+            </div>
+            <div class="item-fields">
+              <span class="field-tag">tools.allow/deny</span
+              ><span class="field-tag">5-layer pipeline</span>
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--green)">
+          <div class="item-icon">👶</div>
+          <div>
+            <div class="item-name">Subagent 拓扑与控制</div>
+            <div class="item-reason">
+              父子关系 + 深度限制 + 并发限制 + 工具继承 → 需要<strong>树形可视化 + 实时监控</strong>
+            </div>
+            <div class="item-fields">
+              <span class="field-tag">subagents.*</span><span class="field-tag">maxSpawnDepth</span
+              ><span class="field-tag">allowAgents</span>
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--green)">
+          <div class="item-icon">💬</div>
+          <div>
+            <div class="item-name">Session 策略 (DM Scope)</div>
+            <div class="item-reason">
+              4 种 scope 策略（main / per-peer / per-channel / per-account）的区别需要<strong
+                >示意图 + 选择器</strong
+              >
+            </div>
+            <div class="item-fields">
+              <span class="field-tag">session.dmScope</span
+              ><span class="field-tag">session.resetTriggers</span>
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--green)">
+          <div class="item-icon">📡</div>
+          <div>
+            <div class="item-name">渠道管理 (Channels)</div>
+            <div class="item-reason">
+              多渠道 + 多账户 + 各自状态 + 认证流程 → 需要<strong>连接状态看板 + 向导式配置</strong>
+            </div>
+            <div class="item-fields">
+              <span class="field-tag">channels.*</span><span class="field-tag">WeCom/Feishu</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier 2 -->
+    <div class="tier">
+      <div
+        class="tier-header"
+        style="background: rgba(234, 179, 8, 0.08); border: 1px solid rgba(234, 179, 8, 0.2)"
+      >
+        <h3 style="color: var(--yellow)">🧩 Tier 2 — 增强表单 + 引导</h3>
+        <div class="count" style="color: var(--yellow)">7 个配置域</div>
+        <div class="tier-desc">
+          字段间有耦合关系，需要分组 + 条件显示 + 说明文字，但不需要可视化
+        </div>
+      </div>
+      <div class="items-grid">
+        <div class="config-item" style="border-left: 3px solid var(--yellow)">
+          <div class="item-icon">📦</div>
+          <div>
+            <div class="item-name">Compaction 策略</div>
+            <div class="item-reason">
+              mode / reserveTokens / keepRecentTokens / maxHistoryShare 互相制约，需要<strong
+                >联动表单 + 效果预估</strong
+              >
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--yellow)">
+          <div class="item-icon">🤖</div>
+          <div>
+            <div class="item-name">Agent 完整配置</div>
+            <div class="item-reason">
+              model + skills + tools + sandbox + identity 组合，需要<strong
+                >分 Tab 表单 + 预览</strong
+              >
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--yellow)">
+          <div class="item-icon">💭</div>
+          <div>
+            <div class="item-name">Thinking & Verbose</div>
+            <div class="item-reason">
+              thinking level 依赖模型能力（xhigh 仅 GPT-5.x），需要<strong>条件可选项</strong>
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--yellow)">
+          <div class="item-icon">⏰</div>
+          <div>
+            <div class="item-name">Heartbeat 定时任务</div>
+            <div class="item-reason">
+              interval + activeHours + target + model 组合，需要<strong
+                >时间选择器 + 投递预览</strong
+              >
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--yellow)">
+          <div class="item-icon">🔒</div>
+          <div>
+            <div class="item-name">Sandbox 配置</div>
+            <div class="item-reason">
+              mode / scope / workspaceAccess 三者耦合，需要<strong>组合选择器 + 影响说明</strong>
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--yellow)">
+          <div class="item-icon">✂️</div>
+          <div>
+            <div class="item-name">Block Streaming</div>
+            <div class="item-reason">chunk / coalesce / break / humanDelay 互相影响最终效果</div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--yellow)">
+          <div class="item-icon">🛡</div>
+          <div>
+            <div class="item-name">审批策略 (Approvals)</div>
+            <div class="item-reason">
+              安全级别 + 转发策略 + 超时 → 需要<strong>分级选择 + 风险提示</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier 3 -->
+    <div class="tier">
+      <div
+        class="tier-header"
+        style="background: rgba(100, 116, 139, 0.08); border: 1px solid rgba(100, 116, 139, 0.2)"
+      >
+        <h3 style="color: var(--dim)">📝 Tier 3 — Schema 自动表单</h3>
+        <div class="count" style="color: var(--dim)">18+ 个配置域</div>
+        <div class="tier-desc">独立字段、低频、低风险 → 自动生成即可，不值得手写 UI</div>
+      </div>
+      <div class="items-grid">
+        <div class="config-item" style="border-left: 3px solid var(--muted)">
+          <div class="item-icon">🕐</div>
+          <div>
+            <div class="item-name">时间 & 时区</div>
+            <div class="item-reason">
+              userTimezone / timeFormat / envelopeTimezone — 独立字段，选一次不再动
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--muted)">
+          <div class="item-icon">📏</div>
+          <div>
+            <div class="item-name">各种尺寸限制</div>
+            <div class="item-reason">
+              mediaMaxMb / pdfMaxPages / imageMaxDimensionPx / bootstrapMaxChars — 纯数值
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--muted)">
+          <div class="item-icon">🔍</div>
+          <div>
+            <div class="item-name">Memory & RAG</div>
+            <div class="item-reason">memorySearch 配置 — 低频，开关型</div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--muted)">
+          <div class="item-icon">📋</div>
+          <div>
+            <div class="item-name">Diagnostics & Logging</div>
+            <div class="item-reason">日志级别、路径 — 运维配置，首次设置</div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--muted)">
+          <div class="item-icon">🔄</div>
+          <div>
+            <div class="item-name">Update & CLI</div>
+            <div class="item-reason">更新渠道、banner — 设一次不再动</div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--muted)">
+          <div class="item-icon">🌐</div>
+          <div>
+            <div class="item-name">Discovery / Gateway 网络</div>
+            <div class="item-reason">mDNS、bind、TLS — 基础设施配置，纯表单足够</div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--muted)">
+          <div class="item-icon">🎨</div>
+          <div>
+            <div class="item-name">UI / Identity</div>
+            <div class="item-reason">
+              seamColor / assistant name / avatar — 简单字符串 + 颜色选择器
+            </div>
+          </div>
+        </div>
+        <div class="config-item" style="border-left: 3px solid var(--muted)">
+          <div class="item-icon">📦</div>
+          <div>
+            <div class="item-name">Context Pruning</div>
+            <div class="item-reason">mode / TTL — 两个字段，开关 + 数值</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================ Summary Table ================ -->
+    <h2>📊 总览对比</h2>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>层级</th>
+          <th>UI 形态</th>
+          <th>配置域数</th>
+          <th>开发成本</th>
+          <th>维护成本</th>
+          <th>适合什么</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color: var(--green)">Tier 1</strong></td>
+          <td>专用交互组件（拖拽、规则编辑器、拓扑图）</td>
+          <td>6</td>
+          <td style="color: var(--red)">高（每个 3-5 天）</td>
+          <td style="color: var(--orange)">中（上游变更需适配）</td>
+          <td>高频 + 可视化 + 强耦合</td>
+        </tr>
+        <tr>
+          <td><strong style="color: var(--yellow)">Tier 2</strong></td>
+          <td>增强表单（分组 + 条件 + 说明 + 校验）</td>
+          <td>7</td>
+          <td style="color: var(--yellow)">中（每个 1-2 天）</td>
+          <td style="color: var(--yellow)">中</td>
+          <td>有耦合 + 需引导</td>
+        </tr>
+        <tr>
+          <td><strong style="color: var(--dim)">Tier 3</strong></td>
+          <td>Schema 自动表单（JSON Schema → Form）</td>
+          <td>18+</td>
+          <td style="color: var(--green)">低（一次性框架）</td>
+          <td style="color: var(--green)">低（schema 变 UI 自动变）</td>
+          <td>独立 + 低频 + 低风险</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div
+      style="
+        margin-top: 20px;
+        padding: 16px;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      "
+    >
+      <h3 style="font-size: 13px; margin-bottom: 8px; color: var(--accent2)">💡 实施建议</h3>
+      <div style="font-size: 11px; color: var(--dim); line-height: 1.8">
+        <strong>第一步（覆盖 80% 场景）：</strong>先建 Tier 3 的 Schema 自动表单框架 →
+        立刻覆盖所有配置<br />
+        <strong>第二步（提升体验）：</strong>为 Tier 2 配置域添加增强表单（分组 + 联动 + 说明）<br />
+        <strong>第三步（差异化价值）：</strong>为 Tier 1 的 6 个高价值域构建专用交互 UI<br />
+        <strong>原则：</strong>用 Tier 3 兜底所有配置 → Tier 2 覆盖重点 → Tier 1
+        打造亮点，优先级由下往上
+      </div>
+    </div>
+  </body>
+</html>

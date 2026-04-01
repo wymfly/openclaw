@@ -15,13 +15,13 @@ export function DeliveryHistory({ deliveries, onTest, testing }: DeliveryHistory
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+        <h3 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
           {t("deliveries")}
         </h3>
         <button
           type="button"
           className="px-3 py-1 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
           onClick={onTest}
           disabled={testing}
         >
@@ -30,7 +30,7 @@ export function DeliveryHistory({ deliveries, onTest, testing }: DeliveryHistory
       </div>
 
       {deliveries.length === 0 ? (
-        <p className="text-xs py-4 text-center" style={{ color: "var(--text-secondary)" }}>
+        <p className="text-xs py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
           {t("noDeliveries")}
         </p>
       ) : (
@@ -39,7 +39,7 @@ export function DeliveryHistory({ deliveries, onTest, testing }: DeliveryHistory
             <thead>
               <tr
                 className="border-b"
-                style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
               >
                 <th className="text-left py-2 px-2 font-medium">{t("time")}</th>
                 <th className="text-left py-2 px-2 font-medium">{t("eventType")}</th>
@@ -51,24 +51,26 @@ export function DeliveryHistory({ deliveries, onTest, testing }: DeliveryHistory
             <tbody>
               {deliveries.map((d) => (
                 <tr key={d.id} className="border-b" style={{ borderColor: "var(--border)" }}>
-                  <td className="py-2 px-2" style={{ color: "var(--text-secondary)" }}>
+                  <td className="py-2 px-2" style={{ color: "var(--muted-foreground)" }}>
                     {new Date(d.createdAt).toLocaleString()}
                   </td>
-                  <td className="py-2 px-2" style={{ color: "var(--text-primary)" }}>
+                  <td className="py-2 px-2" style={{ color: "var(--foreground)" }}>
                     {d.eventType}
                   </td>
-                  <td className="py-2 px-2" style={{ color: "var(--text-primary)" }}>
+                  <td className="py-2 px-2" style={{ color: "var(--foreground)" }}>
                     {d.statusCode ?? "—"}
                   </td>
-                  <td className="py-2 px-2" style={{ color: "var(--text-secondary)" }}>
+                  <td className="py-2 px-2" style={{ color: "var(--muted-foreground)" }}>
                     {d.durationMs != null ? `${d.durationMs}ms` : "—"}
                   </td>
                   <td className="py-2 px-2">
                     <span
                       className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
                       style={{
-                        backgroundColor: d.success ? "var(--success-muted)" : "var(--danger-muted)",
-                        color: d.success ? "var(--success)" : "var(--danger)",
+                        backgroundColor: d.success
+                          ? "var(--success-muted)"
+                          : "var(--destructive-muted)",
+                        color: d.success ? "var(--success)" : "var(--destructive)",
                       }}
                     >
                       {d.success ? t("success") : t("failed")}

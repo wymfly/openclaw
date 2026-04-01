@@ -37,9 +37,7 @@ export function SkillConfigEditor({
   }, []);
 
   const updateEnvPair = useCallback((index: number, field: "key" | "value", val: string) => {
-    setEnvPairs((prev) =>
-      prev.map((pair, i) => (i === index ? { ...pair, [field]: val } : pair)),
-    );
+    setEnvPairs((prev) => prev.map((pair, i) => (i === index ? { ...pair, [field]: val } : pair)));
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -48,7 +46,9 @@ export function SkillConfigEditor({
     try {
       const env: Record<string, string> = {};
       for (const pair of envPairs) {
-        if (pair.key.trim()) {env[pair.key.trim()] = pair.value;}
+        if (pair.key.trim()) {
+          env[pair.key.trim()] = pair.value;
+        }
       }
 
       const res = await fetch(`/api/skills/${encodeURIComponent(skillKey)}`, {
@@ -92,9 +92,7 @@ export function SkillConfigEditor({
       {/* Env vars */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-[10px] text-[var(--muted-foreground)]">
-            {t("skillEnvVars")}
-          </label>
+          <label className="text-[10px] text-[var(--muted-foreground)]">{t("skillEnvVars")}</label>
           <Button
             type="button"
             variant="ghost"
@@ -135,9 +133,7 @@ export function SkillConfigEditor({
         </div>
       </div>
 
-      {saveError && (
-        <p className="text-xs text-[var(--destructive)]">{saveError}</p>
-      )}
+      {saveError && <p className="text-xs text-[var(--destructive)]">{saveError}</p>}
       <Button
         size="sm"
         onClick={() => void handleSave()}

@@ -29,7 +29,11 @@ export function LogStream() {
   const entries = useMemo(() => {
     return allEntries.filter((entry) => {
       // Level filter
-      if (filters.levels.length > 0 && filters.levels.length < 4 && !filters.levels.includes(entry.level)) {
+      if (
+        filters.levels.length > 0 &&
+        filters.levels.length < 4 &&
+        !filters.levels.includes(entry.level)
+      ) {
         return false;
       }
       // Source filter

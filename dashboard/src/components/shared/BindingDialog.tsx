@@ -93,9 +93,9 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent className="bg-[var(--bg-secondary)] border-[var(--border)] sm:max-w-md">
+      <DialogContent className="bg-[var(--card)] border-[var(--border)] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-[var(--text-primary)]">
+          <DialogTitle className="text-[var(--foreground)]">
             {mode === "add" ? t("addRule") : t("editRule")}
           </DialogTitle>
         </DialogHeader>
@@ -103,9 +103,9 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
         <div className="space-y-4 py-2">
           {/* Agent */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">{t("targetAgent")}</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">{t("targetAgent")}</Label>
             <Select value={agentId} onValueChange={(v) => setAgentId(v ?? "")}>
-              <SelectTrigger className="bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+              <SelectTrigger className="bg-[var(--background)] border-[var(--border)] cursor-pointer">
                 <SelectValue placeholder={t("selectAgent")} />
               </SelectTrigger>
               <SelectContent>
@@ -120,7 +120,7 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
 
           {/* Match conditions via ConditionBuilder */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">{t("matchConditions")}</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">{t("matchConditions")}</Label>
             <ConditionBuilder match={match} onChange={setMatch} />
           </div>
 
@@ -147,7 +147,7 @@ export function BindingDialog({ open, mode, prefill, onSave, onCancel }: Binding
             </div>
           )}
           {validating && (
-            <Badge variant="outline" className="text-[10px] text-[var(--text-secondary)]">
+            <Badge variant="outline" className="text-[10px] text-[var(--muted-foreground)]">
               {t("validating")}
             </Badge>
           )}

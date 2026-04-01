@@ -4,140 +4,183 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   THEME TOKENS
+   ============================================================
+   规则：
+   1. shadcn 标准变量是唯一公共接口，所有组件统一使用
+   2. 扩展令牌只补充 shadcn 不覆盖的语义（状态色、品牌变体等）
+   3. 添加新令牌时必须同时在 :root 和 .dark 中定义
+   4. 禁止硬编码颜色（#fff, bg-white, text-gray-* 等）
+   ============================================================ */
+
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --bg-tertiary: #f1f3f5;
-  --bg-nav: #f1f3f5;
-  --text-primary: #1a1a2e;
-  --text-secondary: #6b7280;
+  /* ── shadcn 标准（公共接口） ── */
+  --background: #ffffff;
+  --foreground: #1a1a2e;
+  --card: #f8f9fa;
+  --card-foreground: #1a1a2e;
+  --popover: #f8f9fa;
+  --popover-foreground: #1a1a2e;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f3f5;
+  --secondary-foreground: #1a1a2e;
+  --muted: #f1f3f5;
+  --muted-foreground: #6b7280;
+  --accent: #f1f3f5;
+  --accent-foreground: #1a1a2e;
+  --destructive: #ef4444;
   --border: oklch(0.922 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-hover: #2563eb;
-  --accent-fg: #ffffff;
-  --accent-muted: rgba(59, 130, 246, 0.1);
+  --input: oklch(0.922 0 0);
+  --ring: #3b82f6;
+  --radius: 0.625rem;
+
+  /* ── shadcn sidebar ── */
+  --sidebar: #f1f3f5;
+  --sidebar-foreground: #1a1a2e;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f3f5;
+  --sidebar-accent-foreground: #1a1a2e;
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: #3b82f6;
+
+  /* ── shadcn chart ── */
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+
+  /* ── 扩展：三级文本（shadcn 只有 foreground + muted-foreground） ── */
+  --text-tertiary: #9ca3af;
+
+  /* ── 扩展：边框变体 ── */
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-hover: #cbd5e1;
+
+  /* ── 扩展：品牌变体（shadcn 只有 primary + primary-foreground） ── */
+  --primary-hover: #2563eb;
+  --primary-muted: rgba(59, 130, 246, 0.1);
+  --primary-glow: 0 0 6px rgba(59, 130, 246, 0.25);
+
+  /* ── 扩展：状态指示 ── */
   --status-connected: #22c55e;
   --status-disconnected: #ef4444;
   --status-reconnecting: #f59e0b;
-  --danger: #ef4444;
-  --danger-fg: #ffffff;
-  --danger-muted: rgba(239, 68, 68, 0.15);
-  --danger-muted-text: #dc2626;
+
+  /* ── 扩展：语义色完整体系（shadcn 只有 destructive） ── */
+  --destructive-fg: #ffffff;
+  --destructive-muted: rgba(239, 68, 68, 0.15);
+  --destructive-muted-text: #dc2626;
+
   --warning: #eab308;
   --warning-fg: #ffffff;
   --warning-muted: rgba(234, 179, 8, 0.15);
   --warning-muted-text: #ca8a04;
+
   --success: #22c55e;
   --success-fg: #ffffff;
   --success-muted: rgba(34, 197, 94, 0.15);
   --success-muted-text: #16a34a;
+
   --neutral-muted: rgba(156, 163, 175, 0.15);
   --neutral-muted-text: #6b7280;
+
   --purple: #8b5cf6;
   --purple-muted: rgba(168, 85, 247, 0.15);
   --purple-muted-text: #7c3aed;
+
   --skill-warning-bg: #fef3c7;
   --skill-warning-text: #92400e;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* ── 扩展：文档分类色 ── */
+  --doc-summary: #3b82f6;
+  --doc-plan: #8b5cf6;
+  --doc-spec: #f59e0b;
+  --doc-manual: #10b981;
+  --doc-draft: #6b7280;
 }
 
 .dark {
-  --bg-primary: #0f0f23;
-  --bg-secondary: #1a1a2e;
-  --bg-tertiary: rgba(255, 255, 255, 0.05);
-  --bg-nav: #16162a;
-  --text-primary: #e5e7eb;
-  --text-secondary: #9ca3af;
+  /* ── shadcn 标准 ── */
+  --background: #0f0f23;
+  --foreground: #e5e7eb;
+  --card: #1a1a2e;
+  --card-foreground: #e5e7eb;
+  --popover: #1a1a2e;
+  --popover-foreground: #e5e7eb;
+  --primary: #60a5fa;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(255, 255, 255, 0.05);
+  --secondary-foreground: #e5e7eb;
+  --muted: rgba(255, 255, 255, 0.05);
+  --muted-foreground: #9ca3af;
+  --accent: rgba(255, 255, 255, 0.08);
+  --accent-foreground: #e5e7eb;
+  --destructive: #f87171;
   --border: oklch(1 0 0 / 10%);
-  --accent: oklch(0.269 0 0);
-  --accent-hover: #3b82f6;
-  --accent-fg: #ffffff;
-  --accent-muted: rgba(96, 165, 250, 0.15);
+  --input: oklch(1 0 0 / 15%);
+  --ring: #60a5fa;
+
+  /* ── shadcn sidebar ── */
+  --sidebar: #16162a;
+  --sidebar-foreground: #e5e7eb;
+  --sidebar-primary: #60a5fa;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #e5e7eb;
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #60a5fa;
+
+  /* ── 扩展 ── */
+  --text-tertiary: #6b7280;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.2);
+
+  --primary-hover: #3b82f6;
+  --primary-muted: rgba(96, 165, 250, 0.15);
+  --primary-glow: 0 0 6px rgba(96, 165, 250, 0.25);
+
   --status-connected: #4ade80;
   --status-disconnected: #f87171;
   --status-reconnecting: #fbbf24;
-  --danger: #f87171;
-  --danger-fg: #ffffff;
-  --danger-muted: rgba(248, 113, 113, 0.15);
-  --danger-muted-text: #fca5a5;
+
+  --destructive-fg: #ffffff;
+  --destructive-muted: rgba(248, 113, 113, 0.15);
+  --destructive-muted-text: #fca5a5;
+
   --warning: #fbbf24;
   --warning-fg: #1a1a2e;
   --warning-muted: rgba(251, 191, 36, 0.15);
   --warning-muted-text: #fbbf24;
+
   --success: #4ade80;
   --success-fg: #1a1a2e;
   --success-muted: rgba(74, 222, 128, 0.15);
   --success-muted-text: #4ade80;
+
   --neutral-muted: rgba(156, 163, 175, 0.15);
   --neutral-muted-text: #9ca3af;
+
   --purple: #a78bfa;
   --purple-muted: rgba(167, 139, 250, 0.15);
   --purple-muted-text: #a78bfa;
+
   --skill-warning-bg: rgba(234, 179, 8, 0.15);
   --skill-warning-text: #fbbf24;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+
+  --doc-summary: #60a5fa;
+  --doc-plan: #a78bfa;
+  --doc-spec: #fbbf24;
+  --doc-manual: #4ade80;
+  --doc-draft: #9ca3af;
 }
 
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background-color: var(--background);
+  color: var(--foreground);
   font-family:
     system-ui,
     -apple-system,
@@ -196,4 +239,221 @@ body {
   html {
     @apply font-sans;
   }
+}
+
+/* ============================================================
+   CHAT MARKDOWN PROSE
+   ============================================================
+   Tailwind v4 没有 @tailwindcss/typography 插件，
+   这里手写 .chat-prose 样式，适配 shadcn 主题变量。
+   ============================================================ */
+
+.chat-prose {
+  line-height: 1.7;
+  color: var(--foreground);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Headings */
+.chat-prose h1,
+.chat-prose h2,
+.chat-prose h3,
+.chat-prose h4 {
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  color: var(--foreground);
+}
+.chat-prose h1 {
+  font-size: 1.25em;
+}
+.chat-prose h2 {
+  font-size: 1.125em;
+}
+.chat-prose h3 {
+  font-size: 1em;
+}
+.chat-prose h4 {
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted-foreground);
+}
+
+/* First child margin reset */
+.chat-prose > :first-child {
+  margin-top: 0;
+}
+.chat-prose > :last-child {
+  margin-bottom: 0;
+}
+
+/* Paragraphs */
+.chat-prose p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+.chat-prose p:first-child {
+  margin-top: 0;
+}
+
+/* Links */
+.chat-prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.chat-prose a:hover {
+  opacity: 0.8;
+}
+
+/* Bold / Italic */
+.chat-prose strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.chat-prose em {
+  font-style: italic;
+}
+
+/* Lists */
+.chat-prose ul,
+.chat-prose ol {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-left: 1.5em;
+}
+.chat-prose ul {
+  list-style-type: disc;
+}
+.chat-prose ol {
+  list-style-type: decimal;
+}
+.chat-prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+.chat-prose li > ul,
+.chat-prose li > ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Blockquote */
+.chat-prose blockquote {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  padding-left: 1em;
+  border-left: 3px solid var(--border);
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+/* Horizontal rule */
+.chat-prose hr {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+/* Inline code */
+.chat-prose :not(pre) > code {
+  font-size: 0.85em;
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background-color: var(--muted);
+  color: var(--foreground);
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+/* Code blocks */
+.chat-prose pre {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  padding: 0.875em 1em;
+  border-radius: 8px;
+  background-color: var(--muted);
+  overflow-x: auto;
+  font-size: 0.8em;
+  line-height: 1.6;
+  border: 1px solid var(--border-subtle);
+}
+.chat-prose pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+/* Tables */
+.chat-prose table {
+  width: 100%;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  border-collapse: collapse;
+  font-size: 0.875em;
+}
+.chat-prose thead th {
+  font-weight: 600;
+  text-align: left;
+  padding: 0.5em 0.75em;
+  border-bottom: 2px solid var(--border);
+  color: var(--foreground);
+}
+.chat-prose tbody td {
+  padding: 0.5em 0.75em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.chat-prose tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Images */
+.chat-prose img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+/* ============================================================
+   STREAMDOWN — 代码块紧凑化 & 间距覆盖
+   ============================================================ */
+
+/* Reduce block spacing (Streamdown default: space-y-4 = 16px) */
+.chat-prose .space-y-4 > * + * {
+  margin-top: 0.5em;
+}
+
+/* Streamdown code block outer shell: compact margin + padding */
+.chat-prose .flex.w-full.flex-col.rounded-xl {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding: 0;
+  gap: 0;
+}
+
+/* Code block content area: reduce padding */
+.chat-prose .overflow-x-auto.rounded-md {
+  padding: 0 !important;
+}
+
+/* Pre inside code block: tighter padding */
+.chat-prose .overflow-x-auto.rounded-md pre {
+  padding: 0.625em 0.75em;
+  margin: 0;
+  font-size: 0.8em;
+  line-height: 1.6;
+}
+
+/* Streamdown header + button rows: keep default sizing for proper layout */
+
+/* Table block: reduce padding on wrapper */
+.chat-prose .overflow-x-auto.rounded-md table {
+  margin: 0;
 }

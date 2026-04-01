@@ -19,11 +19,11 @@ function ValueCell({ value }: { value: unknown }) {
   }
 
   if (typeof value === "boolean") {
-    return <span className="text-[var(--accent)]">{value ? "true" : "false"}</span>;
+    return <span className="text-[var(--primary)]">{value ? "true" : "false"}</span>;
   }
 
   if (typeof value === "number") {
-    return <span className="text-[var(--accent)]">{String(value)}</span>;
+    return <span className="text-[var(--primary)]">{String(value)}</span>;
   }
 
   if (typeof value === "string") {
@@ -36,7 +36,7 @@ function ValueCell({ value }: { value: unknown }) {
           <span
             role="button"
             tabIndex={0}
-            className="ml-1 text-[var(--accent)] cursor-pointer hover:underline"
+            className="ml-1 text-[var(--primary)] cursor-pointer hover:underline"
             onClick={() => setExpanded(true)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -56,7 +56,7 @@ function ValueCell({ value }: { value: unknown }) {
           <span
             role="button"
             tabIndex={0}
-            className="ml-1 text-[var(--accent)] cursor-pointer hover:underline"
+            className="ml-1 text-[var(--primary)] cursor-pointer hover:underline"
             onClick={() => setExpanded(false)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -88,10 +88,10 @@ function NestedSection({ value }: { value: Record<string, unknown> | unknown[] }
 
   return (
     <details className="inline">
-      <summary className="cursor-pointer select-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+      <summary className="cursor-pointer select-none text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">
         {t("paramKeys", { count })}
       </summary>
-      <pre className="mt-1 p-1.5 rounded text-xs overflow-auto bg-[var(--bg-primary)] text-[var(--text-secondary)]">
+      <pre className="mt-1 p-1.5 rounded text-xs overflow-auto bg-[var(--background)] text-[var(--muted-foreground)]">
         {JSON.stringify(value, null, 2)}
       </pre>
     </details>
@@ -114,10 +114,10 @@ export function ToolParamView({ input }: { input: Record<string, unknown> }) {
     <div className="flex flex-col gap-1 text-xs">
       {entries.map(([key, value]) => (
         <div key={key} className="flex gap-2 min-w-0">
-          <span className="shrink-0 font-mono text-[var(--text-secondary)] select-none">
+          <span className="shrink-0 font-mono text-[var(--muted-foreground)] select-none">
             {key}:
           </span>
-          <span className="min-w-0 font-mono text-[var(--text-primary)]">
+          <span className="min-w-0 font-mono text-[var(--foreground)]">
             <ValueCell value={value} />
           </span>
         </div>

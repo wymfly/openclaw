@@ -1,6 +1,5 @@
 "use client";
 
-import type { ComponentType } from "react";
 import {
   Bot,
   Brain,
@@ -14,6 +13,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { ComponentType } from "react";
 import { SECTION_META } from "@/lib/section-metadata";
 
 /** Static icon map — avoids dynamic import of lucide icons */

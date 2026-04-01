@@ -88,7 +88,7 @@ export function SubagentTree({ events, sessionKey }: SubagentTreeProps) {
 
   return (
     <div>
-      <h4 className="text-xs font-medium text-[var(--text-secondary)] mb-2">
+      <h4 className="text-xs font-medium text-[var(--muted-foreground)] mb-2">
         {t("timeline.subagentLineage")}
       </h4>
       <LineageTree nodes={nodes} rootSessionKey={sessionKey} />

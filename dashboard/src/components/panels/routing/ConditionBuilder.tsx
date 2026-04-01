@@ -90,7 +90,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
     <div className="space-y-2">
       {activeDimensions.map((dim) => (
         <div key={dim} className="flex items-center gap-2">
-          <span className="shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[var(--accent-muted)] text-[var(--accent)]">
+          <span className="shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[var(--primary-muted)] text-[var(--primary)]">
             {t(DIM_KEYS[dim])}
           </span>
 
@@ -99,7 +99,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
           <button
             type="button"
             onClick={() => removeDimension(dim)}
-            className="shrink-0 p-0.5 rounded text-[var(--text-secondary)] hover:text-red-400 transition-colors cursor-pointer"
+            className="shrink-0 p-0.5 rounded text-[var(--muted-foreground)] hover:text-red-400 transition-colors cursor-pointer"
             title={t("removeDimension")}
           >
             <X size={14} />
@@ -109,7 +109,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
 
       {availableDimensions.length > 0 && (
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border border-dashed border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors cursor-pointer">
+          <DropdownMenuTrigger className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border border-dashed border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--primary)] transition-colors cursor-pointer">
             <Plus size={12} />
             {t("addCondition")}
           </DropdownMenuTrigger>
@@ -135,7 +135,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
             value={match.channel ?? ""}
             onValueChange={(v) => onChange({ ...match, channel: v ?? "" })}
           >
-            <SelectTrigger className="h-7 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+            <SelectTrigger className="h-7 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
               <SelectValue placeholder={t("selectChannel")} />
             </SelectTrigger>
             <SelectContent>
@@ -154,7 +154,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
             value={match.accountId ?? ""}
             onChange={(e) => onChange({ ...match, accountId: e.target.value })}
             placeholder={t("accountIdPlaceholder")}
-            className="h-7 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+            className="h-7 text-xs bg-[var(--background)] border-[var(--border)]"
           />
         );
 
@@ -167,7 +167,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
                 onChange({ ...match, peer: { kind: v ?? "", id: match.peer?.id ?? "" } })
               }
             >
-              <SelectTrigger className="h-7 w-[100px] text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+              <SelectTrigger className="h-7 w-[100px] text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
                 <SelectValue placeholder={t("peerKindPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
@@ -182,7 +182,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
                 onChange({ ...match, peer: { kind: match.peer?.kind ?? "", id: e.target.value } })
               }
               placeholder={t("peerIdPlaceholder")}
-              className="h-7 text-xs flex-1 bg-[var(--bg-primary)] border-[var(--border)]"
+              className="h-7 text-xs flex-1 bg-[var(--background)] border-[var(--border)]"
             />
           </div>
         );
@@ -193,7 +193,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
             value={match.guildId ?? ""}
             onChange={(e) => onChange({ ...match, guildId: e.target.value })}
             placeholder={t("guildIdPlaceholder")}
-            className="h-7 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+            className="h-7 text-xs bg-[var(--background)] border-[var(--border)]"
           />
         );
 
@@ -211,7 +211,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
               })
             }
             placeholder={t("rolesPlaceholder")}
-            className="h-7 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+            className="h-7 text-xs bg-[var(--background)] border-[var(--border)]"
           />
         );
 
@@ -221,7 +221,7 @@ export function ConditionBuilder({ match, onChange }: ConditionBuilderProps) {
             value={match.teamId ?? ""}
             onChange={(e) => onChange({ ...match, teamId: e.target.value })}
             placeholder={t("teamIdPlaceholder")}
-            className="h-7 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+            className="h-7 text-xs bg-[var(--background)] border-[var(--border)]"
           />
         );
     }

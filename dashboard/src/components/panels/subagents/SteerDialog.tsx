@@ -60,13 +60,13 @@ export function SteerDialog({ open, onOpenChange, runId, onSteer }: SteerDialogP
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-[var(--bg-secondary)] border-[var(--border)] sm:max-w-md">
+      <DialogContent className="bg-[var(--card)] border-[var(--border)] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-[var(--text-primary)]">{t("steerTitle")}</DialogTitle>
+          <DialogTitle className="text-[var(--foreground)]">{t("steerTitle")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
-          <p className="text-xs text-[var(--text-secondary)]">
+          <p className="text-xs text-[var(--muted-foreground)]">
             {t("steerRunId")}: <code className="font-mono text-[10px]">{runId}</code>
           </p>
 
@@ -77,7 +77,7 @@ export function SteerDialog({ open, onOpenChange, runId, onSteer }: SteerDialogP
             // biome-ignore lint: autoFocus is intentional in dialog
             autoFocus
             placeholder={t("steerPlaceholder")}
-            className="w-full min-h-[100px] rounded-md border border-[var(--border)] bg-[var(--bg-primary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] p-3 resize-y focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            className="w-full min-h-[100px] rounded-md border border-[var(--border)] bg-[var(--background)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] p-3 resize-y focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 void handleSubmit();
@@ -92,7 +92,7 @@ export function SteerDialog({ open, onOpenChange, runId, onSteer }: SteerDialogP
 
           {/* Inline error */}
           {error && (
-            <div className="rounded-md px-3 py-2 text-xs bg-[var(--danger)]/10 text-[var(--danger)] border border-[var(--danger)]/25">
+            <div className="rounded-md px-3 py-2 text-xs bg-[var(--destructive)]/10 text-[var(--destructive)] border border-[var(--destructive)]/25">
               {error}
             </div>
           )}

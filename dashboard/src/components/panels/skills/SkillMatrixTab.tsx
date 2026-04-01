@@ -90,7 +90,7 @@ export function SkillMatrixTab() {
       if (res.ok) {
         setAgentSkillsMap((prev) => {
           const next = new Map(prev);
-          next.set(agent.id, { mode: config.mode, whitelist: newWhitelist });
+          next.set(agent.id, { ...config, whitelist: newWhitelist });
           return next;
         });
       }
@@ -103,7 +103,7 @@ export function SkillMatrixTab() {
 
   if (loading && agentSkillsMap.size === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-[var(--text-secondary)]">
+      <div className="flex items-center justify-center h-full text-[var(--muted-foreground)]">
         <Loader2 size={16} className="animate-spin mr-2" />
         <span className="text-sm">{tc("loading")}</span>
       </div>
@@ -112,7 +112,7 @@ export function SkillMatrixTab() {
 
   if (agents.length === 0 || skills.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-[var(--text-secondary)]">
+      <div className="flex items-center justify-center h-full text-[var(--muted-foreground)]">
         <p className="text-sm">{t("noSkills")}</p>
       </div>
     );
@@ -125,8 +125,8 @@ export function SkillMatrixTab() {
           <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--bg-tertiary)]">
-                  <th className="text-left px-3 py-2 font-medium text-[var(--text-secondary)] sticky left-0 bg-[var(--bg-tertiary)] z-10 min-w-[160px]">
+                <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
+                  <th className="text-left px-3 py-2 font-medium text-[var(--muted-foreground)] sticky left-0 bg-[var(--muted)] z-10 min-w-[160px]">
                     {t("title")}
                   </th>
                   {agents.map((agent) => (
@@ -136,7 +136,7 @@ export function SkillMatrixTab() {
                         onClick={() => navigateToAgent(agent.id, "skills")}
                         className={cn(
                           "inline-flex items-center gap-1 text-xs font-medium cursor-pointer",
-                          "text-[var(--text-primary)] hover:text-[var(--accent)]",
+                          "text-[var(--foreground)] hover:text-[var(--primary)]",
                           "transition-colors duration-150",
                         )}
                         title={agent.id}
@@ -153,11 +153,11 @@ export function SkillMatrixTab() {
                     key={skill.key}
                     className={cn(
                       "border-b border-[var(--border)] last:border-b-0",
-                      rowIdx % 2 === 1 && "bg-[var(--bg-tertiary)]/50",
+                      rowIdx % 2 === 1 && "bg-[var(--muted)]/50",
                     )}
                   >
-                    <td className="px-3 py-2 sticky left-0 bg-[var(--bg-secondary)] z-10">
-                      <span className="font-mono text-[var(--text-primary)]">{skill.name}</span>
+                    <td className="px-3 py-2 sticky left-0 bg-[var(--card)] z-10">
+                      <span className="font-mono text-[var(--foreground)]">{skill.name}</span>
                     </td>
                     {agents.map((agent) => (
                       <MatrixCell
@@ -197,14 +197,14 @@ function MatrixCell({
   if (toggling) {
     return (
       <td className="px-3 py-2 text-center">
-        <Loader2 size={14} className="animate-spin mx-auto text-[var(--text-secondary)]" />
+        <Loader2 size={14} className="animate-spin mx-auto text-[var(--muted-foreground)]" />
       </td>
     );
   }
 
   // No config loaded yet — show dash
   if (!config) {
-    return <td className="px-3 py-2 text-center text-[var(--text-secondary)]">-</td>;
+    return <td className="px-3 py-2 text-center text-[var(--muted-foreground)]">-</td>;
   }
 
   // All mode — blue circle, not clickable
@@ -234,7 +234,7 @@ function MatrixCell({
         className={cn(
           "inline-flex items-center justify-center w-6 h-6 rounded-full cursor-pointer",
           "transition-colors duration-150",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
           inWhitelist
             ? "text-emerald-400 hover:bg-emerald-500/15"
             : "text-red-400/60 hover:bg-red-500/15 hover:text-red-400",

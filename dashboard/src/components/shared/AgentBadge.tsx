@@ -24,20 +24,31 @@ export function AgentBadge({ agentId, agentName, emoji, onClick }: AgentBadgePro
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={(e) => {
+        e.stopPropagation();
+        handleClick();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          handleClick();
+        }
+      }}
       className={cn(
         "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium",
-        "bg-[var(--bg-tertiary)] text-[var(--text-primary)]",
-        "hover:bg-[var(--accent-muted)] hover:text-[var(--accent)]",
+        "bg-[var(--muted)] text-[var(--foreground)]",
+        "hover:bg-[var(--primary-muted)] hover:text-[var(--primary)]",
         "transition-colors duration-150 cursor-pointer",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
       )}
       title={agentId}
     >
       {emoji && <span className="text-sm leading-none">{emoji}</span>}
       <span className="truncate max-w-[120px]">{agentName || agentId}</span>
-    </button>
+    </span>
   );
 }

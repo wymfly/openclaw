@@ -38,18 +38,18 @@ export function HeartbeatCard() {
 
       <CardContent className="space-y-3 pt-0">
         {statusLoading && !statusSummary ? (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
-            <span className="text-xs text-[var(--text-secondary)]">{tc("loading")}</span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--muted)]">
+            <span className="text-xs text-[var(--muted-foreground)]">{tc("loading")}</span>
           </div>
         ) : (
           <>
             {/* Last heartbeat */}
-            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
-              <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
-                <Clock size={12} className="text-[var(--accent)]" />
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--muted)]">
+              <span className="flex items-center gap-1.5 text-[11px] text-[var(--muted-foreground)]">
+                <Clock size={12} className="text-[var(--primary)]" />
                 {t("lastHeartbeat")}
               </span>
-              <span className="text-xs font-mono font-medium text-[var(--text-primary)]">
+              <span className="text-xs font-mono font-medium text-[var(--foreground)]">
                 {heartbeat && typeof heartbeat === "object"
                   ? `${(heartbeat as { agents?: unknown[] }).agents?.length ?? 0} agent(s)`
                   : ((heartbeat as string) ?? "\u2014")}
@@ -57,8 +57,8 @@ export function HeartbeatCard() {
             </div>
 
             {/* Gateway state */}
-            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
-              <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--muted)]">
+              <span className="flex items-center gap-1.5 text-[11px] text-[var(--muted-foreground)]">
                 <HeartPulse
                   size={12}
                   className={isActive ? "text-[var(--success)]" : "text-[var(--warning)]"}

@@ -26,20 +26,20 @@ export function LogFilters() {
     <div className="flex items-center gap-3 flex-wrap">
       {/* Level checkboxes */}
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("level")}:
         </span>
         {ALL_LEVELS.map((level) => (
           <label
             key={level}
             className="flex items-center gap-1 text-xs cursor-pointer"
-            style={{ color: "var(--text-primary)" }}
+            style={{ color: "var(--foreground)" }}
           >
             <input
               type="checkbox"
               checked={filters.levels.includes(level)}
               onChange={() => toggleLevel(level)}
-              style={{ accentColor: "var(--accent)" }}
+              style={{ accentColor: "var(--primary)" }}
             />
             {t(level)}
           </label>
@@ -48,7 +48,7 @@ export function LogFilters() {
 
       {/* Source dropdown */}
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("source")}:
         </span>
         <select
@@ -57,8 +57,8 @@ export function LogFilters() {
           className="text-xs rounded px-2 py-1 border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-secondary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--card)",
+            color: "var(--foreground)",
           }}
         >
           {ALL_SOURCES.map((src) => (
@@ -71,7 +71,7 @@ export function LogFilters() {
 
       {/* Session filter */}
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("session")}:
         </span>
         <input
@@ -82,8 +82,8 @@ export function LogFilters() {
           className="text-xs rounded px-2 py-1 border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-secondary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--card)",
+            color: "var(--foreground)",
             width: 140,
           }}
         />

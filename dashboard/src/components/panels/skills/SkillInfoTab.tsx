@@ -17,14 +17,14 @@ function statusDotColor(status: string): string {
     case "needs-setup":
       return "bg-[var(--status-reconnecting)]";
     default:
-      return "bg-[var(--text-secondary)]";
+      return "bg-[var(--muted-foreground)]";
   }
 }
 
 function sourceBadgeColor(source: SkillEntry["source"]): string {
   switch (source) {
     case "bundled":
-      return "bg-[var(--accent-muted)] text-[var(--accent)]";
+      return "bg-[var(--primary-muted)] text-[var(--primary)]";
     case "managed":
       return "bg-[var(--purple-muted)] text-[var(--purple-muted-text)]";
     case "plugin":
@@ -41,14 +41,14 @@ export function SkillInfoTab({ skill }: SkillInfoTabProps) {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           {skill.emoji && <span className="text-lg">{skill.emoji}</span>}
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">{skill.name}</h3>
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">{skill.name}</h3>
         </div>
 
-        <p className="text-xs text-[var(--text-primary)] leading-relaxed">
+        <p className="text-xs text-[var(--foreground)] leading-relaxed">
           {skill.description || t("noDescription")}
         </p>
 
-        <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
+        <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
           <Badge
             variant="secondary"
             className={cn("text-[10px] h-4", sourceBadgeColor(skill.source))}
@@ -68,7 +68,7 @@ export function SkillInfoTab({ skill }: SkillInfoTabProps) {
             href={skill.homepage}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-[var(--accent)] hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
           >
             <ExternalLink size={11} />
             {t("homepage")}
@@ -80,17 +80,19 @@ export function SkillInfoTab({ skill }: SkillInfoTabProps) {
       {((skill.missingRequirements && skill.missingRequirements.length > 0) ||
         (skill.installOptions && skill.installOptions.length > 0)) && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-[var(--text-secondary)]">{t("dependencies")}</h4>
+          <h4 className="text-xs font-medium text-[var(--muted-foreground)]">
+            {t("dependencies")}
+          </h4>
 
           {skill.installOptions?.map((opt) => (
             <div
               key={opt.id}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)] text-xs"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--muted)] ring-1 ring-[var(--border-subtle)] text-xs"
             >
               <CheckCircle size={13} className="text-[var(--success)] shrink-0" />
-              <span className="font-medium text-[var(--text-primary)]">{opt.label}</span>
+              <span className="font-medium text-[var(--foreground)]">{opt.label}</span>
               {opt.bins.length > 0 && (
-                <span className="text-[var(--text-secondary)]">({opt.bins.join(", ")})</span>
+                <span className="text-[var(--muted-foreground)]">({opt.bins.join(", ")})</span>
               )}
             </div>
           ))}
@@ -110,17 +112,17 @@ export function SkillInfoTab({ skill }: SkillInfoTabProps) {
       {/* Environment variables */}
       {skill.primaryEnv && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-[var(--text-secondary)]">{t("envVars")}</h4>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)] text-xs">
+          <h4 className="text-xs font-medium text-[var(--muted-foreground)]">{t("envVars")}</h4>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--muted)] ring-1 ring-[var(--border-subtle)] text-xs">
             {skill.status === "ready" ? (
               <CheckCircle size={13} className="text-[var(--success)] shrink-0" />
             ) : (
               <AlertCircle size={13} className="text-[var(--warning)] shrink-0" />
             )}
-            <code className="px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] font-mono text-[11px] text-[var(--text-primary)]">
+            <code className="px-1.5 py-0.5 rounded bg-[var(--card)] font-mono text-[11px] text-[var(--foreground)]">
               {skill.primaryEnv}
             </code>
-            <span className="text-[var(--text-secondary)]">
+            <span className="text-[var(--muted-foreground)]">
               {skill.status === "ready" ? t("envSet") : t("envNotSet")}
             </span>
           </div>
@@ -128,12 +130,12 @@ export function SkillInfoTab({ skill }: SkillInfoTabProps) {
       )}
 
       {/* Uninstall CLI note */}
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
+      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[var(--muted)] ring-1 ring-[var(--border-subtle)] text-xs text-[var(--muted-foreground)]">
         <Info size={13} className="shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p>{t("uninstallViaCLI")}</p>
-          <code className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--bg-secondary)] font-mono text-[11px] text-[var(--text-primary)]">
-            <Terminal size={11} className="shrink-0 text-[var(--text-secondary)]" />
+          <code className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--card)] font-mono text-[11px] text-[var(--foreground)]">
+            <Terminal size={11} className="shrink-0 text-[var(--muted-foreground)]" />
             openclaw skills uninstall {skill.name}
           </code>
         </div>

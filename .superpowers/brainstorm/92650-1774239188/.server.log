@@ -1,0 +1,4 @@
+{"type":"server-started","port":56615,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:56615","screen_dir":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/92650-1774239188"}
+{"type":"screen-added","file":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/92650-1774239188/gateway-event-architecture.html"}
+{"type":"screen-added","file":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/92650-1774239188/design-proposal.html"}
+{"type":"server-stopped","reason":"idle timeout"}

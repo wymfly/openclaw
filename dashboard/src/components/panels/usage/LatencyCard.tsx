@@ -75,10 +75,7 @@ export function LatencyCard({ latency, dailyLatency }: LatencyCardProps) {
       {/* Daily trend */}
       {showTrend && (
         <>
-          <p
-            className="text-xs font-medium mb-2"
-            style={{ color: "var(--muted-foreground)" }}
-          >
+          <p className="text-xs font-medium mb-2" style={{ color: "var(--muted-foreground)" }}>
             {t("latencyTrend")}
           </p>
           <ResponsiveContainer width="100%" height={140}>

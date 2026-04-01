@@ -70,7 +70,7 @@ export function ToolWaterfall({ events }: ToolWaterfallProps) {
 
   if (toolEvents.length === 0) {
     return (
-      <p className="text-xs text-[var(--text-secondary)] italic py-2">
+      <p className="text-xs text-[var(--muted-foreground)] italic py-2">
         {t("timeline.noToolCalls")}
       </p>
     );
@@ -108,7 +108,7 @@ export function ToolWaterfall({ events }: ToolWaterfallProps) {
               <ChevronRight
                 size={12}
                 className={cn(
-                  "shrink-0 text-[var(--text-secondary)] transition-transform",
+                  "shrink-0 text-[var(--muted-foreground)] transition-transform",
                   isExpanded && "rotate-90",
                 )}
               />
@@ -116,11 +116,11 @@ export function ToolWaterfall({ events }: ToolWaterfallProps) {
                 {evt.toolName}
               </span>
               {evt.phase && (
-                <span className="text-[10px] text-[var(--text-secondary)] shrink-0">
+                <span className="text-[10px] text-[var(--muted-foreground)] shrink-0">
                   [{evt.phase}]
                 </span>
               )}
-              <span className="ml-auto text-[10px] text-[var(--text-secondary)] tabular-nums shrink-0">
+              <span className="ml-auto text-[10px] text-[var(--muted-foreground)] tabular-nums shrink-0">
                 {evt.durationMs > 0 ? formatDuration(evt.durationMs) : "\u2014"}
               </span>
             </button>
@@ -130,20 +130,20 @@ export function ToolWaterfall({ events }: ToolWaterfallProps) {
               <div className="ml-5 pl-3 border-l-2 border-[var(--purple-muted)] my-1 space-y-2">
                 {evt.args != null && (
                   <div>
-                    <p className="text-[10px] font-medium text-[var(--text-secondary)] mb-0.5">
+                    <p className="text-[10px] font-medium text-[var(--muted-foreground)] mb-0.5">
                       {t("timeline.toolArgs")}
                     </p>
-                    <pre className="text-[11px] text-[var(--text-primary)] bg-[var(--bg-primary)] rounded p-2 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">
+                    <pre className="text-[11px] text-[var(--foreground)] bg-[var(--background)] rounded p-2 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">
                       {typeof evt.args === "string" ? evt.args : JSON.stringify(evt.args, null, 2)}
                     </pre>
                   </div>
                 )}
                 {evt.result != null && (
                   <div>
-                    <p className="text-[10px] font-medium text-[var(--text-secondary)] mb-0.5">
+                    <p className="text-[10px] font-medium text-[var(--muted-foreground)] mb-0.5">
                       {t("timeline.toolResult")}
                     </p>
-                    <pre className="text-[11px] text-[var(--text-primary)] bg-[var(--bg-primary)] rounded p-2 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">
+                    <pre className="text-[11px] text-[var(--foreground)] bg-[var(--background)] rounded p-2 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">
                       {typeof evt.result === "string"
                         ? evt.result
                         : JSON.stringify(evt.result, null, 2)}

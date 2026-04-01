@@ -116,7 +116,7 @@ export function BindingTable() {
     <div className="flex flex-col h-full min-h-0">
       {/* Header + filters */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--border-subtle)] shrink-0">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Binding Rules</h3>
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">Binding Rules</h3>
         <Button
           size="sm"
           onClick={() => setDialogOpen(true)}
@@ -129,9 +129,9 @@ export function BindingTable() {
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)] shrink-0">
-        <Filter size={13} className="text-[var(--text-secondary)] shrink-0" />
+        <Filter size={13} className="text-[var(--muted-foreground)] shrink-0" />
         <Select value={channelFilter} onValueChange={(v) => setChannelFilter(v ?? "__all__")}>
-          <SelectTrigger className="h-7 w-[130px] text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+          <SelectTrigger className="h-7 w-[130px] text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
             <SelectValue placeholder="Channel" />
           </SelectTrigger>
           <SelectContent>
@@ -144,7 +144,7 @@ export function BindingTable() {
           </SelectContent>
         </Select>
         <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v ?? "__all__")}>
-          <SelectTrigger className="h-7 w-[130px] text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+          <SelectTrigger className="h-7 w-[130px] text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
             <SelectValue placeholder="Agent" />
           </SelectTrigger>
           <SelectContent>
@@ -161,7 +161,7 @@ export function BindingTable() {
       {/* Table */}
       <div className="flex-1 overflow-auto min-h-0">
         {loading ? (
-          <div className="flex items-center justify-center h-32 text-xs text-[var(--text-secondary)]">
+          <div className="flex items-center justify-center h-32 text-xs text-[var(--muted-foreground)]">
             <div
               className="animate-spin rounded-full h-5 w-5 border-2 border-current mr-2"
               style={{ borderTopColor: "transparent" }}
@@ -169,13 +169,13 @@ export function BindingTable() {
             Loading...
           </div>
         ) : sorted.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-xs text-[var(--text-secondary)]">
+          <div className="flex items-center justify-center h-32 text-xs text-[var(--muted-foreground)]">
             No binding rules found
           </div>
         ) : (
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)]">
+              <tr className="border-b border-[var(--border-subtle)] text-[var(--muted-foreground)]">
                 <th className="text-left px-4 py-2 font-medium">Tier</th>
                 <th className="text-left px-3 py-2 font-medium">Match Conditions</th>
                 <th className="text-left px-3 py-2 font-medium">Agent</th>
@@ -190,7 +190,7 @@ export function BindingTable() {
                     key={binding.id}
                     className={cn(
                       "border-b border-[var(--border-subtle)] transition-colors",
-                      isDefault ? "bg-[var(--bg-primary)]/50" : "hover:bg-[var(--bg-tertiary)]/50",
+                      isDefault ? "bg-[var(--background)]/50" : "hover:bg-[var(--muted)]/50",
                     )}
                   >
                     <td className="px-4 py-2.5">
@@ -201,12 +201,12 @@ export function BindingTable() {
                         <button
                           type="button"
                           onClick={() => navigateToChannel(binding.match.channel)}
-                          className="text-[var(--text-secondary)] font-mono hover:text-[var(--accent)] transition-colors cursor-pointer"
+                          className="text-[var(--muted-foreground)] font-mono hover:text-[var(--primary)] transition-colors cursor-pointer"
                         >
                           {summarizeMatch(binding.match)}
                         </button>
                       ) : (
-                        <span className="text-[var(--text-secondary)] font-mono">
+                        <span className="text-[var(--muted-foreground)] font-mono">
                           {summarizeMatch(binding.match)}
                         </span>
                       )}
@@ -226,7 +226,7 @@ export function BindingTable() {
                           disabled={deletingId === binding.id}
                           className={cn(
                             "p-1 rounded-md transition-colors cursor-pointer",
-                            "text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-500/10",
+                            "text-[var(--muted-foreground)] hover:text-red-400 hover:bg-red-500/10",
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50",
                             "disabled:opacity-40 disabled:cursor-not-allowed",
                           )}
@@ -247,8 +247,8 @@ export function BindingTable() {
       {/* dmScope footer */}
       {dmScope && (
         <div className="px-4 py-2.5 border-t border-[var(--border-subtle)] shrink-0">
-          <span className="text-[10px] text-[var(--text-secondary)] font-mono">
-            DM Scope: <span className="text-[var(--text-primary)]">{dmScope}</span>
+          <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
+            DM Scope: <span className="text-[var(--foreground)]">{dmScope}</span>
           </span>
         </div>
       )}

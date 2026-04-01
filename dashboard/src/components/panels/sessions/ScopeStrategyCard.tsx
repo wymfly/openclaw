@@ -12,9 +12,9 @@ interface ScopeStrategyCardProps {
 }
 
 function ScopeDiagram({ mode }: { mode: string }) {
-  const box = "rounded-sm bg-[var(--accent)]/20 border border-[var(--accent)]/40";
+  const box = "rounded-sm bg-[var(--primary)]/20 border border-[var(--primary)]/40";
   const boxSm = cn(box, "w-5 h-5");
-  const label = "text-[8px] text-[var(--text-secondary)] leading-none";
+  const label = "text-[8px] text-[var(--muted-foreground)] leading-none";
 
   switch (mode) {
     case "main":
@@ -130,19 +130,19 @@ export function ScopeStrategyCard({
       onClick={onClick}
       className={cn(
         "flex flex-col gap-2 rounded-lg p-3 text-left transition-all cursor-pointer",
-        "ring-1 hover:ring-[var(--accent)]/50",
+        "ring-1 hover:ring-[var(--primary)]/50",
         selected
-          ? "ring-2 ring-[var(--accent)] bg-[var(--accent)]/5"
-          : "ring-[var(--border)] bg-[var(--bg-primary)]",
+          ? "ring-2 ring-[var(--primary)] bg-[var(--primary)]/5"
+          : "ring-[var(--border)] bg-[var(--background)]",
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-[var(--text-primary)]">{title}</span>
+        <span className="text-xs font-semibold text-[var(--foreground)]">{title}</span>
         {selected && (
-          <span className="text-[10px] font-medium text-[var(--accent)]">{t("scopeCurrent")}</span>
+          <span className="text-[10px] font-medium text-[var(--primary)]">{t("scopeCurrent")}</span>
         )}
       </div>
-      <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">{description}</p>
+      <p className="text-[11px] leading-relaxed text-[var(--muted-foreground)]">{description}</p>
       <ScopeDiagram mode={mode} />
     </button>
   );

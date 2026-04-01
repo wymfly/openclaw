@@ -14,10 +14,10 @@ import {
   getToolResultBlocks,
 } from "@/stores/chat-types";
 import type { ContentBlock, ChatMessage, RunMetadata } from "@/stores/chat-types";
-import { CompactionNotice } from "./CompactionNotice";
 import { ThinkingBlock } from "./blocks/ThinkingBlock";
 import { ToolResultCard } from "./blocks/ToolResultCard";
 import { ToolUseCard } from "./blocks/ToolUseCard";
+import { CompactionNotice } from "./CompactionNotice";
 import { RunStatusBar } from "./RunStatusBar";
 
 // Stable empty reference to avoid Zustand infinite re-render

@@ -16,7 +16,7 @@ export function ImageBlock({ data, mimeType, fileName }: ImageBlockProps) {
       <button
         type="button"
         onClick={() => setEnlarged(true)}
-        className="block rounded-lg overflow-hidden ring-1 ring-[var(--border-subtle)] hover:ring-[var(--accent)]/30 transition-all cursor-pointer max-w-[240px]"
+        className="block rounded-lg overflow-hidden ring-1 ring-[var(--border-subtle)] hover:ring-[var(--primary)]/30 transition-all cursor-pointer max-w-[240px]"
         aria-label={fileName ?? "image"}
       >
         <img

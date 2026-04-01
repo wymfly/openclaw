@@ -228,7 +228,9 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
               />
             ) : (
               <div className="w-10 h-10 rounded-xl bg-[var(--primary-muted)] flex items-center justify-center text-lg ring-1 ring-[var(--primary)]/20">
-                {agentIdentity?.emoji ?? (detail.name || detail.id)?.charAt(0)?.toUpperCase() ?? "?"}
+                {agentIdentity?.emoji ??
+                  (detail.name || detail.id)?.charAt(0)?.toUpperCase() ??
+                  "?"}
               </div>
             )}
             <div className="text-xs">

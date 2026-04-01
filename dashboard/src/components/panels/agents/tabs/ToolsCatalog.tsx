@@ -22,13 +22,13 @@ interface ToolsCatalogProps {
   onOverrideChange: (allow: string[], deny: string[]) => void;
 }
 
-function getOverrideState(
-  toolId: string,
-  allow: string[],
-  deny: string[],
-): OverrideState {
-  if (deny.includes(toolId)) {return "deny";}
-  if (allow.includes(toolId)) {return "allow";}
+function getOverrideState(toolId: string, allow: string[], deny: string[]): OverrideState {
+  if (deny.includes(toolId)) {
+    return "deny";
+  }
+  if (allow.includes(toolId)) {
+    return "allow";
+  }
   return "default";
 }
 
@@ -59,8 +59,12 @@ export function ToolsCatalog({
     (toolId: string, newState: OverrideState) => {
       let nextAllow = toolsAllow.filter((id) => id !== toolId);
       let nextDeny = toolsDeny.filter((id) => id !== toolId);
-      if (newState === "allow") {nextAllow = [...nextAllow, toolId];}
-      if (newState === "deny") {nextDeny = [...nextDeny, toolId];}
+      if (newState === "allow") {
+        nextAllow = [...nextAllow, toolId];
+      }
+      if (newState === "deny") {
+        nextDeny = [...nextDeny, toolId];
+      }
       onOverrideChange(nextAllow, nextDeny);
     },
     [toolsAllow, toolsDeny, onOverrideChange],
@@ -119,9 +123,7 @@ export function ToolsCatalog({
                 />
               ))
             ) : (
-              <p className="text-xs text-[var(--muted-foreground)]">
-                {t("toolsCatalogEmpty")}
-              </p>
+              <p className="text-xs text-[var(--muted-foreground)]">{t("toolsCatalogEmpty")}</p>
             )}
           </div>
         </CollapsibleContent>
@@ -167,9 +169,7 @@ function ToolGroup({
         >
           {group.source}
         </Badge>
-        <span className="text-[10px] text-[var(--muted-foreground)]">
-          ({group.tools.length})
-        </span>
+        <span className="text-[10px] text-[var(--muted-foreground)]">({group.tools.length})</span>
       </button>
       {groupOpen && (
         <div className="ml-4 mt-1 space-y-0.5">

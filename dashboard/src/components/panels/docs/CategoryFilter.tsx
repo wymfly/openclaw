@@ -6,11 +6,11 @@ import { useDocsStore, type DocCategory } from "@/stores/docs";
 const CATEGORIES: Array<DocCategory | null> = [null, "summary", "plan", "spec", "manual", "draft"];
 
 const CATEGORY_COLORS: Record<DocCategory, string> = {
-  summary: "#3b82f6",
-  plan: "#8b5cf6",
-  spec: "#f59e0b",
-  manual: "#10b981",
-  draft: "#6b7280",
+  summary: "var(--doc-summary)",
+  plan: "var(--doc-plan)",
+  spec: "var(--doc-spec)",
+  manual: "var(--doc-manual)",
+  draft: "var(--doc-draft)",
 };
 
 export function CategoryFilter() {
@@ -41,9 +41,9 @@ export function CategoryFilter() {
               backgroundColor: isActive
                 ? cat
                   ? CATEGORY_COLORS[cat]
-                  : "var(--accent)"
+                  : "var(--primary)"
                 : "transparent",
-              color: isActive ? "var(--accent-fg)" : "var(--text-secondary)",
+              color: isActive ? "var(--primary-foreground)" : "var(--muted-foreground)",
               border: isActive ? "none" : "1px solid var(--border)",
             }}
             onClick={() => setFilterCategory(cat)}

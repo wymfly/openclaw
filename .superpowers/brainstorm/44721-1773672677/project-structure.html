@@ -1,0 +1,153 @@
+<h2>openclaw-deck Project Structure</h2>
+<p class="subtitle">Monorepo layout + internal module boundaries</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Directory Layout</div>
+    <div
+      class="mockup-body"
+      style="padding: 16px; font-family: monospace; font-size: 12.5px; line-height: 2"
+    >
+      <span style="color: #f59e0b">dashboard/</span>
+      <span style="color: #64748b"># pnpm workspace package</span> ├──
+      <span style="color: #f59e0b">package.json</span>
+      <span style="color: #64748b"># name: "openclaw-deck"</span> ├──
+      <span style="color: #f59e0b">next.config.ts</span> ├──
+      <span style="color: #f59e0b">tsconfig.json</span> │ ├──
+      <span style="color: #8b5cf6">server/</span>
+      <span style="color: #64748b"># Node.js server layer</span> │ ├── gateway-adapter.ts
+      <span style="color: #10b981">← studio (511 LOC)</span> │ ├── event-bus.ts
+      <span style="color: #10b981">← MC (64 LOC)</span> │ ├── projection-store.ts
+      <span style="color: #10b981">← studio (SQLite outbox)</span> │ ├── access-gate.ts
+      <span style="color: #10b981">← studio + CC</span> │ ├── rate-limit.ts
+      <span style="color: #10b981">← MC (200 LOC)</span> │ └── contracts.ts
+      <span style="color: #10b981">← studio (WS protocol types)</span> │ ├──
+      <span style="color: #3b82f6">src/</span> │ ├── <span style="color: #3b82f6">app/</span>
+      <span style="color: #64748b"># Next.js App Router</span> │ │ ├── layout.tsx │ │ ├── page.tsx
+      <span style="color: #64748b"># SPA entry</span> │ │ └──
+      <span style="color: #3b82f6">api/</span>
+      <span style="color: #64748b"># API Routes (~40 endpoints)</span> │ │ ├── gateway/
+      <span style="color: #64748b"># status, health</span> │ │ ├── chat/
+      <span style="color: #64748b"># send, abort, history</span> │ │ ├── agents/
+      <span style="color: #64748b"># CRUD, config, files</span> │ │ ├── sessions/
+      <span style="color: #64748b"># list, detail, delete</span> │ │ ├── cron/
+      <span style="color: #64748b"># CRUD, run</span> │ │ ├── approvals/
+      <span style="color: #64748b"># get, resolve</span> │ │ ├── usage/
+      <span style="color: #64748b"># tokens, costs, budget</span> │ │ ├── webhooks/
+      <span style="color: #64748b"># CRUD, deliveries</span> │ │ ├── memory/
+      <span style="color: #64748b"># search, browse, graph</span> │ │ ├── skills/
+      <span style="color: #64748b"># list, install, config</span> │ │ ├── channels/
+      <span style="color: #64748b"># status, config</span> │ │ ├── logs/
+      <span style="color: #64748b"># stream, filter</span> │ │ ├── alerts/
+      <span style="color: #64748b"># rules CRUD</span> │ │ ├── activity/
+      <span style="color: #64748b"># feed</span> │ │ ├── docs/
+      <span style="color: #64748b"># doc hub</span> │ │ ├── stream/
+      <span style="color: #64748b"># SSE endpoint</span> │ │ └── settings/
+      <span style="color: #64748b"># deck config</span> │ │ │ ├──
+      <span style="color: #3b82f6">components/</span> │ │ ├──
+      <span style="color: #3b82f6">ui/</span>
+      <span style="color: #64748b"># shadcn/ui primitives</span> │ │ ├──
+      <span style="color: #3b82f6">layout/</span>
+      <span style="color: #64748b"># Shell, NavRail, Header</span> │ │ └──
+      <span style="color: #3b82f6">panels/</span>
+      <span style="color: #64748b"># 16 panels (each &lt;500 LOC)</span> │ │ ├── chat/ │ │ ├──
+      agents/ │ │ ├── gateway-overview/ │ │ ├── usage/ │ │ ├── sessions/ │ │ ├── cron/ │ │ ├──
+      approvals/ │ │ ├── budget/ │ │ ├── alerts/ │ │ ├── webhooks/ │ │ ├── memory/ │ │ ├── skills/ │
+      │ ├── channels/ │ │ ├── logs/ │ │ ├── activity/ │ │ └── docs/ │ │ │ ├──
+      <span style="color: #3b82f6">lib/</span> <span style="color: #64748b"># Shared logic</span> │
+      │ ├── token-pricing.ts <span style="color: #10b981">← MC (77 LOC)</span> │ │ ├──
+      budget-governance.ts <span style="color: #10b981">← CC</span> │ │ ├── commander.ts
+      <span style="color: #10b981">← CC (alert routing)</span> │ │ ├── injection-guard.ts
+      <span style="color: #10b981">← MC (330 LOC)</span> │ │ ├── webhooks.ts
+      <span style="color: #10b981">← MC (372 LOC)</span> │ │ ├── message-extract.ts
+      <span style="color: #10b981">← studio</span> │ │ └── api-client.ts
+      <span style="color: #64748b"># Browser fetch wrapper</span> │ │ │ ├──
+      <span style="color: #3b82f6">stores/</span>
+      <span style="color: #64748b"># Zustand slices (NOT monolithic)</span> │ │ ├── gateway.ts
+      <span style="color: #64748b"># connection state</span> │ │ ├── chat.ts
+      <span style="color: #64748b"># messages, sessions</span> │ │ ├── agents.ts
+      <span style="color: #64748b"># fleet</span> │ │ ├── usage.ts
+      <span style="color: #64748b"># tokens, costs</span> │ │ ├── cron.ts │ │ ├── ui.ts
+      <span style="color: #64748b"># sidebar, theme, locale</span> │ │ └── notifications.ts │ │ │
+      ├── <span style="color: #3b82f6">i18n/</span>
+      <span style="color: #64748b"># next-intl</span> │ │ ├── en.json │ │ └── zh.json │ │ │ └──
+      <span style="color: #3b82f6">types/</span>
+      <span style="color: #64748b"># Shared TypeScript types</span> │ ├──
+      <span style="color: #f59e0b">migrations/</span>
+      <span style="color: #64748b"># SQLite schema migrations</span> │ ├── 001_init.sql │ └── ... │
+      └── <span style="color: #f59e0b">tests/</span>
+      ├── unit/ └── e2e/
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Module Boundaries & Rules</div>
+    <div class="mockup-body" style="padding: 16px; font-size: 13.5px; line-height: 1.8">
+      <div style="margin-bottom: 20px">
+        <div style="color: #8b5cf6; font-weight: 600; margin-bottom: 6px">
+          server/ — 服务端基础设施
+        </div>
+        <div style="color: #94a3b8">
+          • 进程级单例，Next.js 启动时初始化<br />
+          • 持有 Gateway WS 连接<br />
+          • 管理 SQLite + EventBus<br />
+          • <strong>不含业务逻辑</strong>，只做连接/存储/广播
+        </div>
+      </div>
+      <div style="margin-bottom: 20px">
+        <div style="color: #3b82f6; font-weight: 600; margin-bottom: 6px">
+          src/app/api/ — API 契约层
+        </div>
+        <div style="color: #94a3b8">
+          • 每个路由文件 &lt; 100 行<br />
+          • 只做参数校验 → 调用 lib → 返回响应<br />
+          • <strong>claw-platform 的封装入口</strong>
+        </div>
+      </div>
+      <div style="margin-bottom: 20px">
+        <div style="color: #10b981; font-weight: 600; margin-bottom: 6px">
+          src/lib/ — 业务逻辑层
+        </div>
+        <div style="color: #94a3b8">
+          • 纯函数优先，可测试<br />
+          • 每个文件 &lt; 500 行<br />
+          • 移植模块保持原始接口<br />
+          • 新增模块遵循同样约束
+        </div>
+      </div>
+      <div style="margin-bottom: 20px">
+        <div style="color: #f59e0b; font-weight: 600; margin-bottom: 6px">
+          src/stores/ — 状态管理
+        </div>
+        <div style="color: #94a3b8">
+          • <strong>多 Zustand slice</strong>，禁止单体 store<br />
+          • 每个 slice &lt; 200 行<br />
+          • subscribeWithSelector 中间件
+        </div>
+      </div>
+      <div style="margin-bottom: 20px">
+        <div style="color: #ef4444; font-weight: 600; margin-bottom: 6px">
+          src/components/panels/ — UI 面板
+        </div>
+        <div style="color: #94a3b8">
+          • 每个面板一个子目录<br />
+          • 入口组件 + 子组件拆分<br />
+          • 每个文件 &lt; 500 行<br />
+          • shadcn/ui 基础组件
+        </div>
+      </div>
+      <div style="border-top: 1px solid #334155; padding-top: 16px">
+        <div style="color: #e2e8f0; font-weight: 600; margin-bottom: 6px">Hard Rules</div>
+        <div style="color: #94a3b8">
+          ✅ 每个文件 &lt; 500 LOC<br />
+          ✅ 每个 store slice &lt; 200 LOC<br />
+          ✅ 每个 API route &lt; 100 LOC<br />
+          ✅ 零 <code>any</code>，strict TypeScript<br />
+          ✅ 中英双语所有 UI 文本<br />
+          ❌ 禁止单体 store<br />
+          ❌ 禁止直连 Gateway（必须经 server 中转）
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -103,7 +103,7 @@ export function FieldValidationError({
   }
 
   return (
-    <p className="mt-0.5 text-[10px] text-[var(--danger)] leading-tight" role="alert">
+    <p className="mt-0.5 text-[10px] text-[var(--destructive)] leading-tight" role="alert">
       {message}
     </p>
   );

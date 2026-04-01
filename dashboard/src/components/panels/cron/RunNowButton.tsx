@@ -25,7 +25,7 @@ export function RunNowButton({ jobId }: RunNowButtonProps) {
     <button
       type="button"
       className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-      style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+      style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
       onClick={handleRun}
       disabled={running}
     >

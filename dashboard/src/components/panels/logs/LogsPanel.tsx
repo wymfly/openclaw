@@ -35,7 +35,10 @@ export function LogsPanel() {
           <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--foreground)" }}>
             {t("title")}
           </h2>
-          <span className="text-[10px] font-mono shrink-0" style={{ color: "var(--muted-foreground)" }}>
+          <span
+            className="text-[10px] font-mono shrink-0"
+            style={{ color: "var(--muted-foreground)" }}
+          >
             {t("bufferCount", { current: totalEntries, max: maxEntries })}
           </span>
           <LogFilters />

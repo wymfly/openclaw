@@ -34,7 +34,8 @@ const KIND_BADGE: Record<string, string> = {
   direct: "bg-blue-500/15 text-blue-400 border-blue-500/25",
   group: "bg-purple-500/15 text-purple-400 border-purple-500/25",
   global: "bg-teal-500/15 text-teal-400 border-teal-500/25",
-  unknown: "bg-gray-500/15 text-gray-400 border-gray-500/25",
+  unknown:
+    "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)] border-[var(--neutral-muted)]",
 };
 
 /** Check if a session key indicates a subagent session */
@@ -96,7 +97,7 @@ export function SessionsTab({ agentId }: SessionsTabProps) {
       {/* Filter */}
       <div className="flex items-center gap-2">
         <Select value={filter} onValueChange={(v) => setFilter(v as SessionFilter)}>
-          <SelectTrigger className="w-40 h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+          <SelectTrigger className="w-40 h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -107,18 +108,18 @@ export function SessionsTab({ agentId }: SessionsTabProps) {
             ))}
           </SelectContent>
         </Select>
-        <span className="text-[10px] text-[var(--text-secondary)]">
+        <span className="text-[10px] text-[var(--muted-foreground)]">
           {filteredSessions.length} / {agentSessions.length}
         </span>
       </div>
 
       {/* Session list */}
       {loading && sessions.length === 0 && (
-        <div className="py-6 text-center text-xs text-[var(--text-secondary)]">Loading...</div>
+        <div className="py-6 text-center text-xs text-[var(--muted-foreground)]">Loading...</div>
       )}
 
       {!loading && filteredSessions.length === 0 && (
-        <div className="py-6 text-center text-xs text-[var(--text-secondary)]">
+        <div className="py-6 text-center text-xs text-[var(--muted-foreground)]">
           {t("noSessions")}
         </div>
       )}
@@ -132,7 +133,7 @@ export function SessionsTab({ agentId }: SessionsTabProps) {
           return (
             <Card
               key={session.key}
-              className="p-3 bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer hover:border-[var(--accent)]/30 transition-colors"
+              className="p-3 bg-[var(--background)] border-[var(--border)] cursor-pointer hover:border-[var(--primary)]/30 transition-colors"
               onClick={() => navigateToSession(session.key)}
             >
               <div className="flex items-center justify-between gap-2">
@@ -146,16 +147,16 @@ export function SessionsTab({ agentId }: SessionsTabProps) {
                   >
                     {ts(session.kind)}
                   </Badge>
-                  <span className="text-[10px] font-mono text-[var(--text-secondary)] truncate">
+                  <span className="text-[10px] font-mono text-[var(--muted-foreground)] truncate">
                     {session.key}
                   </span>
                 </div>
-                <span className="text-[10px] text-[var(--text-secondary)] shrink-0">
+                <span className="text-[10px] text-[var(--muted-foreground)] shrink-0">
                   {formatTime(session.updatedAt)}
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-[var(--text-secondary)]">
+              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-[var(--muted-foreground)]">
                 {session.model && <span className="font-mono">{session.model}</span>}
                 <span>
                   {ts("tokensIn")}: {session.tokensIn.toLocaleString()}
@@ -169,13 +170,13 @@ export function SessionsTab({ agentId }: SessionsTabProps) {
               {isSub && (
                 <div className="flex items-center gap-3 mt-1.5">
                   {depth !== null && (
-                    <span className="text-[10px] text-[var(--text-secondary)]">
+                    <span className="text-[10px] text-[var(--muted-foreground)]">
                       {t("depth")}: {depth}
                     </span>
                   )}
                   {parentAgent && (
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-[var(--text-secondary)]">
+                      <span className="text-[10px] text-[var(--muted-foreground)]">
                         {t("parentAgent")}:
                       </span>
                       <AgentBadge agentId={parentAgent} />
