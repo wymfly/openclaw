@@ -22,6 +22,7 @@ import { CanvasPanel } from "./CanvasPanel";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { RightPanel } from "./RightPanel";
+import { SessionConfigBar } from "./SessionConfigBar";
 import { SessionSidebar } from "./SessionSidebar";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { useChatSSE } from "./useChatSSE";
@@ -363,6 +364,7 @@ export function ChatPanel() {
             <BlockFilterBar preferences={blockPrefs} onChange={handleBlockPrefsChange} />
           )}
           <ToolProgressBar />
+          <SessionConfigBar />
           <MessageInput />
         </div>
         <RightPanel mode={rightPanelMode} onClose={handleCloseRightPanel}>
