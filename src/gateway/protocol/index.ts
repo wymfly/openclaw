@@ -535,6 +535,7 @@ import {
   DeckIdentityLinkParamsSchema,
   DeckIdentityUnlinkParamsSchema,
   DeckThreadsListParamsSchema,
+  DeckCommandsDiscoverParamsSchema,
 } from "./schema/deck.js";
 
 // deck.routing.*
@@ -575,6 +576,8 @@ export const validateDeckIdentityLinkParams = ajv.compile(DeckIdentityLinkParams
 export const validateDeckIdentityUnlinkParams = ajv.compile(DeckIdentityUnlinkParamsSchema);
 // deck.threads.*
 export const validateDeckThreadsListParams = ajv.compile(DeckThreadsListParamsSchema);
+// deck.commands.*
+export const validateDeckCommandsDiscoverParams = ajv.compile(DeckCommandsDiscoverParamsSchema);
 
 export function formatValidationErrors(errors: ErrorObject[] | null | undefined) {
   if (!errors?.length) {

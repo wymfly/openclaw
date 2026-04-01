@@ -555,6 +555,31 @@ export const DeckThreadsListResultSchema = Type.Object({
   threads: Type.Array(ThreadBindingSchema),
 });
 
+// === deck.commands.* ===
+
+const DiscoverableCommandSchema = Type.Object({
+  name: Type.String(),
+  source: Type.Union([Type.Literal("builtin"), Type.Literal("skill"), Type.Literal("plugin")]),
+  description: Type.String(),
+  args: Type.Optional(Type.String()),
+  argChoices: Type.Optional(Type.Array(Type.String())),
+  category: Type.Optional(Type.String()),
+  skillName: Type.Optional(Type.String()),
+  pluginId: Type.Optional(Type.String()),
+});
+
+export const DeckCommandsDiscoverParamsSchema = Type.Object(
+  {
+    agentId: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const DeckCommandsDiscoverResultSchema = Type.Object({
+  commands: Type.Array(DiscoverableCommandSchema),
+  version: Type.String(),
+});
+
 // === deck.auth.* results ===
 // NOTE: handlers in src/gateway/server-methods/deck-auth.ts (NOT in deck/ subdir)
 
