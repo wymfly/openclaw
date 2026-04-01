@@ -8,8 +8,9 @@ import { useActiveSessionKey } from "@/stores/chat-hooks";
 export function SessionConfigBar() {
   const t = useTranslations("chat");
   const activeSessionKey = useActiveSessionKey();
-  const sessionMetas = useChatStore((s) => s.sessionMetas);
-  const meta = sessionMetas.find((m) => m.key === activeSessionKey);
+  const meta = useChatStore((s) =>
+    s.sessionMetas.find((m) => m.key === activeSessionKey),
+  );
 
   if (!activeSessionKey || !meta) return null;
 

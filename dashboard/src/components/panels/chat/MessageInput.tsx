@@ -308,6 +308,13 @@ export function MessageInput() {
       return;
     }
 
+    // Catch unregistered slash commands (e.g. removed /focus) — don't send as message
+    if (/^\/[a-z]+(\s|$)/i.test(text)) {
+      const cmdName = text.slice(1).split(/\s/)[0];
+      useNotificationsStore.getState().addToast("error", `Unknown command: /${cmdName}`, 3000);
+      return;
+    }
+
     // Push to input history
     history.push(text);
 
