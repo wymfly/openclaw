@@ -31,11 +31,11 @@ All levels: developers/ops (need discoverability across 1,200+ fields), team adm
 
 All data needed is already available via existing Gateway RPC methods:
 
-| RPC Method      | Returns                                                                    | Used For                                                             |
-| ---------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `config.schema`  | JSON Schema + `uiHints` (label, help, tags, group, placeholder, sensitive) | Field descriptions, grouping, advanced tagging                       |
-| `config.get`     | Current config (full JSON) + baseHash                                      | Reading values, detecting agent overrides vs defaults, channel config |
-| `config.patch`   | Write result + new baseHash                                                | Saving changes (JSON Merge Patch; `null` = delete key)               |
+| RPC Method      | Returns                                                                    | Used For                                                              |
+| --------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `config.schema` | JSON Schema + `uiHints` (label, help, tags, group, placeholder, sensitive) | Field descriptions, grouping, advanced tagging                        |
+| `config.get`    | Current config (full JSON) + baseHash                                      | Reading values, detecting agent overrides vs defaults, channel config |
+| `config.patch`  | Write result + new baseHash                                                | Saving changes (JSON Merge Patch; `null` = delete key)                |
 
 Note: `deck.agents.detail` returns agent metadata (id, name, model, status, subagents, skills, sandbox) but does **not** include inference parameters like `thinkingDefault`, `temperature`, `tools.profile`, `fastModeDefault`, or `reasoningDefault`. Therefore, the Agent Config Editor reads **all** agent fields from `config.get` raw config, not from `deck.agents.detail`.
 
@@ -126,6 +126,7 @@ The main `SchemaForm` switch currently handles 6 basic types. Already-built comp
 | `FieldValidation` | `field.validation` constraints exist           | ❌ Not wired    |
 
 **Change:** Extend `SchemaForm`'s switch to route to these components when their trigger conditions are met. Also extend `schema-parser.ts`:
+
 - Add `group`, `tags`, `help` properties to the `FormField` interface (alongside existing `sensitive`, `variants`, `valueSchema`, `itemSchema`)
 - Populate these in `parseProperty()` from the merged schema + uiHints data
 - This approach (extending `FormField`) is preferred over passing a parallel uiHints map to SchemaForm, because the recursive rendering tree already expects all display metadata on the field object, and `applyUiHints()` already follows a "decorate then render" pattern.

@@ -10,30 +10,30 @@
 
 **Skill dependencies:**
 
-| Domain | Skills |
-|--------|--------|
+| Domain       | Skills                                                   |
+| ------------ | -------------------------------------------------------- |
 | `[frontend]` | `frontend-design`, `superpowers:test-driven-development` |
 
 ---
 
 ## File Structure
 
-| Action | Path | Responsibility |
-|--------|------|---------------|
-| Create | `dashboard/src/components/panels/chat/shared-renderer/SharedRenderer.tsx` | Pure render routing — receives ArtifactInfo, outputs preview UI |
-| Create | `dashboard/src/components/panels/chat/shared-renderer/download.ts` | Download logic (triggerDownload, EXTENSION_MAP, MIME_MAP) |
-| Create | `dashboard/src/components/panels/chat/shared-renderer/srcdoc.ts` | buildSrcdoc + usesIframe (moved from ArtifactPanel) |
-| Move | `dashboard/src/components/panels/chat/shared-renderer/CodeViewer.tsx` | Moved from `artifacts/CodeViewer.tsx` |
-| Move | `dashboard/src/components/panels/chat/shared-renderer/MarkdownViewer.tsx` | Moved from `artifacts/MarkdownViewer.tsx` |
-| Move | `dashboard/src/components/panels/chat/shared-renderer/JsonTree.tsx` | Moved from `artifacts/JsonTree.tsx` |
-| Move | `dashboard/src/components/panels/chat/shared-renderer/TableViewer.tsx` | Moved from `artifacts/TableViewer.tsx` |
-| Modify | `dashboard/src/components/panels/chat/artifacts/ArtifactPanel.tsx` | Simplify to toolbar + SharedRenderer |
-| Modify | `dashboard/src/components/panels/chat/artifacts/detectArtifact.ts` | Add ArtifactLanguage export, EXT_MAP, image detection, relaxed markdown, filePath in source |
-| Modify | `dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx` | Pass filePath to detectArtifact |
-| Modify | `dashboard/src/i18n/zh.json` | Add download button key |
-| Modify | `dashboard/src/i18n/en.json` | Add download button key |
-| Create | `dashboard/src/components/panels/chat/shared-renderer/__tests__/download.test.ts` | Unit tests for download logic |
-| Modify | `dashboard/src/components/panels/chat/artifacts/__tests__/detectArtifact-enhanced.test.ts` | Add extension priority + image tests |
+| Action | Path                                                                                       | Responsibility                                                                              |
+| ------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Create | `dashboard/src/components/panels/chat/shared-renderer/SharedRenderer.tsx`                  | Pure render routing — receives ArtifactInfo, outputs preview UI                             |
+| Create | `dashboard/src/components/panels/chat/shared-renderer/download.ts`                         | Download logic (triggerDownload, EXTENSION_MAP, MIME_MAP)                                   |
+| Create | `dashboard/src/components/panels/chat/shared-renderer/srcdoc.ts`                           | buildSrcdoc + usesIframe (moved from ArtifactPanel)                                         |
+| Move   | `dashboard/src/components/panels/chat/shared-renderer/CodeViewer.tsx`                      | Moved from `artifacts/CodeViewer.tsx`                                                       |
+| Move   | `dashboard/src/components/panels/chat/shared-renderer/MarkdownViewer.tsx`                  | Moved from `artifacts/MarkdownViewer.tsx`                                                   |
+| Move   | `dashboard/src/components/panels/chat/shared-renderer/JsonTree.tsx`                        | Moved from `artifacts/JsonTree.tsx`                                                         |
+| Move   | `dashboard/src/components/panels/chat/shared-renderer/TableViewer.tsx`                     | Moved from `artifacts/TableViewer.tsx`                                                      |
+| Modify | `dashboard/src/components/panels/chat/artifacts/ArtifactPanel.tsx`                         | Simplify to toolbar + SharedRenderer                                                        |
+| Modify | `dashboard/src/components/panels/chat/artifacts/detectArtifact.ts`                         | Add ArtifactLanguage export, EXT_MAP, image detection, relaxed markdown, filePath in source |
+| Modify | `dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx`                           | Pass filePath to detectArtifact                                                             |
+| Modify | `dashboard/src/i18n/zh.json`                                                               | Add download button key                                                                     |
+| Modify | `dashboard/src/i18n/en.json`                                                               | Add download button key                                                                     |
+| Create | `dashboard/src/components/panels/chat/shared-renderer/__tests__/download.test.ts`          | Unit tests for download logic                                                               |
+| Modify | `dashboard/src/components/panels/chat/artifacts/__tests__/detectArtifact-enhanced.test.ts` | Add extension priority + image tests                                                        |
 
 ---
 
@@ -42,6 +42,7 @@
 Export the `ArtifactLanguage` type from `detectArtifact.ts` (needed by SharedRenderer and download.ts in later tasks), add `"image"` to the union. Then move the four viewer components and srcdoc builder from `artifacts/` to `shared-renderer/`, updating all import paths.
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/chat/shared-renderer/srcdoc.ts`
 - Create: `dashboard/src/components/panels/chat/shared-renderer/CodeViewer.tsx`
 - Create: `dashboard/src/components/panels/chat/shared-renderer/MarkdownViewer.tsx`
@@ -60,9 +61,14 @@ In `dashboard/src/components/panels/chat/artifacts/detectArtifact.ts`, extract t
 ```typescript
 // At the top of detectArtifact.ts, replace the interface:
 export type ArtifactLanguage =
-  | "html" | "svg" | "mermaid"
-  | "json" | "csv" | "markdown"
-  | "code" | "text"
+  | "html"
+  | "svg"
+  | "mermaid"
+  | "json"
+  | "csv"
+  | "markdown"
+  | "code"
+  | "text"
   | "image";
 
 export interface ArtifactInfo {
@@ -108,6 +114,7 @@ export function usesIframe(language: ArtifactInfo["language"]): boolean {
 - [ ] **Step 3: Move viewer components**
 
 Copy the four viewer files from `artifacts/` to `shared-renderer/`, keeping content identical:
+
 - `artifacts/CodeViewer.tsx` → `shared-renderer/CodeViewer.tsx`
 - `artifacts/MarkdownViewer.tsx` → `shared-renderer/MarkdownViewer.tsx`
 - `artifacts/JsonTree.tsx` → `shared-renderer/JsonTree.tsx`
@@ -155,6 +162,7 @@ git commit -m "[enhanced] refactor: extract shared-renderer from artifact viewer
 Create the pure rendering component that routes to the correct viewer based on artifact language.
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/chat/shared-renderer/SharedRenderer.tsx`
 
 - [ ] **Step 1: Create SharedRenderer**
@@ -233,6 +241,7 @@ git commit -m "[enhanced] feat(deck): create SharedRenderer component"
 Replace the inline rendering logic in ArtifactPanel with a SharedRenderer call, and add a download button.
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/chat/artifacts/ArtifactPanel.tsx`
 - Create: `dashboard/src/components/panels/chat/shared-renderer/download.ts`
 - Modify: `dashboard/src/i18n/zh.json`
@@ -266,13 +275,23 @@ describe("download", () => {
   });
 
   it("falls back to artifact.{ext}", () => {
-    expect(
-      buildDownloadFilename({ id: "1", title: "", language: "csv", content: "" }),
-    ).toBe("artifact.csv");
+    expect(buildDownloadFilename({ id: "1", title: "", language: "csv", content: "" })).toBe(
+      "artifact.csv",
+    );
   });
 
   it("has entries for all languages in EXTENSION_MAP", () => {
-    const languages = ["html", "svg", "mermaid", "json", "csv", "markdown", "code", "text", "image"];
+    const languages = [
+      "html",
+      "svg",
+      "mermaid",
+      "json",
+      "csv",
+      "markdown",
+      "code",
+      "text",
+      "image",
+    ];
     for (const lang of languages) {
       expect(EXTENSION_MAP).toHaveProperty(lang);
       expect(MIME_MAP).toHaveProperty(lang);
@@ -320,9 +339,7 @@ export const MIME_MAP: Record<Lang, string> = {
 
 export function buildDownloadFilename(artifact: ArtifactInfo): string {
   return (
-    artifact.source?.fileName ||
-    artifact.title ||
-    `artifact.${EXTENSION_MAP[artifact.language]}`
+    artifact.source?.fileName || artifact.title || `artifact.${EXTENSION_MAP[artifact.language]}`
   );
 }
 
@@ -339,10 +356,7 @@ export function downloadArtifact(artifact: ArtifactInfo): void {
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     triggerDownload(new Blob([bytes], { type: mime }), filename);
   } else {
-    triggerDownload(
-      new Blob([artifact.content], { type: MIME_MAP[artifact.language] }),
-      filename,
-    );
+    triggerDownload(new Blob([artifact.content], { type: MIME_MAP[artifact.language] }), filename);
   }
 }
 
@@ -364,11 +378,13 @@ Expected: PASS (4 tests)
 - [ ] **Step 5: Add i18n keys**
 
 In `dashboard/src/i18n/zh.json`, in the `chat` section, add:
+
 ```json
 "artifactDownload": "下载"
 ```
 
 In `dashboard/src/i18n/en.json`, in the `chat` section, add:
+
 ```json
 "artifactDownload": "Download"
 ```
@@ -486,6 +502,7 @@ git commit -m "[enhanced] feat(deck): simplify ArtifactPanel with SharedRenderer
 Add file-extension-based detection as the highest priority path, add image type support, relax markdown threshold, and pass `filePath` through to the returned ArtifactInfo.
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/chat/artifacts/detectArtifact.ts`
 - Modify: `dashboard/src/components/panels/chat/artifacts/__tests__/detectArtifact-enhanced.test.ts`
 
@@ -494,66 +511,70 @@ Add file-extension-based detection as the highest priority path, add image type 
 Append to `dashboard/src/components/panels/chat/artifacts/__tests__/detectArtifact-enhanced.test.ts`:
 
 ```typescript
-  // --- Extension priority tests ---
+// --- Extension priority tests ---
 
-  it("detects language from .html extension", () => {
-    const result = detectArtifact("some generic content that is long enough to pass the minimum length check", {
+it("detects language from .html extension", () => {
+  const result = detectArtifact(
+    "some generic content that is long enough to pass the minimum length check",
+    {
       toolName: "write",
       filePath: "/tmp/output.html",
-    });
-    expect(result?.language).toBe("html");
-    expect(result?.source?.filePath).toBe("/tmp/output.html");
+    },
+  );
+  expect(result?.language).toBe("html");
+  expect(result?.source?.filePath).toBe("/tmp/output.html");
+});
+
+it("detects code from .py extension", () => {
+  const result = detectArtifact("def hello():\n    print('hello world')\n    return True", {
+    toolName: "write",
+    filePath: "script.py",
   });
+  expect(result?.language).toBe("code");
+  expect(result?.codeLang).toBe("py");
+});
 
-  it("detects code from .py extension", () => {
-    const result = detectArtifact("def hello():\n    print('hello world')\n    return True", {
-      toolName: "write",
-      filePath: "script.py",
-    });
-    expect(result?.language).toBe("code");
-    expect(result?.codeLang).toBe("py");
+it("validates JSON even with .json extension", () => {
+  const result = detectArtifact("this is not json but long enough to pass twenty chars", {
+    toolName: "write",
+    filePath: "data.json",
   });
+  // Should fall through to content heuristics since content is not valid JSON
+  expect(result?.language).not.toBe("json");
+});
 
-  it("validates JSON even with .json extension", () => {
-    const result = detectArtifact("this is not json but long enough to pass twenty chars", {
-      toolName: "write",
-      filePath: "data.json",
-    });
-    // Should fall through to content heuristics since content is not valid JSON
-    expect(result?.language).not.toBe("json");
+it("uses extension title from filePath", () => {
+  const result = detectArtifact("body { color: red; }\n.container { display: flex; }", {
+    toolName: "write",
+    filePath: "/app/styles/main.css",
   });
+  expect(result?.title).toBe("main.css");
+});
 
-  it("uses extension title from filePath", () => {
-    const result = detectArtifact("body { color: red; }\n.container { display: flex; }", {
-      toolName: "write",
-      filePath: "/app/styles/main.css",
-    });
-    expect(result?.title).toBe("main.css");
-  });
+// --- Image detection tests ---
 
-  // --- Image detection tests ---
+it("detects base64 PNG image", () => {
+  const dataUri =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk";
+  const result = detectArtifact(dataUri);
+  expect(result?.language).toBe("image");
+  expect(result?.codeLang).toBe("png");
+  expect(result?.content).toBe(dataUri);
+});
 
-  it("detects base64 PNG image", () => {
-    const dataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk";
-    const result = detectArtifact(dataUri);
-    expect(result?.language).toBe("image");
-    expect(result?.codeLang).toBe("png");
-    expect(result?.content).toBe(dataUri);
-  });
+it("detects base64 JPEG image", () => {
+  const dataUri = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJ";
+  const result = detectArtifact(dataUri);
+  expect(result?.language).toBe("image");
+  expect(result?.codeLang).toBe("jpeg");
+});
 
-  it("detects base64 JPEG image", () => {
-    const dataUri = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJ";
-    const result = detectArtifact(dataUri);
-    expect(result?.language).toBe("image");
-    expect(result?.codeLang).toBe("jpeg");
-  });
+// --- Relaxed markdown tests ---
 
-  // --- Relaxed markdown tests ---
-
-  it("detects markdown with single bold pattern and 40+ chars", () => {
-    const md = "This text has **one bold section** and is long enough to be useful content.";
-    expect(detectArtifact(md)?.language).toBe("markdown");
-  });
+it("detects markdown with single bold pattern and 40+ chars", () => {
+  const md = "This text has **one bold section** and is long enough to be useful content.";
+  expect(detectArtifact(md)?.language).toBe("markdown");
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -567,9 +588,14 @@ In `dashboard/src/components/panels/chat/artifacts/detectArtifact.ts`, update th
 
 ```typescript
 export type ArtifactLanguage =
-  | "html" | "svg" | "mermaid"
-  | "json" | "csv" | "markdown"
-  | "code" | "text"
+  | "html"
+  | "svg"
+  | "mermaid"
+  | "json"
+  | "csv"
+  | "markdown"
+  | "code"
+  | "text"
   | "image";
 
 export interface ArtifactInfo {
@@ -588,17 +614,29 @@ export interface ArtifactInfo {
 
 Replace the `detectArtifact` function body with the new detection flow:
 
-```typescript
+````typescript
 const EXT_MAP: Record<string, ArtifactLanguage> = {
-  ".html": "html", ".htm": "html",
+  ".html": "html",
+  ".htm": "html",
   ".svg": "svg",
   ".json": "json",
   ".csv": "csv",
   ".md": "markdown",
-  ".py": "code", ".ts": "code", ".js": "code", ".tsx": "code",
-  ".jsx": "code", ".go": "code", ".rs": "code", ".java": "code",
-  ".rb": "code", ".sh": "code", ".yaml": "code", ".yml": "code",
-  ".xml": "code", ".css": "code", ".sql": "code",
+  ".py": "code",
+  ".ts": "code",
+  ".js": "code",
+  ".tsx": "code",
+  ".jsx": "code",
+  ".go": "code",
+  ".rs": "code",
+  ".java": "code",
+  ".rb": "code",
+  ".sh": "code",
+  ".yaml": "code",
+  ".yml": "code",
+  ".xml": "code",
+  ".css": "code",
+  ".sql": "code",
   // Note: image extensions (.png, .jpg, etc.) are NOT in EXT_MAP.
   // Extension-based image detection is skipped because file content from
   // write tools is raw text/binary, not a data URI that <img> can render.
@@ -614,7 +652,7 @@ export function detectArtifact(
   }
 
   const filePath = toolContext?.filePath;
-  const fileName = filePath ? filePath.split("/").pop() ?? filePath : undefined;
+  const fileName = filePath ? (filePath.split("/").pop() ?? filePath) : undefined;
 
   // 1. File extension priority
   if (filePath) {
@@ -636,7 +674,9 @@ export function detectArtifact(
                 source: { toolName: toolContext?.toolName, fileName, filePath },
               };
             }
-          } catch { /* fall through */ }
+          } catch {
+            /* fall through */
+          }
         } else if (lang === "csv") {
           if (isLikelyCSV(content)) {
             return {
@@ -722,7 +762,9 @@ export function detectArtifact(
           content,
         };
       }
-    } catch { /* not JSON */ }
+    } catch {
+      /* not JSON */
+    }
   }
 
   // 3e. Markdown
@@ -760,13 +802,13 @@ export function detectArtifact(
 
   return null;
 }
-```
+````
 
 - [ ] **Step 5: Relax markdown threshold**
 
 In the `isLikelyMarkdown` function, change the length check from `content.length < 80` to `content.length < 40` and the pattern count from `patterns >= 2` to `patterns >= 1`:
 
-```typescript
+````typescript
 function isLikelyMarkdown(content: string): boolean {
   const trimmed = content.trimStart();
   if (/^#{1,3}\s/.test(trimmed)) {
@@ -786,7 +828,7 @@ function isLikelyMarkdown(content: string): boolean {
   if (/```[\s\S]*?```/.test(content)) patterns++;
   return patterns >= 1;
 }
-```
+````
 
 - [ ] **Step 6: Run tests to verify they pass**
 
@@ -798,11 +840,11 @@ Expected: ALL PASS
 The existing test at line 52-56 ("rejects text with only one markdown pattern") now expects detection since threshold is lowered. Update it:
 
 ```typescript
-  it("detects text with one markdown pattern when long enough (relaxed threshold)", () => {
-    const prose =
-      "This is some normal text that happens to contain **one bold phrase** but nothing else that looks like markdown formatting at all in this line.";
-    expect(detectArtifact(prose)?.language).toBe("markdown");
-  });
+it("detects text with one markdown pattern when long enough (relaxed threshold)", () => {
+  const prose =
+    "This is some normal text that happens to contain **one bold phrase** but nothing else that looks like markdown formatting at all in this line.";
+  expect(detectArtifact(prose)?.language).toBe("markdown");
+});
 ```
 
 - [ ] **Step 8: Run full test suite**
@@ -815,11 +857,12 @@ Expected: ALL PASS
 In `dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx`, update the `detectArtifact` call to pass `filePath` from the tool input. Find the line that calls `detectArtifact(contentStr, toolName ? { toolName } : undefined)` and change it to:
 
 ```typescript
-const filePath = typeof toolInput?.file_path === "string"
-  ? toolInput.file_path
-  : typeof toolInput?.path === "string"
-    ? toolInput.path
-    : undefined;
+const filePath =
+  typeof toolInput?.file_path === "string"
+    ? toolInput.file_path
+    : typeof toolInput?.path === "string"
+      ? toolInput.path
+      : undefined;
 const artifact = !isError
   ? detectArtifact(contentStr, toolName ? { toolName, filePath } : undefined)
   : null;
@@ -848,6 +891,7 @@ git commit -m "[enhanced] feat(deck): enhance detectArtifact with extension prio
 Verify the full flow works end-to-end: tsc, all tests, lint.
 
 **Files:**
+
 - No new files — verification only
 
 - [ ] **Step 1: Type check**
@@ -870,6 +914,7 @@ Expected: no matches (all moved to shared-renderer/)
 - [ ] **Step 4: Commit if any fixes needed**
 
 If Steps 1-3 revealed issues, fix them and commit:
+
 ```bash
 git commit -m "[enhanced] fix(deck): resolve integration issues from artifact refactor"
 ```

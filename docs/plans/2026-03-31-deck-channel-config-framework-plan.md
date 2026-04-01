@@ -11,6 +11,7 @@
 ---
 
 ### Task 1: Extend channels store with schema discovery and probe [frontend]
+
 covers: channel-discovery/spec.md > ADDED > Auto-discover installed channels from config schema > Discover core channels
 covers: channel-discovery/spec.md > ADDED > Auto-discover installed channels from config schema > Discover plugin channels
 covers: channel-discovery/spec.md > ADDED > Channel list shows configuration status > Configured channel
@@ -21,6 +22,7 @@ covers: channel-probe/spec.md > ADDED > Channel probe button triggers active con
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe loading state
 
 **Files:**
+
 - Modify: `dashboard/src/stores/channels.ts`
 
 - [ ] **Step 1: Add schema discovery types and state**
@@ -189,9 +191,11 @@ Expected: No new errors from channels.ts changes
 ---
 
 ### Task 2: Add probe API route [frontend]
+
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe success
 
 **Files:**
+
 - Create: `dashboard/src/app/api/channels/probe/route.ts`
 
 - [ ] **Step 1: Create the probe API route**
@@ -221,12 +225,14 @@ const res = await fetch("/api/channels/probe", { method: "POST" });
 ---
 
 ### Task 3: Create ChannelProbeStatus component [frontend]
+
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe success
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe failure
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe timeout
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe loading state
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/channels/ChannelProbeStatus.tsx`
 
 - [ ] **Step 1: Create ChannelProbeStatus component**
@@ -282,7 +288,11 @@ export function ChannelProbeStatus({ channelId }: ChannelProbeStatusProps) {
       </button>
 
       {result && !isProbing && (
-        <ProbeResultBadge status={result.status} latencyMs={result.latencyMs} error={result.error} />
+        <ProbeResultBadge
+          status={result.status}
+          latencyMs={result.latencyMs}
+          error={result.error}
+        />
       )}
     </div>
   );
@@ -333,7 +343,10 @@ function ProbeResultBadge({
         {latencyMs != null && ` (${latencyMs}ms)`}
       </span>
       {error && (
-        <span className="text-[10px] max-w-48 truncate" style={{ color: "var(--muted-foreground)" }}>
+        <span
+          className="text-[10px] max-w-48 truncate"
+          style={{ color: "var(--muted-foreground)" }}
+        >
           {error}
         </span>
       )}
@@ -345,6 +358,7 @@ function ProbeResultBadge({
 ---
 
 ### Task 4: Create ChannelSchemaSettings component [frontend]
+
 covers: channel-schema-form/spec.md > ADDED > ChannelSchemaForm generates form from JSON Schema > String field rendering
 covers: channel-schema-form/spec.md > ADDED > ChannelSchemaForm generates form from JSON Schema > Enum field rendering
 covers: channel-schema-form/spec.md > ADDED > ChannelSchemaForm generates form from JSON Schema > Sensitive field rendering
@@ -357,6 +371,7 @@ covers: channel-schema-form/spec.md > ADDED > ChannelSchemaForm validates and sa
 covers: channel-schema-form/spec.md > ADDED > ChannelSchemaForm validates and saves > Save configuration
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/channels/ChannelSchemaSettings.tsx`
 - Modify: `dashboard/src/components/panels/channels/ChannelSettingsTab.tsx`
 
@@ -581,14 +596,16 @@ const { channelSchemas } = useChannelsStore();
 const schemaInfo = channelSchemas.get(channelId);
 
 // In JSX, after RetryStrategyEditor, add schema form section:
-{schemaInfo && (
-  <div className="pt-4 border-t" style={{ borderColor: "var(--border)" }}>
-    <label className="block text-xs font-semibold mb-2" style={{ color: "var(--foreground)" }}>
-      {t("schemaConfig")}
-    </label>
-    <ChannelSchemaSettings channelId={channelId} schemaInfo={schemaInfo} />
-  </div>
-)}
+{
+  schemaInfo && (
+    <div className="pt-4 border-t" style={{ borderColor: "var(--border)" }}>
+      <label className="block text-xs font-semibold mb-2" style={{ color: "var(--foreground)" }}>
+        {t("schemaConfig")}
+      </label>
+      <ChannelSchemaSettings channelId={channelId} schemaInfo={schemaInfo} />
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 3: Verify types compile**
@@ -598,6 +615,7 @@ Run: `cd dashboard && pnpm tsc --noEmit 2>&1 | head -20`
 ---
 
 ### Task 5: Enhance ChannelList with discovery metadata [frontend]
+
 covers: channel-discovery/spec.md > ADDED > Auto-discover installed channels from config schema > Discover core channels
 covers: channel-discovery/spec.md > ADDED > Auto-discover installed channels from config schema > Discover plugin channels
 covers: channel-discovery/spec.md > ADDED > Auto-discover installed channels from config schema > New channel auto-appear
@@ -605,6 +623,7 @@ covers: channel-discovery/spec.md > ADDED > Channel list shows configuration sta
 covers: channel-discovery/spec.md > ADDED > Channel list shows configuration status > Unconfigured channel
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/channels/ChannelList.tsx`
 - Modify: `dashboard/src/components/panels/channels/ChannelsPanel.tsx`
 
@@ -630,17 +649,19 @@ const { channels, channelOrder, selectedId, loading, selectChannel, channelSchem
   useChannelsStore();
 
 // Inside the channel button JSX, after status indicator:
-{channelSchemas.get(chId)?.isPlugin && (
-  <span
-    className="text-[9px] px-1 py-0.5 rounded"
-    style={{
-      backgroundColor: "var(--purple-muted)",
-      color: "var(--purple-muted-text)",
-    }}
-  >
-    {t("plugin")}
-  </span>
-)}
+{
+  channelSchemas.get(chId)?.isPlugin && (
+    <span
+      className="text-[9px] px-1 py-0.5 rounded"
+      style={{
+        backgroundColor: "var(--purple-muted)",
+        color: "var(--purple-muted-text)",
+      }}
+    >
+      {t("plugin")}
+    </span>
+  );
+}
 ```
 
 - [ ] **Step 3: Show discovered-but-not-configured channels**
@@ -650,51 +671,65 @@ Channels from schema discovery that don't appear in `channels.status` response s
 ```tsx
 // After channelOrder.map, add channels discovered from schema but not in channelOrder:
 const discoveredIds = Array.from(channelSchemas.keys()).filter(
-  (id) => !channelOrder.includes(id) && !channels.has(id)
+  (id) => !channelOrder.includes(id) && !channels.has(id),
 );
 
-{discoveredIds.map((chId) => {
-  const schema = channelSchemas.get(chId);
-  const isActive = selectedId === chId;
-  return (
-    <button
-      key={chId}
-      onClick={() => selectChannel(chId)}
-      className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors"
-      style={{
-        backgroundColor: isActive ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent",
-        color: isActive ? "var(--primary)" : "var(--foreground)",
-      }}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <Radio size={14} className="shrink-0" />
-        <div className="flex flex-col items-start min-w-0">
-          <span className="truncate w-full text-left">{chId}</span>
-          <div className="flex items-center gap-1">
-            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--muted-foreground)" }} />
-            <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{t("unconfigured")}</span>
+{
+  discoveredIds.map((chId) => {
+    const schema = channelSchemas.get(chId);
+    const isActive = selectedId === chId;
+    return (
+      <button
+        key={chId}
+        onClick={() => selectChannel(chId)}
+        className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors"
+        style={{
+          backgroundColor: isActive
+            ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+            : "transparent",
+          color: isActive ? "var(--primary)" : "var(--foreground)",
+        }}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Radio size={14} className="shrink-0" />
+          <div className="flex flex-col items-start min-w-0">
+            <span className="truncate w-full text-left">{chId}</span>
+            <div className="flex items-center gap-1">
+              <span
+                className="inline-block w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: "var(--muted-foreground)" }}
+              />
+              <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                {t("unconfigured")}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-      {schema?.isPlugin && (
-        <span className="text-[9px] px-1 py-0.5 rounded" style={{ backgroundColor: "var(--purple-muted)", color: "var(--purple-muted-text)" }}>
-          {t("plugin")}
-        </span>
-      )}
-    </button>
-  );
-})}
+        {schema?.isPlugin && (
+          <span
+            className="text-[9px] px-1 py-0.5 rounded"
+            style={{ backgroundColor: "var(--purple-muted)", color: "var(--purple-muted-text)" }}
+          >
+            {t("plugin")}
+          </span>
+        )}
+      </button>
+    );
+  });
+}
 ```
 
 ---
 
 ### Task 6: Integrate probe into ChannelDetail [frontend]
+
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe success
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe failure
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe timeout
 covers: channel-probe/spec.md > ADDED > Channel probe button triggers active connection test > Probe loading state
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/channels/ChannelDetail.tsx`
 
 - [ ] **Step 1: Add probe status to Status tab**
@@ -710,16 +745,18 @@ import { ChannelProbeStatus } from "./ChannelProbeStatus";
     {t("probe.title")}
   </label>
   <ChannelProbeStatus channelId={channelId} />
-</div>
+</div>;
 ```
 
 ---
 
 ### Task 7: Add i18n keys [frontend]
+
 covers: channel-discovery/spec.md > ADDED > Auto-discover installed channels from config schema > Discover core channels
 covers: channel-schema-form/spec.md > ADDED > ChannelSchemaForm validates and saves > Required field validation
 
 **Files:**
+
 - Modify: `dashboard/src/i18n/zh.json`
 - Modify: `dashboard/src/i18n/en.json`
 
@@ -790,7 +827,7 @@ Expected: 0 new errors
 
 - [ ] **Step 2: Verify dark mode compatibility**
 
-All new components use CSS variables from the design system (var(--*)), no hardcoded colors.
+All new components use CSS variables from the design system (var(--\*)), no hardcoded colors.
 
 - [ ] **Step 3: Commit**
 
@@ -812,24 +849,24 @@ git commit -m "[enhanced] feat(channels): schema-driven config forms, channel di
 
 ## Requirement Coverage Matrix
 
-| Spec Requirement | Task |
-|---|---|
-| channel-discovery > Discover core channels | Task 1, 5 |
-| channel-discovery > Discover plugin channels | Task 1, 5 |
-| channel-discovery > New channel auto-appear | Task 5 |
-| channel-discovery > Configured channel status | Task 1, 5 |
-| channel-discovery > Unconfigured channel status | Task 1, 5 |
-| channel-probe > Probe success | Task 1, 2, 3, 6 |
-| channel-probe > Probe failure | Task 1, 3, 6 |
-| channel-probe > Probe timeout | Task 1, 3, 6 |
-| channel-probe > Probe loading state | Task 3, 6 |
-| channel-schema-form > String field rendering | Task 4 (via SchemaForm) |
-| channel-schema-form > Enum field rendering | Task 4 (via SchemaForm) |
-| channel-schema-form > Sensitive field rendering | Task 4 (via SchemaForm+PasswordField) |
-| channel-schema-form > Boolean field rendering | Task 4 (via SchemaForm) |
-| channel-schema-form > Unknown type fallback | Task 4 (SchemaForm falls back to JSON textarea) |
-| channel-schema-form > Field ordering | Task 4 (via applyUiHints order) |
-| channel-schema-form > Section grouping | Task 4 (via SchemaForm group support) |
-| channel-schema-form > Help text display | Task 4 (via FieldHelpPopover) |
-| channel-schema-form > Required field validation | Task 4 |
-| channel-schema-form > Save configuration | Task 4 (via saveChannelConfig) |
+| Spec Requirement                                | Task                                            |
+| ----------------------------------------------- | ----------------------------------------------- |
+| channel-discovery > Discover core channels      | Task 1, 5                                       |
+| channel-discovery > Discover plugin channels    | Task 1, 5                                       |
+| channel-discovery > New channel auto-appear     | Task 5                                          |
+| channel-discovery > Configured channel status   | Task 1, 5                                       |
+| channel-discovery > Unconfigured channel status | Task 1, 5                                       |
+| channel-probe > Probe success                   | Task 1, 2, 3, 6                                 |
+| channel-probe > Probe failure                   | Task 1, 3, 6                                    |
+| channel-probe > Probe timeout                   | Task 1, 3, 6                                    |
+| channel-probe > Probe loading state             | Task 3, 6                                       |
+| channel-schema-form > String field rendering    | Task 4 (via SchemaForm)                         |
+| channel-schema-form > Enum field rendering      | Task 4 (via SchemaForm)                         |
+| channel-schema-form > Sensitive field rendering | Task 4 (via SchemaForm+PasswordField)           |
+| channel-schema-form > Boolean field rendering   | Task 4 (via SchemaForm)                         |
+| channel-schema-form > Unknown type fallback     | Task 4 (SchemaForm falls back to JSON textarea) |
+| channel-schema-form > Field ordering            | Task 4 (via applyUiHints order)                 |
+| channel-schema-form > Section grouping          | Task 4 (via SchemaForm group support)           |
+| channel-schema-form > Help text display         | Task 4 (via FieldHelpPopover)                   |
+| channel-schema-form > Required field validation | Task 4                                          |
+| channel-schema-form > Save configuration        | Task 4 (via saveChannelConfig)                  |

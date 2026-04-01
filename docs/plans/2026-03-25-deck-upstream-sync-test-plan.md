@@ -256,10 +256,12 @@
 **优先级排序**：模块 1 > 模块 2 > 模块 3 > 回归测试 > 模块 4-7
 
 **失败处理**：
+
 - P1 失败（数据丢失/崩溃）→ 立即修复
 - P2 失败（UI 异常/非关键功能）→ 记录并继续
 
 **日志检查点**：
+
 - Gateway 日志：`/tmp/openclaw-gateway.log`
 - 浏览器 Console：无 uncaught error
 - Network：无 5xx 响应（预期之外）
