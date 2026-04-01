@@ -170,6 +170,8 @@ export const allMethodNames: readonly string[] = [
   "deck.identity.unlink",
   // deck.threads
   "deck.threads.list",
+  // deck.commands
+  "deck.commands.discover",
   // gateway introspection
   "gateway.describe",
 ];

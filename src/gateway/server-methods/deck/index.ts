@@ -2,6 +2,7 @@ import type { MethodMetadata } from "../../method-registry.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { deckAgentsPreviewHandlers, deckAgentsPreviewMethodDefs } from "./agents-preview.js";
 import { deckAgentsHandlers, deckAgentsMethodDefs } from "./agents.js";
+import { deckCommandsHandlers, deckCommandsMethodDefs } from "./commands.js";
 import { deckIdentityHandlers, deckIdentityMethodDefs } from "./identity.js";
 import { deckRoutingHandlers, deckRoutingMethodDefs } from "./routing.js";
 import { deckSubagentsSteerHandlers, deckSubagentsSteerMethodDefs } from "./subagents-steer.js";
@@ -16,6 +17,7 @@ export const deckHandlers: GatewayRequestHandlers = {
   ...deckSubagentsSteerHandlers,
   ...deckIdentityHandlers,
   ...deckThreadsHandlers,
+  ...deckCommandsHandlers,
 };
 
 export const deckMethodDefs: Record<string, MethodMetadata> = {
@@ -26,4 +28,5 @@ export const deckMethodDefs: Record<string, MethodMetadata> = {
   ...deckSubagentsSteerMethodDefs,
   ...deckIdentityMethodDefs,
   ...deckThreadsMethodDefs,
+  ...deckCommandsMethodDefs,
 };
