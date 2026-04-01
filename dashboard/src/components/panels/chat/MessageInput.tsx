@@ -21,27 +21,33 @@ const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.addEventListener("load", () => {
       const result = reader.result as string;
       // Strip "data:...;base64," prefix
       const base64 = result.includes(",") ? result.split(",")[1] : result;
       resolve(base64);
-    };
-    reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+    });
+    reader.addEventListener("error", () => reject(new Error(`Failed to read ${file.name}`)));
     reader.readAsDataURL(file);
   });
 }
 
 /** Determine attachment type from MIME. */
 function attachmentType(mime: string): string {
-  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("image/")) {
+    return "image";
+  }
   return "file";
 }
 
 /** Format file size for display. */
 function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+  if (bytes < 1024) {
+    return `${bytes}B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(0)}KB`;
+  }
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
@@ -173,7 +179,9 @@ export function MessageInput() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionKey: activeSessionKey ?? undefined }),
       });
-      if (!res.ok) console.error("[abort]", res.status);
+      if (!res.ok) {
+        console.error("[abort]", res.status);
+      }
     } catch (err) {
       console.error("[abort] network error:", err);
     }
@@ -231,7 +239,6 @@ export function MessageInput() {
             exportSessionAsMarkdown(activeSessionKey);
           }
         }
-        // "toggle-focus": no-op until UI store has focusMode
         // "refresh": no-op — SSE events will push updated state
 
         // Display command output as system message
@@ -526,7 +533,7 @@ export function MessageInput() {
           className="hidden"
           onChange={(e) => {
             if (e.target.files) {
-              addFiles(Array.from(e.target.files!));
+              addFiles(Array.from(e.target.files));
               e.target.value = ""; // Reset so same file can be re-selected
             }
           }}
