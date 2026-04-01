@@ -117,7 +117,8 @@ async function executeRemoteCommand(
       toastValue: commandName,
       toastType: "success",
     };
-  } catch {
+  } catch (err) {
+    console.error("[executeRemoteCommand]", commandName, err);
     return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
   }
 }
