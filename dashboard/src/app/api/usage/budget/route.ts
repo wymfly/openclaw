@@ -51,7 +51,7 @@ export const GET = withAuth(async () => {
 
   const rows = runtime.db
     .prepare("SELECT * FROM budget_rules ORDER BY created_at DESC")
-    .all() as BudgetRuleRow[];
+    .all() as unknown as BudgetRuleRow[];
 
   return NextResponse.json({ rules: rows.map(rowToRule) });
 });
@@ -111,7 +111,7 @@ export const POST = withAuth(async (req: NextRequest) => {
 
   const row = runtime.db
     .prepare("SELECT * FROM budget_rules WHERE id = ?")
-    .get(id) as BudgetRuleRow;
+    .get(id) as unknown as BudgetRuleRow;
 
   return NextResponse.json(rowToRule(row), { status: 201 });
 });

@@ -102,7 +102,7 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: unknown) => {
 
   const row = runtime.db
     .prepare("SELECT * FROM webhooks WHERE id = ?")
-    .get(webhookId) as WebhookRow;
+    .get(webhookId) as unknown as WebhookRow;
   return NextResponse.json(rowToWebhook(row));
 });
 
