@@ -184,6 +184,31 @@ pm2 startup                # 开机自启
 
 ## 升级
 
+### 增量更新（推荐）
+
+```bash
+# 预览变更（不实际执行）
+bash deploy/scripts/update.sh openclaw-deploy-NEW.tar.gz --dry
+
+# 执行更新
+bash deploy/scripts/update.sh openclaw-deploy-NEW.tar.gz
+```
+
+增量更新会自动：
+- 停止服务 → 备份数据 → 替换源码/构建产物 → 安装新依赖 → 同步 skills → 重启
+- **保留**：`.env`、`data/`（配置、Agent、会话、auth profile、定时任务、Deck 数据库）
+- **替换**：源码、构建产物、部署脚本、skills
+- 支持回滚（备份在 `.backup-YYYYMMDD-HHMMSS/`）
+
+### 必须全量重装的情况
+
+- Node.js 大版本升级（如 22 → 24）
+- pnpm 大版本升级
+- `openclaw.json` schema 有 breaking change
+- 目录结构重大调整
+
+全量重装时手动保留 `deploy/.env` 和 `data/` 目录即可。
+
 ### Docker 模式
 
 ```bash
@@ -193,7 +218,7 @@ cd deploy/docker
 docker compose --env-file ../.env up -d --build
 ```
 
-### 裸机模式
+### 裸机模式（手动）
 
 ```bash
 cd <repo>

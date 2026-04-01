@@ -83,6 +83,20 @@ pm2 restart all     # 重启服务
 pm2 stop all        # 停止服务
 ```
 
+## 增量更新
+
+收到新版安装包后，在 Git Bash 中执行：
+
+```bash
+# 预览变更
+bash deploy/scripts/update.sh /d/path/to/openclaw-deploy-NEW.tar.gz --dry
+
+# 执行更新（自动备份数据、替换代码、重启服务）
+bash deploy/scripts/update.sh /d/path/to/openclaw-deploy-NEW.tar.gz
+```
+
+用户数据（配置、会话、API key）会自动保留。如需回滚，备份在 `.backup-*` 目录下。
+
 ## 常见问题
 
 | 问题 | 解决 |

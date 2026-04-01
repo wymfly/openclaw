@@ -86,6 +86,18 @@ docker compose --env-file ../.env restart     # 重启
 docker compose --env-file ../.env down        # 停止
 ```
 
+## 增量更新
+
+```bash
+# 预览变更
+bash deploy/scripts/update.sh /path/to/openclaw-deploy-NEW.tar.gz --dry
+
+# 执行更新
+bash deploy/scripts/update.sh /path/to/openclaw-deploy-NEW.tar.gz
+```
+
+用户数据自动保留，支持回滚（备份在 `.backup-*` 目录下）。
+
 ## 常见问题
 
 | 问题 | 解决 |
