@@ -30,7 +30,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { commandRegistry } from "@/lib/command-registry";
 import type { CommandSource, CommandVisibilityContext } from "@/lib/command-types";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,8 @@ interface SlashCommandPaletteProps {
   onDismiss: () => void;
   /** Context for visibility filtering — commands with visibleIf predicates are hidden when the predicate returns false. */
   visibilityContext?: CommandVisibilityContext;
+  /** Ref populated each render with the flat list of navigable commands (indices match selectedIndex). */
+  navigableCommandsRef?: React.RefObject<PaletteCommand[]>;
 }
 
 /** Map from kebab-case icon names to lucide components. */
@@ -110,8 +112,14 @@ export function SlashCommandPalette({
   onSelect,
   onDismiss,
   visibilityContext,
+  navigableCommandsRef,
 }: SlashCommandPaletteProps) {
   const t = useTranslations("chat");
+  // Subscribe to registry changes so palette re-renders when commands are discovered/removed
+  const subscribe = useCallback((cb: () => void) => commandRegistry.subscribe(cb), []);
+  const registryVersion = useSyncExternalStore(subscribe, () => commandRegistry.getVersion());
+  // registryVersion is used implicitly — its change triggers re-render, and filter() reads fresh data
+  void registryVersion;
   const allCommands = commandRegistry.filter(filter);
   // Apply visibility filtering — commands with visibleIf predicates are hidden
   // when the predicate returns false. Manual input bypasses this (user can still type /stop).
@@ -177,6 +185,17 @@ export function SlashCommandPalette({
   const hasFilter = filter.length > 0;
   // When searching, show all results flat (no "More" collapse)
   const showMoreCollapsed = !hasFilter && moreCommands.length > 0;
+
+  // Compute the flat list of navigable commands (matching rendered order)
+  const navigable = [
+    ...localCommands,
+    ...skillCommands,
+    ...pluginCommands,
+    ...(showMoreCollapsed ? (moreExpanded ? moreCommands : []) : hasFilter ? moreCommands : []),
+  ];
+  if (navigableCommandsRef) {
+    navigableCommandsRef.current = navigable;
+  }
 
   let globalIndex = -1;
 
