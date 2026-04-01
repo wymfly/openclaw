@@ -1,43 +1,22 @@
 {
-  "models": {
-    "providers": {
-      "cpa": {
-        "baseUrl": "${CPA_BASE_URL}",
-        "apiKey": "${CPA_API_KEY}",
-        "models": [
-          {
-            "id": "deepseek-chat",
-            "name": "DeepSeek V3 (CPA)",
-            "contextWindow": 131072,
-            "maxTokens": 8192,
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
-          },
-          {
-            "id": "deepseek-reasoner",
-            "name": "DeepSeek R1 (CPA)",
-            "reasoning": true,
-            "contextWindow": 131072,
-            "maxTokens": 8192,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
-          }
-        ]
-      }
-    }
-  },
   "agents": {
     "defaults": {
       "model": {
         "primary": "${DEFAULT_MODEL}"
-      }
+      },
+      "workspace": "~/.openclaw/workspace"
     },
     "list": [
       {
-        "id": "main"
+        "id": "main",
+        "model": "cpa/gpt-5.4"
       }
     ]
+  },
+  "channels": {
+    "openclaw-weixin": {
+      "dmPolicy": "pairing"
+    }
   },
   "commands": {
     "native": "auto",
@@ -45,13 +24,110 @@
     "restart": true
   },
   "gateway": {
-    "mode": "local",
     "auth": {
       "mode": "token",
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
+    "mode": "local",
     "controlUi": {
       "dangerouslyAllowHostHeaderOriginFallback": true
     }
+  },
+  "models": {
+    "providers": {
+      "cpa": {
+        "api": "openai-completions",
+        "apiKey": "${CPA_API_KEY}",
+        "baseUrl": "${CPA_BASE_URL}",
+        "models": [
+          {
+            "api": "openai-responses",
+            "contextWindow": 256000,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "gpt-5.4",
+            "input": ["text"],
+            "maxTokens": 4096,
+            "name": "gpt-5.4",
+            "reasoning": false
+          }
+        ]
+      },
+      "deepseek": {
+        "apiKey": "${DEEPSEEK_API_KEY}",
+        "baseUrl": "https://api.deepseek.com",
+        "models": [
+          {
+            "contextWindow": 131072,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "deepseek-chat",
+            "input": ["text"],
+            "maxTokens": 8192,
+            "name": "DeepSeek V3",
+            "reasoning": false
+          },
+          {
+            "contextWindow": 131072,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "deepseek-reasoner",
+            "input": ["text"],
+            "maxTokens": 8192,
+            "name": "DeepSeek R1",
+            "reasoning": true
+          },
+          {
+            "contextWindow": 131072,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "deepseek-chat-v3-0324",
+            "input": ["text"],
+            "maxTokens": 8192,
+            "name": "DeepSeek V3 0324",
+            "reasoning": false
+          },
+          {
+            "contextWindow": 131072,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "deepseek-r1-0528",
+            "input": ["text"],
+            "maxTokens": 8192,
+            "name": "DeepSeek R1 0528",
+            "reasoning": true
+          }
+        ]
+      },
+      "moonshot": {
+        "apiKey": "${MOONSHOT_API_KEY}",
+        "baseUrl": "https://api.moonshot.cn/v1",
+        "models": [
+          {
+            "contextWindow": 131072,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "moonshot-v1-auto",
+            "input": ["text"],
+            "maxTokens": 4096,
+            "name": "Moonshot V1 Auto",
+            "reasoning": false
+          },
+          {
+            "contextWindow": 131072,
+            "cost": { "cacheRead": 0, "cacheWrite": 0, "input": 0, "output": 0 },
+            "id": "kimi-latest",
+            "input": ["text"],
+            "maxTokens": 8192,
+            "name": "Kimi Latest",
+            "reasoning": true
+          }
+        ]
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "openclaw-weixin": {
+        "enabled": true
+      }
+    }
+  },
+  "update": {
+    "channel": "beta"
   }
 }

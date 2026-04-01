@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   // Server needs native modules (ws)
-  serverExternalPackages: ["ws"],
+  serverExternalPackages: ["ws", "sql.js"],
   // Support standalone output for Docker deployment
   output: "standalone",
 

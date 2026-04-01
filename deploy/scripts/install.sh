@@ -276,10 +276,14 @@ bare_metal_install() {
   [ -d "$PACKAGE_ROOT/source" ] && source_dir="$PACKAGE_ROOT/source"
   cd "$source_dir"
 
-  # Build (skip if pre-built)
-  if [ ! -f dist/cli-startup-metadata.json ]; then
+  # Install runtime dependencies (always needed, even with pre-built dist)
+  if [ ! -d node_modules ]; then
     log "Installing dependencies..."
     pnpm install --frozen-lockfile
+  fi
+
+  # Build (skip if pre-built)
+  if [ ! -f dist/cli-startup-metadata.json ]; then
     log "Building Gateway..."
     pnpm build
   else
@@ -294,6 +298,27 @@ bare_metal_install() {
     [ -d dashboard/public ] && cp -r dashboard/public dashboard/.next/standalone/dashboard/public
   else
     log "Pre-built Deck detected, skipping build."
+  fi
+
+  # Copy standalone entry point (preloads sql.js before server.js)
+  if [ -f dashboard/standalone-entry.mjs ] && [ ! -f dashboard/.next/standalone/dashboard/standalone-entry.mjs ]; then
+    cp dashboard/standalone-entry.mjs dashboard/.next/standalone/dashboard/standalone-entry.mjs
+    log "Copied standalone-entry.mjs"
+  fi
+
+  # Ensure sql.js WASM binary is available in standalone (Next.js trace copies JS but not .wasm)
+  local sql_wasm_dst="dashboard/.next/standalone/node_modules/sql.js/dist/sql-wasm.wasm"
+  if [ ! -f "$sql_wasm_dst" ]; then
+    log "Copying sql-wasm.wasm to standalone..."
+    local sql_wasm_src=""
+    [ -f "node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="node_modules/sql.js/dist/sql-wasm.wasm"
+    [ -z "$sql_wasm_src" ] && [ -f "dashboard/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="dashboard/node_modules/sql.js/dist/sql-wasm.wasm"
+    if [ -n "$sql_wasm_src" ]; then
+      mkdir -p "$(dirname "$sql_wasm_dst")"
+      cp "$sql_wasm_src" "$sql_wasm_dst"
+    else
+      log "WARNING: sql-wasm.wasm not found in node_modules — Deck database may fail"
+    fi
   fi
 
   # Seed
