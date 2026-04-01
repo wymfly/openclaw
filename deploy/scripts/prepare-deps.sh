@@ -21,11 +21,13 @@ DEPS_DIR="$DEPLOY_DIR/deps"
 
 # --- Versions (update these when upgrading) ---
 NODE_VERSION="22.22.2"
+GIT_VERSION="2.49.0"
 
 # --- Download URLs (Windows only) ---
 NODE_WIN_X64="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-x64.msi"
 NODE_WIN_ARM64="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-arm64.msi"
 DOCKER_DESKTOP_WIN="https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+GIT_WIN_X64="https://github.com/git-for-windows/git/releases/download/v${GIT_VERSION}.windows.1/Git-${GIT_VERSION}-64-bit.exe"
 
 log() { echo "[prepare-deps] $*"; }
 err() { echo "[prepare-deps] ERROR: $*" >&2; exit 1; }
@@ -66,6 +68,14 @@ download_docker() {
   download "$DOCKER_DESKTOP_WIN" "$dir/DockerDesktopInstaller.exe"
 }
 
+download_git() {
+  local dir="$DEPS_DIR/git"
+  mkdir -p "$dir"
+
+  log "=== Git for Windows v${GIT_VERSION} ==="
+  download "$GIT_WIN_X64" "$dir/Git-${GIT_VERSION}-64-bit.exe"
+}
+
 write_readme() {
   cat > "$DEPS_DIR/README.md" <<'EOF'
 # Windows Deployment Dependencies (Offline Installers)
@@ -104,12 +114,22 @@ wsl --install
 (< 250 employees / < $10M annual revenue). Larger organizations need a
 [paid subscription](https://www.docker.com/pricing/).
 
+### git/
+Git for Windows installer (includes Git Bash).
+
+| File | Platform | Install |
+|------|----------|---------|
+| `Git-*-64-bit.exe` | Windows x64 | Run installer, use default options |
+
+Git Bash provides the bash environment required to run `install.sh`.
+
 ## Install Order
 
-1. Install Node.js from `node/*.msi`
-2. Open PowerShell: `npm install -g pnpm pm2`
-3. (Optional) Install Docker Desktop from `docker/DockerDesktopInstaller.exe`
-4. Run `deploy\scripts\install.sh bare-metal` (or `docker`)
+1. Install Git for Windows from `git/*.exe` (provides Git Bash)
+2. Install Node.js from `node/*.msi`
+3. Open PowerShell: `npm install -g pnpm pm2`
+4. (Optional) Install Docker Desktop from `docker/DockerDesktopInstaller.exe`
+5. Open Git Bash, run `./install.sh bare-metal` (or `docker`)
 EOF
   log "README written to deps/README.md"
 }
@@ -119,17 +139,20 @@ mkdir -p "$DEPS_DIR"
 
 DOWNLOAD_NODE=true
 DOWNLOAD_DOCKER=true
+DOWNLOAD_GIT=true
 
 case "${1:-}" in
-  --node-only)   DOWNLOAD_DOCKER=false ;;
-  --docker-only) DOWNLOAD_NODE=false ;;
+  --node-only)   DOWNLOAD_DOCKER=false; DOWNLOAD_GIT=false ;;
+  --docker-only) DOWNLOAD_NODE=false; DOWNLOAD_GIT=false ;;
+  --git-only)    DOWNLOAD_NODE=false; DOWNLOAD_DOCKER=false ;;
   -h|--help)
-    echo "Usage: $0 [--node-only|--docker-only]"
+    echo "Usage: $0 [--node-only|--docker-only|--git-only]"
     echo ""
     echo "Downloads Windows deployment prerequisites to deploy/deps/"
     echo "  --node-only   Node.js MSI only (~60MB)"
     echo "  --docker-only Docker Desktop only (~550MB)"
-    echo "  (no args)     All (~610MB)"
+    echo "  --git-only    Git for Windows only (~65MB)"
+    echo "  (no args)     All (~675MB)"
     exit 0 ;;
   "") ;; # download all
   *) err "Unknown argument: $1" ;;
@@ -141,6 +164,10 @@ fi
 
 if [ "$DOWNLOAD_DOCKER" = true ]; then
   download_docker
+fi
+
+if [ "$DOWNLOAD_GIT" = true ]; then
+  download_git
 fi
 
 write_readme
