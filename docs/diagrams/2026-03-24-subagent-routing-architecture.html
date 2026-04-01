@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Subagent &amp; Routing System</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg-primary: #f5f5f7;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #e5e5e7;
+        --border: #d1d1d6;
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --accent: #0071e3;
+        --shadow: rgba(0, 0, 0, 0.06);
+        --shadow-lg: rgba(0, 0, 0, 0.1);
+        --layer-clients: #e8f4fd;
+        --layer-clients-border: #b3d9f2;
+        --layer-clients-text: #0055a5;
+        --layer-gateway: #fef3e2;
+        --layer-gateway-border: #f5d89a;
+        --layer-gateway-text: #8a6d00;
+        --layer-agent: #e8fce8;
+        --layer-agent-border: #a8dca8;
+        --layer-agent-text: #1a7a1a;
+        --layer-runtime: #f3e8fc;
+        --layer-runtime-border: #d0a8e8;
+        --layer-runtime-text: #6b2fa0;
+        --layer-infra: #fce8e8;
+        --layer-infra-border: #e8a8a8;
+        --layer-infra-text: #a02f2f;
+        --arrow-color: #b0b0b5;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-primary: #1d1d1f;
+          --bg-secondary: #2d2d2f;
+          --bg-tertiary: #3d3d3f;
+          --border: #424245;
+          --text-primary: #f5f5f7;
+          --text-secondary: #98989d;
+          --accent: #0a84ff;
+          --shadow: rgba(0, 0, 0, 0.2);
+          --shadow-lg: rgba(0, 0, 0, 0.35);
+          --layer-clients: rgba(10, 132, 255, 0.12);
+          --layer-clients-border: rgba(10, 132, 255, 0.3);
+          --layer-clients-text: #5aadff;
+          --layer-gateway: rgba(255, 159, 10, 0.12);
+          --layer-gateway-border: rgba(255, 159, 10, 0.3);
+          --layer-gateway-text: #ffb84d;
+          --layer-agent: rgba(52, 199, 89, 0.12);
+          --layer-agent-border: rgba(52, 199, 89, 0.3);
+          --layer-agent-text: #6ede8a;
+          --layer-runtime: rgba(175, 82, 222, 0.12);
+          --layer-runtime-border: rgba(175, 82, 222, 0.3);
+          --layer-runtime-text: #c990e8;
+          --layer-infra: rgba(255, 69, 58, 0.12);
+          --layer-infra-border: rgba(255, 69, 58, 0.3);
+          --layer-infra-text: #ff8a84;
+          --arrow-color: #636366;
+        }
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .header {
+        background: var(--bg-secondary);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px var(--shadow);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .header .subtitle {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+      }
+      .header-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .btn {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.85rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: inherit;
+      }
+      .btn:hover {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      .btn svg {
+        width: 14px;
+        height: 14px;
+      }
+      .canvas {
+        flex: 1;
+        padding: 2rem 2rem 3rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        overflow: auto;
+      }
+      .layer {
+        width: 100%;
+        max-width: 960px;
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+      }
+      .layer-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .layer-label::before {
+        content: "";
+        width: 3px;
+        height: 12px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .layer--clients {
+        background: var(--layer-clients);
+        border: 1px solid var(--layer-clients-border);
+      }
+      .layer--clients .layer-label {
+        color: var(--layer-clients-text);
+      }
+      .layer--clients .layer-label::before {
+        background: var(--layer-clients-text);
+      }
+      .layer--gateway {
+        background: var(--layer-gateway);
+        border: 1px solid var(--layer-gateway-border);
+      }
+      .layer--gateway .layer-label {
+        color: var(--layer-gateway-text);
+      }
+      .layer--gateway .layer-label::before {
+        background: var(--layer-gateway-text);
+      }
+      .layer--agent {
+        background: var(--layer-agent);
+        border: 1px solid var(--layer-agent-border);
+      }
+      .layer--agent .layer-label {
+        color: var(--layer-agent-text);
+      }
+      .layer--agent .layer-label::before {
+        background: var(--layer-agent-text);
+      }
+      .layer--runtime {
+        background: var(--layer-runtime);
+        border: 1px solid var(--layer-runtime-border);
+      }
+      .layer--runtime .layer-label {
+        color: var(--layer-runtime-text);
+      }
+      .layer--runtime .layer-label::before {
+        background: var(--layer-runtime-text);
+      }
+      .layer--infra {
+        background: var(--layer-infra);
+        border: 1px solid var(--layer-infra-border);
+      }
+      .layer--infra .layer-label {
+        color: var(--layer-infra-text);
+      }
+      .layer--infra .layer-label::before {
+        background: var(--layer-infra-text);
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 0.5rem;
+      }
+      .cards--wide {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+      .card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.65rem 0.8rem;
+        box-shadow: 0 1px 4px var(--shadow);
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px var(--shadow-lg);
+      }
+      .card-icon {
+        font-size: 1.1rem;
+        margin-bottom: 0.2rem;
+      }
+      .card h3 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-bottom: 0.1rem;
+        line-height: 1.3;
+      }
+      .card p {
+        font-size: 0.68rem;
+        color: var(--text-secondary);
+        line-height: 1.35;
+      }
+      .card code {
+        font-size: 0.62rem;
+        background: var(--bg-tertiary);
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px;
+        font-family: "SF Mono", "Menlo", monospace;
+        color: var(--text-secondary);
+      }
+      .flow-arrow {
+        display: flex;
+        justify-content: center;
+        padding: 0.15rem 0;
+        flex-shrink: 0;
+      }
+      .flow-arrow svg {
+        width: 20px;
+        height: 18px;
+        color: var(--arrow-color);
+      }
+      .description {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+        padding: 0.75rem 2rem;
+        flex-shrink: 0;
+      }
+      .description p {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        max-width: 80ch;
+      }
+      .toast {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--text-primary);
+        color: var(--bg-primary);
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 100;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      @media (max-width: 640px) {
+        .canvas {
+          padding: 1rem;
+        }
+        .layer {
+          padding: 0.75rem;
+        }
+        .cards {
+          grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+          gap: 0.4rem;
+        }
+        .header {
+          padding: 0.75rem 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-left">
+        <h1>Subagent &amp; Routing System</h1>
+        <span class="subtitle"
+          >Agent binding rules, message routing, subagent spawn &amp; lifecycle</span
+        >
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="exportPNG()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          PNG
+        </button>
+      </div>
+    </div>
+
+    <div class="canvas" id="diagram">
+      <!-- Layer 1: Inbound & Binding -->
+      <div class="layer layer--clients">
+        <div class="layer-label">Agent Binding — Route inbound messages to the right agent</div>
+        <div class="cards cards--wide">
+          <div class="card">
+            <div class="card-icon">🎯</div>
+            <h3>AgentBinding Config</h3>
+            <p>
+              Rules in <code>bindings[]</code>: match by channel, accountId, peer, guildId, teamId,
+              roles
+            </p>
+            <code>src/config/types.agents.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">📊</div>
+            <h3>Priority Tiers (7 levels)</h3>
+            <p>
+              peer-specific → guild+roles → guild → team → account → channel-only → default agent
+            </p>
+            <code>src/routing/resolve-route.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔀</div>
+            <h3>Route Resolution</h3>
+            <p>
+              First match wins. Returns agentId + sessionKey + matchedBy. Thread inherits parent
+              binding
+            </p>
+            <code>resolveAgentRoute()</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔒</div>
+            <h3>Turn-Source Safety</h3>
+            <p>
+              Locks reply to originating channel. Prevents cross-channel routing bugs in shared
+              sessions
+            </p>
+            <code>src/auto-reply/reply/origin-routing.ts</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 20 18">
+          <path
+            d="M10 2 L10 12 M5 8 L10 14 L15 8"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Layer 2: Message Dispatch Pipeline -->
+      <div class="layer layer--gateway">
+        <div class="layer-label">Message Dispatch — Inbound pipeline from channel to agent</div>
+        <div class="cards cards--wide">
+          <div class="card">
+            <div class="card-icon">📨</div>
+            <h3>dispatchInboundMessage</h3>
+            <p>
+              Entry point: finalize context → create dispatcher → route to agent → manage typing
+              lifecycle
+            </p>
+            <code>src/auto-reply/dispatch.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🚦</div>
+            <h3>Send Policy</h3>
+            <p>Three outcomes: allow (deliver), deny (stop), pending (route to ACP for approval)</p>
+            <code>resolveSendPolicy()</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">📤</div>
+            <h3>Reply Dispatcher</h3>
+            <p>
+              Three-stage strict ordering: tool results → block replies (800-2500ms delay) → final
+              reply
+            </p>
+            <code>reply-dispatcher.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🌐</div>
+            <h3>Cross-Channel Routing</h3>
+            <p>
+              When origin ≠ current surface: route reply back via async dispatch to originating
+              channel
+            </p>
+            <code>origin-routing.ts</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 20 18">
+          <path
+            d="M10 2 L10 12 M5 8 L10 14 L15 8"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Layer 3: Subagent Spawn -->
+      <div class="layer layer--agent">
+        <div class="layer-label">Subagent Spawn — 5 validation gates before child creation</div>
+        <div class="cards cards--wide">
+          <div class="card">
+            <div class="card-icon">🔐</div>
+            <h3>Gate 1-2: ID &amp; Depth</h3>
+            <p>
+              Agent ID format: <code>[a-z0-9_-]{1,64}</code>. Depth &lt; maxSpawnDepth (default 3)
+            </p>
+            <code>subagent-spawn.ts:306-373</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">👥</div>
+            <h3>Gate 3-4: Count &amp; Allow</h3>
+            <p>
+              Active children &lt; max (default 5). Cross-agent spawn needs allowAgents[] or "*"
+              wildcard
+            </p>
+            <code>subagent-spawn.ts:381-420</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🏖️</div>
+            <h3>Gate 5: Sandbox</h3>
+            <p>Sandboxed parent → child must stay sandboxed. "require" enforces sandbox runtime</p>
+            <code>subagent-spawn.ts:420-433</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">✅</div>
+            <h3>Session Key Gen</h3>
+            <p>
+              Pass all gates → generate <code>agent:{id}:subagent:{UUID}</code>. Register in
+              registry
+            </p>
+            <code>SpawnSubagentResult</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 20 18">
+          <path
+            d="M10 2 L10 12 M5 8 L10 14 L15 8"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Layer 4: Subagent Lifecycle -->
+      <div class="layer layer--runtime">
+        <div class="layer-label">Subagent Lifecycle — Execution, control, and completion</div>
+        <div class="cards cards--wide">
+          <div class="card">
+            <div class="card-icon">▶️</div>
+            <h3>Execution</h3>
+            <p>
+              Independent session (.jsonl), inherits workspace + model. Minimal system prompt (no
+              skills/memory)
+            </p>
+            <code>pi-embedded-runner/</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🎮</div>
+            <h3>Control: steer</h3>
+            <p>
+              Interrupt → inject new message → restart. Rate limited 2s. Max 4000 chars. Replaces
+              run record
+            </p>
+            <code>subagent-control.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🛑</div>
+            <h3>Control: kill</h3>
+            <p>
+              Abort signal → clear queues → mark terminated. Cascade kills all descendants
+              recursively
+            </p>
+            <code>subagent-control.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">📣</div>
+            <h3>Announce</h3>
+            <p>
+              On completion: extract result text → push to parent as system event. Auto-retry on
+              failure
+            </p>
+            <code>subagent-announce.ts</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 20 18">
+          <path
+            d="M10 2 L10 12 M5 8 L10 14 L15 8"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Layer 5: Registry & Cleanup -->
+      <div class="layer layer--infra">
+        <div class="layer-label">
+          Registry &amp; Cleanup — Tracking, persistence, and session disposal
+        </div>
+        <div class="cards">
+          <div class="card">
+            <div class="card-icon">📋</div>
+            <h3>Subagent Registry</h3>
+            <p>
+              In-memory Map: runId → SubagentRunRecord. Tracks status, outcome, announce retry count
+            </p>
+            <code>subagent-registry.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🧹</div>
+            <h3>Run Mode Cleanup</h3>
+            <p>
+              mode=run: auto-delete session after announce. mode=session: keep for thread follow-ups
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-icon">📎</div>
+            <h3>Attachments</h3>
+            <p>
+              Files mounted in <code>~/.openclaw/attachments/{UUID}/</code>. Max 5MB total, 50 files
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-icon">📊</div>
+            <h3>Dispatcher Registry</h3>
+            <p>
+              Global tracking for graceful shutdown. Reservation pattern ensures reliable idle
+              signaling
+            </p>
+            <code>dispatcher-registry.ts</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="description">
+      <p>
+        Inbound messages are routed to agents via binding rules (7 priority tiers). Agents can spawn
+        subagents through 5 validation gates. Child agents run independently with inherited
+        workspace, announce results back via push. Parent can steer (redirect) or kill children.
+        Registry tracks lifecycle; run-mode sessions auto-cleanup after completion.
+      </p>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script>
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2000);
+      }
+      async function exportPNG() {
+        try {
+          showToast("Preparing...");
+          const el = document.getElementById("diagram");
+          if (!window.html2canvas) {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
+            document.head.appendChild(s);
+            await new Promise((r, e) => {
+              s.onload = r;
+              s.onerror = e;
+            });
+          }
+          const canvas = await html2canvas(el, {
+            scale: 2,
+            backgroundColor: getComputedStyle(document.body)
+              .getPropertyValue("--bg-primary")
+              .trim(),
+            useCORS: true,
+          });
+          canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "subagent-routing-system.png";
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }, 100);
+            showToast("PNG exported");
+          }, "image/png");
+        } catch (e) {
+          showToast("Export failed: " + e.message);
+        }
+      }
+    </script>
+  </body>
+</html>

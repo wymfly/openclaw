@@ -274,3 +274,12 @@ OverviewTab
 - Subagent 事件实时推送（仍为 REST 轮询）
 - Per-channel eventStreams 配置（当前 per-agent 足够）
 - verboseLevel 重构/废弃（保持现状）
+
+## 实施偏差记录
+
+以下设计内容在实施计划中被有意调整（Codex R1 审查后确认）：
+
+| 设计文档描述                                                   | 实施调整                                | 原因                                                                    |
+| -------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
+| 新建 `dashboard/src/app/api/deck/agents/eventStreams/route.ts` | 复用现有 `route.ts` + action dispatcher | 对齐已有 skills/subagents/toolPolicy/systemPrompt 模式                  |
+| `ChannelPreviewPanel`（Deck vs 渠道对比预览）                  | 延后到 follow-up                        | YAGNI — toggle 列表已提供核心配置能力，预览需要 mock 事件渲染，复杂度高 |

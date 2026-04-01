@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deck Dashboard Coverage Audit</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg-primary: #f5f5f7;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #e5e5e7;
+        --border: #d1d1d6;
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --accent: #0071e3;
+        --success: #34c759;
+        --warning: #ff9f0a;
+        --error: #ff3b30;
+        --shadow: rgba(0, 0, 0, 0.06);
+        --shadow-lg: rgba(0, 0, 0, 0.1);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-primary: #1d1d1f;
+          --bg-secondary: #2d2d2f;
+          --bg-tertiary: #3d3d3f;
+          --border: #424245;
+          --text-primary: #f5f5f7;
+          --text-secondary: #98989d;
+          --accent: #0a84ff;
+          --success: #30d158;
+          --warning: #ffd60a;
+          --error: #ff453a;
+          --shadow: rgba(0, 0, 0, 0.2);
+          --shadow-lg: rgba(0, 0, 0, 0.35);
+        }
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .header {
+        background: var(--bg-secondary);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px var(--shadow);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      .header .subtitle {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+      }
+      .header-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .btn {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.85rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: inherit;
+      }
+      .btn:hover {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      .btn svg {
+        width: 14px;
+        height: 14px;
+      }
+      .canvas {
+        flex: 1;
+        padding: 2rem;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+      }
+
+      /* Score banner */
+      .score-banner {
+        width: 100%;
+        max-width: 960px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.5rem 2rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        box-shadow: 0 2px 8px var(--shadow);
+      }
+      .score-ring {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        flex-shrink: 0;
+      }
+      .score-ring svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+      .score-ring circle {
+        fill: none;
+        stroke-width: 6;
+      }
+      .score-ring .bg {
+        stroke: var(--bg-tertiary);
+      }
+      .score-ring .fill {
+        stroke: var(--success);
+        stroke-linecap: round;
+        stroke-dasharray: 230;
+        stroke-dashoffset: 18.4;
+        transition: stroke-dashoffset 1s ease;
+      }
+      .score-value {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--success);
+      }
+      .score-text h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+      .score-text p {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+      }
+      .score-stats {
+        display: flex;
+        gap: 1.5rem;
+        margin-left: auto;
+      }
+      .stat {
+        text-align: center;
+      }
+      .stat-value {
+        font-size: 1.3rem;
+        font-weight: 700;
+      }
+      .stat-label {
+        font-size: 0.65rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .stat-value.green {
+        color: var(--success);
+      }
+      .stat-value.yellow {
+        color: var(--warning);
+      }
+      .stat-value.red {
+        color: var(--error);
+      }
+
+      /* Module grid */
+      .module-grid {
+        width: 100%;
+        max-width: 960px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 0.75rem;
+      }
+      .module-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.2rem;
+        box-shadow: 0 1px 4px var(--shadow);
+        transition: transform 0.15s ease;
+      }
+      .module-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px var(--shadow-lg);
+      }
+      .module-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.6rem;
+      }
+      .module-header h3 {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .badge {
+        padding: 0.15rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.65rem;
+        font-weight: 600;
+      }
+      .badge-full {
+        background: rgba(52, 199, 89, 0.15);
+        color: var(--success);
+      }
+      .badge-partial {
+        background: rgba(255, 159, 10, 0.15);
+        color: var(--warning);
+      }
+      .badge-missing {
+        background: rgba(255, 59, 48, 0.15);
+        color: var(--error);
+      }
+      .feature-list {
+        list-style: none;
+      }
+      .feature-list li {
+        font-size: 0.72rem;
+        padding: 0.2rem 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.4rem;
+        color: var(--text-secondary);
+      }
+      .feature-list li::before {
+        flex-shrink: 0;
+        font-size: 0.7rem;
+        margin-top: 0.1rem;
+      }
+      .feature-list li.ok::before {
+        content: "✅";
+      }
+      .feature-list li.warn::before {
+        content: "⚠️";
+      }
+      .feature-list li.miss::before {
+        content: "❌";
+      }
+
+      /* Gaps section */
+      .gaps-section {
+        width: 100%;
+        max-width: 960px;
+      }
+      .gaps-section h2 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--error);
+      }
+      .gap-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .gap-item {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+      }
+      .gap-severity {
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.15rem 0.5rem;
+        border-radius: 5px;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+      }
+      .sev-high {
+        background: rgba(255, 59, 48, 0.15);
+        color: var(--error);
+      }
+      .sev-medium {
+        background: rgba(255, 159, 10, 0.15);
+        color: var(--warning);
+      }
+      .gap-content h4 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-bottom: 0.15rem;
+      }
+      .gap-content p {
+        font-size: 0.68rem;
+        color: var(--text-secondary);
+      }
+
+      .description {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+        padding: 0.75rem 2rem;
+        flex-shrink: 0;
+      }
+      .description p {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        max-width: 80ch;
+      }
+      .toast {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--text-primary);
+        color: var(--bg-primary);
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 100;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      @media (max-width: 640px) {
+        .canvas {
+          padding: 1rem;
+        }
+        .score-banner {
+          flex-direction: column;
+          text-align: center;
+        }
+        .score-stats {
+          margin-left: 0;
+        }
+        .module-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-left">
+        <h1>Deck Dashboard Coverage Audit</h1>
+        <span class="subtitle"
+          >Backend module coverage analysis — what's implemented, what's missing</span
+        >
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="exportPNG()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          PNG
+        </button>
+      </div>
+    </div>
+
+    <div class="canvas" id="diagram">
+      <!-- Score Banner -->
+      <div class="score-banner">
+        <div class="score-ring">
+          <svg viewBox="0 0 80 80">
+            <circle class="bg" cx="40" cy="40" r="36.5" />
+            <circle class="fill" cx="40" cy="40" r="36.5" />
+          </svg>
+          <div class="score-value">92%</div>
+        </div>
+        <div class="score-text">
+          <h2>Overall Coverage</h2>
+          <p>
+            24 panels audited against 6 core backend modules (channels, context, sessions,
+            subagents, routing, chat)
+          </p>
+        </div>
+        <div class="score-stats">
+          <div class="stat">
+            <div class="stat-value green">22</div>
+            <div class="stat-label">Full</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value yellow">2</div>
+            <div class="stat-label">Partial</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value red">2</div>
+            <div class="stat-label">No UI</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module Coverage Grid -->
+      <div class="module-grid">
+        <div class="module-card">
+          <div class="module-header">
+            <h3>Channel / Plugin</h3>
+            <span class="badge badge-full">Full</span>
+          </div>
+          <ul class="feature-list">
+            <li class="ok">17+ channel listing with status indicators</li>
+            <li class="ok">Per-account throughput chart (1h/6h/24h)</li>
+            <li class="ok">Config wizard + account logout</li>
+            <li class="ok">Transport mode display (WS/Webhook/API)</li>
+          </ul>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <h3>Context & Session</h3>
+            <span class="badge badge-partial">Partial</span>
+          </div>
+          <ul class="feature-list">
+            <li class="ok">Session list with kind filter + token usage</li>
+            <li class="ok">ContextHealthBar (pressure %, compaction count)</li>
+            <li class="ok">Session history browser + deletion</li>
+            <li class="miss">Compaction history timeline (when, what, token delta)</li>
+            <li class="miss">Pruning state visibility (enabled? last prune?)</li>
+            <li class="miss">Context composition breakdown (system prompt vs history vs tools)</li>
+          </ul>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <h3>Subagent System</h3>
+            <span class="badge badge-full">Full</span>
+          </div>
+          <ul class="feature-list">
+            <li class="ok">Active runs tree view with depth nesting</li>
+            <li class="ok">Kill (cascade) + Steer (redirect) controls</li>
+            <li class="ok">History tab (completed/failed with filters)</li>
+            <li class="ok">Config editor (allowList, maxDepth, maxChildren)</li>
+            <li class="ok">Lineage tree visualization</li>
+          </ul>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <h3>Agent Routing</h3>
+            <span class="badge badge-full">Full</span>
+          </div>
+          <ul class="feature-list">
+            <li class="ok">Binding CRUD with 7-tier priority</li>
+            <li class="ok">ConditionBuilder (channel/account/peer/guild/roles)</li>
+            <li class="ok">RouteSimulator — test before deploy</li>
+            <li class="ok">Conflict detection + activity feed</li>
+          </ul>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <h3>Chat Panel</h3>
+            <span class="badge badge-full">Full</span>
+          </div>
+          <ul class="feature-list">
+            <li class="ok">SSE streaming with tool call visualization</li>
+            <li class="ok">Artifact detection (code/markdown/JSON/table)</li>
+            <li class="ok">Approval dialog + subagent cards</li>
+            <li class="ok">Session sidebar with context pressure</li>
+            <li class="ok">Canvas (A2UI) integration</li>
+          </ul>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <h3>Monitor</h3>
+            <span class="badge badge-full">Full</span>
+          </div>
+          <ul class="feature-list">
+            <li class="ok">Overview stats (runs, avg duration, top agents)</li>
+            <li class="ok">Tool waterfall timeline</li>
+            <li class="ok">Model stats (token/cache) + file change summary</li>
+            <li class="ok">Subagent spawn tree</li>
+            <li class="ok">History with filters and pagination</li>
+          </ul>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <h3>Identity Management</h3>
+            <span class="badge badge-missing">No UI</span>
+          </div>
+          <ul class="feature-list">
+            <li class="miss">Backend API exists: deck.identity.list/link/unlink</li>
+            <li class="miss">No panel for cross-channel identity linking</li>
+            <li class="miss">No device pairing management</li>
+          </ul>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <h3>Usage Analytics</h3>
+            <span class="badge badge-partial">Partial</span>
+          </div>
+          <ul class="feature-list">
+            <li class="ok">Cost breakdown by model/agent</li>
+            <li class="ok">Context pressure per session</li>
+            <li class="miss">Timeseries trend chart (backend API needed)</li>
+            <li class="warn">Token aggregation across time windows</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Critical Gaps -->
+      <div class="gaps-section">
+        <h2>Key Gaps &amp; Recommendations</h2>
+        <div class="gap-list">
+          <div class="gap-item">
+            <span class="gap-severity sev-high">HIGH</span>
+            <div class="gap-content">
+              <h4>Context Inspector (compaction + pruning visibility)</h4>
+              <p>
+                Users cannot debug "why did the agent forget X". Need: compaction timeline (when +
+                tokensBefore/After + summary preview), pruning state indicators, context composition
+                pie chart (system prompt vs history vs tool results).
+              </p>
+            </div>
+          </div>
+          <div class="gap-item">
+            <span class="gap-severity sev-high">HIGH</span>
+            <div class="gap-content">
+              <h4>Identity Management Panel</h4>
+              <p>
+                Backend deck.identity.* API is ready but has no UI. Critical for multi-channel
+                deployments where users interact via Telegram + WeCom and need unified identity.
+              </p>
+            </div>
+          </div>
+          <div class="gap-item">
+            <span class="gap-severity sev-medium">MED</span>
+            <div class="gap-content">
+              <h4>Usage Timeseries API + Chart</h4>
+              <p>
+                Frontend has disabled fetchTimeseries — backend aggregation API needed. Without it,
+                users can't track cost trends or detect usage anomalies over time.
+              </p>
+            </div>
+          </div>
+          <div class="gap-item">
+            <span class="gap-severity sev-medium">MED</span>
+            <div class="gap-content">
+              <h4>Thread Browser Panel</h4>
+              <p>
+                Backend deck.threads.list exists but no UI. Users managing Slack/Discord threads
+                have no visibility into thread hierarchy from the dashboard.
+              </p>
+            </div>
+          </div>
+          <div class="gap-item">
+            <span class="gap-severity sev-medium">MED</span>
+            <div class="gap-content">
+              <h4>Sandbox &amp; Thinking Controls</h4>
+              <p>
+                Agent detail has sandbox/thinking data fields but no interactive controls. Users
+                must edit YAML config to change these settings.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="description">
+      <p>
+        Audit of 24 Deck Dashboard panels against 6 core backend modules. Overall 92% coverage.
+        Strongest: Chat, Monitor, Routing, Subagents. Weakest: Context observability
+        (compaction/pruning invisible), Identity management (API exists, no UI). Priority
+        recommendations: Context Inspector panel, Identity panel, Usage timeseries backend API.
+      </p>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script>
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2000);
+      }
+      async function exportPNG() {
+        try {
+          showToast("Preparing...");
+          const el = document.getElementById("diagram");
+          if (!window.html2canvas) {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
+            document.head.appendChild(s);
+            await new Promise((r, e) => {
+              s.onload = r;
+              s.onerror = e;
+            });
+          }
+          const canvas = await html2canvas(el, {
+            scale: 2,
+            backgroundColor: getComputedStyle(document.body)
+              .getPropertyValue("--bg-primary")
+              .trim(),
+            useCORS: true,
+          });
+          canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "dashboard-coverage-audit.png";
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }, 100);
+            showToast("PNG exported");
+          }, "image/png");
+        } catch (e) {
+          showToast("Export failed: " + e.message);
+        }
+      }
+    </script>
+  </body>
+</html>

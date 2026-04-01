@@ -16,42 +16,43 @@
 
 ### New Files (9)
 
-| File | Responsibility |
-|------|---------------|
-| `dashboard/src/components/panels/config-editor/SectionIntroCard.tsx` | Section overview card (title + description + docs link) |
-| `dashboard/src/components/panels/config-editor/FieldHelpPopover.tsx` | Field-level help `?` icon with popover |
-| `dashboard/src/lib/section-metadata.ts` | Static mapping: section key → i18n keys + docs URL + icon |
-| `dashboard/src/components/panels/agents/tabs/AgentConfigTab.tsx` | Agent Config Editor main component (4-card grid) |
-| `dashboard/src/components/shared/InheritBadge.tsx` | Reusable inherit/override badge |
-| `dashboard/src/components/panels/agents/tabs/ToolProfileSelector.tsx` | Visual profile pill selector |
-| `dashboard/src/components/panels/channels/ChannelSettingsTab.tsx` | Channel settings tab main component |
-| `dashboard/src/components/panels/channels/DmPolicySelector.tsx` | DM policy radio card selector |
-| `dashboard/src/components/panels/channels/RetryStrategyEditor.tsx` | Retry fields + timeline visualization |
+| File                                                                  | Responsibility                                            |
+| --------------------------------------------------------------------- | --------------------------------------------------------- |
+| `dashboard/src/components/panels/config-editor/SectionIntroCard.tsx`  | Section overview card (title + description + docs link)   |
+| `dashboard/src/components/panels/config-editor/FieldHelpPopover.tsx`  | Field-level help `?` icon with popover                    |
+| `dashboard/src/lib/section-metadata.ts`                               | Static mapping: section key → i18n keys + docs URL + icon |
+| `dashboard/src/components/panels/agents/tabs/AgentConfigTab.tsx`      | Agent Config Editor main component (4-card grid)          |
+| `dashboard/src/components/shared/InheritBadge.tsx`                    | Reusable inherit/override badge                           |
+| `dashboard/src/components/panels/agents/tabs/ToolProfileSelector.tsx` | Visual profile pill selector                              |
+| `dashboard/src/components/panels/channels/ChannelSettingsTab.tsx`     | Channel settings tab main component                       |
+| `dashboard/src/components/panels/channels/DmPolicySelector.tsx`       | DM policy radio card selector                             |
+| `dashboard/src/components/panels/channels/RetryStrategyEditor.tsx`    | Retry fields + timeline visualization                     |
 
 ### Modified Files (14)
 
-| File | Change |
-|------|--------|
-| `dashboard/src/lib/ui-hints.ts` | Extend `UiHint` interface + `[]` path normalization |
-| `dashboard/src/lib/schema-parser.ts` | Add `group`, `tags`, `help` to `FormField` + populate in `parseProperty()` |
-| `dashboard/src/stores/config.ts` | Persist `uiHints` from `config.schema` RPC |
-| `dashboard/src/components/panels/config-editor/ConfigPanel.tsx` | SectionIntroCard + applyUiHints with section prefix |
-| `dashboard/src/components/panels/config-editor/SchemaForm.tsx` | Wire Password/Record/Union/TypedArray/Validation + group layout + advanced collapse |
-| `dashboard/src/components/panels/config-editor/SectionNav.tsx` | Icons, field counts, advanced hint |
-| `dashboard/src/components/panels/agents/AgentDetail.tsx` | Register "config" tab |
-| `dashboard/src/lib/panel-navigation.ts` | Add `"config"` to `AgentTab` type union |
-| `dashboard/src/stores/deck-agents.ts` | Add `fetchAgentRawConfig()`, `saveAgentConfig()` |
-| `dashboard/src/components/panels/channels/ChannelDetail.tsx` | Refactor to tabbed layout |
-| `dashboard/src/components/panels/channels/BindingsTab.tsx` | Add optional `channelId` prop for filtering |
-| `dashboard/src/stores/channels.ts` | Add `fetchChannelConfig()`, `saveChannelConfig()` |
-| `dashboard/src/i18n/zh.json` | ~95 new i18n keys |
-| `dashboard/src/i18n/en.json` | ~95 new i18n keys |
+| File                                                            | Change                                                                              |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `dashboard/src/lib/ui-hints.ts`                                 | Extend `UiHint` interface + `[]` path normalization                                 |
+| `dashboard/src/lib/schema-parser.ts`                            | Add `group`, `tags`, `help` to `FormField` + populate in `parseProperty()`          |
+| `dashboard/src/stores/config.ts`                                | Persist `uiHints` from `config.schema` RPC                                          |
+| `dashboard/src/components/panels/config-editor/ConfigPanel.tsx` | SectionIntroCard + applyUiHints with section prefix                                 |
+| `dashboard/src/components/panels/config-editor/SchemaForm.tsx`  | Wire Password/Record/Union/TypedArray/Validation + group layout + advanced collapse |
+| `dashboard/src/components/panels/config-editor/SectionNav.tsx`  | Icons, field counts, advanced hint                                                  |
+| `dashboard/src/components/panels/agents/AgentDetail.tsx`        | Register "config" tab                                                               |
+| `dashboard/src/lib/panel-navigation.ts`                         | Add `"config"` to `AgentTab` type union                                             |
+| `dashboard/src/stores/deck-agents.ts`                           | Add `fetchAgentRawConfig()`, `saveAgentConfig()`                                    |
+| `dashboard/src/components/panels/channels/ChannelDetail.tsx`    | Refactor to tabbed layout                                                           |
+| `dashboard/src/components/panels/channels/BindingsTab.tsx`      | Add optional `channelId` prop for filtering                                         |
+| `dashboard/src/stores/channels.ts`                              | Add `fetchChannelConfig()`, `saveChannelConfig()`                                   |
+| `dashboard/src/i18n/zh.json`                                    | ~95 new i18n keys                                                                   |
+| `dashboard/src/i18n/en.json`                                    | ~95 new i18n keys                                                                   |
 
 ---
 
 ## Task 0: uiHints Foundation (prerequisite for all)
 
 **Files:**
+
 - Modify: `dashboard/src/lib/ui-hints.ts`
 - Modify: `dashboard/src/lib/schema-parser.ts`
 - Modify: `dashboard/src/stores/config.ts`
@@ -78,12 +79,14 @@ export interface UiHint {
 ```
 
 In `matchUiHint()`, before the wildcard loop, normalize `[]` in hint keys to `*`:
+
 ```typescript
 // Normalize [] to * in hint paths for matching
 const normalizedPath = hintPath.replace(/\[\]/g, "*");
 ```
 
 In `applyUiHints()`, extend the decorated spread to include new fields:
+
 ```typescript
 ...(hint.help !== undefined ? { help: hint.help } : {}),
 ...(hint.group !== undefined ? { group: hint.group } : {}),
@@ -93,6 +96,7 @@ In `applyUiHints()`, extend the decorated spread to include new fields:
 - [ ] **Step 2: Extend `FormField` in `schema-parser.ts`**
 
 Add to the `FormField` interface:
+
 ```typescript
 export interface FormField {
   // ... existing fields ...
@@ -110,6 +114,7 @@ Note: `PasswordField` is **already wired** in `SchemaForm.tsx` (line 280-289). T
 - [ ] **Step 3: Extend `config.ts` store to persist uiHints**
 
 In `fetchSchema()`, extract and store `uiHints` alongside `schema`:
+
 ```typescript
 // In ConfigState interface, add:
 uiHints: UiHintsMap | null;
@@ -125,6 +130,7 @@ set({
 - [ ] **Step 4: Write tests for `[]` path normalization**
 
 In `ui-hints.test.ts`, add test cases for `matchUiHint` with `[]` syntax:
+
 ```typescript
 it("matches [] wildcard paths", () => {
   const hints = { "agents.list[].model": { help: "test" } };
@@ -148,6 +154,7 @@ scripts/committer "[enhanced] feat(deck): extend uiHints foundation — UiHint i
 ## Task 1: SectionIntroCard + section-metadata
 
 **Files:**
+
 - Create: `dashboard/src/lib/section-metadata.ts`
 - Create: `dashboard/src/components/panels/config-editor/SectionIntroCard.tsx`
 
@@ -156,22 +163,75 @@ scripts/committer "[enhanced] feat(deck): extend uiHints foundation — UiHint i
 Static mapping for ~10 known config sections. Each entry has i18n title/description keys, docs URL, and lucide icon name. Unknown sections fall back gracefully (no intro card shown).
 
 ```typescript
-export const SECTION_META: Record<string, {
-  titleKey: string;
-  descriptionKey: string;
-  docsUrl: string;
-  icon: string;
-}> = {
-  agents: { titleKey: "config.sectionIntro.agents.title", descriptionKey: "config.sectionIntro.agents.description", docsUrl: "https://docs.openclaw.ai/configuration#agents", icon: "Bot" },
-  tools: { titleKey: "config.sectionIntro.tools.title", descriptionKey: "config.sectionIntro.tools.description", docsUrl: "https://docs.openclaw.ai/configuration#tools", icon: "Wrench" },
-  gateway: { titleKey: "config.sectionIntro.gateway.title", descriptionKey: "config.sectionIntro.gateway.description", docsUrl: "https://docs.openclaw.ai/gateway", icon: "Server" },
-  channels: { titleKey: "config.sectionIntro.channels.title", descriptionKey: "config.sectionIntro.channels.description", docsUrl: "https://docs.openclaw.ai/configuration#channels", icon: "Share2" },
-  models: { titleKey: "config.sectionIntro.models.title", descriptionKey: "config.sectionIntro.models.description", docsUrl: "https://docs.openclaw.ai/configuration#models", icon: "Brain" },
-  hooks: { titleKey: "config.sectionIntro.hooks.title", descriptionKey: "config.sectionIntro.hooks.description", docsUrl: "https://docs.openclaw.ai/configuration#hooks", icon: "Webhook" },
-  secrets: { titleKey: "config.sectionIntro.secrets.title", descriptionKey: "config.sectionIntro.secrets.description", docsUrl: "https://docs.openclaw.ai/configuration#secrets", icon: "Lock" },
-  logging: { titleKey: "config.sectionIntro.logging.title", descriptionKey: "config.sectionIntro.logging.description", docsUrl: "https://docs.openclaw.ai/configuration#logging", icon: "FileText" },
-  update: { titleKey: "config.sectionIntro.update.title", descriptionKey: "config.sectionIntro.update.description", docsUrl: "https://docs.openclaw.ai/configuration#update", icon: "RefreshCw" },
-  browser: { titleKey: "config.sectionIntro.browser.title", descriptionKey: "config.sectionIntro.browser.description", docsUrl: "https://docs.openclaw.ai/configuration#browser", icon: "Globe" },
+export const SECTION_META: Record<
+  string,
+  {
+    titleKey: string;
+    descriptionKey: string;
+    docsUrl: string;
+    icon: string;
+  }
+> = {
+  agents: {
+    titleKey: "config.sectionIntro.agents.title",
+    descriptionKey: "config.sectionIntro.agents.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#agents",
+    icon: "Bot",
+  },
+  tools: {
+    titleKey: "config.sectionIntro.tools.title",
+    descriptionKey: "config.sectionIntro.tools.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#tools",
+    icon: "Wrench",
+  },
+  gateway: {
+    titleKey: "config.sectionIntro.gateway.title",
+    descriptionKey: "config.sectionIntro.gateway.description",
+    docsUrl: "https://docs.openclaw.ai/gateway",
+    icon: "Server",
+  },
+  channels: {
+    titleKey: "config.sectionIntro.channels.title",
+    descriptionKey: "config.sectionIntro.channels.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#channels",
+    icon: "Share2",
+  },
+  models: {
+    titleKey: "config.sectionIntro.models.title",
+    descriptionKey: "config.sectionIntro.models.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#models",
+    icon: "Brain",
+  },
+  hooks: {
+    titleKey: "config.sectionIntro.hooks.title",
+    descriptionKey: "config.sectionIntro.hooks.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#hooks",
+    icon: "Webhook",
+  },
+  secrets: {
+    titleKey: "config.sectionIntro.secrets.title",
+    descriptionKey: "config.sectionIntro.secrets.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#secrets",
+    icon: "Lock",
+  },
+  logging: {
+    titleKey: "config.sectionIntro.logging.title",
+    descriptionKey: "config.sectionIntro.logging.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#logging",
+    icon: "FileText",
+  },
+  update: {
+    titleKey: "config.sectionIntro.update.title",
+    descriptionKey: "config.sectionIntro.update.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#update",
+    icon: "RefreshCw",
+  },
+  browser: {
+    titleKey: "config.sectionIntro.browser.title",
+    descriptionKey: "config.sectionIntro.browser.description",
+    docsUrl: "https://docs.openclaw.ai/configuration#browser",
+    icon: "Globe",
+  },
 };
 ```
 
@@ -194,6 +254,7 @@ scripts/committer "[enhanced] feat(deck): add SectionIntroCard and section-metad
 ## Task 2: FieldHelpPopover
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/config-editor/FieldHelpPopover.tsx`
 
 - [ ] **Step 1: Create `FieldHelpPopover.tsx`**
@@ -213,6 +274,7 @@ scripts/committer "[enhanced] feat(deck): add FieldHelpPopover component" dashbo
 ## Task 3: ConfigPanel + SchemaForm + SectionNav Enhancement
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/config-editor/ConfigPanel.tsx`
 - Modify: `dashboard/src/components/panels/config-editor/SchemaForm.tsx`
 - Modify: `dashboard/src/components/panels/config-editor/SectionNav.tsx`
@@ -220,6 +282,7 @@ scripts/committer "[enhanced] feat(deck): add FieldHelpPopover component" dashbo
 - [ ] **Step 1: Update ConfigPanel to use SectionIntroCard + applyUiHints**
 
 In `ConfigPanel.tsx`:
+
 1. Import `SectionIntroCard`, `useConfigStore` (for `uiHints`)
 2. After `parseSchemaSection()`, call `applyUiHints(fields, uiHints, sectionPrefix)` where `sectionPrefix = activeSection + "."` to match Gateway hint paths
 3. Render `<SectionIntroCard sectionKey={activeSection} />` above `<SchemaForm />`
@@ -228,6 +291,7 @@ In `ConfigPanel.tsx`:
 - [ ] **Step 2: Update SchemaForm to wire advanced field components**
 
 In `SchemaForm.tsx`, extend the `switch (field.type)` to check:
+
 - `field.sensitive` → render `<PasswordField />`
 - `field.variants?.length > 0` → render `<UnionField />`
 - `field.type === "object" && field.valueSchema` → render `<RecordField />`
@@ -244,6 +308,7 @@ Add advanced collapse: fields with `field.tags?.includes("advanced")` go into a 
 - [ ] **Step 3: Update SectionNav**
 
 In `SectionNav.tsx`:
+
 1. Import `SECTION_META` from `section-metadata.ts`
 2. For each section, render icon from meta + field count badge
 3. Add "N advanced hidden" indicator at bottom
@@ -264,6 +329,7 @@ scripts/committer "[enhanced] feat(deck): ConfigPanel understanding layer — he
 ## Task 4: InheritBadge Shared Component
 
 **Files:**
+
 - Create: `dashboard/src/components/shared/InheritBadge.tsx`
 
 - [ ] **Step 1: Create InheritBadge**
@@ -286,6 +352,7 @@ scripts/committer "[enhanced] feat(deck): add InheritBadge shared component" das
 ## Task 5: ToolProfileSelector Component
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/agents/tabs/ToolProfileSelector.tsx`
 
 - [ ] **Step 1: Create ToolProfileSelector**
@@ -313,6 +380,7 @@ scripts/committer "[enhanced] feat(deck): add ToolProfileSelector component" das
 ## Task 6: Agent Config Tab + Store
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/agents/tabs/AgentConfigTab.tsx`
 - Modify: `dashboard/src/components/panels/agents/AgentDetail.tsx`
 - Modify: `dashboard/src/lib/panel-navigation.ts`
@@ -321,6 +389,7 @@ scripts/committer "[enhanced] feat(deck): add ToolProfileSelector component" das
 - [ ] **Step 1: Extend deck-agents store**
 
 Add to `useDeckAgentsStore`:
+
 ```typescript
 agentRawConfig: { defaults: Record<string, unknown>; entry: Record<string, unknown> | null; list: Record<string, unknown>[]; baseHash: string | null } | null;
 fetchAgentRawConfig: (agentId: string) => Promise<void>;
@@ -351,13 +420,13 @@ Effective value: `entry[field] ?? defaults[field] ?? schemaDefault`.
 - [ ] **Step 3: Register tab in AgentDetail + update panel-navigation types**
 
 In `AgentDetail.tsx`:
+
 1. Add `"config"` to `TabValue` union
 2. Import `AgentConfigTab`
 3. Add `<TabsTrigger value="config">{t("tabs.config")}</TabsTrigger>` after "overview"
 4. Add `<TabsContent value="config"><AgentConfigTab agentId={agentId} /></TabsContent>`
 
-In `dashboard/src/lib/panel-navigation.ts`:
-5. Add `"config"` to the `AgentTab` type union (line 18): `type AgentTab = "overview" | "config" | "routing" | "skills" | "context" | "subagent" | "sessions"`
+In `dashboard/src/lib/panel-navigation.ts`: 5. Add `"config"` to the `AgentTab` type union (line 18): `type AgentTab = "overview" | "config" | "routing" | "skills" | "context" | "subagent" | "sessions"`
 
 - [ ] **Step 4: Add i18n keys**
 
@@ -379,12 +448,14 @@ scripts/committer "[enhanced] feat(deck): add Agent Config Editor tab with inher
 ## Task 7: ChannelDetail Tabbed Refactoring
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/channels/ChannelDetail.tsx`
 - Modify: `dashboard/src/components/panels/channels/BindingsTab.tsx`
 
 - [ ] **Step 1: Refactor ChannelDetail to tabbed layout**
 
 Wrap existing content in `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent`:
+
 - Tab "status": current ChannelDetail content (accounts list, enable/disable, logout)
 - Tab "bindings": `<BindingsTab channelId={channelId} />`
 - Tab "settings": placeholder `<div>Settings coming soon</div>` (filled in Task 8)
@@ -394,6 +465,7 @@ Import `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` from `@/components/ui/ta
 - [ ] **Step 2: Add `channelId` prop to BindingsTab**
 
 In `BindingsTab.tsx`, add optional `channelId?: string` prop. When provided:
+
 - Pre-set `selectedChannel` filter to this channelId
 - Hide the channel filter dropdown (since context is already scoped)
 
@@ -417,6 +489,7 @@ scripts/committer "[enhanced] feat(deck): refactor ChannelDetail to tabbed layou
 ## Task 8: Channel Settings Tab (DM Policy + Retry + Schema Fields)
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/channels/ChannelSettingsTab.tsx`
 - Create: `dashboard/src/components/panels/channels/DmPolicySelector.tsx`
 - Create: `dashboard/src/components/panels/channels/RetryStrategyEditor.tsx`
@@ -444,6 +517,7 @@ Add `saveChannelConfig(channelId, patch)` → calls `/api/config/patch` with `{ 
 - [ ] **Step 4: Create ChannelSettingsTab**
 
 Receives `channelId: string`. Composes:
+
 1. `<DmPolicySelector />` for `dmPolicy` field
 2. `<RetryStrategyEditor />` for `retry.*` fields
 3. `<SchemaForm />` for remaining channel-specific fields (schema-driven, filtered)
@@ -517,6 +591,7 @@ Task 9 (Integration) ← depends on all
 ```
 
 **Parallelizable groups:**
+
 - Group A: Tasks 0 → 1, 2 → 3 (ConfigPanel layer, sequential)
 - Group B: Tasks 4, 5 → 6 (Agent Config, 4+5 parallel then 6)
 - Group C: Tasks 7 → 8 (Channel Settings, sequential)
@@ -524,6 +599,7 @@ Task 9 (Integration) ← depends on all
 - Task 9 runs after all groups complete
 
 **i18n serialization constraint:** `zh.json` and `en.json` are touched by all three groups. To avoid merge conflicts when running in parallel:
+
 - Each group commits i18n keys in its own namespace (e.g., `config.sectionIntro.*`, `agentDetail.config.*`, `channels.settings.*`) — these are in different sections of the JSON
 - If using Agent Team with worktrees, each group adds keys to its own namespace section only; the final merge resolves positionally (no overlapping keys)
 - If merge conflicts still occur, Task 9 (integration) resolves them as a fixup step

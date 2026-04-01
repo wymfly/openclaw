@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Enhanced Fork — 架构全景图</title>
+    <style>
+      :root {
+        --bg: #0a0f1c;
+        --bg2: #111827;
+        --bg3: #1e293b;
+        --bg4: #334155;
+        --text: #e2e8f0;
+        --text2: #94a3b8;
+        --text3: #64748b;
+        --accent: #60a5fa;
+        --accent2: #3b82f6;
+        --accent-glow: rgba(96, 165, 250, 0.15);
+        --oc: #a78bfa;
+        --en: #34d399;
+        --tp: #fbbf24;
+        --lib: #f472b6;
+        --border: rgba(255, 255, 255, 0.08);
+        --radius: 12px;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Outfit", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px 32px 80px;
+      }
+
+      /* Header */
+      .hero {
+        text-align: center;
+        padding: 60px 0 40px;
+      }
+      .hero h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .hero h1 span {
+        color: var(--accent);
+      }
+      .hero .subtitle {
+        color: var(--text2);
+        font-size: 0.95rem;
+        margin-top: 8px;
+      }
+      .hero .stats {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+      }
+      .hero .stat {
+        text-align: center;
+      }
+      .hero .stat .num {
+        font-size: 1.8rem;
+        font-weight: 700;
+        font-family: "Geist Mono", monospace;
+      }
+      .hero .stat .label {
+        font-size: 0.75rem;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      /* Legend */
+      .legend {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin: 32px 0;
+        flex-wrap: wrap;
+      }
+      .legend .tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        padding: 4px 12px;
+        border-radius: 20px;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+      }
+      .legend .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .dot-oc {
+        background: var(--oc);
+      }
+      .dot-en {
+        background: var(--en);
+      }
+      .dot-tp {
+        background: var(--tp);
+      }
+      .dot-lib {
+        background: var(--lib);
+      }
+
+      /* Section */
+      h2 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 48px 0 20px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      h2 .badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+
+      /* Architecture diagram */
+      .arch-diagram {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 32px;
+        margin: 20px 0;
+        overflow-x: auto;
+      }
+      .arch-diagram pre {
+        font-family: "Geist Mono", "SF Mono", monospace;
+        font-size: 0.78rem;
+        line-height: 1.7;
+        color: var(--text2);
+        white-space: pre;
+      }
+      .arch-diagram .hl-en {
+        color: var(--en);
+        font-weight: 600;
+      }
+      .arch-diagram .hl-oc {
+        color: var(--oc);
+      }
+      .arch-diagram .hl-tp {
+        color: var(--tp);
+      }
+      .arch-diagram .hl-accent {
+        color: var(--accent);
+      }
+      .arch-diagram .hl-dim {
+        color: var(--text3);
+      }
+
+      /* Cards grid */
+      .grid {
+        display: grid;
+        gap: 16px;
+        margin: 16px 0;
+      }
+      .grid-2 {
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      }
+      .grid-3 {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      }
+      .grid-4 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .card {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        transition:
+          box-shadow 0.2s,
+          border-color 0.2s;
+      }
+      .card:hover {
+        border-color: rgba(96, 165, 250, 0.3);
+        box-shadow: 0 0 20px var(--accent-glow);
+      }
+      .card .title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .card .title .icon {
+        font-size: 1.1rem;
+      }
+      .card .desc {
+        font-size: 0.8rem;
+        color: var(--text2);
+        line-height: 1.5;
+      }
+      .card .meta {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+      .card .meta span {
+        font-size: 0.7rem;
+        font-family: monospace;
+        padding: 2px 8px;
+        border-radius: 6px;
+        background: var(--bg3);
+        color: var(--text2);
+      }
+      .card .source {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+      .src-oc {
+        background: rgba(167, 139, 250, 0.15);
+        color: var(--oc);
+      }
+      .src-en {
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--en);
+      }
+      .src-tp {
+        background: rgba(251, 191, 36, 0.15);
+        color: var(--tp);
+      }
+      .src-lib {
+        background: rgba(244, 114, 182, 0.15);
+        color: var(--lib);
+      }
+
+      /* Bars */
+      .bar-chart {
+        margin: 16px 0;
+      }
+      .bar-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 6px 0;
+      }
+      .bar-label {
+        width: 160px;
+        font-size: 0.8rem;
+        color: var(--text2);
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .bar-track {
+        flex: 1;
+        height: 24px;
+        background: var(--bg3);
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+      }
+      .bar-fill {
+        height: 100%;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        padding-left: 8px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #fff;
+        min-width: fit-content;
+        white-space: nowrap;
+      }
+      .bar-fill.oc {
+        background: linear-gradient(90deg, var(--oc), #8b5cf6);
+      }
+      .bar-fill.en {
+        background: linear-gradient(90deg, var(--en), #10b981);
+      }
+      .bar-fill.tp {
+        background: linear-gradient(90deg, var(--tp), #f59e0b);
+      }
+      .bar-fill.lib {
+        background: linear-gradient(90deg, var(--lib), #ec4899);
+      }
+
+      /* Tables */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+        margin: 12px 0;
+      }
+      th {
+        text-align: left;
+        padding: 8px 12px;
+        background: var(--bg3);
+        color: var(--text2);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      td {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      tr:hover td {
+        background: rgba(96, 165, 250, 0.04);
+      }
+      td code {
+        font-family: monospace;
+        font-size: 0.78rem;
+        background: var(--bg3);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+
+      /* Flow */
+      .flow {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin: 16px 0;
+      }
+      .flow-row {
+        display: flex;
+        align-items: stretch;
+        gap: 12px;
+        margin: 8px 0;
+      }
+      .flow-box {
+        flex: 1;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+        font-size: 0.8rem;
+        position: relative;
+      }
+      .flow-box .flow-title {
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+      }
+      .flow-box .flow-sub {
+        color: var(--text3);
+        font-size: 0.7rem;
+      }
+      .flow-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text3);
+        font-size: 1.2rem;
+        width: 30px;
+        flex-shrink: 0;
+      }
+      .flow-vline {
+        text-align: center;
+        color: var(--text3);
+        font-size: 1rem;
+        padding: 4px 0;
+      }
+
+      /* Tech stack */
+      .tech-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .tech-item {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        font-size: 0.8rem;
+      }
+      .tech-item .tech-name {
+        font-weight: 600;
+      }
+      .tech-item .tech-ver {
+        color: var(--text3);
+        font-size: 0.7rem;
+        margin-top: 2px;
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 40px 0 20px;
+        color: var(--text3);
+        font-size: 0.75rem;
+        border-top: 1px solid var(--border);
+        margin-top: 60px;
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Geist+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Hero -->
+      <div class="hero">
+        <h1><span>OpenClaw</span> Enhanced Fork</h1>
+        <div class="subtitle">
+          架构全景图 &mdash; enhanced 分支 &bull; 56 enhanced commits &bull; 2026-03-19
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="num" style="color: var(--accent)">1,007K+</div>
+            <div class="label">总代码量 (LOC)</div>
+          </div>
+          <div class="stat">
+            <div class="num" style="color: var(--en)">~35K</div>
+            <div class="label">Enhanced 净增</div>
+          </div>
+          <div class="stat">
+            <div class="num">6,162</div>
+            <div class="label">源文件</div>
+          </div>
+          <div class="stat">
+            <div class="num">7,749</div>
+            <div class="label">测试用例</div>
+          </div>
+          <div class="stat">
+            <div class="num">37</div>
+            <div class="label">扩展插件</div>
+          </div>
+          <div class="stat">
+            <div class="num">19</div>
+            <div class="label">Dashboard 面板</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="tag">
+          <div class="dot dot-oc"></div>
+          OC — OpenClaw 上游
+        </div>
+        <div class="tag">
+          <div class="dot dot-en"></div>
+          EN — Enhanced 二次开发
+        </div>
+        <div class="tag">
+          <div class="dot dot-tp"></div>
+          TP — 移植第三方项目
+        </div>
+        <div class="tag">
+          <div class="dot dot-lib"></div>
+          LIB — 第三方库
+        </div>
+      </div>
+
+      <!-- System Architecture -->
+      <h2>1. 系统分层架构</h2>
+
+      <div class="flow">
+        <!-- Layer 1: User Interfaces -->
+        <div class="flow-row">
+          <div class="flow-box" style="border-color: rgba(167, 139, 250, 0.3)">
+            <div class="flow-title">iOS App</div>
+            <div class="flow-sub">SwiftUI <span class="source src-oc">OC</span></div>
+          </div>
+          <div class="flow-box" style="border-color: rgba(167, 139, 250, 0.3)">
+            <div class="flow-title">macOS Menubar</div>
+            <div class="flow-sub">SwiftUI + Gateway <span class="source src-oc">OC</span></div>
+          </div>
+          <div class="flow-box" style="border-color: rgba(52, 211, 153, 0.3)">
+            <div class="flow-title">Web Dashboard</div>
+            <div class="flow-sub">Next.js 16 + React 19 <span class="source src-en">EN</span></div>
+          </div>
+          <div class="flow-box" style="border-color: rgba(167, 139, 250, 0.3)">
+            <div class="flow-title">CLI</div>
+            <div class="flow-sub">Node.js Terminal <span class="source src-oc">OC</span></div>
+          </div>
+        </div>
+
+        <div class="flow-vline">&#9660; HTTP / WebSocket / SSE</div>
+
+        <!-- Layer 2: Gateway -->
+        <div class="flow-row">
+          <div class="flow-box" style="flex: 3; border-color: rgba(96, 165, 250, 0.3)">
+            <div class="flow-title" style="color: var(--accent)">OpenClaw Gateway</div>
+            <div
+              style="
+                display: flex;
+                gap: 8px;
+                justify-content: center;
+                margin-top: 8px;
+                flex-wrap: wrap;
+              "
+            >
+              <span
+                style="
+                  font-size: 0.7rem;
+                  padding: 2px 8px;
+                  background: var(--bg);
+                  border-radius: 4px;
+                "
+                >RPC v3</span
+              >
+              <span
+                style="
+                  font-size: 0.7rem;
+                  padding: 2px 8px;
+                  background: var(--bg);
+                  border-radius: 4px;
+                "
+                >Agent Runtime</span
+              >
+              <span
+                style="
+                  font-size: 0.7rem;
+                  padding: 2px 8px;
+                  background: var(--bg);
+                  border-radius: 4px;
+                "
+                >Session Mgr</span
+              >
+              <span
+                style="
+                  font-size: 0.7rem;
+                  padding: 2px 8px;
+                  background: var(--bg);
+                  border-radius: 4px;
+                "
+                >Cron/Heartbeat</span
+              >
+              <span
+                style="
+                  font-size: 0.7rem;
+                  padding: 2px 8px;
+                  background: var(--bg);
+                  border-radius: 4px;
+                "
+                >Config</span
+              >
+              <span
+                style="
+                  font-size: 0.7rem;
+                  padding: 2px 8px;
+                  background: var(--bg);
+                  border-radius: 4px;
+                "
+                >Plugin Loader</span
+              >
+            </div>
+            <div class="flow-sub" style="margin-top: 6px">
+              325 files &bull; 74K LOC <span class="source src-oc">OC</span> +
+              <span class="source src-en">EN 安全加固</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-vline">&#9660; &#9650;</div>
+
+        <!-- Layer 3: Channels + Providers -->
+        <div class="flow-row">
+          <div class="flow-box" style="flex: 2; border-color: rgba(167, 139, 250, 0.3)">
+            <div class="flow-title">渠道集成层 (37+)</div>
+            <div
+              style="
+                display: flex;
+                gap: 4px;
+                justify-content: center;
+                margin-top: 6px;
+                flex-wrap: wrap;
+                font-size: 0.7rem;
+              "
+            >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(167, 139, 250, 0.15);
+                  border-radius: 4px;
+                  color: var(--oc);
+                "
+                >Telegram</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(167, 139, 250, 0.15);
+                  border-radius: 4px;
+                  color: var(--oc);
+                "
+                >Discord</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(167, 139, 250, 0.15);
+                  border-radius: 4px;
+                  color: var(--oc);
+                "
+                >Slack</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(167, 139, 250, 0.15);
+                  border-radius: 4px;
+                  color: var(--oc);
+                "
+                >Signal</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(167, 139, 250, 0.15);
+                  border-radius: 4px;
+                  color: var(--oc);
+                "
+                >iMessage</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(52, 211, 153, 0.15);
+                  border-radius: 4px;
+                  color: var(--en);
+                "
+                >WeCom</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(167, 139, 250, 0.15);
+                  border-radius: 4px;
+                  color: var(--oc);
+                "
+                >Matrix</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(167, 139, 250, 0.15);
+                  border-radius: 4px;
+                  color: var(--oc);
+                "
+                >Teams</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(167, 139, 250, 0.15);
+                  border-radius: 4px;
+                  color: var(--oc);
+                "
+                >飞书</span
+              >
+              <span style="padding: 2px 6px; background: var(--bg); border-radius: 4px"
+                >+28 more</span
+              >
+            </div>
+          </div>
+          <div class="flow-box" style="border-color: rgba(167, 139, 250, 0.3)">
+            <div class="flow-title">AI 服务商</div>
+            <div
+              style="
+                display: flex;
+                gap: 4px;
+                justify-content: center;
+                margin-top: 6px;
+                flex-wrap: wrap;
+                font-size: 0.7rem;
+              "
+            >
+              <span style="padding: 2px 6px; background: var(--bg); border-radius: 4px"
+                >Claude</span
+              >
+              <span style="padding: 2px 6px; background: var(--bg); border-radius: 4px">GPT</span>
+              <span style="padding: 2px 6px; background: var(--bg); border-radius: 4px"
+                >Gemini</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(52, 211, 153, 0.1);
+                  border-radius: 4px;
+                  color: var(--en);
+                "
+                >Moonshot</span
+              >
+              <span
+                style="
+                  padding: 2px 6px;
+                  background: rgba(52, 211, 153, 0.1);
+                  border-radius: 4px;
+                  color: var(--en);
+                "
+                >DeepSeek</span
+              >
+              <span style="padding: 2px 6px; background: var(--bg); border-radius: 4px"
+                >Ollama</span
+              >
+            </div>
+          </div>
+          <div class="flow-box" style="border-color: rgba(251, 191, 36, 0.3)">
+            <div class="flow-title">Memory</div>
+            <div class="flow-sub">
+              Files + LanceDB<br /><span class="source src-tp">TP:lancedb</span> 225 tests
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code Source Distribution -->
+      <h2>2. 代码来源分布</h2>
+
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">核心引擎 [OC]</div>
+          <div class="bar-track">
+            <div class="bar-fill oc" style="width: 82%">822K LOC &bull; 4,429 files</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">扩展生态 [OC]</div>
+          <div class="bar-track">
+            <div class="bar-fill oc" style="width: 17%">173K LOC &bull; 936 files</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Dashboard [EN]</div>
+          <div class="bar-track">
+            <div class="bar-fill en" style="width: 2.7%">27K LOC &bull; 247 files</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">WeCom [EN]</div>
+          <div class="bar-track">
+            <div class="bar-fill en" style="width: 0.8%">&nbsp;8K &bull; 151 files</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">安全加固 [EN]</div>
+          <div class="bar-track">
+            <div class="bar-fill en" style="width: 0.15%">&nbsp;1.5K</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Memory [TP]</div>
+          <div class="bar-track"><div class="bar-fill tp" style="width: 0.4%">&nbsp;4K</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">移植模块 [TP]</div>
+          <div class="bar-track"><div class="bar-fill tp" style="width: 0.2%">&nbsp;2K</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">shadcn/ui [LIB]</div>
+          <div class="bar-track">
+            <div class="bar-fill lib" style="width: 0.12%">&nbsp;1.2K</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Core Engine Modules -->
+      <h2>3. 核心引擎 <code>src/</code> <span class="badge src-oc">OC 822K LOC</span></h2>
+
+      <div class="grid grid-3">
+        <div class="card">
+          <div class="title"><span class="icon">🤖</span> AI 代理框架</div>
+          <div class="desc">模型路由、prompt 管理、SOUL.md 人格、工作区、auto-reply 规则引擎</div>
+          <div class="meta">
+            <span>agents/ 760f 153K</span><span>auto-reply/ 270f 60K</span><span>providers/</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="icon">🌐</span> Gateway 服务</div>
+          <div class="desc">RPC v3、WebSocket 管理、认证、事件循环、会话管理、定时心跳</div>
+          <div class="meta">
+            <span>gateway/ 325f 74K</span><span>sessions/</span><span>cron/</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="icon">⌨️</span> CLI 工具链</div>
+          <div class="desc">32+ 子命令、参数解析、终端 UI、配置向导、进度条</div>
+          <div class="meta"><span>cli/ 281f 42K</span><span>commands/ 332f 61K</span></div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="icon">💬</span> 渠道集成</div>
+          <div class="desc">Telegram、Discord、Slack、Signal、iMessage、WhatsApp + 路由策略</div>
+          <div class="meta">
+            <span>telegram/ 32K</span><span>discord/ 40K</span><span>channels/ 21K</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="icon">⚙️</span> 配置系统</div>
+          <div class="desc">YAML/JSON 配置、JSON Schema 验证、热重载、多环境</div>
+          <div class="meta"><span>config/ 218f 40K</span></div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="icon">🎨</span> 媒体 & 理解</div>
+          <div class="desc">媒体处理管线、图片/视频理解、URL 预览、Markdown、TTS</div>
+          <div class="meta">
+            <span>media/</span><span>media-understanding/</span><span>tts/</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="icon">🔌</span> 插件系统</div>
+          <div class="desc">Plugin SDK、插件加载器、生命周期管理、ACP 协议</div>
+          <div class="meta"><span>plugin-sdk/</span><span>plugins/</span><span>acp/</span></div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="icon">🌍</span> 国际化</div>
+          <div class="desc">8 种语言支持（en/zh/ja/ko/fr/de/es/pt）</div>
+          <div class="meta"><span>i18n/</span><span>8 locales</span></div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="icon">🖥️</span> 浏览器自动化</div>
+          <div class="desc">Playwright 驱动、Canvas 渲染、进程管理</div>
+          <div class="meta"><span>browser/ 142f 23K</span><span>canvas-host/</span></div>
+        </div>
+      </div>
+
+      <!-- Enhanced Security -->
+      <h2>4. Enhanced 安全加固 <span class="badge src-en">EN 插入 OC 模块</span></h2>
+
+      <div class="grid grid-2">
+        <div class="card" style="border-left: 3px solid var(--en)">
+          <div class="title"><span class="source src-en">EN</span> SSRF 双阶段防护</div>
+          <div class="desc">
+            DNS 解析前检查（私有 IP 模式匹配）+ DNS 解析后检查（实际 IP 验证），覆盖
+            IPv4/IPv6/编码攻击
+          </div>
+          <div class="meta"><span>infra/net/ssrf.ts 300 LOC</span><span>57 tests</span></div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--en)">
+          <div class="title"><span class="source src-en">EN</span> Fetch Guard</div>
+          <div class="desc">HTTP 重定向跳转校验、敏感 header 自动剥离、跨域安全</div>
+          <div class="meta"><span>infra/net/fetch-guard.ts 250 LOC</span></div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--en)">
+          <div class="title"><span class="source src-en">EN</span> Unicode 同形字防护</div>
+          <div class="desc">外部内容注入防护、随机化边界标记、Confusable 检测</div>
+          <div class="meta"><span>security/external-content.ts 200 LOC</span></div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--en)">
+          <div class="title"><span class="source src-en">EN</span> 通用重试框架</div>
+          <div class="desc">指数退避 + jitter、可配置策略、渠道统一退避、retryAfterMs 支持</div>
+          <div class="meta"><span>infra/retry.ts 180 LOC</span><span>9 tests</span></div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--en)">
+          <div class="title"><span class="source src-en">EN</span> Windows ACL & 环境安全</div>
+          <div class="desc">SID 解析 + icacls 输出解析、LD_PRELOAD 等危险变量阻止</div>
+          <div class="meta">
+            <span>security/windows-acl.ts</span><span>host-env-security.ts</span>
+          </div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--en)">
+          <div class="title"><span class="source src-en">EN</span> 渠道稳定性</div>
+          <div class="desc">Discord HELLO 超时、Telegram IPv4-first DNS、Signal JSON 容错</div>
+          <div class="meta"><span>discord/</span><span>telegram/</span><span>signal/</span></div>
+        </div>
+      </div>
+
+      <!-- Extensions -->
+      <h2>
+        5. 扩展生态 <code>extensions/</code>
+        <span class="badge" style="background: var(--bg3); color: var(--text2)"
+          >37 个 &bull; 936 files</span
+        >
+      </h2>
+
+      <div class="grid grid-3">
+        <div class="card" style="border-left: 3px solid var(--en)">
+          <div class="title"><span class="source src-en">EN</span> 企业微信 WeCom</div>
+          <div class="desc">
+            WebSocket + HTTP 双通道、配额追踪、请求去重、推理可视化、矩阵多账号、加解密
+          </div>
+          <div class="meta"><span>151 files</span><span>~8K LOC</span><span>195+ tests</span></div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--tp)">
+          <div class="title"><span class="source src-tp">TP:lancedb</span> Memory Enhancement</div>
+          <div class="desc">
+            多 key 嵌入器、混合检索(Vector+BM25+Rerank)、智能提取(6类)、5 模式作用域、Weibull 衰减
+          </div>
+          <div class="meta"><span>36 files</span><span>~4K LOC</span><span>225 tests</span></div>
+        </div>
+        <div class="card">
+          <div class="title"><span class="source src-oc">OC</span> 渠道扩展 (16)</div>
+          <div class="desc">
+            Matrix(92f) &bull; Teams(79f) &bull; 飞书(86f) &bull; Voice(59f) &bull; BlueBubbles(43f)
+            &bull; Mattermost(41f) &bull; Twitch(32f) &bull; IRC(26f) &bull; Nostr(24f)...
+          </div>
+          <div class="meta"><span>16 channels</span><span>700+ files</span></div>
+        </div>
+      </div>
+
+      <!-- Dashboard -->
+      <h2>
+        6. Web Dashboard <code>dashboard/</code>
+        <span class="badge src-en">EN 27K LOC &bull; 247 files</span>
+      </h2>
+
+      <div class="grid grid-2" style="margin-bottom: 16px">
+        <div class="card">
+          <div class="title">
+            服务端基础设施
+            <span style="color: var(--text3); font-weight: 400">13 files, 2,041 LOC</span>
+          </div>
+          <table>
+            <tr>
+              <td><code>gateway-adapter.ts</code></td>
+              <td>547</td>
+              <td><span class="source src-tp">TP:studio</span> WS 适配器</td>
+            </tr>
+            <tr>
+              <td><code>runtime.ts</code></td>
+              <td>303</td>
+              <td><span class="source src-en">EN</span> 启动 + 迁移 + 定时器</td>
+            </tr>
+            <tr>
+              <td><code>alert-engine.ts</code></td>
+              <td>263</td>
+              <td><span class="source src-en">EN</span> 告警评估引擎</td>
+            </tr>
+            <tr>
+              <td><code>projection-store.ts</code></td>
+              <td>188</td>
+              <td><span class="source src-tp">TP:studio</span> 事件投影</td>
+            </tr>
+            <tr>
+              <td><code>db.ts</code></td>
+              <td>144</td>
+              <td><span class="source src-en">EN</span> SQLite + WAL</td>
+            </tr>
+            <tr>
+              <td><code>approval-bridge.ts</code></td>
+              <td>128</td>
+              <td><span class="source src-en">EN</span> 审批桥接</td>
+            </tr>
+            <tr>
+              <td><code>event-bus.ts</code></td>
+              <td>113</td>
+              <td><span class="source src-tp">TP:mc</span> 事件总线</td>
+            </tr>
+            <tr>
+              <td><code>access-gate.ts</code></td>
+              <td>121</td>
+              <td><span class="source src-tp">TP:studio</span> 访问控制</td>
+            </tr>
+            <tr>
+              <td><code>rate-limit.ts</code></td>
+              <td>78</td>
+              <td><span class="source src-tp">TP:mc</span> 限流</td>
+            </tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="title">
+            核心库 <span style="color: var(--text3); font-weight: 400">11 files, 1,365 LOC</span>
+          </div>
+          <table>
+            <tr>
+              <td><code>budget-governance.ts</code></td>
+              <td>411</td>
+              <td><span class="source src-tp">TP:cc</span> 预算治理</td>
+            </tr>
+            <tr>
+              <td><code>message-extract.ts</code></td>
+              <td>406</td>
+              <td><span class="source src-en">EN</span> 消息解析</td>
+            </tr>
+            <tr>
+              <td><code>webhooks.ts</code></td>
+              <td>389</td>
+              <td><span class="source src-tp">TP:mc</span> Webhook + HMAC</td>
+            </tr>
+            <tr>
+              <td><code>injection-guard.ts</code></td>
+              <td>333</td>
+              <td><span class="source src-tp">TP:mc</span> 注入防护</td>
+            </tr>
+            <tr>
+              <td><code>doc-extractor.ts</code></td>
+              <td>244</td>
+              <td><span class="source src-en">EN</span> 文档提取</td>
+            </tr>
+            <tr>
+              <td><code>token-pricing.ts</code></td>
+              <td>86</td>
+              <td><span class="source src-tp">TP:mc</span> 费用计算</td>
+            </tr>
+            <tr>
+              <td><code>commander.ts</code></td>
+              <td>64</td>
+              <td><span class="source src-tp">TP:cc</span> 告警路由</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- 19 Panels -->
+      <div style="margin-top: 24px">
+        <div class="title" style="font-size: 1rem; font-weight: 600; margin-bottom: 12px">
+          19 面板 &bull; 71 components &bull; 8,682 LOC <span class="source src-en">EN</span>
+        </div>
+        <div class="grid grid-4">
+          <div class="card" style="padding: 12px; text-align: center">
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent)">核心</div>
+            <div style="font-size: 0.75rem; color: var(--text2); margin-top: 4px">
+              对话 &bull; 智能体<br />网关 &bull; 模型
+            </div>
+          </div>
+          <div class="card" style="padding: 12px; text-align: center">
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent)">观测</div>
+            <div style="font-size: 0.75rem; color: var(--text2); margin-top: 4px">
+              用量 &bull; 会话 &bull; 记忆<br />日志 &bull; 动态
+            </div>
+          </div>
+          <div class="card" style="padding: 12px; text-align: center">
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent)">自动化</div>
+            <div style="font-size: 0.75rem; color: var(--text2); margin-top: 4px">
+              定时任务 &bull; Webhooks<br />审批 &bull; 技能
+            </div>
+          </div>
+          <div class="card" style="padding: 12px; text-align: center">
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent)">控制</div>
+            <div style="font-size: 0.75rem; color: var(--text2); margin-top: 4px">
+              预算 &bull; 告警 &bull; 渠道<br />配置 &bull; 文档 &bull; 设置
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Flow -->
+      <h2>7. 数据流</h2>
+
+      <div class="arch-diagram">
+        <pre>
+<span class="hl-dim">消息来源</span>  Telegram │ Discord │ Slack │ Signal │ <span class="hl-en">WeCom</span> │ Matrix │ 30+
+              │         │        │        │       │        │
+              ▼         ▼        ▼        ▼       ▼        ▼
+         <span class="hl-oc">src/channels/</span> ─── 消息路由 + DM/群组策略 + 速率限制
+         <span class="hl-oc">src/routing/</span>  ─── 渠道分发 + 负载均衡
+              │
+              ▼
+    ┌─────────────────────────────────────────────────────┐
+    │  <span class="hl-accent">Gateway</span> (<span class="hl-oc">src/gateway/</span>)                                │
+    │  RPC v3 ──→ Agent Runtime ──→ AI Provider           │
+    │                  │                                   │
+    │           ┌──────┴──────┐                            │
+    │           │  Memory     │  ──→ <span class="hl-tp">LanceDB Vector DB</span>     │
+    │           │  (files +   │                            │
+    │           │   vectors)  │                            │
+    │           └─────────────┘                            │
+    └──────────────────────┬──────────────────────────────┘
+                           │ WebSocket (Protocol v3)
+                           ▼
+    ┌──────────────────────────────────────────────────────┐
+    │  <span class="hl-en">Deck Server</span> (dashboard/server/)                       │
+    │  WS Adapter → EventBus → SSE Bridge                 │
+    │       │           │                                  │
+    │  SQLite deck.db   ├── Alert Engine                   │
+    │  (webhooks,       ├── Approval Bridge                │
+    │   budgets,        └── Webhook Delivery               │
+    │   alerts,                                            │
+    │   settings)    49 API Routes ──→ Browser             │
+    └──────────────────────┬──────────────────────────────┘
+                           │ HTTP + SSE
+                           ▼
+    ┌──────────────────────────────────────────────────────┐
+    │  <span class="hl-en">Browser SPA</span>                                           │
+    │  19 Panels │ 21 Stores │ SSE Hooks │ <span class="hl-lib">shadcn/ui</span>       │
+    │  NavRail(折叠分组) │ Mission Control Design System    │
+    └──────────────────────────────────────────────────────┘
+</pre>
+      </div>
+
+      <!-- Testing -->
+      <h2>8. 测试覆盖</h2>
+
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">核心上游测试</div>
+          <div class="bar-track"><div class="bar-fill oc" style="width: 85%">6,615 tests</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">核心安全模块</div>
+          <div class="bar-track"><div class="bar-fill en" style="width: 6.4%">497 tests</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Dashboard 单元</div>
+          <div class="bar-track"><div class="bar-fill en" style="width: 4.7%">368 tests</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Memory-LanceDB</div>
+          <div class="bar-track"><div class="bar-fill tp" style="width: 2.9%">225 tests</div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">E2E (Playwright)</div>
+          <div class="bar-track">
+            <div class="bar-fill en" style="width: 0.5%">&nbsp;35 tests</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Retry 框架</div>
+          <div class="bar-track"><div class="bar-fill en" style="width: 0.12%">&nbsp;9</div></div>
+        </div>
+      </div>
+      <div style="text-align: center; color: var(--text3); font-size: 0.8rem; margin-top: 8px">
+        总计 <strong style="color: var(--text)">7,749</strong> 测试用例
+      </div>
+
+      <!-- Tech Stack -->
+      <h2>9. 技术栈</h2>
+
+      <div class="tech-grid">
+        <div class="tech-item">
+          <div class="tech-name">Node.js / Bun</div>
+          <div class="tech-ver">22+ / latest</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">TypeScript</div>
+          <div class="tech-ver">5.9+ strict</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">Next.js</div>
+          <div class="tech-ver">16+</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">React</div>
+          <div class="tech-ver">19</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">Tailwind CSS</div>
+          <div class="tech-ver">v4</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">shadcn/ui</div>
+          <div class="tech-ver">Base UI</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">Zustand</div>
+          <div class="tech-ver">latest</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">SQLite</div>
+          <div class="tech-ver">WAL mode</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">LanceDB</div>
+          <div class="tech-ver">Vector DB</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">SwiftUI</div>
+          <div class="tech-ver">Observation</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">Vitest</div>
+          <div class="tech-ver">V8 coverage</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">Playwright</div>
+          <div class="tech-ver">E2E</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">Recharts</div>
+          <div class="tech-ver">charts</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">next-intl</div>
+          <div class="tech-ver">i18n</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">Oxlint</div>
+          <div class="tech-ver">lint + fmt</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">pnpm</div>
+          <div class="tech-ver">workspace</div>
+        </div>
+      </div>
+
+      <!-- Enhanced Summary -->
+      <h2>10. Enhanced Fork 增量总结</h2>
+
+      <div class="grid grid-3">
+        <div class="card" style="border-top: 3px solid var(--en)">
+          <div class="title" style="color: var(--en)">Web Dashboard</div>
+          <div class="desc">
+            全新 19 面板 Web 控制台<br />Mission Control 设计系统<br />49 API routes + 21 stores<br />深浅主题
+            + 中英文 i18n<br />响应式 3 断点 + 键盘快捷键
+          </div>
+          <div class="meta"><span>27K LOC</span><span>247 files</span><span>368 tests</span></div>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--en)">
+          <div class="title" style="color: var(--en)">企业微信 WeCom</div>
+          <div class="desc">
+            WS + HTTP 双通道传输<br />配额追踪 + 请求去重<br />推理过程可视化<br />矩阵多账号路由<br />企业微信加解密
+          </div>
+          <div class="meta"><span>~8K LOC</span><span>151 files</span><span>195 tests</span></div>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--en)">
+          <div class="title" style="color: var(--en)">安全 & 稳定性</div>
+          <div class="desc">
+            SSRF 双阶段防护<br />Fetch Guard + Unicode 防护<br />通用重试框架<br />Windows ACL +
+            环境安全<br />渠道超时 & DNS 修复
+          </div>
+          <div class="meta"><span>~1.5K LOC</span><span>497 tests</span></div>
+        </div>
+      </div>
+
+      <div
+        style="
+          text-align: center;
+          margin-top: 32px;
+          padding: 20px;
+          background: var(--bg2);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+        "
+      >
+        <div style="font-size: 1.1rem; font-weight: 600">
+          56 enhanced commits &bull; 3.5% 净增代码量 &bull; 三大方向
+        </div>
+        <div style="color: var(--text3); font-size: 0.85rem; margin-top: 4px">
+          Web Dashboard &bull; 企业微信 &bull; 安全加固
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        OpenClaw Enhanced Fork &bull; 分支 enhanced &bull; commit 2f2ddd0d4 &bull; 生成于 2026-03-19
+      </div>
+    </div>
+  </body>
+</html>

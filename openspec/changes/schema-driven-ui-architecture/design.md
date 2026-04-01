@@ -3,6 +3,7 @@
 Deck dashboard 当前有 20+ 面板，每个 ~500 行手写代码。7 个面板使用相同的 list-left/detail-right 分割布局但各自 copy-paste。Config Editor 内有一套自研 schema-driven 表单系统（`schema-parser.ts` → `FormField[]` → `SchemaForm`），但被锁在单一面板未泛化。
 
 Gateway Protocol SDK（`docs/plans/2026-03-27-gateway-protocol-sdk-design.md`）将提供：
+
 - `gateway.describe` RPC — 返回所有方法的 JSON Schema（params + result）
 - `MethodRegistry` — method → handler + schema + scope 的声明式注册
 - TypeScript codegen — 生成 typed client
@@ -14,12 +15,14 @@ Gateway Protocol SDK（`docs/plans/2026-03-27-gateway-protocol-sdk-design.md`）
 ## Goals / Non-Goals
 
 **Goals:**
+
 - 新增 RPC 域面板的成本从 ~500 行手写降到 ~30 行声明式配置
 - 统一面板布局和交互模式，消除 copy-paste 结构
 - 从 gateway.describe 的 JSON Schema 运行时自动生成表单和数据表格
 - 保留对特殊面板（Chat、Monitor）的完全自定义能力
 
 **Non-Goals:**
+
 - 不替换 Config Editor 的现有 `SchemaForm`（已稳定，风险不值得）
 - 不做通用 low-code 平台——只解决 Gateway RPC 面板的标准化生成
 - 不改变 Gateway 的 RPC 协议或连接层
@@ -32,6 +35,7 @@ Gateway Protocol SDK（`docs/plans/2026-03-27-gateway-protocol-sdk-design.md`）
 **选择**: `@rjsf/core` + `@rjsf/shadcn` + `@rjsf/validator-ajv8`
 
 **替代方案**:
+
 - AutoForm (shadcn): 只支持 Zod，不支持 discriminated union，需要 TypeBox→Zod 转换
 - 扩展自研 SchemaForm: 已覆盖基础类型但缺 oneOf/anyOf/conditional 完整支持，补全成本高
 
@@ -65,16 +69,16 @@ Gateway Protocol SDK（`docs/plans/2026-03-27-gateway-protocol-sdk-design.md`）
 
 Gateway 的 `ConfigUiHint` 字段与 RJSF `uiSchema` 的映射：
 
-| ConfigUiHint 字段 | RJSF uiSchema 字段 |
-|-------------------|-------------------|
-| `label` | `ui:title` |
-| `help` | `ui:help` |
-| `placeholder` | `ui:placeholder` |
-| `sensitive` | `ui:widget: "password"` |
-| `order` | `ui:order` |
-| `group` | `ui:group` (custom extension) |
-| `collapsed` | `ui:collapsed` (custom extension) |
-| `advanced` | `ui:options.advanced` (custom extension) |
+| ConfigUiHint 字段 | RJSF uiSchema 字段                       |
+| ----------------- | ---------------------------------------- |
+| `label`           | `ui:title`                               |
+| `help`            | `ui:help`                                |
+| `placeholder`     | `ui:placeholder`                         |
+| `sensitive`       | `ui:widget: "password"`                  |
+| `order`           | `ui:order`                               |
+| `group`           | `ui:group` (custom extension)            |
+| `collapsed`       | `ui:collapsed` (custom extension)        |
+| `advanced`        | `ui:options.advanced` (custom extension) |
 
 ## Risks / Trade-offs
 

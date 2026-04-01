@@ -15,6 +15,7 @@
 ## Task 0: 清理旧打包产物
 
 **Files:**
+
 - Delete: `deploy/openclaw-deploy-*.tar.gz` (~15 files, ~3GB)
 - Delete: `deploy/openclaw-deploy-*.zip` (~20 files, ~5GB)
 
@@ -50,6 +51,7 @@ scripts/committer "chore(deploy): clean up old package artifacts + add .gitignor
 ## Task 1: sql.js 依赖替换 + 适配层核心
 
 **Files:**
+
 - Modify: `dashboard/package.json` — 替换依赖
 - Rewrite: `dashboard/server/db.ts` — sql.js 适配层
 - Create: `dashboard/instrumentation.ts` — WASM 预加载
@@ -112,7 +114,11 @@ export async function preloadSqlJs(): Promise<void> {
 
 // --- Statement Adapter ---
 class StatementAdapter {
-  constructor(private db: SqlJsDatabase, private sql: string, private saveFn: () => void) {}
+  constructor(
+    private db: SqlJsDatabase,
+    private sql: string,
+    private saveFn: () => void,
+  ) {}
 
   run(...params: unknown[]) {
     this.db.run(this.sql, params as any[]);
@@ -125,12 +131,17 @@ class StatementAdapter {
   get(...params: unknown[]) {
     const stmt = this.db.prepare(this.sql);
     stmt.bind(params as any[]);
-    if (!stmt.step()) { stmt.free(); return undefined; }
+    if (!stmt.step()) {
+      stmt.free();
+      return undefined;
+    }
     const columns = stmt.getColumnNames();
     const values = stmt.get();
     stmt.free();
     const row: Record<string, unknown> = {};
-    columns.forEach((col, i) => { row[col] = values[i]; });
+    columns.forEach((col, i) => {
+      row[col] = values[i];
+    });
     return row;
   }
 
@@ -140,7 +151,9 @@ class StatementAdapter {
     const { columns, values } = results[0];
     return values.map((row) => {
       const obj: Record<string, unknown> = {};
-      columns.forEach((col, i) => { obj[col] = row[i]; });
+      columns.forEach((col, i) => {
+        obj[col] = row[i];
+      });
       return obj;
     });
   }
@@ -148,10 +161,18 @@ class StatementAdapter {
 
 // --- Database Adapter ---
 class DatabaseAdapter {
-  constructor(private db: SqlJsDatabase, private dbPath: string) {}
+  constructor(
+    private db: SqlJsDatabase,
+    private dbPath: string,
+  ) {}
 
-  prepare(sql: string) { return new StatementAdapter(this.db, sql, () => this.save()); }
-  exec(sql: string) { this.db.run(sql); this.save(); }
+  prepare(sql: string) {
+    return new StatementAdapter(this.db, sql, () => this.save());
+  }
+  exec(sql: string) {
+    this.db.run(sql);
+    this.save();
+  }
 
   pragma(str: string) {
     // "journal_mode = WAL" → skip (WASM 不支持)
@@ -174,7 +195,10 @@ class DatabaseAdapter {
     };
   }
 
-  close() { this.save(); this.db.close(); }
+  close() {
+    this.save();
+    this.db.close();
+  }
 
   private save() {
     if (this.dbPath === ":memory:") return;
@@ -215,6 +239,7 @@ scripts/committer "[enhanced] feat(deck): replace better-sqlite3 with sql.js ada
 ## Task 2: 更新 sql.js 消费方 + 类型修复
 
 **Files:**
+
 - Modify: `dashboard/server/run-event-store.ts` — 类型导入
 - Modify: `dashboard/server/projection-store.ts` — 类型导入
 - Modify: `dashboard/server/access-gate.ts` — 类型导入
@@ -233,6 +258,7 @@ import type { Database } from "./db";
 - [ ] **Step 2: 检查 run-event-store.ts 特殊用法**
 
 该文件使用：
+
 - `stmt.run()` 的 `info.changes` / `info.lastInsertRowid`（行 165, 419）
 - `db.transaction()` 嵌套（行 165）
 - 动态 SQL 构造 + `db.prepare()` 链式调用
@@ -242,6 +268,7 @@ import type { Database } from "./db";
 - [ ] **Step 3: 检查 projection-store.ts 特殊用法**
 
 该文件使用：
+
 - 8 个懒初始化 prepared statements
 - `info.lastInsertRowid` 追踪（行 119, 153, 167）
 - UPSERT (INSERT ... ON CONFLICT)
@@ -263,6 +290,7 @@ pnpm test -- dashboard/
 ```
 
 修复因 sql.js 行为差异导致的测试失败。常见差异：
+
 - `BigInt` vs `number` 在 lastInsertRowid
 - `undefined` vs `null` 在空结果
 - WASM 加载需要在测试 setup 中调用 `preloadSqlJs()`
@@ -280,6 +308,7 @@ scripts/committer "[enhanced] refactor(deck): update db consumers for sql.js ada
 ## Task 3: Dockerfile.deck 简化 + Docker 重组
 
 **Files:**
+
 - Move: `deploy/docker-compose.yml` → `deploy/docker/docker-compose.yml`
 - Move: `deploy/docker-compose.sandbox.yml` → `deploy/docker/docker-compose.sandbox.yml`
 - Move: `deploy/Dockerfile.deck` → `deploy/docker/Dockerfile.deck`（并简化）
@@ -298,6 +327,7 @@ git mv deploy/Dockerfile.deck deploy/docker/Dockerfile.deck
 从 `deploy/docker/Dockerfile.deck` 中删除所有 better-sqlite3 native addon 处理：
 
 删除这些行：
+
 ```dockerfile
 # 删除: sed 注入 onlyBuiltDependencies
 RUN sed -i '/onlyBuiltDependencies:/a\  - better-sqlite3' pnpm-workspace.yaml && \
@@ -350,6 +380,7 @@ scripts/committer "[enhanced] refactor(deploy): reorganize Docker files + simpli
 ## Task 4: seed.js 统一种子注入
 
 **Files:**
+
 - Create: `deploy/scripts/seed.js`
 - Keep: `deploy/seed/` (不变)
 
@@ -378,14 +409,22 @@ const SEED_DIR = path.resolve(__dirname, "../seed");
 const MARKER = ".seed-initialized";
 
 const TEMPLATE_VARS = [
-  "DEEPSEEK_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
-  "CPA_API_KEY", "CPA_BASE_URL", "OPENCLAW_GATEWAY_TOKEN",
-  "DEFAULT_MODEL", "TELEGRAM_BOT_TOKEN", "DISCORD_BOT_TOKEN",
+  "DEEPSEEK_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "OPENAI_API_KEY",
+  "CPA_API_KEY",
+  "CPA_BASE_URL",
+  "OPENCLAW_GATEWAY_TOKEN",
+  "DEFAULT_MODEL",
+  "TELEGRAM_BOT_TOKEN",
+  "DISCORD_BOT_TOKEN",
 ];
 
 // --- Helpers ---
 
-function log(msg) { console.log(`[seed] ${msg}`); }
+function log(msg) {
+  console.log(`[seed] ${msg}`);
+}
 
 function renderTemplate(src) {
   let content = fs.readFileSync(src, "utf-8");
@@ -406,7 +445,10 @@ function copyDirRecursive(src, dst) {
 }
 
 function seedInitOnce(src, dst) {
-  if (fs.existsSync(dst)) { log(`skip (exists): ${dst}`); return; }
+  if (fs.existsSync(dst)) {
+    log(`skip (exists): ${dst}`);
+    return;
+  }
   fs.mkdirSync(path.dirname(dst), { recursive: true });
   if (src.endsWith(".tmpl")) {
     const rendered = renderTemplate(src);
@@ -446,7 +488,10 @@ function mergePluginsConfig(targetDir) {
 
 const targetDir = process.argv[2];
 const force = process.argv.includes("--force");
-if (!targetDir) { console.error("Usage: seed.js <target-dir> [--force]"); process.exit(1); }
+if (!targetDir) {
+  console.error("Usage: seed.js <target-dir> [--force]");
+  process.exit(1);
+}
 
 fs.mkdirSync(targetDir, { recursive: true });
 const markerPath = path.join(targetDir, MARKER);
@@ -456,14 +501,16 @@ if (alreadyInit) {
   log(`Already initialized. Syncing always-sync content only...`);
 } else {
   // init-once: config
-  seedInitOnce(path.join(SEED_DIR, "openclaw.json.tmpl"),
-               path.join(targetDir, "openclaw.json.tmpl"));
+  seedInitOnce(
+    path.join(SEED_DIR, "openclaw.json.tmpl"),
+    path.join(targetDir, "openclaw.json.tmpl"),
+  );
   // init-once: agents
   const agentsDir = path.join(SEED_DIR, "agents");
   if (fs.existsSync(agentsDir)) {
     for (const d of fs.readdirSync(agentsDir, { withFileTypes: true })) {
-      if (d.isDirectory()) seedInitOnce(path.join(agentsDir, d.name),
-                                         path.join(targetDir, "agents", d.name));
+      if (d.isDirectory())
+        seedInitOnce(path.join(agentsDir, d.name), path.join(targetDir, "agents", d.name));
     }
   }
   // init-once: cron
@@ -473,8 +520,8 @@ if (alreadyInit) {
   const extDir = path.join(SEED_DIR, "extensions");
   if (fs.existsSync(extDir)) {
     for (const d of fs.readdirSync(extDir, { withFileTypes: true })) {
-      if (d.isDirectory()) seedInitOnce(path.join(extDir, d.name),
-                                         path.join(targetDir, "extensions", d.name));
+      if (d.isDirectory())
+        seedInitOnce(path.join(extDir, d.name), path.join(targetDir, "extensions", d.name));
     }
   }
   // merge plugins config
@@ -488,8 +535,8 @@ if (alreadyInit) {
 const skillsDir = path.join(SEED_DIR, "skills");
 if (fs.existsSync(skillsDir)) {
   for (const d of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-    if (d.isDirectory()) seedAlwaysSync(path.join(skillsDir, d.name),
-                                         path.join(targetDir, "skills", d.name));
+    if (d.isDirectory())
+      seedAlwaysSync(path.join(skillsDir, d.name), path.join(targetDir, "skills", d.name));
   }
 }
 
@@ -526,6 +573,7 @@ scripts/committer "[enhanced] feat(deploy): add unified Node.js seed script" dep
 ## Task 5: PM2 ecosystem 模板 + 生成脚本
 
 **Files:**
+
 - Create: `deploy/ecosystem.config.cjs.tmpl`
 - Create: `deploy/scripts/generate-ecosystem.js`
 
@@ -587,15 +635,20 @@ const dkPort = process.env.DECK_PORT || "3000";
 const token = process.env.OPENCLAW_GATEWAY_TOKEN || "";
 
 // Derive OPENCLAW_HOME from state dir
-const openclawHome = stateDir.endsWith("/.openclaw") || stateDir.endsWith("\\.openclaw")
-  ? path.dirname(stateDir)
-  : stateDir;
+const openclawHome =
+  stateDir.endsWith("/.openclaw") || stateDir.endsWith("\\.openclaw")
+    ? path.dirname(stateDir)
+    : stateDir;
 
 // Collect provider env vars
 const providerKeys = [
-  "CPA_API_KEY", "CPA_BASE_URL", "DEEPSEEK_API_KEY",
-  "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
-  "TELEGRAM_BOT_TOKEN", "DISCORD_BOT_TOKEN",
+  "CPA_API_KEY",
+  "CPA_BASE_URL",
+  "DEEPSEEK_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "OPENAI_API_KEY",
+  "TELEGRAM_BOT_TOKEN",
+  "DISCORD_BOT_TOKEN",
 ];
 
 const gatewayEnv = {
@@ -651,6 +704,7 @@ scripts/committer "[enhanced] feat(deploy): add PM2 ecosystem template + generat
 ## Task 6: install.sh 统一安装脚本
 
 **Files:**
+
 - Create: `deploy/scripts/install.sh`
 - Keep: `deploy/.env.example`
 
@@ -822,11 +876,13 @@ scripts/committer "[enhanced] feat(deploy): add unified install.sh with Docker/b
 ## Task 7: package.sh 重写
 
 **Files:**
+
 - Rewrite: `deploy/scripts/package.sh`
 
 - [ ] **Step 1: 重写 package.sh**
 
 核心变化：
+
 - `stage_source()` 用 `git archive` 替代 rsync
 - 新增 `stage_prebuilt()` 包含完整 standalone 产物
 - `stage_images()` 保留但简化
@@ -926,6 +982,7 @@ scripts/committer "[enhanced] feat(deploy): rewrite package.sh with manifest + A
 ## Task 8: teardown.sh 更新
 
 **Files:**
+
 - Modify: `deploy/scripts/teardown.sh`
 
 - [ ] **Step 1: 更新 teardown.sh**
@@ -978,6 +1035,7 @@ scripts/committer "[enhanced] refactor(deploy): update teardown.sh for PM2 + doc
 ## Task 9: 文档（README.md + INSTALL.md + CLAUDE.md）
 
 **Files:**
+
 - Rewrite: `deploy/README.md`
 - Create: `deploy/INSTALL.md`
 - Rewrite: `deploy/CLAUDE.md`
@@ -985,6 +1043,7 @@ scripts/committer "[enhanced] refactor(deploy): update teardown.sh for PM2 + doc
 - [ ] **Step 1: 重写 README.md**
 
 完整运维手册，包含：
+
 - 架构图（Gateway:18789 → Deck:3000 → Browser）
 - 部署模式对比表（Docker / Docker Build / 裸机）
 - 打包命令和参数（A/B/C 叠加层）
@@ -999,6 +1058,7 @@ scripts/committer "[enhanced] refactor(deploy): update teardown.sh for PM2 + doc
 - [ ] **Step 2: 创建 INSTALL.md**
 
 安装包内附带的快速指南：
+
 - 各平台前置依赖表 + 安装命令
 - 快速开始 3 步走（Docker / 裸机）
 - 安装后管理命令（Docker compose / PM2）
@@ -1010,17 +1070,17 @@ AI 操作指引，确保 Claude Code 在未来迭代中正确操作。包含：
 
 **关键文件索引**：
 
-| 文件 | 用途 | 何时修改 |
-|------|------|---------|
-| `scripts/install.sh` | 统一安装入口 | 新增安装模式或依赖时 |
-| `scripts/package.sh` | 打包入口 | 新增打包层时 |
-| `scripts/seed.js` | 种子注入 | 新增 seed 内容或模板变量时 |
-| `scripts/generate-ecosystem.js` | PM2 配置生成 | 修改启动参数或 env 时 |
-| `docker/docker-compose.yml` | Docker 编排 | 修改容器配置时 |
-| `docker/Dockerfile.deck` | Deck 镜像 | 修改 Deck 依赖时 |
-| `ecosystem.config.cjs.tmpl` | PM2 模板 | 修改启动参数时 |
-| `.env.example` | 环境变量模板 | 新增 env var 时 |
-| `seed/openclaw.json.tmpl` | 配置模板 | 修改默认配置时 |
+| 文件                            | 用途         | 何时修改                   |
+| ------------------------------- | ------------ | -------------------------- |
+| `scripts/install.sh`            | 统一安装入口 | 新增安装模式或依赖时       |
+| `scripts/package.sh`            | 打包入口     | 新增打包层时               |
+| `scripts/seed.js`               | 种子注入     | 新增 seed 内容或模板变量时 |
+| `scripts/generate-ecosystem.js` | PM2 配置生成 | 修改启动参数或 env 时      |
+| `docker/docker-compose.yml`     | Docker 编排  | 修改容器配置时             |
+| `docker/Dockerfile.deck`        | Deck 镜像    | 修改 Deck 依赖时           |
+| `ecosystem.config.cjs.tmpl`     | PM2 模板     | 修改启动参数时             |
+| `.env.example`                  | 环境变量模板 | 新增 env var 时            |
+| `seed/openclaw.json.tmpl`       | 配置模板     | 修改默认配置时             |
 
 **演进契约**：
 
@@ -1049,6 +1109,7 @@ scripts/committer "[enhanced] docs(deploy): rewrite README + INSTALL + CLAUDE fo
 ## Task 10: 删除旧文件 + 最终清理
 
 **Files:**
+
 - Delete: `deploy/bare-metal/` 整个目录
 - Delete: `deploy/scripts/setup.sh`
 - Delete: `deploy/scripts/seed.sh`
@@ -1068,6 +1129,7 @@ find deploy -type f | sort
 ```
 
 应只剩：
+
 ```
 deploy/.env.example
 deploy/.gitignore

@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Subagent Lifecycle Sequence</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      :root {
+        --bg-primary: #f5f5f7;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #e5e5e7;
+        --border: #d1d1d6;
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --accent: #0071e3;
+        --shadow: rgba(0, 0, 0, 0.08);
+        --shadow-lg: rgba(0, 0, 0, 0.12);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-primary: #1d1d1f;
+          --bg-secondary: #2d2d2f;
+          --bg-tertiary: #3d3d3f;
+          --border: #424245;
+          --text-primary: #f5f5f7;
+          --text-secondary: #98989d;
+          --accent: #0a84ff;
+          --shadow: rgba(0, 0, 0, 0.3);
+          --shadow-lg: rgba(0, 0, 0, 0.5);
+        }
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        display: flex;
+        flex-direction: column;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      .header {
+        background: var(--bg-secondary);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px var(--shadow);
+      }
+      .header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      .header .subtitle {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+      }
+      .header-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .btn {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.85rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: inherit;
+      }
+      .btn:hover {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      .btn svg {
+        width: 14px;
+        height: 14px;
+      }
+      .diagram-container {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        min-height: 0;
+      }
+      .diagram-wrapper {
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        padding: 2rem;
+        box-shadow: 0 2px 8px var(--shadow);
+        max-width: 100%;
+        overflow: auto;
+      }
+      .diagram-wrapper .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+      .diagram-wrapper .mermaid svg {
+        max-width: 100%;
+        height: auto;
+      }
+      .description {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+        padding: 0.75rem 2rem;
+        flex-shrink: 0;
+      }
+      .description p {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        max-width: 80ch;
+      }
+      .toast {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--text-primary);
+        color: var(--bg-primary);
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 100;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      @media (max-width: 640px) {
+        .header {
+          padding: 0.75rem 1rem;
+        }
+        .diagram-container {
+          padding: 1rem;
+        }
+        .diagram-wrapper {
+          padding: 1rem;
+          border-radius: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-left">
+        <h1>Subagent Lifecycle Sequence</h1>
+        <span class="subtitle">Spawn → execute → steer/kill → announce → cleanup</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="exportSVG()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          SVG
+        </button>
+        <button class="btn" onclick="exportPNG()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          PNG
+        </button>
+      </div>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-wrapper">
+        <pre class="mermaid">
+sequenceDiagram
+    participant P as Parent Agent
+    participant GW as Gateway
+    participant REG as Subagent Registry
+    participant C as Child Agent
+    participant AI as AI Provider
+
+    Note over P: Agent calls sessions_spawn tool
+
+    P->>GW: spawnSubagentDirect(task, agentId, model)
+    activate GW
+
+    Note over GW: Validate 5 gates:<br/>1. Agent ID format<br/>2. Spawn depth < max(3)<br/>3. Active children < max(5)<br/>4. Cross-agent allowlist<br/>5. Sandbox compatibility
+
+    GW->>REG: Register SubagentRunRecord
+    REG-->>GW: runId + childSessionKey
+
+    GW->>C: gateway.agent(task, childSessionKey)
+    deactivate GW
+    activate C
+
+    GW-->>P: SpawnSubagentResult(accepted, runId)
+    Note over P: Parent continues execution<br/>(no polling needed)
+
+    C->>AI: Model inference
+    activate AI
+    AI-->>C: Streaming response
+    deactivate AI
+
+    Note over C: Tool calls + execution loop
+
+    alt Parent steers child
+        P->>GW: subagents steer(target, newMessage)
+        activate GW
+        GW->>C: Abort signal
+        Note over C: Current run interrupted
+        GW->>C: Re-inject with new message
+        deactivate GW
+        C->>AI: New inference with steered message
+        activate AI
+        AI-->>C: New response
+        deactivate AI
+    end
+
+    alt Parent kills child
+        P->>GW: subagents kill(target)
+        activate GW
+        GW->>C: Abort signal + clear queues
+        Note over C: Terminated
+        GW->>REG: markTerminated(killed)
+        deactivate GW
+        deactivate C
+    else Child completes normally
+        C->>REG: Mark outcome(ok, resultText)
+        deactivate C
+
+        REG->>GW: Announce result to parent
+        activate GW
+        GW->>P: System event with child result
+        Note over P: Parent receives result<br/>and continues
+        deactivate GW
+
+        alt mode = run
+            REG->>REG: Delete child session
+            Note over REG: .jsonl file removed
+        else mode = session
+            Note over REG: Session kept<br/>Thread follow-ups enabled
+        end
+    end
+      </pre>
+      </div>
+    </div>
+
+    <div class="description">
+      <p>
+        Parent spawns child via sessions_spawn tool. Gateway validates 5 gates, registers run, and
+        dispatches. Child executes independently. Parent can steer (interrupt + redirect) or kill
+        (cascade abort). On completion, result is auto-pushed to parent as a system event. Run-mode
+        sessions are auto-deleted; session-mode sessions persist for thread follow-ups.
+      </p>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script>
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: isDark ? "dark" : "default",
+        securityLevel: "loose",
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+        sequence: {
+          mirrorActors: false,
+          bottomMarginAdj: 2,
+          actorMargin: 50,
+          messageFontSize: 13,
+          noteFontSize: 11,
+        },
+        themeVariables: isDark
+          ? {
+              primaryColor: "#3d3d3f",
+              primaryTextColor: "#f5f5f7",
+              primaryBorderColor: "#636366",
+              lineColor: "#86868b",
+              secondaryColor: "#2d2d2f",
+              tertiaryColor: "#424245",
+              noteBkgColor: "#3d3d3f",
+              noteTextColor: "#f5f5f7",
+              noteBorderColor: "#636366",
+              actorBkg: "#2d2d2f",
+              actorBorder: "#636366",
+              actorTextColor: "#f5f5f7",
+              signalColor: "#98989d",
+              signalTextColor: "#f5f5f7",
+              activationBkgColor: "#424245",
+              activationBorderColor: "#636366",
+            }
+          : {
+              primaryColor: "#e8f4fd",
+              primaryTextColor: "#1d1d1f",
+              primaryBorderColor: "#0071e3",
+              lineColor: "#86868b",
+              secondaryColor: "#f0f0f2",
+              tertiaryColor: "#e5e5e7",
+              noteBkgColor: "#fff9db",
+              noteTextColor: "#1d1d1f",
+              noteBorderColor: "#d4a017",
+              actorBkg: "#e8f4fd",
+              actorBorder: "#0071e3",
+              actorTextColor: "#1d1d1f",
+              signalColor: "#86868b",
+              signalTextColor: "#1d1d1f",
+              activationBkgColor: "#d1e8ff",
+              activationBorderColor: "#0071e3",
+            },
+      });
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", () => location.reload());
+      function showToast(m) {
+        const t = document.getElementById("toast");
+        t.textContent = m;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2000);
+      }
+      function getSvgElement() {
+        return document.querySelector(".mermaid svg");
+      }
+      function exportSVG() {
+        const svg = getSvgElement();
+        if (!svg) {
+          showToast("Not ready");
+          return;
+        }
+        const c = svg.cloneNode(true);
+        c.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        const b = new Blob([c.outerHTML], { type: "image/svg+xml;charset=utf-8" });
+        downloadBlob(b, "subagent-lifecycle-sequence.svg");
+        showToast("SVG exported");
+      }
+      function exportPNG() {
+        const svg = getSvgElement();
+        if (!svg) {
+          showToast("Not ready");
+          return;
+        }
+        const s = 2,
+          bb = svg.getBoundingClientRect(),
+          cv = document.createElement("canvas");
+        cv.width = bb.width * s;
+        cv.height = bb.height * s;
+        const ctx = cv.getContext("2d");
+        ctx.scale(s, s);
+        ctx.fillStyle = isDark ? "#1d1d1f" : "#fff";
+        ctx.fillRect(0, 0, bb.width, bb.height);
+        const c = svg.cloneNode(true);
+        c.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        c.setAttribute("width", bb.width);
+        c.setAttribute("height", bb.height);
+        const d = new XMLSerializer().serializeToString(c),
+          img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, bb.width, bb.height);
+          cv.toBlob((b) => {
+            downloadBlob(b, "subagent-lifecycle-sequence.png");
+            showToast("PNG exported");
+          }, "image/png");
+        };
+        img.onerror = () => showToast("Failed");
+        img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(d);
+      }
+      function downloadBlob(b, f) {
+        const u = URL.createObjectURL(b),
+          a = document.createElement("a");
+        a.href = u;
+        a.download = f;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(u);
+        }, 100);
+      }
+    </script>
+  </body>
+</html>

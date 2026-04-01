@@ -282,10 +282,10 @@ generate-ecosystem.js 使用 `JSON.stringify` 处理 provider keys，避免特�
 
 ### PM2 startup 各平台行为
 
-| 平台            | `pm2 startup` 生成                                          |
-| --------------- | ----------------------------------------------------------- |
-| Linux (systemd) | `/etc/systemd/system/pm2-<user>.service`                    |
-| macOS           | `~/Library/LaunchAgents/pm2.<user>.plist`                   |
+| 平台            | `pm2 startup` 生成                                                             |
+| --------------- | ------------------------------------------------------------------------------ |
+| Linux (systemd) | `/etc/systemd/system/pm2-<user>.service`                                       |
+| macOS           | `~/Library/LaunchAgents/pm2.<user>.plist`                                      |
 | Windows         | 可选：Task Scheduler 手动配置或 `pm2-installer`（需 PowerShell，视为高级功能） |
 
 ### 日常运维
@@ -322,9 +322,9 @@ pm2 monit      # 实时监控
 ```ts
 // dashboard/instrumentation.ts
 export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { preloadSqlJs } = await import('./server/db');
-    await preloadSqlJs();  // 加载 WASM，缓存到模块级变量
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { preloadSqlJs } = await import("./server/db");
+    await preloadSqlJs(); // 加载 WASM，缓存到模块级变量
   }
 }
 ```
@@ -339,7 +339,7 @@ export async function preloadSqlJs() {
 }
 
 export function openDb(dbPath?: string): DatabaseAdapter {
-  if (!_sqlEngine) throw new Error('sql.js not preloaded — call preloadSqlJs() first');
+  if (!_sqlEngine) throw new Error("sql.js not preloaded — call preloadSqlJs() first");
   // 同步读取文件 → 打开内存 DB
   const buffer = fs.existsSync(resolvedPath) ? fs.readFileSync(resolvedPath) : undefined;
   const db = new _sqlEngine.Database(buffer);
@@ -351,18 +351,18 @@ export function openDb(dbPath?: string): DatabaseAdapter {
 
 db.ts 内部创建 `DatabaseAdapter` 类，暴露完整的 better-sqlite3 兼容接口：
 
-| better-sqlite3 API | sql.js 适配方式 |
-|---------------------|----------------|
-| `new Database(path)` | `new _sqlEngine.Database(buffer)` + 文件读取 |
-| `db.prepare(sql)` | `StatementAdapter` 包装 |
-| `stmt.all(...params)` → 对象数组 | 列名 + 值数组 → 转换为对象数组 |
-| `stmt.get(...params)` → 单对象 | `.all()` 取第一行 |
+| better-sqlite3 API                                   | sql.js 适配方式                                |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| `new Database(path)`                                 | `new _sqlEngine.Database(buffer)` + 文件读取   |
+| `db.prepare(sql)`                                    | `StatementAdapter` 包装                        |
+| `stmt.all(...params)` → 对象数组                     | 列名 + 值数组 → 转换为对象数组                 |
+| `stmt.get(...params)` → 单对象                       | `.all()` 取第一行                              |
 | `stmt.run(...params)` → `{changes, lastInsertRowid}` | 执行后查询 `changes()` + `last_insert_rowid()` |
-| `db.exec(sql)` | `db.run(sql)` + save |
-| `db.pragma(str)` | `db.run('PRAGMA ' + str)` |
-| `db.transaction(fn)` | BEGIN/COMMIT/ROLLBACK 包装 + save |
-| `db.close()` | save + `db.close()` |
-| WAL 模式 | 跳过（单进程无需 WAL） |
+| `db.exec(sql)`                                       | `db.run(sql)` + save                           |
+| `db.pragma(str)`                                     | `db.run('PRAGMA ' + str)`                      |
+| `db.transaction(fn)`                                 | BEGIN/COMMIT/ROLLBACK 包装 + save              |
+| `db.close()`                                         | save + `db.close()`                            |
+| WAL 模式                                             | 跳过（单进程无需 WAL）                         |
 
 ### 持久化策略
 

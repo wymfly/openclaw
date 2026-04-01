@@ -19,6 +19,7 @@
 ## File Structure
 
 **New files:**
+
 - `dashboard/src/app/api/tools/catalog/route.ts` — Proxy `tools.catalog` RPC
 - `dashboard/src/app/api/agents/[agentId]/identity/route.ts` — Proxy `agent.identity.get` RPC
 - `dashboard/src/app/api/skills/update-clawhub/route.ts` — Proxy `skills.update` with `source: "clawhub"`
@@ -29,6 +30,7 @@
 - `dashboard/src/components/panels/agents/tabs/SkillConfigEditor.tsx` — Inline apiKey/env config editor
 
 **Modified files:**
+
 - `dashboard/src/stores/deck-agents.ts` — Add toolsCatalog, filesList, identity fetch methods + types
 - `dashboard/src/components/panels/agents/tabs/AgentConfigTab.tsx` — Integrate ToolsCatalog + FallbackChainEditor
 - `dashboard/src/components/panels/agents/tabs/SkillsTab.tsx` — Add install button, config/update UI
@@ -46,6 +48,7 @@ covers: agent-identity-display/spec.md > ADDED > Overview tab displays full agen
 covers: agent-skills-management/spec.md > ADDED > Skill update functionality
 
 **Files:**
+
 - Create: `dashboard/src/app/api/tools/catalog/route.ts`
 - Create: `dashboard/src/app/api/agents/[agentId]/identity/route.ts`
 - Create: `dashboard/src/app/api/skills/update-clawhub/route.ts`
@@ -147,6 +150,7 @@ covers: agent-identity-display/spec.md > ADDED > Overview tab displays full agen
 covers: agent-identity-display/spec.md > ADDED > Overview tab displays full agent identity > Identity API unavailable
 
 **Files:**
+
 - Modify: `dashboard/src/stores/deck-agents.ts`
 
 - [ ] **Step 1: Add types for tools catalog, identity, and files list**
@@ -315,6 +319,7 @@ scripts/committer "[enhanced] feat(agents): extend store with tools catalog, fil
 covers: (all specs — i18n is cross-cutting)
 
 **Files:**
+
 - Modify: `dashboard/src/i18n/zh.json`
 - Modify: `dashboard/src/i18n/en.json`
 
@@ -323,6 +328,7 @@ covers: (all specs — i18n is cross-cutting)
 Add the following keys to the `agentDetail` namespace in `zh.json`. Place under the existing `agentDetail.config` sub-namespace and add new top-level `agentDetail` keys:
 
 In `agentDetail.config` (existing object):
+
 ```json
 "toolsCatalog": "工具目录",
 "toolsCatalogDescription": "展开查看所有可用工具，可逐个覆盖 allow/deny",
@@ -346,6 +352,7 @@ In `agentDetail.config` (existing object):
 ```
 
 In `agentDetail` top-level (existing object):
+
 ```json
 "installSkill": "安装技能",
 "installLocal": "本地路径",
@@ -374,6 +381,7 @@ In `agentDetail` top-level (existing object):
 ```
 
 In `context` namespace (existing object):
+
 ```json
 "filesBrowser": "文件列表",
 "filesBrowserDescription": "Agent 的所有 bootstrap 文件",
@@ -391,6 +399,7 @@ In `context` namespace (existing object):
 Add matching keys to `en.json`:
 
 In `agentDetail.config`:
+
 ```json
 "toolsCatalog": "Tools Catalog",
 "toolsCatalogDescription": "Expand to view all available tools with per-tool allow/deny overrides",
@@ -414,6 +423,7 @@ In `agentDetail.config`:
 ```
 
 In `agentDetail` top-level:
+
 ```json
 "installSkill": "Install Skill",
 "installLocal": "Local Path",
@@ -442,6 +452,7 @@ In `agentDetail` top-level:
 ```
 
 In `context`:
+
 ```json
 "filesBrowser": "Files",
 "filesBrowserDescription": "All bootstrap files for this agent",
@@ -479,6 +490,7 @@ covers: agent-tools-catalog/spec.md > ADDED > Per-tool allow/deny override > Res
 covers: agent-tools-catalog/spec.md > ADDED > Tools catalog graceful degradation
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/agents/tabs/ToolsCatalog.tsx`
 
 - [ ] **Step 1: Implement ToolsCatalog component**
@@ -512,11 +524,7 @@ interface ToolsCatalogProps {
   onOverrideChange: (allow: string[], deny: string[]) => void;
 }
 
-function getOverrideState(
-  toolId: string,
-  allow: string[],
-  deny: string[],
-): OverrideState {
+function getOverrideState(toolId: string, allow: string[], deny: string[]): OverrideState {
   if (deny.includes(toolId)) return "deny";
   if (allow.includes(toolId)) return "allow";
   return "default";
@@ -605,9 +613,7 @@ export function ToolsCatalog({
                 />
               ))
             ) : (
-              <p className="text-xs text-[var(--muted-foreground)]">
-                {t("toolsCatalogEmpty")}
-              </p>
+              <p className="text-xs text-[var(--muted-foreground)]">{t("toolsCatalogEmpty")}</p>
             )}
           </div>
         </CollapsibleContent>
@@ -653,9 +659,7 @@ function ToolGroup({
         >
           {group.source}
         </Badge>
-        <span className="text-[10px] text-[var(--muted-foreground)]">
-          ({group.tools.length})
-        </span>
+        <span className="text-[10px] text-[var(--muted-foreground)]">({group.tools.length})</span>
       </button>
       {groupOpen && (
         <div className="ml-4 mt-1 space-y-0.5">
@@ -752,6 +756,7 @@ covers: agent-model-fallback/spec.md > ADDED > Config tab supports model fallbac
 covers: agent-model-fallback/spec.md > ADDED > Config tab supports model fallback chain editing > Empty fallback list
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/agents/tabs/FallbackChainEditor.tsx`
 
 - [ ] **Step 1: Implement FallbackChainEditor component**
@@ -857,9 +862,7 @@ export function FallbackChainEditor({ fallbacks, onChange }: FallbackChainEditor
       <p className="text-[10px] text-[var(--muted-foreground)]">{t("fallbackDescription")}</p>
 
       {fallbacks.length === 0 ? (
-        <p className="text-[10px] text-[var(--muted-foreground)] italic py-2">
-          {t("noFallback")}
-        </p>
+        <p className="text-[10px] text-[var(--muted-foreground)] italic py-2">{t("noFallback")}</p>
       ) : (
         <div className="space-y-1">
           {fallbacks.map((modelId, i) => (
@@ -982,11 +985,13 @@ covers: agent-tools-catalog/spec.md > ADDED > Tools catalog displays grouped too
 covers: agent-model-fallback/spec.md > ADDED > Config tab supports model fallback chain editing > Add fallback model
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/agents/tabs/AgentConfigTab.tsx`
 
 - [ ] **Step 1: Add imports and integrate components**
 
 Add imports at top of AgentConfigTab.tsx:
+
 ```typescript
 import { FallbackChainEditor } from "./FallbackChainEditor";
 import { ToolsCatalog } from "./ToolsCatalog";
@@ -997,40 +1002,40 @@ In the `handleResetAll` function, add `"model.fallbacks"` and `"tools.allow"` an
 After the Card 2 (Tools Profile) closing `</div>`, before Card 3 (Subagents), insert:
 
 ```tsx
-        {/* Card 2b: Model Fallback — below tools profile card */}
-        <div className="rounded-lg border border-[var(--border-subtle)] bg-card p-4 flex flex-col gap-3">
-          <FallbackChainEditor
-            fallbacks={
-              Array.isArray(effectiveValue("model.fallbacks"))
-                ? (effectiveValue("model.fallbacks") as string[])
-                : []
-            }
-            onChange={(fb) => handleChange("model.fallbacks", fb.length > 0 ? fb : null)}
-          />
-        </div>
+{
+  /* Card 2b: Model Fallback — below tools profile card */
+}
+<div className="rounded-lg border border-[var(--border-subtle)] bg-card p-4 flex flex-col gap-3">
+  <FallbackChainEditor
+    fallbacks={
+      Array.isArray(effectiveValue("model.fallbacks"))
+        ? (effectiveValue("model.fallbacks") as string[])
+        : []
+    }
+    onChange={(fb) => handleChange("model.fallbacks", fb.length > 0 ? fb : null)}
+  />
+</div>;
 ```
 
 After the entire 2x2 grid `</div>` (after the closing of the grid, before the Save Bar), insert:
 
 ```tsx
-      {/* Tools Catalog (collapsible, below grid) */}
-      <ToolsCatalog
-        agentId={agentId}
-        toolsAllow={
-          Array.isArray(effectiveValue("tools.allow"))
-            ? (effectiveValue("tools.allow") as string[])
-            : []
-        }
-        toolsDeny={
-          Array.isArray(effectiveValue("tools.deny"))
-            ? (effectiveValue("tools.deny") as string[])
-            : []
-        }
-        onOverrideChange={(allow, deny) => {
-          handleChange("tools.allow", allow.length > 0 ? allow : null);
-          handleChange("tools.deny", deny.length > 0 ? deny : null);
-        }}
-      />
+{
+  /* Tools Catalog (collapsible, below grid) */
+}
+<ToolsCatalog
+  agentId={agentId}
+  toolsAllow={
+    Array.isArray(effectiveValue("tools.allow")) ? (effectiveValue("tools.allow") as string[]) : []
+  }
+  toolsDeny={
+    Array.isArray(effectiveValue("tools.deny")) ? (effectiveValue("tools.deny") as string[]) : []
+  }
+  onOverrideChange={(allow, deny) => {
+    handleChange("tools.allow", allow.length > 0 ? allow : null);
+    handleChange("tools.deny", deny.length > 0 ? deny : null);
+  }}
+/>;
 ```
 
 - [ ] **Step 2: Verify TypeScript compiles**
@@ -1055,6 +1060,7 @@ covers: agent-files-browser/spec.md > ADDED > Files browser displays complete fi
 covers: agent-files-browser/spec.md > ADDED > Files browser supports create missing file > Create missing file
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/agents/tabs/FilesBrowser.tsx`
 
 - [ ] **Step 1: Implement FilesBrowser component**
@@ -1088,8 +1094,13 @@ function formatRelativeTime(ms?: number): string {
 
 export function FilesBrowser({ agentId }: FilesBrowserProps) {
   const t = useTranslations("context");
-  const { agentFilesList, filesListLoading, fetchFilesList, fetchBootstrapFile, systemPromptPreview } =
-    useDeckAgentsStore();
+  const {
+    agentFilesList,
+    filesListLoading,
+    fetchFilesList,
+    fetchBootstrapFile,
+    systemPromptPreview,
+  } = useDeckAgentsStore();
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [creatingFile, setCreatingFile] = useState<string | null>(null);
@@ -1112,24 +1123,22 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
     [agentId, fetchBootstrapFile],
   );
 
-  const handleCreateClick = useCallback(
-    (fileName: string) => {
-      setCreatingFile(fileName);
-      setSelectedFile(null);
-    },
-    [],
-  );
+  const handleCreateClick = useCallback((fileName: string) => {
+    setCreatingFile(fileName);
+    setSelectedFile(null);
+  }, []);
 
   // Use files from agents.files.list if available, fall back to systemPromptPreview.bootstrapFiles
-  const files = agentFilesList.length > 0
-    ? agentFilesList
-    : (systemPromptPreview?.bootstrapFiles ?? []).map((f) => ({
-        name: f.name,
-        path: f.path ?? f.name,
-        missing: f.missing ?? false,
-        size: undefined,
-        updatedAtMs: undefined,
-      }));
+  const files =
+    agentFilesList.length > 0
+      ? agentFilesList
+      : (systemPromptPreview?.bootstrapFiles ?? []).map((f) => ({
+          name: f.name,
+          path: f.path ?? f.name,
+          missing: f.missing ?? false,
+          size: undefined,
+          updatedAtMs: undefined,
+        }));
 
   if (filesListLoading) {
     return (
@@ -1141,17 +1150,17 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
   }
 
   if (files.length === 0) {
-    return (
-      <p className="text-xs text-[var(--muted-foreground)] py-2">{t("filesEmpty")}</p>
-    );
+    return <p className="text-xs text-[var(--muted-foreground)] py-2">{t("filesEmpty")}</p>;
   }
 
   // Build a BootstrapFileEditor-compatible files array from the selected/creating state
-  const editorFiles = systemPromptPreview?.bootstrapFiles ?? files.map((f) => ({
-    name: f.name,
-    path: f.path,
-    missing: f.missing,
-  }));
+  const editorFiles =
+    systemPromptPreview?.bootstrapFiles ??
+    files.map((f) => ({
+      name: f.name,
+      path: f.path,
+      missing: f.missing,
+    }));
 
   return (
     <div className="space-y-2">
@@ -1213,10 +1222,7 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
           When user clicks a file in our list above, we just expand this section. */}
       {(selectedFile || creatingFile) && (
         <div className="border-t border-[var(--border-subtle)] pt-2">
-          <BootstrapFileEditor
-            agentId={agentId}
-            files={editorFiles}
-          />
+          <BootstrapFileEditor agentId={agentId} files={editorFiles} />
         </div>
       )}
     </div>
@@ -1246,11 +1252,13 @@ covers: agent-files-browser/spec.md > ADDED > Files browser displays complete fi
 covers: agent-files-browser/spec.md > ADDED > Files browser displays complete file list > Click to edit file
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/agents/tabs/ContextTab.tsx`
 
 - [ ] **Step 1: Replace bootstrap files section with FilesBrowser**
 
 Add import at top:
+
 ```typescript
 import { FilesBrowser } from "./FilesBrowser";
 ```
@@ -1288,6 +1296,7 @@ covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports 
 covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports local and ClawHub installation > Install failure
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/agents/tabs/SkillInstallDialog.tsx`
 
 - [ ] **Step 1: Implement SkillInstallDialog**
@@ -1304,12 +1313,7 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 interface InstallOption {
@@ -1386,7 +1390,12 @@ export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillIns
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: opt.skillName, installId: opt.installId }),
       });
-      const data = (await res.json()) as { ok?: boolean; message?: string; stderr?: string; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        stderr?: string;
+        error?: string;
+      };
       if (!res.ok || data.ok === false) {
         setError(data.stderr || data.error || data.message || t("installFailed"));
       } else {
@@ -1410,7 +1419,12 @@ export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillIns
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source: "clawhub", slug: slug.trim() }),
       });
-      const data = (await res.json()) as { ok?: boolean; message?: string; stderr?: string; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        stderr?: string;
+        error?: string;
+      };
       if (!res.ok || data.ok === false) {
         setError(data.stderr || data.error || data.message || t("installFailed"));
       } else {
@@ -1545,6 +1559,7 @@ covers: agent-skills-management/spec.md > ADDED > Skill config editor supports a
 covers: agent-skills-management/spec.md > ADDED > Skill config editor supports apiKey and env > Edit skill env variables
 
 **Files:**
+
 - Create: `dashboard/src/components/panels/agents/tabs/SkillConfigEditor.tsx`
 
 - [ ] **Step 1: Implement SkillConfigEditor**
@@ -1589,9 +1604,7 @@ export function SkillConfigEditor({
   }, []);
 
   const updateEnvPair = useCallback((index: number, field: "key" | "value", val: string) => {
-    setEnvPairs((prev) =>
-      prev.map((pair, i) => (i === index ? { ...pair, [field]: val } : pair)),
-    );
+    setEnvPairs((prev) => prev.map((pair, i) => (i === index ? { ...pair, [field]: val } : pair)));
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -1640,9 +1653,7 @@ export function SkillConfigEditor({
       {/* Env vars */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-[10px] text-[var(--muted-foreground)]">
-            {t("skillEnvVars")}
-          </label>
+          <label className="text-[10px] text-[var(--muted-foreground)]">{t("skillEnvVars")}</label>
           <Button
             type="button"
             variant="ghost"
@@ -1719,11 +1730,13 @@ covers: agent-skills-management/spec.md > ADDED > Skill config editor supports a
 covers: agent-skills-management/spec.md > ADDED > Skill update functionality
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/agents/tabs/SkillsTab.tsx`
 
 - [ ] **Step 1: Add install button, config editor, and update buttons**
 
 Add imports at top:
+
 ```typescript
 import { Download, Loader2, RefreshCw, Settings } from "lucide-react";
 import { SkillInstallDialog } from "./SkillInstallDialog";
@@ -1731,6 +1744,7 @@ import { SkillConfigEditor } from "./SkillConfigEditor";
 ```
 
 Add state variables inside the component (after existing state):
+
 ```typescript
 const [installOpen, setInstallOpen] = useState(false);
 const [expandedSkillKey, setExpandedSkillKey] = useState<string | null>(null);
@@ -1739,11 +1753,15 @@ const [updateAllLoading, setUpdateAllLoading] = useState(false);
 ```
 
 Add state for skills.status data (provides slug/source info that deck.agents.skills.get lacks):
+
 ```typescript
-const [skillsStatusMap, setSkillsStatusMap] = useState<Map<string, { source?: string; slug?: string }>>(new Map());
+const [skillsStatusMap, setSkillsStatusMap] = useState<
+  Map<string, { source?: string; slug?: string }>
+>(new Map());
 ```
 
 Fetch skills.status on mount to get slug/source metadata:
+
 ```typescript
 useEffect(() => {
   void (async () => {
@@ -1758,12 +1776,15 @@ useEffect(() => {
         map.set(s.key, { source: s.source, slug: s.slug });
       }
       setSkillsStatusMap(map);
-    } catch { /* best-effort */ }
+    } catch {
+      /* best-effort */
+    }
   })();
 }, [agentId]);
 ```
 
 Add update handler (uses slugs from skills.status):
+
 ```typescript
 const handleUpdateClawHub = useCallback(
   async (slug?: string) => {
@@ -1794,6 +1815,7 @@ const handleUpdateClawHub = useCallback(
 ```
 
 Modify the return JSX:
+
 - Before the mode switcher Card, add a header row with install button:
 
 ```tsx
@@ -1848,17 +1870,19 @@ Modify the return JSX:
 - After each skill button, conditionally render the config editor:
 
 ```tsx
-{expandedSkillKey === entry.key && (
-  <SkillConfigEditor
-    skillKey={entry.key}
-    initialApiKey={(entry as unknown as { config?: { apiKey?: string } }).config?.apiKey}
-    initialEnv={(entry as unknown as { config?: { env?: Record<string, string> } }).config?.env}
-    onSaved={() => {
-      setExpandedSkillKey(null);
-      void fetchSkills(agentId);
-    }}
-  />
-)}
+{
+  expandedSkillKey === entry.key && (
+    <SkillConfigEditor
+      skillKey={entry.key}
+      initialApiKey={(entry as unknown as { config?: { apiKey?: string } }).config?.apiKey}
+      initialEnv={(entry as unknown as { config?: { env?: Record<string, string> } }).config?.env}
+      onSaved={() => {
+        setExpandedSkillKey(null);
+        void fetchSkills(agentId);
+      }}
+    />
+  );
+}
 ```
 
 - [ ] **Step 2: Verify TypeScript compiles**
@@ -1881,17 +1905,20 @@ covers: agent-identity-display/spec.md > ADDED > Overview tab displays full agen
 covers: agent-identity-display/spec.md > ADDED > Overview tab displays full agent identity > Identity API unavailable
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/agents/tabs/OverviewTab.tsx`
 
 - [ ] **Step 1: Fetch and display identity data**
 
 Add imports:
+
 ```typescript
 import { useEffect } from "react";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 ```
 
 Inside the `OverviewTab` component, add identity fetching:
+
 ```typescript
 const { agentIdentity, fetchIdentity } = useDeckAgentsStore();
 
@@ -1903,7 +1930,9 @@ useEffect(() => {
 Replace the Identity preview Card section (around line 204-231). Replace the avatar placeholder with actual identity data:
 
 ```tsx
-{/* Identity preview */}
+{
+  /* Identity preview */
+}
 <Card className="bg-[var(--background)] border-[var(--border)]">
   <CardContent className="p-3">
     <div className="flex items-center gap-2 text-xs mb-2">
@@ -1932,9 +1961,7 @@ Replace the Identity preview Card section (around line 204-231). Replace the ava
           {agentIdentity?.name || detail.name || detail.id}
         </p>
         {agentIdentity?.emoji && (
-          <span className="text-[var(--muted-foreground)]">
-            {agentIdentity.emoji}
-          </span>
+          <span className="text-[var(--muted-foreground)]">{agentIdentity.emoji}</span>
         )}
         <button
           onClick={() => onNavigateTab("context")}
@@ -1945,7 +1972,7 @@ Replace the Identity preview Card section (around line 204-231). Replace the ava
       </div>
     </div>
   </CardContent>
-</Card>
+</Card>;
 ```
 
 - [ ] **Step 2: Verify TypeScript compiles**
@@ -1967,6 +1994,7 @@ scripts/committer "[enhanced] feat(agents): display agent identity with avatar i
 covers: (cross-cutting)
 
 **Files:**
+
 - Modify: `openspec/changes/deck-agent-config-enhancement/tasks.md`
 
 - [ ] **Step 1: Run full TypeScript check**

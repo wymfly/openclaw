@@ -1,6 +1,7 @@
 ## Context
 
 Deck Agent 面板当前 7 个 tab 的分工：
+
 - **Overview**: agent 基本信息 + 统计（bindings、skills、subagents、sessions 数量）
 - **Config**: model 选择、thinking mode、event streams 配置、tool profile 选择
 - **Routing**: binding 列表管理
@@ -10,6 +11,7 @@ Deck Agent 面板当前 7 个 tab 的分工：
 - **Sessions**: agent 的 session 列表
 
 后端已有但未接入的 API：
+
 - `tools.catalog` — 返回 `{ groups: [{ id, label, source, tools: [{ id, label, source, defaultProfiles }] }] }`
 - `skills.status` — 返回 `{ skills: [{ key, label, enabled, eligibility, metadata, reasons }] }`
 - `skills.install` — 支持本地路径和 ClawHub slug 两种安装方式

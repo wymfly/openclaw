@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenClaw Agent Architecture</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg-primary: #f5f5f7;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #e5e5e7;
+        --border: #d1d1d6;
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --text-tertiary: #aeaeb2;
+        --accent: #0071e3;
+        --accent-hover: #0077ed;
+        --success: #34c759;
+        --warning: #ff9f0a;
+        --error: #ff3b30;
+        --shadow: rgba(0, 0, 0, 0.06);
+        --shadow-lg: rgba(0, 0, 0, 0.1);
+
+        /* Layer colors */
+        --layer-clients: #e8f4fd;
+        --layer-clients-border: #b3d9f2;
+        --layer-clients-text: #0055a5;
+        --layer-gateway: #fef3e2;
+        --layer-gateway-border: #f5d89a;
+        --layer-gateway-text: #8a6d00;
+        --layer-agent: #e8fce8;
+        --layer-agent-border: #a8dca8;
+        --layer-agent-text: #1a7a1a;
+        --layer-runtime: #f3e8fc;
+        --layer-runtime-border: #d0a8e8;
+        --layer-runtime-text: #6b2fa0;
+        --layer-infra: #fce8e8;
+        --layer-infra-border: #e8a8a8;
+        --layer-infra-text: #a02f2f;
+
+        --arrow-color: #b0b0b5;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-primary: #1d1d1f;
+          --bg-secondary: #2d2d2f;
+          --bg-tertiary: #3d3d3f;
+          --border: #424245;
+          --text-primary: #f5f5f7;
+          --text-secondary: #98989d;
+          --text-tertiary: #636366;
+          --accent: #0a84ff;
+          --accent-hover: #409cff;
+          --shadow: rgba(0, 0, 0, 0.2);
+          --shadow-lg: rgba(0, 0, 0, 0.35);
+
+          --layer-clients: rgba(10, 132, 255, 0.12);
+          --layer-clients-border: rgba(10, 132, 255, 0.3);
+          --layer-clients-text: #5aadff;
+          --layer-gateway: rgba(255, 159, 10, 0.12);
+          --layer-gateway-border: rgba(255, 159, 10, 0.3);
+          --layer-gateway-text: #ffb84d;
+          --layer-agent: rgba(52, 199, 89, 0.12);
+          --layer-agent-border: rgba(52, 199, 89, 0.3);
+          --layer-agent-text: #6ede8a;
+          --layer-runtime: rgba(175, 82, 222, 0.12);
+          --layer-runtime-border: rgba(175, 82, 222, 0.3);
+          --layer-runtime-text: #c990e8;
+          --layer-infra: rgba(255, 69, 58, 0.12);
+          --layer-infra-border: rgba(255, 69, 58, 0.3);
+          --layer-infra-text: #ff8a84;
+
+          --arrow-color: #636366;
+        }
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ===== HEADER ===== */
+      .header {
+        background: var(--bg-secondary);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px var(--shadow);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+      }
+      .header h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .header .subtitle {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+      }
+      .header-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .btn {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.85rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: inherit;
+      }
+      .btn:hover {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+
+      /* ===== CANVAS ===== */
+      .canvas {
+        flex: 1;
+        padding: 2rem 2rem 3rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        overflow: auto;
+      }
+
+      /* ===== LAYER ===== */
+      .layer {
+        width: 100%;
+        max-width: 960px;
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        position: relative;
+      }
+      .layer-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .layer-label::before {
+        content: "";
+        width: 3px;
+        height: 12px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+
+      .layer--clients {
+        background: var(--layer-clients);
+        border: 1px solid var(--layer-clients-border);
+      }
+      .layer--clients .layer-label {
+        color: var(--layer-clients-text);
+      }
+      .layer--clients .layer-label::before {
+        background: var(--layer-clients-text);
+      }
+
+      .layer--gateway {
+        background: var(--layer-gateway);
+        border: 1px solid var(--layer-gateway-border);
+      }
+      .layer--gateway .layer-label {
+        color: var(--layer-gateway-text);
+      }
+      .layer--gateway .layer-label::before {
+        background: var(--layer-gateway-text);
+      }
+
+      .layer--agent {
+        background: var(--layer-agent);
+        border: 1px solid var(--layer-agent-border);
+      }
+      .layer--agent .layer-label {
+        color: var(--layer-agent-text);
+      }
+      .layer--agent .layer-label::before {
+        background: var(--layer-agent-text);
+      }
+
+      .layer--runtime {
+        background: var(--layer-runtime);
+        border: 1px solid var(--layer-runtime-border);
+      }
+      .layer--runtime .layer-label {
+        color: var(--layer-runtime-text);
+      }
+      .layer--runtime .layer-label::before {
+        background: var(--layer-runtime-text);
+      }
+
+      .layer--infra {
+        background: var(--layer-infra);
+        border: 1px solid var(--layer-infra-border);
+      }
+      .layer--infra .layer-label {
+        color: var(--layer-infra-text);
+      }
+      .layer--infra .layer-label::before {
+        background: var(--layer-infra-text);
+      }
+
+      /* ===== CARDS GRID ===== */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 0.5rem;
+      }
+      .cards--wide {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+
+      .card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.65rem 0.8rem;
+        box-shadow: 0 1px 4px var(--shadow);
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px var(--shadow-lg);
+      }
+      .card-icon {
+        font-size: 1.1rem;
+        margin-bottom: 0.2rem;
+      }
+      .card h3 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-bottom: 0.1rem;
+        line-height: 1.3;
+      }
+      .card p {
+        font-size: 0.68rem;
+        color: var(--text-secondary);
+        line-height: 1.35;
+      }
+      .card code {
+        font-size: 0.62rem;
+        background: var(--bg-tertiary);
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px;
+        font-family: "SF Mono", "Menlo", monospace;
+        color: var(--text-secondary);
+      }
+
+      /* ===== FLOW ARROWS ===== */
+      .flow-arrow {
+        display: flex;
+        justify-content: center;
+        padding: 0.15rem 0;
+        flex-shrink: 0;
+      }
+      .flow-arrow svg {
+        width: 20px;
+        height: 18px;
+        color: var(--arrow-color);
+      }
+
+      /* ===== DESCRIPTION ===== */
+      .description {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+        padding: 0.75rem 2rem;
+        flex-shrink: 0;
+      }
+      .description p {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        max-width: 80ch;
+      }
+
+      /* ===== TOAST ===== */
+      .toast {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--text-primary);
+        color: var(--bg-primary);
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 100;
+        box-shadow: 0 4px 16px var(--shadow-lg);
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* ===== RESPONSIVE ===== */
+      @media (max-width: 640px) {
+        .canvas {
+          padding: 1rem;
+        }
+        .layer {
+          padding: 0.75rem;
+        }
+        .cards {
+          grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+          gap: 0.4rem;
+        }
+        .card {
+          padding: 0.5rem 0.6rem;
+        }
+        .card h3 {
+          font-size: 0.72rem;
+        }
+        .header {
+          padding: 0.75rem 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-left">
+        <h1>OpenClaw Agent Architecture</h1>
+        <span class="subtitle">Multi-agent execution pipeline with session-scoped isolation</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="exportPNG()" title="Export as PNG">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          PNG
+        </button>
+      </div>
+    </div>
+
+    <div class="canvas" id="diagram">
+      <!-- Layer 1: Clients & Channels -->
+      <div class="layer layer--clients">
+        <div class="layer-label">Clients &amp; Channels — Inbound message sources</div>
+        <div class="cards">
+          <div class="card">
+            <div class="card-icon">💻</div>
+            <h3>CLI</h3>
+            <p>Terminal commands &amp; interactive chat</p>
+            <code>src/cli</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🖥️</div>
+            <h3>Mac App</h3>
+            <p>Native macOS menubar gateway</p>
+            <code>apps/macos</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🌐</div>
+            <h3>Deck Dashboard</h3>
+            <p>Web control panel with SSE streaming</p>
+            <code>dashboard/</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">📱</div>
+            <h3>Mobile Apps</h3>
+            <p>iOS &amp; Android native clients</p>
+            <code>apps/ios, apps/android</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">💬</div>
+            <h3>Messaging Channels</h3>
+            <p>Telegram, Discord, Slack, Signal, WhatsApp, WeCom, Feishu</p>
+            <code>src/telegram, extensions/*</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 20 18">
+          <path
+            d="M10 2 L10 12 M5 8 L10 14 L15 8"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Layer 2: Gateway & Routing -->
+      <div class="layer layer--gateway">
+        <div class="layer-label">
+          Gateway &amp; Routing — Message dispatch &amp; session resolution
+        </div>
+        <div class="cards cards--wide">
+          <div class="card">
+            <div class="card-icon">🔀</div>
+            <h3>RPC Handler</h3>
+            <p>
+              JSON-RPC interface for all clients. Validates auth, extracts agentId, dispatches to
+              router
+            </p>
+            <code>src/gateway/server.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔑</div>
+            <h3>Session Key Parser</h3>
+            <p>
+              Parses <code>agent:&lt;id&gt;:&lt;channel&gt;:&lt;rest&gt;</code> format. Infers chat
+              type (DM/group/cron/subagent)
+            </p>
+            <code>src/routing/session-key.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🗂️</div>
+            <h3>Message Router</h3>
+            <p>
+              Routes messages to resolved agent. Handles channel bindings, allowlists, and routing
+              rules
+            </p>
+            <code>src/routing/</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">📋</div>
+            <h3>Session Store</h3>
+            <p>
+              Per-agent session entries with model/provider/auth overrides. Persisted to
+              <code>sessions.json</code>
+            </p>
+            <code>src/config/sessions.ts</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 20 18">
+          <path
+            d="M10 2 L10 12 M5 8 L10 14 L15 8"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Layer 3: Agent Resolution -->
+      <div class="layer layer--agent">
+        <div class="layer-label">Agent Resolution — Config lookup &amp; execution setup</div>
+        <div class="cards cards--wide">
+          <div class="card">
+            <div class="card-icon">🤖</div>
+            <h3>Agent Scope</h3>
+            <p>
+              Resolves agent config from <code>agents.list[]</code>: model, workspace, skills,
+              subagent settings
+            </p>
+            <code>src/agents/agent-scope.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🛡️</div>
+            <h3>Tool Policy</h3>
+            <p>Owner-only filter → agent allowlist → deny list. Tool groups aggregation</p>
+            <code>src/agents/tool-policy.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">⚙️</div>
+            <h3>Model Selection</h3>
+            <p>Cascade: run override → session → agent primary → fallbacks → global defaults</p>
+            <code>src/agents/model-selection.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🧩</div>
+            <h3>Skills Builder</h3>
+            <p>Builds workspace skill snapshot, filters per-agent, injects into system prompt</p>
+            <code>src/agents/skills.ts</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 20 18">
+          <path
+            d="M10 2 L10 12 M5 8 L10 14 L15 8"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Layer 4: Agent Runtime -->
+      <div class="layer layer--runtime">
+        <div class="layer-label">Agent Runtime — Execution engine &amp; context management</div>
+        <div class="cards cards--wide">
+          <div class="card">
+            <div class="card-icon">▶️</div>
+            <h3>Agent Command</h3>
+            <p>
+              Main execution entry point. Orchestrates config resolution → PI run → result delivery
+            </p>
+            <code>src/agents/agent-command.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🧠</div>
+            <h3>PI Embedded Runner</h3>
+            <p>Runs coding agent with tools, streaming events, and context window management</p>
+            <code>src/agents/pi-embedded.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">📐</div>
+            <h3>Context Guard</h3>
+            <p>Token counting, overflow detection, aggressive pruning for large histories</p>
+            <code>src/agents/context.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔄</div>
+            <h3>Subagent System</h3>
+            <p>
+              Spawn child agents with inherited context. Registry tracks lifecycle: spawn → execute
+              → announce
+            </p>
+            <code>src/agents/subagent-*.ts</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">🎛️</div>
+            <h3>ACP Manager</h3>
+            <p>
+              Agent Control Plane for long-running sessions. States: idle → thinking → acting → done
+            </p>
+            <code>src/acp/control-plane/</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 20 18">
+          <path
+            d="M10 2 L10 12 M5 8 L10 14 L15 8"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Layer 5: Infrastructure -->
+      <div class="layer layer--infra">
+        <div class="layer-label">
+          Infrastructure — AI providers, storage &amp; external services
+        </div>
+        <div class="cards">
+          <div class="card">
+            <div class="card-icon">🏗️</div>
+            <h3>Anthropic</h3>
+            <p>Claude models with streaming &amp; extended thinking</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🏗️</div>
+            <h3>OpenAI</h3>
+            <p>GPT models &amp; function calling</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">☁️</div>
+            <h3>AWS Bedrock</h3>
+            <p>Cross-region failover</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🏗️</div>
+            <h3>Custom Providers</h3>
+            <p>OpenAI-compatible endpoints</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">💾</div>
+            <h3>Session Storage</h3>
+            <p>Sessions, transcripts, agent state</p>
+            <code>~/.openclaw/</code>
+          </div>
+          <div class="card">
+            <div class="card-icon">📝</div>
+            <h3>Config Store</h3>
+            <p>YAML config with live reload</p>
+            <code>openclaw.yaml</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="description">
+      <p>
+        Messages flow top-down: Clients/Channels → Gateway RPC → Session routing → Agent resolution
+        (config, tools, skills, model) → Runtime execution (PI agent, subagents, ACP) → AI providers
+        &amp; storage. Each agent has isolated config, workspace, and session state. Subagents
+        inherit parent context with optional overrides.
+      </p>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2000);
+      }
+
+      async function exportPNG() {
+        try {
+          showToast("Preparing export...");
+          const el = document.getElementById("diagram");
+          // Use html2canvas via CDN
+          if (!window.html2canvas) {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
+            document.head.appendChild(s);
+            await new Promise((resolve, reject) => {
+              s.onload = resolve;
+              s.onerror = reject;
+            });
+          }
+          const canvas = await html2canvas(el, {
+            scale: 2,
+            backgroundColor: getComputedStyle(document.body)
+              .getPropertyValue("--bg-primary")
+              .trim(),
+            useCORS: true,
+          });
+          canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "openclaw-agent-architecture.png";
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }, 100);
+            showToast("PNG exported");
+          }, "image/png");
+        } catch (e) {
+          showToast("Export failed: " + e.message);
+        }
+      }
+    </script>
+  </body>
+</html>

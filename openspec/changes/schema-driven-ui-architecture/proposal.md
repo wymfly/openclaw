@@ -14,12 +14,14 @@ Deck dashboard 的目标是成为 OpenClaw 的统一操控界面，覆盖 Gatewa
 ## Capabilities
 
 ### New Capabilities
+
 - `schema-driven-form`: RJSF 集成 + MethodForm 封装——从 gateway.describe 的 JSON Schema 自动生成 RPC 方法的 params 输入表单
 - `schema-driven-table`: TanStack Table DataTable 封装——从 result schema 自动生成数据表格列定义和渲染
 - `generic-panel-layout`: MasterDetailLayout + MethodPanel——通用面板布局组件和声明式面板生成器
 - `ui-hints-rjsf-bridge`: 将 Gateway 的 ConfigUiHint 系统映射到 RJSF 的 uiSchema 体系
 
 ### Modified Capabilities
+
 <!-- 无需修改现有 spec 的需求——现有面板功能不变，只是结构迁移 -->
 
 ## Impact
