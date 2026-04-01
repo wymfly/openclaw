@@ -79,11 +79,14 @@ export const SLASH_COMMANDS = LOCAL_COMMAND_DEFS;
 const CATEGORY_ORDER: SlashCommandCategory[] = ["session", "model", "tools", "agents"];
 
 /** i18n keys for category labels. */
-export const CATEGORY_LABEL_KEYS: Record<SlashCommandCategory, string> = {
+export const CATEGORY_LABEL_KEYS: Record<string, string> = {
   session: "cmdCatSession",
   model: "cmdCatModel",
   tools: "cmdCatTools",
   agents: "cmdCatAgents",
+  skills: "cmdCatSkills",
+  plugins: "cmdCatPlugins",
+  more: "cmdCatMore",
 };
 
 /**

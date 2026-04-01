@@ -17,6 +17,7 @@ import type { ChatMessage, ContentBlock, SessionMeta } from "@/stores/chat-types
 import { useUIStore } from "@/stores/ui";
 import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
+import { useCommandDiscovery } from "@/hooks/use-command-discovery";
 import { BlockFilterBar } from "./BlockFilterBar";
 import { CanvasPanel } from "./CanvasPanel";
 import { initializeLocalCommands } from "./slash-command-executor";
@@ -275,6 +276,9 @@ export function ChatPanel() {
 
   // Connect to SSE stream for real-time chat events.
   useChatSSE();
+
+  // Discover remote commands from Gateway and listen for changes.
+  useCommandDiscovery();
 
   // Fetch sessions on mount and when agent changes.
   useEffect(() => {
