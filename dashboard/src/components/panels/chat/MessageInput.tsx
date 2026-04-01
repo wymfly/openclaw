@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
+import { useNotificationsStore } from "@/stores/notifications";
 import { useUIStore } from "@/stores/ui";
 import { ArtifactContext } from "./ChatPanel";
 import { exportSessionAsMarkdown } from "./export-session";
@@ -172,7 +173,7 @@ export function MessageInput() {
     [history],
   );
 
-  const handleAbort = useCallback(async () => {
+  const handleAbort = useCallback(async (): Promise<boolean> => {
     try {
       const res = await fetch("/api/chat/abort", {
         method: "POST",
@@ -180,13 +181,21 @@ export function MessageInput() {
         body: JSON.stringify({ sessionKey: activeSessionKey ?? undefined }),
       });
       if (!res.ok) {
-        console.error("[abort]", res.status);
+        const d = await res.json().catch(() => ({}));
+        useNotificationsStore
+          .getState()
+          .addToast("error", (d as { error?: string }).error ?? "Failed to stop", 3000);
+        return false;
       }
+      if (activeSessionKey) {
+        useChatStore.getState().setSessionStreaming(activeSessionKey, false);
+      }
+      useNotificationsStore.getState().addToast("success", "Stopped", 3000);
+      return true;
     } catch (err) {
       console.error("[abort] network error:", err);
-    }
-    if (activeSessionKey) {
-      useChatStore.getState().setSessionStreaming(activeSessionKey, false);
+      useNotificationsStore.getState().addToast("error", "Failed to stop", 3000);
+      return false;
     }
   }, [activeSessionKey]);
 
@@ -207,10 +216,30 @@ export function MessageInput() {
         }
       };
 
+      const toast = useNotificationsStore.getState().addToast;
+
       try {
         const result = await executeSlashCommand(activeSessionKey ?? "", cmd.name, cmdArgs);
 
-        // Handle action
+        // ── Toast feedback (D4: executor returns toast, caller dispatches) ──
+        if (result.toastMessage) {
+          toast(result.toastType ?? "info", result.toastMessage, 3000);
+        }
+
+        // ── Optimistic config update (D1: write store immediately) ──
+        if (result.configUpdate && activeSessionKey) {
+          useChatStore.setState((s) => {
+            const idx = s.sessionMetas.findIndex((m) => m.key === activeSessionKey);
+            if (idx < 0) {
+              return {};
+            }
+            const metas = [...s.sessionMetas];
+            metas[idx] = { ...metas[idx], ...result.configUpdate };
+            return { sessionMetas: metas, sessionMeta: metas };
+          });
+        }
+
+        // ── Handle side-effect actions ──
         const action = result.action;
         if (action === "new-session" || action === "reset") {
           const agentId = activeAgentId || "main";
@@ -221,33 +250,46 @@ export function MessageInput() {
           });
           if (!res.ok) {
             const d = await res.json().catch(() => ({}));
-            addSystemMsg((d as { error?: string }).error ?? `/${cmd.name} failed`);
+            toast("error", (d as { error?: string }).error ?? `/${cmd.name} failed`, 3000);
             return;
           }
           const data = (await res.json()) as { key?: string };
           if (data.key) {
             useChatStore.getState().setActiveSession(data.key);
           }
+          toast("success", "New session created", 3000);
         } else if (action === "stop") {
           void handleAbort();
         } else if (action === "clear") {
           if (activeSessionKey) {
             useChatStore.getState().setMessages(activeSessionKey, []);
           }
+          toast("info", "Messages cleared", 3000);
         } else if (action === "export") {
           if (activeSessionKey) {
-            exportSessionAsMarkdown(activeSessionKey);
+            try {
+              exportSessionAsMarkdown(activeSessionKey);
+              toast("success", "Session exported", 3000);
+            } catch {
+              toast("error", "Export failed", 3000);
+            }
           }
         }
-        // "refresh": no-op — SSE events will push updated state
+        // "refresh": no-op — SSE events will push updated state (D1 optimistic update above handles immediate feedback)
 
-        // Display command output as system message
+        // Display command output as system message (query commands: /help, /usage, /agents, /model no-args)
         if (result.content) {
           addSystemMsg(result.content);
         }
       } catch (err) {
         console.error(`[/${cmd.name}]`, err);
-        addSystemMsg(`/${cmd.name}: ${err instanceof Error ? err.message : "Command failed"}`);
+        useNotificationsStore
+          .getState()
+          .addToast(
+            "error",
+            `/${cmd.name}: ${err instanceof Error ? err.message : "Command failed"}`,
+            3000,
+          );
       }
     },
     [activeSessionKey, activeAgentId, handleAbort],
