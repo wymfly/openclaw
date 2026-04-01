@@ -336,6 +336,74 @@ endlocal\r
 }
 
 # ---------------------------------------------------------------------------
+# Platform-specific install guides
+# ---------------------------------------------------------------------------
+write_readme() {
+  local docs_src="$DEPLOY_DIR/docs"
+  local pkg_root="$STAGING_DIR/$PKG_NAME"
+
+  # Determine primary platform hint from package contents
+  local primary_platform=""
+  if [ "$HAS_DEPS" = true ]; then
+    primary_platform="Windows"
+  fi
+
+  # Copy all platform guides
+  for guide in INSTALL-Windows.md INSTALL-Linux.md INSTALL-macOS.md; do
+    [ -f "$docs_src/$guide" ] && cp "$docs_src/$guide" "$pkg_root/$guide"
+  done
+
+  # Generate top-level README
+  cat > "$pkg_root/README.md" <<READMEEOF
+# OpenClaw 安装包
+
+## 包内容
+
+| 层 | 包含 |
+|----|------|
+| 源码 | $([ "$HAS_PREBUILT" = true ] && echo "是（含预构建产物，无需编译）" || echo "是（需要编译）") |
+| Docker 镜像 | $([ "$HAS_IMAGES" = true ] && echo "是" || echo "否") |
+| 本地插件/Skills | $([ "$HAS_LOCAL" = true ] && echo "是" || echo "否") |
+| Windows 离线依赖 | $([ "$HAS_DEPS" = true ] && echo "是（Git + Node.js + Docker Desktop）" || echo "否") |
+
+## 安装指南
+
+请根据目标系统选择对应的安装指南：
+
+- **[Windows 安装指南](INSTALL-Windows.md)**$([ "$primary_platform" = "Windows" ] && echo " ← 推荐（本包含 Windows 离线依赖）")
+- **[Linux 安装指南](INSTALL-Linux.md)**
+- **[macOS 安装指南](INSTALL-macOS.md)**
+
+## 快速开始
+
+\`\`\`bash
+# 1. 解压
+tar xzf $(basename "$pkg_root").tar.gz
+cd $(basename "$pkg_root")
+
+# 2. 配置
+cp source/deploy/.env.example source/deploy/.env
+# 编辑 .env，填写 API Key
+
+# 3. 安装依赖
+cd source && pnpm install --frozen-lockfile
+
+# 4. 部署
+bash deploy/scripts/install.sh bare-metal
+\`\`\`
+
+## 验证
+
+- Gateway: http://localhost:18789/healthz
+- Deck Dashboard: http://localhost:3000
+
+首次打开 Deck 需输入 \`.env\` 中 \`OPENCLAW_GATEWAY_TOKEN\` 的值完成配对。
+READMEEOF
+
+  log "README written"
+}
+
+# ---------------------------------------------------------------------------
 # Verification
 # ---------------------------------------------------------------------------
 verify_package() {
@@ -393,6 +461,7 @@ fi
 # Write manifest + installer
 write_manifest
 write_installer
+write_readme
 
 # Verify
 verify_package
