@@ -27,7 +27,6 @@ import { useEffect, useRef } from "react";
 import { commandRegistry } from "@/lib/command-registry";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABEL_KEYS } from "./slash-commands";
-import type { SlashCommandCategory } from "./slash-commands";
 
 interface PaletteCommand {
   name: string;
@@ -35,7 +34,7 @@ interface PaletteCommand {
   description?: string;
   args?: string;
   icon: string;
-  category: SlashCommandCategory;
+  category: string;
   argOptions?: string[];
 }
 
@@ -89,7 +88,7 @@ export function SlashCommandPalette({
     description: cmd.description,
     args: cmd.args,
     icon: cmd.icon ?? "terminal",
-    category: cmd.category as SlashCommandCategory,
+    category: cmd.category,
     argOptions: cmd.argOptions,
   }));
   const listRef = useRef<HTMLDivElement>(null);
@@ -115,7 +114,7 @@ export function SlashCommandPalette({
   if (commands.length === 0) return null;
 
   // Group by category — track current to insert headers
-  let currentCategory: SlashCommandCategory | null = null;
+  let currentCategory: string | null = null;
   let globalIndex = -1;
 
   return (
