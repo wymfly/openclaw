@@ -187,9 +187,7 @@ function InfiniteSentinel({
   }, [hasMore, loading, onLoadMore, scrollRoot]);
 
   if (!hasMore && !loading) {
-    return (
-      <div className="text-center py-3 text-xs text-muted-foreground">{t("noMoreData")}</div>
-    );
+    return <div className="text-center py-3 text-xs text-muted-foreground">{t("noMoreData")}</div>;
   }
 
   return (

@@ -7,7 +7,7 @@ import { useMemoryStore, type MemoryTier } from "@/stores/memory";
 // Tier badge colors for visual distinction
 const TIER_STYLES: Record<MemoryTier, { bg: string; color: string }> = {
   core: { bg: "var(--success-muted)", color: "var(--success)" },
-  working: { bg: "var(--accent-muted)", color: "var(--accent)" },
+  working: { bg: "var(--primary-muted)", color: "var(--primary)" },
   peripheral: { bg: "var(--neutral-muted)", color: "var(--neutral-muted-text)" },
 };
 
@@ -72,8 +72,8 @@ export function SearchPanel() {
           className="flex-1 text-sm rounded px-3 py-2 border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
         <button
@@ -81,9 +81,9 @@ export function SearchPanel() {
           disabled={loading || !query.trim()}
           className="text-xs px-4 py-2 rounded border cursor-pointer disabled:opacity-50"
           style={{
-            borderColor: "var(--accent)",
-            backgroundColor: "var(--accent-muted)",
-            color: "var(--accent)",
+            borderColor: "var(--primary)",
+            backgroundColor: "var(--primary-muted)",
+            color: "var(--primary)",
           }}
         >
           {t("search")}
@@ -108,8 +108,8 @@ export function SearchPanel() {
         <div
           className="text-xs px-3 py-2 rounded"
           style={{
-            backgroundColor: "var(--danger-muted)",
-            color: "var(--danger)",
+            backgroundColor: "var(--destructive-muted)",
+            color: "var(--destructive)",
           }}
         >
           {error}
@@ -121,7 +121,7 @@ export function SearchPanel() {
         {searchResults.length === 0 && !loading && (
           <div
             className="flex items-center justify-center h-full"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{t("noResults")}</p>
           </div>
@@ -133,14 +133,11 @@ export function SearchPanel() {
             className="mb-3 p-3 rounded border"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-secondary)",
+              backgroundColor: "var(--card)",
             }}
           >
             <div className="flex items-center justify-between mb-1 gap-1.5">
-              <span
-                className="text-xs font-medium truncate"
-                style={{ color: "var(--text-primary)" }}
-              >
+              <span className="text-xs font-medium truncate" style={{ color: "var(--foreground)" }}>
                 {result.path}
               </span>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -159,8 +156,8 @@ export function SearchPanel() {
                 <span
                   className="text-xs px-2 py-0.5 rounded"
                   style={{
-                    backgroundColor: "var(--accent-muted)",
-                    color: "var(--accent)",
+                    backgroundColor: "var(--primary-muted)",
+                    color: "var(--primary)",
                   }}
                 >
                   {t("relevance")}: {(result.relevance * 100).toFixed(0)}%
@@ -170,7 +167,7 @@ export function SearchPanel() {
             <pre
               className="text-xs whitespace-pre-wrap break-words mt-1"
               style={{
-                color: "var(--text-secondary)",
+                color: "var(--muted-foreground)",
                 fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace",
                 maxHeight: 120,
                 overflow: "hidden",

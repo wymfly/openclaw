@@ -35,16 +35,16 @@ export function ConnectionSection() {
 
   return (
     <section>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
         {t("connection")}
       </h3>
       <div
         className="rounded-lg border p-4 flex flex-col gap-3"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
         {/* Gateway URL */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("gatewayUrl")}
           </label>
           <input
@@ -55,15 +55,15 @@ export function ConnectionSection() {
             className="px-3 py-1.5 text-xs rounded-md border outline-none"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
             }}
           />
         </div>
 
         {/* Gateway Token */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("gatewayToken")}
           </label>
           <input
@@ -74,8 +74,8 @@ export function ConnectionSection() {
             className="px-3 py-1.5 text-xs rounded-md border outline-none"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
             }}
           />
         </div>
@@ -87,8 +87,8 @@ export function ConnectionSection() {
             className="px-3 py-1.5 text-xs rounded-md font-medium border"
             style={{
               borderColor: "var(--border)",
-              color: "var(--text-primary)",
-              backgroundColor: "var(--bg-primary)",
+              color: "var(--foreground)",
+              backgroundColor: "var(--background)",
             }}
             onClick={() => void handleTest()}
             disabled={testing}
@@ -100,8 +100,8 @@ export function ConnectionSection() {
             type="button"
             className="px-3 py-1.5 text-xs rounded-md font-medium"
             style={{
-              backgroundColor: "var(--accent)",
-              color: "var(--accent-fg)",
+              backgroundColor: "var(--primary)",
+              color: "var(--primary-foreground)",
             }}
             onClick={() => void handleSave()}
             disabled={saving}
@@ -113,7 +113,7 @@ export function ConnectionSection() {
             <span
               className="text-xs font-medium"
               style={{
-                color: testResult ? "var(--success)" : "var(--danger)",
+                color: testResult ? "var(--success)" : "var(--destructive)",
               }}
             >
               {testResult ? t("connectionSuccess") : t("connectionFailed")}

@@ -30,17 +30,17 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   return (
     <div
       className="flex items-center justify-center h-screen"
-      style={{ backgroundColor: "var(--bg-primary)" }}
+      style={{ backgroundColor: "var(--background)" }}
     >
       <div
         className="w-full max-w-lg rounded-xl border p-6 shadow-lg"
-        style={{ backgroundColor: "var(--bg-secondary)", borderColor: "var(--border)" }}
+        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
       >
         {/* Title */}
-        <h1 className="text-xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "var(--foreground)" }}>
           {t("title")}
         </h1>
-        <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
+        <p className="text-sm mb-5" style={{ color: "var(--muted-foreground)" }}>
           {t("subtitle")}
         </p>
 
@@ -51,8 +51,8 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
                 style={{
-                  backgroundColor: s <= step ? "var(--accent)" : "var(--bg-primary)",
-                  color: s <= step ? "#fff" : "var(--text-secondary)",
+                  backgroundColor: s <= step ? "var(--primary)" : "var(--background)",
+                  color: s <= step ? "var(--primary-foreground)" : "var(--muted-foreground)",
                 }}
               >
                 {s}
@@ -60,7 +60,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
               {s < 3 && (
                 <div
                   className="w-10 h-0.5 rounded"
-                  style={{ backgroundColor: s < step ? "var(--accent)" : "var(--border)" }}
+                  style={{ backgroundColor: s < step ? "var(--primary)" : "var(--border)" }}
                 />
               )}
             </div>

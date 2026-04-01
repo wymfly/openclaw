@@ -13,23 +13,25 @@ interface FilesBrowserProps {
 }
 
 function formatSize(bytes?: number): string {
-  if (bytes == null) {return "—";}
-  if (bytes < 1024) {return `${bytes} B`;}
+  if (bytes == null) {
+    return "—";
+  }
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
   return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
 function formatDate(ms?: number): string {
-  if (ms == null) {return "—";}
+  if (ms == null) {
+    return "—";
+  }
   return new Date(ms).toLocaleDateString();
 }
 
 export function FilesBrowser({ agentId }: FilesBrowserProps) {
   const t = useTranslations("context");
-  const {
-    agentFilesList,
-    filesListLoading,
-    fetchFilesList,
-  } = useDeckAgentsStore();
+  const { agentFilesList, filesListLoading, fetchFilesList } = useDeckAgentsStore();
 
   const [editorVisible, setEditorVisible] = useState(false);
 
@@ -37,13 +39,10 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
     void fetchFilesList(agentId);
   }, [agentId, fetchFilesList]);
 
-  const handleFileClick = useCallback(
-    (_file: AgentFileEntry) => {
-      // Just expand the editor section; BootstrapFileEditor handles its own selection
-      setEditorVisible(true);
-    },
-    [],
-  );
+  const handleFileClick = useCallback((_file: AgentFileEntry) => {
+    // Just expand the editor section; BootstrapFileEditor handles its own selection
+    setEditorVisible(true);
+  }, []);
 
   const handleCreateClick = useCallback(() => {
     setEditorVisible(true);
@@ -69,9 +68,7 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
   }
 
   if (files.length === 0) {
-    return (
-      <p className="text-xs text-[var(--muted-foreground)] py-2">{t("filesEmpty")}</p>
-    );
+    return <p className="text-xs text-[var(--muted-foreground)] py-2">{t("filesEmpty")}</p>;
   }
 
   return (
@@ -84,7 +81,9 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
             role="button"
             tabIndex={0}
             onClick={() => handleFileClick(file)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleFileClick(file); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleFileClick(file);
+            }}
             className="flex items-center gap-3 w-full px-2 py-1.5 rounded text-left transition-colors cursor-pointer hover:bg-[var(--accent)]"
           >
             <File size={14} className="text-[var(--muted-foreground)] shrink-0" />

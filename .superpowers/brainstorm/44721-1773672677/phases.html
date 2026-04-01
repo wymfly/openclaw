@@ -1,0 +1,451 @@
+<h2>openclaw-deck Implementation Phases</h2>
+<p class="subtitle">18 panels + 2 global features across 4 phases</p>
+
+<h3>Complete Panel Map (18 + 2)</h3>
+<div
+  style="
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    font-size: 12.5px;
+    margin-bottom: 32px;
+  "
+>
+  <div style="background: #1e293b; border: 2px solid #3b82f6; border-radius: 8px; padding: 14px">
+    <div style="color: #3b82f6; font-weight: 700; margin-bottom: 8px">Core (4 panels)</div>
+    <div style="color: #e2e8f0; line-height: 2.2">
+      💬 Chat<br />
+      🤖 Agents<br />
+      📡 Gateway Overview<br />
+      <span style="color: #fbbf24">🧩 Models</span>
+      <span style="color: #475569; font-size: 11px">NEW</span>
+    </div>
+  </div>
+  <div style="background: #1e293b; border: 2px solid #8b5cf6; border-radius: 8px; padding: 14px">
+    <div style="color: #8b5cf6; font-weight: 700; margin-bottom: 8px">Observe (5 panels)</div>
+    <div style="color: #e2e8f0; line-height: 2.2">
+      📊 Usage & Costs<br />
+      📋 Sessions<br />
+      🧠 Memory Browser<br />
+      📜 Logs<br />
+      ⏱ Activity Feed
+    </div>
+  </div>
+  <div style="background: #1e293b; border: 2px solid #10b981; border-radius: 8px; padding: 14px">
+    <div style="color: #10b981; font-weight: 700; margin-bottom: 8px">Automate (4 panels)</div>
+    <div style="color: #e2e8f0; line-height: 2.2">
+      ⏰ Cron<br />
+      🔗 Webhooks<br />
+      🛡 Approvals & Security<br />
+      ⚡ Skills
+    </div>
+  </div>
+  <div style="background: #1e293b; border: 2px solid #f59e0b; border-radius: 8px; padding: 14px">
+    <div style="color: #f59e0b; font-weight: 700; margin-bottom: 8px">Control (5 panels)</div>
+    <div style="color: #e2e8f0; line-height: 2.2">
+      💰 Budget<br />
+      🚨 Alerts<br />
+      📺 Channels<br />
+      📄 Doc Hub<br />
+      <span style="color: #fbbf24">⚙ Config Editor</span>
+      <span style="color: #475569; font-size: 11px">NEW</span>
+    </div>
+  </div>
+</div>
+
+<div
+  style="
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 32px;
+    display: flex;
+    gap: 32px;
+    font-size: 13px;
+  "
+>
+  <div>
+    <span style="color: #fbbf24; font-weight: 600">Global Features:</span>
+  </div>
+  <div style="color: #e2e8f0">
+    🎯 <span style="color: #fbbf24">Onboarding Wizard</span>
+    <span style="color: #475569">— First-run setup guide</span>
+  </div>
+  <div style="color: #e2e8f0">
+    🔔 <span style="color: #fbbf24">Toast Notification</span>
+    <span style="color: #475569">— Global notification system</span>
+  </div>
+</div>
+
+<!-- Phase 0 -->
+<div
+  style="
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  "
+>
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
+    <span
+      style="
+        background: #ef4444;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+      "
+      >P0</span
+    >
+    <span style="color: #e2e8f0; font-size: 16px; font-weight: 700">Foundation + Core Panels</span>
+    <span style="color: #475569; font-size: 13px">— "能连上 Gateway 并对话"</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+    <div>
+      <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+        Infrastructure (transplant ~2500 LOC)
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #10b981">●</span> Next.js scaffold + pnpm workspace<br />
+        <span style="color: #10b981">●</span> gateway-adapter.ts
+        <span style="color: #475569">← studio</span><br />
+        <span style="color: #10b981">●</span> event-bus.ts + SSE stream
+        <span style="color: #475569">← MC</span><br />
+        <span style="color: #10b981">●</span> projection-store.ts (SQLite)
+        <span style="color: #475569">← studio</span><br />
+        <span style="color: #10b981">●</span> access-gate.ts + rate-limit.ts
+        <span style="color: #475569">← MC/CC</span><br />
+        <span style="color: #10b981">●</span> contracts.ts (WS types)
+        <span style="color: #475569">← studio</span><br />
+        <span style="color: #10b981">●</span> i18n framework (zh/en)
+        <span style="color: #475569">← MC</span><br />
+        <span style="color: #10b981">●</span> Zustand multi-slice setup<br />
+        <span style="color: #10b981">●</span> shadcn/ui + Tailwind + layout shell
+      </div>
+    </div>
+    <div>
+      <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+        Core Panels (4 new panels)
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #3b82f6">●</span> 💬 <strong>Chat</strong> — streaming, tool_use,
+        thinking, file attach<br />
+        <span style="color: #3b82f6">●</span> 🤖 <strong>Agents</strong> — list, config, model
+        select, SOUL.md<br />
+        <span style="color: #3b82f6">●</span> 📡 <strong>Gateway</strong> — status, health,
+        pause/resume, heartbeat, connection diagnostics<br />
+        <span style="color: #3b82f6">●</span> 🧩 <strong>Models</strong> — catalog, provider config,
+        pricing
+      </div>
+      <div
+        style="
+          color: #94a3b8;
+          font-size: 11px;
+          text-transform: uppercase;
+          margin-top: 12px;
+          margin-bottom: 8px;
+        "
+      >
+        Global
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #fbbf24">●</span> 🎯 <strong>Onboarding Wizard</strong> — connection →
+        provider → first chat<br />
+        <span style="color: #fbbf24">●</span> 🔔 <strong>Toast Notification</strong> — global event
+        toasts
+      </div>
+    </div>
+  </div>
+  <div
+    style="
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #1e293b;
+      color: #475569;
+      font-size: 12px;
+    "
+  >
+    Exit criteria: Gateway connected, chat working with streaming, agents listed, models
+    configurable
+  </div>
+</div>
+
+<!-- Phase 1 -->
+<div
+  style="
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  "
+>
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
+    <span
+      style="
+        background: #f59e0b;
+        color: black;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+      "
+      >P1</span
+    >
+    <span style="color: #e2e8f0; font-size: 16px; font-weight: 700">Observability Panels</span>
+    <span style="color: #475569; font-size: 13px">— "知道 Agent 在做什么、花了多少钱"</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+    <div>
+      <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+        Transplant modules
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #10b981">●</span> token-pricing.ts
+        <span style="color: #475569">← MC (77 LOC)</span><br />
+        <span style="color: #10b981">●</span> message-extract.ts
+        <span style="color: #475569">← studio</span><br />
+        <span style="color: #10b981">●</span> commander.ts (alert routing)
+        <span style="color: #475569">← CC</span>
+      </div>
+    </div>
+    <div>
+      <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+        Panels (5 new panels)
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #8b5cf6">●</span> 📊 <strong>Usage & Costs</strong> — token stats, model
+        pricing, charts<br />
+        <span style="color: #8b5cf6">●</span> 📋 <strong>Sessions</strong> — list, context bar,
+        token count, history<br />
+        <span style="color: #8b5cf6">●</span> 🧠 <strong>Memory Browser</strong> — search, file
+        tree, knowledge graph<br />
+        <span style="color: #8b5cf6">●</span> 📜 <strong>Logs</strong> — real-time stream,
+        level/source filter<br />
+        <span style="color: #8b5cf6">●</span> ⏱ <strong>Activity Feed</strong> — timeline + agent
+        events stream
+      </div>
+    </div>
+  </div>
+  <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #1e293b">
+    <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+      Memory Enhancement (extensions/memory-lancedb)
+    </div>
+    <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+      <span style="color: #10b981">●</span> embedder.ts (multi-key + cache + chunking)
+      <span style="color: #475569">← memory-lancedb-pro</span><br />
+      <span style="color: #10b981">●</span> retriever.ts (Vector + BM25 + Rerank)
+      <span style="color: #475569">← memory-lancedb-pro</span><br />
+      <span style="color: #10b981">●</span> adaptive-retrieval.ts + noise-filter.ts
+      <span style="color: #475569">← memory-lancedb-pro</span>
+    </div>
+  </div>
+  <div
+    style="
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #1e293b;
+      color: #475569;
+      font-size: 12px;
+    "
+  >
+    Exit criteria: Token costs tracked, sessions browsable, memory searchable, logs streaming,
+    activity timeline working
+  </div>
+</div>
+
+<!-- Phase 2 -->
+<div
+  style="
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  "
+>
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
+    <span
+      style="
+        background: #10b981;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+      "
+      >P2</span
+    >
+    <span style="color: #e2e8f0; font-size: 16px; font-weight: 700"
+      >Automation + Control Panels</span
+    >
+    <span style="color: #475569; font-size: 13px">— "自动化和安全控制"</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+    <div>
+      <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+        Transplant modules
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #10b981">●</span> webhooks.ts (HMAC + retry)
+        <span style="color: #475569">← MC (372 LOC)</span><br />
+        <span style="color: #10b981">●</span> injection-guard.ts
+        <span style="color: #475569">← MC (330 LOC)</span><br />
+        <span style="color: #10b981">●</span> budget-governance.ts
+        <span style="color: #475569">← CC</span>
+      </div>
+    </div>
+    <div>
+      <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+        Panels (8 new panels)
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #10b981">●</span> ⏰ <strong>Cron</strong> — CRUD, run history, schedule
+        templates<br />
+        <span style="color: #10b981">●</span> 🔗 <strong>Webhooks</strong> — CRUD, delivery history,
+        test<br />
+        <span style="color: #10b981">●</span> 🛡 <strong>Approvals & Security</strong> — pending,
+        policy, allowlist<br />
+        <span style="color: #10b981">●</span> ⚡ <strong>Skills</strong> — list, install,
+        enable/disable, env config<br />
+        <span style="color: #f59e0b">●</span> 💰 <strong>Budget</strong> — agent/task level,
+        warn/over thresholds<br />
+        <span style="color: #f59e0b">●</span> 🚨 <strong>Alerts</strong> — rules CRUD, condition
+        engine<br />
+        <span style="color: #f59e0b">●</span> 📺 <strong>Channels</strong> — configured/available,
+        status, config forms<br />
+        <span style="color: #f59e0b">●</span> ⚙ <strong>Config Editor</strong> — schema-driven
+        forms, section nav
+      </div>
+    </div>
+  </div>
+  <div
+    style="
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #1e293b;
+      color: #475569;
+      font-size: 12px;
+    "
+  >
+    Exit criteria: All automation panels working, security policies configurable, channels
+    manageable, config editable
+  </div>
+</div>
+
+<!-- Phase 3 -->
+<div
+  style="
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  "
+>
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
+    <span
+      style="
+        background: #8b5cf6;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+      "
+      >P3</span
+    >
+    <span style="color: #e2e8f0; font-size: 16px; font-weight: 700"
+      >Polish + Knowledge + Platform Ready</span
+    >
+    <span style="color: #475569; font-size: 13px">— "打磨体验，为平台层做好接口"</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+    <div>
+      <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+        Panels (1 remaining)
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #f59e0b">●</span> 📄 <strong>Doc Hub</strong> — auto-extract docs from
+        conversations, categorize, search
+      </div>
+      <div
+        style="
+          color: #94a3b8;
+          font-size: 11px;
+          text-transform: uppercase;
+          margin-top: 16px;
+          margin-bottom: 8px;
+        "
+      >
+        Memory Enhancement Phase 2
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #10b981">●</span> smart-extractor (LLM-driven 6-class)
+        <span style="color: #475569">← memory-lancedb-pro</span><br />
+        <span style="color: #10b981">●</span> scopes (multi-agent isolation)
+        <span style="color: #475569">← memory-lancedb-pro</span><br />
+        <span style="color: #10b981">●</span> decay-engine (simplified)
+        <span style="color: #475569">← memory-lancedb-pro</span>
+      </div>
+    </div>
+    <div>
+      <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px">
+        Polish & Platform Readiness
+      </div>
+      <div style="font-size: 13px; line-height: 2; color: #e2e8f0">
+        <span style="color: #94a3b8">●</span> Responsive layout (tablet/mobile)<br />
+        <span style="color: #94a3b8">●</span> Dark/Light theme polish<br />
+        <span style="color: #94a3b8">●</span> Keyboard shortcuts<br />
+        <span style="color: #94a3b8">●</span> API documentation (for claw-platform)<br />
+        <span style="color: #94a3b8">●</span> E2E test suite (Playwright)<br />
+        <span style="color: #94a3b8">●</span> Performance optimization<br />
+        <span style="color: #94a3b8">●</span> Settings panel (deck preferences)
+      </div>
+    </div>
+  </div>
+  <div
+    style="
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #1e293b;
+      color: #475569;
+      font-size: 12px;
+    "
+  >
+    Exit criteria: All 18 panels complete, API documented for platform integration, E2E tests
+    passing, production-ready
+  </div>
+</div>
+
+<!-- Summary -->
+<h3 style="margin-top: 24px">Summary</h3>
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 13px">
+  <div style="background: #1e293b; border-radius: 8px; padding: 14px; text-align: center">
+    <div style="color: #ef4444; font-size: 24px; font-weight: 700">P0</div>
+    <div style="color: #94a3b8; margin-top: 4px">4 panels + 2 global</div>
+    <div style="color: #475569; font-size: 11px">infra + core interaction</div>
+  </div>
+  <div style="background: #1e293b; border-radius: 8px; padding: 14px; text-align: center">
+    <div style="color: #f59e0b; font-size: 24px; font-weight: 700">P1</div>
+    <div style="color: #94a3b8; margin-top: 4px">5 panels + memory ext</div>
+    <div style="color: #475569; font-size: 11px">observability</div>
+  </div>
+  <div style="background: #1e293b; border-radius: 8px; padding: 14px; text-align: center">
+    <div style="color: #10b981; font-size: 24px; font-weight: 700">P2</div>
+    <div style="color: #94a3b8; margin-top: 4px">8 panels</div>
+    <div style="color: #475569; font-size: 11px">automation + control</div>
+  </div>
+  <div style="background: #1e293b; border-radius: 8px; padding: 14px; text-align: center">
+    <div style="color: #8b5cf6; font-size: 24px; font-weight: 700">P3</div>
+    <div style="color: #94a3b8; margin-top: 4px">1 panel + polish</div>
+    <div style="color: #475569; font-size: 11px">knowledge + platform ready</div>
+  </div>
+</div>

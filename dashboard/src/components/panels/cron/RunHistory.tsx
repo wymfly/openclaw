@@ -18,7 +18,7 @@ export function RunHistory({ jobId }: RunHistoryProps) {
 
   if (runs.length === 0) {
     return (
-      <p className="text-xs px-3 py-8 text-center" style={{ color: "var(--text-secondary)" }}>
+      <p className="text-xs px-3 py-8 text-center" style={{ color: "var(--muted-foreground)" }}>
         {t("noRuns")}
       </p>
     );
@@ -31,19 +31,19 @@ export function RunHistory({ jobId }: RunHistoryProps) {
           <tr style={{ borderColor: "var(--border)" }} className="border-b">
             <th
               className="text-left px-3 py-2 font-medium"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               {t("startTime")}
             </th>
             <th
               className="text-left px-3 py-2 font-medium"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               {t("duration")}
             </th>
             <th
               className="text-left px-3 py-2 font-medium"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               {t("status")}
             </th>
@@ -52,10 +52,10 @@ export function RunHistory({ jobId }: RunHistoryProps) {
         <tbody>
           {runs.map((run) => (
             <tr key={run.id} style={{ borderColor: "var(--border)" }} className="border-b">
-              <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>
+              <td className="px-3 py-2" style={{ color: "var(--foreground)" }}>
                 {new Date(run.ts).toLocaleString()}
               </td>
-              <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>
+              <td className="px-3 py-2" style={{ color: "var(--foreground)" }}>
                 {run.durationMs != null ? `${run.durationMs}ms` : "—"}
               </td>
               <td className="px-3 py-2">
@@ -66,9 +66,12 @@ export function RunHistory({ jobId }: RunHistoryProps) {
                       run.status === "ok"
                         ? "var(--success)"
                         : run.status === "error"
-                          ? "var(--danger)"
-                          : "var(--bg-tertiary)",
-                    color: run.status === "skipped" ? "var(--text-secondary)" : "var(--accent-fg)",
+                          ? "var(--destructive)"
+                          : "var(--muted)",
+                    color:
+                      run.status === "skipped"
+                        ? "var(--muted-foreground)"
+                        : "var(--primary-foreground)",
                   }}
                 >
                   {t(run.status)}

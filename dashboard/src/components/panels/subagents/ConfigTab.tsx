@@ -159,69 +159,69 @@ export function ConfigTab() {
   return (
     <div className="flex flex-col h-full overflow-auto p-4 gap-6">
       {/* Global defaults */}
-      <Card className="p-5 bg-[var(--bg-secondary)] border-[var(--border)]">
-        <h3 className="text-sm font-medium text-[var(--text-primary)] mb-4">Global Defaults</h3>
+      <Card className="p-5 bg-[var(--card)] border-[var(--border)]">
+        <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Global Defaults</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Max Spawn Depth</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Max Spawn Depth</Label>
             <Input
               type="number"
               min={0}
               max={10}
               value={defaults.maxSpawnDepth}
               onChange={(e) => updateField("maxSpawnDepth", parseInt(e.target.value) || 0)}
-              className="bg-[var(--bg-primary)] border-[var(--border)]"
+              className="bg-[var(--background)] border-[var(--border)]"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Max Children Per Agent</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Max Children Per Agent</Label>
             <Input
               type="number"
               min={0}
               max={50}
               value={defaults.maxChildrenPerAgent}
               onChange={(e) => updateField("maxChildrenPerAgent", parseInt(e.target.value) || 0)}
-              className="bg-[var(--bg-primary)] border-[var(--border)]"
+              className="bg-[var(--background)] border-[var(--border)]"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Max Concurrent</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Max Concurrent</Label>
             <Input
               type="number"
               min={0}
               max={20}
               value={defaults.maxConcurrent}
               onChange={(e) => updateField("maxConcurrent", parseInt(e.target.value) || 0)}
-              className="bg-[var(--bg-primary)] border-[var(--border)]"
+              className="bg-[var(--background)] border-[var(--border)]"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Archive After (min)</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Archive After (min)</Label>
             <Input
               type="number"
               min={1}
               max={10080}
               value={defaults.archiveAfterMinutes}
               onChange={(e) => updateField("archiveAfterMinutes", parseInt(e.target.value) || 60)}
-              className="bg-[var(--bg-primary)] border-[var(--border)]"
+              className="bg-[var(--background)] border-[var(--border)]"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Default Model</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Default Model</Label>
             <Input
               value={defaults.defaultModel}
               onChange={(e) => updateField("defaultModel", e.target.value)}
               placeholder="e.g. claude-sonnet-4-20250514"
-              className="bg-[var(--bg-primary)] border-[var(--border)]"
+              className="bg-[var(--background)] border-[var(--border)]"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Default Thinking</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Default Thinking</Label>
             <Select
               value={defaults.defaultThinking}
               onValueChange={(v) => updateField("defaultThinking", v ?? "low")}
             >
-              <SelectTrigger className="bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+              <SelectTrigger className="bg-[var(--background)] border-[var(--border)] cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -243,30 +243,30 @@ export function ConfigTab() {
       </Card>
 
       {/* Per-agent permissions matrix */}
-      <Card className="p-5 bg-[var(--bg-secondary)] border-[var(--border)]">
-        <h3 className="text-sm font-medium text-[var(--text-primary)] mb-4">
-          Per-Agent Permissions
-        </h3>
+      <Card className="p-5 bg-[var(--card)] border-[var(--border)]">
+        <h3 className="text-sm font-medium text-[var(--foreground)] mb-4">Per-Agent Permissions</h3>
         {agents.length === 0 ? (
-          <p className="text-xs text-[var(--text-secondary)]">No agents configured</p>
+          <p className="text-xs text-[var(--muted-foreground)]">No agents configured</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)]">
-                  <th className="text-left py-2 pr-4 font-medium text-[var(--text-secondary)]">
+                  <th className="text-left py-2 pr-4 font-medium text-[var(--muted-foreground)]">
                     Agent
                   </th>
-                  <th className="text-left py-2 pr-4 font-medium text-[var(--text-secondary)]">
+                  <th className="text-left py-2 pr-4 font-medium text-[var(--muted-foreground)]">
                     Allowed Subagents
                   </th>
-                  <th className="text-left py-2 pr-4 font-medium text-[var(--text-secondary)]">
+                  <th className="text-left py-2 pr-4 font-medium text-[var(--muted-foreground)]">
                     Eff. Depth
                   </th>
-                  <th className="text-left py-2 pr-4 font-medium text-[var(--text-secondary)]">
+                  <th className="text-left py-2 pr-4 font-medium text-[var(--muted-foreground)]">
                     Eff. Concurrency
                   </th>
-                  <th className="text-left py-2 font-medium text-[var(--text-secondary)]">Model</th>
+                  <th className="text-left py-2 font-medium text-[var(--muted-foreground)]">
+                    Model
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -276,7 +276,7 @@ export function ConfigTab() {
                     <tr
                       key={agent.id}
                       className={cn(
-                        "border-b border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer",
+                        "border-b border-[var(--border-subtle)] hover:bg-[var(--muted)] transition-colors cursor-pointer",
                       )}
                       onClick={() => {
                         void fetchSubagentConfig(agent.id);
@@ -286,20 +286,20 @@ export function ConfigTab() {
                       <td className="py-2.5 pr-4">
                         <AgentBadge agentId={agent.id} agentName={agent.name} />
                       </td>
-                      <td className="py-2.5 pr-4 text-[var(--text-primary)]">
+                      <td className="py-2.5 pr-4 text-[var(--foreground)]">
                         {config?.allowMode === "none"
                           ? "None"
                           : config?.allowMode === "any"
                             ? "Any"
                             : config?.allowAgents?.join(", ") || "—"}
                       </td>
-                      <td className="py-2.5 pr-4 font-mono text-[var(--text-secondary)]">
+                      <td className="py-2.5 pr-4 font-mono text-[var(--muted-foreground)]">
                         {config?.effectiveMaxDepth ?? defaults.maxSpawnDepth}
                       </td>
-                      <td className="py-2.5 pr-4 font-mono text-[var(--text-secondary)]">
+                      <td className="py-2.5 pr-4 font-mono text-[var(--muted-foreground)]">
                         {config?.effectiveMaxChildren ?? defaults.maxChildrenPerAgent}
                       </td>
-                      <td className="py-2.5 text-[var(--text-secondary)]">
+                      <td className="py-2.5 text-[var(--muted-foreground)]">
                         {config?.model ?? (defaults.defaultModel || "—")}
                       </td>
                     </tr>

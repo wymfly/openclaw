@@ -43,14 +43,16 @@ export function JobList() {
         variant="ghost"
         size="sm"
         onClick={() => selectJob("__new__")}
-        className="justify-start gap-1.5 mb-1 text-[var(--accent)] hover:bg-[var(--accent-muted)] hover:text-[var(--accent)]"
+        className="justify-start gap-1.5 mb-1 text-[var(--primary)] hover:bg-[var(--primary-muted)] hover:text-[var(--primary)]"
       >
         <Plus size={14} />
         {t("addJob")}
       </Button>
 
       {jobs.length === 0 && (
-        <p className="text-xs px-3 py-4 text-center text-[var(--text-secondary)]">{t("noJobs")}</p>
+        <p className="text-xs px-3 py-4 text-center text-[var(--muted-foreground)]">
+          {t("noJobs")}
+        </p>
       )}
 
       {jobs.map((job) => {
@@ -61,17 +63,17 @@ export function JobList() {
             type="button"
             className={cn(
               "relative w-full text-left px-3 py-2 rounded-lg transition-colors duration-150 text-xs cursor-pointer",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
               isActive
-                ? "bg-[var(--accent-muted)] text-[var(--accent)]"
-                : "text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
+                ? "bg-[var(--primary-muted)] text-[var(--primary)]"
+                : "text-[var(--foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
             )}
             onClick={() => selectJob(job.id)}
           >
             {/* Active indicator */}
             {isActive && (
               <span
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)]"
                 aria-hidden
               />
             )}
@@ -90,7 +92,7 @@ export function JobList() {
                 {job.enabled ? t("enabled") : t("disabled")}
               </Badge>
             </div>
-            <div className="mt-1 flex justify-between text-[var(--text-secondary)]">
+            <div className="mt-1 flex justify-between text-[var(--muted-foreground)]">
               <span className="font-mono">{formatSchedule(job)}</span>
               <span className="font-mono">{formatNextRun(job)}</span>
             </div>

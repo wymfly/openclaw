@@ -24,16 +24,16 @@ export function AppearanceSection() {
 
   return (
     <section>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
         {t("appearance")}
       </h3>
       <div
         className="rounded-lg border p-4 flex flex-col gap-4"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
         {/* Theme */}
         <div className="flex items-center gap-3">
-          <span className="text-xs font-medium w-16" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-xs font-medium w-16" style={{ color: "var(--muted-foreground)" }}>
             {t("theme")}
           </span>
           <div className="flex gap-1">
@@ -43,8 +43,8 @@ export function AppearanceSection() {
                 type="button"
                 className="px-3 py-1.5 text-xs rounded-md font-medium transition-colors"
                 style={{
-                  backgroundColor: theme === value ? "var(--accent)" : "var(--bg-primary)",
-                  color: theme === value ? "var(--accent-fg)" : "var(--text-secondary)",
+                  backgroundColor: theme === value ? "var(--primary)" : "var(--background)",
+                  color: theme === value ? "var(--primary-foreground)" : "var(--muted-foreground)",
                   border: theme === value ? "none" : "1px solid var(--border)",
                 }}
                 onClick={() => setTheme(value)}
@@ -57,7 +57,7 @@ export function AppearanceSection() {
 
         {/* Language */}
         <div className="flex items-center gap-3">
-          <span className="text-xs font-medium w-16" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-xs font-medium w-16" style={{ color: "var(--muted-foreground)" }}>
             {t("language")}
           </span>
           <div className="flex gap-1">
@@ -67,8 +67,8 @@ export function AppearanceSection() {
                 type="button"
                 className="px-3 py-1.5 text-xs rounded-md font-medium transition-colors"
                 style={{
-                  backgroundColor: locale === value ? "var(--accent)" : "var(--bg-primary)",
-                  color: locale === value ? "var(--accent-fg)" : "var(--text-secondary)",
+                  backgroundColor: locale === value ? "var(--primary)" : "var(--background)",
+                  color: locale === value ? "var(--primary-foreground)" : "var(--muted-foreground)",
                   border: locale === value ? "none" : "1px solid var(--border)",
                 }}
                 onClick={() => setLocale(value)}

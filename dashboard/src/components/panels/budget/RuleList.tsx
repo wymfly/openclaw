@@ -6,7 +6,7 @@ import type { BudgetRule, RuleEvaluation } from "@/stores/budget";
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   ok: { bg: "var(--success-muted)", text: "var(--success)" },
   warn: { bg: "var(--warning-muted)", text: "var(--warning)" },
-  over: { bg: "var(--danger-muted)", text: "var(--danger)" },
+  over: { bg: "var(--destructive-muted)", text: "var(--destructive)" },
 };
 
 interface RuleListProps {
@@ -23,7 +23,7 @@ export function RuleList({ rules, evaluations, selectedRuleId, onSelect }: RuleL
 
   if (rules.length === 0) {
     return (
-      <p className="text-xs p-3 text-center" style={{ color: "var(--text-secondary)" }}>
+      <p className="text-xs p-3 text-center" style={{ color: "var(--muted-foreground)" }}>
         {t("noRules")}
       </p>
     );
@@ -43,15 +43,12 @@ export function RuleList({ rules, evaluations, selectedRuleId, onSelect }: RuleL
             className="w-full text-left px-3 py-2.5 border-b transition-colors"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: selectedRuleId === rule.id ? "var(--bg-primary)" : "transparent",
+              backgroundColor: selectedRuleId === rule.id ? "var(--background)" : "transparent",
             }}
             onClick={() => onSelect(rule)}
           >
             <div className="flex items-center justify-between">
-              <span
-                className="text-sm font-medium truncate"
-                style={{ color: "var(--text-primary)" }}
-              >
+              <span className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
                 {rule.name}
               </span>
               <div className="flex items-center gap-1.5">
@@ -76,7 +73,7 @@ export function RuleList({ rules, evaluations, selectedRuleId, onSelect }: RuleL
                 )}
               </div>
             </div>
-            <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
               {t(rule.dimension)} · {t(rule.period)} ·{" "}
               {t(
                 rule.scope === "agent" ? "perAgent" : rule.scope === "task" ? "perTask" : "global",

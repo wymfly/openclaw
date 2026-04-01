@@ -312,7 +312,9 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
       const res = await fetch("/api/channels/probe", { method: "POST" });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: `Probe failed (HTTP ${res.status})` }));
+        const errData = await res
+          .json()
+          .catch(() => ({ error: `Probe failed (HTTP ${res.status})` }));
         const errMsg = (errData as { error?: string }).error ?? `Probe failed (HTTP ${res.status})`;
         result = { status: "failure", error: errMsg, probedAt: Date.now() };
       } else {

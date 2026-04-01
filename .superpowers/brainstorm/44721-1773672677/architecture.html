@@ -1,0 +1,162 @@
+<h2>openclaw-deck Architecture</h2>
+<p class="subtitle">Overall system architecture — click to select preferred communication model</p>
+
+<div class="mockup">
+  <div class="mockup-header">System Architecture</div>
+  <div
+    class="mockup-body"
+    style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.8"
+  >
+    <div style="text-align: center; margin-bottom: 20px">
+      <span
+        style="
+          background: #3b82f6;
+          color: white;
+          padding: 6px 16px;
+          border-radius: 6px;
+          font-size: 15px;
+        "
+        >Browser (React SPA)</span
+      >
+    </div>
+    <div style="text-align: center; color: #64748b; margin-bottom: 4px">│ HTTP REST + SSE ↕</div>
+    <div style="text-align: center; margin-bottom: 20px">
+      <span
+        style="
+          background: #8b5cf6;
+          color: white;
+          padding: 6px 16px;
+          border-radius: 6px;
+          font-size: 15px;
+        "
+        >deck server (Next.js API Routes + Node.js)</span
+      >
+    </div>
+    <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 4px">
+      <span style="color: #64748b">│ WebSocket ↕</span>
+      <span style="color: #64748b">│ File I/O ↕</span>
+    </div>
+    <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 20px">
+      <span style="background: #10b981; color: white; padding: 6px 16px; border-radius: 6px"
+        >OpenClaw Gateway :18789</span
+      >
+      <span style="background: #f59e0b; color: black; padding: 6px 16px; border-radius: 6px"
+        >SQLite (deck.db)</span
+      >
+    </div>
+    <div style="text-align: center; color: #64748b; margin-bottom: 4px">│</div>
+    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap">
+      <span
+        style="
+          background: #1e293b;
+          border: 1px solid #334155;
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 12px;
+        "
+        >~/.openclaw/openclaw.json</span
+      >
+      <span
+        style="
+          background: #1e293b;
+          border: 1px solid #334155;
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 12px;
+        "
+        >sessions/*.jsonl</span
+      >
+      <span
+        style="
+          background: #1e293b;
+          border: 1px solid #334155;
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 12px;
+        "
+        >agents/*/</span
+      >
+      <span
+        style="
+          background: #1e293b;
+          border: 1px solid #334155;
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 12px;
+        "
+        >memory/</span
+      >
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top: 32px">Communication Flow</h3>
+<div class="section">
+  <table style="width: 100%; border-collapse: collapse; font-size: 14px">
+    <tr style="border-bottom: 1px solid #334155">
+      <td style="padding: 8px; color: #94a3b8">Browser → Server</td>
+      <td style="padding: 8px">
+        <strong>REST API</strong> (Next.js API Routes) for all mutations + queries
+      </td>
+    </tr>
+    <tr style="border-bottom: 1px solid #334155">
+      <td style="padding: 8px; color: #94a3b8">Server → Browser</td>
+      <td style="padding: 8px">
+        <strong>SSE</strong> for real-time events (chat stream, status updates, notifications)
+      </td>
+    </tr>
+    <tr style="border-bottom: 1px solid #334155">
+      <td style="padding: 8px; color: #94a3b8">Server → Gateway</td>
+      <td style="padding: 8px">
+        <strong>WebSocket</strong> (OpenClaw Protocol v3, challenge-response auth)
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; color: #94a3b8">Server → Disk</td>
+      <td style="padding: 8px">
+        <strong>SQLite</strong> (deck state) + <strong>File I/O</strong> (OpenClaw config/sessions
+        read)
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h3 style="margin-top: 24px">Key Design Decisions</h3>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px">
+  <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px">
+    <div style="color: #3b82f6; font-weight: 600; margin-bottom: 8px">
+      Browser never talks to Gateway directly
+    </div>
+    <div style="color: #94a3b8">
+      Server holds the WS connection. Browser only speaks HTTP/SSE to the server. This enables
+      security, caching, and future multi-Gateway support for claw-platform.
+    </div>
+  </div>
+  <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px">
+    <div style="color: #8b5cf6; font-weight: 600; margin-bottom: 8px">
+      SQLite for deck state only
+    </div>
+    <div style="color: #94a3b8">
+      OpenClaw's own data stays in ~/.openclaw/. SQLite stores dashboard-specific state: event
+      outbox, usage aggregation, budget rules, webhook config.
+    </div>
+  </div>
+  <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px">
+    <div style="color: #10b981; font-weight: 600; margin-bottom: 8px">
+      EventBus bridges WS → SSE
+    </div>
+    <div style="color: #94a3b8">
+      Gateway events arrive via WS, get processed + persisted, then broadcast to all browser clients
+      via SSE through an in-process EventBus.
+    </div>
+  </div>
+  <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px">
+    <div style="color: #f59e0b; font-weight: 600; margin-bottom: 8px">
+      API Routes as platform contract
+    </div>
+    <div style="color: #94a3b8">
+      Every API Route is a clean interface. claw-platform can later wrap, extend, or proxy these
+      routes without touching the deck internals.
+    </div>
+  </div>
+</div>

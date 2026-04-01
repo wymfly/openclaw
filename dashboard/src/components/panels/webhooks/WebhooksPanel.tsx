@@ -95,19 +95,19 @@ export function WebhooksPanel() {
       {/* Left sidebar — webhook list */}
       <div
         className="w-64 flex-shrink-0 flex flex-col border-r"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
         <div
           className="flex items-center justify-between px-3 py-3 border-b"
           style={{ borderColor: "var(--border)" }}
         >
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
             {t("title")}
           </h2>
           <button
             type="button"
             className="px-2 py-1 text-xs rounded-md font-medium"
-            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+            style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
             onClick={handleCreate}
           >
             + {tc("create")}
@@ -116,13 +116,13 @@ export function WebhooksPanel() {
 
         <div className="flex-1 overflow-y-auto">
           {loading && (
-            <p className="text-xs p-3" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-xs p-3" style={{ color: "var(--muted-foreground)" }}>
               {tc("loading")}
             </p>
           )}
 
           {!loading && webhooks.length === 0 && (
-            <p className="text-xs p-3 text-center" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-xs p-3 text-center" style={{ color: "var(--muted-foreground)" }}>
               {t("noWebhooks")}
             </p>
           )}
@@ -134,14 +134,14 @@ export function WebhooksPanel() {
               className="w-full text-left px-3 py-2.5 border-b transition-colors"
               style={{
                 borderColor: "var(--border)",
-                backgroundColor: selectedWebhookId === wh.id ? "var(--bg-primary)" : "transparent",
+                backgroundColor: selectedWebhookId === wh.id ? "var(--background)" : "transparent",
               }}
               onClick={() => handleSelect(wh)}
             >
               <div className="flex items-center justify-between">
                 <span
                   className="text-sm font-medium truncate"
-                  style={{ color: "var(--text-primary)" }}
+                  style={{ color: "var(--foreground)" }}
                 >
                   {wh.name}
                 </span>
@@ -155,7 +155,7 @@ export function WebhooksPanel() {
                   {wh.enabled ? t("enabled") : t("disabled")}
                 </span>
               </div>
-              <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-xs truncate mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                 {wh.url}
               </p>
             </button>
@@ -166,15 +166,15 @@ export function WebhooksPanel() {
       {/* Right detail area */}
       <div
         className="flex-1 flex flex-col overflow-hidden"
-        style={{ backgroundColor: "var(--bg-primary)" }}
+        style={{ backgroundColor: "var(--background)" }}
       >
         {error && (
           <div
             className="px-4 py-2 text-xs border-b"
             style={{
               borderColor: "var(--border)",
-              color: "var(--danger)",
-              backgroundColor: "var(--danger-muted)",
+              color: "var(--destructive)",
+              backgroundColor: "var(--destructive-muted)",
             }}
           >
             {error}
@@ -199,10 +199,10 @@ export function WebhooksPanel() {
               {/* Webhook detail header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
                     {selectedWebhook.name}
                   </h3>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     {selectedWebhook.url}
                   </p>
                 </div>
@@ -210,7 +210,7 @@ export function WebhooksPanel() {
                   <button
                     type="button"
                     className="px-3 py-1 text-xs rounded-md border"
-                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                    style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
                     onClick={handleEdit}
                   >
                     {tc("edit")}
@@ -220,7 +220,10 @@ export function WebhooksPanel() {
                       <button
                         type="button"
                         className="px-3 py-1 text-xs rounded-md font-medium"
-                        style={{ backgroundColor: "var(--danger)", color: "var(--accent-fg)" }}
+                        style={{
+                          backgroundColor: "var(--destructive)",
+                          color: "var(--primary-foreground)",
+                        }}
                         onClick={() => void handleDelete(selectedWebhook.id)}
                       >
                         {tc("delete")}
@@ -228,7 +231,7 @@ export function WebhooksPanel() {
                       <button
                         type="button"
                         className="px-3 py-1 text-xs rounded-md border"
-                        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                        style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
                         onClick={() => setConfirmDeleteId(null)}
                       >
                         {tc("cancel")}
@@ -238,7 +241,7 @@ export function WebhooksPanel() {
                     <button
                       type="button"
                       className="px-3 py-1 text-xs rounded-md border"
-                      style={{ borderColor: "var(--border)", color: "var(--danger)" }}
+                      style={{ borderColor: "var(--border)", color: "var(--destructive)" }}
                       onClick={() => setConfirmDeleteId(selectedWebhook.id)}
                     >
                       {tc("delete")}
@@ -253,7 +256,7 @@ export function WebhooksPanel() {
                   <span
                     key={ev}
                     className="px-2 py-0.5 text-xs rounded-md border"
-                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                    style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
                   >
                     {ev}
                   </span>
@@ -267,7 +270,7 @@ export function WebhooksPanel() {
 
           {viewMode === "list" && !selectedWebhookId && (
             <div className="flex items-center justify-center h-full">
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
                 {t("noWebhooks")}
               </p>
             </div>

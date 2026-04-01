@@ -1,0 +1,462 @@
+<h2>Config UX Enhancement — Priority Matrix</h2>
+<p class="subtitle">Based on usage frequency, complexity, observation needs, and current UI gaps</p>
+
+<style>
+  .matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 20px 0;
+  }
+  .matrix th {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 2px solid #444;
+    color: #999;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .matrix td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #333;
+    vertical-align: top;
+  }
+  .matrix tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .score {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 2px;
+  }
+  .score.high {
+    background: #f97316;
+  }
+  .score.med {
+    background: #eab308;
+  }
+  .score.low {
+    background: #6b7280;
+  }
+  .tier {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tier.p0 {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  .tier.p1 {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+  }
+  .tier.p2 {
+    background: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+  }
+  .tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    margin: 1px 2px;
+  }
+  .tag.enhance {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+  }
+  .tag.new {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+  .tag.exists {
+    background: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+  }
+  .dots {
+    white-space: nowrap;
+  }
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin: 10px 0 20px;
+    font-size: 11px;
+    color: #999;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 30px 0 10px;
+    color: #e5e5e5;
+  }
+  .note {
+    font-size: 12px;
+    color: #777;
+    margin: 4px 0 0 20px;
+    line-height: 1.5;
+  }
+</style>
+
+<div class="legend">
+  <div class="legend-item">
+    <span class="score high"></span><span class="score high"></span
+    ><span class="score high"></span> High
+  </div>
+  <div class="legend-item">
+    <span class="score high"></span><span class="score high"></span
+    ><span class="score low"></span> Medium
+  </div>
+  <div class="legend-item">
+    <span class="score high"></span><span class="score low"></span
+    ><span class="score low"></span> Low
+  </div>
+  <div class="legend-item"><span class="tag enhance">Enhance</span> Improve existing UI</div>
+  <div class="legend-item"><span class="tag new">New</span> Build new component</div>
+  <div class="legend-item"><span class="tag exists">Exists</span> Already adequate</div>
+</div>
+
+<table class="matrix">
+  <thead>
+    <tr>
+      <th style="width: 18%">Config Area</th>
+      <th style="width: 8%">Frequency</th>
+      <th style="width: 8%">Complexity</th>
+      <th style="width: 8%">Observe</th>
+      <th style="width: 8%">Understand</th>
+      <th style="width: 6%">Tier</th>
+      <th style="width: 12%">Type</th>
+      <th style="width: 32%">Recommendation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- P0 -->
+    <tr>
+      <td>
+        <strong>ConfigPanel<br />(Generic Editor)</strong>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td><span class="tier p0">P0</span></td>
+      <td><span class="tag enhance">Enhance</span></td>
+      <td>
+        <strong>Understanding layer overhaul</strong><br />
+        <span style="font-size: 11px; color: #aaa">
+          Current: mechanical schema→form mapping, no context.<br />
+          Target: section intro cards, field-level help popover (from uiHints.help), default value
+          display, docs.openclaw.ai deep-link per section, group-based visual organization,
+          "advanced" fields collapsed by default
+        </span>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <strong>agents.list<br />(Agent Editor)</strong>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td><span class="tier p0">P0</span></td>
+      <td><span class="tag enhance">Enhance</span> <span class="tag new">New</span></td>
+      <td>
+        <strong>Agent config card with inline editing</strong><br />
+        <span style="font-size: 11px; color: #aaa">
+          Current: AgentsPanel shows overview + tabs (routing/skills/subagent/events), but core
+          agent fields (model, thinking, temperature, tools profile) have no edit UI — only
+          ToolPolicyViz (read-only).<br />
+          Target: add "Overview Config" tab with structured form for agent-level fields, make
+          ToolPolicyViz interactive (click→jump to edit), show effective config (merged defaults +
+          overrides)
+        </span>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <strong>tools policy<br />(Profile + Allow/Deny)</strong>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score high"></span>
+      </td>
+      <td><span class="tier p0">P0</span></td>
+      <td><span class="tag enhance">Enhance</span> <span class="tag new">New</span></td>
+      <td>
+        <strong>Interactive tool policy editor</strong><br />
+        <span style="font-size: 11px; color: #aaa">
+          Current: ToolPolicyViz shows 7-layer pipeline + per-tool trace — excellent visualization,
+          but read-only. No way to change profile, add allow/deny from UI.<br />
+          Target: profile selector dropdown, tool checklist (allow/deny toggle per tool), byProvider
+          override panel. ToolPolicyViz becomes the "preview" showing effect of edits in real-time
+        </span>
+      </td>
+    </tr>
+
+    <!-- P1 -->
+    <tr>
+      <td><strong>channels config</strong></td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td><span class="tier p1">P1</span></td>
+      <td><span class="tag enhance">Enhance</span></td>
+      <td>
+        <strong>Channel detail config form</strong><br />
+        <span style="font-size: 11px; color: #aaa">
+          Current: ChannelsPanel has enable/disable toggle + status view + setup wizards (Feishu,
+          WeCom). But no edit UI for DM policy, retry strategy, or per-channel advanced settings
+          after initial setup.<br />
+          Target: per-channel settings tab (DM policy, retry, rate limit), credential refresh flow,
+          account management
+        </span>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>models/providers</strong></td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td><span class="tier p1">P1</span></td>
+      <td><span class="tag new">New</span></td>
+      <td>
+        <strong>Model provider management panel</strong><br />
+        <span style="font-size: 11px; color: #aaa">
+          Current: ModelCatalog + ProviderConfig were deleted from codebase. No model management UI
+          exists.<br />
+          Target: provider list (API key status, model availability), model selector with capability
+          badges (vision, tools, thinking), fallback chain editor
+        </span>
+      </td>
+    </tr>
+
+    <!-- P2 -->
+    <tr>
+      <td><strong>routing/bindings</strong></td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score high"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td><span class="tier p2">P2</span></td>
+      <td><span class="tag exists">Exists</span> <span class="tag enhance">Enhance</span></td>
+      <td>
+        <strong>Minor enhancements</strong><br />
+        <span style="font-size: 11px; color: #aaa">
+          Current: RoutingPanel already has BindingTable (add/remove/reorder), RouteSimulator,
+          ConditionBuilder, ActivityFeed — relatively complete.<br />
+          Target: add visual flow diagram (channel→binding→agent), improve ConditionBuilder with
+          autocomplete
+        </span>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>scheduler/cron</strong></td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td><span class="tier p2">P2</span></td>
+      <td><span class="tag exists">Exists</span></td>
+      <td>
+        <strong>Already adequate</strong><br />
+        <span style="font-size: 11px; color: #aaa">
+          SchedulerPanel has JobList + JobForm + RunHistory + HeartbeatConfig. Good interaction
+          pattern.
+        </span>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <strong>budget/alerts/<br />approvals</strong>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td class="dots">
+        <span class="score high"></span><span class="score low"></span
+        ><span class="score low"></span>
+      </td>
+      <td><span class="tier p2">P2</span></td>
+      <td><span class="tag exists">Exists</span></td>
+      <td>
+        <strong>Already adequate</strong><br />
+        <span style="font-size: 11px; color: #aaa">
+          Each has form-based CRUD with toggle + dialog patterns. Low complexity, low change
+          frequency.
+        </span>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="section-title">Recommended Scope Summary</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px">
+  <div
+    style="
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 8px;
+      padding: 14px;
+    "
+  >
+    <div style="font-size: 12px; font-weight: 600; color: #ef4444; margin-bottom: 8px">
+      P0 — Core Experience
+    </div>
+    <div style="font-size: 12px; color: #ccc; line-height: 1.6">
+      <strong>1. ConfigPanel Understanding Layer</strong><br />
+      Section intros, help popovers, default values, docs links, advanced collapse<br /><br />
+      <strong>2. Agent Config Editor</strong><br />
+      New "Config" tab in AgentsPanel for core agent fields<br /><br />
+      <strong>3. Interactive Tool Policy</strong><br />
+      Profile selector + allow/deny editor + ToolPolicyViz as live preview
+    </div>
+  </div>
+  <div
+    style="
+      background: rgba(249, 115, 22, 0.08);
+      border: 1px solid rgba(249, 115, 22, 0.2);
+      border-radius: 8px;
+      padding: 14px;
+    "
+  >
+    <div style="font-size: 12px; font-weight: 600; color: #f97316; margin-bottom: 8px">
+      P1 — Important Gaps
+    </div>
+    <div style="font-size: 12px; color: #ccc; line-height: 1.6">
+      <strong>4. Channel Config Form</strong><br />
+      Per-channel settings tab (DM policy, retry, advanced) after initial setup<br /><br />
+      <strong>5. Model Provider Panel</strong><br />
+      Provider list, model selector with capabilities, fallback chain editor
+    </div>
+  </div>
+  <div
+    style="
+      background: rgba(234, 179, 8, 0.08);
+      border: 1px solid rgba(234, 179, 8, 0.2);
+      border-radius: 8px;
+      padding: 14px;
+    "
+  >
+    <div style="font-size: 12px; font-weight: 600; color: #eab308; margin-bottom: 8px">
+      P2 — Polish
+    </div>
+    <div style="font-size: 12px; color: #ccc; line-height: 1.6">
+      <strong>6. Routing Visual Flow</strong><br />
+      Flow diagram overlay for existing RoutingPanel<br /><br />
+      <strong>7. Scheduler / Budget / Alerts / Approvals</strong><br />
+      Already adequate — only polish if touched
+    </div>
+  </div>
+</div>

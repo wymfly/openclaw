@@ -58,10 +58,7 @@ export function UsagePanel() {
         }}
       >
         <div className="flex items-center justify-between mb-2">
-          <h2
-            className="text-sm font-semibold"
-            style={{ color: "var(--foreground)" }}
-          >
+          <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
             {t("title")}
           </h2>
         </div>
@@ -94,9 +91,7 @@ export function UsagePanel() {
         <SummaryCards totals={totals} aggregates={aggregates} loading={isLoading} />
 
         {/* Time series chart */}
-        {aggregates && (
-          <UsageChart daily={aggregates.daily} modelDaily={aggregates.modelDaily} />
-        )}
+        {aggregates && <UsageChart daily={aggregates.daily} modelDaily={aggregates.modelDaily} />}
 
         {/* Main content: breakdown + context pressure side by side on large screens */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
@@ -106,18 +101,13 @@ export function UsagePanel() {
           <div className="lg:col-span-2 space-y-4">
             <ContextPressure />
             {aggregates && (
-              <LatencyCard
-                latency={aggregates.latency}
-                dailyLatency={aggregates.dailyLatency}
-              />
+              <LatencyCard latency={aggregates.latency} dailyLatency={aggregates.dailyLatency} />
             )}
           </div>
         </div>
 
         {/* Session drilldown */}
-        {sessionsUsage && (
-          <SessionUsageList sessions={sessionsUsage.sessions} />
-        )}
+        {sessionsUsage && <SessionUsageList sessions={sessionsUsage.sessions} />}
 
         {/* Empty state */}
         {!isLoading && !error && !totals && (

@@ -19,8 +19,23 @@ import type { RunEventInput } from "./run-event-store";
 const BATCH_SIZE = 50;
 const FLUSH_INTERVAL_MS = 500;
 
-/** Tool names that are classified as file operations (must match real tool names from SSE). */
-const FILE_TOOLS = new Set(["Read", "Write", "Edit", "MultiEdit", "Glob"]);
+/**
+ * Tool names classified as file operations (lowercased for case-insensitive matching).
+ * Covers both PascalCase Pi tools (Read, Write, Edit) and snake_case variants
+ * (read_file, write_file, etc.) that appear in real SSE events.
+ */
+const FILE_TOOLS = new Set([
+  "read",
+  "write",
+  "edit",
+  "multiedit",
+  "glob",
+  "read_file",
+  "write_file",
+  "edit_file",
+  "create_file",
+  "delete_file",
+]);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -124,7 +139,7 @@ export function classifyEvent(
 
     if (stream === "tool") {
       const toolName = p.data?.name as string | undefined;
-      if (toolName && FILE_TOOLS.has(toolName)) {
+      if (toolName && FILE_TOOLS.has(toolName.toLowerCase())) {
         return "file_op";
       }
       return "tool_call";

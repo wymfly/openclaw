@@ -53,24 +53,24 @@ function CronJobsContent() {
       {/* Detail area */}
       <div className="flex flex-col flex-1 min-w-0">
         {loading && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--text-secondary)]">
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--muted-foreground)]">
             <p className="text-sm">{tc("loading")}</p>
           </div>
         )}
 
         {error && !loading && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--text-secondary)]">
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--muted-foreground)]">
             <p className="text-sm">{error}</p>
           </div>
         )}
 
         {!loading && !error && !selectedJobId && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--text-secondary)]">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
-              <Clock size={20} className="text-[var(--accent)]" />
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--muted-foreground)]">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--muted)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
+              <Clock size={20} className="text-[var(--primary)]" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-[var(--text-primary)]">{t("noJobs")}</p>
+              <p className="text-sm font-medium text-[var(--foreground)]">{t("noJobs")}</p>
             </div>
           </div>
         )}
@@ -136,7 +136,7 @@ export function SchedulerPanel() {
   const [activeTab, setActiveTab] = useState("cron");
 
   return (
-    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--bg-secondary)] ring-1 ring-[var(--border)]">
+    <div className="flex flex-col h-full overflow-hidden rounded-xl bg-[var(--card)] ring-1 ring-[var(--border)]">
       {/* Top-level scheduler tabs */}
       <div className="flex items-center px-4 py-2 border-b border-[var(--border)]">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

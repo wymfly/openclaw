@@ -78,20 +78,20 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
   };
 
   const inputStyle = {
-    backgroundColor: "var(--bg-primary)",
+    backgroundColor: "var(--background)",
     borderColor: "var(--border)",
-    color: "var(--text-primary)",
+    color: "var(--foreground)",
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
         {rule ? t("editRule") : t("addRule")}
       </h3>
 
       {/* Name */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("name")}
         </label>
         <input
@@ -106,7 +106,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
       {/* Scope */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("scope")}
         </label>
         <div className="flex gap-1">
@@ -116,9 +116,9 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               type="button"
               className="px-3 py-1 text-xs rounded-md border transition-colors"
               style={{
-                backgroundColor: scope === s ? "var(--accent)" : "transparent",
-                color: scope === s ? "var(--accent-fg)" : "var(--text-secondary)",
-                borderColor: scope === s ? "var(--accent)" : "var(--border)",
+                backgroundColor: scope === s ? "var(--primary)" : "transparent",
+                color: scope === s ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                borderColor: scope === s ? "var(--primary)" : "var(--border)",
               }}
               onClick={() => setScope(s)}
             >
@@ -131,7 +131,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
       {/* Agent ID (conditional) */}
       {scope === "perAgent" && (
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("agentId")}
           </label>
           <input
@@ -147,7 +147,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
       {/* Task ID (conditional) */}
       {scope === "perTask" && (
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("taskId")}
           </label>
           <input
@@ -162,7 +162,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
       {/* Dimension */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("dimension")}
         </label>
         <div className="flex gap-1 flex-wrap">
@@ -172,9 +172,9 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               type="button"
               className="px-3 py-1 text-xs rounded-md border transition-colors"
               style={{
-                backgroundColor: dimension === d ? "var(--accent)" : "transparent",
-                color: dimension === d ? "var(--accent-fg)" : "var(--text-secondary)",
-                borderColor: dimension === d ? "var(--accent)" : "var(--border)",
+                backgroundColor: dimension === d ? "var(--primary)" : "transparent",
+                color: dimension === d ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                borderColor: dimension === d ? "var(--primary)" : "var(--border)",
               }}
               onClick={() => setDimension(d)}
             >
@@ -187,7 +187,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
       {/* Thresholds */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("warnThreshold")}
           </label>
           <input
@@ -201,7 +201,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("overThreshold")}
           </label>
           <input
@@ -218,7 +218,7 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
       {/* Period */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("period")}
         </label>
         <div className="flex gap-1">
@@ -228,9 +228,9 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
               type="button"
               className="px-3 py-1 text-xs rounded-md border transition-colors"
               style={{
-                backgroundColor: period === p ? "var(--accent)" : "transparent",
-                color: period === p ? "var(--accent-fg)" : "var(--text-secondary)",
-                borderColor: period === p ? "var(--accent)" : "var(--border)",
+                backgroundColor: period === p ? "var(--primary)" : "transparent",
+                color: period === p ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                borderColor: period === p ? "var(--primary)" : "var(--border)",
               }}
               onClick={() => setPeriod(p)}
             >
@@ -242,17 +242,17 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
 
       {/* Enabled toggle */}
       <div className="flex items-center gap-2">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("enabledToggle")}
         </label>
         <button
           type="button"
           className="w-10 h-5 rounded-full transition-colors relative"
-          style={{ backgroundColor: enabled ? "var(--accent)" : "var(--border)" }}
+          style={{ backgroundColor: enabled ? "var(--primary)" : "var(--border)" }}
           onClick={() => setEnabled(!enabled)}
         >
           <span
-            className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+            className="absolute top-0.5 w-4 h-4 rounded-full bg-[var(--primary-foreground)] transition-transform"
             style={{ left: enabled ? "calc(100% - 18px)" : "2px" }}
           />
         </button>
@@ -264,14 +264,14 @@ export function RuleForm({ rule, onSave, onCancel, saving }: RuleFormProps) {
           type="submit"
           disabled={saving}
           className="px-4 py-2 text-xs rounded-md font-medium transition-colors"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
         >
           {tc("save")}
         </button>
         <button
           type="button"
           className="px-4 py-2 text-xs rounded-md font-medium transition-colors border"
-          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+          style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
           onClick={onCancel}
         >
           {tc("cancel")}

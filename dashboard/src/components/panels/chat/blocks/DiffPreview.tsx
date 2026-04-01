@@ -122,16 +122,16 @@ export function computeDiff(oldContent: string, newContent: string): DiffLine[] 
 
 const LINE_BG: Record<DiffLineKind, string> = {
   added: "bg-[var(--success-muted)]",
-  removed: "bg-[var(--danger-muted)]",
+  removed: "bg-[var(--destructive-muted)]",
   context: "",
-  hunk: "bg-[var(--bg-tertiary)]",
+  hunk: "bg-[var(--muted)]",
 };
 
 const LINE_TEXT: Record<DiffLineKind, string> = {
   added: "text-[var(--success-muted-text)]",
-  removed: "text-[var(--danger-muted-text)]",
-  context: "text-[var(--text-primary)]",
-  hunk: "text-[var(--text-secondary)]",
+  removed: "text-[var(--destructive-muted-text)]",
+  context: "text-[var(--foreground)]",
+  hunk: "text-[var(--muted-foreground)]",
 };
 
 const LINE_PREFIX: Record<DiffLineKind, string> = {
@@ -160,7 +160,7 @@ export function DiffPreview({ content }: DiffPreviewProps) {
   // Binary detection — show placeholder
   if (isBinary) {
     return (
-      <div className="my-1.5 px-3 py-2 text-xs rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
+      <div className="my-1.5 px-3 py-2 text-xs rounded-lg bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border-subtle)]">
         {t("binaryFile")}
       </div>
     );

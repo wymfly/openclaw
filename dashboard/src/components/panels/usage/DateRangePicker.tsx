@@ -1,8 +1,8 @@
 "use client";
 
+import { RefreshCw, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { RefreshCw, ChevronDown } from "lucide-react";
 import type { TimeWindow } from "@/stores/usage";
 
 interface DateRangePickerProps {
@@ -55,12 +55,8 @@ export function DateRangePicker({
               type="button"
               className="px-3 py-1.5 text-xs rounded-md font-medium transition-colors"
               style={{
-                backgroundColor:
-                  timeWindow === w ? "var(--primary)" : "transparent",
-                color:
-                  timeWindow === w
-                    ? "var(--primary-foreground)"
-                    : "var(--muted-foreground)",
+                backgroundColor: timeWindow === w ? "var(--primary)" : "transparent",
+                color: timeWindow === w ? "var(--primary-foreground)" : "var(--muted-foreground)",
               }}
               onClick={() => onWindowChange(w)}
             >
@@ -72,12 +68,9 @@ export function DateRangePicker({
             type="button"
             className="px-3 py-1.5 text-xs rounded-md font-medium transition-colors inline-flex items-center gap-1"
             style={{
-              backgroundColor:
-                timeWindow === "custom" ? "var(--primary)" : "transparent",
+              backgroundColor: timeWindow === "custom" ? "var(--primary)" : "transparent",
               color:
-                timeWindow === "custom"
-                  ? "var(--primary-foreground)"
-                  : "var(--muted-foreground)",
+                timeWindow === "custom" ? "var(--primary-foreground)" : "var(--muted-foreground)",
             }}
             onClick={() => setExpanded(!expanded)}
           >

@@ -91,11 +91,11 @@ export function RouteSimulator() {
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--border-subtle)] shrink-0">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Route Simulator</h3>
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">Route Simulator</h3>
         <button
           type="button"
           onClick={handleReset}
-          className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+          className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors cursor-pointer"
           title="Reset form"
         >
           <RotateCcw size={14} />
@@ -105,9 +105,9 @@ export function RouteSimulator() {
       <div className="flex-1 overflow-auto min-h-0 px-4 py-3 space-y-3">
         {/* Channel */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">Channel</Label>
+          <Label className="text-xs text-[var(--muted-foreground)]">Channel</Label>
           <Select value={channel} onValueChange={(v) => setChannel(v ?? "")}>
-            <SelectTrigger className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+            <SelectTrigger className="h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
               <SelectValue placeholder="Select channel..." />
             </SelectTrigger>
             <SelectContent>
@@ -122,21 +122,21 @@ export function RouteSimulator() {
 
         {/* Account ID */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-[var(--text-secondary)]">Account ID</Label>
+          <Label className="text-xs text-[var(--muted-foreground)]">Account ID</Label>
           <Input
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
             placeholder="e.g. srv-main"
-            className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+            className="h-8 text-xs bg-[var(--background)] border-[var(--border)]"
           />
         </div>
 
         {/* Peer */}
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Peer Type</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Peer Type</Label>
             <Select value={peerType} onValueChange={(v) => setPeerType(v ?? "")}>
-              <SelectTrigger className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+              <SelectTrigger className="h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
                 <SelectValue placeholder="Type..." />
               </SelectTrigger>
               <SelectContent>
@@ -147,12 +147,12 @@ export function RouteSimulator() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Peer ID</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Peer ID</Label>
             <Input
               value={peerId}
               onChange={(e) => setPeerId(e.target.value)}
               placeholder="ID..."
-              className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+              className="h-8 text-xs bg-[var(--background)] border-[var(--border)]"
             />
           </div>
         </div>
@@ -161,23 +161,23 @@ export function RouteSimulator() {
         {isDiscord && (
           <>
             <div className="space-y-1.5">
-              <Label className="text-xs text-[var(--text-secondary)]">Guild ID</Label>
+              <Label className="text-xs text-[var(--muted-foreground)]">Guild ID</Label>
               <Input
                 value={guildId}
                 onChange={(e) => setGuildId(e.target.value)}
                 placeholder="Discord Guild ID..."
-                className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+                className="h-8 text-xs bg-[var(--background)] border-[var(--border)]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-[var(--text-secondary)]">
+              <Label className="text-xs text-[var(--muted-foreground)]">
                 Roles (comma-separated)
               </Label>
               <Input
                 value={roles}
                 onChange={(e) => setRoles(e.target.value)}
                 placeholder="admin, moderator..."
-                className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+                className="h-8 text-xs bg-[var(--background)] border-[var(--border)]"
               />
             </div>
           </>
@@ -186,12 +186,12 @@ export function RouteSimulator() {
         {/* Slack: Team */}
         {isSlack && (
           <div className="space-y-1.5">
-            <Label className="text-xs text-[var(--text-secondary)]">Team ID</Label>
+            <Label className="text-xs text-[var(--muted-foreground)]">Team ID</Label>
             <Input
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
               placeholder="Slack Team ID..."
-              className="h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)]"
+              className="h-8 text-xs bg-[var(--background)] border-[var(--border)]"
             />
           </div>
         )}
@@ -222,9 +222,9 @@ export function RouteSimulator() {
         {simulationResult && (
           <div className="space-y-3 pt-1">
             {/* Matched agent */}
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-3 space-y-2.5">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
                   Matched Agent
                 </span>
                 <TierBadge tier={simulationResult.matchedBy} />
@@ -233,8 +233,8 @@ export function RouteSimulator() {
             </div>
 
             {/* Session key */}
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-3 space-y-1.5">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 space-y-1.5">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
                 Session Key
               </span>
               <div className="overflow-x-auto">
@@ -243,8 +243,8 @@ export function RouteSimulator() {
             </div>
 
             {/* Tier checklist */}
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-3 space-y-1">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-secondary)] block mb-2">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 space-y-1">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)] block mb-2">
                 Tier Evaluation
               </span>
               {ALL_TIERS.map((tier) => {
@@ -261,7 +261,9 @@ export function RouteSimulator() {
                     <span
                       className={cn(
                         "w-4 text-center shrink-0",
-                        isMatched ? "text-emerald-400" : "text-[var(--text-secondary)] opacity-40",
+                        isMatched
+                          ? "text-emerald-400"
+                          : "text-[var(--muted-foreground)] opacity-40",
                       )}
                     >
                       {isMatched ? "\u2705" : "\u2014"}

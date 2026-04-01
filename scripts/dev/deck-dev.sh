@@ -69,13 +69,32 @@ start_deck() {
   cd ..
   for i in $(seq 1 15); do
     if lsof -i :$DECK_PORT -sTCP:LISTEN &>/dev/null; then
-      echo "[deck-dev] Dashboard ready (pid $(lsof -ti :$DECK_PORT -sTCP:LISTEN | head -1))"
-      return 0
+      echo "[deck-dev] Dashboard listening (pid $(lsof -ti :$DECK_PORT -sTCP:LISTEN | head -1))"
+      break
     fi
     sleep 1
   done
-  echo "[deck-dev] ERROR: Dashboard failed to start. Check $DECK_LOG"
-  return 1
+  if ! lsof -i :$DECK_PORT -sTCP:LISTEN &>/dev/null; then
+    echo "[deck-dev] ERROR: Dashboard failed to start. Check $DECK_LOG"
+    return 1
+  fi
+  # Wait for Gateway adapter to complete WS handshake (challenge → sign → connected)
+  echo -n "[deck-dev] Waiting for Gateway connection"
+  for i in $(seq 1 15); do
+    if NO_PROXY=localhost,127.0.0.1 curl -sf http://localhost:$DECK_PORT/api/deck/agents \
+        -X POST -H 'Content-Type: application/json' \
+        -d '{"action":"eventStreams.get","agentId":"main"}' -o /dev/null 2>/dev/null; then
+      echo ""
+      echo "[deck-dev] Dashboard ready — Gateway connected"
+      return 0
+    fi
+    echo -n "."
+    sleep 1
+  done
+  echo ""
+  echo "[deck-dev] WARNING: Dashboard started but Gateway adapter may still be connecting"
+  echo "[deck-dev] Check $DECK_LOG for details; retry in a few seconds"
+  return 0
 }
 
 case "${1:-all}" in

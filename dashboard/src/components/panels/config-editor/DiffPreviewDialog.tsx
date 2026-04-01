@@ -86,7 +86,7 @@ function groupBySection(entries: DiffEntry[]): SectionGroup[] {
 function DiffTypeBadge({ type, label }: { type: DiffEntry["type"]; label: string }) {
   const classMap: Record<DiffEntry["type"], string> = {
     add: "bg-[var(--success-muted)] text-[var(--success)] border-transparent",
-    remove: "bg-[var(--danger-muted)] text-[var(--danger)] border-transparent",
+    remove: "bg-[var(--destructive-muted)] text-[var(--destructive)] border-transparent",
     change: "bg-[var(--warning-muted)] text-[var(--warning-muted-text)] border-transparent",
   };
   return <Badge className={`text-[10px] px-1.5 py-0 ${classMap[type]}`}>{label}</Badge>;
@@ -149,7 +149,7 @@ export function DiffPreviewDialog({
         </DialogHeader>
 
         {entries.length === 0 ? (
-          <p className="text-sm text-[var(--text-secondary)]">{t("diffNoChanges")}</p>
+          <p className="text-sm text-[var(--muted-foreground)]">{t("diffNoChanges")}</p>
         ) : (
           <ScrollArea className="max-h-[60vh] pr-1">
             <div className="flex flex-col gap-2">
@@ -160,14 +160,14 @@ export function DiffPreviewDialog({
                   onOpenChange={() => toggleSection(section)}
                 >
                   {/* Section header */}
-                  <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+                  <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors">
                     {isSectionOpen(section) ? (
-                      <ChevronDown size={14} className="shrink-0 text-[var(--text-secondary)]" />
+                      <ChevronDown size={14} className="shrink-0 text-[var(--muted-foreground)]" />
                     ) : (
-                      <ChevronRight size={14} className="shrink-0 text-[var(--text-secondary)]" />
+                      <ChevronRight size={14} className="shrink-0 text-[var(--muted-foreground)]" />
                     )}
                     <span className="capitalize">{section}</span>
-                    <Badge className="ml-auto bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-transparent text-[10px] px-1.5 py-0">
+                    <Badge className="ml-auto bg-[var(--muted)] text-[var(--muted-foreground)] border-transparent text-[10px] px-1.5 py-0">
                       {sectionEntries.length}
                     </Badge>
                   </CollapsibleTrigger>
@@ -177,12 +177,12 @@ export function DiffPreviewDialog({
                       {sectionEntries.map((entry) => (
                         <div
                           key={entry.path}
-                          className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs"
+                          className="rounded-lg border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2 text-xs"
                         >
                           {/* Path + type badge */}
                           <div className="flex items-center gap-2 mb-1.5">
                             <DiffTypeBadge type={entry.type} label={typeLabel[entry.type]} />
-                            <span className="font-mono text-[var(--text-primary)] break-all">
+                            <span className="font-mono text-[var(--foreground)] break-all">
                               {entry.path}
                             </span>
                           </div>
@@ -190,10 +190,10 @@ export function DiffPreviewDialog({
                           {/* Value display */}
                           {entry.type === "change" && (
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="font-mono line-through text-[var(--danger)]">
+                              <span className="font-mono line-through text-[var(--destructive)]">
                                 {formatValue(entry.oldValue)}
                               </span>
-                              <span className="text-[var(--text-secondary)]">→</span>
+                              <span className="text-[var(--muted-foreground)]">→</span>
                               <span className="font-mono text-[var(--success)]">
                                 {formatValue(entry.newValue)}
                               </span>
@@ -205,7 +205,7 @@ export function DiffPreviewDialog({
                             </div>
                           )}
                           {entry.type === "remove" && (
-                            <div className="font-mono line-through text-[var(--danger)]">
+                            <div className="font-mono line-through text-[var(--destructive)]">
                               {formatValue(entry.oldValue)}
                             </div>
                           )}
@@ -220,12 +220,12 @@ export function DiffPreviewDialog({
         )}
 
         {/* Don't show again checkbox */}
-        <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer select-none">
+        <label className="flex items-center gap-2 text-xs text-[var(--muted-foreground)] cursor-pointer select-none">
           <input
             type="checkbox"
             checked={dontShow}
             onChange={(e) => setDontShow(e.target.checked)}
-            className="h-3.5 w-3.5 rounded accent-[var(--accent)]"
+            className="h-3.5 w-3.5 rounded accent-[var(--primary)]"
           />
           {t("diffDontShowAgain")}
         </label>

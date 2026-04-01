@@ -48,7 +48,7 @@ export function HeaderBar() {
       className="flex items-center justify-between h-12 px-4 border-b shrink-0"
       style={{
         borderColor: "var(--border)",
-        backgroundColor: "var(--bg-secondary)",
+        backgroundColor: "var(--card)",
       }}
     >
       {/* Left: hamburger (mobile) + panel name */}
@@ -57,12 +57,12 @@ export function HeaderBar() {
           <button
             onClick={() => setMobileNavOpen(true)}
             className="flex items-center p-1 rounded hover:opacity-80 transition-opacity"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <Menu size={18} />
           </button>
         )}
-        <h1 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <h1 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           {tNav(activePanel)}
         </h1>
       </div>
@@ -73,7 +73,7 @@ export function HeaderBar() {
         <button
           onClick={() => useUIStore.getState().setActivePanel("gateway")}
           className="flex items-center gap-1.5 text-xs hover:opacity-80 transition-opacity cursor-pointer"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <span
             className="inline-block w-2 h-2 rounded-full"
@@ -87,7 +87,7 @@ export function HeaderBar() {
         <button
           onClick={toggleLocale}
           className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <Globe size={14} />
           {locale === "zh" ? "EN" : "ZH"}
@@ -97,7 +97,7 @@ export function HeaderBar() {
         <button
           onClick={toggleTheme}
           className="flex items-center p-1 rounded hover:opacity-80 transition-opacity"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
         </button>

@@ -111,7 +111,7 @@ export function FeishuWizard({
             className={cn(
               "cursor-pointer rounded-lg border p-3 text-left transition-colors",
               form.connectionMode === mode.id
-                ? "border-[var(--accent)] bg-[var(--accent-muted)]"
+                ? "border-[var(--primary)] bg-[var(--primary-muted)]"
                 : "border-[var(--border)] hover:border-[var(--border-hover)]",
             )}
             onClick={() => updateField("connectionMode", mode.id)}
@@ -122,14 +122,14 @@ export function FeishuWizard({
             }}
           >
             <div className="flex items-center gap-1.5">
-              <p className="text-xs font-medium text-[var(--text-primary)]">{mode.title}</p>
+              <p className="text-xs font-medium text-[var(--foreground)]">{mode.title}</p>
               {mode.recommended && (
-                <span className="rounded bg-[var(--accent-muted)] px-1 py-0.5 text-[9px] font-medium text-[var(--accent)]">
+                <span className="rounded bg-[var(--primary-muted)] px-1 py-0.5 text-[9px] font-medium text-[var(--primary)]">
                   {t("recommended")}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[10px] text-[var(--text-secondary)]">{mode.desc}</p>
+            <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">{mode.desc}</p>
           </div>
         ))}
       </div>
@@ -147,7 +147,7 @@ export function FeishuWizard({
           placeholder={t("feishu.appIdHint")}
           className="mt-1"
         />
-        <p className="mt-1 text-[10px] text-[var(--text-secondary)]">{t("feishu.appIdHelp")}</p>
+        <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">{t("feishu.appIdHelp")}</p>
       </div>
       <div>
         <Label className="text-xs">{t("feishu.appSecret")}</Label>
@@ -158,7 +158,9 @@ export function FeishuWizard({
           placeholder={t("feishu.appSecretHint")}
           className="mt-1"
         />
-        <p className="mt-1 text-[10px] text-[var(--text-secondary)]">{t("feishu.appSecretHelp")}</p>
+        <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">
+          {t("feishu.appSecretHelp")}
+        </p>
       </div>
     </div>
   );
@@ -166,9 +168,9 @@ export function FeishuWizard({
   // Step 3: connection test
   const step3Content = (
     <div className="space-y-4">
-      <p className="text-xs text-[var(--text-secondary)]">{t("feishu.testDesc")}</p>
-      <div className="flex items-start gap-2 rounded-lg bg-[var(--accent-muted)] px-3 py-2 text-[10px] text-[var(--text-secondary)]">
-        <Info size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+      <p className="text-xs text-[var(--muted-foreground)]">{t("feishu.testDesc")}</p>
+      <div className="flex items-start gap-2 rounded-lg bg-[var(--primary-muted)] px-3 py-2 text-[10px] text-[var(--muted-foreground)]">
+        <Info size={12} className="mt-0.5 shrink-0 text-[var(--primary)]" />
         <span>{t("feishu.probeConfigNote")}</span>
       </div>
       <Button
@@ -186,7 +188,7 @@ export function FeishuWizard({
         </div>
       )}
       {probeResult === "error" && (
-        <div className="flex items-center gap-2 text-xs text-[var(--danger)]">
+        <div className="flex items-center gap-2 text-xs text-[var(--destructive)]">
           <XCircle size={14} />
           <span>{probeMessage}</span>
         </div>

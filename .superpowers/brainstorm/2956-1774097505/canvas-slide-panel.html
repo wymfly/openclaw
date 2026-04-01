@@ -1,0 +1,711 @@
+<h2>Canvas 抽拉式面板交互</h2>
+<p class="subtitle">三种状态：收起 → 展开 → 调试模式。确认这是你想要的交互吗？</p>
+
+<div style="display: flex; flex-direction: column; gap: 24px">
+  <!-- State 1: Collapsed -->
+  <div>
+    <div class="label" style="margin-bottom: 8px">状态 1：Canvas 收起（默认）</div>
+    <div
+      style="
+        display: flex;
+        height: 240px;
+        gap: 0;
+        background: #1a1a2e;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+      "
+    >
+      <!-- Full-width Chat -->
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 6px">
+        <div
+          style="
+            background: #252540;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #8888aa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <span>💬 Chat — Agent Session</span>
+          <div style="display: flex; align-items: center; gap: 6px">
+            <span style="font-size: 9px; color: #555">Canvas</span>
+          </div>
+        </div>
+        <div
+          style="
+            flex: 1;
+            background: #252540;
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          "
+        >
+          <div
+            style="
+              background: #2a2a4a;
+              border-radius: 6px;
+              padding: 8px 10px;
+              font-size: 10px;
+              color: #7777aa;
+              align-self: flex-end;
+              max-width: 65%;
+            "
+          >
+            帮我做一个预约表单
+          </div>
+          <div
+            style="
+              background: #1e3a5f;
+              border-radius: 6px;
+              padding: 8px 10px;
+              font-size: 10px;
+              color: #88aacc;
+              max-width: 80%;
+            "
+          >
+            好的，我已经在 Canvas 上创建了预约表单。
+          </div>
+          <div
+            style="
+              background: #1e3a5f;
+              border-radius: 6px;
+              padding: 8px 10px;
+              font-size: 10px;
+              color: #88aacc;
+              max-width: 80%;
+            "
+          >
+            你可以在右侧面板中查看和操作。
+          </div>
+        </div>
+        <div style="background: #252540; border-radius: 6px; padding: 8px; display: flex; gap: 4px">
+          <div style="flex: 1; background: #2a2a4a; border-radius: 4px; height: 28px"></div>
+          <div
+            style="
+              background: #3366ff;
+              border-radius: 4px;
+              width: 56px;
+              height: 28px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 9px;
+              color: white;
+            "
+          >
+            Send
+          </div>
+        </div>
+      </div>
+      <!-- Collapsed Canvas Tab -->
+      <div
+        style="
+          width: 36px;
+          background: #1e1e38;
+          border-left: 1px solid #333355;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding-top: 12px;
+          gap: 8px;
+        "
+      >
+        <div
+          style="
+            writing-mode: vertical-lr;
+            font-size: 9px;
+            color: #88ff88;
+            letter-spacing: 1px;
+            transform: rotate(180deg);
+          "
+        >
+          ● Canvas
+        </div>
+        <div
+          style="
+            width: 20px;
+            height: 20px;
+            background: #2a2a5a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #6666aa;
+            cursor: pointer;
+          "
+          title="展开 Canvas"
+        >
+          ‹
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 2: Expanded -->
+  <div>
+    <div class="label" style="margin-bottom: 8px">
+      状态 2：Canvas 展开（点击按钮或 Agent 推送 A2UI 时自动展开）
+    </div>
+    <div
+      style="
+        display: flex;
+        height: 300px;
+        gap: 0;
+        background: #1a1a2e;
+        border-radius: 10px;
+        overflow: hidden;
+      "
+    >
+      <!-- Chat (narrower) -->
+      <div
+        style="flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 6px; min-width: 0"
+      >
+        <div
+          style="
+            background: #252540;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #8888aa;
+          "
+        >
+          💬 Chat
+        </div>
+        <div
+          style="
+            flex: 1;
+            background: #252540;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          "
+        >
+          <div
+            style="
+              background: #2a2a4a;
+              border-radius: 6px;
+              padding: 6px 8px;
+              font-size: 9px;
+              color: #7777aa;
+              align-self: flex-end;
+              max-width: 75%;
+            "
+          >
+            帮我做一个预约表单
+          </div>
+          <div
+            style="
+              background: #1e3a5f;
+              border-radius: 6px;
+              padding: 6px 8px;
+              font-size: 9px;
+              color: #88aacc;
+              max-width: 85%;
+            "
+          >
+            好的，我已经在 Canvas 上创建了预约表单。
+          </div>
+        </div>
+        <div style="background: #252540; border-radius: 6px; padding: 6px; display: flex; gap: 4px">
+          <div style="flex: 1; background: #2a2a4a; border-radius: 4px; height: 26px"></div>
+          <div
+            style="
+              background: #3366ff;
+              border-radius: 4px;
+              width: 50px;
+              height: 26px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 8px;
+              color: white;
+            "
+          >
+            Send
+          </div>
+        </div>
+      </div>
+      <!-- Divider (draggable) -->
+      <div
+        style="
+          width: 4px;
+          background: #333355;
+          cursor: col-resize;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        "
+      >
+        <div style="width: 2px; height: 30px; background: #555577; border-radius: 1px"></div>
+      </div>
+      <!-- Canvas Panel -->
+      <div style="flex: 1.2; display: flex; flex-direction: column; gap: 4px; padding: 6px">
+        <!-- Canvas Header -->
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e1e38;
+            border-radius: 6px;
+            padding: 8px 12px;
+          "
+        >
+          <div style="display: flex; align-items: center; gap: 6px">
+            <span style="font-size: 11px; color: #88ff88; font-weight: 600">● Canvas</span>
+            <span
+              style="
+                font-size: 9px;
+                color: #555;
+                background: #2a2a4a;
+                padding: 2px 6px;
+                border-radius: 3px;
+              "
+              >main</span
+            >
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span
+              style="
+                font-size: 9px;
+                color: #6666aa;
+                cursor: pointer;
+                background: #2a2a4a;
+                padding: 3px 8px;
+                border-radius: 4px;
+              "
+              >🔍 Debug</span
+            >
+            <span style="font-size: 14px; color: #555; cursor: pointer; line-height: 1">›</span>
+          </div>
+        </div>
+        <!-- Canvas Content (iframe area) -->
+        <div
+          style="
+            flex: 1;
+            background: linear-gradient(135deg, #060618, #0a0a2e);
+            border-radius: 8px;
+            border: 1px solid #222244;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+          "
+        >
+          <!-- Simulated A2UI Surface -->
+          <div style="width: 85%; max-width: 320px">
+            <div
+              style="
+                background: rgba(255, 255, 255, 0.04);
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                padding: 16px;
+                backdrop-filter: blur(10px);
+              "
+            >
+              <div style="font-size: 13px; color: #ddddf0; font-weight: 600; margin-bottom: 12px">
+                预约表单
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <div>
+                  <div style="font-size: 8px; color: #8888aa; margin-bottom: 3px">姓名</div>
+                  <div
+                    style="
+                      background: rgba(255, 255, 255, 0.06);
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                      border-radius: 6px;
+                      padding: 6px 8px;
+                      font-size: 9px;
+                      color: #999;
+                    "
+                  >
+                    请输入姓名
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size: 8px; color: #8888aa; margin-bottom: 3px">日期</div>
+                  <div
+                    style="
+                      background: rgba(255, 255, 255, 0.06);
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                      border-radius: 6px;
+                      padding: 6px 8px;
+                      font-size: 9px;
+                      color: #999;
+                    "
+                  >
+                    2026-03-21
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size: 8px; color: #8888aa; margin-bottom: 3px">时间段</div>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap">
+                    <div
+                      style="
+                        background: rgba(51, 102, 255, 0.3);
+                        border: 1px solid rgba(51, 102, 255, 0.5);
+                        border-radius: 6px;
+                        padding: 4px 10px;
+                        font-size: 8px;
+                        color: #aaccff;
+                      "
+                    >
+                      09:00
+                    </div>
+                    <div
+                      style="
+                        background: rgba(255, 255, 255, 0.04);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: 6px;
+                        padding: 4px 10px;
+                        font-size: 8px;
+                        color: #888;
+                      "
+                    >
+                      10:00
+                    </div>
+                    <div
+                      style="
+                        background: rgba(255, 255, 255, 0.04);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: 6px;
+                        padding: 4px 10px;
+                        font-size: 8px;
+                        color: #888;
+                      "
+                    >
+                      14:00
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 6px; margin-top: 4px">
+                  <div
+                    style="
+                      flex: 1;
+                      background: #3366ff;
+                      border-radius: 6px;
+                      padding: 7px;
+                      text-align: center;
+                      font-size: 10px;
+                      color: white;
+                      font-weight: 500;
+                    "
+                  >
+                    预约
+                  </div>
+                  <div
+                    style="
+                      flex: 1;
+                      background: rgba(255, 255, 255, 0.06);
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                      border-radius: 6px;
+                      padding: 7px;
+                      text-align: center;
+                      font-size: 10px;
+                      color: #888;
+                    "
+                  >
+                    取消
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 3: With Debug Panel -->
+  <div>
+    <div class="label" style="margin-bottom: 8px">
+      状态 3：展开 + Debug 面板（点击 Debug 按钮后，底部滑出调试区）
+    </div>
+    <div
+      style="
+        display: flex;
+        height: 380px;
+        gap: 0;
+        background: #1a1a2e;
+        border-radius: 10px;
+        overflow: hidden;
+      "
+    >
+      <!-- Chat -->
+      <div
+        style="flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 6px; min-width: 0"
+      >
+        <div
+          style="
+            background: #252540;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #8888aa;
+          "
+        >
+          💬 Chat
+        </div>
+        <div
+          style="
+            flex: 1;
+            background: #252540;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          "
+        >
+          <div
+            style="
+              background: #2a2a4a;
+              border-radius: 6px;
+              padding: 6px 8px;
+              font-size: 9px;
+              color: #7777aa;
+              align-self: flex-end;
+            "
+          >
+            做一个预约表单
+          </div>
+          <div
+            style="
+              background: #1e3a5f;
+              border-radius: 6px;
+              padding: 6px 8px;
+              font-size: 9px;
+              color: #88aacc;
+            "
+          >
+            已创建预约表单。
+          </div>
+        </div>
+        <div style="background: #252540; border-radius: 6px; padding: 6px; display: flex; gap: 4px">
+          <div style="flex: 1; background: #2a2a4a; border-radius: 4px; height: 26px"></div>
+          <div
+            style="
+              background: #3366ff;
+              border-radius: 4px;
+              width: 50px;
+              height: 26px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 8px;
+              color: white;
+            "
+          >
+            Send
+          </div>
+        </div>
+      </div>
+      <div
+        style="
+          width: 4px;
+          background: #333355;
+          cursor: col-resize;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        "
+      >
+        <div style="width: 2px; height: 30px; background: #555577; border-radius: 1px"></div>
+      </div>
+      <!-- Canvas + Debug -->
+      <div style="flex: 1.2; display: flex; flex-direction: column; gap: 4px; padding: 6px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e1e38;
+            border-radius: 6px;
+            padding: 8px 12px;
+          "
+        >
+          <div style="display: flex; align-items: center; gap: 6px">
+            <span style="font-size: 11px; color: #88ff88; font-weight: 600">● Canvas</span>
+            <span
+              style="
+                font-size: 9px;
+                color: #555;
+                background: #2a2a4a;
+                padding: 2px 6px;
+                border-radius: 3px;
+              "
+              >main</span
+            >
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span
+              style="
+                font-size: 9px;
+                color: #88ff88;
+                cursor: pointer;
+                background: #1a3a2a;
+                padding: 3px 8px;
+                border-radius: 4px;
+                border: 1px solid #2a5a3a;
+              "
+              >🔍 Debug</span
+            >
+            <span style="font-size: 14px; color: #555; cursor: pointer; line-height: 1">›</span>
+          </div>
+        </div>
+        <!-- Canvas render area (shorter when debug open) -->
+        <div
+          style="
+            flex: 1;
+            background: linear-gradient(135deg, #060618, #0a0a2e);
+            border-radius: 8px;
+            border: 1px solid #222244;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          <div
+            style="
+              width: 80%;
+              background: rgba(255, 255, 255, 0.04);
+              border-radius: 10px;
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              padding: 12px;
+            "
+          >
+            <div style="font-size: 11px; color: #ddddf0; font-weight: 600; margin-bottom: 8px">
+              预约表单
+            </div>
+            <div style="display: flex; gap: 6px">
+              <div
+                style="
+                  background: #3366ff;
+                  border-radius: 5px;
+                  padding: 5px 12px;
+                  font-size: 9px;
+                  color: white;
+                "
+              >
+                预约
+              </div>
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.06);
+                  border-radius: 5px;
+                  padding: 5px 12px;
+                  font-size: 9px;
+                  color: #888;
+                "
+              >
+                取消
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Debug Panel (bottom section) -->
+        <div
+          style="
+            height: 140px;
+            background: #0d0d1a;
+            border-radius: 8px;
+            border: 1px solid #222244;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          "
+        >
+          <!-- Debug Tabs -->
+          <div style="display: flex; gap: 0; border-bottom: 1px solid #222244; padding: 0 4px">
+            <div
+              style="
+                padding: 6px 12px;
+                font-size: 9px;
+                color: #88aaff;
+                border-bottom: 2px solid #3366ff;
+                background: rgba(51, 102, 255, 0.1);
+              "
+            >
+              Messages
+            </div>
+            <div style="padding: 6px 12px; font-size: 9px; color: #666">Tree</div>
+          </div>
+          <!-- Messages Tab Content -->
+          <div
+            style="
+              flex: 1;
+              overflow: auto;
+              padding: 6px;
+              font-family: monospace;
+              font-size: 8px;
+              display: flex;
+              flex-direction: column;
+              gap: 3px;
+            "
+          >
+            <div style="display: flex; gap: 6px; color: #555">
+              <span style="color: #666; min-width: 50px">12:34:01</span>
+              <span style="color: #88aaff; min-width: 80px">surfaceUpdate</span>
+              <span style="color: #888">surface=main, 3 components</span>
+            </div>
+            <div style="display: flex; gap: 6px; color: #555">
+              <span style="color: #666; min-width: 50px">12:34:01</span>
+              <span style="color: #88ff88; min-width: 80px">beginRendering</span>
+              <span style="color: #888">surface=main, root=root</span>
+            </div>
+            <div style="display: flex; gap: 6px; color: #555">
+              <span style="color: #666; min-width: 50px">12:34:05</span>
+              <span style="color: #ffaa44; min-width: 80px">userAction</span>
+              <span style="color: #888">action=Book, component=btn1</span>
+            </div>
+            <div style="display: flex; gap: 6px; color: #555">
+              <span style="color: #666; min-width: 50px">12:34:06</span>
+              <span style="color: #88aaff; min-width: 80px">surfaceUpdate</span>
+              <span style="color: #888">surface=main, 5 components</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  style="
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  "
+>
+  <h3 style="margin: 0 0 8px; font-size: 13px">交互行为总结</h3>
+  <ul style="margin: 0; padding-left: 20px; font-size: 11px; color: #aaa; line-height: 1.8">
+    <li>
+      <strong style="color: #ddd">自动展开</strong> — Agent 推送 A2UI 内容时，Canvas 面板自动滑出
+    </li>
+    <li>
+      <strong style="color: #ddd">手动收起</strong> — 点击 › 按钮或拖到最右收起，Chat 恢复全宽
+    </li>
+    <li><strong style="color: #ddd">手动展开</strong> — 点击收起态的 ‹ 按钮重新展开</li>
+    <li><strong style="color: #ddd">可拖拽分割线</strong> — 自由调节 Chat / Canvas 宽度比例</li>
+    <li>
+      <strong style="color: #ddd">Debug 模式</strong> — 点击 Debug 按钮，底部滑出调试面板（Messages
+      / Tree 两个 Tab）
+    </li>
+    <li>
+      <strong style="color: #ddd">自动隐藏</strong> — Agent 发送 <code>canvas.hide</code> 或 A2UI
+      reset 时，面板自动收起
+    </li>
+  </ul>
+</div>

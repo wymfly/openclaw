@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
 import { Check, Loader2, RefreshCw, Search, Settings } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { AuthOverviewEntry, CatalogProvider } from "@/stores/models";
 
@@ -75,7 +75,13 @@ export function WizardStepSelect({
       {catalogError && !catalogLoading && (
         <div className="flex flex-col items-center gap-2 py-6">
           <span className="text-xs text-destructive">{t("catalogLoadError")}</span>
-          <Button type="button" variant="outline" size="sm" onClick={onRetryLoad} className="cursor-pointer">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRetryLoad}
+            className="cursor-pointer"
+          >
             <RefreshCw size={12} className="mr-1" />
             {t("retry")}
           </Button>

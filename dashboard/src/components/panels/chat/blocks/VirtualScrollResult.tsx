@@ -50,8 +50,8 @@ export function VirtualScrollResult({ content }: VirtualScrollResultProps) {
   return (
     <div className="my-1.5 rounded-lg border border-[var(--border-subtle)] overflow-hidden">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-2.5 py-1 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
-        <span className="text-[10px] font-medium text-[var(--text-secondary)]">
+      <div className="flex items-center justify-between px-2.5 py-1 bg-[var(--muted)] border-b border-[var(--border-subtle)]">
+        <span className="text-[10px] font-medium text-[var(--muted-foreground)]">
           {t("virtualLines", {
             start: rangeStart,
             end: rangeEnd,
@@ -61,7 +61,7 @@ export function VirtualScrollResult({ content }: VirtualScrollResultProps) {
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-colors cursor-pointer"
         >
           {expanded ? (
             <>
@@ -80,14 +80,14 @@ export function VirtualScrollResult({ content }: VirtualScrollResultProps) {
       {/* Virtualized content area */}
       <div
         ref={parentRef}
-        className="overflow-auto bg-[var(--bg-primary)]"
+        className="overflow-auto bg-[var(--background)]"
         style={{ height: containerHeight }}
       >
         <div className="w-full relative" style={{ height: virtualizer.getTotalSize() }}>
           {virtualItems.map((virtualRow) => (
             <div
               key={virtualRow.index}
-              className="absolute left-0 w-full flex text-xs font-mono hover:bg-[var(--bg-tertiary)] transition-colors"
+              className="absolute left-0 w-full flex text-xs font-mono hover:bg-[var(--muted)] transition-colors"
               style={{
                 height: LINE_HEIGHT,
                 transform: `translateY(${virtualRow.start}px)`,
@@ -95,13 +95,13 @@ export function VirtualScrollResult({ content }: VirtualScrollResultProps) {
             >
               {/* Line number gutter */}
               <span
-                className="shrink-0 px-2 text-right select-none text-[var(--text-tertiary)] border-r border-[var(--border-subtle)] bg-[var(--bg-secondary)] leading-5"
+                className="shrink-0 px-2 text-right select-none text-[var(--text-tertiary)] border-r border-[var(--border-subtle)] bg-[var(--card)] leading-5"
                 style={{ minWidth: `${gutterWidth + 2}ch` }}
               >
                 {virtualRow.index + 1}
               </span>
               {/* Line content */}
-              <span className="px-3 text-[var(--text-primary)] whitespace-pre overflow-hidden text-ellipsis leading-5">
+              <span className="px-3 text-[var(--foreground)] whitespace-pre overflow-hidden text-ellipsis leading-5">
                 {lines[virtualRow.index] || "\u00A0"}
               </span>
             </div>

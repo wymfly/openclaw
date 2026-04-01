@@ -1,0 +1,25 @@
+{
+  "skill_name": "office-docs",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "从这个 PDF 提取化学分析数据，生成一个 Excel 表格，包含元数据和检测结果",
+      "expected_output": "Excel 文件，含报告元数据 sheet 和化学成分数据 sheet，数值精度保留，有表头样式",
+      "files": [
+        "/Users/wangym/data/检测报告/2022SHR15358  221030-3DFS119        041721   无锡飞而康新材料科技有限公司-化学15   GH4169.pdf"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "把 /Users/wangym/data/检测报告/ 下所有 PDF 报告的元数据（报告编号、客户、样品材质、批号、结论）汇总到一个 Excel 里",
+      "expected_output": "单个 Excel 文件，每行一份报告，列为各元数据字段，支持筛选",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "把这份 DOCX 转成 PDF，保留格式",
+      "expected_output": "PDF 文件，格式与原 DOCX 一致",
+      "files": []
+    }
+  ]
+}

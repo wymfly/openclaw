@@ -22,7 +22,7 @@ export function ShowRawToggle({ isRaw, onToggle }: ShowRawToggleProps) {
     <button
       type="button"
       onClick={onToggle}
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors cursor-pointer"
     >
       {isRaw ? (
         <>

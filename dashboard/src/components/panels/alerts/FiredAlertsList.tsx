@@ -12,9 +12,9 @@ type FiredAlertsListProps = {
 };
 
 const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
-  info: { bg: "var(--accent)", text: "var(--accent-fg)" },
+  info: { bg: "var(--primary)", text: "var(--primary-foreground)" },
   warning: { bg: "var(--warning)", text: "var(--warning-fg)" },
-  critical: { bg: "var(--danger)", text: "var(--danger-fg)" },
+  critical: { bg: "var(--destructive)", text: "var(--destructive-fg)" },
 };
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ export function FiredAlertsList({ alerts }: FiredAlertsListProps) {
     return (
       <div
         className="flex items-center justify-center py-12"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">{t("noFiredAlerts")}</p>
       </div>
@@ -45,14 +45,14 @@ export function FiredAlertsList({ alerts }: FiredAlertsListProps) {
             className="flex items-center justify-between px-4 py-3 rounded-lg border"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-secondary)",
+              backgroundColor: "var(--card)",
             }}
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span
                   className="text-sm font-medium truncate"
-                  style={{ color: "var(--text-primary)" }}
+                  style={{ color: "var(--foreground)" }}
                 >
                   {alert.ruleName}
                 </span>
@@ -67,11 +67,11 @@ export function FiredAlertsList({ alerts }: FiredAlertsListProps) {
                 </span>
               </div>
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                   {t("triggerDetails")}: {alert.condition} = {alert.actualValue} ({t("threshold")}:{" "}
                   {alert.threshold})
                 </span>
-                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                   {new Date(alert.timestamp).toLocaleString()}
                 </span>
               </div>

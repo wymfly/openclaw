@@ -60,15 +60,15 @@ export function RightPanel({ mode, onClose: _onClose, children }: RightPanelProp
 
   return (
     <div
-      className="flex shrink-0 border-l border-[var(--border)] bg-[var(--bg-secondary)] relative"
+      className="flex shrink-0 border-l border-[var(--border)] bg-[var(--card)] relative"
       style={{ width }}
     >
       {/* Drag handle */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--accent)]/20 transition-colors z-10"
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--primary)]/20 transition-colors z-10"
         onMouseDown={handleMouseDown}
       />
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">{children}</div>
+      <div className="flex flex-col flex-1 min-w-0 overflow-auto">{children}</div>
     </div>
   );
 }

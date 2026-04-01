@@ -33,14 +33,14 @@ export function JobList() {
       <button
         type="button"
         className="w-full px-3 py-2 text-xs font-medium rounded-md mb-2 transition-colors"
-        style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+        style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
         onClick={() => selectJob("__new__")}
       >
         {t("addJob")}
       </button>
 
       {jobs.length === 0 && (
-        <p className="text-xs px-3 py-4 text-center" style={{ color: "var(--text-secondary)" }}>
+        <p className="text-xs px-3 py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
           {t("noJobs")}
         </p>
       )}
@@ -51,8 +51,8 @@ export function JobList() {
           type="button"
           className="w-full text-left px-3 py-2 rounded-md transition-colors text-xs"
           style={{
-            backgroundColor: selectedJobId === job.id ? "var(--bg-tertiary)" : "transparent",
-            color: "var(--text-primary)",
+            backgroundColor: selectedJobId === job.id ? "var(--muted)" : "transparent",
+            color: "var(--foreground)",
           }}
           onClick={() => selectJob(job.id)}
         >
@@ -61,14 +61,14 @@ export function JobList() {
             <span
               className="text-[10px] px-1.5 py-0.5 rounded"
               style={{
-                backgroundColor: job.enabled ? "var(--accent)" : "var(--bg-tertiary)",
-                color: job.enabled ? "var(--accent-fg)" : "var(--text-secondary)",
+                backgroundColor: job.enabled ? "var(--primary)" : "var(--muted)",
+                color: job.enabled ? "var(--primary-foreground)" : "var(--muted-foreground)",
               }}
             >
               {job.enabled ? t("enabled") : t("disabled")}
             </span>
           </div>
-          <div className="mt-1 flex justify-between" style={{ color: "var(--text-secondary)" }}>
+          <div className="mt-1 flex justify-between" style={{ color: "var(--muted-foreground)" }}>
             <span>{formatSchedule(job)}</span>
             <span>{formatNextRun(job)}</span>
           </div>

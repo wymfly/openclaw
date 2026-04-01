@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Agent Execution Engine</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --bg2: #161922;
+        --bg3: #1a1d27;
+        --bg4: #22263a;
+        --border: #2a2e3d;
+        --border-hi: #3d4257;
+        --accent: #6366f1;
+        --accent2: #818cf8;
+        --accent-glow: rgba(99, 102, 241, 0.12);
+        --green: #22c55e;
+        --yellow: #eab308;
+        --orange: #f97316;
+        --pink: #ec4899;
+        --cyan: #06b6d4;
+        --red: #ef4444;
+        --purple: #a855f7;
+        --text: #e2e8f0;
+        --dim: #94a3b8;
+        --muted: #64748b;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "SF Mono", "Fira Code", monospace;
+        background: var(--bg);
+        color: var(--text);
+        padding: 24px;
+      }
+      h1 {
+        font-size: 26px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+      }
+      .sub {
+        color: var(--dim);
+        font-size: 13px;
+        margin-bottom: 28px;
+      }
+      h2 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 32px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      h3 {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--accent2);
+      }
+
+      /* Execution loop */
+      .exec-loop {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        position: relative;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+      }
+      .loop-label {
+        position: absolute;
+        top: -10px;
+        left: 20px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 4px;
+        letter-spacing: 1px;
+      }
+      .phase {
+        display: flex;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 2px;
+      }
+      .phase-num {
+        width: 32px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .phase-dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .phase-line {
+        flex: 1;
+        width: 2px;
+        margin: 0 auto;
+      }
+      .phase-body {
+        flex: 1;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        transition: all 0.2s;
+      }
+      .phase-body:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 16px var(--accent-glow);
+      }
+      .phase-title {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .phase-desc {
+        font-size: 11px;
+        color: var(--dim);
+        line-height: 1.6;
+      }
+      .phase-file {
+        font-size: 10px;
+        color: var(--accent);
+        margin-top: 6px;
+        opacity: 0.7;
+      }
+
+      /* Flow connectors */
+      .connector {
+        text-align: center;
+        padding: 4px 0;
+        color: var(--muted);
+        font-size: 14px;
+        margin-left: 16px;
+      }
+
+      /* Branching */
+      .branch {
+        display: flex;
+        gap: 12px;
+        margin: 8px 0 8px 42px;
+      }
+      .branch-card {
+        flex: 1;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 11px;
+        transition: all 0.2s;
+      }
+      .branch-card:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 12px var(--accent-glow);
+      }
+      .branch-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+      }
+      .branch-card .items {
+        margin-top: 6px;
+      }
+      .branch-card .item {
+        color: var(--dim);
+        line-height: 1.6;
+      }
+
+      /* Config table */
+      .cfg-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .cfg-card {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        transition: all 0.2s;
+      }
+      .cfg-card:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 12px var(--accent-glow);
+      }
+      .cfg-card h4 {
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .cfg-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        padding: 3px 0;
+        border-bottom: 1px solid rgba(42, 46, 61, 0.5);
+      }
+      .cfg-row:last-child {
+        border: none;
+      }
+      .cfg-key {
+        color: var(--dim);
+      }
+      .cfg-val {
+        color: var(--accent2);
+        font-weight: 500;
+      }
+
+      /* Tags */
+      .tag {
+        display: inline-block;
+        font-size: 9px;
+        padding: 2px 7px;
+        border-radius: 3px;
+        margin: 1px;
+      }
+      .t-green {
+        background: rgba(34, 197, 94, 0.12);
+        color: var(--green);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+      }
+      .t-orange {
+        background: rgba(249, 115, 22, 0.12);
+        color: var(--orange);
+        border: 1px solid rgba(249, 115, 22, 0.2);
+      }
+      .t-red {
+        background: rgba(239, 68, 68, 0.12);
+        color: var(--red);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+      .t-cyan {
+        background: rgba(6, 182, 212, 0.12);
+        color: var(--cyan);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+      }
+      .t-purple {
+        background: rgba(168, 85, 247, 0.12);
+        color: var(--purple);
+        border: 1px solid rgba(168, 85, 247, 0.2);
+      }
+      .t-accent {
+        background: rgba(99, 102, 241, 0.12);
+        color: var(--accent);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+      }
+      .t-yellow {
+        background: rgba(234, 179, 8, 0.12);
+        color: var(--yellow);
+        border: 1px solid rgba(234, 179, 8, 0.2);
+      }
+      .t-pink {
+        background: rgba(236, 72, 153, 0.12);
+        color: var(--pink);
+        border: 1px solid rgba(236, 72, 153, 0.2);
+      }
+
+      /* Subagent flow */
+      .sa-flow {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        overflow-x: auto;
+        padding: 12px 0;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .sa-step {
+        flex-shrink: 0;
+        text-align: center;
+        min-width: 110px;
+      }
+      .sa-box {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      .sa-box:hover {
+        border-color: var(--purple);
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
+      }
+      .sa-detail {
+        font-size: 9px;
+        color: var(--muted);
+        margin-top: 4px;
+        font-weight: 400;
+      }
+      .sa-arrow {
+        color: var(--muted);
+        font-size: 16px;
+        padding: 0 4px;
+        flex-shrink: 0;
+      }
+
+      /* Concurrency lanes */
+      .lanes {
+        display: flex;
+        gap: 16px;
+        margin-top: 12px;
+      }
+      .lane {
+        flex: 1;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        position: relative;
+      }
+      .lane-badge {
+        position: absolute;
+        top: -8px;
+        right: 12px;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 4px;
+        letter-spacing: 1px;
+      }
+      .lane h4 {
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      .lane-slots {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .slot {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px dashed var(--border);
+      }
+      .slot.active {
+        border-style: solid;
+      }
+
+      /* Error types */
+      .error-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .error-chip {
+        font-size: 10px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .error-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      @media (max-width: 800px) {
+        .branch,
+        .cfg-grid,
+        .lanes {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🤖 Agent Execution Engine</h1>
+    <p class="sub">
+      Pi Embedded Runner 内部架构 · 执行循环 · 模型降级 · 上下文管理 · 子 Agent 系统
+    </p>
+
+    <!-- ================ SECTION 1: Main Execution Loop ================ -->
+    <h2>
+      🔄 主执行循环
+      <span style="font-size: 11px; color: var(--muted); font-weight: 400"
+        >src/agents/pi-embedded-runner/run.ts</span
+      >
+    </h2>
+
+    <div class="exec-loop">
+      <span class="loop-label">EXECUTION PIPELINE</span>
+
+      <!-- Step 1 -->
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot" style="background: var(--green)">1</div>
+          <div class="phase-line" style="background: var(--green)"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">📋 初始化 & 配置解析</div>
+          <div class="phase-desc">
+            解析 AgentConfig → 确定模型(primary + fallbacks) → 加载 Skills → 构建系统提示 → 加载
+            Session 历史<br />
+            <span class="tag t-cyan">agent-scope.ts</span>
+            <span class="tag t-cyan">system-prompt.ts</span>
+            <span class="tag t-cyan">skills-runtime.ts</span>
+            <span class="tag t-cyan">history.ts</span>
+          </div>
+          <div class="phase-file">
+            resolveAgentConfig() → buildSystemPrompt() → loadSessionHistory()
+          </div>
+        </div>
+      </div>
+      <div class="connector">↓</div>
+
+      <!-- Step 2 -->
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot" style="background: var(--accent)">2</div>
+          <div class="phase-line" style="background: var(--accent)"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">🔑 Auth Profile 选择</div>
+          <div class="phase-desc">
+            选择 API 密钥 profile → 检查 cooldown 状态 → 如果当前 key 被 rate-limited
+            则轮换到下一个<br />
+            每个 profile 独立 cooldown 计时器，支持多个 provider 并行密钥池
+          </div>
+          <div class="phase-file">Auth profile rotation with per-key cooldown tracking</div>
+        </div>
+      </div>
+      <div class="connector">↓</div>
+
+      <!-- Step 3: Model Call -->
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot" style="background: var(--orange)">3</div>
+          <div class="phase-line" style="background: var(--orange)"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">🧠 模型 API 调用 <span class="tag t-orange">核心循环</span></div>
+          <div class="phase-desc">
+            发送 messages + tools 到 LLM Provider → 流式接收 response → 解析 content blocks<br />
+            支持：text / tool_use / thinking blocks<br />
+            最大重试次数：<strong>BASE 24 + 8/profile</strong>（最多 160 次）
+          </div>
+          <div class="phase-file">runEmbeddedAttempt() → Pi SDK session.run()</div>
+        </div>
+      </div>
+      <div class="connector">↓ 响应分支</div>
+
+      <!-- Branching: what happens with the response -->
+      <div class="branch">
+        <div class="branch-card" style="border-left: 3px solid var(--green)">
+          <div class="branch-label" style="color: var(--green)">✅ 文本回复</div>
+          <div class="items">
+            <div class="item">→ 构建 payload（text + mediaUrl）</div>
+            <div class="item">→ 发射 chat delta/final 事件</div>
+            <div class="item">→ Block streaming 分块</div>
+            <div class="item">→ 返回 EmbeddedPiRunResult</div>
+          </div>
+        </div>
+        <div class="branch-card" style="border-left: 3px solid var(--yellow)">
+          <div class="branch-label" style="color: var(--yellow)">🔧 工具调用</div>
+          <div class="items">
+            <div class="item">→ 解析 tool_use block</div>
+            <div class="item">→ 执行工具（可能需审批）</div>
+            <div class="item">→ 工具结果 → 追加到 messages</div>
+            <div class="item">→ <strong>回到步骤 3</strong>（继续对话）</div>
+          </div>
+        </div>
+        <div class="branch-card" style="border-left: 3px solid var(--red)">
+          <div class="branch-label" style="color: var(--red)">❌ 错误处理</div>
+          <div class="items">
+            <div class="item">→ context_overflow → 触发 Compaction</div>
+            <div class="item">→ auth/billing → 模型 Fallback</div>
+            <div class="item">→ rate_limit → Cooldown + 重试</div>
+            <div class="item">→ abort → 终止运行</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector">↓</div>
+
+      <!-- Step 4: Tool Execution -->
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot" style="background: var(--yellow)">4</div>
+          <div class="phase-line" style="background: var(--yellow)"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">
+            🔧 工具执行循环 <span class="tag t-yellow">tool-use loop</span>
+          </div>
+          <div class="phase-desc">
+            模型返回 tool_use → 查找工具(Tool Catalog) → Policy Pipeline 检查(5层) → 需要审批？→
+            执行 → 结果截断 → 追加到消息历史 → 回到模型调用<br />
+            <span class="tag t-accent">openclaw-tools.ts</span>
+            <span class="tag t-accent">tool-policy-pipeline.ts</span>
+            <span class="tag t-accent">exec-approval-manager.ts</span>
+            <span class="tag t-accent">tool-result-truncation.ts</span>
+          </div>
+          <div class="phase-file">
+            Tool → PolicyPipeline → ApprovalCheck → Execute → Truncate → AppendResult
+          </div>
+        </div>
+      </div>
+      <div class="connector">↓</div>
+
+      <!-- Step 5: Context Overflow -->
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot" style="background: var(--pink)">5</div>
+          <div class="phase-line" style="background: var(--pink)"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">
+            📦 上下文溢出处理 <span class="tag t-pink">Compaction</span>
+          </div>
+          <div class="phase-desc">
+            token 数超过 reserveTokens 阈值 → 触发 compaction → 对历史消息做摘要压缩 → 保留最近消息
+            → 重试<br />
+            模式：<span class="tag t-accent">default</span>（安全）<span class="tag t-accent"
+              >safeguard</span
+            >（严格历史比例）<br />
+            失败处理：compaction 失败 → 返回 error kind="compaction_failure"
+          </div>
+          <div class="phase-file">
+            compact.ts → reserveTokens / keepRecentTokens / maxHistoryShare
+          </div>
+        </div>
+      </div>
+      <div class="connector">↓</div>
+
+      <!-- Step 6: Result -->
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot" style="background: var(--purple)">6</div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">📤 构建结果 & 投递</div>
+          <div class="phase-desc">
+            构建 EmbeddedPiRunResult → payloads (text/media) → meta (duration/tokens/stopReason) →
+            检查 messagingTool 发送记录 → 交付给 reply pipeline
+          </div>
+          <div class="phase-file">
+            EmbeddedPiRunResult { payloads, meta, didSendViaMessagingTool }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================ SECTION 2: Model Fallback Chain ================ -->
+    <h2>
+      🔗 模型降级链
+      <span style="font-size: 11px; color: var(--muted); font-weight: 400"
+        >Model Fallback Strategy</span
+      >
+    </h2>
+
+    <div
+      style="
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+      "
+    >
+      <div style="display: flex; align-items: center; gap: 0; flex-wrap: wrap">
+        <div
+          style="
+            background: var(--bg3);
+            border: 2px solid var(--green);
+            border-radius: 10px;
+            padding: 12px 18px;
+            text-align: center;
+          "
+        >
+          <div style="font-size: 12px; font-weight: 700; color: var(--green)">Primary Model</div>
+          <div style="font-size: 10px; color: var(--dim); margin-top: 4px">
+            agent.model.primary<br />或 defaults.model
+          </div>
+          <div style="font-size: 9px; color: var(--muted); margin-top: 4px">
+            例: claude-opus-4-6
+          </div>
+        </div>
+        <div style="padding: 0 8px; color: var(--muted)">
+          <div style="font-size: 9px; text-align: center">
+            auth失败<br />billing错误<br />不可用
+          </div>
+          →
+        </div>
+        <div
+          style="
+            background: var(--bg3);
+            border: 2px solid var(--yellow);
+            border-radius: 10px;
+            padding: 12px 18px;
+            text-align: center;
+          "
+        >
+          <div style="font-size: 12px; font-weight: 700; color: var(--yellow)">Fallback 1</div>
+          <div style="font-size: 10px; color: var(--dim); margin-top: 4px">model.fallbacks[0]</div>
+          <div style="font-size: 9px; color: var(--muted); margin-top: 4px">
+            例: claude-sonnet-4-6
+          </div>
+        </div>
+        <div style="padding: 0 8px; color: var(--muted)">
+          <div style="font-size: 9px; text-align: center">同上</div>
+          →
+        </div>
+        <div
+          style="
+            background: var(--bg3);
+            border: 2px solid var(--orange);
+            border-radius: 10px;
+            padding: 12px 18px;
+            text-align: center;
+          "
+        >
+          <div style="font-size: 12px; font-weight: 700; color: var(--orange)">Fallback 2</div>
+          <div style="font-size: 10px; color: var(--dim); margin-top: 4px">model.fallbacks[1]</div>
+          <div style="font-size: 9px; color: var(--muted); margin-top: 4px">例: gpt-5.2</div>
+        </div>
+        <div style="padding: 0 8px; color: var(--muted)">
+          <div style="font-size: 9px; text-align: center">全部失败</div>
+          →
+        </div>
+        <div
+          style="
+            background: var(--bg3);
+            border: 2px solid var(--red);
+            border-radius: 10px;
+            padding: 12px 18px;
+            text-align: center;
+          "
+        >
+          <div style="font-size: 12px; font-weight: 700; color: var(--red)">Error</div>
+          <div style="font-size: 10px; color: var(--dim); margin-top: 4px">
+            返回错误<br />retry_limit
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; font-size: 11px; color: var(--dim)">
+        <strong>优先级链：</strong>Session override → Agent 显式配置 → Global defaults → 内置默认
+        (claude-opus-4-6)<br />
+        <strong>API Key 轮换：</strong>每个 provider 可配多个 key，失败后自动 cooldown 当前 key
+        并切换<br />
+        <strong>Cooldown 隔离：</strong>per-key 独立计时，不影响其他 key 的可用性
+      </div>
+    </div>
+
+    <!-- ================ SECTION 3: Error Types ================ -->
+    <h2>⚠️ 错误分类 & 处理策略</h2>
+    <div class="error-grid">
+      <div class="error-chip">
+        <div class="error-dot" style="background: var(--red)"></div>
+        <strong>context_overflow</strong> → Compaction 压缩
+      </div>
+      <div class="error-chip">
+        <div class="error-dot" style="background: var(--orange)"></div>
+        <strong>auth / billing</strong> → 模型 Fallback
+      </div>
+      <div class="error-chip">
+        <div class="error-dot" style="background: var(--yellow)"></div>
+        <strong>rate_limit</strong> → Key Cooldown + 重试
+      </div>
+      <div class="error-chip">
+        <div class="error-dot" style="background: var(--pink)"></div>
+        <strong>model_not_available</strong> → Fallback
+      </div>
+      <div class="error-chip">
+        <div class="error-dot" style="background: var(--cyan)"></div>
+        <strong>image_size</strong> → 裁剪后重试
+      </div>
+      <div class="error-chip">
+        <div class="error-dot" style="background: var(--purple)"></div>
+        <strong>compaction_failure</strong> → 终止
+      </div>
+      <div class="error-chip">
+        <div class="error-dot" style="background: var(--muted)"></div>
+        <strong>role_ordering</strong> → 终止
+      </div>
+      <div class="error-chip">
+        <div class="error-dot" style="background: var(--muted)"></div>
+        <strong>retry_limit</strong> → 终止(160次)
+      </div>
+    </div>
+
+    <!-- ================ SECTION 4: Subagent System ================ -->
+    <h2>
+      👶 子 Agent 生成流程
+      <span style="font-size: 11px; color: var(--muted); font-weight: 400"
+        >src/agents/subagent-spawn.ts</span
+      >
+    </h2>
+
+    <div class="sa-flow">
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--accent)">
+          🔧 sessions_spawn<br />工具调用
+          <div class="sa-detail">Agent 请求<br />生成子 Agent</div>
+        </div>
+      </div>
+      <div class="sa-arrow">→</div>
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--yellow)">
+          ✅ 校验
+          <div class="sa-detail">depth &lt; max?<br />children &lt; max?<br />agent 允许?</div>
+        </div>
+      </div>
+      <div class="sa-arrow">→</div>
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--green)">
+          🔑 创建 Session
+          <div class="sa-detail">agent:{id}:<br />subagent:{UUID}</div>
+        </div>
+      </div>
+      <div class="sa-arrow">→</div>
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--orange)">
+          📎 挂载附件
+          <div class="sa-detail">max 50 files<br />max 5MB total</div>
+        </div>
+      </div>
+      <div class="sa-arrow">→</div>
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--purple)">
+          📝 注册 Registry
+          <div class="sa-detail">SubagentRunRecord<br />跟踪生命周期</div>
+        </div>
+      </div>
+      <div class="sa-arrow">→</div>
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--cyan)">
+          🚀 入队执行
+          <div class="sa-detail">Gateway 排队<br />agent.run</div>
+        </div>
+      </div>
+      <div class="sa-arrow">→</div>
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--pink)">
+          🧠 子 Agent<br />独立运行
+          <div class="sa-detail">完整执行循环<br />独立 session</div>
+        </div>
+      </div>
+      <div class="sa-arrow">→</div>
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--green)">
+          📣 Announce
+          <div class="sa-detail">结果回传<br />父 Agent</div>
+        </div>
+      </div>
+      <div class="sa-arrow">→</div>
+      <div class="sa-step">
+        <div class="sa-box" style="border-color: var(--muted)">
+          🗑 清理
+          <div class="sa-detail">run=删除<br />session=保留</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spawn modes comparison -->
+    <div style="display: flex; gap: 12px; margin-top: 12px">
+      <div
+        style="
+          flex: 1;
+          background: var(--bg2);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 14px;
+        "
+      >
+        <h3>🏃 Run 模式（一次性）</h3>
+        <div style="font-size: 11px; color: var(--dim); line-height: 1.7">
+          • 执行完毕自动删除 Session<br />
+          • 结果通过 announce 回传父 Agent<br />
+          • 适合：独立子任务、数据处理<br />
+          • 线程绑定：可选
+        </div>
+      </div>
+      <div
+        style="
+          flex: 1;
+          background: var(--bg2);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 14px;
+        "
+      >
+        <h3>💬 Session 模式（持久）</h3>
+        <div style="font-size: 11px; color: var(--dim); line-height: 1.7">
+          • Session 保留，可接收后续消息<br />
+          • 绑定到会话线程<br />
+          • 适合：长期对话、多轮交互<br />
+          • 线程绑定：必需
+        </div>
+      </div>
+    </div>
+
+    <!-- ================ SECTION 5: Concurrency Lanes ================ -->
+    <h2>
+      🚦 并发管理
+      <span style="font-size: 11px; color: var(--muted); font-weight: 400"
+        >Lane-based Concurrency</span
+      >
+    </h2>
+
+    <div class="lanes">
+      <div class="lane">
+        <div class="lane-badge" style="background: var(--accent); color: #fff">AGENT LANE</div>
+        <h4 style="color: var(--accent)">Agent 主通道</h4>
+        <div style="font-size: 11px; color: var(--dim); margin-bottom: 10px">
+          最大并发：<strong>4</strong>（默认）· maxConcurrent 可配
+        </div>
+        <div class="lane-slots">
+          <div
+            class="slot active"
+            style="
+              background: rgba(99, 102, 241, 0.15);
+              border-color: var(--accent);
+              color: var(--accent);
+            "
+          >
+            🤖
+          </div>
+          <div
+            class="slot active"
+            style="
+              background: rgba(99, 102, 241, 0.15);
+              border-color: var(--accent);
+              color: var(--accent);
+            "
+          >
+            🤖
+          </div>
+          <div
+            class="slot active"
+            style="
+              background: rgba(99, 102, 241, 0.1);
+              border-color: var(--accent);
+              color: var(--accent);
+            "
+          >
+            🤖
+          </div>
+          <div class="slot" style="color: var(--muted)">空</div>
+        </div>
+        <div style="font-size: 9px; color: var(--muted); margin-top: 8px">
+          来源：CLI / Channel / chat.send / Heartbeat
+        </div>
+      </div>
+      <div class="lane">
+        <div class="lane-badge" style="background: var(--purple); color: #fff">SUBAGENT LANE</div>
+        <h4 style="color: var(--purple)">Subagent 通道</h4>
+        <div style="font-size: 11px; color: var(--dim); margin-bottom: 10px">
+          最大并发：<strong>8</strong>（默认）· 独立于 Agent 通道
+        </div>
+        <div class="lane-slots">
+          <div
+            class="slot active"
+            style="
+              background: rgba(168, 85, 247, 0.15);
+              border-color: var(--purple);
+              color: var(--purple);
+            "
+          >
+            👶
+          </div>
+          <div
+            class="slot active"
+            style="
+              background: rgba(168, 85, 247, 0.15);
+              border-color: var(--purple);
+              color: var(--purple);
+            "
+          >
+            👶
+          </div>
+          <div class="slot" style="color: var(--muted)">空</div>
+          <div class="slot" style="color: var(--muted)">空</div>
+          <div class="slot" style="color: var(--muted)">空</div>
+          <div class="slot" style="color: var(--muted)">空</div>
+          <div class="slot" style="color: var(--muted)">空</div>
+          <div class="slot" style="color: var(--muted)">空</div>
+        </div>
+        <div style="font-size: 9px; color: var(--muted); margin-top: 8px">
+          来源：sessions_spawn 工具 · maxSpawnDepth: 1（默认）
+        </div>
+      </div>
+    </div>
+
+    <!-- ================ SECTION 6: Key Config ================ -->
+    <h2>⚙️ 关键配置参数</h2>
+
+    <div class="cfg-grid">
+      <div class="cfg-card">
+        <h4>🧠 模型配置</h4>
+        <div class="cfg-row">
+          <span class="cfg-key">model.primary</span><span class="cfg-val">string</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">model.fallbacks[]</span><span class="cfg-val">string[]</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">imageModel</span><span class="cfg-val">vision 专用模型</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">pdfModel</span><span class="cfg-val">PDF 专用模型</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">params.temperature</span><span class="cfg-val">number</span>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <h4>💭 思考 & 推理</h4>
+        <div class="cfg-row">
+          <span class="cfg-key">thinkingDefault</span><span class="cfg-val">off→adaptive</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">verboseDefault</span><span class="cfg-val">off | on | full</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">elevatedDefault</span><span class="cfg-val">off→full</span>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <h4>📦 上下文管理</h4>
+        <div class="cfg-row">
+          <span class="cfg-key">contextTokens</span><span class="cfg-val">number (200k)</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">compaction.mode</span><span class="cfg-val">default|safeguard</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">compaction.reserveTokens</span><span class="cfg-val">number</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">contextPruning.mode</span><span class="cfg-val">off|cache-ttl</span>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <h4>👶 子 Agent 限制</h4>
+        <div class="cfg-row">
+          <span class="cfg-key">maxConcurrent</span><span class="cfg-val">8（subagent lane）</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">maxSpawnDepth</span><span class="cfg-val">1（默认）</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">maxChildrenPerAgent</span><span class="cfg-val">5</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">archiveAfterMinutes</span><span class="cfg-val">60</span>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <h4>⏱ 超时 & 并发</h4>
+        <div class="cfg-row">
+          <span class="cfg-key">timeoutSeconds</span><span class="cfg-val">全局运行超时</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">maxConcurrent</span><span class="cfg-val">4（agent lane）</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">retryIterations</span><span class="cfg-val">24 + 8/profile</span>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <h4>🔧 工具 & 沙箱</h4>
+        <div class="cfg-row">
+          <span class="cfg-key">tools.allow[]</span><span class="cfg-val">glob 白名单</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">tools.deny[]</span><span class="cfg-val">glob 黑名单</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">sandbox.mode</span><span class="cfg-val">off|non-main|all</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">sandbox.scope</span
+          ><span class="cfg-val">session|agent|shared</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================ SECTION 7: File Index ================ -->
+    <h2>📁 关键文件索引</h2>
+    <div
+      style="
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 11px;
+      "
+    >
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px">
+        <div class="cfg-row">
+          <span class="cfg-key">执行引擎</span
+          ><span class="cfg-val">src/agents/pi-embedded-runner/run.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">结果类型</span
+          ><span class="cfg-val">src/agents/pi-embedded-runner/types.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">Compaction</span
+          ><span class="cfg-val">src/agents/pi-embedded-runner/compact.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">并发管理</span
+          ><span class="cfg-val">src/agents/pi-embedded-runner/runs.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">系统提示</span
+          ><span class="cfg-val">src/agents/pi-embedded-runner/system-prompt.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">Skills 运行时</span
+          ><span class="cfg-val">src/agents/pi-embedded-runner/skills-runtime.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">工具目录</span
+          ><span class="cfg-val">src/agents/openclaw-tools.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">工具策略</span
+          ><span class="cfg-val">src/agents/tool-policy-pipeline.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">Bash 执行</span
+          ><span class="cfg-val">src/agents/bash-tools.exec.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">审批管理</span
+          ><span class="cfg-val">src/gateway/exec-approval-manager.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">子 Agent 生成</span
+          ><span class="cfg-val">src/agents/subagent-spawn.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">子 Agent 注册</span
+          ><span class="cfg-val">src/agents/subagent-registry.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">Agent 配置</span
+          ><span class="cfg-val">src/config/types.agents.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">Agent 默认值</span
+          ><span class="cfg-val">src/config/types.agent-defaults.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">Agent 限制</span
+          ><span class="cfg-val">src/config/agent-limits.ts</span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-key">Agent 范围解析</span
+          ><span class="cfg-val">src/agents/agent-scope.ts</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

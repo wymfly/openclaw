@@ -257,10 +257,9 @@ export const useUsageStore = create<UsageState>((set, get) => ({
 
     // Phase 2: Full load via sessions.usage
     try {
-      const sessRes = await fetch(
-        `/api/usage/sessions?startDate=${startDate}&endDate=${endDate}`,
-        { signal: ac.signal },
-      );
+      const sessRes = await fetch(`/api/usage/sessions?startDate=${startDate}&endDate=${endDate}`, {
+        signal: ac.signal,
+      });
       if (!sessRes.ok) {
         const errBody = (await sessRes.json()) as { error?: string };
         set({
@@ -282,9 +281,7 @@ export const useUsageStore = create<UsageState>((set, get) => ({
   },
 
   fetchSessionLogs: async (key) => {
-    const res = await fetch(
-      `/api/usage/sessions/logs?key=${encodeURIComponent(key)}`,
-    );
+    const res = await fetch(`/api/usage/sessions/logs?key=${encodeURIComponent(key)}`);
     if (!res.ok) return [];
     const data = (await res.json()) as { logs: SessionLogEntry[] };
     return data.logs ?? [];

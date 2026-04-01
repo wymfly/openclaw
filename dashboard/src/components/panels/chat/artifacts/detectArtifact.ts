@@ -23,15 +23,27 @@ export interface ArtifactInfo {
 let artifactCounter = 0;
 
 const EXT_MAP: Record<string, ArtifactLanguage> = {
-  ".html": "html", ".htm": "html",
+  ".html": "html",
+  ".htm": "html",
   ".svg": "svg",
   ".json": "json",
   ".csv": "csv",
   ".md": "markdown",
-  ".py": "code", ".ts": "code", ".js": "code", ".tsx": "code",
-  ".jsx": "code", ".go": "code", ".rs": "code", ".java": "code",
-  ".rb": "code", ".sh": "code", ".yaml": "code", ".yml": "code",
-  ".xml": "code", ".css": "code", ".sql": "code",
+  ".py": "code",
+  ".ts": "code",
+  ".js": "code",
+  ".tsx": "code",
+  ".jsx": "code",
+  ".go": "code",
+  ".rs": "code",
+  ".java": "code",
+  ".rb": "code",
+  ".sh": "code",
+  ".yaml": "code",
+  ".yml": "code",
+  ".xml": "code",
+  ".css": "code",
+  ".sql": "code",
 };
 
 export function detectArtifact(
@@ -43,7 +55,7 @@ export function detectArtifact(
   }
 
   const filePath = toolContext?.filePath;
-  const fileName = filePath ? filePath.split("/").pop() ?? filePath : undefined;
+  const fileName = filePath ? (filePath.split("/").pop() ?? filePath) : undefined;
 
   // 1. File extension priority
   if (filePath) {
@@ -64,7 +76,9 @@ export function detectArtifact(
                 source: { toolName: toolContext?.toolName, fileName, filePath },
               };
             }
-          } catch { /* fall through */ }
+          } catch {
+            /* fall through */
+          }
         } else if (lang === "csv") {
           if (isLikelyCSV(content)) {
             return {
@@ -147,7 +161,9 @@ export function detectArtifact(
           content,
         };
       }
-    } catch { /* not JSON */ }
+    } catch {
+      /* not JSON */
+    }
   }
 
   if (isLikelyMarkdown(content)) {

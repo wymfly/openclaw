@@ -30,15 +30,15 @@ const STATUS_CONFIG: Record<
     icon: RefreshCw,
   },
   disconnected: {
-    dot: "bg-[var(--text-secondary)]",
-    textClass: "text-[var(--text-secondary)]",
+    dot: "bg-[var(--muted-foreground)]",
+    textClass: "text-[var(--muted-foreground)]",
     badgeClass: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)] border-0",
     icon: WifiOff,
   },
   error: {
-    dot: "bg-[var(--danger)]",
-    textClass: "text-[var(--danger-muted-text)]",
-    badgeClass: "bg-[var(--danger-muted)] text-[var(--danger-muted-text)] border-0",
+    dot: "bg-[var(--destructive)]",
+    textClass: "text-[var(--destructive-muted-text)]",
+    badgeClass: "bg-[var(--destructive-muted)] text-[var(--destructive-muted-text)] border-0",
     icon: AlertCircle,
   },
 };
@@ -82,9 +82,9 @@ export function ConnectionCard() {
         </div>
 
         {/* Latency metric */}
-        <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-tertiary)]">
-          <span className="text-[11px] text-[var(--text-secondary)]">{t("latency")}</span>
-          <span className="text-xs font-mono font-medium text-[var(--text-primary)]">
+        <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--muted)]">
+          <span className="text-[11px] text-[var(--muted-foreground)]">{t("latency")}</span>
+          <span className="text-xs font-mono font-medium text-[var(--foreground)]">
             {latency !== null ? `${latency}ms` : "\u2014"}
           </span>
         </div>

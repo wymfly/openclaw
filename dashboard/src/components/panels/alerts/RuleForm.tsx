@@ -59,13 +59,13 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4">
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
         {rule ? t("editRule") : t("addRule")}
       </h3>
 
       {/* Name */}
       <div className="space-y-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("name")}
         </label>
         <input
@@ -76,15 +76,15 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
           className="w-full px-3 py-1.5 text-sm rounded-md border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
       </div>
 
       {/* Entity Type */}
       <div className="space-y-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("entityType")}
         </label>
         <select
@@ -93,8 +93,8 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
           className="w-full px-3 py-1.5 text-sm rounded-md border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         >
           {ENTITY_TYPES.map((et) => (
@@ -107,7 +107,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
 
       {/* Condition */}
       <div className="space-y-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("condition")}
         </label>
         <input
@@ -119,15 +119,15 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
           className="w-full px-3 py-1.5 text-sm rounded-md border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
       </div>
 
       {/* Threshold */}
       <div className="space-y-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("threshold")}
         </label>
         <input
@@ -139,15 +139,15 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
           className="w-full px-3 py-1.5 text-sm rounded-md border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
       </div>
 
       {/* Action */}
       <div className="space-y-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("action")}
         </label>
         <select
@@ -156,8 +156,8 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
           className="w-full px-3 py-1.5 text-sm rounded-md border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         >
           {ACTIONS.map((a) => (
@@ -170,7 +170,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
 
       {/* Cooldown */}
       <div className="space-y-1">
-        <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+        <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
           {t("cooldown")} ({t("cooldownMinutes")})
         </label>
         <input
@@ -181,8 +181,8 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
           className="w-full px-3 py-1.5 text-sm rounded-md border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
       </div>
@@ -199,7 +199,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
         <label
           htmlFor="rule-enabled"
           className="text-xs font-medium"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           {t("enabled")}
         </label>
@@ -210,7 +210,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
         <button
           type="submit"
           className="px-4 py-1.5 text-xs font-medium rounded-md"
-          style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
         >
           {rule ? t("editRule") : t("addRule")}
         </button>
@@ -220,7 +220,7 @@ export function RuleForm({ rule, onSubmit, onCancel }: RuleFormProps) {
           className="px-4 py-1.5 text-xs font-medium rounded-md border"
           style={{
             borderColor: "var(--border)",
-            color: "var(--text-secondary)",
+            color: "var(--muted-foreground)",
           }}
         >
           {t("cancel")}

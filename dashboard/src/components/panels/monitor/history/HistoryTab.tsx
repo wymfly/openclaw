@@ -67,8 +67,8 @@ function sinceToTimeRange(since: string | null): string {
 
 const STATUS_STYLES: Record<string, string> = {
   completed: "bg-[var(--success-muted)] text-[var(--success)]",
-  error: "bg-[var(--danger-muted)] text-[var(--danger)]",
-  running: "bg-[var(--accent-muted)] text-[var(--accent)]",
+  error: "bg-[var(--destructive-muted)] text-[var(--destructive)]",
+  running: "bg-[var(--primary-muted)] text-[var(--primary)]",
 };
 
 const STATUS_LABEL_KEY: Record<string, string> = {
@@ -88,7 +88,7 @@ const STATUS_OPTIONS: Array<RunStatus | "all"> = ["all", "running", "completed",
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status, label }: { status: string; label: string }) {
-  const style = STATUS_STYLES[status] ?? "bg-[var(--accent-muted)] text-[var(--accent)]";
+  const style = STATUS_STYLES[status] ?? "bg-[var(--primary-muted)] text-[var(--primary)]";
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${style}`}
@@ -123,7 +123,7 @@ function RunRow({
     <div
       role="button"
       tabIndex={0}
-      className="flex flex-col gap-2 px-4 py-3 border-b border-[var(--border)] cursor-pointer hover:bg-[var(--bg-primary)] transition-colors"
+      className="flex flex-col gap-2 px-4 py-3 border-b border-[var(--border)] cursor-pointer hover:bg-[var(--background)] transition-colors"
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -135,17 +135,17 @@ function RunRow({
       {/* Top line: status + run ID + agent/session */}
       <div className="flex items-center gap-2 flex-wrap min-w-0">
         <StatusBadge status={run.status} label={statusLabel} />
-        <span className="font-mono text-xs text-[var(--text-primary)] truncate select-all">
+        <span className="font-mono text-xs text-[var(--foreground)] truncate select-all">
           {run.runId.length > 12 ? `${run.runId.slice(0, 12)}...` : run.runId}
         </span>
-        <span className="text-xs text-[var(--text-secondary)] truncate">
+        <span className="text-xs text-[var(--muted-foreground)] truncate">
           {run.agentId ?? t("history.unknownAgent")}
           {run.sessionKey ? ` / ${run.sessionKey}` : ""}
         </span>
       </div>
 
       {/* Bottom line: inline metrics */}
-      <div className="flex items-center gap-3 text-[11px] text-[var(--text-secondary)]">
+      <div className="flex items-center gap-3 text-[11px] text-[var(--muted-foreground)]">
         {run.eventCount > 0 && (
           <span>
             {run.eventCount} {t("history.events")}
@@ -309,7 +309,7 @@ export function HistoryTab() {
             variant="ghost"
             size="xs"
             onClick={clearFilters}
-            className="text-xs text-[var(--text-secondary)]"
+            className="text-xs text-[var(--muted-foreground)]"
           >
             <X size={12} />
             {t("history.clearFilters")}
@@ -321,7 +321,7 @@ export function HistoryTab() {
       <div className="flex-1 overflow-auto">
         {runs.length === 0 && !runsLoading ? (
           /* Empty state */
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--text-secondary)]">
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--muted-foreground)]">
             <Search size={32} className="opacity-40" />
             <p className="text-sm">{t("history.noRuns")}</p>
           </div>
@@ -337,8 +337,8 @@ export function HistoryTab() {
             {/* Loading spinner */}
             {runsLoading && (
               <div className="flex items-center justify-center py-4">
-                <Loader2 size={16} className="animate-spin text-[var(--text-secondary)]" />
-                <span className="ml-2 text-xs text-[var(--text-secondary)]">{tc("loading")}</span>
+                <Loader2 size={16} className="animate-spin text-[var(--muted-foreground)]" />
+                <span className="ml-2 text-xs text-[var(--muted-foreground)]">{tc("loading")}</span>
               </div>
             )}
           </>

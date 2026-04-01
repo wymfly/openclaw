@@ -83,13 +83,13 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+      <h3 className="text-sm font-semibold text-[var(--foreground)]">
         {job ? t("editJob") : t("addJob")}
       </h3>
 
       {/* Name */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("name")}</Label>
+        <Label className="text-xs text-[var(--muted-foreground)]">{t("name")}</Label>
         <Input
           type="text"
           value={name}
@@ -100,7 +100,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
       {/* Schedule template */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("schedule")}</Label>
+        <Label className="text-xs text-[var(--muted-foreground)]">{t("schedule")}</Label>
         <div className="flex gap-1 flex-wrap">
           {(["every5min", "hourly", "daily", "weekly", "custom"] as TemplateKey[]).map((key) => (
             <button
@@ -108,10 +108,10 @@ export function JobForm({ job, onDone }: JobFormProps) {
               type="button"
               className={cn(
                 "px-2.5 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
                 template === key
-                  ? "bg-[var(--accent)] text-[var(--accent-fg)]"
-                  : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
               )}
               onClick={() => setTemplate(key)}
             >
@@ -132,7 +132,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
       {/* Session target */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("sessionTarget")}</Label>
+        <Label className="text-xs text-[var(--muted-foreground)]">{t("sessionTarget")}</Label>
         <div className="flex gap-2">
           {(["main", "isolated"] as const).map((mode) => (
             <button
@@ -140,10 +140,10 @@ export function JobForm({ job, onDone }: JobFormProps) {
               type="button"
               className={cn(
                 "px-2.5 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
                 sessionTarget === mode
-                  ? "bg-[var(--accent)] text-[var(--accent-fg)]"
-                  : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
               )}
               onClick={() => setSessionTarget(mode)}
             >
@@ -155,7 +155,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
       {/* Wake mode */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("wakeMode")}</Label>
+        <Label className="text-xs text-[var(--muted-foreground)]">{t("wakeMode")}</Label>
         <div className="flex gap-2">
           {(["now", "next-heartbeat"] as const).map((mode) => (
             <button
@@ -163,10 +163,10 @@ export function JobForm({ job, onDone }: JobFormProps) {
               type="button"
               className={cn(
                 "px-2.5 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
                 wakeMode === mode
-                  ? "bg-[var(--accent)] text-[var(--accent-fg)]"
-                  : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
               )}
               onClick={() => setWakeMode(mode)}
             >
@@ -178,7 +178,7 @@ export function JobForm({ job, onDone }: JobFormProps) {
 
       {/* Payload type + value */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("payloadType")}</Label>
+        <Label className="text-xs text-[var(--muted-foreground)]">{t("payloadType")}</Label>
         <div className="flex gap-2">
           {(["systemEvent", "agentTurn"] as const).map((kind) => (
             <button
@@ -186,10 +186,10 @@ export function JobForm({ job, onDone }: JobFormProps) {
               type="button"
               className={cn(
                 "px-2.5 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
                 payloadKind === kind
-                  ? "bg-[var(--accent)] text-[var(--accent-fg)]"
-                  : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
               )}
               onClick={() => setPayloadKind(kind)}
             >
@@ -211,26 +211,26 @@ export function JobForm({ job, onDone }: JobFormProps) {
             onChange={(e) => setPayloadValue(e.target.value)}
             placeholder={t("agentMessagePlaceholder")}
             rows={3}
-            className="mt-1 w-full min-w-0 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-xs transition-colors duration-150 outline-none placeholder:text-[var(--text-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 resize-none"
+            className="mt-1 w-full min-w-0 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-xs transition-colors duration-150 outline-none placeholder:text-[var(--muted-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50 resize-none"
           />
         )}
       </div>
 
       {/* Description */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-[var(--text-secondary)]">{t("description")}</Label>
+        <Label className="text-xs text-[var(--muted-foreground)]">{t("description")}</Label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="w-full min-w-0 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-xs transition-colors duration-150 outline-none placeholder:text-[var(--text-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 resize-none"
+          className="w-full min-w-0 rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-xs transition-colors duration-150 outline-none placeholder:text-[var(--muted-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50 resize-none"
         />
       </div>
 
       {/* Enabled */}
       <div className="flex items-center gap-2.5">
         <Switch checked={enabled} onCheckedChange={setEnabled} />
-        <Label className="text-xs text-[var(--text-primary)]">{t("enabled")}</Label>
+        <Label className="text-xs text-[var(--foreground)]">{t("enabled")}</Label>
       </div>
 
       {/* Actions */}

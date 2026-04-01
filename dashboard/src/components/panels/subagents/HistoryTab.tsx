@@ -148,7 +148,7 @@ export function HistoryTab() {
       {/* Toolbar */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-subtle)] shrink-0 flex-wrap">
         <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-          <SelectTrigger className="w-[130px] h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+          <SelectTrigger className="w-[130px] h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -160,7 +160,7 @@ export function HistoryTab() {
         </Select>
 
         <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v ?? "all")}>
-          <SelectTrigger className="w-[160px] h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+          <SelectTrigger className="w-[160px] h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
             <SelectValue placeholder={t("allAgents")} />
           </SelectTrigger>
           <SelectContent>
@@ -174,7 +174,7 @@ export function HistoryTab() {
         </Select>
 
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-          <SelectTrigger className="w-[140px] h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+          <SelectTrigger className="w-[140px] h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
             <SelectValue placeholder={t("allStatus")} />
           </SelectTrigger>
           <SelectContent>
@@ -185,7 +185,7 @@ export function HistoryTab() {
           </SelectContent>
         </Select>
 
-        <span className="ml-auto text-[10px] text-[var(--text-secondary)]">
+        <span className="ml-auto text-[10px] text-[var(--muted-foreground)]">
           {t("runs", { count: filtered.length })}
         </span>
       </div>
@@ -196,18 +196,20 @@ export function HistoryTab() {
           <div className="flex items-center justify-center h-full">
             <div
               className="animate-spin rounded-full h-6 w-6 border-2 border-current"
-              style={{ borderTopColor: "transparent", color: "var(--text-secondary)" }}
+              style={{ borderTopColor: "transparent", color: "var(--muted-foreground)" }}
             />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
-            <p className="text-sm text-[var(--text-secondary)]">{t("noRunsFound")}</p>
-            <p className="text-xs text-[var(--text-secondary)] opacity-60">{t("ephemeralNote")}</p>
+            <p className="text-sm text-[var(--muted-foreground)]">{t("noRunsFound")}</p>
+            <p className="text-xs text-[var(--muted-foreground)] opacity-60">
+              {t("ephemeralNote")}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-[var(--border-subtle)]">
             {/* Header row */}
-            <div className="grid grid-cols-[auto_1fr_1fr_2fr_80px_80px] gap-3 px-4 py-2 text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+            <div className="grid grid-cols-[auto_1fr_1fr_2fr_80px_80px] gap-3 px-4 py-2 text-[10px] font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
               <span className="w-5" />
               <span>{t("agent")}</span>
               <span>{t("parent")}</span>
@@ -270,9 +272,9 @@ function HistoryRow({
         onClick={() => onToggle(run.runId)}
         className={cn(
           "grid grid-cols-[auto_1fr_1fr_2fr_80px_80px] gap-3 px-4 py-2.5 w-full text-left transition-colors cursor-pointer",
-          "hover:bg-[var(--bg-tertiary)]",
+          "hover:bg-[var(--muted)]",
           isFailed && "bg-red-500/5",
-          expanded && "bg-[var(--bg-tertiary)]",
+          expanded && "bg-[var(--muted)]",
         )}
       >
         {/* Status dot */}
@@ -296,22 +298,22 @@ function HistoryRow({
         {/* Parent agent */}
         <span className="flex items-center min-w-0">
           {run.requesterAgentId ? (
-            <span className="text-xs text-[var(--text-secondary)] truncate">
+            <span className="text-xs text-[var(--muted-foreground)] truncate">
               {run.requesterAgentName ?? run.requesterAgentId}
             </span>
           ) : (
-            <span className="text-xs text-[var(--text-secondary)] opacity-40">—</span>
+            <span className="text-xs text-[var(--muted-foreground)] opacity-40">—</span>
           )}
         </span>
 
         {/* Task (truncated) */}
         <span className="flex items-center min-w-0">
-          <span className="text-xs text-[var(--text-primary)] truncate">{run.task ?? "—"}</span>
+          <span className="text-xs text-[var(--foreground)] truncate">{run.task ?? "—"}</span>
         </span>
 
         {/* Duration */}
         <span className="flex items-center">
-          <span className="text-xs font-mono text-[var(--text-secondary)]">
+          <span className="text-xs font-mono text-[var(--muted-foreground)]">
             {formatDuration(run.durationMs, run.startedAt, run.endedAt)}
           </span>
         </span>
@@ -326,19 +328,19 @@ function HistoryRow({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-l-2 border-[var(--accent)]/30">
+        <div className="px-4 py-3 bg-[var(--muted)] border-l-2 border-[var(--primary)]/30">
           <div className="space-y-2">
             {run.task && (
               <div>
-                <span className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+                <span className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
                   {t("task")}
                 </span>
-                <p className="text-xs text-[var(--text-primary)] mt-0.5 whitespace-pre-wrap">
+                <p className="text-xs text-[var(--foreground)] mt-0.5 whitespace-pre-wrap">
                   {run.task}
                 </p>
               </div>
             )}
-            <div className="flex gap-4 text-xs text-[var(--text-secondary)]">
+            <div className="flex gap-4 text-xs text-[var(--muted-foreground)]">
               <span>
                 {t("depth")}: {run.depth}
               </span>

@@ -7,9 +7,9 @@ import { useAgentsStore } from "@/stores/agents";
 
 const STATUS_COLORS: Record<string, string> = {
   idle: "var(--status-connected)",
-  busy: "var(--accent)",
+  busy: "var(--primary)",
   error: "var(--status-disconnected)",
-  offline: "var(--text-secondary)",
+  offline: "var(--muted-foreground)",
 };
 
 export function AgentList() {
@@ -45,13 +45,13 @@ export function AgentList() {
   return (
     <aside
       className="flex flex-col w-56 shrink-0 border-r h-full"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
     >
       {/* New agent button */}
       <button
         onClick={() => setShowDialog(true)}
         className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b hover:opacity-80 transition-opacity"
-        style={{ borderColor: "var(--border)", color: "var(--accent)" }}
+        style={{ borderColor: "var(--border)", color: "var(--primary)" }}
       >
         <Plus size={14} />
         {t("create")}
@@ -72,8 +72,8 @@ export function AgentList() {
             autoFocus
             className="w-full text-xs rounded px-2 py-1.5 mb-1.5"
             style={{
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
               border: "1px solid var(--border)",
             }}
           />
@@ -82,7 +82,7 @@ export function AgentList() {
               onClick={() => void handleCreate()}
               disabled={!newName.trim() || creating}
               className="flex-1 text-xs px-2 py-1 rounded disabled:opacity-40"
-              style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
             >
               {tc("create")}
             </button>
@@ -93,8 +93,8 @@ export function AgentList() {
               }}
               className="flex-1 text-xs px-2 py-1 rounded"
               style={{
-                backgroundColor: "var(--bg-primary)",
-                color: "var(--text-secondary)",
+                backgroundColor: "var(--background)",
+                color: "var(--muted-foreground)",
                 border: "1px solid var(--border)",
               }}
             >
@@ -107,7 +107,7 @@ export function AgentList() {
       {/* Agent list */}
       <div className="flex-1 overflow-y-auto">
         {loading && agents.length === 0 && (
-          <div className="p-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+          <div className="p-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
             {tc("loading")}
           </div>
         )}
@@ -120,9 +120,9 @@ export function AgentList() {
               className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group"
               style={{
                 backgroundColor: isActive
-                  ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                  ? "color-mix(in srgb, var(--primary) 12%, transparent)"
                   : "transparent",
-                color: isActive ? "var(--accent)" : "var(--text-primary)",
+                color: isActive ? "var(--primary)" : "var(--foreground)",
               }}
             >
               <div className="flex items-center gap-2 min-w-0">
@@ -133,10 +133,10 @@ export function AgentList() {
                     <span
                       className="inline-block w-1.5 h-1.5 rounded-full"
                       style={{
-                        backgroundColor: STATUS_COLORS[agent.status] ?? "var(--text-secondary)",
+                        backgroundColor: STATUS_COLORS[agent.status] ?? "var(--muted-foreground)",
                       }}
                     />
-                    <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+                    <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                       {agent.model}
                     </span>
                   </div>
@@ -147,7 +147,7 @@ export function AgentList() {
                 onClick={(e) => void handleDelete(agent.id, e)}
                 role="button"
                 tabIndex={-1}
-                style={{ color: "var(--text-secondary)" }}
+                style={{ color: "var(--muted-foreground)" }}
               >
                 <Trash2 size={12} />
               </span>

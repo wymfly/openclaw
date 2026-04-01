@@ -92,11 +92,10 @@ export function InlineEdit(props: InlineEditProps) {
   if (!editing) {
     const displayValue =
       props.type === "select"
-        ? props.options.find((o) => o.value === value)?.label ?? value
+        ? (props.options.find((o) => o.value === value)?.label ?? value)
         : value;
 
-    const placeholder =
-      props.type !== "select" && props.placeholder ? props.placeholder : "—";
+    const placeholder = props.type !== "select" && props.placeholder ? props.placeholder : "—";
 
     return (
       <button

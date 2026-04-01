@@ -21,7 +21,7 @@ export function PendingList() {
   if (pending.length === 0) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {t("noPending")}
         </span>
       </div>
@@ -36,7 +36,7 @@ export function PendingList() {
           className="rounded-lg border p-3"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-secondary)",
+            backgroundColor: "var(--card)",
           }}
         >
           {/* Command + details */}
@@ -51,14 +51,14 @@ export function PendingList() {
               >
                 {t("command")}
               </span>
-              <code className="text-sm font-mono truncate" style={{ color: "var(--text-primary)" }}>
+              <code className="text-sm font-mono truncate" style={{ color: "var(--foreground)" }}>
                 {item.command}
               </code>
             </div>
 
             <div
               className="flex items-center gap-4 text-xs"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               {item.agentId && (
                 <span>
@@ -91,8 +91,8 @@ export function PendingList() {
               onClick={() => handleResolve(item.id, "allow-always")}
               className="text-xs px-3 py-1 rounded border cursor-pointer"
               style={{
-                borderColor: "var(--accent)",
-                color: "var(--accent)",
+                borderColor: "var(--primary)",
+                color: "var(--primary)",
                 backgroundColor: "transparent",
               }}
             >

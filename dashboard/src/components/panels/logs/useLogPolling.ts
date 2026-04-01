@@ -93,7 +93,11 @@ export function useLogPolling(): void {
           console.warn("[logs] fetch error (status %d), resetting cursor", res.status);
           cursorRef.current = null;
         } else if (pollFailCountRef.current % 10 === 1) {
-          console.warn("[logs] polling failed %d times (status %d)", pollFailCountRef.current, res.status);
+          console.warn(
+            "[logs] polling failed %d times (status %d)",
+            pollFailCountRef.current,
+            res.status,
+          );
         }
         return;
       }

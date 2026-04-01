@@ -81,7 +81,7 @@ export function ActivityFeed() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("activityFeed")}</h3>
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">{t("activityFeed")}</h3>
         <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v ?? "__all__")}>
           <SelectTrigger className="w-[160px] h-7 text-xs">
             <SelectValue placeholder={t("agentFilter")} />
@@ -98,7 +98,7 @@ export function ActivityFeed() {
       </div>
 
       {/* Info banner */}
-      <div className="flex items-start gap-2 px-4 py-2 text-xs text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] border-b border-[var(--border)] shrink-0">
+      <div className="flex items-start gap-2 px-4 py-2 text-xs text-[var(--text-tertiary)] bg-[var(--muted)] border-b border-[var(--border)] shrink-0">
         <Info className="size-3.5 mt-0.5 shrink-0" />
         <span>{t("activityBanner")}</span>
       </div>
@@ -115,7 +115,7 @@ export function ActivityFeed() {
             {filtered.map((event) => (
               <li
                 key={event.id}
-                className="flex items-start gap-3 px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="flex items-start gap-3 px-4 py-2.5 hover:bg-[var(--muted)] transition-colors"
               >
                 {/* Timestamp */}
                 <span className="text-[10px] tabular-nums text-[var(--text-tertiary)] pt-0.5 shrink-0 w-14 text-right">
@@ -128,7 +128,7 @@ export function ActivityFeed() {
                 )}
 
                 {/* Description */}
-                <span className="text-xs text-[var(--text-secondary)] leading-relaxed min-w-0 break-words">
+                <span className="text-xs text-[var(--muted-foreground)] leading-relaxed min-w-0 break-words">
                   {event.description}
                 </span>
               </li>

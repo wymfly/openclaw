@@ -46,8 +46,7 @@ function buildRows(
   dimension: Dimension,
   totalCost: number,
 ): BreakdownRow[] {
-  const makeProportion = (cost: number) =>
-    totalCost > 0 ? (cost / totalCost) * 100 : 0;
+  const makeProportion = (cost: number) => (totalCost > 0 ? (cost / totalCost) * 100 : 0);
 
   switch (dimension) {
     case "model":
@@ -102,11 +101,10 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
     return buildRows(aggregates, dimension, totals.totalCost);
   }, [aggregates, totals, dimension]);
 
-  const { paginatedData, sort, setSort, page, totalPages, setPage } =
-    useListState<BreakdownRow>({
-      data: rows,
-      pageSize: 20,
-    });
+  const { paginatedData, sort, setSort, page, totalPages, setPage } = useListState<BreakdownRow>({
+    data: rows,
+    pageSize: 20,
+  });
 
   // Reset page when dimension changes
   const handleDimensionChange = (d: Dimension) => {
@@ -135,14 +133,9 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
             type="button"
             className="px-4 py-2 text-sm font-medium transition-colors"
             style={{
-              color:
-                dimension === tab.key
-                  ? "var(--primary)"
-                  : "var(--muted-foreground)",
+              color: dimension === tab.key ? "var(--primary)" : "var(--muted-foreground)",
               borderBottom:
-                dimension === tab.key
-                  ? "2px solid var(--primary)"
-                  : "2px solid transparent",
+                dimension === tab.key ? "2px solid var(--primary)" : "2px solid transparent",
               backgroundColor: "transparent",
             }}
             onClick={() => handleDimensionChange(tab.key)}
@@ -170,11 +163,7 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
                 className="text-right px-4 py-2 border-b"
                 style={{ borderColor: "var(--border)" }}
               >
-                <SortableHeader
-                  columnKey="tokensIn"
-                  sort={sort}
-                  onSortChange={setSort}
-                >
+                <SortableHeader columnKey="tokensIn" sort={sort} onSortChange={setSort}>
                   {t("tokensIn")}
                 </SortableHeader>
               </th>
@@ -182,11 +171,7 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
                 className="text-right px-4 py-2 border-b"
                 style={{ borderColor: "var(--border)" }}
               >
-                <SortableHeader
-                  columnKey="tokensOut"
-                  sort={sort}
-                  onSortChange={setSort}
-                >
+                <SortableHeader columnKey="tokensOut" sort={sort} onSortChange={setSort}>
                   {t("tokensOut")}
                 </SortableHeader>
               </th>
@@ -194,11 +179,7 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
                 className="text-right px-4 py-2 border-b"
                 style={{ borderColor: "var(--border)" }}
               >
-                <SortableHeader
-                  columnKey="cost"
-                  sort={sort}
-                  onSortChange={setSort}
-                >
+                <SortableHeader columnKey="cost" sort={sort} onSortChange={setSort}>
                   {t("totalCost")}
                 </SortableHeader>
               </th>
@@ -252,10 +233,7 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
                 >
                   {formatCost(row.cost)}
                 </td>
-                <td
-                  className="px-4 py-2 text-right"
-                  style={{ color: "var(--foreground)" }}
-                >
+                <td className="px-4 py-2 text-right" style={{ color: "var(--foreground)" }}>
                   <div className="flex items-center justify-end gap-2">
                     <div
                       className="h-2 rounded-full"
@@ -297,10 +275,7 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
                 if (p > totalPages) return null;
                 return (
                   <PaginationItem key={p}>
-                    <PaginationLink
-                      isActive={p === page}
-                      onClick={() => setPage(p)}
-                    >
+                    <PaginationLink isActive={p === page} onClick={() => setPage(p)}>
                       {p}
                     </PaginationLink>
                   </PaginationItem>

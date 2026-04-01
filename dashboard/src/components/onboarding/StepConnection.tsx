@@ -35,16 +35,16 @@ export function StepConnection({ data, onChange, onNext }: Props) {
   }, [data.gatewayUrl, data.gatewayToken, t]);
 
   const inputStyle = {
-    backgroundColor: "var(--bg-primary)",
-    color: "var(--text-primary)",
+    backgroundColor: "var(--background)",
+    color: "var(--foreground)",
     border: "1px solid var(--border)",
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <Wifi size={16} style={{ color: "var(--accent)" }} />
-        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <Wifi size={16} style={{ color: "var(--primary)" }} />
+        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           {t("stepConnection")}
         </span>
       </div>
@@ -53,7 +53,7 @@ export function StepConnection({ data, onChange, onNext }: Props) {
       <div>
         <label
           className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           {t("gatewayUrl")}
         </label>
@@ -74,7 +74,7 @@ export function StepConnection({ data, onChange, onNext }: Props) {
       <div>
         <label
           className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           {t("gatewayToken")}
         </label>
@@ -97,7 +97,7 @@ export function StepConnection({ data, onChange, onNext }: Props) {
           className="flex items-center gap-2 text-xs px-3 py-2 rounded"
           style={{
             backgroundColor: result.ok ? "var(--status-connected)" : "var(--status-disconnected)",
-            color: "#fff",
+            color: "var(--primary-foreground)",
           }}
         >
           {result.ok ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
@@ -111,7 +111,7 @@ export function StepConnection({ data, onChange, onNext }: Props) {
           onClick={() => void testConnection()}
           disabled={testing || !data.gatewayUrl || !data.gatewayToken}
           className="flex items-center gap-1.5 text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-          style={{ border: "1px solid var(--border)", color: "var(--text-primary)" }}
+          style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
         >
           {testing && <Loader2 size={12} className="animate-spin" />}
           {t("testConnection")}
@@ -120,7 +120,7 @@ export function StepConnection({ data, onChange, onNext }: Props) {
           onClick={onNext}
           disabled={!result?.ok}
           className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
         >
           {t("next")}
         </button>

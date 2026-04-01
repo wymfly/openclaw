@@ -26,7 +26,7 @@ export function CanvasDebugPanel() {
   };
 
   return (
-    <div className="border-t border-[var(--border)] bg-[var(--bg-primary)] max-h-[240px] flex flex-col shrink-0">
+    <div className="border-t border-[var(--border)] bg-[var(--background)] max-h-[240px] flex flex-col shrink-0">
       {/* Tab bar */}
       <div className="flex items-center border-b border-[var(--border-subtle)] shrink-0">
         {(["messages", "tree"] as const).map((tab) => (
@@ -37,21 +37,21 @@ export function CanvasDebugPanel() {
             className={cn(
               "px-3 py-1.5 text-[11px] transition-colors cursor-pointer",
               activeTab === tab
-                ? "text-[var(--brand)] border-b-2 border-[var(--brand)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                ? "text-[var(--primary)] border-b-2 border-[var(--primary)]"
+                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
             )}
           >
             {tab === "messages" ? t("debugMessages") : t("debugTree")}
           </button>
         ))}
         <div className="flex-1" />
-        <span className="text-[9px] text-[var(--text-secondary)] px-2">
+        <span className="text-[9px] text-[var(--muted-foreground)] px-2">
           {t("debugEvents", { count: events.length })}
         </span>
         <button
           type="button"
           onClick={handleClear}
-          className="px-2 py-1 text-[9px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+          className="px-2 py-1 text-[9px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
         >
           {t("debugClear")}
         </button>
@@ -61,7 +61,7 @@ export function CanvasDebugPanel() {
       <div className="flex-1 overflow-auto font-mono text-[11px]">
         {activeTab === "messages" ? (
           events.length === 0 ? (
-            <div className="p-3 text-center text-[var(--text-secondary)] text-[10px]">
+            <div className="p-3 text-center text-[var(--muted-foreground)] text-[10px]">
               {t("debugEvents", { count: 0 })}
             </div>
           ) : (
@@ -71,9 +71,9 @@ export function CanvasDebugPanel() {
                   <button
                     type="button"
                     onClick={() => setExpandedIdx(expandedIdx === i ? null : i)}
-                    className="w-full flex items-center gap-2 px-3 py-1 hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer text-left"
+                    className="w-full flex items-center gap-2 px-3 py-1 hover:bg-[var(--muted)] transition-colors cursor-pointer text-left"
                   >
-                    <span className="text-[var(--text-secondary)] min-w-[50px] text-[10px]">
+                    <span className="text-[var(--muted-foreground)] min-w-[50px] text-[10px]">
                       {new Date(evt.timestamp).toLocaleTimeString()}
                     </span>
                     <span className="text-[10px]">
@@ -83,18 +83,18 @@ export function CanvasDebugPanel() {
                       className={cn(
                         "min-w-[90px] font-medium text-[10px]",
                         evt.direction === "inbound"
-                          ? "text-[var(--brand)]"
+                          ? "text-[var(--primary)]"
                           : "text-[var(--warning)]",
                       )}
                     >
                       {evt.action}
                     </span>
-                    <span className="text-[var(--text-secondary)] text-[10px] truncate">
+                    <span className="text-[var(--muted-foreground)] text-[10px] truncate">
                       {evt.summary}
                     </span>
                   </button>
                   {expandedIdx === i && (
-                    <pre className="px-3 py-2 text-[10px] text-[var(--text-secondary)] bg-[var(--bg-tertiary)] overflow-x-auto max-h-[120px]">
+                    <pre className="px-3 py-2 text-[10px] text-[var(--muted-foreground)] bg-[var(--muted)] overflow-x-auto max-h-[120px]">
                       {JSON.stringify(evt.raw, null, 2)}
                     </pre>
                   )}
@@ -107,12 +107,12 @@ export function CanvasDebugPanel() {
             {surfaces.map((s) => (
               <div key={s} className="flex items-center gap-2 text-[10px]">
                 <span className="text-[var(--success)]">{"\u25CF"}</span>
-                <span className="text-[var(--text-primary)]">{s}</span>
+                <span className="text-[var(--foreground)]">{s}</span>
               </div>
             ))}
           </div>
         ) : (
-          <div className="p-3 text-center text-[var(--text-secondary)] text-[10px]">
+          <div className="p-3 text-center text-[var(--muted-foreground)] text-[10px]">
             {t("debugTreeUnavailable")}
           </div>
         )}

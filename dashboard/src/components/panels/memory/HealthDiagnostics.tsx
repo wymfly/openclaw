@@ -13,12 +13,12 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
     text: "var(--success)",
   },
   error: {
-    bg: "var(--danger-muted)",
-    text: "var(--danger)",
+    bg: "var(--destructive-muted)",
+    text: "var(--destructive)",
   },
   unknown: {
-    bg: "var(--bg-tertiary)",
-    text: "var(--text-secondary)",
+    bg: "var(--muted)",
+    text: "var(--muted-foreground)",
   },
 };
 
@@ -45,39 +45,39 @@ export function HealthDiagnostics() {
 
       {/* Health table */}
       {loading && healthStatus.length === 0 ? (
-        <div style={{ color: "var(--text-secondary)" }}>
+        <div style={{ color: "var(--muted-foreground)" }}>
           <p className="text-sm">...</p>
         </div>
       ) : healthStatus.length === 0 ? (
-        <div style={{ color: "var(--text-secondary)" }}>
+        <div style={{ color: "var(--muted-foreground)" }}>
           <p className="text-sm">{t("noFiles")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-xs" style={{ color: "var(--text-primary)" }}>
+          <table className="w-full text-xs" style={{ color: "var(--foreground)" }}>
             <thead>
               <tr className="border-b" style={{ borderColor: "var(--border)" }}>
                 <th
                   className="text-left py-2 px-3 font-medium"
-                  style={{ color: "var(--text-secondary)" }}
+                  style={{ color: "var(--muted-foreground)" }}
                 >
                   {t("agent")}
                 </th>
                 <th
                   className="text-left py-2 px-3 font-medium"
-                  style={{ color: "var(--text-secondary)" }}
+                  style={{ color: "var(--muted-foreground)" }}
                 >
                   Provider
                 </th>
                 <th
                   className="text-left py-2 px-3 font-medium"
-                  style={{ color: "var(--text-secondary)" }}
+                  style={{ color: "var(--muted-foreground)" }}
                 >
                   Status
                 </th>
                 <th
                   className="text-left py-2 px-3 font-medium"
-                  style={{ color: "var(--text-secondary)" }}
+                  style={{ color: "var(--muted-foreground)" }}
                 >
                   Error
                 </th>
@@ -106,7 +106,7 @@ export function HealthDiagnostics() {
                         {entry.embeddingStatus}
                       </span>
                     </td>
-                    <td className="py-2 px-3" style={{ color: "var(--text-secondary)" }}>
+                    <td className="py-2 px-3" style={{ color: "var(--muted-foreground)" }}>
                       {entry.error ?? "—"}
                     </td>
                   </tr>

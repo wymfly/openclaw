@@ -245,9 +245,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
         (localPatch as Record<string, unknown>)[k] = v === null ? undefined : v;
       }
       set((state) => ({
-        sessions: state.sessions.map((s) =>
-          s.key === sessionKey ? { ...s, ...localPatch } : s,
-        ),
+        sessions: state.sessions.map((s) => (s.key === sessionKey ? { ...s, ...localPatch } : s)),
       }));
       return true;
     } catch (err) {

@@ -37,7 +37,7 @@ export function PathAllowlist({ paths, onChange }: PathAllowlistProps) {
 
   return (
     <div className="space-y-2">
-      <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+      <label className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
         {t("pathAllowlist")}
       </label>
 
@@ -47,9 +47,9 @@ export function PathAllowlist({ paths, onChange }: PathAllowlistProps) {
           <div
             key={path}
             className="flex items-center gap-2 px-2 py-1 rounded text-xs"
-            style={{ backgroundColor: "var(--bg-primary)" }}
+            style={{ backgroundColor: "var(--background)" }}
           >
-            <code className="flex-1 truncate" style={{ color: "var(--text-primary)" }}>
+            <code className="flex-1 truncate" style={{ color: "var(--foreground)" }}>
               {path}
             </code>
             <button
@@ -74,8 +74,8 @@ export function PathAllowlist({ paths, onChange }: PathAllowlistProps) {
           className="flex-1 text-xs rounded px-2 py-1 border"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
         <button
@@ -83,8 +83,8 @@ export function PathAllowlist({ paths, onChange }: PathAllowlistProps) {
           disabled={!newPath.trim()}
           className="text-xs px-3 py-1 rounded border cursor-pointer"
           style={{
-            borderColor: "var(--accent)",
-            color: "var(--accent)",
+            borderColor: "var(--primary)",
+            color: "var(--primary)",
             backgroundColor: "transparent",
             opacity: newPath.trim() ? 1 : 0.5,
           }}

@@ -4,8 +4,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { SharedRenderer } from "../shared-renderer/SharedRenderer";
 import { downloadArtifact } from "../shared-renderer/download";
+import { SharedRenderer } from "../shared-renderer/SharedRenderer";
 import type { ArtifactInfo } from "./detectArtifact";
 
 interface ArtifactPanelProps {

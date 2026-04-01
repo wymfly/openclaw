@@ -14,8 +14,8 @@ const TYPE_COLORS: Record<ActivityEventType, { bg: string; text: string }> = {
     text: "var(--purple)",
   },
   chat: {
-    bg: "var(--accent-muted)",
-    text: "var(--accent)",
+    bg: "var(--primary-muted)",
+    text: "var(--primary)",
   },
   status: {
     bg: "var(--warning-muted)",
@@ -26,8 +26,8 @@ const TYPE_COLORS: Record<ActivityEventType, { bg: string; text: string }> = {
     text: "var(--success)",
   },
   system: {
-    bg: "var(--bg-tertiary)",
-    text: "var(--text-secondary)",
+    bg: "var(--muted)",
+    text: "var(--muted-foreground)",
   },
 };
 
@@ -86,7 +86,7 @@ export function EventTimeline() {
     return (
       <div
         className="flex items-center justify-center flex-1"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--muted-foreground)" }}
       >
         <p className="text-sm">{t("noEvents")}</p>
       </div>
@@ -94,7 +94,7 @@ export function EventTimeline() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-3" style={{ backgroundColor: "var(--bg-primary)" }}>
+    <div className="flex-1 overflow-y-auto p-3" style={{ backgroundColor: "var(--background)" }}>
       {filtered.map((event) => {
         const typeColors = TYPE_COLORS[event.type] ?? TYPE_COLORS.system;
         return (
@@ -107,7 +107,7 @@ export function EventTimeline() {
             <span
               className="text-xs shrink-0 pt-0.5"
               style={{
-                color: "var(--text-secondary)",
+                color: "var(--muted-foreground)",
                 minWidth: 60,
                 fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace",
               }}
@@ -133,7 +133,7 @@ export function EventTimeline() {
             {(event.agentName ?? event.agentId) && (
               <span
                 className="text-xs shrink-0 font-medium pt-0.5"
-                style={{ color: "var(--accent)", minWidth: 60 }}
+                style={{ color: "var(--primary)", minWidth: 60 }}
               >
                 {event.agentName ?? event.agentId}
               </span>
@@ -141,14 +141,14 @@ export function EventTimeline() {
 
             {/* Description + details */}
             <div className="flex-1 min-w-0">
-              <p className="text-xs break-words" style={{ color: "var(--text-primary)" }}>
+              <p className="text-xs break-words" style={{ color: "var(--foreground)" }}>
                 {event.description}
               </p>
               {event.details && (
                 <p
                   className="text-xs mt-0.5 break-words"
                   style={{
-                    color: "var(--text-secondary)",
+                    color: "var(--muted-foreground)",
                     fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace",
                     maxHeight: 60,
                     overflow: "hidden",

@@ -65,7 +65,7 @@ export function RoutingTab({ agentId }: RoutingTabProps) {
         </Button>
         <button
           onClick={() => navigateToRouting(agentId)}
-          className="flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
+          className="flex items-center gap-1 text-[10px] text-[var(--primary)] hover:underline cursor-pointer"
         >
           {t("viewAllRouting")}
           <ExternalLink size={10} />
@@ -74,11 +74,11 @@ export function RoutingTab({ agentId }: RoutingTabProps) {
 
       {/* Bindings list */}
       {loading && bindings.length === 0 && (
-        <div className="py-6 text-center text-xs text-[var(--text-secondary)]">Loading...</div>
+        <div className="py-6 text-center text-xs text-[var(--muted-foreground)]">Loading...</div>
       )}
 
       {!loading && bindings.length === 0 && (
-        <div className="py-6 text-center text-xs text-[var(--text-secondary)]">
+        <div className="py-6 text-center text-xs text-[var(--muted-foreground)]">
           {t("noBindings")}
         </div>
       )}
@@ -87,7 +87,7 @@ export function RoutingTab({ agentId }: RoutingTabProps) {
         {bindings.map((binding) => (
           <Card
             key={binding.id}
-            className="p-3 bg-[var(--bg-primary)] border-[var(--border)] group"
+            className="p-3 bg-[var(--background)] border-[var(--border)] group"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -99,19 +99,19 @@ export function RoutingTab({ agentId }: RoutingTabProps) {
                   {binding.match.channel}
                 </Badge>
                 {binding.match.accountId && (
-                  <span className="text-[10px] text-[var(--text-secondary)] font-mono truncate">
+                  <span className="text-[10px] text-[var(--muted-foreground)] font-mono truncate">
                     {binding.match.accountId}
                   </span>
                 )}
                 {binding.match.peer && (
-                  <span className="text-[10px] text-[var(--text-secondary)] font-mono truncate">
+                  <span className="text-[10px] text-[var(--muted-foreground)] font-mono truncate">
                     {binding.match.peer.kind}:{binding.match.peer.id}
                   </span>
                 )}
               </div>
               <button
                 onClick={() => void handleRemove(binding.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-secondary)] hover:text-[var(--danger)] cursor-pointer"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--muted-foreground)] hover:text-[var(--destructive)] cursor-pointer"
                 aria-label="Remove binding"
               >
                 <Trash2 size={12} />

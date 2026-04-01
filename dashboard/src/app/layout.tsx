@@ -2,7 +2,6 @@ import "./globals.css";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Geist } from "next/font/google";
-import { ThemeScript } from "@/components/layout/ThemeScript";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -18,9 +17,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale} suppressHydrationWarning className={cn("font-sans", geist.variable)}>
-      <head>
-        <ThemeScript />
-      </head>
       <body>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}

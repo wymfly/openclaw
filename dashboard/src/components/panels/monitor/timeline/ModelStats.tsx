@@ -95,7 +95,7 @@ export function ModelStats({ events }: ModelStatsProps) {
 
   if (stats.length === 0) {
     return (
-      <p className="text-xs text-[var(--text-secondary)] italic py-2">
+      <p className="text-xs text-[var(--muted-foreground)] italic py-2">
         {t("timeline.noModelData")}
       </p>
     );
@@ -106,14 +106,14 @@ export function ModelStats({ events }: ModelStatsProps) {
       {stats.map((stat) => (
         <div
           key={stat.model}
-          className="flex items-start gap-3 p-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border)]"
+          className="flex items-start gap-3 p-2 rounded-md bg-[var(--background)] border border-[var(--border)]"
         >
-          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[var(--accent-muted)] shrink-0 mt-0.5">
-            <Cpu size={12} className="text-[var(--accent)]" />
+          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[var(--primary-muted)] shrink-0 mt-0.5">
+            <Cpu size={12} className="text-[var(--primary)]" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-medium text-[var(--text-primary)] truncate">
+              <span className="text-xs font-medium text-[var(--foreground)] truncate">
                 {stat.model}
               </span>
               {stat.hasFallback && (
@@ -122,29 +122,27 @@ export function ModelStats({ events }: ModelStatsProps) {
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-[var(--text-secondary)]">
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-[var(--muted-foreground)]">
               <span>
                 {t("timeline.calls")}:{" "}
-                <strong className="text-[var(--text-primary)] tabular-nums">
-                  {stat.callCount}
-                </strong>
+                <strong className="text-[var(--foreground)] tabular-nums">{stat.callCount}</strong>
               </span>
               <span>
                 {t("timeline.tokensIn")}:{" "}
-                <strong className="text-[var(--text-primary)] tabular-nums">
+                <strong className="text-[var(--foreground)] tabular-nums">
                   {formatTokens(stat.inputTokens)}
                 </strong>
               </span>
               <span>
                 {t("timeline.tokensOut")}:{" "}
-                <strong className="text-[var(--text-primary)] tabular-nums">
+                <strong className="text-[var(--foreground)] tabular-nums">
                   {formatTokens(stat.outputTokens)}
                 </strong>
               </span>
               {stat.cacheTokens > 0 && (
                 <span>
                   {t("timeline.tokensCache")}:{" "}
-                  <strong className="text-[var(--text-primary)] tabular-nums">
+                  <strong className="text-[var(--foreground)] tabular-nums">
                     {formatTokens(stat.cacheTokens)}
                   </strong>
                 </span>

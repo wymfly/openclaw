@@ -49,16 +49,16 @@ export function ActivityPanel() {
         className="flex items-center gap-3 px-4 py-3 border-b flex-wrap"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
+          backgroundColor: "var(--card)",
         }}
       >
-        <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--text-primary)" }}>
+        <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--foreground)" }}>
           {t("title")}
         </h2>
 
         {/* Agent filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("agent")}:
           </span>
           <input
@@ -69,8 +69,8 @@ export function ActivityPanel() {
             className="text-xs rounded px-2 py-1 border"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
               width: 140,
             }}
           />
@@ -78,7 +78,7 @@ export function ActivityPanel() {
 
         {/* Event type filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {t("type")}:
           </span>
           <select
@@ -90,8 +90,8 @@ export function ActivityPanel() {
             className="text-xs rounded px-2 py-1 border"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
             }}
           >
             {EVENT_TYPES.map((type) => (

@@ -78,19 +78,19 @@ export function BudgetPanel() {
       {/* Left sidebar — rule list */}
       <div
         className="w-64 flex-shrink-0 flex flex-col border-r"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
         <div
           className="flex items-center justify-between px-3 py-3 border-b"
           style={{ borderColor: "var(--border)" }}
         >
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
             {t("title")}
           </h2>
           <button
             type="button"
             className="px-2 py-1 text-xs rounded-md font-medium"
-            style={{ backgroundColor: "var(--accent)", color: "var(--accent-fg)" }}
+            style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
             onClick={handleCreate}
           >
             + {tc("create")}
@@ -99,7 +99,7 @@ export function BudgetPanel() {
 
         <div className="flex-1 overflow-y-auto">
           {loading && (
-            <p className="text-xs p-3" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-xs p-3" style={{ color: "var(--muted-foreground)" }}>
               {tc("loading")}
             </p>
           )}
@@ -118,15 +118,15 @@ export function BudgetPanel() {
       {/* Right detail area */}
       <div
         className="flex-1 flex flex-col overflow-hidden"
-        style={{ backgroundColor: "var(--bg-primary)" }}
+        style={{ backgroundColor: "var(--background)" }}
       >
         {error && (
           <div
             className="px-4 py-2 text-xs border-b"
             style={{
               borderColor: "var(--border)",
-              color: "var(--danger)",
-              backgroundColor: "var(--danger-muted)",
+              color: "var(--destructive)",
+              backgroundColor: "var(--destructive-muted)",
             }}
           >
             {error}
@@ -153,7 +153,10 @@ export function BudgetPanel() {
                       <button
                         type="button"
                         className="px-3 py-1 text-xs rounded-md font-medium"
-                        style={{ backgroundColor: "var(--danger)", color: "var(--danger-fg)" }}
+                        style={{
+                          backgroundColor: "var(--destructive)",
+                          color: "var(--destructive-fg)",
+                        }}
                         onClick={() => void handleDelete(editingRule.id)}
                       >
                         {t("confirmDelete")}
@@ -161,7 +164,7 @@ export function BudgetPanel() {
                       <button
                         type="button"
                         className="px-3 py-1 text-xs rounded-md border"
-                        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                        style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
                         onClick={() => setConfirmDeleteId(null)}
                       >
                         {tc("cancel")}
@@ -171,7 +174,7 @@ export function BudgetPanel() {
                     <button
                       type="button"
                       className="px-3 py-1 text-xs rounded-md border"
-                      style={{ borderColor: "var(--border)", color: "var(--danger)" }}
+                      style={{ borderColor: "var(--border)", color: "var(--destructive)" }}
                       onClick={() => setConfirmDeleteId(editingRule.id)}
                     >
                       {tc("delete")}
@@ -187,7 +190,7 @@ export function BudgetPanel() {
               <BudgetStatus evaluations={evaluations} />
               {evaluations.length === 0 && !loading && (
                 <div className="flex items-center justify-center py-8">
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
                     {t("noRules")}
                   </p>
                 </div>

@@ -1,0 +1,525 @@
+<h2>A2UI Canvas 在 Deck 中的布局方式</h2>
+<p class="subtitle">Canvas 渲染区域应该如何与 Chat 面板共存？</p>
+
+<div class="cards">
+  <!-- Option A: Side Panel -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div
+        style="
+          display: flex;
+          height: 280px;
+          gap: 2px;
+          background: #1a1a2e;
+          border-radius: 8px;
+          overflow: hidden;
+          padding: 4px;
+        "
+      >
+        <!-- Chat side -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+          <div
+            style="
+              background: #252540;
+              border-radius: 6px;
+              padding: 8px 10px;
+              font-size: 10px;
+              color: #8888aa;
+            "
+          >
+            Chat Panel
+          </div>
+          <div
+            style="
+              flex: 1;
+              background: #252540;
+              border-radius: 6px;
+              padding: 10px;
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
+            "
+          >
+            <div
+              style="
+                background: #2a2a4a;
+                border-radius: 4px;
+                padding: 6px 8px;
+                font-size: 9px;
+                color: #6666aa;
+                align-self: flex-end;
+                max-width: 70%;
+              "
+            >
+              User message...
+            </div>
+            <div
+              style="
+                background: #1e3a5f;
+                border-radius: 4px;
+                padding: 6px 8px;
+                font-size: 9px;
+                color: #88aacc;
+                max-width: 80%;
+              "
+            >
+              Agent response with canvas...
+            </div>
+            <div
+              style="
+                background: #2a2a4a;
+                border-radius: 4px;
+                padding: 6px 8px;
+                font-size: 9px;
+                color: #6666aa;
+                align-self: flex-end;
+                max-width: 60%;
+              "
+            >
+              Another message
+            </div>
+          </div>
+          <div
+            style="background: #252540; border-radius: 6px; padding: 8px; display: flex; gap: 4px"
+          >
+            <div style="flex: 1; background: #2a2a4a; border-radius: 4px; height: 24px"></div>
+            <div
+              style="
+                background: #3366ff;
+                border-radius: 4px;
+                width: 50px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 8px;
+                color: white;
+              "
+            >
+              Send
+            </div>
+          </div>
+        </div>
+        <!-- Canvas side -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              background: #252540;
+              border-radius: 6px;
+              padding: 8px 10px;
+            "
+          >
+            <span style="font-size: 10px; color: #88ff88">● Canvas</span>
+            <span style="font-size: 9px; color: #666">🔍 Debug</span>
+          </div>
+          <div
+            style="
+              flex: 1;
+              background: linear-gradient(135deg, #0a0a2e, #1a0a3e);
+              border-radius: 6px;
+              border: 1px solid #333366;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-direction: column;
+              gap: 8px;
+            "
+          >
+            <div
+              style="
+                width: 80%;
+                background: #1a1a3e;
+                border-radius: 6px;
+                border: 1px solid #333366;
+                padding: 10px;
+              "
+            >
+              <div style="font-size: 9px; color: #aaaadd; margin-bottom: 6px">Agent UI Surface</div>
+              <div style="display: flex; gap: 4px">
+                <div
+                  style="
+                    background: #3366ff;
+                    border-radius: 4px;
+                    padding: 4px 12px;
+                    font-size: 8px;
+                    color: white;
+                  "
+                >
+                  Buy
+                </div>
+                <div
+                  style="
+                    background: #333355;
+                    border-radius: 4px;
+                    padding: 4px 12px;
+                    font-size: 8px;
+                    color: #aaa;
+                  "
+                >
+                  Cancel
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 左右分栏</h3>
+      <p>Chat 左侧，Canvas 右侧，类似 IDE 编辑器 + 预览。Canvas 激活时自动滑出，隐藏时收回。</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优势</h4>
+          <ul>
+            <li>同时看到对话和 Canvas</li>
+            <li>不中断聊天流</li>
+            <li>与 iOS/macOS 的独立窗口体验对应</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>劣势</h4>
+          <ul>
+            <li>小屏幕下两边都很窄</li>
+            <li>需要处理响应式布局</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: Overlay -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div
+        style="
+          position: relative;
+          height: 280px;
+          background: #1a1a2e;
+          border-radius: 8px;
+          overflow: hidden;
+          padding: 4px;
+        "
+      >
+        <!-- Chat behind (dimmed) -->
+        <div style="display: flex; flex-direction: column; gap: 4px; opacity: 0.3">
+          <div
+            style="
+              background: #252540;
+              border-radius: 6px;
+              padding: 8px 10px;
+              font-size: 10px;
+              color: #8888aa;
+            "
+          >
+            Chat Panel
+          </div>
+          <div
+            style="
+              background: #252540;
+              border-radius: 6px;
+              padding: 10px;
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
+            "
+          >
+            <div
+              style="
+                background: #2a2a4a;
+                border-radius: 4px;
+                padding: 6px 8px;
+                font-size: 9px;
+                color: #6666aa;
+              "
+            >
+              Messages...
+            </div>
+          </div>
+        </div>
+        <!-- Canvas overlay -->
+        <div
+          style="
+            position: absolute;
+            top: 30px;
+            left: 10%;
+            right: 10%;
+            bottom: 20px;
+            background: linear-gradient(135deg, #0a0a2e, #1a0a3e);
+            border-radius: 12px;
+            border: 1px solid #4444aa;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            padding: 4px;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 8px 12px;
+            "
+          >
+            <span style="font-size: 11px; color: #88ff88; font-weight: 600">● A2UI Canvas</span>
+            <div style="display: flex; gap: 8px">
+              <span style="font-size: 9px; color: #666; cursor: pointer">Debug</span>
+              <span style="font-size: 14px; color: #666; cursor: pointer">✕</span>
+            </div>
+          </div>
+          <div
+            style="
+              flex: 1;
+              background: #0a0a1e;
+              border-radius: 8px;
+              margin: 0 4px 4px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-direction: column;
+              gap: 8px;
+            "
+          >
+            <div
+              style="
+                width: 80%;
+                background: #1a1a3e;
+                border-radius: 6px;
+                border: 1px solid #333366;
+                padding: 12px;
+              "
+            >
+              <div style="font-size: 10px; color: #aaaadd; margin-bottom: 8px">
+                Agent UI Surface
+              </div>
+              <div style="display: flex; gap: 6px">
+                <div
+                  style="
+                    background: #3366ff;
+                    border-radius: 4px;
+                    padding: 5px 14px;
+                    font-size: 9px;
+                    color: white;
+                  "
+                >
+                  Buy
+                </div>
+                <div
+                  style="
+                    background: #333355;
+                    border-radius: 4px;
+                    padding: 5px 14px;
+                    font-size: 9px;
+                    color: #aaa;
+                  "
+                >
+                  Cancel
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 弹出式叠加层</h3>
+      <p>Canvas 作为浮层覆盖在 Chat 上方，类似 Modal 但可拖拽调整大小。关闭后回到 Chat。</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优势</h4>
+          <ul>
+            <li>Canvas 获得最大渲染空间</li>
+            <li>视觉焦点集中</li>
+            <li>不影响 Chat 布局</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>劣势</h4>
+          <ul>
+            <li>无法同时看对话和 Canvas</li>
+            <li>频繁切换可能打断工作流</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C: Inline + Expand -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div
+        style="
+          height: 280px;
+          background: #1a1a2e;
+          border-radius: 8px;
+          overflow: hidden;
+          padding: 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        "
+      >
+        <div
+          style="
+            background: #252540;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 10px;
+            color: #8888aa;
+          "
+        >
+          Chat Panel
+        </div>
+        <div
+          style="
+            flex: 1;
+            background: #252540;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              background: #2a2a4a;
+              border-radius: 4px;
+              padding: 6px 8px;
+              font-size: 9px;
+              color: #6666aa;
+              align-self: flex-end;
+              max-width: 70%;
+            "
+          >
+            Create a booking form
+          </div>
+          <div
+            style="
+              background: #1e3a5f;
+              border-radius: 4px;
+              padding: 6px 8px;
+              font-size: 9px;
+              color: #88aacc;
+              max-width: 80%;
+            "
+          >
+            I'll create a booking form on Canvas...
+          </div>
+          <!-- Inline Canvas Card -->
+          <div
+            style="
+              background: linear-gradient(135deg, #0a0a2e, #1a0a3e);
+              border-radius: 8px;
+              border: 1px solid #333366;
+              margin: 4px 0;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 6px 10px;
+                border-bottom: 1px solid #222244;
+              "
+            >
+              <span style="font-size: 9px; color: #88ff88">● Canvas</span>
+              <div style="display: flex; gap: 6px">
+                <span
+                  style="
+                    font-size: 8px;
+                    color: #3366ff;
+                    text-decoration: underline;
+                    cursor: pointer;
+                  "
+                  >展开</span
+                >
+                <span style="font-size: 8px; color: #666">Debug</span>
+              </div>
+            </div>
+            <div style="padding: 10px; display: flex; align-items: center; justify-content: center">
+              <div
+                style="
+                  width: 90%;
+                  background: #1a1a3e;
+                  border-radius: 4px;
+                  border: 1px solid #2a2a4a;
+                  padding: 8px;
+                "
+              >
+                <div style="font-size: 8px; color: #aaaadd; margin-bottom: 4px">Booking Form</div>
+                <div style="display: flex; gap: 4px">
+                  <div
+                    style="
+                      background: #3366ff;
+                      border-radius: 3px;
+                      padding: 3px 10px;
+                      font-size: 7px;
+                      color: white;
+                    "
+                  >
+                    Book
+                  </div>
+                  <div
+                    style="
+                      background: #333355;
+                      border-radius: 3px;
+                      padding: 3px 10px;
+                      font-size: 7px;
+                      color: #aaa;
+                    "
+                  >
+                    Cancel
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            style="
+              background: #2a2a4a;
+              border-radius: 4px;
+              padding: 6px 8px;
+              font-size: 9px;
+              color: #6666aa;
+              align-self: flex-end;
+              max-width: 60%;
+            "
+          >
+            Looks good!
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. 内嵌式 + 可展开</h3>
+      <p>
+        Canvas
+        默认以卡片形式内嵌在聊天流中（消息之间），点击"展开"可全屏查看。交互在内嵌卡片中直接完成。
+      </p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优势</h4>
+          <ul>
+            <li>Canvas 是对话的一部分，上下文自然</li>
+            <li>小 Canvas 不占空间</li>
+            <li>可展开获得完整体验</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>劣势</h4>
+          <ul>
+            <li>内嵌尺寸受限</li>
+            <li>复杂 Canvas 内容在小卡片中体验差</li>
+            <li>实现复杂（iframe 在滚动列表中）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import { Brain } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import type { CatalogProviderModel } from "@/stores/models";
 
@@ -45,9 +45,7 @@ export function ModelCheckboxList({
       {/* Scrollable model list */}
       <div className="max-h-[280px] overflow-y-auto space-y-1 rounded-lg border border-[var(--border)] p-2">
         {models.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">
-            {t("noModelsInCatalog")}
-          </p>
+          <p className="text-xs text-muted-foreground text-center py-4">{t("noModelsInCatalog")}</p>
         ) : (
           models.map((model) => (
             <label
@@ -64,9 +62,7 @@ export function ModelCheckboxList({
               <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
                 {(model.contextWindow / 1000).toFixed(0)}K
               </span>
-              {model.reasoning && (
-                <Brain size={12} className="text-[var(--purple)] shrink-0" />
-              )}
+              {model.reasoning && <Brain size={12} className="text-[var(--purple)] shrink-0" />}
             </label>
           ))
         )}

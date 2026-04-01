@@ -66,9 +66,7 @@ export async function executeSlashCommand(
 // ── Helpers ──
 
 function executeHelp(): SlashCommandResult {
-  const lines = SLASH_COMMANDS.map(
-    (cmd) => `/${cmd.name}${cmd.args ? ` ${cmd.args}` : ""}`,
-  );
+  const lines = SLASH_COMMANDS.map((cmd) => `/${cmd.name}${cmd.args ? ` ${cmd.args}` : ""}`);
   return { content: lines.join("\n") };
 }
 

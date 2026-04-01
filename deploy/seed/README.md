@@ -21,11 +21,11 @@ seed/
 
 ## 种子策略
 
-| 策略 | 行为 | 适用内容 |
-|------|------|----------|
-| init-once | 仅首次部署写入，用户修改后不覆盖 | openclaw.json, agents/, cron/, extensions/ |
-| always-sync | 每次升级覆盖 | skills/（自定义 skills 始终保持最新） |
-| never-seed | 运行时生成 | devices/, logs/, sessions/, deck.db |
+| 策略        | 行为                             | 适用内容                                   |
+| ----------- | -------------------------------- | ------------------------------------------ |
+| init-once   | 仅首次部署写入，用户修改后不覆盖 | openclaw.json, agents/, cron/, extensions/ |
+| always-sync | 每次升级覆盖                     | skills/（自定义 skills 始终保持最新）      |
+| never-seed  | 运行时生成                       | devices/, logs/, sessions/, deck.db        |
 
 ## 定制方式
 
@@ -46,6 +46,7 @@ deploy/scripts/package.sh --with-local
 ```
 
 这会自动收集：
+
 - `~/.openclaw/extensions/` 下的运行时插件
 - `~/.openclaw/skills/` 下的自定义 skills
 - `openclaw.json` 中的 plugins 配置段

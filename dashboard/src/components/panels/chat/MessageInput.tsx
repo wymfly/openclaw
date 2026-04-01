@@ -1,25 +1,17 @@
 "use client";
 
-import {
-  Send,
-  Square,
-  Paperclip,
-  X,
-  FileIcon,
-  PanelRight,
-  SquareCode,
-} from "lucide-react";
+import { Send, Square, Paperclip, X, FileIcon, PanelRight, SquareCode } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
 import { useUIStore } from "@/stores/ui";
 import { ArtifactContext } from "./ChatPanel";
-import { SlashCommandPalette } from "./SlashCommandPalette";
+import { exportSessionAsMarkdown } from "./export-session";
 import { executeSlashCommand } from "./slash-command-executor";
 import { getSlashCommandCompletions, parseSlashCommand } from "./slash-commands";
 import type { SlashCommandDef } from "./slash-commands";
-import { exportSessionAsMarkdown } from "./export-session";
+import { SlashCommandPalette } from "./SlashCommandPalette";
 import { useInputHistory } from "./useInputHistory";
 
 /** Max attachment size — matches macOS client (5MB). */
@@ -208,11 +200,7 @@ export function MessageInput() {
       };
 
       try {
-        const result = await executeSlashCommand(
-          activeSessionKey ?? "",
-          cmd.name,
-          cmdArgs,
-        );
+        const result = await executeSlashCommand(activeSessionKey ?? "", cmd.name, cmdArgs);
 
         // Handle action
         const action = result.action;
@@ -405,7 +393,17 @@ export function MessageInput() {
     } finally {
       setIsSending(false);
     }
-  }, [input, files, isStreaming, isSending, activeSessionKey, activeAgentId, t, handleSlashCommand, history]);
+  }, [
+    input,
+    files,
+    isStreaming,
+    isSending,
+    activeSessionKey,
+    activeAgentId,
+    t,
+    handleSlashCommand,
+    history,
+  ]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Priority 1: Slash command palette (when open, it owns ArrowUp/Down/Enter/Escape)

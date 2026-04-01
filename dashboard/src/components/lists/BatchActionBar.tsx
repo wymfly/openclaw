@@ -63,9 +63,7 @@ export function BatchActionBar<T = unknown>({
 
       {/* Action buttons slot */}
       {actions && (
-        <div className="flex items-center gap-2">
-          {actions({ selectedIds, selectedItems })}
-        </div>
+        <div className="flex items-center gap-2">{actions({ selectedIds, selectedItems })}</div>
       )}
 
       {/* Clear button */}

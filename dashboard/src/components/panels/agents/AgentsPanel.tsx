@@ -46,7 +46,7 @@ export function AgentsPanel() {
           ) : (
             <div
               className="flex items-center justify-center h-full"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               <p className="text-sm">{t("selectAgent")}</p>
             </div>

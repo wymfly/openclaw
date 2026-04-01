@@ -114,19 +114,19 @@ export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps
                 <div
                   className={cn(
                     "w-1.5 h-1.5 rounded-full shrink-0",
-                    file.exists ? "bg-[var(--success)]" : "bg-[var(--text-secondary)] opacity-40",
+                    file.exists ? "bg-[var(--success)]" : "bg-[var(--muted-foreground)] opacity-40",
                   )}
                 />
                 <span
                   className={cn(
                     "text-xs font-mono truncate",
-                    file.exists ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]",
+                    file.exists ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]",
                   )}
                 >
                   {file.name}
                 </span>
                 {file.exists && (
-                  <span className="text-[10px] text-[var(--text-secondary)] font-mono shrink-0">
+                  <span className="text-[10px] text-[var(--muted-foreground)] font-mono shrink-0">
                     {file.charCount.toLocaleString()} ch
                   </span>
                 )}
@@ -139,10 +139,10 @@ export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps
                 onClick={() => void handleOpenFile(file.name, file.exists)}
                 className={cn(
                   "text-[10px] px-2 py-0.5 rounded border shrink-0 cursor-pointer transition-colors",
-                  "border-[var(--border)] text-[var(--text-secondary)]",
-                  "hover:border-[var(--accent)] hover:text-[var(--accent)]",
+                  "border-[var(--border)] text-[var(--muted-foreground)]",
+                  "hover:border-[var(--primary)] hover:text-[var(--primary)]",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
-                  isActive && "border-[var(--accent)] text-[var(--accent)]",
+                  isActive && "border-[var(--primary)] text-[var(--primary)]",
                 )}
               >
                 {isLoading ? "..." : isActive ? t("cancel") : file.exists ? t("edit") : t("create")}
@@ -159,10 +159,10 @@ export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps
                   rows={8}
                   className={cn(
                     "w-full text-xs font-mono resize-y",
-                    "bg-[var(--bg-secondary)] text-[var(--text-primary)]",
+                    "bg-[var(--card)] text-[var(--foreground)]",
                     "border border-[var(--border)] rounded px-2 py-1.5",
-                    "focus:outline-none focus:ring-1 focus:ring-[var(--accent)] focus:border-[var(--accent)]",
-                    "placeholder:text-[var(--text-secondary)]",
+                    "focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]",
+                    "placeholder:text-[var(--muted-foreground)]",
                   )}
                 />
 
@@ -171,7 +171,7 @@ export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps
                   <p className="text-[10px] text-[var(--success)]">{t("saved")}</p>
                 )}
                 {feedback === "failed" && (
-                  <p className="text-[10px] text-[var(--danger)]">{t("saveFailed")}</p>
+                  <p className="text-[10px] text-[var(--destructive)]">{t("saveFailed")}</p>
                 )}
 
                 {/* Save / Cancel */}
@@ -181,8 +181,8 @@ export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps
                     onClick={handleCancel}
                     className={cn(
                       "text-xs px-3 py-1 rounded border cursor-pointer transition-colors",
-                      "border-[var(--border)] text-[var(--text-secondary)]",
-                      "hover:text-[var(--text-primary)]",
+                      "border-[var(--border)] text-[var(--muted-foreground)]",
+                      "hover:text-[var(--foreground)]",
                     )}
                   >
                     {t("cancel")}
@@ -193,7 +193,7 @@ export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps
                     onClick={() => void handleSave(file.name)}
                     className={cn(
                       "text-xs px-3 py-1 rounded border cursor-pointer transition-colors",
-                      "bg-[var(--accent)] border-[var(--accent)] text-white",
+                      "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)]",
                       "hover:opacity-90",
                       "disabled:opacity-50 disabled:cursor-not-allowed",
                     )}

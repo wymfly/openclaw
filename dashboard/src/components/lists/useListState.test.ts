@@ -1,6 +1,6 @@
+import { renderHook, act } from "@testing-library/react";
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
-import { renderHook, act } from "@testing-library/react";
 import { useListState } from "./useListState";
 
 interface TestItem {
@@ -235,7 +235,11 @@ describe("useListState — edge cases", () => {
 
     act(() => result.current.setSort({ key: "name", direction: "asc" }));
     expect(result.current.sortedData.map((i) => i.name)).toEqual([
-      "Alice", "Bob", "Charlie", "Diana", "Eve",
+      "Alice",
+      "Bob",
+      "Charlie",
+      "Diana",
+      "Eve",
     ]);
   });
 

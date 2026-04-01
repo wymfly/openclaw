@@ -27,16 +27,16 @@ export function HighlightedCodeView({ content, extension: _extension }: Highligh
         <table className="w-full text-xs font-mono border-collapse">
           <tbody>
             {lines.map((line, i) => (
-              <tr key={i} className="leading-5 hover:bg-[var(--bg-tertiary)] transition-colors">
+              <tr key={i} className="leading-5 hover:bg-[var(--muted)] transition-colors">
                 {/* Line number */}
                 <td
-                  className="px-2 text-right select-none text-[var(--text-tertiary)] border-r border-[var(--border-subtle)] align-top whitespace-nowrap bg-[var(--bg-secondary)]"
+                  className="px-2 text-right select-none text-[var(--text-tertiary)] border-r border-[var(--border-subtle)] align-top whitespace-nowrap bg-[var(--card)]"
                   style={{ minWidth: `${gutterWidth + 2}ch` }}
                 >
                   {i + 1}
                 </td>
                 {/* Code content */}
-                <td className="px-3 text-[var(--text-primary)] whitespace-pre-wrap break-all">
+                <td className="px-3 text-[var(--foreground)] whitespace-pre-wrap break-all">
                   {line || "\u00A0"}
                 </td>
               </tr>

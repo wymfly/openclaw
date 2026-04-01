@@ -67,7 +67,7 @@ export function TimelineTab() {
   // ── No run selected ──
   if (!selectedRunId) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--text-secondary)]">
+      <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--muted-foreground)]">
         <Activity size={32} className="opacity-40" />
         <p className="text-sm">{t("timeline.selectRun")}</p>
       </div>
@@ -77,7 +77,7 @@ export function TimelineTab() {
   // ── Loading ──
   if (runDetailLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-[var(--text-secondary)]">
+      <div className="flex items-center justify-center h-full text-sm text-[var(--muted-foreground)]">
         {tc("loading")}
       </div>
     );
@@ -86,7 +86,7 @@ export function TimelineTab() {
   // ── No events ──
   if (runEvents.length === 0 && !runSummary) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--text-secondary)]">
+      <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--muted-foreground)]">
         <Layers size={32} className="opacity-40" />
         <p className="text-sm">{t("noEvents")}</p>
       </div>
@@ -101,18 +101,18 @@ export function TimelineTab() {
   return (
     <div className="p-4 space-y-5 overflow-auto">
       {/* Run header */}
-      <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)]">
-        <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+      <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-[var(--background)] border border-[var(--border)]">
+        <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
           <Hash size={12} />
-          <span className="font-mono text-[var(--text-primary)] select-all">{selectedRunId}</span>
+          <span className="font-mono text-[var(--foreground)] select-all">{selectedRunId}</span>
         </div>
 
         {/* Summary metrics */}
-        <div className="flex flex-wrap gap-3 ml-auto text-[11px] text-[var(--text-secondary)]">
+        <div className="flex flex-wrap gap-3 ml-auto text-[11px] text-[var(--muted-foreground)]">
           {runSummary?.eventCount != null && (
             <span>
               {t("timeline.events")}:{" "}
-              <strong className="text-[var(--text-primary)] tabular-nums">
+              <strong className="text-[var(--foreground)] tabular-nums">
                 {runSummary.eventCount}
               </strong>
             </span>
@@ -120,7 +120,7 @@ export function TimelineTab() {
           {runSummary?.durationMs != null && runSummary.durationMs > 0 && (
             <span className="flex items-center gap-1">
               <Clock size={10} />
-              <strong className="text-[var(--text-primary)] tabular-nums">
+              <strong className="text-[var(--foreground)] tabular-nums">
                 {formatDuration(runSummary.durationMs)}
               </strong>
             </span>
@@ -128,7 +128,7 @@ export function TimelineTab() {
           {runSummary?.totalInputTokens != null && runSummary.totalInputTokens > 0 && (
             <span>
               {t("timeline.tokensIn")}:{" "}
-              <strong className="text-[var(--text-primary)] tabular-nums">
+              <strong className="text-[var(--foreground)] tabular-nums">
                 {formatTokens(runSummary.totalInputTokens)}
               </strong>
             </span>
@@ -136,7 +136,7 @@ export function TimelineTab() {
           {runSummary?.totalOutputTokens != null && runSummary.totalOutputTokens > 0 && (
             <span>
               {t("timeline.tokensOut")}:{" "}
-              <strong className="text-[var(--text-primary)] tabular-nums">
+              <strong className="text-[var(--foreground)] tabular-nums">
                 {formatTokens(runSummary.totalOutputTokens)}
               </strong>
             </span>
@@ -144,7 +144,7 @@ export function TimelineTab() {
           {runSummary?.totalCacheTokens != null && runSummary.totalCacheTokens > 0 && (
             <span>
               {t("timeline.tokensCache")}:{" "}
-              <strong className="text-[var(--text-primary)] tabular-nums">
+              <strong className="text-[var(--foreground)] tabular-nums">
                 {formatTokens(runSummary.totalCacheTokens)}
               </strong>
             </span>
@@ -154,7 +154,7 @@ export function TimelineTab() {
 
       {/* Gantt timeline */}
       <section>
-        <h4 className="text-xs font-medium text-[var(--text-secondary)] mb-2">
+        <h4 className="text-xs font-medium text-[var(--muted-foreground)] mb-2">
           {t("timeline.ganttTitle")}
         </h4>
         <RunTimeline events={runEvents} />
@@ -162,7 +162,7 @@ export function TimelineTab() {
 
       {/* Tool waterfall */}
       <section>
-        <h4 className="text-xs font-medium text-[var(--text-secondary)] mb-2">
+        <h4 className="text-xs font-medium text-[var(--muted-foreground)] mb-2">
           {t("timeline.toolWaterfallTitle")}
         </h4>
         <ToolWaterfall events={runEvents} />
@@ -170,7 +170,7 @@ export function TimelineTab() {
 
       {/* File changes */}
       <section>
-        <h4 className="text-xs font-medium text-[var(--text-secondary)] mb-2">
+        <h4 className="text-xs font-medium text-[var(--muted-foreground)] mb-2">
           {t("timeline.fileChangesTitle")}
         </h4>
         <FileChangeSummary events={runEvents} />
@@ -178,7 +178,7 @@ export function TimelineTab() {
 
       {/* Model stats */}
       <section>
-        <h4 className="text-xs font-medium text-[var(--text-secondary)] mb-2">
+        <h4 className="text-xs font-medium text-[var(--muted-foreground)] mb-2">
           {t("timeline.modelStatsTitle")}
         </h4>
         <ModelStats events={runEvents} />

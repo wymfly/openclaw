@@ -78,12 +78,12 @@ export function ThroughputChart({ channelId }: { channelId: string }) {
       {/* Header: title + window selector */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-[var(--text-secondary)]">
+          <label className="text-xs font-medium text-[var(--muted-foreground)]">
             {t("throughput")}
           </label>
           <span className="text-[10px] text-[var(--text-tertiary)] italic">{t("estimated")}</span>
         </div>
-        <div className="flex items-center gap-0.5 rounded-md bg-[var(--bg-tertiary)] p-0.5">
+        <div className="flex items-center gap-0.5 rounded-md bg-[var(--muted)] p-0.5">
           {WINDOWS.map((w) => (
             <button
               key={w}
@@ -91,8 +91,8 @@ export function ThroughputChart({ channelId }: { channelId: string }) {
               className={cn(
                 "px-2 py-0.5 text-[10px] font-medium rounded transition-colors cursor-pointer",
                 throughputWindow === w
-                  ? "bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
               )}
             >
               {w}
@@ -104,11 +104,11 @@ export function ThroughputChart({ channelId }: { channelId: string }) {
       {/* Summary numbers */}
       {data && (
         <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1 text-[var(--accent)]">
+          <span className="flex items-center gap-1 text-[var(--primary)]">
             <ArrowDownLeft size={10} />
             {data.messagesIn} {t("messagesIn")}
           </span>
-          <span className="flex items-center gap-1 text-[var(--text-secondary)]">
+          <span className="flex items-center gap-1 text-[var(--muted-foreground)]">
             <ArrowUpRight size={10} />
             {data.messagesOut} {t("messagesOut")}
           </span>
@@ -116,7 +116,7 @@ export function ThroughputChart({ channelId }: { channelId: string }) {
       )}
 
       {/* Bar chart */}
-      <div className="relative h-20 flex items-end gap-[2px] rounded-lg bg-[var(--bg-tertiary)] p-2 pt-1">
+      <div className="relative h-20 flex items-end gap-[2px] rounded-lg bg-[var(--muted)] p-2 pt-1">
         {buckets.length === 0 || (data?.messagesIn === 0 && data?.messagesOut === 0) ? (
           <div className="flex items-center justify-center w-full h-full">
             <span className="text-[10px] text-[var(--text-tertiary)]">
@@ -134,11 +134,11 @@ export function ThroughputChart({ channelId }: { channelId: string }) {
                 title={`${formatTime(bucket.time, throughputWindow)} — ↓${bucket.in} ↑${bucket.out}`}
               >
                 <div
-                  className="flex-1 rounded-t-sm bg-[var(--accent)] opacity-80 transition-all min-h-[1px]"
+                  className="flex-1 rounded-t-sm bg-[var(--primary)] opacity-80 transition-all min-h-[1px]"
                   style={{ height: `${Math.max(inPct, 2)}%` }}
                 />
                 <div
-                  className="flex-1 rounded-t-sm bg-[var(--text-secondary)] opacity-40 transition-all min-h-[1px]"
+                  className="flex-1 rounded-t-sm bg-[var(--muted-foreground)] opacity-40 transition-all min-h-[1px]"
                   style={{ height: `${Math.max(outPct, 2)}%` }}
                 />
               </div>

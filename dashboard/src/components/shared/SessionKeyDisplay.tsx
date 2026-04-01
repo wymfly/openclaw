@@ -7,7 +7,7 @@ interface SessionKeyDisplayProps {
 }
 
 const segmentColors = [
-  "text-[var(--accent)]",
+  "text-[var(--primary)]",
   "text-emerald-400",
   "text-amber-400",
   "text-purple-400",
@@ -25,7 +25,7 @@ export function SessionKeyDisplay({ sessionKey }: SessionKeyDisplayProps) {
     <span className="inline-flex items-center gap-0 font-mono text-xs">
       {segments.map((segment, i) => (
         <span key={i}>
-          {i > 0 && <span className="text-[var(--text-secondary)] opacity-40">:</span>}
+          {i > 0 && <span className="text-[var(--muted-foreground)] opacity-40">:</span>}
           <span className={cn(segmentColors[i % segmentColors.length])}>{segment}</span>
         </span>
       ))}

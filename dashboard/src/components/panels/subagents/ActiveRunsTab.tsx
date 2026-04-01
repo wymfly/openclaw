@@ -90,7 +90,7 @@ export function ActiveRunsTab() {
   // Fetch lineage when a run is selected
   useEffect(() => {
     if (selectedLineageKey) {
-      void fetchLineage(selectedLineageKey);
+      void fetchLineage({ sessionKey: selectedLineageKey });
     }
   }, [selectedLineageKey, fetchLineage]);
 
@@ -101,7 +101,7 @@ export function ActiveRunsTab() {
       {/* Toolbar: filters + stats */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-subtle)] shrink-0 flex-wrap">
         <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v ?? "all")}>
-          <SelectTrigger className="w-[160px] h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+          <SelectTrigger className="w-[160px] h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
             <SelectValue placeholder="All Agents" />
           </SelectTrigger>
           <SelectContent>
@@ -115,7 +115,7 @@ export function ActiveRunsTab() {
         </Select>
 
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-          <SelectTrigger className="w-[140px] h-8 text-xs bg-[var(--bg-primary)] border-[var(--border)] cursor-pointer">
+          <SelectTrigger className="w-[140px] h-8 text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -134,7 +134,7 @@ export function ActiveRunsTab() {
               "text-[10px] border",
               activeCount > 0
                 ? "bg-blue-500/15 text-blue-400 border-blue-500/25"
-                : "text-[var(--text-secondary)]",
+                : "text-[var(--muted-foreground)]",
             )}
           >
             Active: {activeCount}
@@ -146,7 +146,7 @@ export function ActiveRunsTab() {
       <div className="flex-1 overflow-auto p-4">
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-[var(--text-secondary)]">No active runs</p>
+            <p className="text-sm text-[var(--muted-foreground)]">No active runs</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -168,8 +168,8 @@ export function ActiveRunsTab() {
 
             {/* Lineage visualization */}
             {selectedLineageKey && lineage.length > 0 && (
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
-                <h3 className="text-xs font-medium text-[var(--text-secondary)] mb-3">
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+                <h3 className="text-xs font-medium text-[var(--muted-foreground)] mb-3">
                   {t("lineage")}
                 </h3>
                 <LineageTree nodes={lineage} rootSessionKey={selectedLineageKey} />
@@ -181,11 +181,11 @@ export function ActiveRunsTab() {
 
       {/* Kill confirmation dialog */}
       <Dialog open={killTarget !== null} onOpenChange={(o) => !o && setKillTarget(null)}>
-        <DialogContent className="bg-[var(--bg-secondary)] border-[var(--border)] sm:max-w-sm">
+        <DialogContent className="bg-[var(--card)] border-[var(--border)] sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-[var(--text-primary)]">{t("kill")}</DialogTitle>
+            <DialogTitle className="text-[var(--foreground)]">{t("kill")}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--muted-foreground)]">
             Terminate run <code className="text-xs font-mono">{killTarget}</code>?
           </p>
           <DialogFooter>
@@ -235,7 +235,7 @@ function RunTreeNode({
       <div
         className={cn(
           "rounded-lg transition-colors",
-          isSelected && "ring-1 ring-[var(--accent)]/40",
+          isSelected && "ring-1 ring-[var(--primary)]/40",
         )}
       >
         <button

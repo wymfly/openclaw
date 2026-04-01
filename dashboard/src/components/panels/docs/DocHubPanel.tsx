@@ -28,16 +28,16 @@ export function DocHubPanel() {
         className="flex items-center justify-between px-4 py-3 border-b"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "var(--bg-secondary)",
+          backgroundColor: "var(--card)",
         }}
       >
-        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           {t("title")}
         </h2>
         <button
           type="button"
           className="px-3 py-1 text-xs font-medium rounded-md"
-          style={{ backgroundColor: "var(--brand)", color: "var(--brand-fg)" }}
+          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
           onClick={() => void extractDocs(activeSessionKey ?? undefined)}
         >
           {t("extract")}
@@ -60,18 +60,18 @@ export function DocHubPanel() {
           className="w-full px-3 py-1.5 text-sm rounded-md border outline-none"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
           }}
         />
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--bg-primary)" }}>
+      <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
         {loading && (
           <div
             className="flex items-center justify-center py-12"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{tc("loading")}</p>
           </div>
@@ -80,7 +80,7 @@ export function DocHubPanel() {
         {error && !loading && (
           <div
             className="flex items-center justify-center py-12"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <p className="text-sm">{error}</p>
           </div>

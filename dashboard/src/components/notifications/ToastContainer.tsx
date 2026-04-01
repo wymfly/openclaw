@@ -12,7 +12,7 @@ const ICONS: Record<ToastType, string> = {
 };
 
 const BORDER_COLORS: Record<ToastType, string> = {
-  info: "var(--accent)",
+  info: "var(--primary)",
   success: "var(--status-connected)",
   warning: "var(--status-reconnecting)",
   error: "var(--status-disconnected)",
@@ -67,8 +67,8 @@ export function ToastContainer() {
             padding: "10px 14px",
             borderRadius: 8,
             borderLeft: `4px solid ${BORDER_COLORS[toast.type]}`,
-            backgroundColor: "var(--bg-secondary)",
-            color: "var(--text-primary)",
+            backgroundColor: "var(--card)",
+            color: "var(--foreground)",
             boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             pointerEvents: "auto",
             opacity: visible.has(toast.id) ? 1 : 0,
@@ -85,7 +85,7 @@ export function ToastContainer() {
               background: "none",
               border: "none",
               cursor: "pointer",
-              color: "var(--text-secondary)",
+              color: "var(--muted-foreground)",
               padding: "2px 4px",
               fontSize: 12,
               flexShrink: 0,

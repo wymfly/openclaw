@@ -21,7 +21,7 @@ function ElapsedTime({ startedAt }: { startedAt: number }) {
     return null;
   }
   return (
-    <span className="text-[10px] text-[var(--text-secondary)] tabular-nums ml-auto">
+    <span className="text-[10px] text-[var(--muted-foreground)] tabular-nums ml-auto">
       {elapsed}s
     </span>
   );
@@ -35,14 +35,14 @@ function ToolEntry({ tool }: { tool: ToolProgress }) {
       className={cn(
         "flex items-center gap-1.5 px-2 py-0.5 text-xs rounded-md transition-opacity",
         isRunning
-          ? "text-[var(--text-primary)]"
+          ? "text-[var(--foreground)]"
           : isError
-            ? "text-[var(--danger)] opacity-70"
+            ? "text-[var(--destructive)] opacity-70"
             : "text-[var(--success)] opacity-70",
       )}
     >
       {isRunning ? (
-        <Loader2 size={12} className="animate-spin shrink-0 text-[var(--accent)]" />
+        <Loader2 size={12} className="animate-spin shrink-0 text-[var(--primary)]" />
       ) : isError ? (
         <XCircle size={12} className="shrink-0" />
       ) : (
@@ -97,8 +97,8 @@ export function ToolProgressBar() {
   const runningCount = visibleTools.filter((tp) => tp.status === "running").length;
 
   return (
-    <div className="mx-4 my-1 px-2 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
-      <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] mb-1">
+    <div className="mx-4 my-1 px-2 py-1.5 rounded-lg bg-[var(--muted)] border border-[var(--border-subtle)]">
+      <div className="flex items-center gap-1.5 text-[10px] text-[var(--muted-foreground)] mb-1">
         <Loader2 size={10} className={cn("shrink-0", runningCount > 0 && "animate-spin")} />
         <span>
           {runningCount > 0 ? t("toolsRunning", { count: runningCount }) : t("toolsCompleted")}

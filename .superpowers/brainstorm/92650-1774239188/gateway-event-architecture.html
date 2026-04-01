@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gateway Event Architecture — Full Pipeline</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --bg-card: #1a1d27;
+        --bg-card-alt: #1e2233;
+        --border: #2a2e3d;
+        --border-accent: #3d4460;
+        --text: #e4e6ed;
+        --text-dim: #8b8fa3;
+        --text-label: #6b7089;
+        --accent: #6c8cff;
+        --accent-dim: #4a6ad4;
+        --green: #4ade80;
+        --green-dim: #16a34a;
+        --orange: #fb923c;
+        --orange-dim: #d97706;
+        --red: #f87171;
+        --red-dim: #dc2626;
+        --purple: #a78bfa;
+        --cyan: #22d3ee;
+        --pink: #f472b6;
+        --yellow: #fbbf24;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, "SF Pro Display", "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 24px;
+        line-height: 1.5;
+      }
+
+      h1 {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--accent);
+      }
+      h2 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--text);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+      }
+      h3 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: var(--text-dim);
+        font-size: 13px;
+        margin-bottom: 24px;
+      }
+
+      .section {
+        margin-bottom: 32px;
+      }
+
+      /* ---- Event Source ---- */
+      .source-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .source-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .source-card h3 {
+        margin-bottom: 12px;
+      }
+
+      .event-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .event-row:last-child {
+        border-bottom: none;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+      }
+      .tag-chat {
+        background: #1e3a5f;
+        color: #60a5fa;
+      }
+      .tag-tool {
+        background: #3b2a1a;
+        color: var(--orange);
+      }
+      .tag-lifecycle {
+        background: #1a3a2a;
+        color: var(--green);
+      }
+      .tag-thinking {
+        background: #2a1a3a;
+        color: var(--purple);
+      }
+      .tag-error {
+        background: #3a1a1a;
+        color: var(--red);
+      }
+      .tag-approval {
+        background: #3a2a1a;
+        color: var(--yellow);
+      }
+      .tag-subagent {
+        background: #1a2a3a;
+        color: var(--cyan);
+      }
+
+      .tag-broadcast {
+        background: #1a2a1a;
+        color: var(--green);
+        border: 1px solid var(--green-dim);
+      }
+      .tag-targeted {
+        background: #2a2a1a;
+        color: var(--yellow);
+        border: 1px solid var(--orange-dim);
+      }
+      .tag-node {
+        background: #2a1a2a;
+        color: var(--pink);
+        border: 1px solid #a855f7;
+      }
+      .tag-none {
+        background: #2a1a1a;
+        color: var(--text-dim);
+        border: 1px solid var(--border);
+      }
+
+      .tag-yes {
+        background: #0a2a0a;
+        color: var(--green);
+      }
+      .tag-no {
+        background: #2a0a0a;
+        color: var(--red);
+      }
+      .tag-partial {
+        background: #2a2a0a;
+        color: var(--orange);
+      }
+      .tag-filter {
+        background: #1a1a2a;
+        color: var(--accent);
+      }
+
+      .event-name {
+        font-family: "SF Mono", monospace;
+        color: var(--text);
+        min-width: 120px;
+      }
+      .event-detail {
+        color: var(--text-dim);
+        flex: 1;
+      }
+
+      /* ---- Flow Diagram ---- */
+      .flow-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        overflow-x: auto;
+      }
+      .flow-row {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        margin-bottom: 2px;
+      }
+      .flow-col {
+        flex: 1;
+        min-width: 180px;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        position: relative;
+      }
+      .flow-col.header {
+        background: var(--bg-card-alt);
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--accent);
+        padding: 10px 8px;
+      }
+      .flow-col .label {
+        font-size: 10px;
+        color: var(--text-label);
+        margin-bottom: 2px;
+      }
+      .flow-col .value {
+        font-size: 11px;
+        font-family: "SF Mono", monospace;
+      }
+
+      .flow-arrow {
+        width: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-dim);
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+
+      /* ---- Client Matrix ---- */
+      .matrix-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+      .matrix-table th {
+        background: var(--bg-card-alt);
+        padding: 8px 10px;
+        text-align: left;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-dim);
+        border: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      .matrix-table td {
+        padding: 7px 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        vertical-align: middle;
+      }
+      .matrix-table tr:hover td {
+        background: var(--bg-card-alt);
+      }
+      .matrix-table .row-label {
+        font-family: "SF Mono", monospace;
+        font-weight: 600;
+        color: var(--text);
+        white-space: nowrap;
+      }
+
+      .status-icon {
+        font-size: 14px;
+      }
+
+      /* ---- Legend ---- */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 12px 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 24px;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+
+      /* ---- Problem Callout ---- */
+      .callout {
+        background: #1a1520;
+        border: 1px solid #4a2a5a;
+        border-left: 3px solid var(--purple);
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 24px;
+      }
+      .callout h3 {
+        color: var(--purple);
+        margin-bottom: 8px;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 14px;
+      }
+      .callout p {
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+      .callout ul {
+        padding-left: 16px;
+        margin-top: 8px;
+      }
+      .callout li {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-bottom: 4px;
+      }
+      .callout code {
+        font-family: "SF Mono", monospace;
+        color: var(--accent);
+        font-size: 11px;
+        background: rgba(108, 140, 255, 0.1);
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+
+      .highlight {
+        color: var(--orange);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Gateway Event Architecture — 全链路现状</h1>
+    <p class="subtitle">Pi Runner → Gateway → 客户端/渠道 完整事件流追踪</p>
+
+    <!-- ============================================================ -->
+    <div class="section">
+      <h2>1. Gateway 发送的事件类型</h2>
+
+      <div class="source-grid">
+        <div class="source-card">
+          <h3>SSE Event Type: <code style="color: var(--accent)">chat</code></h3>
+          <div class="event-row">
+            <span class="tag tag-chat">delta</span>
+            <span class="event-name">流式文本增量</span>
+            <span class="event-detail">content: [{type:"text", text}]，累积式</span>
+          </div>
+          <div class="event-row">
+            <span class="tag tag-chat">final</span>
+            <span class="event-name">最终完整文本</span>
+            <span class="event-detail">完成时的完整消息 + stopReason</span>
+          </div>
+          <div class="event-row">
+            <span class="tag tag-error">error</span>
+            <span class="event-name">运行错误</span>
+            <span class="event-detail">errorMessage 字段</span>
+          </div>
+          <div class="event-row">
+            <span class="tag tag-chat">aborted</span>
+            <span class="event-name">用户取消</span>
+            <span class="event-detail">流式中断</span>
+          </div>
+        </div>
+
+        <div class="source-card">
+          <h3>SSE Event Type: <code style="color: var(--accent)">agent</code></h3>
+          <div class="event-row">
+            <span class="tag tag-tool">tool</span>
+            <span class="event-name">工具调用</span>
+            <span class="event-detail">phase: start → update → result | name, args, result</span>
+          </div>
+          <div class="event-row">
+            <span class="tag tag-lifecycle">lifecycle</span>
+            <span class="event-name">生命周期</span>
+            <span class="event-detail"
+              >phase: start → end/error | startedAt, endedAt, model, usage</span
+            >
+          </div>
+          <div class="event-row">
+            <span class="tag tag-thinking">thinking</span>
+            <span class="event-name">推理过程</span>
+            <span class="event-detail">text, delta（需 reasoningLevel: "stream"）</span>
+          </div>
+          <div class="event-row">
+            <span class="tag tag-error">error</span>
+            <span class="event-name">序列间隙</span>
+            <span class="event-detail">seq gap 检测</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h3>不在 SSE 中的事件</h3>
+        <ul>
+          <li>
+            <span class="tag tag-approval">approval</span> <strong>审批请求</strong> — 基于 Promise
+            的请求/响应模式，不通过事件流
+          </li>
+          <li>
+            <span class="tag tag-subagent">subagent</span> <strong>子 Agent 生命周期</strong> — 仅
+            REST 轮询（<code>/api/deck/subagents</code>），无实时推送
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="section">
+      <h2>2. 广播方式</h2>
+
+      <div class="legend">
+        <div class="legend-item">
+          <span class="tag tag-broadcast">broadcast</span> WS 全局广播（所有连接）
+        </div>
+        <div class="legend-item">
+          <span class="tag tag-targeted">broadcastToConnIds</span> WS 定向发送（注册的 connId）
+        </div>
+        <div class="legend-item">
+          <span class="tag tag-node">nodeSendToSession</span> Node/渠道投递（订阅图路由）
+        </div>
+        <div class="legend-item"><span class="tag tag-none">不发送</span> 当前不通过该路径</div>
+      </div>
+
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>事件类型</th>
+            <th>stream</th>
+            <th>WS 广播方式</th>
+            <th>verbose 过滤</th>
+            <th>渠道投递</th>
+            <th>verbose 条件</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="row-label">chat delta/final</td>
+            <td><span class="tag tag-chat">chat</span></td>
+            <td><span class="tag tag-broadcast">broadcast</span></td>
+            <td><span class="tag tag-no">无</span></td>
+            <td><span class="tag tag-node">nodeSendToSession</span></td>
+            <td>始终发送</td>
+          </tr>
+          <tr>
+            <td class="row-label">tool start/update</td>
+            <td><span class="tag tag-tool">tool</span></td>
+            <td>
+              <span class="tag tag-targeted">connIds</span> +
+              <span class="tag tag-broadcast">global</span>
+            </td>
+            <td><span class="tag tag-partial">strip result</span></td>
+            <td><span class="tag tag-node">nodeSendToSession</span></td>
+            <td><code>verbose !== "off"</code></td>
+          </tr>
+          <tr>
+            <td class="row-label">tool result</td>
+            <td><span class="tag tag-tool">tool</span></td>
+            <td>
+              <span class="tag tag-targeted">connIds</span> +
+              <span class="tag tag-broadcast">global</span>
+            </td>
+            <td>
+              <span class="highlight">定向: strip<br />全局: 保留</span>
+            </td>
+            <td><span class="tag tag-node">nodeSendToSession</span></td>
+            <td><code>verbose !== "off"</code></td>
+          </tr>
+          <tr>
+            <td class="row-label">lifecycle start/end</td>
+            <td><span class="tag tag-lifecycle">lifecycle</span></td>
+            <td><span class="tag tag-broadcast">broadcast</span></td>
+            <td><span class="tag tag-no">无</span></td>
+            <td><span class="tag tag-node">nodeSendToSession</span></td>
+            <td>始终发送</td>
+          </tr>
+          <tr>
+            <td class="row-label">thinking</td>
+            <td><span class="tag tag-thinking">thinking</span></td>
+            <td><span class="tag tag-broadcast">broadcast</span></td>
+            <td><span class="tag tag-no">无</span></td>
+            <td><span class="tag tag-node">nodeSendToSession</span></td>
+            <td>始终发送</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="section">
+      <h2>3. 接收端 — 客户端 × 事件矩阵</h2>
+
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>客户端</th>
+            <th>连接方式</th>
+            <th>能力声明</th>
+            <th>chat text</th>
+            <th>tool start</th>
+            <th>tool result</th>
+            <th>lifecycle</th>
+            <th>thinking</th>
+            <th>客户端过滤</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="row-label" style="color: var(--accent)">Deck Dashboard</td>
+            <td>WS (全局广播)</td>
+            <td><code>["tool-events"]</code></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span> 全量</td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td>
+              <span class="tag tag-filter">BlockFilterBar</span><br /><span
+                style="font-size: 10px; color: var(--text-dim)"
+                >show/hide thinking+tools+results</span
+              >
+            </td>
+          </tr>
+          <tr>
+            <td class="row-label" style="color: var(--green)">macOS App</td>
+            <td>WS (定向)</td>
+            <td><code>["tool-events"]</code></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="highlight">verbose=full</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="tag tag-no">无</span></td>
+          </tr>
+          <tr>
+            <td class="row-label" style="color: var(--green)">CLI</td>
+            <td>WS (定向)</td>
+            <td><code>["tool-events"]</code></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="highlight">verbose=full</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="tag tag-no">无</span></td>
+          </tr>
+          <tr>
+            <td class="row-label" style="color: var(--pink)">WeCom 企业微信</td>
+            <td>Node 订阅</td>
+            <td>—</td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="highlight">verbose!="off"</span></td>
+            <td><span class="highlight">verbose="full"</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td>
+              <span class="tag tag-no">无</span><br /><span
+                style="font-size: 10px; color: var(--text-dim)"
+                >收到什么发什么</span
+              >
+            </td>
+          </tr>
+          <tr>
+            <td class="row-label" style="color: var(--pink)">Telegram</td>
+            <td>Node 订阅</td>
+            <td>—</td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="highlight">verbose!="off"</span></td>
+            <td><span class="highlight">verbose="full"</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="status-icon">&#x2705;</span></td>
+            <td><span class="tag tag-no">无</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="section">
+      <h2>4. 核心矛盾</h2>
+
+      <div class="callout">
+        <h3>矛盾 1: verboseLevel 控制了两件不该耦合的事</h3>
+        <ul>
+          <li>
+            <strong>WS 事件丰富度</strong>: Deck 需要 tool result 内容来渲染
+            BashResultView/DiffPreview → 需要 <code>verbose=full</code>
+          </li>
+          <li>
+            <strong>渠道消息详细度</strong>: WeCom 用户只想看最终回答 → 需要
+            <code>verbose=off</code>
+          </li>
+          <li>两者共用同一个 session 级配置 → <span class="highlight">无法同时满足</span></li>
+        </ul>
+      </div>
+
+      <div class="callout">
+        <h3>矛盾 2: 渠道没有过滤能力</h3>
+        <ul>
+          <li>WeCom/Telegram 收到什么就发什么 — <strong>没有客户端侧过滤</strong></li>
+          <li>lifecycle 和 thinking 事件始终发送到渠道（不受 verbose 控制）</li>
+          <li>
+            如果用户配置 <code>verbose="on"</code> 想让 Deck 看到工具，WeCom 也会收到工具日志 →
+            群里消息爆炸
+          </li>
+        </ul>
+      </div>
+
+      <div class="callout">
+        <h3>矛盾 3: 全局广播 hack 不可持续</h3>
+        <ul>
+          <li>Enhanced fork 的 "全局广播走全量" 是临时方案</li>
+          <li>如果将来有第二个 backend 客户端不需要 tool result → 无法区分</li>
+          <li>需要正式的 <strong>per-client capability 驱动的事件分发</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="section">
+      <h2>5. verboseLevel 解析链（代码现状）</h2>
+
+      <div class="flow-container">
+        <div class="flow-row">
+          <div class="flow-col header">优先级 1</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header">优先级 2</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header">优先级 3</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header">默认</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-col">
+            <div class="label">Run 级别</div>
+            <div class="value">runContext.verboseLevel</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              chat.send 时设置
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col">
+            <div class="label">Session 级别</div>
+            <div class="value">entry.verboseLevel</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              session store 持久化
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col">
+            <div class="label">Agent 默认</div>
+            <div class="value">agents.defaults.verboseDefault</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">config YAML</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col" style="background: var(--bg-card-alt)">
+            <div class="label">硬编码默认</div>
+            <div class="value" style="color: var(--red)">"off"</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              server-chat.ts:448
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size: 11px; color: var(--text-dim); margin-top: 12px">
+        <strong>关键点</strong>: 这个解析链是 <strong>per-session</strong> 的，不区分消费者是 WS
+        客户端还是消息渠道。 无论谁在接收，同一个 session 只有一个 verboseLevel。
+      </p>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="section">
+      <h2>6. 渠道投递路径详情</h2>
+
+      <div class="flow-container">
+        <div class="flow-row">
+          <div class="flow-col header" style="flex: 0.8">Gateway</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header" style="flex: 1">Node 订阅系统</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header" style="flex: 1">Plugin Adapter</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header" style="flex: 0.8">渠道 API</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-col" style="flex: 0.8">
+            <div class="value">nodeSendToSession()</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              查 sessionSubscribers 图<br />找到所有订阅该 session 的 node
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col" style="flex: 1">
+            <div class="value">nodeRegistry.sendEvent()</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              路由到 node 的 HTTP/WS 端点<br />或 plugin 的 onEvent 回调
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col" style="flex: 1">
+            <div class="value">outbound/deliver.ts</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              统一投递调度器<br /><strong>无过滤逻辑</strong> — 透传
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col" style="flex: 0.8">
+            <div class="value">WeCom API<br />Telegram Bot API</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              最终消息发送<br /><span class="highlight">收到什么发什么</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size: 11px; color: var(--text-dim); margin-top: 12px">
+        <strong>关键发现</strong>: 整个渠道投递链路 <strong>没有任何过滤层</strong>。 Gateway 侧的
+        verbose 判断是唯一的过滤点。一旦事件进入 nodeSendToSession，就会原样到达 WeCom/Telegram。
+      </p>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="section">
+      <h2>7. Deck Dashboard 接收路径详情</h2>
+
+      <div class="flow-container">
+        <div class="flow-row">
+          <div class="flow-col header" style="flex: 0.7">Gateway WS</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header" style="flex: 1">Deck Adapter</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header" style="flex: 0.8">EventBus</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header" style="flex: 0.8">SSE Route</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col header" style="flex: 1">Browser</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-col" style="flex: 0.7">
+            <div class="value">broadcast()</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              全局 WS 广播<br />含 agentPayload（全量）
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col" style="flex: 1">
+            <div class="value">gateway-adapter.ts</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              onDomainEvent<br /><strong>纯透传</strong>，无过滤
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col" style="flex: 0.8">
+            <div class="value">event-bus.ts</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              pub/sub 广播<br /><strong>纯透传</strong>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col" style="flex: 0.8">
+            <div class="value">/api/stream</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              formatSSE()<br /><strong>纯透传</strong>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-col" style="flex: 1">
+            <div class="value">useChatSSE.ts</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px">
+              chat/agent/thinking<br />事件分发到 store<br /><span
+                class="tag tag-filter"
+                style="margin-top: 4px"
+                >BlockFilterBar</span
+              ><br /><span style="font-size: 9px">唯一的过滤层</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

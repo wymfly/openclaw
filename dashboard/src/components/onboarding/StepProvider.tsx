@@ -31,16 +31,16 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
   };
 
   const inputStyle = {
-    backgroundColor: "var(--bg-primary)",
-    color: "var(--text-primary)",
+    backgroundColor: "var(--background)",
+    color: "var(--foreground)",
     border: "1px solid var(--border)",
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <Settings size={16} style={{ color: "var(--accent)" }} />
-        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <Settings size={16} style={{ color: "var(--primary)" }} />
+        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           {t("stepProvider")}
         </span>
       </div>
@@ -49,7 +49,7 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
       <div>
         <label
           className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           {t("provider")}
         </label>
@@ -72,7 +72,7 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
       <div>
         <label
           className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           {t("apiKey")}
         </label>
@@ -90,7 +90,7 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
       <div>
         <label
           className="block text-xs font-medium mb-1"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           {t("model")}
         </label>
@@ -109,7 +109,7 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
         <button
           onClick={onBack}
           className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
-          style={{ border: "1px solid var(--border)", color: "var(--text-primary)" }}
+          style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
         >
           {t("back")}
         </button>
@@ -117,14 +117,14 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
           <button
             onClick={onNext}
             className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             {t("skipForNow")}
           </button>
           <button
             onClick={onNext}
             className="text-xs px-4 py-2 rounded hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+            style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
           >
             {t("next")}
           </button>

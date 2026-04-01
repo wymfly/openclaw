@@ -1,0 +1,8 @@
+{"type":"server-started","port":50878,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:50878","screen_dir":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/44721-1773672677"}
+{"type":"screen-added","file":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/44721-1773672677/waiting.html"}
+{"type":"screen-added","file":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/44721-1773672677/architecture.html"}
+{"type":"screen-added","file":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/44721-1773672677/project-structure.html"}
+{"type":"screen-added","file":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/44721-1773672677/layout.html"}
+{"type":"screen-added","file":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/44721-1773672677/phases.html"}
+{"type":"screen-added","file":"/Users/wangym/workspace/agents/openclaw/.superpowers/brainstorm/44721-1773672677/waiting-2.html"}
+{"type":"server-stopped","reason":"idle timeout"}

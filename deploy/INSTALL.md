@@ -4,19 +4,19 @@
 
 ### Docker 模式（推荐）
 
-| 平台 | 依赖 | 安装 |
-|------|------|------|
-| Linux | Docker + Compose v2 | `curl -fsSL https://get.docker.com \| sh` |
-| macOS | Docker Desktop | `brew install --cask docker` |
+| 平台    | 依赖                   | 安装                                                                  |
+| ------- | ---------------------- | --------------------------------------------------------------------- |
+| Linux   | Docker + Compose v2    | `curl -fsSL https://get.docker.com \| sh`                             |
+| macOS   | Docker Desktop         | `brew install --cask docker`                                          |
 | Windows | Docker Desktop + WSL 2 | [docker.com/desktop](https://www.docker.com/products/docker-desktop/) |
 
 ### 裸机模式
 
-| 平台 | 依赖 | 安装 |
-|------|------|------|
-| Linux | Node.js 22+, pnpm | `curl -fsSL https://deb.nodesource.com/setup_22.x \| sudo -E bash - && npm i -g pnpm` |
-| macOS | Node.js 22+, pnpm | `brew install node@22 && npm i -g pnpm` |
-| Windows | Node.js 22+, pnpm | [nodejs.org](https://nodejs.org/) + `npm i -g pnpm` |
+| 平台    | 依赖              | 安装                                                                                  |
+| ------- | ----------------- | ------------------------------------------------------------------------------------- |
+| Linux   | Node.js 22+, pnpm | `curl -fsSL https://deb.nodesource.com/setup_22.x \| sudo -E bash - && npm i -g pnpm` |
+| macOS   | Node.js 22+, pnpm | `brew install node@22 && npm i -g pnpm`                                               |
+| Windows | Node.js 22+, pnpm | [nodejs.org](https://nodejs.org/) + `npm i -g pnpm`                                   |
 
 ## 安装步骤
 

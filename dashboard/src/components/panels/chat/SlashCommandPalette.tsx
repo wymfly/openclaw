@@ -6,18 +6,26 @@
  */
 
 import {
-  Plus, RefreshCw, Minimize2, Square, Trash2, Eye,
-  Cpu, Brain, Terminal, Zap,
-  BookOpen, Download, BarChart2,
-  Monitor, X,
+  Plus,
+  RefreshCw,
+  Minimize2,
+  Square,
+  Trash2,
+  Eye,
+  Cpu,
+  Brain,
+  Terminal,
+  Zap,
+  BookOpen,
+  Download,
+  BarChart2,
+  Monitor,
+  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import {
-  getSlashCommandCompletions,
-  CATEGORY_LABEL_KEYS,
-} from "./slash-commands";
+import { getSlashCommandCompletions, CATEGORY_LABEL_KEYS } from "./slash-commands";
 import type { SlashCommandDef, SlashCommandCategory } from "./slash-commands";
 
 interface SlashCommandPaletteProps {
@@ -31,21 +39,21 @@ interface SlashCommandPaletteProps {
 
 /** Map from kebab-case icon names to lucide components. */
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
-  "plus": Plus,
+  plus: Plus,
   "refresh-cw": RefreshCw,
   "minimize-2": Minimize2,
-  "square": Square,
+  square: Square,
   "trash-2": Trash2,
-  "eye": Eye,
-  "cpu": Cpu,
-  "brain": Brain,
-  "terminal": Terminal,
-  "zap": Zap,
+  eye: Eye,
+  cpu: Cpu,
+  brain: Brain,
+  terminal: Terminal,
+  zap: Zap,
   "book-open": BookOpen,
-  "download": Download,
+  download: Download,
   "bar-chart-2": BarChart2,
-  "monitor": Monitor,
-  "x": X,
+  monitor: Monitor,
+  x: X,
 };
 
 function CommandIcon({ name, size = 14 }: { name: string; size?: number }) {
@@ -130,9 +138,7 @@ export function SlashCommandPalette({
                   <CommandIcon name={cmd.icon} />
                 </span>
                 <span className="font-mono text-[var(--primary)]">/{cmd.name}</span>
-                {cmd.args && (
-                  <span className="text-[var(--muted-foreground)]">{cmd.args}</span>
-                )}
+                {cmd.args && <span className="text-[var(--muted-foreground)]">{cmd.args}</span>}
                 <span className="ml-auto text-[10px] text-[var(--muted-foreground)] truncate max-w-[200px]">
                   {t(cmd.descriptionKey)}
                 </span>

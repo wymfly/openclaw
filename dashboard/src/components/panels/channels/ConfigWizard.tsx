@@ -82,7 +82,7 @@ export function ConfigWizard({ open, onOpenChange, title, steps, onComplete }: C
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <p className="text-xs text-[var(--text-secondary)]">
+          <p className="text-xs text-[var(--muted-foreground)]">
             {t("stepProgress", { current: currentStep + 1, total: steps.length })}
           </p>
         </DialogHeader>
@@ -93,14 +93,14 @@ export function ConfigWizard({ open, onOpenChange, title, steps, onComplete }: C
             <div
               key={i}
               className={`h-1 flex-1 rounded-full transition-colors ${
-                i <= currentStep ? "bg-[var(--accent)]" : "bg-[var(--neutral-muted)]"
+                i <= currentStep ? "bg-[var(--primary)]" : "bg-[var(--neutral-muted)]"
               }`}
             />
           ))}
         </div>
 
         {/* Step title */}
-        <h3 className="text-sm font-medium text-[var(--text-primary)]">{step.title}</h3>
+        <h3 className="text-sm font-medium text-[var(--foreground)]">{step.title}</h3>
 
         {/* Step content */}
         <div className="min-h-[200px]">{step.content}</div>

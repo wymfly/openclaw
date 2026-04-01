@@ -35,10 +35,10 @@ export function ToolUseCard({ name, input, defaultOpen }: ToolUseCardProps) {
       open={defaultOpen}
       className="my-1.5 text-xs rounded-lg border border-[var(--border-subtle)] overflow-hidden"
     >
-      <summary className="flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+      <summary className="flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer select-none text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors">
         <Wrench size={12} className="shrink-0" />
         <span className="font-medium">{t("toolCall")}:</span>
-        <code className="font-mono text-[var(--accent)]">{name}</code>
+        <code className="font-mono text-[var(--primary)]">{name}</code>
         {summary && <span className="text-[var(--text-tertiary)] truncate ml-1">({summary})</span>}
       </summary>
 
@@ -48,7 +48,7 @@ export function ToolUseCard({ name, input, defaultOpen }: ToolUseCardProps) {
           <button
             type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
           >
             {copied ? (
               <>

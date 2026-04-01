@@ -63,7 +63,7 @@ export function SubagentRunCard({ run, onKill, onViewSession }: SubagentRunCardP
   const config = statusConfig[run.status] ?? statusConfig.active;
 
   return (
-    <Card className="p-3 bg-[var(--bg-secondary)] border-[var(--border)]">
+    <Card className="p-3 bg-[var(--card)] border-[var(--border)]">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <AgentBadge agentId={run.childAgentId} agentName={run.childAgentName} />
@@ -73,7 +73,7 @@ export function SubagentRunCard({ run, onKill, onViewSession }: SubagentRunCardP
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {isActive && (
-            <span className="text-xs font-mono text-[var(--text-secondary)]">
+            <span className="text-xs font-mono text-[var(--muted-foreground)]">
               {formatElapsed(elapsed)}
             </span>
           )}
@@ -81,10 +81,10 @@ export function SubagentRunCard({ run, onKill, onViewSession }: SubagentRunCardP
       </div>
 
       {run.task && (
-        <p className="mt-2 text-xs text-[var(--text-secondary)] line-clamp-2">{run.task}</p>
+        <p className="mt-2 text-xs text-[var(--muted-foreground)] line-clamp-2">{run.task}</p>
       )}
 
-      <div className="mt-2 flex items-center gap-3 text-[10px] text-[var(--text-secondary)]">
+      <div className="mt-2 flex items-center gap-3 text-[10px] text-[var(--muted-foreground)]">
         <span>depth: {run.depth}</span>
         {run.model && <span>model: {run.model}</span>}
       </div>

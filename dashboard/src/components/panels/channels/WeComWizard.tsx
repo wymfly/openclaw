@@ -177,7 +177,7 @@ export function WeComWizard({
             className={cn(
               "cursor-pointer rounded-lg border p-3 text-left transition-colors",
               form.transport === card.id
-                ? "border-[var(--accent)] bg-[var(--accent-muted)]"
+                ? "border-[var(--primary)] bg-[var(--primary-muted)]"
                 : "border-[var(--border)] hover:border-[var(--border-hover)]",
             )}
             onClick={() => updateField("transport", card.id)}
@@ -187,8 +187,8 @@ export function WeComWizard({
               }
             }}
           >
-            <p className="text-xs font-medium text-[var(--text-primary)]">{card.title}</p>
-            <p className="mt-1 text-[10px] text-[var(--text-secondary)]">{card.desc}</p>
+            <p className="text-xs font-medium text-[var(--foreground)]">{card.title}</p>
+            <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">{card.desc}</p>
           </div>
         ))}
       </div>
@@ -301,19 +301,19 @@ export function WeComWizard({
     <div className="space-y-3">
       {callbackUrl ? (
         <>
-          <p className="text-xs text-[var(--text-secondary)]">{t("wecom.callbackUrlDesc")}</p>
+          <p className="text-xs text-[var(--muted-foreground)]">{t("wecom.callbackUrlDesc")}</p>
           <div className="flex items-center gap-2 rounded-lg bg-[var(--neutral-muted)] px-3 py-2">
-            <code className="flex-1 text-xs font-mono text-[var(--text-primary)] break-all">
+            <code className="flex-1 text-xs font-mono text-[var(--foreground)] break-all">
               {callbackUrl}
             </code>
             <Button variant="ghost" size="icon-sm" onClick={() => handleCopyUrl(callbackUrl)}>
               {copied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
             </Button>
           </div>
-          <p className="text-[10px] text-[var(--text-secondary)]">{t("wecom.callbackUrlNote")}</p>
+          <p className="text-[10px] text-[var(--muted-foreground)]">{t("wecom.callbackUrlNote")}</p>
         </>
       ) : (
-        <p className="text-xs text-[var(--text-secondary)]">{t("wecom.noCallbackNeeded")}</p>
+        <p className="text-xs text-[var(--muted-foreground)]">{t("wecom.noCallbackNeeded")}</p>
       )}
     </div>
   );
@@ -321,9 +321,9 @@ export function WeComWizard({
   // Step 4: connection test
   const step4Content = (
     <div className="space-y-4">
-      <p className="text-xs text-[var(--text-secondary)]">{t("wecom.testDesc")}</p>
-      <div className="flex items-start gap-2 rounded-lg bg-[var(--accent-muted)] px-3 py-2 text-[10px] text-[var(--text-secondary)]">
-        <Info size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+      <p className="text-xs text-[var(--muted-foreground)]">{t("wecom.testDesc")}</p>
+      <div className="flex items-start gap-2 rounded-lg bg-[var(--primary-muted)] px-3 py-2 text-[10px] text-[var(--muted-foreground)]">
+        <Info size={12} className="mt-0.5 shrink-0 text-[var(--primary)]" />
         <span>{t("wecom.probeConfigNote")}</span>
       </div>
       <Button
@@ -341,7 +341,7 @@ export function WeComWizard({
         </div>
       )}
       {probeResult === "error" && (
-        <div className="flex items-center gap-2 text-xs text-[var(--danger)]">
+        <div className="flex items-center gap-2 text-xs text-[var(--destructive)]">
           <XCircle size={14} />
           <span>{probeMessage}</span>
         </div>

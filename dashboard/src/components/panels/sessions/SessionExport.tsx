@@ -81,11 +81,7 @@ export function SessionExport({ session, messages }: SessionExportProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer">
-        {exporting ? (
-          <Loader2 size={15} className="animate-spin" />
-        ) : (
-          <Download size={15} />
-        )}
+        {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={handleJson} disabled={exporting}>

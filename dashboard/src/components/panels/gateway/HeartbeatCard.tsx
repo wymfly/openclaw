@@ -20,25 +20,25 @@ export function HeartbeatCard() {
   return (
     <div
       className="rounded-lg border p-4 flex flex-col gap-3"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-secondary)" }}
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
     >
-      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+      <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
         {t("heartbeat")}
       </h3>
 
       {statusLoading && !statusSummary ? (
-        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           {tc("loading")}
         </span>
       ) : (
         <>
           {/* Last heartbeat */}
           <div className="flex items-center gap-2">
-            <Clock size={14} style={{ color: "var(--accent)" }} />
-            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            <Clock size={14} style={{ color: "var(--primary)" }} />
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
               {t("lastHeartbeat")}
             </span>
-            <span className="text-xs font-mono ml-auto" style={{ color: "var(--text-primary)" }}>
+            <span className="text-xs font-mono ml-auto" style={{ color: "var(--foreground)" }}>
               {heartbeat && typeof heartbeat === "object"
                 ? `${(heartbeat as { agents?: unknown[] }).agents?.length ?? 0} agent(s)`
                 : ((heartbeat as string) ?? "—")}
@@ -51,10 +51,10 @@ export function HeartbeatCard() {
               size={14}
               style={{ color: state === "active" ? "var(--success)" : "var(--warning)" }}
             />
-            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
               {t("gatewayState")}
             </span>
-            <span className="text-xs font-medium ml-auto" style={{ color: "var(--text-primary)" }}>
+            <span className="text-xs font-medium ml-auto" style={{ color: "var(--foreground)" }}>
               {state ? t(state) : "—"}
             </span>
           </div>

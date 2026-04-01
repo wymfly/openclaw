@@ -34,11 +34,7 @@ export type DbLike = {
 
 /** Encode a Buffer to base64url (RFC 7515 §2). */
 export function base64UrlEncode(buf: Buffer): string {
-  return buf
-    .toString("base64")
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/, "");
+  return buf.toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
 /** Decode a base64url string back to a Buffer. */
@@ -96,12 +92,8 @@ export function deriveDeviceId(publicKeyPem: string): string {
 export function generateDeviceIdentity(): DeviceIdentity {
   const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
 
-  const publicKeyPem = publicKey
-    .export({ type: "spki", format: "pem" })
-    .toString();
-  const privateKeyPem = privateKey
-    .export({ type: "pkcs8", format: "pem" })
-    .toString();
+  const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
+  const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
 
   return {
     deviceId: deriveDeviceId(publicKeyPem),
@@ -136,7 +128,7 @@ function toLowerAscii(s: string): string {
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i);
     // A = 0x41, Z = 0x5A
-    out += c >= 0x41 && c <= 0x5A ? String.fromCharCode(c + 0x20) : s[i];
+    out += c >= 0x41 && c <= 0x5a ? String.fromCharCode(c + 0x20) : s[i];
   }
   return out;
 }
@@ -239,9 +231,9 @@ export function loadOrCreateDeviceIdentity(db: DbLike): DeviceIdentity {
 
 /** Load the stored device token (null if not yet registered). */
 export function loadDeviceToken(db: DbLike): string | null {
-  const row = db
-    .prepare("SELECT device_token FROM device_identity WHERE id = 1")
-    .get() as Pick<DeviceIdentityRow, "device_token"> | undefined;
+  const row = db.prepare("SELECT device_token FROM device_identity WHERE id = 1").get() as
+    | Pick<DeviceIdentityRow, "device_token">
+    | undefined;
 
   return row?.device_token ?? null;
 }
