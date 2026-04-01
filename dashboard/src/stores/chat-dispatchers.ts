@@ -699,7 +699,14 @@ export function dispatchSessionStateEvent(
   const verboseLevel = typeof payload.verboseLevel === "string" ? payload.verboseLevel : undefined;
   const model = typeof payload.model === "string" ? payload.model : undefined;
 
-  const metaPatch: Record<string, unknown> = {};
+  const metaPatch: Partial<{
+    totalTokens: number;
+    estimatedCostUsd: number;
+    thinkingLevel: string;
+    fastMode: boolean;
+    verboseLevel: string;
+    model: string;
+  }> = {};
   if (totalTokens !== undefined) {
     metaPatch.totalTokens = totalTokens;
   }
@@ -720,6 +727,6 @@ export function dispatchSessionStateEvent(
   }
 
   if (Object.keys(metaPatch).length > 0) {
-    api.updateSessionMeta(sessionKey, metaPatch as Parameters<typeof api.updateSessionMeta>[1]);
+    api.updateSessionMeta(sessionKey, metaPatch);
   }
 }

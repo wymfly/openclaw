@@ -4,6 +4,8 @@
  * Mirrors official ui/src/ui/chat/slash-command-executor.ts patterns.
  */
 import { formatTokenCount } from "@/lib/format-utils";
+import type { SessionMeta } from "@/stores/chat-types";
+import type { ToastType } from "@/stores/notifications";
 import { SLASH_COMMANDS } from "./slash-commands";
 
 export type SlashCommandAction = "new-session" | "reset" | "stop" | "clear" | "export" | "refresh";
@@ -13,12 +15,16 @@ export interface SlashCommandResult {
   content: string;
   /** Side-effect action the caller should perform after displaying the result. */
   action?: SlashCommandAction;
-  /** Toast notification message (shown via addToast). */
-  toastMessage?: string;
-  /** Toast type. Defaults to "info" if toastMessage is set but toastType is not. */
-  toastType?: "success" | "info" | "error";
+  /** i18n key for toast notification (resolved by caller via t()). */
+  toastKey?: string;
+  /** Dynamic value for toast message interpolation. */
+  toastValue?: string;
+  /** Toast type. */
+  toastType?: ToastType;
   /** Optimistic config update to apply to SessionMeta immediately. */
-  configUpdate?: Record<string, unknown>;
+  configUpdate?: Partial<
+    Pick<SessionMeta, "model" | "thinkingLevel" | "fastMode" | "verboseLevel">
+  >;
 }
 
 export async function executeSlashCommand(
@@ -75,21 +81,20 @@ async function executeCompact(sessionKey: string): Promise<SlashCommandResult> {
       body: JSON.stringify({ sessionKey }),
     });
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
       return {
         content: "",
-        toastMessage: (d as { error?: string }).error ?? "Compaction failed",
+        toastKey: "toastCompactFailed",
         toastType: "error",
       };
     }
     return {
       content: "",
       action: "refresh",
-      toastMessage: "Session compacted",
+      toastKey: "toastCompacted",
       toastType: "success",
     };
   } catch {
-    return { content: "", toastMessage: "Compaction failed", toastType: "error" };
+    return { content: "", toastKey: "toastCompactFailed", toastType: "error" };
   }
 }
 
@@ -130,8 +135,9 @@ async function executeModel(sessionKey: string, args: string): Promise<SlashComm
   return patchSession(
     sessionKey,
     { model: args.trim() },
-    `Model: ${args.trim()}`,
-    "Failed to set model",
+    "toastModel",
+    args.trim(),
+    "toastModelFailed",
   );
 }
 
@@ -146,8 +152,9 @@ async function executeThink(sessionKey: string, args: string): Promise<SlashComm
   return patchSession(
     sessionKey,
     { thinkingLevel: level },
-    `Thinking: ${level}`,
-    "Failed to set thinking level",
+    "toastThink",
+    level,
+    "toastThinkFailed",
   );
 }
 
@@ -175,8 +182,9 @@ async function executeFast(sessionKey: string, args: string): Promise<SlashComma
   return patchSession(
     sessionKey,
     { fastMode: mode === "on" },
-    `Fast mode: ${mode}`,
-    "Failed to set fast mode",
+    "toastFast",
+    mode,
+    "toastFastFailed",
   );
 }
 
@@ -191,8 +199,9 @@ async function executeVerbose(sessionKey: string, args: string): Promise<SlashCo
   return patchSession(
     sessionKey,
     { verboseLevel: level },
-    `Verbose: ${level}`,
-    "Failed to set verbose level",
+    "toastVerbose",
+    level,
+    "toastVerboseFailed",
   );
 }
 
@@ -275,16 +284,15 @@ async function executeKill(sessionKey: string, args: string): Promise<SlashComma
       body: JSON.stringify({ sessionKey: target === "all" ? sessionKey : target }),
     });
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
       return {
         content: "",
-        toastMessage: (d as { error?: string }).error ?? "Failed to abort",
+        toastKey: "toastAbortFailed",
         toastType: "error",
       };
     }
-    return { content: "", toastMessage: `Aborted: ${target}`, toastType: "success" };
+    return { content: "", toastKey: "toastAborted", toastValue: target, toastType: "success" };
   } catch {
-    return { content: "", toastMessage: "Failed to abort", toastType: "error" };
+    return { content: "", toastKey: "toastAbortFailed", toastType: "error" };
   }
 }
 
@@ -292,9 +300,10 @@ async function executeKill(sessionKey: string, args: string): Promise<SlashComma
 
 async function patchSession(
   sessionKey: string,
-  params: Record<string, unknown>,
-  successMsg: string,
-  errorMsg: string,
+  params: Partial<Pick<SessionMeta, "model" | "thinkingLevel" | "fastMode" | "verboseLevel">>,
+  successKey: string,
+  successValue: string,
+  errorKey: string,
 ): Promise<SlashCommandResult> {
   try {
     const res = await fetch("/api/chat/sessions/patch", {
@@ -303,21 +312,21 @@ async function patchSession(
       body: JSON.stringify({ sessionKey, ...params }),
     });
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
       return {
         content: "",
-        toastMessage: (d as { error?: string }).error ?? errorMsg,
+        toastKey: errorKey,
         toastType: "error",
       };
     }
     return {
       content: "",
       action: "refresh",
-      toastMessage: successMsg,
+      toastKey: successKey,
+      toastValue: successValue,
       toastType: "success",
       configUpdate: params,
     };
   } catch {
-    return { content: "", toastMessage: errorMsg, toastType: "error" };
+    return { content: "", toastKey: errorKey, toastType: "error" };
   }
 }
