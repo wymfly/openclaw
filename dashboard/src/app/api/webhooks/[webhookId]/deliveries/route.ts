@@ -37,7 +37,7 @@ export const GET = withAuth(async (_req: NextRequest, ctx: unknown) => {
        ORDER BY created_at DESC
        LIMIT 100`,
     )
-    .all(webhookId) as DeliveryRow[];
+    .all(webhookId) as unknown as DeliveryRow[];
 
   const deliveries = rows.map((row) => ({
     id: row.id,

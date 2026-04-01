@@ -45,7 +45,7 @@ export const GET = withAuth(async () => {
   try {
     const rows = runtime.db
       .prepare("SELECT * FROM alert_rules ORDER BY created_at DESC")
-      .all() as AlertRuleRow[];
+      .all() as unknown as AlertRuleRow[];
     return NextResponse.json({ rules: rows.map(mapRow) });
   } catch {
     return NextResponse.json({ rules: [] });
@@ -86,7 +86,7 @@ export const POST = withAuth(async (request: NextRequest) => {
 
     const row = runtime.db
       .prepare("SELECT * FROM alert_rules WHERE id = ?")
-      .get(id) as AlertRuleRow;
+      .get(id) as unknown as AlertRuleRow;
 
     return NextResponse.json({ rule: mapRow(row) }, { status: 201 });
   } catch (err) {

@@ -73,7 +73,7 @@ export const GET = withAuth(async (request: NextRequest) => {
     }
     sql += " ORDER BY extracted_at DESC";
 
-    const rows = runtime.db.prepare(sql).all(...params) as DocRow[];
+    const rows = runtime.db.prepare(sql).all(...params) as unknown as DocRow[];
     return NextResponse.json({ docs: rows.map(mapRow) });
   } catch {
     return NextResponse.json({ docs: [] });

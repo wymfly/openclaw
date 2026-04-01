@@ -365,7 +365,7 @@ export async function fireWebhooks(
 ): Promise<void> {
   let webhooks: Webhook[];
   try {
-    webhooks = db.prepare("SELECT * FROM webhooks WHERE enabled = 1").all() as Webhook[];
+    webhooks = db.prepare("SELECT * FROM webhooks WHERE enabled = 1").all() as unknown as Webhook[];
   } catch {
     return; // DB not ready or table doesn't exist yet
   }

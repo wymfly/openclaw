@@ -127,7 +127,7 @@ export const PATCH = withAuth(async (req: NextRequest, ctx: unknown) => {
 
   const row = runtime.db
     .prepare("SELECT * FROM budget_rules WHERE id = ?")
-    .get(ruleId) as BudgetRuleRow;
+    .get(ruleId) as unknown as BudgetRuleRow;
   return NextResponse.json(rowToRule(row));
 });
 

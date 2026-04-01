@@ -30,7 +30,7 @@ export const GET = withAuth(async () => {
 
   const rows = runtime.db
     .prepare("SELECT * FROM budget_rules WHERE enabled = 1")
-    .all() as BudgetRuleRow[];
+    .all() as unknown as BudgetRuleRow[];
 
   if (rows.length === 0) {
     return NextResponse.json({ evaluations: [] });

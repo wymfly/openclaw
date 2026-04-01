@@ -88,7 +88,7 @@ export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
 
     const row = runtime.db
       .prepare("SELECT * FROM alert_rules WHERE id = ?")
-      .get(ruleId) as AlertRuleRow;
+      .get(ruleId) as unknown as AlertRuleRow;
 
     return NextResponse.json({ rule: mapRow(row) });
   } catch (err) {

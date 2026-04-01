@@ -46,7 +46,7 @@ export const GET = withAuth(async () => {
 
   const rows = runtime.db
     .prepare("SELECT * FROM webhooks ORDER BY created_at DESC")
-    .all() as WebhookRow[];
+    .all() as unknown as WebhookRow[];
 
   return NextResponse.json({ webhooks: rows.map(rowToWebhook) });
 });
@@ -87,7 +87,9 @@ export const POST = withAuth(async (req: NextRequest) => {
     )
     .run(id, body.name, body.url, body.secret ?? null, events, enabled);
 
-  const row = runtime.db.prepare("SELECT * FROM webhooks WHERE id = ?").get(id) as WebhookRow;
+  const row = runtime.db
+    .prepare("SELECT * FROM webhooks WHERE id = ?")
+    .get(id) as unknown as WebhookRow;
 
   return NextResponse.json(rowToWebhook(row), { status: 201 });
 });
