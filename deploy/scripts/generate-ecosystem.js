@@ -33,6 +33,7 @@ const providerKeys = [
   "DEEPSEEK_API_KEY",
   "ANTHROPIC_API_KEY",
   "OPENAI_API_KEY",
+  "MOONSHOT_API_KEY",
   "TELEGRAM_BOT_TOKEN",
   "DISCORD_BOT_TOKEN",
 ];
@@ -49,10 +50,12 @@ for (const k of providerKeys) {
 
 const deckEnv = {
   NODE_ENV: "production",
+  HOSTNAME: "0.0.0.0",
   PORT: dkPort,
   DECK_GATEWAY_URL: `ws://localhost:${gwPort}`,
   DECK_GATEWAY_TOKEN: token,
   DECK_DB_PATH: path.join(deckDataDir, "deck.db"),
+  DECK_MIGRATION_DIR: path.join(repoDir, "dashboard", "migrations"),
   NO_PROXY: "localhost,127.0.0.1",
 };
 

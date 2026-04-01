@@ -191,10 +191,9 @@ export type Database = DatabaseAdapter;
 const GLOBAL_KEY = "__openclawDeckDb__";
 const DEFAULT_DB_DIR = ".openclaw/openclaw-deck";
 const DEFAULT_DB_FILE = "deck.db";
-const MIGRATION_DIR = path.resolve(
-  path.dirname(new URL(import.meta.url).pathname),
-  "../migrations",
-);
+const MIGRATION_DIR = process.env.DECK_MIGRATION_DIR
+  ? path.resolve(process.env.DECK_MIGRATION_DIR)
+  : path.resolve(path.dirname(new URL(import.meta.url).pathname), "../migrations");
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -27,6 +27,7 @@ const TEMPLATE_VARS = [
   "OPENAI_API_KEY",
   "CPA_API_KEY",
   "CPA_BASE_URL",
+  "MOONSHOT_API_KEY",
   "OPENCLAW_GATEWAY_TOKEN",
   "DEFAULT_MODEL",
   "TELEGRAM_BOT_TOKEN",
@@ -47,13 +48,20 @@ function renderTemplate(src) {
   return content;
 }
 
-function copyDirRecursive(src, dst) {
+function copyDirRecursive(src, dst, { renderTemplates = false } = {}) {
   fs.mkdirSync(dst, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const s = path.join(src, entry.name);
     const d = path.join(dst, entry.name);
     if (entry.isDirectory()) {
-      copyDirRecursive(s, d);
+      copyDirRecursive(s, d, { renderTemplates });
+    } else if (renderTemplates && entry.name.endsWith(".tmpl")) {
+      const rendered = renderTemplate(s);
+      const finalD = d.replace(/\.tmpl$/, "");
+      if (!fs.existsSync(finalD)) {
+        fs.writeFileSync(finalD, rendered);
+        log(`rendered: ${finalD}`);
+      }
     } else {
       fs.copyFileSync(s, d);
     }
@@ -130,12 +138,20 @@ if (alreadyInit) {
     }
   }
 
-  // init-once: agents
+  // init-once: agents (with template rendering for .tmpl files inside)
   const agentsDir = path.join(SEED_DIR, "agents");
   if (fs.existsSync(agentsDir)) {
     for (const d of fs.readdirSync(agentsDir, { withFileTypes: true })) {
       if (d.isDirectory()) {
-        seedInitOnce(path.join(agentsDir, d.name), path.join(targetDir, "agents", d.name));
+        const dst = path.join(targetDir, "agents", d.name);
+        if (fs.existsSync(dst) && !force) {
+          // Directory exists — still render any missing .tmpl files
+          copyDirRecursive(path.join(agentsDir, d.name), dst, { renderTemplates: true });
+        } else {
+          fs.mkdirSync(dst, { recursive: true });
+          copyDirRecursive(path.join(agentsDir, d.name), dst, { renderTemplates: true });
+          log(`seeded agent: ${d.name}`);
+        }
       }
     }
   }

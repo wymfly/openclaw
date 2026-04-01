@@ -22,6 +22,9 @@
 #
 set -euo pipefail
 
+# Prevent macOS from injecting ._* AppleDouble resource fork files into archives
+export COPYFILE_DISABLE=1
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEPLOY_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$DEPLOY_DIR/.." && pwd)"
@@ -94,6 +97,7 @@ stage_source() {
     --exclude='*.tar.gz' \
     --exclude='*.zip' \
     --exclude='.DS_Store' \
+    --exclude='._*' \
     --exclude='ecosystem.config.cjs' \
     "$DEPLOY_DIR/" "$STAGING_DIR/$PKG_NAME/source/deploy/"
 
@@ -172,6 +176,21 @@ stage_prebuilt() {
     # Migrations
     [ -d "$REPO_DIR/dashboard/migrations" ] && \
       cp -r "$REPO_DIR/dashboard/migrations" "$src/dashboard/.next/standalone/dashboard/migrations"
+    # Standalone entry (preloads sql.js WASM)
+    [ -f "$REPO_DIR/dashboard/standalone-entry.mjs" ] && \
+      cp "$REPO_DIR/dashboard/standalone-entry.mjs" "$src/dashboard/.next/standalone/dashboard/standalone-entry.mjs"
+    # sql.js WASM binary (Next.js standalone trace copies JS but not the .wasm file)
+    local sql_wasm_dst="$src/dashboard/.next/standalone/node_modules/sql.js/dist/sql-wasm.wasm"
+    if [ ! -f "$sql_wasm_dst" ]; then
+      local sql_wasm_src=""
+      [ -f "$REPO_DIR/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="$REPO_DIR/node_modules/sql.js/dist/sql-wasm.wasm"
+      [ -z "$sql_wasm_src" ] && [ -f "$REPO_DIR/dashboard/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="$REPO_DIR/dashboard/node_modules/sql.js/dist/sql-wasm.wasm"
+      if [ -n "$sql_wasm_src" ]; then
+        mkdir -p "$(dirname "$sql_wasm_dst")"
+        cp "$sql_wasm_src" "$sql_wasm_dst"
+        log "sql-wasm.wasm copied to standalone"
+      fi
+    fi
   else
     err "Deck standalone not found. Run 'cd dashboard && npx next build --webpack' first."
   fi
@@ -267,6 +286,53 @@ write_installer() {
 exec "$(dirname "$0")/source/deploy/scripts/install.sh" "$@"
 INSTALLER
   chmod +x "$STAGING_DIR/$PKG_NAME/install.sh"
+
+  # Windows batch forwarder — finds bash from Git for Windows, MSYS2, or WSL
+  # Uses printf to avoid trailing newline issues; writes CRLF line endings
+  printf '@echo off\r
+setlocal\r
+\r
+REM OpenClaw Installer — Windows entry point\r
+REM Finds bash and forwards to the real install script.\r
+\r
+set "SCRIPT_DIR=%%~dp0"\r
+set "INSTALL_SH=%%SCRIPT_DIR%%source\\deploy\\scripts\\install.sh"\r
+set "ARGS=%%*"\r
+if "%%ARGS%%"=="" set "ARGS=bare-metal"\r
+\r
+REM Try Git for Windows bash\r
+where bash >nul 2>&1 && (\r
+  echo [install.bat] Using bash from PATH...\r
+  bash "%%INSTALL_SH%%" %%ARGS%%\r
+  goto :done\r
+)\r
+\r
+REM Try common Git for Windows location\r
+if exist "C:\\Program Files\\Git\\bin\\bash.exe" (\r
+  echo [install.bat] Using Git for Windows bash...\r
+  "C:\\Program Files\\Git\\bin\\bash.exe" "%%INSTALL_SH%%" %%ARGS%%\r
+  goto :done\r
+)\r
+\r
+REM Try WSL\r
+where wsl >nul 2>&1 && (\r
+  echo [install.bat] Using WSL bash...\r
+  wsl bash "%%INSTALL_SH%%" %%ARGS%%\r
+  goto :done\r
+)\r
+\r
+echo [install.bat] ERROR: bash not found.\r
+echo.\r
+echo Please install one of:\r
+echo   - Git for Windows: https://git-scm.com/download/win\r
+echo   - WSL: wsl --install\r
+echo.\r
+echo Then re-run: install.bat\r
+exit /b 1\r
+\r
+:done\r
+endlocal\r
+' > "$STAGING_DIR/$PKG_NAME/install.bat"
 }
 
 # ---------------------------------------------------------------------------
@@ -281,6 +347,7 @@ verify_package() {
   [ -f "$STAGING_DIR/$PKG_NAME/source/deploy/scripts/install.sh" ] || { log "FAIL: install.sh missing"; ok=false; }
   [ -f "$STAGING_DIR/$PKG_NAME/source/deploy/scripts/seed.js" ] || { log "FAIL: seed.js missing"; ok=false; }
   [ -f "$STAGING_DIR/$PKG_NAME/install.sh" ] || { log "FAIL: top-level install.sh missing"; ok=false; }
+  [ -f "$STAGING_DIR/$PKG_NAME/install.bat" ] || { log "FAIL: top-level install.bat missing"; ok=false; }
 
   if [ "$HAS_PREBUILT" = true ]; then
     [ -f "$STAGING_DIR/$PKG_NAME/source/dist/cli-startup-metadata.json" ] || { log "FAIL: Gateway dist missing"; ok=false; }
@@ -343,6 +410,9 @@ log "File: $local_tar"
 log "Size: $local_size"
 log "Layers: source$([ "$HAS_IMAGES" = true ] && echo " + images")$([ "$HAS_PREBUILT" = true ] && echo " + prebuilt")$([ "$HAS_LOCAL" = true ] && echo " + local")$([ "$HAS_DEPS" = true ] && echo " + deps")"
 log ""
-log "To deploy:"
+log "To deploy (Linux/macOS):"
 log "  scp $local_tar user@target:/tmp/"
 log "  ssh user@target 'tar xzf /tmp/$PKG_NAME.tar.gz && cd $PKG_NAME && ./install.sh'"
+log ""
+log "To deploy (Windows):"
+log "  Extract $PKG_NAME.tar.gz, then run: install.bat"
