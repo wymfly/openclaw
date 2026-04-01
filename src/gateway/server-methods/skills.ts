@@ -172,7 +172,7 @@ export const skillsHandlers: GatewayRequestHandlers = {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatErrorMessage(err)));
     }
   },
-  "skills.install": async ({ params, respond }) => {
+  "skills.install": async ({ params, respond, context }) => {
     if (!validateSkillsInstallParams(params)) {
       respond(
         false,
@@ -215,6 +215,9 @@ export const skillsHandlers: GatewayRequestHandlers = {
           : result,
         result.ok ? undefined : errorShape(ErrorCodes.UNAVAILABLE, result.error),
       );
+      if (result.ok) {
+        context.broadcast("commands.changed", { version: "refresh" }, { dropIfSlow: true });
+      }
       return;
     }
     const p = params as {
@@ -236,8 +239,11 @@ export const skillsHandlers: GatewayRequestHandlers = {
       result,
       result.ok ? undefined : errorShape(ErrorCodes.UNAVAILABLE, result.message),
     );
+    if (result.ok) {
+      context.broadcast("commands.changed", { version: "refresh" }, { dropIfSlow: true });
+    }
   },
-  "skills.update": async ({ params, respond }) => {
+  "skills.update": async ({ params, respond, context }) => {
     if (!validateSkillsUpdateParams(params)) {
       respond(
         false,
@@ -295,6 +301,9 @@ export const skillsHandlers: GatewayRequestHandlers = {
           ? undefined
           : errorShape(ErrorCodes.UNAVAILABLE, errors.map((result) => result.error).join("; ")),
       );
+      if (errors.length === 0) {
+        context.broadcast("commands.changed", { version: "refresh" }, { dropIfSlow: true });
+      }
       return;
     }
     const p = params as {
@@ -342,5 +351,6 @@ export const skillsHandlers: GatewayRequestHandlers = {
     };
     await writeConfigFile(nextConfig);
     respond(true, { ok: true, skillKey: p.skillKey, config: current }, undefined);
+    context.broadcast("commands.changed", { version: "refresh" }, { dropIfSlow: true });
   },
 };

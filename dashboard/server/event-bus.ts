@@ -33,6 +33,8 @@ export type DeckEventType =
   | "webhook.delivery"
   | "cron.run.complete"
   | "canvas"
+  // deck.commands
+  | "commands.changed"
   // Upstream session events (Layer 2 — bypass RunEventPipeline)
   | "session-state"
   | "session-msg"
