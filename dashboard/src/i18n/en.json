@@ -136,7 +136,6 @@
     "cmd_compact": "Compact context",
     "cmd_stop": "Stop current run",
     "cmd_clear": "Clear messages",
-    "cmd_focus": "Toggle focus mode",
     "cmd_model": "Show/set model",
     "cmd_think": "Set thinking level",
     "cmd_verbose": "Toggle verbose mode",

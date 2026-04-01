@@ -136,7 +136,6 @@
     "cmd_compact": "压缩上下文",
     "cmd_stop": "停止运行",
     "cmd_clear": "清空消息",
-    "cmd_focus": "切换专注模式",
     "cmd_model": "查看/设置模型",
     "cmd_think": "设置思考级别",
     "cmd_verbose": "切换详细模式",

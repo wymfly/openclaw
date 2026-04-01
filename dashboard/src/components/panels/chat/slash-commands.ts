@@ -26,7 +26,6 @@ export const SLASH_COMMANDS: SlashCommandDef[] = [
   { name: "compact", descriptionKey: "cmd_compact", icon: "minimize-2", category: "session" },
   { name: "stop", descriptionKey: "cmd_stop", icon: "square", category: "session" },
   { name: "clear", descriptionKey: "cmd_clear", icon: "trash-2", category: "session" },
-  { name: "focus", descriptionKey: "cmd_focus", icon: "eye", category: "session" },
   // ── Model ──
   {
     name: "model",
@@ -97,11 +96,15 @@ export function getSlashCommandCompletions(filter: string): SlashCommandDef[] {
   return commands.toSorted((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a.category);
     const bi = CATEGORY_ORDER.indexOf(b.category);
-    if (ai !== bi) return ai - bi;
+    if (ai !== bi) {
+      return ai - bi;
+    }
     if (lower) {
       const aExact = a.name.startsWith(lower) ? 0 : 1;
       const bExact = b.name.startsWith(lower) ? 0 : 1;
-      if (aExact !== bExact) return aExact - bExact;
+      if (aExact !== bExact) {
+        return aExact - bExact;
+      }
     }
     return 0;
   });
@@ -119,17 +122,25 @@ export interface ParsedSlashCommand {
  */
 export function parseSlashCommand(text: string): ParsedSlashCommand | null {
   const trimmed = text.trim();
-  if (!trimmed.startsWith("/")) return null;
+  if (!trimmed.startsWith("/")) {
+    return null;
+  }
 
   const body = trimmed.slice(1);
   const firstSep = body.search(/[\s:]/u);
   const name = firstSep === -1 ? body : body.slice(0, firstSep);
   let remainder = firstSep === -1 ? "" : body.slice(firstSep).trimStart();
-  if (remainder.startsWith(":")) remainder = remainder.slice(1).trimStart();
+  if (remainder.startsWith(":")) {
+    remainder = remainder.slice(1).trimStart();
+  }
 
-  if (!name) return null;
+  if (!name) {
+    return null;
+  }
   const command = SLASH_COMMANDS.find((cmd) => cmd.name === name.toLowerCase());
-  if (!command) return null;
+  if (!command) {
+    return null;
+  }
 
   return { command, args: remainder.trim() };
 }

@@ -6,14 +6,7 @@
 import { formatTokenCount } from "@/lib/format-utils";
 import { SLASH_COMMANDS } from "./slash-commands";
 
-export type SlashCommandAction =
-  | "new-session"
-  | "reset"
-  | "stop"
-  | "clear"
-  | "toggle-focus"
-  | "export"
-  | "refresh";
+export type SlashCommandAction = "new-session" | "reset" | "stop" | "clear" | "export" | "refresh";
 
 export interface SlashCommandResult {
   /** Text content to display (empty string = no display). */
@@ -38,8 +31,6 @@ export async function executeSlashCommand(
       return { content: "", action: "stop" };
     case "clear":
       return { content: "", action: "clear" };
-    case "focus":
-      return { content: "", action: "toggle-focus" };
     case "export":
       return { content: "", action: "export" };
     case "compact":
@@ -95,7 +86,9 @@ async function executeModel(sessionKey: string, args: string): Promise<SlashComm
         fetch("/api/sessions"),
         fetch("/api/models"),
       ]);
-      if (!sessRes.ok || !modelsRes.ok) return { content: "Failed to get model info" };
+      if (!sessRes.ok || !modelsRes.ok) {
+        return { content: "Failed to get model info" };
+      }
 
       const sessData = (await sessRes.json()) as {
         sessions?: Array<{ key?: string; model?: string }>;
@@ -124,7 +117,9 @@ async function executeModel(sessionKey: string, args: string): Promise<SlashComm
 
 async function executeThink(sessionKey: string, args: string): Promise<SlashCommandResult> {
   const level = args.trim().toLowerCase();
-  if (!level) return { content: "Usage: /think <off|low|medium|high>" };
+  if (!level) {
+    return { content: "Usage: /think <off|low|medium|high>" };
+  }
   if (!["off", "low", "medium", "high"].includes(level)) {
     return { content: `Invalid thinking level "${args.trim()}". Valid: off, low, medium, high` };
   }
@@ -133,7 +128,9 @@ async function executeThink(sessionKey: string, args: string): Promise<SlashComm
 
 async function executeFast(sessionKey: string, args: string): Promise<SlashCommandResult> {
   const mode = args.trim().toLowerCase();
-  if (!mode || mode === "status") return { content: "", action: "refresh" };
+  if (!mode || mode === "status") {
+    return { content: "", action: "refresh" };
+  }
   if (mode !== "on" && mode !== "off") {
     return { content: `Invalid fast mode "${args.trim()}". Valid: status, on, off` };
   }
@@ -142,7 +139,9 @@ async function executeFast(sessionKey: string, args: string): Promise<SlashComma
 
 async function executeVerbose(sessionKey: string, args: string): Promise<SlashCommandResult> {
   const level = args.trim().toLowerCase();
-  if (!level) return { content: "Usage: /verbose <on|off|full>" };
+  if (!level) {
+    return { content: "Usage: /verbose <on|off|full>" };
+  }
   if (!["on", "off", "full"].includes(level)) {
     return { content: `Invalid verbose level "${args.trim()}". Valid: on, off, full` };
   }
@@ -152,7 +151,9 @@ async function executeVerbose(sessionKey: string, args: string): Promise<SlashCo
 async function executeUsage(sessionKey: string): Promise<SlashCommandResult> {
   try {
     const res = await fetch("/api/sessions");
-    if (!res.ok) return { content: "Failed to get usage" };
+    if (!res.ok) {
+      return { content: "Failed to get usage" };
+    }
     const data = (await res.json()) as {
       sessions?: Array<{
         key?: string;
@@ -165,7 +166,9 @@ async function executeUsage(sessionKey: string): Promise<SlashCommandResult> {
     };
     const sessions = data.sessions ?? [];
     const session = sessions.find((s) => s.key === sessionKey);
-    if (!session) return { content: "No active session." };
+    if (!session) {
+      return { content: "No active session." };
+    }
 
     const input = session.inputTokens ?? 0;
     const output = session.outputTokens ?? 0;
@@ -175,7 +178,9 @@ async function executeUsage(sessionKey: string): Promise<SlashCommandResult> {
       `Output: ${formatTokenCount(output)} tokens`,
       `Total: ${formatTokenCount(total)} tokens`,
     ];
-    if (session.model) lines.push(`Model: ${session.model}`);
+    if (session.model) {
+      lines.push(`Model: ${session.model}`);
+    }
     if (session.estimatedCostUsd != null) {
       lines.push(`Cost: $${session.estimatedCostUsd.toFixed(4)}`);
     }
@@ -188,13 +193,17 @@ async function executeUsage(sessionKey: string): Promise<SlashCommandResult> {
 async function executeAgents(): Promise<SlashCommandResult> {
   try {
     const res = await fetch("/api/agents");
-    if (!res.ok) return { content: "Failed to list agents" };
+    if (!res.ok) {
+      return { content: "Failed to list agents" };
+    }
     const data = (await res.json()) as {
       agents?: Array<{ id: string; name?: string; identity?: { name?: string } }>;
       defaultId?: string;
     };
     const agents = data.agents ?? [];
-    if (agents.length === 0) return { content: "No agents configured." };
+    if (agents.length === 0) {
+      return { content: "No agents configured." };
+    }
     const lines = agents.map((a) => {
       const isDefault = a.id === data.defaultId;
       const name = a.identity?.name ?? a.name ?? a.id;
@@ -208,7 +217,9 @@ async function executeAgents(): Promise<SlashCommandResult> {
 
 async function executeKill(sessionKey: string, args: string): Promise<SlashCommandResult> {
   const target = args.trim();
-  if (!target) return { content: "Usage: /kill <id|all>" };
+  if (!target) {
+    return { content: "Usage: /kill <id|all>" };
+  }
   try {
     const res = await fetch("/api/chat/abort", {
       method: "POST",
