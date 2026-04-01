@@ -4,7 +4,11 @@ import { getChatCommands } from "../../../auto-reply/commands-registry.data.js";
 import { listSkillCommandsForAgents } from "../../../auto-reply/skill-commands.js";
 import { loadConfig } from "../../../config/config.js";
 import type { MethodMetadata } from "../../method-registry.js";
-import { ErrorCodes, errorShape, validateDeckCommandsDiscoverParams } from "../../protocol/index.js";
+import {
+  ErrorCodes,
+  errorShape,
+  validateDeckCommandsDiscoverParams,
+} from "../../protocol/index.js";
 import {
   DeckCommandsDiscoverParamsSchema,
   DeckCommandsDiscoverResultSchema,
@@ -63,7 +67,7 @@ export const deckCommandsHandlers: GatewayRequestHandlers = {
           source: "builtin",
           description: cmd.description,
           args: cmd.acceptsArgs
-            ? (cmd.args?.map((a) => `<${a.name}>`).join(" ") || "<args>")
+            ? cmd.args?.map((a) => `<${a.name}>`).join(" ") || "<args>"
             : undefined,
           argChoices: argChoices.length > 0 ? argChoices : undefined,
           category: "more",

@@ -3,13 +3,13 @@
 import { Send, Square, Paperclip, X, FileIcon, PanelRight, SquareCode } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useContext, useEffect, useRef, useState, useCallback } from "react";
+import { commandRegistry } from "@/lib/command-registry";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
 import { useNotificationsStore } from "@/stores/notifications";
 import { useUIStore } from "@/stores/ui";
 import { ArtifactContext } from "./ChatPanel";
 import { exportSessionAsMarkdown } from "./export-session";
-import { commandRegistry } from "@/lib/command-registry";
 import { executeSlashCommand } from "./slash-command-executor";
 import { parseSlashCommand } from "./slash-commands";
 import { SlashCommandPalette } from "./SlashCommandPalette";

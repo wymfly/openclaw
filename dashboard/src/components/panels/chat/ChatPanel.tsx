@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import { useCommandDiscovery } from "@/hooks/use-command-discovery";
 import { useChatStore } from "@/stores/chat";
 import {
   useSessionMessages,
@@ -17,15 +18,14 @@ import type { ChatMessage, ContentBlock, SessionMeta } from "@/stores/chat-types
 import { useUIStore } from "@/stores/ui";
 import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
-import { useCommandDiscovery } from "@/hooks/use-command-discovery";
 import { BlockFilterBar } from "./BlockFilterBar";
 import { CanvasPanel } from "./CanvasPanel";
-import { initializeLocalCommands } from "./slash-command-executor";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { RightPanel } from "./RightPanel";
 import { SessionConfigBar } from "./SessionConfigBar";
 import { SessionSidebar } from "./SessionSidebar";
+import { initializeLocalCommands } from "./slash-command-executor";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { useChatSSE } from "./useChatSSE";
 
