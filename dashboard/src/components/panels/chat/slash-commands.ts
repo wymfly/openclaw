@@ -1,7 +1,7 @@
 /**
  * Slash command registry, parser, and filter — mirrors official ui/src/ui/chat/slash-commands.ts.
  *
- * 15 commands across 4 categories (session/model/tools/agents).
+ * 14 commands across 4 categories (session/model/tools/agents).
  * /steer and /skill deferred — require complex parameter parsing.
  */
 
