@@ -148,6 +148,9 @@ export interface SessionMeta {
   // New fields from sessions.changed snapshots
   status?: string;
   model?: string;
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
   totalTokens?: number;
   estimatedCostUsd?: number;
   parentSessionKey?: string;

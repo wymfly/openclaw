@@ -119,10 +119,17 @@ export interface ChatStoreAPI {
       completedAt?: number;
     },
   ) => void;
-  /** Update session metadata (totalTokens, estimatedCostUsd) from SSE events. */
+  /** Update session metadata from SSE events or optimistic updates. */
   updateSessionMeta: (
     sessionKey: string,
-    patch: { totalTokens?: number; estimatedCostUsd?: number },
+    patch: {
+      totalTokens?: number;
+      estimatedCostUsd?: number;
+      thinkingLevel?: string;
+      fastMode?: boolean;
+      verboseLevel?: string;
+      model?: string;
+    },
   ) => void;
 }
 
@@ -636,7 +643,9 @@ export function dispatchSessionStateEvent(
 ): void {
   const api = store ?? getDefaultAPI();
   const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : "";
-  if (!sessionKey) return;
+  if (!sessionKey) {
+    return;
+  }
 
   const phase = typeof payload.phase === "string" ? payload.phase : undefined;
   const reason = typeof payload.reason === "string" ? payload.reason : undefined;
@@ -680,15 +689,37 @@ export function dispatchSessionStateEvent(
     }
   }
 
-  // ── Session meta sync (totalTokens, estimatedCostUsd) ──
-  // These fields come from sessions.changed events and feed RunStatusBar's session-level display
+  // ── Session meta sync (totalTokens, estimatedCostUsd, config fields) ──
   const totalTokens = typeof payload.totalTokens === "number" ? payload.totalTokens : undefined;
   const estimatedCostUsd =
     typeof payload.estimatedCostUsd === "number" ? payload.estimatedCostUsd : undefined;
-  if (totalTokens !== undefined || estimatedCostUsd !== undefined) {
-    api.updateSessionMeta(sessionKey, {
-      ...(totalTokens !== undefined ? { totalTokens } : {}),
-      ...(estimatedCostUsd !== undefined ? { estimatedCostUsd } : {}),
-    });
+  const thinkingLevel =
+    typeof payload.thinkingLevel === "string" ? payload.thinkingLevel : undefined;
+  const fastMode = typeof payload.fastMode === "boolean" ? payload.fastMode : undefined;
+  const verboseLevel = typeof payload.verboseLevel === "string" ? payload.verboseLevel : undefined;
+  const model = typeof payload.model === "string" ? payload.model : undefined;
+
+  const metaPatch: Record<string, unknown> = {};
+  if (totalTokens !== undefined) {
+    metaPatch.totalTokens = totalTokens;
+  }
+  if (estimatedCostUsd !== undefined) {
+    metaPatch.estimatedCostUsd = estimatedCostUsd;
+  }
+  if (thinkingLevel !== undefined) {
+    metaPatch.thinkingLevel = thinkingLevel;
+  }
+  if (fastMode !== undefined) {
+    metaPatch.fastMode = fastMode;
+  }
+  if (verboseLevel !== undefined) {
+    metaPatch.verboseLevel = verboseLevel;
+  }
+  if (model !== undefined) {
+    metaPatch.model = model;
+  }
+
+  if (Object.keys(metaPatch).length > 0) {
+    api.updateSessionMeta(sessionKey, metaPatch as Parameters<typeof api.updateSessionMeta>[1]);
   }
 }
