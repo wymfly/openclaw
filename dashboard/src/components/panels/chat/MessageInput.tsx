@@ -181,20 +181,17 @@ export function MessageInput() {
         body: JSON.stringify({ sessionKey: activeSessionKey ?? undefined }),
       });
       if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        useNotificationsStore
-          .getState()
-          .addToast("error", (d as { error?: string }).error ?? "Failed to stop", 3000);
+        useNotificationsStore.getState().addToast("error", t("toastStopFailed"), 3000);
         return false;
       }
       if (activeSessionKey) {
         useChatStore.getState().setSessionStreaming(activeSessionKey, false);
       }
-      useNotificationsStore.getState().addToast("success", "Stopped", 3000);
+      useNotificationsStore.getState().addToast("success", t("toastStopped"), 3000);
       return true;
     } catch (err) {
       console.error("[abort] network error:", err);
-      useNotificationsStore.getState().addToast("error", "Failed to stop", 3000);
+      useNotificationsStore.getState().addToast("error", t("toastStopFailed"), 3000);
       return false;
     }
   }, [activeSessionKey]);
@@ -221,9 +218,12 @@ export function MessageInput() {
       try {
         const result = await executeSlashCommand(activeSessionKey ?? "", cmd.name, cmdArgs);
 
-        // ── Toast feedback (D4: executor returns toast, caller dispatches) ──
-        if (result.toastMessage) {
-          toast(result.toastType ?? "info", result.toastMessage, 3000);
+        // ── Toast feedback (D4: executor returns i18n key, caller resolves via t()) ──
+        if (result.toastKey) {
+          const msg = result.toastValue
+            ? t(result.toastKey, { value: result.toastValue })
+            : t(result.toastKey);
+          toast(result.toastType ?? "info", msg, 3000);
         }
 
         // ── Optimistic config update (D1: write store immediately) ──
@@ -257,21 +257,21 @@ export function MessageInput() {
           if (data.key) {
             useChatStore.getState().setActiveSession(data.key);
           }
-          toast("success", "New session created", 3000);
+          toast("success", t("toastNewSession"), 3000);
         } else if (action === "stop") {
           void handleAbort();
         } else if (action === "clear") {
           if (activeSessionKey) {
             useChatStore.getState().setMessages(activeSessionKey, []);
           }
-          toast("info", "Messages cleared", 3000);
+          toast("info", t("toastCleared"), 3000);
         } else if (action === "export") {
           if (activeSessionKey) {
             try {
               exportSessionAsMarkdown(activeSessionKey);
-              toast("success", "Session exported", 3000);
+              toast("success", t("toastExported"), 3000);
             } catch {
-              toast("error", "Export failed", 3000);
+              toast("error", t("toastExportFailed"), 3000);
             }
           }
         }
@@ -287,7 +287,7 @@ export function MessageInput() {
           .getState()
           .addToast(
             "error",
-            `/${cmd.name}: ${err instanceof Error ? err.message : "Command failed"}`,
+            `/${cmd.name}: ${err instanceof Error ? err.message : t("toastCommandFailed")}`,
             3000,
           );
       }
@@ -311,7 +311,9 @@ export function MessageInput() {
     // Catch unregistered slash commands (e.g. removed /focus) — don't send as message
     if (/^\/[a-z]+(\s|$)/i.test(text)) {
       const cmdName = text.slice(1).split(/\s/)[0];
-      useNotificationsStore.getState().addToast("error", `Unknown command: /${cmdName}`, 3000);
+      useNotificationsStore
+        .getState()
+        .addToast("error", t("toastUnknownCommand", { value: cmdName }), 3000);
       return;
     }
 

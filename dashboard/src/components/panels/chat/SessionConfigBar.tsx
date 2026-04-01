@@ -8,13 +8,13 @@ import { useActiveSessionKey } from "@/stores/chat-hooks";
 export function SessionConfigBar() {
   const t = useTranslations("chat");
   const activeSessionKey = useActiveSessionKey();
-  const meta = useChatStore((s) =>
-    s.sessionMetas.find((m) => m.key === activeSessionKey),
-  );
+  const meta = useChatStore((s) => s.sessionMetas.find((m) => m.key === activeSessionKey));
 
-  if (!activeSessionKey || !meta) return null;
+  if (!activeSessionKey || !meta) {
+    return null;
+  }
 
-  const model = meta.model ?? "default";
+  const model = meta.model ?? t("configModelDefault");
   const items: Array<{ icon: React.ReactNode; label: string; value: string }> = [];
 
   items.push({
@@ -35,7 +35,7 @@ export function SessionConfigBar() {
     items.push({
       icon: <Zap size={10} className="text-[var(--muted-foreground)]" />,
       label: t("configFast"),
-      value: meta.fastMode ? "on" : "off",
+      value: meta.fastMode ? t("configOn") : t("configOff"),
     });
   }
 
