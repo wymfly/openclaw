@@ -5,20 +5,7 @@ import { commandRegistry } from "@/lib/command-registry";
 import { SOURCE_PRIORITY } from "@/lib/command-types";
 import type { RegisteredCommand } from "@/lib/command-types";
 import { useChatStore } from "@/stores/chat";
-
-interface DiscoverResponse {
-  commands?: Array<{
-    name: string;
-    source: "builtin" | "skill" | "plugin";
-    description: string;
-    args?: string;
-    argChoices?: string[];
-    category?: string;
-    skillName?: string;
-    pluginId?: string;
-  }>;
-  version?: string;
-}
+import type { DeckCommandsDiscoverResult } from "@/types/gateway-protocol.generated";
 
 /**
  * Discovers available commands from Gateway via deck.commands.discover RPC.
@@ -37,8 +24,12 @@ export function useCommandDiscovery() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(agentId ? { agentId } : {}),
       });
-      if (!res.ok || !mountedRef.current) return;
-      const data = (await res.json()) as DiscoverResponse;
+      if (!res.ok) {
+        console.warn(`[useCommandDiscovery] Discovery failed: HTTP ${res.status}`);
+        return;
+      }
+      if (!mountedRef.current) return;
+      const data = (await res.json()) as DeckCommandsDiscoverResult;
 
       if (!mountedRef.current) return;
 
@@ -52,8 +43,8 @@ export function useCommandDiscovery() {
       commandRegistry.unregisterBySource("plugin");
 
       // Register discovered commands
-      for (const cmd of data.commands ?? []) {
-        const source = cmd.source;
+      for (const cmd of data.commands) {
+        const source = cmd.source as RegisteredCommand["source"];
         const registered: RegisteredCommand = {
           name: cmd.name,
           source,
@@ -68,8 +59,9 @@ export function useCommandDiscovery() {
         };
         commandRegistry.register(registered);
       }
-    } catch {
-      // Silently fail — local commands remain available
+    } catch (err) {
+      // Local commands remain available as fallback
+      console.warn("[useCommandDiscovery] Failed to discover commands:", err);
     }
   }, []);
 
@@ -83,6 +75,9 @@ export function useCommandDiscovery() {
     const es = new EventSource("/api/stream");
     const onChanged = () => discover(activeAgentId ?? undefined);
     es.addEventListener("commands.changed", onChanged);
+    es.onerror = () => {
+      console.warn("[useCommandDiscovery] SSE connection error — command updates may be delayed");
+    };
 
     return () => {
       mountedRef.current = false;

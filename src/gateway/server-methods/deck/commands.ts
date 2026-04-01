@@ -106,7 +106,10 @@ export const deckCommandsHandlers: GatewayRequestHandlers = {
       respond(
         false,
         undefined,
-        errorShape(ErrorCodes.UNAVAILABLE, `Failed to discover commands: ${err}`),
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `Failed to discover commands: ${err instanceof Error ? err.message : String(err)}`,
+        ),
       );
     }
   },

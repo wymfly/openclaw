@@ -73,11 +73,6 @@ export const LOCAL_COMMAND_DEFS: SlashCommandDef[] = [
   },
 ];
 
-/** @deprecated Use LOCAL_COMMAND_DEFS or commandRegistry. */
-export const SLASH_COMMANDS = LOCAL_COMMAND_DEFS;
-
-const CATEGORY_ORDER: SlashCommandCategory[] = ["session", "model", "tools", "agents"];
-
 /** i18n keys for category labels. */
 export const CATEGORY_LABEL_KEYS: Record<string, string> = {
   session: "cmdCatSession",
@@ -88,21 +83,6 @@ export const CATEGORY_LABEL_KEYS: Record<string, string> = {
   plugins: "cmdCatPlugins",
   more: "cmdCatMore",
 };
-
-/** @deprecated Use commandRegistry.filter(). */
-export function getSlashCommandCompletions(filter: string): SlashCommandDef[] {
-  const lower = filter.toLowerCase();
-  const commands = lower
-    ? LOCAL_COMMAND_DEFS.filter((cmd) => cmd.name.startsWith(lower))
-    : LOCAL_COMMAND_DEFS;
-
-  return commands.toSorted((a, b) => {
-    const ai = CATEGORY_ORDER.indexOf(a.category);
-    const bi = CATEGORY_ORDER.indexOf(b.category);
-    if (ai !== bi) return ai - bi;
-    return 0;
-  });
-}
 
 /**
  * Parse user input as a slash command.
