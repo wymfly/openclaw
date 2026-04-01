@@ -116,7 +116,14 @@ describe("CommandRegistry", () => {
     it("converts SlashCommandDef array to registered commands", () => {
       const defs = [
         { name: "new", descriptionKey: "cmd_new", icon: "plus", category: "session" as const },
-        { name: "model", descriptionKey: "cmd_model", args: "<name>", icon: "cpu", category: "model" as const, argOptions: ["gpt-4"] },
+        {
+          name: "model",
+          descriptionKey: "cmd_model",
+          args: "<name>",
+          icon: "cpu",
+          category: "model" as const,
+          argOptions: ["gpt-4"],
+        },
       ];
       registry.registerLocalCommands(defs);
       expect(registry.getAll()).toHaveLength(2);

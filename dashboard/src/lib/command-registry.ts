@@ -1,6 +1,6 @@
+import type { SlashCommandDef } from "@/components/panels/chat/slash-commands";
 import type { RegisteredCommand, CommandSource } from "./command-types";
 import { SOURCE_PRIORITY } from "./command-types";
-import type { SlashCommandDef } from "@/components/panels/chat/slash-commands";
 
 const CATEGORY_ORDER = ["session", "model", "tools", "agents", "skills", "plugins", "more"];
 

@@ -87,7 +87,15 @@ const SOURCE_DEFAULT_ICONS: Record<string, string> = {
   builtin: "terminal-square",
 };
 
-function CommandIcon({ name, source, size = 14 }: { name?: string; source?: string; size?: number }) {
+function CommandIcon({
+  name,
+  source,
+  size = 14,
+}: {
+  name?: string;
+  source?: string;
+  size?: number;
+}) {
   const iconName = name || (source ? SOURCE_DEFAULT_ICONS[source] : undefined);
   if (!iconName) return null;
   const Icon = ICON_MAP[iconName];
@@ -162,7 +170,8 @@ export function SlashCommandPalette({
   const skillCommands = commands.filter((c) => c.category === "skills");
   const pluginCommands = commands.filter((c) => c.category === "plugins");
   const moreCommands = commands.filter(
-    (c) => !localCategories.includes(c.category) && c.category !== "skills" && c.category !== "plugins",
+    (c) =>
+      !localCategories.includes(c.category) && c.category !== "skills" && c.category !== "plugins",
   );
 
   const hasFilter = filter.length > 0;
@@ -198,7 +207,7 @@ export function SlashCommandPalette({
         <span className="font-mono text-[var(--primary)]">/{cmd.name}</span>
         {cmd.args && <span className="text-[var(--muted-foreground)]">{cmd.args}</span>}
         <span className="ml-auto text-[10px] text-[var(--muted-foreground)] truncate max-w-[200px]">
-          {cmd.descriptionKey ? t(cmd.descriptionKey) : cmd.description ?? ""}
+          {cmd.descriptionKey ? t(cmd.descriptionKey) : (cmd.description ?? "")}
         </span>
       </div>
     );
@@ -272,9 +281,8 @@ export function SlashCommandPalette({
               />
               {t("cmdCatMore")} ({moreCommands.length})
             </div>
-            {moreExpanded && moreCommands.map((cmd) => (
-              <div key={`more:${cmd.name}`}>{renderCommand(cmd)}</div>
-            ))}
+            {moreExpanded &&
+              moreCommands.map((cmd) => <div key={`more:${cmd.name}`}>{renderCommand(cmd)}</div>)}
           </>
         ) : hasFilter && moreCommands.length > 0 ? (
           // When searching, show all more commands flat

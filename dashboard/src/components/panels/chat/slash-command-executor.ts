@@ -80,7 +80,12 @@ export async function executeSlashCommand(
 ): Promise<SlashCommandResult> {
   const cmd = commandRegistry.get(commandName);
   if (!cmd) {
-    return { content: "", toastKey: "toastUnknownCommand", toastValue: commandName, toastType: "error" };
+    return {
+      content: "",
+      toastKey: "toastUnknownCommand",
+      toastValue: commandName,
+      toastType: "error",
+    };
   }
   if (cmd.execMode === "local" && cmd.execute) {
     return cmd.execute(sessionKey, args);
@@ -106,7 +111,12 @@ async function executeRemoteCommand(
     if (!res.ok) {
       return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
     }
-    return { content: "", toastKey: "toastCommandSent", toastValue: commandName, toastType: "success" };
+    return {
+      content: "",
+      toastKey: "toastCommandSent",
+      toastValue: commandName,
+      toastType: "success",
+    };
   } catch {
     return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
   }
