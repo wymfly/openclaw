@@ -89,44 +89,31 @@ export const CATEGORY_LABEL_KEYS: Record<string, string> = {
   more: "cmdCatMore",
 };
 
-/**
- * Return commands matching the given filter, sorted by category then relevance.
- * Matches against command name (prefix) and description key (contains).
- */
+/** @deprecated Use commandRegistry.filter(). */
 export function getSlashCommandCompletions(filter: string): SlashCommandDef[] {
   const lower = filter.toLowerCase();
   const commands = lower
-    ? SLASH_COMMANDS.filter((cmd) => cmd.name.startsWith(lower))
-    : SLASH_COMMANDS;
+    ? LOCAL_COMMAND_DEFS.filter((cmd) => cmd.name.startsWith(lower))
+    : LOCAL_COMMAND_DEFS;
 
   return commands.toSorted((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a.category);
     const bi = CATEGORY_ORDER.indexOf(b.category);
-    if (ai !== bi) {
-      return ai - bi;
-    }
-    if (lower) {
-      const aExact = a.name.startsWith(lower) ? 0 : 1;
-      const bExact = b.name.startsWith(lower) ? 0 : 1;
-      if (aExact !== bExact) {
-        return aExact - bExact;
-      }
-    }
+    if (ai !== bi) return ai - bi;
     return 0;
   });
 }
 
-export interface ParsedSlashCommand {
-  command: SlashCommandDef;
-  args: string;
-}
-
 /**
  * Parse user input as a slash command.
- * Returns null if it doesn't match any registered command.
- * Supports: `/command`, `/command args...`, `/command: args...`.
+ * Returns the command name and args if the input starts with `/`,
+ * or null if it's not a slash command at all.
+ *
+ * Note: This does NOT validate whether the command exists — callers
+ * should look up the name in `commandRegistry` to handle both local
+ * and remote commands.
  */
-export function parseSlashCommand(text: string): ParsedSlashCommand | null {
+export function parseSlashCommand(text: string): { name: string; args: string } | null {
   const trimmed = text.trim();
   if (!trimmed.startsWith("/")) {
     return null;
@@ -143,10 +130,6 @@ export function parseSlashCommand(text: string): ParsedSlashCommand | null {
   if (!name) {
     return null;
   }
-  const command = SLASH_COMMANDS.find((cmd) => cmd.name === name.toLowerCase());
-  if (!command) {
-    return null;
-  }
 
-  return { command, args: remainder.trim() };
+  return { name: name.toLowerCase(), args: remainder.trim() };
 }

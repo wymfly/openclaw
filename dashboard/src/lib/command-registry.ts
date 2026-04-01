@@ -9,6 +9,17 @@ export class CommandRegistry {
   /** Displaced commands stored under "source:name" qualified keys. */
   private qualified = new Map<string, RegisteredCommand>();
   private version = 0;
+  private listeners = new Set<() => void>();
+
+  /** Subscribe to registry changes (for useSyncExternalStore). */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) listener();
+  }
 
   register(cmd: RegisteredCommand): void {
     const existing = this.commands.get(cmd.name);
@@ -25,6 +36,7 @@ export class CommandRegistry {
       this.commands.set(cmd.name, cmd);
     }
     this.version++;
+    this.notify();
   }
 
   unregister(name: string): void {
@@ -43,6 +55,7 @@ export class CommandRegistry {
       this.commands.set(name, best.cmd);
     }
     this.version++;
+    this.notify();
   }
 
   unregisterBySource(source: CommandSource): void {
@@ -74,6 +87,7 @@ export class CommandRegistry {
       }
     }
     this.version++;
+    this.notify();
   }
 
   get(name: string): RegisteredCommand | undefined {

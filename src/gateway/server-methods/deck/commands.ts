@@ -91,9 +91,12 @@ export const deckCommandsHandlers: GatewayRequestHandlers = {
 
       // 3. Plugin commands (placeholder — future extension point)
 
-      // Version hash includes name + description + args for full change detection
+      // Version hash includes all discoverable fields for full change detection
       const hashInput = commands
-        .map((c) => `${c.source}:${c.name}:${c.description}:${c.args ?? ""}`)
+        .map(
+          (c) =>
+            `${c.source}:${c.name}:${c.description}:${c.args ?? ""}:${c.category ?? ""}:${(c.argChoices ?? []).join(";")}`,
+        )
         .sort()
         .join(",");
       const version = createHash("md5").update(hashInput).digest("hex").slice(0, 12);

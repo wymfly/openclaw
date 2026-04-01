@@ -12,7 +12,7 @@ import { ArtifactContext } from "./ChatPanel";
 import { exportSessionAsMarkdown } from "./export-session";
 import { executeSlashCommand } from "./slash-command-executor";
 import { parseSlashCommand } from "./slash-commands";
-import { SlashCommandPalette } from "./SlashCommandPalette";
+import { SlashCommandPalette, type PaletteCommand } from "./SlashCommandPalette";
 import { useInputHistory } from "./useInputHistory";
 
 /** Max attachment size — matches macOS client (5MB). */
@@ -139,6 +139,8 @@ export function MessageInput() {
   const [slashFilter, setSlashFilter] = useState("");
   const [paletteIndex, setPaletteIndex] = useState(0);
   const [ghostHint, setGhostHint] = useState<string | null>(null);
+  /** Flat list of navigable palette commands — populated by SlashCommandPalette each render. */
+  const navigableCommandsRef = useRef<PaletteCommand[]>([]);
 
   // ── Input history ──
   const history = useInputHistory();
@@ -328,22 +330,18 @@ export function MessageInput() {
       return;
     }
 
-    // Check for slash command via registry
+    // Check for slash command via registry (supports local + remote commands)
     const parsed = parseSlashCommand(text);
     if (parsed) {
-      const regCmd = commandRegistry.get(parsed.command.name);
+      const regCmd = commandRegistry.get(parsed.name);
       if (regCmd) {
         await handleSlashCommand(regCmd, parsed.args);
         return;
       }
-    }
-
-    // Catch unregistered slash commands (e.g. removed /focus) — don't send as message
-    if (/^\/[a-z]+(\s|$)/i.test(text)) {
-      const cmdName = text.slice(1).split(/\s/)[0];
+      // Slash syntax but not registered — show unknown command toast
       useNotificationsStore
         .getState()
-        .addToast("error", t("toastUnknownCommand", { value: cmdName }), 3000);
+        .addToast("error", t("toastUnknownCommand", { value: parsed.name }), 3000);
       return;
     }
 
@@ -496,20 +494,25 @@ export function MessageInput() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Priority 1: Slash command palette (when open, it owns ArrowUp/Down/Enter/Escape)
     if (showPalette) {
-      const commands = commandRegistry.filter(slashFilter);
+      const navCmds = navigableCommandsRef.current;
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setPaletteIndex((prev) => (prev + 1) % commands.length);
+        if (navCmds.length > 0) setPaletteIndex((prev) => (prev + 1) % navCmds.length);
         return;
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setPaletteIndex((prev) => (prev - 1 + commands.length) % commands.length);
+        if (navCmds.length > 0)
+          setPaletteIndex((prev) => (prev - 1 + navCmds.length) % navCmds.length);
         return;
       }
-      if (e.key === "Enter" && commands.length > 0) {
+      if (e.key === "Enter" && navCmds.length > 0) {
         e.preventDefault();
-        void handleSlashCommand(commands[paletteIndex]);
+        const selected = navCmds[paletteIndex];
+        if (selected) {
+          const regCmd = commandRegistry.get(selected.name);
+          if (regCmd) void handleSlashCommand(regCmd);
+        }
         return;
       }
       if (e.key === "Escape") {
@@ -632,6 +635,7 @@ export function MessageInput() {
                 hasMessages,
                 sessionStatus: "idle",
               }}
+              navigableCommandsRef={navigableCommandsRef}
             />
           )}
           <textarea
