@@ -127,10 +127,18 @@ export function MessageInput() {
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Message count for visibility context ──
+  const hasMessages = useChatStore((s) => {
+    if (!activeSessionKey) return false;
+    const session = s.sessions.get(activeSessionKey);
+    return (session?.messages?.length ?? 0) > 0;
+  });
+
   // ── Slash command state ──
   const [showPalette, setShowPalette] = useState(false);
   const [slashFilter, setSlashFilter] = useState("");
   const [paletteIndex, setPaletteIndex] = useState(0);
+  const [ghostHint, setGhostHint] = useState<string | null>(null);
 
   // ── Input history ──
   const history = useInputHistory();
@@ -165,8 +173,27 @@ export function MessageInput() {
         setShowPalette(true);
         setSlashFilter(value.slice(1));
         setPaletteIndex(0);
+        setGhostHint(null);
       } else {
         setShowPalette(false);
+        // Ghost hint: when user types `/command `, show arg placeholder
+        const cmdMatch = value.match(/^\/([a-z]+)\s$/i);
+        if (cmdMatch) {
+          const cmd = commandRegistry.get(cmdMatch[1].toLowerCase());
+          if (cmd) {
+            if (cmd.argOptions?.length) {
+              setGhostHint(cmd.argOptions.join(" | "));
+            } else if (cmd.args) {
+              setGhostHint(cmd.args.replace(/[<>]/g, ""));
+            } else {
+              setGhostHint(null);
+            }
+          } else {
+            setGhostHint(null);
+          }
+        } else {
+          setGhostHint(null);
+        }
       }
       history.reset();
     },
@@ -600,6 +627,11 @@ export function MessageInput() {
               onSelectedIndexChange={setPaletteIndex}
               onSelect={(cmd) => void handleSlashCommand(cmd)}
               onDismiss={() => setShowPalette(false)}
+              visibilityContext={{
+                isStreaming: !!isStreaming,
+                hasMessages,
+                sessionStatus: "idle",
+              }}
             />
           )}
           <textarea
@@ -618,6 +650,16 @@ export function MessageInput() {
               maxHeight: 120,
             }}
           />
+          {ghostHint && (
+            <div
+              className="absolute bottom-0 left-0 right-0 px-3 py-2 pointer-events-none text-sm font-mono truncate"
+              style={{ color: "var(--muted-foreground)", opacity: 0.4 }}
+              aria-hidden
+            >
+              <span className="invisible">{input}</span>
+              {ghostHint}
+            </div>
+          )}
         </div>
         {isStreaming ? (
           <button

@@ -32,7 +32,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { commandRegistry } from "@/lib/command-registry";
-import type { CommandSource } from "@/lib/command-types";
+import type { CommandSource, CommandVisibilityContext } from "@/lib/command-types";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABEL_KEYS } from "./slash-commands";
 
@@ -54,6 +54,8 @@ interface SlashCommandPaletteProps {
   onSelectedIndexChange: (index: number) => void;
   onSelect: (command: PaletteCommand) => void;
   onDismiss: () => void;
+  /** Context for visibility filtering — commands with visibleIf predicates are hidden when the predicate returns false. */
+  visibilityContext?: CommandVisibilityContext;
 }
 
 /** Map from kebab-case icon names to lucide components. */
@@ -99,9 +101,15 @@ export function SlashCommandPalette({
   onSelectedIndexChange,
   onSelect,
   onDismiss,
+  visibilityContext,
 }: SlashCommandPaletteProps) {
   const t = useTranslations("chat");
-  const registryCommands = commandRegistry.filter(filter);
+  const allCommands = commandRegistry.filter(filter);
+  // Apply visibility filtering — commands with visibleIf predicates are hidden
+  // when the predicate returns false. Manual input bypasses this (user can still type /stop).
+  const registryCommands = visibilityContext
+    ? allCommands.filter((cmd) => !cmd.visibleIf || cmd.visibleIf(visibilityContext))
+    : allCommands;
   const commands: PaletteCommand[] = registryCommands.map((cmd) => ({
     name: cmd.name,
     descriptionKey: cmd.descriptionKey ?? "",

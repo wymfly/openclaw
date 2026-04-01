@@ -61,6 +61,16 @@ export function initializeLocalCommands(): void {
       cmd.execute = handler;
     }
   }
+
+  // Attach visibility predicates — controls palette visibility, not execution
+  const stopCmd = commandRegistry.get("stop");
+  if (stopCmd) stopCmd.visibleIf = (ctx) => ctx.isStreaming;
+
+  const killCmd = commandRegistry.get("kill");
+  if (killCmd) killCmd.visibleIf = (ctx) => ctx.isStreaming;
+
+  const compactCmd = commandRegistry.get("compact");
+  if (compactCmd) compactCmd.visibleIf = (ctx) => ctx.hasMessages;
 }
 
 export async function executeSlashCommand(
