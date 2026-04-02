@@ -1,5 +1,5 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/routing";
 import { monitorState } from "../../monitor/state.js";
 import { WEBHOOK_PATHS } from "../../types/constants.js";
 import type { ResolvedAgentAccount, TransportSessionPatch } from "../../types/index.js";

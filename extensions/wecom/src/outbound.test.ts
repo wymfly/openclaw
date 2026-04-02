@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { BotWsPushHandle } from "./app/index.js";
 
 vi.mock("./transport/agent-api/core.js", () => ({
   sendText: vi.fn(),
@@ -7,6 +8,17 @@ vi.mock("./transport/agent-api/core.js", () => ({
 }));
 
 describe("wecomOutbound", () => {
+  beforeEach(async () => {
+    const runtime = await import("./runtime.js");
+    runtime.setWecomRuntime({
+      channel: {
+        text: {
+          chunkText: (text: string) => [text],
+        },
+      },
+    } as any);
+  });
+
   afterEach(async () => {
     const runtime = await import("./runtime.js");
     runtime.unregisterBotWsPushHandle("default");

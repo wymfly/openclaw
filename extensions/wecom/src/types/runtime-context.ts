@@ -10,6 +10,7 @@ import type {
 export type WecomRuntimeEnv = {
   log?: (message: string) => void;
   error?: (message: string) => void;
+  replyToChat?: (text: string) => Promise<void>;
 };
 
 export type WecomRuntimeAuditEvent = {
