@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"# Check if deploy/seed/skills is gitignored\\ncd /Users/wangym/workspace/agents/openclaw && git check-ignore -v deploy/seed/skills/ deploy/seed/skills/discord/ deploy/seed/skills/discord/SK...",
-  "error": "Exit code 1",
-  "timestamp": "2026-04-02T07:29:32.566Z",
-  "retry_count": 1
-}
