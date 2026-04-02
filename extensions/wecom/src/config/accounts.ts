@@ -176,17 +176,20 @@ function normalizeKey(value: string): string {
 function collectWecomAccountConflicts(cfg: OpenClawConfig): Map<string, WecomAccountConflict> {
   const resolved = resolveWecomAccounts(cfg);
   const conflicts = new Map<string, WecomAccountConflict>();
-  const botOwners = new Map<string, string>();
+  const botIdOwners = new Map<string, string>();
+  const botTokenOwners = new Map<string, string>();
+  const botAibotidOwners = new Map<string, string>();
   const agentOwners = new Map<string, string>();
 
   for (const accountId of Object.keys(resolved.accounts).sort((a, b) => a.localeCompare(b))) {
     const account = resolved.accounts[accountId];
     if (!account || account.enabled === false) continue;
 
+    // Check duplicate ws botId
     const botId = account.bot?.botId?.trim();
     if (botId) {
       const key = normalizeKey(botId);
-      const owner = botOwners.get(key);
+      const owner = botIdOwners.get(key);
       if (owner && owner !== accountId) {
         conflicts.set(accountId, {
           type: "duplicate_bot_id",
@@ -197,7 +200,45 @@ function collectWecomAccountConflicts(cfg: OpenClawConfig): Map<string, WecomAcc
             "Keep one owner account per botId.",
         });
       } else {
-        botOwners.set(key, accountId);
+        botIdOwners.set(key, accountId);
+      }
+    }
+
+    // Check duplicate webhook token
+    const botToken = (account.bot?.token || account.bot?.webhook?.token)?.trim();
+    if (botToken && !conflicts.has(accountId)) {
+      const key = normalizeKey(botToken);
+      const owner = botTokenOwners.get(key);
+      if (owner && owner !== accountId) {
+        conflicts.set(accountId, {
+          type: "duplicate_bot_id",
+          accountId,
+          ownerAccountId: owner,
+          message:
+            `Duplicate WeCom bot token: account "${accountId}" shares token with account "${owner}". ` +
+            "Keep one owner account per bot token.",
+        });
+      } else {
+        botTokenOwners.set(key, accountId);
+      }
+    }
+
+    // Check duplicate aibotid
+    const aibotid = account.bot?.config?.aibotid?.trim();
+    if (aibotid && !conflicts.has(accountId)) {
+      const key = normalizeKey(aibotid);
+      const owner = botAibotidOwners.get(key);
+      if (owner && owner !== accountId) {
+        conflicts.set(accountId, {
+          type: "duplicate_bot_id",
+          accountId,
+          ownerAccountId: owner,
+          message:
+            `Duplicate WeCom bot aibotid: account "${accountId}" shares aibotid with account "${owner}". ` +
+            "Keep one owner account per aibotid.",
+        });
+      } else {
+        botAibotidOwners.set(key, accountId);
       }
     }
 

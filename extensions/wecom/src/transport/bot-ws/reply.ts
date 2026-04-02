@@ -5,7 +5,7 @@ import {
   type EventMessage,
   type WSClient,
 } from "@wecom/aibot-node-sdk";
-import { formatErrorMessage } from "openclaw/plugin-sdk";
+import { formatErrorMessage } from "openclaw/plugin-sdk/infra-runtime";
 import type { ReplyHandle, ReplyPayload } from "../../types/index.js";
 
 const PLACEHOLDER_KEEPALIVE_MS = 3000;

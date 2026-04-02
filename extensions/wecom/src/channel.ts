@@ -2,7 +2,7 @@ import type { ChannelAccountSnapshot, ChannelPlugin, OpenClawConfig } from "open
 import {
   deleteAccountFromConfigSection,
   setAccountEnabledInConfigSection,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/core";
 import {
   DEFAULT_ACCOUNT_ID,
   listWecomAccountIds,
@@ -12,7 +12,7 @@ import {
   resolveWecomAccountConflict,
 } from "./config/index.js";
 import { monitorWecomProvider } from "./gateway-monitor.js";
-import { wecomOnboardingAdapter } from "./onboarding.js";
+import { wecomSetupWizard } from "./onboarding.js";
 import { wecomOutbound } from "./outbound.js";
 import type { ResolvedWecomAccount } from "./types/index.js";
 
@@ -52,7 +52,7 @@ function normalizeWecomMessagingTarget(raw: string): string | undefined {
 export const wecomPlugin: ChannelPlugin<ResolvedWecomAccount> = {
   id: "wecom",
   meta,
-  onboarding: wecomOnboardingAdapter,
+  setupWizard: wecomSetupWizard,
   capabilities: {
     chatTypes: ["direct", "group"],
     media: true,

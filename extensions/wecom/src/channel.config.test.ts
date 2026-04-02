@@ -64,11 +64,11 @@ describe("wecomPlugin account conflict guards", () => {
           accounts: {
             "acct-a": {
               enabled: true,
-              bot: { token: "token-shared", encodingAESKey: "aes-a" },
+              bot: { webhook: { token: "token-shared", encodingAESKey: "aes-a" } },
             },
             "acct-b": {
               enabled: true,
-              bot: { token: "token-shared", encodingAESKey: "aes-b" },
+              bot: { webhook: { token: "token-shared", encodingAESKey: "aes-b" } },
             },
           },
         },
@@ -92,11 +92,17 @@ describe("wecomPlugin account conflict guards", () => {
           accounts: {
             "acct-a": {
               enabled: true,
-              bot: { token: "token-a", encodingAESKey: "aes-a", aibotid: "BOT_001" },
+              bot: {
+                aibotid: "BOT_001",
+                webhook: { token: "token-a", encodingAESKey: "aes-a" },
+              },
             },
             "acct-b": {
               enabled: true,
-              bot: { token: "token-b", encodingAESKey: "aes-b", aibotid: "BOT_001" },
+              bot: {
+                aibotid: "BOT_001",
+                webhook: { token: "token-b", encodingAESKey: "aes-b" },
+              },
             },
           },
         },

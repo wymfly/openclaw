@@ -5,11 +5,12 @@ import {
   type ChannelGatewayContext,
   type OpenClawConfig,
 } from "openclaw/plugin-sdk";
-import { describe, expect, it, vi } from "vitest";
-import { createRuntimeEnv } from "../../test-utils/runtime-env.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createRuntimeEnv } from "../../../test/helpers/extensions/runtime-env.js";
 import { wecomPlugin } from "./channel.js";
 import { computeWecomMsgSignature, encryptWecomPlaintext } from "./crypto.js";
 import { handleWecomWebhookRequest } from "./monitor.js";
+import * as runtime from "./runtime.js";
 import type { ResolvedWecomAccount } from "./types/index.js";
 
 function createMockRequest(params: {
@@ -143,6 +144,37 @@ async function sendWecomGetVerify(params: {
 }
 
 describe("wecomPlugin gateway lifecycle", () => {
+  beforeEach(() => {
+    runtime.setWecomRuntime({
+      channel: {
+        text: { chunkText: (text: string) => [text] },
+        commands: {
+          shouldComputeCommandAuthorized: () => false,
+          resolveCommandAuthorizedFromAuthorizers: () => true,
+        },
+        pairing: { readAllowFromStore: async () => [] },
+        reply: {
+          finalizeInboundContext: (c: any) => c,
+          resolveEnvelopeFormatOptions: () => ({}),
+          formatAgentEnvelope: () => "",
+        },
+        routing: {
+          resolveAgentRoute: () => ({ agentId: "1", sessionKey: "1", accountId: "default" }),
+        },
+        session: {
+          resolveStorePath: () => "",
+          readSessionUpdatedAt: () => 0,
+          recordInboundSession: vi.fn(),
+        },
+      },
+      logging: { shouldLogVerbose: () => false },
+    } as any);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("keeps startAccount pending until abort signal", async () => {
     const token = "token";
     const encodingAESKey = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
@@ -225,15 +257,19 @@ describe("wecomPlugin gateway lifecycle", () => {
             "acct-a": {
               enabled: true,
               bot: {
-                token: "token-shared",
-                encodingAESKey: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG",
+                webhook: {
+                  token: "token-shared",
+                  encodingAESKey: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG",
+                },
               },
             },
             "acct-b": {
               enabled: true,
               bot: {
-                token: "token-shared",
-                encodingAESKey: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG",
+                webhook: {
+                  token: "token-shared",
+                  encodingAESKey: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG",
+                },
               },
             },
           },

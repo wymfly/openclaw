@@ -1,4 +1,6 @@
-import type { ChannelOutboundAdapter, ChannelOutboundContext } from "openclaw/plugin-sdk";
+import type { ChannelOutboundAdapter } from "openclaw/plugin-sdk/channel-send-result";
+
+type WecomOutboundContext = Parameters<NonNullable<ChannelOutboundAdapter["sendText"]>>[0];
 import { WecomAgentDeliveryService } from "./capability/agent/index.js";
 import {
   resolveWecomAccount,
@@ -25,7 +27,7 @@ export function setQuotaTracker(tracker: QuotaTracker): void {
 }
 
 function resolveOutboundAccountOrThrow(params: {
-  cfg: ChannelOutboundContext["cfg"];
+  cfg: WecomOutboundContext["cfg"];
   accountId?: string | null;
 }) {
   const resolvedAccounts = resolveWecomAccounts(params.cfg);
@@ -53,7 +55,7 @@ function resolveOutboundAccountOrThrow(params: {
 }
 
 function resolveAgentConfigOrThrow(params: {
-  cfg: ChannelOutboundContext["cfg"];
+  cfg: WecomOutboundContext["cfg"];
   accountId?: string | null;
 }) {
   const account = resolveOutboundAccountOrThrow(params).agent;
@@ -101,7 +103,7 @@ function resolveBotWsChatTarget(params: {
 }
 
 function shouldPreferBotWsOutbound(params: {
-  cfg: ChannelOutboundContext["cfg"];
+  cfg: WecomOutboundContext["cfg"];
   accountId?: string | null;
   to: string | undefined;
 }): { preferred: boolean; accountId: string } {
@@ -122,7 +124,7 @@ function shouldPreferBotWsOutbound(params: {
 }
 
 async function sendTextViaBotWs(params: {
-  cfg: ChannelOutboundContext["cfg"];
+  cfg: WecomOutboundContext["cfg"];
   accountId?: string | null;
   to: string | undefined;
   text: string;
@@ -168,7 +170,7 @@ export const wecomOutbound: ChannelOutboundAdapter = {
       return [text];
     }
   },
-  sendText: async ({ cfg, to, text, accountId }: ChannelOutboundContext) => {
+  sendText: async ({ cfg, to, text, accountId }: WecomOutboundContext) => {
     // signal removed - not supported in current SDK
     // Defer Agent resolution until the Agent fallback path
     // sendTextViaBotWs() can already deliver without Agent mode
@@ -253,7 +255,7 @@ export const wecomOutbound: ChannelOutboundAdapter = {
       timestamp: Date.now(),
     };
   },
-  sendMedia: async ({ cfg, to, text, mediaUrl, accountId }: ChannelOutboundContext) => {
+  sendMedia: async ({ cfg, to, text, mediaUrl, accountId }: WecomOutboundContext) => {
     // signal removed - not supported in current SDK
 
     const { preferred } = shouldPreferBotWsOutbound({ cfg, accountId, to });

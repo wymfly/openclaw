@@ -3,8 +3,8 @@
  * 支持 Bot、Agent 和双模式同时启动的交互式配置流程
  */
 
-import type { ChannelOnboardingAdapter, OpenClawConfig, WizardPrompter } from "openclaw/plugin-sdk";
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/routing";
+import type { ChannelSetupWizard, OpenClawConfig, WizardPrompter } from "openclaw/plugin-sdk/setup";
 import {
   listWecomAccountIds,
   resolveDefaultWecomAccountId,
@@ -607,74 +607,93 @@ async function showSummary(
 // Onboarding Adapter
 // ============================================================
 
-export const wecomOnboardingAdapter: ChannelOnboardingAdapter = {
+async function getWecomSetupStatus(cfg: OpenClawConfig) {
+  const resolved = resolveWecomAccounts(cfg);
+  const accounts = Object.values(resolved.accounts).filter((account) => account.enabled !== false);
+  const botConfigured = accounts.some((account) => Boolean(account.bot?.configured));
+  const agentConfigured = accounts.some((account) => Boolean(account.agent?.configured));
+  const configured = accounts.some((account) => account.configured);
+
+  const statusParts: string[] = [];
+  if (botConfigured) statusParts.push("Bot ✓");
+  if (agentConfigured) statusParts.push("Agent ✓");
+  const accountSuffix = accounts.length > 1 ? ` · ${accounts.length} accounts` : "";
+  const statusSummary = statusParts.length > 0 ? statusParts.join(" + ") : "已配置";
+
+  return {
+    channel,
+    configured,
+    statusLines: [
+      `WeCom (企业微信): ${configured ? `${statusSummary}${accountSuffix}` : "需要配置"}`,
+    ],
+    selectionHint: configured
+      ? `configured · ${statusSummary}${accountSuffix}`
+      : "官方推荐 · 功能强大 · 上手简单",
+    quickstartScore: configured ? 1 : 8,
+  };
+}
+
+async function runWecomSetupFlow(params: {
+  cfg: OpenClawConfig;
+  prompter: WizardPrompter;
+  accountId: string;
+}): Promise<OpenClawConfig> {
+  const { cfg, prompter, accountId } = params;
+  const mode = await promptMode(prompter);
+
+  let next = cfg;
+  const configuredModes: ("bot" | "agent")[] = [];
+
+  if (mode === "bot" || mode === "both") {
+    next = await configureBotMode(next, prompter, accountId);
+    configuredModes.push("bot");
+  }
+
+  if (mode === "agent" || mode === "both") {
+    next = await configureAgentMode(next, prompter, accountId);
+    configuredModes.push("agent");
+  }
+
+  next = await promptDmPolicy(next, prompter, configuredModes, accountId);
+  next = setWecomEnabled(next, true);
+  await showSummary(next, prompter, accountId);
+  return next;
+}
+
+export const wecomSetupWizard: ChannelSetupWizard = {
   channel,
-  getStatus: async ({ cfg }: { cfg: OpenClawConfig }) => {
-    const resolved = resolveWecomAccounts(cfg);
-    const accounts = Object.values(resolved.accounts).filter(
-      (account) => account.enabled !== false,
-    );
-    const botConfigured = accounts.some((account) => Boolean(account.bot?.configured));
-    const agentConfigured = accounts.some((account) => Boolean(account.agent?.configured));
-    const configured = accounts.some((account) => account.configured);
-
-    const statusParts: string[] = [];
-    if (botConfigured) statusParts.push("Bot ✓");
-    if (agentConfigured) statusParts.push("Agent ✓");
-    const accountSuffix = accounts.length > 1 ? ` · ${accounts.length} accounts` : "";
-    const statusSummary = statusParts.length > 0 ? statusParts.join(" + ") : "已配置";
-
-    return {
-      channel,
-      configured,
-      statusLines: [
-        `WeCom (企业微信): ${configured ? `${statusSummary}${accountSuffix}` : "需要配置"}`,
-      ],
-      selectionHint: configured
-        ? `configured · ${statusSummary}${accountSuffix}`
-        : "官方推荐 · 功能强大 · 上手简单",
-      quickstartScore: configured ? 1 : 8,
-    };
+  status: {
+    configuredLabel: "已配置",
+    unconfiguredLabel: "需要配置",
+    configuredHint: "configured",
+    unconfiguredHint: "官方推荐 · 功能强大 · 上手简单",
+    configuredScore: 1,
+    unconfiguredScore: 8,
+    resolveConfigured: async ({ cfg }) => (await getWecomSetupStatus(cfg)).configured,
+    resolveStatusLines: async ({ cfg }) => (await getWecomSetupStatus(cfg)).statusLines,
+    resolveSelectionHint: async ({ cfg }) => (await getWecomSetupStatus(cfg)).selectionHint,
+    resolveQuickstartScore: async ({ cfg }) => (await getWecomSetupStatus(cfg)).quickstartScore,
   },
-  configure: async ({ cfg, prompter, accountOverrides, shouldPromptAccountIds }) => {
-    // 1. 欢迎
+  resolveAccountIdForConfigure: async ({
+    cfg,
+    prompter,
+    accountOverride,
+    shouldPromptAccountIds,
+  }) => {
     await showWelcome(prompter);
-
-    // 2. 账号选择
-    const accountId = await resolveOnboardingAccountId({
+    return await resolveOnboardingAccountId({
       cfg,
       prompter,
-      accountOverride: accountOverrides.wecom,
+      accountOverride,
       shouldPromptAccountIds,
     });
-
-    // 3. 模式选择
-    const mode = await promptMode(prompter);
-
-    let next = cfg;
-    const configuredModes: ("bot" | "agent")[] = [];
-
-    // 4. 配置 Bot
-    if (mode === "bot" || mode === "both") {
-      next = await configureBotMode(next, prompter, accountId);
-      configuredModes.push("bot");
-    }
-
-    // 5. 配置 Agent
-    if (mode === "agent" || mode === "both") {
-      next = await configureAgentMode(next, prompter, accountId);
-      configuredModes.push("agent");
-    }
-
-    // 6. DM 策略
-    next = await promptDmPolicy(next, prompter, configuredModes, accountId);
-
-    // 7. 启用通道
-    next = setWecomEnabled(next, true);
-
-    // 8. 汇总
-    await showSummary(next, prompter, accountId);
-
-    return { cfg: next, accountId };
   },
+  credentials: [],
+  finalize: async ({ cfg, accountId, prompter }) => ({
+    cfg: await runWecomSetupFlow({
+      cfg,
+      prompter,
+      accountId,
+    }),
+  }),
 };

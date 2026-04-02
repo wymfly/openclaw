@@ -1,7 +1,13 @@
 import type { OpenClawConfig, WizardPrompter } from "openclaw/plugin-sdk";
 import type { RuntimeEnv } from "openclaw/plugin-sdk";
 import { describe, expect, it, vi } from "vitest";
-import { wecomOnboardingAdapter } from "./onboarding.js";
+import { buildChannelSetupWizardAdapterFromSetupWizard } from "../../../src/channels/plugins/setup-wizard.js";
+import { wecomPlugin } from "./channel.js";
+
+const wecomSetupAdapter = buildChannelSetupWizardAdapterFromSetupWizard({
+  plugin: wecomPlugin,
+  wizard: wecomPlugin.setupWizard!,
+});
 
 function createPrompter(overrides: Partial<WizardPrompter>): WizardPrompter {
   return {
@@ -54,7 +60,7 @@ describe("wecom onboarding", () => {
       }) as WizardPrompter["text"],
     });
 
-    const result = await wecomOnboardingAdapter.configure({
+    const result = await wecomSetupAdapter.configure({
       cfg: {} as OpenClawConfig,
       runtime: createRuntime(),
       prompter,
@@ -135,7 +141,7 @@ describe("wecom onboarding", () => {
       },
     };
 
-    const result = await wecomOnboardingAdapter.configure({
+    const result = await wecomSetupAdapter.configure({
       cfg: initialCfg,
       runtime: createRuntime(),
       prompter,
@@ -159,7 +165,7 @@ describe("wecom onboarding", () => {
   });
 
   it("reports chinese status copy for channel selection", async () => {
-    const status = await wecomOnboardingAdapter.getStatus({
+    const status = await wecomSetupAdapter.getStatus({
       cfg: {} as OpenClawConfig,
       options: {},
       accountOverrides: {},
@@ -203,7 +209,7 @@ describe("wecom onboarding", () => {
       }) as WizardPrompter["text"],
     });
 
-    const result = await wecomOnboardingAdapter.configure({
+    const result = await wecomSetupAdapter.configure({
       cfg: {} as OpenClawConfig,
       runtime: createRuntime(),
       prompter,
@@ -218,7 +224,7 @@ describe("wecom onboarding", () => {
       .map(([message]) => String(message))
       .join("\n");
     expect(noteText).toContain("接入标识已规范化为：haidao");
-    expect(wecomOnboardingAdapter.dmPolicy).toBeUndefined();
+    expect(wecomSetupAdapter.dmPolicy).toBeUndefined();
   });
 
   it("offers default account selection when config has no accounts", async () => {
@@ -262,7 +268,7 @@ describe("wecom onboarding", () => {
       }) as WizardPrompter["text"],
     });
 
-    const result = await wecomOnboardingAdapter.configure({
+    const result = await wecomSetupAdapter.configure({
       cfg: {} as OpenClawConfig,
       runtime: createRuntime(),
       prompter,
@@ -313,7 +319,7 @@ describe("wecom onboarding", () => {
       }) as WizardPrompter["text"],
     });
 
-    const result = await wecomOnboardingAdapter.configure({
+    const result = await wecomSetupAdapter.configure({
       cfg: {} as OpenClawConfig,
       runtime: createRuntime(),
       prompter,

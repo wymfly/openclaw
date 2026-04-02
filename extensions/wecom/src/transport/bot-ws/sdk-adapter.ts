@@ -155,7 +155,8 @@ export class BotWsSdkAdapter {
       // [enhanced] dedup: reject duplicate frames after reconnect
       const chatId =
         (frame.body as Record<string, unknown>)?.chatid ??
-        (frame.body as Record<string, unknown>)?.from?.userid;
+        ((frame.body as Record<string, unknown>)?.from as Record<string, unknown> | undefined)
+          ?.userid;
       const reqId = frame.headers.req_id;
       if (
         this.reqIdStore &&
