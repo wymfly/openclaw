@@ -102,9 +102,9 @@ bash deploy/scripts/update.sh /path/to/openclaw-deploy-NEW.tar.gz
 
 ## 常见问题
 
-| 问题 | 解决 |
-|------|------|
-| 端口被占用 | `lsof -i :18789` 或 `ss -ltnp \| grep 18789` |
+| 问题                | 解决                                                                      |
+| ------------------- | ------------------------------------------------------------------------- |
+| 端口被占用          | `lsof -i :18789` 或 `ss -ltnp \| grep 18789`                              |
 | NOT_PAIRED 配对失败 | Docker: 确认 `network_mode: service:gateway`；裸机: 确认 localhost 可访问 |
-| PM2 启动失败 | `pm2 logs` 查看错误 |
-| Docker 构建慢 | 首次需下载依赖，后续利用缓存 |
+| PM2 启动失败        | `pm2 logs` 查看错误                                                       |
+| Docker 构建慢       | 首次需下载依赖，后续利用缓存                                              |
