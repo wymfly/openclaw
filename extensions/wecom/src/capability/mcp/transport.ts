@@ -82,6 +82,10 @@ async function fetchMcpConfig(
     throw new Error(`当前企微账号 MCP 服务未就绪：account=${accountId} 的 Bot WS 未连接。`);
   }
 
+  if (!handle.replyCommand) {
+    throw new Error(`当前企微账号 MCP 服务不支持 replyCommand：account=${accountId}`);
+  }
+
   const response = await withTimeout(
     handle.replyCommand({
       cmd: MCP_GET_CONFIG_CMD,
