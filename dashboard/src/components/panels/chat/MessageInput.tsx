@@ -223,6 +223,63 @@ export function MessageInput() {
         return;
       }
 
+      // Remote commands (builtin/skill/plugin): send as normal chat message so the
+      // response appears through the standard chat flow (user message → streaming →
+      // assistant message), instead of fire-and-forget with toast-only feedback.
+      if (cmd.execMode === "remote") {
+        const message = cmdArgs ? `/${cmd.name} ${cmdArgs}` : `/${cmd.name}`;
+        let sessionKey = activeSessionKey;
+        try {
+          // Create session if none exists (same as sendMessage flow)
+          if (!sessionKey) {
+            const agentId = activeAgentId || "main";
+            const createRes = await fetch("/api/chat/sessions/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ agentId }),
+            });
+            const createData = (await createRes.json()) as { key?: string; error?: string };
+            if (!createRes.ok || !createData.key) {
+              useNotificationsStore
+                .getState()
+                .addToast("error", createData.error ?? t("toastCommandFailed"), 3000);
+              return;
+            }
+            sessionKey = createData.key;
+            useChatStore.getState().setActiveSession(sessionKey);
+            const store = useChatStore.getState();
+            store.setSessionMetas([
+              { key: sessionKey, agentId, updatedAt: Date.now(), lastMessagePreview: message },
+              ...store.sessionMetas,
+            ]);
+          }
+          useChatStore.getState().addMessage(sessionKey, {
+            id: `user-${Date.now()}`,
+            role: "user",
+            content: [{ type: "text" as const, text: message }],
+            timestamp: Date.now(),
+          });
+          useChatStore.getState().setSessionStreaming(sessionKey, true);
+          useChatStore.getState().setSessionError(sessionKey, null);
+          const res = await fetch("/api/chat/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message, sessionKey }),
+          });
+          if (!res.ok) {
+            const data = (await res.json()) as { error?: string };
+            useChatStore.getState().setSessionError(sessionKey, data.error ?? t("error"));
+            useChatStore.getState().setSessionStreaming(sessionKey, false);
+          }
+        } catch {
+          if (sessionKey) {
+            useChatStore.getState().setSessionError(sessionKey, t("error"));
+            useChatStore.getState().setSessionStreaming(sessionKey, false);
+          }
+        }
+        return;
+      }
+
       const addSystemMsg = (text: string) => {
         if (activeSessionKey) {
           useChatStore.getState().addMessage(activeSessionKey, {
@@ -328,17 +385,22 @@ export function MessageInput() {
     if (parsed) {
       const command = commandRegistry.get(parsed.name);
       if (command) {
-        await handleSlashCommand(command, parsed.args);
-        return;
-      }
-      // Only block if the name looks like a command (alphabetic), not /2, /= etc.
-      if (/^[a-z]/i.test(parsed.name)) {
+        if (command.execMode === "remote") {
+          // Remote commands (builtin/skill/plugin) fall through to normal send.
+          // Gateway's auto-reply pipeline processes the /command and the response
+          // appears as an assistant message through the standard chat flow.
+        } else {
+          await handleSlashCommand(command, parsed.args);
+          return;
+        }
+      } else if (/^[a-z]/i.test(parsed.name)) {
+        // Only block if the name looks like a command (alphabetic), not /2, /= etc.
         useNotificationsStore
           .getState()
           .addToast("error", t("toastUnknownCommand", { value: parsed.name }), 3000);
         return;
       }
-      // Non-alphabetic /prefix — fall through and send as regular message
+      // Non-alphabetic /prefix or remote command — fall through and send as regular message
     }
 
     // Push to input history
