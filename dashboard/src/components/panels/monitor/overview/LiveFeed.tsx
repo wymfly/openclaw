@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { deckStream } from "@/lib/deck-client";
 import { useMonitorStore, type LiveEvent, type LiveEventType } from "@/stores/monitor";
 
 // ---------------------------------------------------------------------------
@@ -80,33 +81,34 @@ export function LiveFeed() {
 
   // SSE subscription for real-time events
   useEffect(() => {
-    const es = new EventSource("/api/stream");
-
-    const handler = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data as string) as LiveEvent;
-        if (data.id && data.description) {
-          addLiveEvent({
-            id: data.id,
-            timestamp: data.timestamp ?? Date.now(),
-            type: data.type ?? "system",
-            agentId: data.agentId,
-            agentName: data.agentName,
-            description: data.description,
-            details: data.details,
-          });
+    const controller = new AbortController();
+    void deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      onEvent(event) {
+        if (event.event !== "activity.event" || !event.data) {
+          return;
         }
-      } catch {
-        // Malformed payload -- ignore.
-      }
-    };
+        try {
+          const data = JSON.parse(event.data) as LiveEvent;
+          if (data.id && data.description) {
+            addLiveEvent({
+              id: data.id,
+              timestamp: data.timestamp ?? Date.now(),
+              type: data.type ?? "system",
+              agentId: data.agentId,
+              agentName: data.agentName,
+              description: data.description,
+              details: data.details,
+            });
+          }
+        } catch {
+          // Malformed payload -- ignore.
+        }
+      },
+    }).catch(() => {});
 
-    es.addEventListener("activity.event", handler);
-
-    return () => {
-      es.removeEventListener("activity.event", handler);
-      es.close();
-    };
+    return () => controller.abort();
   }, [addLiveEvent]);
 
   const visible = useMemo(

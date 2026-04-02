@@ -49,16 +49,12 @@ interface UIState {
   theme: Theme;
   locale: Locale;
 
-  canvasVisible: boolean;
-  canvasMode: "idle" | "active";
-
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setMobileNavOpen: (open: boolean) => void;
   setActivePanel: (panel: Panel) => void;
   setTheme: (theme: Theme) => void;
   setLocale: (locale: Locale) => void;
-  setCanvasVisible: (visible: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -67,9 +63,6 @@ export const useUIStore = create<UIState>((set) => ({
   activePanel: "chat",
   theme: "system",
   locale: readLocaleFromCookie(),
-
-  canvasVisible: false,
-  canvasMode: "idle",
 
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
@@ -90,11 +83,6 @@ export const useUIStore = create<UIState>((set) => ({
     document.cookie = `NEXT_LOCALE=${locale};path=/;max-age=31536000`;
     window.location.reload();
   },
-  setCanvasVisible: (visible) =>
-    set({
-      canvasVisible: visible,
-      canvasMode: visible ? "active" : "idle",
-    }),
 }));
 
 // Dev-only: expose store for browser-based functional testing

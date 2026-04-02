@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { deckStream } from "@/lib/deck-client";
 import { useActivityStore, type ActivityEvent } from "@/stores/activity";
 
 /**
@@ -15,27 +16,33 @@ export function useActivitySSE() {
   const addEvent = useActivityStore((s) => s.addEvent);
 
   useEffect(() => {
-    const es = new EventSource("/api/stream");
-
-    es.addEventListener("activity.event", (e) => {
-      try {
-        const payload = JSON.parse(e.data) as ActivityEvent;
-        if (payload.id && payload.description) {
-          addEvent({
-            id: payload.id,
-            timestamp: payload.timestamp ?? Date.now(),
-            type: payload.type ?? "system",
-            agentId: payload.agentId,
-            agentName: payload.agentName,
-            description: payload.description,
-            details: payload.details,
-          });
+    const controller = new AbortController();
+    void deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      onEvent(event) {
+        if (event.event !== "activity.event" || !event.data) {
+          return;
         }
-      } catch {
-        // Ignore malformed SSE payloads.
-      }
-    });
+        try {
+          const payload = JSON.parse(event.data) as ActivityEvent;
+          if (payload.id && payload.description) {
+            addEvent({
+              id: payload.id,
+              timestamp: payload.timestamp ?? Date.now(),
+              type: payload.type ?? "system",
+              agentId: payload.agentId,
+              agentName: payload.agentName,
+              description: payload.description,
+              details: payload.details,
+            });
+          }
+        } catch {
+          // Ignore malformed SSE payloads.
+        }
+      },
+    }).catch(() => {});
 
-    return () => es.close();
+    return () => controller.abort();
   }, [addEvent]);
 }

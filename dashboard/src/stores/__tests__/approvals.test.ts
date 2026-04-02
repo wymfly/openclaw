@@ -6,7 +6,7 @@ import { useApprovalsStore } from "../approvals";
 // ---------------------------------------------------------------------------
 
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+global.fetch = mockFetch as unknown as typeof fetch;
 
 beforeEach(() => {
   mockFetch.mockReset();
@@ -139,11 +139,16 @@ describe("resolveApproval", () => {
     expect(useApprovalsStore.getState().pending[0].id).toBe("p2");
 
     // Verify fetch was called with correct params
-    expect(mockFetch).toHaveBeenCalledWith("/api/approvals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: "p1", decision: "allow-once" }),
-    });
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/approvals",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ id: "p1", decision: "allow-once" }),
+      }),
+    );
+
+    const headers = mockFetch.mock.calls[0][1].headers as Headers;
+    expect(headers.get("Content-Type")).toBe("application/json");
   });
 
   it("returns false on failure", async () => {

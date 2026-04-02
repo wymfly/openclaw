@@ -1,6 +1,7 @@
 "use client";
 
 import { extractActionName, formatA2UIAgentMessage } from "./a2ui-message-format";
+import { sendChatMessage } from "./chat-api";
 
 export interface UserAction {
   id: string;
@@ -126,12 +127,8 @@ export async function sendUserActionToAgent(
   });
 
   try {
-    const res = await fetch("/api/chat/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, sessionKey }),
-    });
-    return { ok: res.ok };
+    await sendChatMessage({ message, sessionKey });
+    return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
   }

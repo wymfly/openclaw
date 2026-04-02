@@ -4,9 +4,17 @@ import { commandRegistry } from "@/lib/command-registry";
  * Calls dashboard API routes and returns formatted results.
  * Mirrors official ui/src/ui/chat/slash-command-executor.ts patterns.
  */
+import { deckFetch } from "@/lib/deck-client";
 import { formatTokenCount } from "@/lib/format-utils";
 import type { SessionMeta } from "@/stores/chat-types";
 import type { ToastType } from "@/stores/notifications";
+import {
+  clearChatSession,
+  compactChatSession,
+  patchChatSession,
+  resetChatSession,
+  sendChatMessage,
+} from "./chat-api";
 import { LOCAL_COMMAND_DEFS } from "./slash-commands";
 
 export type SlashCommandAction = "new-session" | "reset" | "stop" | "clear" | "export" | "refresh";
@@ -43,9 +51,9 @@ export function initializeLocalCommands(): void {
   const handlers: Record<string, LocalCommandHandler> = {
     help: async () => executeHelp(),
     new: async () => ({ content: "", action: "new-session" }),
-    reset: async () => ({ content: "", action: "reset" }),
+    reset: (sessionKey) => executeReset(sessionKey),
     stop: async () => ({ content: "", action: "stop" }),
-    clear: async () => ({ content: "", action: "clear" }),
+    clear: (sessionKey) => executeClear(sessionKey),
     export: async () => ({ content: "", action: "export" }),
     compact: (sessionKey) => executeCompact(sessionKey),
     model: (sessionKey, args) => executeModel(sessionKey, args),
@@ -54,7 +62,6 @@ export function initializeLocalCommands(): void {
     verbose: (sessionKey, args) => executeVerbose(sessionKey, args),
     usage: (sessionKey) => executeUsage(sessionKey),
     agents: () => executeAgents(),
-    kill: (sessionKey, args) => executeKill(sessionKey, args),
   };
 
   for (const [name, handler] of Object.entries(handlers)) {
@@ -68,10 +75,6 @@ export function initializeLocalCommands(): void {
   const stopCmd = commandRegistry.get("stop");
   if (stopCmd) {
     stopCmd.visibleIf = (ctx) => ctx.isStreaming;
-  }
-  const killCmd = commandRegistry.get("kill");
-  if (killCmd) {
-    killCmd.visibleIf = (ctx) => ctx.isStreaming;
   }
   const compactCmd = commandRegistry.get("compact");
   if (compactCmd) {
@@ -135,14 +138,7 @@ async function executeRemoteCommand(
 ): Promise<SlashCommandResult> {
   try {
     const message = args ? `/${commandName} ${args}` : `/${commandName}`;
-    const res = await fetch("/api/chat/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, sessionKey }),
-    });
-    if (!res.ok) {
-      return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
-    }
+    await sendChatMessage({ message, sessionKey });
     return {
       content: "",
       toastKey: "toastCommandSent",
@@ -156,19 +152,11 @@ async function executeRemoteCommand(
 }
 
 async function executeCompact(sessionKey: string): Promise<SlashCommandResult> {
+  if (!sessionKey) {
+    return { content: "No active session." };
+  }
   try {
-    const res = await fetch("/api/chat/compact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionKey }),
-    });
-    if (!res.ok) {
-      return {
-        content: "",
-        toastKey: "toastCompactFailed",
-        toastType: "error",
-      };
-    }
+    await compactChatSession(sessionKey);
     return {
       content: "",
       action: "refresh",
@@ -185,8 +173,8 @@ async function executeModel(sessionKey: string, args: string): Promise<SlashComm
     // Fetch current model + available models list (mirrors official executor)
     try {
       const [sessRes, modelsRes] = await Promise.all([
-        fetch("/api/sessions"),
-        fetch("/api/models"),
+        deckFetch("/api/sessions"),
+        deckFetch("/api/models"),
       ]);
       if (!sessRes.ok || !modelsRes.ok) {
         return { content: "Failed to get model info" };
@@ -244,7 +232,7 @@ async function executeFast(sessionKey: string, args: string): Promise<SlashComma
   const mode = args.trim().toLowerCase();
   if (!mode || mode === "status") {
     try {
-      const res = await fetch("/api/sessions");
+      const res = await deckFetch("/api/sessions");
       if (!res.ok) {
         return { content: "Failed to get fast mode status" };
       }
@@ -289,7 +277,7 @@ async function executeVerbose(sessionKey: string, args: string): Promise<SlashCo
 
 async function executeUsage(sessionKey: string): Promise<SlashCommandResult> {
   try {
-    const res = await fetch("/api/sessions");
+    const res = await deckFetch("/api/sessions");
     if (!res.ok) {
       return { content: "Failed to get usage" };
     }
@@ -329,9 +317,51 @@ async function executeUsage(sessionKey: string): Promise<SlashCommandResult> {
   }
 }
 
+async function executeReset(sessionKey: string): Promise<SlashCommandResult> {
+  if (!sessionKey) {
+    return { content: "No active session." };
+  }
+  try {
+    await resetChatSession(sessionKey);
+    return {
+      content: "",
+      action: "reset",
+      toastKey: "toastReset",
+      toastType: "success",
+    };
+  } catch {
+    return {
+      content: "",
+      toastKey: "toastResetFailed",
+      toastType: "error",
+    };
+  }
+}
+
+async function executeClear(sessionKey: string): Promise<SlashCommandResult> {
+  if (!sessionKey) {
+    return { content: "No active session." };
+  }
+  try {
+    await clearChatSession(sessionKey);
+    return {
+      content: "",
+      action: "clear",
+      toastKey: "toastCleared",
+      toastType: "info",
+    };
+  } catch {
+    return {
+      content: "",
+      toastKey: "toastClearFailed",
+      toastType: "error",
+    };
+  }
+}
+
 async function executeAgents(): Promise<SlashCommandResult> {
   try {
-    const res = await fetch("/api/agents");
+    const res = await deckFetch("/api/agents");
     if (!res.ok) {
       return { content: "Failed to list agents" };
     }
@@ -354,30 +384,6 @@ async function executeAgents(): Promise<SlashCommandResult> {
   }
 }
 
-async function executeKill(sessionKey: string, args: string): Promise<SlashCommandResult> {
-  const target = args.trim();
-  if (!target) {
-    return { content: "Usage: /kill <id|all>" };
-  }
-  try {
-    const res = await fetch("/api/chat/abort", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionKey: target === "all" ? sessionKey : target }),
-    });
-    if (!res.ok) {
-      return {
-        content: "",
-        toastKey: "toastAbortFailed",
-        toastType: "error",
-      };
-    }
-    return { content: "", toastKey: "toastAborted", toastValue: target, toastType: "success" };
-  } catch {
-    return { content: "", toastKey: "toastAbortFailed", toastType: "error" };
-  }
-}
-
 // ── Shared ──
 
 async function patchSession(
@@ -387,19 +393,11 @@ async function patchSession(
   successValue: string,
   errorKey: string,
 ): Promise<SlashCommandResult> {
+  if (!sessionKey) {
+    return { content: "No active session." };
+  }
   try {
-    const res = await fetch("/api/chat/sessions/patch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionKey, ...params }),
-    });
-    if (!res.ok) {
-      return {
-        content: "",
-        toastKey: errorKey,
-        toastType: "error",
-      };
-    }
+    await patchChatSession({ sessionKey, ...params });
     return {
       content: "",
       action: "refresh",

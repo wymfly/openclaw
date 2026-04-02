@@ -6,7 +6,7 @@ import { useDocsStore } from "../docs";
 // ---------------------------------------------------------------------------
 
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+global.fetch = mockFetch as unknown as typeof fetch;
 
 beforeEach(() => {
   mockFetch.mockReset();

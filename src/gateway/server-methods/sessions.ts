@@ -43,6 +43,7 @@ import {
   ErrorCodes,
   errorShape,
   validateSessionsAbortParams,
+  validateSessionsClearParams,
   validateSessionsCompactParams,
   validateSessionsCompactionBranchParams,
   validateSessionsCompactionGetParams,
@@ -63,6 +64,13 @@ import {
   getSessionCompactionCheckpoint,
   listSessionCompactionCheckpoints,
 } from "../session-compaction-checkpoints.js";
+import {
+  archiveSessionTranscriptsForSession,
+  cleanupSessionBeforeMutation,
+  emitSessionUnboundLifecycleEvent,
+  performGatewaySessionClear,
+  performGatewaySessionReset,
+} from "../session-reset-service.js";
 import { reactivateCompletedSubagentSession } from "../session-subagent-reactivation.js";
 import {
   archiveFileOnDisk,
@@ -1345,6 +1353,30 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     emitSessionsChanged(context, {
       sessionKey: result.key,
       reason,
+    });
+  },
+  "sessions.clear": async ({ params, respond, context }) => {
+    if (!assertValidParams(params, validateSessionsClearParams, "sessions.clear", respond)) {
+      return;
+    }
+    const p = params;
+    const key = requireSessionKey(p.key, respond);
+    if (!key) {
+      return;
+    }
+
+    const result = await performGatewaySessionClear({
+      key,
+      commandSource: "gateway:sessions.clear",
+    });
+    if (!result.ok) {
+      respond(false, undefined, result.error);
+      return;
+    }
+    respond(true, { ok: true, key: result.key, entry: result.entry }, undefined);
+    emitSessionsChanged(context, {
+      sessionKey: result.key,
+      reason: "clear",
     });
   },
   "sessions.delete": async ({ params, respond, client, isWebchatConnect, context }) => {

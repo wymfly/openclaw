@@ -2124,6 +2124,80 @@ describe("gateway server sessions", () => {
     ws.close();
   });
 
+  test("sessions.clear preserves config while clearing transcript history", async () => {
+    const { dir, storePath } = await createSessionStoreDir();
+    const now = Date.now();
+    await fs.writeFile(
+      path.join(dir, "sess-main.jsonl"),
+      [
+        JSON.stringify({ type: "session", version: 1, id: "sess-main" }),
+        JSON.stringify({
+          id: "msg-1",
+          message: {
+            role: "user",
+            content: [{ type: "text", text: "hello before clear" }],
+            timestamp: now,
+          },
+        }),
+      ].join("\n"),
+      "utf-8",
+    );
+    await writeSessionStore({
+      entries: {
+        main: {
+          sessionId: "sess-main",
+          updatedAt: now,
+          modelProvider: "openai",
+          model: "gpt-test-a",
+          thinkingLevel: "medium",
+          fastMode: true,
+          verboseLevel: "full",
+          lastAccountId: "work",
+          lastThreadId: "1737500000.123456",
+        },
+      },
+      storePath,
+    });
+
+    const { ws } = await openClient();
+    const cleared = await rpcReq<{
+      ok: true;
+      key: string;
+      entry: {
+        sessionId: string;
+        modelProvider?: string;
+        model?: string;
+        thinkingLevel?: string;
+        fastMode?: boolean;
+        verboseLevel?: string;
+        lastAccountId?: string;
+        lastThreadId?: string | number;
+      };
+    }>(ws, "sessions.clear", { key: "main" });
+
+    expect(cleared.ok).toBe(true);
+    expect(cleared.payload?.key).toBe("agent:main:main");
+    expect(cleared.payload?.entry.sessionId).toBe("sess-main");
+    expect(cleared.payload?.entry.modelProvider).toBe("openai");
+    expect(cleared.payload?.entry.model).toBe("gpt-test-a");
+    expect(cleared.payload?.entry.thinkingLevel).toBe("medium");
+    expect(cleared.payload?.entry.fastMode).toBe(true);
+    expect(cleared.payload?.entry.verboseLevel).toBe("full");
+    expect(cleared.payload?.entry.lastAccountId).toBe("work");
+    expect(cleared.payload?.entry.lastThreadId).toBe("1737500000.123456");
+
+    const history = await rpcReq<{ messages: Array<unknown> }>(ws, "chat.history", {
+      sessionKey: "agent:main:main",
+    });
+    expect(history.ok).toBe(true);
+    expect(history.payload?.messages ?? []).toHaveLength(0);
+
+    const filesAfterClear = await fs.readdir(dir);
+    expect(filesAfterClear.some((f) => f.startsWith("sess-main.jsonl.clear."))).toBe(true);
+
+    ws.close();
+  });
+
   test("sessions.preview resolves legacy mixed-case main alias with custom mainKey", async () => {
     const { dir, storePath } = await createSessionStoreDir();
     testState.agentsConfig = { list: [{ id: "ops", default: true }] };

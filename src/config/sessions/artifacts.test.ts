@@ -11,6 +11,7 @@ import {
 describe("session artifact helpers", () => {
   it("classifies archived artifact file names", () => {
     expect(isSessionArchiveArtifactName("abc.jsonl.deleted.2026-01-01T00-00-00.000Z")).toBe(true);
+    expect(isSessionArchiveArtifactName("abc.jsonl.clear.2026-01-01T00-00-00.000Z")).toBe(true);
     expect(isSessionArchiveArtifactName("abc.jsonl.reset.2026-01-01T00-00-00.000Z")).toBe(true);
     expect(isSessionArchiveArtifactName("abc.jsonl.bak.2026-01-01T00-00-00.000Z")).toBe(true);
     expect(isSessionArchiveArtifactName("sessions.json.bak.1737420882")).toBe(true);
@@ -35,6 +36,9 @@ describe("session artifact helpers", () => {
     expect(
       isUsageCountedSessionTranscriptFileName("abc.jsonl.deleted.2026-01-01T00-00-00.000Z"),
     ).toBe(true);
+    expect(
+      isUsageCountedSessionTranscriptFileName("abc.jsonl.clear.2026-01-01T00-00-00.000Z"),
+    ).toBe(false);
     expect(isUsageCountedSessionTranscriptFileName("abc.jsonl.bak.2026-01-01T00-00-00.000Z")).toBe(
       false,
     );

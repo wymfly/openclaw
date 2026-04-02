@@ -56,6 +56,7 @@ export interface ChatState {
   replaceMessageContent: (sessionKey: string, msgId: string, content: ContentBlock[]) => void;
   setMessages: (sessionKey: string, messages: ChatMessage[]) => void;
   clearMessages: (sessionKey: string) => void;
+  resetSessionProjection: (sessionKey: string) => void;
 
   // Session state
   setSessionStreaming: (sessionKey: string, streaming: boolean) => void;
@@ -74,24 +75,35 @@ export interface ChatState {
 
   // Tool progress (session-scoped)
   updateToolProgress: (sessionKey: string, toolUseId: string, progress: ToolProgress) => void;
+  updateSessionState: (
+    sessionKey: string,
+    patch: Partial<
+      Pick<SessionState, "status" | "startedAt" | "endedAt" | "runtimeMs" | "fastMode">
+    >,
+  ) => void;
 
   // Approval (session-scoped)
   setActiveApproval: (sessionKey: string, approval: ApprovalRequest | null) => void;
 
   // Canvas command queue (consumed by CanvasPanel when mounted)
   canvasCommands: Array<{
+    sessionKey: string;
     action: string;
     params?: Record<string, unknown>;
     evalId?: string;
     javaScript?: string;
   }>;
-  pushCanvasCommand: (cmd: {
-    action: string;
-    params?: Record<string, unknown>;
-    evalId?: string;
-    javaScript?: string;
-  }) => void;
-  consumeCanvasCommands: () => Array<{
+  pushCanvasCommand: (
+    sessionKey: string,
+    cmd: {
+      action: string;
+      params?: Record<string, unknown>;
+      evalId?: string;
+      javaScript?: string;
+    },
+  ) => void;
+  consumeCanvasCommands: (sessionKey: string) => Array<{
+    sessionKey: string;
     action: string;
     params?: Record<string, unknown>;
     evalId?: string;
@@ -304,6 +316,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return { sessions: next };
     }),
 
+  resetSessionProjection: (sessionKey) =>
+    set((s) => {
+      const session = s.sessions.get(sessionKey);
+      if (!session) {
+        return s;
+      }
+      const next = new Map(s.sessions);
+      next.set(sessionKey, {
+        ...createEmptySessionState(),
+        fastMode: session.fastMode,
+        lastAccessedAt: Date.now(),
+      });
+      return { sessions: next };
+    }),
+
   // -------------------------------------------------------------------------
   // Session state
   // -------------------------------------------------------------------------
@@ -480,6 +507,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return { sessions: next };
     }),
 
+  updateSessionState: (sessionKey, patch) =>
+    set((s) => {
+      const session = s.sessions.get(sessionKey);
+      if (!session) {
+        return s;
+      }
+      const next = new Map(s.sessions);
+      next.set(sessionKey, {
+        ...session,
+        ...patch,
+        lastAccessedAt: Date.now(),
+      });
+      return { sessions: next };
+    }),
+
   // -------------------------------------------------------------------------
   // Approval (session-scoped)
   // -------------------------------------------------------------------------
@@ -504,11 +546,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // -------------------------------------------------------------------------
 
   canvasCommands: [],
-  pushCanvasCommand: (cmd) => set((s) => ({ canvasCommands: [...s.canvasCommands, cmd] })),
-  consumeCanvasCommands: () => {
-    const cmds = get().canvasCommands;
+  pushCanvasCommand: (sessionKey, cmd) =>
+    set((s) => ({
+      canvasCommands: [...s.canvasCommands, { sessionKey, ...cmd }],
+    })),
+  consumeCanvasCommands: (sessionKey) => {
+    const cmds = get().canvasCommands.filter((cmd) => cmd.sessionKey === sessionKey);
     if (cmds.length > 0) {
-      set({ canvasCommands: [] });
+      set((s) => ({
+        canvasCommands: s.canvasCommands.filter((cmd) => cmd.sessionKey !== sessionKey),
+      }));
     }
     return cmds;
   },
@@ -597,10 +644,14 @@ registerDefaultChatStoreAPI({
   setMessages: (...a) => useChatStore.getState().setMessages(...a),
   getSessionMessages: (key) => useChatStore.getState().sessions.get(key)?.messages ?? [],
   updateToolProgress: (...a) => useChatStore.getState().updateToolProgress(...a),
+  updateSessionState: (...a) => useChatStore.getState().updateSessionState(...a),
+  resetSessionProjection: (...a) => useChatStore.getState().resetSessionProjection(...a),
   updateSessionMeta: (sessionKey, patch) => {
     useChatStore.setState((s) => {
       const idx = s.sessionMetas.findIndex((m) => m.key === sessionKey);
-      if (idx < 0) return {};
+      if (idx < 0) {
+        return {};
+      }
       const metas = [...s.sessionMetas];
       metas[idx] = { ...metas[idx], ...patch };
       return { sessionMetas: metas, sessionMeta: metas };

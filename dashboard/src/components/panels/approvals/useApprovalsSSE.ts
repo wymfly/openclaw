@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { deckStream } from "@/lib/deck-client";
 import { useApprovalsStore, type PendingApproval } from "@/stores/approvals";
 
 /**
@@ -15,30 +16,32 @@ export function useApprovalsSSE() {
   const removePending = useApprovalsStore((s) => s.removePending);
 
   useEffect(() => {
-    const es = new EventSource("/api/stream");
-
-    es.addEventListener("approval.pending", (e) => {
-      try {
-        const payload = JSON.parse(e.data) as PendingApproval;
-        if (payload.id) {
-          addPending(payload);
+    const controller = new AbortController();
+    void deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      onEvent(event) {
+        if (!event.event || !event.data) {
+          return;
         }
-      } catch {
-        // Ignore malformed SSE payloads
-      }
-    });
-
-    es.addEventListener("approval.resolved", (e) => {
-      try {
-        const payload = JSON.parse(e.data) as { id: string };
-        if (payload.id) {
-          removePending(payload.id);
+        try {
+          if (event.event === "approval.pending") {
+            const payload = JSON.parse(event.data) as PendingApproval;
+            if (payload.id) {
+              addPending(payload);
+            }
+          } else if (event.event === "approval.resolved") {
+            const payload = JSON.parse(event.data) as { id: string };
+            if (payload.id) {
+              removePending(payload.id);
+            }
+          }
+        } catch {
+          // Ignore malformed SSE payloads
         }
-      } catch {
-        // Ignore malformed SSE payloads
-      }
-    });
+      },
+    }).catch(() => {});
 
-    return () => es.close();
+    return () => controller.abort();
   }, [addPending, removePending]);
 }

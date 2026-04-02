@@ -105,6 +105,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "secrets.resolve",
   "send",
   "sessions.abort",
+  "sessions.clear",
   "sessions.compact",
   "sessions.create",
   "sessions.delete",
@@ -115,6 +116,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "sessions.preview",
   "sessions.reset",
   "sessions.send",
+  "sessions.steer",
   "sessions.subscribe",
   "sessions.unsubscribe",
   "set-heartbeats",
@@ -173,6 +175,84 @@ export const GENERATED_EVENT_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 export interface GatewayClient {
+  chat: {
+    history(
+      params: import("./gateway-protocol.generated").ChatHistoryParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ChatHistoryResult>;
+    abort(
+      params: import("./gateway-protocol.generated").ChatAbortParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ChatAbortResult>;
+    send(
+      params: import("./gateway-protocol.generated").ChatSendParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ChatSendResult>;
+  };
+  sessions: {
+    list(
+      params: import("./gateway-protocol.generated").SessionsListParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsListResult>;
+    subscribe(
+      params: Record<string, unknown>,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsSubscribeResult>;
+    unsubscribe(
+      params: Record<string, unknown>,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsUnsubscribeResult>;
+    messages: {
+      subscribe(
+        params: import("./gateway-protocol.generated").SessionsMessagesSubscribeParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsMessagesSubscribeResult>;
+      unsubscribe(
+        params: import("./gateway-protocol.generated").SessionsMessagesUnsubscribeParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsMessagesUnsubscribeResult>;
+    };
+    preview(
+      params: import("./gateway-protocol.generated").SessionsPreviewParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsPreviewResult>;
+    create(
+      params: import("./gateway-protocol.generated").SessionsCreateParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsCreateResult>;
+    send(
+      params: import("./gateway-protocol.generated").SessionsSendParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsSendResult>;
+    steer(
+      params: import("./gateway-protocol.generated").SessionsSteerParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsSteerResult>;
+    abort(
+      params: import("./gateway-protocol.generated").SessionsAbortParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsAbortResult>;
+    patch(
+      params: import("./gateway-protocol.generated").SessionsPatchParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsPatchResult>;
+    reset(
+      params: import("./gateway-protocol.generated").SessionsResetParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsResetResult>;
+    clear(
+      params: import("./gateway-protocol.generated").SessionsClearParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsClearResult>;
+    delete(
+      params: import("./gateway-protocol.generated").SessionsDeleteParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsDeleteResult>;
+    compact(
+      params: import("./gateway-protocol.generated").SessionsCompactParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsCompactResult>;
+  };
   deck: {
     commands: {
       discover(
@@ -308,6 +388,30 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       request(method, params, options);
 
   return {
+    chat: {
+      history: call("chat.history"),
+      abort: call("chat.abort"),
+      send: call("chat.send"),
+    },
+    sessions: {
+      list: call("sessions.list"),
+      subscribe: call("sessions.subscribe"),
+      unsubscribe: call("sessions.unsubscribe"),
+      messages: {
+        subscribe: call("sessions.messages.subscribe"),
+        unsubscribe: call("sessions.messages.unsubscribe"),
+      },
+      preview: call("sessions.preview"),
+      create: call("sessions.create"),
+      send: call("sessions.send"),
+      steer: call("sessions.steer"),
+      abort: call("sessions.abort"),
+      patch: call("sessions.patch"),
+      reset: call("sessions.reset"),
+      clear: call("sessions.clear"),
+      delete: call("sessions.delete"),
+      compact: call("sessions.compact"),
+    },
     deck: {
       commands: {
         discover: call("deck.commands.discover"),

@@ -5,7 +5,7 @@
  *   { key, runId? }
  */
 import { NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const POST = withAuth(async (request: NextRequest) => {
@@ -18,7 +18,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "sessionKey is required" }, { status: 400 });
   }
 
-  return gatewayRequest("sessions.abort", {
+  return gwRequest("sessions.abort", {
     key: body.sessionKey,
     runId: body.runId ?? undefined,
   });

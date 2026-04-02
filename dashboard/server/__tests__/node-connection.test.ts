@@ -153,7 +153,7 @@ describe("NodeConnection", () => {
       expect(frame.params.client.id).toBe("node-host");
       expect(frame.params.client.mode).toBe("node");
       expect(frame.params.client.displayName).toBe("Deck Dashboard");
-      expect(frame.params.client.platform).toBe("node");
+      expect(frame.params.client.platform).toBe("web");
       expect(frame.params.role).toBe("node");
       expect(frame.params.scopes).toEqual([]);
       expect(frame.params.caps).toEqual(["canvas"]);
@@ -257,9 +257,9 @@ describe("NodeConnection", () => {
     });
   });
 
-  // 5. eval + canvasSessionCount=0 → immediate error
-  describe("eval with no canvas sessions", () => {
-    it("sends an error result immediately when canvasSessionCount is 0", async () => {
+  // 5. eval + no ready canvas session → immediate error
+  describe("eval with no ready canvas session", () => {
+    it("sends an error result immediately when no ready canvas session exists", async () => {
       vi.useRealTimers();
       const { conn, mockWs } = createNodeConnection();
       await startAndHandshake(conn, mockWs);
@@ -275,20 +275,20 @@ describe("NodeConnection", () => {
       expect(resultFrame.method).toBe("node.invoke.result");
       expect(resultFrame.params.ok).toBe(false);
       expect(resultFrame.params.error.code).toBe("UNAVAILABLE");
-      expect(resultFrame.params.error.message).toContain("no canvas session");
+      expect(resultFrame.params.error.message).toContain("no ready canvas");
 
       await conn.stop();
     });
   });
 
-  // 6. eval + consumer present → creates pending
-  describe("eval with canvas session", () => {
+  // 6. eval + ready consumer present → creates pending
+  describe("eval with ready canvas session", () => {
     it("creates a pending eval and broadcasts canvas event", async () => {
       vi.useRealTimers();
       const { conn, eventBus, mockWs } = createNodeConnection();
       await startAndHandshake(conn, mockWs);
 
-      conn.registerCanvasSession();
+      conn.markCanvasSessionReady("agent:main:main");
 
       const received: ServerEvent[] = [];
       eventBus.subscribe((e) => received.push(e));
@@ -317,7 +317,7 @@ describe("NodeConnection", () => {
       vi.useRealTimers();
       const { conn, mockWs } = createNodeConnection();
       await startAndHandshake(conn, mockWs);
-      conn.registerCanvasSession();
+      conn.markCanvasSessionReady("agent:main:main");
 
       mockWs.emit("message", makeInvokeEvent("inv-eval-3", "canvas.eval", { code: "3+3" }));
       await new Promise((r) => setTimeout(r, 10));
@@ -358,7 +358,7 @@ describe("NodeConnection", () => {
       await startAndHandshake(conn, mockWs);
       vi.useFakeTimers();
 
-      conn.registerCanvasSession();
+      conn.markCanvasSessionReady("agent:main:main");
 
       mockWs.emit(
         "message",
@@ -392,7 +392,7 @@ describe("NodeConnection", () => {
       vi.useRealTimers();
       const { conn, mockWs } = createNodeConnection();
       await startAndHandshake(conn, mockWs);
-      conn.registerCanvasSession();
+      conn.markCanvasSessionReady("agent:main:main");
 
       const evalPromise = new Promise<void>((resolve) => {
         mockWs.emit("message", makeInvokeEvent("inv-eval-stop", "canvas.eval", { code: "x" }));
@@ -411,27 +411,29 @@ describe("NodeConnection", () => {
     });
   });
 
-  // Canvas session reference counting
-  describe("canvas session counting", () => {
-    it("increments and decrements correctly", () => {
+  // Canvas ready session tracking
+  describe("canvas ready session tracking", () => {
+    it("tracks ready sessions by sessionKey and ignores duplicate ready calls", () => {
       const { conn } = createNodeConnection();
-      expect(conn.getCanvasSessionCount()).toBe(0);
+      expect(conn.getReadyCanvasSessionCount()).toBe(0);
 
-      conn.registerCanvasSession();
-      expect(conn.getCanvasSessionCount()).toBe(1);
+      conn.markCanvasSessionReady("session-a");
+      expect(conn.getReadyCanvasSessionCount()).toBe(1);
 
-      conn.registerCanvasSession();
-      expect(conn.getCanvasSessionCount()).toBe(2);
+      conn.markCanvasSessionReady("session-a");
+      expect(conn.getReadyCanvasSessionCount()).toBe(1);
 
-      conn.unregisterCanvasSession();
-      expect(conn.getCanvasSessionCount()).toBe(1);
+      conn.markCanvasSessionReady("session-b");
+      expect(conn.getReadyCanvasSessionCount()).toBe(2);
 
-      conn.unregisterCanvasSession();
-      expect(conn.getCanvasSessionCount()).toBe(0);
+      conn.markCanvasSessionUnready("session-a");
+      expect(conn.getReadyCanvasSessionCount()).toBe(1);
 
-      // Should not go below 0.
-      conn.unregisterCanvasSession();
-      expect(conn.getCanvasSessionCount()).toBe(0);
+      conn.markCanvasSessionUnready("session-b");
+      expect(conn.getReadyCanvasSessionCount()).toBe(0);
+
+      conn.markCanvasSessionUnready("session-b");
+      expect(conn.getReadyCanvasSessionCount()).toBe(0);
     });
   });
 

@@ -20,6 +20,8 @@ export interface PendingApproval {
   command: string;
   commandArgv?: string[];
   agentId?: string;
+  sessionKey?: string;
+  runId?: string;
   cwd?: string;
   createdAtMs: number;
   expiresAtMs: number;
@@ -100,6 +102,8 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
           ? (request.commandArgv as string[])
           : undefined,
         agentId: typeof request.agentId === "string" ? request.agentId : undefined,
+        sessionKey: typeof request.sessionKey === "string" ? request.sessionKey : undefined,
+        runId: typeof request.runId === "string" ? request.runId : undefined,
         cwd: typeof request.cwd === "string" ? request.cwd : undefined,
         createdAtMs: Number(innerPayload.createdAtMs ?? Date.now()),
         expiresAtMs: Number(innerPayload.expiresAtMs ?? Date.now() + 300_000),
@@ -112,8 +116,19 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
     } else if (innerEvent === "exec.approval.resolved" && innerPayload) {
       const id = typeof innerPayload.id === "string" ? innerPayload.id : "";
       if (id) {
+        const existing = pendingMap.get(id);
+        const request =
+          typeof innerPayload.request === "object" && innerPayload.request !== null
+            ? (innerPayload.request as Record<string, unknown>)
+            : ({} as Record<string, unknown>);
         pendingMap.delete(id);
-        eventBus.broadcast("approval.resolved", { id, ...innerPayload });
+        eventBus.broadcast("approval.resolved", {
+          id,
+          ...innerPayload,
+          sessionKey:
+            typeof request.sessionKey === "string" ? request.sessionKey : existing?.sessionKey,
+          runId: typeof request.runId === "string" ? request.runId : existing?.runId,
+        });
       }
     }
   };

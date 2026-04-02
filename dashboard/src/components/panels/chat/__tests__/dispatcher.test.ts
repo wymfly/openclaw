@@ -12,6 +12,8 @@ let dispatchAgentEvent: typeof import("@/stores/chat-dispatchers").dispatchAgent
 let dispatchApproval: typeof import("@/stores/chat-dispatchers").dispatchApproval;
 let dispatchApprovalResolved: typeof import("@/stores/chat-dispatchers").dispatchApprovalResolved;
 let dispatchA2UIEvent: typeof import("@/stores/chat-dispatchers").dispatchA2UIEvent;
+let dispatchSessionMessageEvent: typeof import("@/stores/chat-dispatchers").dispatchSessionMessageEvent;
+let dispatchSessionStateEvent: typeof import("@/stores/chat-dispatchers").dispatchSessionStateEvent;
 let reloadFullContent: typeof import("@/stores/chat-dispatchers").reloadFullContent;
 
 beforeEach(async () => {
@@ -24,6 +26,8 @@ beforeEach(async () => {
   dispatchApproval = dispatcherMod.dispatchApproval;
   dispatchApprovalResolved = dispatcherMod.dispatchApprovalResolved;
   dispatchA2UIEvent = dispatcherMod.dispatchA2UIEvent;
+  dispatchSessionMessageEvent = dispatcherMod.dispatchSessionMessageEvent;
+  dispatchSessionStateEvent = dispatcherMod.dispatchSessionStateEvent;
   reloadFullContent = dispatcherMod.reloadFullContent;
 });
 
@@ -542,6 +546,110 @@ describe("dispatchAgentEvent", () => {
 
     const sessB = useChatStore.getState().sessions.get("sess-b")!;
     expect(sessB.messages).toHaveLength(0);
+  });
+
+  it("replaces cumulative thinking text instead of appending duplicates", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    dispatchAgentEvent({
+      sessionKey: "sess-1",
+      runId: "run-1",
+      stream: "thinking",
+      data: {
+        text: "A",
+      },
+    });
+
+    dispatchAgentEvent({
+      sessionKey: "sess-1",
+      runId: "run-1",
+      stream: "thinking",
+      data: {
+        text: "AB",
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages).toHaveLength(1);
+    expect(sess.messages[0].content).toEqual([{ type: "thinking", text: "AB" }]);
+  });
+});
+
+describe("dispatchSessionStateEvent", () => {
+  it("syncs session lifecycle fields into session state and meta", () => {
+    useChatStore.getState().ensureSession("sess-1");
+    useChatStore
+      .getState()
+      .setSessionMetas([{ key: "sess-1", agentId: "main", updatedAt: Date.now() }]);
+
+    dispatchSessionStateEvent({
+      sessionKey: "sess-1",
+      phase: "message",
+      status: "done",
+      startedAt: 1000,
+      endedAt: 1500,
+      runtimeMs: 500,
+      totalTokens: 321,
+      estimatedCostUsd: 0.12,
+      model: "gpt-5.4",
+      fastMode: true,
+      thinkingLevel: "medium",
+      verboseLevel: "full",
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.status).toBe("done");
+    expect(sess.startedAt).toBe(1000);
+    expect(sess.endedAt).toBe(1500);
+    expect(sess.runtimeMs).toBe(500);
+
+    const meta = useChatStore.getState().sessionMetas[0];
+    expect(meta).toMatchObject({
+      key: "sess-1",
+      status: "done",
+      totalTokens: 321,
+      estimatedCostUsd: 0.12,
+      model: "gpt-5.4",
+      fastMode: true,
+      thinkingLevel: "medium",
+      verboseLevel: "full",
+    });
+  });
+});
+
+describe("dispatchSessionMessageEvent", () => {
+  it("hydrates transcript messages for existing sessions without duplicating ids", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    dispatchSessionMessageEvent({
+      sessionKey: "sess-1",
+      messageId: "msg-1",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "hello from transcript" }],
+        timestamp: 1234,
+      },
+    });
+
+    dispatchSessionMessageEvent({
+      sessionKey: "sess-1",
+      messageId: "msg-1",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "hello from transcript" }],
+        timestamp: 1234,
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages).toEqual([
+      {
+        id: "msg-1",
+        role: "assistant",
+        content: [{ type: "text", text: "hello from transcript" }],
+        timestamp: 1234,
+      },
+    ]);
   });
 });
 

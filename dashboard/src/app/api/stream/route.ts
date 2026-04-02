@@ -1,3 +1,6 @@
+import { validateRequest, type AccessGateDb } from "@server/access-gate";
+import { getEventBus } from "@server/event-bus";
+import type { ServerEvent, ServerEventSubscriber } from "@server/event-bus";
 /**
  * SSE stream endpoint for openclaw-deck.
  *
@@ -21,10 +24,9 @@
  *
  * Security:
  *   - Maximum 50 concurrent SSE connections (returns 503 if exceeded)
- *   - No auth required (SSE is used by the onboarding flow too)
+ *   - Same Deck access-gate auth model as JSON routes
  */
-import { getEventBus } from "@server/event-bus";
-import type { ServerEvent, ServerEventSubscriber } from "@server/event-bus";
+import { getRuntime } from "@server/runtime";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 const MAX_SSE_CONNECTIONS = 50;
@@ -53,11 +55,25 @@ function formatSSE(event: ServerEvent): string {
   return `id: ${event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`;
 }
 
+function extractAuthHeaders(request: Request): Record<string, string | undefined> {
+  return {
+    authorization: request.headers.get("authorization") ?? undefined,
+    "x-deck-token": request.headers.get("x-deck-token") ?? undefined,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
 export function GET(request: Request): Response {
+  const runtime = getRuntime();
+  const db = runtime?.db as unknown as AccessGateDb | undefined;
+  const auth = validateRequest(extractAuthHeaders(request), db);
+  if (!auth.valid) {
+    return Response.json({ error: auth.error ?? "Unauthorized" }, { status: 401 });
+  }
+
   const counter = getSSECounter();
 
   // Enforce connection limit
@@ -76,35 +92,20 @@ export function GET(request: Request): Response {
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      // Replay missed events from the buffer.
-      const missed = bus.getEventsSince(lastEventId);
-      for (const event of missed) {
-        controller.enqueue(encoder.encode(formatSSE(event)));
-      }
-
-      // Subscribe to live events.
-      const onEvent: ServerEventSubscriber = (event) => {
-        try {
-          controller.enqueue(encoder.encode(formatSSE(event)));
-        } catch {
-          // Stream closed; cleanup will happen via cancel().
+      let cleanedUp = false;
+      let heartbeat: ReturnType<typeof setInterval> | null = null;
+      let onEvent: ServerEventSubscriber | null = null;
+      const cleanup = () => {
+        if (cleanedUp) {
+          return;
         }
-      };
-      bus.subscribe(onEvent);
-
-      // Heartbeat keep-alive.
-      const heartbeat = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(": heartbeat\n\n"));
-        } catch {
+        cleanedUp = true;
+        if (onEvent) {
+          bus.unsubscribe(onEvent);
+        }
+        if (heartbeat) {
           clearInterval(heartbeat);
         }
-      }, HEARTBEAT_INTERVAL_MS);
-
-      // Cleanup when client disconnects.
-      const cleanup = () => {
-        bus.unsubscribe(onEvent);
-        clearInterval(heartbeat);
         counter.count = Math.max(0, counter.count - 1);
         try {
           controller.close();
@@ -113,7 +114,32 @@ export function GET(request: Request): Response {
         }
       };
 
-      request.signal.addEventListener("abort", cleanup);
+      // Replay missed events from the buffer.
+      const missed = bus.getEventsSince(lastEventId);
+      for (const event of missed) {
+        controller.enqueue(encoder.encode(formatSSE(event)));
+      }
+
+      // Subscribe to live events.
+      onEvent = (event) => {
+        try {
+          controller.enqueue(encoder.encode(formatSSE(event)));
+        } catch {
+          cleanup();
+        }
+      };
+      bus.subscribe(onEvent);
+
+      // Heartbeat keep-alive.
+      heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(": heartbeat\n\n"));
+        } catch {
+          cleanup();
+        }
+      }, HEARTBEAT_INTERVAL_MS);
+
+      request.signal.addEventListener("abort", cleanup, { once: true });
     },
   });
 

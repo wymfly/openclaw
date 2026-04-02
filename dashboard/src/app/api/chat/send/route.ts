@@ -6,7 +6,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const POST = withAuth(async (request: NextRequest) => {
@@ -32,7 +32,7 @@ export const POST = withAuth(async (request: NextRequest) => {
 
   const idempotencyKey = body.idempotencyKey?.trim() || randomUUID();
 
-  return gatewayRequest("sessions.steer", {
+  return gwRequest("sessions.steer", {
     key: body.sessionKey,
     message: body.message ?? "",
     thinking: body.thinking ?? undefined,

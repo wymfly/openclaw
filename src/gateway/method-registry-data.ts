@@ -4,16 +4,20 @@
 // Verify: bun -e 'import("./src/gateway/method-registry-data.ts")'
 import type { MethodMetadata } from "./method-registry.js";
 import { PROTOCOL_VERSION } from "./protocol/schema/protocol-schemas.js";
+import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
 import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
 import { deckMethodDefs } from "./server-methods/deck/index.js";
+import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
 
 export { PROTOCOL_VERSION };
 
 // ---------------------------------------------------------------------------
-// All P0 methodDefs (deck.* + deck.auth.*) — real schemas from gateway-dev.
+// All typed methodDefs used by Deck codegen and gateway.describe.
 // ---------------------------------------------------------------------------
 
 export const allMethodDefs: Record<string, MethodMetadata> = {
+  ...chatMethodDefs,
+  ...sessionsMethodDefs,
   ...deckMethodDefs,
   ...deckAuthMethodDefs,
 };
@@ -92,9 +96,11 @@ export const allMethodNames: readonly string[] = [
   "sessions.preview",
   "sessions.create",
   "sessions.send",
+  "sessions.steer",
   "sessions.abort",
   "sessions.patch",
   "sessions.reset",
+  "sessions.clear",
   "sessions.delete",
   "sessions.compact",
   "last-heartbeat",

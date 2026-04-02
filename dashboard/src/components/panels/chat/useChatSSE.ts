@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { deckStream } from "@/lib/deck-client";
 import { useChatStore } from "@/stores/chat";
 import {
   type ChatStoreAPI,
@@ -9,9 +10,12 @@ import {
   type StreamingTracker,
   dispatchChatEvent,
   dispatchAgentEvent,
+  dispatchApproval,
+  dispatchApprovalResolved,
+  dispatchSessionMessageEvent,
   dispatchSessionStateEvent,
 } from "@/stores/chat-dispatchers";
-import { useUIStore } from "@/stores/ui";
+import { persistChatProjection } from "./chat-api";
 
 // ---------------------------------------------------------------------------
 // Canvas event handler — invoked from the SSE "canvas" event listener.
@@ -25,24 +29,79 @@ interface CanvasCommand {
   javaScript?: string;
 }
 
+function persistSessionProjection(sessionKey: string) {
+  const a2uiState = useChatStore.getState().sessions.get(sessionKey)?.a2uiState ?? null;
+  void persistChatProjection({ sessionKey, a2uiState }).catch(() => {});
+}
+
+function resolveCanvasSessionKey(data: CanvasCommand): string | null {
+  const paramSessionKey =
+    typeof data.params?.sessionKey === "string" ? data.params.sessionKey : undefined;
+  return paramSessionKey ?? useChatStore.getState().activeSessionKey ?? null;
+}
+
 function handleCanvasEvent(data: CanvasCommand) {
-  const { setCanvasVisible } = useUIStore.getState();
+  const sessionKey = resolveCanvasSessionKey(data);
+  if (!sessionKey) {
+    return;
+  }
+
+  const store = useChatStore.getState();
+  store.ensureSession(sessionKey);
+  const url = typeof data.params?.url === "string" ? data.params.url : undefined;
+  const appendInboundEvent = (action: string, raw: unknown, summary: string) => {
+    store.appendA2UIEvent(sessionKey, {
+      timestamp: Date.now(),
+      direction: "inbound",
+      action,
+      summary,
+      raw,
+    });
+  };
 
   switch (data.action) {
     case "present":
-      setCanvasVisible(true);
-      // Store present params for CanvasPanel to consume when it mounts
-      useChatStore.getState().pushCanvasCommand(data);
+      store.setA2UIState(sessionKey, {
+        visible: true,
+        ...(url ? { url } : {}),
+      });
+      if (url) {
+        appendInboundEvent("present", { url }, "Canvas present");
+      }
+      store.pushCanvasCommand(sessionKey, data);
+      persistSessionProjection(sessionKey);
       break;
     case "hide":
-      setCanvasVisible(false);
+      store.setA2UIState(sessionKey, {
+        visible: false,
+      });
+      persistSessionProjection(sessionKey);
       break;
     case "navigate":
+      if (url) {
+        store.setA2UIState(sessionKey, { url });
+        appendInboundEvent("navigate", { url }, "Canvas navigate");
+        persistSessionProjection(sessionKey);
+      }
+      store.pushCanvasCommand(sessionKey, data);
+      break;
     case "eval":
+      if (typeof data.javaScript === "string" && data.javaScript.trim()) {
+        appendInboundEvent("eval", { javaScript: data.javaScript }, "Canvas eval");
+        persistSessionProjection(sessionKey);
+      }
+      store.pushCanvasCommand(sessionKey, data);
+      break;
     case "a2ui_push":
+      store.setA2UIState(sessionKey, { visible: true });
+      appendInboundEvent("a2ui_push", data.params?.jsonl ?? data.params ?? null, "A2UI push");
+      store.pushCanvasCommand(sessionKey, data);
+      persistSessionProjection(sessionKey);
+      break;
     case "a2ui_reset":
-      // Queue for CanvasPanel to consume when mounted
-      useChatStore.getState().pushCanvasCommand(data);
+      store.setA2UIState(sessionKey, null);
+      store.pushCanvasCommand(sessionKey, data);
+      persistSessionProjection(sessionKey);
       break;
   }
 }
@@ -79,10 +138,14 @@ export function useChatSSE() {
       setMessages: (...a) => getStore().setMessages(...a),
       getSessionMessages: (key) => getStore().sessions.get(key)?.messages ?? [],
       updateToolProgress: (...a) => getStore().updateToolProgress(...a),
+      updateSessionState: (...a) => getStore().updateSessionState(...a),
+      resetSessionProjection: (...a) => getStore().resetSessionProjection(...a),
       updateSessionMeta: (sessionKey, patch) => {
         useChatStore.setState((s) => {
           const idx = s.sessionMetas.findIndex((m) => m.key === sessionKey);
-          if (idx < 0) return {};
+          if (idx < 0) {
+            return {};
+          }
           const metas = [...s.sessionMetas];
           metas[idx] = { ...metas[idx], ...patch };
           return { sessionMetas: metas, sessionMeta: metas };
@@ -90,50 +153,82 @@ export function useChatSSE() {
       },
     };
 
-    const es = new EventSource("/api/stream");
-
-    es.addEventListener("chat", (e) => {
-      dispatchChatEvent(JSON.parse(e.data) as ChatEventPayload, api, trackersRef.current);
+    const controller = new AbortController();
+    void deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      onEvent(event) {
+        if (!event.event || !event.data) {
+          return;
+        }
+        try {
+          if (event.event === "chat") {
+            dispatchChatEvent(JSON.parse(event.data) as ChatEventPayload, api, trackersRef.current);
+            return;
+          }
+          if (event.event === "agent") {
+            dispatchAgentEvent(
+              JSON.parse(event.data) as AgentEventPayload,
+              api,
+              trackersRef.current,
+            );
+            return;
+          }
+          if (event.event === "session-tool") {
+            dispatchAgentEvent(
+              JSON.parse(event.data) as AgentEventPayload,
+              api,
+              trackersRef.current,
+            );
+            return;
+          }
+          if (event.event === "session-msg") {
+            dispatchSessionMessageEvent(JSON.parse(event.data) as Record<string, unknown>, api);
+            return;
+          }
+          if (event.event === "session-state") {
+            dispatchSessionStateEvent(JSON.parse(event.data) as Record<string, unknown>, api);
+            return;
+          }
+          if (event.event === "approval.pending") {
+            const payload = JSON.parse(event.data) as {
+              sessionKey?: string;
+              id: string;
+              command?: string;
+              cwd?: string;
+            };
+            if (payload.sessionKey) {
+              dispatchApproval(
+                {
+                  sessionKey: payload.sessionKey,
+                  id: payload.id,
+                  toolName: "command",
+                  command: payload.command,
+                  description: payload.cwd,
+                },
+                api,
+              );
+            }
+            return;
+          }
+          if (event.event === "approval.resolved") {
+            const payload = JSON.parse(event.data) as { sessionKey?: string };
+            if (payload.sessionKey) {
+              dispatchApprovalResolved({ sessionKey: payload.sessionKey }, api);
+            }
+            return;
+          }
+          if (event.event === "canvas") {
+            handleCanvasEvent(JSON.parse(event.data) as CanvasCommand);
+          }
+        } catch {
+          // ignore malformed SSE payloads
+        }
+      },
+    }).catch(() => {
+      // keep silent — deckStream already retries until aborted
     });
 
-    es.addEventListener("agent", (e) => {
-      dispatchAgentEvent(JSON.parse(e.data) as AgentEventPayload, api, trackersRef.current);
-    });
-
-    es.addEventListener("session-state", (e) => {
-      try {
-        const payload = JSON.parse(e.data) as Record<string, unknown>;
-        dispatchSessionStateEvent(payload, api);
-      } catch {
-        // ignore parse errors
-      }
-    });
-
-    es.addEventListener("canvas", (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as CanvasCommand;
-        handleCanvasEvent(data);
-      } catch {
-        // ignore parse errors
-      }
-    });
-
-    return () => es.close();
-  }, []); // empty deps — EventSource lives for the component lifetime
-
-  // Register/unregister canvas session with the backend
-  useEffect(() => {
-    fetch("/api/deck/canvas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "register" }),
-    }).catch(() => {});
-    return () => {
-      fetch("/api/deck/canvas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "unregister" }),
-      }).catch(() => {});
-    };
-  }, []);
+    return () => controller.abort();
+  }, []); // empty deps — stream lives for the component lifetime
 }

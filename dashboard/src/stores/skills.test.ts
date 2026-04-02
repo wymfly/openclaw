@@ -198,7 +198,7 @@ describe("skills store", () => {
 
       expect(ok).toBe(true);
       // Verify installId matches the caller-provided value (not a random UUID)
-      const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      const call = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
       const body = JSON.parse(call[1].body as string) as { name: string; installId: string };
       expect(body.name).toBe("new-skill");
       expect(body.installId).toBe("installer-abc");

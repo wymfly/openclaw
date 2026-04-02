@@ -163,6 +163,67 @@ describe("settings", () => {
 });
 
 // ---------------------------------------------------------------------------
+// chat session projections
+// ---------------------------------------------------------------------------
+
+describe("chat session projections", () => {
+  it("stores and loads a session-scoped projection payload", () => {
+    store.setChatSessionProjection("agent:main:main", {
+      a2uiState: {
+        visible: true,
+        url: "/api/canvas/index.html",
+        surfaces: ["main"],
+        eventLog: [
+          {
+            timestamp: 1,
+            direction: "inbound",
+            action: "surfaceUpdate",
+            summary: "Surface main updated",
+            raw: { surfaceId: "main" },
+          },
+        ],
+      },
+    });
+
+    expect(store.getChatSessionProjection("agent:main:main")).toEqual({
+      a2uiState: {
+        visible: true,
+        url: "/api/canvas/index.html",
+        surfaces: ["main"],
+        eventLog: [
+          {
+            timestamp: 1,
+            direction: "inbound",
+            action: "surfaceUpdate",
+            summary: "Surface main updated",
+            raw: { surfaceId: "main" },
+          },
+        ],
+      },
+    });
+  });
+
+  it("returns null when a chat projection is missing", () => {
+    expect(store.getChatSessionProjection("missing-session")).toBeNull();
+  });
+
+  it("clears only the targeted session projection", () => {
+    store.setChatSessionProjection("session-a", {
+      a2uiState: { visible: true, surfaces: ["a"] },
+    });
+    store.setChatSessionProjection("session-b", {
+      a2uiState: { visible: false, surfaces: ["b"] },
+    });
+
+    expect(store.clearChatSessionProjection("session-a")).toBe(true);
+    expect(store.getChatSessionProjection("session-a")).toBeNull();
+    expect(store.getChatSessionProjection("session-b")).toEqual({
+      a2uiState: { visible: false, surfaces: ["b"] },
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // pruneEvents
 // ---------------------------------------------------------------------------
 

@@ -104,7 +104,7 @@ export class NodeConnection {
   private connectTimer: ReturnType<typeof setTimeout> | null = null;
   private pending = new Map<string, PendingRequest>();
   private pendingEvals = new Map<string, PendingEval>();
-  private canvasSessionCount = 0;
+  private readyCanvasSessions = new Set<string>();
 
   private readonly deviceIdentity: DeviceIdentity;
   private readonly eventBus: EventBus;
@@ -141,6 +141,7 @@ export class NodeConnection {
   /** Gracefully close the WebSocket and reject all pending evals. */
   async stop(): Promise<void> {
     this.stopping = true;
+    this.readyCanvasSessions.clear();
 
     if (this.connectTimer) {
       clearTimeout(this.connectTimer);
@@ -172,19 +173,27 @@ export class NodeConnection {
   }
 
   // -------------------------------------------------------------------------
-  // Canvas session reference counting
+  // Canvas ready session tracking
   // -------------------------------------------------------------------------
 
-  registerCanvasSession(): void {
-    this.canvasSessionCount += 1;
+  markCanvasSessionReady(sessionKey: string): void {
+    const normalized = sessionKey.trim();
+    if (!normalized) {
+      return;
+    }
+    this.readyCanvasSessions.add(normalized);
   }
 
-  unregisterCanvasSession(): void {
-    this.canvasSessionCount = Math.max(0, this.canvasSessionCount - 1);
+  markCanvasSessionUnready(sessionKey: string): void {
+    const normalized = sessionKey.trim();
+    if (!normalized) {
+      return;
+    }
+    this.readyCanvasSessions.delete(normalized);
   }
 
-  getCanvasSessionCount(): number {
-    return this.canvasSessionCount;
+  getReadyCanvasSessionCount(): number {
+    return this.readyCanvasSessions.size;
   }
 
   // -------------------------------------------------------------------------
@@ -472,11 +481,11 @@ export class NodeConnection {
       }
     }
 
-    // Eval commands require at least one canvas session consumer.
+    // Eval commands require at least one ready canvas consumer.
     if (action === "eval") {
-      if (this.canvasSessionCount <= 0) {
+      if (this.readyCanvasSessions.size <= 0) {
         this.sendInvokeResult(invokeId, false, {
-          error: { code: "UNAVAILABLE", message: "no canvas session connected" },
+          error: { code: "UNAVAILABLE", message: "no ready canvas session connected" },
         });
         return;
       }

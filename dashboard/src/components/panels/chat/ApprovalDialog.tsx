@@ -26,14 +26,14 @@ interface ApprovalDialogProps {
  * normal chat flow. Three buttons map to the three possible decisions.
  */
 export function ApprovalDialog({ approval, onResolve }: ApprovalDialogProps) {
-  const t = useTranslations("chat");
+  const t = useTranslations("approvals");
 
   return (
     <div className="mx-4 my-2 p-4 rounded-xl bg-[var(--muted)] ring-1 ring-[var(--warning)]/30 space-y-3">
       {/* Header */}
       <div className="flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
         <Shield size={16} className="text-[var(--warning)] shrink-0" />
-        <span>{t("approvalTitle")}</span>
+        <span>{t("inlineTitle")}</span>
       </div>
 
       {/* Tool info */}
@@ -58,7 +58,7 @@ export function ApprovalDialog({ approval, onResolve }: ApprovalDialogProps) {
           onClick={() => onResolve(approval.id, "allow-once")}
         >
           <Check size={12} />
-          {t("approvalAllow")}
+          {t("approve")}
         </Button>
         <Button
           size="sm"
@@ -67,7 +67,7 @@ export function ApprovalDialog({ approval, onResolve }: ApprovalDialogProps) {
           onClick={() => onResolve(approval.id, "allow-always")}
         >
           <ShieldCheck size={12} />
-          {t("approvalAllowAlways")}
+          {t("approveAlways")}
         </Button>
         <Button
           size="sm"
@@ -76,7 +76,7 @@ export function ApprovalDialog({ approval, onResolve }: ApprovalDialogProps) {
           onClick={() => onResolve(approval.id, "deny")}
         >
           <X size={12} />
-          {t("approvalDeny")}
+          {t("deny")}
         </Button>
       </div>
     </div>

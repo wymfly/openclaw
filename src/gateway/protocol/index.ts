@@ -206,6 +206,8 @@ import {
   SecretsResolveResultSchema,
   type SessionsAbortParams,
   SessionsAbortParamsSchema,
+  type SessionsClearParams,
+  SessionsClearParamsSchema,
   type SessionsCompactParams,
   SessionsCompactParamsSchema,
   type SessionsCompactionBranchParams,
@@ -389,6 +391,8 @@ export const validateSessionsPatchParams =
   ajv.compile<SessionsPatchParams>(SessionsPatchParamsSchema);
 export const validateSessionsResetParams =
   ajv.compile<SessionsResetParams>(SessionsResetParamsSchema);
+export const validateSessionsClearParams =
+  ajv.compile<SessionsClearParams>(SessionsClearParamsSchema);
 export const validateSessionsDeleteParams = ajv.compile<SessionsDeleteParams>(
   SessionsDeleteParamsSchema,
 );
@@ -661,6 +665,7 @@ export {
   SessionsAbortParamsSchema,
   SessionsPatchParamsSchema,
   SessionsResetParamsSchema,
+  SessionsClearParamsSchema,
   SessionsDeleteParamsSchema,
   SessionsCompactParamsSchema,
   SessionsUsageParamsSchema,
@@ -842,6 +847,7 @@ export type {
   SessionsPatchParams,
   SessionsPatchResult,
   SessionsResetParams,
+  SessionsClearParams,
   SessionsDeleteParams,
   SessionsCompactParams,
   SessionsUsageParams,

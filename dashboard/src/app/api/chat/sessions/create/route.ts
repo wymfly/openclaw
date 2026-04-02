@@ -6,7 +6,7 @@
  * Returns: { ok, key, sessionId, entry, runStarted, messageSeq?, runError? }
  */
 import { NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const POST = withAuth(async (request: NextRequest) => {
@@ -18,7 +18,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     parentSessionKey?: string;
   };
 
-  return gatewayRequest("sessions.create", {
+  return gwRequest("sessions.create", {
     ...(body.agentId ? { agentId: body.agentId } : {}),
     ...(body.message?.trim() ? { message: body.message } : {}),
     ...(body.model?.trim() ? { model: body.model } : {}),

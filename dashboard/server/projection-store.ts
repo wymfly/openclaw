@@ -36,6 +36,10 @@ export type OutboxEntry = {
   createdAt: string;
 };
 
+export type ChatSessionProjection = {
+  a2uiState?: unknown;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -46,6 +50,11 @@ const toOutboxEntry = (row: OutboxRow): OutboxEntry => ({
   payload: JSON.parse(row.payload) as unknown,
   createdAt: row.created_at,
 });
+
+const CHAT_SESSION_PROJECTION_PREFIX = "chat_projection:";
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === "object");
 
 // ---------------------------------------------------------------------------
 // ProjectionStore
@@ -158,6 +167,41 @@ export class ProjectionStore {
     return (info.changes ?? 0) > 0;
   }
 
+  // -- Chat session projection API ------------------------------------------
+
+  getChatSessionProjection(sessionKey: string): ChatSessionProjection | null {
+    const key = this.chatSessionProjectionKey(sessionKey);
+    if (!key) {
+      return null;
+    }
+    const raw = this.getSetting(key);
+    if (!raw) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return isObject(parsed) ? (parsed as ChatSessionProjection) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  setChatSessionProjection(sessionKey: string, projection: ChatSessionProjection): void {
+    const key = this.chatSessionProjectionKey(sessionKey);
+    if (!key) {
+      return;
+    }
+    this.setSetting(key, JSON.stringify(projection));
+  }
+
+  clearChatSessionProjection(sessionKey: string): boolean {
+    const key = this.chatSessionProjectionKey(sessionKey);
+    if (!key) {
+      return false;
+    }
+    return this.deleteSetting(key);
+  }
+
   // -- Maintenance -----------------------------------------------------------
 
   /**
@@ -174,6 +218,14 @@ export class ProjectionStore {
   /** Close the underlying database (for tests / graceful shutdown). */
   close(): void {
     this.db.close();
+  }
+
+  private chatSessionProjectionKey(sessionKey: string): string | null {
+    const normalized = sessionKey.trim();
+    if (!normalized) {
+      return null;
+    }
+    return `${CHAT_SESSION_PROJECTION_PREFIX}${normalized}`;
   }
 }
 

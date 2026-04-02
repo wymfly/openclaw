@@ -1,7 +1,7 @@
 /**
  * Local slash command definitions and parser.
  *
- * 14 commands across 4 categories (session/model/tools/agents).
+ * 13 commands across 4 categories (session/model/tools/agents).
  * /steer and /skill deferred — require complex parameter parsing.
  */
 
@@ -64,13 +64,6 @@ export const LOCAL_COMMAND_DEFS: SlashCommandDef[] = [
   { name: "usage", descriptionKey: "cmd_usage", icon: "bar-chart-2", category: "tools" },
   // ── Agents ──
   { name: "agents", descriptionKey: "cmd_agents", icon: "monitor", category: "agents" },
-  {
-    name: "kill",
-    descriptionKey: "cmd_kill",
-    args: "<id|all>",
-    icon: "x",
-    category: "agents",
-  },
 ];
 
 /** i18n keys for category labels. */

@@ -32,6 +32,28 @@ export const ChatHistoryParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ChatHistoryMessageSchema = Type.Object(
+  {
+    id: Type.Optional(Type.String()),
+    role: Type.Optional(Type.String()),
+    content: Type.Optional(Type.Unknown()),
+    timestamp: Type.Optional(Type.Number()),
+  },
+  { additionalProperties: true },
+);
+
+export const ChatHistoryResultSchema = Type.Object(
+  {
+    sessionKey: NonEmptyString,
+    sessionId: NonEmptyString,
+    messages: Type.Array(ChatHistoryMessageSchema),
+    thinkingLevel: Type.Optional(Type.String()),
+    fastMode: Type.Optional(Type.Boolean()),
+    verboseLevel: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 export const ChatSendParamsSchema = Type.Object(
   {
     sessionKey: ChatSendSessionKeyString,
@@ -51,10 +73,30 @@ export const ChatSendParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ChatSendResultSchema = Type.Object(
+  {
+    ok: Type.Optional(Type.Boolean()),
+    aborted: Type.Optional(Type.Boolean()),
+    runIds: Type.Optional(Type.Array(NonEmptyString)),
+    runId: Type.Optional(NonEmptyString),
+    status: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 export const ChatAbortParamsSchema = Type.Object(
   {
     sessionKey: NonEmptyString,
     runId: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const ChatAbortResultSchema = Type.Object(
+  {
+    ok: Type.Boolean(),
+    aborted: Type.Boolean(),
+    runIds: Type.Array(NonEmptyString),
   },
   { additionalProperties: false },
 );

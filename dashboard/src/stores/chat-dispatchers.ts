@@ -12,12 +12,16 @@
  * interface, which matches the Zustand store's public API 1-to-1.
  */
 
+import { normalizeHistoryContent } from "@/components/panels/chat/history-normalize";
+import { deckFetch } from "@/lib/deck-client";
 import type {
   ApprovalRequest,
   A2UIEvent,
   ContentBlock,
   ChatMessage,
   RunMetadata,
+  SessionMeta,
+  SessionState,
 } from "./chat-types";
 
 // Re-export types for convenience
@@ -119,18 +123,15 @@ export interface ChatStoreAPI {
       completedAt?: number;
     },
   ) => void;
-  /** Update session metadata from SSE events or optimistic updates. */
-  updateSessionMeta: (
+  updateSessionState: (
     sessionKey: string,
-    patch: {
-      totalTokens?: number;
-      estimatedCostUsd?: number;
-      thinkingLevel?: string;
-      fastMode?: boolean;
-      verboseLevel?: string;
-      model?: string;
-    },
+    patch: Partial<
+      Pick<SessionState, "status" | "startedAt" | "endedAt" | "runtimeMs" | "fastMode">
+    >,
   ) => void;
+  resetSessionProjection: (sessionKey: string) => void;
+  /** Update session metadata from SSE events or optimistic updates. */
+  updateSessionMeta: (sessionKey: string, patch: Partial<SessionMeta>) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -336,6 +337,7 @@ export function dispatchAgentEvent(
   }
 
   api.ensureSession(sessionKey);
+  const tracker = getTracker(trk, sessionKey);
   const agentRunId = payload.runId;
 
   // Tool call events: start → append block, result → append result block
@@ -444,18 +446,46 @@ export function dispatchAgentEvent(
   // Thinking stream: append thinking block to the current message.
   if (payload.stream === "thinking") {
     const text = payload.data.text as string | undefined;
-    if (!text) {
+    const delta = payload.data.delta as string | undefined;
+    const nextThinking =
+      typeof text === "string" && text
+        ? text
+        : typeof delta === "string" && delta
+          ? `${getTracker(trk, sessionKey).prevThinking}${delta}`
+          : "";
+    if (!nextThinking) {
       return;
     }
 
+    tracker.prevThinking = nextThinking;
     const existingMessages = api.getSessionMessages(sessionKey);
     const existing = existingMessages.find((m) => m.id === agentRunId);
 
     if (existing) {
-      api.appendContentBlock(sessionKey, existing.id, {
-        type: "thinking",
-        text,
+      let replaced = false;
+      const nextContent = existing.content.map((block) => {
+        if (block.type !== "thinking" || replaced) {
+          return block;
+        }
+        replaced = true;
+        return {
+          type: "thinking",
+          text: nextThinking,
+        } satisfies ContentBlock;
       });
+      api.updateStreamingContent(
+        sessionKey,
+        existing.id,
+        replaced
+          ? nextContent
+          : [
+              ...existing.content,
+              {
+                type: "thinking",
+                text: nextThinking,
+              } satisfies ContentBlock,
+            ],
+      );
     } else if (agentRunId) {
       // Thinking arrived before chat delta — create placeholder
       api.setStreaming(sessionKey, true, agentRunId);
@@ -463,17 +493,74 @@ export function dispatchAgentEvent(
       api.addMessage(sessionKey, {
         id: agentRunId,
         role: "assistant",
-        content: [{ type: "thinking", text }],
+        content: [{ type: "thinking", text: nextThinking }],
         timestamp: payload.ts ?? Date.now(),
         streaming: true,
       });
+      tracker.prevThinking = nextThinking;
     }
   }
 }
 
 // ---------------------------------------------------------------------------
-// Stub dispatchers — approval, A2UI, reload
+// Session/approval/A2UI dispatchers
 // ---------------------------------------------------------------------------
+
+export function dispatchSessionMessageEvent(
+  payload: Record<string, unknown>,
+  store?: ChatStoreAPI,
+): void {
+  const api = store ?? getDefaultAPI();
+  const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : "";
+  if (!sessionKey) {
+    return;
+  }
+
+  const messageRecord =
+    payload.message && typeof payload.message === "object"
+      ? (payload.message as Record<string, unknown>)
+      : null;
+  if (!messageRecord) {
+    dispatchSessionStateEvent(payload, store);
+    return;
+  }
+
+  const timestamp =
+    typeof messageRecord.timestamp === "number" ? messageRecord.timestamp : Date.now();
+  const metaRecord =
+    messageRecord.__openclaw && typeof messageRecord.__openclaw === "object"
+      ? (messageRecord.__openclaw as Record<string, unknown>)
+      : {};
+  const messageId =
+    typeof payload.messageId === "string"
+      ? payload.messageId
+      : typeof metaRecord.id === "string"
+        ? metaRecord.id
+        : `${sessionKey}:${timestamp}:${typeof payload.messageSeq === "number" ? payload.messageSeq : 0}`;
+  const role =
+    messageRecord.role === "toolResult"
+      ? "user"
+      : ((messageRecord.role as ChatMessage["role"]) ?? "assistant");
+  const content = normalizeHistoryContent(messageRecord.content);
+
+  api.ensureSession(sessionKey);
+  const existing = api.getSessionMessages(sessionKey).find((message) => message.id === messageId);
+  if (existing) {
+    api.updateStreamingContent(sessionKey, messageId, content);
+    if (existing.streaming) {
+      api.finalizeMessage(sessionKey, messageId);
+    }
+  } else {
+    api.addMessage(sessionKey, {
+      id: messageId,
+      role,
+      content,
+      timestamp,
+    });
+  }
+
+  dispatchSessionStateEvent(payload, store);
+}
 
 /**
  * Dispatch an approval request to the correct session.
@@ -558,7 +645,7 @@ export async function reloadFullContent(
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch(
+      const res = await deckFetch(
         `/api/chat/history?sessionKey=${encodeURIComponent(sessionKey)}&limit=5`,
       );
       if (!res.ok) {
@@ -583,19 +670,7 @@ export async function reloadFullContent(
       }
 
       // Map content blocks (normalize tool_result toolUseId)
-      const historyBlocks: ContentBlock[] = assistantMsg.content.map((block) => {
-        // Handle snake_case tool_use_id → camelCase toolUseId
-        const raw = block as Record<string, unknown>;
-        if (raw.type === "tool_result" && raw.tool_use_id && !raw.toolUseId) {
-          return {
-            type: "tool_result" as const,
-            toolUseId: raw.tool_use_id as string,
-            content: (raw.content as string) ?? "",
-            isError: (raw.isError as boolean) ?? false,
-          };
-        }
-        return block;
-      });
+      const historyBlocks = normalizeHistoryContent(assistantMsg.content);
 
       // Re-read messages to handle concurrent updates
       const messages = api.getSessionMessages(sessionKey);
@@ -649,10 +724,18 @@ export function dispatchSessionStateEvent(
 
   const phase = typeof payload.phase === "string" ? payload.phase : undefined;
   const reason = typeof payload.reason === "string" ? payload.reason : undefined;
+  const status = typeof payload.status === "string" ? payload.status : undefined;
+  const startedAt = typeof payload.startedAt === "number" ? payload.startedAt : undefined;
+  const endedAt = typeof payload.endedAt === "number" ? payload.endedAt : undefined;
+  const runtimeMs = typeof payload.runtimeMs === "number" ? payload.runtimeMs : undefined;
+  const fastMode = typeof payload.fastMode === "boolean" ? payload.fastMode : undefined;
 
   // Update streaming state based on lifecycle phase
   if (phase === "start" || reason === "send" || reason === "steer") {
     api.setStreaming(sessionKey, true, payload.runId as string | undefined);
+  }
+  if (reason === "clear" || reason === "reset" || reason === "deleted" || reason === "delete") {
+    api.resetSessionProjection(sessionKey);
   }
   if (phase === "end") {
     api.setStreaming(sessionKey, false);
@@ -666,6 +749,43 @@ export function dispatchSessionStateEvent(
       sessionKey,
       typeof payload.errorMessage === "string" ? payload.errorMessage : "Run failed",
     );
+  }
+
+  const statePatch: Partial<
+    Pick<SessionState, "status" | "startedAt" | "endedAt" | "runtimeMs" | "fastMode">
+  > = {};
+  if (
+    status === "running" ||
+    status === "done" ||
+    status === "failed" ||
+    status === "killed" ||
+    status === "timeout" ||
+    status === "idle"
+  ) {
+    statePatch.status = status;
+  } else if (phase === "start") {
+    statePatch.status = "running";
+  } else if (phase === "end") {
+    statePatch.status = "done";
+  } else if (phase === "error") {
+    statePatch.status = "failed";
+  } else if (reason === "abort") {
+    statePatch.status = "killed";
+  }
+  if (startedAt !== undefined) {
+    statePatch.startedAt = startedAt;
+  }
+  if (endedAt !== undefined) {
+    statePatch.endedAt = endedAt;
+  }
+  if (runtimeMs !== undefined) {
+    statePatch.runtimeMs = runtimeMs;
+  }
+  if (fastMode !== undefined) {
+    statePatch.fastMode = fastMode;
+  }
+  if (Object.keys(statePatch).length > 0) {
+    api.updateSessionState(sessionKey, statePatch);
   }
 
   // ── Compaction detection ──
@@ -695,18 +815,12 @@ export function dispatchSessionStateEvent(
     typeof payload.estimatedCostUsd === "number" ? payload.estimatedCostUsd : undefined;
   const thinkingLevel =
     typeof payload.thinkingLevel === "string" ? payload.thinkingLevel : undefined;
-  const fastMode = typeof payload.fastMode === "boolean" ? payload.fastMode : undefined;
   const verboseLevel = typeof payload.verboseLevel === "string" ? payload.verboseLevel : undefined;
   const model = typeof payload.model === "string" ? payload.model : undefined;
+  const contextTokens =
+    typeof payload.contextTokens === "number" ? payload.contextTokens : undefined;
 
-  const metaPatch: Partial<{
-    totalTokens: number;
-    estimatedCostUsd: number;
-    thinkingLevel: string;
-    fastMode: boolean;
-    verboseLevel: string;
-    model: string;
-  }> = {};
+  const metaPatch: Partial<SessionMeta> = {};
   if (totalTokens !== undefined) {
     metaPatch.totalTokens = totalTokens;
   }
@@ -724,6 +838,21 @@ export function dispatchSessionStateEvent(
   }
   if (model !== undefined) {
     metaPatch.model = model;
+  }
+  if (status !== undefined) {
+    metaPatch.status = status;
+  }
+  if (startedAt !== undefined) {
+    metaPatch.startedAt = startedAt;
+  }
+  if (endedAt !== undefined) {
+    metaPatch.endedAt = endedAt;
+  }
+  if (runtimeMs !== undefined) {
+    metaPatch.runtimeMs = runtimeMs;
+  }
+  if (contextTokens !== undefined) {
+    metaPatch.contextTokens = contextTokens;
   }
 
   if (Object.keys(metaPatch).length > 0) {

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { deckFetch } from "@/lib/deck-client";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -11,6 +12,8 @@ export interface PendingApproval {
   command: string;
   commandArgv?: string[];
   agentId?: string;
+  sessionKey?: string;
+  runId?: string;
   cwd?: string;
   createdAtMs: number;
   expiresAtMs: number;
@@ -64,7 +67,7 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
   fetchPolicy: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/approvals/policy");
+      const res = await deckFetch("/api/approvals/policy");
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
         set({ error: body.error ?? "Failed to fetch policy", loading: false });
@@ -98,7 +101,7 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
 
   fetchPending: async () => {
     try {
-      const res = await fetch("/api/approvals/pending");
+      const res = await deckFetch("/api/approvals/pending");
       if (!res.ok) {
         return;
       }
@@ -111,7 +114,7 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
 
   resolveApproval: async (id, decision) => {
     try {
-      const res = await fetch("/api/approvals", {
+      const res = await deckFetch("/api/approvals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, decision }),
@@ -130,7 +133,7 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
   updatePolicy: async (policy) => {
     try {
       const { policyHash } = get();
-      const res = await fetch("/api/approvals/policy", {
+      const res = await deckFetch("/api/approvals/policy", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         // ExecApprovalsFileSchema has additionalProperties: false with only
