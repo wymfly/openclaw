@@ -8,6 +8,11 @@ const botWsPushHandles = new Map<string, BotWsPushHandle>();
 export type BotWsPushHandle = {
   isConnected: () => boolean;
   sendMarkdown: (chatId: string, content: string) => Promise<void>;
+  replyCommand: (params: {
+    cmd: string;
+    body?: Record<string, unknown>;
+    headers?: Record<string, string>;
+  }) => Promise<unknown>;
 };
 
 export function setWecomRuntime(next: PluginRuntime): void {

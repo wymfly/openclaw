@@ -62,6 +62,13 @@ export class BotWsSdkAdapter {
           lastError: undefined,
         });
       },
+      replyCommand: async ({ cmd, body, headers }) => {
+        return client.reply(
+          { headers: { req_id: headers?.req_id || crypto.randomUUID() } },
+          body ?? {},
+          cmd,
+        );
+      },
     });
 
     client.on("connected", () => {
