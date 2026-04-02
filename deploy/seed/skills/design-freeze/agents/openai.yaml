@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Freeze"
+  short_description: "Freeze complex system design before OpenSpec or implementation"
+  default_prompt: "Use this skill to turn an unstable complex project into a frozen system design baseline before writing OpenSpec or implementation plans."
