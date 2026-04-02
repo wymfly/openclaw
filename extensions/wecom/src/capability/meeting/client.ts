@@ -204,7 +204,13 @@ export class WecomMeetingClient {
       body: { meetingid: normalizedMeetingId },
     });
 
-    return (json.meeting_info ?? {}) as WecomMeeting;
+    const info = json.meeting_info ?? {};
+    // Normalize WeCom API field names to our type (meeting_start → start_time)
+    return {
+      ...info,
+      start_time: info.meeting_start ?? info.start_time ?? "",
+      end_time: info.meeting_end ?? info.end_time ?? "",
+    } as WecomMeeting;
   }
 
   async listUserMeetings(
