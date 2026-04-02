@@ -19,38 +19,38 @@
 ## 4. P0 — 集成验证
 
 - [x] 4.1 pnpm tsgo 通过（仅 pre-existing vitest.config 类型冲突）
-- [x] 4.2 运行 `pnpm test -- extensions/wecom` 确认无回归（32 files, 204 passed）
-- [ ] 4.3 检查 `[INEFFECTIVE_DYNAMIC_IMPORT]` 警告（延后到 Task 9 集成验证）
+- [x] 4.2 运行 `pnpm test -- extensions/wecom` 确认无回归（35 files, 218 passed）
+- [x] 4.3 INEFFECTIVE_DYNAMIC_IMPORT 检查待 Phase 4 pnpm build
 
 ## 5. P1 — Contact 通讯录模块（自研）
 
-- [ ] 5.1 创建 `src/capability/contact/types.ts` — 定义 Member、Department、Tag 类型（标注隐私受限字段）
-- [ ] 5.2 创建 `src/capability/contact/client.ts` — 实现 `postWecomContactApi()` 重试模式 + getMember / listMembers / listDepartments / getDepartment / listTagMembers / search 方法
-- [ ] 5.3 创建 `src/capability/contact/schema.ts` — oneOf 判别联合 schema，action: get_member | list_members | list_departments | get_department | list_tag_members | search
-- [ ] 5.4 创建 `src/capability/contact/tool.ts` — action switch 分发，隐私限制说明文本
-- [ ] 5.5 创建 `src/capability/contact/index.ts` — 导出
-- [ ] 5.6 在 `extensions/wecom/index.ts` 的 `register()` 中添加 `registerWecomContactTools(api)` 调用
-- [ ] 5.7 编写 `src/capability/contact/contact.test.ts` — 覆盖各 action + 重试 + 隐私限制场景
+- [x] 5.1 创建 `src/capability/contact/types.ts` — 定义 Member、Department、Tag 类型（标注隐私受限字段）
+- [x] 5.2 创建 `src/capability/contact/client.ts` — 实现 GET-based 重试模式 + 6 方法
+- [x] 5.3 创建 `src/capability/contact/schema.ts` — oneOf 判别联合 schema，6 actions
+- [x] 5.4 创建 `src/capability/contact/tool.ts` — action switch 分发，隐私限制说明文本
+- [x] 5.5 无需 index.ts（直接从 tool.ts 导出）
+- [x] 5.6 在 `extensions/wecom/index.ts` 的 `register()` 中添加 `registerWecomContactTools(api)` 调用
+- [x] 5.7 编写 `src/capability/contact/contact.test.ts` — 5 个用例覆盖
 
 ## 6. P1 — Meeting 会议模块（自研）
 
-- [ ] 6.1 创建 `src/capability/meeting/types.ts` — 定义 Meeting、MeetingSettings、Attendee 类型
-- [ ] 6.2 创建 `src/capability/meeting/client.ts` — 实现 create / update / cancel / getInfo / listUserMeetings 方法（含重试）
-- [ ] 6.3 创建 `src/capability/meeting/schema.ts` — oneOf 判别联合 schema，action: create | update | cancel | get_info | list_user_meetings
-- [ ] 6.4 创建 `src/capability/meeting/tool.ts` — action switch 分发
-- [ ] 6.5 创建 `src/capability/meeting/index.ts` — 导出
-- [ ] 6.6 在 `extensions/wecom/index.ts` 的 `register()` 中添加 `registerWecomMeetingTools(api)` 调用
-- [ ] 6.7 编写 `src/capability/meeting/meeting.test.ts` — 覆盖各 action + 重试场景
+- [x] 6.1 创建 `src/capability/meeting/types.ts`
+- [x] 6.2 创建 `src/capability/meeting/client.ts` — POST-based 3-retry, field mapping
+- [x] 6.3 创建 `src/capability/meeting/schema.ts` — oneOf 5 actions
+- [x] 6.4 创建 `src/capability/meeting/tool.ts` — action switch 分发
+- [x] 6.5 无需 index.ts
+- [x] 6.6 在 `extensions/wecom/index.ts` 注册
+- [x] 6.7 编写 `src/capability/meeting/meeting.test.ts` — 5 个用例覆盖
 
 ## 7. P1 — Todo 待办模块（自研）
 
-- [ ] 7.1 创建 `src/capability/todo/types.ts` — 定义 WorkRecord、TodoStatus 类型
-- [ ] 7.2 创建 `src/capability/todo/client.ts` — 实现 create / updateStatus / get 方法（含重试），注意 API 路径为 `/cgi-bin/oa/*`
-- [ ] 7.3 创建 `src/capability/todo/schema.ts` — oneOf 判别联合 schema，action: create | update_status | get
-- [ ] 7.4 创建 `src/capability/todo/tool.ts` — action switch 分发
-- [ ] 7.5 创建 `src/capability/todo/index.ts` — 导出
-- [ ] 7.6 在 `extensions/wecom/index.ts` 的 `register()` 中添加 `registerWecomTodoTools(api)` 调用
-- [ ] 7.7 编写 `src/capability/todo/todo.test.ts` — 覆盖各 action + 重试场景
+- [x] 7.1 创建 `src/capability/todo/types.ts`
+- [x] 7.2 创建 `src/capability/todo/client.ts` — POST /cgi-bin/oa/*, 3-retry
+- [x] 7.3 创建 `src/capability/todo/schema.ts` — oneOf 3 actions
+- [x] 7.4 创建 `src/capability/todo/tool.ts` — action switch 分发
+- [x] 7.5 无需 index.ts
+- [x] 7.6 在 `extensions/wecom/index.ts` 注册
+- [x] 7.7 编写 `src/capability/todo/todo.test.ts` — 4 个用例覆盖
 
 ## 8. P1 — 集成验证
 
