@@ -4,6 +4,7 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import { registerWecomCalendarTools } from "./src/capability/calendar/tool.js";
+import { registerWecomContactTools } from "./src/capability/contact/tool.js";
 import { registerWecomDocTools } from "./src/capability/doc/tool.js";
 import { createWeComMcpToolFactory } from "./src/capability/mcp/tool.js";
 import { wecomPlugin } from "./src/channel.js";
@@ -42,6 +43,9 @@ const plugin = {
     if (typeof api.registerTool === "function") {
       api.registerTool(createWeComMcpToolFactory());
     }
+
+    // P1 — Contact (self-developed)
+    registerWecomContactTools(api);
   },
 };
 
