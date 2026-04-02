@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { resolveDefaultAgentId } from "../../../agents/agent-scope.js";
 import { getChatCommands } from "../../../auto-reply/commands-registry.data.js";
+import type { ChatCommandDefinition } from "../../../auto-reply/commands-registry.types.js";
 import { listSkillCommandsForAgents } from "../../../auto-reply/skill-commands.js";
 import { loadConfig } from "../../../config/config.js";
 import type { MethodMetadata } from "../../method-registry.js";
@@ -16,7 +17,7 @@ import {
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
 
-interface DiscoverableCommand {
+type DiscoverableCommand = {
   name: string;
   source: "builtin" | "skill" | "plugin";
   description: string;
@@ -25,10 +26,64 @@ interface DiscoverableCommand {
   category?: string;
   skillName?: string;
   pluginId?: string;
+};
+
+function normalizeCommandName(command: ChatCommandDefinition): string {
+  const textAlias = command.textAliases[0];
+  if (!textAlias) {
+    return command.key;
+  }
+  return textAlias.replace(/^\//, "");
+}
+
+function formatBuiltinArgs(command: ChatCommandDefinition): string | undefined {
+  if (!command.acceptsArgs) {
+    return undefined;
+  }
+  if (!command.args?.length) {
+    return "<args>";
+  }
+  return command.args
+    .map((arg) => (arg.captureRemaining ? `<${arg.name}...>` : `<${arg.name}>`))
+    .join(" ");
+}
+
+function resolveBuiltinArgChoices(command: ChatCommandDefinition): string[] | undefined {
+  if (!command.args?.length) {
+    return undefined;
+  }
+  const choices: string[] = [];
+  for (const arg of command.args) {
+    if (!Array.isArray(arg.choices)) {
+      continue;
+    }
+    for (const choice of arg.choices) {
+      const value = typeof choice === "string" ? choice : choice.value;
+      if (!value) {
+        continue;
+      }
+      choices.push(value);
+    }
+  }
+  if (!choices.length) {
+    return undefined;
+  }
+  return Array.from(new Set(choices));
+}
+
+function buildDiscoverVersion(commands: DiscoverableCommand[]): string {
+  const hashInput = commands
+    .map(
+      (command) =>
+        `${command.source}:${command.name}:${command.description}:${command.args ?? ""}:${command.category ?? ""}:${(command.argChoices ?? []).join(";")}`,
+    )
+    .toSorted()
+    .join(",");
+  return createHash("md5").update(hashInput).digest("hex").slice(0, 12);
 }
 
 export const deckCommandsHandlers: GatewayRequestHandlers = {
-  "deck.commands.discover": async ({ params, respond }) => {
+  "deck.commands.discover": ({ params, respond }) => {
     if (
       !assertValidParams(
         params,
@@ -39,76 +94,53 @@ export const deckCommandsHandlers: GatewayRequestHandlers = {
     ) {
       return;
     }
+
     try {
       const cfg = loadConfig();
-      const agentId = (params as { agentId?: string }).agentId ?? resolveDefaultAgentId(cfg);
+      const requestedAgentId =
+        typeof params.agentId === "string" && params.agentId.trim() ? params.agentId : undefined;
+      const agentId = requestedAgentId ?? resolveDefaultAgentId(cfg);
       const commands: DiscoverableCommand[] = [];
 
-      // 1. Built-in commands (text-scope only)
-      const builtins = getChatCommands();
-      for (const cmd of builtins) {
-        if (cmd.scope === "native") continue;
-        const textAlias = cmd.textAliases?.[0];
-        const name = textAlias ? textAlias.replace(/^\//, "") : cmd.key;
-
-        const argChoices: string[] = [];
-        if (cmd.args) {
-          for (const arg of cmd.args) {
-            if (Array.isArray(arg.choices)) {
-              for (const c of arg.choices) {
-                argChoices.push(typeof c === "string" ? c : c.value);
-              }
-            }
-          }
+      // 1) Built-in chat commands (text + both; skip native-only)
+      for (const command of getChatCommands()) {
+        if (command.scope === "native") {
+          continue;
         }
-
         commands.push({
-          name,
+          name: normalizeCommandName(command),
           source: "builtin",
-          description: cmd.description,
-          args: cmd.acceptsArgs
-            ? cmd.args?.map((a) => `<${a.name}>`).join(" ") || "<args>"
-            : undefined,
-          argChoices: argChoices.length > 0 ? argChoices : undefined,
+          description: command.description,
+          args: formatBuiltinArgs(command),
+          argChoices: resolveBuiltinArgChoices(command),
           category: "more",
         });
       }
 
-      // 2. Skill commands — scoped to specific agent
-      const skillCmds = listSkillCommandsForAgents({
-        cfg,
-        agentIds: [agentId],
-      });
-      for (const sc of skillCmds) {
+      // 2) Skill commands for the selected agent
+      for (const command of listSkillCommandsForAgents({ cfg, agentIds: [agentId] })) {
         commands.push({
-          name: sc.name,
+          name: command.name,
           source: "skill",
-          description: sc.description,
+          description: command.description,
           category: "skills",
-          skillName: sc.skillName,
+          skillName: command.skillName,
         });
       }
 
-      // 3. Plugin commands (placeholder — future extension point)
+      // 3) Plugin commands reserved for future extension
 
-      // Version hash includes all discoverable fields for full change detection
-      const hashInput = commands
-        .map(
-          (c) =>
-            `${c.source}:${c.name}:${c.description}:${c.args ?? ""}:${c.category ?? ""}:${(c.argChoices ?? []).join(";")}`,
-        )
-        .sort()
-        .join(",");
-      const version = createHash("md5").update(hashInput).digest("hex").slice(0, 12);
+      commands.sort((a, b) => a.source.localeCompare(b.source) || a.name.localeCompare(b.name));
+      const version = buildDiscoverVersion(commands);
 
       respond(true, { commands, version });
-    } catch (err) {
+    } catch (error) {
       respond(
         false,
         undefined,
         errorShape(
           ErrorCodes.UNAVAILABLE,
-          `Failed to discover commands: ${err instanceof Error ? err.message : String(err)}`,
+          `Failed to discover commands: ${error instanceof Error ? error.message : String(error)}`,
         ),
       );
     }

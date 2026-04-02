@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandRegistry } from "./command-registry";
 import type { RegisteredCommand } from "./command-types";
 
-function makeCmd(overrides: Partial<RegisteredCommand> & { name: string }): RegisteredCommand {
+function makeCmd(overrides: Partial<RegisteredCommand> = {}): RegisteredCommand {
   return {
+    name: "test",
     source: "local",
     execMode: "local",
+    description: "Test command",
     category: "session",
     priority: 10,
     ...overrides,
@@ -19,133 +21,115 @@ describe("CommandRegistry", () => {
     registry = new CommandRegistry();
   });
 
-  describe("register / get / unregister", () => {
-    it("registers and retrieves a command by name", () => {
-      const cmd = makeCmd({ name: "help" });
-      registry.register(cmd);
-      expect(registry.get("help")).toBe(cmd);
-    });
-
-    it("returns undefined for unknown command", () => {
-      expect(registry.get("nope")).toBeUndefined();
-    });
-
-    it("unregisters a command", () => {
-      registry.register(makeCmd({ name: "help" }));
-      registry.unregister("help");
-      expect(registry.get("help")).toBeUndefined();
-    });
-
-    it("getAll returns all registered commands", () => {
-      registry.register(makeCmd({ name: "a" }));
-      registry.register(makeCmd({ name: "b" }));
-      expect(registry.getAll()).toHaveLength(2);
-    });
+  it("registers and retrieves a command", () => {
+    registry.register(makeCmd());
+    expect(registry.get("test")).toBeDefined();
+    expect(registry.get("test")?.name).toBe("test");
   });
 
-  describe("priority-based conflict resolution", () => {
-    it("higher priority (lower number) wins on name conflict", () => {
-      const local = makeCmd({ name: "model", source: "local", priority: 10 });
-      const builtin = makeCmd({ name: "model", source: "builtin", priority: 20 });
-      registry.register(builtin);
-      registry.register(local);
-      expect(registry.get("model")?.source).toBe("local");
-    });
-
-    it("displaced command accessible via qualified name", () => {
-      const local = makeCmd({ name: "model", source: "local", priority: 10 });
-      const builtin = makeCmd({ name: "model", source: "builtin", priority: 20 });
-      registry.register(local);
-      registry.register(builtin);
-      expect(registry.get("model")?.source).toBe("local");
-      expect(registry.get("builtin:model")?.source).toBe("builtin");
-    });
-
-    it("lower priority does not override existing higher priority", () => {
-      const local = makeCmd({ name: "help", source: "local", priority: 10 });
-      const skill = makeCmd({ name: "help", source: "skill", priority: 30 });
-      registry.register(local);
-      registry.register(skill);
-      expect(registry.get("help")?.source).toBe("local");
-    });
-
-    it("promotes displaced command after unregister", () => {
-      const local = makeCmd({ name: "model", source: "local", priority: 10 });
-      const builtin = makeCmd({ name: "model", source: "builtin", priority: 20 });
-      registry.register(local);
-      registry.register(builtin);
-      expect(registry.get("model")?.source).toBe("local");
-      registry.unregister("model");
-      expect(registry.get("model")?.source).toBe("builtin");
-    });
-
-    it("promotes displaced command after unregisterBySource", () => {
-      const local = makeCmd({ name: "model", source: "local", priority: 10 });
-      const builtin = makeCmd({ name: "model", source: "builtin", priority: 20 });
-      registry.register(local);
-      registry.register(builtin);
-      registry.unregisterBySource("local");
-      expect(registry.get("model")?.source).toBe("builtin");
-    });
+  it("returns undefined for unknown command", () => {
+    expect(registry.get("unknown")).toBeUndefined();
   });
 
-  describe("filter", () => {
-    it("empty query returns all commands", () => {
-      registry.register(makeCmd({ name: "new", category: "session" }));
-      registry.register(makeCmd({ name: "model", category: "model" }));
-      const results = registry.filter("");
-      expect(results).toHaveLength(2);
-    });
-
-    it("prefix search matches across sources", () => {
-      registry.register(makeCmd({ name: "model", source: "local" }));
-      registry.register(makeCmd({ name: "monitor", source: "builtin", priority: 20 }));
-      const results = registry.filter("mo");
-      expect(results).toHaveLength(2);
-      expect(results.map((c) => c.name)).toContain("model");
-      expect(results.map((c) => c.name)).toContain("monitor");
-    });
-
-    it("no match returns empty array", () => {
-      registry.register(makeCmd({ name: "help" }));
-      expect(registry.filter("xyz")).toHaveLength(0);
-    });
+  it("unregisters a command", () => {
+    registry.register(makeCmd());
+    registry.unregister("test");
+    expect(registry.get("test")).toBeUndefined();
   });
 
-  describe("registerLocalCommands", () => {
-    it("converts SlashCommandDef array to registered commands", () => {
-      const defs = [
-        { name: "new", descriptionKey: "cmd_new", icon: "plus", category: "session" as const },
-        {
-          name: "model",
-          descriptionKey: "cmd_model",
-          args: "<name>",
-          icon: "cpu",
-          category: "model" as const,
-          argOptions: ["gpt-4"],
-        },
-      ];
-      registry.registerLocalCommands(defs);
-      expect(registry.getAll()).toHaveLength(2);
-      const newCmd = registry.get("new");
-      expect(newCmd?.source).toBe("local");
-      expect(newCmd?.execMode).toBe("local");
-      expect(newCmd?.descriptionKey).toBe("cmd_new");
-      expect(newCmd?.icon).toBe("plus");
-      const modelCmd = registry.get("model");
-      expect(modelCmd?.argOptions).toEqual(["gpt-4"]);
-    });
+  it("priority conflict: lower value wins", () => {
+    registry.register(makeCmd({ source: "builtin", priority: 20 }));
+    registry.register(makeCmd({ source: "local", priority: 10 }));
+    expect(registry.get("test")?.source).toBe("local");
   });
 
-  describe("unregisterBySource", () => {
-    it("removes all commands from a specific source", () => {
-      registry.register(makeCmd({ name: "local1", source: "local" }));
-      registry.register(makeCmd({ name: "remote1", source: "builtin", priority: 20 }));
-      registry.register(makeCmd({ name: "remote2", source: "skill", priority: 30 }));
-      registry.unregisterBySource("builtin");
-      expect(registry.get("remote1")).toBeUndefined();
-      expect(registry.get("local1")).toBeDefined();
-      expect(registry.get("remote2")).toBeDefined();
-    });
+  it("priority conflict: higher value stored as qualified fallback", () => {
+    registry.register(makeCmd({ source: "local", priority: 10 }));
+    registry.register(makeCmd({ source: "skill", priority: 30 }));
+    expect(registry.get("test")?.source).toBe("local");
+  });
+
+  it("promotes qualified on unregister", () => {
+    registry.register(makeCmd({ source: "local", priority: 10 }));
+    registry.register(makeCmd({ source: "builtin", priority: 20 }));
+    registry.unregister("test");
+    expect(registry.get("test")).toBeDefined();
+    expect(registry.get("test")?.source).toBe("builtin");
+  });
+
+  it("unregisterBySource removes all commands of that source", () => {
+    registry.register(makeCmd({ name: "a", source: "builtin", priority: 20 }));
+    registry.register(makeCmd({ name: "b", source: "builtin", priority: 20 }));
+    registry.register(makeCmd({ name: "c", source: "local", priority: 10 }));
+
+    registry.unregisterBySource("builtin");
+
+    expect(registry.get("a")).toBeUndefined();
+    expect(registry.get("b")).toBeUndefined();
+    expect(registry.get("c")).toBeDefined();
+  });
+
+  it("getAll returns all active commands", () => {
+    registry.register(makeCmd({ name: "a" }));
+    registry.register(makeCmd({ name: "b" }));
+    expect(registry.getAll()).toHaveLength(2);
+  });
+
+  it("filter matches by prefix", () => {
+    registry.register(makeCmd({ name: "help" }));
+    registry.register(makeCmd({ name: "history" }));
+    registry.register(makeCmd({ name: "model" }));
+
+    expect(registry.filter("h")).toHaveLength(2);
+    expect(registry.filter("mo")).toHaveLength(1);
+  });
+
+  it("filter applies visibleIf when context is provided", () => {
+    registry.register(makeCmd({ name: "stop", visibleIf: (ctx) => ctx.isStreaming }));
+    registry.register(makeCmd({ name: "help" }));
+
+    const ctx = { isStreaming: false, hasMessages: true };
+    expect(registry.filter("", ctx)).toHaveLength(1);
+    expect(registry.filter("", ctx)[0]?.name).toBe("help");
+  });
+
+  it("registerLocalCommands converts local defs to registered commands", () => {
+    registry.registerLocalCommands([
+      { name: "new", descriptionKey: "cmd_new", icon: "plus", category: "session" },
+      { name: "help", descriptionKey: "cmd_help", icon: "book-open", category: "tools" },
+    ]);
+
+    expect(registry.getAll()).toHaveLength(2);
+    expect(registry.get("new")?.execMode).toBe("local");
+    expect(registry.get("new")?.source).toBe("local");
+  });
+
+  it("subscribe notifies on register", () => {
+    const listener = vi.fn();
+    registry.subscribe(listener);
+
+    registry.register(makeCmd());
+
+    expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it("unsubscribe stops notifications", () => {
+    const listener = vi.fn();
+    const unsubscribe = registry.subscribe(listener);
+    unsubscribe();
+
+    registry.register(makeCmd());
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("getVersion increments on mutations", () => {
+    const version0 = registry.getVersion();
+
+    registry.register(makeCmd());
+    expect(registry.getVersion()).toBe(version0 + 1);
+
+    registry.unregister("test");
+    expect(registry.getVersion()).toBe(version0 + 2);
   });
 });

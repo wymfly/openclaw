@@ -10,6 +10,7 @@ import { deckSubagentsHandlers, deckSubagentsMethodDefs } from "./subagents.js";
 import { deckThreadsHandlers, deckThreadsMethodDefs } from "./threads.js";
 
 export const deckHandlers: GatewayRequestHandlers = {
+  ...deckCommandsHandlers,
   ...deckRoutingHandlers,
   ...deckAgentsHandlers,
   ...deckAgentsPreviewHandlers,
@@ -17,10 +18,10 @@ export const deckHandlers: GatewayRequestHandlers = {
   ...deckSubagentsSteerHandlers,
   ...deckIdentityHandlers,
   ...deckThreadsHandlers,
-  ...deckCommandsHandlers,
 };
 
 export const deckMethodDefs: Record<string, MethodMetadata> = {
+  ...deckCommandsMethodDefs,
   ...deckRoutingMethodDefs,
   ...deckAgentsMethodDefs,
   ...deckAgentsPreviewMethodDefs,
@@ -28,5 +29,4 @@ export const deckMethodDefs: Record<string, MethodMetadata> = {
   ...deckSubagentsSteerMethodDefs,
   ...deckIdentityMethodDefs,
   ...deckThreadsMethodDefs,
-  ...deckCommandsMethodDefs,
 };

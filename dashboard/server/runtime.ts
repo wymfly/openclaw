@@ -79,6 +79,7 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "chat",
   "agent",
   "agent.updated",
+  "commands.changed",
   "gateway.health",
   "notification.toast",
   "log.entry",
@@ -92,8 +93,6 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "webhook.delivery",
   "cron.run.complete",
   "canvas",
-  // deck.commands
-  "commands.changed",
 ]);
 
 /** Events that should be bridged to the activity feed outbox. */

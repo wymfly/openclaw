@@ -143,6 +143,8 @@ export const allMethodNames: readonly string[] = [
   // deck.auth
   "deck.auth.overview",
   "deck.auth.probe",
+  // deck.commands
+  "deck.commands.discover",
   // deck.routing
   "deck.routing.list",
   "deck.routing.add",
@@ -170,8 +172,6 @@ export const allMethodNames: readonly string[] = [
   "deck.identity.unlink",
   // deck.threads
   "deck.threads.list",
-  // deck.commands
-  "deck.commands.discover",
   // gateway introspection
   "gateway.describe",
 ];
