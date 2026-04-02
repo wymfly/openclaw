@@ -116,6 +116,8 @@ const BASE_METHODS = [
   // Deck auth diagnostics
   "deck.auth.overview",
   "deck.auth.probe",
+  // deck.commands
+  "deck.commands.discover",
   // deck.routing
   "deck.routing.list",
   "deck.routing.add",
@@ -144,8 +146,6 @@ const BASE_METHODS = [
   "deck.identity.unlink",
   // deck.threads
   "deck.threads.list",
-  // deck.commands
-  "deck.commands.discover",
   // gateway introspection
   "gateway.describe",
 ];

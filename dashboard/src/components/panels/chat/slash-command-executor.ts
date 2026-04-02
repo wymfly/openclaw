@@ -1,9 +1,9 @@
+import { commandRegistry } from "@/lib/command-registry";
 /**
  * Client-side execution engine for slash commands.
  * Calls dashboard API routes and returns formatted results.
  * Mirrors official ui/src/ui/chat/slash-command-executor.ts patterns.
  */
-import { commandRegistry } from "@/lib/command-registry";
 import { formatTokenCount } from "@/lib/format-utils";
 import type { SessionMeta } from "@/stores/chat-types";
 import type { ToastType } from "@/stores/notifications";
@@ -30,47 +30,53 @@ export interface SlashCommandResult {
 
 let initialized = false;
 
+type LocalCommandHandler = (sessionKey: string, args: string) => Promise<SlashCommandResult>;
+
 export function initializeLocalCommands(): void {
-  if (initialized) return;
+  if (initialized) {
+    return;
+  }
   initialized = true;
 
-  // Register all local defs into registry
   commandRegistry.registerLocalCommands(LOCAL_COMMAND_DEFS);
 
-  // Attach execute handlers to each registered local command
-  const handlers: Record<string, (sk: string, args: string) => Promise<SlashCommandResult>> = {
-    help: (_sk) => Promise.resolve(executeHelp()),
-    new: () => Promise.resolve({ content: "", action: "new-session" as const }),
-    reset: () => Promise.resolve({ content: "", action: "reset" as const }),
-    stop: () => Promise.resolve({ content: "", action: "stop" as const }),
-    clear: () => Promise.resolve({ content: "", action: "clear" as const }),
-    export: () => Promise.resolve({ content: "", action: "export" as const }),
-    compact: (sk) => executeCompact(sk),
-    model: (sk, a) => executeModel(sk, a),
-    think: (sk, a) => executeThink(sk, a),
-    fast: (sk, a) => executeFast(sk, a),
-    verbose: (sk, a) => executeVerbose(sk, a),
-    usage: (sk) => executeUsage(sk),
+  const handlers: Record<string, LocalCommandHandler> = {
+    help: async () => executeHelp(),
+    new: async () => ({ content: "", action: "new-session" }),
+    reset: async () => ({ content: "", action: "reset" }),
+    stop: async () => ({ content: "", action: "stop" }),
+    clear: async () => ({ content: "", action: "clear" }),
+    export: async () => ({ content: "", action: "export" }),
+    compact: (sessionKey) => executeCompact(sessionKey),
+    model: (sessionKey, args) => executeModel(sessionKey, args),
+    think: (sessionKey, args) => executeThink(sessionKey, args),
+    fast: (sessionKey, args) => executeFast(sessionKey, args),
+    verbose: (sessionKey, args) => executeVerbose(sessionKey, args),
+    usage: (sessionKey) => executeUsage(sessionKey),
     agents: () => executeAgents(),
-    kill: (sk, a) => executeKill(sk, a),
+    kill: (sessionKey, args) => executeKill(sessionKey, args),
   };
 
   for (const [name, handler] of Object.entries(handlers)) {
     const cmd = commandRegistry.get(name);
-    if (cmd) {
-      cmd.execute = handler;
+    if (!cmd) {
+      continue;
     }
+    cmd.execute = handler;
   }
 
-  // Attach visibility predicates — controls palette visibility, not execution
   const stopCmd = commandRegistry.get("stop");
-  if (stopCmd) stopCmd.visibleIf = (ctx) => ctx.isStreaming;
-
+  if (stopCmd) {
+    stopCmd.visibleIf = (ctx) => ctx.isStreaming;
+  }
   const killCmd = commandRegistry.get("kill");
-  if (killCmd) killCmd.visibleIf = (ctx) => ctx.isStreaming;
-
+  if (killCmd) {
+    killCmd.visibleIf = (ctx) => ctx.isStreaming;
+  }
   const compactCmd = commandRegistry.get("compact");
-  if (compactCmd) compactCmd.visibleIf = (ctx) => ctx.hasMessages;
+  if (compactCmd) {
+    compactCmd.visibleIf = (ctx) => ctx.hasMessages;
+  }
 }
 
 export async function executeSlashCommand(
@@ -78,22 +84,48 @@ export async function executeSlashCommand(
   commandName: string,
   args: string,
 ): Promise<SlashCommandResult> {
-  const cmd = commandRegistry.get(commandName);
+  initializeLocalCommands();
+
+  const normalizedName = commandName.trim().toLowerCase();
+  const cmd = commandRegistry.get(normalizedName);
   if (!cmd) {
     return {
       content: "",
       toastKey: "toastUnknownCommand",
-      toastValue: commandName,
+      toastValue: normalizedName,
       toastType: "error",
     };
   }
-  if (cmd.execMode === "local" && cmd.execute) {
-    return cmd.execute(sessionKey, args);
+
+  if (cmd.execMode === "local") {
+    if (cmd.execute) {
+      return cmd.execute(sessionKey, args);
+    }
+    return {
+      content: "",
+      toastKey: "toastUnknownCommand",
+      toastValue: normalizedName,
+      toastType: "error",
+    };
   }
+
   if (cmd.execMode === "remote") {
-    return executeRemoteCommand(sessionKey, commandName, args);
+    return executeRemoteCommand(sessionKey, normalizedName, args);
   }
-  return { content: `Unknown command: /${commandName}` };
+
+  return {
+    content: "",
+    toastKey: "toastUnknownCommand",
+    toastValue: normalizedName,
+    toastType: "error",
+  };
+}
+
+// ── Helpers ──
+
+function executeHelp(): SlashCommandResult {
+  const lines = LOCAL_COMMAND_DEFS.map((cmd) => `/${cmd.name}${cmd.args ? ` ${cmd.args}` : ""}`);
+  return { content: lines.join("\n") };
 }
 
 async function executeRemoteCommand(
@@ -117,17 +149,10 @@ async function executeRemoteCommand(
       toastValue: commandName,
       toastType: "success",
     };
-  } catch (err) {
-    console.error("[executeRemoteCommand]", commandName, err);
+  } catch (error) {
+    console.error("[executeRemoteCommand]", commandName, error);
     return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
   }
-}
-
-// ── Helpers ──
-
-function executeHelp(): SlashCommandResult {
-  const lines = LOCAL_COMMAND_DEFS.map((cmd) => `/${cmd.name}${cmd.args ? ` ${cmd.args}` : ""}`);
-  return { content: lines.join("\n") };
 }
 
 async function executeCompact(sessionKey: string): Promise<SlashCommandResult> {

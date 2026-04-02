@@ -19,6 +19,7 @@ export type DeckEventType =
   | "chat"
   | "agent"
   | "agent.updated"
+  | "commands.changed"
   | "gateway.health"
   | "notification.toast"
   // P1 additions
@@ -33,8 +34,6 @@ export type DeckEventType =
   | "webhook.delivery"
   | "cron.run.complete"
   | "canvas"
-  // deck.commands
-  | "commands.changed"
   // Upstream session events (Layer 2 — bypass RunEventPipeline)
   | "session-state"
   | "session-msg"

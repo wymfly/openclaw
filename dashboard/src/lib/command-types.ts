@@ -1,10 +1,8 @@
-import type { SlashCommandResult } from "@/components/panels/chat/slash-command-executor";
-
 export type CommandSource = "local" | "builtin" | "skill" | "plugin";
 
 export type CommandExecMode = "local" | "remote";
 
-/** Priority values — lower number = higher priority. Matches official: plugin > local > builtin > skill. */
+/** Lower value = higher priority. Matches official CLI priority order. */
 export const SOURCE_PRIORITY: Record<CommandSource, number> = {
   plugin: 0,
   local: 10,
@@ -15,28 +13,27 @@ export const SOURCE_PRIORITY: Record<CommandSource, number> = {
 export interface CommandVisibilityContext {
   isStreaming: boolean;
   hasMessages: boolean;
-  sessionStatus: string;
 }
 
 export interface RegisteredCommand {
   name: string;
   source: CommandSource;
   execMode: CommandExecMode;
-  /** i18n key under "chat" namespace (local commands). */
-  descriptionKey?: string;
-  /** Raw description text (remote commands from discover). */
-  description?: string;
+  description: string;
   args?: string;
   argOptions?: string[];
-  icon?: string;
   category: string;
   priority: number;
-  /** Local-only: handler function. */
-  execute?: (sessionKey: string, args: string) => Promise<SlashCommandResult>;
-  /** Visibility predicate — controls palette visibility, not execution. */
-  visibleIf?: (ctx: CommandVisibilityContext) => boolean;
-  /** Skill-specific: original skill name. */
+
+  icon?: string;
+  descriptionKey?: string;
+
   skillName?: string;
-  /** Plugin-specific: plugin id. */
   pluginId?: string;
+
+  execute?: (
+    sessionKey: string,
+    args: string,
+  ) => Promise<import("@/components/panels/chat/slash-command-executor").SlashCommandResult>;
+  visibleIf?: (ctx: CommandVisibilityContext) => boolean;
 }

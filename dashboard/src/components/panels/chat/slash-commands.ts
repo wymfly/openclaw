@@ -1,5 +1,5 @@
 /**
- * Slash command registry, parser, and filter — mirrors official ui/src/ui/chat/slash-commands.ts.
+ * Local slash command definitions and parser.
  *
  * 14 commands across 4 categories (session/model/tools/agents).
  * /steer and /skill deferred — require complex parameter parsing.
@@ -85,13 +85,9 @@ export const CATEGORY_LABEL_KEYS: Record<string, string> = {
 };
 
 /**
- * Parse user input as a slash command.
- * Returns the command name and args if the input starts with `/`,
- * or null if it's not a slash command at all.
- *
- * Note: This does NOT validate whether the command exists — callers
- * should look up the name in `commandRegistry` to handle both local
- * and remote commands.
+ * Parse user input as slash-command syntax only.
+ * Returns null only when syntax is not a slash command.
+ * Supports: `/command`, `/command args...`, `/command: args...`.
  */
 export function parseSlashCommand(text: string): { name: string; args: string } | null {
   const trimmed = text.trim();
@@ -111,5 +107,6 @@ export function parseSlashCommand(text: string): { name: string; args: string } 
     return null;
   }
 
-  return { name: name.toLowerCase(), args: remainder.trim() };
+  const parsedName = name.toLowerCase();
+  return { name: parsedName, args: remainder.trim() };
 }

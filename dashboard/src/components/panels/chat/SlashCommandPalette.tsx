@@ -3,9 +3,6 @@
 /**
  * Popover command palette displayed above the input when user types `/`.
  * Keyboard events are piped from MessageInput (not global listeners) to avoid conflicts.
- *
- * Supports mixed-source groups: local categories, Skills, Plugins, and a "More" section
- * for remote built-in commands (collapsed by default).
  */
 
 import {
@@ -28,36 +25,30 @@ import {
   Plug2,
   TerminalSquare,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type React from "react";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { commandRegistry } from "@/lib/command-registry";
-import type { CommandSource, CommandVisibilityContext } from "@/lib/command-types";
+import type { CommandVisibilityContext, RegisteredCommand } from "@/lib/command-types";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABEL_KEYS } from "./slash-commands";
-
-interface PaletteCommand {
-  name: string;
-  descriptionKey: string;
-  description?: string;
-  args?: string;
-  icon: string;
-  category: string;
-  argOptions?: string[];
-  source: CommandSource;
-}
 
 interface SlashCommandPaletteProps {
   filter: string;
   /** Controlled selection index — parent owns this state for keyboard/mouse unification. */
   selectedIndex: number;
   onSelectedIndexChange: (index: number) => void;
-  onSelect: (command: PaletteCommand) => void;
+  onSelect: (command: RegisteredCommand) => void;
   onDismiss: () => void;
-  /** Context for visibility filtering — commands with visibleIf predicates are hidden when the predicate returns false. */
+  navigableCommandsRef: React.MutableRefObject<PaletteCommand[]>;
   visibilityContext?: CommandVisibilityContext;
-  /** Ref populated each render with the flat list of navigable commands (indices match selectedIndex). */
-  navigableCommandsRef?: React.RefObject<PaletteCommand[]>;
+}
+
+export interface PaletteCommand {
+  command: RegisteredCommand;
+  sectionKey: string;
 }
 
 /** Map from kebab-case icon names to lucide components. */
@@ -77,32 +68,44 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   "bar-chart-2": BarChart2,
   monitor: Monitor,
   x: X,
-  sparkles: Sparkles,
-  plug: Plug2,
-  "terminal-square": TerminalSquare,
 };
 
-/** Default icons per source when no specific icon is set. */
-const SOURCE_DEFAULT_ICONS: Record<string, string> = {
-  skill: "sparkles",
-  plugin: "plug",
-  builtin: "terminal-square",
-};
+const LOCAL_CATEGORY_ORDER = ["session", "model", "tools", "agents"] as const;
 
-function CommandIcon({
-  name,
-  source,
-  size = 14,
-}: {
-  name?: string;
-  source?: string;
-  size?: number;
-}) {
-  const iconName = name || (source ? SOURCE_DEFAULT_ICONS[source] : undefined);
-  if (!iconName) return null;
-  const Icon = ICON_MAP[iconName];
-  if (!Icon) return null;
+interface PaletteSection {
+  key: string;
+  label: string;
+  commands: RegisteredCommand[];
+  collapsible?: boolean;
+  collapsed?: boolean;
+}
+
+function CommandIcon({ name, size = 14 }: { name: string; size?: number }) {
+  const Icon = ICON_MAP[name];
+  if (!Icon) {
+    return <TerminalSquare size={size} />;
+  }
   return <Icon size={size} />;
+}
+
+function SourceCommandIcon({ command }: { command: RegisteredCommand }) {
+  if (command.source === "local") {
+    return <CommandIcon name={command.icon ?? "terminal"} />;
+  }
+  if (command.source === "skill") {
+    return <Sparkles size={14} />;
+  }
+  if (command.source === "plugin") {
+    return <Plug2 size={14} />;
+  }
+  return <TerminalSquare size={14} />;
+}
+
+function resolveDescription(t: ReturnType<typeof useTranslations>, cmd: RegisteredCommand): string {
+  if (cmd.descriptionKey) {
+    return t(cmd.descriptionKey);
+  }
+  return cmd.description;
 }
 
 export function SlashCommandPalette({
@@ -111,43 +114,112 @@ export function SlashCommandPalette({
   onSelectedIndexChange,
   onSelect,
   onDismiss,
-  visibilityContext,
   navigableCommandsRef,
+  visibilityContext,
 }: SlashCommandPaletteProps) {
   const t = useTranslations("chat");
-  // Subscribe to registry changes so palette re-renders when commands are discovered/removed
-  const subscribe = useCallback((cb: () => void) => commandRegistry.subscribe(cb), []);
-  const registryVersion = useSyncExternalStore(subscribe, () => commandRegistry.getVersion());
-  // registryVersion is used implicitly — its change triggers re-render, and filter() reads fresh data
-  void registryVersion;
-  const allCommands = commandRegistry.filter(filter);
-  // Apply visibility filtering — commands with visibleIf predicates are hidden
-  // when the predicate returns false. Manual input bypasses this (user can still type /stop).
-  const registryCommands = visibilityContext
-    ? allCommands.filter((cmd) => !cmd.visibleIf || cmd.visibleIf(visibilityContext))
-    : allCommands;
-  const commands: PaletteCommand[] = registryCommands.map((cmd) => ({
-    name: cmd.name,
-    descriptionKey: cmd.descriptionKey ?? "",
-    description: cmd.description,
-    args: cmd.args,
-    icon: cmd.icon ?? "",
-    category: cmd.category,
-    argOptions: cmd.argOptions,
-    source: cmd.source,
-  }));
-
-  const [moreExpanded, setMoreExpanded] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isMoreExpanded, setIsMoreExpanded] = useState(false);
+  const subscribe = useCallback((listener: () => void) => commandRegistry.subscribe(listener), []);
+  const getSnapshot = useCallback(() => commandRegistry.getVersion(), []);
 
-  // Scroll selected item into view
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const allCommands = commandRegistry.filter(filter, visibilityContext);
+  const localBuckets = new Map<string, RegisteredCommand[]>();
+  const skillCommands: RegisteredCommand[] = [];
+  const pluginCommands: RegisteredCommand[] = [];
+  const moreCommands: RegisteredCommand[] = [];
+
+  for (const cmd of allCommands) {
+    if (cmd.source === "local") {
+      const list = localBuckets.get(cmd.category) ?? [];
+      list.push(cmd);
+      localBuckets.set(cmd.category, list);
+      continue;
+    }
+    if (cmd.source === "skill") {
+      skillCommands.push(cmd);
+      continue;
+    }
+    if (cmd.source === "plugin") {
+      pluginCommands.push(cmd);
+      continue;
+    }
+    moreCommands.push(cmd);
+  }
+
+  const localCategorySet = new Set<string>(LOCAL_CATEGORY_ORDER);
+  const orderedLocalCategories = [
+    ...LOCAL_CATEGORY_ORDER.filter((key) => localBuckets.has(key)),
+    ...[...localBuckets.keys()].filter((key) => !localCategorySet.has(key)).toSorted(),
+  ];
+
+  const sections: PaletteSection[] = [];
+
+  for (const category of orderedLocalCategories) {
+    const commands = localBuckets.get(category);
+    if (!commands || commands.length === 0) {
+      continue;
+    }
+    sections.push({
+      key: `local:${category}`,
+      label: t(CATEGORY_LABEL_KEYS[category] ?? category),
+      commands,
+    });
+  }
+
+  if (skillCommands.length > 0) {
+    sections.push({
+      key: "skills",
+      label: t(CATEGORY_LABEL_KEYS.skills),
+      commands: skillCommands,
+    });
+  }
+
+  if (pluginCommands.length > 0) {
+    sections.push({
+      key: "plugins",
+      label: t(CATEGORY_LABEL_KEYS.plugins),
+      commands: pluginCommands,
+    });
+  }
+
+  const showMoreCommands = isMoreExpanded || filter.trim().length > 0;
+  if (moreCommands.length > 0) {
+    sections.push({
+      key: "more",
+      label: t(CATEGORY_LABEL_KEYS.more),
+      commands: showMoreCommands ? moreCommands : [],
+      collapsible: true,
+      collapsed: !showMoreCommands,
+    });
+  }
+
+  const navigableCommands: PaletteCommand[] = sections.flatMap((section) =>
+    section.commands.map((command) => ({ command, sectionKey: section.key })),
+  );
+  navigableCommandsRef.current = navigableCommands;
+
+  // Keep selected index valid as command visibility changes.
+  useEffect(() => {
+    if (navigableCommands.length === 0) {
+      onSelectedIndexChange(0);
+      return;
+    }
+    if (selectedIndex >= navigableCommands.length) {
+      onSelectedIndexChange(navigableCommands.length - 1);
+    }
+  }, [navigableCommands.length, onSelectedIndexChange, selectedIndex]);
+
+  // Scroll selected item into view.
   useEffect(() => {
     const el = listRef.current?.querySelector(`[data-index="${selectedIndex}"]`);
     el?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  // Outside-click dismiss
+  // Outside-click dismiss.
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -158,92 +230,11 @@ export function SlashCommandPalette({
     return () => document.removeEventListener("mousedown", handler);
   }, [onDismiss]);
 
-  if (commands.length === 0) {
-    // Show "no matching commands" hint when searching
-    if (filter.length > 0) {
-      return (
-        <div ref={containerRef} className="absolute bottom-full left-0 right-0 mb-1 z-50">
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--popover)] shadow-lg px-3 py-2 text-xs text-[var(--muted-foreground)]">
-            {t("noMatchingCommands")}
-          </div>
-        </div>
-      );
-    }
+  if (allCommands.length === 0) {
     return null;
   }
 
-  // Split commands into display groups
-  const localCategories = ["session", "model", "tools", "agents"];
-  const localCommands = commands.filter((c) => localCategories.includes(c.category));
-  const skillCommands = commands.filter((c) => c.category === "skills");
-  const pluginCommands = commands.filter((c) => c.category === "plugins");
-  const moreCommands = commands.filter(
-    (c) =>
-      !localCategories.includes(c.category) && c.category !== "skills" && c.category !== "plugins",
-  );
-
-  const hasFilter = filter.length > 0;
-  // When searching, show all results flat (no "More" collapse)
-  const showMoreCollapsed = !hasFilter && moreCommands.length > 0;
-
-  // Compute the flat list of navigable commands (matching rendered order)
-  const navigable = [
-    ...localCommands,
-    ...skillCommands,
-    ...pluginCommands,
-    ...(showMoreCollapsed ? (moreExpanded ? moreCommands : []) : hasFilter ? moreCommands : []),
-  ];
-  if (navigableCommandsRef) {
-    navigableCommandsRef.current = navigable;
-  }
-
   let globalIndex = -1;
-
-  function renderCommand(cmd: PaletteCommand) {
-    globalIndex++;
-    const idx = globalIndex;
-    return (
-      <div
-        key={`${cmd.source}:${cmd.name}`}
-        data-index={idx}
-        role="option"
-        aria-selected={idx === selectedIndex}
-        className={cn(
-          "flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs transition-colors",
-          idx === selectedIndex
-            ? "bg-[var(--accent)] text-[var(--foreground)]"
-            : "text-[var(--foreground)] hover:bg-[var(--accent)]",
-        )}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          onSelect(cmd);
-        }}
-        onMouseEnter={() => onSelectedIndexChange(idx)}
-      >
-        <span className="text-[var(--muted-foreground)] shrink-0">
-          <CommandIcon name={cmd.icon || undefined} source={cmd.source} />
-        </span>
-        <span className="font-mono text-[var(--primary)]">/{cmd.name}</span>
-        {cmd.args && <span className="text-[var(--muted-foreground)]">{cmd.args}</span>}
-        <span className="ml-auto text-[10px] text-[var(--muted-foreground)] truncate max-w-[200px]">
-          {cmd.descriptionKey ? t(cmd.descriptionKey) : (cmd.description ?? "")}
-        </span>
-      </div>
-    );
-  }
-
-  function renderCategoryHeader(category: string) {
-    const labelKey = CATEGORY_LABEL_KEYS[category];
-    if (!labelKey) return null;
-    return (
-      <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-        {t(labelKey)}
-      </div>
-    );
-  }
-
-  // Group local commands by category
-  let currentLocalCategory: string | null = null;
 
   return (
     <div ref={containerRef} className="absolute bottom-full left-0 right-0 mb-1 z-50">
@@ -252,69 +243,65 @@ export function SlashCommandPalette({
         className="max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--popover)] shadow-lg"
         data-palette-active="true"
       >
-        {/* Local commands grouped by category */}
-        {localCommands.map((cmd) => {
-          const showHeader = cmd.category !== currentLocalCategory;
-          if (showHeader) currentLocalCategory = cmd.category;
-          return (
-            <div key={cmd.name}>
-              {showHeader && renderCategoryHeader(cmd.category)}
-              {renderCommand(cmd)}
-            </div>
-          );
-        })}
-
-        {/* Skills group */}
-        {skillCommands.length > 0 && (
-          <>
-            {renderCategoryHeader("skills")}
-            {skillCommands.map((cmd) => (
-              <div key={`skill:${cmd.name}`}>{renderCommand(cmd)}</div>
-            ))}
-          </>
-        )}
-
-        {/* Plugins group */}
-        {pluginCommands.length > 0 && (
-          <>
-            {renderCategoryHeader("plugins")}
-            {pluginCommands.map((cmd) => (
-              <div key={`plugin:${cmd.name}`}>{renderCommand(cmd)}</div>
-            ))}
-          </>
-        )}
-
-        {/* More commands — collapsible when not searching */}
-        {showMoreCollapsed ? (
-          <>
-            <div
-              className="flex items-center gap-1 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)] cursor-pointer hover:text-[var(--foreground)]"
+        {sections.map((section) => (
+          <div key={section.key}>
+            <button
+              type="button"
+              className={cn(
+                "w-full flex items-center gap-1 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]",
+                section.collapsible
+                  ? "cursor-pointer hover:text-[var(--foreground)]"
+                  : "cursor-default",
+              )}
               onMouseDown={(e) => {
+                if (!section.collapsible) {
+                  return;
+                }
                 e.preventDefault();
-                setMoreExpanded((v) => !v);
+                setIsMoreExpanded((prev) => !prev);
               }}
             >
-              <ChevronRight
-                size={10}
-                className={cn("transition-transform", moreExpanded && "rotate-90")}
-              />
-              {t("cmdCatMore")} ({moreCommands.length})
-            </div>
-            {moreExpanded &&
-              moreCommands.map((cmd) => <div key={`more:${cmd.name}`}>{renderCommand(cmd)}</div>)}
-          </>
-        ) : hasFilter && moreCommands.length > 0 ? (
-          // When searching, show all more commands flat
-          <>
-            {renderCategoryHeader("more")}
-            {moreCommands.map((cmd) => (
-              <div key={`more:${cmd.name}`}>{renderCommand(cmd)}</div>
-            ))}
-          </>
-        ) : null}
+              {section.collapsible &&
+                (section.collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />)}
+              <span>{section.label}</span>
+            </button>
+            {section.commands.map((cmd) => {
+              globalIndex++;
+              const idx = globalIndex;
+              return (
+                <div
+                  key={`${section.key}:${cmd.source}:${cmd.name}`}
+                  data-index={idx}
+                  role="option"
+                  aria-selected={idx === selectedIndex}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs transition-colors",
+                    idx === selectedIndex
+                      ? "bg-[var(--accent)] text-[var(--foreground)]"
+                      : "text-[var(--foreground)] hover:bg-[var(--accent)]",
+                  )}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onSelect(cmd);
+                  }}
+                  onMouseEnter={() => onSelectedIndexChange(idx)}
+                >
+                  <span className="text-[var(--muted-foreground)] shrink-0">
+                    <SourceCommandIcon command={cmd} />
+                  </span>
+                  <span className="font-mono text-[var(--primary)]">/{cmd.name}</span>
+                  {cmd.args && <span className="text-[var(--muted-foreground)]">{cmd.args}</span>}
+                  <span className="ml-auto text-[10px] text-[var(--muted-foreground)] truncate max-w-[200px]">
+                    {resolveDescription(t, cmd)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-export type { SlashCommandPaletteProps, PaletteCommand };
+export type { SlashCommandPaletteProps };

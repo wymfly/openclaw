@@ -93,6 +93,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "agents.files.list",
     "agents.files.get",
     "deck.auth.overview",
+    "deck.commands.discover",
     "deck.routing.list",
     "deck.routing.validate",
     "deck.routing.simulate",
@@ -106,7 +107,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "deck.subagents.lineage",
     "deck.identity.list",
     "deck.threads.list",
-    "deck.commands.discover",
     "gateway.describe",
   ],
   [WRITE_SCOPE]: [

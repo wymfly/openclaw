@@ -452,6 +452,7 @@ export const validateWebLoginWaitParams = ajv.compile<WebLoginWaitParams>(WebLog
 
 // deck.* validators
 import {
+  DeckCommandsDiscoverParamsSchema,
   DeckRoutingListParamsSchema,
   DeckRoutingAddParamsSchema,
   DeckRoutingRemoveParamsSchema,
@@ -474,9 +475,10 @@ import {
   DeckIdentityLinkParamsSchema,
   DeckIdentityUnlinkParamsSchema,
   DeckThreadsListParamsSchema,
-  DeckCommandsDiscoverParamsSchema,
 } from "./schema/deck.js";
 
+// deck.commands.*
+export const validateDeckCommandsDiscoverParams = ajv.compile(DeckCommandsDiscoverParamsSchema);
 // deck.routing.*
 export const validateDeckRoutingListParams = ajv.compile(DeckRoutingListParamsSchema);
 export const validateDeckRoutingAddParams = ajv.compile(DeckRoutingAddParamsSchema);
@@ -515,8 +517,6 @@ export const validateDeckIdentityLinkParams = ajv.compile(DeckIdentityLinkParams
 export const validateDeckIdentityUnlinkParams = ajv.compile(DeckIdentityUnlinkParamsSchema);
 // deck.threads.*
 export const validateDeckThreadsListParams = ajv.compile(DeckThreadsListParamsSchema);
-// deck.commands.*
-export const validateDeckCommandsDiscoverParams = ajv.compile(DeckCommandsDiscoverParamsSchema);
 
 export function formatValidationErrors(errors: ErrorObject[] | null | undefined) {
   if (!errors?.length) {

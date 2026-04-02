@@ -1,118 +1,161 @@
 import type { SlashCommandDef } from "@/components/panels/chat/slash-commands";
-import type { RegisteredCommand, CommandSource } from "./command-types";
+import type { CommandSource, CommandVisibilityContext, RegisteredCommand } from "./command-types";
 import { SOURCE_PRIORITY } from "./command-types";
 
-const CATEGORY_ORDER = ["session", "model", "tools", "agents", "skills", "plugins", "more"];
+function getQualifiedKey(source: CommandSource, name: string): string {
+  return `${source}:${name}`;
+}
 
 export class CommandRegistry {
   private commands = new Map<string, RegisteredCommand>();
-  /** Displaced commands stored under "source:name" qualified keys. */
+
+  /** Stores lower-priority commands displaced by higher-priority ones. Key: "source:name". */
   private qualified = new Map<string, RegisteredCommand>();
-  private version = 0;
+
   private listeners = new Set<() => void>();
 
-  /** Subscribe to registry changes (for useSyncExternalStore). */
-  subscribe(listener: () => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  private notify(): void {
-    for (const listener of this.listeners) listener();
-  }
+  private version = 0;
 
   register(cmd: RegisteredCommand): void {
+    const cmdKey = getQualifiedKey(cmd.source, cmd.name);
+    this.qualified.delete(cmdKey);
+
     const existing = this.commands.get(cmd.name);
-    if (existing) {
-      if (cmd.priority < existing.priority) {
-        // New command wins — displace existing to qualified
-        this.qualified.set(`${existing.source}:${existing.name}`, existing);
-        this.commands.set(cmd.name, cmd);
-      } else {
-        // Existing wins — store new as qualified
-        this.qualified.set(`${cmd.source}:${cmd.name}`, cmd);
-      }
-    } else {
+    if (!existing) {
       this.commands.set(cmd.name, cmd);
+      this.version++;
+      this.notify();
+      return;
     }
+
+    if (existing.source === cmd.source) {
+      this.commands.set(cmd.name, cmd);
+      this.version++;
+      this.notify();
+      return;
+    }
+
+    if (cmd.priority < existing.priority) {
+      this.qualified.set(getQualifiedKey(existing.source, existing.name), existing);
+      this.commands.set(cmd.name, cmd);
+    } else {
+      this.qualified.set(cmdKey, cmd);
+    }
+
     this.version++;
     this.notify();
   }
 
   unregister(name: string): void {
+    const removed = this.commands.get(name);
+    if (!removed) {
+      return;
+    }
+
     this.commands.delete(name);
-    // Promote: find highest-priority displaced command with the same name
-    let best: { key: string; cmd: RegisteredCommand } | null = null;
+
+    let best: RegisteredCommand | undefined;
+    let bestKey: string | undefined;
+
     for (const [key, cmd] of this.qualified) {
-      if (key.endsWith(`:${name}`)) {
-        if (!best || cmd.priority < best.cmd.priority) {
-          best = { key, cmd };
-        }
+      if (cmd.name !== name) {
+        continue;
+      }
+      if (!best || cmd.priority < best.priority) {
+        best = cmd;
+        bestKey = key;
       }
     }
-    if (best) {
-      this.qualified.delete(best.key);
-      this.commands.set(name, best.cmd);
+
+    if (best && bestKey) {
+      this.qualified.delete(bestKey);
+      this.commands.set(name, best);
     }
+
     this.version++;
     this.notify();
   }
 
   unregisterBySource(source: CommandSource): void {
-    const removedNames: string[] = [];
+    let mutated = false;
+
     for (const [name, cmd] of this.commands) {
-      if (cmd.source === source) {
-        this.commands.delete(name);
-        removedNames.push(name);
+      if (cmd.source !== source) {
+        continue;
       }
+      this.commands.delete(name);
+      mutated = true;
     }
-    for (const key of this.qualified.keys()) {
-      if (key.startsWith(`${source}:`)) {
-        this.qualified.delete(key);
+
+    for (const [key, cmd] of this.qualified) {
+      if (cmd.source !== source) {
+        continue;
       }
+      this.qualified.delete(key);
+      mutated = true;
     }
-    // Promote displaced commands for each removed name
-    for (const name of removedNames) {
-      let best: { key: string; cmd: RegisteredCommand } | null = null;
-      for (const [key, cmd] of this.qualified) {
-        if (key.endsWith(`:${name}`)) {
-          if (!best || cmd.priority < best.cmd.priority) {
-            best = { key, cmd };
-          }
+
+    const candidateNames = new Set<string>();
+    for (const cmd of this.qualified.values()) {
+      candidateNames.add(cmd.name);
+    }
+
+    for (const name of candidateNames) {
+      if (this.commands.has(name)) {
+        continue;
+      }
+
+      let best: RegisteredCommand | undefined;
+      let bestKey: string | undefined;
+
+      for (const [key, candidate] of this.qualified) {
+        if (candidate.name !== name) {
+          continue;
+        }
+        if (!best || candidate.priority < best.priority) {
+          best = candidate;
+          bestKey = key;
         }
       }
-      if (best) {
-        this.qualified.delete(best.key);
-        this.commands.set(name, best.cmd);
+
+      if (best && bestKey) {
+        this.qualified.delete(bestKey);
+        this.commands.set(name, best);
+        mutated = true;
       }
     }
+
+    if (!mutated) {
+      return;
+    }
+
     this.version++;
     this.notify();
   }
 
   get(name: string): RegisteredCommand | undefined {
-    return this.commands.get(name) ?? this.qualified.get(name);
+    return this.commands.get(name);
   }
 
   getAll(): RegisteredCommand[] {
     return [...this.commands.values()];
   }
 
-  filter(query: string): RegisteredCommand[] {
-    const lower = query.toLowerCase();
-    const commands = lower
-      ? this.getAll().filter((cmd) => cmd.name.startsWith(lower))
-      : this.getAll();
+  filter(prefix: string, ctx?: CommandVisibilityContext): RegisteredCommand[] {
+    const lower = prefix.toLowerCase();
+    const results: RegisteredCommand[] = [];
 
-    return commands.toSorted((a, b) => {
-      const ai = CATEGORY_ORDER.indexOf(a.category);
-      const bi = CATEGORY_ORDER.indexOf(b.category);
-      const aCat = ai === -1 ? 999 : ai;
-      const bCat = bi === -1 ? 999 : bi;
-      if (aCat !== bCat) return aCat - bCat;
-      if (a.priority !== b.priority) return a.priority - b.priority;
-      return a.name.localeCompare(b.name);
-    });
+    for (const cmd of this.commands.values()) {
+      if (lower && !cmd.name.toLowerCase().startsWith(lower)) {
+        continue;
+      }
+      if (ctx && cmd.visibleIf && !cmd.visibleIf(ctx)) {
+        continue;
+      }
+      results.push(cmd);
+    }
+
+    return results.toSorted((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
   }
 
   registerLocalCommands(defs: SlashCommandDef[]): void {
@@ -121,20 +164,31 @@ export class CommandRegistry {
         name: def.name,
         source: "local",
         execMode: "local",
-        descriptionKey: def.descriptionKey,
+        description: def.descriptionKey,
         args: def.args,
         argOptions: def.argOptions,
-        icon: def.icon,
         category: def.category,
         priority: SOURCE_PRIORITY.local,
+        icon: def.icon,
+        descriptionKey: def.descriptionKey,
       });
     }
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   getVersion(): number {
     return this.version;
   }
+
+  private notify(): void {
+    for (const listener of this.listeners) {
+      listener();
+    }
+  }
 }
 
-/** Module-level singleton. */
 export const commandRegistry = new CommandRegistry();

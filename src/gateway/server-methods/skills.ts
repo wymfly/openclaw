@@ -55,6 +55,12 @@ function collectSkillBins(entries: SkillEntry[]): string[] {
   return [...bins].toSorted();
 }
 
+function broadcastCommandsChanged(context: {
+  broadcast?: (event: string, payload: unknown, opts?: { dropIfSlow?: boolean }) => void;
+}): void {
+  context.broadcast?.("commands.changed", { version: "refresh" }, { dropIfSlow: true });
+}
+
 export const skillsHandlers: GatewayRequestHandlers = {
   "skills.status": ({ params, respond }) => {
     if (!validateSkillsStatusParams(params)) {
@@ -156,7 +162,7 @@ export const skillsHandlers: GatewayRequestHandlers = {
         result.ok ? undefined : errorShape(ErrorCodes.UNAVAILABLE, result.error),
       );
       if (result.ok) {
-        context.broadcast("commands.changed", { version: "refresh" }, { dropIfSlow: true });
+        broadcastCommandsChanged(context);
       }
       return;
     }
@@ -178,7 +184,7 @@ export const skillsHandlers: GatewayRequestHandlers = {
       result.ok ? undefined : errorShape(ErrorCodes.UNAVAILABLE, result.message),
     );
     if (result.ok) {
-      context.broadcast("commands.changed", { version: "refresh" }, { dropIfSlow: true });
+      broadcastCommandsChanged(context);
     }
   },
   "skills.update": async ({ params, respond, context }) => {
@@ -240,7 +246,7 @@ export const skillsHandlers: GatewayRequestHandlers = {
           : errorShape(ErrorCodes.UNAVAILABLE, errors.map((result) => result.error).join("; ")),
       );
       if (errors.length === 0) {
-        context.broadcast("commands.changed", { version: "refresh" }, { dropIfSlow: true });
+        broadcastCommandsChanged(context);
       }
       return;
     }
@@ -289,6 +295,6 @@ export const skillsHandlers: GatewayRequestHandlers = {
     };
     await writeConfigFile(nextConfig);
     respond(true, { ok: true, skillKey: p.skillKey, config: current }, undefined);
-    context.broadcast("commands.changed", { version: "refresh" }, { dropIfSlow: true });
+    broadcastCommandsChanged(context);
   },
 };

@@ -29,9 +29,6 @@ import { initializeLocalCommands } from "./slash-command-executor";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { useChatSSE } from "./useChatSSE";
 
-// Register local slash commands into the dynamic CommandRegistry (idempotent).
-initializeLocalCommands();
-
 /** Context for artifact interactions — consumed by ToolResultCard and MessageInput. */
 export const ArtifactContext = createContext<{
   onOpenArtifact: (artifact: ArtifactInfo) => void;
@@ -190,6 +187,12 @@ function mergeToolMessages(msgs: ChatMessage[]): ChatMessage[] {
  * Composes session sidebar, message list, and input area.
  */
 export function ChatPanel() {
+  useCommandDiscovery();
+
+  useEffect(() => {
+    initializeLocalCommands();
+  }, []);
+
   const activeSessionKey = useActiveSessionKey();
   const activeAgentId = useChatStore((s) => s.activeAgentId);
   const messages = useSessionMessages();
@@ -276,9 +279,6 @@ export function ChatPanel() {
 
   // Connect to SSE stream for real-time chat events.
   useChatSSE();
-
-  // Discover remote commands from Gateway and listen for changes.
-  useCommandDiscovery();
 
   // Fetch sessions on mount and when agent changes.
   useEffect(() => {

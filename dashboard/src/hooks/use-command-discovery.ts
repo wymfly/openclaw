@@ -1,50 +1,60 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { commandRegistry } from "@/lib/command-registry";
 import { SOURCE_PRIORITY } from "@/lib/command-types";
 import type { RegisteredCommand } from "@/lib/command-types";
 import { useChatStore } from "@/stores/chat";
 import type { DeckCommandsDiscoverResult } from "@/types/gateway-protocol.generated";
 
-/**
- * Discovers available commands from Gateway via deck.commands.discover RPC.
- * Re-discovers when active agent changes or SSE `commands.changed` fires.
- * Subscribes to the existing SSE stream instead of opening a new connection.
- */
-export function useCommandDiscovery() {
+const DISCOVERED_SOURCES: RegisteredCommand["source"][] = ["builtin", "skill", "plugin"];
+
+function unregisterDiscoveredCommands(): void {
+  for (const source of DISCOVERED_SOURCES) {
+    commandRegistry.unregisterBySource(source);
+  }
+}
+
+export function useCommandDiscovery(): void {
+  const activeAgentId = useChatStore((s) => s.activeAgentId);
   const versionRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
-  const activeAgentId = useChatStore((s) => s.activeAgentId);
 
-  const discover = useCallback(async (agentId: string | undefined) => {
+  const discover = useCallback(async (agentId?: string) => {
     try {
-      const res = await fetch("/api/deck/commands/discover", {
+      const response = await fetch("/api/deck/commands/discover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(agentId ? { agentId } : {}),
       });
-      if (!res.ok) {
-        console.warn(`[useCommandDiscovery] Discovery failed: HTTP ${res.status}`);
+
+      if (!response.ok) {
+        console.warn(`[useCommandDiscovery] Discovery failed: HTTP ${response.status}`);
         return;
       }
-      if (!mountedRef.current) return;
-      const data = (await res.json()) as DeckCommandsDiscoverResult;
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        return;
+      }
 
-      const newVersion = data.version ?? "";
-      if (newVersion === versionRef.current) return;
-      versionRef.current = newVersion;
+      const data = (await response.json()) as DeckCommandsDiscoverResult;
 
-      // Clear previous remote commands
-      commandRegistry.unregisterBySource("builtin");
-      commandRegistry.unregisterBySource("skill");
-      commandRegistry.unregisterBySource("plugin");
+      if (!mountedRef.current) {
+        return;
+      }
 
-      // Register discovered commands
+      if (data.version === versionRef.current) {
+        return;
+      }
+
+      versionRef.current = data.version;
+      unregisterDiscoveredCommands();
+
       for (const cmd of data.commands) {
-        const source = cmd.source as RegisteredCommand["source"];
+        const source = cmd.source;
+        const category =
+          cmd.category ??
+          (source === "skill" ? "skills" : source === "plugin" ? "plugins" : "more");
         const registered: RegisteredCommand = {
           name: cmd.name,
           source,
@@ -52,41 +62,38 @@ export function useCommandDiscovery() {
           description: cmd.description,
           args: cmd.args,
           argOptions: cmd.argChoices,
-          category: cmd.category ?? (source === "skill" ? "skills" : "more"),
+          category,
           priority: SOURCE_PRIORITY[source],
           skillName: cmd.skillName,
           pluginId: cmd.pluginId,
         };
         commandRegistry.register(registered);
       }
-    } catch (err) {
-      // Local commands remain available as fallback
-      console.warn("[useCommandDiscovery] Failed to discover commands:", err);
+    } catch (error) {
+      console.warn("[useCommandDiscovery] Failed to discover commands:", error);
     }
   }, []);
 
   useEffect(() => {
     mountedRef.current = true;
-    // Reset version on agent change to force re-discover
     versionRef.current = null;
-    discover(activeAgentId ?? undefined);
+    void discover(activeAgentId ?? undefined);
 
-    // Listen for SSE commands.changed events
     const es = new EventSource("/api/stream");
-    const onChanged = () => discover(activeAgentId ?? undefined);
-    es.addEventListener("commands.changed", onChanged);
-    es.onerror = () => {
-      console.warn("[useCommandDiscovery] SSE connection error — command updates may be delayed");
+    const onChanged = () => {
+      void discover(activeAgentId ?? undefined);
     };
+
+    es.addEventListener("commands.changed", onChanged);
+    es.addEventListener("error", () => {
+      console.warn("[useCommandDiscovery] SSE connection error - command updates may be delayed");
+    });
 
     return () => {
       mountedRef.current = false;
       es.removeEventListener("commands.changed", onChanged);
       es.close();
-      // Clean up remote commands
-      commandRegistry.unregisterBySource("builtin");
-      commandRegistry.unregisterBySource("skill");
-      commandRegistry.unregisterBySource("plugin");
+      unregisterDiscoveredCommands();
     };
   }, [activeAgentId, discover]);
 }

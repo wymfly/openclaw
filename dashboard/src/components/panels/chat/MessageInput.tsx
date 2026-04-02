@@ -2,10 +2,11 @@
 
 import { Send, Square, Paperclip, X, FileIcon, PanelRight, SquareCode } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useContext, useEffect, useRef, useState, useCallback } from "react";
+import { useContext, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { commandRegistry } from "@/lib/command-registry";
+import type { RegisteredCommand } from "@/lib/command-types";
 import { useChatStore } from "@/stores/chat";
-import { useActiveSessionKey, useSessionStreaming } from "@/stores/chat-hooks";
+import { useActiveSessionKey, useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import { useNotificationsStore } from "@/stores/notifications";
 import { useUIStore } from "@/stores/ui";
 import { ArtifactContext } from "./ChatPanel";
@@ -120,30 +121,35 @@ function ArtifactToggle({ label }: { label: string }) {
 export function MessageInput() {
   const t = useTranslations("chat");
   const activeSessionKey = useActiveSessionKey();
+  const messages = useSessionMessages();
   const { isStreaming } = useSessionStreaming();
+  const hasMessages = messages.length > 0;
   const activeAgentId = useChatStore((s) => s.activeAgentId);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Message count for visibility context ──
-  const hasMessages = useChatStore((s) => {
-    if (!activeSessionKey) return false;
-    const session = s.sessions.get(activeSessionKey);
-    return (session?.messages?.length ?? 0) > 0;
-  });
-
   // ── Slash command state ──
   const [showPalette, setShowPalette] = useState(false);
   const [slashFilter, setSlashFilter] = useState("");
   const [paletteIndex, setPaletteIndex] = useState(0);
-  const [ghostHint, setGhostHint] = useState<string | null>(null);
-  /** Flat list of navigable palette commands — populated by SlashCommandPalette each render. */
   const navigableCommandsRef = useRef<PaletteCommand[]>([]);
 
   // ── Input history ──
   const history = useInputHistory();
+
+  const ghostHint = useMemo(() => {
+    const match = /^\/([a-z0-9_-]+)\s+$/iu.exec(input);
+    if (!match) {
+      return "";
+    }
+    const cmd = commandRegistry.get(match[1].toLowerCase());
+    if (!cmd?.args) {
+      return "";
+    }
+    return cmd.args;
+  }, [input]);
 
   const addFiles = useCallback(
     (newFiles: File[]) => {
@@ -175,27 +181,8 @@ export function MessageInput() {
         setShowPalette(true);
         setSlashFilter(value.slice(1));
         setPaletteIndex(0);
-        setGhostHint(null);
       } else {
         setShowPalette(false);
-        // Ghost hint: when user types `/command `, show arg placeholder
-        const cmdMatch = value.match(/^\/([a-z]+)\s$/i);
-        if (cmdMatch) {
-          const cmd = commandRegistry.get(cmdMatch[1].toLowerCase());
-          if (cmd) {
-            if (cmd.argOptions?.length) {
-              setGhostHint(cmd.argOptions.join(" | "));
-            } else if (cmd.args) {
-              setGhostHint(cmd.args.replace(/[<>]/g, ""));
-            } else {
-              setGhostHint(null);
-            }
-          } else {
-            setGhostHint(null);
-          }
-        } else {
-          setGhostHint(null);
-        }
       }
       history.reset();
     },
@@ -227,9 +214,14 @@ export function MessageInput() {
 
   // ── Slash command execution ──
   const handleSlashCommand = useCallback(
-    async (cmd: { name: string }, cmdArgs = "") => {
+    async (cmd: RegisteredCommand, cmdArgs = "") => {
       setShowPalette(false);
       setInput("");
+
+      if (cmd.name === "stop") {
+        void handleAbort();
+        return;
+      }
 
       const addSystemMsg = (text: string) => {
         if (activeSessionKey) {
@@ -321,7 +313,7 @@ export function MessageInput() {
           );
       }
     },
-    [activeSessionKey, activeAgentId, handleAbort],
+    [activeSessionKey, activeAgentId, handleAbort, t],
   );
 
   const sendMessage = useCallback(async () => {
@@ -330,19 +322,23 @@ export function MessageInput() {
       return;
     }
 
-    // Check for slash command via registry (supports local + remote commands)
+    // Check for slash command — only treat /alphabetic as a command attempt.
+    // This lets messages like "/2 + 3" pass through as normal messages.
     const parsed = parseSlashCommand(text);
     if (parsed) {
-      const regCmd = commandRegistry.get(parsed.name);
-      if (regCmd) {
-        await handleSlashCommand(regCmd, parsed.args);
+      const command = commandRegistry.get(parsed.name);
+      if (command) {
+        await handleSlashCommand(command, parsed.args);
         return;
       }
-      // Slash syntax but not registered — show unknown command toast
-      useNotificationsStore
-        .getState()
-        .addToast("error", t("toastUnknownCommand", { value: parsed.name }), 3000);
-      return;
+      // Only block if the name looks like a command (alphabetic), not /2, /= etc.
+      if (/^[a-z]/i.test(parsed.name)) {
+        useNotificationsStore
+          .getState()
+          .addToast("error", t("toastUnknownCommand", { value: parsed.name }), 3000);
+        return;
+      }
+      // Non-alphabetic /prefix — fall through and send as regular message
     }
 
     // Push to input history
@@ -494,24 +490,22 @@ export function MessageInput() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Priority 1: Slash command palette (when open, it owns ArrowUp/Down/Enter/Escape)
     if (showPalette) {
-      const navCmds = navigableCommandsRef.current;
-      if (e.key === "ArrowDown") {
+      const commands = navigableCommandsRef.current;
+      if (commands.length > 0 && e.key === "ArrowDown") {
         e.preventDefault();
-        if (navCmds.length > 0) setPaletteIndex((prev) => (prev + 1) % navCmds.length);
+        setPaletteIndex((prev) => (prev + 1) % commands.length);
         return;
       }
-      if (e.key === "ArrowUp") {
+      if (commands.length > 0 && e.key === "ArrowUp") {
         e.preventDefault();
-        if (navCmds.length > 0)
-          setPaletteIndex((prev) => (prev - 1 + navCmds.length) % navCmds.length);
+        setPaletteIndex((prev) => (prev - 1 + commands.length) % commands.length);
         return;
       }
-      if (e.key === "Enter" && navCmds.length > 0) {
+      if (e.key === "Enter" && commands.length > 0) {
         e.preventDefault();
-        const selected = navCmds[paletteIndex];
+        const selected = commands[paletteIndex] ?? commands[0];
         if (selected) {
-          const regCmd = commandRegistry.get(selected.name);
-          if (regCmd) void handleSlashCommand(regCmd);
+          void handleSlashCommand(selected.command);
         }
         return;
       }
@@ -630,13 +624,15 @@ export function MessageInput() {
               onSelectedIndexChange={setPaletteIndex}
               onSelect={(cmd) => void handleSlashCommand(cmd)}
               onDismiss={() => setShowPalette(false)}
-              visibilityContext={{
-                isStreaming: !!isStreaming,
-                hasMessages,
-                sessionStatus: "idle",
-              }}
               navigableCommandsRef={navigableCommandsRef}
+              visibilityContext={{ isStreaming, hasMessages }}
             />
+          )}
+          {ghostHint && (
+            <div className="pointer-events-none absolute inset-0 z-20 px-3 py-2 text-sm whitespace-pre-wrap">
+              <span className="invisible">{input}</span>
+              <span style={{ color: "var(--muted-foreground)" }}>{ghostHint}</span>
+            </div>
           )}
           <textarea
             data-chat-input
@@ -646,7 +642,7 @@ export function MessageInput() {
             onPaste={handlePaste}
             placeholder={t("placeholder")}
             rows={1}
-            className="w-full resize-none text-sm rounded-lg px-3 py-2 outline-none"
+            className="relative z-10 w-full resize-none text-sm rounded-lg px-3 py-2 outline-none"
             style={{
               backgroundColor: "var(--card)",
               color: "var(--foreground)",
@@ -654,16 +650,6 @@ export function MessageInput() {
               maxHeight: 120,
             }}
           />
-          {ghostHint && (
-            <div
-              className="absolute bottom-0 left-0 right-0 px-3 py-2 pointer-events-none text-sm font-mono truncate"
-              style={{ color: "var(--muted-foreground)", opacity: 0.4 }}
-              aria-hidden
-            >
-              <span className="invisible">{input}</span>
-              {ghostHint}
-            </div>
-          )}
         </div>
         {isStreaming ? (
           <button
