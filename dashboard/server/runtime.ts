@@ -113,6 +113,18 @@ function bridgeDomainEvent(
   store?: ProjectionStore,
 ): void {
   if (event.type === "gateway.event" && "event" in event) {
+    if (event.event === "sessions.changed" && store) {
+      const payload = event.payload as { sessionKey?: unknown; reason?: unknown } | undefined;
+      const sessionKey = typeof payload?.sessionKey === "string" ? payload.sessionKey : "";
+      const reason = typeof payload?.reason === "string" ? payload.reason : "";
+      if (
+        sessionKey &&
+        (reason === "clear" || reason === "reset" || reason === "deleted" || reason === "delete")
+      ) {
+        store.clearChatSessionProjection(sessionKey);
+      }
+    }
+
     const innerEvent = event.event as DeckEventType;
     if (VALID_DECK_EVENTS.has(innerEvent)) {
       // Broadcast the payload under the specific event type (e.g., "chat", "agent")

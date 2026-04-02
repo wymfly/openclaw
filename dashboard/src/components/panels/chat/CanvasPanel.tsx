@@ -4,9 +4,10 @@ import { Bug, Loader2, RefreshCw, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChatStore } from "@/stores/chat";
-import { useActiveSessionKey, useSessionA2UI, useSessionA2UIEvents } from "@/stores/chat-hooks";
+import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { A2UIBridge, sendUserActionToAgent, type UserAction } from "./a2ui-bridge";
 import { CanvasDebugPanel } from "./CanvasDebugPanel";
+import { persistChatProjection, resolveCanvasEval, setCanvasBridgeReady } from "./chat-api";
 
 type CanvasState = "loading" | "ready" | "error" | "empty";
 
@@ -17,8 +18,7 @@ interface CanvasPanelProps {
 export function CanvasPanel({ onClose }: CanvasPanelProps) {
   const t = useTranslations("chat");
   const activeSessionKey = useActiveSessionKey();
-  const a2uiState = useSessionA2UI();
-  const events = useSessionA2UIEvents();
+  const a2uiState = useSessionA2UI(activeSessionKey ?? undefined);
   const [state, setState] = useState<CanvasState>("loading");
   const [showDebug, setShowDebug] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -28,6 +28,19 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
   // Capture state in a ref so the loading timeout can read it without re-running effect
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  const persistProjection = useCallback((sessionKey: string) => {
+    const a2uiState = useChatStore.getState().sessions.get(sessionKey)?.a2uiState ?? null;
+    void persistChatProjection({ sessionKey, a2uiState }).catch(() => {});
+  }, []);
+
+  const resolvedCanvasUrl =
+    typeof a2uiState?.url === "string" && a2uiState.url.trim() ? a2uiState.url.trim() : null;
+  const iframeSrc = resolvedCanvasUrl
+    ? /^https?:\/\//.test(resolvedCanvasUrl)
+      ? resolvedCanvasUrl
+      : `/api/canvas/${resolvedCanvasUrl}`
+    : "/api/canvas/index.html";
 
   // Create bridge and attach to iframe
   useEffect(() => {
@@ -40,16 +53,42 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
 
     const bridge = new A2UIBridge({
       onReady: () => {
-        const cachedEvents = useChatStore.getState().sessions.get(sessionKey)?.a2uiState?.eventLog;
-        const hasContent = cachedEvents && cachedEvents.length > 0;
+        const cachedState = useChatStore.getState().sessions.get(sessionKey)?.a2uiState;
+        const cachedEvents = cachedState?.eventLog ?? [];
+        const hasContent =
+          cachedEvents.length > 0 ||
+          Boolean(cachedState?.url) ||
+          Boolean(cachedState?.surfaces && cachedState.surfaces.length > 0);
         setState(hasContent ? "ready" : "empty");
         useChatStore.getState().updateA2UIBridgeStatus(sessionKey, "ready");
-        // Replay cached events if any
-        if (cachedEvents && cachedEvents.length > 0) {
-          const inbound = cachedEvents.filter((e) => e.direction === "inbound").map((e) => e.raw);
+        void setCanvasBridgeReady({ sessionKey, ready: true }).catch(() => {});
+        // Replay cached inbound state so a reopened panel matches the last visible canvas.
+        if (cachedEvents.length > 0) {
+          const replayEvals: string[] = [];
+          const inbound: unknown[] = [];
+          for (const event of cachedEvents) {
+            if (event.direction !== "inbound") {
+              continue;
+            }
+            if (event.action === "a2ui_push") {
+              inbound.push(event.raw);
+              continue;
+            }
+            if (
+              event.action === "eval" &&
+              event.raw &&
+              typeof event.raw === "object" &&
+              typeof (event.raw as { javaScript?: unknown }).javaScript === "string"
+            ) {
+              replayEvals.push((event.raw as { javaScript: string }).javaScript);
+            }
+          }
           if (inbound.length > 0) {
             bridge.pushMessages(inbound);
           }
+          replayEvals.forEach((javaScript, index) => {
+            void bridge.eval(javaScript, `replay-${sessionKey}-${index}`);
+          });
         }
       },
       onUserAction: (action: UserAction) => {
@@ -61,6 +100,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
           summary: `action=${action.name}`,
           raw: action,
         });
+        persistProjection(sessionKey);
         void sendUserActionToAgent(action, sessionKey).then(({ ok, error }) => {
           bridge.sendActionStatus(action.id, ok, error);
         });
@@ -73,6 +113,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
           setState("empty");
           useChatStore.getState().setA2UIState(sessionKey, { visible: false });
         }
+        persistProjection(sessionKey);
       },
     });
     bridge.attach(iframe);
@@ -88,10 +129,17 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
 
     return () => {
       clearTimeout(timeout);
+      void setCanvasBridgeReady({ sessionKey, ready: false }).catch(() => {});
       bridge.detach();
       bridgeRef.current = null;
     };
-  }, [activeSessionKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeSessionKey, persistProjection]);
+
+  useEffect(() => {
+    if (resolvedCanvasUrl) {
+      setState("ready");
+    }
+  }, [resolvedCanvasUrl]);
 
   // Session switch: reset bridge
   useEffect(() => {
@@ -102,24 +150,17 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
     prevSessionRef.current = activeSessionKey;
   }, [activeSessionKey]);
 
-  // Push new inbound events to iframe
-  useEffect(() => {
-    if (!bridgeRef.current || events.length === 0) {
-      return;
-    }
-    const last = events[events.length - 1];
-    if (last.direction === "inbound") {
-      bridgeRef.current.pushMessages([last.raw]);
-      setState("ready");
-    }
-  }, [events]);
-
   // Consume real-time canvas commands from the store queue (pushed by useChatSSE).
   // The store does not use subscribeWithSelector, so we use plain subscribe with
   // a manual length comparison to detect new commands.
   useEffect(() => {
+    if (!activeSessionKey) {
+      return;
+    }
+
     const processCanvasCommands = (
       cmds: Array<{
+        sessionKey: string;
         action: string;
         params?: Record<string, unknown>;
         evalId?: string;
@@ -139,12 +180,9 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
             break;
           case "eval":
             if (bridge && cmd.evalId && cmd.javaScript) {
-              void bridge.eval(cmd.javaScript, cmd.evalId).then((result) => {
-                fetch("/api/deck/canvas", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ evalId: cmd.evalId, result }),
-                }).catch(() => {});
+              const evalId = cmd.evalId;
+              void bridge.eval(cmd.javaScript, evalId).then((result) => {
+                void resolveCanvasEval({ evalId, result }).catch(() => {});
               });
             }
             break;
@@ -159,8 +197,8 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
             setState("empty");
             break;
           case "present":
-            // canvasVisible is already handled in useChatSSE via useUIStore.
-            // Here we handle the optional url/path parameter for navigation.
+            // Visibility is already tracked in session-scoped A2UI state.
+            // Here we only handle the optional url/path parameter for navigation.
             if (iframe && cmd.params?.url) {
               const url = cmd.params.url as string;
               iframe.src = /^https?:\/\//.test(url) ? url : `/api/canvas/${url}`;
@@ -172,7 +210,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
     };
 
     // Drain any commands that arrived before mount
-    const initial = useChatStore.getState().consumeCanvasCommands();
+    const initial = useChatStore.getState().consumeCanvasCommands(activeSessionKey);
     if (initial.length > 0) {
       processCanvasCommands(initial);
     }
@@ -184,12 +222,12 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         prevLen = state.canvasCommands.length;
         return;
       }
-      const cmds = useChatStore.getState().consumeCanvasCommands();
+      const cmds = useChatStore.getState().consumeCanvasCommands(activeSessionKey);
       prevLen = 0; // consumed — reset
       processCanvasCommands(cmds);
     });
     return unsub;
-  }, []);
+  }, [activeSessionKey]);
 
   const handleRetry = useCallback(() => {
     setState("loading");
@@ -201,10 +239,6 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
       iframe.src = currentSrc;
     }
   }, []);
-
-  // Suppress lint for unused variables that are part of the interface contract
-  void a2uiState;
-
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -234,7 +268,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
       <div className="flex-1 relative min-h-0">
         <iframe
           ref={iframeRef}
-          src="/api/canvas/index.html"
+          src={iframeSrc}
           className="w-full h-full border-0"
           sandbox="allow-scripts allow-same-origin"
           title="A2UI Canvas"

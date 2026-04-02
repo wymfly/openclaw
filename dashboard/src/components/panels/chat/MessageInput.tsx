@@ -5,10 +5,24 @@ import { useTranslations } from "next-intl";
 import { useContext, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { commandRegistry } from "@/lib/command-registry";
 import type { RegisteredCommand } from "@/lib/command-types";
+import { useApprovalsStore } from "@/stores/approvals";
 import { useChatStore } from "@/stores/chat";
-import { useActiveSessionKey, useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
+import {
+  useActiveSessionKey,
+  useSessionApproval,
+  useSessionA2UI,
+  useSessionMessages,
+  useSessionStreaming,
+} from "@/stores/chat-hooks";
 import { useNotificationsStore } from "@/stores/notifications";
-import { useUIStore } from "@/stores/ui";
+import { ApprovalDialog } from "./ApprovalDialog";
+import {
+  abortChatRun,
+  createChatSession,
+  persistChatProjection,
+  resolveInitialSessionSendPlan,
+  sendChatMessage,
+} from "./chat-api";
 import { ArtifactContext } from "./ChatPanel";
 import { exportSessionAsMarkdown } from "./export-session";
 import { executeSlashCommand } from "./slash-command-executor";
@@ -88,12 +102,26 @@ function ImagePreview({ file, onRemove }: { file: File; onRemove: () => void }) 
   );
 }
 
-/** Isolated canvas toggle — subscribes to canvasVisible for reactive color. */
+/** Session-scoped canvas toggle — persisted with the active session projection. */
 function CanvasToggle({ label }: { label: string }) {
-  const canvasVisible = useUIStore((s) => s.canvasVisible);
+  const activeSessionKey = useActiveSessionKey();
+  const a2uiState = useSessionA2UI();
+  const canvasVisible = Boolean(a2uiState?.visible);
+
+  const handleToggle = useCallback(() => {
+    if (!activeSessionKey) {
+      return;
+    }
+    useChatStore.getState().setA2UIState(activeSessionKey, { visible: !canvasVisible });
+    void persistChatProjection({
+      sessionKey: activeSessionKey,
+      a2uiState: useChatStore.getState().sessions.get(activeSessionKey)?.a2uiState ?? null,
+    }).catch(() => {});
+  }, [activeSessionKey, canvasVisible]);
+
   return (
     <button
-      onClick={() => useUIStore.getState().setCanvasVisible(!canvasVisible)}
+      onClick={handleToggle}
       className="p-1.5 rounded hover:opacity-80 transition-opacity shrink-0 cursor-pointer"
       style={{ color: canvasVisible ? "var(--primary)" : "var(--muted-foreground)" }}
       title={label}
@@ -121,10 +149,12 @@ function ArtifactToggle({ label }: { label: string }) {
 export function MessageInput() {
   const t = useTranslations("chat");
   const activeSessionKey = useActiveSessionKey();
+  const activeApproval = useSessionApproval();
   const messages = useSessionMessages();
   const { isStreaming } = useSessionStreaming();
   const hasMessages = messages.length > 0;
   const activeAgentId = useChatStore((s) => s.activeAgentId);
+  const resolveApproval = useApprovalsStore((s) => s.resolveApproval);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -191,15 +221,11 @@ export function MessageInput() {
 
   const handleAbort = useCallback(async (): Promise<boolean> => {
     try {
-      const res = await fetch("/api/chat/abort", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionKey: activeSessionKey ?? undefined }),
-      });
-      if (!res.ok) {
+      if (!activeSessionKey) {
         useNotificationsStore.getState().addToast("error", t("toastStopFailed"), 3000);
         return false;
       }
+      await abortChatRun({ sessionKey: activeSessionKey });
       if (activeSessionKey) {
         useChatStore.getState().setSessionStreaming(activeSessionKey, false);
       }
@@ -211,6 +237,20 @@ export function MessageInput() {
       return false;
     }
   }, [activeSessionKey]);
+
+  const handleResolveApproval = useCallback(
+    async (id: string, decision: "allow-once" | "allow-always" | "deny") => {
+      const ok = await resolveApproval(id, decision);
+      if (!ok) {
+        useNotificationsStore.getState().addToast("error", t("toastCommandFailed"), 3000);
+        return;
+      }
+      if (activeSessionKey) {
+        useChatStore.getState().setActiveApproval(activeSessionKey, null);
+      }
+    },
+    [activeSessionKey, resolveApproval, t],
+  );
 
   // ── Slash command execution ──
   const handleSlashCommand = useCallback(
@@ -233,18 +273,7 @@ export function MessageInput() {
           // Create session if none exists (same as sendMessage flow)
           if (!sessionKey) {
             const agentId = activeAgentId || "main";
-            const createRes = await fetch("/api/chat/sessions/create", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ agentId }),
-            });
-            const createData = (await createRes.json()) as { key?: string; error?: string };
-            if (!createRes.ok || !createData.key) {
-              useNotificationsStore
-                .getState()
-                .addToast("error", createData.error ?? t("toastCommandFailed"), 3000);
-              return;
-            }
+            const createData = await createChatSession({ agentId });
             sessionKey = createData.key;
             useChatStore.getState().setActiveSession(sessionKey);
             const store = useChatStore.getState();
@@ -261,16 +290,7 @@ export function MessageInput() {
           });
           useChatStore.getState().setSessionStreaming(sessionKey, true);
           useChatStore.getState().setSessionError(sessionKey, null);
-          const res = await fetch("/api/chat/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message, sessionKey }),
-          });
-          if (!res.ok) {
-            const data = (await res.json()) as { error?: string };
-            useChatStore.getState().setSessionError(sessionKey, data.error ?? t("error"));
-            useChatStore.getState().setSessionStreaming(sessionKey, false);
-          }
+          await sendChatMessage({ message, sessionKey });
         } catch {
           if (sessionKey) {
             useChatStore.getState().setSessionError(sessionKey, t("error"));
@@ -319,30 +339,22 @@ export function MessageInput() {
 
         // ── Handle side-effect actions ──
         const action = result.action;
-        if (action === "new-session" || action === "reset") {
+        if (action === "new-session") {
           const agentId = activeAgentId || "main";
-          const res = await fetch("/api/chat/sessions/create", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agentId }),
-          });
-          if (!res.ok) {
-            const d = await res.json().catch(() => ({}));
-            toast("error", (d as { error?: string }).error ?? `/${cmd.name} failed`, 3000);
-            return;
-          }
-          const data = (await res.json()) as { key?: string };
-          if (data.key) {
-            useChatStore.getState().setActiveSession(data.key);
-          }
+          const data = await createChatSession({ agentId });
+          useChatStore.getState().setActiveSession(data.key);
           toast("success", t("toastNewSession"), 3000);
+        } else if (action === "reset") {
+          if (activeSessionKey) {
+            const store = useChatStore.getState();
+            store.resetSessionProjection(activeSessionKey);
+          }
         } else if (action === "stop") {
           void handleAbort();
         } else if (action === "clear") {
           if (activeSessionKey) {
-            useChatStore.getState().setMessages(activeSessionKey, []);
+            useChatStore.getState().resetSessionProjection(activeSessionKey);
           }
-          toast("info", t("toastCleared"), 3000);
         } else if (action === "export") {
           if (activeSessionKey) {
             try {
@@ -437,21 +449,11 @@ export function MessageInput() {
 
         // Create session (with message only if no attachments — attachments
         // are not supported by sessions.create, so we send them via steer)
-        const createRes = await fetch("/api/chat/sessions/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agentId,
-            ...(!hasAttachments && messageText ? { message: messageText } : {}),
-          }),
+        const createData = await createChatSession({
+          agentId,
+          ...(!hasAttachments && messageText ? { message: messageText } : {}),
         });
-        const createData = (await createRes.json()) as {
-          key?: string;
-          runStarted?: boolean;
-          runError?: string;
-          error?: string;
-        };
-        if (!createRes.ok || !createData.key) {
+        if (!createData.key) {
           // Restore input on failure so the user doesn't lose their message
           setInput(text);
           setFiles(pendingFiles);
@@ -478,26 +480,27 @@ export function MessageInput() {
           timestamp: Date.now(),
         });
 
-        if (hasAttachments || !createData.runStarted) {
+        const sendPlan = resolveInitialSessionSendPlan({
+          hasAttachments,
+          runStarted: createData.runStarted,
+          runError: createData.runError,
+        });
+
+        if (sendPlan.kind === "send") {
           // Send message+attachments via sessions.steer (create didn't include the message)
           useChatStore.getState().setSessionStreaming(sessionKey, true);
-          const sendRes = await fetch("/api/chat/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+          try {
+            await sendChatMessage({
               message: messageText,
               sessionKey,
               ...(hasAttachments ? { attachments } : {}),
-            }),
-          });
-          if (!sendRes.ok) {
-            const data = (await sendRes.json()) as { error?: string };
-            useChatStore.getState().setSessionError(sessionKey, data.error ?? t("error"));
+            });
+          } catch {
+            useChatStore.getState().setSessionError(sessionKey, t("error"));
             useChatStore.getState().setSessionStreaming(sessionKey, false);
           }
-        } else if (createData.runError) {
-          // Handle runError from create
-          useChatStore.getState().setSessionError(sessionKey, createData.runError);
+        } else if (sendPlan.kind === "error") {
+          useChatStore.getState().setSessionError(sessionKey, sendPlan.error);
         } else {
           // Message was sent via sessions.create, run started — done
           useChatStore.getState().setSessionStreaming(sessionKey, true);
@@ -513,19 +516,15 @@ export function MessageInput() {
         useChatStore.getState().setSessionStreaming(sessionKey, true);
         useChatStore.getState().setSessionError(sessionKey, null);
 
-        const res = await fetch("/api/chat/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        try {
+          await sendChatMessage({
             message:
               text || (pendingFiles.length > 0 ? pendingFiles.map((f) => f.name).join(", ") : ""),
             sessionKey,
             ...(attachments.length > 0 ? { attachments } : {}),
-          }),
-        });
-        if (!res.ok) {
-          const data = (await res.json()) as { error?: string };
-          useChatStore.getState().setSessionError(sessionKey, data.error ?? t("error"));
+          });
+        } catch {
+          useChatStore.getState().setSessionError(sessionKey, t("error"));
           useChatStore.getState().setSessionStreaming(sessionKey, false);
         }
       }
@@ -533,6 +532,9 @@ export function MessageInput() {
       if (sessionKey) {
         useChatStore.getState().setSessionError(sessionKey, t("error"));
         useChatStore.getState().setSessionStreaming(sessionKey, false);
+      } else {
+        setInput(text);
+        setFiles(pendingFiles);
       }
     } finally {
       setIsSending(false);
@@ -622,6 +624,9 @@ export function MessageInput() {
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
     >
+      {activeApproval && (
+        <ApprovalDialog approval={activeApproval} onResolve={handleResolveApproval} />
+      )}
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
           {files.map((f, i) =>

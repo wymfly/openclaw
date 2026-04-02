@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { CURRENT_SESSION_VERSION } from "@mariozechner/pi-coding-agent";
 import { getAcpSessionManager } from "../acp/control-plane/manager.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { clearBootstrapSnapshot } from "../agents/bootstrap-cache.js";
@@ -8,6 +11,8 @@ import { clearSessionQueues } from "../auto-reply/reply/queue.js";
 import { closeTrackedBrowserTabsForSessions } from "../browser/session-tab-registry.js";
 import { loadConfig } from "../config/config.js";
 import {
+  resolveSessionFilePath,
+  resolveSessionFilePathOptions,
   snapshotSessionOrigin,
   type SessionEntry,
   updateSessionStore,
@@ -51,12 +56,75 @@ function stripRuntimeModelState(entry?: SessionEntry): SessionEntry | undefined 
   };
 }
 
+function clearSessionConversationState(entry: SessionEntry): SessionEntry {
+  const next: SessionEntry = {
+    ...entry,
+    updatedAt: Date.now(),
+    systemSent: false,
+    abortedLastRun: false,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    totalTokensFresh: true,
+  };
+  delete next.startedAt;
+  delete next.endedAt;
+  delete next.runtimeMs;
+  delete next.status;
+  delete next.abortCutoffMessageSid;
+  delete next.abortCutoffTimestamp;
+  delete next.estimatedCostUsd;
+  delete next.cacheRead;
+  delete next.cacheWrite;
+  delete next.contextTokens;
+  delete next.systemPromptReport;
+  delete next.compactionCount;
+  delete next.memoryFlushAt;
+  delete next.memoryFlushCompactionCount;
+  delete next.memoryFlushContextHash;
+  delete next.fallbackNoticeSelectedModel;
+  delete next.fallbackNoticeActiveModel;
+  delete next.fallbackNoticeReason;
+  delete next.cliSessionIds;
+  delete next.claudeCliSessionId;
+  return next;
+}
+
+function writeEmptySessionTranscript(params: {
+  sessionId: string;
+  storePath: string;
+  sessionFile?: string;
+  agentId?: string;
+}): string {
+  const transcriptPath = resolveSessionFilePath(
+    params.sessionId,
+    params.sessionFile ? { sessionFile: params.sessionFile } : undefined,
+    resolveSessionFilePathOptions({
+      storePath: params.storePath,
+      agentId: params.agentId,
+    }),
+  );
+  fs.mkdirSync(path.dirname(transcriptPath), { recursive: true });
+  const header = {
+    type: "session",
+    version: CURRENT_SESSION_VERSION,
+    id: params.sessionId,
+    timestamp: new Date().toISOString(),
+    cwd: process.cwd(),
+  };
+  fs.writeFileSync(transcriptPath, `${JSON.stringify(header)}\n`, {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+  return transcriptPath;
+}
+
 export function archiveSessionTranscriptsForSession(params: {
   sessionId: string | undefined;
   storePath: string;
   sessionFile?: string;
   agentId?: string;
-  reason: "reset" | "deleted";
+  reason: "reset" | "deleted" | "clear";
 }): string[] {
   if (!params.sessionId) {
     return [];
@@ -172,7 +240,7 @@ async function closeAcpRuntimeForSession(params: {
   cfg: ReturnType<typeof loadConfig>;
   sessionKey: string;
   entry?: SessionEntry;
-  reason: "session-reset" | "session-delete";
+  reason: "session-reset" | "session-delete" | "session-clear";
 }) {
   if (!params.entry?.acp) {
     return undefined;
@@ -231,7 +299,7 @@ export async function cleanupSessionBeforeMutation(params: {
   entry: SessionEntry | undefined;
   legacyKey?: string;
   canonicalKey?: string;
-  reason: "session-reset" | "session-delete";
+  reason: "session-reset" | "session-delete" | "session-clear";
 }) {
   const cleanupError = await ensureSessionRuntimeCleanup({
     cfg: params.cfg,
@@ -350,4 +418,95 @@ export async function performGatewaySessionReset(params: {
     });
   }
   return { ok: true, key: target.canonicalKey, entry: next };
+}
+
+export async function performGatewaySessionClear(params: {
+  key: string;
+  commandSource: string;
+}): Promise<
+  | { ok: true; key: string; entry: SessionEntry }
+  | { ok: false; error: ReturnType<typeof errorShape> }
+> {
+  const { cfg, target, storePath } = (() => {
+    const cfg = loadConfig();
+    const target = resolveGatewaySessionStoreTarget({ cfg, key: params.key });
+    return { cfg, target, storePath: target.storePath };
+  })();
+  const { entry, legacyKey, canonicalKey } = loadSessionEntry(params.key);
+  if (!entry?.sessionId) {
+    return {
+      ok: false,
+      error: errorShape(ErrorCodes.INVALID_REQUEST, `session not found: ${params.key}`),
+    };
+  }
+
+  const hookEvent = createInternalHookEvent("command", "clear", target.canonicalKey ?? params.key, {
+    sessionEntry: entry,
+    previousSessionEntry: entry,
+    commandSource: params.commandSource,
+    cfg,
+  });
+  await triggerInternalHook(hookEvent);
+
+  const mutationCleanupError = await cleanupSessionBeforeMutation({
+    cfg,
+    key: params.key,
+    target,
+    entry,
+    legacyKey,
+    canonicalKey,
+    reason: "session-clear",
+  });
+  if (mutationCleanupError) {
+    return { ok: false, error: mutationCleanupError };
+  }
+
+  const clearedEntry = await updateSessionStore(storePath, (store) => {
+    const { primaryKey } = migrateAndPruneGatewaySessionStoreKey({
+      cfg,
+      key: params.key,
+      store,
+    });
+    const currentEntry = store[primaryKey];
+    if (!currentEntry?.sessionId) {
+      return null;
+    }
+    const nextEntry = clearSessionConversationState(currentEntry);
+    store[primaryKey] = nextEntry;
+    return nextEntry;
+  });
+  if (!clearedEntry?.sessionId) {
+    return {
+      ok: false,
+      error: errorShape(ErrorCodes.INVALID_REQUEST, `session not found: ${params.key}`),
+    };
+  }
+
+  archiveSessionTranscriptsForSession({
+    sessionId: entry.sessionId,
+    storePath,
+    sessionFile: entry.sessionFile,
+    agentId: target.agentId,
+    reason: "clear",
+  });
+
+  try {
+    writeEmptySessionTranscript({
+      sessionId: entry.sessionId,
+      storePath,
+      sessionFile: entry.sessionFile,
+      agentId: target.agentId,
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error: errorShape(ErrorCodes.UNAVAILABLE, err instanceof Error ? err.message : String(err)),
+    };
+  }
+
+  return {
+    ok: true,
+    key: target.canonicalKey,
+    entry: clearedEntry,
+  };
 }

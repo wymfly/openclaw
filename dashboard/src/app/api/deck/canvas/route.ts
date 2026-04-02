@@ -1,7 +1,8 @@
 import { getRuntime } from "@server/runtime";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withAuth } from "@/lib/with-auth";
 
-export async function POST(request: Request): Promise<Response> {
+export const POST = withAuth(async (request: NextRequest): Promise<Response> => {
   const runtime = getRuntime();
   if (!runtime) {
     return NextResponse.json({ error: "runtime not initialized" }, { status: 503 });
@@ -17,15 +18,21 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const { action } = body as { action?: string };
+  const { action, sessionKey } = body as { action?: string; sessionKey?: string };
 
-  // Canvas session register/unregister
-  if (action === "register") {
-    nodeConn.registerCanvasSession();
+  // Canvas ready/unready lifecycle
+  if (action === "ready") {
+    if (typeof sessionKey !== "string" || !sessionKey.trim()) {
+      return NextResponse.json({ error: "sessionKey required" }, { status: 400 });
+    }
+    nodeConn.markCanvasSessionReady(sessionKey);
     return NextResponse.json({ ok: true });
   }
-  if (action === "unregister") {
-    nodeConn.unregisterCanvasSession();
+  if (action === "unready") {
+    if (typeof sessionKey !== "string" || !sessionKey.trim()) {
+      return NextResponse.json({ error: "sessionKey required" }, { status: 400 });
+    }
+    nodeConn.markCanvasSessionUnready(sessionKey);
     return NextResponse.json({ ok: true });
   }
 
@@ -41,4 +48,4 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   return NextResponse.json({ ok: true });
-}
+});

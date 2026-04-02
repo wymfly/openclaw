@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { deckFetch } from "@/lib/deck-client";
 import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
@@ -71,7 +72,7 @@ export function SessionSidebar() {
 
   const handleDelete = async (sessionKey: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const res = await fetch("/api/chat/sessions", {
+    const res = await deckFetch("/api/chat/sessions", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionKey, agentId: activeAgentId }),

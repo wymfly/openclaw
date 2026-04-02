@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { deckStream } from "@/lib/deck-client";
 import { useNotificationsStore, type ToastType } from "@/stores/notifications";
 
 interface ToastEvent {
@@ -21,42 +22,36 @@ export function useNotificationSSE(): void {
   const addToast = useNotificationsStore((s) => s.addToast);
 
   useEffect(() => {
-    const es = new EventSource("/api/stream");
-
-    const handler = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data as string) as ToastEvent;
-        const type = data.type ?? "info";
-        const message = data.message ?? "";
-        if (message) {
-          addToast(type, message, data.duration);
+    const controller = new AbortController();
+    void deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      onEvent(event) {
+        if (!event.event || !event.data) {
+          return;
         }
-      } catch {
-        // Malformed payload — ignore.
-      }
-    };
+        try {
+          if (event.event === "notification.toast") {
+            const data = JSON.parse(event.data) as ToastEvent;
+            const type = data.type ?? "info";
+            const message = data.message ?? "";
+            if (message) {
+              addToast(type, message, data.duration);
+            }
+            return;
+          }
+          if (event.event === "alert.fired") {
+            const data = JSON.parse(event.data);
+            void import("@/stores/alerts").then(({ useAlertsStore }) => {
+              useAlertsStore.getState().addFiredAlert(data);
+            });
+          }
+        } catch {
+          // Malformed payload — ignore.
+        }
+      },
+    }).catch(() => {});
 
-    es.addEventListener("notification.toast", handler);
-
-    // F9: Bridge alert.fired SSE events to the alerts store
-    const alertHandler = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data as string);
-        // Dynamic import to avoid circular deps and keep bundle splitting
-        void import("@/stores/alerts").then(({ useAlertsStore }) => {
-          useAlertsStore.getState().addFiredAlert(data);
-        });
-      } catch {
-        // Malformed payload — ignore.
-      }
-    };
-
-    es.addEventListener("alert.fired", alertHandler);
-
-    return () => {
-      es.removeEventListener("notification.toast", handler);
-      es.removeEventListener("alert.fired", alertHandler);
-      es.close();
-    };
+    return () => controller.abort();
   }, [addToast]);
 }

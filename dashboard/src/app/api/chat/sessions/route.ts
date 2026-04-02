@@ -9,14 +9,14 @@
  *   sessions.delete: { key, deleteTranscript? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
   const { searchParams } = request.nextUrl;
   const agentId = searchParams.get("agentId");
 
-  return gatewayRequest("sessions.list", {
+  return gwRequest("sessions.list", {
     ...(agentId ? { agentId } : {}),
     includeDerivedTitles: true,
     includeLastMessage: true,
@@ -33,7 +33,7 @@ export const DELETE = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "sessionKey is required" }, { status: 400 });
   }
 
-  return gatewayRequest("sessions.delete", {
+  return gwRequest("sessions.delete", {
     key: body.sessionKey,
   });
 });

@@ -274,7 +274,7 @@ export function archiveSessionTranscripts(opts: {
   storePath: string | undefined;
   sessionFile?: string;
   agentId?: string;
-  reason: "reset" | "deleted";
+  reason: "reset" | "deleted" | "clear";
   /**
    * When true, only archive files resolved under the session store directory.
    * This prevents maintenance operations from mutating paths outside the agent sessions dir.

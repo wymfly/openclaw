@@ -35,6 +35,7 @@ describe("DEFAULT_METHOD_ALLOWLIST", () => {
     "sessions.preview",
     "sessions.patch",
     "sessions.reset",
+    "sessions.clear",
     "sessions.delete",
     "cron.list",
     "cron.run",

@@ -386,4 +386,103 @@ describe("session.message websocket events", () => {
       await harness.close();
     }
   });
+
+  test("sessions.clear emits a clear event and keeps live transcript subscriptions on the same session", async () => {
+    const storePath = await createSessionStoreFile();
+    const transcriptPath = path.join(path.dirname(storePath), "sess-main.jsonl");
+    await writeSessionStore({
+      entries: {
+        main: {
+          sessionId: "sess-main",
+          updatedAt: Date.now(),
+          modelProvider: "openai",
+          model: "gpt-5.4",
+        },
+      },
+      storePath,
+    });
+    await fs.writeFile(
+      transcriptPath,
+      [
+        JSON.stringify({ type: "session", version: 1, id: "sess-main" }),
+        JSON.stringify({
+          id: "msg-before-clear",
+          message: {
+            role: "assistant",
+            content: [{ type: "text", text: "before clear" }],
+            timestamp: Date.now(),
+          },
+        }),
+      ].join("\n"),
+      "utf-8",
+    );
+
+    const harness = await createGatewaySuiteHarness();
+    try {
+      const ws = await harness.openWs();
+      try {
+        await connectOk(ws, { scopes: ["operator.admin"] });
+        const sessionSubscribeRes = await rpcReq(ws, "sessions.subscribe");
+        expect(sessionSubscribeRes.ok).toBe(true);
+        const subscribeRes = await rpcReq(ws, "sessions.messages.subscribe", {
+          key: "agent:main:main",
+        });
+        expect(subscribeRes.ok).toBe(true);
+
+        const clearChanged = onceMessage(
+          ws,
+          (message) =>
+            message.type === "event" &&
+            message.event === "sessions.changed" &&
+            (message.payload as { sessionKey?: string; reason?: string } | undefined)
+              ?.sessionKey === "agent:main:main" &&
+            (message.payload as { reason?: string } | undefined)?.reason === "clear",
+        );
+
+        const cleared = await rpcReq<{
+          ok: true;
+          key: string;
+          entry: { sessionId: string };
+        }>(ws, "sessions.clear", {
+          key: "agent:main:main",
+        });
+        expect(cleared.ok).toBe(true);
+        expect(cleared.payload?.key).toBe("agent:main:main");
+        expect(cleared.payload?.entry.sessionId).toBe("sess-main");
+
+        const changedEvent = await clearChanged;
+        expect(changedEvent.payload).toMatchObject({
+          sessionKey: "agent:main:main",
+          reason: "clear",
+        });
+
+        const history = await rpcReq<{ messages?: unknown[] }>(ws, "chat.history", {
+          sessionKey: "agent:main:main",
+        });
+        expect(history.ok).toBe(true);
+        expect(history.payload?.messages ?? []).toHaveLength(0);
+
+        const nextMessageEvent = onceMessage(
+          ws,
+          (message) =>
+            message.type === "event" &&
+            message.event === "session.message" &&
+            (message.payload as { sessionKey?: string } | undefined)?.sessionKey ===
+              "agent:main:main",
+        );
+        const appended = await appendAssistantMessageToSessionTranscript({
+          sessionKey: "agent:main:main",
+          text: "after clear",
+          storePath,
+        });
+        expect(appended.ok).toBe(true);
+        const liveEvent = await nextMessageEvent;
+        expect((liveEvent.payload as { messageSeq?: number }).messageSeq).toBe(1);
+      } finally {
+        ws.close();
+      }
+    } finally {
+      await harness.close();
+    }
+  });
 });

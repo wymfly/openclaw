@@ -172,7 +172,10 @@
     "toastAborted": "Aborted: {value}",
     "toastAbortFailed": "Failed to abort",
     "toastNewSession": "New session created",
+    "toastReset": "Session reset",
+    "toastResetFailed": "Failed to reset session",
     "toastCleared": "Messages cleared",
+    "toastClearFailed": "Failed to clear messages",
     "toastExported": "Session exported",
     "toastExportFailed": "Export failed",
     "toastStopped": "Stopped",
@@ -1206,6 +1209,7 @@
   },
   "approvals": {
     "title": "Approvals & Security",
+    "inlineTitle": "Approval required",
     "pending": "Pending",
     "policy": "Policy",
     "approve": "Approve",

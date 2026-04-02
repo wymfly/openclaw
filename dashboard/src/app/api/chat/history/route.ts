@@ -5,7 +5,7 @@
  *   { sessionKey, limit? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
@@ -19,7 +19,7 @@ export const GET = withAuth(async (request: NextRequest) => {
 
   const limit = limitStr ? Number(limitStr) : undefined;
 
-  return gatewayRequest("chat.history", {
+  return gwRequest("chat.history", {
     sessionKey,
     ...(typeof limit === "number" && Number.isFinite(limit) ? { limit } : {}),
   });

@@ -2,6 +2,328 @@
 
 export const GENERATED_SCHEMA_VERSION = "3";
 
+export interface ChatHistoryParams {
+  sessionKey: string;
+  limit?: number;
+}
+
+export interface ChatHistoryResult {
+  sessionKey: string;
+  sessionId: string;
+  messages: {
+    id?: string;
+    role?: string;
+    content?: unknown;
+    timestamp?: number;
+  }[];
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
+}
+
+export interface ChatAbortParams {
+  sessionKey: string;
+  runId?: string;
+}
+
+export interface ChatAbortResult {
+  ok: boolean;
+  aborted: boolean;
+  runIds: string[];
+}
+
+export interface ChatSendParams {
+  sessionKey: string;
+  message: string;
+  thinking?: string;
+  deliver?: boolean;
+  attachments?: unknown[];
+  timeoutMs?: number;
+  systemInputProvenance?: {
+    kind: string;
+    originSessionId?: string;
+    sourceSessionKey?: string;
+    sourceChannel?: string;
+    sourceTool?: string;
+  };
+  systemProvenanceReceipt?: string;
+  idempotencyKey: string;
+}
+
+export interface ChatSendResult {
+  ok?: boolean;
+  aborted?: boolean;
+  runIds?: string[];
+  runId?: string;
+  status?: string;
+}
+
+export interface SessionsListParams {
+  limit?: number;
+  activeMinutes?: number;
+  includeGlobal?: boolean;
+  includeUnknown?: boolean;
+  includeDerivedTitles?: boolean;
+  includeLastMessage?: boolean;
+  label?: string;
+  spawnedBy?: string;
+  agentId?: string;
+  search?: string;
+}
+
+export interface SessionsListResult {
+  ts: number;
+  path: string;
+  count: number;
+  defaults: {
+    modelProvider: string | null;
+    model: string | null;
+    contextTokens: number | null;
+  };
+  sessions: {
+    key: string;
+    spawnedBy?: string;
+    kind: "direct" | "group" | "global" | "unknown";
+    label?: string;
+    displayName?: string;
+    derivedTitle?: string;
+    lastMessagePreview?: string;
+    channel?: string;
+    subject?: string;
+    groupChannel?: string;
+    space?: string;
+    chatType?: string;
+    origin?: unknown;
+    updatedAt: number | null;
+    sessionId?: string;
+    systemSent?: boolean;
+    abortedLastRun?: boolean;
+    thinkingLevel?: string;
+    fastMode?: boolean;
+    verboseLevel?: string;
+    reasoningLevel?: string;
+    elevatedLevel?: string;
+    sendPolicy?: "allow" | "deny";
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    totalTokensFresh?: boolean;
+    estimatedCostUsd?: number;
+    status?: "running" | "done" | "failed" | "killed" | "timeout";
+    startedAt?: number;
+    endedAt?: number;
+    runtimeMs?: number;
+    parentSessionKey?: string;
+    childSessions?: string[];
+    responseUsage?: "on" | "off" | "tokens" | "full";
+    modelProvider?: string;
+    model?: string;
+    contextTokens?: number;
+    deliveryContext?: {
+      channel?: string;
+      to?: string;
+      accountId?: string;
+      threadId?: string | number;
+    };
+    lastChannel?: string;
+    lastTo?: string;
+    lastAccountId?: string;
+    compactionCount?: number;
+  }[];
+}
+
+export interface SessionsSubscribeResult {
+  subscribed: boolean;
+}
+
+export interface SessionsUnsubscribeResult {
+  subscribed: boolean;
+}
+
+export interface SessionsMessagesSubscribeParams {
+  key: string;
+}
+
+export interface SessionsMessagesSubscribeResult {
+  subscribed: boolean;
+  key: string;
+}
+
+export interface SessionsMessagesUnsubscribeParams {
+  key: string;
+}
+
+export interface SessionsMessagesUnsubscribeResult {
+  subscribed: boolean;
+  key: string;
+}
+
+export interface SessionsPreviewParams {
+  keys: string[];
+  limit?: number;
+  maxChars?: number;
+}
+
+export interface SessionsPreviewResult {
+  ts: number;
+  previews: {
+    key: string;
+    status: "ok" | "empty" | "missing" | "error";
+    items: {
+      role: "user" | "assistant" | "tool" | "system" | "other";
+      text: string;
+    }[];
+  }[];
+}
+
+export interface SessionsCreateParams {
+  key?: string;
+  agentId?: string;
+  label?: string;
+  model?: string;
+  parentSessionKey?: string;
+  task?: string;
+  message?: string;
+}
+
+export interface SessionsCreateResult {
+  ok: boolean;
+  key: string;
+  sessionId: string;
+  entry: Record<string, unknown>;
+  runStarted: boolean;
+  runId?: string;
+  status?: string;
+  messageSeq?: number;
+  interruptedActiveRun?: boolean;
+  runError?: unknown;
+}
+
+export interface SessionsSendParams {
+  key: string;
+  message: string;
+  thinking?: string;
+  attachments?: unknown[];
+  timeoutMs?: number;
+  idempotencyKey?: string;
+}
+
+export interface SessionsSendResult {
+  runId?: string;
+  status: "started" | "in_flight";
+  messageSeq?: number;
+  interruptedActiveRun?: boolean;
+}
+
+export interface SessionsSteerParams {
+  key: string;
+  message: string;
+  thinking?: string;
+  attachments?: unknown[];
+  timeoutMs?: number;
+  idempotencyKey?: string;
+}
+
+export interface SessionsSteerResult {
+  runId?: string;
+  status: "started" | "in_flight";
+  messageSeq?: number;
+  interruptedActiveRun?: boolean;
+}
+
+export interface SessionsAbortParams {
+  key: string;
+  runId?: string;
+}
+
+export interface SessionsAbortResult {
+  ok: boolean;
+  abortedRunId?: string | null;
+  status: "aborted" | "no-active-run";
+}
+
+export interface SessionsPatchParams {
+  key: string;
+  label?: string | null;
+  thinkingLevel?: string | null;
+  fastMode?: boolean | null;
+  verboseLevel?: string | null;
+  reasoningLevel?: string | null;
+  responseUsage?: "off" | "tokens" | "full" | "on" | null;
+  elevatedLevel?: string | null;
+  execHost?: string | null;
+  execSecurity?: string | null;
+  execAsk?: string | null;
+  execNode?: string | null;
+  model?: string | null;
+  spawnedBy?: string | null;
+  spawnedWorkspaceDir?: string | null;
+  spawnDepth?: number | null;
+  subagentRole?: "orchestrator" | "leaf" | null;
+  subagentControlScope?: "children" | "none" | null;
+  sendPolicy?: "allow" | "deny" | null;
+  groupActivation?: "mention" | "always" | null;
+}
+
+export interface SessionsPatchResult {
+  ok: true;
+  path: string;
+  key: string;
+  entry: Record<string, unknown>;
+  resolved?: {
+    modelProvider?: string;
+    model?: string;
+  };
+}
+
+export interface SessionsResetParams {
+  key: string;
+  reason?: "new" | "reset";
+}
+
+export interface SessionsResetResult {
+  ok: boolean;
+  key: string;
+  entry: Record<string, unknown>;
+}
+
+export interface SessionsClearParams {
+  key: string;
+}
+
+export interface SessionsClearResult {
+  ok: boolean;
+  key: string;
+  entry: Record<string, unknown>;
+}
+
+export interface SessionsDeleteParams {
+  key: string;
+  deleteTranscript?: boolean;
+  emitLifecycleHooks?: boolean;
+}
+
+export interface SessionsDeleteResult {
+  ok: boolean;
+  key: string;
+  deleted: boolean;
+  archived: string[];
+}
+
+export interface SessionsCompactParams {
+  key: string;
+  maxLines?: number;
+}
+
+export interface SessionsCompactResult {
+  ok: boolean;
+  key: string;
+  compacted: boolean;
+  archived?: string[];
+  kept?: number;
+  reason?: string;
+}
+
 export interface DeckCommandsDiscoverParams {
   agentId?: string;
 }
@@ -523,6 +845,30 @@ export interface DeckAuthProbeResult {
 }
 
 export interface GatewayMethodMap {
+  "chat.history": { params: ChatHistoryParams; result: ChatHistoryResult };
+  "chat.abort": { params: ChatAbortParams; result: ChatAbortResult };
+  "chat.send": { params: ChatSendParams; result: ChatSendResult };
+  "sessions.list": { params: SessionsListParams; result: SessionsListResult };
+  "sessions.subscribe": { params: Record<string, unknown>; result: SessionsSubscribeResult };
+  "sessions.unsubscribe": { params: Record<string, unknown>; result: SessionsUnsubscribeResult };
+  "sessions.messages.subscribe": {
+    params: SessionsMessagesSubscribeParams;
+    result: SessionsMessagesSubscribeResult;
+  };
+  "sessions.messages.unsubscribe": {
+    params: SessionsMessagesUnsubscribeParams;
+    result: SessionsMessagesUnsubscribeResult;
+  };
+  "sessions.preview": { params: SessionsPreviewParams; result: SessionsPreviewResult };
+  "sessions.create": { params: SessionsCreateParams; result: SessionsCreateResult };
+  "sessions.send": { params: SessionsSendParams; result: SessionsSendResult };
+  "sessions.steer": { params: SessionsSteerParams; result: SessionsSteerResult };
+  "sessions.abort": { params: SessionsAbortParams; result: SessionsAbortResult };
+  "sessions.patch": { params: SessionsPatchParams; result: SessionsPatchResult };
+  "sessions.reset": { params: SessionsResetParams; result: SessionsResetResult };
+  "sessions.clear": { params: SessionsClearParams; result: SessionsClearResult };
+  "sessions.delete": { params: SessionsDeleteParams; result: SessionsDeleteResult };
+  "sessions.compact": { params: SessionsCompactParams; result: SessionsCompactResult };
   "deck.commands.discover": {
     params: DeckCommandsDiscoverParams;
     result: DeckCommandsDiscoverResult;

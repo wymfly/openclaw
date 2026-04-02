@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { commandRegistry } from "@/lib/command-registry";
 import { SOURCE_PRIORITY } from "@/lib/command-types";
 import type { RegisteredCommand } from "@/lib/command-types";
+import { deckStream } from "@/lib/deck-client";
 import { useChatStore } from "@/stores/chat";
 import type { DeckCommandsDiscoverResult } from "@/types/gateway-protocol.generated";
 
@@ -79,20 +80,24 @@ export function useCommandDiscovery(): void {
     versionRef.current = null;
     void discover(activeAgentId ?? undefined);
 
-    const es = new EventSource("/api/stream");
-    const onChanged = () => {
-      void discover(activeAgentId ?? undefined);
-    };
-
-    es.addEventListener("commands.changed", onChanged);
-    es.addEventListener("error", () => {
-      console.warn("[useCommandDiscovery] SSE connection error - command updates may be delayed");
+    const controller = new AbortController();
+    void deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      onEvent(event) {
+        if (event.event === "commands.changed") {
+          void discover(activeAgentId ?? undefined);
+        }
+      },
+    }).catch(() => {
+      console.warn(
+        "[useCommandDiscovery] stream connection error - command updates may be delayed",
+      );
     });
 
     return () => {
       mountedRef.current = false;
-      es.removeEventListener("commands.changed", onChanged);
-      es.close();
+      controller.abort();
       unregisterDiscoveredCommands();
     };
   }, [activeAgentId, discover]);

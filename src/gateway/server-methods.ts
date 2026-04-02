@@ -9,6 +9,7 @@ import { agentHandlers } from "./server-methods/agent.js";
 import { agentsHandlers } from "./server-methods/agents.js";
 import { browserHandlers } from "./server-methods/browser.js";
 import { channelsHandlers } from "./server-methods/channels.js";
+import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
 import { chatHandlers } from "./server-methods/chat.js";
 import { configHandlers } from "./server-methods/config.js";
 import { connectHandlers } from "./server-methods/connect.js";
@@ -27,6 +28,7 @@ import { nodePendingHandlers } from "./server-methods/nodes-pending.js";
 import { nodeHandlers } from "./server-methods/nodes.js";
 import { pushHandlers } from "./server-methods/push.js";
 import { sendHandlers } from "./server-methods/send.js";
+import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
 import { sessionsHandlers } from "./server-methods/sessions.js";
 import { skillsHandlers } from "./server-methods/skills.js";
 import { systemHandlers } from "./server-methods/system.js";
@@ -108,6 +110,8 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
 
 // Assemble the method registry (metadata-only, no runtime behavior change)
 export const gatewayMethodRegistry = buildMethodRegistry(coreGatewayHandlers, [
+  chatMethodDefs,
+  sessionsMethodDefs,
   deckMethodDefs,
   deckAuthMethodDefs,
 ]);

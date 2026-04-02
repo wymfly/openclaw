@@ -55,6 +55,8 @@ describe("initApprovalBridge", () => {
         request: {
           command: "rm -rf /",
           agentId: "agent-x",
+          sessionKey: "agent:main:main",
+          runId: "run-approval-1",
         },
         createdAtMs: 1000,
         expiresAtMs: 2000,
@@ -66,6 +68,8 @@ describe("initApprovalBridge", () => {
       id: "apr-1",
       command: "rm -rf /",
       agentId: "agent-x",
+      sessionKey: "agent:main:main",
+      runId: "run-approval-1",
     });
 
     // Verify in-memory map
