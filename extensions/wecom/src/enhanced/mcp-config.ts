@@ -108,7 +108,8 @@ function resolveMcpTransport(body: McpRawResponse["body"] = {}): string {
 function getConfigPath(accountId: string): string {
   // Sanitize accountId to prevent path traversal (e.g. "../" in user-configured YAML keys)
   const safeId = accountId.replace(/[/\\]/g, "_").replace(/\.\./g, "_");
-  return path.join(os.homedir(), ".openclaw", "wecomConfig", safeId, "config.json");
+  const homeDir = process.env.HOME || os.homedir();
+  return path.join(homeDir, ".openclaw", "wecomConfig", safeId, "config.json");
 }
 
 // Serialize writes per-account to avoid torn config files.
