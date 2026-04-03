@@ -76,6 +76,7 @@ import {
   readSessionMessages,
   resolveSessionModelRef,
 } from "../session-utils.js";
+import { canonicalizeTranscriptMessages } from "../transcript-canonical.js";
 import { formatForLog } from "../ws-log.js";
 import { injectTimestamp, timestampOptsFromConfig } from "./agent-timestamp.js";
 import { setGatewayDedupeEntry } from "./agent-wait-dedupe.js";
@@ -675,14 +676,6 @@ function sanitizeChatHistoryContentBlock(
   }
   if ("thinkingSignature" in entry) {
     delete entry.thinkingSignature;
-    changed = true;
-  }
-  const type = typeof entry.type === "string" ? entry.type : "";
-  if (type === "image" && typeof entry.data === "string") {
-    const bytes = Buffer.byteLength(entry.data, "utf8");
-    delete entry.data;
-    entry.omitted = true;
-    entry.bytes = bytes;
     changed = true;
   }
   return { block: changed ? entry : block, changed };
@@ -1632,10 +1625,11 @@ export const chatHandlers: GatewayRequestHandlers = {
     const normalized = augmentChatHistoryWithCanvasBlocks(
       sanitizeChatHistoryMessages(sanitized, effectiveMaxChars),
     );
+    const canonicalized = canonicalizeTranscriptMessages(normalized);
     const maxHistoryBytes = getMaxChatHistoryMessagesBytes();
     const perMessageHardCap = Math.min(CHAT_HISTORY_MAX_SINGLE_MESSAGE_BYTES, maxHistoryBytes);
     const replaced = replaceOversizedChatHistoryMessages({
-      messages: normalized,
+      messages: canonicalized,
       maxSingleMessageBytes: perMessageHardCap,
     });
     const capped = capArrayByJsonBytes(replaced.messages, maxHistoryBytes).items;

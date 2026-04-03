@@ -1,6 +1,7 @@
 import { withPluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway-request-scope.js";
 import { formatControlPlaneActor, resolveControlPlaneActor } from "./control-plane-audit.js";
 import { consumeControlPlaneWriteBudget } from "./control-plane-rate-limit.js";
+import { gatewayEventDefs } from "./event-defs.js";
 import { buildMethodRegistry } from "./method-registry.js";
 import { ADMIN_SCOPE, authorizeOperatorScopesForMethod } from "./method-scopes.js";
 import { ErrorCodes, errorShape } from "./protocol/index.js";
@@ -117,7 +118,7 @@ export const gatewayMethodRegistry = buildMethodRegistry(coreGatewayHandlers, [
   sessionsMethodDefs,
   deckMethodDefs,
   deckAuthMethodDefs,
-]);
+], gatewayEventDefs);
 
 // Wire describe handler to registry
 setDescribeRegistry(gatewayMethodRegistry);

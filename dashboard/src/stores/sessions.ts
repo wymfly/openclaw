@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import { normalizeTranscriptMessages } from "@/lib/transcript-adapter";
+import type { SessionsChangedEventPayload } from "@/types/gateway-protocol.generated";
+import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,39 +33,42 @@ export interface SessionEntry {
   spawnedWorkspaceDir?: string;
 }
 
-export interface HistoryMessage {
-  role: "user" | "assistant" | "system";
-  content: string;
-  timestamp?: number;
-}
+export type HistoryMessage = ChatMessage;
+export type SessionsChangedPayload = SessionsChangedEventPayload & {
+  reason?: string;
+  subagentRole?: SessionEntry["subagentRole"];
+  subagentControlScope?: SessionEntry["subagentControlScope"];
+  spawnedWorkspaceDir?: string;
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Normalize message content that may be a string or an array of content blocks.
- * Gateway chat.history may return `content` as `[{ type: "text", text: "..." }, ...]`.
- */
-function normalizeContent(content: unknown): string {
-  if (typeof content === "string") {
-    return content;
+function blockToText(block: ContentBlock): string {
+  if (block.type === "text" || block.type === "thinking") {
+    return block.text;
   }
-  if (Array.isArray(content)) {
-    return content
-      .filter((b): b is { type: string; text: string } => {
-        return (
-          b != null &&
-          typeof b === "object" &&
-          "type" in b &&
-          (b as { type: string }).type === "text" &&
-          "text" in b
-        );
-      })
-      .map((b) => b.text)
-      .join("\n");
+  if (block.type === "tool_use") {
+    return `${block.name} ${JSON.stringify(block.input)}`;
   }
-  return "";
+  if (block.type === "tool_result") {
+    if (typeof block.content === "string") {
+      return block.content;
+    }
+    return block.content.map((entry) => blockToText(entry)).filter(Boolean).join("\n");
+  }
+  if (block.type === "image") {
+    return block.fileName ?? "image";
+  }
+  if (block.type === "file") {
+    return block.fileName;
+  }
+  return block.rawType;
+}
+
+export function historyMessageToPlainText(message: HistoryMessage): string {
+  return message.content.map((block) => blockToText(block)).filter(Boolean).join("\n");
 }
 
 /** Derive session kind from the key naming convention. */
@@ -128,7 +134,7 @@ interface SessionsState {
   deleteSession: (sessionKey: string) => Promise<void>;
   patchSession: (sessionKey: string, patch: SessionPatchFields) => Promise<boolean>;
   /** Apply an incoming sessions.changed event to update or insert a session. */
-  applySessionChangedEvent: (payload: Record<string, unknown>) => void;
+  applySessionChangedEvent: (payload: SessionsChangedPayload) => void;
 }
 
 export const useSessionsStore = create<SessionsState>((set, get) => ({
@@ -196,11 +202,10 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
         : Array.isArray((data as { messages?: unknown }).messages)
           ? (data as { messages: unknown[] }).messages
           : [];
-      const messages: HistoryMessage[] = (rawMessages as Record<string, unknown>[]).map((m) => ({
-        role: (m.role as HistoryMessage["role"]) ?? "user",
-        content: normalizeContent(m.content),
-        timestamp: typeof m.timestamp === "number" ? m.timestamp : undefined,
-      }));
+      const messages = normalizeTranscriptMessages(
+        sessionKey,
+        rawMessages as Record<string, unknown>[],
+      );
       set({ history: messages });
     } catch {
       // silently ignore — history is non-critical
@@ -254,8 +259,8 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
     }
   },
 
-  applySessionChangedEvent: (payload: Record<string, unknown>) => {
-    const key = payload.sessionKey as string;
+  applySessionChangedEvent: (payload) => {
+    const key = payload.sessionKey;
     if (!key) {
       return;
     }

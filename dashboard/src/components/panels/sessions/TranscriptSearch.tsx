@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import type { HistoryMessage } from "@/stores/sessions";
+import { historyMessageToPlainText, type HistoryMessage } from "@/stores/sessions";
 
 interface TranscriptSearchProps {
   messages: HistoryMessage[];
@@ -29,7 +29,7 @@ export function TranscriptSearch({ messages, onHighlight, onNavigate }: Transcri
       }
       const lower = q.toLowerCase();
       const indices = messages
-        .map((msg, i) => (msg.content.toLowerCase().includes(lower) ? i : -1))
+        .map((msg, i) => (historyMessageToPlainText(msg).toLowerCase().includes(lower) ? i : -1))
         .filter((i) => i !== -1);
       setMatchIndices(indices);
       setCurrentMatch(0);

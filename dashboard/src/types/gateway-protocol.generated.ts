@@ -2,6 +2,69 @@
 
 export const GENERATED_SCHEMA_VERSION = "3";
 
+export type TranscriptBlock = {
+  type: "text";
+  text: string;
+} | {
+  type: "thinking";
+  text: string;
+} | {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+} | {
+  type: "tool_result";
+  toolUseId: string;
+  content: string | TranscriptBlock[];
+  isError?: boolean;
+} | {
+  type: "image";
+  data: string;
+  mimeType: string;
+  fileName?: string;
+} | {
+  type: "file";
+  data: string;
+  mimeType: string;
+  fileName: string;
+  size?: number;
+};
+
+export type TranscriptMessage = {
+  id?: string;
+  role: "user" | "assistant" | "system";
+  content: ({
+    type: "text";
+    text: string;
+  } | {
+    type: "thinking";
+    text: string;
+  } | {
+    type: "tool_use";
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  } | {
+    type: "tool_result";
+    toolUseId: string;
+    content: string | TranscriptBlock[];
+    isError?: boolean;
+  } | {
+    type: "image";
+    data: string;
+    mimeType: string;
+    fileName?: string;
+  } | {
+    type: "file";
+    data: string;
+    mimeType: string;
+    fileName: string;
+    size?: number;
+  })[];
+  timestamp: number;
+};
+
 export interface ChatHistoryParams {
   sessionKey: string;
   limit?: number;
@@ -10,12 +73,39 @@ export interface ChatHistoryParams {
 export interface ChatHistoryResult {
   sessionKey: string;
   sessionId: string;
-  messages: {
+  messages: ({
     id?: string;
-    role?: string;
-    content?: unknown;
-    timestamp?: number;
-  }[];
+    role: "user" | "assistant" | "system";
+    content: ({
+      type: "text";
+      text: string;
+    } | {
+      type: "thinking";
+      text: string;
+    } | {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    } | {
+      type: "tool_result";
+      toolUseId: string;
+      content: string | TranscriptBlock[];
+      isError?: boolean;
+    } | {
+      type: "image";
+      data: string;
+      mimeType: string;
+      fileName?: string;
+    } | {
+      type: "file";
+      data: string;
+      mimeType: string;
+      fileName: string;
+      size?: number;
+    })[];
+    timestamp: number;
+  })[];
   thinkingLevel?: string;
   fastMode?: boolean;
   verboseLevel?: string;
@@ -80,7 +170,7 @@ export interface SessionsListResult {
     model: string | null;
     contextTokens: number | null;
   };
-  sessions: {
+  sessions: ({
     key: string;
     spawnedBy?: string;
     kind: "direct" | "group" | "global" | "unknown";
@@ -129,7 +219,7 @@ export interface SessionsListResult {
     lastTo?: string;
     lastAccountId?: string;
     compactionCount?: number;
-  }[];
+  })[];
 }
 
 export interface SessionsSubscribeResult {
@@ -166,14 +256,14 @@ export interface SessionsPreviewParams {
 
 export interface SessionsPreviewResult {
   ts: number;
-  previews: {
+  previews: ({
     key: string;
     status: "ok" | "empty" | "missing" | "error";
-    items: {
+    items: ({
       role: "user" | "assistant" | "tool" | "system" | "other";
       text: string;
-    }[];
-  }[];
+    })[];
+  })[];
 }
 
 export interface SessionsCreateParams {
@@ -329,7 +419,7 @@ export interface DeckCommandsDiscoverParams {
 }
 
 export interface DeckCommandsDiscoverResult {
-  commands: {
+  commands: ({
     name: string;
     source: "builtin" | "skill" | "plugin";
     description: string;
@@ -338,7 +428,7 @@ export interface DeckCommandsDiscoverResult {
     category?: string;
     skillName?: string;
     pluginId?: string;
-  }[];
+  })[];
   version: string;
 }
 
@@ -718,7 +808,7 @@ export interface DeckSubagentsLineageResult {
     agentId: string;
     agentName?: string;
   };
-  nodes: {
+  nodes: ({
     runId: string;
     sessionKey: string;
     agentId: string;
@@ -728,7 +818,7 @@ export interface DeckSubagentsLineageResult {
     parentRunId: string | null;
     status: string;
     durationMs?: number;
-  }[];
+  })[];
 }
 
 export interface DeckSubagentsSteerParams {
@@ -802,7 +892,7 @@ export interface DeckThreadsListResult {
 }
 
 export interface DeckAuthOverviewResult {
-  providers: {
+  providers: ({
     provider: string;
     status: string;
     auth: {
@@ -828,7 +918,7 @@ export interface DeckAuthOverviewResult {
       }[];
       plan?: string;
     };
-  }[];
+  })[];
 }
 
 export interface DeckAuthProbeResult {
@@ -851,14 +941,8 @@ export interface GatewayMethodMap {
   "sessions.list": { params: SessionsListParams; result: SessionsListResult };
   "sessions.subscribe": { params: Record<string, unknown>; result: SessionsSubscribeResult };
   "sessions.unsubscribe": { params: Record<string, unknown>; result: SessionsUnsubscribeResult };
-  "sessions.messages.subscribe": {
-    params: SessionsMessagesSubscribeParams;
-    result: SessionsMessagesSubscribeResult;
-  };
-  "sessions.messages.unsubscribe": {
-    params: SessionsMessagesUnsubscribeParams;
-    result: SessionsMessagesUnsubscribeResult;
-  };
+  "sessions.messages.subscribe": { params: SessionsMessagesSubscribeParams; result: SessionsMessagesSubscribeResult };
+  "sessions.messages.unsubscribe": { params: SessionsMessagesUnsubscribeParams; result: SessionsMessagesUnsubscribeResult };
   "sessions.preview": { params: SessionsPreviewParams; result: SessionsPreviewResult };
   "sessions.create": { params: SessionsCreateParams; result: SessionsCreateResult };
   "sessions.send": { params: SessionsSendParams; result: SessionsSendResult };
@@ -869,54 +953,24 @@ export interface GatewayMethodMap {
   "sessions.clear": { params: SessionsClearParams; result: SessionsClearResult };
   "sessions.delete": { params: SessionsDeleteParams; result: SessionsDeleteResult };
   "sessions.compact": { params: SessionsCompactParams; result: SessionsCompactResult };
-  "deck.commands.discover": {
-    params: DeckCommandsDiscoverParams;
-    result: DeckCommandsDiscoverResult;
-  };
+  "deck.commands.discover": { params: DeckCommandsDiscoverParams; result: DeckCommandsDiscoverResult };
   "deck.routing.list": { params: DeckRoutingListParams; result: DeckRoutingListResult };
   "deck.routing.add": { params: DeckRoutingAddParams; result: DeckRoutingAddResult };
   "deck.routing.remove": { params: DeckRoutingRemoveParams; result: DeckRoutingRemoveResult };
   "deck.routing.validate": { params: DeckRoutingValidateParams; result: DeckRoutingValidateResult };
   "deck.routing.simulate": { params: DeckRoutingSimulateParams; result: DeckRoutingSimulateResult };
   "deck.agents.detail": { params: DeckAgentsDetailParams; result: DeckAgentsDetailResult };
-  "deck.agents.skills.get": {
-    params: DeckAgentsSkillsGetParams;
-    result: DeckAgentsSkillsGetResult;
-  };
-  "deck.agents.skills.set": {
-    params: DeckAgentsSkillsSetParams;
-    result: DeckAgentsSkillsSetResult;
-  };
-  "deck.agents.subagents.get": {
-    params: DeckAgentsSubagentsGetParams;
-    result: DeckAgentsSubagentsGetResult;
-  };
-  "deck.agents.subagents.set": {
-    params: DeckAgentsSubagentsSetParams;
-    result: DeckAgentsSubagentsSetResult;
-  };
-  "deck.agents.eventStreams.get": {
-    params: DeckAgentsEventStreamsGetParams;
-    result: DeckAgentsEventStreamsGetResult;
-  };
-  "deck.agents.eventStreams.set": {
-    params: DeckAgentsEventStreamsSetParams;
-    result: DeckAgentsEventStreamsSetResult;
-  };
-  "deck.agents.toolPolicy.preview": {
-    params: DeckAgentsToolPolicyPreviewParams;
-    result: DeckAgentsToolPolicyPreviewResult;
-  };
-  "deck.agents.systemPrompt.preview": {
-    params: DeckAgentsSystemPromptPreviewParams;
-    result: DeckAgentsSystemPromptPreviewResult;
-  };
+  "deck.agents.skills.get": { params: DeckAgentsSkillsGetParams; result: DeckAgentsSkillsGetResult };
+  "deck.agents.skills.set": { params: DeckAgentsSkillsSetParams; result: DeckAgentsSkillsSetResult };
+  "deck.agents.subagents.get": { params: DeckAgentsSubagentsGetParams; result: DeckAgentsSubagentsGetResult };
+  "deck.agents.subagents.set": { params: DeckAgentsSubagentsSetParams; result: DeckAgentsSubagentsSetResult };
+  "deck.agents.eventStreams.get": { params: DeckAgentsEventStreamsGetParams; result: DeckAgentsEventStreamsGetResult };
+  "deck.agents.eventStreams.set": { params: DeckAgentsEventStreamsSetParams; result: DeckAgentsEventStreamsSetResult };
+  "deck.agents.toolPolicy.preview": { params: DeckAgentsToolPolicyPreviewParams; result: DeckAgentsToolPolicyPreviewResult };
+  "deck.agents.systemPrompt.preview": { params: DeckAgentsSystemPromptPreviewParams; result: DeckAgentsSystemPromptPreviewResult };
   "deck.subagents.list": { params: DeckSubagentsListParams; result: DeckSubagentsListResult };
   "deck.subagents.kill": { params: DeckSubagentsKillParams; result: DeckSubagentsKillResult };
-  "deck.subagents.lineage": {
-    params: DeckSubagentsLineageParams;
-    result: DeckSubagentsLineageResult;
-  };
+  "deck.subagents.lineage": { params: DeckSubagentsLineageParams; result: DeckSubagentsLineageResult };
   "deck.subagents.steer": { params: DeckSubagentsSteerParams; result: DeckSubagentsSteerResult };
   "deck.identity.list": { params: DeckIdentityListParams; result: DeckIdentityListResult };
   "deck.identity.link": { params: DeckIdentityLinkParams; result: DeckIdentityLinkResult };
@@ -927,3 +981,313 @@ export interface GatewayMethodMap {
 }
 
 export type GatewayMethodName = keyof GatewayMethodMap;
+
+export type ChatEventPayload = {
+  runId: string;
+  sessionKey: string;
+  seq: number;
+  state: "delta" | "final" | "aborted" | "error";
+  message?: {
+    id?: string;
+    role: "user" | "assistant" | "system";
+    content: ({
+      type: "text";
+      text: string;
+    } | {
+      type: "thinking";
+      text: string;
+    } | {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    } | {
+      type: "tool_result";
+      toolUseId: string;
+      content: string | TranscriptBlock[];
+      isError?: boolean;
+    } | {
+      type: "image";
+      data: string;
+      mimeType: string;
+      fileName?: string;
+    } | {
+      type: "file";
+      data: string;
+      mimeType: string;
+      fileName: string;
+      size?: number;
+    })[];
+    timestamp: number;
+  };
+  errorMessage?: string;
+  usage?: unknown;
+  stopReason?: string;
+  mediaUrl?: string;
+  mediaUrls?: string[];
+  mediaType?: string;
+};
+
+export interface AgentEventPayload {
+  runId: string;
+  seq: number;
+  stream: string;
+  ts: number;
+  data: Record<string, unknown>;
+}
+
+export type SessionMessageEventPayload = {
+  sessionKey: string;
+  message: {
+    id?: string;
+    role: "user" | "assistant" | "system";
+    content: ({
+      type: "text";
+      text: string;
+    } | {
+      type: "thinking";
+      text: string;
+    } | {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    } | {
+      type: "tool_result";
+      toolUseId: string;
+      content: string | TranscriptBlock[];
+      isError?: boolean;
+    } | {
+      type: "image";
+      data: string;
+      mimeType: string;
+      fileName?: string;
+    } | {
+      type: "file";
+      data: string;
+      mimeType: string;
+      fileName: string;
+      size?: number;
+    })[];
+    timestamp: number;
+  };
+  messageId?: string;
+  messageSeq?: number;
+  updatedAt?: number;
+  sessionId?: string;
+  kind?: "direct" | "group" | "global" | "unknown";
+  channel?: string;
+  label?: string;
+  displayName?: string;
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
+  parentSessionKey?: string;
+  childSessions?: string[];
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
+  systemSent?: boolean;
+  abortedLastRun?: boolean;
+  lastChannel?: string;
+  lastTo?: string;
+  lastAccountId?: string;
+  totalTokens?: number;
+  totalTokensFresh?: boolean;
+  contextTokens?: number;
+  estimatedCostUsd?: number;
+  modelProvider?: string;
+  model?: string;
+  status?: "running" | "done" | "failed" | "killed" | "timeout";
+  startedAt?: number;
+  endedAt?: number;
+  runtimeMs?: number;
+};
+
+export type SessionToolEventPayload = {
+  runId: string;
+  seq: number;
+  stream: "tool";
+  ts: number;
+  sessionKey: string;
+  data: {
+    phase: string;
+    name?: string;
+    toolCallId?: string;
+    args?: Record<string, unknown>;
+    result?: string | ({
+      type: "text";
+      text: string;
+    } | {
+      type: "thinking";
+      text: string;
+    } | {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    } | {
+      type: "tool_result";
+      toolUseId: string;
+      content: string | TranscriptBlock[];
+      isError?: boolean;
+    } | {
+      type: "image";
+      data: string;
+      mimeType: string;
+      fileName?: string;
+    } | {
+      type: "file";
+      data: string;
+      mimeType: string;
+      fileName: string;
+      size?: number;
+    })[] | {
+      content?: string | ({
+        type: "text";
+        text: string;
+      } | {
+        type: "thinking";
+        text: string;
+      } | {
+        type: "tool_use";
+        id: string;
+        name: string;
+        input: Record<string, unknown>;
+      } | {
+        type: "tool_result";
+        toolUseId: string;
+        content: string | TranscriptBlock[];
+        isError?: boolean;
+      } | {
+        type: "image";
+        data: string;
+        mimeType: string;
+        fileName?: string;
+      } | {
+        type: "file";
+        data: string;
+        mimeType: string;
+        fileName: string;
+        size?: number;
+      })[];
+      details?: Record<string, unknown>;
+    };
+    partialResult?: string | ({
+      type: "text";
+      text: string;
+    } | {
+      type: "thinking";
+      text: string;
+    } | {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    } | {
+      type: "tool_result";
+      toolUseId: string;
+      content: string | TranscriptBlock[];
+      isError?: boolean;
+    } | {
+      type: "image";
+      data: string;
+      mimeType: string;
+      fileName?: string;
+    } | {
+      type: "file";
+      data: string;
+      mimeType: string;
+      fileName: string;
+      size?: number;
+    })[] | {
+      content?: string | ({
+        type: "text";
+        text: string;
+      } | {
+        type: "thinking";
+        text: string;
+      } | {
+        type: "tool_use";
+        id: string;
+        name: string;
+        input: Record<string, unknown>;
+      } | {
+        type: "tool_result";
+        toolUseId: string;
+        content: string | TranscriptBlock[];
+        isError?: boolean;
+      } | {
+        type: "image";
+        data: string;
+        mimeType: string;
+        fileName?: string;
+      } | {
+        type: "file";
+        data: string;
+        mimeType: string;
+        fileName: string;
+        size?: number;
+      })[];
+      details?: Record<string, unknown>;
+    };
+    isError?: boolean;
+    error?: string;
+  };
+};
+
+export type SessionsChangedEventPayload = {
+  sessionKey: string;
+  phase?: string;
+  ts: number;
+  runId?: string;
+  messageId?: string;
+  messageSeq?: number;
+  reason?: string;
+  parentSessionKey?: unknown;
+  label?: unknown;
+  displayName?: unknown;
+  updatedAt?: number;
+  sessionId?: string;
+  kind?: "direct" | "group" | "global" | "unknown";
+  channel?: string;
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
+  childSessions?: string[];
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
+  systemSent?: boolean;
+  abortedLastRun?: boolean;
+  lastChannel?: string;
+  lastTo?: string;
+  lastAccountId?: string;
+  totalTokens?: number;
+  totalTokensFresh?: boolean;
+  contextTokens?: number;
+  estimatedCostUsd?: number;
+  modelProvider?: string;
+  model?: string;
+  status?: "running" | "done" | "failed" | "killed" | "timeout";
+  startedAt?: number;
+  endedAt?: number;
+  runtimeMs?: number;
+};
+
+export interface GatewayEventPayloadMap {
+  "chat": ChatEventPayload;
+  "agent": AgentEventPayload;
+  "session.message": SessionMessageEventPayload;
+  "session.tool": SessionToolEventPayload;
+  "sessions.changed": SessionsChangedEventPayload;
+}
+
+export type GatewayTypedEventName = keyof GatewayEventPayloadMap;
+

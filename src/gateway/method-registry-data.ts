@@ -3,6 +3,7 @@
 //
 // Verify: bun -e 'import("./src/gateway/method-registry-data.ts")'
 import type { MethodMetadata } from "./method-registry.js";
+import { gatewayEventDefs } from "./event-defs.js";
 import { PROTOCOL_VERSION } from "./protocol/schema/protocol-schemas.js";
 import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
 import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
@@ -21,6 +22,8 @@ export const allMethodDefs: Record<string, MethodMetadata> = {
   ...deckMethodDefs,
   ...deckAuthMethodDefs,
 };
+
+export const allEventDefs = gatewayEventDefs;
 
 // ---------------------------------------------------------------------------
 // All known method names — used for allowlist generation.

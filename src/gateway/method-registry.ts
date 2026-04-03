@@ -35,6 +35,7 @@ export interface GatewayDescribePayload {
     string,
     {
       payload?: Record<string, unknown>;
+      since?: number;
     }
   >;
   untyped: string[];
@@ -54,8 +55,42 @@ export interface MethodRegistry {
   }): GatewayDescribePayload;
 }
 
-function computeSchemaVersion(methods: ReadonlyMap<string, MethodDefinition>): string {
-  const sorted = [...methods.keys()].toSorted().join(",");
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).toSorted(([left], [right]) =>
+      left.localeCompare(right),
+    );
+    return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function computeSchemaVersion(
+  methods: ReadonlyMap<string, MethodDefinition>,
+  events: ReadonlyMap<string, EventDefinition>,
+): string {
+  const sorted = stableStringify({
+    events: [...events.entries()]
+      .toSorted(([left], [right]) => left.localeCompare(right))
+      .map(([name, def]) => ({
+        name,
+        payload: def.payload,
+        since: def.since,
+      })),
+    methods: [...methods.entries()]
+      .toSorted(([left], [right]) => left.localeCompare(right))
+      .map(([name, def]) => ({
+        deprecated: def.deprecated,
+        name,
+        params: def.params,
+        result: def.result,
+        scope: def.scope,
+        since: def.since,
+      })),
+  });
   let hash = 0;
   for (let i = 0; i < sorted.length; i++) {
     hash = ((hash << 5) - hash + sorted.charCodeAt(i)) | 0;
@@ -96,7 +131,7 @@ export function buildMethodRegistry(
     });
   }
 
-  const schemaVersion = computeSchemaVersion(methods);
+  const schemaVersion = computeSchemaVersion(methods, events);
 
   function isTyped(def: MethodDefinition): boolean {
     return def.params !== undefined || def.result !== undefined;
@@ -176,7 +211,10 @@ export function buildMethodRegistry(
       }
 
       for (const [name, eventDef] of events) {
-        const entry: { payload?: Record<string, unknown> } = {};
+        const entry: { payload?: Record<string, unknown>; since?: number } = {};
+        if (eventDef.since !== undefined) {
+          entry.since = eventDef.since;
+        }
         if (includeSchemas && eventDef.payload) {
           entry.payload = eventDef.payload as unknown as Record<string, unknown>;
         }

@@ -18,7 +18,8 @@ export type ContentBlock =
   | { type: "file"; data: string; mimeType: string; fileName: string; size?: number }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
   | { type: "tool_result"; toolUseId: string; content: string | ContentBlock[]; isError?: boolean }
-  | { type: "thinking"; text: string };
+  | { type: "thinking"; text: string }
+  | { type: "unknown"; rawType: string; summary: Record<string, unknown> };
 
 // ---------------------------------------------------------------------------
 // Message types

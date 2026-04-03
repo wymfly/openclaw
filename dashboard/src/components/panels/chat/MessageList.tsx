@@ -1,94 +1,22 @@
 "use client";
 
-import { Bot, ChevronRight, User } from "lucide-react";
+import { Bot, User } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
-import { Streamdown } from "streamdown";
+import { useEffect, useRef } from "react";
 import { useChatStore } from "@/stores/chat";
 import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import type { ChatBlockPreferences } from "@/stores/chat-preferences";
-import {
-  getTextContent,
-  getThinkingContent,
-  getToolUseBlocks,
-  getToolResultBlocks,
-} from "@/stores/chat-types";
-import type { ContentBlock, ChatMessage, RunMetadata } from "@/stores/chat-types";
-import { ThinkingBlock } from "./blocks/ThinkingBlock";
-import { ToolResultCard } from "./blocks/ToolResultCard";
-import { ToolUseCard } from "./blocks/ToolUseCard";
+import type { ChatMessage, RunMetadata } from "@/stores/chat-types";
 import { CompactionNotice } from "./CompactionNotice";
 import { RunStatusBar } from "./RunStatusBar";
+import { TranscriptBlocks } from "./TranscriptBlocks";
 
 // Stable empty reference to avoid Zustand infinite re-render
 const STABLE_EMPTY_RUN_META: Record<string, RunMetadata> = {};
 
 // ---------------------------------------------------------------------------
-// Extracted types for tool rendering
-// ---------------------------------------------------------------------------
-
-type ToolUseContentBlock = Extract<ContentBlock, { type: "tool_use" }>;
-type ToolResultContentBlock = Extract<ContentBlock, { type: "tool_result" }>;
-
-// ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-/** Collapsible wrapper — shows a summary line when collapsed. */
-function CollapsedBlock({
-  label,
-  count,
-  children,
-}: {
-  label: string;
-  count: number;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  if (open) {
-    return <>{children}</>;
-  }
-  return (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      className="flex items-center gap-1 text-[10px] px-2 py-1 mb-1 rounded-md cursor-pointer bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-    >
-      <ChevronRight size={10} />
-      {label} ({count})
-    </button>
-  );
-}
-
-function ToolUseWithResult({
-  tool,
-  resultBlock,
-  streaming,
-}: {
-  tool: ToolUseContentBlock;
-  resultBlock?: ToolResultContentBlock;
-  streaming?: boolean;
-}) {
-  // Derive status: if there's a matching tool_result → completed, else running (if streaming)
-  const isRunning = !resultBlock && streaming;
-  return (
-    <>
-      <ToolUseCard name={tool.name} input={tool.input} defaultOpen={isRunning || streaming} />
-      {resultBlock != null && (
-        <ToolResultCard
-          content={
-            typeof resultBlock.content === "string"
-              ? resultBlock.content
-              : JSON.stringify(resultBlock.content)
-          }
-          isError={resultBlock.isError}
-          toolName={tool.name}
-          toolInput={tool.input}
-        />
-      )}
-    </>
-  );
-}
 
 function MessageBubble({
   message,
@@ -104,10 +32,6 @@ function MessageBubble({
   sessionCostUsd?: number;
 }) {
   const isUser = message.role === "user";
-  const textContent = getTextContent(message);
-  const thinkingContent = getThinkingContent(message);
-  const toolUseBlocks = getToolUseBlocks(message);
-  const toolResultBlocks = getToolResultBlocks(message);
 
   return (
     <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""} mb-4`}>
@@ -128,63 +52,12 @@ function MessageBubble({
       <div
         className={`flex flex-col min-w-0 ${isUser ? "items-end max-w-[75%]" : "items-start max-w-[90%]"}`}
       >
-        {/* Thinking trace — collapse when filter is off */}
-        {thinkingContent.length > 0 &&
-          (blockPrefs?.showThinking === false ? (
-            <CollapsedBlock label="Thinking" count={1}>
-              <ThinkingBlock text={thinkingContent} />
-            </CollapsedBlock>
-          ) : (
-            <ThinkingBlock text={thinkingContent} />
-          ))}
-
-        {/* Tool use blocks — collapse when filter is off */}
-        {toolUseBlocks.length > 0 &&
-          (blockPrefs?.showToolUse === false ? (
-            <CollapsedBlock label="Tools" count={toolUseBlocks.length}>
-              {toolUseBlocks.map((tool, i) => (
-                <ToolUseWithResult
-                  key={tool.id ?? `${tool.name}-${i}`}
-                  tool={tool}
-                  resultBlock={toolResultBlocks.find((r) => r.toolUseId === tool.id)}
-                  streaming={message.streaming}
-                />
-              ))}
-            </CollapsedBlock>
-          ) : (
-            toolUseBlocks.map((tool, i) => (
-              <ToolUseWithResult
-                key={tool.id ?? `${tool.name}-${i}`}
-                tool={tool}
-                resultBlock={toolResultBlocks.find((r) => r.toolUseId === tool.id)}
-                streaming={message.streaming}
-              />
-            ))
-          ))}
-
-        {/* Main content */}
-        {textContent && (
-          <div
-            className={`rounded-lg text-sm ${isUser ? "px-3 py-2" : "px-4 py-3"}`}
-            style={{
-              backgroundColor: isUser ? "var(--primary)" : "var(--card)",
-              color: isUser ? "var(--primary-foreground)" : "var(--foreground)",
-            }}
-          >
-            {isUser ? (
-              <p className="whitespace-pre-wrap">{textContent}</p>
-            ) : (
-              <div className="chat-prose max-w-none text-sm">
-                <Streamdown
-                  mode={message.streaming ? "streaming" : "static"}
-                  className="streamdown-chat"
-                >
-                  {textContent}
-                </Streamdown>
-              </div>
-            )}
-          </div>
-        )}
+        <TranscriptBlocks
+          message={message}
+          isUser={isUser}
+          streaming={message.streaming}
+          blockPreferences={blockPrefs}
+        />
 
         {/* Error */}
         {message.error && (

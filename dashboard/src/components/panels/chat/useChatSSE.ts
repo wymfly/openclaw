@@ -3,10 +3,15 @@
 import { useEffect, useRef } from "react";
 import { deckStream } from "@/lib/deck-client";
 import { useChatStore } from "@/stores/chat";
+import type {
+  AgentEventPayload,
+  ChatEventPayload,
+  SessionMessageEventPayload,
+  SessionToolEventPayload,
+  SessionsChangedEventPayload,
+} from "@/types/gateway-protocol.generated";
 import {
   type ChatStoreAPI,
-  type ChatEventPayload,
-  type AgentEventPayload,
   type StreamingTracker,
   dispatchChatEvent,
   dispatchAgentEvent,
@@ -176,18 +181,21 @@ export function useChatSSE() {
           }
           if (event.event === "session-tool") {
             dispatchAgentEvent(
-              JSON.parse(event.data) as AgentEventPayload,
+              JSON.parse(event.data) as SessionToolEventPayload,
               api,
               trackersRef.current,
             );
             return;
           }
           if (event.event === "session-msg") {
-            dispatchSessionMessageEvent(JSON.parse(event.data) as Record<string, unknown>, api);
+            dispatchSessionMessageEvent(
+              JSON.parse(event.data) as SessionMessageEventPayload,
+              api,
+            );
             return;
           }
           if (event.event === "session-state") {
-            dispatchSessionStateEvent(JSON.parse(event.data) as Record<string, unknown>, api);
+            dispatchSessionStateEvent(JSON.parse(event.data) as SessionsChangedEventPayload, api);
             return;
           }
           if (event.event === "approval.pending") {

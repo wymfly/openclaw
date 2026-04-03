@@ -104,21 +104,21 @@
 **covers:** `chat-message-contract/spec.md > ADDED > Structured tool results are preserved across transcript surfaces > "chat history preserves structured tool_result content"`
 **covers.id:** `chat-message-contract.history-tool-result-structured`
 
-- [ ] **Step 1.1: 先写 Gateway contract 失败测试**
+- [x] **Step 1.1: 先写 Gateway contract 失败测试**
       在 `src/gateway/server-methods/chat.transcript-contract.test.ts` 覆盖 `chat.history` 的 plain string、`toolCall`/`toolResult`、`input_text`/`output_text`、`reasoning`/`analysis`、`image`/`file`、structured `tool_result`。在 `src/gateway/session-message-events.test.ts` 和 `src/gateway/server-chat.agent-events.test.ts` 补 `session.message` / `session.tool` 的 canonical payload 断言。
 
-- [ ] **Step 1.2: 定义 canonical transcript schema**
+- [x] **Step 1.2: 定义 canonical transcript schema**
       新建 `src/gateway/protocol/schema/transcript.ts`，定义：
       `TranscriptTextBlock`、`TranscriptThinkingBlock`、`TranscriptToolUseBlock`、`TranscriptToolResultBlock`、`TranscriptImageBlock`、`TranscriptFileBlock`、`TranscriptBlockSchema`、`TranscriptMessageSchema`，并明确 reasoning-family 输出统一为 `thinking`。
 
-- [ ] **Step 1.3: 实现 Gateway canonicalization helper**
+- [x] **Step 1.3: 实现 Gateway canonicalization helper**
       在 `src/gateway/transcript-canonical.ts` 实现轻量映射函数，负责把 legacy `string`、单对象 block、alias block、structured tool result 转成 canonical transcript blocks；保持 O(n) 线性遍历，不做不必要深拷贝。
 
-- [ ] **Step 1.4: 将所有 Deck-facing transcript 出口接到 canonicalization helper**
+- [x] **Step 1.4: 将所有 Deck-facing transcript 出口接到 canonicalization helper**
       把 `chat.history`、`session.message`、`session.tool` 统一接到 helper。实现顺序先固定为：1. 先让 `chat.history` 通过 contract test，确认 canonical block set 与 helper 设计成立 2. 再把同一个 helper 扩到 `session.message` / `session.tool`，避免三条链路一起调试
       `src/gateway/server-methods/chat.ts` 不能再把 `content` 以 `unknown` 原样吐给 Deck；`src/gateway/server.impl.ts` 和 `src/gateway/server-chat.ts` 不能再把 session-scoped payload 广播为宽松 shape。
 
-- [ ] **Step 1.5: 注册 schema 并跑定向验证**
+- [x] **Step 1.5: 注册 schema 并跑定向验证**
       让 `logs-chat.ts` / `protocol-schemas.ts` / `protocol/index.ts` 输出新的 transcript schema，然后运行：
 
 ```bash
@@ -161,19 +161,19 @@ scripts/committer "[enhanced] feat(gateway): canonicalize deck-facing transcript
 **covers.id:** `chat-message-contract.session-message-history-parity`
 **covers:** `chat-session-sync/spec.md > MODIFIED > Runtime transcript sync uses a shared transcript adapter > "History and live events share one adapter"`
 
-- [ ] **Step 2.1: 先写 registry / describe 失败测试**
+- [x] **Step 2.1: 先写 registry / describe 失败测试**
       扩展 `src/gateway/method-registry.test.ts` 和 `src/gateway/server-methods/describe.test.ts`，断言 registry/`gateway.describe` 能暴露 `chat`、`agent`、`session.message`、`session.tool`、`sessions.changed` 的 payload schema。
 
-- [ ] **Step 2.2: 建 event payload 定义文件**
+- [x] **Step 2.2: 建 event payload 定义文件**
       在 `src/gateway/event-defs.ts` 导出首批 event definitions。范围固定为 `chat`、`agent`、`session.message`、`session.tool`、`sessions.changed`，不要把 `approval.*`、`canvas` 这种 Deck 内部事件混进 Gateway contract。
 
-- [ ] **Step 2.3: 把 event defs 接入 registry 与 describe**
+- [x] **Step 2.3: 把 event defs 接入 registry 与 describe**
       `buildMethodRegistry()` 已有 `eventDefs` 参数，重点不是改签名，而是：- 在 `src/gateway/server-methods.ts` 传入 event defs - 在 `src/gateway/method-registry-data.ts` 暴露相同集合，避免 codegen 和 runtime 各维护一份事实 - 视需要扩展 `EventDefinition` 或 schema/version 逻辑，确保 event payload 变化也会进入 drift/describe 语义
 
-- [ ] **Step 2.4: 扩展 `scripts/protocol-gen-ts.ts`**
+- [x] **Step 2.4: 扩展 `scripts/protocol-gen-ts.ts`**
       让 codegen 生成 event payload interface/type，而不是只输出事件名集合。浏览器消费端要能直接 import typed payload，而不再落回 `Record<string, unknown>`。
 
-- [ ] **Step 2.5: 重新生成并校验 drift**
+- [x] **Step 2.5: 重新生成并校验 drift**
       运行：
 
 ```bash
@@ -222,10 +222,10 @@ scripts/committer "[enhanced] feat(protocol): generate typed gateway event paylo
 **covers.id:** `chat-session-sync.reload-authoritative-tool-blocks`
 **covers:** `chat-message-contract/spec.md > ADDED > Deck-facing transcript surfaces use canonical block arrays > "session.message matches chat.history message contract"`
 
-- [ ] **Step 3.1: 先写 adapter 失败测试**
+- [x] **Step 3.1: 先写 adapter 失败测试**
       在 `dashboard/src/lib/transcript-adapter.test.ts` 覆盖 canonical text/thinking/tool/image/file、reasoning-family alias、structured `tool_result` 和 unknown/version-skew fallback。把 `history-normalize.test.ts` / `dispatcher.test.ts` 更新成“通过 adapter 断言语义”，不要继续依赖分散 helper。
 
-- [ ] **Step 3.2: 实现 transcript adapter**
+- [x] **Step 3.2: 实现 transcript adapter**
       让 adapter 负责：- 把 canonical `TranscriptMessage` / `session.message` / `session.tool` payload 投成本地 renderable message - 在过渡期兼容少量 legacy shape - 为版本漂移准备 runtime fallback block，而不是在主文本里 `JSON.stringify`
 
       先锁定 adapter I/O，后续 Task 5 的 renderer registry 只能消费这里定义的输出类型，不能重新解释 raw payload。目标签名至少明确到这个粒度：
@@ -247,17 +247,17 @@ type RenderableMessage = {
 };
 ```
 
-- [ ] **Step 3.3: 收敛 history/snapshot/live ingress**
+- [x] **Step 3.3: 收敛 history/snapshot/live ingress**
       `history-normalize.ts` 在本任务里只保留兼容 shim 或直接委托给 adapter；`useChatSSE.ts` 改用 generated event payload types；`chat-dispatchers.ts` 不再以 `Record<string, unknown>` 为主路径输入类型。
       如果 `dashboard/src/app/api/chat/history/route.ts` 仍然是 lossless passthrough，则不要为了“完成任务”而修改它。
 
-- [ ] **Step 3.4: 修 `reloadFullContent` 的历史工具块合并逻辑**
+- [x] **Step 3.4: 修 `reloadFullContent` 的历史工具块合并逻辑**
       让 `reloadFullContent()` 先相信服务端返回的 authoritative blocks，再只在必要时做本地补齐，不能继续基于旧 Anthropic 假设主动丢掉历史里的 tool blocks。
 
-- [ ] **Step 3.5: 跑定向测试与类型检查**
+- [x] **Step 3.5: 跑定向测试与类型检查**
 
 ```bash
-pnpm test -- dashboard/src/lib/transcript-adapter.test.ts dashboard/src/components/panels/chat/__tests__/history-normalize.test.ts dashboard/src/components/panels/chat/__tests__/dispatcher.test.ts dashboard/src/components/panels/chat/__tests__/tool-progress-dispatcher.test.ts
+cd dashboard && pnpm test src/lib/transcript-adapter.test.ts src/components/panels/chat/__tests__/history-normalize.test.ts src/components/panels/chat/__tests__/dispatcher.test.ts src/components/panels/chat/__tests__/tool-progress-dispatcher.test.ts
 cd dashboard && pnpm lint
 ```
 
@@ -290,20 +290,20 @@ scripts/committer "[enhanced] refactor(deck-chat): unify transcript ingestion th
 **covers:** `transcript-rendering-contract/spec.md > ADDED > Transcript surfaces render the same transcript contract consistently > "Chat and Sessions detail agree on transcript meaning"`
 **covers.id:** `transcript-rendering.chat-sessions-consistent`
 
-- [ ] **Step 4.1: 先写 Sessions detail 失败测试**
+- [x] **Step 4.1: 先写 Sessions detail 失败测试**
       新增 `SessionDetail.test.tsx`，覆盖 text/thinking/tool/image/file/structured tool result 在 Sessions detail 中不会被压成单字符串，也不会与 chat 页表达出不同语义。
 
-- [ ] **Step 4.2: 改 Sessions store 的 history model**
+- [x] **Step 4.2: 改 Sessions store 的 history model**
       `dashboard/src/stores/sessions.ts` 去掉私有 `normalizeContent(content): string`，history state 改为保存 canonical/renderable transcript messages，直接复用 shared transcript adapter。
 
-- [ ] **Step 4.3: 改 Sessions detail 渲染入口**
+- [x] **Step 4.3: 改 Sessions detail 渲染入口**
       `SessionDetail.tsx` 不再自己拼 `HistoryBubble(message.content: string)`，而是改用和 chat 一样的 transcript block primitive。
       `dashboard/src/app/api/sessions/[sessionKey]/route.ts` 当前如果仍是 `chat.history` 的 lossless passthrough，就不要为了“完成任务”而改它；真正要删除的是 `dashboard/src/stores/sessions.ts` 里的 string-only 假设。
 
-- [ ] **Step 4.4: 跑 Sessions 定向测试**
+- [x] **Step 4.4: 跑 Sessions 定向测试**
 
 ```bash
-pnpm test -- dashboard/src/components/panels/sessions/__tests__/SessionDetail.test.tsx
+cd dashboard && pnpm test src/components/panels/sessions/__tests__/SessionDetail.test.tsx
 cd dashboard && pnpm lint
 ```
 
@@ -341,23 +341,23 @@ scripts/committer "[enhanced] refactor(deck-sessions): render session history wi
 **covers.id:** `transcript-rendering.unknown-block-fallback`
 **covers:** `chat-message-contract/spec.md > ADDED > Deck-facing transcript surfaces use canonical block arrays > "image and file blocks are preserved before egress"`
 
-- [ ] **Step 5.1: 先写渲染失败测试**
+- [x] **Step 5.1: 先写渲染失败测试**
       新增 `message-list.transcript-rendering.test.tsx`，覆盖：- `text` / `thinking` / `tool_use` / `tool_result` / `image` / `file` 都有显式 renderer - structured `tool_result.content` 不再直接变成 JSON blob - unknown block 落到 fallback card，而不是污染主 bubble
 
-- [ ] **Step 5.2: 建 renderer registry**
+- [x] **Step 5.2: 建 renderer registry**
       在 `transcript-render-registry.tsx` 建立 block type -> renderer 的显式映射，并通过 `TranscriptBlocks.tsx` 暴露给 chat/Sessions surfaces；对 canonical block type 做穷举处理。
       registry 只能直接消费 Task 3 锁定的 `RenderableBlock` 输出，不能重新解释 raw Gateway payload，也不能回退到各 surface 自己猜 shape。
 
-- [ ] **Step 5.3: 重构 `ToolResultCard`**
+- [x] **Step 5.3: 重构 `ToolResultCard`**
       `ToolResultCard` 改成接受 `string | TranscriptBlock[]` 或上层 renderable block 内容；复用现有 artifact/diff/code/binary 视图，但只在 raw view 中展示原始 JSON。
 
-- [ ] **Step 5.4: 接通 `MessageList` 和 media blocks**
+- [x] **Step 5.4: 接通 `MessageList` 和 media blocks**
       `MessageList.tsx` 不再只抽 text/thinking/tool；`ImageBlock.tsx`、`FileBlock.tsx` 作为 registry 中的显式 renderer 接入主渲染链。
 
-- [ ] **Step 5.5: 跑渲染测试**
+- [x] **Step 5.5: 跑渲染测试**
 
 ```bash
-pnpm test -- dashboard/src/components/panels/chat/__tests__/message-list.transcript-rendering.test.tsx dashboard/src/components/panels/sessions/__tests__/SessionDetail.test.tsx
+cd dashboard && pnpm test src/components/panels/chat/__tests__/message-list.transcript-rendering.test.tsx src/components/panels/sessions/__tests__/SessionDetail.test.tsx
 cd dashboard && pnpm lint
 ```
 
@@ -393,14 +393,14 @@ scripts/committer "[enhanced] feat(deck-chat): add transcript renderer registry 
 
 **covers:** All remaining scenarios that require integrated history/live/sessions/render verification and drift protection
 
-- [ ] **Step 6.1: 删主路径上的旧 inference**
+- [x] **Step 6.1: 删主路径上的旧 inference**
       删除或下沉这些旧逻辑：- 未知对象直接 `JSON.stringify` 进 text bubble - `session.message` / `session.state` 以 `Record<string, unknown>` 为主类型 - Sessions store 的 string-only transcript normalize - Task 3 过渡期保留的 `history-normalize.ts` 兼容 shim（如果 adapter 已成为唯一路径，就在这里移除）
       保留的 runtime fallback 只能出现在 `UnknownBlockCard` 一类独立 renderer 里。
 
-- [ ] **Step 6.2: 收紧类型与 generated imports**
+- [x] **Step 6.2: 收紧类型与 generated imports**
       让 `useChatSSE.ts`、dispatchers、stores 直接消费 generated event payload types；重新生成 `dashboard/src/types/gateway-*.generated.ts` 并消除由此带来的类型漂移。
 
-- [ ] **Step 6.3: 运行协议、构建、类型、完整测试**
+- [x] **Step 6.3: 运行协议、构建、类型、完整测试**
       按仓库 landing bar 执行：
 
 ```bash

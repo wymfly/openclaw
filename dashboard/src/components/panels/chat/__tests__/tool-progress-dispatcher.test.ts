@@ -54,6 +54,38 @@ describe("dispatchAgentEvent — toolProgress", () => {
     expect(session?.toolProgress["tc-2"].completedAt).toBeGreaterThan(0);
   });
 
+  it("preserves structured tool results instead of stringifying JSON", () => {
+    dispatchAgentEvent({
+      sessionKey: SESSION,
+      runId: "run-1",
+      stream: "tool",
+      data: { phase: "start", name: "bash", toolCallId: "tc-structured", args: { command: "ls" } },
+    });
+    dispatchAgentEvent({
+      sessionKey: SESSION,
+      runId: "run-1",
+      stream: "tool",
+      data: {
+        phase: "result",
+        name: "bash",
+        toolCallId: "tc-structured",
+        result: {
+          content: [{ type: "output_text", text: "file.txt" }],
+          details: { exitCode: 0 },
+        },
+      },
+    });
+
+    const session = useChatStore.getState().sessions.get(SESSION);
+    const message = session?.messages.find((entry) => entry.id === "run-1");
+    expect(message?.content).toContainEqual({
+      type: "tool_result",
+      toolUseId: "tc-structured",
+      content: [{ type: "text", text: "file.txt" }],
+      isError: false,
+    });
+  });
+
   it("updates toolProgress to error on phase=error", () => {
     dispatchAgentEvent({
       sessionKey: SESSION,

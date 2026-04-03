@@ -1111,6 +1111,47 @@ describe("agent event handler", () => {
     resetAgentRunContextForTest();
   });
 
+  it("preserves canonical structured tool results on session.tool events", () => {
+    const { broadcastToConnIds, sessionEventSubscribers, handler } = createHarness({
+      resolveSessionKeyForRun: () => "session-1",
+    });
+
+    registerAgentRunContext("run-tool-session", {
+      sessionKey: "session-1",
+      verboseLevel: "on",
+    });
+    sessionEventSubscribers.subscribe("conn-session");
+
+    handler({
+      runId: "run-tool-session",
+      seq: 1,
+      stream: "tool",
+      ts: Date.now(),
+      data: {
+        phase: "result",
+        name: "exec",
+        toolCallId: "t5",
+        result: {
+          content: [{ type: "output_text", text: "secret" }],
+          details: { exitCode: 0 },
+        },
+      },
+    });
+
+    expect(broadcastToConnIds).toHaveBeenCalledTimes(1);
+    expect(broadcastToConnIds.mock.calls[0]?.[0]).toBe("session.tool");
+    const payload = broadcastToConnIds.mock.calls[0]?.[1] as {
+      data?: {
+        result?: { content?: Array<{ type?: string; text?: string }>; details?: { exitCode?: number } };
+      };
+    };
+    expect(payload.data?.result).toEqual({
+      content: [{ type: "text", text: "secret" }],
+      details: { exitCode: 0 },
+    });
+    resetAgentRunContextForTest();
+  });
+
   it("broadcasts fallback events to agent subscribers and node session", () => {
     const { broadcast, broadcastToConnIds, nodeSendToSession, handler } = createHarness({
       resolveSessionKeyForRun: () => "session-fallback",

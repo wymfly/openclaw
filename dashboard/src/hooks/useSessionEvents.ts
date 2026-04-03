@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { dispatchSessionStateEvent } from "@/stores/chat-dispatchers";
-import { useSessionsStore } from "@/stores/sessions";
+import { useSessionsStore, type SessionsChangedPayload } from "@/stores/sessions";
 
 /**
  * Subscribe to session-state events from SSE for non-chat panels.
@@ -16,7 +16,7 @@ export function useSessionEvents(eventSource: EventSource | null): void {
     }
     const handler = (e: MessageEvent) => {
       try {
-        const payload = JSON.parse(e.data) as Record<string, unknown>;
+        const payload = JSON.parse(e.data) as SessionsChangedPayload;
         dispatchSessionStateEvent(payload);
         // Also update the sessions store for real-time session list updates
         useSessionsStore.getState().applySessionChangedEvent(payload);

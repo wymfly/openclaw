@@ -287,6 +287,61 @@ describe("session.message websocket events", () => {
     }
   });
 
+  test("broadcasts canonical transcript blocks for legacy session.message payloads", async () => {
+    const storePath = await createSessionStoreFile();
+    await writeSessionStore({
+      entries: {
+        main: {
+          sessionId: "sess-main",
+          updatedAt: Date.now(),
+        },
+      },
+      storePath,
+    });
+
+    const harness = await createGatewaySuiteHarness();
+    try {
+      const ws = await harness.openWs();
+      try {
+        await connectOk(ws, { scopes: ["operator.read"] });
+        await rpcReq(ws, "sessions.subscribe");
+
+        const eventPromise = onceMessage(
+          ws,
+          (message) =>
+            message.type === "event" &&
+            message.event === "session.message" &&
+            (message.payload as { sessionKey?: string } | undefined)?.sessionKey ===
+              "agent:main:main",
+        );
+
+        emitSessionTranscriptUpdate({
+          sessionFile: path.join(path.dirname(storePath), "sess-main.jsonl"),
+          sessionKey: "agent:main:main",
+          message: {
+            role: "assistant",
+            content: { type: "analysis", text: "inspect the trace" },
+            timestamp: 1_710_000_001_000,
+          },
+          messageId: "msg-legacy-shape",
+        });
+
+        const event = await eventPromise;
+        expect(
+          (
+            event.payload as {
+              message?: { content?: Array<{ type?: string; text?: string }> };
+            }
+          ).message?.content,
+        ).toEqual([{ type: "thinking", text: "inspect the trace" }]);
+      } finally {
+        ws.close();
+      }
+    } finally {
+      await harness.close();
+    }
+  });
+
   test("includes live usage metadata on session.message and sessions.changed transcript events", async () => {
     const storePath = await createSessionStoreFile();
     await writeSessionStore({

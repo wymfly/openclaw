@@ -642,6 +642,30 @@ describe("dispatchSessionMessageEvent", () => {
     ]);
   });
 
+  it("uses the shared adapter for reasoning-family aliases", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    dispatchSessionMessageEvent({
+      sessionKey: "sess-1",
+      message: {
+        role: "assistant",
+        __openclaw: { id: "msg-thinking" },
+        content: [{ type: "analysis", text: "step by step" }],
+        timestamp: 1235,
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages).toEqual([
+      {
+        id: "msg-thinking",
+        role: "assistant",
+        content: [{ type: "thinking", text: "step by step" }],
+        timestamp: 1235,
+      },
+    ]);
+  });
+
   it("hydrates transcript messages for existing sessions without duplicating ids", () => {
     useChatStore.getState().ensureSession("sess-1");
 
@@ -799,6 +823,56 @@ describe("reloadFullContent", () => {
     // Should have mapped blocks
     expect(msg.content.length).toBeGreaterThanOrEqual(2);
     expect(msg.content[0]).toEqual({ type: "text", text: "final answer" });
+  });
+
+  it("prefers authoritative tool blocks from history over stale local tool blocks", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          messages: [
+            {
+              role: "assistant",
+              timestamp: 10,
+              content: [{ type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } }],
+            },
+            {
+              role: "user",
+              timestamp: 11,
+              content: [{ type: "tool_result", toolUseId: "hist-tool", content: "file.txt" }],
+            },
+            {
+              role: "assistant",
+              timestamp: 12,
+              content: [{ type: "text", text: "done" }],
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    useChatStore.getState().ensureSession("sess-1");
+    useChatStore.getState().addMessage("sess-1", {
+      id: "run-1",
+      role: "assistant",
+      content: [
+        { type: "tool_use", id: "local-tool", name: "bash", input: { command: "pwd" } },
+        { type: "tool_result", toolUseId: "local-tool", content: "stale" },
+        { type: "text", text: "partial" },
+      ],
+      timestamp: Date.now(),
+      streaming: false,
+    });
+
+    await reloadFullContent("sess-1", "run-1");
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    const msg = sess.messages.find((entry) => entry.id === "run-1")!;
+    expect(msg.content).toEqual([
+      { type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } },
+      { type: "tool_result", toolUseId: "hist-tool", content: "file.txt", isError: false },
+      { type: "text", text: "done" },
+    ]);
   });
 
   it("retries once on failure", async () => {

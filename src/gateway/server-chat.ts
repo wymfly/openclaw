@@ -18,6 +18,7 @@ import { loadGatewaySessionRow } from "./server-chat.load-gateway-session-row.ru
 import { persistGatewaySessionLifecycleEvent } from "./server-chat.persist-session-lifecycle.runtime.js";
 import { deriveGatewaySessionLifecycleSnapshot } from "./session-lifecycle-state.js";
 import { loadSessionEntry } from "./session-utils.js";
+import { canonicalizeSessionToolPayload } from "./transcript-canonical.js";
 import { formatForLog } from "./ws-log.js";
 
 function resolveHeartbeatAckMaxChars(): number {

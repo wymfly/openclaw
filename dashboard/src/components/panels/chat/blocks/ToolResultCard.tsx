@@ -12,13 +12,19 @@ import {
   parseBashResult,
 } from "@/lib/tool-result-parser";
 import { cn } from "@/lib/utils";
+import type { ContentBlock } from "@/stores/chat-types";
 import { ArtifactCard } from "../artifacts/ArtifactCard";
 import { detectArtifact } from "../artifacts/detectArtifact";
 import { ArtifactContext } from "../ChatPanel";
 import { BashResultView } from "./BashResultView";
 import { DiffPreview } from "./DiffPreview";
+import { FileBlock } from "./FileBlock";
 import { HighlightedCodeView } from "./HighlightedCodeView";
+import { ImageBlock } from "./ImageBlock";
 import { ShowRawToggle } from "./ShowRawToggle";
+import { ThinkingBlock } from "./ThinkingBlock";
+import { ToolUseCard } from "./ToolUseCard";
+import { UnknownBlockCard } from "./UnknownBlockCard";
 import { VirtualScrollResult } from "./VirtualScrollResult";
 
 // ---------------------------------------------------------------------------
@@ -50,7 +56,7 @@ function isImagePath(filePath: unknown): boolean {
 type ViewType = "raw" | "bash" | "read" | "diff";
 
 interface ToolResultCardProps {
-  content: string;
+  content: string | ContentBlock[];
   isError?: boolean;
   /** Optional tool name for contextual routing and artifact detection. */
   toolName?: string;
@@ -63,6 +69,7 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
   const { onOpenArtifact } = useContext(ArtifactContext);
   const [showRaw, setShowRaw] = useState(false);
 
+  const structuredContent = Array.isArray(content) ? content : null;
   const contentStr = typeof content === "string" ? content : JSON.stringify(content, null, 2);
 
   // --- View type detection ---------------------------------------------------
@@ -139,10 +146,54 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
     );
   }
 
+  function renderStructuredContent(blocks: ContentBlock[]) {
+    return (
+      <div className="flex flex-col gap-2 p-2.5 bg-[var(--background)]">
+        {blocks.map((block, index) => {
+          if (block.type === "text") {
+            return (
+              <pre
+                key={`text-${index}`}
+                className="whitespace-pre-wrap text-xs text-[var(--foreground)]"
+              >
+                {block.text}
+              </pre>
+            );
+          }
+          if (block.type === "thinking") {
+            return <ThinkingBlock key={`thinking-${index}`} text={block.text} />;
+          }
+          if (block.type === "tool_use") {
+            return <ToolUseCard key={`tool-use-${index}`} name={block.name} input={block.input} />;
+          }
+          if (block.type === "tool_result") {
+            return (
+              <ToolResultCard
+                key={`tool-result-${index}`}
+                content={block.content}
+                isError={block.isError}
+              />
+            );
+          }
+          if (block.type === "image") {
+            return <ImageBlock key={`image-${index}`} {...block} />;
+          }
+          if (block.type === "file") {
+            return <FileBlock key={`file-${index}`} {...block} />;
+          }
+          return <UnknownBlockCard key={`unknown-${index}`} rawType={block.rawType} summary={block.summary} />;
+        })}
+      </div>
+    );
+  }
+
   function renderContent() {
     // "Show Raw" override — always fallback to raw rendering
     if (showRaw) {
       return renderRawContent();
+    }
+    if (structuredContent) {
+      return renderStructuredContent(structuredContent);
     }
 
     switch (viewType) {
