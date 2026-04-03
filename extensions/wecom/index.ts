@@ -3,14 +3,14 @@
  */
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
+import { registerWecomApprovalTools } from "./src/capability/approval/tool.js";
 import { registerWecomCalendarTools } from "./src/capability/calendar/tool.js";
 import { registerWecomContactTools } from "./src/capability/contact/tool.js";
 import { registerWecomDocTools } from "./src/capability/doc/tool.js";
+import { registerWecomExternalContactTools } from "./src/capability/external-contact/tool.js";
 import { createWeComMcpToolFactory } from "./src/capability/mcp/tool.js";
 import { registerWecomMeetingTools } from "./src/capability/meeting/tool.js";
 import { registerWecomTodoTools } from "./src/capability/todo/tool.js";
-import { registerWecomApprovalTools } from "./src/capability/approval/tool.js";
-import { registerWecomExternalContactTools } from "./src/capability/external-contact/tool.js";
 import { wecomPlugin } from "./src/channel.js";
 import { handleWecomWebhookRequest } from "./src/monitor.js";
 import { setWecomRuntime } from "./src/runtime.js";

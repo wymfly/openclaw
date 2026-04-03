@@ -132,10 +132,7 @@ export class WecomExternalContactClient {
     } as WecomExternalContactDetail;
   }
 
-  async list(
-    agent: ResolvedAgentAccount,
-    userid: string,
-  ): Promise<string[]> {
+  async list(agent: ResolvedAgentAccount, userid: string): Promise<string[]> {
     const normalizedUserId = readString(userid);
     if (!normalizedUserId) throw new Error("userid required");
 
@@ -185,10 +182,7 @@ export class WecomExternalContactClient {
     } as WecomGroupChatListResult;
   }
 
-  async getGroupDetail(
-    agent: ResolvedAgentAccount,
-    chatId: string,
-  ): Promise<WecomGroupChat> {
+  async getGroupDetail(agent: ResolvedAgentAccount, chatId: string): Promise<WecomGroupChat> {
     const normalizedChatId = readString(chatId);
     if (!normalizedChatId) throw new Error("chat_id required");
 

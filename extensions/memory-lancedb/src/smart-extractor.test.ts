@@ -53,7 +53,7 @@ function createMockEmbedder(): Embedder {
   return {
     embed: vi.fn(async () => [0.1, 0.2, 0.3]),
     dimensions: 3,
-  };
+  } as unknown as Embedder;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,22 +61,23 @@ function createMockEmbedder(): Embedder {
 // ---------------------------------------------------------------------------
 
 function createMockLlmClient(responses: Record<string, unknown>): LlmClient {
-  let callCount = 0;
-  const labels: string[] = [];
+  const completeJson: LlmClient["completeJson"] = async <T>(
+    _prompt: string,
+    label?: string,
+  ): Promise<T | null> => {
+    if (label === "extract-candidates") {
+      return (responses.extract ?? null) as T | null;
+    }
+    if (label === "dedup-decision") {
+      return (responses.dedup ?? null) as T | null;
+    }
+    if (label === "merge-memory") {
+      return (responses.merge ?? null) as T | null;
+    }
+    return null;
+  };
   return {
-    completeJson: vi.fn(async <T>(_prompt: string, label?: string): Promise<T | null> => {
-      labels.push(label ?? "");
-      if (label === "extract-candidates") {
-        return (responses.extract ?? null) as T | null;
-      }
-      if (label === "dedup-decision") {
-        return (responses.dedup ?? null) as T | null;
-      }
-      if (label === "merge-memory") {
-        return (responses.merge ?? null) as T | null;
-      }
-      return null;
-    }),
+    completeJson,
     getLastError: () => null,
   };
 }

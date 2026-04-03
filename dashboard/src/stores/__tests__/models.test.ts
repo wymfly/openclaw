@@ -6,7 +6,7 @@ import { useModelsStore } from "../models";
 // ---------------------------------------------------------------------------
 
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+global.fetch = mockFetch as unknown as typeof fetch;
 
 function resetStore() {
   useModelsStore.setState({
@@ -860,7 +860,7 @@ describe("boundary conditions", () => {
 describe("fetchUsableModels", () => {
   afterEach(() => {
     // Restore shared mockFetch after tests that override global.fetch
-    global.fetch = mockFetch;
+    global.fetch = mockFetch as unknown as typeof fetch;
   });
 
   it("fetches configured models and filters by auth status", async () => {

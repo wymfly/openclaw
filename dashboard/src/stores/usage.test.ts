@@ -50,7 +50,7 @@ describe("useUsageStore", () => {
       ok: true,
       json: () => Promise.resolve({ updatedAt: 1, days: 7, totals: {} }),
     });
-    globalThis.fetch = mockFetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     await useUsageStore.getState().fetchAll();
     const callCount = mockFetch.mock.calls.length;
@@ -89,7 +89,7 @@ describe("useUsageStore", () => {
           ),
       });
     });
-    globalThis.fetch = mockFetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     await useUsageStore.getState().fetchAll();
 
@@ -102,7 +102,7 @@ describe("useUsageStore", () => {
       ok: true,
       json: () => Promise.resolve({ logs: [{ timestamp: 1, role: "user", content: "hi" }] }),
     });
-    globalThis.fetch = mockFetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     const logs = await useUsageStore.getState().fetchSessionLogs("test-key");
     expect(logs).toHaveLength(1);

@@ -157,10 +157,7 @@ export class WecomApprovalClient {
     };
   }
 
-  async getDetail(
-    agent: ResolvedAgentAccount,
-    spNo: string,
-  ): Promise<WecomApprovalRecord> {
+  async getDetail(agent: ResolvedAgentAccount, spNo: string): Promise<WecomApprovalRecord> {
     const normalizedSpNo = readString(spNo);
     if (!normalizedSpNo) throw new Error("sp_no required");
 
