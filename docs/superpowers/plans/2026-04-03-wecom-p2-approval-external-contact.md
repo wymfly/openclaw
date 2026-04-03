@@ -6,7 +6,7 @@
 
 **Scope:** P2 modules only. P0+P1 (calendar, MCP, contact, meeting, todo) were completed in the previous plan cycle.
 
-**Architecture:** Same `capability/` four-file pattern established in P1: types.ts (type definitions), client.ts (API calls + 3-retry), schema.ts (oneOf discriminated union), tool.ts (action switch dispatch + registration export). Both modules use POST-based API calls (like meeting/todo clients).
+**Architecture:** Same `capability/` four-file pattern established in P1: types.ts (type definitions), client.ts (API calls + 3-retry), schema.ts (oneOf discriminated union), tool.ts (action switch dispatch + registration export). Approval uses POST-based API calls (like todo). External-contact uses mixed GET (get/list) + POST (list_groups/get_group_detail) pattern.
 
 **Tech Stack:** TypeScript (ESM), openclaw/plugin-sdk, JSON Schema (oneOf discriminated union), vitest
 
@@ -242,21 +242,22 @@ export class WecomApprovalClient {
   async list(
     agent: ResolvedAgentAccount,
     params: {
-      starttime: string;
-      endtime: string;
+      start_time: string;
+      end_time: string;
       template_id?: string;
       cursor?: number;
       size?: number;
     },
   ): Promise<{ raw: any; sp_no_list: string[] }> {
-    const starttime = readString(params.starttime);
-    const endtime = readString(params.endtime);
-    if (!starttime) throw new Error("starttime required");
-    if (!endtime) throw new Error("endtime required");
+    const startTime = readString(params.start_time);
+    const endTime = readString(params.end_time);
+    if (!startTime) throw new Error("start_time required");
+    if (!endTime) throw new Error("end_time required");
 
+    // Map user-facing start_time/end_time to WeCom API's starttime/endtime
     const payload: Record<string, unknown> = {
-      starttime,
-      endtime,
+      starttime: startTime,
+      endtime: endTime,
     };
     const templateId = readString(params.template_id);
     if (templateId) payload.template_id = templateId;
@@ -396,16 +397,16 @@ export const wecomApprovalToolSchema = {
     {
       type: "object",
       additionalProperties: false,
-      required: ["action", "starttime", "endtime"],
+      required: ["action", "start_time", "end_time"],
       properties: {
         action: { const: "list" },
         accountId: accountIdProperty,
-        starttime: {
+        start_time: {
           type: "string",
           minLength: 1,
           description: "查询起始时间（Unix 时间戳，秒）",
         },
-        endtime: {
+        end_time: {
           type: "string",
           minLength: 1,
           description: "查询结束时间（Unix 时间戳，秒）",
@@ -517,8 +518,8 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
           }
           case "list": {
             const result = await approvalClient.list(account, {
-              starttime: params.starttime,
-              endtime: params.endtime,
+              start_time: params.start_time,
+              end_time: params.end_time,
               template_id: params.template_id,
               cursor: params.cursor,
               size: params.size,
@@ -740,12 +741,39 @@ describe("WecomApprovalClient", () => {
 
     const client = new WecomApprovalClient();
     const result = await client.list(createAgent(), {
-      starttime: "1711900800",
-      endtime: "1711987200",
+      start_time: "1711900800",
+      end_time: "1711987200",
     });
 
     expect(result.sp_no_list).toEqual(["sp-001", "sp-002", "sp-003"]);
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/cgi-bin/oa/getapprovalinfo?");
+    // Verify field mapping: start_time → starttime in API payload
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"));
+    expect(body.starttime).toBe("1711900800");
+    expect(body.endtime).toBe("1711987200");
+  });
+
+  it("list with template_id filter", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        errcode: 0,
+        errmsg: "ok",
+        sp_no_list: ["sp-filtered-1"],
+      }),
+    );
+
+    const client = new WecomApprovalClient();
+    const result = await client.list(createAgent(), {
+      start_time: "1711900800",
+      end_time: "1711987200",
+      template_id: "tpl-filter-001",
+    });
+
+    expect(result.sp_no_list).toEqual(["sp-filtered-1"]);
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"));
+    expect(body.template_id).toBe("tpl-filter-001");
   });
 
   it("getDetail returns approval record", async () => {
@@ -840,7 +868,7 @@ describe("WecomApprovalClient", () => {
 ```
 
 **Acceptance criteria:**
-- 6 test cases: submit, submit with summary, list, getDetail, getTemplate, retry
+- 7 test cases: submit, submit with summary, list, list with template_id, getDetail, getTemplate, retry
 - All tests pass via `pnpm test -- extensions/wecom/src/capability/approval`
 - Mock pattern matches P1 established convention (vi.hoisted + vi.mock at top level)
 
@@ -851,7 +879,7 @@ describe("WecomApprovalClient", () => {
 
 ### Task 3: P2 — External Contact Module (types + client + schema + tool + registration)
 
-**covers:** wecom-external-contact/spec.md > Get contact by external_userid, List contacts by userid, List group chats, Paginated group list, Retry on transient failure
+**covers:** wecom-external-contact/spec.md > Get contact by external_userid, List contacts by userid, List group chats, Paginated group list, Get group detail (name/owner/member_count), Retry on transient failure
 **domain:** `[backend]`
 **complexity:** `complex`
 **blockedBy:** none
@@ -864,7 +892,7 @@ describe("WecomApprovalClient", () => {
 - Modify: `extensions/wecom/index.ts`
 
 **Description:**
-Create the external-contact module. It has 3 actions: get (GET-based), list (GET-based), list_groups (POST-based with cursor pagination). The client uses a mix of GET and POST patterns — `get` and `list` use GET requests (like contact module), while `list_groups` uses POST (like meeting/todo modules).
+Create the external-contact module. It has 4 actions: get (GET), list (GET), list_groups (POST with cursor pagination), get_group_detail (POST). The `get` and `list` use GET requests (like contact module), while `list_groups` and `get_group_detail` use POST (like meeting/todo modules). Note: `list_groups` returns chat_id + status only; use `get_group_detail` for full details (name, owner, member_count) per spec requirement.
 
 - [ ] **Step 1: Create types.ts**
 
@@ -1108,6 +1136,34 @@ export class WecomExternalContactClient {
       next_cursor: json.next_cursor || undefined,
     } as WecomGroupChatListResult;
   }
+
+  async getGroupDetail(
+    agent: ResolvedAgentAccount,
+    chatId: string,
+  ): Promise<WecomGroupChat> {
+    const normalizedChatId = readString(chatId);
+    if (!normalizedChatId) throw new Error("chat_id required");
+
+    const json = await this.postWecomExternalContactApi({
+      path: "/cgi-bin/externalcontact/groupchat/get",
+      actionLabel: "get_group_detail",
+      agent,
+      body: { chat_id: normalizedChatId, need_name: 1 },
+    });
+
+    const groupChat = (json.group_chat ?? {}) as Record<string, unknown>;
+    const memberList = Array.isArray(groupChat.member_list) ? groupChat.member_list : [];
+
+    return {
+      chat_id: readString(groupChat.chat_id) || normalizedChatId,
+      name: readString(groupChat.name) || undefined,
+      owner: readString(groupChat.owner) || undefined,
+      create_time: typeof groupChat.create_time === "number" ? groupChat.create_time : undefined,
+      notice: readString(groupChat.notice) || undefined,
+      member_count: memberList.length || undefined,
+      status: typeof groupChat.status === "number" ? groupChat.status : 0,
+    } as WecomGroupChat;
+  }
 }
 ```
 
@@ -1185,6 +1241,20 @@ export const wecomExternalContactToolSchema = {
           minimum: 1,
           maximum: 1000,
           description: "每页数量，默认 100，最大 1000",
+        },
+      },
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["action", "chat_id"],
+      properties: {
+        action: { const: "get_group_detail" },
+        accountId: accountIdProperty,
+        chat_id: {
+          type: "string",
+          minLength: 1,
+          description: "客户群 chat_id（从 list_groups 获取）",
         },
       },
     },
@@ -1276,6 +1346,19 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
               next_cursor: result.next_cursor,
             });
           }
+          case "get_group_detail": {
+            const groupChat = await externalContactClient.getGroupDetail(
+              account,
+              params.chat_id,
+            );
+            return buildToolResult({
+              ok: true,
+              action,
+              accountId: account.accountId,
+              summary: `客户群详情已获取：${groupChat.name || params.chat_id}`,
+              group_chat: groupChat,
+            });
+          }
           default:
             throw new Error(`Unsupported action: ${String(action)}`);
         }
@@ -1306,6 +1389,8 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
 
 - [ ] **Step 5: Register in index.ts**
 
+> **Note:** Task 1 Step 5 also modifies index.ts. If Task 1 and Task 3 are executed in parallel, this step must be serialized (merge both imports and registrations in one edit). If sequential, this step should add BOTH imports+registrations together if Task 1 hasn't done it yet.
+
 Add import and registration call in `extensions/wecom/index.ts`:
 
 ```typescript
@@ -1318,8 +1403,8 @@ registerWecomExternalContactTools(api);
 
 **Acceptance criteria:**
 - All 4 files compile without new TS errors
-- `WecomExternalContactClient` has methods: get (GET), list (GET), listGroups (POST + cursor pagination)
-- Schema has 3 oneOf branches
+- `WecomExternalContactClient` has methods: get (GET), list (GET), listGroups (POST + cursor pagination), getGroupDetail (POST)
+- Schema has 4 oneOf branches (get, list, list_groups, get_group_detail)
 - Tool dispatch covers all 3 actions
 - Registration call in index.ts
 - 3-retry pattern in both GET and POST methods
@@ -1508,6 +1593,40 @@ describe("WecomExternalContactClient", () => {
     expect(body.limit).toBe(10);
   });
 
+  it("getGroupDetail returns full group info", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        errcode: 0,
+        errmsg: "ok",
+        group_chat: {
+          chat_id: "grp-detail-1",
+          name: "VIP 客户群",
+          owner: "zhangsan",
+          status: 0,
+          member_list: [
+            { userid: "user1", type: 1 },
+            { userid: "user2", type: 2 },
+          ],
+        },
+      }),
+    );
+
+    const client = new WecomExternalContactClient();
+    const result = await client.getGroupDetail(createAgent(), "grp-detail-1");
+
+    expect(result.chat_id).toBe("grp-detail-1");
+    expect(result.name).toBe("VIP 客户群");
+    expect(result.owner).toBe("zhangsan");
+    expect(result.member_count).toBe(2);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/cgi-bin/externalcontact/groupchat/get?"),
+      expect.objectContaining({ method: "POST" }),
+      { proxyUrl: "http://proxy.local:8080", timeoutMs: expect.any(Number) },
+    );
+  });
+
   it("retry retries on failure (GET path)", async () => {
     const { wecomFetch } = await import("../../http.js");
     const fetchMock = vi.mocked(wecomFetch);
@@ -1540,11 +1659,43 @@ describe("WecomExternalContactClient", () => {
       setTimeoutSpy.mockRestore();
     }
   });
+
+  it("retry retries on failure (POST path)", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock
+      .mockRejectedValueOnce(new Error("connection reset"))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          errcode: 0,
+          errmsg: "ok",
+          group_chat_list: [{ chat_id: "grp-retry", status: 0 }],
+        }),
+      );
+
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      handler: TimerHandler,
+    ) => {
+      if (typeof handler === "function") handler();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout);
+
+    try {
+      const client = new WecomExternalContactClient();
+      const result = await client.listGroups(createAgent());
+
+      expect(result.group_chat_list).toHaveLength(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
 });
 ```
 
 **Acceptance criteria:**
-- 5 test cases: get, list, listGroups, pagination, retry
+- 7 test cases: get, list, listGroups, pagination, getGroupDetail, GET retry, POST retry
 - All tests pass via `pnpm test -- extensions/wecom/src/capability/external-contact`
 - Mock pattern matches P1 established convention
 
@@ -1566,11 +1717,15 @@ describe("WecomExternalContactClient", () => {
 **Description:**
 Run full verification suite to confirm P2 modules integrate correctly with existing P0+P1 modules.
 
-- [ ] **Step 1: Type check**
+- [ ] **Step 1: Type check (P2 modules only)**
 
 ```bash
-pnpm tsgo 2>&1 | grep -E "^extensions/wecom/src/capability/(approval|external-contact)" || echo "No new TS errors in P2 modules"
+pnpm tsgo 2>&1 | tee /tmp/tsgo-output.txt
+# Verify no NEW errors from P2 modules specifically:
+grep -E "^extensions/wecom/src/capability/(approval|external-contact)" /tmp/tsgo-output.txt && echo "FAIL: P2 modules have TS errors" || echo "OK: No P2 TS errors"
 ```
+
+Note: pre-existing TS errors in test files are expected (not caused by P2).
 
 - [ ] **Step 2: Full wecom test suite**
 
@@ -1587,13 +1742,16 @@ Doc → Calendar → MCP → Contact → Meeting → Todo → Approval → Exter
 
 - [ ] **Step 4: Update OpenSpec tasks.md**
 
-Mark P2 tasks (9.1-9.7, 10.1-10.7, 11.1-11.3) as complete in `openspec/changes/wecom-api-expansion/tasks.md`.
+Mark P2 tasks as complete in `openspec/changes/wecom-api-expansion/tasks.md`:
+- 9.1-9.4, 9.6-9.7: complete (9.5 index.ts is N/A — P1 pattern doesn't use separate index.ts)
+- 10.1-10.4, 10.6-10.7: complete (10.5 index.ts is N/A)
+- 11.1-11.3: complete
 
 **Acceptance criteria:**
-- No new TS errors from P2 modules
+- No new TS errors from P2 modules (pre-existing test file errors expected)
 - All wecom tests pass (existing + new)
 - Tool registration order is logical and consistent
-- OpenSpec tasks.md checkboxes updated
+- OpenSpec tasks.md checkboxes updated (9.5/10.5 marked N/A)
 
 **Test requirements:**
 - `pnpm test -- extensions/wecom` passes with 0 failures
