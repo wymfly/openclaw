@@ -27,32 +27,142 @@ function normalizeToolInput(value: unknown): Record<string, unknown> {
   return { value };
 }
 
+function normalizeTextBlock(raw: Record<string, unknown>): ContentBlock | null {
+  const text =
+    typeof raw.text === "string"
+      ? raw.text
+      : typeof raw.content === "string"
+        ? raw.content
+        : null;
+  return text == null ? null : { type: "text", text };
+}
+
+function normalizeThinkingBlock(raw: Record<string, unknown>): ContentBlock | null {
+  const text =
+    typeof raw.text === "string"
+      ? raw.text
+      : typeof raw.thinking === "string"
+        ? raw.thinking
+        : typeof raw.reasoning === "string"
+          ? raw.reasoning
+          : null;
+  return text == null ? null : { type: "thinking", text };
+}
+
+function normalizeToolResultContent(value: unknown): string | ContentBlock[] {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    const blocks = value
+      .map((entry) =>
+        entry && typeof entry === "object" && !Array.isArray(entry)
+          ? normalizeHistoryBlock(entry as Record<string, unknown>)
+          : null,
+      )
+      .filter((entry): entry is ContentBlock => entry != null);
+    return blocks.length > 0 ? blocks : JSON.stringify(value);
+  }
+  if (value && typeof value === "object") {
+    const block = normalizeHistoryBlock(value as Record<string, unknown>);
+    return block ? [block] : JSON.stringify(value);
+  }
+  if (value == null) {
+    return "";
+  }
+  return String(value);
+}
+
+function normalizeHistoryBlock(raw: Record<string, unknown>): ContentBlock | null {
+  const type = typeof raw.type === "string" ? raw.type : "";
+
+  if (type === "text" || type === "input_text" || type === "output_text") {
+    return normalizeTextBlock(raw);
+  }
+
+  if (type === "thinking") {
+    return normalizeThinkingBlock(raw);
+  }
+
+  if (type === "toolCall" || type === "tool_use") {
+    return {
+      type: "tool_use",
+      id: (raw.id as string) ?? "",
+      name: (raw.name as string) ?? "unknown",
+      input: normalizeToolInput(raw.arguments ?? raw.input),
+    };
+  }
+
+  if (type === "tool_result" || type === "toolResult") {
+    const toolUseId =
+      typeof raw.toolUseId === "string"
+        ? raw.toolUseId
+        : typeof raw.tool_use_id === "string"
+          ? raw.tool_use_id
+          : typeof raw.toolCallId === "string"
+            ? raw.toolCallId
+            : "";
+    return {
+      type: "tool_result",
+      toolUseId,
+      content: normalizeToolResultContent(raw.content ?? raw.result),
+      isError:
+        typeof raw.isError === "boolean"
+          ? raw.isError
+          : typeof raw.is_error === "boolean"
+            ? raw.is_error
+            : false,
+    };
+  }
+
+  if (
+    type === "image" &&
+    typeof raw.data === "string" &&
+    typeof raw.mimeType === "string"
+  ) {
+    return {
+      type: "image",
+      data: raw.data,
+      mimeType: raw.mimeType,
+      ...(typeof raw.fileName === "string" ? { fileName: raw.fileName } : {}),
+    };
+  }
+
+  if (
+    type === "file" &&
+    typeof raw.data === "string" &&
+    typeof raw.mimeType === "string" &&
+    typeof raw.fileName === "string"
+  ) {
+    return {
+      type: "file",
+      data: raw.data,
+      mimeType: raw.mimeType,
+      fileName: raw.fileName,
+      ...(typeof raw.size === "number" ? { size: raw.size } : {}),
+    };
+  }
+
+  return null;
+}
+
 export function normalizeHistoryContent(content: unknown): ContentBlock[] {
   if (typeof content === "string") {
     return [{ type: "text", text: content }];
   }
   if (Array.isArray(content)) {
-    return (content as Record<string, unknown>[]).map((raw) => {
-      if (raw.type === "toolCall") {
-        return {
-          type: "tool_use",
-          id: (raw.id as string) ?? "",
-          name: (raw.name as string) ?? "unknown",
-          input: normalizeToolInput(raw.arguments ?? raw.input),
-        } satisfies ContentBlock;
+    return (content as unknown[]).map((raw) => {
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        return normalizeHistoryBlock(raw as Record<string, unknown>) ?? (raw as ContentBlock);
       }
-      if (raw.type === "tool_result" && raw.tool_use_id && !raw.toolUseId) {
-        return {
-          type: "tool_result",
-          toolUseId: raw.tool_use_id as string,
-          content: (raw.content as string) ?? "",
-          isError: (raw.isError as boolean) ?? false,
-        } satisfies ContentBlock;
-      }
-      return raw as ContentBlock;
+      return { type: "text", text: String(raw ?? "") } satisfies ContentBlock;
     });
   }
   if (content && typeof content === "object") {
+    const normalized = normalizeHistoryBlock(content as Record<string, unknown>);
+    if (normalized) {
+      return [normalized];
+    }
     return [{ type: "text", text: JSON.stringify(content) }];
   }
   return [{ type: "text", text: "" }];

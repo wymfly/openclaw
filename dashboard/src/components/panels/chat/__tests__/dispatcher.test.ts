@@ -618,6 +618,30 @@ describe("dispatchSessionStateEvent", () => {
 });
 
 describe("dispatchSessionMessageEvent", () => {
+  it("normalizes a single text block object from transcript events", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    dispatchSessionMessageEvent({
+      sessionKey: "sess-1",
+      messageId: "msg-obj-1",
+      message: {
+        role: "user",
+        content: { type: "text", text: "hello from object block" },
+        timestamp: 1234,
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages).toEqual([
+      {
+        id: "msg-obj-1",
+        role: "user",
+        content: [{ type: "text", text: "hello from object block" }],
+        timestamp: 1234,
+      },
+    ]);
+  });
+
   it("hydrates transcript messages for existing sessions without duplicating ids", () => {
     useChatStore.getState().ensureSession("sess-1");
 
