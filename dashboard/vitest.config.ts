@@ -9,7 +9,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["server/**/*.test.ts", "src/**/*.test.ts"],
+    include: ["server/**/*.test.ts", "src/**/*.test.ts", "src/**/*.test.tsx"],
     exclude: ["**/node_modules/**", "dist/**"],
   },
 });

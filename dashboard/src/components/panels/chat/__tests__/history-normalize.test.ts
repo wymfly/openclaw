@@ -31,6 +31,18 @@ describe("history-normalize", () => {
     ]);
   });
 
+  it("keeps unsupported blocks as explicit fallback blocks instead of JSON text", () => {
+    const blocks = normalizeHistoryContent([{ type: "refusal", reason: "skew" }]);
+
+    expect(blocks).toEqual([
+      {
+        type: "unknown",
+        rawType: "refusal",
+        summary: { type: "refusal", reason: "skew" },
+      },
+    ]);
+  });
+
   it("merges tool_use, tool_result, and trailing assistant text into one assistant message", () => {
     const messages = normalizeHistoryMessages("agent:main:main", [
       {

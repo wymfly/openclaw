@@ -12,8 +12,20 @@
  * interface, which matches the Zustand store's public API 1-to-1.
  */
 
-import { normalizeHistoryContent } from "@/components/panels/chat/history-normalize";
 import { deckFetch } from "@/lib/deck-client";
+import {
+  normalizeSessionMessagePayload,
+  normalizeTranscriptMessages,
+  normalizeTranscriptToolResultContent,
+} from "@/lib/transcript-adapter";
+import type {
+  AgentEventPayload as GatewayAgentEventPayload,
+  ChatEventPayload as GatewayChatEventPayload,
+  SessionMessageEventPayload,
+  SessionToolEventPayload,
+  SessionsChangedEventPayload,
+  TranscriptMessage,
+} from "@/types/gateway-protocol.generated";
 import type {
   ApprovalRequest,
   A2UIEvent,
@@ -31,37 +43,59 @@ export type { ApprovalRequest, A2UIEvent, ContentBlock, ChatMessage };
 // SSE payload types
 // ---------------------------------------------------------------------------
 
-/**
- * Gateway chat event payload shape (from ChatEventSchema):
- *   { runId, sessionKey, seq, state: "delta"|"final"|"error"|"aborted",
- *     message?: { role, content: ContentBlock[], timestamp },
- *     errorMessage?, stopReason? }
- */
-export type ChatEventPayload = {
-  runId: string;
-  sessionKey: string;
-  seq: number;
-  state: "delta" | "final" | "error" | "aborted";
+export type ChatEventPayload = Omit<GatewayChatEventPayload, "message"> & {
   message?: {
-    role: string;
+    id?: string;
+    role: "user" | "assistant" | "system";
     content: ContentBlock[];
     timestamp?: number;
   };
-  errorMessage?: string;
-  stopReason?: string;
 };
-
-/**
- * Agent event payload shape (from AgentEventPayload):
- *   { runId?, seq?, stream, ts?, data, sessionKey? }
- */
-export type AgentEventPayload = {
-  runId?: string;
-  seq?: number;
-  stream: string;
-  ts?: number;
+export type AgentEventPayload = (Omit<GatewayAgentEventPayload, "seq" | "ts"> & {
   data: Record<string, unknown>;
+  seq?: number;
+  ts?: number;
   sessionKey?: string;
+}) |
+  (Omit<SessionToolEventPayload, "runId" | "seq" | "ts"> & {
+    runId?: string;
+    seq?: number;
+    ts?: number;
+    data: SessionToolEventPayload["data"] & Record<string, unknown>;
+    sessionKey?: string;
+  });
+export type SessionMessagePayload = Omit<SessionMessageEventPayload, "message"> & {
+  message?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+export type SessionStatePayload = {
+  sessionKey: string;
+  ts?: number;
+  phase?: string;
+  reason?: string;
+  runId?: string;
+  status?: SessionMessageEventPayload["status"] | SessionsChangedEventPayload["status"] | "idle";
+  startedAt?: number;
+  endedAt?: number;
+  runtimeMs?: number;
+  fastMode?: boolean;
+  totalTokens?: number;
+  totalTokensFresh?: boolean;
+  estimatedCostUsd?: number;
+  thinkingLevel?: string;
+  verboseLevel?: string;
+  model?: string;
+  modelProvider?: string;
+  contextTokens?: number;
+  updatedAt?: number;
+  sessionId?: string;
+  label?: unknown;
+  displayName?: unknown;
+  compacted?: boolean;
+  errorMessage?: string;
+  childSessions?: unknown;
+  parentSessionKey?: unknown;
+  [key: string]: unknown;
 };
 
 // ---------------------------------------------------------------------------
@@ -389,14 +423,10 @@ export function dispatchAgentEvent(
         startedAt: Date.now(),
       });
     } else if (phase === "result") {
-      const result =
-        typeof payload.data.result === "string"
-          ? payload.data.result
-          : JSON.stringify(payload.data.result ?? "");
       api.appendContentBlock(sessionKey, messageId, {
         type: "tool_result",
         toolUseId: toolCallId,
-        content: result,
+        content: normalizeTranscriptToolResultContent(payload.data.result),
         isError: (payload.data.isError as boolean) ?? false,
       });
 
@@ -507,56 +537,30 @@ export function dispatchAgentEvent(
 // ---------------------------------------------------------------------------
 
 export function dispatchSessionMessageEvent(
-  payload: Record<string, unknown>,
+  payload: SessionMessagePayload,
   store?: ChatStoreAPI,
 ): void {
   const api = store ?? getDefaultAPI();
-  const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : "";
+  const sessionKey = payload.sessionKey;
   if (!sessionKey) {
     return;
   }
 
-  const messageRecord =
-    payload.message && typeof payload.message === "object"
-      ? (payload.message as Record<string, unknown>)
-      : null;
-  if (!messageRecord) {
+  if (!("message" in payload) || !payload.message || typeof payload.message !== "object") {
     dispatchSessionStateEvent(payload, store);
     return;
   }
-
-  const timestamp =
-    typeof messageRecord.timestamp === "number" ? messageRecord.timestamp : Date.now();
-  const metaRecord =
-    messageRecord.__openclaw && typeof messageRecord.__openclaw === "object"
-      ? (messageRecord.__openclaw as Record<string, unknown>)
-      : {};
-  const messageId =
-    typeof payload.messageId === "string"
-      ? payload.messageId
-      : typeof metaRecord.id === "string"
-        ? metaRecord.id
-        : `${sessionKey}:${timestamp}:${typeof payload.messageSeq === "number" ? payload.messageSeq : 0}`;
-  const role =
-    messageRecord.role === "toolResult"
-      ? "user"
-      : ((messageRecord.role as ChatMessage["role"]) ?? "assistant");
-  const content = normalizeHistoryContent(messageRecord.content);
+  const message = normalizeSessionMessagePayload(payload);
 
   api.ensureSession(sessionKey);
-  const existing = api.getSessionMessages(sessionKey).find((message) => message.id === messageId);
+  const existing = api.getSessionMessages(sessionKey).find((entry) => entry.id === message.id);
   if (existing) {
-    api.updateStreamingContent(sessionKey, messageId, content);
+    api.updateStreamingContent(sessionKey, message.id, message.content);
     if (existing.streaming) {
-      api.finalizeMessage(sessionKey, messageId);
+      api.finalizeMessage(sessionKey, message.id);
     }
   } else {
-    api.addMessage(sessionKey, {
-      id: messageId,
-      role,
-      content,
-      timestamp,
-    });
+    api.addMessage(sessionKey, message);
   }
 
   dispatchSessionStateEvent(payload, store);
@@ -653,24 +657,18 @@ export async function reloadFullContent(
       }
 
       const data = (await res.json()) as {
-        messages?: Array<{
-          role: string;
-          content: ContentBlock[];
-        }>;
+        messages?: TranscriptMessage[];
       };
 
       if (!data.messages) {
         return;
       }
 
-      // Find the last assistant message in the response
-      const assistantMsg = [...data.messages].toReversed().find((m) => m.role === "assistant");
+      const historyMessages = normalizeTranscriptMessages(sessionKey, data.messages);
+      const assistantMsg = [...historyMessages].toReversed().find((message) => message.role === "assistant");
       if (!assistantMsg) {
         return;
       }
-
-      // Map content blocks (normalize tool_result toolUseId)
-      const historyBlocks = normalizeHistoryContent(assistantMsg.content);
 
       // Re-read messages to handle concurrent updates
       const messages = api.getSessionMessages(sessionKey);
@@ -679,19 +677,22 @@ export async function reloadFullContent(
         return; // Session or message was removed during fetch
       }
 
-      // Preserve locally-collected tool blocks (from agent SSE events).
-      // Gateway history's last assistant message typically only has text —
-      // tool_use/tool_result live in earlier messages per Anthropic format.
       const currentMsg = messages[msgIdx];
       const existingToolBlocks = currentMsg.content.filter(
         (b) => b.type === "tool_use" || b.type === "tool_result",
       );
-      // History text/thinking blocks + preserved tool blocks
-      const historyNonTool = historyBlocks.filter(
+      const historyToolBlocks = assistantMsg.content.filter(
+        (b) => b.type === "tool_use" || b.type === "tool_result",
+      );
+      const historyNonTool = assistantMsg.content.filter(
         (b) => b.type !== "tool_use" && b.type !== "tool_result",
       );
       const merged =
-        existingToolBlocks.length > 0 ? [...existingToolBlocks, ...historyNonTool] : historyBlocks;
+        historyToolBlocks.length > 0
+          ? assistantMsg.content
+          : existingToolBlocks.length > 0
+            ? [...existingToolBlocks, ...historyNonTool]
+            : assistantMsg.content;
 
       const updated = [...messages];
       updated[msgIdx] = { ...updated[msgIdx], content: merged };
@@ -713,26 +714,31 @@ export async function reloadFullContent(
  * Updates session lifecycle state (streaming, error) based on phase/reason.
  */
 export function dispatchSessionStateEvent(
-  payload: Record<string, unknown>,
+  payload: SessionStatePayload,
   store?: ChatStoreAPI,
 ): void {
   const api = store ?? getDefaultAPI();
-  const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : "";
+  const statePayload = payload;
+  const sessionKey = statePayload.sessionKey;
   if (!sessionKey) {
     return;
   }
 
-  const phase = typeof payload.phase === "string" ? payload.phase : undefined;
-  const reason = typeof payload.reason === "string" ? payload.reason : undefined;
-  const status = typeof payload.status === "string" ? payload.status : undefined;
-  const startedAt = typeof payload.startedAt === "number" ? payload.startedAt : undefined;
-  const endedAt = typeof payload.endedAt === "number" ? payload.endedAt : undefined;
-  const runtimeMs = typeof payload.runtimeMs === "number" ? payload.runtimeMs : undefined;
-  const fastMode = typeof payload.fastMode === "boolean" ? payload.fastMode : undefined;
+  const phase = typeof statePayload.phase === "string" ? statePayload.phase : undefined;
+  const reason = typeof statePayload.reason === "string" ? statePayload.reason : undefined;
+  const status = typeof statePayload.status === "string" ? statePayload.status : undefined;
+  const startedAt = typeof statePayload.startedAt === "number" ? statePayload.startedAt : undefined;
+  const endedAt = typeof statePayload.endedAt === "number" ? statePayload.endedAt : undefined;
+  const runtimeMs = typeof statePayload.runtimeMs === "number" ? statePayload.runtimeMs : undefined;
+  const fastMode = typeof statePayload.fastMode === "boolean" ? statePayload.fastMode : undefined;
 
   // Update streaming state based on lifecycle phase
   if (phase === "start" || reason === "send" || reason === "steer") {
-    api.setStreaming(sessionKey, true, payload.runId as string | undefined);
+    api.setStreaming(
+      sessionKey,
+      true,
+      typeof statePayload.runId === "string" ? statePayload.runId : undefined,
+    );
   }
   if (reason === "clear" || reason === "reset" || reason === "deleted" || reason === "delete") {
     api.resetSessionProjection(sessionKey);
@@ -747,7 +753,7 @@ export function dispatchSessionStateEvent(
     api.setStreaming(sessionKey, false);
     api.setSessionError(
       sessionKey,
-      typeof payload.errorMessage === "string" ? payload.errorMessage : "Run failed",
+      typeof statePayload.errorMessage === "string" ? statePayload.errorMessage : "Run failed",
     );
   }
 
@@ -790,7 +796,7 @@ export function dispatchSessionStateEvent(
 
   // ── Compaction detection ──
   // Gateway sends compacted: true in sessions.changed payload (src/gateway/server-methods/sessions.ts:127)
-  if (payload.compacted === true) {
+  if (statePayload.compacted === true) {
     // Dedup: check if last message is a recent compaction notice (within 5s)
     const messages = api.getSessionMessages(sessionKey);
     const lastMsg = messages[messages.length - 1];
@@ -810,15 +816,17 @@ export function dispatchSessionStateEvent(
   }
 
   // ── Session meta sync (totalTokens, estimatedCostUsd, config fields) ──
-  const totalTokens = typeof payload.totalTokens === "number" ? payload.totalTokens : undefined;
+  const totalTokens =
+    typeof statePayload.totalTokens === "number" ? statePayload.totalTokens : undefined;
   const estimatedCostUsd =
-    typeof payload.estimatedCostUsd === "number" ? payload.estimatedCostUsd : undefined;
+    typeof statePayload.estimatedCostUsd === "number" ? statePayload.estimatedCostUsd : undefined;
   const thinkingLevel =
-    typeof payload.thinkingLevel === "string" ? payload.thinkingLevel : undefined;
-  const verboseLevel = typeof payload.verboseLevel === "string" ? payload.verboseLevel : undefined;
-  const model = typeof payload.model === "string" ? payload.model : undefined;
+    typeof statePayload.thinkingLevel === "string" ? statePayload.thinkingLevel : undefined;
+  const verboseLevel =
+    typeof statePayload.verboseLevel === "string" ? statePayload.verboseLevel : undefined;
+  const model = typeof statePayload.model === "string" ? statePayload.model : undefined;
   const contextTokens =
-    typeof payload.contextTokens === "number" ? payload.contextTokens : undefined;
+    typeof statePayload.contextTokens === "number" ? statePayload.contextTokens : undefined;
 
   const metaPatch: Partial<SessionMeta> = {};
   if (totalTokens !== undefined) {

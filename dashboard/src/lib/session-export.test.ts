@@ -13,10 +13,16 @@ const mockSession = {
 };
 
 const mockMessages = [
-  { role: "user" as const, content: "Hello", timestamp: 1711100000000 },
   {
+    id: "msg-1",
+    role: "user" as const,
+    content: [{ type: "text" as const, text: "Hello" }],
+    timestamp: 1711100000000,
+  },
+  {
+    id: "msg-2",
     role: "assistant" as const,
-    content: "Hi there!",
+    content: [{ type: "text" as const, text: "Hi there!" }],
     timestamp: 1711100001000,
   },
 ];

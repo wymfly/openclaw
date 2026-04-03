@@ -2,6 +2,7 @@ import { getPendingApprovals } from "@server/approval-bridge";
 import { ControlPlaneGatewayError } from "@server/gateway-adapter";
 import { getRuntime } from "@server/runtime";
 import { type NextRequest, NextResponse } from "next/server";
+import type { TranscriptMessage } from "@/types/gateway-protocol.generated";
 import { withAuth } from "@/lib/with-auth";
 
 type RawSessionMeta = Record<string, unknown>;
@@ -56,11 +57,7 @@ export const GET = withAuth(async (request: NextRequest) => {
     ]);
 
     const messages = Array.isArray((historyPayload as { messages?: unknown[] }).messages)
-      ? ((historyPayload as { messages: unknown[] }).messages as Array<{
-          role?: string;
-          content?: unknown;
-          timestamp?: number;
-        }>)
+      ? ((historyPayload as { messages: TranscriptMessage[] }).messages as TranscriptMessage[])
       : [];
 
     const meta =

@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import { ChatSendSessionKeyString, InputProvenanceSchema, NonEmptyString } from "./primitives.js";
+import { TranscriptMessageSchema } from "./transcript.js";
 
 export const LogsTailParamsSchema = Type.Object(
   {
@@ -31,15 +32,7 @@ export const ChatHistoryParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export const ChatHistoryMessageSchema = Type.Object(
-  {
-    id: Type.Optional(Type.String()),
-    role: Type.Optional(Type.String()),
-    content: Type.Optional(Type.Unknown()),
-    timestamp: Type.Optional(Type.Number()),
-  },
-  { additionalProperties: true },
-);
+export const ChatHistoryMessageSchema = TranscriptMessageSchema;
 
 export const ChatHistoryResultSchema = Type.Object(
   {
@@ -116,7 +109,7 @@ export const ChatEventSchema = Type.Object(
       Type.Literal("aborted"),
       Type.Literal("error"),
     ]),
-    message: Type.Optional(Type.Unknown()),
+    message: Type.Optional(TranscriptMessageSchema),
     errorMessage: Type.Optional(Type.String()),
     usage: Type.Optional(Type.Unknown()),
     stopReason: Type.Optional(Type.String()),

@@ -10,6 +10,7 @@ import {
   persistGatewaySessionLifecycleEvent,
 } from "./session-lifecycle-state.js";
 import { loadGatewaySessionRow, loadSessionEntry } from "./session-utils.js";
+import { canonicalizeSessionToolPayload } from "./transcript-canonical.js";
 import { formatForLog } from "./ws-log.js";
 
 function resolveHeartbeatAckMaxChars(): number {
@@ -747,7 +748,12 @@ export function createAgentEventHandler({
       if (sessionKey) {
         const sessionSubscribers = sessionEventSubscribers.getAll();
         if (sessionSubscribers.size > 0) {
-          broadcastToConnIds("session.tool", toolPayload, sessionSubscribers, { dropIfSlow: true });
+          broadcastToConnIds(
+            "session.tool",
+            canonicalizeSessionToolPayload(agentPayload),
+            sessionSubscribers,
+            { dropIfSlow: true },
+          );
         }
       }
       // [enhanced] Also broadcast globally so backend clients (Deck adapter)

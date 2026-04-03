@@ -5,6 +5,8 @@ import type { GatewayRequestHandlers } from "./server-methods/types.js";
 
 const TestParamsSchema = Type.Object({ id: Type.String() });
 const TestResultSchema = Type.Object({ ok: Type.Boolean() });
+const TestEventPayloadSchema = Type.Object({ runId: Type.String() });
+const AlternateEventPayloadSchema = Type.Object({ sessionKey: Type.String() });
 
 const fakeHandlers: GatewayRequestHandlers = {
   "test.get": async ({ respond }) => respond(true, { ok: true }),
@@ -22,6 +24,13 @@ const testMethodDefs = {
     params: TestParamsSchema,
     result: TestResultSchema,
     scope: "operator.write" as const,
+  },
+};
+
+const testEventDefs = {
+  "session.message": {
+    payload: TestEventPayloadSchema,
+    since: 3,
   },
 };
 
@@ -80,5 +89,28 @@ describe("buildMethodRegistry", () => {
       },
     };
     expect(() => buildMethodRegistry(fakeHandlers, [badDefs])).toThrow(/nonexistent\.method/);
+  });
+
+  it("registers typed events and exposes payload schemas in describe", () => {
+    const registry = buildMethodRegistry(fakeHandlers, [testMethodDefs], testEventDefs);
+    expect(registry.listEvents()).toContain("session.message");
+    expect(registry.getEventDefinition("session.message")?.payload).toBe(TestEventPayloadSchema);
+
+    const desc = registry.describe({ filter: "all", includeSchemas: true });
+    expect(desc.events["session.message"]).toEqual({
+      payload: TestEventPayloadSchema,
+      since: 3,
+    });
+  });
+
+  it("includes event schema changes in schemaVersion", () => {
+    const first = buildMethodRegistry(fakeHandlers, [testMethodDefs], {
+      "session.message": { payload: TestEventPayloadSchema },
+    });
+    const second = buildMethodRegistry(fakeHandlers, [testMethodDefs], {
+      "session.message": { payload: AlternateEventPayloadSchema },
+    });
+
+    expect(first.describe().schemaVersion).not.toBe(second.describe().schemaVersion);
   });
 });

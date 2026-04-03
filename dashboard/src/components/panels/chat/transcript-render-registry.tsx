@@ -1,0 +1,66 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { Streamdown } from "streamdown";
+import type { ContentBlock } from "@/stores/chat-types";
+import { FileBlock } from "./blocks/FileBlock";
+import { ImageBlock } from "./blocks/ImageBlock";
+import { ThinkingBlock } from "./blocks/ThinkingBlock";
+import { ToolResultCard } from "./blocks/ToolResultCard";
+import { ToolUseCard } from "./blocks/ToolUseCard";
+import { UnknownBlockCard } from "./blocks/UnknownBlockCard";
+
+type RendererProps<T extends ContentBlock> = {
+  block: T;
+  keyValue: string;
+};
+
+const textRenderer = ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "text" }>>) => (
+  <div key={keyValue} className="chat-prose max-w-none text-sm">
+    <Streamdown mode="static" className="streamdown-chat">
+      {block.text}
+    </Streamdown>
+  </div>
+);
+
+const transcriptRenderRegistry = {
+  text: textRenderer,
+  thinking: ({
+    block,
+    keyValue,
+  }: RendererProps<Extract<ContentBlock, { type: "thinking" }>>) => (
+    <ThinkingBlock key={keyValue} text={block.text} />
+  ),
+  tool_use: ({
+    block,
+    keyValue,
+  }: RendererProps<Extract<ContentBlock, { type: "tool_use" }>>) => (
+    <ToolUseCard key={keyValue} name={block.name} input={block.input} />
+  ),
+  tool_result: ({
+    block,
+    keyValue,
+  }: RendererProps<Extract<ContentBlock, { type: "tool_result" }>>) => (
+    <ToolResultCard key={keyValue} content={block.content} isError={block.isError} />
+  ),
+  image: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "image" }>>) => (
+    <ImageBlock key={keyValue} {...block} />
+  ),
+  file: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "file" }>>) => (
+    <FileBlock key={keyValue} {...block} />
+  ),
+  unknown: ({
+    block,
+    keyValue,
+  }: RendererProps<Extract<ContentBlock, { type: "unknown" }>>) => (
+    <UnknownBlockCard key={keyValue} rawType={block.rawType} summary={block.summary} />
+  ),
+};
+
+export function renderTranscriptBlock(block: ContentBlock, keyValue: string) {
+  const renderer = transcriptRenderRegistry[block.type] as (props: {
+    block: ContentBlock;
+    keyValue: string;
+  }) => ReactNode;
+  return renderer({ block, keyValue });
+}

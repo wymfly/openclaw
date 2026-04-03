@@ -12,6 +12,7 @@ import { navigateToSession, navigateToSubagents } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { useSessionsStore, type HistoryMessage, type SessionEntry } from "@/stores/sessions";
+import { TranscriptBlocks } from "../chat/TranscriptBlocks";
 import { SessionExport } from "./SessionExport";
 import { TranscriptSearch } from "./TranscriptSearch";
 
@@ -75,6 +76,7 @@ function formatTokens(n: number): string {
 
 function HistoryBubble({ message }: { message: HistoryMessage }) {
   const isUser = message.role === "user";
+
   return (
     <div className={cn("flex gap-3 mb-4 transition-panel", isUser && "flex-row-reverse")}>
       {/* Avatar */}
@@ -93,16 +95,7 @@ function HistoryBubble({ message }: { message: HistoryMessage }) {
       <div
         className={cn("flex flex-col max-w-[75%] min-w-0", isUser ? "items-end" : "items-start")}
       >
-        <div
-          className={cn(
-            "px-3 py-2 text-sm leading-relaxed",
-            isUser
-              ? "bg-[var(--primary)] text-[var(--primary-foreground)] rounded-2xl rounded-br-md"
-              : "bg-[var(--muted)] text-[var(--foreground)] rounded-2xl rounded-bl-md ring-1 ring-[var(--border-subtle)]",
-          )}
-        >
-          <p className="whitespace-pre-wrap break-words">{message.content}</p>
-        </div>
+        <TranscriptBlocks message={message} isUser={isUser} />
         {message.timestamp && (
           <span className="text-[10px] mt-1 px-1 text-[var(--muted-foreground)] font-mono">
             {new Date(message.timestamp).toLocaleTimeString()}

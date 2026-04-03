@@ -28,6 +28,17 @@ describe("gateway.describe handler", () => {
     expect(detail.result).toBeDefined();
   });
 
+  it("exposes typed gateway event payload schemas for deck transcript consumers", async () => {
+    const { gatewayMethodRegistry } = await import("../server-methods.js");
+    const desc = gatewayMethodRegistry.describe({ filter: "all", includeSchemas: true });
+
+    expect(desc.events.chat?.payload).toBeDefined();
+    expect(desc.events.agent?.payload).toBeDefined();
+    expect(desc.events["session.message"]?.payload).toBeDefined();
+    expect(desc.events["session.tool"]?.payload).toBeDefined();
+    expect(desc.events["sessions.changed"]?.payload).toBeDefined();
+  });
+
   it("deck.auth methods are registered", async () => {
     const { gatewayMethodRegistry } = await import("../server-methods.js");
     const desc = gatewayMethodRegistry.describe({ filter: "all" });
