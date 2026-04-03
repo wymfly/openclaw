@@ -86,7 +86,7 @@
 pnpm test -- test/scripts/openspec-closure.test.ts
 ```
 
-- [ ] **Step 1.5: Commit**
+- [x] **Step 1.5: Commit**
 
 ```bash
 scripts/committer "[enhanced] refactor(openspec): extract closure shared core package" \
@@ -110,16 +110,16 @@ scripts/committer "[enhanced] refactor(openspec): extract closure shared core pa
 **covers:** `closure-workflow-activation/spec.md > ADDED > Manual skill activation SHALL remain a stable cross-product entrypoint > "Manual activation runs closure lifecycle through bundled assets"`
 **covers.id:** `closure-workflow-activation.manual-skill-entrypoint`
 
-- [ ] **Step 2.1: 用 Codex 插件骨架约定搭出 bundle 结构**
+- [x] **Step 2.1: 用 Codex 插件骨架约定搭出 bundle 结构**
       按 `.codex-plugin/plugin.json`、`skills/`、`scripts/` 的结构建立 `plugins/openspec-closure/`，manifest 里只声明插件真需要的 skill 和脚本入口，不顺手堆无关 assets。
 
-- [ ] **Step 2.2: 让插件 wrapper 调用 shared core**
+- [x] **Step 2.2: 让插件 wrapper 调用 shared core**
       `plugins/openspec-closure/scripts/openspec-closure.ts` 只从 `packages/openspec-closure-core` 调用 closure lifecycle，不再引用项目根目录的 `scripts/lib/...`。
 
-- [ ] **Step 2.3: 写 Codex bundle 的 `openspec-closure-workflow`**
+- [x] **Step 2.3: 写 Codex bundle 的 `openspec-closure-workflow`**
       这个 skill 只描述如何在 Codex 中定位项目根、检查 `.openspec-closure.yaml`、执行 `init/report/check`，不复制 checker 规则。
 
-- [ ] **Step 2.4: 跑 Codex bundle smoke**
+- [x] **Step 2.4: 跑 Codex bundle smoke**
 
 ```bash
 pnpm test -- test/scripts/openspec-closure-plugin.test.ts -t "codex bundle"

@@ -1,0 +1,30 @@
+{
+  "name": "openspec-closure",
+  "version": "0.0.0",
+  "description": "Portable scenario-level closure workflow for OpenSpec changes",
+  "author": {
+    "name": "OpenClaw"
+  },
+  "homepage": "https://github.com/openclaw/openclaw",
+  "repository": "https://github.com/openclaw/openclaw",
+  "license": "MIT",
+  "keywords": ["openspec", "closure", "workflow", "spec-driven"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenSpec Closure",
+    "shortDescription": "Scenario-level closure checks for OpenSpec changes",
+    "longDescription": "Portable closure workflow bundle that proves spec convergence before archive.",
+    "developerName": "OpenClaw",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/openclaw/openclaw",
+    "privacyPolicyURL": "https://github.com/openclaw/openclaw",
+    "termsOfServiceURL": "https://github.com/openclaw/openclaw",
+    "defaultPrompt": [
+      "Run closure check for the current OpenSpec change.",
+      "Initialize verification.yaml for this change.",
+      "Check whether this change is ready to archive."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

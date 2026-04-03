@@ -678,6 +678,7 @@
     "openclaw:rpc": "node scripts/run-node.mjs agent --mode rpc --json",
     "openspec:closure:check": "node --import tsx scripts/openspec-closure.ts check",
     "openspec:closure:init": "node --import tsx scripts/openspec-closure.ts init",
+    "openspec:closure:plugin:test": "pnpm test -- test/scripts/openspec-closure-plugin.test.ts",
     "openspec:closure:report": "node --import tsx scripts/openspec-closure.ts report",
     "plugin-sdk:api:check": "node --import tsx scripts/generate-plugin-sdk-api-baseline.ts --check",
     "plugin-sdk:api:gen": "node --import tsx scripts/generate-plugin-sdk-api-baseline.ts --write",
