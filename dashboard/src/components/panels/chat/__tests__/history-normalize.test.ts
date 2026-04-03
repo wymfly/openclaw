@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { normalizeHistoryContent, normalizeHistoryMessages } from "../history-normalize";
 
 describe("history-normalize", () => {
+  it("normalizes a single text content object without stringifying it", () => {
+    const blocks = normalizeHistoryContent({
+      type: "text",
+      text: "hello from single block",
+    });
+
+    expect(blocks).toEqual([{ type: "text", text: "hello from single block" }]);
+  });
+
   it("keeps hydrating when toolCall arguments are invalid JSON", () => {
     const blocks = normalizeHistoryContent([
       {
