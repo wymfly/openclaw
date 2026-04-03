@@ -25,8 +25,9 @@ Deck 的目标不是复刻官方 Web UI，而是构建一个以 **Gateway 能力
 
 - typed gateway coverage / protocol-driven SDK
 - Deck route facade / browser transport
+- Deck server persistence layer (SQLite projection store, EventBus, outbox)
 - auth / stream / replay
-- projection / outbox / recovery primitives
+- projection / recovery primitives
 - shared mutation / query / error model
 
 现有输入：
@@ -74,22 +75,22 @@ Deck 的目标不是复刻官方 Web UI，而是构建一个以 **Gateway 能力
 
 目标：在统一底座上逐步完成业务模块替代。
 
-建议分为三个子波次：
+分为三个子波次（对应 matrix 中的 D.rc / D.cc / D.oa）：
 
-- `Runtime Core`: chat、approval、canvas / A2UI、sessions、logs、execution monitor
-- `Config & Control`: agents、config editor、channels、routing / session-channel、dynamic commands
-- `Observe & Automate`: usage、activity、cron、webhooks、skills、budget、alerts
+- `D.rc — Runtime Core`: chat、approval、canvas / A2UI、sessions、logs、execution monitor、onboarding
+- `D.cc — Config & Control`: agents、config editor、channels、routing / session-channel、dynamic commands、models hub、settings
+- `D.oa — Observe & Automate`: usage、activity、cron、webhooks、skills、budget、alerts
 
 ### Track E: Replacement Validation
 
-目标：建立“是否可替代”的全局 gate。
+目标：建立”是否可替代”的持续验证体系（不是终末 gate，而是每 phase 的增量验证）。
 
 包含：
 
-- capability matrix
-- closure checklist
-- browser functional test
-- representative workflow validation
+- capability matrix（Phase 1 建立方法族清单，后续每 phase 更新覆盖状态）
+- closure checklist（每 phase gate 时验证该 phase 范围内的模块）
+- representative workflow validation（Phase 2+ 每个 runtime 模块至少一条）
+- browser functional test（Phase 5 最终验收）
 - 合流到 `enhanced` 的阶段门
 
 ## 3. Recommended Phase Order
@@ -114,6 +115,11 @@ Deck 的目标不是复刻官方 Web UI，而是构建一个以 **Gateway 能力
 
 - 至少能支持多个模块共用同一 transport / replay / projection 模型
 
+Phase 1 gate 增量验证：
+- Gateway 方法族清单已建立
+- typed client 可被至少 2 个模块共用
+- 共享 list/form infra 有使用示例
+
 ### Phase 2: Runtime Core
 
 优先模块：
@@ -127,6 +133,10 @@ Deck 的目标不是复刻官方 Web UI，而是构建一个以 **Gateway 能力
 输出标准：
 
 - 历史态 / 实时态 / 刷新 / 重连的一致性有清晰模型与验证
+
+Phase 2 gate 增量验证：
+- 每个 runtime-core 模块至少一条 representative workflow validation
+- closure checklist 9 项中至少 7 项达标
 
 ### Phase 3: Config & Control
 
@@ -160,9 +170,11 @@ Deck 的目标不是复刻官方 Web UI，而是构建一个以 **Gateway 能力
 
 ### Phase 5: Replacement Gate
 
-- workflow validation
-- browser functional test
-- capability coverage review
+Phase 5 只做前几个 phase 无法覆盖的全局验证：
+
+- 跨模块工作流验证（multi-module workflow validation）
+- browser functional test（end-to-end）
+- capability coverage 最终审查（所有 P0 方法族 Covered，P1 至少 Partial）
 - 稳定合流到 `enhanced`
 
 ## 4. Worktree Strategy
@@ -188,22 +200,23 @@ Deck 的目标不是复刻官方 Web UI，而是构建一个以 **Gateway 能力
 
 ## 5. Definition of Done for Any Module
 
-模块只有满足以下条件，才可视为 replacement-ready：
+模块只有满足以下条件，才可视为 replacement-ready（与 design.md Section 3 对齐）：
 
-1. 明确 Gateway / Deck contract
-2. 有 snapshot / hydrate
-3. 有 runtime sync
-4. 有 replay / reconnect 补偿
-5. 历史态和实时态一致
-6. 刷新后 UI 状态可恢复
-7. 使用共享 loading / error / empty / mutation feedback 模式
-8. 有模块测试和至少一条 workflow validation
+1. **Capability coverage** — 对应 Gateway 方法族已明确覆盖边界
+2. **Authoritative contract** — Deck route / typed client / result model 已明确
+3. **Hydration path** — 冷启动时能获得权威快照
+4. **Runtime sync** — 实时流、后台更新、跨入口修改进入同一真源
+5. **History-live consistency** — 历史态和实时态在相同服务端状态下产生相同 UI
+6. **Recovery** — 刷新、重连、切换历史对象后状态可恢复
+7. **Shared interaction quality** — loading / error / empty / permission / mutation feedback 符合统一标准
+8. **Security and accessibility baseline** — XSS/CSRF 防护、键盘可达、首屏性能 budget
+9. **Validation** — 有契约验证、模块测试和至少一条工作流验证
 
 ## 6. How to Classify Existing Changes
 
 建议从今天开始，所有现有与新增 Deck change 都带上以下 program 维度：
 
-- `Track`: A/B/C/D/E 之一
+- `Track`: A/B/C/D.rc/D.cc/D.oa/E 之一（primary track）
 - `Phase`: 0-5
 - `Priority`: P0/P1/P2
 - `Dependency`: 依赖哪些平台能力
@@ -211,9 +224,16 @@ Deck 的目标不是复刻官方 Web UI，而是构建一个以 **Gateway 能力
 
 这几个维度不必全部回写到旧 proposal 中，但至少要出现在 program matrix 中。
 
-## 7. Immediate Next Steps
+## 7. Per-Session Workflow
 
-1. 固化 `deck-web-replacement-program` master change
-2. 建立初版 capability / closure matrix
-3. 把现有 `deck-*` changes 归入上述 tracks
+后续工作按 `docs/plans/2026-04-03-deck-program-driven-workflow.md` 定义的 program-driven 开发流程执行。
+
+核心路由：已有充分设计的项直接写 plan（Path A）；proposal 需升级的走 Path B；全新系统能力走完整 brainstorm → openspec → plan 流程（Path C）。
+
+## 8. Immediate Next Steps
+
+1. ~~固化 `deck-web-replacement-program` master change~~ (done)
+2. ~~建立初版 capability / closure matrix~~ (done, revised)
+3. ~~把现有 `deck-*` changes 归入上述 tracks~~ (done in matrix)
 4. 从 `platform-kernel` worktree 开始推进 Track A / B / C 的前置基础设施
+5. Phase 1 第一个交付物：建立 Gateway 方法族覆盖清单

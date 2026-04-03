@@ -19,6 +19,11 @@ Deck modules SHALL NOT be considered complete merely because a page exists or an
 - **WHEN** a module reaches replacement-ready status
 - **THEN** it SHALL use the program's shared loading, error, empty, permission, and mutation feedback patterns
 
+#### Scenario: Module meets security and accessibility baseline
+
+- **WHEN** a module reaches replacement-ready status
+- **THEN** it SHALL demonstrate XSS/CSRF protection for user-facing inputs, keyboard navigability for primary actions, and first-paint performance within the project baseline budget
+
 ### Requirement: Runtime-critical modules SHALL be prioritized ahead of peripheral modules
 
 Deck replacement work SHALL prioritize modules with the highest runtime state complexity and trust requirements ahead of peripheral management pages.

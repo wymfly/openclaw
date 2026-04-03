@@ -44,7 +44,7 @@ Deck 后续工作由 5 条主轨组成：
    统一 session-scoped state、snapshot/hydrate、history/live merge、canvas/approval/runtime meta 恢复
 3. **UI Framework**
    统一 shell、master-detail、shared list infra、schema-driven form/table、commands surface、loading/error/empty patterns
-4. **Domain Modules**
+4. **Domain Modules**（含三个子波次：`Runtime Core`、`Config & Control`、`Observe & Automate`）
    将具体业务模块按优先级逐步迁移到平台骨架上
 5. **Replacement Validation**
    用 capability matrix、workflow validation、phase gate 和 browser functional tests 来判断“是否可替代”
@@ -74,7 +74,18 @@ Deck 后续工作由 5 条主轨组成：
 - token/header 注入
 - stream 转发
 - 文件上传
-- 浏览器端聚合查询入口
+- 浏览器端聚合查询入口（仅当聚合逻辑是浏览器专属的视图拼接；一旦该聚合逻辑被第二个消费方依赖，应晋升为 Gateway method）
+
+#### Deck Server Persistence
+
+当问题是服务端侧的 projection 持久化、事件缓存或离线恢复时，归属 Deck server 持久层：
+
+- SQLite projection store（deck.db）
+- EventBus / outbox
+- approval-bridge projection
+- session snapshot cache
+
+原则：Deck server 持久层是 projection 的存储后端，不存储 Gateway 的权威业务数据。Gateway 是唯一的业务数据真源。
 
 #### Projection / Client State
 
@@ -85,7 +96,7 @@ Deck 后续工作由 5 条主轨组成：
 - canvas / A2UI UI state
 - workflow-oriented derived state
 
-原则是：**业务语义不留在组件里，恢复语义不留在 iframe 里，浏览器适配问题不反向污染 Gateway。**
+原则是：**业务语义不留在组件里，恢复语义不留在 iframe 里，浏览器适配问题不反向污染 Gateway，projection store 不存储权威业务数据。**
 
 ### 3. 模块不是按页面完成，而是按闭环完成
 
@@ -99,14 +110,18 @@ Deck 后续工作由 5 条主轨组成：
    冷启动或打开模块时能够获得权威快照
 4. **Runtime sync**
    实时流、后台更新、跨入口修改都能进入同一真源
-5. **Recovery**
+5. **History-live consistency**
+   历史态和实时态在相同服务端状态下产生相同 UI 状态
+6. **Recovery**
    刷新、重连、切换历史对象后，状态能够恢复且与实时态一致
-6. **Shared interaction quality**
+7. **Shared interaction quality**
    loading / error / empty / permission / action feedback 符合 Deck 统一交互标准
-7. **Validation**
+8. **Security and accessibility baseline**
+   XSS/CSRF 防护、键盘可达性、首屏性能 budget 符合项目基线
+9. **Validation**
    有契约验证、模块测试和至少一条工作流验证
 
-这意味着“页面能打开”“功能能点”都不再等于“模块完成”。
+这意味着”页面能打开””功能能点”都不再等于”模块完成”。
 
 ### 4. 轨道与阶段
 
@@ -183,8 +198,16 @@ Deck 后续工作由 5 条主轨组成：
 - `deck-chat-flow-closure`、`session-scoped-state` → `Session Runtime`
 - `deck-shared-list-infra`、`schema-driven-ui-architecture` → `UI Framework`
 - `gateway-protocol-sdk`、相关 typed client 工作 → `Core Platform`
-- `deck-agent-config-enhancement`、`deck-channel-config-framework`、`deck-config-editor-enhancement`、`deck-dynamic-commands` → `Config & Control`
-- `deck-usage-panel-rebuild`、`deck-sessions-logs-hardening`、`deck-execution-monitor` → `Runtime Core` / `Observe & Automate`
+- `deck-agent-config-enhancement`、`deck-channel-config-framework`、`deck-config-editor-enhancement`、`deck-dynamic-commands` → `Domain Modules > Config & Control`
+- `deck-usage-panel-rebuild` → `Domain Modules > Observe & Automate`
+- `deck-sessions-logs-hardening`、`deck-execution-monitor` → `Domain Modules > Runtime Core`
+- `deck-chat-ux-enhancement` → `Domain Modules > Runtime Core`
+- `deck-agent-routing-observability`、`deck-agent-workspace` → `Domain Modules > Config & Control`
+- `deck-chat-whitebox` → `Domain Modules > Runtime Core`
+- `deck-config-enhancement` → `Domain Modules > Config & Control`
+- `deck-slash-command-coherence` → `Domain Modules > Config & Control`
+
+注意：一个 change 可以跨多个 track 提供输入（如 `deck-chat-flow-closure` 同时为 `Session Runtime` 和 `Domain Modules > Runtime Core` 提供样板），但其主归属（primary track）只有一个。
 
 总纲不会替代这些子 change，但会约束它们如何排序与如何验收。
 
@@ -216,9 +239,24 @@ Deck 后续工作由 5 条主轨组成：
 
 ### D5: 总纲 change 不直接承担实现
 
-**选择**：master change 负责路线、边界、依赖、矩阵与 gate，不直接承载模块实现。
+**选择**：master change 负责路线、边界、依赖、矩阵与 gate，不直接承载模块实现。master change 的 openspec artifacts 中不得包含 runtime code。
 
 **原因**：否则总纲很快会退化成另一个巨型实现提案，失去治理作用。
+
+### D6: Replacement Validation 是持续门，不是终末门
+
+**选择**：每个 phase 结束时执行该 phase 范围内的增量验证，而不是把所有验证推迟到 Phase 5。
+
+**原因**：如果验证只在最后做，前期积累的问题会在 Phase 5 集中爆发，导致大规模返工。Phase 5 只做跨模块工作流验证和最终覆盖率审查。
+
+### D7: 用户迁移最低护栏
+
+**选择**：允许交互重构，但必须保持以下最低迁移兼容性：
+- 核心功能的 URL path 保持可发现（不要求完全相同，但不能让用户找不到）
+- 术语和概念模型的变更需要在 release notes 中说明
+- 不要求渐进切换（Deck 作为独立产品，不需要与官方 UI 共存）
+
+**原因**：完全不考虑迁移会导致用户在切换时迷失；但过度追求 URL parity 又会约束交互重构的自由度。
 
 ## Risks / Trade-offs
 
@@ -234,6 +272,10 @@ Deck 后续工作由 5 条主轨组成：
 并不是 proposal 早写就先做。
 缓解：使用 capability / closure matrix 说明依赖关系与优先级，而不是按直觉排。
 
-**[替代目标容易被“差不多能用”稀释]**
+**[替代目标容易被”差不多能用”稀释]**
 如果没有统一 gate，模块仍会以半闭环状态被标记完成。
 缓解：将 closure checklist 和 workflow validation 写入 spec，作为明确要求。
+
+**[重构窗口期间用户可见退化]**
+平台重构可能导致部分已有功能暂时不可用。
+缓解：重构在独立 worktree 中进行，只有通过 phase gate 后才合入 `enhanced`；`enhanced` 上的已有功能不因重构而退化。

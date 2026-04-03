@@ -33,6 +33,16 @@ Deck SHALL explicitly separate Gateway business semantics, Deck browser adaptati
 - **WHEN** state exists to restore or reconcile UI behavior across refresh, reconnect, or history replay
 - **THEN** that state SHALL be modeled as Deck projection state instead of being left in local component or iframe memory
 
+#### Scenario: Server-side projection persistence stays in Deck server layer
+
+- **WHEN** the Deck server needs to persist projection snapshots, event caches, or offline recovery data
+- **THEN** that persistence SHALL live in the Deck server persistence layer (e.g., SQLite projection store, EventBus, outbox) and SHALL NOT store authoritative business data that belongs in Gateway
+
+#### Scenario: Deck route aggregation graduates to Gateway when reused
+
+- **WHEN** a Deck route aggregation query is consumed by a second client or module beyond the original browser view
+- **THEN** that aggregation logic SHALL be promoted to a Gateway method with a typed contract
+
 ### Requirement: Shared transport and state models SHALL be reusable across modules
 
 Deck replacement work SHALL converge on reusable transport, stream, replay, projection, and mutation patterns instead of per-module variants.
