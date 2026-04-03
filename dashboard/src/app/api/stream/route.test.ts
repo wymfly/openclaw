@@ -3,12 +3,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const subscribe = vi.fn();
 const unsubscribe = vi.fn();
 const getEventsSince = vi.fn(() => []);
-const storeGetEventsSince = vi.fn<() => Array<{
-  id: number;
-  eventType: string;
-  payload: unknown;
-  createdAt: string;
-}>>(() => []);
+const storeGetEventsSince = vi.fn<
+  () => Array<{
+    id: number;
+    eventType: string;
+    payload: unknown;
+    createdAt: string;
+  }>
+>(() => []);
 const getRuntime = vi.fn<() => unknown>(() => null);
 
 vi.mock("@server/event-bus", () => ({

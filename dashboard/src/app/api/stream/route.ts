@@ -130,9 +130,8 @@ export function GET(request: Request): Response {
 
       // Replay missed events from the durable outbox when available.
       const missed =
-        runtime?.store
-          ?.getEventsSince(lastEventId)
-          .map((entry) => toPersistedReplayEvent(entry)) ?? bus.getEventsSince(lastEventId);
+        runtime?.store?.getEventsSince(lastEventId).map((entry) => toPersistedReplayEvent(entry)) ??
+        bus.getEventsSince(lastEventId);
       for (const event of missed) {
         controller.enqueue(encoder.encode(formatSSE(event)));
       }
