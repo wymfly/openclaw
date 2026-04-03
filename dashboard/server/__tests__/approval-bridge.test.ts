@@ -8,21 +8,34 @@ import type { DeckRuntime } from "../runtime.js";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMockRuntime(eventBus: EventBus): DeckRuntime {
+interface MockRuntime {
+  runtime: DeckRuntime;
+  setProjectionMock: ReturnType<typeof vi.fn>;
+  clearProjectionMock: ReturnType<typeof vi.fn>;
+}
+
+function createMockRuntime(eventBus: EventBus): MockRuntime {
   const projections = new Map<string, Record<string, unknown>>();
+  const getProjection = vi.fn((sessionKey: string) => projections.get(sessionKey) ?? null);
+  const setProjection = vi.fn((sessionKey: string, projection: Record<string, unknown>) => {
+    projections.set(sessionKey, projection);
+  });
+  const clearProjection = vi.fn((sessionKey: string) => projections.delete(sessionKey));
   return {
-    eventBus,
-    adapter: {} as DeckRuntime["adapter"],
-    gw: {} as DeckRuntime["gw"],
-    db: {} as DeckRuntime["db"],
-    store: {
-      getChatSessionProjection: vi.fn((sessionKey: string) => projections.get(sessionKey) ?? null),
-      setChatSessionProjection: vi.fn((sessionKey: string, projection: Record<string, unknown>) => {
-        projections.set(sessionKey, projection);
-      }),
-      clearChatSessionProjection: vi.fn((sessionKey: string) => projections.delete(sessionKey)),
-    } as unknown as DeckRuntime["store"],
-    rateLimiter: {} as DeckRuntime["rateLimiter"],
+    setProjectionMock: setProjection,
+    clearProjectionMock: clearProjection,
+    runtime: {
+      eventBus,
+      adapter: {} as DeckRuntime["adapter"],
+      gw: {} as DeckRuntime["gw"],
+      db: {} as DeckRuntime["db"],
+      store: {
+        getChatSessionProjection: getProjection,
+        setChatSessionProjection: setProjection,
+        clearChatSessionProjection: clearProjection,
+      } as unknown as DeckRuntime["store"],
+      rateLimiter: {} as DeckRuntime["rateLimiter"],
+    },
   };
 }
 
@@ -42,7 +55,7 @@ beforeEach(() => {
 
 describe("initApprovalBridge", () => {
   it("adds pending approval on exec.approval.requested gateway event", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime, setProjectionMock } = createMockRuntime(bus);
     initApprovalBridge(runtime);
 
     const received: ServerEvent[] = [];
@@ -83,7 +96,7 @@ describe("initApprovalBridge", () => {
     const pending = getPendingApprovals();
     expect(pending).toHaveLength(1);
     expect(pending[0].id).toBe("apr-1");
-    expect(runtime.store.setChatSessionProjection).toHaveBeenCalledWith(
+    expect(setProjectionMock).toHaveBeenCalledWith(
       "agent:main:main",
       expect.objectContaining({
         activeApproval: expect.objectContaining({
@@ -96,7 +109,7 @@ describe("initApprovalBridge", () => {
   });
 
   it("removes pending approval on exec.approval.resolved gateway event", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime, clearProjectionMock } = createMockRuntime(bus);
     initApprovalBridge(runtime);
 
     // Add one first
@@ -128,11 +141,11 @@ describe("initApprovalBridge", () => {
 
     expect(resolved).toHaveLength(1);
     expect(getPendingApprovals()).toHaveLength(0);
-    expect(runtime.store.clearChatSessionProjection).toHaveBeenCalledWith("session-2");
+    expect(clearProjectionMock).toHaveBeenCalledWith("session-2");
   });
 
   it("ignores non-approval gateway events", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     initApprovalBridge(runtime);
 
     const received: ServerEvent[] = [];
@@ -153,7 +166,7 @@ describe("initApprovalBridge", () => {
   });
 
   it("does not add duplicates to pending map", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     initApprovalBridge(runtime);
 
     const payload = {
@@ -170,7 +183,7 @@ describe("initApprovalBridge", () => {
   });
 
   it("ignores events with empty id", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     initApprovalBridge(runtime);
 
     bus.broadcast("gateway.event", {
@@ -189,7 +202,7 @@ describe("getPendingApprovals", () => {
   });
 
   it("returns all pending approvals after multiple additions", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     initApprovalBridge(runtime);
 
     for (let i = 1; i <= 3; i++) {
@@ -225,7 +238,7 @@ describe("F7: expiry timer", () => {
   });
 
   it("removes expired entries every 30s", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     const cleanup = initApprovalBridge(runtime);
 
     // Add an already-expired approval
@@ -251,7 +264,7 @@ describe("F7: expiry timer", () => {
   });
 
   it("does NOT remove non-expired entries", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     const cleanup = initApprovalBridge(runtime);
 
     bus.broadcast("gateway.event", {
@@ -278,13 +291,13 @@ describe("F7: expiry timer", () => {
 
 describe("F12: cleanup function", () => {
   it("initApprovalBridge returns a cleanup function", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     const cleanup = initApprovalBridge(runtime);
     expect(typeof cleanup).toBe("function");
   });
 
   it("cleanup unsubscribes from EventBus", () => {
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     const initialCount = bus.subscriberCount;
     const cleanup = initApprovalBridge(runtime);
     expect(bus.subscriberCount).toBe(initialCount + 1);
@@ -294,7 +307,7 @@ describe("F12: cleanup function", () => {
 
   it("cleanup stops expiry timer", () => {
     vi.useFakeTimers();
-    const runtime = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     const cleanup = initApprovalBridge(runtime);
 
     // Add an expired entry

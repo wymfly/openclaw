@@ -40,7 +40,9 @@ const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg"]);
 
 /** Check if a file path points to an image. */
 function isImagePath(filePath: unknown): boolean {
-  if (typeof filePath !== "string") return false;
+  if (typeof filePath !== "string") {
+    return false;
+  }
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
   return IMAGE_EXTENSIONS.has(ext);
 }
@@ -222,10 +224,10 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
       {artifact && <ArtifactCard artifact={artifact} onOpen={onOpenArtifact} />}
       {/* Download button for file write operations */}
       {!isError &&
-        toolInput?.file_path &&
+        typeof toolInput?.file_path === "string" &&
         (viewType === "diff" || isImagePath(toolInput.file_path)) && (
           <a
-            href={`/api/media?path=${encodeURIComponent(String(toolInput.file_path))}&dl=1`}
+            href={`/api/media?path=${encodeURIComponent(toolInput.file_path)}&dl=1`}
             download
             className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 mt-0.5 rounded-md hover:opacity-80 transition-opacity"
             style={{
@@ -234,7 +236,7 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
             }}
           >
             <Download size={10} />
-            {String(toolInput.file_path).split("/").pop()}
+            {toolInput.file_path.split("/").pop()}
           </a>
         )}
     </>

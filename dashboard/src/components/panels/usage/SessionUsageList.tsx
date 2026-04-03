@@ -46,20 +46,29 @@ export function SessionUsageList({ sessions, onNavigateToSession }: SessionUsage
   const expandedKeyRef = useRef<string | null>(null);
 
   // List state with search and pagination
-  const { filteredData, paginatedData, page, totalPages, setPage, filters, setFilters } =
-    useListState<SessionUsageEntry, { search?: string }>({
-      data: sessions,
-      pageSize: 20,
-      filterFn: (item: SessionUsageEntry, f: { search?: string }) => {
-        if (!f.search) return true;
-        const q = f.search.toLowerCase();
-        return (
-          item.key.toLowerCase().includes(q) ||
-          (item.agentId?.toLowerCase().includes(q) ?? false) ||
-          (item.label?.toLowerCase().includes(q) ?? false)
-        );
-      },
-    });
+  const {
+    filteredData,
+    paginatedData,
+    page,
+    totalPages,
+    setPage,
+    filters: _filters,
+    setFilters,
+  } = useListState<SessionUsageEntry, { search?: string }>({
+    data: sessions,
+    pageSize: 20,
+    filterFn: (item: SessionUsageEntry, f: { search?: string }) => {
+      if (!f.search) {
+        return true;
+      }
+      const q = f.search.toLowerCase();
+      return (
+        item.key.toLowerCase().includes(q) ||
+        (item.agentId?.toLowerCase().includes(q) ?? false) ||
+        (item.label?.toLowerCase().includes(q) ?? false)
+      );
+    },
+  });
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -302,7 +311,9 @@ export function SessionUsageList({ sessions, onNavigateToSession }: SessionUsage
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 const start = Math.max(1, Math.min(page - 2, totalPages - 4));
                 const p = start + i;
-                if (p > totalPages) return null;
+                if (p > totalPages) {
+                  return null;
+                }
                 return (
                   <PaginationItem key={p}>
                     <PaginationLink isActive={p === page} onClick={() => setPage(p)}>

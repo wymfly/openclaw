@@ -72,7 +72,7 @@ class StatementAdapter {
   ) {}
 
   run(...params: unknown[]): RunResult {
-    this.db.run(this.sql, params as any[]);
+    this.db.run(this.sql, params as SqlValue[]);
     const changes = this.db.getRowsModified();
     const result = this.db.exec("SELECT last_insert_rowid() AS v");
     const lastInsertRowid = result.length > 0 ? (result[0].values[0][0] as number) : 0;
@@ -81,8 +81,10 @@ class StatementAdapter {
   }
 
   get(...params: unknown[]): Record<string, unknown> | undefined {
-    const results = this.db.exec(this.sql, params as any[]);
-    if (!results.length || !results[0].values.length) return undefined;
+    const results = this.db.exec(this.sql, params as SqlValue[]);
+    if (!results.length || !results[0].values.length) {
+      return undefined;
+    }
     const { columns, values } = results[0];
     const row: Record<string, unknown> = {};
     for (let i = 0; i < columns.length; i++) {
@@ -92,8 +94,10 @@ class StatementAdapter {
   }
 
   all(...params: unknown[]): Array<Record<string, unknown>> {
-    const results = this.db.exec(this.sql, params as any[]);
-    if (!results.length) return [];
+    const results = this.db.exec(this.sql, params as SqlValue[]);
+    if (!results.length) {
+      return [];
+    }
     const { columns, values } = results[0];
     return values.map((row: SqlValue[]) => {
       const obj: Record<string, unknown> = {};
@@ -129,7 +133,9 @@ class DatabaseAdapter {
   pragma(str: string, opts?: { simple?: boolean }): unknown {
     // WAL mode not supported by WASM — silently skip
     if (str.toLowerCase().includes("journal_mode")) {
-      if (opts?.simple) return "memory";
+      if (opts?.simple) {
+        return "memory";
+      }
       return undefined;
     }
     const result = this.db.exec(`PRAGMA ${str}`);
@@ -139,8 +145,8 @@ class DatabaseAdapter {
     return undefined;
   }
 
-  transaction<T extends (...args: any[]) => any>(fn: T): T {
-    const wrapped = ((...args: any[]) => {
+  transaction<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
+    const wrapped = ((...args: A): R => {
       this._inTransaction = true;
       try {
         this.db.run("BEGIN");
@@ -158,7 +164,7 @@ class DatabaseAdapter {
       } finally {
         this._inTransaction = false;
       }
-    }) as unknown as T;
+    }) as (...args: A) => R;
     return wrapped;
   }
 
@@ -169,12 +175,16 @@ class DatabaseAdapter {
 
   /** Save only if not inside a transaction (deferred to commit) */
   private maybeSave(): void {
-    if (!this._inTransaction) this.save();
+    if (!this._inTransaction) {
+      this.save();
+    }
   }
 
   /** Atomic persist: write to tmp then rename */
   private save(): void {
-    if (this.dbPath === ":memory:") return;
+    if (this.dbPath === ":memory:") {
+      return;
+    }
     const data = this.db.export();
     const tmp = this.dbPath + ".tmp";
     fs.writeFileSync(tmp, Buffer.from(data));
@@ -207,7 +217,9 @@ const resolveDefaultDbPath = (): string => {
 
 const parseMigrationVersion = (filename: string): number | null => {
   const match = filename.match(/^(\d+)[_-].+\.sql$/);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   return Number(match[1]);
 };
 
@@ -216,14 +228,18 @@ const parseMigrationVersion = (filename: string): number | null => {
 // ---------------------------------------------------------------------------
 
 function runMigrations(db: DatabaseAdapter): void {
-  if (!fs.existsSync(MIGRATION_DIR)) return;
+  if (!fs.existsSync(MIGRATION_DIR)) {
+    return;
+  }
 
   const files = fs
     .readdirSync(MIGRATION_DIR)
     .filter((f) => parseMigrationVersion(f) !== null)
     .toSorted();
 
-  if (files.length === 0) return;
+  if (files.length === 0) {
+    return;
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_version (
@@ -245,7 +261,9 @@ function runMigrations(db: DatabaseAdapter): void {
 
   for (const file of files) {
     const version = parseMigrationVersion(file)!;
-    if (applied.has(version)) continue;
+    if (applied.has(version)) {
+      continue;
+    }
     const sql = fs.readFileSync(path.join(MIGRATION_DIR, file), "utf-8");
     applyMigration(version, sql);
   }

@@ -20,7 +20,9 @@ export function useListState<T, F extends FilterState = FilterState>(
   const [filters, setFiltersRaw] = useState<F>({} as F);
 
   const filteredData = useMemo(() => {
-    if (!filterFn) return data;
+    if (!filterFn) {
+      return data;
+    }
     return data.filter((item) => filterFn(item, filters));
   }, [data, filterFn, filters]);
 
@@ -28,7 +30,9 @@ export function useListState<T, F extends FilterState = FilterState>(
   const [sort, setSortRaw] = useState<SortState | null>(null);
 
   const sortedData = useMemo(() => {
-    if (!sort) return filteredData;
+    if (!sort) {
+      return filteredData;
+    }
     const sorted = [...filteredData];
     if (sortFn) {
       sorted.sort((a, b) => sortFn(a, b, sort));
@@ -36,9 +40,15 @@ export function useListState<T, F extends FilterState = FilterState>(
       sorted.sort((a, b) => {
         const aVal = (a as Record<string, unknown>)[sort.key];
         const bVal = (b as Record<string, unknown>)[sort.key];
-        if (aVal == null && bVal == null) return 0;
-        if (aVal == null) return 1;
-        if (bVal == null) return -1;
+        if (aVal == null && bVal == null) {
+          return 0;
+        }
+        if (aVal == null) {
+          return 1;
+        }
+        if (bVal == null) {
+          return -1;
+        }
         if (typeof aVal === "string" && typeof bVal === "string") {
           return sort.direction === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         }
@@ -47,8 +57,8 @@ export function useListState<T, F extends FilterState = FilterState>(
           return sort.direction === "asc" ? diff : -diff;
         }
         // Fallback: string comparison for non-numeric types
-        const aStr = String(aVal);
-        const bStr = String(bVal);
+        const aStr = typeof aVal === "string" ? aVal : JSON.stringify(aVal ?? "");
+        const bStr = typeof bVal === "string" ? bVal : JSON.stringify(bVal ?? "");
         return sort.direction === "asc" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
       });
     }
@@ -60,12 +70,16 @@ export function useListState<T, F extends FilterState = FilterState>(
   const [pageSize, setPageSizeRaw] = useState(initialPageSize);
 
   const totalPages = useMemo(() => {
-    if (pageSize <= 0) return 1;
+    if (pageSize <= 0) {
+      return 1;
+    }
     return Math.max(1, Math.ceil(sortedData.length / pageSize));
   }, [sortedData.length, pageSize]);
 
   const paginatedData = useMemo(() => {
-    if (pageSize <= 0) return sortedData;
+    if (pageSize <= 0) {
+      return sortedData;
+    }
     // Clamp page to totalPages when data shrinks externally
     const effectivePage = Math.min(page, totalPages);
     const start = (effectivePage - 1) * pageSize;
@@ -76,12 +90,16 @@ export function useListState<T, F extends FilterState = FilterState>(
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const isAllSelected = useMemo(() => {
-    if (filteredData.length === 0) return false;
+    if (filteredData.length === 0) {
+      return false;
+    }
     return filteredData.every((item) => selectedIds.has(idKey(item)));
   }, [filteredData, selectedIds, idKey]);
 
   const isPartialSelected = useMemo(() => {
-    if (filteredData.length === 0) return false;
+    if (filteredData.length === 0) {
+      return false;
+    }
     const someSelected = filteredData.some((item) => selectedIds.has(idKey(item)));
     return someSelected && !isAllSelected;
   }, [filteredData, selectedIds, isAllSelected, idKey]);
