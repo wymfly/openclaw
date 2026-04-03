@@ -10,6 +10,7 @@ import { createWeComMcpToolFactory } from "./src/capability/mcp/tool.js";
 import { registerWecomMeetingTools } from "./src/capability/meeting/tool.js";
 import { registerWecomTodoTools } from "./src/capability/todo/tool.js";
 import { registerWecomApprovalTools } from "./src/capability/approval/tool.js";
+import { registerWecomExternalContactTools } from "./src/capability/external-contact/tool.js";
 import { wecomPlugin } from "./src/channel.js";
 import { handleWecomWebhookRequest } from "./src/monitor.js";
 import { setWecomRuntime } from "./src/runtime.js";
@@ -53,6 +54,7 @@ const plugin = {
     registerWecomTodoTools(api);
     // P2 — Approval (self-developed)
     registerWecomApprovalTools(api);
+    registerWecomExternalContactTools(api);
   },
 };
 
