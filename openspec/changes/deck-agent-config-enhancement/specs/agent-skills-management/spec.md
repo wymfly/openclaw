@@ -1,12 +1,12 @@
 ## ADDED Requirements
 
-### Requirement: Skill install dialog supports local and ClawHub installation
+### Requirement: Skill install dialog supports install options and ClawHub installation
 
-SkillsTab SHALL 提供 "安装技能" 按钮，打开 Dialog 支持两种安装方式：本地路径输入和 ClawHub slug 输入。
+SkillsTab SHALL 提供 "安装技能" 按钮，打开 Dialog 支持两种安装方式：基于 `skills.status` install metadata 的 install option 选择，以及 ClawHub slug 输入。
 
-#### Scenario: Install local skill
+#### Scenario: Install managed skill from install options
 
-- **WHEN** 用户在 Dialog 中选择 "本地" tab，输入路径 "/path/to/skill"，点击安装
+- **WHEN** 用户在 Dialog 中选择 install options tab，点击某个技能的 install option
 - **THEN** SHALL 调用 `skills.install` API（传入 name 和 installId），显示安装进度和结果（stdout/stderr）
 
 #### Scenario: Install ClawHub skill

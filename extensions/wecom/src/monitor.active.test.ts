@@ -1,4 +1,3 @@
-import * as crypto from "node:crypto";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Socket } from "node:net";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -8,8 +7,10 @@ import {
   handleWecomWebhookRequest,
   registerWecomWebhookTarget,
 } from "./monitor.js";
+import { monitorState } from "./monitor/state.js";
 import * as runtime from "./runtime.js";
 import * as agentApi from "./transport/agent-api/core.js";
+import type { ResolvedBotAccount } from "./types/index.js";
 
 const { undiciFetch } = vi.hoisted(() => {
   const undiciFetch = vi.fn();
@@ -47,6 +48,22 @@ function createMockResponse(): ServerResponse {
   return res;
 }
 
+function createBotAccount(validKey: string): ResolvedBotAccount {
+  return {
+    accountId: "default",
+    configured: true,
+    primaryTransport: "webhook",
+    wsConfigured: false,
+    webhookConfigured: true,
+    config: {} as any,
+    token: "T",
+    encodingAESKey: validKey,
+    receiveId: "R",
+    botId: "",
+    secret: "",
+  };
+}
+
 describe("Monitor Active Features", () => {
   let capturedDeliver: ((payload: { text: string }) => Promise<void>) | undefined;
   let unregisterTarget: (() => void) | undefined;
@@ -65,11 +82,6 @@ describe("Monitor Active Features", () => {
     msgSeq += 1;
     senderUserId = `zhangsan-${msgSeq}`;
     senderChatId = `wr123-${msgSeq}`;
-
-    // Spy on crypto.randomBytes (default export in monitor.ts usage)
-    vi.spyOn(crypto.default, "randomBytes").mockImplementation((size) => {
-      return Buffer.alloc(size, 0x11);
-    });
 
     // Mock Crypto Helpers
     // Wespy on verifyWecomSignature to always pass
@@ -129,14 +141,7 @@ describe("Monitor Active Features", () => {
     vi.spyOn(runtime, "getWecomRuntime").mockReturnValue(mockCore);
 
     unregisterTarget = registerWecomWebhookTarget({
-      account: {
-        accountId: "default",
-        configured: true,
-        token: "T",
-        encodingAESKey: validKey,
-        receiveId: "R",
-        config: {} as any,
-      },
+      account: createBotAccount(validKey),
       config: {
         channels: {
           wecom: {
@@ -198,18 +203,19 @@ describe("Monitor Active Features", () => {
 
     await handleWecomWebhookRequest(req, res);
 
-    const streamId = Buffer.alloc(16, 0x11).toString("hex");
+    const streamId = monitorState.streamStore.getStreamByMsgId(`test-msg-id-${msgSeq}`);
+    expect(streamId).toBeDefined();
 
     undiciFetch.mockResolvedValue(new Response("ok", { status: 200 }));
-    const sendPromise = sendActiveMessage(streamId, "Active Hello");
+    const sendPromise = sendActiveMessage(streamId!, "Active Hello");
     await vi.advanceTimersByTimeAsync(1500);
     await sendPromise;
 
     expect(undiciFetch).toHaveBeenCalled();
-    const activeCall = undiciFetch.mock.calls.find(
-      ([, init]: [string, RequestInit]) =>
-        typeof init?.body === "string" && init.body.includes('"msgtype":"text"'),
-    );
+    const activeCall = undiciFetch.mock.calls.find((call) => {
+      const init = call[1] as RequestInit | undefined;
+      return typeof init?.body === "string" && init.body.includes('"msgtype":"text"');
+    });
     expect(activeCall).toBeDefined();
     const [url, init] = activeCall as [string, RequestInit];
     expect(url).toBe("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test-key");

@@ -14,6 +14,14 @@ import { createQuotaTracker } from "./quota-tracker.js";
 import { applyWecomReasoningPolicy } from "./reasoning-visibility.js";
 import { createReqIdStore } from "./reqid-store.js";
 
+type CompatResult = ReturnType<typeof applyFlatKeyCompat> & {
+  bot?: {
+    ws?: { botId?: string; secret?: string };
+    dm?: { policy?: string };
+  };
+  dynamicAgents?: { groupEnabled?: boolean };
+};
+
 describe("enhanced pipeline integration", () => {
   let tmpDir: string;
 
@@ -33,7 +41,7 @@ describe("enhanced pipeline integration", () => {
       dmPolicy: "open",
       groupPolicy: "open",
     };
-    const nestedConfig = applyFlatKeyCompat(flatConfig);
+    const nestedConfig = applyFlatKeyCompat(flatConfig) as CompatResult;
     expect(nestedConfig.bot?.ws?.botId).toBe("bot-123");
     expect(nestedConfig.bot?.dm?.policy).toBe("open");
     expect(nestedConfig.dynamicAgents?.groupEnabled).toBe(true);
@@ -154,7 +162,7 @@ describe("enhanced pipeline integration", () => {
         dm: { policy: "allowlist" as const },
       },
     };
-    const result = applyFlatKeyCompat(mixed);
+    const result = applyFlatKeyCompat(mixed) as CompatResult;
     // Nested takes precedence
     expect(result.bot?.ws?.botId).toBe("nested-bot");
     expect(result.bot?.ws?.secret).toBe("nested-secret");

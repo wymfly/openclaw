@@ -13,6 +13,26 @@ interface SkillConfigEditorProps {
   onSaved: () => void;
 }
 
+export function buildSkillConfigPatch(
+  apiKey: string,
+  envPairs: Array<{ key: string; value: string }>,
+): {
+  apiKey: string;
+  env: Record<string, string>;
+} {
+  const env: Record<string, string> = {};
+  for (const pair of envPairs) {
+    if (pair.key.trim()) {
+      env[pair.key.trim()] = pair.value;
+    }
+  }
+
+  return {
+    apiKey,
+    env,
+  };
+}
+
 export function SkillConfigEditor({
   skillKey,
   initialApiKey,
@@ -44,34 +64,24 @@ export function SkillConfigEditor({
     setSaving(true);
     setSaveError(null);
     try {
-      const env: Record<string, string> = {};
-      for (const pair of envPairs) {
-        if (pair.key.trim()) {
-          env[pair.key.trim()] = pair.value;
-        }
-      }
-
       const res = await fetch(`/api/skills/${encodeURIComponent(skillKey)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(apiKey ? { apiKey } : {}),
-          ...(Object.keys(env).length > 0 ? { env } : {}),
-        }),
+        body: JSON.stringify(buildSkillConfigPatch(apiKey, envPairs)),
       });
 
       if (res.ok) {
         onSaved();
       } else {
-        const d = await res.json().catch(() => ({ error: "Save failed" }));
-        setSaveError((d as { error?: string }).error ?? "Save failed");
+        const d = await res.json().catch(() => ({ error: t("saveFailed") }));
+        setSaveError((d as { error?: string }).error ?? t("saveFailed"));
       }
     } catch {
-      setSaveError("Network error");
+      setSaveError(t("saveFailed"));
     } finally {
       setSaving(false);
     }
-  }, [skillKey, apiKey, envPairs, onSaved]);
+  }, [skillKey, apiKey, envPairs, onSaved, t]);
 
   return (
     <div className="space-y-3 p-3 rounded border border-[var(--border-subtle)] bg-[var(--background)]">

@@ -9,6 +9,7 @@ import {
 } from "./crypto.js";
 import { handleWecomWebhookRequest, registerWecomWebhookTarget } from "./monitor.js";
 import * as runtime from "./runtime.js";
+import type { ResolvedBotAccount } from "./types/index.js";
 
 const { undiciFetch } = vi.hoisted(() => {
   const undiciFetch = vi.fn();
@@ -66,7 +67,6 @@ describe("Monitor Integration: Inbound Image", () => {
   let unregisterTarget: (() => void) | null = null;
 
   // Mock Core Runtime
-  const mockDeliver = vi.fn();
   const mockCore = {
     channel: {
       routing: {
@@ -105,20 +105,28 @@ describe("Monitor Integration: Inbound Image", () => {
     logging: { shouldLogVerbose: () => true },
   };
 
+  function createBotAccount(): ResolvedBotAccount {
+    return {
+      accountId: "test-acc",
+      configured: true,
+      primaryTransport: "webhook",
+      wsConfigured: false,
+      webhookConfigured: true,
+      config: {} as any,
+      token,
+      encodingAESKey,
+      receiveId,
+      botId: "",
+      secret: "",
+    };
+  }
+
   beforeEach(() => {
     vi.spyOn(runtime, "getWecomRuntime").mockReturnValue(mockCore as any);
 
     unregisterTarget?.();
     unregisterTarget = registerWecomWebhookTarget({
-      account: {
-        accountId: "test-acc",
-        name: "Test",
-        configured: true,
-        token,
-        encodingAESKey,
-        receiveId,
-        config: {} as any,
-      },
+      account: createBotAccount(),
       config: {} as any,
       runtime: { log: console.log, error: console.error },
       core: mockCore as any,
