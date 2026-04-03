@@ -9,12 +9,19 @@ import type { DeckRuntime } from "../runtime.js";
 // ---------------------------------------------------------------------------
 
 function createMockRuntime(eventBus: EventBus): DeckRuntime {
+  const projections = new Map<string, Record<string, unknown>>();
   return {
     eventBus,
     adapter: {} as DeckRuntime["adapter"],
     gw: {} as DeckRuntime["gw"],
     db: {} as DeckRuntime["db"],
-    store: {} as DeckRuntime["store"],
+    store: {
+      getChatSessionProjection: vi.fn((sessionKey: string) => projections.get(sessionKey) ?? null),
+      setChatSessionProjection: vi.fn((sessionKey: string, projection: Record<string, unknown>) => {
+        projections.set(sessionKey, projection);
+      }),
+      clearChatSessionProjection: vi.fn((sessionKey: string) => projections.delete(sessionKey)),
+    } as unknown as DeckRuntime["store"],
     rateLimiter: {} as DeckRuntime["rateLimiter"],
   };
 }
@@ -76,6 +83,16 @@ describe("initApprovalBridge", () => {
     const pending = getPendingApprovals();
     expect(pending).toHaveLength(1);
     expect(pending[0].id).toBe("apr-1");
+    expect(runtime.store.setChatSessionProjection).toHaveBeenCalledWith(
+      "agent:main:main",
+      expect.objectContaining({
+        activeApproval: expect.objectContaining({
+          id: "apr-1",
+          toolName: "command",
+          command: "rm -rf /",
+        }),
+      }),
+    );
   });
 
   it("removes pending approval on exec.approval.resolved gateway event", () => {
@@ -88,7 +105,7 @@ describe("initApprovalBridge", () => {
       event: "exec.approval.requested",
       payload: {
         id: "apr-2",
-        request: { command: "echo hello" },
+        request: { command: "echo hello", sessionKey: "session-2" },
         createdAtMs: 1000,
         expiresAtMs: 2000,
       },
@@ -111,6 +128,7 @@ describe("initApprovalBridge", () => {
 
     expect(resolved).toHaveLength(1);
     expect(getPendingApprovals()).toHaveLength(0);
+    expect(runtime.store.clearChatSessionProjection).toHaveBeenCalledWith("session-2");
   });
 
   it("ignores non-approval gateway events", () => {

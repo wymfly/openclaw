@@ -216,10 +216,12 @@ function handleEvent(
       details: JSON.stringify(firedPayload),
     };
 
-    try {
-      store.appendEvent("activity.event", activityPayload);
-    } catch {
-      // Non-critical
+    if (!eventBus.hasReplayStore()) {
+      try {
+        store.appendEvent("activity.event", activityPayload);
+      } catch {
+        // Non-critical
+      }
     }
     eventBus.broadcast("activity.event", activityPayload);
 

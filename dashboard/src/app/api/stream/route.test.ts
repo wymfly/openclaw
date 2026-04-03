@@ -3,7 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const subscribe = vi.fn();
 const unsubscribe = vi.fn();
 const getEventsSince = vi.fn(() => []);
-const getRuntime = vi.fn(() => null);
+const storeGetEventsSince = vi.fn<() => Array<{
+  id: number;
+  eventType: string;
+  payload: unknown;
+  createdAt: string;
+}>>(() => []);
+const getRuntime = vi.fn<() => unknown>(() => null);
 
 vi.mock("@server/event-bus", () => ({
   getEventBus: () => ({
@@ -26,6 +32,8 @@ describe("/api/stream auth", () => {
     unsubscribe.mockReset();
     getEventsSince.mockReset();
     getEventsSince.mockReturnValue([]);
+    storeGetEventsSince.mockReset();
+    storeGetEventsSince.mockReturnValue([]);
     getRuntime.mockReset();
     getRuntime.mockReturnValue(null);
     if (originalToken === undefined) {
@@ -66,5 +74,41 @@ describe("/api/stream auth", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toContain("text/event-stream");
+  });
+
+  it("replays missed events from the persistent outbox when runtime storage is available", async () => {
+    delete process.env.DECK_ACCESS_TOKEN;
+    storeGetEventsSince.mockReturnValue([
+      {
+        id: 41,
+        eventType: "chat",
+        payload: { state: "final", sessionKey: "session-1" },
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    getRuntime.mockReturnValue({
+      store: {
+        getEventsSince: storeGetEventsSince,
+      },
+    });
+
+    const { GET } = await import("./route.js");
+    const response = GET(
+      new Request("http://localhost/api/stream", {
+        headers: { "Last-Event-ID": "40" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const reader = response.body?.getReader();
+    expect(reader).toBeTruthy();
+    const first = await reader?.read();
+    await reader?.cancel();
+
+    const chunk = new TextDecoder().decode(first?.value);
+    expect(storeGetEventsSince).toHaveBeenCalledWith(40);
+    expect(getEventsSince).not.toHaveBeenCalled();
+    expect(chunk).toContain("id: 41");
+    expect(chunk).toContain("event: chat");
   });
 });

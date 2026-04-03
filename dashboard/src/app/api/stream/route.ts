@@ -1,6 +1,6 @@
 import { validateRequest, type AccessGateDb } from "@server/access-gate";
 import { getEventBus } from "@server/event-bus";
-import type { ServerEvent, ServerEventSubscriber } from "@server/event-bus";
+import type { DeckEventType, ServerEvent, ServerEventSubscriber } from "@server/event-bus";
 /**
  * SSE stream endpoint for openclaw-deck.
  *
@@ -53,6 +53,20 @@ function getSSECounter(): SSECounter {
 
 function formatSSE(event: ServerEvent): string {
   return `id: ${event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`;
+}
+
+function toPersistedReplayEvent(entry: {
+  id: number;
+  eventType: string;
+  payload: unknown;
+  createdAt: string;
+}): ServerEvent {
+  return {
+    id: entry.id,
+    type: entry.eventType as DeckEventType,
+    data: entry.payload,
+    timestamp: new Date(entry.createdAt).getTime(),
+  };
 }
 
 function extractAuthHeaders(request: Request): Record<string, string | undefined> {
@@ -114,8 +128,11 @@ export function GET(request: Request): Response {
         }
       };
 
-      // Replay missed events from the buffer.
-      const missed = bus.getEventsSince(lastEventId);
+      // Replay missed events from the durable outbox when available.
+      const missed =
+        runtime?.store
+          ?.getEventsSince(lastEventId)
+          .map((entry) => toPersistedReplayEvent(entry)) ?? bus.getEventsSince(lastEventId);
       for (const event of missed) {
         controller.enqueue(encoder.encode(formatSSE(event)));
       }

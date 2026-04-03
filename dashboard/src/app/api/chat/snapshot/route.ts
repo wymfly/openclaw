@@ -71,6 +71,12 @@ export const GET = withAuth(async (request: NextRequest) => {
     const pendingApproval =
       getPendingApprovals().find((approval) => approval.sessionKey === sessionKey) ?? null;
     const projection = runtime.store.getChatSessionProjection(sessionKey);
+    const projectedApproval =
+      projection?.activeApproval &&
+      typeof projection.activeApproval === "object" &&
+      typeof projection.activeApproval.id === "string"
+        ? projection.activeApproval
+        : null;
 
     return NextResponse.json({
       messages,
@@ -82,7 +88,7 @@ export const GET = withAuth(async (request: NextRequest) => {
             command: pendingApproval.command,
             description: pendingApproval.cwd,
           }
-        : null,
+        : projectedApproval,
       a2uiState: projection?.a2uiState ?? null,
     });
   } catch (err) {

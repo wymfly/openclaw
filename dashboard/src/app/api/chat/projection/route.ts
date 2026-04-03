@@ -24,10 +24,21 @@ export const POST = withAuth(async (request: NextRequest) => {
     return NextResponse.json({ error: "a2uiState is required" }, { status: 400 });
   }
 
+  const current = store.getChatSessionProjection(sessionKey) ?? {};
+
   if (body.a2uiState == null) {
-    store.clearChatSessionProjection(sessionKey);
+    const next = {
+      ...current,
+      a2uiState: null,
+    };
+    if (next.activeApproval == null) {
+      store.clearChatSessionProjection(sessionKey);
+    } else {
+      store.setChatSessionProjection(sessionKey, next);
+    }
   } else {
     store.setChatSessionProjection(sessionKey, {
+      ...current,
       a2uiState: body.a2uiState,
     });
   }

@@ -50,6 +50,8 @@ const mockEventBus = {
   subscribe: vi.fn(),
   unsubscribe: vi.fn(),
   getEventsSince: vi.fn().mockReturnValue([]),
+  setReplayStore: vi.fn(),
+  hasReplayStore: vi.fn(() => true),
   subscriberCount: 0,
 };
 vi.mock("../event-bus.js", () => ({
