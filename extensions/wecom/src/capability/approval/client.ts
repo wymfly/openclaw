@@ -126,7 +126,7 @@ export class WecomApprovalClient {
       cursor?: number;
       size?: number;
     },
-  ): Promise<{ raw: any; sp_no_list: string[] }> {
+  ): Promise<{ raw: any; sp_no_list: string[]; next_cursor?: number }> {
     const startTime = readString(params.start_time);
     const endTime = readString(params.end_time);
     if (!startTime) throw new Error("start_time required");
@@ -150,7 +150,11 @@ export class WecomApprovalClient {
     });
 
     const spNoList = Array.isArray(json.sp_no_list) ? (json.sp_no_list as string[]) : [];
-    return { raw: json, sp_no_list: spNoList };
+    return {
+      raw: json,
+      sp_no_list: spNoList,
+      next_cursor: typeof json.new_next_cursor === "number" ? json.new_next_cursor : undefined,
+    };
   }
 
   async getDetail(
