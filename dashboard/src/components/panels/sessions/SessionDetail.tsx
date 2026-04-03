@@ -124,7 +124,9 @@ export function SessionDetail() {
   const handlePatch = useCallback(
     async (patch: Parameters<typeof patchSession>[1]) => {
       setPatchError(null);
-      if (!selectedKey) return;
+      if (!selectedKey) {
+        return;
+      }
       const ok = await patchSession(selectedKey, patch);
       if (!ok) {
         setPatchError(t("patchFailed"));

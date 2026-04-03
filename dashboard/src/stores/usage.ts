@@ -199,7 +199,9 @@ export const useUsageStore = create<UsageState>((set, get) => ({
   _abortController: null,
 
   setTimeWindow: (timeWindow) => {
-    if (timeWindow === "custom") return;
+    if (timeWindow === "custom") {
+      return;
+    }
     const days = TIME_WINDOW_DAYS[timeWindow];
     set({
       timeWindow,
@@ -251,7 +253,9 @@ export const useUsageStore = create<UsageState>((set, get) => ({
         set({ costLoading: false });
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
       set({ costLoading: false });
     }
 
@@ -272,7 +276,9 @@ export const useUsageStore = create<UsageState>((set, get) => ({
       const sessData = (await sessRes.json()) as SessionsUsageResult;
       set({ sessionsUsage: sessData, sessionsLoading: false });
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
       set({
         error: err instanceof Error ? err.message : "Failed to fetch usage",
         sessionsLoading: false,
@@ -282,7 +288,9 @@ export const useUsageStore = create<UsageState>((set, get) => ({
 
   fetchSessionLogs: async (key) => {
     const res = await fetch(`/api/usage/sessions/logs?key=${encodeURIComponent(key)}`);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      return [];
+    }
     const data = (await res.json()) as { logs: SessionLogEntry[] };
     return data.logs ?? [];
   },

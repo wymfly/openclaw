@@ -38,10 +38,12 @@ export function ChannelSchemaSettings({ channelId, schemaInfo }: ChannelSchemaSe
 
   // Sort fields by order hint, then key
   const sortedFields = useMemo(() => {
-    return [...fields].sort((a, b) => {
+    return [...fields].toSorted((a, b) => {
       const orderA = a.order ?? 999;
       const orderB = b.order ?? 999;
-      if (orderA !== orderB) return orderA - orderB;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
       return a.key.localeCompare(b.key);
     });
   }, [fields]);
@@ -54,7 +56,7 @@ export function ChannelSchemaSettings({ channelId, schemaInfo }: ChannelSchemaSe
 
   // Sync store config → local values
   useEffect(() => {
-    const cfg = (channelConfig ?? {}) as Record<string, unknown>;
+    const cfg = channelConfig ?? {};
     setValues({ ...cfg });
     setInitialValues({ ...cfg });
     setDirty(false);
@@ -103,7 +105,9 @@ export function ChannelSchemaSettings({ channelId, schemaInfo }: ChannelSchemaSe
   }, [fields, values]);
 
   const handleSave = useCallback(async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      return;
+    }
     setSaving(true);
     try {
       const ok = await saveChannelConfig(channelId, values);

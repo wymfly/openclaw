@@ -11,7 +11,9 @@ import { useSessionsStore } from "@/stores/sessions";
  */
 export function useSessionEvents(eventSource: EventSource | null): void {
   useEffect(() => {
-    if (!eventSource) return;
+    if (!eventSource) {
+      return;
+    }
     const handler = (e: MessageEvent) => {
       try {
         const payload = JSON.parse(e.data) as Record<string, unknown>;

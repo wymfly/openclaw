@@ -97,7 +97,9 @@ function seedAlwaysSync(src, dst) {
 function mergePluginsConfig(targetDir) {
   const pluginsFile = path.join(SEED_DIR, "plugins-config.json");
   const configFile = path.join(targetDir, "openclaw.json");
-  if (!fs.existsSync(pluginsFile) || !fs.existsSync(configFile)) return;
+  if (!fs.existsSync(pluginsFile) || !fs.existsSync(configFile)) {
+    return;
+  }
   try {
     const cfg = JSON.parse(fs.readFileSync(configFile, "utf-8"));
     const plugins = JSON.parse(fs.readFileSync(pluginsFile, "utf-8"));

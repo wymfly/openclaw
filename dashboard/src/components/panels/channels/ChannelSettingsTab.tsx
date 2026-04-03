@@ -75,9 +75,11 @@ function LegacyChannelSettings({ channelId }: { channelId: string }) {
   }, [channelId, fetchChannelConfig]);
 
   useEffect(() => {
-    if (!channelConfig) return;
+    if (!channelConfig) {
+      return;
+    }
 
-    const cfg = channelConfig as Record<string, unknown>;
+    const cfg = channelConfig;
     const policy = typeof cfg.dmPolicy === "string" ? cfg.dmPolicy : "pairing";
     const retryObj = (cfg.retry ?? {}) as Record<string, unknown>;
 
@@ -120,7 +122,9 @@ function LegacyChannelSettings({ channelId }: { channelId: string }) {
         jitter: retry.jitter,
       };
     }
-    if (Object.keys(patch).length === 0) return;
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
 
     setSaving(true);
     try {

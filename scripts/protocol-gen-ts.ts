@@ -281,7 +281,7 @@ function generateClient(): string {
 
   // Allowlist of ALL known methods (including untyped)
   lines.push("export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([");
-  for (const m of [...allMethodNames].sort()) {
+  for (const m of [...allMethodNames].toSorted()) {
     lines.push(`  "${m}",`);
   }
   lines.push("]);");
@@ -289,7 +289,7 @@ function generateClient(): string {
 
   // Event names
   lines.push("export const GENERATED_EVENT_NAMES: ReadonlySet<string> = new Set([");
-  for (const e of [...allEventNames].sort()) {
+  for (const e of [...allEventNames].toSorted()) {
     lines.push(`  "${e}",`);
   }
   lines.push("]);");

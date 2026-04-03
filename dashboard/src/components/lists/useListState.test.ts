@@ -28,7 +28,9 @@ describe("useListState — filter", () => {
       useListState({
         data: ITEMS,
         filterFn: (item, filters: { search?: string }) => {
-          if (!filters.search) return true;
+          if (!filters.search) {
+            return true;
+          }
           return item.name.toLowerCase().includes(filters.search.toLowerCase());
         },
       }),
@@ -46,7 +48,9 @@ describe("useListState — filter", () => {
       useListState({
         data: ITEMS,
         filterFn: (item, filters: { search?: string }) => {
-          if (!filters.search) return true;
+          if (!filters.search) {
+            return true;
+          }
           return item.name.toLowerCase().includes(filters.search.toLowerCase());
         },
       }),
@@ -157,7 +161,9 @@ describe("useListState — selection", () => {
       useListState({
         data: ITEMS,
         filterFn: (item, filters: { search?: string }) => {
-          if (!filters.search) return true;
+          if (!filters.search) {
+            return true;
+          }
           return item.name.toLowerCase().includes(filters.search.toLowerCase());
         },
       }),
@@ -185,7 +191,9 @@ describe("useListState — auto-reset", () => {
         data: ITEMS,
         pageSize: 2,
         filterFn: (item, filters: { search?: string }) => {
-          if (!filters.search) return true;
+          if (!filters.search) {
+            return true;
+          }
           return item.name.toLowerCase().includes(filters.search.toLowerCase());
         },
       }),
@@ -203,7 +211,9 @@ describe("useListState — auto-reset", () => {
       useListState({
         data: ITEMS,
         filterFn: (item, filters: { search?: string }) => {
-          if (!filters.search) return true;
+          if (!filters.search) {
+            return true;
+          }
           return item.name.toLowerCase().includes(filters.search.toLowerCase());
         },
       }),
@@ -258,7 +268,9 @@ describe("useListState — edge cases", () => {
       useListState({
         data: ITEMS,
         filterFn: (item, filters: { search?: string }) => {
-          if (!filters.search) return true;
+          if (!filters.search) {
+            return true;
+          }
           return item.name.toLowerCase().includes(filters.search.toLowerCase());
         },
       }),

@@ -97,7 +97,9 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
   const [dimension, setDimension] = useState<Dimension>("model");
 
   const rows = useMemo(() => {
-    if (!aggregates || !totals) return [];
+    if (!aggregates || !totals) {
+      return [];
+    }
     return buildRows(aggregates, dimension, totals.totalCost);
   }, [aggregates, totals, dimension]);
 
@@ -272,7 +274,9 @@ export function BreakdownTable({ aggregates, totals }: BreakdownTableProps) {
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 const start = Math.max(1, Math.min(page - 2, totalPages - 4));
                 const p = start + i;
-                if (p > totalPages) return null;
+                if (p > totalPages) {
+                  return null;
+                }
                 return (
                   <PaginationItem key={p}>
                     <PaginationLink isActive={p === page} onClick={() => setPage(p)}>

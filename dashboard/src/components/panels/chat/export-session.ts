@@ -7,7 +7,9 @@ import { getTextContent, getToolUseBlocks, getToolResultBlocks } from "@/stores/
 export function exportSessionAsMarkdown(sessionKey: string): void {
   const state = useChatStore.getState();
   const session = state.sessions.get(sessionKey);
-  if (!session) return;
+  if (!session) {
+    return;
+  }
 
   const lines: string[] = [`# Session Export\n`];
 
@@ -17,7 +19,9 @@ export function exportSessionAsMarkdown(sessionKey: string): void {
     lines.push(`## ${roleLabel}\n`);
 
     const text = getTextContent(msg);
-    if (text) lines.push(text + "\n");
+    if (text) {
+      lines.push(text + "\n");
+    }
 
     const toolUses = getToolUseBlocks(msg);
     for (const tu of toolUses) {

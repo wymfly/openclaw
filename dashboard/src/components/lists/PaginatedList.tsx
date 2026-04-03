@@ -115,7 +115,9 @@ function ButtonPagination({
           <PaginationPrevious
             onClick={(e) => {
               e.preventDefault();
-              if (page > 1) onPageChange(page - 1);
+              if (page > 1) {
+                onPageChange(page - 1);
+              }
             }}
             aria-disabled={page <= 1}
             className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
@@ -139,7 +141,9 @@ function ButtonPagination({
           <PaginationNext
             onClick={(e) => {
               e.preventDefault();
-              if (page < totalPages) onPageChange(page + 1);
+              if (page < totalPages) {
+                onPageChange(page + 1);
+              }
             }}
             aria-disabled={page >= totalPages}
             className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
@@ -169,9 +173,13 @@ function InfiniteSentinel({
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!hasMore || loading) return;
+    if (!hasMore || loading) {
+      return;
+    }
     const el = sentinelRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {

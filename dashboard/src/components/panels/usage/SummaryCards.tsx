@@ -8,8 +8,12 @@ import type { CostUsageTotals, SessionsUsageAggregates } from "@/stores/usage";
 // ---------------------------------------------------------------------------
 
 function formatTokens(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(1)}K`;
+  }
   return String(value);
 }
 
@@ -18,7 +22,9 @@ function formatCost(value: number): string {
 }
 
 function formatLatency(ms: number): string {
-  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms >= 1000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
   return `${Math.round(ms)}ms`;
 }
 
