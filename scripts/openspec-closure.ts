@@ -2,20 +2,18 @@
 
 import { Command } from "commander";
 
-import { checkClosure } from "./lib/openspec-closure/checker.js";
 import {
+  checkClosure,
+  collectPlanCoverage,
+  collectScenarioInventory,
+  createVerificationArtifact,
   loadClosureConfig,
+  readVerificationArtifact,
   resolvePlanFiles,
   resolveVerificationPath,
-} from "./lib/openspec-closure/config.js";
-import { collectPlanCoverage } from "./lib/openspec-closure/plan-coverage.js";
-import { formatClosureReport } from "./lib/openspec-closure/report.js";
-import { collectScenarioInventory } from "./lib/openspec-closure/spec-inventory.js";
-import {
-  createVerificationArtifact,
-  readVerificationArtifact,
+  formatClosureReport,
   writeVerificationArtifact,
-} from "./lib/openspec-closure/verification-artifact.js";
+} from "../packages/openspec-closure-core/src/index.js";
 
 type CommonOptions = {
   change: string;
