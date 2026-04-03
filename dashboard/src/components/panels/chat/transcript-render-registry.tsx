@@ -15,6 +15,12 @@ type RendererProps<T extends ContentBlock> = {
   keyValue: string;
 };
 
+type TranscriptRenderRegistry = {
+  [K in ContentBlock["type"]]: (
+    props: RendererProps<Extract<ContentBlock, { type: K }>>,
+  ) => ReactNode;
+};
+
 const textRenderer = ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "text" }>>) => (
   <div key={keyValue} className="chat-prose max-w-none text-sm">
     <Streamdown mode="static" className="streamdown-chat">
@@ -55,12 +61,26 @@ const transcriptRenderRegistry = {
   }: RendererProps<Extract<ContentBlock, { type: "unknown" }>>) => (
     <UnknownBlockCard key={keyValue} rawType={block.rawType} summary={block.summary} />
   ),
-};
+} satisfies TranscriptRenderRegistry;
 
 export function renderTranscriptBlock(block: ContentBlock, keyValue: string) {
-  const renderer = transcriptRenderRegistry[block.type] as (props: {
-    block: ContentBlock;
-    keyValue: string;
-  }) => ReactNode;
-  return renderer({ block, keyValue });
+  switch (block.type) {
+    case "text":
+      return transcriptRenderRegistry.text({ block, keyValue });
+    case "thinking":
+      return transcriptRenderRegistry.thinking({ block, keyValue });
+    case "tool_use":
+      return transcriptRenderRegistry.tool_use({ block, keyValue });
+    case "tool_result":
+      return transcriptRenderRegistry.tool_result({ block, keyValue });
+    case "image":
+      return transcriptRenderRegistry.image({ block, keyValue });
+    case "file":
+      return transcriptRenderRegistry.file({ block, keyValue });
+    case "unknown":
+      return transcriptRenderRegistry.unknown({ block, keyValue });
+  }
+
+  const unreachable: never = block;
+  return unreachable;
 }
