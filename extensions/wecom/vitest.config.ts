@@ -1,13 +1,7 @@
-import baseConfig from "../../vitest.config.ts";
+import { defineConfig } from "vitest/config";
 
-const baseTest = (baseConfig as { test?: { exclude?: string[] } }).test ?? {};
-const exclude = baseTest.exclude ?? [];
-
-export default {
-  ...(baseConfig as object),
+export default defineConfig({
   test: {
-    ...baseTest,
     include: ["extensions/wecom/src/**/*.test.ts"],
-    exclude,
   },
-};
+});

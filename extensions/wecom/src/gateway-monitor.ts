@@ -1,6 +1,6 @@
 import os from "node:os";
 import path from "node:path";
-import type { ChannelGatewayContext, OpenClawConfig } from "openclaw/plugin-sdk";
+import type { ChannelGatewayContext, OpenClawConfig } from "openclaw/plugin-sdk/wecom";
 import { createAccountRuntime } from "./app/bootstrap.js";
 import { registerAccountRuntime, unregisterAccountRuntime } from "./app/index.js";
 import { WecomAgentIngressService } from "./capability/agent/index.js";

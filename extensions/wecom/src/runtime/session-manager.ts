@@ -1,4 +1,4 @@
-import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import type { WecomMediaService } from "../shared/media-service.js";
 import type { UnifiedInboundEvent } from "../types/index.js";
 import { resolveRuntimeRoute } from "./routing-bridge.js";

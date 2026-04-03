@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/wecom";
 import {
   listWecomAccountIds as listWecomAccountIdsFromConfig,
   resolveDefaultWecomAccountId as resolveDefaultWecomAccountIdFromConfig,

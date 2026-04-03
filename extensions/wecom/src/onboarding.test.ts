@@ -1,5 +1,5 @@
-import type { OpenClawConfig, WizardPrompter } from "openclaw/plugin-sdk";
-import type { RuntimeEnv } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, WizardPrompter } from "openclaw/plugin-sdk/wecom";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/wecom";
 import { describe, expect, it, vi } from "vitest";
 import { buildChannelSetupWizardAdapterFromSetupWizard } from "../../../src/channels/plugins/setup-wizard.js";
 import { wecomPlugin } from "./channel.js";

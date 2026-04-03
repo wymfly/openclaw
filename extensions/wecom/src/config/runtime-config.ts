@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/wecom";
 import type { ResolvedWecomAccount, WecomConfig } from "../types/index.js";
 import { DEFAULT_ACCOUNT_ID, resolveWecomAccount, resolveWecomAccounts } from "./accounts.js";
 import { resolveDerivedPathSummary } from "./derived-paths.js";

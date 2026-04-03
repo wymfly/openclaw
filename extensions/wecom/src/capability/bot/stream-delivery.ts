@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { PluginRuntime } from "openclaw/plugin-sdk";
+import type { PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import { applyWecomReasoningPolicy } from "../../enhanced/reasoning-visibility.js";
 import { wecomFetch } from "../../http.js";
 import { LIMITS, type StreamStore } from "../../monitor/state.js";

@@ -5,7 +5,7 @@
  * 参考: openclaw-plugin-wecom/dynamic-agent.js
  */
 
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/wecom";
 
 export interface DynamicAgentConfig {
   enabled: boolean;

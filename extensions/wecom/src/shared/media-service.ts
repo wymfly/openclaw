@@ -1,4 +1,4 @@
-import type { PluginRuntime } from "openclaw/plugin-sdk";
+import type { PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import { decryptWecomMediaWithMeta } from "../media.js";
 import type { UnifiedInboundEvent } from "../types/index.js";
 import type { NormalizedMediaAttachment } from "./media-types.js";

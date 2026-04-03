@@ -1,4 +1,4 @@
-import type { PluginRuntime } from "openclaw/plugin-sdk";
+import type { PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import type { ResolvedAgentAccount, ResolvedBotAccount, ResolvedWecomAccount } from "./account.js";
 
 export type WecomCapabilityKind = "bot" | "agent";
