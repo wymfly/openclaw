@@ -43,6 +43,7 @@ Cadence: hours to days per session.
 ### Path A: 直接写 plan
 
 **条件**（全部满足）：
+
 - 已有 openspec proposal，且 capabilities 描述清晰
 - 已有 design.md 或架构决策已在 program design 中覆盖
 - 实施范围是现有架构的延伸，不引入新的系统边界或共享契约
@@ -53,6 +54,7 @@ Cadence: hours to days per session.
 ### Path B: 升级现有 proposal 后写 plan
 
 **条件**：
+
 - 已有 openspec proposal
 - 但 proposal 不满足当前 closure standard（缺少恢复路径定义、缺少 runtime sync 描述等）
 
@@ -61,21 +63,22 @@ Cadence: hours to days per session.
 ### Path C: 完整流程
 
 **条件**：
+
 - 无 proposal，且是新系统能力（满足 OpenSpec 阈值）
 
 **流程**：codex-workflow 完整路径（brainstorm → openspec → plan → implement → review）
 
 ### 判断表
 
-| matrix 中的 Closure Status | 已有 Proposal? | 路径 |
-|---|---|---|
-| `replacement-ready` | - | 跳过，已完成 |
-| `partial` | Yes, 满足 closure standard | **Path A** |
-| `partial` | Yes, 不满足 closure standard | **Path B** |
-| `platform-first` | Yes | **Path B**（升级 proposal 后等平台依赖就绪） |
-| `platform-first` | No | **Path C** |
-| `unassessed` | Yes | **Path B** |
-| `unassessed` | No | **Path C** |
+| matrix 中的 Closure Status | 已有 Proposal?               | 路径                                         |
+| -------------------------- | ---------------------------- | -------------------------------------------- |
+| `replacement-ready`        | -                            | 跳过，已完成                                 |
+| `partial`                  | Yes, 满足 closure standard   | **Path A**                                   |
+| `partial`                  | Yes, 不满足 closure standard | **Path B**                                   |
+| `platform-first`           | Yes                          | **Path B**（升级 proposal 后等平台依赖就绪） |
+| `platform-first`           | No                           | **Path C**                                   |
+| `unassessed`               | Yes                          | **Path B**                                   |
+| `unassessed`               | No                           | **Path C**                                   |
 
 ## 4. Session 收尾：回写 Program State
 
@@ -97,13 +100,13 @@ Phase 内所有 area 达到该 phase 的目标后，执行 phase gate review：
 
 ## 6. 与 codex-workflow 的集成点
 
-| codex-workflow 步骤 | Program 框架接入方式 |
-|---|---|
-| 入口路由 Step 3（OpenSpec 阈值） | matrix 中 `unassessed` 或无 proposal 的项 → 自动满足 OpenSpec 阈值 |
-| Phase 1b（writing-plans） | plan 必须引用 program closure standard 作为验收标准 |
-| Phase 3（实施） | `.skill-summary.md` 额外注入 program boundary rules（Gateway/Route/Projection） |
-| Phase 4 Step 5（验证） | 额外执行 closure checklist 逐项检查 |
-| Phase 4 Step 6（收尾） | 回写 matrix + program tasks.md |
+| codex-workflow 步骤              | Program 框架接入方式                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| 入口路由 Step 3（OpenSpec 阈值） | matrix 中 `unassessed` 或无 proposal 的项 → 自动满足 OpenSpec 阈值              |
+| Phase 1b（writing-plans）        | plan 必须引用 program closure standard 作为验收标准                             |
+| Phase 3（实施）                  | `.skill-summary.md` 额外注入 program boundary rules（Gateway/Route/Projection） |
+| Phase 4 Step 5（验证）           | 额外执行 closure checklist 逐项检查                                             |
+| Phase 4 Step 6（收尾）           | 回写 matrix + program tasks.md                                                  |
 
 ## 7. Worktree 与 Session 的映射
 
@@ -114,12 +117,12 @@ Phase 内所有 area 达到该 phase 的目标后，执行 phase gate review：
 
 ## 8. Program Documents Quick Reference
 
-| 文档 | 作用 | 何时读 | 何时写 |
-|---|---|---|---|
-| `proposal.md` | 立项理由 | 新成员 onboarding | 极少更新 |
-| `design.md` | 总体架构、边界规则、决策 | 做架构决策时 | 有新的架构决策时 |
-| `specs/*.md` | 治理规则（硬约束） | 写 plan / 做 review 时 | 规则需要修订时 |
-| `tasks.md` | 治理动作清单 | 检查 program 进度 | 完成治理动作后勾选 |
-| `program-plan.md` | 轨道、阶段、worktree 策略 | Session 开始时 | Phase 转换时 |
-| `matrix.md` | 模块状态全景 | Session 开始时选工作项 | Session 结束时回写 |
-| `program-driven-workflow.md` | 本文档，流程定义 | 不确定该怎么做时 | 流程需要调整时 |
+| 文档                         | 作用                      | 何时读                 | 何时写             |
+| ---------------------------- | ------------------------- | ---------------------- | ------------------ |
+| `proposal.md`                | 立项理由                  | 新成员 onboarding      | 极少更新           |
+| `design.md`                  | 总体架构、边界规则、决策  | 做架构决策时           | 有新的架构决策时   |
+| `specs/*.md`                 | 治理规则（硬约束）        | 写 plan / 做 review 时 | 规则需要修订时     |
+| `tasks.md`                   | 治理动作清单              | 检查 program 进度      | 完成治理动作后勾选 |
+| `program-plan.md`            | 轨道、阶段、worktree 策略 | Session 开始时         | Phase 转换时       |
+| `matrix.md`                  | 模块状态全景              | Session 开始时选工作项 | Session 结束时回写 |
+| `program-driven-workflow.md` | 本文档，流程定义          | 不确定该怎么做时       | 流程需要调整时     |

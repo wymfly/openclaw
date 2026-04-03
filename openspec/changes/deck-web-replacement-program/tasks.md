@@ -1,14 +1,14 @@
 ## 1. 建立 Program 级基线
 
-- [ ] 1.1 新增 Deck Web Replacement Program 的 master OpenSpec artifacts（proposal / design / specs / tasks）
-- [ ] 1.2 新增 program 计划文档，定义轨道、阶段、优先级和 worktree 策略
-- [ ] 1.3 新增 capability / closure matrix 基线，明确当前已知模块、现有 change 入口与闭环状态
+- [x] 1.1 新增 Deck Web Replacement Program 的 master OpenSpec artifacts（proposal / design / specs / tasks）
+- [x] 1.2 新增 program 计划文档，定义轨道、阶段、优先级和 worktree 策略
+- [x] 1.3 新增 capability / closure matrix 基线，明确当前已知模块、现有 change 入口与闭环状态
 
 ## 2. 统一后续 Deck changes 的治理入口
 
-- [ ] 2.1 将现有 `deck-*` proposals / plans 归类到 `Core Platform`、`Session Runtime`、`UI Framework`、`Domain Modules`、`Replacement Validation` 五条主轨
-- [ ] 2.2 为每个后续 Deck change 明确 `track`、`phase`、`dependency`、`closure target`
-- [ ] 2.3 将“模块完成”的定义统一为 closure checklist，不再以页面存在或局部交互作为完成标准
+- [x] 2.1 将现有 `deck-*` proposals / plans 归类到 `Core Platform`、`Session Runtime`、`UI Framework`、`Domain Modules`、`Replacement Validation` 五条主轨
+- [x] 2.2 为每个后续 Deck change 明确 `track`、`phase`、`dependency`、`closure target`
+- [x] 2.3 将”模块完成”的定义统一为 closure checklist，不再以页面存在或局部交互作为完成标准
 
 ## 3. 建立平台优先的实施顺序
 

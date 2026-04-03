@@ -83,7 +83,7 @@
 - Create: `src/gateway/method-registry.ts`
 - Create: `src/gateway/method-registry.test.ts`
 
-- [ ] **Step 1: Write the test file with core behavior tests**
+- [x] **Step 1: Write the test file with core behavior tests**
 
 ```typescript
 // src/gateway/method-registry.test.ts
@@ -173,12 +173,12 @@ describe("buildMethodRegistry", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm test -- src/gateway/method-registry.test.ts -t "registers typed methods" -v`
 Expected: FAIL — module `./method-registry.js` not found
 
-- [ ] **Step 3: Implement method-registry.ts**
+- [x] **Step 3: Implement method-registry.ts**
 
 ```typescript
 // src/gateway/method-registry.ts
@@ -373,12 +373,12 @@ export function buildMethodRegistry(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm test -- src/gateway/method-registry.test.ts -v`
 Expected: All 7 tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 scripts/committer "[enhanced] feat(gateway): add MethodRegistry core types and builder" src/gateway/method-registry.ts src/gateway/method-registry.test.ts
@@ -395,7 +395,7 @@ scripts/committer "[enhanced] feat(gateway): add MethodRegistry core types and b
 
 All result schemas are derived from the `respond(true, {...})` calls in each handler. Each schema uses the same naming convention: `DeckXxxResultSchema` parallel to existing `DeckXxxParamsSchema`.
 
-- [ ] **Step 1: Add all deck result schemas to `deck.ts`**
+- [x] **Step 1: Add all deck result schemas to `deck.ts`**
 
 Add the following result schemas to the end of `src/gateway/protocol/schema/deck.ts`. Each is derived from the corresponding handler's `respond(true, {...})` call.
 
@@ -732,7 +732,7 @@ export const DeckAuthProbeResultSchema = Type.Object({
 
 > **Note:** The `DeckAuthOverviewResultSchema` and `DeckAuthProbeResultSchema` must be derived from the actual `respond(true, {...})` calls in `src/gateway/server-methods/deck-auth.ts`. The schemas above are approximations — the implementer MUST read the handler code and verify every field.
 
-- [ ] **Step 2: Register all new deck result schemas in `protocol-schemas.ts`**
+- [x] **Step 2: Register all new deck result schemas in `protocol-schemas.ts`**
 
 Add all new result schemas to the `ProtocolSchemas` object in `src/gateway/protocol/schema/protocol-schemas.ts`. Add the import block and entries:
 
@@ -791,12 +791,12 @@ import {
   DeckAuthProbeResult: DeckAuthProbeResultSchema,
 ```
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `pnpm tsgo`
 Expected: Zero errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 scripts/committer "[enhanced] feat(gateway): add P0 result schemas for all deck.* methods" src/gateway/protocol/schema/deck.ts src/gateway/protocol/schema/protocol-schemas.ts
@@ -819,7 +819,7 @@ scripts/committer "[enhanced] feat(gateway): add P0 result schemas for all deck.
 
 Each handler file gets a parallel `methodDefs` export that maps method name → `{ params, result, scope }`.
 
-- [ ] **Step 1: Add `deckAgentsMethodDefs` to `deck/agents.ts`**
+- [x] **Step 1: Add `deckAgentsMethodDefs` to `deck/agents.ts`**
 
 Add at the end of the file (after the existing `deckAgentsHandlers` export):
 
@@ -876,7 +876,7 @@ export const deckAgentsMethodDefs: Record<string, MethodMetadata> = {
 
 Note: The `validateDeckAgentsDetailParams.schema` is the TypeBox `TSchema` on the compiled AJV validator. If validators don't expose `.schema`, import the schema directly from `../../protocol/schema/deck.js` instead (e.g. `DeckAgentsDetailParamsSchema`). The implementer must check which pattern works in this codebase. Importing the `*ParamsSchema` directly from `deck.ts` is the safer path.
 
-- [ ] **Step 2: Add methodDefs to remaining deck handler files**
+- [x] **Step 2: Add methodDefs to remaining deck handler files**
 
 Apply the same pattern to each file. Each `methodDefs` export maps method names to `{ params: XxxParamsSchema, result: XxxResultSchema, scope }`.
 
@@ -913,7 +913,7 @@ Apply the same pattern to each file. Each `methodDefs` export maps method names 
 
 - `deck.threads.list` → scope `"operator.read"`
 
-- [ ] **Step 2b: Add `deckAuthMethodDefs` to `src/gateway/server-methods/deck-auth.ts`**
+- [x] **Step 2b: Add `deckAuthMethodDefs` to `src/gateway/server-methods/deck-auth.ts`**
 
 **IMPORTANT:** `deck-auth.ts` is NOT in the `deck/` subdirectory — it lives at `src/gateway/server-methods/deck-auth.ts` directly. Add a parallel methodDefs export:
 
@@ -922,7 +922,7 @@ Apply the same pattern to each file. Each `methodDefs` export maps method names 
 
 The implementer must read the handler at `deck-auth.ts:88` and `deck-auth.ts` (probe handler) to derive the correct params schema references.
 
-- [ ] **Step 3: Update `deck/index.ts` to re-export and merge all methodDefs**
+- [x] **Step 3: Update `deck/index.ts` to re-export and merge all methodDefs**
 
 ```typescript
 import type { GatewayRequestHandlers } from "../types.js";
@@ -956,12 +956,12 @@ export const deckMethodDefs: Record<string, MethodMetadata> = {
 };
 ```
 
-- [ ] **Step 4: Verify TypeScript compiles and existing tests pass**
+- [x] **Step 4: Verify TypeScript compiles and existing tests pass**
 
 Run: `pnpm tsgo && pnpm test -- src/gateway/server-methods/deck/ -v`
 Expected: Zero type errors, all existing deck handler tests pass
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 scripts/committer "[enhanced] feat(gateway): add methodDefs exports to all deck handler files" src/gateway/server-methods/deck/
@@ -979,7 +979,7 @@ scripts/committer "[enhanced] feat(gateway): add methodDefs exports to all deck 
 - Create: `src/gateway/server-methods/describe.test.ts`
 - Modify: `src/gateway/protocol/schema/frames.ts` (schemaVersion in HelloOk)
 
-- [ ] **Step 1: Write describe handler test**
+- [x] **Step 1: Write describe handler test**
 
 ```typescript
 // src/gateway/server-methods/describe.test.ts
@@ -1009,7 +1009,7 @@ describe("gateway.describe handler", () => {
 });
 ```
 
-- [ ] **Step 2: Create `describe.ts` handler**
+- [x] **Step 2: Create `describe.ts` handler**
 
 ```typescript
 // src/gateway/server-methods/describe.ts
@@ -1038,7 +1038,7 @@ export const describeHandlers: GatewayRequestHandlers = {
 };
 ```
 
-- [ ] **Step 3: Assemble registry in `server-methods.ts`**
+- [x] **Step 3: Assemble registry in `server-methods.ts`**
 
 Add the following at the end of the existing file (after `coreGatewayHandlers` and before `handleGatewayRequest`):
 
@@ -1063,7 +1063,7 @@ export const gatewayMethodRegistry = buildMethodRegistry(
 setDescribeRegistry(gatewayMethodRegistry);
 ```
 
-- [ ] **Step 4: Add `"gateway.describe"` to `server-methods-list.ts`**
+- [x] **Step 4: Add `"gateway.describe"` to `server-methods-list.ts`**
 
 Add `"gateway.describe"` to `BASE_METHODS` array (after `"deck.auth.probe"`):
 
@@ -1075,7 +1075,7 @@ Add `"gateway.describe"` to `BASE_METHODS` array (after `"deck.auth.probe"`):
   "gateway.describe",
 ```
 
-- [ ] **Step 5: Add `gateway.describe` to method-scopes classification**
+- [x] **Step 5: Add `gateway.describe` to method-scopes classification**
 
 In `src/gateway/method-scopes.ts`, add `"gateway.describe"` to the `READ_SCOPE` group in `METHOD_SCOPE_GROUPS`. Without this, the existing test at `method-scopes.test.ts:74-86` ("all handlers and list methods are classified") will fail.
 
@@ -1088,7 +1088,7 @@ In `src/gateway/method-scopes.ts`, add `"gateway.describe"` to the `READ_SCOPE` 
   ],
 ```
 
-- [ ] **Step 6: Add `schemaVersion` to HelloOk features schema + injection point**
+- [x] **Step 6: Add `schemaVersion` to HelloOk features schema + injection point**
 
 **Schema** — In `src/gateway/protocol/schema/frames.ts`, add `schemaVersion` to the `features` object in `HelloOkSchema`:
 
@@ -1115,12 +1115,12 @@ features: {
 
 The implementer must check the exact import path and whether `gatewayMethodRegistry` is accessible in this scope. If not, expose a `getSchemaVersion()` function from `server-methods.ts`.
 
-- [ ] **Step 7: Run tests**
+- [x] **Step 7: Run tests**
 
 Run: `pnpm test -- src/gateway/method-registry.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-scopes.test.ts -v`
 Expected: All tests pass (including method-scopes classification test)
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 scripts/committer "[enhanced] feat(gateway): assemble MethodRegistry and add gateway.describe RPC" src/gateway/server-methods.ts src/gateway/server-methods-list.ts src/gateway/server-methods/describe.ts src/gateway/server-methods/describe.test.ts src/gateway/protocol/schema/frames.ts src/gateway/method-registry.ts src/gateway/method-scopes.ts src/gateway/server/ws-connection/message-handler.ts
@@ -1147,7 +1147,7 @@ The codegen script must NOT directly import `server-methods.ts` — that module 
 5. **`Type.Record(K, V)`**: Outputs `{ type: "object", patternProperties: {...} }` without `properties` — handle via patternProperties detection → `Record<K, V>`
 6. **Method tree collisions**: `agent` (leaf) vs `agent.wait` (subtree) — detect and handle gracefully
 
-- [ ] **Step 1a: Create side-effect-free registry data export**
+- [x] **Step 1a: Create side-effect-free registry data export**
 
 Create `src/gateway/method-registry-data.ts` — a module that re-exports only the metadata (methodDefs, handler keys, event defs) without importing any handler implementations or their transitive side-effects.
 
@@ -1178,7 +1178,7 @@ export { PROTOCOL_VERSION };
 
 **Note:** If `deckAuthMethodDefs` is exported from `deck-auth.ts` (which imports handler deps with side-effects), extract the defs into a separate `deck-auth-defs.ts` file that only exports the metadata and schema imports. The implementer must verify the actual import tree is side-effect-free by running `bun -e 'import("./src/gateway/method-registry-data.js")'` — if it fails, trace and extract.
 
-- [ ] **Step 1b: Write the codegen script**
+- [x] **Step 1b: Write the codegen script**
 
 ```typescript
 // scripts/protocol-gen-ts.ts
@@ -1472,7 +1472,7 @@ if (CHECK_MODE) {
 
 **Important:** The `schemaToTS` function handles the core TypeBox types used in deck schemas (`Type.Object`, `Type.Array`, `Type.String`, `Type.Integer`, `Type.Boolean`, `Type.Optional`, `Type.Union`, `Type.Literal`, `Type.Record`, `Type.Unknown`). If P1 upstream schemas introduce additional TypeBox constructs (e.g. `Type.Intersect`), extend the function at that time.
 
-- [ ] **Step 2: Add npm scripts to `package.json`**
+- [x] **Step 2: Add npm scripts to `package.json`**
 
 Add to the `"scripts"` section:
 
@@ -1481,17 +1481,17 @@ Add to the `"scripts"` section:
 "protocol:gen:check": "bun scripts/protocol-gen-ts.ts --check"
 ```
 
-- [ ] **Step 3: Run codegen and verify output**
+- [x] **Step 3: Run codegen and verify output**
 
 Run: `pnpm protocol:gen:ts`
 Expected: Two files written to `dashboard/src/types/`
 
-- [ ] **Step 4: Verify TypeScript compiles with generated files**
+- [x] **Step 4: Verify TypeScript compiles with generated files**
 
 Run: `cd dashboard && pnpm tsc --noEmit`
 Expected: Zero errors (generated types are syntactically valid)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 scripts/committer "[enhanced] feat(gateway): add TypeScript protocol codegen script" scripts/protocol-gen-ts.ts package.json dashboard/src/types/gateway-protocol.generated.ts dashboard/src/types/gateway-client.generated.ts
@@ -1510,7 +1510,7 @@ scripts/committer "[enhanced] feat(gateway): add TypeScript protocol codegen scr
 
 This task wires up the typed client infrastructure. The next task migrates individual route files.
 
-- [ ] **Step 1: Add typed client to runtime**
+- [x] **Step 1: Add typed client to runtime**
 
 In `dashboard/server/runtime.ts`, add the typed client to `DeckRuntime`:
 
@@ -1537,7 +1537,7 @@ const gw = createGatewayClient((method, params, options) =>
 
 Add `gw` to the returned runtime object.
 
-- [ ] **Step 2: Update gateway-allowlist.ts to derive from generated allowlist**
+- [x] **Step 2: Update gateway-allowlist.ts to derive from generated allowlist**
 
 Replace the content of `dashboard/server/gateway-allowlist.ts`:
 
@@ -1571,7 +1571,7 @@ export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([
 
 The implementer must verify the complete list of methods in the current `DEFAULT_METHOD_ALLOWLIST` that aren't in `GENERATED_METHOD_ALLOWLIST` and add them to `EXTRA_METHODS`.
 
-- [ ] **Step 3: Add typed `gatewayRequest` that uses `gw`**
+- [x] **Step 3: Add typed `gatewayRequest` that uses `gw`**
 
 Update `dashboard/src/lib/api-helpers.ts` to provide a typed version:
 
@@ -1626,12 +1626,12 @@ export async function gatewayRequest(
 }
 ```
 
-- [ ] **Step 4: Verify setup compiles**
+- [x] **Step 4: Verify setup compiles**
 
 Run: `cd dashboard && pnpm tsc --noEmit`
 Expected: Zero errors
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 scripts/committer "[enhanced] feat(deck): wire typed gateway client to runtime" dashboard/server/runtime.ts dashboard/server/gateway-adapter.ts dashboard/server/gateway-allowlist.ts dashboard/src/lib/api-helpers.ts
@@ -1649,7 +1649,7 @@ scripts/committer "[enhanced] feat(deck): wire typed gateway client to runtime" 
 
 P0 scope: Only migrate `deck.*` method calls (which have typed result schemas). Upstream method calls (`sessions.*`, `config.*`, `channels.*`, etc.) remain as untyped `gatewayRequest()` until P1 result schemas are added.
 
-- [ ] **Step 1: Migrate `deck.*` route files**
+- [x] **Step 1: Migrate `deck.*` route files**
 
 For each route file that calls `deck.*` methods, replace `gatewayRequest` with `gwRequest`:
 
@@ -1676,17 +1676,17 @@ Files that use ONLY untyped methods should NOT be changed in this task:
 - `dashboard/src/app/api/deck/tools-effective/route.ts` — calls `tools.effective` (not a `deck.*` method, no result schema)
 - `dashboard/src/app/api/deck/canvas/route.ts` — uses `getNodeConnection()` directly, not `gatewayRequest`
 
-- [ ] **Step 2: Verify deck.\* migration is complete**
+- [x] **Step 2: Verify deck.\* migration is complete**
 
 Run: `grep -rn "gatewayRequest.*deck\\." dashboard/src/app/api/ --include="*.ts"`
 Expected: Zero results (all `deck.*` calls migrated)
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `cd dashboard && pnpm tsc --noEmit`
 Expected: Zero errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 scripts/committer "[enhanced] refactor(deck): migrate API routes to typed gwRequest()" dashboard/src/app/api/
@@ -1709,7 +1709,7 @@ scripts/committer "[enhanced] refactor(deck): migrate API routes to typed gwRequ
 
 Replace hand-written interfaces with imports from generated types.
 
-- [ ] **Step 1: Migrate `deck-agents.ts` interfaces**
+- [x] **Step 1: Migrate `deck-agents.ts` interfaces**
 
 Replace hand-written interfaces (`AgentDetail`, `ToolPolicyLayer`, `ToolPolicyTool`, `PromptLayer`, `BootstrapFileEntry`, `SystemPromptPreview`, `BootstrapFileDetail`, `SkillEntry`, `AgentSkills`, `AgentSubagentConfig`, `AgentEventStreamsConfig`, `EffectiveToolEntry`, `EffectiveToolGroup`, `AgentRawConfig`) with imports from generated types.
 
@@ -1733,29 +1733,29 @@ export type AgentDetailWithLocal = AgentDetail & { localField?: string };
 
 The implementer must compare every field in the hand-written interface against the generated type and handle any mismatches (e.g. the hand-written `AgentDetail` has an `emoji?` field at `deck-agents.ts:10` that the gateway handler does NOT return — this is a local-only field that must be kept as an extension).
 
-- [ ] **Step 2: Migrate `deck-routing.ts` interfaces**
+- [x] **Step 2: Migrate `deck-routing.ts` interfaces**
 
 Replace `Binding`, `BindingMatch`, `ValidationResult`, `SimulationTier`, `SimulationResult` with imports from generated types.
 
 **Watch out:** `deck-routing.ts:16-18` has `guild?` and `team?` aliases in `BindingMatch` that are NOT in the gateway response — these are UI-only aliases and must be kept as extensions.
 
-- [ ] **Step 3: Migrate `deck-subagents.ts` interfaces**
+- [x] **Step 3: Migrate `deck-subagents.ts` interfaces**
 
 Replace `SubagentRun`, `LineageNode` with imports from generated types.
 
-- [ ] **Step 4: Fix all downstream import consumers**
+- [x] **Step 4: Fix all downstream import consumers**
 
 After deleting store interfaces, any component that imports from these stores will have broken imports. Fix them to import from the generated types file or from the re-exports in stores.
 
 Run: `cd dashboard && pnpm tsc --noEmit`
 Fix all errors iteratively.
 
-- [ ] **Step 5: Verify zero hand-written type casts remain for migrated types**
+- [x] **Step 5: Verify zero hand-written type casts remain for migrated types**
 
 Run: `grep -rn "as AgentDetail\|as Binding\|as SubagentRun" dashboard/src/ --include="*.ts" --include="*.tsx"`
 Expected: Zero results (note: `as ChannelInfo` and `as Model` are OK — they're P1 scope)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 scripts/committer "[enhanced] refactor(deck): replace hand-written interfaces with generated types" dashboard/src/stores/ dashboard/src/components/
@@ -1769,49 +1769,49 @@ scripts/committer "[enhanced] refactor(deck): replace hand-written interfaces wi
 
 - Modify: `package.json` (if needed)
 
-- [ ] **Step 1: Run full type check**
+- [x] **Step 1: Run full type check**
 
 Run: `pnpm tsgo`
 Expected: Zero errors
 
-- [ ] **Step 2: Run protocol codegen drift check**
+- [x] **Step 2: Run protocol codegen drift check**
 
 Run: `pnpm protocol:gen:check`
 Expected: "all files up to date"
 
-- [ ] **Step 3: Verify `deck.*` gatewayRequest calls are all migrated**
+- [x] **Step 3: Verify `deck.*` gatewayRequest calls are all migrated**
 
 Run: `grep -rn 'gatewayRequest.*"deck\.' dashboard/src/app/api/ --include="*.ts"`
 Expected: Zero results (all `deck.*` calls should use `gwRequest`)
 
 Upstream calls (`sessions.*`, `config.*`, etc.) are expected to remain as `gatewayRequest()` until P1.
 
-- [ ] **Step 4: Run gateway test suite**
+- [x] **Step 4: Run gateway test suite**
 
 Run: `pnpm test -- src/gateway/ -v`
 Expected: All tests pass (including new method-registry, describe, and method-scopes tests)
 
-- [ ] **Step 5: Run dashboard type check**
+- [x] **Step 5: Run dashboard type check**
 
 Run: `cd dashboard && pnpm tsc --noEmit`
 Expected: Zero errors
 
-- [ ] **Step 6: Run lint + format (CLAUDE.md landing bar)**
+- [x] **Step 6: Run lint + format (CLAUDE.md landing bar)**
 
 Run: `pnpm check`
 Expected: Green
 
-- [ ] **Step 7: Run build (CLAUDE.md hard gate — this change touches server-methods.ts and package.json)**
+- [x] **Step 7: Run build (CLAUDE.md hard gate — this change touches server-methods.ts and package.json)**
 
 Run: `pnpm build`
 Expected: Green, no `[INEFFECTIVE_DYNAMIC_IMPORT]` warnings
 
-- [ ] **Step 8: Run full test suite**
+- [x] **Step 8: Run full test suite**
 
 Run: `pnpm test`
 Expected: Green (no regressions)
 
-- [ ] **Step 9: Commit CI guard comments**
+- [x] **Step 9: Commit CI guard comments**
 
 If any `package.json` scripts were adjusted, commit. Otherwise this step is verification-only.
 
