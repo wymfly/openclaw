@@ -4,6 +4,7 @@ import type { WecomAccountRuntime } from "../../app/account-runtime.js";
 import { registerBotWsPushHandle, unregisterBotWsPushHandle } from "../../app/index.js";
 import { fetchAndSaveMcpConfig } from "../../enhanced/mcp-config.js";
 import type { ReqIdStore } from "../../enhanced/reqid-store.js";
+import { registerWecomSourceSnapshot } from "../../runtime/source-registry.js";
 import type { RuntimeLogSink } from "../../types/index.js";
 import { mapBotWsFrameToInboundEvent } from "./inbound.js";
 import { createBotWsReplyHandle } from "./reply.js";
@@ -192,6 +193,13 @@ export class BotWsSdkAdapter {
       const event = mapBotWsFrameToInboundEvent({
         account: botAccount,
         frame,
+      });
+      registerWecomSourceSnapshot({
+        accountId: event.accountId,
+        source: "bot-ws",
+        messageId: event.messageId,
+        peerKind: event.conversation.peerKind,
+        peerId: event.conversation.peerId,
       });
       const replyHandle = createBotWsReplyHandle({
         client,

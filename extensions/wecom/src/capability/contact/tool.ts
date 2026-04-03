@@ -96,7 +96,11 @@ export function registerWecomContactTools(api: OpenClawPluginApi) {
             });
           }
           case "search": {
-            const result = await contactClient.search(account, Number(params.departmentId), params.query);
+            const result = await contactClient.search(
+              account,
+              Number(params.departmentId),
+              params.query,
+            );
             return buildToolResult({
               ok: true,
               action,

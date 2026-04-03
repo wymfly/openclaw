@@ -45,7 +45,7 @@
 ## 7. P1 — Todo 待办模块（自研）
 
 - [x] 7.1 创建 `src/capability/todo/types.ts`
-- [x] 7.2 创建 `src/capability/todo/client.ts` — POST /cgi-bin/oa/*, 3-retry
+- [x] 7.2 创建 `src/capability/todo/client.ts` — POST /cgi-bin/oa/\*, 3-retry
 - [x] 7.3 创建 `src/capability/todo/schema.ts` — oneOf 3 actions
 - [x] 7.4 创建 `src/capability/todo/tool.ts` — action switch 分发
 - [x] 7.5 无需 index.ts
