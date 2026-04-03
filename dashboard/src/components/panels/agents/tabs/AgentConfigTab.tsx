@@ -635,23 +635,26 @@ function ModelCombobox({ value, placeholder, onChange }: ModelComboboxProps) {
               <div className="sticky top-0 px-2 py-1 text-[10px] font-semibold text-muted-foreground bg-muted/50 backdrop-blur-sm">
                 {provider}
               </div>
-              {items.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="option"
-                  aria-selected={m.id === value}
-                  className={`w-full text-left px-2 py-1 text-xs cursor-pointer hover:bg-accent transition-colors ${m.id === value ? "bg-accent font-medium" : ""}`}
-                  onClick={() => {
-                    onChange(m.id);
-                    setSearch("");
-                    setOpen(false);
-                  }}
-                >
-                  <span className="text-foreground">{m.name}</span>
-                  <span className="ml-1 text-muted-foreground text-[10px]">{m.id}</span>
-                </button>
-              ))}
+              {items.map((m) => {
+                const ref = `${m.provider}/${m.id}`;
+                return (
+                  <button
+                    key={ref}
+                    type="button"
+                    role="option"
+                    aria-selected={ref === value}
+                    className={`w-full text-left px-2 py-1 text-xs cursor-pointer hover:bg-accent transition-colors ${ref === value ? "bg-accent font-medium" : ""}`}
+                    onClick={() => {
+                      onChange(ref);
+                      setSearch("");
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="text-foreground">{m.name}</span>
+                    <span className="ml-1 text-muted-foreground text-[10px]">{m.id}</span>
+                  </button>
+                );
+              })}
             </div>
           ))}
         </div>

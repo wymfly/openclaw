@@ -1,9 +1,9 @@
+import fs from "node:fs";
 /**
  * Standalone entry point — preloads sql.js WASM before starting the Next.js server.
  * Workaround for instrumentation.ts not being included in standalone production builds.
  */
 import path from "node:path";
-import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

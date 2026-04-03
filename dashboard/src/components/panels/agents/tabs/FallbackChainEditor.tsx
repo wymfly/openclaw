@@ -166,20 +166,23 @@ export function FallbackChainEditor({ fallbacks, onChange }: FallbackChainEditor
                 ref={listRef}
                 className="absolute z-50 mt-1 w-full max-h-40 overflow-y-auto rounded-md border border-[var(--border)] bg-popover shadow-md"
               >
-                {availableModels.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    className="w-full text-left px-2 py-1 text-xs cursor-pointer hover:bg-accent transition-colors"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleAdd(m.id);
-                    }}
-                  >
-                    <span className="text-foreground">{m.name}</span>
-                    <span className="ml-1 text-muted-foreground text-[10px]">{m.id}</span>
-                  </button>
-                ))}
+                {availableModels.map((m) => {
+                  const ref = `${m.provider}/${m.id}`;
+                  return (
+                    <button
+                      key={ref}
+                      type="button"
+                      className="w-full text-left px-2 py-1 text-xs cursor-pointer hover:bg-accent transition-colors"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleAdd(ref);
+                      }}
+                    >
+                      <span className="text-foreground">{m.name}</span>
+                      <span className="ml-1 text-muted-foreground text-[10px]">{m.id}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </>
