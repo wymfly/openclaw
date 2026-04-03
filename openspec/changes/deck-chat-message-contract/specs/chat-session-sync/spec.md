@@ -6,12 +6,14 @@ The chat panel SHALL ingest transcript updates through one shared transcript ada
 
 #### Scenario: History and live events share one adapter
 
+- **scenario_id**: `chat-session-sync.history-live-shared-adapter`
 - **WHEN** the client ingests transcript data from `chat.history`, snapshot hydrate, `session.message`, or `reloadFullContent`
 - **THEN** it SHALL pass those messages through the same transcript adapter before mutating session state
 - **AND** SHALL NOT maintain separate block normalization logic for each ingress path
 
 #### Scenario: Sessions detail uses the same transcript adapter
 
+- **scenario_id**: `chat-session-sync.sessions-detail-shared-adapter`
 - **WHEN** the Sessions panel fetches transcript history for a selected session
 - **THEN** it SHALL use the same transcript adapter and message contract as the chat page
 - **AND** SHALL NOT collapse structured transcript content into a string-only representation
@@ -22,6 +24,7 @@ The client SHALL preserve server-authoritative transcript blocks returned by his
 
 #### Scenario: reloadFullContent keeps authoritative tool blocks
 
+- **scenario_id**: `chat-session-sync.reload-authoritative-tool-blocks`
 - **WHEN** `reloadFullContent` fetches an assistant history message that already contains authoritative tool blocks
 - **THEN** the client SHALL preserve those server-returned tool blocks
 - **AND** SHALL NOT discard them solely because an older local assumption expected tool blocks to live in separate history messages
