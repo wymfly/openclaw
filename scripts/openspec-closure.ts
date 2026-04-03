@@ -135,4 +135,12 @@ program
     process.stdout.write(formatClosureReport(result));
   });
 
-void program.parseAsync(process.argv);
+function normalizeArgv(argv: string[]): string[] {
+  const normalized = [...argv];
+  if (normalized.length >= 4 && normalized[3] === "--") {
+    normalized.splice(3, 1);
+  }
+  return normalized;
+}
+
+void program.parseAsync(normalizeArgv(process.argv));

@@ -510,4 +510,45 @@ describe("openspec closure primitives", () => {
     expect(reportResult.code).toBe(0);
     expect(reportResult.stdout).toBe("Change: demo-change\nArchive Ready: yes\nScenarios: 2\nOpen Gaps: 0\n");
   });
+
+  it("accepts a package-manager forwarded separator before command options", async () => {
+    const reportResult = await runClosureCli([
+      "report",
+      "--",
+      "--change",
+      "demo-change",
+      "--root",
+      PROJECT_ROOT,
+    ]);
+
+    expect(reportResult.code).toBe(0);
+    expect(reportResult.stdout).toBe("Change: demo-change\nArchive Ready: yes\nScenarios: 2\nOpen Gaps: 0\n");
+  });
+
+  it("discovers repo plans through the root adapter config", async () => {
+    const config = await loadClosureConfig({ rootDir: process.cwd() });
+    const planPaths = await resolvePlanFiles({
+      rootDir: process.cwd(),
+      planGlobs: config.planGlobs,
+    });
+
+    expect(config).toEqual({
+      blockingStatuses: ["pending", "blocked", "spec-fix-required"],
+      planGlobs: ["docs/plans/*.md"],
+      verificationFileName: "verification.yaml",
+    });
+    expect(planPaths).toContain(
+      path.join(process.cwd(), "docs", "plans", "2026-04-03-openspec-closure-companion-plan.md"),
+    );
+  });
+
+  it("declares package scripts for the closure companion commands", async () => {
+    const packageJson = JSON.parse(await readFile(path.join(process.cwd(), "package.json"), "utf8")) as {
+      scripts: Record<string, string>;
+    };
+
+    expect(packageJson.scripts["openspec:closure:init"]).toBe("node --import tsx scripts/openspec-closure.ts init");
+    expect(packageJson.scripts["openspec:closure:check"]).toBe("node --import tsx scripts/openspec-closure.ts check");
+    expect(packageJson.scripts["openspec:closure:report"]).toBe("node --import tsx scripts/openspec-closure.ts report");
+  });
 });
