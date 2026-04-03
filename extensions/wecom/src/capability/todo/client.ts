@@ -11,12 +11,12 @@ function readString(value: unknown): string {
 }
 
 function readStringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.map((item) => readString(item)).filter(Boolean)
-    : [];
+  return Array.isArray(value) ? value.map((item) => readString(item)).filter(Boolean) : [];
 }
 
-function withoutErrFields<T extends Record<string, unknown>>(value: T): Omit<T, "errcode" | "errmsg"> {
+function withoutErrFields<T extends Record<string, unknown>>(
+  value: T,
+): Omit<T, "errcode" | "errmsg"> {
   const cloned = { ...value };
   delete (cloned as { errcode?: unknown }).errcode;
   delete (cloned as { errmsg?: unknown }).errmsg;

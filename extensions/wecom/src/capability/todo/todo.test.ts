@@ -138,12 +138,12 @@ describe("WecomTodoClient", () => {
         }),
       );
 
-    const setTimeoutSpy = vi
-      .spyOn(globalThis, "setTimeout")
-      .mockImplementation(((handler: TimerHandler) => {
-        if (typeof handler === "function") handler();
-        return 0 as unknown as ReturnType<typeof setTimeout>;
-      }) as typeof setTimeout);
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      handler: TimerHandler,
+    ) => {
+      if (typeof handler === "function") handler();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout);
 
     try {
       const client = new WecomTodoClient();

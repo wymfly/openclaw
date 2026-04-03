@@ -12,9 +12,9 @@ import path from "node:path";
 
 // Simple logger
 const logger = {
-  info: (...args: unknown[]) => console.log('[wecom-context]', ...args),
-  warn: (...args: unknown[]) => console.warn('[wecom-context]', ...args),
-  debug: (...args: unknown[]) => process.env.DEBUG && console.log('[wecom-context]', ...args),
+  info: (...args: unknown[]) => console.log("[wecom-context]", ...args),
+  warn: (...args: unknown[]) => console.warn("[wecom-context]", ...args),
+  debug: (...args: unknown[]) => process.env.DEBUG && console.log("[wecom-context]", ...args),
 };
 
 type PeerKind = "direct" | "group";
@@ -42,12 +42,7 @@ function resolveStateDir(): string {
 }
 
 function resolveContextFilePath(accountId: string): string {
-  return path.join(
-    resolveStateDir(),
-    "wecom",
-    "context",
-    `${accountId}.json`
-  );
+  return path.join(resolveStateDir(), "wecom", "context", `${accountId}.json`);
 }
 
 /** Persist peer contexts for an account to disk */
@@ -112,9 +107,7 @@ function resolveStoredPeerContext(
   const existing = peerContextStore.get(accountId)?.get(peerId);
   return {
     contextToken:
-      normalizeContextToken(params.contextToken) ??
-      existing?.contextToken ??
-      randomUUID(),
+      normalizeContextToken(params.contextToken) ?? existing?.contextToken ?? randomUUID(),
     peerKind: params.peerKind ?? existing?.peerKind ?? "direct",
     lastSeen: params.lastSeen ?? Date.now(),
   };
@@ -201,7 +194,10 @@ export function getAccountIdByPeer(peerId: string): string | undefined {
 }
 
 /** Get the most recent peerId for an account (for proactive push) */
-export function getRecentPeerForAccount(accountId: string, maxAgeMs = 30 * 60 * 1000): string | undefined {
+export function getRecentPeerForAccount(
+  accountId: string,
+  maxAgeMs = 30 * 60 * 1000,
+): string | undefined {
   const peerMap = peerContextStore.get(accountId);
   if (!peerMap) return undefined;
 
@@ -234,7 +230,11 @@ export function getAccountIdByContextToken(contextToken: string): string | undef
 }
 
 /** Check if we have an active session for routing */
-export function hasActiveSession(accountId: string, peerId: string, maxAgeMs = 30 * 60 * 1000): boolean {
+export function hasActiveSession(
+  accountId: string,
+  peerId: string,
+  maxAgeMs = 30 * 60 * 1000,
+): boolean {
   const peerMap = peerContextStore.get(accountId);
   if (!peerMap) return false;
 

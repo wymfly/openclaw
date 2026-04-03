@@ -28,7 +28,9 @@ function readOptionalInteger(value: unknown, fieldName: string): number | undefi
   return readRequiredInteger(value, fieldName);
 }
 
-function withoutErrFields<T extends Record<string, unknown>>(value: T): Omit<T, "errcode" | "errmsg"> {
+function withoutErrFields<T extends Record<string, unknown>>(
+  value: T,
+): Omit<T, "errcode" | "errmsg"> {
   const cloned = { ...value };
   delete (cloned as { errcode?: unknown }).errcode;
   delete (cloned as { errmsg?: unknown }).errmsg;
@@ -86,7 +88,11 @@ export class WecomContactClient {
     let lastErr: unknown;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const res = await wecomFetch(url, { method: "GET" }, { proxyUrl, timeoutMs: LIMITS.REQUEST_TIMEOUT_MS });
+        const res = await wecomFetch(
+          url,
+          { method: "GET" },
+          { proxyUrl, timeoutMs: LIMITS.REQUEST_TIMEOUT_MS },
+        );
         return await parseJsonResponse(res, actionLabel);
       } catch (err) {
         lastErr = err;
@@ -99,7 +105,10 @@ export class WecomContactClient {
     throw lastErr;
   }
 
-  async getMember(agent: ResolvedAgentAccount, userid: string): Promise<{ raw: any; member: WecomMember }> {
+  async getMember(
+    agent: ResolvedAgentAccount,
+    userid: string,
+  ): Promise<{ raw: any; member: WecomMember }> {
     const normalizedUserId = readString(userid);
     if (!normalizedUserId) throw new Error("userid required");
 
@@ -120,7 +129,12 @@ export class WecomContactClient {
     agent: ResolvedAgentAccount,
     departmentId: number,
     simple = false,
-  ): Promise<{ raw: any; departmentId: number; simple: boolean; members: Array<WecomMember | WecomMemberSimple> }> {
+  ): Promise<{
+    raw: any;
+    departmentId: number;
+    simple: boolean;
+    members: Array<WecomMember | WecomMemberSimple>;
+  }> {
     const normalizedDepartmentId = readRequiredInteger(departmentId, "departmentId");
     const path = simple ? "/cgi-bin/user/simplelist" : "/cgi-bin/user/list";
     const json = await this.getWecomContactApi({
@@ -222,7 +236,13 @@ export class WecomContactClient {
     agent: ResolvedAgentAccount,
     departmentId: number,
     query: string,
-  ): Promise<{ raw: any; departmentId: number; query: string; total: number; members: WecomMember[] }> {
+  ): Promise<{
+    raw: any;
+    departmentId: number;
+    query: string;
+    total: number;
+    members: WecomMember[];
+  }> {
     const normalizedQuery = readString(query);
     if (!normalizedQuery) throw new Error("query required");
 

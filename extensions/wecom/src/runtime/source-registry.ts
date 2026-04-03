@@ -44,7 +44,9 @@ function normalizePeerId(value: string | null | undefined): string | undefined {
 }
 
 function normalizePeerKind(value: string | null | undefined): "direct" | "group" | undefined {
-  const trimmed = String(value ?? "").trim().toLowerCase();
+  const trimmed = String(value ?? "")
+    .trim()
+    .toLowerCase();
   return trimmed === "direct" || trimmed === "group" ? trimmed : undefined;
 }
 
