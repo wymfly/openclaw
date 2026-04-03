@@ -73,13 +73,21 @@ export function SectionNav({ sections, activeSection, onSelect }: SectionNavProp
 
   /** Count configurable fields for a given section from the schema */
   const getFieldCount = (section: string): number | null => {
-    if (!schema) return null;
+    if (!schema) {
+      return null;
+    }
     const props = schema.properties as Record<string, Record<string, unknown>> | undefined;
-    if (!props) return null;
+    if (!props) {
+      return null;
+    }
     const sectionSchema = props[section];
-    if (!sectionSchema) return null;
+    if (!sectionSchema) {
+      return null;
+    }
     const sectionProps = sectionSchema.properties as Record<string, unknown> | undefined;
-    if (!sectionProps) return null;
+    if (!sectionProps) {
+      return null;
+    }
     return Object.keys(sectionProps).length;
   };
 

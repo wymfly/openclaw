@@ -66,8 +66,12 @@ export function SortableHeader({
 }
 
 function ariaSortValue(direction: SortDirection | null): "ascending" | "descending" | "none" {
-  if (direction === "asc") return "ascending";
-  if (direction === "desc") return "descending";
+  if (direction === "asc") {
+    return "ascending";
+  }
+  if (direction === "desc") {
+    return "descending";
+  }
   return "none";
 }
 

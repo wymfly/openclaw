@@ -441,7 +441,7 @@ export class RunEventStore {
 
     // Try to parse the last event's data for terminal status.
     try {
-      const parsed = JSON.parse(lastEvent.data as string) as Record<string, unknown>;
+      const parsed = JSON.parse(lastEvent.data) as Record<string, unknown>;
       if (parsed.type === "result") {
         const subtype = parsed.subtype as string | undefined;
         if (subtype === "success") {

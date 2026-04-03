@@ -31,7 +31,9 @@ export function WizardStepSelect({
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return catalogProviders;
+    if (!search.trim()) {
+      return catalogProviders;
+    }
     const q = search.toLowerCase();
     return catalogProviders.filter(
       (p) => p.displayName.toLowerCase().includes(q) || p.id.toLowerCase().includes(q),

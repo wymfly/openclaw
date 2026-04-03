@@ -48,7 +48,9 @@ export function UsageChart({ daily, modelDaily }: UsageChartProps) {
 
   // Build model stacked data: pivot modelDaily into { date, model1: tokens, model2: tokens, ... }
   const { modelData, modelNames } = useMemo(() => {
-    if (!modelDaily || modelDaily.length === 0) return { modelData: [], modelNames: [] };
+    if (!modelDaily || modelDaily.length === 0) {
+      return { modelData: [], modelNames: [] };
+    }
 
     const dateMap = new Map<string, Record<string, number | string>>();
     const names = new Set<string>();
@@ -63,14 +65,16 @@ export function UsageChart({ daily, modelDaily }: UsageChartProps) {
     }
 
     return {
-      modelData: Array.from(dateMap.values()).sort((a, b) =>
+      modelData: Array.from(dateMap.values()).toSorted((a, b) =>
         (a.date as string).localeCompare(b.date as string),
       ),
       modelNames: Array.from(names),
     };
   }, [modelDaily]);
 
-  if (daily.length === 0) return null;
+  if (daily.length === 0) {
+    return null;
+  }
 
   const views: { key: ChartView; label: string }[] = [
     { key: "tokens", label: t("chartTokens") },

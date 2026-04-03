@@ -41,7 +41,7 @@ function parseSubagentNodes(events: RunEventRow[]): LineageNode[] {
     seen.add(runId);
 
     const rawStatus = (parsed.status as string | undefined) ?? "active";
-    const status = VALID_STATUSES.has(rawStatus) ? (rawStatus as LineageNode["status"]) : "active";
+    const status = VALID_STATUSES.has(rawStatus) ? rawStatus : "active";
 
     nodes.push({
       runId,

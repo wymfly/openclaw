@@ -7,7 +7,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 export function FieldHelpPopover({ help, docsUrl }: { help?: string; docsUrl?: string }) {
   const t = useTranslations("config");
 
-  if (!help) return null;
+  if (!help) {
+    return null;
+  }
 
   return (
     <Tooltip>

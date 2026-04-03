@@ -107,8 +107,7 @@ function parseProperty(
   const unionCandidates = (schema.oneOf ?? schema.anyOf) as Record<string, unknown>[] | undefined;
   if (Array.isArray(unionCandidates) && unionCandidates.length > 0) {
     const disc = schema.discriminator as Record<string, unknown> | undefined;
-    const discKey =
-      typeof disc?.propertyName === "string" ? (disc.propertyName as string) : undefined;
+    const discKey = typeof disc?.propertyName === "string" ? disc.propertyName : undefined;
     const variants = parseUnionVariants(unionCandidates, disc);
     if (variants.length > 0) {
       // All-const variants (no type/fields) are effectively enums — use "enum" type

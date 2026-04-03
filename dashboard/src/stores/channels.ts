@@ -282,7 +282,9 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
       await configStore.fetchSchema();
     }
     const { schema } = useConfigStore.getState();
-    if (!schema) return;
+    if (!schema) {
+      return;
+    }
 
     const schemas = new Map<string, ChannelSchemaInfo>();
     const properties = (schema.properties ?? {}) as Record<string, Record<string, unknown>>;

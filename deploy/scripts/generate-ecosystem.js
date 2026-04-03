@@ -45,7 +45,9 @@ const gatewayEnv = {
   NO_PROXY: "localhost,127.0.0.1",
 };
 for (const k of providerKeys) {
-  if (process.env[k]) gatewayEnv[k] = process.env[k];
+  if (process.env[k]) {
+    gatewayEnv[k] = process.env[k];
+  }
 }
 
 const deckEnv = {

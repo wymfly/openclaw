@@ -49,9 +49,13 @@ export function VirtualList<T>({
 
   // ----- Scroll restoration: save -----
   useEffect(() => {
-    if (!scrollRestorationKey) return;
+    if (!scrollRestorationKey) {
+      return;
+    }
     const el = parentRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
 
     const handleScroll = () => {
       try {
@@ -67,9 +71,13 @@ export function VirtualList<T>({
 
   // ----- Scroll restoration: restore -----
   useEffect(() => {
-    if (!scrollRestorationKey) return;
+    if (!scrollRestorationKey) {
+      return;
+    }
     const el = parentRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
 
     try {
       const saved = sessionStorage.getItem(SCROLL_STORAGE_PREFIX + scrollRestorationKey);

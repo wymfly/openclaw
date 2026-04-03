@@ -55,7 +55,7 @@ export interface MethodRegistry {
 }
 
 function computeSchemaVersion(methods: ReadonlyMap<string, MethodDefinition>): string {
-  const sorted = [...methods.keys()].sort().join(",");
+  const sorted = [...methods.keys()].toSorted().join(",");
   let hash = 0;
   for (let i = 0; i < sorted.length; i++) {
     hash = ((hash << 5) - hash + sorted.charCodeAt(i)) | 0;
@@ -161,10 +161,16 @@ export function buildMethodRegistry(
         } = {
           scope: def.scope,
         };
-        if (def.since !== undefined) entry.since = def.since;
+        if (def.since !== undefined) {
+          entry.since = def.since;
+        }
         if (includeSchemas) {
-          if (def.params) entry.params = def.params as unknown as Record<string, unknown>;
-          if (def.result) entry.result = def.result as unknown as Record<string, unknown>;
+          if (def.params) {
+            entry.params = def.params as unknown as Record<string, unknown>;
+          }
+          if (def.result) {
+            entry.result = def.result as unknown as Record<string, unknown>;
+          }
         }
         result.methods[name] = entry;
       }

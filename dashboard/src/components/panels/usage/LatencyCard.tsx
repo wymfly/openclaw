@@ -17,7 +17,9 @@ import type { SessionLatencyStats, SessionDailyLatency } from "@/stores/usage";
 // ---------------------------------------------------------------------------
 
 function formatMs(ms: number): string {
-  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms >= 1000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
   return `${Math.round(ms)}ms`;
 }
 
@@ -34,7 +36,9 @@ export function LatencyCard({ latency, dailyLatency }: LatencyCardProps) {
   const t = useTranslations("usage");
 
   // Conditional rendering: don't show if no latency data
-  if (!latency) return null;
+  if (!latency) {
+    return null;
+  }
 
   const stats: { label: string; value: string }[] = [
     { label: t("latencyAvg"), value: formatMs(latency.avgMs) },

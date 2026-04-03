@@ -36,7 +36,9 @@ export function BatchActionBar<T = unknown>({
   const t = useTranslations("lists");
 
   // Don't render when nothing is selected
-  if (selectedIds.size === 0) return null;
+  if (selectedIds.size === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -84,8 +86,12 @@ export function BatchActionBar<T = unknown>({
 // ---------------------------------------------------------------------------
 
 function ariaChecked(allSelected: boolean, partialSelected: boolean): "true" | "mixed" | "false" {
-  if (allSelected) return "true";
-  if (partialSelected) return "mixed";
+  if (allSelected) {
+    return "true";
+  }
+  if (partialSelected) {
+    return "mixed";
+  }
   return "false";
 }
 
@@ -96,7 +102,11 @@ function SelectionIcon({
   isAllSelected: boolean;
   isPartialSelected: boolean;
 }) {
-  if (isAllSelected) return <SquareCheck size={16} />;
-  if (isPartialSelected) return <Minus size={16} className="text-primary" />;
+  if (isAllSelected) {
+    return <SquareCheck size={16} />;
+  }
+  if (isPartialSelected) {
+    return <Minus size={16} className="text-primary" />;
+  }
   return <Square size={16} />;
 }

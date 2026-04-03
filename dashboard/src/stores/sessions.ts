@@ -256,7 +256,9 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
 
   applySessionChangedEvent: (payload: Record<string, unknown>) => {
     const key = payload.sessionKey as string;
-    if (!key) return;
+    if (!key) {
+      return;
+    }
 
     set((state) => {
       const sessions = [...state.sessions];

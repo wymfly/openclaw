@@ -10,7 +10,9 @@ const STORAGE_KEY = "deck-chat-input-history";
 function loadFromStorage(): string[] {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      return [];
+    }
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as string[]).slice(-MAX_HISTORY) : [];
   } catch {
@@ -34,7 +36,9 @@ export function useInputHistory() {
 
   const push = useCallback((text: string) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
     const items = itemsRef.current;
     // Dedup: skip if identical to last entry (same as official InputHistory)
     if (items[items.length - 1] === trimmed) {
@@ -42,7 +46,9 @@ export function useInputHistory() {
       return;
     }
     items.push(trimmed);
-    if (items.length > MAX_HISTORY) items.shift();
+    if (items.length > MAX_HISTORY) {
+      items.shift();
+    }
     cursorRef.current = -1;
     saveToStorage(items);
   }, []);
@@ -50,7 +56,9 @@ export function useInputHistory() {
   /** Navigate up (older). Returns the history entry, or null if already at top. */
   const up = useCallback((currentText: string): string | null => {
     const items = itemsRef.current;
-    if (items.length === 0) return null;
+    if (items.length === 0) {
+      return null;
+    }
     if (cursorRef.current < 0) {
       // First up press — save current draft
       draftRef.current = currentText;
@@ -63,7 +71,9 @@ export function useInputHistory() {
 
   /** Navigate down (newer). Returns history entry or restored draft if past end. */
   const down = useCallback((): string | null => {
-    if (cursorRef.current < 0) return null;
+    if (cursorRef.current < 0) {
+      return null;
+    }
     cursorRef.current++;
     const items = itemsRef.current;
     if (cursorRef.current >= items.length) {
