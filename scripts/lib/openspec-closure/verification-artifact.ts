@@ -14,6 +14,7 @@ const ALLOWED_STATUSES: VerificationStatus[] = [
   "pending",
   "verified",
   "blocked",
+  "deferred",
   "spec-fix-required",
 ];
 
@@ -94,6 +95,11 @@ function validateVerificationArtifact(artifact: VerificationArtifact, filePath: 
     if (!ALLOWED_STATUSES.includes(entry.status)) {
       throw new Error(
         `verification artifact ${filePath} contains unsupported status ${String(entry.status)} for ${entry.scenarioId}`,
+      );
+    }
+    if (entry.status === "deferred" && (!entry.rationale || typeof entry.rationale !== "string")) {
+      throw new Error(
+        `verification artifact ${filePath} requires rationale for deferred scenario ${entry.scenarioId}`,
       );
     }
   }

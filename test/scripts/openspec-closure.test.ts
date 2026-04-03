@@ -75,6 +75,7 @@ const DEFAULT_CONFIG_BODY = `planGlobs:
 blockingStatuses:
   - pending
   - blocked
+  - deferred
   - spec-fix-required
 verificationFileName: verification.yaml
 `;
@@ -91,6 +92,7 @@ async function createTempChange(specBody: string): Promise<string> {
 async function createTempProject(options?: {
   changeName?: string;
   configBody?: string;
+  planRelativePath?: string;
   planBody?: string;
   specBody?: string;
   verificationArtifact?: VerificationArtifact;
@@ -106,6 +108,7 @@ async function createTempProject(options?: {
   tempDirs.push(rootDir);
   const changeName = options?.changeName ?? "demo-change";
   const verificationFileName = options?.verificationFileName ?? "verification.yaml";
+  const planRelativePath = options?.planRelativePath ?? path.join("docs", "plans", "demo-plan.md");
   const specPath = path.join(
     rootDir,
     "openspec",
@@ -115,7 +118,7 @@ async function createTempProject(options?: {
     "scenario-traceability",
     "spec.md",
   );
-  const planPath = path.join(rootDir, "docs", "plans", "demo-plan.md");
+  const planPath = path.join(rootDir, planRelativePath);
   const configPath = path.join(rootDir, ".openspec-closure.yaml");
   const verificationPath = path.join(rootDir, "openspec", "changes", changeName, verificationFileName);
 
@@ -323,7 +326,7 @@ describe("openspec closure primitives", () => {
     });
 
     expect(config).toEqual({
-      blockingStatuses: ["pending", "blocked", "spec-fix-required"],
+      blockingStatuses: ["pending", "blocked", "deferred", "spec-fix-required"],
       planGlobs: ["docs/plans/*.md"],
       verificationFileName: "verification.yaml",
     });
@@ -334,7 +337,7 @@ describe("openspec closure primitives", () => {
   it("reports missing plan coverage and missing verification as open gaps", async () => {
     const inventory = await collectScenarioInventory(PROJECT_CHANGE);
     const result = checkClosure({
-      blockingStatuses: ["pending", "blocked", "spec-fix-required"],
+      blockingStatuses: ["pending", "blocked", "deferred", "spec-fix-required"],
       changeName: "demo-change",
       coverage: [],
       inventory,
@@ -371,7 +374,7 @@ describe("openspec closure primitives", () => {
     const inventory = await collectScenarioInventory(PROJECT_CHANGE);
     const coverage = await collectPlanCoverage([PROJECT_PLAN]);
     const result = checkClosure({
-      blockingStatuses: ["pending", "blocked", "spec-fix-required"],
+      blockingStatuses: ["pending", "blocked", "deferred", "spec-fix-required"],
       changeName: "demo-change",
       coverage,
       inventory,
@@ -405,7 +408,7 @@ describe("openspec closure primitives", () => {
     const coverage = await collectPlanCoverage([PROJECT_PLAN]);
     const verification = await readVerificationArtifact(PROJECT_VERIFICATION);
     const result = checkClosure({
-      blockingStatuses: ["pending", "blocked", "spec-fix-required"],
+      blockingStatuses: ["pending", "blocked", "deferred", "spec-fix-required"],
       changeName: "demo-change",
       coverage,
       inventory,
@@ -525,6 +528,78 @@ describe("openspec closure primitives", () => {
     expect(reportResult.stdout).toBe("Change: demo-change\nArchive Ready: yes\nScenarios: 2\nOpen Gaps: 0\n");
   });
 
+  it("keeps deferred verification rationale and blocks readiness by default", async () => {
+    const filePath = path.join(await mkdtemp(path.join(os.tmpdir(), "openspec-deferred-")), "verification.yaml");
+    tempDirs.push(path.dirname(filePath));
+
+    await writeVerificationArtifact(filePath, {
+      changeName: "valid-change",
+      generatedAt: "2026-04-03T00:00:00.000Z",
+      scenarios: [
+        {
+          scenarioId: "traceability.new-id",
+          ownerTask: "Task 2",
+          rationale: "Waiting on end-to-end environment",
+          status: "deferred",
+        },
+      ],
+    });
+
+    const artifact = await readVerificationArtifact(filePath);
+    expect(artifact.scenarios[0]).toEqual({
+      ownerTask: "Task 2",
+      rationale: "Waiting on end-to-end environment",
+      scenarioId: "traceability.new-id",
+      status: "deferred",
+    });
+
+    const inventory = await collectScenarioInventory(VALID_CHANGE);
+    const coverage = await collectPlanCoverage([PROJECT_PLAN]);
+    const result = checkClosure({
+      blockingStatuses: ["pending", "blocked", "deferred", "spec-fix-required"],
+      changeName: "valid-change",
+      coverage,
+      inventory,
+      verification: {
+        changeName: "valid-change",
+        generatedAt: "2026-04-03T00:00:00.000Z",
+        scenarios: [
+          {
+            rationale: "Waiting on end-to-end environment",
+            scenarioId: "traceability.new-id",
+            status: "deferred",
+          },
+          {
+            scenarioId: "traceability.same-id",
+            status: "verified",
+          },
+        ],
+      },
+    });
+
+    expect(result.archiveReady).toBe(false);
+    expect(result.gaps).toEqual([
+      {
+        kind: "open-verification-status",
+        message: "Scenario traceability.new-id remains in deferred state",
+        scenarioId: "traceability.new-id",
+      },
+    ]);
+  });
+
+  it("requires rationale for deferred verification entries", async () => {
+    const filePath = path.join(await mkdtemp(path.join(os.tmpdir(), "openspec-deferred-")), "verification.yaml");
+    tempDirs.push(path.dirname(filePath));
+
+    await expect(
+      writeVerificationArtifact(filePath, {
+        changeName: "valid-change",
+        generatedAt: "2026-04-03T00:00:00.000Z",
+        scenarios: [{ scenarioId: "traceability.new-id", status: "deferred" }],
+      }),
+    ).rejects.toThrow(/requires rationale for deferred scenario traceability\.new-id/u);
+  });
+
   it("discovers repo plans through the root adapter config", async () => {
     const config = await loadClosureConfig({ rootDir: process.cwd() });
     const planPaths = await resolvePlanFiles({
@@ -533,7 +608,7 @@ describe("openspec closure primitives", () => {
     });
 
     expect(config).toEqual({
-      blockingStatuses: ["pending", "blocked", "spec-fix-required"],
+      blockingStatuses: ["pending", "blocked", "deferred", "spec-fix-required"],
       planGlobs: ["docs/plans/*.md"],
       verificationFileName: "verification.yaml",
     });
@@ -550,5 +625,59 @@ describe("openspec closure primitives", () => {
     expect(packageJson.scripts["openspec:closure:init"]).toBe("node --import tsx scripts/openspec-closure.ts init");
     expect(packageJson.scripts["openspec:closure:check"]).toBe("node --import tsx scripts/openspec-closure.ts check");
     expect(packageJson.scripts["openspec:closure:report"]).toBe("node --import tsx scripts/openspec-closure.ts report");
+  });
+
+  it("resolves non-default plan and verification locations through adapter config", async () => {
+    const customVerificationFileName = path.join("state", "closure.yaml");
+    const customConfigBody = `planGlobs:
+  - workflow/plans/*.md
+blockingStatuses:
+  - pending
+  - blocked
+  - deferred
+  - spec-fix-required
+verificationFileName: ${customVerificationFileName}
+`;
+    const project = await createTempProject({
+      configBody: customConfigBody,
+      planRelativePath: path.join("workflow", "plans", "custom-plan.md"),
+      verificationFileName: customVerificationFileName,
+      verificationArtifact: {
+        changeName: "demo-change",
+        generatedAt: "2026-04-03T00:00:00.000Z",
+        scenarios: [
+          { scenarioId: "traceability.new-id", status: "verified" },
+          { scenarioId: "traceability.same-id", status: "verified" },
+        ],
+      },
+    });
+
+    const config = await loadClosureConfig({ rootDir: project.rootDir });
+    const planPaths = await resolvePlanFiles({
+      rootDir: project.rootDir,
+      planGlobs: config.planGlobs,
+    });
+    const verificationPath = resolveVerificationPath({
+      changeName: project.changeName,
+      rootDir: project.rootDir,
+      verificationFileName: config.verificationFileName,
+    });
+    const reportResult = await runClosureCli([
+      "report",
+      "--change",
+      project.changeName,
+      "--root",
+      project.rootDir,
+    ]);
+
+    expect(config).toEqual({
+      blockingStatuses: ["pending", "blocked", "deferred", "spec-fix-required"],
+      planGlobs: ["workflow/plans/*.md"],
+      verificationFileName: customVerificationFileName,
+    });
+    expect(planPaths).toEqual([project.planPath]);
+    expect(verificationPath).toBe(project.verificationPath);
+    expect(reportResult.code).toBe(0);
+    expect(reportResult.stdout).toBe("Change: demo-change\nArchive Ready: yes\nScenarios: 2\nOpen Gaps: 0\n");
   });
 });
