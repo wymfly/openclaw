@@ -1,8 +1,0 @@
-planGlobs:
-  - docs/plans/*.md
-blockingStatuses:
-  - pending
-  - blocked
-  - deferred
-  - spec-fix-required
-verificationFileName: verification.yaml

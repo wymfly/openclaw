@@ -1,0 +1,65 @@
+changeName: openspec-closure-repo-extraction
+generatedAt: 2026-04-04T01:44:00.000Z
+scenarios:
+  - scenarioId: closure-migration-retained-evidence.keep-archived-verification
+    ownerTask: Final cross-repo verification and handoff
+    verificationCommand: test -f .openspec-closure.yaml && test -f openspec/changes/archive/2026-04-03-deck-chat-message-contract/verification.yaml && test -f openspec/changes/archive/2026-04-03-openspec-closure-plugin-distribution/verification.yaml && echo retained-ok
+    evidence:
+      - .openspec-closure.yaml
+      - openspec/changes/archive/2026-04-03-deck-chat-message-contract/verification.yaml
+      - openspec/changes/archive/2026-04-03-openspec-closure-plugin-distribution/verification.yaml
+    status: verified
+  - scenarioId: closure-migration-retained-evidence.provenance-not-product-capability
+    ownerTask: Final cross-repo verification and handoff
+    verificationCommand: rg -n "openspec:closure|reference/openspec-closure-companion|closure-plugin-distribution|closure-project-bootstrap|closure-workflow-activation" package.json docs/docs.json openspec/specs
+    evidence:
+      - package.json
+      - docs/docs.json
+      - openspec/changes/archive/2026-04-03-openspec-closure-plugin-distribution/verification.yaml
+    status: verified
+  - scenarioId: closure-openclaw-consumer-boundary.external-consumer-validation
+    ownerTask: Validate OpenClaw as an external consumer
+    verificationCommand: (from ../openspec-closure) pnpm openspec:closure:report -- --change openspec-closure-repo-extraction --root ../openclaw && node plugins/openspec-closure/scripts/run-openspec-closure.mjs report --change openspec-closure-repo-extraction --root ../openclaw
+    evidence:
+      - ../openspec-closure/package.json
+      - ../openspec-closure/plugins/openspec-closure/scripts/run-openspec-closure.mjs
+      - openspec/changes/openspec-closure-repo-extraction/verification.yaml
+    status: verified
+  - scenarioId: closure-openclaw-consumer-boundary.keep-consumer-adapter
+    ownerTask: Clean OpenClaw to a consumer-only boundary
+    verificationCommand: test -f .openspec-closure.yaml && test -f openspec/changes/openspec-closure-repo-extraction/verification.yaml && echo retained-ok
+    evidence:
+      - .openspec-closure.yaml
+      - openspec/changes/openspec-closure-repo-extraction/verification.yaml
+    status: verified
+  - scenarioId: closure-openclaw-consumer-boundary.remove-tooling-surfaces
+    ownerTask: Clean OpenClaw to a consumer-only boundary
+    verificationCommand: find packages/openspec-closure-core plugins/openspec-closure plugins/openspec-closure-claude scripts/lib/openspec-closure test/fixtures/openspec-closure test/fixtures/openspec-closure-plugin -type f 2>/dev/null | wc -l
+    evidence:
+      - package.json
+      - docs/docs.json
+    status: verified
+  - scenarioId: closure-tooling-ownership.external-source-of-truth
+    ownerTask: Bootstrap the sibling tooling repository
+    verificationCommand: (from ../openspec-closure) pnpm test -- test/scripts/openspec-closure.test.ts test/scripts/openspec-closure-plugin.test.ts && pnpm build
+    evidence:
+      - ../openspec-closure/package.json
+      - ../openspec-closure/packages/openspec-closure-core/package.json
+      - ../openspec-closure/plugins/openspec-closure/.codex-plugin/plugin.json
+      - ../openspec-closure/plugins/openspec-closure-claude/.claude-plugin/plugin.json
+    status: verified
+  - scenarioId: closure-tooling-ownership.move-active-generic-change
+    ownerTask: Bootstrap the sibling tooling repository
+    verificationCommand: test -f ../openspec-closure/openspec/changes/openspec-closure-companion/proposal.md && test ! -e openspec/changes/openspec-closure-companion && echo migrated
+    evidence:
+      - ../openspec-closure/openspec/changes/openspec-closure-companion/proposal.md
+      - ../openspec-closure/docs/plans/2026-04-03-openspec-closure-companion-plan.md
+    status: verified
+  - scenarioId: closure-tooling-ownership.remove-generic-main-specs
+    ownerTask: Clean OpenClaw to a consumer-only boundary
+    verificationCommand: rg -n "closure-plugin-distribution|closure-project-bootstrap|closure-workflow-activation" openspec/specs
+    evidence:
+      - ../openspec-closure/openspec/specs/closure-plugin-distribution/spec.md
+      - ../openspec-closure/openspec/specs/closure-project-bootstrap/spec.md
+      - ../openspec-closure/openspec/specs/closure-workflow-activation/spec.md
+    status: verified
