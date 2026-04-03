@@ -1,67 +1,65 @@
 # OpenClaw 快速安装
 
-## 前置依赖
+## 一键安装
 
-### Docker 模式（推荐）
+安装脚本会自动处理所有依赖（Node.js、pnpm、PM2），无需手动安装。
 
-| 平台    | 依赖                   | 安装                                                                  |
-| ------- | ---------------------- | --------------------------------------------------------------------- |
-| Linux   | Docker + Compose v2    | `curl -fsSL https://get.docker.com \| sh`                             |
-| macOS   | Docker Desktop         | `brew install --cask docker`                                          |
-| Windows | Docker Desktop + WSL 2 | [docker.com/desktop](https://www.docker.com/products/docker-desktop/) |
-
-### 裸机模式
-
-| 平台    | 依赖              | 安装                                                                                  |
-| ------- | ----------------- | ------------------------------------------------------------------------------------- |
-| Linux   | Node.js 22+, pnpm | `curl -fsSL https://deb.nodesource.com/setup_22.x \| sudo -E bash - && npm i -g pnpm` |
-| macOS   | Node.js 22+, pnpm | `brew install node@22 && npm i -g pnpm`                                               |
-| Windows | Node.js 22+, pnpm | [nodejs.org](https://nodejs.org/) + `npm i -g pnpm`                                   |
-
-## 安装步骤
-
-### Step 1: 配置
+API Key 和 Gateway Token 已预填，无需手动编辑配置文件。
 
 ```bash
-cp deploy/.env.example deploy/.env
-# 编辑 deploy/.env，至少设置一个 AI Provider API Key
+cd deploy
+bash install.sh bare-metal
 ```
 
-### Step 2: 安装
+Windows 用户：双击 `install.bat`。
 
-```bash
-# 交互式
-bash deploy/scripts/install.sh
-
-# 或指定模式
-bash deploy/scripts/install.sh docker       # Docker
-bash deploy/scripts/install.sh bare-metal   # 裸机 + PM2
-```
-
-### Step 3: 验证
+安装完成后：
 
 - Gateway: http://localhost:18789/healthz
 - Deck Dashboard: http://localhost:3000
 
-## 管理
-
-### Docker
+## 运维
 
 ```bash
-cd deploy/docker
-docker compose --env-file ../.env ps       # 状态
-docker compose --env-file ../.env logs -f  # 日志
-docker compose --env-file ../.env restart  # 重启
-docker compose --env-file ../.env down     # 停止
+cd deploy
+bash status.sh    # 查看状态
+bash start.sh     # 启动
+bash stop.sh      # 停止
 ```
 
-### 裸机 (PM2)
+Windows 用户：双击 `status.bat` / `start.bat` / `stop.bat`。
+
+## 安装包模式
+
+如果是从打包产物（tar.gz）安装：
 
 ```bash
-pm2 status        # 状态
-pm2 logs          # 日志
-pm2 restart all   # 重启
-pm2 stop all      # 停止
+tar xzf openclaw-deploy-*.tar.gz
+cd openclaw-deploy-*
+bash install.sh bare-metal
+
+# 运维
+bash status.sh
+bash start.sh
+bash stop.sh
+```
+
+## 其他安装模式
+
+```bash
+bash install.sh              # 交互式菜单
+bash install.sh docker       # Docker 模式
+bash install.sh docker-build # Docker 模式（强制重建）
+bash install.sh bare-metal   # 裸机模式（PM2）
+```
+
+## 自定义配置
+
+如需修改 API Key 或其他配置：
+
+```bash
+vim deploy/.env              # 编辑配置
+bash deploy/stop.sh && bash deploy/start.sh   # 重启生效
 ```
 
 ## 常见问题
@@ -70,6 +68,5 @@ pm2 stop all      # 停止
 2. **Gateway token 不匹配** — 检查 `.env` 中 `OPENCLAW_GATEWAY_TOKEN` 和 seed 配置一致
 3. **Docker 构建慢** — 首次构建需下载依赖，后续利用缓存
 4. **Deck 无法连接 Gateway** — Docker 模式需 `network_mode: service:gateway`
-5. **No API Key** — `.env` 中至少设置一个 Provider API Key
 
 详细文档见 [deploy/README.md](README.md)。
