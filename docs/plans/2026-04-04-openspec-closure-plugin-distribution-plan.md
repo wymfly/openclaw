@@ -29,9 +29,11 @@
 | `plugins/openspec-closure/.codex-plugin/plugin.json`                      | Codex plugin manifest                                                          |
 | `plugins/openspec-closure/skills/openspec-closure-workflow/SKILL.md`      | Codex-side manual closure workflow entrypoint                                  |
 | `plugins/openspec-closure/scripts/openspec-closure.ts`                    | Codex bundle wrapper that invokes shared core from plugin-local assets         |
+| `plugins/openspec-closure/scripts/run-openspec-closure.mjs`               | Codex bundle launcher that resolves runtime from bundle-local dependencies     |
 | `plugins/openspec-closure-claude/.claude-plugin/plugin.json`              | Claude companion bundle manifest                                               |
 | `plugins/openspec-closure-claude/skills/openspec-closure-workflow/SKILL.md` | Claude-side manual closure workflow entrypoint                               |
 | `plugins/openspec-closure-claude/scripts/openspec-closure.ts`             | Claude bundle wrapper that invokes shared core from plugin-local assets        |
+| `plugins/openspec-closure-claude/scripts/run-openspec-closure.mjs`        | Claude bundle launcher that resolves runtime from bundle-local dependencies    |
 | `test/scripts/openspec-closure-plugin.test.ts`                            | Distribution-level tests for bundle wrapper behavior and bootstrap guidance    |
 | `test/fixtures/openspec-closure-plugin/minimal-project/**`                | Fixture project with thin adapter only                                         |
 | `docs/reference/openspec-closure-plugin.md`                               | Installation, activation, and bootstrap guide for pluginized closure companion |
@@ -102,6 +104,7 @@ scripts/committer "[enhanced] refactor(openspec): extract closure shared core pa
 - Create: `plugins/openspec-closure/.codex-plugin/plugin.json`
 - Create: `plugins/openspec-closure/skills/openspec-closure-workflow/SKILL.md`
 - Create: `plugins/openspec-closure/scripts/openspec-closure.ts`
+- Create: `plugins/openspec-closure/scripts/run-openspec-closure.mjs`
 - Modify: `package.json`
 - Modify: `test/scripts/openspec-closure-plugin.test.ts`
 
@@ -141,6 +144,7 @@ scripts/committer "[enhanced] feat(codex-plugin): add openspec closure bundle" \
 - Create: `plugins/openspec-closure-claude/.claude-plugin/plugin.json`
 - Create: `plugins/openspec-closure-claude/skills/openspec-closure-workflow/SKILL.md`
 - Create: `plugins/openspec-closure-claude/scripts/openspec-closure.ts`
+- Create: `plugins/openspec-closure-claude/scripts/run-openspec-closure.mjs`
 - Modify: `test/scripts/openspec-closure-plugin.test.ts`
 
 **covers:** `closure-plugin-distribution/spec.md > ADDED > The closure companion SHALL be installable as a product bundle instead of only as repo-local scripts > "Claude bundle mirrors the same closure workflow contract"`
@@ -213,7 +217,7 @@ scripts/committer "[enhanced] feat(claude-plugin): add openspec closure bundle" 
 pnpm test -- test/scripts/openspec-closure-plugin.test.ts -t "bootstrap|routing|minimal project"
 ```
 
-- [ ] **Step 4.6: Commit**
+- [x] **Step 4.6: Commit**
 
 ```bash
 scripts/committer "[enhanced] docs(openspec): add closure plugin bootstrap guide" \
@@ -233,13 +237,13 @@ scripts/committer "[enhanced] docs(openspec): add closure plugin bootstrap guide
 
 **covers:** All remaining plugin-distribution and bootstrap scenarios through integrated validation
 
-- [ ] **Step 5.1: 增加端到端 lifecycle 验证**
+- [x] **Step 5.1: 增加端到端 lifecycle 验证**
       在测试中覆盖：- Codex bundle `init -> report -> check` - Claude bundle `init -> report -> check` - 最小项目 fixture 的 machine-readable `archiveReady` 输出 - 缺失 adapter 时的 guidance 输出。
 
-- [ ] **Step 5.2: 增加 worktree 复用验证**
+- [x] **Step 5.2: 增加 worktree 复用验证**
       用 fixture 或临时目录模拟“同一项目第二个工作树”场景，确认 bundle 只依赖已安装 assets + 项目 adapter，不依赖第一次运行留下的 repo-local checker 文件。
 
-- [ ] **Step 5.3: 跑完整验证**
+- [x] **Step 5.3: 跑完整验证**
 
 ```bash
 openspec validate openspec-closure-plugin-distribution --strict
@@ -247,7 +251,7 @@ pnpm test -- test/scripts/openspec-closure.test.ts test/scripts/openspec-closure
 pnpm build
 ```
 
-- [ ] **Step 5.4: Commit**
+- [x] **Step 5.4: Commit**
 
 ```bash
 scripts/committer "[enhanced] test(openspec): validate closure plugin distribution" \
