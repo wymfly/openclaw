@@ -30,3 +30,34 @@ export type VerificationArtifact = {
   generatedAt: string;
   scenarios: VerificationEntry[];
 };
+
+export type PlanCoverageEntry = {
+  planPath: string;
+  scenarioId: string;
+  taskTitle: string;
+};
+
+export type ClosureGapKind =
+  | "missing-plan-coverage"
+  | "missing-verification-entry"
+  | "open-verification-status";
+
+export type ClosureGap = {
+  kind: ClosureGapKind;
+  message: string;
+  scenarioId: string;
+};
+
+export type ClosureCheckResult = {
+  archiveReady: boolean;
+  changeName: string;
+  gapCount: number;
+  gaps: ClosureGap[];
+  scenarioCount: number;
+};
+
+export type ClosureProjectConfig = {
+  blockingStatuses: VerificationStatus[];
+  planGlobs: string[];
+  verificationFileName: string;
+};
