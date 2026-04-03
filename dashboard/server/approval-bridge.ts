@@ -9,8 +9,8 @@
  * (GET /api/approvals/pending returns current map entries).
  */
 
-import type { DeckRuntime } from "./runtime";
 import type { ChatSessionProjection } from "./projection-store";
+import type { DeckRuntime } from "./runtime";
 
 // ---------------------------------------------------------------------------
 // Types
