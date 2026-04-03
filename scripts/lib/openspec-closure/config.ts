@@ -69,7 +69,10 @@ async function walkFiles(rootDir: string): Promise<string[]> {
   for (const entry of entries) {
     const fullPath = path.join(rootDir, entry.name);
     if (entry.isDirectory()) {
-      results.push(...(await walkFiles(fullPath)));
+      const nestedFiles = await walkFiles(fullPath);
+      for (const filePath of nestedFiles) {
+        results.push(filePath);
+      }
       continue;
     }
     if (entry.isFile()) {
