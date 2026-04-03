@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/wecom";
 import type { WecomAccountRuntime } from "../../app/account-runtime.js";
 import { startAgentCallbackTransport } from "../../transport/agent-callback/http-handler.js";
 import type { WecomRuntimeEnv } from "../../types/runtime-context.js";

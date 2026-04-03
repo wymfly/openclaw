@@ -1,4 +1,4 @@
-import type { ChannelGatewayContext } from "openclaw/plugin-sdk";
+import type { ChannelGatewayContext } from "openclaw/plugin-sdk/wecom";
 import { resolveWecomRuntimeAccount } from "../config/runtime-config.js";
 import type { ResolvedWecomAccount } from "../types/index.js";
 import { WecomAccountRuntime } from "./account-runtime.js";

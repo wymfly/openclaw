@@ -1,4 +1,4 @@
-import type { PluginRuntime } from "openclaw/plugin-sdk";
+import type { PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import { type StreamStore } from "../../monitor/state.js";
 import { getActiveReplyUrl } from "../../transport/bot-webhook/active-reply.js";
 import type { WecomWebhookTarget } from "../../types/runtime-context.js";

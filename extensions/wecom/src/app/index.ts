@@ -1,4 +1,4 @@
-import type { PluginRuntime } from "openclaw/plugin-sdk";
+import type { PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import { WecomAccountRuntime } from "./account-runtime.js";
 
 let runtime: PluginRuntime | null = null;

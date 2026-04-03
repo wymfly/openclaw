@@ -1,4 +1,4 @@
-import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import { resolveWecomAccount } from "../../config/index.js";
 import { wecomFetch } from "../../http.js";
 import { LIMITS } from "../../monitor/state.js";

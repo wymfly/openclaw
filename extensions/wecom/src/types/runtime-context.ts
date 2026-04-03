@@ -1,4 +1,4 @@
-import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import type { ResolvedBotAccount } from "./account.js";
 import type {
   RawFrameReference,

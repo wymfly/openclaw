@@ -4,7 +4,7 @@ import {
   type ChannelAccountSnapshot,
   type ChannelGatewayContext,
   type OpenClawConfig,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/wecom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRuntimeEnv } from "../../../test/helpers/extensions/runtime-env.js";
 import { wecomPlugin } from "./channel.js";

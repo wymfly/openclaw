@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/wecom";
 import type { WecomAccountRuntime } from "../../app/account-runtime.js";
 import type { ReqIdStore } from "../../enhanced/reqid-store.js";
 import { startBotWebhookTransport } from "../../transport/bot-webhook/http-handler.js";

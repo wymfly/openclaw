@@ -553,6 +553,10 @@
       "types": "./dist/plugin-sdk/voice-call.d.ts",
       "default": "./dist/plugin-sdk/voice-call.js"
     },
+    "./plugin-sdk/wecom": {
+      "types": "./dist/plugin-sdk/wecom.d.ts",
+      "default": "./dist/plugin-sdk/wecom.js"
+    },
     "./plugin-sdk/whatsapp-core": {
       "types": "./dist/plugin-sdk/whatsapp-core.d.ts",
       "default": "./dist/plugin-sdk/whatsapp-core.js"

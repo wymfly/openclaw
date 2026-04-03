@@ -1,4 +1,4 @@
-import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import type { WecomAuditLog } from "../observability/audit-log.js";
 import { buildRawEnvelopeSummary } from "../observability/raw-envelope-log.js";
 import type { WecomMediaService } from "../shared/media-service.js";

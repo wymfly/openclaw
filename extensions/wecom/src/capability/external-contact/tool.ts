@@ -1,6 +1,6 @@
 // extensions/wecom/src/capability/external-contact/tool.ts
 
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
 import { WecomExternalContactClient } from "./client.js";
 import { wecomExternalContactToolSchema } from "./schema.js";

@@ -1,4 +1,4 @@
-import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import type { ReplyHandle } from "../types/index.js";
 import type { PreparedSession } from "./session-manager.js";
 

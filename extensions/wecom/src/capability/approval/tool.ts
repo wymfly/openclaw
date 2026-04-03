@@ -1,6 +1,6 @@
 // extensions/wecom/src/capability/approval/tool.ts
 
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
 import { WecomApprovalClient } from "./client.js";
 import { wecomApprovalToolSchema } from "./schema.js";

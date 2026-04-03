@@ -1,4 +1,4 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { describe, expect, it, vi } from "vitest";
 import plugin from "./index.js";
 

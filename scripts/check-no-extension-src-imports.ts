@@ -17,7 +17,8 @@ function isProductionExtensionFile(filePath: string): boolean {
     filePath.includes("/__tests__/") ||
     filePath.includes("/coverage/") ||
     filePath.includes("/dist/") ||
-    filePath.includes("/node_modules/")
+    filePath.includes("/node_modules/") ||
+    filePath.includes("/scripts/")
   );
 }
 

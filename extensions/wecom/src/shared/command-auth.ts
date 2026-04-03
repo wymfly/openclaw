@@ -1,4 +1,4 @@
-import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import { isWecomSenderAllowed, normalizeWecomAllowFromEntry } from "../domain/policies.js";
 import type { WecomAgentConfig, WecomBotConfig } from "../types/index.js";
 

@@ -1,4 +1,4 @@
-import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import type { UnifiedInboundEvent } from "../types/index.js";
 
 export function resolveRuntimeRoute(params: {
