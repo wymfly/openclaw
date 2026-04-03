@@ -11,6 +11,7 @@
 **OpenSpec:** `openspec/changes/deck-dynamic-commands/` — 4 specs, 17 requirements, 45 scenarios
 
 **Skill dependencies:**
+
 - Dashboard CLAUDE.md: zero-hardcode i18n, shadcn theme tokens, Gateway allowlist sync
 - Gateway CLAUDE.md: methodDefs pattern, TypeBox schema in `protocol/schema/deck.ts`
 
@@ -20,35 +21,36 @@
 
 ### New Files
 
-| File | Responsibility |
-|------|---------------|
-| `dashboard/src/lib/command-types.ts` | All command type definitions: `CommandSource`, `CommandExecMode`, `RegisteredCommand`, `CommandVisibilityContext` |
-| `dashboard/src/lib/command-registry.ts` | `CommandRegistry` class: Map-based register/unregister/get/filter with priority conflict resolution |
-| `dashboard/src/lib/command-registry.test.ts` | Unit tests for CommandRegistry |
-| `dashboard/src/hooks/use-command-discovery.ts` | React hook: discover RPC call, SSE listener, registry sync |
-| `src/gateway/server-methods/deck/commands.ts` | Gateway handler: `deck.commands.discover` aggregating built-in + skill + plugin commands |
+| File                                           | Responsibility                                                                                                    |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `dashboard/src/lib/command-types.ts`           | All command type definitions: `CommandSource`, `CommandExecMode`, `RegisteredCommand`, `CommandVisibilityContext` |
+| `dashboard/src/lib/command-registry.ts`        | `CommandRegistry` class: Map-based register/unregister/get/filter with priority conflict resolution               |
+| `dashboard/src/lib/command-registry.test.ts`   | Unit tests for CommandRegistry                                                                                    |
+| `dashboard/src/hooks/use-command-discovery.ts` | React hook: discover RPC call, SSE listener, registry sync                                                        |
+| `src/gateway/server-methods/deck/commands.ts`  | Gateway handler: `deck.commands.discover` aggregating built-in + skill + plugin commands                          |
 
 ### Modified Files
 
-| File | Change |
-|------|--------|
-| `src/gateway/protocol/schema/deck.ts` | Add `DeckCommandsDiscoverParams/ResultSchema` TypeBox schemas |
-| `src/gateway/server-methods/deck/index.ts` | Import and spread `deckCommandsHandlers` + `deckCommandsMethodDefs` |
-| `src/gateway/server-methods-list.ts` | Register `deck.commands.discover` in the base method list |
-| `dashboard/server/gateway-allowlist.ts` | Add to EXTRA_METHODS (until protocol:gen picks it up) |
-| `dashboard/src/components/panels/chat/slash-commands.ts` | Rename export to `LOCAL_COMMAND_DEFS`, keep `parseSlashCommand` and backward-compat re-exports |
-| `dashboard/src/components/panels/chat/slash-command-executor.ts` | Replace switch-case with registry dispatch + add `executeRemoteCommand()` |
-| `dashboard/src/components/panels/chat/SlashCommandPalette.tsx` | Read from registry, add Skills/More groups, ghost hints, visibility filtering, dynamic icons |
-| `dashboard/src/components/panels/chat/MessageInput.tsx` | Use registry for command lookup, integrate ghost hint state |
-| `dashboard/src/components/panels/chat/ChatPanel.tsx` | Mount `useCommandDiscovery()` hook |
-| `dashboard/src/i18n/en.json` | Add ~10 new chat namespace keys |
-| `dashboard/src/i18n/zh.json` | Add ~10 new chat namespace keys |
+| File                                                             | Change                                                                                         |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `src/gateway/protocol/schema/deck.ts`                            | Add `DeckCommandsDiscoverParams/ResultSchema` TypeBox schemas                                  |
+| `src/gateway/server-methods/deck/index.ts`                       | Import and spread `deckCommandsHandlers` + `deckCommandsMethodDefs`                            |
+| `src/gateway/server-methods-list.ts`                             | Register `deck.commands.discover` in the base method list                                      |
+| `dashboard/server/gateway-allowlist.ts`                          | Add to EXTRA_METHODS (until protocol:gen picks it up)                                          |
+| `dashboard/src/components/panels/chat/slash-commands.ts`         | Rename export to `LOCAL_COMMAND_DEFS`, keep `parseSlashCommand` and backward-compat re-exports |
+| `dashboard/src/components/panels/chat/slash-command-executor.ts` | Replace switch-case with registry dispatch + add `executeRemoteCommand()`                      |
+| `dashboard/src/components/panels/chat/SlashCommandPalette.tsx`   | Read from registry, add Skills/More groups, ghost hints, visibility filtering, dynamic icons   |
+| `dashboard/src/components/panels/chat/MessageInput.tsx`          | Use registry for command lookup, integrate ghost hint state                                    |
+| `dashboard/src/components/panels/chat/ChatPanel.tsx`             | Mount `useCommandDiscovery()` hook                                                             |
+| `dashboard/src/i18n/en.json`                                     | Add ~10 new chat namespace keys                                                                |
+| `dashboard/src/i18n/zh.json`                                     | Add ~10 new chat namespace keys                                                                |
 
 ---
 
 ### Task 1: Command Types
 
 **Files:**
+
 - Create: `dashboard/src/lib/command-types.ts`
 
 **covers:** command-registry > Source-tagged command metadata, command-registry > Priority-based conflict resolution (types only)
@@ -118,6 +120,7 @@ git commit -m "[enhanced] feat(deck): add command registry type definitions"
 ### Task 2: Command Registry
 
 **Files:**
+
 - Create: `dashboard/src/lib/command-registry.ts`
 - Create: `dashboard/src/lib/command-registry.test.ts`
 
@@ -245,7 +248,14 @@ describe("CommandRegistry", () => {
     it("converts SlashCommandDef array to registered commands", () => {
       const defs = [
         { name: "new", descriptionKey: "cmd_new", icon: "plus", category: "session" as const },
-        { name: "model", descriptionKey: "cmd_model", args: "<name>", icon: "cpu", category: "model" as const, argOptions: ["gpt-4"] },
+        {
+          name: "model",
+          descriptionKey: "cmd_model",
+          args: "<name>",
+          icon: "cpu",
+          category: "model" as const,
+          argOptions: ["gpt-4"],
+        },
       ];
       registry.registerLocalCommands(defs);
       expect(registry.getAll()).toHaveLength(2);
@@ -427,6 +437,7 @@ git commit -m "[enhanced] feat(deck): implement CommandRegistry with priority co
 ### Task 3: Executor Refactor + Palette Migration (Phase 1)
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/chat/slash-commands.ts`
 - Modify: `dashboard/src/components/panels/chat/slash-command-executor.ts`
 - Modify: `dashboard/src/components/panels/chat/SlashCommandPalette.tsx`
@@ -438,6 +449,7 @@ git commit -m "[enhanced] feat(deck): implement CommandRegistry with priority co
 - [ ] **Step 1: Update slash-commands.ts — rename export, keep backward compat**
 
 In `dashboard/src/components/panels/chat/slash-commands.ts`:
+
 - Rename `SLASH_COMMANDS` to `LOCAL_COMMAND_DEFS`
 - Add backward-compat re-export: `export const SLASH_COMMANDS = LOCAL_COMMAND_DEFS;`
 - Keep `getSlashCommandCompletions` and `parseSlashCommand` unchanged (they still work for local commands during migration)
@@ -456,6 +468,7 @@ export const SLASH_COMMANDS = LOCAL_COMMAND_DEFS;
 - [ ] **Step 2: Register local commands + wire executor handlers into registry**
 
 In `dashboard/src/components/panels/chat/slash-command-executor.ts`:
+
 - Import `commandRegistry` and `LOCAL_COMMAND_DEFS`
 - Add `initializeLocalCommands()` function that registers all 14 commands with their `execute` handlers
 - Replace the `switch` statement in `executeSlashCommand` with registry lookup
@@ -509,7 +522,12 @@ export async function executeSlashCommand(
 ): Promise<SlashCommandResult> {
   const cmd = commandRegistry.get(commandName);
   if (!cmd) {
-    return { content: "", toastKey: "toastUnknownCommand", toastValue: commandName, toastType: "error" };
+    return {
+      content: "",
+      toastKey: "toastUnknownCommand",
+      toastValue: commandName,
+      toastType: "error",
+    };
   }
   if (cmd.execMode === "local" && cmd.execute) {
     return cmd.execute(sessionKey, args);
@@ -536,7 +554,12 @@ async function executeRemoteCommand(
     if (!res.ok) {
       return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
     }
-    return { content: "", toastKey: "toastCommandSent", toastValue: commandName, toastType: "success" };
+    return {
+      content: "",
+      toastKey: "toastCommandSent",
+      toastValue: commandName,
+      toastType: "success",
+    };
   } catch {
     return { content: "", toastKey: "toastCommandSentFailed", toastType: "error" };
   }
@@ -546,6 +569,7 @@ async function executeRemoteCommand(
 - [ ] **Step 3: Update SlashCommandPalette to read from registry**
 
 In `dashboard/src/components/panels/chat/SlashCommandPalette.tsx`:
+
 - Replace `getSlashCommandCompletions(filter)` with `commandRegistry.filter(filter)`
 - Import `commandRegistry` from `@/lib/command-registry`
 - Keep existing category grouping, keyboard navigation, and icon rendering unchanged
@@ -577,6 +601,7 @@ const commands = registryCommands.map((cmd) => ({
 - [ ] **Step 4: Initialize registry in ChatPanel**
 
 In `dashboard/src/components/panels/chat/ChatPanel.tsx`:
+
 - Import and call `initializeLocalCommands()` at module level (before component)
 
 ```typescript
@@ -590,12 +615,14 @@ initializeLocalCommands();
 - [ ] **Step 5: Add i18n keys for remote command toast**
 
 In `dashboard/src/i18n/en.json` under `"chat"`:
+
 ```json
 "toastCommandSent": "Command /{value} sent",
 "toastCommandSentFailed": "Failed to send command"
 ```
 
 In `dashboard/src/i18n/zh.json` under `"chat"`:
+
 ```json
 "toastCommandSent": "命令 /{value} 已发送",
 "toastCommandSentFailed": "命令发送失败"
@@ -623,6 +650,7 @@ git commit -m "[enhanced] refactor(deck): migrate slash commands to dynamic Comm
 ### Task 4: Gateway TypeBox Schema
 
 **Files:**
+
 - Modify: `src/gateway/protocol/schema/deck.ts`
 
 **covers:** command-discovery > Protocol SDK integration > TypeBox schema defined
@@ -675,6 +703,7 @@ git commit -m "[enhanced] feat(gateway): add TypeBox schemas for deck.commands.d
 ### Task 5: Gateway RPC Handler
 
 **Files:**
+
 - Create: `src/gateway/server-methods/deck/commands.ts`
 - Modify: `src/gateway/server-methods/deck/index.ts`
 - Modify: `src/gateway/server-methods-list.ts`
@@ -692,7 +721,11 @@ import { getChatCommands } from "../../../auto-reply/commands-registry.data.js";
 import { listSkillCommandsForAgents } from "../../../auto-reply/skill-commands.js";
 import { loadConfig } from "../../../config/config.js";
 import type { MethodMetadata } from "../../method-registry.js";
-import { ErrorCodes, errorShape, validateDeckCommandsDiscoverParams } from "../../protocol/index.js";
+import {
+  ErrorCodes,
+  errorShape,
+  validateDeckCommandsDiscoverParams,
+} from "../../protocol/index.js";
 import {
   DeckCommandsDiscoverParamsSchema,
   DeckCommandsDiscoverResultSchema,
@@ -741,7 +774,9 @@ export const deckCommandsHandlers: GatewayRequestHandlers = {
           name,
           source: "builtin",
           description: cmd.description,
-          args: cmd.acceptsArgs ? (cmd.args?.map((a) => `<${a.name}>`).join(" ") || "<args>") : undefined,
+          args: cmd.acceptsArgs
+            ? cmd.args?.map((a) => `<${a.name}>`).join(" ") || "<args>"
+            : undefined,
           argChoices: argChoices.length > 0 ? argChoices : undefined,
           // Map auto-reply categories to palette-friendly groups
           category: "more",
@@ -831,6 +866,7 @@ git commit -m "[enhanced] feat(gateway): implement deck.commands.discover RPC ha
 ### Task 6: Protocol SDK Codegen + Allowlist
 
 **Files:**
+
 - Modify: `dashboard/src/types/gateway-protocol.generated.ts` (auto-generated)
 - Modify: `dashboard/src/types/gateway-client.generated.ts` (auto-generated)
 - Modify: `dashboard/server/gateway-allowlist.ts`
@@ -879,6 +915,7 @@ git commit -m "[enhanced] feat(deck): regenerate Protocol SDK with deck.commands
 ### Task 7: Discovery Hook + SSE
 
 **Files:**
+
 - Create: `dashboard/src/hooks/use-command-discovery.ts`
 - Modify: `dashboard/src/components/panels/chat/ChatPanel.tsx`
 - Modify: `dashboard/src/i18n/en.json`
@@ -1007,6 +1044,7 @@ useCommandDiscovery();
 - [ ] **Step 4: Add i18n keys for new categories**
 
 In `dashboard/src/i18n/en.json` under `"chat"`:
+
 ```json
 "cmdCatSkills": "Skills",
 "cmdCatPlugins": "Plugins",
@@ -1015,6 +1053,7 @@ In `dashboard/src/i18n/en.json` under `"chat"`:
 ```
 
 In `dashboard/src/i18n/zh.json` under `"chat"`:
+
 ```json
 "cmdCatSkills": "技能",
 "cmdCatPlugins": "插件",
@@ -1053,6 +1092,7 @@ git commit -m "[enhanced] feat(deck): add command discovery hook with SSE refres
 ### Task 8: Enhanced Palette — Mixed-Source Groups + Dynamic Icons
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/chat/SlashCommandPalette.tsx`
 
 **covers:** command-palette-enhanced > Mixed-source category groups (all 4 scenarios), command-palette-enhanced > Cross-source prefix search (all 3 scenarios), command-palette-enhanced > Dynamic icon resolution (all 3 scenarios)
@@ -1096,6 +1136,7 @@ function CommandIcon({ name, source, size = 14 }: { name?: string; source?: stri
 - [ ] **Step 2: Add "More" expand/collapse and "No matching commands" hint**
 
 Replace the rendering logic to support:
+
 1. Local commands grouped by their categories (session, model, tools, agents)
 2. "Skills" group shown only when skill commands exist
 3. "More commands..." collapsible entry for remote builtins
@@ -1146,7 +1187,7 @@ const commands = registryCommands.map((cmd) => ({
   icon: cmd.icon,
   category: cmd.category,
   argOptions: cmd.argOptions,
-  source: cmd.source,  // ADD THIS
+  source: cmd.source, // ADD THIS
 }));
 ```
 
@@ -1167,6 +1208,7 @@ git commit -m "[enhanced] feat(deck): enhance palette with mixed-source groups +
 ### Task 9: Ghost Hint + Visibility Filtering
 
 **Files:**
+
 - Modify: `dashboard/src/components/panels/chat/MessageInput.tsx`
 - Modify: `dashboard/src/components/panels/chat/slash-command-executor.ts` (add visibleIf to local commands)
 - Modify: `dashboard/src/components/panels/chat/SlashCommandPalette.tsx`
@@ -1287,6 +1329,7 @@ git commit -m "[enhanced] feat(deck): add ghost hint parameter placeholder + vis
 ### Task 10: SSE Full Pipeline — commands.changed Event
 
 **Files:**
+
 - Modify: `dashboard/server/event-bus.ts` (add DeckEventType)
 - Modify: `dashboard/server/runtime.ts` (add to VALID_DECK_EVENTS)
 - Modify: `src/gateway/server-methods/skills.ts` (emit via context.broadcast)
@@ -1304,7 +1347,7 @@ In `dashboard/server/event-bus.ts`, add `"commands.changed"` to the `DeckEventTy
 export type DeckEventType =
   | "runtime.status"
   // ... existing types ...
-  | "commands.changed";  // ADD
+  | "commands.changed"; // ADD
 ```
 
 - [ ] **Step 2: Whitelist in runtime validation**
@@ -1314,7 +1357,7 @@ In `dashboard/server/runtime.ts`, add to `VALID_DECK_EVENTS` Set:
 ```typescript
 const VALID_DECK_EVENTS = new Set<DeckEventType>([
   // ... existing types ...
-  "commands.changed",  // ADD
+  "commands.changed", // ADD
 ]);
 ```
 
@@ -1401,54 +1444,54 @@ git commit -m "[enhanced] fix(deck): address lint/type issues from dynamic comma
 
 ## Requirement Coverage Matrix
 
-| Spec Requirement | Scenario | Task |
-|-----------------|----------|------|
-| command-registry > Dynamic command registration | Register a local command | T2 |
-| command-registry > Dynamic command registration | Register a remote command from discovery | T7 |
-| command-registry > Dynamic command registration | Unregister a command | T2 |
-| command-registry > Dynamic command registration | Duplicate name registration | T2 |
-| command-registry > Source-tagged command metadata | Local command metadata | T1, T3 |
-| command-registry > Source-tagged command metadata | Discovered command metadata | T7 |
-| command-registry > Priority-based conflict resolution | Local overrides builtin | T2 |
-| command-registry > Priority-based conflict resolution | Skill does not override local | T2 |
-| command-registry > Command filtering and search | Prefix search across sources | T2 |
-| command-registry > Command filtering and search | Empty filter returns all | T2 |
-| command-registry > Backward-compatible migration | Migrate existing commands | T3 |
-| command-discovery > Gateway discover RPC | Discover returns built-in commands | T5 |
-| command-discovery > Gateway discover RPC | Discover returns skill commands | T5 |
-| command-discovery > Gateway discover RPC | Discover returns version hash | T5 |
-| command-discovery > Gateway discover RPC | Discover with no skills or plugins | T5 |
-| command-discovery > SSE command change notification | Skill loaded triggers notification | T10 |
-| command-discovery > SSE command change notification | Client re-discovers on change | T7 |
-| command-discovery > SSE command change notification | Same version suppresses re-discover | T7 |
-| command-discovery > Discovery hook for React components | Initial discovery on mount | T7 |
-| command-discovery > Discovery hook for React components | SSE-driven refresh | T7 |
-| command-discovery > Discovery hook for React components | Cleanup on unmount | T7 |
-| command-discovery > Protocol SDK integration | TypeBox schema defined | T4, T6 |
-| command-discovery > Protocol SDK integration | Gateway allowlist updated | T6 |
-| command-execution > Local command execution | Execute local config command | T3 |
-| command-execution > Local command execution | Execute local UI action | T3 |
-| command-execution > Local command execution | Local command toast feedback | T3 |
-| command-execution > Remote command execution | Execute remote builtin command | T3 |
-| command-execution > Remote command execution | Execute remote skill command | T3 |
-| command-execution > Remote command execution | Remote command result via SSE | T3 |
-| command-execution > Remote command execution | Remote command error handling | T3 |
-| command-execution > Unified executor dispatch | Registered command dispatches correctly | T3 |
-| command-execution > Unified executor dispatch | Unknown command fallback | T3 |
-| command-execution > Unified executor dispatch | Remote command dispatches to chat.send | T3 |
-| command-palette-enhanced > Mixed-source category groups | Default view shows local + skills | T8 |
-| command-palette-enhanced > Mixed-source category groups | Skills group displays discovered skills | T8 |
-| command-palette-enhanced > Mixed-source category groups | More section collapsed by default | T8 |
-| command-palette-enhanced > Mixed-source category groups | Empty skills group hidden | T8 |
-| command-palette-enhanced > Cross-source prefix search | Search matches across sources | T8 |
-| command-palette-enhanced > Cross-source prefix search | Search with no matches | T8 |
-| command-palette-enhanced > Cross-source prefix search | Search clears on backspace | T8 |
-| command-palette-enhanced > Ghost hint parameter placeholder | Static args ghost hint | T9 |
-| command-palette-enhanced > Ghost hint parameter placeholder | Enum args ghost hint | T9 |
-| command-palette-enhanced > Ghost hint parameter placeholder | No ghost hint for argless commands | T9 |
-| command-palette-enhanced > Context-aware visibility filtering | Stop only visible when streaming | T9 |
-| command-palette-enhanced > Context-aware visibility filtering | Stop visible during streaming | T9 |
-| command-palette-enhanced > Context-aware visibility filtering | Manual input bypasses visibility | T9 |
-| command-palette-enhanced > Dynamic icon resolution | Local command icon | T8 |
-| command-palette-enhanced > Dynamic icon resolution | Skill command default icon | T8 |
-| command-palette-enhanced > Dynamic icon resolution | Remote builtin default icon | T8 |
+| Spec Requirement                                              | Scenario                                 | Task   |
+| ------------------------------------------------------------- | ---------------------------------------- | ------ |
+| command-registry > Dynamic command registration               | Register a local command                 | T2     |
+| command-registry > Dynamic command registration               | Register a remote command from discovery | T7     |
+| command-registry > Dynamic command registration               | Unregister a command                     | T2     |
+| command-registry > Dynamic command registration               | Duplicate name registration              | T2     |
+| command-registry > Source-tagged command metadata             | Local command metadata                   | T1, T3 |
+| command-registry > Source-tagged command metadata             | Discovered command metadata              | T7     |
+| command-registry > Priority-based conflict resolution         | Local overrides builtin                  | T2     |
+| command-registry > Priority-based conflict resolution         | Skill does not override local            | T2     |
+| command-registry > Command filtering and search               | Prefix search across sources             | T2     |
+| command-registry > Command filtering and search               | Empty filter returns all                 | T2     |
+| command-registry > Backward-compatible migration              | Migrate existing commands                | T3     |
+| command-discovery > Gateway discover RPC                      | Discover returns built-in commands       | T5     |
+| command-discovery > Gateway discover RPC                      | Discover returns skill commands          | T5     |
+| command-discovery > Gateway discover RPC                      | Discover returns version hash            | T5     |
+| command-discovery > Gateway discover RPC                      | Discover with no skills or plugins       | T5     |
+| command-discovery > SSE command change notification           | Skill loaded triggers notification       | T10    |
+| command-discovery > SSE command change notification           | Client re-discovers on change            | T7     |
+| command-discovery > SSE command change notification           | Same version suppresses re-discover      | T7     |
+| command-discovery > Discovery hook for React components       | Initial discovery on mount               | T7     |
+| command-discovery > Discovery hook for React components       | SSE-driven refresh                       | T7     |
+| command-discovery > Discovery hook for React components       | Cleanup on unmount                       | T7     |
+| command-discovery > Protocol SDK integration                  | TypeBox schema defined                   | T4, T6 |
+| command-discovery > Protocol SDK integration                  | Gateway allowlist updated                | T6     |
+| command-execution > Local command execution                   | Execute local config command             | T3     |
+| command-execution > Local command execution                   | Execute local UI action                  | T3     |
+| command-execution > Local command execution                   | Local command toast feedback             | T3     |
+| command-execution > Remote command execution                  | Execute remote builtin command           | T3     |
+| command-execution > Remote command execution                  | Execute remote skill command             | T3     |
+| command-execution > Remote command execution                  | Remote command result via SSE            | T3     |
+| command-execution > Remote command execution                  | Remote command error handling            | T3     |
+| command-execution > Unified executor dispatch                 | Registered command dispatches correctly  | T3     |
+| command-execution > Unified executor dispatch                 | Unknown command fallback                 | T3     |
+| command-execution > Unified executor dispatch                 | Remote command dispatches to chat.send   | T3     |
+| command-palette-enhanced > Mixed-source category groups       | Default view shows local + skills        | T8     |
+| command-palette-enhanced > Mixed-source category groups       | Skills group displays discovered skills  | T8     |
+| command-palette-enhanced > Mixed-source category groups       | More section collapsed by default        | T8     |
+| command-palette-enhanced > Mixed-source category groups       | Empty skills group hidden                | T8     |
+| command-palette-enhanced > Cross-source prefix search         | Search matches across sources            | T8     |
+| command-palette-enhanced > Cross-source prefix search         | Search with no matches                   | T8     |
+| command-palette-enhanced > Cross-source prefix search         | Search clears on backspace               | T8     |
+| command-palette-enhanced > Ghost hint parameter placeholder   | Static args ghost hint                   | T9     |
+| command-palette-enhanced > Ghost hint parameter placeholder   | Enum args ghost hint                     | T9     |
+| command-palette-enhanced > Ghost hint parameter placeholder   | No ghost hint for argless commands       | T9     |
+| command-palette-enhanced > Context-aware visibility filtering | Stop only visible when streaming         | T9     |
+| command-palette-enhanced > Context-aware visibility filtering | Stop visible during streaming            | T9     |
+| command-palette-enhanced > Context-aware visibility filtering | Manual input bypasses visibility         | T9     |
+| command-palette-enhanced > Dynamic icon resolution            | Local command icon                       | T8     |
+| command-palette-enhanced > Dynamic icon resolution            | Skill command default icon               | T8     |
+| command-palette-enhanced > Dynamic icon resolution            | Remote builtin default icon              | T8     |
