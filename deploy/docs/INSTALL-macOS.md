@@ -1,89 +1,50 @@
 # OpenClaw macOS 安装指南
 
-## 前置依赖
+## 一键安装
 
-### 裸机模式
+安装脚本会自动处理所有依赖（通过 Homebrew 安装 Node.js，再装 pnpm/PM2），API Key 和 Token 已预填。
 
-```bash
-# Node.js 22+
-brew install node@22
-
-# pnpm + pm2
-npm install -g pnpm pm2
-```
-
-### Docker 模式
-
-```bash
-brew install --cask docker
-# 或从 https://www.docker.com/products/docker-desktop/ 下载
-```
-
-## 安装步骤
-
-### 1. 解压安装包
+前提：已安装 Homebrew（https://brew.sh）。
 
 ```bash
 tar xzf openclaw-deploy-*.tar.gz
 cd openclaw-deploy-*
+bash install.sh bare-metal
 ```
 
-### 2. 配置环境变量
+Docker 模式：
 
 ```bash
-cp source/deploy/.env.example source/deploy/.env
-vim source/deploy/.env
+brew install --cask docker   # 安装 Docker Desktop（如未安装）
+bash install.sh docker
 ```
 
-至少配置一个 AI Provider 的 API Key（如 `CPA_API_KEY` + `CPA_BASE_URL`）。
-
-### 3. 安装运行时依赖（裸机模式）
+## 验证
 
 ```bash
-cd source
-pnpm install --frozen-lockfile
+bash status.sh
 ```
 
-### 4. 运行安装脚本
+浏览器打开 **http://localhost:3000** 即可使用。
+
+## 日常运维
 
 ```bash
-# 交互式选择
-bash deploy/scripts/install.sh
-
-# 或直接指定模式
-bash deploy/scripts/install.sh bare-metal   # 裸机 + PM2
-bash deploy/scripts/install.sh docker       # Docker Compose
+bash status.sh      # 查看状态（含健康检查）
+bash start.sh       # 启动服务
+bash stop.sh        # 停止服务
 ```
 
-### 5. 验证
+底层命令（高级用户）：
 
 ```bash
-curl -s http://localhost:18789/healthz   # Gateway
-curl -s http://localhost:3000            # Deck
-```
+# PM2 模式
+pm2 status && pm2 logs && pm2 startup
 
-浏览器打开 **http://localhost:3000**，输入 `.env` 中 `OPENCLAW_GATEWAY_TOKEN` 的值完成配对。
-
-## 日常管理
-
-### 裸机模式（PM2）
-
-```bash
-pm2 status          # 查看状态
-pm2 logs            # 查看日志
-pm2 restart all     # 重启服务
-pm2 stop all        # 停止服务
-pm2 startup         # 开机自启
-```
-
-### Docker 模式
-
-```bash
+# Docker 模式
 cd source/deploy/docker
-docker compose --env-file ../.env ps          # 查看状态
-docker compose --env-file ../.env logs -f     # 查看日志
-docker compose --env-file ../.env restart     # 重启
-docker compose --env-file ../.env down        # 停止
+docker compose --env-file ../.env ps
+docker compose --env-file ../.env logs -f
 ```
 
 ## 增量更新
@@ -97,6 +58,13 @@ bash deploy/scripts/update.sh /path/to/openclaw-deploy-NEW.tar.gz
 ```
 
 用户数据自动保留，支持回滚（备份在 `.backup-*` 目录下）。
+
+## 自定义配置
+
+```bash
+vim source/deploy/.env
+bash stop.sh && bash start.sh
+```
 
 ## 常见问题
 

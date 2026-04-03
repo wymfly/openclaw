@@ -287,52 +287,29 @@ exec "$(dirname "$0")/source/deploy/scripts/install.sh" "$@"
 INSTALLER
   chmod +x "$STAGING_DIR/$PKG_NAME/install.sh"
 
-  # Windows batch forwarder — finds bash from Git for Windows, MSYS2, or WSL
-  # Uses printf to avoid trailing newline issues; writes CRLF line endings
-  printf '@echo off\r
-setlocal\r
-\r
-REM OpenClaw Installer — Windows entry point\r
-REM Finds bash and forwards to the real install script.\r
-\r
-set "SCRIPT_DIR=%%~dp0"\r
-set "INSTALL_SH=%%SCRIPT_DIR%%source\\deploy\\scripts\\install.sh"\r
-set "ARGS=%%*"\r
-if "%%ARGS%%"=="" set "ARGS=bare-metal"\r
-\r
-REM Try Git for Windows bash\r
-where bash >nul 2>&1 && (\r
-  echo [install.bat] Using bash from PATH...\r
-  bash "%%INSTALL_SH%%" %%ARGS%%\r
-  goto :done\r
-)\r
-\r
-REM Try common Git for Windows location\r
-if exist "C:\\Program Files\\Git\\bin\\bash.exe" (\r
-  echo [install.bat] Using Git for Windows bash...\r
-  "C:\\Program Files\\Git\\bin\\bash.exe" "%%INSTALL_SH%%" %%ARGS%%\r
-  goto :done\r
-)\r
-\r
-REM Try WSL\r
-where wsl >nul 2>&1 && (\r
-  echo [install.bat] Using WSL bash...\r
-  wsl bash "%%INSTALL_SH%%" %%ARGS%%\r
-  goto :done\r
-)\r
-\r
-echo [install.bat] ERROR: bash not found.\r
-echo.\r
-echo Please install one of:\r
-echo   - Git for Windows: https://git-scm.com/download/win\r
-echo   - WSL: wsl --install\r
-echo.\r
-echo Then re-run: install.bat\r
-exit /b 1\r
-\r
-:done\r
-endlocal\r
-' > "$STAGING_DIR/$PKG_NAME/install.bat"
+  # Ops scripts — start/stop/status forwarders (sh + bat)
+  for script in start.sh stop.sh status.sh; do
+    cat > "$STAGING_DIR/$PKG_NAME/$script" <<OPSEOF
+#!/usr/bin/env bash
+exec "\$(dirname "\$0")/source/deploy/$script" "\$@"
+OPSEOF
+    chmod +x "$STAGING_DIR/$PKG_NAME/$script"
+  done
+
+  for name in start stop status; do
+    local bat_src="$DEPLOY_DIR/${name}.bat"
+    if [ -f "$bat_src" ]; then
+      cp "$bat_src" "$STAGING_DIR/$PKG_NAME/${name}.bat"
+    else
+      printf '@echo off\r\nsetlocal\r\nset "SD=%%~dp0"\r\nwhere bash >nul 2>&1 && (bash "%%SD%%source\\deploy\\%s.sh" %%* & goto :d)\r\nif exist "C:\\Program Files\\Git\\bin\\bash.exe" ("C:\\Program Files\\Git\\bin\\bash.exe" "%%SD%%source\\deploy\\%s.sh" %%* & goto :d)\r\necho bash not found. & pause & exit /b 1\r\n:d\r\nif %%ERRORLEVEL%% neq 0 pause\r\nendlocal\r\n' "$name" "$name" > "$STAGING_DIR/$PKG_NAME/${name}.bat"
+    fi
+  done
+  log "Ops scripts (start/stop/status .sh + .bat) written"
+
+  # Windows install.bat — copy from deploy dir (has pause + registry detection)
+  if [ -f "$DEPLOY_DIR/install.bat" ]; then
+    cp "$DEPLOY_DIR/install.bat" "$STAGING_DIR/$PKG_NAME/install.bat"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -374,30 +351,29 @@ write_readme() {
 - **[Linux 安装指南](INSTALL-Linux.md)**
 - **[macOS 安装指南](INSTALL-macOS.md)**
 
-## 快速开始
+## 快速开始（一键安装）
 
 \`\`\`bash
 # 1. 解压
 tar xzf $(basename "$pkg_root").tar.gz
 cd $(basename "$pkg_root")
 
-# 2. 配置
-cp source/deploy/.env.example source/deploy/.env
-# 编辑 .env，填写 API Key
+# 2. 安装（自动安装依赖 + 创建 .env + 构建 + 启动）
+bash install.sh bare-metal
+# Windows: 双击 install.bat
 
-# 3. 安装依赖
-cd source && pnpm install --frozen-lockfile
-
-# 4. 部署
-bash deploy/scripts/install.sh bare-metal
+# 3. 运维
+bash status.sh    # 查看状态（Windows: 双击 status.bat）
+bash start.sh     # 启动（Windows: 双击 start.bat）
+bash stop.sh      # 停止（Windows: 双击 stop.bat）
 \`\`\`
+
+API Key 和 Token 已预填，无需手动编辑 \`.env\`。
 
 ## 验证
 
 - Gateway: http://localhost:18789/healthz
 - Deck Dashboard: http://localhost:3000
-
-首次打开 Deck 需输入 \`.env\` 中 \`OPENCLAW_GATEWAY_TOKEN\` 的值完成配对。
 READMEEOF
 
   log "README written"
@@ -416,6 +392,12 @@ verify_package() {
   [ -f "$STAGING_DIR/$PKG_NAME/source/deploy/scripts/seed.js" ] || { log "FAIL: seed.js missing"; ok=false; }
   [ -f "$STAGING_DIR/$PKG_NAME/install.sh" ] || { log "FAIL: top-level install.sh missing"; ok=false; }
   [ -f "$STAGING_DIR/$PKG_NAME/install.bat" ] || { log "FAIL: top-level install.bat missing"; ok=false; }
+  [ -f "$STAGING_DIR/$PKG_NAME/start.sh" ] || { log "FAIL: top-level start.sh missing"; ok=false; }
+  [ -f "$STAGING_DIR/$PKG_NAME/stop.sh" ] || { log "FAIL: top-level stop.sh missing"; ok=false; }
+  [ -f "$STAGING_DIR/$PKG_NAME/status.sh" ] || { log "FAIL: top-level status.sh missing"; ok=false; }
+  [ -f "$STAGING_DIR/$PKG_NAME/start.bat" ] || { log "FAIL: top-level start.bat missing"; ok=false; }
+  [ -f "$STAGING_DIR/$PKG_NAME/stop.bat" ] || { log "FAIL: top-level stop.bat missing"; ok=false; }
+  [ -f "$STAGING_DIR/$PKG_NAME/status.bat" ] || { log "FAIL: top-level status.bat missing"; ok=false; }
 
   if [ "$HAS_PREBUILT" = true ]; then
     [ -f "$STAGING_DIR/$PKG_NAME/source/dist/cli-startup-metadata.json" ] || { log "FAIL: Gateway dist missing"; ok=false; }

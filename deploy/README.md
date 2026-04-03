@@ -22,32 +22,25 @@ Browser ──→ Deck(:3000) ──ws──→ Gateway(:18789) ──→ AI Pro
 | Docker Build | 同上，强制重建镜像           | Docker + Compose v2 |
 | 裸机 (PM2)   | 开发环境、无 Docker 的服务器 | Node.js 22+, pnpm   |
 
-## 快速开始
-
-### 1. 配置环境变量
+## 快速开始（一键安装）
 
 ```bash
 cd deploy
-cp .env.example .env
-vim .env  # 至少设置一个 AI Provider API Key
+
+# 一键安装（自动创建 .env、安装 Node.js/pnpm、构建、启动）
+bash install.sh bare-metal
+
+# 验证
+bash status.sh
 ```
 
-### 2. 安装部署
+API Key 和 Gateway Token 已在 `.env.example` 中预填，无需手动编辑。
+
+如需自定义配置，安装后编辑 `.env` 然后重启：
 
 ```bash
-# 交互式菜单
-bash scripts/install.sh
-
-# 或直接指定模式
-bash scripts/install.sh docker       # Docker 模式
-bash scripts/install.sh bare-metal   # 裸机模式
-```
-
-### 3. 验证
-
-```bash
-curl -s http://localhost:18789/healthz  # Gateway
-curl -s http://localhost:3000           # Deck
+vim .env
+bash stop.sh && bash start.sh
 ```
 
 ## 打包（跨机器部署）
@@ -106,8 +99,12 @@ scp openclaw-deploy-*.tar.gz user@target:/tmp/
 ssh user@target
 tar xzf /tmp/openclaw-deploy-*.tar.gz
 cd openclaw-deploy-*
-vim source/deploy/.env   # 配置 API Keys
-./install.sh             # 交互式安装
+./install.sh bare-metal   # 一键安装（API Key 已预填）
+
+# 运维
+./status.sh               # 查看状态
+./start.sh                # 启动
+./stop.sh                 # 停止
 ```
 
 ## 环境变量
@@ -159,26 +156,37 @@ deploy/data/
 - **always-sync** — 每次 seed 都覆盖（保持最新）
 - `--force` 参数可强制全量重新 seed
 
-## 管理命令
-
-### Docker 模式
+## 运维命令
 
 ```bash
-cd deploy/docker
-docker compose --env-file ../.env ps          # 状态
-docker compose --env-file ../.env logs -f     # 日志
-docker compose --env-file ../.env restart     # 重启
-docker compose --env-file ../.env down        # 停止
-docker compose --env-file ../.env up -d --build  # 重建
+cd deploy
+bash status.sh             # 状态（含健康检查）
+bash start.sh              # 启动
+bash stop.sh               # 停止
 ```
 
-### 裸机模式 (PM2)
+Windows 用户可以双击 `start.bat` / `stop.bat` / `status.bat`。
+
+脚本会自动检测运行模式（Docker / PM2）。也可以显式指定：
 
 ```bash
-pm2 status                 # 状态
-pm2 logs                   # 日志
-pm2 restart all            # 重启
-pm2 stop all               # 停止
+bash start.sh docker       # 强制 Docker 模式
+bash start.sh pm2          # 强制 PM2 模式
+```
+
+### 底层命令（高级用户）
+
+Docker 模式:
+```bash
+cd deploy/docker
+docker compose --env-file ../.env ps
+docker compose --env-file ../.env logs -f
+```
+
+PM2 模式:
+```bash
+pm2 status
+pm2 logs
 pm2 startup                # 开机自启
 ```
 

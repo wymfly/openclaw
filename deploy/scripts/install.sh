@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
-# install.sh — Unified installer for OpenClaw + Deck.
+# install.sh — Unified one-click installer for OpenClaw + Deck.
 #
 # Usage:
 #   deploy/scripts/install.sh              # Interactive menu
 #   deploy/scripts/install.sh docker       # Docker mode (build from source)
 #   deploy/scripts/install.sh docker-build # Docker mode (force rebuild)
 #   deploy/scripts/install.sh bare-metal   # Bare-metal mode (PM2)
+#
+# This script automatically:
+#   - Creates .env from .env.example (with pre-filled credentials)
+#   - Installs Node.js 22+ if missing (Linux/macOS/Windows)
+#   - Installs pnpm if missing
+#   - Installs PM2 if missing (bare-metal mode)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -14,12 +20,9 @@ DEPLOY_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Detect package root.
 # In a package: <pkg>/source/deploy/scripts/install.sh → PACKAGE_ROOT=<pkg>
 # In the repo:  <repo>/deploy/scripts/install.sh       → PACKAGE_ROOT=<repo>
-# The package top-level forwarder (install.sh) already resolves to source/deploy/scripts/install.sh.
 if [ -f "$DEPLOY_DIR/../../manifest.json" ]; then
-  # Inside a package: deploy is at <pkg>/source/deploy, package root is two levels up
   PACKAGE_ROOT="$(cd "$DEPLOY_DIR/../.." && pwd)"
 else
-  # Inside the repo: deploy is at <repo>/deploy, repo root is one level up
   PACKAGE_ROOT="$(cd "$DEPLOY_DIR/.." && pwd)"
 fi
 
@@ -59,74 +62,111 @@ check_node() {
 check_pnpm() { command -v pnpm >/dev/null 2>&1; }
 check_pm2()  { command -v pm2 >/dev/null 2>&1; }
 
-print_install_guide() {
-  local tool="$1"
-  echo ""
-  case "$tool" in
-    docker)
-      log "Docker + Docker Compose v2 is required."
-      case "$PLATFORM" in
-        linux)
-          echo "  Ubuntu/Debian: curl -fsSL https://get.docker.com | sh"
-          echo "  Then: sudo usermod -aG docker \$USER && newgrp docker" ;;
-        macos)
-          echo "  Install Docker Desktop: https://www.docker.com/products/docker-desktop/"
-          echo "  Or: brew install --cask docker" ;;
-        windows)
-          echo "  Install Docker Desktop: https://www.docker.com/products/docker-desktop/"
-          echo "  Enable WSL 2 backend in Docker Desktop settings." ;;
-      esac ;;
-    node)
-      log "Node.js 22+ is required."
-      case "$PLATFORM" in
-        linux)
-          echo "  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -"
-          echo "  sudo apt-get install -y nodejs"
-          echo "  Or: https://nodejs.org/en/download/" ;;
-        macos)
-          echo "  brew install node@22"
-          echo "  Or: https://nodejs.org/en/download/" ;;
-        windows)
-          echo "  https://nodejs.org/en/download/"
-          echo "  Or: winget install OpenJS.NodeJS" ;;
-      esac ;;
-    pnpm)
-      log "pnpm is required for building from source."
-      echo "  npm install -g pnpm"
-      echo "  Or: corepack enable && corepack prepare pnpm --activate" ;;
+# ---------------------------------------------------------------------------
+# Auto-install dependencies
+# ---------------------------------------------------------------------------
+auto_install_node() {
+  if check_node; then return 0; fi
+
+  log "Node.js 22+ not found. Attempting auto-install..."
+  case "$PLATFORM" in
+    linux)
+      if command -v apt-get >/dev/null 2>&1; then
+        log "Installing Node.js 22 via NodeSource (apt)..."
+        curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+      elif command -v yum >/dev/null 2>&1; then
+        log "Installing Node.js 22 via NodeSource (yum)..."
+        curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+        sudo yum install -y nodejs
+      else
+        err "Cannot auto-install Node.js: unsupported package manager. Install Node.js 22+ manually."
+      fi
+      ;;
+    macos)
+      if command -v brew >/dev/null 2>&1; then
+        log "Installing Node.js 22 via Homebrew..."
+        brew install node@22
+        brew link --overwrite node@22
+      else
+        err "Cannot auto-install Node.js: Homebrew not found. Install Node.js 22+ manually."
+      fi
+      ;;
+    windows)
+      # Check for offline installer in deps/
+      local node_msi
+      node_msi=$(find "$PACKAGE_ROOT/deps" -name "node-*-x64.msi" 2>/dev/null | head -1)
+      if [ -n "$node_msi" ]; then
+        log "Found offline Node.js installer: $node_msi"
+        log "Please run: msiexec /i \"$node_msi\" /passive"
+        err "Run the MSI installer above, then re-run this script."
+      elif command -v winget >/dev/null 2>&1; then
+        log "Installing Node.js 22 via winget..."
+        winget install OpenJS.NodeJS --version 22 --accept-package-agreements --accept-source-agreements
+      else
+        err "Cannot auto-install Node.js on Windows. Download from https://nodejs.org/"
+      fi
+      ;;
+    *)
+      err "Cannot auto-install Node.js on this platform. Install Node.js 22+ manually."
+      ;;
   esac
-  echo ""
+
+  # Verify
+  if ! check_node; then
+    err "Node.js installation failed. Please install Node.js 22+ manually."
+  fi
+  log "Node.js $(node -v) installed successfully"
 }
 
-check_dependencies() {
-  local mode="$1"
-  local missing=0
+auto_install_pnpm() {
+  if check_pnpm; then return 0; fi
 
-  if [ "$mode" = "docker" ]; then
-    if ! check_docker; then
-      print_install_guide docker
-      missing=1
-    fi
-  elif [ "$mode" = "bare-metal" ]; then
-    if ! check_node; then
-      print_install_guide node
-      missing=1
-    fi
-    if ! check_pnpm; then
-      print_install_guide pnpm
-      missing=1
-    fi
+  log "pnpm not found. Installing..."
+  if command -v corepack >/dev/null 2>&1; then
+    corepack enable
+    corepack prepare pnpm --activate
+  else
+    npm install -g pnpm
   fi
 
-  if [ "$missing" -eq 1 ]; then
-    err "Missing dependencies. Install them and re-run."
+  if ! check_pnpm; then
+    err "pnpm installation failed. Run: npm install -g pnpm"
   fi
+  log "pnpm $(pnpm -v) installed successfully"
 }
 
 ensure_pm2() {
   if ! check_pm2; then
     log "Installing PM2 globally..."
     npm install -g pm2
+  fi
+}
+
+ensure_dependencies() {
+  local mode="$1"
+
+  if [ "$mode" = "docker" ]; then
+    if ! check_docker; then
+      log "Docker + Docker Compose v2 is required but not found."
+      case "$PLATFORM" in
+        linux)
+          log "Attempting to install Docker..."
+          curl -fsSL https://get.docker.com | sh
+          sudo usermod -aG docker "$USER" 2>/dev/null || true
+          if ! check_docker; then
+            err "Docker installation failed. Install manually: https://docs.docker.com/engine/install/"
+          fi
+          log "Docker installed. You may need to log out and back in for group changes."
+          ;;
+        *)
+          err "Install Docker Desktop: https://www.docker.com/products/docker-desktop/"
+          ;;
+      esac
+    fi
+  elif [ "$mode" = "bare-metal" ]; then
+    auto_install_node
+    auto_install_pnpm
   fi
 }
 
@@ -138,15 +178,16 @@ ensure_env() {
   if [ ! -f "$env_file" ]; then
     if [ -f "$DEPLOY_DIR/.env.example" ]; then
       cp "$DEPLOY_DIR/.env.example" "$env_file"
-      log "Created .env from .env.example"
+      log "Created .env from .env.example (credentials pre-filled)"
     else
       err ".env.example not found. Cannot initialize environment."
     fi
   fi
 
-  # Auto-generate token if empty
   # shellcheck disable=SC1090
   source "$env_file"
+
+  # Auto-generate token only if still empty (should not happen with pre-filled example)
   if [ -z "${OPENCLAW_GATEWAY_TOKEN:-}" ]; then
     local token
     token=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))" 2>/dev/null || openssl rand -hex 32)
@@ -156,7 +197,6 @@ ensure_env() {
       echo "OPENCLAW_GATEWAY_TOKEN=$token" >> "$env_file"
     fi
     log "Generated gateway token"
-    # Re-source after modification
     # shellcheck disable=SC1090
     source "$env_file"
   fi
@@ -187,7 +227,7 @@ read_manifest() {
 # Docker install
 # ---------------------------------------------------------------------------
 docker_install() {
-  check_dependencies docker
+  ensure_dependencies docker
   ensure_env
 
   # Resolve paths to absolute to avoid ambiguity between install.sh CWD and compose file dir
@@ -216,7 +256,6 @@ docker_install() {
   else
     log "No host Node.js — building gateway image for seed..."
     docker compose --env-file "$DEPLOY_DIR/.env" build gateway
-    # Run seed.js inside the gateway container, mounting state dir and seed script
     docker compose --env-file "$DEPLOY_DIR/.env" run --rm --no-deps \
       -v "$SCRIPT_DIR/seed.js:/tmp/seed.js:ro" \
       -v "$DEPLOY_DIR/seed:/tmp/seed:ro" \
@@ -257,18 +296,16 @@ docker_install() {
   log "Deck:    http://localhost:${DECK_PORT:-3000}"
   log ""
   log "Manage with:"
-  log "  cd $DEPLOY_DIR/docker"
-  log "  docker compose --env-file ../.env ps       # Status"
-  log "  docker compose --env-file ../.env logs -f   # Logs"
-  log "  docker compose --env-file ../.env restart   # Restart"
-  log "  docker compose --env-file ../.env down      # Stop"
+  log "  bash $DEPLOY_DIR/status.sh    # Status"
+  log "  bash $DEPLOY_DIR/start.sh     # Start"
+  log "  bash $DEPLOY_DIR/stop.sh      # Stop"
 }
 
 # ---------------------------------------------------------------------------
 # Bare-metal install (PM2)
 # ---------------------------------------------------------------------------
 bare_metal_install() {
-  check_dependencies bare-metal
+  ensure_dependencies bare-metal
   ensure_env
   ensure_pm2
 
@@ -331,6 +368,9 @@ bare_metal_install() {
   # Generate PM2 config
   node "$SCRIPT_DIR/generate-ecosystem.js" "$source_dir"
 
+  # Clean up any old PM2 processes (prevents stale processes from previous installs)
+  pm2 delete openclaw-gateway openclaw-deck 2>/dev/null || pm2 delete all 2>/dev/null || true
+
   # Start
   pm2 start "$DEPLOY_DIR/ecosystem.config.cjs"
   pm2 save
@@ -341,10 +381,9 @@ bare_metal_install() {
   log "Deck:    http://localhost:${DECK_PORT:-3000}"
   log ""
   log "Manage with:"
-  log "  pm2 status                    # Status"
-  log "  pm2 logs                      # Logs"
-  log "  pm2 restart all               # Restart"
-  log "  pm2 stop all                  # Stop"
+  log "  bash $DEPLOY_DIR/status.sh    # Status"
+  log "  bash $DEPLOY_DIR/start.sh     # Start"
+  log "  bash $DEPLOY_DIR/stop.sh      # Stop"
   log ""
   log "Enable auto-start on boot:"
   log "  pm2 startup"
@@ -370,14 +409,14 @@ show_menu() {
     echo "  1) Docker       — Recommended. Builds from source in containers."
     echo "                     Requires: Docker + Docker Compose v2"
   else
-    echo "  1) Docker       — (Docker not detected)"
+    echo "  1) Docker       — (Docker not detected, will attempt auto-install)"
   fi
   echo ""
   if check_node 2>/dev/null; then
     echo "  2) Bare-metal   — Runs natively with PM2 process manager."
     echo "                     Requires: Node.js 22+, pnpm"
   else
-    echo "  2) Bare-metal   — (Node.js 22+ not detected)"
+    echo "  2) Bare-metal   — (Node.js not detected, will attempt auto-install)"
   fi
   echo ""
   echo "  q) Quit"

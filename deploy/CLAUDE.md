@@ -15,7 +15,11 @@
 
 | 文件 | 用途 | 何时修改 |
 |------|------|---------|
-| `scripts/install.sh` | 统一安装入口（Docker/裸机） | 新增安装模式或依赖时 |
+| `install.sh` | 根目录安装入口（forwarder） | 一般不改 |
+| `start.sh` / `start.bat` | 根目录启动脚本 | 修改启动逻辑时 |
+| `stop.sh` / `stop.bat` | 根目录停止脚本 | 修改停止逻辑时 |
+| `status.sh` / `status.bat` | 根目录状态脚本 | 修改状态检查时 |
+| `scripts/install.sh` | 实际安装逻辑（自动装依赖 + 构建 + 启动） | 新增安装模式或依赖时 |
 | `scripts/package.sh` | 打包入口（A/B/C 叠加层） | 新增打包层时 |
 | `scripts/seed.js` | 种子注入（Node.js 跨平台） | 新增 seed 内容或模板变量时 |
 | `scripts/generate-ecosystem.js` | PM2 配置生成 | 修改启动参数或 env 时 |
@@ -27,7 +31,7 @@
 | `docker/docker-compose.sandbox.yml` | Sandbox overlay | 修改沙箱配置时 |
 | `docker/Dockerfile.deck` | Deck 镜像（无 native addon） | 修改 Deck 依赖时 |
 | `ecosystem.config.cjs.tmpl` | PM2 模板 | 修改启动参数时 |
-| `.env.example` | 环境变量模板 | 新增 env var 时 |
+| `.env.example` | 环境变量模板（含预填凭据） | 新增 env var 或更新凭据时 |
 | `seed/openclaw.json.tmpl` | 配置模板 | 修改默认配置时 |
 | `seed/agents/main/agent/auth-profiles.json.tmpl` | Auth profile 模板 | 新增/修改 provider 时 |
 | `docs/INSTALL-*.md` | 分平台安装指南 | 安装流程变化时 |
@@ -50,27 +54,31 @@
 
 ## 部署命令序列
 
+### 一键安装（推荐）
+
+```bash
+cd deploy
+bash install.sh bare-metal   # 自动创建 .env + 装依赖 + 构建 + 启动
+bash status.sh               # 验证
+```
+
+`.env.example` 已预填 CPA 凭据和 Gateway Token，`install.sh` 自动从 example 创建 `.env`。
+
 ### Docker 模式
 
 ```bash
 cd deploy
-cp .env.example .env && vim .env
-bash scripts/install.sh docker
-# 验证
-curl -sf http://localhost:18789/healthz
-curl -sf http://localhost:3000
+bash install.sh docker
+bash status.sh
 ```
 
-### 裸机模式 (PM2)
+### 运维
 
 ```bash
 cd deploy
-cp .env.example .env && vim .env
-bash scripts/install.sh bare-metal
-# 验证
-pm2 status
-curl -sf http://localhost:18789/healthz
-curl -sf http://localhost:3000
+bash start.sh     # 启动（Windows: 双击 start.bat）
+bash stop.sh      # 停止（Windows: 双击 stop.bat）
+bash status.sh    # 状态（Windows: 双击 status.bat）
 ```
 
 ### 打包
@@ -94,6 +102,7 @@ deploy/scripts/package.sh --with-local        # 收集本地插件/skills
 - Seed 策略：`init-once`（config/agents/cron/extensions）、`always-sync`（skills）
 - Agent 目录中的 `.tmpl` 文件（如 `auth-profiles.json.tmpl`）会被渲染后写入，已有文件不覆盖
 - PM2 配置由 `generate-ecosystem.js` 从模板生成，不要手编 `ecosystem.config.cjs`
+- `.env.example` 已预填 CPA 凭据和固定 Gateway Token（内部使用），`install.sh` 自动从中创建 `.env`
 - `deploy/.env` 包含敏感信息，`.gitignore` 已排除
 
 ## Standalone 模式注意事项
