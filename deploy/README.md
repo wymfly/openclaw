@@ -75,11 +75,11 @@ deploy/scripts/package.sh --with-deps
 
 ### 打包层说明
 
-| 层           | 内容                           | 大小   | 用途                                 |
-| ------------ | ------------------------------ | ------ | ------------------------------------ |
-| A (source)   | 源码 + 部署脚本 + seed         | ~50MB  | 始终包含                             |
-| B (images)   | Docker 镜像 (.tar.gz)          | ~800MB | 离线 Docker 部署（建议在目标机构建） |
-| C (prebuilt) | Gateway dist + Deck standalone | ~10MB  | 跳过裸机构建                         |
+| 层           | 内容                           | 大小   | 用途                                           |
+| ------------ | ------------------------------ | ------ | ---------------------------------------------- |
+| A (source)   | 源码 + 部署脚本 + seed         | ~50MB  | 始终包含                                       |
+| B (images)   | Docker 镜像 (.tar.gz)          | ~800MB | 离线 Docker 部署（建议在目标机构建）           |
+| C (prebuilt) | Gateway dist + Deck standalone | ~10MB  | 跳过裸机构建                                   |
 | deps         | Windows 离线安装包             | ~675MB | Git for Windows + Node.js MSI + Docker Desktop |
 
 ### Windows 离线部署
@@ -195,6 +195,7 @@ bash deploy/scripts/update.sh openclaw-deploy-NEW.tar.gz
 ```
 
 增量更新会自动：
+
 - 停止服务 → 备份数据 → 替换源码/构建产物 → 安装新依赖 → 同步 skills → 重启
 - **保留**：`.env`、`data/`（配置、Agent、会话、auth profile、定时任务、Deck 数据库）
 - **替换**：源码、构建产物、部署脚本、skills

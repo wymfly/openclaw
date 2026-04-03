@@ -279,7 +279,9 @@ bare_metal_install() {
   # Install runtime dependencies (always needed, even with pre-built dist)
   if [ ! -d node_modules ]; then
     log "Installing dependencies..."
-    pnpm install --frozen-lockfile
+    # --ignore-scripts: skip native addon compilation (node-llama-cpp etc.)
+    # which requires Visual Studio on Windows and is not needed for deployment
+    pnpm install --frozen-lockfile --ignore-scripts
   fi
 
   # Build (skip if pre-built)
