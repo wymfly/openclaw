@@ -65,6 +65,7 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
               accountId: account.accountId,
               summary: `找到 ${result.sp_no_list.length} 条审批记录`,
               sp_no_list: result.sp_no_list,
+              next_cursor: result.next_cursor,
             });
           }
           case "get_detail": {
