@@ -12,7 +12,14 @@ The program SHALL maintain a living matrix that maps Gateway capability families
 #### Scenario: Replacement readiness is visible
 
 - **WHEN** stakeholders need to assess whether Deck can replace the official Web UI for a capability area
-- **THEN** the matrix SHALL show whether that area is unassessed, partial, or replacement-ready
+- **THEN** the matrix SHALL show whether that area is `unassessed`, `partial`, `platform-first`, or `replacement-ready`
+
+Note: `platform-first` indicates an area that has been assessed but cannot progress until its platform-track dependencies stabilize. It is distinct from `partial` (which has begun implementation but is not yet complete) and `unassessed` (which has not been structurally reviewed).
+
+#### Scenario: Each phase gate includes incremental validation
+
+- **WHEN** a phase completes and a phase gate review is triggered
+- **THEN** all areas within that phase SHALL be validated against the closure checklist applicable to their current scope, not deferred to Phase 5
 
 ### Requirement: Replacement progress SHALL be validated by workflows, not only by page availability
 

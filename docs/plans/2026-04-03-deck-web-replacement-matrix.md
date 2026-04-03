@@ -1,44 +1,93 @@
 # Deck Web Replacement Capability / Closure Matrix
 
-> Date: 2026-04-03
-> Note: 这是 program baseline，不是完整实现审计。除明确做过审查的区域外，其余状态以保守标记为主。
+> Date: 2026-04-03 (revised)
+> Note: Program baseline. Closure status is conservatively assigned unless a structured review has been completed.
 
 ## Status Legend
 
-- `unassessed`: 尚未做结构化审查
-- `partial`: 已有 proposal 或实现，但未达到统一闭环标准
-- `platform-first`: 必须先等平台轨能力稳定
-- `replacement-ready`: 满足统一闭环标准并通过代表性 workflow validation
+- `unassessed`: No structured review performed
+- `partial`: Proposal or implementation exists, but does not yet meet the unified closure standard
+- `platform-first`: Assessed, but blocked on platform-track dependencies stabilizing first
+- `replacement-ready`: Meets the unified closure standard and passes representative workflow validation
+
+## Track Legend
+
+Five top-level tracks. Domain Modules has three sub-waves.
+
+- **A — Core Platform**: typed transport, auth, stream, replay, projection, error model
+- **B — Session Runtime**: session-scoped state, snapshot, hydrate, history/live merge, recovery
+- **C — UI Framework**: shell, shared list, schema-driven form/table, command surface, patterns
+- **D — Domain Modules**: business module replacement
+  - **D.rc — Runtime Core**: chat, approval, canvas, sessions, logs, execution
+  - **D.cc — Config & Control**: agents, config, channels, routing, commands
+  - **D.oa — Observe & Automate**: usage, activity, cron, webhooks, skills, budget, alerts
+- **E — Replacement Validation**: capability matrix, workflow validation, phase gate, browser tests
 
 ## Matrix
 
-| Area                             | Track                           | Phase | Existing Inputs                                                              | Current Closure  | Notes                                                                     |
-| -------------------------------- | ------------------------------- | ----- | ---------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------- |
-| Chat                             | Session Runtime / Runtime Core  | 2     | `deck-chat-flow-closure`, `session-scoped-state`, `deck-chat-ux-enhancement` | `partial`        | 已完成一轮数据流闭环修正，但仍应纳入 program 级统一平台模型               |
-| Approval                         | Session Runtime / Runtime Core  | 2     | `deck-chat-flow-closure`, `openclaw-deck`                                    | `partial`        | 已与 chat 建立闭环方向，但仍需要纳入统一 workflow validation              |
-| Canvas / A2UI                    | Session Runtime / Runtime Core  | 2     | `deck-chat-flow-closure`, `deck-canvas-virtual-node`                         | `partial`        | 恢复模型已形成样板，但仍属于高风险 runtime area                           |
-| Sessions / Logs                  | Session Runtime / Runtime Core  | 2     | `deck-sessions-logs-hardening`                                               | `platform-first` | 依赖 shared replay / projection / list infra                              |
-| Execution Monitor                | Runtime Core                    | 2     | `deck-execution-monitor`                                                     | `unassessed`     | 应视为 runtime-core，而不是普通观察页                                     |
-| Agents                           | Config & Control                | 3     | `deck-agent-config-enhancement`                                              | `partial`        | 已有功能提案，但应重新映射到 shared layout / contract / closure checklist |
-| Config Editor                    | Config & Control                | 3     | `deck-config-editor-enhancement`, `schema-driven-ui-architecture`            | `partial`        | 强依赖 schema-driven UI 与 typed contract                                 |
-| Channels                         | Config & Control                | 3     | `deck-channel-config-framework`                                              | `partial`        | 需要统一 form / validation / status patterns                              |
-| Routing / Session Channel        | Config & Control                | 3     | `deck-routing-session-channel`                                               | `unassessed`     | 需要与 session runtime 一起定义权威状态                                   |
-| Dynamic Commands                 | Config & Control                | 3     | `deck-dynamic-commands`, `deck-slash-command-coherence`                      | `partial`        | 需要共享 command surface 与执行反馈模型                                   |
-| Shared Lists                     | UI Framework                    | 1     | `deck-shared-list-infra`                                                     | `platform-first` | 是多个观察/管理模块的前置依赖                                             |
-| Schema-Driven UI                 | UI Framework                    | 1     | `schema-driven-ui-architecture`                                              | `platform-first` | 是 config / channels / plugins 类模块的前置依赖                           |
-| Usage                            | Observe & Automate              | 4     | `deck-usage-panel-rebuild`                                                   | `platform-first` | 依赖 shared list / table / typed data contract                            |
-| Activity                         | Observe & Automate              | 4     | `openclaw-deck`                                                              | `unassessed`     | 依赖 shared stream / replay / list infra                                  |
-| Cron                             | Observe & Automate              | 4     | `openclaw-deck`                                                              | `unassessed`     | 需要 shared list/detail/form infra                                        |
-| Webhooks                         | Observe & Automate              | 4     | `openclaw-deck`                                                              | `unassessed`     | 同上                                                                      |
-| Skills                           | Observe & Automate              | 4     | `deck-subagent-scheduler-skills`, `openclaw-deck`                            | `unassessed`     | 需要和 commands / config 一起统一交互模型                                 |
-| Budget                           | Observe & Automate              | 4     | `openclaw-deck`                                                              | `unassessed`     | 依赖 shared policy / list / detail infra                                  |
-| Alerts                           | Observe & Automate              | 4     | `openclaw-deck`                                                              | `unassessed`     | 与 activity / budget 有交叉，需统一验证                                   |
-| Gateway Transport / Typed Client | Core Platform                   | 1     | `gateway-protocol-sdk`, `deck-chat-flow-closure`                             | `partial`        | 必须扩展为 program 级共享 transport / contract stack                      |
-| Replay / Projection Model        | Core Platform / Session Runtime | 1     | `deck-chat-flow-closure`, `session-scoped-state`                             | `partial`        | 当前主要在 chat 侧形成样板，需平台化推广                                  |
-| Shared Shell / Panel Layout      | UI Framework                    | 1     | `openclaw-deck`, `schema-driven-ui-architecture`                             | `partial`        | 需成为所有新模块的统一入口                                                |
+| Area | Track | Phase | Priority | Dependency | Existing Inputs | Current Closure | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Platform Infrastructure** | | | | | | | |
+| Gateway Transport / Typed Client | A | 1 | P0 | none | `gateway-protocol-sdk` design+plan | `partial` | Must extend to program-level shared transport/contract stack |
+| Deck Transport / Auth / Stream | A | 1 | P0 | none | `openclaw-deck` | `unassessed` | No dedicated proposal; needs brainstorm + proposal |
+| Replay / Projection Model | A + B | 1 | P0 | Gateway Transport | `deck-chat-flow-closure`, `session-scoped-state` | `partial` | Current pattern is chat-local; needs platform-level promotion |
+| Deck Server Persistence | A | 1 | P1 | Gateway Transport | `openclaw-deck` | `unassessed` | SQLite projection store, EventBus, outbox, approval-bridge |
+| Shared Error / Mutation Model | A | 1 | P1 | Gateway Transport | none | `unassessed` | No dedicated proposal |
+| **Session Runtime** | | | | | | | |
+| Session-Scoped State | B | 1 | P0 | Replay/Projection | `session-scoped-state` | `partial` | Proposal exists; needs alignment with platform replay model |
+| **UI Framework** | | | | | | | |
+| Shared Shell / Panel Layout | C | 1 | P1 | none | `openclaw-deck`, `schema-driven-ui-architecture` | `partial` | Needs to become unified entry for all new modules |
+| Shared Lists | C | 1 | P0 | none | `deck-shared-list-infra` | `platform-first` | Prerequisite for multiple observe/manage modules |
+| Schema-Driven UI | C | 1 | P1 | Shared Lists | `schema-driven-ui-architecture` | `platform-first` | Prerequisite for config/channels/plugins modules |
+| **Domain Modules — Runtime Core** | | | | | | | |
+| Chat | D.rc | 2 | P0 | A, B, C | `deck-chat-flow-closure`, `session-scoped-state`, `deck-chat-ux-enhancement`, `deck-chat-whitebox` | `partial` | One round of data-flow closure done; must adopt program platform model |
+| Approval | D.rc | 2 | P0 | A, B | `deck-chat-flow-closure`, `openclaw-deck` | `partial` | Closure direction established with chat; needs unified workflow validation |
+| Canvas / A2UI | D.rc | 2 | P1 | A, B | `deck-chat-flow-closure`, `deck-canvas-virtual-node` plan | `partial` | Recovery model prototype exists; high-risk runtime area |
+| Sessions / Logs | D.rc | 2 | P1 | A, B, C | `deck-sessions-logs-hardening` | `platform-first` | Depends on shared replay/projection/list infra |
+| Execution Monitor | D.rc | 2 | P2 | A, B | `deck-execution-monitor` | `unassessed` | Should be treated as runtime-core, not peripheral |
+| **Domain Modules — Config & Control** | | | | | | | |
+| Agents | D.cc | 3 | P0 | C | `deck-agent-config-enhancement`, `deck-agent-routing-observability`, `deck-agent-workspace` | `partial` | Remap to shared layout/contract/closure checklist |
+| Config Editor | D.cc | 3 | P1 | C | `deck-config-editor-enhancement`, `deck-config-enhancement`, `schema-driven-ui-architecture` | `partial` | Strong dependency on schema-driven UI + typed contract |
+| Channels | D.cc | 3 | P1 | C | `deck-channel-config-framework` | `partial` | Needs unified form/validation/status patterns |
+| Routing / Session Channel | D.cc | 3 | P2 | B | `deck-routing-session-channel` | `unassessed` | Must co-define authoritative state with session runtime |
+| Dynamic Commands | D.cc | 3 | P1 | A | `deck-dynamic-commands`, `deck-slash-command-coherence` | `partial` | Needs shared command surface + execution feedback model |
+| **Domain Modules — Observe & Automate** | | | | | | | |
+| Usage | D.oa | 4 | P1 | C | `deck-usage-panel-rebuild` | `platform-first` | Depends on shared list/table/typed data contract |
+| Activity | D.oa | 4 | P2 | C | `openclaw-deck` | `unassessed` | Depends on shared stream/replay/list infra |
+| Cron | D.oa | 4 | P2 | C | `openclaw-deck` | `unassessed` | Needs shared list/detail/form infra |
+| Webhooks | D.oa | 4 | P2 | C | `openclaw-deck` | `unassessed` | Same as Cron |
+| Skills | D.oa | 4 | P2 | D.cc | `deck-subagent-scheduler-skills`, `openclaw-deck` | `unassessed` | Needs unified interaction model with commands/config |
+| Budget | D.oa | 4 | P2 | C | `openclaw-deck` | `unassessed` | Depends on shared policy/list/detail infra |
+| Alerts | D.oa | 4 | P2 | D.oa (Activity, Budget) | `openclaw-deck` | `unassessed` | Cross-cuts activity/budget; needs unified validation |
+| **Additional Modules** | | | | | | | |
+| Models Hub | D.cc | 3 | P2 | A | `openclaw-deck` | `partial` | Design+implementation done; test execution pending |
+| Onboarding | D.rc | 2 | P2 | C | none | `unassessed` | Not yet covered by any proposal |
+| Settings | D.cc | 3 | P2 | C | none | `unassessed` | Not yet covered by any proposal |
+| **Replacement Validation** | | | | | | | |
+| Capability Coverage Gate | E | 1-5 | P0 | all tracks | `deck-web-replacement-program` | `unassessed` | Incremental per phase; final gate at Phase 5 |
+| Workflow Validation | E | 2-5 | P1 | D.rc, D.cc | `deck-web-replacement-program` | `unassessed` | At least one representative workflow per runtime module |
+| Browser Functional Tests | E | 5 | P2 | all D.* | none | `unassessed` | Final acceptance before `enhanced` stable merge |
+
+## Gateway Capability Coverage Baseline
+
+覆盖口径定义：Gateway 方法族按 `src/gateway/server-methods/` 下的文件分组。对于每个方法族：
+
+- **Covered**: Deck 通过 typed client 调用了该方法族中所有用户可见的方法，且有对应的 UI 入口
+- **Partial**: 部分方法已覆盖，但关键方法缺失
+- **Not covered**: 未覆盖
+
+覆盖率 = Covered 方法族数 / 总方法族数。Phase 5 的最低门槛为：所有 P0 方法族 Covered，P1 方法族至少 Partial。
+
+具体的方法族清单和覆盖状态将在 Phase 1 期间建立，作为 Capability Coverage Gate 的第一个交付物。
+
+## Change Multi-Track Classification Rule
+
+一个 change 的 **primary track** 只有一个，用于 matrix 排序和依赖管理。但一个 change 可以作为 **input** 出现在多个 area 的 Existing Inputs 列中，表示该 change 为多个 area 提供了设计样板或部分实现。
+
+示例：`deck-chat-flow-closure` 的 primary track 是 `B — Session Runtime`，但它同时作为 input 出现在 Chat（D.rc）和 Replay/Projection（A+B）中。
 
 ## Program Reading
 
-- 当前最成熟的样板在 `chat / approval / canvas` 这一组，但它们仍然只是局部样板，不是 program 级平台能力。
+- 当前最成熟的样板在 Chat / Approval / Canvas 这一组，但它们仍然只是局部样板，不是 program 级平台能力。
 - Track A / B / C 的前置能力如果不先收敛，Track D 中的大量模块会继续重复局部状态、局部 transport、局部 UI 逻辑。
-- 后续优先级不应由“哪个 proposal 先写”决定，而应由“哪个模块依赖哪些平台能力”决定。
+- 后续优先级不应由"哪个 proposal 先写"决定，而应由"哪个模块依赖哪些平台能力"决定。
