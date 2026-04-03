@@ -1,5 +1,6 @@
 export { checkClosure } from "./checker.js";
 export {
+  ClosureBootstrapError,
   loadClosureConfig,
   resolvePlanFiles,
   resolveVerificationPath,

@@ -10,6 +10,8 @@ title: "OpenSpec Closure Companion"
 
 The OpenSpec closure companion is a portable checker for projects that already use OpenSpec plus superpowers-style planning. It adds a scenario-level closure pass without patching upstream workflow files such as `.claude/commands/opsx/*` or global superpowers skills.
 
+This document describes the protocol and the reference implementation shape. For the installable Codex and Claude bundle form, see [OpenSpec closure plugin](/reference/openspec-closure-plugin).
+
 The companion treats a change as closed only when the same `scenario_id` can be followed across:
 
 - spec inventory
@@ -83,6 +85,8 @@ The reference CLI exposes three commands:
 
 The CLI also tolerates the same commands without the extra package-manager separator if a project prefers `pnpm openspec:closure:report --change <change>`.
 
+In the current repository, these commands are available through the repo-local wrapper scripts. In cross-project use, the preferred installation path is the pluginized bundle, which carries the same lifecycle while keeping project adoption limited to thin adapter files.
+
 Recommended lifecycle:
 
 1. `propose`
@@ -102,6 +106,6 @@ When adopting the companion in another OpenSpec plus superpowers project:
 - keep the upstream workflow files unchanged
 - add stable `scenario_id` fields to active ADDED and MODIFIED scenarios
 - extend plans with machine-readable `covers.id` ownership lines
-- provide only a thin adapter file plus package-manager or CI entrypoints
+- provide only a thin adapter file plus package-manager, plugin, or CI entrypoints
 
 The companion is intentionally neutral about whether a project uses a hard archive gate, a warning-only gate, or a CI-only readiness check. What it standardizes is the closure report and the meaning of `archiveReady`.

@@ -12,6 +12,13 @@ const DEFAULT_CONFIG: ClosureProjectConfig = {
   verificationFileName: "verification.yaml",
 };
 
+export class ClosureBootstrapError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ClosureBootstrapError";
+  }
+}
+
 export async function loadClosureConfig(params: {
   configPath?: string;
   rootDir: string;
@@ -32,7 +39,16 @@ export async function loadClosureConfig(params: {
   } catch (error) {
     const nodeError = error as NodeJS.ErrnoException;
     if (nodeError.code === "ENOENT") {
-      return { ...DEFAULT_CONFIG };
+      throw new ClosureBootstrapError(
+        [
+          `Missing closure adapter config at ${configPath}.`,
+          "Create .openspec-closure.yaml before running closure commands.",
+          "Bootstrap checklist:",
+          "- define planGlobs in .openspec-closure.yaml",
+          "- add machine-checkable covers.id lines to the implementation plan",
+          "- initialize openspec/changes/<change>/verification.yaml",
+        ].join("\n"),
+      );
     }
     throw error;
   }

@@ -1,0 +1,15 @@
+changeName: demo-change
+generatedAt: "2026-04-04T00:00:00.000Z"
+scenarios:
+  - scenarioId: traceability.new-id
+    ownerTask: Cover new-id scenario
+    verificationCommand: pnpm test -- test/scripts/openspec-closure-plugin.test.ts
+    evidence:
+      - test/fixtures/openspec-closure-plugin/minimal-project/openspec/changes/demo-change/verification.yaml
+    status: verified
+  - scenarioId: traceability.same-id
+    ownerTask: Cover wording-stable scenario
+    verificationCommand: pnpm test -- test/scripts/openspec-closure-plugin.test.ts
+    evidence:
+      - test/fixtures/openspec-closure-plugin/minimal-project/openspec/changes/demo-change/verification.yaml
+    status: verified
