@@ -38,6 +38,12 @@ export type OutboxEntry = {
 
 export type ChatSessionProjection = {
   a2uiState?: unknown;
+  activeApproval?: {
+    id: string;
+    toolName: string;
+    command?: string;
+    description?: string;
+  } | null;
 };
 
 // ---------------------------------------------------------------------------

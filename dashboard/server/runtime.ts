@@ -198,15 +198,18 @@ function bridgeToActivity(
   };
 
   // Persist to outbox.
-  try {
-    store.appendEvent("activity.event", activityPayload);
-  } catch {
-    // Non-critical — log and continue.
-    console.error("[DeckRuntime] failed to persist activity event");
-  }
-
-  // Broadcast via EventBus so SSE clients receive it in real-time.
+  // Broadcast via EventBus so SSE clients receive it in real-time and the
+  // configured replay store can assign the canonical SSE event id.
   eventBus.broadcast("activity.event", activityPayload);
+}
+
+function toReplayEvent(entry: ReturnType<ProjectionStore["getEventsSince"]>[number]) {
+  return {
+    id: entry.id,
+    type: entry.eventType as DeckEventType,
+    data: entry.payload,
+    timestamp: new Date(entry.createdAt).getTime(),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +229,10 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   const db = getDb();
   const store = new ProjectionStore(db);
   const eventBus = getEventBus();
+  eventBus.setReplayStore({
+    appendEvent: (type, data) => store.appendEvent(type, data),
+    getEventsSince: (lastId) => store.getEventsSince(lastId).map(toReplayEvent),
+  });
 
   const gwSettings = resolveGatewaySettings(settings, store);
   if (!gwSettings) {
@@ -318,6 +325,7 @@ export async function shutdownRuntime(): Promise<void> {
   gCleanup.__deckCleanupApproval = undefined;
   gCleanup.__deckCleanupAlerts = undefined;
   gCleanup.__deckRetryTimer = undefined;
+  runtime.eventBus.setReplayStore(null);
 
   await runtime.adapter.stop();
   runtime.rateLimiter.dispose();

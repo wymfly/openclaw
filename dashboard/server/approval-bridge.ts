@@ -10,6 +10,7 @@
  */
 
 import type { DeckRuntime } from "./runtime";
+import type { ChatSessionProjection } from "./projection-store";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,6 +47,27 @@ function getPendingMap(): PendingMap {
 /** Return current pending approvals as an array (for GET /api/approvals/pending). */
 export function getPendingApprovals(): PendingApproval[] {
   return Array.from(getPendingMap().values());
+}
+
+function persistApprovalProjection(
+  runtime: DeckRuntime,
+  sessionKey: string | undefined,
+  activeApproval: ChatSessionProjection["activeApproval"],
+): void {
+  const normalized = sessionKey?.trim();
+  if (!normalized) {
+    return;
+  }
+  const current = runtime.store.getChatSessionProjection(normalized) ?? {};
+  const next: ChatSessionProjection = {
+    ...current,
+    activeApproval: activeApproval ?? null,
+  };
+  if (next.a2uiState == null && next.activeApproval == null) {
+    runtime.store.clearChatSessionProjection(normalized);
+    return;
+  }
+  runtime.store.setChatSessionProjection(normalized, next);
 }
 
 // ---------------------------------------------------------------------------
@@ -111,6 +133,12 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
 
       if (approval.id) {
         pendingMap.set(approval.id, approval);
+        persistApprovalProjection(runtime, approval.sessionKey, {
+          id: approval.id,
+          toolName: "command",
+          command: approval.command,
+          description: approval.cwd,
+        });
         eventBus.broadcast("approval.pending", approval);
       }
     } else if (innerEvent === "exec.approval.resolved" && innerPayload) {
@@ -122,11 +150,13 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
             ? (innerPayload.request as Record<string, unknown>)
             : ({} as Record<string, unknown>);
         pendingMap.delete(id);
+        const sessionKey =
+          typeof request.sessionKey === "string" ? request.sessionKey : existing?.sessionKey;
+        persistApprovalProjection(runtime, sessionKey, null);
         eventBus.broadcast("approval.resolved", {
           id,
           ...innerPayload,
-          sessionKey:
-            typeof request.sessionKey === "string" ? request.sessionKey : existing?.sessionKey,
+          sessionKey,
           runId: typeof request.runId === "string" ? request.runId : existing?.runId,
         });
       }

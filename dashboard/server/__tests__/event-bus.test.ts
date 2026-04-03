@@ -116,6 +116,44 @@ describe("replay buffer", () => {
     bus.broadcast("chat", "a");
     expect(bus.getEventsSince(999)).toHaveLength(0);
   });
+
+  it("uses persistent replay storage when configured", () => {
+    const appendEvent = vi
+      .fn<(type: DeckEventType, payload: unknown) => number>()
+      .mockReturnValueOnce(7)
+      .mockReturnValueOnce(8);
+    const getPersistedEventsSince = vi.fn<(lastId: number) => ServerEvent[]>().mockReturnValue([
+      {
+        id: 8,
+        type: "chat",
+        data: { state: "final" },
+        timestamp: Date.now(),
+      },
+    ]);
+
+    bus.setReplayStore({
+      appendEvent,
+      getEventsSince: getPersistedEventsSince,
+    });
+
+    const first = bus.broadcast("chat", { state: "delta" });
+    const second = bus.broadcast("chat", { state: "final" });
+    const replay = bus.getEventsSince(7);
+
+    expect(first.id).toBe(7);
+    expect(second.id).toBe(8);
+    expect(appendEvent).toHaveBeenNthCalledWith(1, "chat", { state: "delta" });
+    expect(appendEvent).toHaveBeenNthCalledWith(2, "chat", { state: "final" });
+    expect(replay).toEqual([
+      {
+        id: 8,
+        type: "chat",
+        data: { state: "final" },
+        timestamp: expect.any(Number),
+      },
+    ]);
+    expect(getPersistedEventsSince).toHaveBeenCalledWith(7);
+  });
 });
 
 // ---------------------------------------------------------------------------

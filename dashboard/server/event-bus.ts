@@ -48,6 +48,11 @@ export type ServerEvent = {
 
 export type ServerEventSubscriber = (event: ServerEvent) => void;
 
+export type ReplayStore = {
+  appendEvent: (type: DeckEventType, data: unknown) => number;
+  getEventsSince: (lastId: number) => ServerEvent[];
+};
+
 // ---------------------------------------------------------------------------
 // EventBus
 // ---------------------------------------------------------------------------
@@ -58,15 +63,28 @@ export class EventBus {
   private nextId = 1;
   private subscribers = new Set<ServerEventSubscriber>();
   private buffer: ServerEvent[] = [];
+  private replayStore: ReplayStore | null = null;
 
   /** Broadcast an event to all subscribers. Each subscriber is error-isolated. */
   broadcast(type: DeckEventType, data: unknown): ServerEvent {
+    let id: number;
+    if (this.replayStore) {
+      try {
+        id = this.replayStore.appendEvent(type, data);
+      } catch (err) {
+        console.error("[EventBus] replay append failed:", err);
+        id = this.nextId;
+      }
+    } else {
+      id = this.nextId;
+    }
     const event: ServerEvent = {
-      id: this.nextId++,
+      id,
       type,
       data,
       timestamp: Date.now(),
     };
+    this.nextId = Math.max(this.nextId, id + 1);
 
     // Maintain fixed-size replay buffer (ring-style trim).
     this.buffer.push(event);
@@ -95,7 +113,22 @@ export class EventBus {
 
   /** Return events with id > lastId from the replay buffer. */
   getEventsSince(lastId: number): ServerEvent[] {
+    if (this.replayStore) {
+      try {
+        return this.replayStore.getEventsSince(lastId);
+      } catch (err) {
+        console.error("[EventBus] replay read failed:", err);
+      }
+    }
     return this.buffer.filter((e) => e.id > lastId);
+  }
+
+  setReplayStore(store: ReplayStore | null): void {
+    this.replayStore = store;
+  }
+
+  hasReplayStore(): boolean {
+    return this.replayStore !== null;
   }
 
   /** Current subscriber count (useful for tests / diagnostics). */
