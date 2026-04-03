@@ -20,9 +20,21 @@ function resolveModelString(val: unknown): string {
     return val;
   }
   if (val && typeof val === "object" && "primary" in val) {
-    return String((val as Record<string, unknown>).primary ?? "");
+    const primary = (val as Record<string, unknown>).primary;
+    return typeof primary === "string" ? primary : "";
   }
   return "";
+}
+
+/** Safely coerce an unknown config value to a string. */
+function toStr(val: unknown, fallback: string): string {
+  if (typeof val === "string") {
+    return val;
+  }
+  if (typeof val === "number" || typeof val === "boolean") {
+    return String(val);
+  }
+  return fallback;
 }
 
 /** Read a dot-separated path from a nested object. */
@@ -261,7 +273,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
             onReset={() => handleReset("thinkingDefault")}
           >
             <select
-              value={String(effectiveValue("thinkingDefault") ?? "adaptive")}
+              value={toStr(effectiveValue("thinkingDefault"), "adaptive")}
               onChange={(e) => handleChange("thinkingDefault", e.target.value)}
               className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
             >
@@ -291,7 +303,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
                 handleChange("temperature", e.target.value === "" ? null : Number(e.target.value))
               }
               className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-              placeholder={String(defaults.temperature ?? "0.7")}
+              placeholder={toStr(defaults.temperature, "0.7")}
             />
           </FieldRow>
         </div>
@@ -300,7 +312,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
         <div className="rounded-lg border border-[var(--border-subtle)] bg-card p-4 flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-foreground">{t("toolsProfile")}</h3>
           <ToolProfileSelector
-            value={String(effectiveValue("tools.profile") ?? "coding")}
+            value={toStr(effectiveValue("tools.profile"), "coding")}
             onChange={(profile) => handleChange("tools.profile", profile)}
             agentId={agentId}
           />
@@ -367,7 +379,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
             onReset={() => handleReset("subagents.model")}
           >
             <ModelCombobox
-              value={String(effectiveValue("subagents.model") ?? "")}
+              value={toStr(effectiveValue("subagents.model"), "")}
               placeholder={t("subagentModelPlaceholder")}
               onChange={(v) => handleChange("subagents.model", v || null)}
             />
@@ -438,7 +450,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
             onReset={() => handleReset("typingIndicator")}
           >
             <select
-              value={String(effectiveValue("typingIndicator") ?? "auto")}
+              value={toStr(effectiveValue("typingIndicator"), "auto")}
               onChange={(e) => handleChange("typingIndicator", e.target.value)}
               className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
             >
