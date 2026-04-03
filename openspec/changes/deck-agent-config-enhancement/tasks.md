@@ -13,7 +13,7 @@
 
 ## 3. 技能管理（Skills Tab）
 
-- [x] 3.1 新增 SkillInstallDialog：两个 tab（本地路径 / ClawHub slug），调用 skills.install API，显示安装进度和结果
+- [x] 3.1 新增 SkillInstallDialog：两个 tab（install options / ClawHub slug），调用 skills.install API，显示安装进度和结果
 - [x] 3.2 新增技能配置编辑器：展开式编辑区域，支持 apiKey 输入和 env 键值对编辑，调用 skills.update 保存
 - [x] 3.3 新增 ClawHub 技能更新功能：单个更新按钮和 "全部更新" 按钮，调用 skills.update
 - [x] 3.4 在 SkillsTab 中集成安装按钮和配置/更新入口
@@ -27,7 +27,7 @@
 
 ## 5. Agent 身份与 Model Fallback
 
-- [x] 5.1 在 OverviewTab 中调用 agent.identity.get，展示 avatar 图片、description 文本、alias badges
+- [x] 5.1 在 OverviewTab 中调用 agent.identity.get，展示 avatar 图片、name、emoji
 - [x] 5.2 实现 identity API 不可用时的降级（保持当前 deck.agents.detail 数据展示）
 - [x] 5.3 新增 FallbackChainEditor 组件：有序列表编辑器，支持添加/删除/排序 fallback 模型
 - [x] 5.4 集成 FallbackChainEditor 到 AgentConfigTab 的 model 选择器下方

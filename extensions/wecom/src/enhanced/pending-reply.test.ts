@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { PendingReplyEntry, ReliableDeliveryStore } from "./pending-reply.js";
 import { createWecomPendingReplyManager } from "./pending-reply.js";
 
 function createMockStore() {
-  const entries: Map<string, any> = new Map();
+  const entries = new Map<string, PendingReplyEntry>();
   let nextId = 1;
 
   return {
     entries,
     countPendingReplies: vi.fn(() => entries.size),
-    enqueuePendingReply: vi.fn((payload: any) => {
+    enqueuePendingReply: vi.fn((payload: Record<string, unknown>) => {
       const id = `pr-${nextId++}`;
       const entry = {
         id,
@@ -22,7 +23,7 @@ function createMockStore() {
       return entry;
     }),
     listDuePendingReplies: vi.fn(({ at, limit }: { at: number; limit: number }) => {
-      const due: any[] = [];
+      const due: PendingReplyEntry[] = [];
       for (const entry of entries.values()) {
         if (entry.status === "pending" && entry.nextRetryAt <= at && due.length < limit) {
           due.push(entry);
@@ -55,7 +56,7 @@ function createMockStore() {
         }
       }
     }),
-    listPendingRepliesForSession: vi.fn(() => []),
+    listPendingRepliesForSession: vi.fn((): PendingReplyEntry[] => []),
   };
 }
 
@@ -236,8 +237,15 @@ describe("createWecomPendingReplyManager", () => {
   describe("flushSessionPendingReplies", () => {
     it("flushes entries for a specific session", async () => {
       const deps = createDefaultDeps();
-      const sessionEntries = [
-        { id: "s1", text: "hello", retries: 0, nextRetryAt: 0, status: "pending" },
+      const sessionEntries: PendingReplyEntry[] = [
+        {
+          id: "s1",
+          text: "hello",
+          retries: 0,
+          nextRetryAt: 0,
+          createdAt: 0,
+          status: "pending",
+        },
       ];
       deps.reliableDeliveryStore.listPendingRepliesForSession.mockReturnValue(sessionEntries);
 

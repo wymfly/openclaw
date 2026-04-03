@@ -18,8 +18,8 @@
 
 ## 4. P0 — 集成验证
 
-- [x] 4.1 pnpm tsgo 通过（仅 pre-existing vitest.config 类型冲突）
-- [x] 4.2 运行 `pnpm test -- extensions/wecom` 确认无回归（35 files, 218 passed）
+- [ ] 4.1 pnpm tsgo 通过（repo 仍被 `extensions/memory-lancedb`、`src/gateway`、根 `vitest.config.ts` 的既有错误阻塞；`extensions/wecom` 已不再出现在错误列表中）
+- [x] 4.2 运行 `pnpm test -- extensions/wecom` 确认无回归（39 files, 266 passed, 1 skipped）
 - [x] 4.3 INEFFECTIVE_DYNAMIC_IMPORT 检查待 Phase 4 pnpm build
 
 ## 5. P1 — Contact 通讯录模块（自研）
@@ -54,8 +54,8 @@
 
 ## 8. P1 — 集成验证
 
-- [x] 8.1 P1 production code 无 TS 错误
-- [x] 8.2 运行 `pnpm test -- extensions/wecom` — 35 files, 218 passed（P1 完成时）
+- [ ] 8.1 P1 production code 无 TS 错误（repo 仍被 `extensions/memory-lancedb`、`src/gateway`、根 `vitest.config.ts` 的既有错误阻塞；`extensions/wecom` 已不再出现在错误列表中）
+- [x] 8.2 运行 `pnpm test -- extensions/wecom` — 39 files, 266 passed, 1 skipped
 - [x] 8.3 验证 contact + meeting + todo 三模块独立可注册、互不依赖
 
 ## 9. P2 — Approval 审批模块（自研，按需）
@@ -80,6 +80,7 @@
 
 ## 11. P2 — 最终验证
 
-- [x] 11.1 P2 production code 无 TS 错误（test files 有 pre-existing setTimeout cast 错误，与 P1 一致）
-- [x] 11.2 运行 `pnpm test -- extensions/wecom` — 37 files, 232 passed, 0 failures
+- [ ] 11.1 P2 production code 无 TS 错误（repo 仍被 `extensions/memory-lancedb`、`src/gateway`、根 `vitest.config.ts` 的既有错误阻塞；`extensions/wecom` 已不再出现在错误列表中）
+- [ ] 11.4 Bot WS inbound 主动推送接入 `context-store`（review found implementation gap: 模块已复制但当前无生产调用链）
+- [x] 11.2 运行 `pnpm test -- extensions/wecom` — 39 files, 266 passed, 1 skipped
 - [x] 11.3 Tool 注册顺序：Doc → Calendar → MCP → Contact → Meeting → Todo → Approval → External Contact

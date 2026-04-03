@@ -68,7 +68,7 @@ WeCom 插件基于 YanHaidao/wecom fork，当前仅覆盖消息收发和文档/�
 ## Risks / Trade-offs
 
 - **[上游 import 路径差异]** → 复制上游文件后需逐一修复 import 路径（我方目录结构与上游略有差异）。缓解：tsc --noEmit 验证。
-- **[session-manager 联动]** → 上游 source-registry 在 session-manager 中有集成逻辑，我方版本缺少此逻辑。缓解：仔细对比上游 diff，只提取必要的集成点。
+- **[session-manager 联动]** → 经验证，`source-registry.ts` 是独立的内存 store，不依赖 `session-manager.ts`。当前生产者为 `transport/bot-ws/sdk-adapter.ts` 的 `registerWecomSourceSnapshot()`，当前消费者为 calendar tool 的 `isWecomAgentSource()` 与 MCP tool 的 `resolveWecomSourceSnapshot()`；无额外 session-manager 集成缺口。该风险已消除。
 - **[通讯录隐私限制]** → 非通讯录同步应用无法获取头像/手机号/邮箱等敏感字段。缓解：types.ts 中标注哪些字段受限，tool 返回中明确说明。
 - **[重试模式重复]** → 每个 client 复制重试逻辑，将来可能漂移。缓解：pattern 简单（10 行），TODO 标记共享化。
 - **[P2 审批 API 复杂度]** → 审批模板结构复杂（嵌套控件），schema 设计难度高。缓解：P2 优先级，可按需裁剪 action 数量。
