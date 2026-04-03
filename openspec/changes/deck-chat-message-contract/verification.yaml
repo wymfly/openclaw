@@ -1,0 +1,55 @@
+changeName: deck-chat-message-contract
+generatedAt: 2026-04-03T14:01:14.339Z
+scenarios:
+  - scenarioId: chat-message-contract.alias-block-normalization
+    status: pending
+    ownerTask: Define canonical transcript schema and egress canonicalization
+    verificationCommand: pnpm test -- src/gateway/server-methods/chat.transcript-contract.test.ts src/gateway/session-message-events.test.ts src/gateway/server-chat.agent-events.test.ts
+  - scenarioId: chat-message-contract.history-plain-text
+    status: pending
+    ownerTask: Define canonical transcript schema and egress canonicalization
+    verificationCommand: pnpm test -- src/gateway/server-methods/chat.transcript-contract.test.ts src/gateway/session-message-events.test.ts src/gateway/server-chat.agent-events.test.ts
+  - scenarioId: chat-message-contract.history-tool-result-structured
+    status: pending
+    ownerTask: Define canonical transcript schema and egress canonicalization
+    verificationCommand: pnpm test -- src/gateway/server-methods/chat.transcript-contract.test.ts src/gateway/session-message-events.test.ts src/gateway/server-chat.agent-events.test.ts
+  - scenarioId: chat-message-contract.image-file-preserved
+    status: pending
+    ownerTask: Define canonical transcript schema and egress canonicalization
+    verificationCommand: pnpm test -- src/gateway/server-methods/chat.transcript-contract.test.ts src/gateway/session-message-events.test.ts src/gateway/server-chat.agent-events.test.ts
+  - scenarioId: chat-message-contract.session-message-history-parity
+    status: pending
+    ownerTask: Extend registry and codegen for typed event payloads
+    verificationCommand: pnpm protocol:gen:ts && pnpm protocol:gen:check && pnpm test -- src/gateway/method-registry.test.ts src/gateway/server-methods/describe.test.ts
+  - scenarioId: chat-message-contract.session-tool-structured-result
+    status: pending
+    ownerTask: Define canonical transcript schema and egress canonicalization
+    verificationCommand: pnpm test -- src/gateway/server-methods/chat.transcript-contract.test.ts src/gateway/session-message-events.test.ts src/gateway/server-chat.agent-events.test.ts
+  - scenarioId: chat-session-sync.history-live-shared-adapter
+    status: pending
+    ownerTask: Build one shared transcript adapter for history, live events, and reload
+    verificationCommand: pnpm test -- dashboard/src/lib/transcript-adapter.test.ts dashboard/src/components/panels/chat/__tests__/history-normalize.test.ts dashboard/src/components/panels/chat/__tests__/dispatcher.test.ts dashboard/src/components/panels/chat/__tests__/tool-progress-dispatcher.test.ts && cd dashboard && pnpm lint
+  - scenarioId: chat-session-sync.reload-authoritative-tool-blocks
+    status: pending
+    ownerTask: Build one shared transcript adapter for history, live events, and reload
+    verificationCommand: pnpm test -- dashboard/src/lib/transcript-adapter.test.ts dashboard/src/components/panels/chat/__tests__/history-normalize.test.ts dashboard/src/components/panels/chat/__tests__/dispatcher.test.ts dashboard/src/components/panels/chat/__tests__/tool-progress-dispatcher.test.ts && cd dashboard && pnpm lint
+  - scenarioId: chat-session-sync.sessions-detail-shared-adapter
+    status: pending
+    ownerTask: Move Sessions detail onto the same transcript contract
+    verificationCommand: pnpm test -- dashboard/src/components/panels/sessions/__tests__/SessionDetail.test.tsx && cd dashboard && pnpm lint
+  - scenarioId: transcript-rendering.chat-sessions-consistent
+    status: pending
+    ownerTask: Move Sessions detail onto the same transcript contract
+    verificationCommand: pnpm test -- dashboard/src/components/panels/sessions/__tests__/SessionDetail.test.tsx && cd dashboard && pnpm lint
+  - scenarioId: transcript-rendering.known-blocks-no-json
+    status: pending
+    ownerTask: Introduce transcript renderer registry and explicit fallback blocks
+    verificationCommand: pnpm test -- dashboard/src/components/panels/chat/__tests__/message-list.transcript-rendering.test.tsx dashboard/src/components/panels/sessions/__tests__/SessionDetail.test.tsx && cd dashboard && pnpm lint
+  - scenarioId: transcript-rendering.structured-tool-result
+    status: pending
+    ownerTask: Introduce transcript renderer registry and explicit fallback blocks
+    verificationCommand: pnpm test -- dashboard/src/components/panels/chat/__tests__/message-list.transcript-rendering.test.tsx dashboard/src/components/panels/sessions/__tests__/SessionDetail.test.tsx && cd dashboard && pnpm lint
+  - scenarioId: transcript-rendering.unknown-block-fallback
+    status: pending
+    ownerTask: Introduce transcript renderer registry and explicit fallback blocks
+    verificationCommand: pnpm test -- dashboard/src/components/panels/chat/__tests__/message-list.transcript-rendering.test.tsx dashboard/src/components/panels/sessions/__tests__/SessionDetail.test.tsx && cd dashboard && pnpm lint
