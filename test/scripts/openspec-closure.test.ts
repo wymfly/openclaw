@@ -6,24 +6,20 @@ import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { checkClosure } from "../../scripts/lib/openspec-closure/checker.js";
 import {
+  checkClosure,
+  collectPlanCoverage,
+  collectScenarioInventory,
+  createVerificationArtifact,
   loadClosureConfig,
   resolvePlanFiles,
   resolveVerificationPath,
-} from "../../scripts/lib/openspec-closure/config.js";
-import {
-  collectPlanCoverage,
   parsePlanCoverage,
-} from "../../scripts/lib/openspec-closure/plan-coverage.js";
-import { formatClosureReport } from "../../scripts/lib/openspec-closure/report.js";
-import { collectScenarioInventory } from "../../scripts/lib/openspec-closure/spec-inventory.js";
-import {
-  createVerificationArtifact,
   readVerificationArtifact,
+  formatClosureReport,
   writeVerificationArtifact,
-} from "../../scripts/lib/openspec-closure/verification-artifact.js";
-import type { VerificationArtifact } from "../../scripts/lib/openspec-closure/types.js";
+} from "../../packages/openspec-closure-core/src/index.js";
+import type { VerificationArtifact } from "../../packages/openspec-closure-core/src/index.js";
 
 const FIXTURE_ROOT = path.join(process.cwd(), "test", "fixtures", "openspec-closure");
 const VALID_CHANGE = path.join(FIXTURE_ROOT, "valid-change");
@@ -625,6 +621,25 @@ describe("openspec closure primitives", () => {
     expect(packageJson.scripts["openspec:closure:init"]).toBe("node --import tsx scripts/openspec-closure.ts init");
     expect(packageJson.scripts["openspec:closure:check"]).toBe("node --import tsx scripts/openspec-closure.ts check");
     expect(packageJson.scripts["openspec:closure:report"]).toBe("node --import tsx scripts/openspec-closure.ts report");
+  });
+
+  it("keeps the shared closure core in a dedicated package entrypoint", async () => {
+    const entrySource = await readFile(
+      path.join(process.cwd(), "packages", "openspec-closure-core", "src", "index.ts"),
+      "utf8",
+    );
+
+    expect(entrySource).toContain("checkClosure");
+    expect(entrySource).toContain("collectScenarioInventory");
+    expect(entrySource).toContain("writeVerificationArtifact");
+  });
+
+  it("keeps the repo CLI as a thin wrapper over the shared closure package", async () => {
+    const cliSource = await readFile(CLOSURE_SCRIPT, "utf8");
+
+    expect(cliSource).toContain("packages/openspec-closure-core");
+    expect(cliSource).not.toContain("./lib/openspec-closure/checker.js");
+    expect(cliSource).not.toContain("./lib/openspec-closure/config.js");
   });
 
   it("resolves non-default plan and verification locations through adapter config", async () => {

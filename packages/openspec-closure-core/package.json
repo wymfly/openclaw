@@ -1,0 +1,20 @@
+{
+  "name": "@openclaw/openspec-closure-core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./checker": "./src/checker.ts",
+    "./config": "./src/config.ts",
+    "./plan-coverage": "./src/plan-coverage.ts",
+    "./report": "./src/report.ts",
+    "./spec-inventory": "./src/spec-inventory.ts",
+    "./types": "./src/types.ts",
+    "./verification-artifact": "./src/verification-artifact.ts"
+  },
+  "dependencies": {
+    "minimatch": "^10.0.3",
+    "yaml": "^2.8.3"
+  }
+}
