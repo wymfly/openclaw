@@ -99,10 +99,10 @@ bash deploy/scripts/update.sh /d/path/to/openclaw-deploy-NEW.tar.gz
 
 ## 常见问题
 
-| 问题 | 解决 |
-|------|------|
-| `bash: command not found` | 安装 Git for Windows，使用 Git Bash |
-| `pnpm: command not found` | 运行 `npm install -g pnpm` |
-| 端口被占用 | `netstat -ano \| findstr :18789`，用 `taskkill /PID <pid> /F` 杀掉 |
-| Gateway 重启循环 | `pm2 kill && taskkill /F /IM node.exe`，然后重新启动 |
-| 供应商显示未配置 | 功能正常可用，这是显示问题（auth profile 已通过 seed 初始化） |
+| 问题                      | 解决                                                               |
+| ------------------------- | ------------------------------------------------------------------ |
+| `bash: command not found` | 安装 Git for Windows，使用 Git Bash                                |
+| `pnpm: command not found` | 运行 `npm install -g pnpm`                                         |
+| 端口被占用                | `netstat -ano \| findstr :18789`，用 `taskkill /PID <pid> /F` 杀掉 |
+| Gateway 重启循环          | `pm2 kill && taskkill /F /IM node.exe`，然后重新启动               |
+| 供应商显示未配置          | 功能正常可用，这是显示问题（auth profile 已通过 seed 初始化）      |

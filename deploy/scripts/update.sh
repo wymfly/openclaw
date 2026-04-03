@@ -202,7 +202,7 @@ cd "$SOURCE_DIR"
 
 if [ "$NEEDS_INSTALL" = true ]; then
   log "Installing dependencies..."
-  pnpm install --frozen-lockfile
+  pnpm install --frozen-lockfile --ignore-scripts
 fi
 
 # ---------------------------------------------------------------------------

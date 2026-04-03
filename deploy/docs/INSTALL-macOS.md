@@ -100,8 +100,8 @@ bash deploy/scripts/update.sh /path/to/openclaw-deploy-NEW.tar.gz
 
 ## 常见问题
 
-| 问题 | 解决 |
-|------|------|
-| 端口被占用 | `lsof -i :18789` |
-| NOT_PAIRED | Docker: 确认 `network_mode: service:gateway`；裸机: 确认 localhost |
-| PM2 启动失败 | `pm2 logs` 查看错误 |
+| 问题         | 解决                                                               |
+| ------------ | ------------------------------------------------------------------ |
+| 端口被占用   | `lsof -i :18789`                                                   |
+| NOT_PAIRED   | Docker: 确认 `network_mode: service:gateway`；裸机: 确认 localhost |
+| PM2 启动失败 | `pm2 logs` 查看错误                                                |
