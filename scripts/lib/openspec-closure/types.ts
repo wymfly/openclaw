@@ -4,6 +4,7 @@ export type VerificationStatus =
   | "pending"
   | "verified"
   | "blocked"
+  | "deferred"
   | "spec-fix-required";
 
 export type ScenarioInventoryEntry = {

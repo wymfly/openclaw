@@ -3,5 +3,6 @@ planGlobs:
 blockingStatuses:
   - pending
   - blocked
+  - deferred
   - spec-fix-required
 verificationFileName: verification.yaml

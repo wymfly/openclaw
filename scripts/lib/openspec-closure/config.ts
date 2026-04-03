@@ -7,7 +7,7 @@ import YAML from "yaml";
 import type { ClosureProjectConfig, VerificationStatus } from "./types.js";
 
 const DEFAULT_CONFIG: ClosureProjectConfig = {
-  blockingStatuses: ["pending", "blocked", "spec-fix-required"],
+  blockingStatuses: ["pending", "blocked", "deferred", "spec-fix-required"],
   planGlobs: [],
   verificationFileName: "verification.yaml",
 };
@@ -83,7 +83,13 @@ async function walkFiles(rootDir: string): Promise<string[]> {
 }
 
 function validateStatuses(statuses: VerificationStatus[]): VerificationStatus[] {
-  const allowed = new Set<VerificationStatus>(["pending", "verified", "blocked", "spec-fix-required"]);
+  const allowed = new Set<VerificationStatus>([
+    "pending",
+    "verified",
+    "blocked",
+    "deferred",
+    "spec-fix-required",
+  ]);
   for (const status of statuses) {
     if (!allowed.has(status)) {
       throw new Error(`Unsupported blocking status in config: ${status}`);

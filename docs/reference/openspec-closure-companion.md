@@ -67,9 +67,11 @@ The adapter only describes project-specific conventions:
 
 - where plans live
 - where verification artifacts should be written
-- which statuses block archive readiness
+- which statuses block archive readiness, including project policy for `deferred`
 
 The adapter does not reimplement parsing or checker logic. That separation is what keeps the workflow portable across projects.
+
+Projects that keep plans or verification state outside the defaults can point the companion at those locations through config alone. For example, a project can keep plans under `workflow/plans/*.md` and its verification artifact at `state/closure.yaml` without patching the checker itself.
 
 ## Commands
 
@@ -90,6 +92,8 @@ Recommended lifecycle:
 5. `archive`
 
 This keeps implementation progress and scenario closure separate: `tasks.md` tracks work execution, while the verification artifact and closure report track whether the change is actually ready to archive.
+
+When a project intentionally postpones verification, mark the scenario with a status such as `deferred` and record a `rationale`. By default, `deferred` still blocks `archiveReady`; projects may only relax that policy through adapter configuration, not through undocumented prose.
 
 ## Adoption boundaries
 
