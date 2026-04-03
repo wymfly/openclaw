@@ -190,16 +190,21 @@ describe("skills store", () => {
 
   describe("installSkill", () => {
     it("returns true on success and sends caller-provided installId", async () => {
-      vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify({ ok: true }), { status: 200 }),
-      );
+      const fetchSpy = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
 
       const ok = await useSkillsStore.getState().installSkill("new-skill", "installer-abc");
 
       expect(ok).toBe(true);
       // Verify installId matches the caller-provided value (not a random UUID)
-      const call = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
-      const body = JSON.parse(call[1].body as string) as { name: string; installId: string };
+      const call = fetchSpy.mock.calls[0];
+      expect(call).toBeDefined();
+      const [, init] = call!;
+      const body = JSON.parse((init as RequestInit).body as string) as {
+        name: string;
+        installId: string;
+      };
       expect(body.name).toBe("new-skill");
       expect(body.installId).toBe("installer-abc");
     });

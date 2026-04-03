@@ -19,8 +19,7 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
   api.registerTool((toolContext: any) => ({
     name: "wecom_approval",
     label: "WeCom Approval",
-    description:
-      "企业微信审批工具，支持提交审批、查询审批列表、获取审批详情和审批模板。",
+    description: "企业微信审批工具，支持提交审批、查询审批列表、获取审批详情和审批模板。",
     parameters: wecomApprovalToolSchema,
     async execute(_toolCallId, params: any) {
       try {
@@ -79,10 +78,7 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
             });
           }
           case "get_template": {
-            const template = await approvalClient.getTemplate(
-              account,
-              params.template_id,
-            );
+            const template = await approvalClient.getTemplate(account, params.template_id);
             return buildToolResult({
               ok: true,
               action,

@@ -19,8 +19,7 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
   api.registerTool((toolContext: any) => ({
     name: "wecom_external_contact",
     label: "WeCom External Contact",
-    description:
-      "企业微信客户联系工具，支持获取外部联系人详情、列表和客户群列表。",
+    description: "企业微信客户联系工具，支持获取外部联系人详情、列表和客户群列表。",
     parameters: wecomExternalContactToolSchema,
     async execute(_toolCallId, params: any) {
       try {
@@ -35,12 +34,8 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
         const action = params.action;
         switch (action) {
           case "get": {
-            const detail = await externalContactClient.get(
-              account,
-              params.external_userid,
-            );
-            const contactName =
-              detail.external_contact?.name || params.external_userid;
+            const detail = await externalContactClient.get(account, params.external_userid);
+            const contactName = detail.external_contact?.name || params.external_userid;
             return buildToolResult({
               ok: true,
               action,
@@ -50,10 +45,7 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
             });
           }
           case "list": {
-            const externalUserids = await externalContactClient.list(
-              account,
-              params.userid,
-            );
+            const externalUserids = await externalContactClient.list(account, params.userid);
             return buildToolResult({
               ok: true,
               action,
@@ -80,10 +72,7 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
             });
           }
           case "get_group_detail": {
-            const groupChat = await externalContactClient.getGroupDetail(
-              account,
-              params.chat_id,
-            );
+            const groupChat = await externalContactClient.getGroupDetail(account, params.chat_id);
             return buildToolResult({
               ok: true,
               action,
