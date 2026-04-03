@@ -160,7 +160,7 @@ scripts/committer "[enhanced] feat(codex-plugin): add openspec closure bundle" \
 pnpm test -- test/scripts/openspec-closure-plugin.test.ts -t "claude bundle"
 ```
 
-- [ ] **Step 3.4: Commit**
+- [x] **Step 3.4: Commit**
 
 ```bash
 scripts/committer "[enhanced] feat(claude-plugin): add openspec closure bundle" \
@@ -195,19 +195,19 @@ scripts/committer "[enhanced] feat(claude-plugin): add openspec closure bundle" 
 **covers:** `closure-project-bootstrap/spec.md > ADDED > Projects SHALL keep closure adoption to a thin adapter surface > "Archive gates can consume machine-readable readiness without vendored checker code"`
 **covers.id:** `closure-project-bootstrap.archive-gate-machine-output`
 
-- [ ] **Step 4.1: 为最小项目 fixture 先写失败测试**
+- [x] **Step 4.1: 为最小项目 fixture 先写失败测试**
       在 `test/scripts/openspec-closure-plugin.test.ts` 里新增 fixture project，只保留 `.openspec-closure.yaml`、spec、plan、verification artifact，确保 bundle 可以在没有 repo-local checker 源码的情况下工作。
 
-- [ ] **Step 4.2: 写 bootstrap guidance**
+- [x] **Step 4.2: 写 bootstrap guidance**
       当项目缺 `.openspec-closure.yaml`、plan `covers.id` 或 `verification.yaml` 时，bundle 输出“下一步该创建什么、运行什么命令”，不要把底层 ENOENT 暴露给终端用户当主信息。
 
-- [ ] **Step 4.3: 约束 workflow routing**
+- [x] **Step 4.3: 约束 workflow routing**
       在文档和测试中把路由语义写死：上层 workflow 只能调用 `openspec-closure-workflow`，不能重新定义 `scenario_id`、`archiveReady` 或状态枚举。
 
-- [ ] **Step 4.4: 写安装与接入文档**
+- [x] **Step 4.4: 写安装与接入文档**
       `docs/reference/openspec-closure-plugin.md` 要明确三件事：- 如何安装 Codex / Claude bundle - 新项目最小接入文件集合 - 新 worktree 为什么不需要重新 vendoring core
 
-- [ ] **Step 4.5: 跑 bootstrap / routing 测试**
+- [x] **Step 4.5: 跑 bootstrap / routing 测试**
 
 ```bash
 pnpm test -- test/scripts/openspec-closure-plugin.test.ts -t "bootstrap|routing|minimal project"

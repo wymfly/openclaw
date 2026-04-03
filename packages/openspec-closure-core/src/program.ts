@@ -2,6 +2,7 @@ import { Command } from "commander";
 
 import { checkClosure } from "./checker.js";
 import {
+  ClosureBootstrapError,
   loadClosureConfig,
   resolvePlanFiles,
   resolveVerificationPath,
@@ -147,5 +148,14 @@ export function createClosureProgram(): Command {
 }
 
 export async function runClosureCommandLine(argv: string[]): Promise<void> {
-  await createClosureProgram().parseAsync(normalizeArgv(argv));
+  try {
+    await createClosureProgram().parseAsync(normalizeArgv(argv));
+  } catch (error) {
+    if (error instanceof ClosureBootstrapError) {
+      process.stderr.write(`${error.message}\n`);
+      process.exitCode = 1;
+      return;
+    }
+    throw error;
+  }
 }
