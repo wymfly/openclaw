@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 15, React 19, Zustand, next-intl, Lucide icons, shadcn/ui (Collapsible, Dialog, Badge, Button, Card, Switch, Input)
 
-**Backend Type Correction:** `agent.identity.get` actually returns `{ agentId, name?, avatar?, emoji? }` — the proposal's `description` and `aliases` fields do not exist. Plan adapts to real schema. ClawHub slugs are single-segment (no `/`). `skills.install` local mode requires matching `name` + `installId` from `skills.status` install options, not arbitrary path + UUID.
+**Backend Type Correction:** `agent.identity.get` actually returns `{ agentId, name?, avatar?, emoji? }` — the proposal's `description` and `aliases` fields do not exist. Plan adapts to real schema. ClawHub slugs are single-segment (no `/`). `skills.install` install-options mode requires matching `name` + `installId` from `skills.status` install options, not arbitrary path + UUID.
 
 **Existing API Routes:** `/api/skills/install` (POST), `/api/skills/[skillKey]` (PATCH for update), `/api/agents/[agentId]/files` (GET list, POST write) already exist. `/api/skills` (GET status) exists. New routes needed: tools catalog, agent identity, ClawHub skills update.
 
@@ -1291,9 +1291,9 @@ scripts/committer "[enhanced] feat(agents): integrate FilesBrowser into ContextT
 
 ### Task 9: Skill Install Dialog (Agent-level) [frontend]
 
-covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports local and ClawHub installation > Install local skill
-covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports local and ClawHub installation > Install ClawHub skill
-covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports local and ClawHub installation > Install failure
+covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports install options and ClawHub installation > Install managed skill from install options
+covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports install options and ClawHub installation > Install ClawHub skill
+covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports install options and ClawHub installation > Install failure
 
 **Files:**
 
@@ -1301,7 +1301,7 @@ covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports 
 
 - [ ] **Step 1: Implement SkillInstallDialog**
 
-NOTE: `skills.install` requires `name` and `installId` matching entries from `skills.status` response (install options with spec IDs like `brew-0`, `npm-0`). Random UUIDs will fail. For local skills, the install spec comes from the skill's metadata. For ClawHub, use `source: "clawhub"` with a single-segment slug (no `/`).
+NOTE: `skills.install` requires `name` and `installId` matching entries from `skills.status` response (install options with spec IDs like `brew-0`, `npm-0`). Random UUIDs will fail. For managed skills, the install spec comes from the skill's metadata. For ClawHub, use `source: "clawhub"` with a single-segment slug (no `/`).
 
 This dialog has two tabs: "Install Options" (shows available install specs from skills.status) and "ClawHub" (slug input). The local path approach from the proposal is NOT viable — `skills.install` installs dependencies, not the skill itself from a path.
 
@@ -1725,7 +1725,7 @@ scripts/committer "[enhanced] feat(agents): add SkillConfigEditor for apiKey and
 
 ### Task 11: Enhance SkillsTab with Install, Config, and Update [frontend]
 
-covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports local and ClawHub installation > Install local skill
+covers: agent-skills-management/spec.md > ADDED > Skill install dialog supports install options and ClawHub installation > Install managed skill from install options
 covers: agent-skills-management/spec.md > ADDED > Skill config editor supports apiKey and env > Edit skill API key
 covers: agent-skills-management/spec.md > ADDED > Skill update functionality
 
@@ -2032,7 +2032,7 @@ scripts/committer "[enhanced] chore(openspec): mark deck-agent-config-enhancemen
 │ agent-tools-catalog > Allow a denied tool                           │ 4, 6    │
 │ agent-tools-catalog > Reset to profile default                      │ 4, 6    │
 │ agent-tools-catalog > Tools catalog graceful degradation            │ 4       │
-│ agent-skills-management > Install local skill                       │ 9, 11   │
+│ agent-skills-management > Install managed skill from install options │ 9, 11  │
 │ agent-skills-management > Install ClawHub skill                     │ 9, 11   │
 │ agent-skills-management > Install failure                           │ 9       │
 │ agent-skills-management > Edit skill API key                        │ 10, 11  │

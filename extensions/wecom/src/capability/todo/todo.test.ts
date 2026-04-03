@@ -124,6 +124,38 @@ describe("WecomTodoClient", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/cgi-bin/oa/getworkrecord?");
   });
 
+  it("returns an empty object when get receives no work_record payload", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        errcode: 0,
+        errmsg: "ok",
+      }),
+    );
+
+    const client = new WecomTodoClient();
+    const result = await client.get(createAgent(), "sp-empty");
+
+    expect(result).toEqual({});
+  });
+
+  it("surfaces WeCom business errors with errcode and errmsg", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          errcode: 40001,
+          errmsg: "invalid credential",
+        }),
+      ),
+    );
+
+    const client = new WecomTodoClient();
+    await expect(client.get(createAgent(), "sp-bad")).rejects.toThrow(/invalid credential.*40001/i);
+  });
+
   it("retry retries on failure", async () => {
     const { wecomFetch } = await import("../../http.js");
     const fetchMock = vi.mocked(wecomFetch);
@@ -143,7 +175,7 @@ describe("WecomTodoClient", () => {
     ) => {
       if (typeof handler === "function") handler();
       return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
+    }) as unknown as typeof setTimeout);
 
     try {
       const client = new WecomTodoClient();
@@ -153,6 +185,36 @@ describe("WecomTodoClient", () => {
       });
 
       expect(result).toBe("sp-retry");
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
+
+  it("fails after exhausting all retry attempts", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockRejectedValueOnce(new Error("temporary timeout"))
+      .mockRejectedValueOnce(new Error("still failing"));
+
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      handler: TimerHandler,
+    ) => {
+      if (typeof handler === "function") handler();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as unknown as typeof setTimeout);
+
+    try {
+      const client = new WecomTodoClient();
+      await expect(
+        client.create(createAgent(), {
+          title: "Retry Todo",
+          creator: "zhangsan",
+        }),
+      ).rejects.toThrow("still failing");
       expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
     } finally {

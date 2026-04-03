@@ -112,6 +112,22 @@ describe("WecomContactClient", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toContain("fetch_child=1");
   });
 
+  it("listMembers tolerates empty user lists", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        errcode: 0,
+        errmsg: "ok",
+      }),
+    );
+
+    const client = new WecomContactClient();
+    const result = await client.listMembers(createAgent(), 10);
+
+    expect(result.members).toEqual([]);
+  });
+
   it("listDepartments returns full department tree when no parent specified", async () => {
     const { wecomFetch } = await import("../../http.js");
     const fetchMock = vi.mocked(wecomFetch);
@@ -162,6 +178,24 @@ describe("WecomContactClient", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("surfaces WeCom business errors with errcode and errmsg", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          errcode: 60011,
+          errmsg: "invalid userid",
+        }),
+      ),
+    );
+
+    const client = new WecomContactClient();
+    await expect(client.getMember(createAgent(), "missing-user")).rejects.toThrow(
+      /invalid userid.*60011/i,
+    );
+  });
+
   it("retries on network failure up to 3 times and succeeds on 3rd", async () => {
     const { wecomFetch } = await import("../../http.js");
     const fetchMock = vi.mocked(wecomFetch);
@@ -183,13 +217,38 @@ describe("WecomContactClient", () => {
     ) => {
       if (typeof handler === "function") handler();
       return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
+    }) as unknown as typeof setTimeout);
 
     try {
       const client = new WecomContactClient();
       const result = await client.getMember(createAgent(), "u-retry");
 
       expect(result.member.userid).toBe("u-retry");
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
+
+  it("fails after exhausting all retry attempts", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockRejectedValueOnce(new Error("temporary timeout"))
+      .mockRejectedValueOnce(new Error("still failing"));
+
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      handler: TimerHandler,
+    ) => {
+      if (typeof handler === "function") handler();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as unknown as typeof setTimeout);
+
+    try {
+      const client = new WecomContactClient();
+      await expect(client.getMember(createAgent(), "u-fail")).rejects.toThrow("still failing");
       expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
     } finally {

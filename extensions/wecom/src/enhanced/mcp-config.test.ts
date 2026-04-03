@@ -2,30 +2,30 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { McpWsClient } from "./mcp-config.js";
 import { fetchAndSaveMcpConfig, fetchMcpConfig, mcpConfigTestHelpers } from "./mcp-config.js";
 
 /** Minimal WSClient stub that records reply() calls. */
-function createFakeClient(
-  replyImpl: (
-    frame: { headers: { req_id: string } },
-    body: Record<string, unknown>,
-    cmd: string,
-  ) => Promise<unknown>,
-) {
+type McpReplyArgs = Parameters<McpWsClient["reply"]>;
+
+function createFakeClient(replyImpl: McpWsClient["reply"]): McpWsClient & {
+  calls: Array<{
+    frame: McpReplyArgs[0];
+    body: McpReplyArgs[1];
+    cmd: McpReplyArgs[2];
+  }>;
+} {
   const calls: Array<{
-    frame: { headers: { req_id: string } };
-    body: Record<string, unknown>;
-    cmd: string;
+    frame: McpReplyArgs[0];
+    body: McpReplyArgs[1];
+    cmd: McpReplyArgs[2];
   }> = [];
   return {
     calls,
-    reply: async (
-      frame: { headers: { req_id: string } },
-      body: Record<string, unknown>,
-      cmd: string,
-    ) => {
+    reply: async (...args) => {
+      const [frame, body, cmd] = args;
       calls.push({ frame, body, cmd });
-      return replyImpl(frame, body, cmd);
+      return replyImpl(...args);
     },
   };
 }

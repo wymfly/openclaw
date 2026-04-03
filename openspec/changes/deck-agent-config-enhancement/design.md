@@ -14,7 +14,7 @@ Deck Agent 面板当前 7 个 tab 的分工：
 
 - `tools.catalog` — 返回 `{ groups: [{ id, label, source, tools: [{ id, label, source, defaultProfiles }] }] }`
 - `skills.status` — 返回 `{ skills: [{ key, label, enabled, eligibility, metadata, reasons }] }`
-- `skills.install` — 支持本地路径和 ClawHub slug 两种安装方式
+- `skills.install` — 支持 install option（`name + installId`）和 ClawHub slug 两种安装方式
 - `skills.update` — 支持 enabled/apiKey/env 配置修改和 ClawHub 更新
 - `agents.files.list` — 返回 `{ files: [{ name, path, missing, size, updatedAtMs }] }`
 - `agent.identity.get` — 返回 `{ agentId, name?, avatar?, emoji? }`（注意：无 description/aliases 字段）
@@ -26,7 +26,7 @@ Deck Agent 面板当前 7 个 tab 的分工：
 - 提供完整的工具目录浏览和逐工具覆盖（替代当前粗粒度的 profile-only 选择）
 - 让用户可以直接在 Deck 中安装和配置技能（无需 CLI）
 - 提供统一的文件浏览入口（替代散落在 ContextTab 的零散编辑器）
-- 完整展示 agent 身份信息（avatar、description 等当前缺失的字段）
+- 完整展示 agent 身份信息（avatar、name、emoji）
 - 支持 model fallback 链配置
 
 **Non-Goals:**
@@ -48,11 +48,11 @@ Deck Agent 面板当前 7 个 tab 的分工：
 
 ### D2: 技能安装使用 Dialog 而非内联表单
 
-**选择**: SkillsTab 添加 "安装技能" 按钮，点击打开 Dialog 输入本地路径或 ClawHub slug。
+**选择**: SkillsTab 添加 "安装技能" 按钮，点击打开 Dialog 选择 install option 或输入 ClawHub slug。
 
 **替代方案**: 在 SkillsTab 顶部内联安装表单。
 
-**理由**: 安装是低频操作，Dialog 避免占用常态 UI 空间。ClawHub 和本地两种安装路径可以用 Tab 切换在 Dialog 内实现。
+**理由**: 安装是低频操作，Dialog 避免占用常态 UI 空间。安装选项来自 `skills.status` 的 install metadata，ClawHub slug 作为另一条独立路径，二者用 Tab 切换更清晰。
 
 ### D3: Files Browser 整合到 Context tab
 
@@ -77,6 +77,6 @@ Deck Agent 面板当前 7 个 tab 的分工：
 ## Risks / Trade-offs
 
 - **[Config tab 复杂度]** 整合工具目录和 fallback 后 Config tab 内容较多 → 使用 Collapsible 分区，工具目录默认折叠
-- **[技能安装安全性]** 本地路径安装可能指向任意目录 → 显示确认对话框，提示用户验证路径合法性
+- **[技能安装兼容]** install option 数据依赖 `skills.status` metadata → Dialog 打开时主动刷新 install options，缺失时显示空态而非回退为任意路径输入
 - **[API 兼容]** `tools.catalog` 和 `agent.identity.get` 是较新的 API，旧版 Gateway 可能不支持 → 调用失败时降级为当前行为（不显示工具目录，不显示额外 identity 信息）
 - **[allowlist 同步]** 新增的 API 调用需确保在 gateway-allowlist.ts 中 → 作为第一个任务验证并添加

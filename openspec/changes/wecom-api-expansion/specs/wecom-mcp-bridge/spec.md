@@ -7,12 +7,12 @@
 #### Scenario: Proxy MCP tool call
 
 - **WHEN** Agent 调用 `wecom_mcp` tool，提供 tool_name 和 tool_input
-- **THEN** 系统通过 MCP transport 将请求转发到企微 Bot WS，返回 tool 执行结果
+- **THEN** 系统通过 MCP transport 将请求转发到企微 Bot WS，返回 tool 执行结果。Evidence: `extensions/wecom/src/capability/mcp/tool.ts:89`, `extensions/wecom/src/capability/mcp/transport.ts:131`
 
 #### Scenario: MCP tool discovery
 
 - **WHEN** Agent 请求可用的 MCP tool 列表
-- **THEN** 系统返回当前企微 MCP 实例中注册的所有 tool 名称和 schema
+- **THEN** 系统返回当前企微 MCP 实例中注册的所有 tool 名称和 schema。Evidence: `extensions/wecom/src/capability/mcp/tool.ts:54`
 
 ### Requirement: Source registry integration
 
@@ -20,14 +20,5 @@
 
 #### Scenario: Session source tracking
 
-- **WHEN** 通过 calendar 或 mcp 模块发起会话
-- **THEN** source-registry 记录会话来源类型，session-manager 可查询该信息
-
-### Requirement: Context store for Bot WS
-
-系统 SHALL 集成 context-store 模块，支持 Bot WS 主动推送上下文存储。
-
-#### Scenario: Store push context
-
-- **WHEN** Bot WS 收到主动推送消息
-- **THEN** context-store 缓存推送内容，供后续 tool 调用时引用
+- **WHEN** 企微 Bot WS 收到入站消息并建立会话上下文
+- **THEN** source-registry 记录 `bot-ws` 来源快照，`wecom_mcp` tool 通过 `resolveWecomSourceSnapshot()` 仅在 Bot WS 会话中启用，而 calendar tool 通过 `isWecomAgentSource()` 仅在 agent-callback 会话中启用。Evidence: `extensions/wecom/src/transport/bot-ws/sdk-adapter.ts:197`, `extensions/wecom/src/capability/mcp/tool.ts:109`, `extensions/wecom/src/capability/calendar/tool.ts:59`

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 import type { BootstrapFileEntry } from "@/stores/deck-agents";
@@ -9,6 +9,7 @@ import type { BootstrapFileEntry } from "@/stores/deck-agents";
 interface BootstrapFileEditorProps {
   agentId: string;
   files: BootstrapFileEntry[];
+  selectedFileName?: string | null;
 }
 
 interface FileEditorState {
@@ -24,7 +25,11 @@ interface FileEditorState {
   editorReady: boolean;
 }
 
-export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps) {
+export function BootstrapFileEditor({
+  agentId,
+  files,
+  selectedFileName = null,
+}: BootstrapFileEditorProps) {
   const t = useTranslations("context");
   const { fetchBootstrapFile, saveBootstrapFile, fetchSystemPromptPreview } = useDeckAgentsStore();
 
@@ -36,35 +41,66 @@ export function BootstrapFileEditor({ agentId, files }: BootstrapFileEditorProps
     editorReady: false,
   });
 
-  const handleOpenFile = async (name: string, exists: boolean) => {
-    // Toggle off if clicking same file
-    if (state.activeName === name) {
-      setState((s) => ({ ...s, activeName: null, editorReady: false }));
-      return;
-    }
+  const openFile = useCallback(
+    async (name: string, exists: boolean, allowToggle = true) => {
+      if (allowToggle && state.activeName === name) {
+        setState((s) => ({ ...s, activeName: null, editorReady: false }));
+        return;
+      }
+      if (!allowToggle && state.activeName === name && state.editorReady) {
+        return;
+      }
 
-    setState((s) => ({ ...s, loadingName: name, activeName: name, editorReady: false }));
+      setState((s) => ({ ...s, loadingName: name, activeName: name, editorReady: false }));
 
-    if (exists) {
-      await fetchBootstrapFile(agentId, name);
-      // Read fresh from store after fetch — verify name matches to avoid stale content
-      const detail = useDeckAgentsStore.getState().bootstrapFileDetail;
-      const content = detail?.name === name ? (detail.content ?? "") : "";
-      setState((s) => ({
-        ...s,
-        loadingName: null,
-        draftContent: content,
-        editorReady: true,
-      }));
-    } else {
-      // File doesn't exist yet — open editor with empty content for creation
+      if (exists) {
+        const cachedDetail = useDeckAgentsStore.getState().bootstrapFileDetail;
+        if (cachedDetail?.name === name && typeof cachedDetail.content === "string") {
+          const cachedContent = cachedDetail.content ?? "";
+          setState((s) => ({
+            ...s,
+            loadingName: null,
+            draftContent: cachedContent,
+            editorReady: true,
+          }));
+          return;
+        }
+
+        await fetchBootstrapFile(agentId, name);
+        const detail = useDeckAgentsStore.getState().bootstrapFileDetail;
+        const content = detail?.name === name ? (detail.content ?? "") : "";
+        setState((s) => ({
+          ...s,
+          loadingName: null,
+          draftContent: content,
+          editorReady: true,
+        }));
+        return;
+      }
+
       setState((s) => ({
         ...s,
         loadingName: null,
         draftContent: "",
         editorReady: true,
       }));
+    },
+    [agentId, fetchBootstrapFile, state.activeName, state.editorReady],
+  );
+
+  useEffect(() => {
+    if (!selectedFileName) {
+      return;
     }
+    const selectedFile = files.find((file) => file.name === selectedFileName);
+    if (!selectedFile) {
+      return;
+    }
+    void openFile(selectedFile.name, selectedFile.exists, false);
+  }, [files, openFile, selectedFileName]);
+
+  const handleOpenFile = async (name: string, exists: boolean) => {
+    await openFile(name, exists, true);
   };
 
   const handleCancel = () => {

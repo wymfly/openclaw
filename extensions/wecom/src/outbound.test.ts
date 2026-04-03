@@ -7,6 +7,17 @@ vi.mock("./transport/agent-api/core.js", () => ({
   uploadMedia: vi.fn(),
 }));
 
+async function getOutboundFns() {
+  const { wecomOutbound } = await import("./outbound.js");
+  if (!wecomOutbound.sendText || !wecomOutbound.sendMedia) {
+    throw new Error("wecomOutbound text/media handlers are required");
+  }
+  return {
+    sendText: wecomOutbound.sendText,
+    sendMedia: wecomOutbound.sendMedia,
+  };
+}
+
 describe("wecomOutbound", () => {
   beforeEach(async () => {
     const runtime = await import("./runtime.js");
@@ -27,9 +38,9 @@ describe("wecomOutbound", () => {
   });
 
   it("does not crash when called with core outbound params", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendMedia } = await getOutboundFns();
     await expect(
-      wecomOutbound.sendMedia({
+      sendMedia({
         cfg: {},
         to: "wr-test-chat",
         text: "caption",
@@ -39,7 +50,7 @@ describe("wecomOutbound", () => {
   });
 
   it("throws explicit error when outbound accountId does not exist", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendText } = await getOutboundFns();
     const cfg = {
       channels: {
         wecom: {
@@ -61,7 +72,7 @@ describe("wecomOutbound", () => {
       },
     };
     await expect(
-      wecomOutbound.sendText({
+      sendText({
         cfg,
         accountId: "acct-missing",
         to: "user:zhangsan",
@@ -71,7 +82,7 @@ describe("wecomOutbound", () => {
   });
 
   it("routes sendText to agent chatId/userid", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendText } = await getOutboundFns();
     const api = await import("./transport/agent-api/core.js");
     const now = vi.spyOn(Date, "now").mockReturnValue(123);
     (api.sendText as any).mockResolvedValue(undefined);
@@ -92,13 +103,13 @@ describe("wecomOutbound", () => {
     };
 
     // Chat ID (wr/wc) is intentionally NOT supported for Agent outbound.
-    await expect(
-      wecomOutbound.sendText({ cfg, to: "wr123", text: "hello" } as any),
-    ).rejects.toThrow(/不支持向群 chatId 发送/);
+    await expect(sendText({ cfg, to: "wr123", text: "hello" } as any)).rejects.toThrow(
+      /不支持向群 chatId 发送/,
+    );
     expect(api.sendText).not.toHaveBeenCalled();
 
     // Test: User ID (Default)
-    const userResult = await wecomOutbound.sendText({
+    const userResult = await sendText({
       cfg,
       to: "userid123",
       text: "hi",
@@ -117,7 +128,7 @@ describe("wecomOutbound", () => {
     (api.sendText as any).mockClear();
 
     // Test: User ID explicit
-    await wecomOutbound.sendText({ cfg, to: "user:zhangsan", text: "hi" } as any);
+    await sendText({ cfg, to: "user:zhangsan", text: "hi" } as any);
     expect(api.sendText).toHaveBeenCalledWith(
       expect.objectContaining({ toUser: "zhangsan", toParty: undefined }),
     );
@@ -125,7 +136,7 @@ describe("wecomOutbound", () => {
     (api.sendText as any).mockClear();
 
     // Test: Party ID (Numeric)
-    await wecomOutbound.sendText({ cfg, to: "1001", text: "hi party" } as any);
+    await sendText({ cfg, to: "1001", text: "hi party" } as any);
     expect(api.sendText).toHaveBeenCalledWith(
       expect.objectContaining({ toUser: undefined, toParty: "1001" }),
     );
@@ -133,7 +144,7 @@ describe("wecomOutbound", () => {
     (api.sendText as any).mockClear();
 
     // Test: Party ID Explicit
-    await wecomOutbound.sendText({ cfg, to: "party:2002", text: "hi party 2" } as any);
+    await sendText({ cfg, to: "party:2002", text: "hi party 2" } as any);
     expect(api.sendText).toHaveBeenCalledWith(
       expect.objectContaining({ toUser: undefined, toParty: "2002" }),
     );
@@ -141,7 +152,7 @@ describe("wecomOutbound", () => {
     (api.sendText as any).mockClear();
 
     // Test: Tag ID Explicit
-    await wecomOutbound.sendText({ cfg, to: "tag:1", text: "hi tag" } as any);
+    await sendText({ cfg, to: "tag:1", text: "hi tag" } as any);
     expect(api.sendText).toHaveBeenCalledWith(
       expect.objectContaining({ toUser: undefined, toTag: "1" }),
     );
@@ -150,7 +161,7 @@ describe("wecomOutbound", () => {
   });
 
   it("suppresses /new ack for bot sessions but not agent sessions", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendText } = await getOutboundFns();
     const api = await import("./transport/agent-api/core.js");
     const now = vi.spyOn(Date, "now").mockReturnValue(456);
     (api.sendText as any).mockResolvedValue(undefined);
@@ -174,14 +185,14 @@ describe("wecomOutbound", () => {
     const ack = "✅ New session started · model: openai-codex/gpt-5.2";
 
     // Bot 会话（wecom:...）应抑制，避免私信回执
-    const r1 = await wecomOutbound.sendText({ cfg, to: "wecom:userid123", text: ack } as any);
+    const r1 = await sendText({ cfg, to: "wecom:userid123", text: ack } as any);
     expect(api.sendText).not.toHaveBeenCalled();
     expect(r1.messageId).toBe("suppressed-456");
 
     (api.sendText as any).mockClear();
 
     // Agent 会话（wecom-agent:...）允许发送回执
-    await wecomOutbound.sendText({ cfg, to: "wecom-agent:userid123", text: ack } as any);
+    await sendText({ cfg, to: "wecom-agent:userid123", text: ack } as any);
     expect(api.sendText).toHaveBeenCalledWith(
       expect.objectContaining({
         toUser: "userid123",
@@ -193,7 +204,7 @@ describe("wecomOutbound", () => {
   });
 
   it("prefers Bot WS active push for text when ws is the active bot transport", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendText } = await getOutboundFns();
     const runtime = await import("./runtime.js");
     const api = await import("./transport/agent-api/core.js");
     const sendMarkdown = vi.fn().mockResolvedValue(undefined);
@@ -232,7 +243,7 @@ describe("wecomOutbound", () => {
       },
     };
 
-    const result = await wecomOutbound.sendText({
+    const result = await sendText({
       cfg,
       accountId: "acct-ws",
       to: "user:lisi",
@@ -247,7 +258,7 @@ describe("wecomOutbound", () => {
   });
 
   it("does not silently fall back to Agent when Bot WS active push is configured but unavailable", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendText } = await getOutboundFns();
     const api = await import("./transport/agent-api/core.js");
     (api.sendText as any).mockClear();
 
@@ -274,7 +285,7 @@ describe("wecomOutbound", () => {
     };
 
     await expect(
-      wecomOutbound.sendText({
+      sendText({
         cfg,
         to: "user:zhangsan",
         text: "hello",
@@ -284,7 +295,7 @@ describe("wecomOutbound", () => {
   });
 
   it("keeps outbound media on Agent even when Bot WS is active", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendMedia } = await getOutboundFns();
     const runtime = await import("./runtime.js");
     const api = await import("./transport/agent-api/core.js");
     const sendMarkdown = vi.fn().mockResolvedValue(undefined);
@@ -326,7 +337,7 @@ describe("wecomOutbound", () => {
       },
     };
 
-    await wecomOutbound.sendMedia({
+    await sendMedia({
       cfg,
       to: "user:zhangsan",
       text: "caption",
@@ -338,7 +349,7 @@ describe("wecomOutbound", () => {
   });
 
   it("uses account-scoped agent config in matrix mode", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendText } = await getOutboundFns();
     const api = await import("./transport/agent-api/core.js");
     (api.sendText as any).mockResolvedValue(undefined);
     (api.sendText as any).mockClear();
@@ -374,7 +385,7 @@ describe("wecomOutbound", () => {
       },
     };
 
-    await wecomOutbound.sendText({
+    await sendText({
       cfg,
       accountId: "acct-b",
       to: "user:lisi",
@@ -393,7 +404,7 @@ describe("wecomOutbound", () => {
   });
 
   it("rejects outbound when target account has matrix conflict", async () => {
-    const { wecomOutbound } = await import("./outbound.js");
+    const { sendText } = await getOutboundFns();
     const cfg = {
       channels: {
         wecom: {
@@ -426,7 +437,7 @@ describe("wecomOutbound", () => {
     };
 
     await expect(
-      wecomOutbound.sendText({
+      sendText({
         cfg,
         accountId: "acct-b",
         to: "user:lisi",

@@ -47,6 +47,12 @@ describe("CommandRegistry", () => {
     registry.register(makeCmd({ source: "local", priority: 10 }));
     registry.register(makeCmd({ source: "skill", priority: 30 }));
     expect(registry.get("test")?.source).toBe("local");
+    expect(registry.get("skill:test")?.source).toBe("skill");
+  });
+
+  it("qualified lookup resolves the active command when source matches", () => {
+    registry.register(makeCmd({ source: "builtin", priority: 20 }));
+    expect(registry.get("builtin:test")?.source).toBe("builtin");
   });
 
   it("promotes qualified on unregister", () => {
@@ -55,6 +61,7 @@ describe("CommandRegistry", () => {
     registry.unregister("test");
     expect(registry.get("test")).toBeDefined();
     expect(registry.get("test")?.source).toBe("builtin");
+    expect(registry.get("builtin:test")?.source).toBe("builtin");
   });
 
   it("unregisterBySource removes all commands of that source", () => {

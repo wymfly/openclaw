@@ -30,6 +30,7 @@ describe("mapBotWsFrameToInboundEvent", () => {
         cmd: "aibot_msg_callback",
         headers: { req_id: "req-1" },
         body: {
+          aibotid: "bot-1",
           msgid: "msg-1",
           msgtype: "text",
           chattype: "group",
@@ -54,6 +55,7 @@ describe("mapBotWsFrameToInboundEvent", () => {
         cmd: "aibot_msg_callback",
         headers: { req_id: "req-2" },
         body: {
+          aibotid: "bot-1",
           msgid: "msg-2",
           msgtype: "mixed",
           chattype: "group",

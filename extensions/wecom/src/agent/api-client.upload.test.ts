@@ -21,6 +21,8 @@ function createAgent(agentId: number): ResolvedAgentAccount {
   return {
     accountId: `acct-${agentId}`,
     configured: true,
+    callbackConfigured: true,
+    apiConfigured: true,
     corpId: "corp",
     corpSecret: "secret",
     agentId,

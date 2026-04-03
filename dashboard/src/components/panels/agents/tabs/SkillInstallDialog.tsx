@@ -23,7 +23,7 @@ type InstallTab = "options" | "clawhub";
 
 export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillInstallDialogProps) {
   const t = useTranslations("agentDetail");
-  const [tab, setTab] = useState<InstallTab>("clawhub");
+  const [tab, setTab] = useState<InstallTab>("options");
   const [slug, setSlug] = useState("");
   const [installing, setInstalling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +66,8 @@ export function SkillInstallDialog({ open, onOpenChange, onInstalled }: SkillIns
 
   useEffect(() => {
     if (open) {
+      setTab("options");
+      setSlug("");
       setError(null);
       setResult(null);
       void fetchInstallOptions();

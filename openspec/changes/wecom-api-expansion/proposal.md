@@ -29,7 +29,7 @@ WeCom 插件当前仅覆盖消息收发和文档/表格操作，Agent 无法代�
 ## Impact
 
 - **代码范围**：`extensions/wecom/src/capability/` 新增 7 个子目录，`extensions/wecom/index.ts` 追加注册调用
-- **联动修改**：`src/runtime/session-manager.ts`（source-registry 集成）、可能的 bootstrap 初始化时序调整
+- **联动修改**：`transport/bot-ws/sdk-adapter.ts` 写入 source snapshot，calendar/mcp tool 直接消费；无需额外 `session-manager.ts` 集成
 - **依赖**：无新外部依赖，所有模块复用现有 `wecomFetch` + `getAccessToken` 基础设施
 - **API scope**：自建应用身份已具备通讯录/会议/待办/审批/客户联系 API 权限，无需额外授权配置
 - **风险**：P0 上游同步零冲突；P1/P2 自研模块与现有代码隔离，回归风险低

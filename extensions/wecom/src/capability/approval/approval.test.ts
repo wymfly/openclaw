@@ -87,9 +87,7 @@ describe("WecomApprovalClient", () => {
     const result = await client.submit(createAgent(), {
       creator_userid: "zhangsan",
       template_id: "tpl-001",
-      summary_list: [
-        { summary_info: [{ text: "请假3天", lang: "zh_CN" }] },
-      ],
+      summary_list: [{ summary_info: [{ text: "请假3天", lang: "zh_CN" }] }],
     });
 
     expect(result.sp_no).toBe("202604030002");
@@ -144,6 +142,26 @@ describe("WecomApprovalClient", () => {
     expect(result.sp_no_list).toEqual(["sp-filtered-1"]);
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"));
     expect(body.template_id).toBe("tpl-filter-001");
+  });
+
+  it("list tolerates empty approval result sets", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        errcode: 0,
+        errmsg: "ok",
+      }),
+    );
+
+    const client = new WecomApprovalClient();
+    const result = await client.list(createAgent(), {
+      start_time: "1711900800",
+      end_time: "1711987200",
+    });
+
+    expect(result.sp_no_list).toEqual([]);
+    expect(result.next_cursor).toBeUndefined();
   });
 
   it("getDetail returns approval record", async () => {
@@ -203,22 +221,41 @@ describe("WecomApprovalClient", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/cgi-bin/oa/gettemplatedetail?");
   });
 
+  it("surfaces WeCom business errors with errcode and errmsg", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          errcode: 40001,
+          errmsg: "invalid credential",
+        }),
+      ),
+    );
+
+    const client = new WecomApprovalClient();
+    await expect(
+      client.submit(createAgent(), {
+        creator_userid: "zhangsan",
+        template_id: "tpl-bad",
+      }),
+    ).rejects.toThrow(/invalid credential.*40001/i);
+  });
+
   it("retry retries on failure", async () => {
     const { wecomFetch } = await import("../../http.js");
     const fetchMock = vi.mocked(wecomFetch);
     fetchMock
       .mockRejectedValueOnce(new Error("network down"))
       .mockRejectedValueOnce(new Error("temporary timeout"))
-      .mockResolvedValueOnce(
-        jsonResponse({ errcode: 0, errmsg: "ok", sp_no: "sp-retry" }),
-      );
+      .mockResolvedValueOnce(jsonResponse({ errcode: 0, errmsg: "ok", sp_no: "sp-retry" }));
 
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
       handler: TimerHandler,
     ) => {
       if (typeof handler === "function") handler();
       return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
+    }) as unknown as typeof setTimeout);
 
     try {
       const client = new WecomApprovalClient();
@@ -228,6 +265,36 @@ describe("WecomApprovalClient", () => {
       });
 
       expect(result.sp_no).toBe("sp-retry");
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
+
+  it("fails after exhausting all retry attempts", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockRejectedValueOnce(new Error("temporary timeout"))
+      .mockRejectedValueOnce(new Error("still failing"));
+
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      handler: TimerHandler,
+    ) => {
+      if (typeof handler === "function") handler();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as unknown as typeof setTimeout);
+
+    try {
+      const client = new WecomApprovalClient();
+      await expect(
+        client.submit(createAgent(), {
+          creator_userid: "zhangsan",
+          template_id: "tpl-retry",
+        }),
+      ).rejects.toThrow("still failing");
       expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
     } finally {

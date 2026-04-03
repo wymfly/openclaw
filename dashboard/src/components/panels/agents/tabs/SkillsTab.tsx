@@ -44,35 +44,49 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
   const [installOpen, setInstallOpen] = useState(false);
   const [expandedSkillKey, setExpandedSkillKey] = useState<string | null>(null);
   const [updateAllLoading, setUpdateAllLoading] = useState(false);
+  const [updatingKeys, setUpdatingKeys] = useState<Record<string, boolean>>({});
 
-  // skills.status provides config data (apiKey, env) that deck.agents.skills.get doesn't have
+  // skills.status provides config/source data that deck.agents.skills.get doesn't have
   const [skillConfigs, setSkillConfigs] = useState<
-    Map<string, { apiKey?: string; env?: Record<string, string> }>
+    Map<string, { apiKey?: string; env?: Record<string, string>; source?: string; slug?: string }>
   >(new Map());
+
+  const refreshSkillStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/skills");
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as {
+        skills?: Array<{
+          key: string;
+          source?: string;
+          slug?: string;
+          config?: { apiKey?: string; env?: Record<string, string> };
+        }>;
+      };
+      const map = new Map<
+        string,
+        { apiKey?: string; env?: Record<string, string>; source?: string; slug?: string }
+      >();
+      for (const s of data.skills ?? []) {
+        map.set(s.key, {
+          apiKey: s.config?.apiKey,
+          env: s.config?.env,
+          source: s.source,
+          slug: s.slug,
+        });
+      }
+      setSkillConfigs(map);
+    } catch {
+      // best-effort
+    }
+  }, []);
 
   useEffect(() => {
     void fetchSkills(agentId);
-    // Parallel fetch: skills.status for config data
-    void (async () => {
-      try {
-        const res = await fetch("/api/skills");
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          skills?: Array<{
-            key: string;
-            config?: { apiKey?: string; env?: Record<string, string> };
-          }>;
-        };
-        const map = new Map<string, { apiKey?: string; env?: Record<string, string> }>();
-        for (const s of data.skills ?? []) {
-          if (s.config) map.set(s.key, s.config);
-        }
-        setSkillConfigs(map);
-      } catch {
-        // best-effort
-      }
-    })();
-  }, [agentId, fetchSkills]);
+    void refreshSkillStatus();
+  }, [agentId, fetchSkills, refreshSkillStatus]);
 
   // Sync local state when store data arrives
   useEffect(() => {
@@ -122,12 +136,38 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
         setUpdateError((d as { error?: string }).error ?? t("installFailed"));
       }
       await fetchSkills(agentId);
+      await refreshSkillStatus();
     } catch {
       setUpdateError(t("installFailed"));
     } finally {
       setUpdateAllLoading(false);
     }
-  }, [agentId, fetchSkills, t]);
+  }, [agentId, fetchSkills, refreshSkillStatus, t]);
+
+  const handleUpdateClawHub = useCallback(
+    async (entryKey: string, slug: string) => {
+      setUpdatingKeys((prev) => ({ ...prev, [entryKey]: true }));
+      setUpdateError(null);
+      try {
+        const res = await fetch("/api/skills/update-clawhub", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug }),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          setUpdateError((d as { error?: string }).error ?? t("installFailed"));
+        }
+        await fetchSkills(agentId);
+        await refreshSkillStatus();
+      } catch {
+        setUpdateError(t("installFailed"));
+      } finally {
+        setUpdatingKeys((prev) => ({ ...prev, [entryKey]: false }));
+      }
+    },
+    [agentId, fetchSkills, refreshSkillStatus, t],
+  );
 
   return (
     <div className="space-y-4">
@@ -189,56 +229,80 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
         </div>
       </Card>
 
-      {/* Skill list (whitelist mode) */}
-      {isWhitelistMode && (
-        <div className="space-y-1.5">
-          {availableSkills.length === 0 && (
-            <div className="py-4 text-center text-xs text-[var(--muted-foreground)]">
-              {t("noSkillsAvailable")}
-            </div>
-          )}
-          {availableSkills.map((entry) => {
-            const isAssigned = skills.includes(entry.key);
-            const eligibilityKey = entry.eligible ? "ready" : "missing_dep";
-            const eligibility = ELIGIBILITY_STYLES[eligibilityKey] ?? ELIGIBILITY_STYLES.ready;
-            const entryConfig = skillConfigs.get(entry.key);
-            return (
-              <div key={entry.key} className="space-y-1">
-                <div className="flex items-center justify-between w-full">
-                  <button
-                    onClick={() => toggleSkill(entry.key)}
+      <div className="space-y-1.5">
+        {availableSkills.length === 0 && (
+          <div className="py-4 text-center text-xs text-[var(--muted-foreground)]">
+            {t("noSkillsAvailable")}
+          </div>
+        )}
+        {availableSkills.map((entry) => {
+          const isAssigned = skills.includes(entry.key);
+          const eligibilityKey = entry.eligible ? "ready" : "missing_dep";
+          const eligibility = ELIGIBILITY_STYLES[eligibilityKey] ?? ELIGIBILITY_STYLES.ready;
+          const entryConfig = skillConfigs.get(entry.key);
+          const canUpdate =
+            entryConfig?.source === "clawhub" && typeof entryConfig.slug === "string";
+          const isUpdating = updatingKeys[entry.key];
+          return (
+            <div key={entry.key} className="space-y-1">
+              <div className="flex items-center justify-between w-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isWhitelistMode) {
+                      toggleSkill(entry.key);
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 flex-1 min-w-0 px-3 py-2 text-xs transition-colors",
+                    "border border-[var(--border)] bg-[var(--background)]",
+                    isWhitelistMode
+                      ? "rounded-l-lg cursor-pointer hover:border-[var(--primary)]/30"
+                      : "rounded-l-lg",
+                    isAssigned && "ring-1 ring-[var(--primary)]/30 border-[var(--primary)]/20",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
+                  )}
+                >
+                  <div
                     className={cn(
-                      "flex items-center gap-2 flex-1 min-w-0 px-3 py-2 rounded-l-lg text-xs transition-colors cursor-pointer",
-                      "border border-r-0 border-[var(--border)] bg-[var(--background)]",
-                      "hover:border-[var(--primary)]/30",
-                      isAssigned && "ring-1 ring-[var(--primary)]/30 border-[var(--primary)]/20",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
+                      "w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                      isAssigned
+                        ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)]"
+                        : "border-[var(--border)] bg-transparent",
                     )}
                   >
-                    <div
-                      className={cn(
-                        "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-                        isAssigned
-                          ? "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)]"
-                          : "border-[var(--border)] bg-transparent",
+                    {isAssigned && <Check size={10} />}
+                  </div>
+                  <span className="font-mono text-[var(--foreground)] truncate">
+                    {entry.name || entry.key}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={cn("text-[10px] border gap-1 ml-auto shrink-0", eligibility.color)}
+                  >
+                    {eligibility.icon}
+                    {entry.eligible ? t("skillReady") : t("skillMissingDep")}
+                  </Badge>
+                </button>
+                <div className="flex items-stretch">
+                  {canUpdate && entryConfig?.slug ? (
+                    <button
+                      type="button"
+                      className="p-2 border-y border-r border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent)] text-[var(--muted-foreground)] cursor-pointer transition-colors"
+                      onClick={() => void handleUpdateClawHub(entry.key, entryConfig.slug!)}
+                      title={t("updateSkill")}
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <RefreshCw size={12} />
                       )}
-                    >
-                      {isAssigned && <Check size={10} />}
-                    </div>
-                    <span className="font-mono text-[var(--foreground)] truncate">
-                      {entry.name || entry.key}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className={cn("text-[10px] border gap-1 ml-auto shrink-0", eligibility.color)}
-                    >
-                      {eligibility.icon}
-                      {entry.eligible ? t("skillReady") : t("skillMissingDep")}
-                    </Badge>
-                  </button>
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    className="p-2 rounded-r-lg border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent)] text-[var(--muted-foreground)] cursor-pointer transition-colors"
+                    className="p-2 rounded-r-lg border-y border-r border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent)] text-[var(--muted-foreground)] cursor-pointer transition-colors"
                     onClick={() =>
                       setExpandedSkillKey(expandedSkillKey === entry.key ? null : entry.key)
                     }
@@ -247,22 +311,23 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
                     <Settings size={12} />
                   </button>
                 </div>
-                {expandedSkillKey === entry.key && (
-                  <SkillConfigEditor
-                    skillKey={entry.key}
-                    initialApiKey={entryConfig?.apiKey}
-                    initialEnv={entryConfig?.env}
-                    onSaved={() => {
-                      setExpandedSkillKey(null);
-                      void fetchSkills(agentId);
-                    }}
-                  />
-                )}
               </div>
-            );
-          })}
-        </div>
-      )}
+              {expandedSkillKey === entry.key && (
+                <SkillConfigEditor
+                  skillKey={entry.key}
+                  initialApiKey={entryConfig?.apiKey}
+                  initialEnv={entryConfig?.env}
+                  onSaved={() => {
+                    setExpandedSkillKey(null);
+                    void fetchSkills(agentId);
+                    void refreshSkillStatus();
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {/* Save button */}
       <div className="flex justify-end">

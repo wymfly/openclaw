@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useDeckAgentsStore, type AgentFileEntry } from "@/stores/deck-agents";
 import { BootstrapFileEditor } from "./BootstrapFileEditor";
 
@@ -34,17 +35,19 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
   const { agentFilesList, filesListLoading, fetchFilesList } = useDeckAgentsStore();
 
   const [editorVisible, setEditorVisible] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchFilesList(agentId);
   }, [agentId, fetchFilesList]);
 
-  const handleFileClick = useCallback((_file: AgentFileEntry) => {
-    // Just expand the editor section; BootstrapFileEditor handles its own selection
+  const handleFileClick = useCallback((file: AgentFileEntry) => {
+    setSelectedFileName(file.name);
     setEditorVisible(true);
   }, []);
 
-  const handleCreateClick = useCallback(() => {
+  const handleCreateClick = useCallback((file: AgentFileEntry) => {
+    setSelectedFileName(file.name);
     setEditorVisible(true);
   }, []);
 
@@ -82,9 +85,16 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
             tabIndex={0}
             onClick={() => handleFileClick(file)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleFileClick(file);
+              if (e.key === "Enter") {
+                handleFileClick(file);
+              }
             }}
-            className="flex items-center gap-3 w-full px-2 py-1.5 rounded text-left transition-colors cursor-pointer hover:bg-[var(--accent)]"
+            className={cn(
+              "flex items-center gap-3 w-full px-2 py-1.5 rounded text-left transition-colors cursor-pointer hover:bg-[var(--accent)]",
+              editorVisible &&
+                selectedFileName === file.name &&
+                "bg-[var(--accent)] ring-1 ring-[var(--primary)]/20",
+            )}
           >
             <File size={14} className="text-[var(--muted-foreground)] shrink-0" />
             <span className="text-xs font-mono text-[var(--foreground)] flex-1 min-w-0 truncate">
@@ -102,7 +112,7 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
                   className="h-5 px-1.5 text-[10px] cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCreateClick();
+                    handleCreateClick(file);
                   }}
                 >
                   <FilePlus size={10} className="mr-0.5" />
@@ -126,7 +136,11 @@ export function FilesBrowser({ agentId }: FilesBrowserProps) {
       {/* Editor area */}
       {editorVisible && editorFiles.length > 0 && (
         <div className="border-t border-[var(--border-subtle)] pt-2">
-          <BootstrapFileEditor agentId={agentId} files={editorFiles} />
+          <BootstrapFileEditor
+            agentId={agentId}
+            files={editorFiles}
+            selectedFileName={selectedFileName}
+          />
         </div>
       )}
     </div>

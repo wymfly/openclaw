@@ -134,6 +134,21 @@ export class CommandRegistry {
   }
 
   get(name: string): RegisteredCommand | undefined {
+    if (name.includes(":")) {
+      const qualified = this.qualified.get(name);
+      if (qualified) {
+        return qualified;
+      }
+
+      const separator = name.indexOf(":");
+      const source = name.slice(0, separator);
+      const unqualifiedName = name.slice(separator + 1);
+      const active = this.commands.get(unqualifiedName);
+      if (active?.source === source) {
+        return active;
+      }
+      return undefined;
+    }
     return this.commands.get(name);
   }
 

@@ -68,9 +68,7 @@ describe("WecomExternalContactClient", () => {
           corp_name: "ABC公司",
           type: 1,
         },
-        follow_user: [
-          { userid: "lisi", remark: "重要客户", createtime: 1711900800 },
-        ],
+        follow_user: [{ userid: "lisi", remark: "重要客户", createtime: 1711900800 }],
       }),
     );
 
@@ -106,6 +104,22 @@ describe("WecomExternalContactClient", () => {
     expect(result).toEqual(["ext-001", "ext-002", "ext-003"]);
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/cgi-bin/externalcontact/list?");
     expect(fetchMock.mock.calls[0]?.[0]).toContain("userid=lisi");
+  });
+
+  it("list tolerates empty external contact result sets", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        errcode: 0,
+        errmsg: "ok",
+      }),
+    );
+
+    const client = new WecomExternalContactClient();
+    const result = await client.list(createAgent(), "lisi");
+
+    expect(result).toEqual([]);
   });
 
   it("listGroups returns group list", async () => {
@@ -194,6 +208,24 @@ describe("WecomExternalContactClient", () => {
     );
   });
 
+  it("surfaces WeCom business errors with errcode and errmsg", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          errcode: 40001,
+          errmsg: "invalid credential",
+        }),
+      ),
+    );
+
+    const client = new WecomExternalContactClient();
+    await expect(client.get(createAgent(), "ext-bad")).rejects.toThrow(
+      /invalid credential.*40001/i,
+    );
+  });
+
   it("retry retries on failure (GET path)", async () => {
     const { wecomFetch } = await import("../../http.js");
     const fetchMock = vi.mocked(wecomFetch);
@@ -213,7 +245,7 @@ describe("WecomExternalContactClient", () => {
     ) => {
       if (typeof handler === "function") handler();
       return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
+    }) as unknown as typeof setTimeout);
 
     try {
       const client = new WecomExternalContactClient();
@@ -230,22 +262,20 @@ describe("WecomExternalContactClient", () => {
   it("retry retries on failure (POST path)", async () => {
     const { wecomFetch } = await import("../../http.js");
     const fetchMock = vi.mocked(wecomFetch);
-    fetchMock
-      .mockRejectedValueOnce(new Error("connection reset"))
-      .mockResolvedValueOnce(
-        jsonResponse({
-          errcode: 0,
-          errmsg: "ok",
-          group_chat_list: [{ chat_id: "grp-retry", status: 0 }],
-        }),
-      );
+    fetchMock.mockRejectedValueOnce(new Error("connection reset")).mockResolvedValueOnce(
+      jsonResponse({
+        errcode: 0,
+        errmsg: "ok",
+        group_chat_list: [{ chat_id: "grp-retry", status: 0 }],
+      }),
+    );
 
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
       handler: TimerHandler,
     ) => {
       if (typeof handler === "function") handler();
       return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
+    }) as unknown as typeof setTimeout);
 
     try {
       const client = new WecomExternalContactClient();
@@ -254,6 +284,31 @@ describe("WecomExternalContactClient", () => {
       expect(result.group_chat_list).toHaveLength(1);
       expect(fetchMock).toHaveBeenCalledTimes(2);
       expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
+
+  it("fails after exhausting all retry attempts", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockRejectedValueOnce(new Error("temporary timeout"))
+      .mockRejectedValueOnce(new Error("still failing"));
+
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      handler: TimerHandler,
+    ) => {
+      if (typeof handler === "function") handler();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as unknown as typeof setTimeout);
+
+    try {
+      const client = new WecomExternalContactClient();
+      await expect(client.list(createAgent(), "retry-user")).rejects.toThrow("still failing");
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
     } finally {
       setTimeoutSpy.mockRestore();
     }

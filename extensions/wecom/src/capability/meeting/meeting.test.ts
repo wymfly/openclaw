@@ -154,6 +154,44 @@ describe("WecomMeetingClient", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/cgi-bin/meeting/get_user_meetinglist?");
   });
 
+  it("listUserMeetings tolerates empty result sets", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        errcode: 0,
+        errmsg: "ok",
+      }),
+    );
+
+    const client = new WecomMeetingClient();
+    const result = await client.listUserMeetings(createAgent(), "zhangsan");
+
+    expect(result).toEqual([]);
+  });
+
+  it("surfaces WeCom business errors with errcode and errmsg", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          errcode: 40001,
+          errmsg: "invalid credential",
+        }),
+      ),
+    );
+
+    const client = new WecomMeetingClient();
+    await expect(
+      client.create(createAgent(), {
+        title: "Broken Meeting",
+        start_time: "1710000000",
+        end_time: "1710003600",
+      }),
+    ).rejects.toThrow(/invalid credential.*40001/i);
+  });
+
   it("retry retries on failure and succeeds on 3rd attempt", async () => {
     const { wecomFetch } = await import("../../http.js");
     const fetchMock = vi.mocked(wecomFetch);
@@ -176,7 +214,7 @@ describe("WecomMeetingClient", () => {
     ) => {
       if (typeof handler === "function") handler();
       return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
+    }) as unknown as typeof setTimeout);
 
     try {
       const client = new WecomMeetingClient();
@@ -187,6 +225,37 @@ describe("WecomMeetingClient", () => {
       });
 
       expect(result.meeting.meetingid).toBe("m-retry");
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
+
+  it("fails after exhausting all retry attempts", async () => {
+    const { wecomFetch } = await import("../../http.js");
+    const fetchMock = vi.mocked(wecomFetch);
+    fetchMock
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockRejectedValueOnce(new Error("temporary timeout"))
+      .mockRejectedValueOnce(new Error("still failing"));
+
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      handler: TimerHandler,
+    ) => {
+      if (typeof handler === "function") handler();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as unknown as typeof setTimeout);
+
+    try {
+      const client = new WecomMeetingClient();
+      await expect(
+        client.create(createAgent(), {
+          title: "Broken Meeting",
+          start_time: "1710000000",
+          end_time: "1710003600",
+        }),
+      ).rejects.toThrow("still failing");
       expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
     } finally {
