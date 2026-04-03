@@ -49,6 +49,10 @@ That entrypoint should guide the agent to:
 - run `check`
 - block archive when `archiveReady` is false
 
+Workflow wrappers such as `codex-workflow`, `codex-dev-workflow`, `dev-workflow`, and
+`openspec-workflow` may route into this skill, but they should only delegate to
+`openspec-closure-workflow`. They should not reimplement closure rules.
+
 ## Project bootstrap
 
 A new project should only need a thin adapter surface:
@@ -72,6 +76,21 @@ verificationFileName: verification.yaml
 ```
 
 The project does **not** need to vendor the closure parser, checker, or report formatter.
+
+## Bundled lifecycle execution
+
+Both bundles are expected to provide the full closure lifecycle through bundled assets:
+
+1. `init` creates `verification.yaml` from `scenario_id` plus plan `covers.id`
+2. `report` renders human-readable closure state from the project adapter files
+3. `check` emits machine-readable readiness, including `archiveReady`
+
+That contract is the same whether the agent was activated manually or routed through a
+wrapper workflow skill.
+
+The executable path should resolve its runtime from the installed bundle itself, not from
+the target project's dependency tree. That keeps the same installed bundle usable from a
+new project or a second worktree even when that project has not vendored closure code.
 
 ## Bootstrap guidance
 
@@ -101,5 +120,11 @@ Once the bundle is installed in the user environment:
 
 - a new worktree of the same repository should reuse it immediately
 - a new project only needs the thin adapter files and change artifacts
+
+In both cases, the project should still only own:
+
+- `.openspec-closure.yaml`
+- change-local `verification.yaml`
+- plan `covers.id`
 
 That is the key difference from the earlier repo-local companion model, which required each project to carry its own checker scripts.

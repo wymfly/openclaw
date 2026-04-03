@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -15,6 +15,7 @@ const CODEX_SKILL = path.join(
   "SKILL.md",
 );
 const CODEX_WRAPPER = path.join(CODEX_PLUGIN_ROOT, "scripts", "openspec-closure.ts");
+const CODEX_LAUNCHER = path.join(CODEX_PLUGIN_ROOT, "scripts", "run-openspec-closure.mjs");
 const CLAUDE_PLUGIN_ROOT = path.join(process.cwd(), "plugins", "openspec-closure-claude");
 const CLAUDE_MANIFEST = path.join(CLAUDE_PLUGIN_ROOT, ".claude-plugin", "plugin.json");
 const CLAUDE_SKILL = path.join(
@@ -24,6 +25,7 @@ const CLAUDE_SKILL = path.join(
   "SKILL.md",
 );
 const CLAUDE_WRAPPER = path.join(CLAUDE_PLUGIN_ROOT, "scripts", "openspec-closure.ts");
+const CLAUDE_LAUNCHER = path.join(CLAUDE_PLUGIN_ROOT, "scripts", "run-openspec-closure.mjs");
 const MINIMAL_PROJECT_ROOT = path.join(
   process.cwd(),
   "test",
@@ -34,9 +36,9 @@ const MINIMAL_PROJECT_ROOT = path.join(
 const execFileAsync = promisify(execFile);
 const tempDirs: string[] = [];
 
-async function runPluginWrapper(wrapperPath: string, args: string[], cwd = process.cwd()) {
+async function runPluginWrapper(executablePath: string, args: string[], cwd = process.cwd()) {
   try {
-    const result = await execFileAsync(process.execPath, ["--import", "tsx", wrapperPath, ...args], {
+    const result = await execFileAsync(process.execPath, [executablePath, ...args], {
       cwd,
     });
     return {
@@ -100,6 +102,107 @@ covers.id: traceability.new-id
   return rootDir;
 }
 
+async function createExternalProjectWithAdapter(options?: {
+  includeVerification?: boolean;
+}): Promise<{ rootDir: string; verificationPath: string }> {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), "openspec-closure-plugin-ready-"));
+  tempDirs.push(rootDir);
+  const configPath = path.join(rootDir, ".openspec-closure.yaml");
+  const specPath = path.join(
+    rootDir,
+    "openspec",
+    "changes",
+    "demo-change",
+    "specs",
+    "scenario-traceability",
+    "spec.md",
+  );
+  const planPath = path.join(rootDir, "docs", "plans", "demo-plan.md");
+  const verificationPath = path.join(
+    rootDir,
+    "openspec",
+    "changes",
+    "demo-change",
+    "verification.yaml",
+  );
+  await mkdir(path.dirname(specPath), { recursive: true });
+  await mkdir(path.dirname(planPath), { recursive: true });
+  await writeFile(
+    configPath,
+    `planGlobs:
+  - docs/plans/*.md
+blockingStatuses:
+  - pending
+  - blocked
+  - deferred
+  - spec-fix-required
+verificationFileName: verification.yaml
+`,
+    "utf8",
+  );
+  await writeFile(
+    specPath,
+    `## ADDED Requirements
+
+### Requirement: Stable IDs exist
+
+#### Scenario: New scenario gets an id
+
+- **scenario_id**: \`traceability.new-id\`
+- **WHEN** a new scenario is added
+- **THEN** it SHALL have a stable id
+`,
+    "utf8",
+  );
+  await writeFile(
+    planPath,
+    `# Demo Plan
+
+### Task 1: Cover new-id scenario
+
+covers.id: traceability.new-id
+`,
+    "utf8",
+  );
+  if (options?.includeVerification !== false) {
+    await writeFile(
+      verificationPath,
+      `changeName: demo-change
+generatedAt: "2026-04-04T00:00:00.000Z"
+scenarios:
+  - scenarioId: traceability.new-id
+    ownerTask: Cover new-id scenario
+    verificationCommand: pnpm test -- test/scripts/openspec-closure-plugin.test.ts
+    evidence:
+      - openspec/changes/demo-change/verification.yaml
+    status: verified
+`,
+      "utf8",
+    );
+  }
+  return {
+    rootDir,
+    verificationPath,
+  };
+}
+
+async function cloneAsSiblingWorktree(projectRoot: string): Promise<string> {
+  const parentDir = await mkdtemp(path.join(os.tmpdir(), "openspec-closure-plugin-worktree-"));
+  tempDirs.push(parentDir);
+  const cloneRoot = path.join(parentDir, "worktree-b");
+  await cp(projectRoot, cloneRoot, { recursive: true });
+  return cloneRoot;
+}
+
+async function markVerificationAsVerified(verificationPath: string): Promise<void> {
+  const artifactSource = await readFile(verificationPath, "utf8");
+  await writeFile(
+    verificationPath,
+    artifactSource.replace("status: pending", "status: verified"),
+    "utf8",
+  );
+}
+
 describe("openspec closure plugin distribution", () => {
   afterEach(async () => {
     while (tempDirs.length > 0) {
@@ -128,6 +231,7 @@ describe("openspec closure plugin distribution", () => {
   it("codex bundle routes closure execution through plugin-local wrapper assets", async () => {
     const skillSource = await readFile(CODEX_SKILL, "utf8");
     const wrapperSource = await readFile(CODEX_WRAPPER, "utf8");
+    const launcherSource = await readFile(CODEX_LAUNCHER, "utf8");
 
     expect(skillSource).toContain("openspec-closure-workflow");
     expect(skillSource).toContain("init");
@@ -138,6 +242,8 @@ describe("openspec closure plugin distribution", () => {
     expect(wrapperSource).toContain("openspec-closure-core");
     expect(wrapperSource).not.toContain("scripts/lib/openspec-closure");
     expect(wrapperSource).not.toContain("../scripts/openspec-closure.ts");
+    expect(launcherSource).toContain("require.resolve(\"tsx\")");
+    expect(launcherSource).toContain("openspec-closure.ts");
   });
 
   it("declares a package script for the codex bundle smoke test", async () => {
@@ -165,6 +271,7 @@ describe("openspec closure plugin distribution", () => {
   it("claude bundle exposes the same workflow lifecycle through bundled assets", async () => {
     const skillSource = await readFile(CLAUDE_SKILL, "utf8");
     const wrapperSource = await readFile(CLAUDE_WRAPPER, "utf8");
+    const launcherSource = await readFile(CLAUDE_LAUNCHER, "utf8");
 
     expect(skillSource).toContain("openspec-closure-workflow");
     expect(skillSource).toContain("init");
@@ -175,16 +282,18 @@ describe("openspec closure plugin distribution", () => {
     expect(wrapperSource).toContain("openspec-closure-core");
     expect(wrapperSource).not.toContain("scripts/lib/openspec-closure");
     expect(wrapperSource).not.toContain("../scripts/openspec-closure.ts");
+    expect(launcherSource).toContain("require.resolve(\"tsx\")");
+    expect(launcherSource).toContain("openspec-closure.ts");
   });
 
   it("minimal project uses the codex bundle wrapper without repo-local checker sources", async () => {
     const reportResult = await runPluginWrapper(
-      CODEX_WRAPPER,
+      CODEX_LAUNCHER,
       ["report", "--change", "demo-change", "--root", MINIMAL_PROJECT_ROOT],
       MINIMAL_PROJECT_ROOT,
     );
     const checkResult = await runPluginWrapper(
-      CODEX_WRAPPER,
+      CODEX_LAUNCHER,
       ["check", "--change", "demo-change", "--root", MINIMAL_PROJECT_ROOT, "--format", "json"],
       MINIMAL_PROJECT_ROOT,
     );
@@ -203,7 +312,7 @@ describe("openspec closure plugin distribution", () => {
   it("missing adapter emits bootstrap guidance instead of a raw ENOENT", async () => {
     const projectRoot = await createProjectWithoutAdapter();
     const result = await runPluginWrapper(
-      CODEX_WRAPPER,
+      CODEX_LAUNCHER,
       ["report", "--change", "demo-change", "--root", projectRoot],
       process.cwd(),
     );
@@ -213,5 +322,121 @@ describe("openspec closure plugin distribution", () => {
     expect(result.stderr).toContain("covers.id");
     expect(result.stderr).toContain("verification.yaml");
     expect(result.stderr).not.toContain("ENOENT");
+  });
+
+  it("codex bundle runs init report and check through bundled assets", async () => {
+    const { rootDir, verificationPath } = await createExternalProjectWithAdapter({
+      includeVerification: false,
+    });
+    const initResult = await runPluginWrapper(
+      CODEX_LAUNCHER,
+      ["init", "--change", "demo-change", "--root", rootDir],
+      rootDir,
+    );
+
+    expect(initResult.code).toBe(0);
+    expect(initResult.stdout.trim()).toBe(verificationPath);
+    expect(await readFile(verificationPath, "utf8")).toContain("status: pending");
+    await markVerificationAsVerified(verificationPath);
+
+    const reportResult = await runPluginWrapper(
+      CODEX_LAUNCHER,
+      ["report", "--change", "demo-change", "--root", rootDir],
+      rootDir,
+    );
+    const checkResult = await runPluginWrapper(
+      CODEX_LAUNCHER,
+      ["check", "--change", "demo-change", "--root", rootDir, "--format", "json"],
+      rootDir,
+    );
+
+    expect(reportResult.code).toBe(0);
+    expect(reportResult.stdout).toContain("Change: demo-change");
+    expect(reportResult.stdout).toContain("Archive Ready: yes");
+    expect(checkResult.code).toBe(0);
+    expect(JSON.parse(checkResult.stdout)).toMatchObject({
+      archiveReady: true,
+      changeName: "demo-change",
+      gapCount: 0,
+      scenarioCount: 1,
+    });
+  });
+
+  it("claude bundle runs init report and check through bundled assets", async () => {
+    const { rootDir, verificationPath } = await createExternalProjectWithAdapter({
+      includeVerification: false,
+    });
+    const initResult = await runPluginWrapper(
+      CLAUDE_LAUNCHER,
+      ["init", "--change", "demo-change", "--root", rootDir],
+      rootDir,
+    );
+
+    expect(initResult.code).toBe(0);
+    expect(initResult.stdout.trim()).toBe(verificationPath);
+    expect(await readFile(verificationPath, "utf8")).toContain("status: pending");
+    await markVerificationAsVerified(verificationPath);
+
+    const reportResult = await runPluginWrapper(
+      CLAUDE_LAUNCHER,
+      ["report", "--change", "demo-change", "--root", rootDir],
+      rootDir,
+    );
+    const checkResult = await runPluginWrapper(
+      CLAUDE_LAUNCHER,
+      ["check", "--change", "demo-change", "--root", rootDir, "--format", "json"],
+      rootDir,
+    );
+
+    expect(reportResult.code).toBe(0);
+    expect(reportResult.stdout).toContain("Change: demo-change");
+    expect(reportResult.stdout).toContain("Archive Ready: yes");
+    expect(checkResult.code).toBe(0);
+    expect(JSON.parse(checkResult.stdout)).toMatchObject({
+      archiveReady: true,
+      changeName: "demo-change",
+      gapCount: 0,
+      scenarioCount: 1,
+    });
+  });
+
+  it("external thin-adapter projects can get machine-readable archive readiness", async () => {
+    const { rootDir: projectRoot } = await createExternalProjectWithAdapter();
+    const result = await runPluginWrapper(
+      CODEX_LAUNCHER,
+      ["check", "--change", "demo-change", "--root", projectRoot, "--format", "json"],
+      process.cwd(),
+    );
+
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      archiveReady: true,
+      changeName: "demo-change",
+      gapCount: 0,
+      scenarioCount: 1,
+    });
+  });
+
+  it("same installed bundle works in a second worktree without repo-local checker scripts", async () => {
+    const { rootDir: projectRoot } = await createExternalProjectWithAdapter();
+    const secondWorktreeRoot = await cloneAsSiblingWorktree(projectRoot);
+    const result = await runPluginWrapper(
+      CODEX_LAUNCHER,
+      ["check", "--change", "demo-change", "--root", secondWorktreeRoot, "--format", "json"],
+      secondWorktreeRoot,
+    );
+
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      archiveReady: true,
+      changeName: "demo-change",
+      gapCount: 0,
+      scenarioCount: 1,
+    });
+    await expect(
+      readFile(path.join(secondWorktreeRoot, "scripts", "openspec-closure.ts"), "utf8"),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 });
