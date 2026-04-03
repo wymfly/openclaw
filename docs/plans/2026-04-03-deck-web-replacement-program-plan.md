@@ -116,6 +116,7 @@ Deck 的目标不是复刻官方 Web UI，而是构建一个以 **Gateway 能力
 - 至少能支持多个模块共用同一 transport / replay / projection 模型
 
 Phase 1 gate 增量验证：
+
 - Gateway 方法族清单已建立
 - typed client 可被至少 2 个模块共用
 - 共享 list/form infra 有使用示例
@@ -135,6 +136,7 @@ Phase 1 gate 增量验证：
 - 历史态 / 实时态 / 刷新 / 重连的一致性有清晰模型与验证
 
 Phase 2 gate 增量验证：
+
 - 每个 runtime-core 模块至少一条 representative workflow validation
 - closure checklist 9 项中至少 7 项达标
 
