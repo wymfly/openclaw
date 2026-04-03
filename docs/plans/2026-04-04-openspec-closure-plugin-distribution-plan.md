@@ -125,7 +125,7 @@ scripts/committer "[enhanced] refactor(openspec): extract closure shared core pa
 pnpm test -- test/scripts/openspec-closure-plugin.test.ts -t "codex bundle"
 ```
 
-- [ ] **Step 2.5: Commit**
+- [x] **Step 2.5: Commit**
 
 ```bash
 scripts/committer "[enhanced] feat(codex-plugin): add openspec closure bundle" \
@@ -148,13 +148,13 @@ scripts/committer "[enhanced] feat(codex-plugin): add openspec closure bundle" \
 **covers:** `closure-workflow-activation/spec.md > ADDED > Manual skill activation SHALL remain a stable cross-product entrypoint > "Manual activation runs closure lifecycle through bundled assets"`
 **covers.id:** `closure-workflow-activation.manual-skill-entrypoint`
 
-- [ ] **Step 3.1: 搭建 Claude companion bundle**
+- [x] **Step 3.1: 搭建 Claude companion bundle**
       用 Claude 支持的插件或 skill bundle 结构建立 `plugins/openspec-closure-claude/`，目标是让安装后不依赖任何单独项目里的 closure core。
 
-- [ ] **Step 3.2: 保持 skill 语义与 Codex 对齐**
+- [x] **Step 3.2: 保持 skill 语义与 Codex 对齐**
       Claude 侧也暴露 `openspec-closure-workflow`，并保持相同的 lifecycle 词汇：`init`、`report`、`check`。
 
-- [ ] **Step 3.3: 跑 Claude bundle parity 测试**
+- [x] **Step 3.3: 跑 Claude bundle parity 测试**
 
 ```bash
 pnpm test -- test/scripts/openspec-closure-plugin.test.ts -t "claude bundle"
