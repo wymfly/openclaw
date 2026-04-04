@@ -833,7 +833,9 @@ describe("reloadFullContent", () => {
             {
               role: "assistant",
               timestamp: 10,
-              content: [{ type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } }],
+              content: [
+                { type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } },
+              ],
             },
             {
               role: "user",

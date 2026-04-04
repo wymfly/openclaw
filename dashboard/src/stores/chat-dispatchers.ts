@@ -23,7 +23,6 @@ import type {
   ChatEventPayload as GatewayChatEventPayload,
   SessionMessageEventPayload,
   SessionToolEventPayload,
-  SessionsChangedEventPayload,
   TranscriptMessage,
 } from "@/types/gateway-protocol.generated";
 import type {
@@ -51,19 +50,20 @@ export type ChatEventPayload = Omit<GatewayChatEventPayload, "message"> & {
     timestamp?: number;
   };
 };
-export type AgentEventPayload = (Omit<GatewayAgentEventPayload, "seq" | "ts"> & {
-  data: Record<string, unknown>;
-  seq?: number;
-  ts?: number;
-  sessionKey?: string;
-}) |
-  (Omit<SessionToolEventPayload, "runId" | "seq" | "ts"> & {
-    runId?: string;
-    seq?: number;
-    ts?: number;
-    data: SessionToolEventPayload["data"] & Record<string, unknown>;
-    sessionKey?: string;
-  });
+export type AgentEventPayload =
+  | (Omit<GatewayAgentEventPayload, "seq" | "ts"> & {
+      data: Record<string, unknown>;
+      seq?: number;
+      ts?: number;
+      sessionKey?: string;
+    })
+  | (Omit<SessionToolEventPayload, "runId" | "seq" | "ts"> & {
+      runId?: string;
+      seq?: number;
+      ts?: number;
+      data: SessionToolEventPayload["data"] & Record<string, unknown>;
+      sessionKey?: string;
+    });
 export type SessionMessagePayload = Omit<SessionMessageEventPayload, "message"> & {
   message?: Record<string, unknown>;
   [key: string]: unknown;
@@ -74,7 +74,7 @@ export type SessionStatePayload = {
   phase?: string;
   reason?: string;
   runId?: string;
-  status?: SessionMessageEventPayload["status"] | SessionsChangedEventPayload["status"] | "idle";
+  status?: SessionMessageEventPayload["status"] | "idle";
   startedAt?: number;
   endedAt?: number;
   runtimeMs?: number;
@@ -665,7 +665,9 @@ export async function reloadFullContent(
       }
 
       const historyMessages = normalizeTranscriptMessages(sessionKey, data.messages);
-      const assistantMsg = [...historyMessages].toReversed().find((message) => message.role === "assistant");
+      const assistantMsg = [...historyMessages]
+        .toReversed()
+        .find((message) => message.role === "assistant");
       if (!assistantMsg) {
         return;
       }

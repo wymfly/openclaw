@@ -1,8 +1,11 @@
 # closure-tooling-ownership Specification
 
 ## Purpose
+
 TBD - created by archiving change openspec-closure-repo-extraction. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Closure tooling source-of-truth SHALL live in a sibling repository
 
 Generic closure tooling SHALL have a single authoritative repository outside the OpenClaw product repo.
@@ -27,4 +30,3 @@ Generic closure tooling SHALL have a single authoritative repository outside the
 - **WHEN** OpenClaw still contains an active generic closure tooling change such as `openspec-closure-companion`
 - **THEN** that active generic change and its working plan artifacts SHALL move to the sibling repository
 - **AND** OpenClaw SHALL NOT continue carrying it as an active product-repo change
-

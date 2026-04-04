@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { normalizeTranscriptMessages } from "@/lib/transcript-adapter";
-import type { SessionsChangedEventPayload } from "@/types/gateway-protocol.generated";
 import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
+import type { SessionsChangedEventPayload } from "@/types/gateway-protocol.generated";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,7 +56,10 @@ function blockToText(block: ContentBlock): string {
     if (typeof block.content === "string") {
       return block.content;
     }
-    return block.content.map((entry) => blockToText(entry)).filter(Boolean).join("\n");
+    return block.content
+      .map((entry) => blockToText(entry))
+      .filter(Boolean)
+      .join("\n");
   }
   if (block.type === "image") {
     return block.fileName ?? "image";
@@ -68,7 +71,10 @@ function blockToText(block: ContentBlock): string {
 }
 
 export function historyMessageToPlainText(message: HistoryMessage): string {
-  return message.content.map((block) => blockToText(block)).filter(Boolean).join("\n");
+  return message.content
+    .map((block) => blockToText(block))
+    .filter(Boolean)
+    .join("\n");
 }
 
 /** Derive session kind from the key naming convention. */
@@ -271,7 +277,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
 
       // Build patch from typed payload fields
       const patch: Partial<SessionEntry> = {
-        updatedAt: (payload.ts as number) ?? Date.now(),
+        updatedAt: payload.ts ?? Date.now(),
         ...(typeof payload.status === "string" ? { status: payload.status } : {}),
         ...(typeof payload.model === "string" ? { model: payload.model } : {}),
         ...(typeof payload.totalTokens === "number" ? { totalTokens: payload.totalTokens } : {}),
@@ -284,9 +290,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
         ...(typeof payload.parentSessionKey === "string"
           ? { parentSessionKey: payload.parentSessionKey }
           : {}),
-        ...(Array.isArray(payload.childSessions)
-          ? { childSessions: payload.childSessions as string[] }
-          : {}),
+        ...(Array.isArray(payload.childSessions) ? { childSessions: payload.childSessions } : {}),
         ...(typeof payload.subagentRole === "string"
           ? { subagentRole: payload.subagentRole as SessionEntry["subagentRole"] }
           : {}),

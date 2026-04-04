@@ -119,14 +119,14 @@ Deck-facing surface 的要求：
 
 输入形态到 canonical block 的映射需要显式记录：
 
-| 输入形态 | Canonical 输出 | 说明 |
-| --- | --- | --- |
-| legacy `string` message content | `text` | 只在 Gateway 输出边界转换，不改底层存储 |
-| `input_text` / `output_text` | `text` | Provider-specific text alias 不外泄到 Deck |
-| `thinking` / `reasoning` / `analysis` | `thinking` | Deck-facing contract 只保留一个 reasoning-family block |
-| `toolCall` | `tool_use` | 兼容历史 transcript 和不同 provider 命名 |
-| `toolResult` | `tool_result` | 保留结构化 `content` / `result` |
-| canonical `image` / `file` | `image` / `file` | 媒体类型与元数据原样保真 |
+| 输入形态                              | Canonical 输出   | 说明                                                   |
+| ------------------------------------- | ---------------- | ------------------------------------------------------ |
+| legacy `string` message content       | `text`           | 只在 Gateway 输出边界转换，不改底层存储                |
+| `input_text` / `output_text`          | `text`           | Provider-specific text alias 不外泄到 Deck             |
+| `thinking` / `reasoning` / `analysis` | `thinking`       | Deck-facing contract 只保留一个 reasoning-family block |
+| `toolCall`                            | `tool_use`       | 兼容历史 transcript 和不同 provider 命名               |
+| `toolResult`                          | `tool_result`    | 保留结构化 `content` / `result`                        |
+| canonical `image` / `file`            | `image` / `file` | 媒体类型与元数据原样保真                               |
 
 ### 2. Event Contract 进入 Deck Codegen
 

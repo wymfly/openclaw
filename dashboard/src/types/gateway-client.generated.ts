@@ -177,6 +177,14 @@ export const GENERATED_EVENT_NAMES: ReadonlySet<string> = new Set([
   "voicewake.changed",
 ]);
 
+export const GENERATED_TYPED_EVENT_NAMES: ReadonlySet<string> = new Set([
+  "agent",
+  "chat",
+  "session.message",
+  "session.tool",
+  "sessions.changed",
+]);
+
 export interface GatewayClient {
   chat: {
     history(

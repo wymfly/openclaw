@@ -1,4 +1,8 @@
-import { historyMessageToPlainText, type SessionEntry, type HistoryMessage } from "@/stores/sessions";
+import {
+  historyMessageToPlainText,
+  type SessionEntry,
+  type HistoryMessage,
+} from "@/stores/sessions";
 
 /**
  * Export session data as formatted JSON string.

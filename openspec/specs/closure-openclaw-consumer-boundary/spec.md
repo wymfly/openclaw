@@ -1,8 +1,11 @@
 # closure-openclaw-consumer-boundary Specification
 
 ## Purpose
+
 TBD - created by archiving change openspec-closure-repo-extraction. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: OpenClaw SHALL retain only consumer-facing closure assets
 
 After migration, OpenClaw SHALL behave as a consumer of external closure tooling rather than as the tooling's source repository.
@@ -27,4 +30,3 @@ After migration, OpenClaw SHALL behave as a consumer of external closure tooling
 - **WHEN** the tooling source has moved out of OpenClaw
 - **THEN** the sibling repository's closure tooling SHALL still be able to run against OpenClaw as an external consumer repository
 - **AND** OpenClaw SHALL NOT need to restore the migrated tooling sources in order to participate in the closure workflow
-

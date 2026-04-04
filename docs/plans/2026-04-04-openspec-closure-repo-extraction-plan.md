@@ -12,24 +12,25 @@
 
 ## File Structure
 
-| Path | Responsibility |
-| --- | --- |
-| `../openspec-closure/` | 新的 sibling repo 根目录，承接 closure tooling source-of-truth |
-| `../openspec-closure/packages/openspec-closure-core/` | shared closure core |
-| `../openspec-closure/plugins/openspec-closure/` | Codex plugin bundle |
-| `../openspec-closure/plugins/openspec-closure-claude/` | Claude bundle |
-| `../openspec-closure/docs/` | generic closure companion/plugin docs |
-| `../openspec-closure/test/` | generic closure tests 与 fixtures |
-| `../openspec-closure/openspec/` | tooling repo 的 generic OpenSpec artifacts |
-| `.openspec-closure.yaml` | OpenClaw consumer config，保留 |
-| `openspec/changes/**/verification.yaml` | OpenClaw 自己的 scenario closure evidence，保留 |
-| `openspec/changes/archive/2026-04-03-openspec-closure-plugin-distribution/` | OpenClaw 侧真实迁移/验证 provenance，保留 |
+| Path                                                                        | Responsibility                                                 |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `../openspec-closure/`                                                      | 新的 sibling repo 根目录，承接 closure tooling source-of-truth |
+| `../openspec-closure/packages/openspec-closure-core/`                       | shared closure core                                            |
+| `../openspec-closure/plugins/openspec-closure/`                             | Codex plugin bundle                                            |
+| `../openspec-closure/plugins/openspec-closure-claude/`                      | Claude bundle                                                  |
+| `../openspec-closure/docs/`                                                 | generic closure companion/plugin docs                          |
+| `../openspec-closure/test/`                                                 | generic closure tests 与 fixtures                              |
+| `../openspec-closure/openspec/`                                             | tooling repo 的 generic OpenSpec artifacts                     |
+| `.openspec-closure.yaml`                                                    | OpenClaw consumer config，保留                                 |
+| `openspec/changes/**/verification.yaml`                                     | OpenClaw 自己的 scenario closure evidence，保留                |
+| `openspec/changes/archive/2026-04-03-openspec-closure-plugin-distribution/` | OpenClaw 侧真实迁移/验证 provenance，保留                      |
 
 ## Chunk 1: Ownership and Bootstrap
 
 ### Task 1: Freeze ownership and retained-evidence inventory
 
 **Files:**
+
 - Modify: `openspec/changes/openspec-closure-repo-extraction/design.md`
 - Modify: `docs/plans/2026-04-04-openspec-closure-repo-extraction-plan.md`
 - Create: `../openspec-closure/README.md`
@@ -53,6 +54,7 @@
 ### Task 2: Bootstrap the sibling tooling repository
 
 **Files:**
+
 - Create: `../openspec-closure/package.json`
 - Create: `../openspec-closure/pnpm-workspace.yaml`
 - Create: `../openspec-closure/packages/openspec-closure-core/**`
@@ -85,6 +87,7 @@
 ### Task 3: Validate OpenClaw as an external consumer
 
 **Files:**
+
 - Modify: `../openspec-closure/test/**`
 - Modify: `../openspec-closure/docs/**`
 - Modify: `.openspec-closure.yaml`
@@ -105,6 +108,7 @@
 ### Task 4: Clean OpenClaw to a consumer-only boundary
 
 **Files:**
+
 - Delete: `packages/openspec-closure-core/**`
 - Delete: `plugins/openspec-closure/**`
 - Delete: `plugins/openspec-closure-claude/**`
@@ -150,6 +154,7 @@
 ### Task 5: Final cross-repo verification and handoff
 
 **Files:**
+
 - Modify: `openspec/changes/openspec-closure-repo-extraction/verification.yaml`
 - Modify: `openspec/changes/openspec-closure-repo-extraction/tasks.md`
 - Modify: `docs/plans/2026-04-04-openspec-closure-repo-extraction-plan.md`
@@ -172,15 +177,15 @@
 
 ## Requirement Coverage Matrix
 
-| Scenario ID | Task |
-| --- | --- |
-| `closure-tooling-ownership.external-source-of-truth` | T1, T2 |
-| `closure-tooling-ownership.remove-generic-main-specs` | T4 |
-| `closure-tooling-ownership.move-active-generic-change` | T2, T4 |
-| `closure-openclaw-consumer-boundary.keep-consumer-adapter` | T4 |
-| `closure-openclaw-consumer-boundary.remove-tooling-surfaces` | T4 |
-| `closure-openclaw-consumer-boundary.external-consumer-validation` | T3, T5 |
-| `closure-migration-retained-evidence.keep-archived-verification` | T1, T5 |
-| `closure-migration-retained-evidence.provenance-not-product-capability` | T5 |
+| Scenario ID                                                             | Task   |
+| ----------------------------------------------------------------------- | ------ |
+| `closure-tooling-ownership.external-source-of-truth`                    | T1, T2 |
+| `closure-tooling-ownership.remove-generic-main-specs`                   | T4     |
+| `closure-tooling-ownership.move-active-generic-change`                  | T2, T4 |
+| `closure-openclaw-consumer-boundary.keep-consumer-adapter`              | T4     |
+| `closure-openclaw-consumer-boundary.remove-tooling-surfaces`            | T4     |
+| `closure-openclaw-consumer-boundary.external-consumer-validation`       | T3, T5 |
+| `closure-migration-retained-evidence.keep-archived-verification`        | T1, T5 |
+| `closure-migration-retained-evidence.provenance-not-product-capability` | T5     |
 
 Plan complete and saved to `docs/plans/2026-04-04-openspec-closure-repo-extraction-plan.md`. Ready to execute?

@@ -114,7 +114,6 @@ import { startGatewaySidecars } from "./server-startup.js";
 import { startGatewayTailscaleExposure } from "./server-tailscale.js";
 import { createWizardSessionTracker } from "./server-wizard-sessions.js";
 import { attachGatewayWsHandlers } from "./server-ws-runtime.js";
-import { canonicalizeTranscriptMessage } from "./transcript-canonical.js";
 import {
   getHealthCache,
   getHealthVersion,
@@ -138,6 +137,7 @@ import {
   mergeGatewayTailscaleConfig,
 } from "./startup-auth.js";
 import { maybeSeedControlUiAllowedOriginsAtStartup } from "./startup-control-ui-origins.js";
+import { canonicalizeTranscriptMessage } from "./transcript-canonical.js";
 
 export { __resetModelCatalogCacheForTest } from "./server-model-catalog.js";
 

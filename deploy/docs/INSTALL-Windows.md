@@ -33,6 +33,7 @@ bash install.sh bare-metal
 ```
 
 安装脚本会自动：
+
 - 安装 Node.js 22+（如缺失，通过 winget 或提示安装离线 MSI）
 - 安装 pnpm 和 PM2
 - 从 `.env.example` 创建 `.env`（API Key 和 Token 已预填）
@@ -53,11 +54,11 @@ bash status.sh
 
 双击对应的 `.bat` 文件，或在 Git Bash 中运行：
 
-| 操作 | 双击 | Git Bash |
-|------|------|----------|
+| 操作     | 双击         | Git Bash         |
+| -------- | ------------ | ---------------- |
 | 查看状态 | `status.bat` | `bash status.sh` |
-| 启动 | `start.bat` | `bash start.sh` |
-| 停止 | `stop.bat` | `bash stop.sh` |
+| 启动     | `start.bat`  | `bash start.sh`  |
+| 停止     | `stop.bat`   | `bash stop.sh`   |
 
 底层 PM2 命令（高级用户）：
 

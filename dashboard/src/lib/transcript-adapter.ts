@@ -1,8 +1,8 @@
+import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
 import type {
   SessionMessageEventPayload,
   TranscriptMessage,
 } from "@/types/gateway-protocol.generated";
-import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
 
 type TranscriptRecord = TranscriptMessage | Record<string, unknown>;
 type SessionMessagePayloadRecord =
@@ -53,10 +53,12 @@ function summarizeUnknownValue(value: unknown): unknown {
   if (isRecord(value)) {
     return "[object]";
   }
-  return String(value);
+  return JSON.stringify(value) ?? "unknown";
 }
 
-function normalizeUnknownBlock(raw: Record<string, unknown>): Extract<ContentBlock, { type: "unknown" }> {
+function normalizeUnknownBlock(
+  raw: Record<string, unknown>,
+): Extract<ContentBlock, { type: "unknown" }> {
   const summary = Object.fromEntries(
     Object.entries(raw).map(([key, value]) => [key, summarizeUnknownValue(value)]),
   );
@@ -67,13 +69,11 @@ function normalizeUnknownBlock(raw: Record<string, unknown>): Extract<ContentBlo
   };
 }
 
-function normalizeTextBlock(raw: Record<string, unknown>): Extract<ContentBlock, { type: "text" }> | null {
+function normalizeTextBlock(
+  raw: Record<string, unknown>,
+): Extract<ContentBlock, { type: "text" }> | null {
   const text =
-    typeof raw.text === "string"
-      ? raw.text
-      : typeof raw.content === "string"
-        ? raw.content
-        : null;
+    typeof raw.text === "string" ? raw.text : typeof raw.content === "string" ? raw.content : null;
   return text == null ? null : { type: "text", text };
 }
 
@@ -115,7 +115,7 @@ export function normalizeTranscriptToolResultContent(value: unknown): string | C
   if (value == null) {
     return "";
   }
-  return String(value);
+  return JSON.stringify(value) ?? "unknown";
 }
 
 export function normalizeTranscriptBlock(raw: Record<string, unknown>): ContentBlock {
@@ -249,8 +249,7 @@ function resolveMessageId(
   if (typeof messageRecord.id === "string" && messageRecord.id) {
     return messageRecord.id;
   }
-  const metaRecord =
-    isRecord(rawRecord.__openclaw) ? (rawRecord.__openclaw as Record<string, unknown>) : {};
+  const metaRecord = isRecord(rawRecord.__openclaw) ? rawRecord.__openclaw : {};
   if (typeof metaRecord.id === "string" && metaRecord.id) {
     return metaRecord.id;
   }
@@ -267,7 +266,8 @@ export function normalizeTranscriptMessage(
     messageSeq?: number;
   },
 ): ChatMessage {
-  const timestamp = typeof messageRecord.timestamp === "number" ? messageRecord.timestamp : Date.now();
+  const timestamp =
+    typeof messageRecord.timestamp === "number" ? messageRecord.timestamp : Date.now();
   const role =
     messageRecord.role === "toolResult"
       ? "user"
@@ -314,7 +314,8 @@ export function mergeToolMessages(messages: ChatMessage[]): ChatMessage[] {
             toolUseId: toolId,
             content: block.text,
             isError:
-              block.text.startsWith('{ "status": "error"') || block.text.startsWith('{"status":"error"'),
+              block.text.startsWith('{ "status": "error"') ||
+              block.text.startsWith('{"status":"error"'),
           });
           continue;
         }
@@ -373,8 +374,9 @@ export function normalizeTranscriptMessages(
 
 export function normalizeSessionMessagePayload(payload: SessionMessagePayloadRecord): ChatMessage {
   const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : "";
-  const messageRecord =
-    isRecord(payload.message) ? (payload.message as TranscriptRecord) : ({ content: "" } as TranscriptRecord);
+  const messageRecord = isRecord(payload.message)
+    ? (payload.message as TranscriptRecord)
+    : ({ content: "" } as TranscriptRecord);
   return normalizeTranscriptMessage(sessionKey, messageRecord, {
     messageId: typeof payload.messageId === "string" ? payload.messageId : undefined,
     messageSeq: typeof payload.messageSeq === "number" ? payload.messageSeq : undefined,

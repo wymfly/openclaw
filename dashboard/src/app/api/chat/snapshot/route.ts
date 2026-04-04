@@ -3,8 +3,8 @@ import { ControlPlaneGatewayError } from "@server/gateway-adapter";
 import type { ChatSessionProjection } from "@server/projection-store";
 import { getRuntime } from "@server/runtime";
 import { type NextRequest, NextResponse } from "next/server";
-import type { TranscriptMessage } from "@/types/gateway-protocol.generated";
 import { withAuth } from "@/lib/with-auth";
+import type { TranscriptMessage } from "@/types/gateway-protocol.generated";
 
 type RawSessionMeta = Record<string, unknown>;
 
@@ -58,7 +58,7 @@ export const GET = withAuth(async (request: NextRequest) => {
     ]);
 
     const messages = Array.isArray((historyPayload as { messages?: unknown[] }).messages)
-      ? ((historyPayload as { messages: TranscriptMessage[] }).messages as TranscriptMessage[])
+      ? (historyPayload as { messages: TranscriptMessage[] }).messages
       : [];
 
     const meta =
