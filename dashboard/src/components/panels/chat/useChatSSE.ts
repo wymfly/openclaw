@@ -20,7 +20,8 @@ import {
   dispatchSessionMessageEvent,
   dispatchSessionStateEvent,
 } from "@/stores/chat-dispatchers";
-import { persistChatProjection } from "./chat-api";
+import { fetchChatSnapshot, persistChatProjection } from "./chat-api";
+import { normalizeHistoryMessages } from "./history-normalize";
 
 // ---------------------------------------------------------------------------
 // Canvas event handler — invoked from the SSE "canvas" event listener.
@@ -108,6 +109,71 @@ function handleCanvasEvent(data: CanvasCommand) {
       store.pushCanvasCommand(sessionKey, data);
       persistSessionProjection(sessionKey);
       break;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// projection.gap recovery — in-flight guard prevents concurrent fetches
+// ---------------------------------------------------------------------------
+
+let _gapRecoveryInFlight = false;
+
+/**
+ * Handle a projection.gap SSE event — the server detected that the client
+ * missed events from the outbox (e.g. due to pruning or long disconnect).
+ *
+ * Recovery: evict stale cached sessions (they may hold outdated state),
+ * then refetch the active session's snapshot so the user sees current data.
+ * An in-flight guard coalesces rapid consecutive gap events.
+ *
+ * @internal — exported for testing only
+ */
+export async function handleProjectionGap(): Promise<void> {
+  if (_gapRecoveryInFlight) {
+    return;
+  }
+  _gapRecoveryInFlight = true;
+  try {
+    const store = useChatStore.getState();
+
+    // Evict non-active, non-streaming sessions — their cached state is
+    // potentially stale after the gap. They will be refetched on next access.
+    store.evictStale(0);
+
+    const { activeSessionKey, activeAgentId } = store;
+    if (!activeSessionKey) {
+      return;
+    }
+
+    // Skip refetch if the active session is currently streaming — SSE events
+    // are the source of truth during streaming, and reloadFullContent handles
+    // the final sync.
+    const session = store.sessions.get(activeSessionKey);
+    if (session?.isStreaming) {
+      return;
+    }
+
+    const snapshot = await fetchChatSnapshot({
+      sessionKey: activeSessionKey,
+      agentId: activeAgentId ?? undefined,
+    });
+    const msgs = normalizeHistoryMessages(activeSessionKey, snapshot.messages);
+
+    // Re-read store — state may have changed during the async fetch
+    const currentStore = useChatStore.getState();
+    const currentMessages = currentStore.sessions.get(activeSessionKey)?.messages ?? [];
+
+    // Preserve locally-added messages for brand-new sessions
+    if (!(msgs.length === 0 && currentMessages.length > 0)) {
+      currentStore.setMessages(activeSessionKey, msgs);
+    }
+
+    currentStore.setActiveApproval(activeSessionKey, snapshot.activeApproval);
+    currentStore.setA2UIState(activeSessionKey, snapshot.a2uiState);
+  } catch {
+    // Snapshot fetch failed — non-critical, user can manually refresh
+  } finally {
+    _gapRecoveryInFlight = false;
   }
 }
 
@@ -228,6 +294,11 @@ export function useChatSSE() {
           }
           if (event.event === "canvas") {
             handleCanvasEvent(JSON.parse(event.data) as CanvasCommand);
+            return;
+          }
+          if (event.event === "projection.gap") {
+            void handleProjectionGap();
+            return;
           }
         } catch {
           // ignore malformed SSE payloads
