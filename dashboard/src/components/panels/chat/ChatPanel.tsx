@@ -31,6 +31,7 @@ import { RightPanel } from "./RightPanel";
 import { SessionConfigBar } from "./SessionConfigBar";
 import { SessionSidebar } from "./SessionSidebar";
 import { initializeLocalCommands } from "./slash-command-executor";
+import { SSEStatusBanner } from "./SSEStatusBanner";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { useChatSSE } from "./useChatSSE";
 
@@ -253,6 +254,7 @@ export function ChatPanel() {
       >
         <SessionSidebar />
         <div className="flex flex-col flex-1 min-w-0">
+          <SSEStatusBanner />
           <MessageList blockPreferences={blockPrefs} />
           {hasFilterableBlocks && (
             <BlockFilterBar preferences={blockPrefs} onChange={handleBlockPrefsChange} />

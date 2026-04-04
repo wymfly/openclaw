@@ -109,6 +109,8 @@
     "status_failed": "失败",
     "status_killed": "已终止",
     "status_timeout": "超时",
+    "sseReconnecting": "正在重新连接服务器...",
+    "sseDisconnected": "已断开服务器连接",
     "openArtifact": "打开",
     "artifactJson": "JSON 数据",
     "artifactCode": "代码",

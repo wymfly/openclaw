@@ -10,6 +10,10 @@ type DeckStreamOptions = {
   signal?: AbortSignal;
   reconnect?: boolean;
   retryDelayMs?: number;
+  /** Called when a stream connection is established (response.ok received). */
+  onOpen?: () => void;
+  /** Called when the stream ends and a reconnect will be attempted. */
+  onRetry?: () => void;
   onEvent?: (event: DeckEvent) => void;
 };
 
@@ -150,7 +154,13 @@ export async function deckStream(
         }
       }
 
-      if (!response.ok || !response.body || !options.onEvent) {
+      if (!response.ok || !response.body) {
+        return response;
+      }
+
+      options.onOpen?.();
+
+      if (!options.onEvent) {
         return response;
       }
 
@@ -199,6 +209,7 @@ export async function deckStream(
       }
     }
 
+    options.onRetry?.();
     await waitForReconnect(options.retryDelayMs ?? DEFAULT_STREAM_RETRY_MS, options.signal);
   }
 

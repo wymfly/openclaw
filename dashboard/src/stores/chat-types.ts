@@ -183,6 +183,8 @@ export const MAX_CACHED_SESSIONS = 20;
 /** How long (ms) an idle session can stay cached before becoming evictable. */
 export const DEFAULT_EVICT_IDLE_MS = 5 * 60 * 1000; // 5 minutes
 
+export type SSEConnectionStatus = "connected" | "reconnecting" | "disconnected";
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
