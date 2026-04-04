@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Locale } from "@/i18n/config";
 import { locales, defaultLocale } from "@/i18n/config";
+import { type Panel } from "@/lib/panel-registry";
 import { useConfigStore } from "@/stores/config";
 
 /** Read locale from cookie, falling back to default. */
@@ -15,30 +16,7 @@ function readLocaleFromCookie(): Locale {
     : defaultLocale;
 }
 
-export type Panel =
-  | "chat"
-  | "agents"
-  | "gateway"
-  | "models"
-  | "usage"
-  | "sessions"
-  | "memory"
-  | "logs"
-  | "activity"
-  | "cron"
-  | "webhooks"
-  | "approvals"
-  | "skills"
-  | "budget"
-  | "alerts"
-  | "channels"
-  | "config"
-  | "docs"
-  | "routing"
-  | "subagents"
-  | "identity"
-  | "threads"
-  | "settings";
+export type { Panel };
 
 export type Theme = "dark" | "light" | "system";
 
