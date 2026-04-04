@@ -87,6 +87,12 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
         if (approval.sessionKey) {
           runtime.store.clearProjection("approval", approval.sessionKey);
         }
+        eventBus.broadcast("approval.resolved", {
+          id,
+          sessionKey: approval.sessionKey,
+          runId: approval.runId,
+          reason: "expired",
+        });
       }
     }
   }, 30_000);

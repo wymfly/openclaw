@@ -94,7 +94,14 @@ describe("fetchPending", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        pending: [{ id: "p1", command: "ls", createdAtMs: 1000, expiresAtMs: 2000 }],
+        pending: [
+          {
+            id: "p1",
+            command: "ls",
+            createdAtMs: Date.now() - 1_000,
+            expiresAtMs: Date.now() + 60_000,
+          },
+        ],
       }),
     });
 
@@ -112,6 +119,37 @@ describe("fetchPending", () => {
     // Should not throw, pending stays unchanged
     expect(useApprovalsStore.getState().pending).toEqual([]);
   });
+
+  it("filters expired approvals from the fetched pending list", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-05T00:00:00.000Z"));
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        pending: [
+          {
+            id: "expired",
+            command: "rm -rf /tmp/old",
+            createdAtMs: Date.now() - 10_000,
+            expiresAtMs: Date.now() - 1_000,
+          },
+          {
+            id: "active",
+            command: "echo ok",
+            createdAtMs: Date.now() - 5_000,
+            expiresAtMs: Date.now() + 60_000,
+          },
+        ],
+      }),
+    });
+
+    await useApprovalsStore.getState().fetchPending();
+
+    expect(useApprovalsStore.getState().pending).toEqual([
+      expect.objectContaining({ id: "active" }),
+    ]);
+    vi.useRealTimers();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -122,8 +160,18 @@ describe("resolveApproval", () => {
   it("sends resolve request and removes from pending", async () => {
     useApprovalsStore.setState({
       pending: [
-        { id: "p1", command: "ls", createdAtMs: 1000, expiresAtMs: 2000 },
-        { id: "p2", command: "cat", createdAtMs: 1000, expiresAtMs: 2000 },
+        {
+          id: "p1",
+          command: "ls",
+          createdAtMs: Date.now() - 1_000,
+          expiresAtMs: Date.now() + 60_000,
+        },
+        {
+          id: "p2",
+          command: "cat",
+          createdAtMs: Date.now() - 1_000,
+          expiresAtMs: Date.now() + 60_000,
+        },
       ],
     });
 
@@ -212,15 +260,20 @@ describe("addPending / removePending", () => {
     useApprovalsStore.getState().addPending({
       id: "p1",
       command: "ls",
-      createdAtMs: 1000,
-      expiresAtMs: 2000,
+      createdAtMs: Date.now() - 1_000,
+      expiresAtMs: Date.now() + 60_000,
     });
 
     expect(useApprovalsStore.getState().pending).toHaveLength(1);
   });
 
   it("does not add duplicate pending approval", () => {
-    const approval = { id: "p1", command: "ls", createdAtMs: 1000, expiresAtMs: 2000 };
+    const approval = {
+      id: "p1",
+      command: "ls",
+      createdAtMs: Date.now() - 1_000,
+      expiresAtMs: Date.now() + 60_000,
+    };
 
     useApprovalsStore.getState().addPending(approval);
     useApprovalsStore.getState().addPending(approval);
@@ -228,11 +281,35 @@ describe("addPending / removePending", () => {
     expect(useApprovalsStore.getState().pending).toHaveLength(1);
   });
 
+  it("does not add an already expired pending approval", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-05T00:00:00.000Z"));
+    useApprovalsStore.getState().addPending({
+      id: "expired",
+      command: "ls",
+      createdAtMs: Date.now() - 10_000,
+      expiresAtMs: Date.now() - 1_000,
+    });
+
+    expect(useApprovalsStore.getState().pending).toEqual([]);
+    vi.useRealTimers();
+  });
+
   it("removes a pending approval by id", () => {
     useApprovalsStore.setState({
       pending: [
-        { id: "p1", command: "ls", createdAtMs: 1000, expiresAtMs: 2000 },
-        { id: "p2", command: "cat", createdAtMs: 1000, expiresAtMs: 2000 },
+        {
+          id: "p1",
+          command: "ls",
+          createdAtMs: Date.now() - 1_000,
+          expiresAtMs: Date.now() + 60_000,
+        },
+        {
+          id: "p2",
+          command: "cat",
+          createdAtMs: Date.now() - 1_000,
+          expiresAtMs: Date.now() + 60_000,
+        },
       ],
     });
 

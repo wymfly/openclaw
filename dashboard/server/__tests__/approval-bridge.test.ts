@@ -266,6 +266,56 @@ describe("approval projection domain", () => {
 
     expect(clearProjectionMock).toHaveBeenCalledWith("approval", "session-2");
   });
+
+  it("broadcasts approval.resolved and clears approval projection when a pending approval expires", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-04-05T00:00:00.000Z"));
+
+      const { runtime, clearProjectionMock } = createMockRuntime(bus);
+      const cleanup = initApprovalBridge(runtime);
+
+      const resolved: ServerEvent[] = [];
+      bus.subscribe((e) => {
+        if (e.type === "approval.resolved") {
+          resolved.push(e);
+        }
+      });
+
+      bus.broadcast("gateway.event", {
+        type: "gateway.event",
+        event: "exec.approval.requested",
+        payload: {
+          id: "apr-expired-1",
+          request: {
+            command: "rm -rf /tmp/project",
+            sessionKey: "session-expired",
+            runId: "run-expired-1",
+          },
+          createdAtMs: Date.now() - 5_000,
+          expiresAtMs: Date.now() - 1_000,
+        },
+      });
+
+      expect(getPendingApprovals()).toHaveLength(1);
+
+      vi.advanceTimersByTime(30_000);
+
+      expect(getPendingApprovals()).toHaveLength(0);
+      expect(clearProjectionMock).toHaveBeenCalledWith("approval", "session-expired");
+      expect(resolved).toHaveLength(1);
+      expect(resolved[0].data).toMatchObject({
+        id: "apr-expired-1",
+        sessionKey: "session-expired",
+        runId: "run-expired-1",
+        reason: "expired",
+      });
+
+      cleanup();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("getPendingApprovals", () => {
