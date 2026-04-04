@@ -15,12 +15,31 @@ interface MockRuntime {
 }
 
 function createMockRuntime(eventBus: EventBus): MockRuntime {
-  const projections = new Map<string, Record<string, unknown>>();
-  const getProjection = vi.fn((sessionKey: string) => projections.get(sessionKey) ?? null);
-  const setProjection = vi.fn((sessionKey: string, projection: Record<string, unknown>) => {
-    projections.set(sessionKey, projection);
+  const chatProjections = new Map<string, Record<string, unknown>>();
+  const approvalProjections = new Map<string, Record<string, unknown>>();
+
+  const setProjection = vi.fn((domain: string, key: string, data: Record<string, unknown>) => {
+    const map = domain === "approval" ? approvalProjections : chatProjections;
+    map.set(key, data);
   });
-  const clearProjection = vi.fn((sessionKey: string) => projections.delete(sessionKey));
+  const clearProjection = vi.fn((domain: string, key: string) => {
+    const map = domain === "approval" ? approvalProjections : chatProjections;
+    return map.delete(key);
+  });
+
+  // Legacy mocks remain for code paths that still read/write chat projections directly.
+  const getChatSessionProjection = vi.fn(
+    (sessionKey: string) => chatProjections.get(sessionKey) ?? null,
+  );
+  const setChatSessionProjection = vi.fn(
+    (sessionKey: string, projection: Record<string, unknown>) => {
+      chatProjections.set(sessionKey, projection);
+    },
+  );
+  const clearChatSessionProjection = vi.fn((sessionKey: string) =>
+    chatProjections.delete(sessionKey),
+  );
+
   return {
     setProjectionMock: setProjection,
     clearProjectionMock: clearProjection,
@@ -30,9 +49,11 @@ function createMockRuntime(eventBus: EventBus): MockRuntime {
       gw: {} as DeckRuntime["gw"],
       db: {} as DeckRuntime["db"],
       store: {
-        getChatSessionProjection: getProjection,
-        setChatSessionProjection: setProjection,
-        clearChatSessionProjection: clearProjection,
+        getChatSessionProjection,
+        setChatSessionProjection,
+        clearChatSessionProjection,
+        setProjection,
+        clearProjection,
       } as unknown as DeckRuntime["store"],
       rateLimiter: {} as DeckRuntime["rateLimiter"],
     },
@@ -96,16 +117,12 @@ describe("initApprovalBridge", () => {
     const pending = getPendingApprovals();
     expect(pending).toHaveLength(1);
     expect(pending[0].id).toBe("apr-1");
-    expect(setProjectionMock).toHaveBeenCalledWith(
-      "agent:main:main",
-      expect.objectContaining({
-        activeApproval: expect.objectContaining({
-          id: "apr-1",
-          toolName: "command",
-          command: "rm -rf /",
-        }),
-      }),
-    );
+    expect(setProjectionMock).toHaveBeenCalledWith("approval", "agent:main:main", {
+      id: "apr-1",
+      toolName: "command",
+      command: "rm -rf /",
+      description: undefined,
+    });
   });
 
   it("removes pending approval on exec.approval.resolved gateway event", () => {
@@ -141,7 +158,7 @@ describe("initApprovalBridge", () => {
 
     expect(resolved).toHaveLength(1);
     expect(getPendingApprovals()).toHaveLength(0);
-    expect(clearProjectionMock).toHaveBeenCalledWith("session-2");
+    expect(clearProjectionMock).toHaveBeenCalledWith("approval", "session-2");
   });
 
   it("ignores non-approval gateway events", () => {
@@ -193,6 +210,61 @@ describe("initApprovalBridge", () => {
     });
 
     expect(getPendingApprovals()).toHaveLength(0);
+  });
+});
+
+describe("approval projection domain", () => {
+  it("writes approval to the approval domain on exec.approval.requested", () => {
+    const { runtime, setProjectionMock } = createMockRuntime(bus);
+    initApprovalBridge(runtime);
+
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.requested",
+      payload: {
+        id: "apr-domain-1",
+        request: {
+          command: "npm install",
+          agentId: "agent-x",
+          sessionKey: "agent:main:main",
+          runId: "run-1",
+          cwd: "/workspace",
+        },
+        createdAtMs: 1000,
+        expiresAtMs: 2000,
+      },
+    });
+
+    expect(setProjectionMock).toHaveBeenCalledWith("approval", "agent:main:main", {
+      id: "apr-domain-1",
+      toolName: "command",
+      command: "npm install",
+      description: "/workspace",
+    });
+  });
+
+  it("clears approval domain on exec.approval.resolved", () => {
+    const { runtime, clearProjectionMock } = createMockRuntime(bus);
+    initApprovalBridge(runtime);
+
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.requested",
+      payload: {
+        id: "apr-domain-2",
+        request: { command: "echo hello", sessionKey: "session-2" },
+        createdAtMs: 1000,
+        expiresAtMs: 2000,
+      },
+    });
+
+    bus.broadcast("gateway.event", {
+      type: "gateway.event",
+      event: "exec.approval.resolved",
+      payload: { id: "apr-domain-2", decision: "allow-once" },
+    });
+
+    expect(clearProjectionMock).toHaveBeenCalledWith("approval", "session-2");
   });
 });
 
