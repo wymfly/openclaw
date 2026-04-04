@@ -71,7 +71,7 @@ describe("handleProjectionGap", () => {
     expect(fetchChatSnapshot).not.toHaveBeenCalled();
   });
 
-  it("does not interrupt streaming sessions", async () => {
+  it("preserves non-active streaming sessions during eviction", async () => {
     const store = useChatStore.getState();
     store.ensureSession("streaming-sess");
     store.setStreaming("streaming-sess", true, "run-1");
@@ -91,6 +91,18 @@ describe("handleProjectionGap", () => {
     // Streaming session should survive eviction
     expect(useChatStore.getState().sessions.has("streaming-sess")).toBe(true);
     expect(useChatStore.getState().sessions.get("streaming-sess")?.isStreaming).toBe(true);
+  });
+
+  it("skips refetch when the active session is streaming", async () => {
+    const store = useChatStore.getState();
+    store.ensureSession("active-sess");
+    store.setActiveSession("active-sess");
+    store.setStreaming("active-sess", true, "run-1");
+    useChatStore.setState({ activeAgentId: "main" });
+
+    await handleProjectionGap();
+
+    expect(fetchChatSnapshot).not.toHaveBeenCalled();
   });
 
   it("applies approval and a2uiState from snapshot", async () => {
