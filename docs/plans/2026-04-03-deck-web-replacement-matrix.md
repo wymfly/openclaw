@@ -260,6 +260,50 @@ Phase 4 notes:
 
 **共性缺口**：20 个 replacement-ready 模块中，12 个在 criterion 9 (Validation) 标记 ⚠️，原因统一：有模块测试但缺少 Playwright 端到端工作流验证。此缺口已追踪在 tasks.md 5.2 中，是 Phase 5 (Replacement Gate) 的核心交付物。
 
+## Enhanced Merge Gate
+
+> Established: 2026-04-04
+
+定义模块从开发 worktree 合流到 `enhanced` 分支的形式化标准。
+
+### 合流前提
+
+1. **Phase Gate PASS** — 模块所在 Phase 的 Gate Review 已通过（见上方 Phase Gate Reviews）
+2. **pnpm check 全绿** — format + tsgo + lint + 所有自定义 check 通过
+3. **pnpm test 无新增失败** — 不引入回归
+
+### 合流 Checklist（逐模块）
+
+| #   | 检查项                                  | 说明                                                 | 必须 |
+| --- | --------------------------------------- | ---------------------------------------------------- | :--: |
+| 1   | Matrix status = `replacement-ready`     | 模块在 matrix 中已被评估为 replacement-ready         |  ✅  |
+| 2   | DoD 9 项中 ≥ 7 项 ✅                    | Phase Gate Review 中不超过 2 项 ⚠️/➖                |  ✅  |
+| 3   | 无未解决的 P0 blocking issue            | 无已知阻塞性 bug                                     |  ✅  |
+| 4   | Typed client 或 gatewayRequest 路径明确 | Gateway 方法族覆盖清单中标记为 Covered 或 Functional |  ✅  |
+| 5   | i18n 完整                               | zh.json + en.json 无缺失 key                         |  ✅  |
+| 6   | 无 hardcoded 颜色/样式                  | 使用 shadcn CSS 变量                                 |  ✅  |
+| 7   | Commit 规范                             | 所有 commit 带 `[enhanced]` 前缀                     |  ✅  |
+
+### 合流流程
+
+```
+开发 worktree (shy-equinox / 其他)
+    ↓ Checklist 7 项全通过
+    ↓ cherry-pick 或 rebase 到 enhanced
+    ↓ pnpm check + pnpm test 在 enhanced 上全绿
+    ↓ push enhanced
+```
+
+### 批量合流 vs 逐模块合流
+
+- **逐模块合流**：适用于独立模块（如 Budget、Alerts），commit 边界清晰
+- **批量合流**：适用于同一 worktree 中紧密耦合的模块组（如 Chat + Approval + Session-Scoped State），按 Phase 整体合流
+- 当前 20 个 replacement-ready 模块均在 `shy-equinox` 分支，建议按 Phase 批量合流
+
+### 当前合流状态
+
+所有 20 个 replacement-ready 模块尚在 `shy-equinox` worktree，未执行过正式合流。下一步：待用户确认合流时机后，按 Phase 顺序执行。
+
 ## Change Multi-Track Classification Rule
 
 一个 change 的 **primary track** 只有一个，用于 matrix 排序和依赖管理。但一个 change 可以作为 **input** 出现在多个 area 的 Existing Inputs 列中，表示该 change 为多个 area 提供了设计样板或部分实现。
