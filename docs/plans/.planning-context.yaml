@@ -1,5 +1,5 @@
-# Planning Context for wecom-api-expansion
-# Generated: 2026-04-02
+# Planning Context for deck-projection-platform
+# Generated: 2026-04-04
 mode: 2
 pre_g2: unlikely
 
@@ -8,98 +8,80 @@ team:
 
 execution:
   mode: subagent-driven
-  reason: "单域 [backend/wecom-extension]，P0→P1→P2 线性依赖，串行派发"
+  reason: "单域 [backend/dashboard-server]，6 组任务线性依赖，串行派发"
 
 openspec:
-  change_name: wecom-api-expansion
-  tasks_path: openspec/changes/wecom-api-expansion/tasks.md
-  specs_path: openspec/changes/wecom-api-expansion/specs/
-  design_path: openspec/changes/wecom-api-expansion/design.md
+  change_name: deck-projection-platform
+  tasks_path: openspec/changes/deck-projection-platform/tasks.md
+  specs_path: openspec/changes/deck-projection-platform/specs/
+  design_path: openspec/changes/deck-projection-platform/design.md
   spec_requirements:
-    # wecom-calendar
-    - "wecom-calendar/spec.md > ADDED > Calendar CRUD operations > Create a calendar event"
-    - "wecom-calendar/spec.md > ADDED > Calendar CRUD operations > Get calendar event detail"
-    - "wecom-calendar/spec.md > ADDED > Calendar CRUD operations > Update a calendar event"
-    - "wecom-calendar/spec.md > ADDED > Calendar CRUD operations > Delete a calendar event"
-    - "wecom-calendar/spec.md > ADDED > Free/busy query > Query free/busy status"
-    - "wecom-calendar/spec.md > ADDED > Attendee management > Add attendees to event"
-    - "wecom-calendar/spec.md > ADDED > Attendee management > Remove attendee from event"
-    - "wecom-calendar/spec.md > ADDED > Reuse existing infrastructure > Token and proxy reuse"
-    # wecom-mcp-bridge
-    - "wecom-mcp-bridge/spec.md > ADDED > MCP tool proxy > Proxy MCP tool call"
-    - "wecom-mcp-bridge/spec.md > ADDED > MCP tool proxy > MCP tool discovery"
-    - "wecom-mcp-bridge/spec.md > ADDED > Source registry integration > Session source tracking"
-    - "wecom-mcp-bridge/spec.md > ADDED > Context store for Bot WS > Store push context"
-    # wecom-contact
-    - "wecom-contact/spec.md > ADDED > Member query > Get member by userid"
-    - "wecom-contact/spec.md > ADDED > Member query > Privacy-limited fields"
-    - "wecom-contact/spec.md > ADDED > Department member list > List department members (detailed)"
-    - "wecom-contact/spec.md > ADDED > Department member list > List department members (simple)"
-    - "wecom-contact/spec.md > ADDED > Department tree > List all departments"
-    - "wecom-contact/spec.md > ADDED > Department tree > Get department detail"
-    - "wecom-contact/spec.md > ADDED > Tag member query > List tag members"
-    - "wecom-contact/spec.md > ADDED > Search > Search members by name"
-    - "wecom-contact/spec.md > ADDED > Retry and infrastructure reuse > Retry on transient failure"
-    # wecom-meeting
-    - "wecom-meeting/spec.md > ADDED > Create meeting > Create a scheduled meeting"
-    - "wecom-meeting/spec.md > ADDED > Create meeting > Create meeting with optional settings"
-    - "wecom-meeting/spec.md > ADDED > Modify meeting > Update meeting details"
-    - "wecom-meeting/spec.md > ADDED > Cancel meeting > Cancel a meeting"
-    - "wecom-meeting/spec.md > ADDED > Query meeting info > Get meeting detail"
-    - "wecom-meeting/spec.md > ADDED > List user meetings > List meetings for a user"
-    - "wecom-meeting/spec.md > ADDED > Retry and infrastructure reuse > Retry on transient failure"
-    # wecom-todo
-    - "wecom-todo/spec.md > ADDED > Create todo task > Create a work record"
-    - "wecom-todo/spec.md > ADDED > Create todo task > Create todo with assignees"
-    - "wecom-todo/spec.md > ADDED > Update todo status > Mark todo as completed"
-    - "wecom-todo/spec.md > ADDED > Get todo detail > Get work record detail"
-    - "wecom-todo/spec.md > ADDED > Retry and infrastructure reuse > Retry on transient failure"
-    # wecom-approval
-    - "wecom-approval/spec.md > ADDED > Submit approval request > Submit an approval"
-    - "wecom-approval/spec.md > ADDED > Submit approval request > Submit with summary"
-    - "wecom-approval/spec.md > ADDED > Query approval records > List approval records by time range"
-    - "wecom-approval/spec.md > ADDED > Get approval detail > Get approval detail by sp_no"
-    - "wecom-approval/spec.md > ADDED > Get approval template > Get template detail"
-    - "wecom-approval/spec.md > ADDED > Retry and infrastructure reuse > Retry on transient failure"
-    # wecom-external-contact
-    - "wecom-external-contact/spec.md > ADDED > Get external contact detail > Get contact by external_userid"
-    - "wecom-external-contact/spec.md > ADDED > List external contacts > List contacts by userid"
-    - "wecom-external-contact/spec.md > ADDED > List customer groups > List group chats"
-    - "wecom-external-contact/spec.md > ADDED > List customer groups > Paginated group list"
-    - "wecom-external-contact/spec.md > ADDED > Retry and infrastructure reuse > Retry on transient failure"
+    # projection-store-platform
+    - "projection-store-platform/spec.md > ADDED > ProjectionStore SHALL provide a generic domain-keyed API > Module reads a projection by domain and key"
+    - "projection-store-platform/spec.md > ADDED > ProjectionStore SHALL provide a generic domain-keyed API > Module writes a projection by domain and key"
+    - "projection-store-platform/spec.md > ADDED > ProjectionStore SHALL provide a generic domain-keyed API > Module clears a projection by domain and key"
+    - "projection-store-platform/spec.md > ADDED > Approval projection SHALL be stored independently from chat projection > Approval bridge writes to the approval domain"
+    - "projection-store-platform/spec.md > ADDED > Approval projection SHALL be stored independently from chat projection > Approval bridge clears the approval domain on resolution"
+    - "projection-store-platform/spec.md > ADDED > Approval projection SHALL be stored independently from chat projection > Chat snapshot reads approval from the approval domain"
+    - "projection-store-platform/spec.md > ADDED > Approval projection SHALL remain server-write-only > No HTTP endpoint exposes approval projection writes"
+    - "projection-store-platform/spec.md > ADDED > Legacy chat projections containing activeApproval SHALL be migrated transparently > Migration on first read"
+    - "projection-store-platform/spec.md > ADDED > Legacy chat projections containing activeApproval SHALL be migrated transparently > Migration does not overwrite concurrent A2UI updates"
+    - "projection-store-platform/spec.md > ADDED > Chat projection callers SHALL migrate to the generic API > Chat-specific methods become thin wrappers"
+    - "projection-store-platform/spec.md > ADDED > Chat projection callers SHALL migrate to the generic API > All direct callers are migrated"
+    # projection-gap-detection
+    - "projection-gap-detection/spec.md > ADDED > getEventsSince SHALL signal when events have been pruned > No gap — all requested events available"
+    - "projection-gap-detection/spec.md > ADDED > getEventsSince SHALL signal when events have been pruned > Gap detected — events have been pruned"
+    - "projection-gap-detection/spec.md > ADDED > getEventsSince SHALL signal when events have been pruned > First connection — no prior checkpoint"
+    - "projection-gap-detection/spec.md > ADDED > SSE stream SHALL emit a gap event when replay gap is detected > Gap event emitted on reconnect with pruned events"
+    - "projection-gap-detection/spec.md > ADDED > SSE stream SHALL emit a gap event when replay gap is detected > No gap event when replay is complete"
+    - "projection-gap-detection/spec.md > ADDED > SSE stream SHALL emit a gap event when replay gap is detected > Gap event is non-breaking for existing clients"
 
 context:
   existing_components: |
-    Wecom 插件入口:
-      extensions/wecom/index.ts — register() 注册 Tool，当前仅 registerWecomDocTools(api)
-    Doc 模块（四件套模式参考）:
-      src/capability/doc/client.ts — WecomDocClient 类，postWecomDocApi() 含 3 次重试（:170-189）
-      src/capability/doc/schema.ts — oneOf 判别联合 JSON Schema，action 字段分发
-      src/capability/doc/tool.ts — registerWecomDocTools，action switch 分发到 client
-      src/capability/doc/types.ts — TypeScript 类型定义
-    共享基础设施:
-      src/transport/agent-api/core.ts:87 — getAccessToken(agent) per-agent token 缓存
-      src/http.ts:63 — wecomFetch() 统一 HTTP 层（代理+超时，无重试）
-      src/config/network.ts:4 — resolveWecomEgressProxyUrlFromNetwork()
-      src/capability/bot/fallback-delivery.ts:27 — resolveAgentAccountOrUndefined()
+    ProjectionStore (dashboard/server/projection-store.ts):
+      - SQLite-backed KV store, settings table (key/value/updated_at)
+      - Chat-specific API: getChatSessionProjection/setChatSessionProjection/clearChatSessionProjection
+      - Key prefix: "chat_projection:{sessionKey}"
+      - Outbox API: appendEvent, getEventsSince(lastId, limit=500), outboxHead, pruneEvents
+      - OutboxRow: { id, event_type, payload, created_at } — no domain column
+      - getEventsSince returns OutboxEntry[] with no gap signal
+    Approval Bridge (dashboard/server/approval-bridge.ts):
+      - Server-side only, listens for Gateway exec.approval.* events
+      - In-memory pendingMap for live sessions
+      - persistApprovalProjection() does read-modify-write on chat blob (line 52-71)
+      - Writes activeApproval INTO the chat projection blob (coupled)
+    SSE Stream (dashboard/src/app/api/stream/route.ts):
+      - Primary replay: runtime.store.getEventsSince(lastEventId) (line 132-134)
+      - Fallback: bus.getEventsSince(lastEventId) (EventBus ring buffer)
+      - No gap detection — silently drops events if lastEventId is pruned
+    Snapshot (dashboard/src/app/api/chat/snapshot/route.ts):
+      - Reads getChatSessionProjection(sessionKey) at line 73
+      - Extracts activeApproval from chat blob (lines 74-79)
+      - Response shape: { messages, meta, activeApproval, a2uiState }
+    Production callers of chat-specific methods (6 files):
+      - dashboard/src/app/api/chat/projection/route.ts (get/set/clear)
+      - dashboard/src/app/api/chat/sessions/clear/route.ts (clear)
+      - dashboard/src/app/api/chat/sessions/reset/route.ts (clear)
+      - dashboard/server/approval-bridge.ts (get/set/clear via persistApprovalProjection)
+      - dashboard/server/runtime.ts:124 (clear)
+      - dashboard/src/app/api/chat/snapshot/route.ts (get)
   design_decisions: |
-    D1: 自研参考 wecom-cli，不直接集成（自建应用 API scope 更大）
-    D2: 渠道与 Tool 暂不拆分，通过 getAccessToken(agent) 松耦合
-    D3: 上游新增文件直接复制，已有文件不同步
-    D4: 每个 client 复制重试 pattern，不提取共享函数（本期）
-    D5: oneOf 判别联合 + action switch 分发（沿用 doc 模式）
+    D1: Generic KV API (not event-sourced) — getProjection<T>(domain, key) / setProjection<T>
+    D2: Approval remains server-derived (not client-writable) — only approval-bridge writes
+    D3: Gap signal (not full catch-up protocol) — gapDetected boolean + projection.gap SSE event
+    D4: Internal server API only (no new HTTP endpoints in Phase 1)
+    D5: Transaction-protected migration — SQLite transaction for legacy approval extraction
 
 key_files:
-  - extensions/wecom/index.ts
-  - extensions/wecom/src/capability/doc/client.ts
-  - extensions/wecom/src/capability/doc/schema.ts
-  - extensions/wecom/src/capability/doc/tool.ts
-  - extensions/wecom/src/transport/agent-api/core.ts
-  - extensions/wecom/src/http.ts
-  - extensions/wecom/src/config/network.ts
+  - dashboard/server/projection-store.ts
+  - dashboard/server/approval-bridge.ts
+  - dashboard/src/app/api/stream/route.ts
+  - dashboard/src/app/api/chat/snapshot/route.ts
+  - dashboard/src/app/api/chat/projection/route.ts
+  - dashboard/src/app/api/chat/sessions/clear/route.ts
+  - dashboard/src/app/api/chat/sessions/reset/route.ts
+  - dashboard/server/runtime.ts
+  - dashboard/server/__tests__/projection-store.test.ts
+  - dashboard/server/__tests__/approval-bridge.test.ts
 
-external_references:
-  - name: "YanHaidao/wecom (upstream v2.3.27)"
-    purpose: "P0 上游同步源 — calendar/mcp/source-registry/context-store"
-  - name: "WecomTeam/wecom-cli"
-    purpose: "P1 自研参考 — contact/meeting/todo skill SKILL.md + API 模式"
+external_references: []
