@@ -93,6 +93,7 @@ export interface A2UIState {
   bridgeStatus?: "connecting" | "ready" | "error";
   eventLog?: A2UIEvent[];
   surfaces?: string[];
+  treeData?: unknown;
 }
 
 export interface A2UIEvent {
