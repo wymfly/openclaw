@@ -237,6 +237,27 @@ export async function setSessionMessageSubscription(params: {
   }
 }
 
+export async function patchSession(
+  sessionKey: string,
+  patch: {
+    label?: string | null;
+    thinkingLevel?: string | null;
+    fastMode?: boolean | null;
+    verboseLevel?: string | null;
+  },
+): Promise<boolean> {
+  try {
+    const res = await deckFetch("/api/chat/sessions/patch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey, ...patch }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function createChatSession(params: {
   agentId?: string;
   message?: string;
