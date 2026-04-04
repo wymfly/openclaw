@@ -2,7 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { deckFetch } from "@/lib/deck-client";
 import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
@@ -50,6 +50,7 @@ export function SessionSidebar() {
   const t = useTranslations("chat");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const editRef = useRef<HTMLInputElement>(null);
   const cancelRenameRef = useRef(false);
   const activeSessionKey = useActiveSessionKey();
@@ -122,6 +123,17 @@ export function SessionSidebar() {
     }
   };
 
+  const filteredMetas = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return sessionMetas;
+    }
+    const q = searchQuery.toLowerCase();
+    return sessionMetas.filter((session) => {
+      const title = (session.title ?? sessionTitle(session)).toLowerCase();
+      return title.includes(q);
+    });
+  }, [sessionMetas, searchQuery]);
+
   return (
     <aside
       className="flex flex-col w-56 shrink-0 border-r h-full"
@@ -158,9 +170,25 @@ export function SessionSidebar() {
         {t("newSession")}
       </button>
 
+      {/* Search */}
+      <div className="px-2 py-1.5 border-b" style={{ borderColor: "var(--border)" }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("searchSessions")}
+          className="w-full text-xs rounded px-2 py-1"
+          style={{
+            backgroundColor: "var(--background)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+          }}
+        />
+      </div>
+
       {/* Session list */}
       <div className="flex-1 overflow-y-auto">
-        {sessionMetas.map((session) => {
+        {filteredMetas.map((session) => {
           const isActive = activeSessionKey === session.key;
           return (
             <div

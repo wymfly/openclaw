@@ -9,8 +9,9 @@ vi.mock("next-intl", () => ({
       ({
         defaultAgent: "Default agent",
         newSession: "New session",
+        searchSessions: "Search sessions...",
       }) as const
-    )[key as "defaultAgent" | "newSession"] ?? key,
+    )[key as "defaultAgent" | "newSession" | "searchSessions"] ?? key,
 }));
 
 vi.mock("../chat-api", () => ({
@@ -58,6 +59,34 @@ afterEach(() => {
 });
 
 describe("SessionSidebar rename", () => {
+  it("filters visible sessions by the search query", () => {
+    const metas = [
+      { ...baseMeta, key: "sess-primary", title: "Primary Session" },
+      { ...baseMeta, key: "sess-ops", title: "Ops Review" },
+    ];
+    useChatStore.setState({
+      sessionMetas: metas,
+      sessionMeta: metas,
+      activeSessionKey: "sess-primary",
+    });
+
+    render(createElement(SessionSidebar));
+
+    const searchInput = screen.getByPlaceholderText("Search sessions...");
+    expect(screen.getByRole("button", { name: "Primary Session" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ops Review" })).toBeTruthy();
+
+    fireEvent.change(searchInput, { target: { value: "ops" } });
+
+    expect(screen.queryByRole("button", { name: "Primary Session" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Ops Review" })).toBeTruthy();
+
+    fireEvent.change(searchInput, { target: { value: "" } });
+
+    expect(screen.getByRole("button", { name: "Primary Session" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ops Review" })).toBeTruthy();
+  });
+
   it("enters inline edit mode on double click", () => {
     render(createElement(SessionSidebar));
 
