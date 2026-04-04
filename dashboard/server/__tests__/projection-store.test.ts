@@ -224,6 +224,79 @@ describe("chat session projections", () => {
 });
 
 // ---------------------------------------------------------------------------
+// generic projection API
+// ---------------------------------------------------------------------------
+
+describe("generic projection API", () => {
+  it("returns null for non-existent projection", () => {
+    expect(store.getProjection<{ x: number }>("myDomain", "missing")).toBeNull();
+  });
+
+  it("writes and reads a projection by domain and key", () => {
+    store.setProjection("approval", "session-1", { id: "apr-1", toolName: "command" });
+    expect(store.getProjection<{ id: string }>("approval", "session-1")).toEqual({
+      id: "apr-1",
+      toolName: "command",
+    });
+  });
+
+  it("overwrites an existing projection", () => {
+    store.setProjection("approval", "session-1", { v: 1 });
+    store.setProjection("approval", "session-1", { v: 2 });
+    expect(store.getProjection<{ v: number }>("approval", "session-1")).toEqual({ v: 2 });
+  });
+
+  it("clears a projection and returns true", () => {
+    store.setProjection("approval", "session-1", { id: "apr-1" });
+    expect(store.clearProjection("approval", "session-1")).toBe(true);
+    expect(store.getProjection("approval", "session-1")).toBeNull();
+  });
+
+  it("returns false when clearing a non-existent projection", () => {
+    expect(store.clearProjection("approval", "ghost")).toBe(false);
+  });
+
+  it("isolates projections across domains with the same key", () => {
+    store.setProjection("chat", "session-1", { chat: true });
+    store.setProjection("approval", "session-1", { approval: true });
+
+    expect(store.getProjection<{ chat: boolean }>("chat", "session-1")).toEqual({ chat: true });
+    expect(store.getProjection<{ approval: boolean }>("approval", "session-1")).toEqual({
+      approval: true,
+    });
+  });
+
+  it("chat domain uses legacy key prefix for backward compatibility", () => {
+    store.setProjection("chat", "session-bc", { a2uiState: { visible: true } });
+    const raw = store.getSetting("chat_projection:session-bc");
+    expect(raw).toBeTruthy();
+    expect(JSON.parse(raw!)).toEqual({ a2uiState: { visible: true } });
+  });
+
+  it("non-chat domains use projection: prefix", () => {
+    store.setProjection("approval", "session-ap", { id: "apr-x" });
+    const raw = store.getSetting("projection:approval:session-ap");
+    expect(raw).toBeTruthy();
+    expect(JSON.parse(raw!)).toEqual({ id: "apr-x" });
+  });
+
+  it("reads legacy chat data written by old chat-specific API", () => {
+    store.setChatSessionProjection("session-legacy", { a2uiState: { url: "/test" } });
+    expect(store.getProjection("chat", "session-legacy")).toEqual({ a2uiState: { url: "/test" } });
+  });
+
+  it("handles empty key gracefully", () => {
+    store.setProjection("chat", "", { x: 1 });
+    expect(store.getProjection("chat", "")).toBeNull();
+  });
+
+  it("handles whitespace-only key gracefully", () => {
+    store.setProjection("chat", "  ", { x: 1 });
+    expect(store.getProjection("chat", "  ")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // pruneEvents
 // ---------------------------------------------------------------------------
 
