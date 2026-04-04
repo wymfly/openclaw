@@ -9,6 +9,7 @@
  *   bun scripts/protocol-gen-ts.ts          # generate
  *   bun scripts/protocol-gen-ts.ts --check  # verify up-to-date
  */
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { TSchema } from "@sinclair/typebox";
@@ -382,12 +383,28 @@ function generateClient(): string {
   return lines.join("\n") + "\n";
 }
 
+function formatGeneratedTypeScript(filePath: string, content: string): string {
+  const result = spawnSync("oxfmt", ["--stdin-filepath", filePath], {
+    input: content,
+    encoding: "utf-8",
+  });
+
+  if (result.status !== 0) {
+    const stderr = result.stderr.trim();
+    throw new Error(
+      stderr ? `oxfmt failed for ${filePath}: ${stderr}` : `oxfmt failed for ${filePath}`,
+    );
+  }
+
+  return result.stdout;
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-const protocolContent = generateProtocolTypes();
-const clientContent = generateClient();
+const protocolContent = formatGeneratedTypeScript(PROTOCOL_OUT, generateProtocolTypes());
+const clientContent = formatGeneratedTypeScript(CLIENT_OUT, generateClient());
 
 if (CHECK_MODE) {
   let exitCode = 0;
