@@ -20,6 +20,7 @@ import {
   dispatchSessionMessageEvent,
   dispatchSessionStateEvent,
 } from "@/stores/chat-dispatchers";
+import { DEFAULT_EVICT_IDLE_MS } from "@/stores/chat-types";
 import { fetchChatSnapshot, persistChatProjection } from "./chat-api";
 import { normalizeHistoryMessages } from "./history-normalize";
 
@@ -308,6 +309,17 @@ export function useChatSSE() {
       // keep silent — deckStream already retries until aborted
     });
 
-    return () => controller.abort();
+    // Aggressively evict idle sessions when the page goes hidden to free memory.
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        useChatStore.getState().evictStale(DEFAULT_EVICT_IDLE_MS);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      controller.abort();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []); // empty deps — stream lives for the component lifetime
 }
