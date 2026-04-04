@@ -35,7 +35,7 @@
 - Modify: `dashboard/src/components/panels/chat/MessageList.tsx:63-86` (ToolUseWithResult)
 - Test: `dashboard/src/components/panels/chat/__tests__/block-filter-rendering.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `dashboard/src/components/panels/chat/__tests__/block-filter-rendering.test.ts`:
 
@@ -153,12 +153,12 @@ describe("showToolResult block filter", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd dashboard && pnpm test -- src/components/panels/chat/__tests__/block-filter-rendering.test.ts -v`
 Expected: The second test case ("hides ToolResultCard") should FAIL because `showToolResult` is not consumed in rendering yet.
 
-- [ ] **Step 3: Modify ToolUseWithResult to accept and use hideResult**
+- [x] **Step 3: Modify ToolUseWithResult to accept and use hideResult**
 
 In `dashboard/src/components/panels/chat/MessageList.tsx`, modify `ToolUseWithResult`:
 
@@ -205,16 +205,16 @@ Then pass `hideResult` at both call sites (collapsed and expanded paths, around 
 
 Apply to BOTH the collapsed path (inside `CollapsedBlock`) and the expanded path.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd dashboard && pnpm test -- src/components/panels/chat/__tests__/block-filter-rendering.test.ts -v`
 Expected: PASS
 
-- [ ] **Step 5: Run full dashboard tests**
+- [x] **Step 5: Run full dashboard tests**
 
 Run: `cd dashboard && pnpm test`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] fix(deck): wire showToolResult filter in MessageList rendering" \
@@ -253,7 +253,7 @@ scripts/committer "[enhanced][codex-impl] fix(deck): wire showToolResult filter 
 - Modify: `dashboard/src/components/panels/chat/CanvasDebugPanel.tsx` (tree tab rendering + refresh button)
 - Test: `dashboard/src/components/panels/chat/__tests__/canvas-debug-tree.test.ts`
 
-- [ ] **Step 1: Add treeData to A2UIState type**
+- [x] **Step 1: Add treeData to A2UIState type**
 
 In `dashboard/src/stores/chat-types.ts`, find the `A2UIState` interface and add:
 
@@ -261,7 +261,7 @@ In `dashboard/src/stores/chat-types.ts`, find the `A2UIState` interface and add:
 treeData?: unknown;
 ```
 
-- [ ] **Step 2: Exclude treeData from persistence**
+- [x] **Step 2: Exclude treeData from persistence**
 
 In `dashboard/src/components/panels/chat/chat-api.ts`, modify `PersistedA2UIState` and `sanitizeA2UIState`:
 
@@ -285,7 +285,7 @@ function sanitizeA2UIState(state: A2UIState | null): PersistedA2UIState | null {
 }
 ```
 
-- [ ] **Step 3: Wire onTreeData in CanvasPanel**
+- [x] **Step 3: Wire onTreeData in CanvasPanel**
 
 In `dashboard/src/components/panels/chat/CanvasPanel.tsx`, in the `A2UIBridge` constructor (around line 54), add `onTreeData` callback:
 
@@ -331,7 +331,7 @@ case "a2ui_reset":
   break;
 ```
 
-- [ ] **Step 4: Update CanvasDebugPanel tree tab rendering + refresh button**
+- [x] **Step 4: Update CanvasDebugPanel tree tab rendering + refresh button**
 
 In `dashboard/src/components/panels/chat/CanvasDebugPanel.tsx`:
 
@@ -405,7 +405,7 @@ case "request_tree":
   break;
 ```
 
-- [ ] **Step 5: Add i18n key**
+- [x] **Step 5: Add i18n key**
 
 Add to `dashboard/src/i18n/zh.json` under `chat`:
 
@@ -419,7 +419,7 @@ Add to `dashboard/src/i18n/en.json` under `chat`:
 "debugRefreshTree": "Refresh Tree"
 ```
 
-- [ ] **Step 6: Write tests**
+- [x] **Step 6: Write tests**
 
 Create `dashboard/src/components/panels/chat/__tests__/canvas-debug-tree.test.ts`:
 
@@ -488,15 +488,15 @@ describe("CanvasDebugPanel tree data", () => {
 });
 ```
 
-- [ ] **Step 7: Run tests**
+- [x] **Step 7: Run tests**
 
 Run: `cd dashboard && pnpm test -- src/components/panels/chat/__tests__/canvas-debug-tree.test.ts -v`
 
-- [ ] **Step 8: Run full dashboard tests**
+- [x] **Step 8: Run full dashboard tests**
 
 Run: `cd dashboard && pnpm test`
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): wire CanvasDebugPanel tree tab to real bridge data" \
@@ -533,7 +533,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): wire CanvasDebugPanel tree
 
 - Test: `dashboard/src/components/panels/chat/__tests__/canvas-integration.test.ts`
 
-- [ ] **Step 1: Write canvas command dispatch tests**
+- [x] **Step 1: Write canvas command dispatch tests**
 
 Create `dashboard/src/components/panels/chat/__tests__/canvas-integration.test.ts`:
 
@@ -636,15 +636,15 @@ describe("handleCanvasEvent integration (useChatSSE canvas handler)", () => {
 });
 ```
 
-- [ ] **Step 2: Run test**
+- [x] **Step 2: Run test**
 
 Run: `cd dashboard && pnpm test -- src/components/panels/chat/__tests__/canvas-integration.test.ts -v`
 
-- [ ] **Step 3: Run full dashboard tests**
+- [x] **Step 3: Run full dashboard tests**
 
 Run: `cd dashboard && pnpm test`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] test(deck): add canvas command queue integration tests" \
@@ -677,7 +677,7 @@ scripts/committer "[enhanced][codex-impl] test(deck): add canvas command queue i
 
 - Modify: `docs/plans/2026-04-03-deck-web-replacement-matrix.md:45`
 
-- [ ] **Step 1: Run full verification**
+- [x] **Step 1: Run full verification**
 
 ```bash
 pnpm tsgo
@@ -685,7 +685,7 @@ cd dashboard && pnpm test
 pnpm check
 ```
 
-- [ ] **Step 2: Update matrix**
+- [x] **Step 2: Update matrix**
 
 Change line 45 from:
 
@@ -699,7 +699,7 @@ to:
 | Canvas / A2UI | D.rc | 2 | P1 | A, B | ... | `replacement-ready` | Full A2UI bridge + SSE pipeline + block filters + debug tree tab + integration tests |
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-finish] docs(deck): update matrix — Canvas/A2UI now replacement-ready" \
