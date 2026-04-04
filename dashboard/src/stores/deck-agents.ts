@@ -59,7 +59,7 @@ export type AgentSubagentConfig = DeckAgentsSubagentsGetResult & {
 /** Event streams config — store omits agentId (tracked separately). */
 export type AgentEventStreamsConfig = Omit<DeckAgentsEventStreamsGetResult, "agentId">;
 
-/** Effective tool entry — from tools.effective, not a deck.* gateway response. */
+/** Effective tool entry — from the dashboard tools-effective route stub response. */
 export interface EffectiveToolEntry {
   id: string;
   name: string;
