@@ -24,12 +24,14 @@ function MessageBubble({
   runMetadata,
   sessionTotalTokens,
   sessionCostUsd,
+  sessionStatus,
 }: {
   message: ChatMessage;
   blockPrefs?: ChatBlockPreferences;
   runMetadata?: RunMetadata;
   sessionTotalTokens?: number;
   sessionCostUsd?: number;
+  sessionStatus?: "idle" | "running" | "done" | "failed" | "killed" | "timeout";
 }) {
   const isUser = message.role === "user";
 
@@ -72,6 +74,7 @@ function MessageBubble({
             metadata={runMetadata}
             sessionTotalTokens={sessionTotalTokens}
             sessionCostUsd={sessionCostUsd}
+            sessionStatus={sessionStatus}
           />
         )}
 
@@ -108,6 +111,10 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
   const sessionMeta = useChatStore((s) => {
     const key = s.activeSessionKey;
     return key ? s.sessionMetas.find((m) => m.key === key) : undefined;
+  });
+  const sessionStatus = useChatStore((s) => {
+    const key = s.activeSessionKey;
+    return key ? s.sessions.get(key)?.status : undefined;
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -170,6 +177,7 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
             runMetadata={runMeta}
             sessionTotalTokens={sessionMeta?.totalTokens}
             sessionCostUsd={sessionMeta?.estimatedCostUsd}
+            sessionStatus={sessionStatus}
           />
         );
       })}
