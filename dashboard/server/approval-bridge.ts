@@ -9,7 +9,6 @@
  * (GET /api/approvals/pending returns current map entries).
  */
 
-import type { ChatSessionProjection } from "./projection-store";
 import type { DeckRuntime } from "./runtime";
 
 // ---------------------------------------------------------------------------
@@ -52,22 +51,22 @@ export function getPendingApprovals(): PendingApproval[] {
 function persistApprovalProjection(
   runtime: DeckRuntime,
   sessionKey: string | undefined,
-  activeApproval: ChatSessionProjection["activeApproval"],
+  activeApproval: {
+    id: string;
+    toolName: string;
+    command?: string;
+    description?: string;
+  } | null,
 ): void {
   const normalized = sessionKey?.trim();
   if (!normalized) {
     return;
   }
-  const current = runtime.store.getChatSessionProjection(normalized) ?? {};
-  const next: ChatSessionProjection = {
-    ...current,
-    activeApproval: activeApproval ?? null,
-  };
-  if (next.a2uiState == null && next.activeApproval == null) {
-    runtime.store.clearChatSessionProjection(normalized);
-    return;
+  if (activeApproval) {
+    runtime.store.setProjection("approval", normalized, activeApproval);
+  } else {
+    runtime.store.clearProjection("approval", normalized);
   }
-  runtime.store.setChatSessionProjection(normalized, next);
 }
 
 // ---------------------------------------------------------------------------
