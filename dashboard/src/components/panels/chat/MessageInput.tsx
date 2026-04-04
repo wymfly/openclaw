@@ -182,6 +182,30 @@ export function MessageInput() {
     return cmd.args;
   }, [input]);
 
+  useEffect(() => {
+    if (!activeApproval?.expiresAtMs) {
+      return;
+    }
+    const approvalId = activeApproval.id;
+    const remaining = activeApproval.expiresAtMs - Date.now();
+    if (remaining <= 0) {
+      if (activeSessionKey) {
+        useChatStore.getState().setActiveApproval(activeSessionKey, null);
+      }
+      return;
+    }
+    const timer = setTimeout(() => {
+      // Verify same approval before clearing (guard against race)
+      const current = activeSessionKey
+        ? useChatStore.getState().sessions.get(activeSessionKey)?.activeApproval
+        : null;
+      if (current?.id === approvalId && activeSessionKey) {
+        useChatStore.getState().setActiveApproval(activeSessionKey, null);
+      }
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [activeApproval?.id, activeApproval?.expiresAtMs, activeSessionKey]);
+
   const addFiles = useCallback(
     (newFiles: File[]) => {
       const valid = newFiles.filter((f) => {
