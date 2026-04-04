@@ -333,9 +333,18 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
     return () => clearInterval(id);
   }, [approval.expiresAtMs]);
 
-  const handleResolve = (decision: "allow-once" | "allow-always" | "deny") => {
+  // Reset resolving state when approval changes (new approval replaces resolved one)
+  useEffect(() => {
+    setResolving(false);
+  }, [approval.id]);
+
+  const handleResolve = async (decision: "allow-once" | "allow-always" | "deny") => {
     setResolving(true);
-    onResolve(approval.id, decision);
+    try {
+      onResolve(approval.id, decision);
+    } catch {
+      setResolving(false);
+    }
   };
 
   return (
@@ -397,7 +406,7 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
           variant="outline"
           className="gap-1.5 text-xs"
           disabled={resolving}
-          onClick={() => handleResolve("allow-once")}
+          onClick={() => void handleResolve("allow-once")}
         >
           <Check size={12} />
           {t("approve")}
@@ -407,7 +416,7 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
           variant="outline"
           className="gap-1.5 text-xs"
           disabled={resolving}
-          onClick={() => handleResolve("allow-always")}
+          onClick={() => void handleResolve("allow-always")}
         >
           <ShieldCheck size={12} />
           {t("approveAlways")}
@@ -417,7 +426,7 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
           variant="destructive"
           className="gap-1.5 text-xs"
           disabled={resolving}
-          onClick={() => handleResolve("deny")}
+          onClick={() => void handleResolve("deny")}
         >
           <X size={12} />
           {t("deny")}
@@ -577,10 +586,16 @@ In `dashboard/src/i18n/zh.json`, add matching keys:
 Where `RunStatusBar` is rendered (in `MessageList.tsx` or `ChatPanel.tsx`), pass the session status from the store. Locate the rendering site and add:
 
 ```tsx
-const sessionStatus = useChatStore((s) => s.sessions.get(activeSessionKey)?.status);
+const sessionKey = useActiveSessionKey();
+const sessionStatus = useChatStore((s) => {
+  const key = s.activeSessionKey;
+  return key ? s.sessions.get(key)?.status : undefined;
+});
 // ... pass to RunStatusBar:
 <RunStatusBar metadata={metadata} sessionStatus={sessionStatus} ... />
 ```
+
+Note: The parent component file (likely `MessageList.tsx` or `ChatPanel.tsx`) must be included in the commit.
 
 - [ ] **Step 4: Run tests and type-check**
 
@@ -590,7 +605,7 @@ Expected: All pass
 - [ ] **Step 5: Commit**
 
 ```bash
-scripts/committer "[enhanced][codex-impl] feat(deck): run status badge in RunStatusBar" dashboard/src/components/panels/chat/RunStatusBar.tsx dashboard/src/i18n/en.json dashboard/src/i18n/zh.json
+scripts/committer "[enhanced][codex-impl] feat(deck): run status badge in RunStatusBar" dashboard/src/components/panels/chat/RunStatusBar.tsx dashboard/src/components/panels/chat/MessageList.tsx dashboard/src/i18n/en.json dashboard/src/i18n/zh.json
 ```
 
 ---
@@ -648,26 +663,40 @@ export function useSSEStatus() {
 }
 ```
 
-- [ ] **Step 3: Update useChatSSE to track connection status**
+- [ ] **Step 3: Add lifecycle callbacks to deckStream**
 
-In `dashboard/src/components/panels/chat/useChatSSE.ts`, inside the `useChatSSE` function's `useEffect`, call `setSSEStatus` at appropriate points:
-
-After `void deckStream("/api/stream", {` and before `signal: controller.signal`:
+In `dashboard/src/lib/deck-client.ts`, extend `DeckStreamOptions` interface with two optional callbacks:
 
 ```typescript
-useChatStore.getState().setSSEStatus("reconnecting");
+/** Called when a stream connection is established (response.ok received). */
+onOpen?: () => void;
+/** Called when the stream ends and a reconnect will be attempted. */
+onRetry?: () => void;
 ```
 
-Inside the `onEvent` callback, at the top (first event received = connected):
+Inside the `deckStream` function, call `options.onOpen?.()` after verifying `response.ok && response.body` (around line 153), and call `options.onRetry?.()` just before `await waitForReconnect(...)` (around line 202).
+
+- [ ] **Step 4: Update useChatSSE to track connection status via callbacks**
+
+In `dashboard/src/components/panels/chat/useChatSSE.ts`, update the `deckStream` call:
 
 ```typescript
-// Mark connected on first event
-if (useChatStore.getState().sseStatus !== "connected") {
-  useChatStore.getState().setSSEStatus("connected");
-}
+void deckStream("/api/stream", {
+  signal: controller.signal,
+  reconnect: true,
+  onOpen() {
+    useChatStore.getState().setSSEStatus("connected");
+  },
+  onRetry() {
+    useChatStore.getState().setSSEStatus("reconnecting");
+  },
+  onEvent(event) {
+    // ... existing event handling unchanged ...
+  },
+}).catch(() => {});
 ```
 
-In the cleanup return, set disconnected:
+In the cleanup return:
 
 ```typescript
 return () => {
@@ -762,7 +791,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): SSE connection status bann
 - Modify: `dashboard/src/i18n/en.json`
 - Modify: `dashboard/src/i18n/zh.json`
 
-**实施描述:** Make model/thinking/fast items in SessionConfigBar clickable to cycle values. Model opens a dropdown. Thinking cycles off→low→medium→high. Fast toggles on/off. Uses existing `sessions.patch` Gateway RPC.
+**实施描述:** Make thinking/fast items in SessionConfigBar clickable to cycle values. Model remains read-only (use `/model` slash command). Thinking cycles levels. Fast toggles on/off. Uses existing `sessions.patch` Gateway RPC.
 
 **验收标准:** Clicking Fast toggles it. Clicking Thinking cycles the level. All changes persist via `sessions.patch`.
 
@@ -776,23 +805,30 @@ scripts/committer "[enhanced][codex-impl] feat(deck): SSE connection status bann
 
 - [ ] **Step 1: Add patchSession helper to chat-api**
 
-In `dashboard/src/components/panels/chat/chat-api.ts`, add:
+In `dashboard/src/components/panels/chat/chat-api.ts`, add a thin wrapper. The endpoint at `dashboard/src/app/api/chat/sessions/patch/route.ts` expects **flat fields** (`{ sessionKey, model, thinkingLevel, fastMode, ... }`), not a nested `{ patch }` object:
 
 ```typescript
 export async function patchSession(
   sessionKey: string,
-  patch: Record<string, unknown>,
+  patch: {
+    label?: string | null;
+    thinkingLevel?: string | null;
+    fastMode?: boolean | null;
+    verboseLevel?: string | null;
+  },
 ): Promise<boolean> {
-  const res = await deckFetch("/api/chat/sessions/patch", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sessionKey, patch }),
-  });
-  return res.ok;
+  try {
+    const res = await deckFetch("/api/chat/sessions/patch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey, ...patch }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 ```
-
-Note: Check if the endpoint exists at `dashboard/src/app/api/chat/sessions/patch/route.ts`. If not, it needs to be created to forward to Gateway `sessions.patch`. However, verify by searching for existing session patch endpoints first.
 
 - [ ] **Step 2: Make SessionConfigBar items interactive**
 
@@ -958,7 +994,7 @@ import { useEffect, useRef, useState } from "react";
 import { patchSession } from "./chat-api";
 ```
 
-Add a handler for rename:
+Add handlers for rename. **Key design:** Enter triggers blur; onBlur is the single submit path (avoids double-submit). The session list item must NOT nest `<input>` inside `<button>` (HTML violation) — use a `<div>` container with separate click targets:
 
 ```typescript
 const handleStartRename = (session: SessionMeta) => {
@@ -966,47 +1002,83 @@ const handleStartRename = (session: SessionMeta) => {
   setEditValue(session.title ?? sessionTitle(session));
 };
 
-const handleFinishRename = async (sessionKey: string) => {
-  setEditingKey(null);
+const handleFinishRename = async (session: SessionMeta) => {
   const trimmed = editValue.trim();
-  if (!trimmed) return;
-  // Optimistic update
-  useChatStore
-    .getState()
-    .setSessionMetas(
-      sessionMetas.map((s) => (s.key === sessionKey ? { ...s, title: trimmed } : s)),
-    );
-  await patchSession(sessionKey, { label: trimmed });
-};
-
-const handleCancelRename = () => {
   setEditingKey(null);
+  if (!trimmed) return;
+  const current = session.title ?? sessionTitle(session);
+  if (trimmed === current) return;
+  const ok = await patchSession(session.key, { label: trimmed });
+  if (ok) {
+    useChatStore.setState((s) => {
+      const metas = s.sessionMetas.map((m) =>
+        m.key === session.key ? { ...m, title: trimmed } : m,
+      );
+      return { sessionMetas: metas, sessionMeta: metas };
+    });
+  }
 };
 ```
 
-In the session list item, wrap the title span to support double-click and inline edit:
+Replace the existing session `<button>` element in the map with a `<div>` container:
 
 ```tsx
-{
-  editingKey === session.key ? (
-    <input
-      ref={editRef}
-      className="w-full text-xs bg-[var(--background)] text-[var(--foreground)] border border-[var(--border)] rounded px-1 py-0.5"
-      value={editValue}
-      onChange={(e) => setEditValue(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") void handleFinishRename(session.key);
-        if (e.key === "Escape") handleCancelRename();
-      }}
-      onBlur={() => void handleFinishRename(session.key)}
-      autoFocus
-    />
-  ) : (
-    <span className="truncate w-full text-left" onDoubleClick={() => handleStartRename(session)}>
-      {sessionTitle(session)}
+<div
+  key={session.key}
+  className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group"
+  style={{
+    backgroundColor: isActive
+      ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+      : "transparent",
+    color: isActive ? "var(--primary)" : "var(--foreground)",
+  }}
+>
+  <div className="flex flex-col items-start min-w-0 flex-1">
+    {editingKey === session.key ? (
+      <input
+        ref={editRef}
+        className="w-full text-xs bg-[var(--background)] text-[var(--foreground)] border border-[var(--border)] rounded px-1 py-0.5"
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            setEditingKey(null);
+          }
+        }}
+        onBlur={() => void handleFinishRename(session)}
+        autoFocus
+      />
+    ) : (
+      <button
+        type="button"
+        className="truncate w-full text-left"
+        onClick={() => handleSelect(session)}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          handleStartRename(session);
+        }}
+      >
+        {sessionTitle(session)}
+      </button>
+    )}
+    <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+      {formatTime(session.updatedAt)}
     </span>
-  );
-}
+  </div>
+  <button
+    type="button"
+    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
+    onClick={(e) => void handleDelete(session.key, e)}
+    style={{ color: "var(--muted-foreground)" }}
+  >
+    <Trash2 size={12} />
+  </button>
+</div>
 ```
 
 - [ ] **Step 2: Run tests and type-check**
@@ -1118,9 +1190,9 @@ scripts/committer "[enhanced][codex-impl] feat(deck): session search filter in s
 
 - Modify: `dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx`
 
-**实施描述:** When `tool_result.content` is `ContentBlock[]` (array), render each block recursively instead of `JSON.stringify`. Currently `ToolResultCard` receives a `content: string` prop — need to also handle array case from the parent.
+**实施描述:** When `tool_result.content` is `ContentBlock[]` (array), extract text from each block instead of `JSON.stringify`. Currently `ToolResultCard` receives a `content: string` prop — need to also handle array case from the parent.
 
-**验收标准:** Nested tool_use/text/image blocks inside tool_result render with proper formatting.
+**验收标准:** Array content blocks are properly text-extracted (text blocks concatenated, non-text blocks JSON-formatted) instead of raw `JSON.stringify`.
 
 **测试要求:** Visual verification with nested content.
 
@@ -1178,7 +1250,7 @@ Expected: All pass
 - [ ] **Step 4: Commit**
 
 ```bash
-scripts/committer "[enhanced][codex-impl] feat(deck): tool result nested content block rendering" dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx
+scripts/committer "[enhanced][codex-impl] feat(deck): tool result nested content block rendering" dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx dashboard/src/components/panels/chat/MessageList.tsx
 ```
 
 ---
@@ -1206,9 +1278,10 @@ scripts/committer "[enhanced][codex-impl] feat(deck): tool result nested content
 In `dashboard/src/components/panels/chat/MessageInput.tsx`, add a `useEffect` near the approval-related code:
 
 ```typescript
-// Auto-clear expired approvals
+// Auto-clear expired approvals — deps include approval.id to handle same-expiry different-approval
 useEffect(() => {
   if (!activeApproval?.expiresAtMs) return;
+  const approvalId = activeApproval.id;
   const remaining = activeApproval.expiresAtMs - Date.now();
   if (remaining <= 0) {
     if (activeSessionKey) {
@@ -1217,12 +1290,16 @@ useEffect(() => {
     return;
   }
   const timer = setTimeout(() => {
-    if (activeSessionKey) {
+    // Verify same approval before clearing (guard against race)
+    const current = activeSessionKey
+      ? useChatStore.getState().sessions.get(activeSessionKey)?.activeApproval
+      : null;
+    if (current?.id === approvalId && activeSessionKey) {
       useChatStore.getState().setActiveApproval(activeSessionKey, null);
     }
   }, remaining);
   return () => clearTimeout(timer);
-}, [activeApproval?.expiresAtMs, activeSessionKey]);
+}, [activeApproval?.id, activeApproval?.expiresAtMs, activeSessionKey]);
 ```
 
 - [ ] **Step 2: Run tests**
@@ -1260,23 +1337,23 @@ scripts/committer "[enhanced][codex-impl] feat(deck): auto-clear expired approva
 
 - [ ] **Step 1: Add partial result indicator in MessageList**
 
-In `dashboard/src/components/panels/chat/MessageList.tsx`, find where assistant messages are rendered. After the message content, add:
+In `dashboard/src/components/panels/chat/MessageList.tsx`, the session-level `isStreaming` is already available via `useSessionStreaming()`. Find where each assistant message is rendered. After the message content block, add:
 
 ```tsx
 {
   /* Partial result indicator — message was streaming but session stopped */
 }
 {
-  msg.streaming && !isStreaming && (
+  message.streaming && !sessionIsStreaming && (
     <div className="flex items-center gap-1 mt-1 text-[10px] text-[var(--warning-muted-text)]">
-      <span>⚠</span>
+      <span className="text-[var(--warning)]">!</span>
       <span>{t("partialResult")}</span>
     </div>
   );
 }
 ```
 
-Where `isStreaming` comes from the store (session-level streaming state).
+Where `sessionIsStreaming` is the session-level streaming state (from the store hook already in MessageList scope), and `message.streaming` is the per-message flag. If the message rendering happens in a child component, pass `sessionIsStreaming` as a prop.
 
 - [ ] **Step 2: Add i18n keys**
 
