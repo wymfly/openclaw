@@ -252,6 +252,9 @@ jobs:
             shard_count: 2
             command: pnpm test
           - runtime: node
+            task: dashboard
+            command: pnpm test:dashboard
+          - runtime: node
             task: extensions
             command: pnpm test:extensions
           - runtime: node

@@ -50,12 +50,23 @@ async function loadTelegramNetworkModules(): Promise<void> {
 
 describe("fetchRemoteMedia telegram network policy", () => {
   type LookupFn = NonNullable<Parameters<typeof fetchRemoteMedia>[0]["lookupFn"]>;
+  const proxyEnvKeys = [
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+  ] as const;
 
   beforeEach(async () => {
     undiciMocks.fetch.mockReset();
     undiciMocks.agentCtor.mockClear();
     undiciMocks.envHttpProxyAgentCtor.mockClear();
     undiciMocks.proxyAgentCtor.mockClear();
+    for (const key of proxyEnvKeys) {
+      vi.stubEnv(key, "");
+    }
     (globalThis as Record<string, unknown>)[TEST_UNDICI_RUNTIME_DEPS_KEY] = {
       Agent: undiciMocks.agentCtor,
       EnvHttpProxyAgent: undiciMocks.envHttpProxyAgentCtor,

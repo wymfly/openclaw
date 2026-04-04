@@ -441,10 +441,12 @@ describe("channel import guardrails", () => {
 
   it("keeps core production files off extension private src imports", () => {
     for (const file of collectCoreSourceFiles()) {
-      const text = readSource(file);
-      expect(text, `${file} should not import extensions/*/src`).not.toMatch(
-        /["'][^"']*extensions\/[^/"']+\/src\//,
-      );
+      const imports = collectImportSpecifiers(readSource(file));
+      for (const specifier of imports) {
+        expect(specifier, `${file} should not import extensions/*/src`).not.toMatch(
+          /extensions\/[^/"']+\/src\//,
+        );
+      }
     }
   });
 
