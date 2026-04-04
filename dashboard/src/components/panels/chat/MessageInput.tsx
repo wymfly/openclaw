@@ -154,6 +154,7 @@ export function MessageInput() {
   const { isStreaming } = useSessionStreaming();
   const hasMessages = messages.length > 0;
   const activeAgentId = useChatStore((s) => s.activeAgentId);
+  const pendingCount = useApprovalsStore((s) => s.pending.length);
   const resolveApproval = useApprovalsStore((s) => s.resolveApproval);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -625,7 +626,11 @@ export function MessageInput() {
       onDragOver={(e) => e.preventDefault()}
     >
       {activeApproval && (
-        <ApprovalDialog approval={activeApproval} onResolve={handleResolveApproval} />
+        <ApprovalDialog
+          approval={activeApproval}
+          pendingCount={pendingCount}
+          onResolve={handleResolveApproval}
+        />
       )}
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">

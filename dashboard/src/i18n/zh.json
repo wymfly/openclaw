@@ -1211,6 +1211,7 @@
     "approve": "批准",
     "approveAlways": "始终批准",
     "deny": "拒绝",
+    "pendingBadge": "待处理",
     "command": "命令",
     "agent": "智能体",
     "requestedAt": "请求时间",

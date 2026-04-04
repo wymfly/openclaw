@@ -59,6 +59,11 @@ export type ApprovalRequest = {
   toolName: string;
   command?: string;
   description?: string;
+  sessionKey?: string;
+  agentId?: string;
+  cwd?: string;
+  createdAtMs?: number;
+  expiresAtMs?: number;
 };
 
 /** @deprecated Use ApprovalRequest — kept for migration compatibility. */
