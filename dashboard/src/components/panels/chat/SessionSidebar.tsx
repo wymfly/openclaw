@@ -2,12 +2,13 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { deckFetch } from "@/lib/deck-client";
 import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
+import { patchSession } from "./chat-api";
 
 function formatTime(ts?: number): string {
   if (!ts) {
@@ -47,6 +48,10 @@ function sessionTitle(session: SessionMeta): string {
 
 export function SessionSidebar() {
   const t = useTranslations("chat");
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const editRef = useRef<HTMLInputElement>(null);
+  const cancelRenameRef = useRef(false);
   const activeSessionKey = useActiveSessionKey();
   const activeAgentId = useChatStore((s) => s.activeAgentId);
   const sessionMetas = useChatStore((s) => s.sessionMetas);
@@ -83,6 +88,37 @@ export function SessionSidebar() {
       if (activeSessionKey === sessionKey) {
         setActiveSession(null);
       }
+    }
+  };
+
+  const handleStartRename = (session: SessionMeta) => {
+    cancelRenameRef.current = false;
+    setEditingKey(session.key);
+    setEditValue(session.title ?? sessionTitle(session));
+  };
+
+  const handleFinishRename = async (session: SessionMeta) => {
+    if (cancelRenameRef.current) {
+      cancelRenameRef.current = false;
+      return;
+    }
+    const trimmed = editValue.trim();
+    setEditingKey(null);
+    if (!trimmed) {
+      return;
+    }
+    const current = session.title ?? sessionTitle(session);
+    if (trimmed === current) {
+      return;
+    }
+    const ok = await patchSession(session.key, { label: trimmed });
+    if (ok) {
+      useChatStore.setState((s) => {
+        const metas = s.sessionMetas.map((m) =>
+          m.key === session.key ? { ...m, title: trimmed } : m,
+        );
+        return { sessionMetas: metas, sessionMeta: metas };
+      });
     }
   };
 
@@ -127,9 +163,8 @@ export function SessionSidebar() {
         {sessionMetas.map((session) => {
           const isActive = activeSessionKey === session.key;
           return (
-            <button
+            <div
               key={session.key}
-              onClick={() => handleSelect(session)}
               className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group"
               style={{
                 backgroundColor: isActive
@@ -138,22 +173,53 @@ export function SessionSidebar() {
                 color: isActive ? "var(--primary)" : "var(--foreground)",
               }}
             >
-              <div className="flex flex-col items-start min-w-0">
-                <span className="truncate w-full text-left">{sessionTitle(session)}</span>
+              <div className="flex flex-col items-start min-w-0 flex-1">
+                {editingKey === session.key ? (
+                  <input
+                    ref={editRef}
+                    className="w-full text-xs bg-[var(--background)] text-[var(--foreground)] border border-[var(--border)] rounded px-1 py-0.5"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelRenameRef.current = true;
+                        setEditingKey(null);
+                      }
+                    }}
+                    onBlur={() => void handleFinishRename(session)}
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="truncate w-full text-left"
+                    onClick={() => handleSelect(session)}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      handleStartRename(session);
+                    }}
+                  >
+                    {sessionTitle(session)}
+                  </button>
+                )}
                 <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                   {formatTime(session.updatedAt)}
                 </span>
               </div>
-              <span
+              <button
+                type="button"
                 className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
                 onClick={(e) => void handleDelete(session.key, e)}
-                role="button"
-                tabIndex={-1}
                 style={{ color: "var(--muted-foreground)" }}
               >
                 <Trash2 size={12} />
-              </span>
-            </button>
+              </button>
+            </div>
           );
         })}
       </div>
