@@ -26,4 +26,4 @@
 
 - [x] 5.1 建立 capability coverage review，明确”Gateway 方法族覆盖”如何判定 — Gateway 方法族覆盖清单已建立（2026-04-04）：22 个 Deck-relevant 族（7 Covered + 11 Functional + 4 Partial），P0 11/11 ✅，P1 8/8 ✅
 - [ ] 5.2 建立 workflow validation，要求关键真实工作流在历史态、实时态、刷新、重连下保持一致 — Playwright 已配置 + 5 个 E2E specs（navigation/onboarding/settings/doc-hub/models）；待补：P0 模块（Chat/Approval/Canvas/Sessions）的完整工作流 specs
-- [ ] 5.3 建立 `enhanced` 合流门：只有模块通过 closure checklist 与 workflow validation 后才进入稳定集成 — 待定义形式化合流标准
+- [x] 5.3 建立 `enhanced` 合流门：只有模块通过 closure checklist 与 workflow validation 后才进入稳定集成 — Enhanced Merge Gate 已定义（2026-04-04）：3 项前提 + 7 项 checklist + 合流流程 + 批量/逐模块策略
