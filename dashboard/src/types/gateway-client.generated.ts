@@ -120,6 +120,8 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "sessions.subscribe",
   "sessions.unsubscribe",
   "sessions.usage",
+  "sessions.usage.logs",
+  "sessions.usage.timeseries",
   "set-heartbeats",
   "skills.bins",
   "skills.install",
@@ -253,10 +255,20 @@ export interface GatewayClient {
       params: import("./gateway-protocol.generated").SessionsCompactParams,
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").SessionsCompactResult>;
-    usage(
-      params: import("./gateway-protocol.generated").SessionsUsageParams,
-      options?: { timeoutMs?: number },
-    ): Promise<import("./gateway-protocol.generated").SessionsUsageResult>;
+    usage: {
+      $call(
+        params: import("./gateway-protocol.generated").SessionsUsageParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsUsageResult>;
+      logs(
+        params: import("./gateway-protocol.generated").SessionsUsageLogsParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsUsageLogsResult>;
+      timeseries(
+        params: import("./gateway-protocol.generated").SessionsUsageTimeseriesParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsUsageTimeseriesResult>;
+    };
   };
   skills: {
     install(
@@ -422,7 +434,11 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       clear: call("sessions.clear"),
       delete: call("sessions.delete"),
       compact: call("sessions.compact"),
-      usage: call("sessions.usage"),
+      usage: {
+        $call: call("sessions.usage"),
+        logs: call("sessions.usage.logs"),
+        timeseries: call("sessions.usage.timeseries"),
+      },
     },
     skills: {
       install: call("skills.install"),

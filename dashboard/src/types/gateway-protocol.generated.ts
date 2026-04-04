@@ -637,6 +637,40 @@ export type SessionsUsageResult = {
   };
 };
 
+export interface SessionsUsageLogsParams {
+  key: string;
+  limit?: number;
+}
+
+export type SessionsUsageLogsResult = {
+  logs: {
+    timestamp: number;
+    role: "user" | "assistant" | "tool" | "toolResult";
+    content: string;
+    tokens?: number;
+    cost?: number;
+  }[];
+};
+
+export interface SessionsUsageTimeseriesParams {
+  key: string;
+}
+
+export interface SessionsUsageTimeseriesResult {
+  sessionId?: string;
+  points: {
+    timestamp: number;
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    totalTokens: number;
+    cost: number;
+    cumulativeTokens: number;
+    cumulativeCost: number;
+  }[];
+}
+
 export type SkillsInstallParams =
   | {
       name: string;
@@ -1209,6 +1243,11 @@ export interface GatewayMethodMap {
   "sessions.delete": { params: SessionsDeleteParams; result: SessionsDeleteResult };
   "sessions.compact": { params: SessionsCompactParams; result: SessionsCompactResult };
   "sessions.usage": { params: SessionsUsageParams; result: SessionsUsageResult };
+  "sessions.usage.logs": { params: SessionsUsageLogsParams; result: SessionsUsageLogsResult };
+  "sessions.usage.timeseries": {
+    params: SessionsUsageTimeseriesParams;
+    result: SessionsUsageTimeseriesResult;
+  };
   "skills.install": { params: SkillsInstallParams; result: SkillsInstallResult };
   "deck.commands.discover": {
     params: DeckCommandsDiscoverParams;

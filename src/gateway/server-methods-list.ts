@@ -92,6 +92,8 @@ const BASE_METHODS = [
   "sessions.delete",
   "sessions.compact",
   "sessions.usage",
+  "sessions.usage.logs",
+  "sessions.usage.timeseries",
   "last-heartbeat",
   "set-heartbeats",
   "wake",

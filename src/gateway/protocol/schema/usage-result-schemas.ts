@@ -324,3 +324,64 @@ export const SessionsUsageResultSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+export const SessionLogEntrySchema = Type.Object(
+  {
+    timestamp: Type.Number(),
+    role: Type.Union([
+      Type.Literal("user"),
+      Type.Literal("assistant"),
+      Type.Literal("tool"),
+      Type.Literal("toolResult"),
+    ]),
+    content: Type.String(),
+    tokens: Type.Optional(Type.Number()),
+    cost: Type.Optional(Type.Number()),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsUsageLogsParamsSchema = Type.Object(
+  {
+    key: NonEmptyString,
+    limit: Type.Optional(Type.Number({ maximum: 1000, default: 200 })),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsUsageLogsResultSchema = Type.Object(
+  {
+    logs: Type.Array(SessionLogEntrySchema),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionUsageTimePointSchema = Type.Object(
+  {
+    timestamp: Type.Number(),
+    input: Type.Number(),
+    output: Type.Number(),
+    cacheRead: Type.Number(),
+    cacheWrite: Type.Number(),
+    totalTokens: Type.Number(),
+    cost: Type.Number(),
+    cumulativeTokens: Type.Number(),
+    cumulativeCost: Type.Number(),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsUsageTimeseriesParamsSchema = Type.Object(
+  {
+    key: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsUsageTimeseriesResultSchema = Type.Object(
+  {
+    sessionId: Type.Optional(Type.String()),
+    points: Type.Array(SessionUsageTimePointSchema),
+  },
+  { additionalProperties: false },
+);
