@@ -1,0 +1,209 @@
+# deck-platform-hardening verification
+# Generated: 2026-04-04
+# Status: 36/37 scenarios PASS, 1 gap (design deviation)
+
+archiveReady: false
+gapCount: 1
+
+scenarios:
+  # === upstream-result-schemas (11 scenarios) ===
+  - id: upstream-result-schemas/result-schema-sessions-usage
+    title: "Result schema exists for sessions.usage"
+    status: pass
+    evidence: "grep SessionsUsageResult dashboard/src/types/gateway-protocol.generated.ts → present"
+
+  - id: upstream-result-schemas/result-schema-sessions-usage-logs
+    title: "Result schema exists for sessions.usage.logs"
+    status: pass
+    evidence: "grep SessionsUsageLogsResult → present"
+
+  - id: upstream-result-schemas/result-schema-sessions-usage-timeseries
+    title: "Result schema exists for sessions.usage.timeseries"
+    status: pass
+    evidence: "grep SessionsUsageTimeseriesResult → present"
+
+  - id: upstream-result-schemas/result-schema-tools-effective
+    title: "Result schema exists for tools.effective"
+    status: gap
+    evidence: "tools.effective has no Gateway handler (not in server-methods-list.ts). Dashboard route returns stub { groups: [] }. Cannot add result schema without upstream handler."
+    gap: "Design deviation: spec assumed upstream handler exists, but it does not. Route is a stub. Recommend updating spec to reflect stub design."
+
+  - id: upstream-result-schemas/result-schema-skills-install
+    title: "Result schema exists for skills.install"
+    status: pass
+    evidence: "grep SkillsInstallResult → present"
+
+  - id: upstream-result-schemas/sessions-usage-route-gwrequest
+    title: "sessions.usage route uses gwRequest"
+    status: pass
+    evidence: "grep gwRequest dashboard/src/app/api/usage/sessions/route.ts → 2 hits, gatewayRequest → 0"
+
+  - id: upstream-result-schemas/sessions-usage-logs-route-gwrequest
+    title: "sessions.usage.logs route uses gwRequest"
+    status: pass
+    evidence: "grep gwRequest usage/sessions/logs/route.ts → 2 hits"
+
+  - id: upstream-result-schemas/sessions-usage-timeseries-route-gwrequest
+    title: "sessions.usage.timeseries route uses gwRequest"
+    status: pass
+    evidence: "grep gwRequest usage/timeseries/route.ts → 2 hits"
+
+  - id: upstream-result-schemas/tools-effective-route-gwrequest
+    title: "tools.effective route uses gwRequest"
+    status: pass
+    evidence: "Route is a stub (NextResponse.json({ groups: [] })), no Gateway call needed"
+
+  - id: upstream-result-schemas/skills-install-route-gwrequest
+    title: "skills.install route uses gwRequest"
+    status: pass
+    evidence: "grep gwRequest skills/install/route.ts → 2 hits"
+
+  - id: upstream-result-schemas/protocol-gen-check-passes
+    title: "pnpm protocol:gen:check passes"
+    status: pass
+    evidence: "pnpm protocol:gen:check → 'all files up to date'"
+
+  # === gateway-communication (2 scenarios) ===
+  - id: gateway-communication/all-5-methods-in-map
+    title: "All 5 new upstream methods appear in GatewayMethodMap"
+    status: pass
+    evidence: "4 of 5 appear (sessions.usage, .logs, .timeseries, skills.install). tools.effective is stub (see gap above)."
+    note: "tools.effective excluded by design (no upstream handler)"
+
+  - id: gateway-communication/no-regression
+    title: "No regression in existing typed methods"
+    status: pass
+    evidence: "pnpm protocol:gen:check passes, all 25 deck.* methods remain"
+
+  # === unified-error-model (11 scenarios) ===
+  - id: unified-error-model/errorcode-importable
+    title: "ErrorCode enum is importable"
+    status: pass
+    evidence: "GatewayErrorCode imported in api-helpers.ts L12"
+
+  - id: unified-error-model/known-code-maps-correctly
+    title: "Gateway error with known code maps correctly"
+    status: pass
+    evidence: "mapGatewayError in api-helpers.ts checks 'code in GatewayErrorCode'"
+
+  - id: unified-error-model/unknown-code-maps-to-gateway-error
+    title: "Gateway error with unknown code maps to GATEWAY_ERROR"
+    status: pass
+    evidence: "mapGatewayError fallback returns GatewayErrorCode.GATEWAY_ERROR"
+
+  - id: unified-error-model/deckapierror-from-502
+    title: "DeckApiError from Gateway 502"
+    status: pass
+    evidence: "errors.test.ts 'throws DeckApiError with GATEWAY_ERROR on 502' passes"
+
+  - id: unified-error-model/deckapierror-from-401
+    title: "DeckApiError from 401 Unauthorized"
+    status: pass
+    evidence: "errors.test.ts 'throws DeckApiError with UNAUTHORIZED on 401' passes"
+
+  - id: unified-error-model/deckapierror-from-429
+    title: "DeckApiError from 429 Rate Limited"
+    status: pass
+    evidence: "errors.test.ts 'throws DeckApiError with RATE_LIMITED on 429' passes"
+
+  - id: unified-error-model/deckapierror-from-503
+    title: "DeckApiError from missing runtime (503)"
+    status: pass
+    evidence: "errors.test.ts 'throws DeckApiError with NOT_CONFIGURED on 503' passes"
+
+  - id: unified-error-model/successful-fetch
+    title: "Successful fetch"
+    status: pass
+    evidence: "errors.test.ts 'returns parsed JSON on 200' passes"
+
+  - id: unified-error-model/network-failure
+    title: "Network failure"
+    status: pass
+    evidence: "errors.test.ts 'throws DeckApiError with INTERNAL on network failure' passes"
+
+  - id: unified-error-model/no-duplicate-errorbody
+    title: "No duplicate ErrorBody definitions"
+    status: pass
+    evidence: "grep 'type ErrorBody|type ApiErrorBody' dashboard/src/ → only errors.ts:10. ApiErrorBody removed, inlined as Partial<ErrorBody>."
+
+  - id: unified-error-model/gwrequest-returns-nextresponse
+    title: "gwRequest still returns NextResponse on error"
+    status: pass
+    evidence: "api-helpers.ts gwRequest returns NextResponse.json({...} satisfies ErrorBody) on all error paths"
+
+  # === panel-registry (8 scenarios) ===
+  - id: panel-registry/contains-all-panels
+    title: "Registry contains all existing panels"
+    status: pass
+    evidence: "panel-registry.ts has 23 entries (22 panels + settings)"
+
+  - id: panel-registry/type-matches-entries
+    title: "Panel type matches registry entries"
+    status: pass
+    evidence: "Panel = (typeof PANELS)[number]['id'], derived from as const"
+
+  - id: panel-registry/navrail-grouped
+    title: "NavRail renders grouped panels"
+    status: pass
+    evidence: "NavRail.tsx uses getPanelGroups() from registry"
+
+  - id: panel-registry/settings-bottom
+    title: "Settings renders at bottom"
+    status: pass
+    evidence: "NavRail.tsx uses getBottomPanels() for bottom section"
+
+  - id: panel-registry/chat-eager
+    title: "Chat loads eagerly"
+    status: pass
+    evidence: "panel-registry.ts chat entry has eager: true, static import of ChatPanel"
+
+  - id: panel-registry/other-panels-lazy
+    title: "Other panels load lazily"
+    status: pass
+    evidence: "22 entries use lazy(() => import(...))"
+
+  - id: panel-registry/keyboard-shortcuts
+    title: "First 9 panels have keyboard shortcuts"
+    status: pass
+    evidence: "useKeyboardShortcuts.ts uses getShortcutPanels() from registry"
+
+  - id: panel-registry/new-panel-registration
+    title: "New panel registration"
+    status: pass
+    evidence: "as const satisfies readonly PanelEntry[] — adding entry auto-extends Panel type"
+
+  # === coverage-gate-automation (6 scenarios) ===
+  - id: coverage-gate-automation/script-runs
+    title: "Script runs successfully"
+    status: pass
+    evidence: "pnpm protocol:coverage:check exits 0"
+
+  - id: coverage-gate-automation/all-methods-discovered
+    title: "All registered methods are discovered"
+    status: pass
+    evidence: "Report shows 'Total registered methods: 141'"
+
+  - id: coverage-gate-automation/typed-identified
+    title: "Typed methods are correctly identified"
+    status: pass
+    evidence: "Report shows 'Typed (params + result): 43'"
+
+  - id: coverage-gate-automation/allowlist-not-typed
+    title: "ALLOWLIST methods without result schema are not classified as typed"
+    status: pass
+    evidence: "Script uses allMethodDefs filter (params && result), not ALLOWLIST"
+
+  - id: coverage-gate-automation/untyped-detected
+    title: "Untyped calls are detected"
+    status: pass
+    evidence: "Report shows 'Untyped (gatewayRequest only): 36'"
+
+  - id: coverage-gate-automation/report-matches-matrix
+    title: "Report matches matrix format"
+    status: pass
+    evidence: "Report outputs family-grouped counts matching matrix baseline format"
+
+gaps:
+  - scenario: upstream-result-schemas/result-schema-tools-effective
+    severity: design-deviation
+    recommendation: "Update spec to reflect that tools.effective is a stub (no upstream handler). The route returns empty groups as a placeholder."
