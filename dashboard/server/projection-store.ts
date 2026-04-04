@@ -58,9 +58,7 @@ const toOutboxEntry = (row: OutboxRow): OutboxEntry => ({
 });
 
 const CHAT_SESSION_PROJECTION_PREFIX = "chat_projection:";
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === "object");
+const PROJECTION_PREFIX = "projection:";
 
 // ---------------------------------------------------------------------------
 // ProjectionStore
@@ -176,36 +174,49 @@ export class ProjectionStore {
   // -- Chat session projection API ------------------------------------------
 
   getChatSessionProjection(sessionKey: string): ChatSessionProjection | null {
-    const key = this.chatSessionProjectionKey(sessionKey);
-    if (!key) {
+    return this.getProjection<ChatSessionProjection>("chat", sessionKey);
+  }
+
+  setChatSessionProjection(sessionKey: string, projection: ChatSessionProjection): void {
+    this.setProjection("chat", sessionKey, projection);
+  }
+
+  clearChatSessionProjection(sessionKey: string): boolean {
+    return this.clearProjection("chat", sessionKey);
+  }
+
+  // -- Generic projection API -------------------------------------------------
+
+  getProjection<T>(domain: string, key: string): T | null {
+    const storageKey = this.projectionKey(domain, key);
+    if (!storageKey) {
       return null;
     }
-    const raw = this.getSetting(key);
+    const raw = this.getSetting(storageKey);
     if (!raw) {
       return null;
     }
     try {
-      const parsed = JSON.parse(raw) as unknown;
-      return isObject(parsed) ? (parsed as ChatSessionProjection) : null;
+      return JSON.parse(raw) as T;
     } catch {
       return null;
     }
   }
 
-  setChatSessionProjection(sessionKey: string, projection: ChatSessionProjection): void {
-    const key = this.chatSessionProjectionKey(sessionKey);
-    if (!key) {
+  setProjection<T>(domain: string, key: string, data: T): void {
+    const storageKey = this.projectionKey(domain, key);
+    if (!storageKey) {
       return;
     }
-    this.setSetting(key, JSON.stringify(projection));
+    this.setSetting(storageKey, JSON.stringify(data));
   }
 
-  clearChatSessionProjection(sessionKey: string): boolean {
-    const key = this.chatSessionProjectionKey(sessionKey);
-    if (!key) {
+  clearProjection(domain: string, key: string): boolean {
+    const storageKey = this.projectionKey(domain, key);
+    if (!storageKey) {
       return false;
     }
-    return this.deleteSetting(key);
+    return this.deleteSetting(storageKey);
   }
 
   // -- Maintenance -----------------------------------------------------------
@@ -226,12 +237,15 @@ export class ProjectionStore {
     this.db.close();
   }
 
-  private chatSessionProjectionKey(sessionKey: string): string | null {
-    const normalized = sessionKey.trim();
-    if (!normalized) {
+  private projectionKey(domain: string, key: string): string | null {
+    const normalizedKey = key.trim();
+    if (!normalizedKey) {
       return null;
     }
-    return `${CHAT_SESSION_PROJECTION_PREFIX}${normalized}`;
+    if (domain === "chat") {
+      return `${CHAT_SESSION_PROJECTION_PREFIX}${normalizedKey}`;
+    }
+    return `${PROJECTION_PREFIX}${domain}:${normalizedKey}`;
   }
 }
 
