@@ -79,6 +79,7 @@
     "abort": "停止",
     "newSession": "新建会话",
     "defaultAgent": "默认智能体",
+    "searchSessions": "搜索会话...",
     "noMessages": "还没有消息，开始对话吧",
     "thinking": "思考中...",
     "toolUse": "工具调用",

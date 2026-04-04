@@ -79,6 +79,7 @@
     "abort": "Stop",
     "newSession": "New Session",
     "defaultAgent": "Default Agent",
+    "searchSessions": "Search sessions...",
     "noMessages": "No messages yet. Start a conversation!",
     "thinking": "Thinking...",
     "toolUse": "Tool Call",
