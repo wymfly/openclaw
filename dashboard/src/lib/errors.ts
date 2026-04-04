@@ -64,7 +64,7 @@ export async function fetchApi<T>(url: RequestInfo | URL, init?: RequestInit): P
   let response: Response;
 
   try {
-    response = await fetch(url, init);
+    response = init ? await fetch(url, init) : await fetch(url);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Network request failed";
     throw new DeckApiError(GatewayErrorCode.INTERNAL, 0, { error: message });
