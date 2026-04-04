@@ -158,11 +158,20 @@ export async function handleProjectionGap(): Promise<void> {
       sessionKey: activeSessionKey,
       agentId: activeAgentId ?? undefined,
     });
-    const msgs = normalizeHistoryMessages(activeSessionKey, snapshot.messages);
 
-    // Re-read store — state may have changed during the async fetch
+    // Re-read store — state may have changed during the async fetch.
+    // Guard against session switch or streaming start during the fetch.
     const currentStore = useChatStore.getState();
-    const currentMessages = currentStore.sessions.get(activeSessionKey)?.messages ?? [];
+    if (currentStore.activeSessionKey !== activeSessionKey) {
+      return;
+    }
+    const currentSession = currentStore.sessions.get(activeSessionKey);
+    if (currentSession?.isStreaming) {
+      return;
+    }
+
+    const msgs = normalizeHistoryMessages(activeSessionKey, snapshot.messages);
+    const currentMessages = currentSession?.messages ?? [];
 
     // Preserve locally-added messages for brand-new sessions
     if (!(msgs.length === 0 && currentMessages.length > 0)) {
@@ -171,6 +180,25 @@ export async function handleProjectionGap(): Promise<void> {
 
     currentStore.setActiveApproval(activeSessionKey, snapshot.activeApproval);
     currentStore.setA2UIState(activeSessionKey, snapshot.a2uiState);
+
+    // Sync session metadata (status, timing) — consistent with ChatPanel
+    if (snapshot.meta) {
+      const meta = snapshot.meta;
+      currentStore.updateSessionState(activeSessionKey, {
+        status:
+          meta.status === "running" ||
+          meta.status === "done" ||
+          meta.status === "failed" ||
+          meta.status === "killed" ||
+          meta.status === "timeout"
+            ? meta.status
+            : undefined,
+        startedAt: meta.startedAt,
+        endedAt: meta.endedAt,
+        runtimeMs: meta.runtimeMs,
+        fastMode: meta.fastMode,
+      });
+    }
   } catch {
     // Snapshot fetch failed — non-critical, user can manually refresh
   } finally {
