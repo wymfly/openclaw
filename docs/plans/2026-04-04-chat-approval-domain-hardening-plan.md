@@ -55,7 +55,7 @@
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `dashboard/src/stores/__tests__/chat-store-slc3.test.ts`:
 
@@ -107,12 +107,12 @@ describe("SLC-3: setStreaming clears activeApproval", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd dashboard && pnpm test -- src/stores/__tests__/chat-store-slc3.test.ts -v`
 Expected: FAIL — `activeApproval` is not cleared when streaming=false
 
-- [ ] **Step 3: Fix setStreaming in chat.ts**
+- [x] **Step 3: Fix setStreaming in chat.ts**
 
 In `dashboard/src/stores/chat.ts`, modify the `setStreaming` action (around line 353-368). Change:
 
@@ -158,17 +158,17 @@ To:
     }),
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd dashboard && pnpm test -- src/stores/__tests__/chat-store-slc3.test.ts -v`
 Expected: PASS
 
-- [ ] **Step 5: Run full test suite for regression**
+- [x] **Step 5: Run full test suite for regression**
 
 Run: `cd dashboard && pnpm test`
 Expected: All tests pass
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] fix(deck): SLC-3 — clear activeApproval when streaming stops" dashboard/src/stores/chat.ts dashboard/src/stores/__tests__/chat-store-slc3.test.ts
@@ -199,7 +199,7 @@ scripts/committer "[enhanced][codex-impl] fix(deck): SLC-3 — clear activeAppro
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Extend ApprovalRequest type**
+- [x] **Step 1: Extend ApprovalRequest type**
 
 In `dashboard/src/stores/chat-types.ts`, change:
 
@@ -228,7 +228,7 @@ export type ApprovalRequest = {
 };
 ```
 
-- [ ] **Step 2: Update dispatchApproval to pass extra fields**
+- [x] **Step 2: Update dispatchApproval to pass extra fields**
 
 In `dashboard/src/components/panels/chat/useChatSSE.ts`, find the `approval.pending` handler (around line 288-307). Change:
 
@@ -289,7 +289,7 @@ if (event.event === "approval.pending") {
 }
 ```
 
-- [ ] **Step 3: Rewrite ApprovalDialog with countdown + metadata + loading**
+- [x] **Step 3: Rewrite ApprovalDialog with countdown + metadata + loading**
 
 Replace `dashboard/src/components/panels/chat/ApprovalDialog.tsx` entirely:
 
@@ -437,7 +437,7 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
 }
 ```
 
-- [ ] **Step 4: Update MessageInput to pass pendingCount**
+- [x] **Step 4: Update MessageInput to pass pendingCount**
 
 In `dashboard/src/components/panels/chat/MessageInput.tsx`, where `<ApprovalDialog>` is rendered (around the approval section), add a `pendingCount` prop. Find the approval render section and add:
 
@@ -455,7 +455,7 @@ const pendingCount = useApprovalsStore((s) => s.pending.length);
 
 Note: `useApprovalsStore` is already imported in MessageInput.tsx. Just add the `pendingCount` selector and pass it.
 
-- [ ] **Step 5: Add i18n keys**
+- [x] **Step 5: Add i18n keys**
 
 In `dashboard/src/i18n/en.json`, add to the `"approvals"` section:
 
@@ -469,12 +469,12 @@ In `dashboard/src/i18n/zh.json`, add to the `"approvals"` section:
 "pendingBadge": "待处理"
 ```
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run: `cd dashboard && pnpm test`
 Expected: All tests pass
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): approval dialog — countdown, metadata, loading state" dashboard/src/stores/chat-types.ts dashboard/src/components/panels/chat/ApprovalDialog.tsx dashboard/src/components/panels/chat/useChatSSE.ts dashboard/src/components/panels/chat/MessageInput.tsx dashboard/src/i18n/en.json dashboard/src/i18n/zh.json
@@ -502,7 +502,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): approval dialog — countd
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Add status prop and badge to RunStatusBar**
+- [x] **Step 1: Add status prop and badge to RunStatusBar**
 
 In `dashboard/src/components/panels/chat/RunStatusBar.tsx`, modify the props interface and component:
 
@@ -557,7 +557,7 @@ Add as the first child inside the flex container div:
 }
 ```
 
-- [ ] **Step 2: Add i18n keys**
+- [x] **Step 2: Add i18n keys**
 
 In `dashboard/src/i18n/en.json`, add to the `"chat"` section:
 
@@ -581,7 +581,7 @@ In `dashboard/src/i18n/zh.json`, add matching keys:
 "status_timeout": "超时"
 ```
 
-- [ ] **Step 3: Wire sessionStatus in the parent component**
+- [x] **Step 3: Wire sessionStatus in the parent component**
 
 Where `RunStatusBar` is rendered (in `MessageList.tsx` or `ChatPanel.tsx`), pass the session status from the store. Locate the rendering site and add:
 
@@ -597,12 +597,12 @@ const sessionStatus = useChatStore((s) => {
 
 Note: The parent component file (likely `MessageList.tsx` or `ChatPanel.tsx`) must be included in the commit.
 
-- [ ] **Step 4: Run tests and type-check**
+- [x] **Step 4: Run tests and type-check**
 
 Run: `cd dashboard && pnpm test && cd .. && pnpm tsgo`
 Expected: All pass
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): run status badge in RunStatusBar" dashboard/src/components/panels/chat/RunStatusBar.tsx dashboard/src/components/panels/chat/MessageList.tsx dashboard/src/i18n/en.json dashboard/src/i18n/zh.json
@@ -635,7 +635,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): run status badge in RunSta
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Add SSE status type and store field**
+- [x] **Step 1: Add SSE status type and store field**
 
 In `dashboard/src/stores/chat-types.ts`, add after the `DEFAULT_EVICT_IDLE_MS` constant:
 
@@ -653,7 +653,7 @@ setSSEStatus: (status: SSEConnectionStatus) => set({ sseStatus: status }),
 
 Also add `SSEConnectionStatus` to the imports from `chat-types.ts` and add `sseStatus` + `setSSEStatus` to the store type interface.
 
-- [ ] **Step 2: Add useSSEStatus hook**
+- [x] **Step 2: Add useSSEStatus hook**
 
 In `dashboard/src/stores/chat-hooks.ts`, add:
 
@@ -663,7 +663,7 @@ export function useSSEStatus() {
 }
 ```
 
-- [ ] **Step 3: Add lifecycle callbacks to deckStream**
+- [x] **Step 3: Add lifecycle callbacks to deckStream**
 
 In `dashboard/src/lib/deck-client.ts`, extend `DeckStreamOptions` interface with two optional callbacks:
 
@@ -676,7 +676,7 @@ onRetry?: () => void;
 
 Inside the `deckStream` function, call `options.onOpen?.()` after verifying `response.ok && response.body` (around line 153), and call `options.onRetry?.()` just before `await waitForReconnect(...)` (around line 202).
 
-- [ ] **Step 4: Update useChatSSE to track connection status via callbacks**
+- [x] **Step 4: Update useChatSSE to track connection status via callbacks**
 
 In `dashboard/src/components/panels/chat/useChatSSE.ts`, update the `deckStream` call:
 
@@ -706,7 +706,7 @@ return () => {
 };
 ```
 
-- [ ] **Step 4: Create SSEStatusBanner component**
+- [x] **Step 4: Create SSEStatusBanner component**
 
 Create `dashboard/src/components/panels/chat/SSEStatusBanner.tsx`:
 
@@ -743,7 +743,7 @@ export function SSEStatusBanner() {
 }
 ```
 
-- [ ] **Step 5: Insert banner in ChatPanel**
+- [x] **Step 5: Insert banner in ChatPanel**
 
 In `dashboard/src/components/panels/chat/ChatPanel.tsx`, import and place `SSEStatusBanner` at the top of the main content area (after the sidebar, before the message list):
 
@@ -753,7 +753,7 @@ import { SSEStatusBanner } from "./SSEStatusBanner";
 <SSEStatusBanner />;
 ```
 
-- [ ] **Step 6: Add i18n keys**
+- [x] **Step 6: Add i18n keys**
 
 In `dashboard/src/i18n/en.json`, add to `"chat"`:
 
@@ -769,12 +769,12 @@ In `dashboard/src/i18n/zh.json`, add to `"chat"`:
 "sseDisconnected": "已断开服务器连接"
 ```
 
-- [ ] **Step 7: Run tests and type-check**
+- [x] **Step 7: Run tests and type-check**
 
 Run: `cd dashboard && pnpm test && cd .. && pnpm tsgo`
 Expected: All pass
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): SSE connection status banner" dashboard/src/stores/chat-types.ts dashboard/src/stores/chat.ts dashboard/src/stores/chat-hooks.ts dashboard/src/components/panels/chat/useChatSSE.ts dashboard/src/components/panels/chat/SSEStatusBanner.tsx dashboard/src/components/panels/chat/ChatPanel.tsx dashboard/src/i18n/en.json dashboard/src/i18n/zh.json
@@ -803,7 +803,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): SSE connection status bann
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Add patchSession helper to chat-api**
+- [x] **Step 1: Add patchSession helper to chat-api**
 
 In `dashboard/src/components/panels/chat/chat-api.ts`, add a thin wrapper. The endpoint at `dashboard/src/app/api/chat/sessions/patch/route.ts` expects **flat fields** (`{ sessionKey, model, thinkingLevel, fastMode, ... }`), not a nested `{ patch }` object:
 
@@ -830,7 +830,7 @@ export async function patchSession(
 }
 ```
 
-- [ ] **Step 2: Make SessionConfigBar items interactive**
+- [x] **Step 2: Make SessionConfigBar items interactive**
 
 Replace `dashboard/src/components/panels/chat/SessionConfigBar.tsx`:
 
@@ -925,7 +925,7 @@ export function SessionConfigBar() {
 }
 ```
 
-- [ ] **Step 3: Add i18n keys**
+- [x] **Step 3: Add i18n keys**
 
 In `dashboard/src/i18n/en.json`, add to `"chat"`:
 
@@ -941,12 +941,12 @@ In `dashboard/src/i18n/zh.json`, add to `"chat"`:
 "configFastToggle": "点击切换快速模式"
 ```
 
-- [ ] **Step 4: Run tests and type-check**
+- [x] **Step 4: Run tests and type-check**
 
 Run: `cd dashboard && pnpm test && cd .. && pnpm tsgo`
 Expected: All pass
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): interactive SessionConfigBar — thinking/fast toggle" dashboard/src/components/panels/chat/SessionConfigBar.tsx dashboard/src/components/panels/chat/chat-api.ts dashboard/src/i18n/en.json dashboard/src/i18n/zh.json
@@ -975,7 +975,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): interactive SessionConfigB
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Add inline editing to SessionSidebar**
+- [x] **Step 1: Add inline editing to SessionSidebar**
 
 In `dashboard/src/components/panels/chat/SessionSidebar.tsx`, add state for editing and modify the session button render:
 
@@ -1081,12 +1081,12 @@ Replace the existing session `<button>` element in the map with a `<div>` contai
 </div>
 ```
 
-- [ ] **Step 2: Run tests and type-check**
+- [x] **Step 2: Run tests and type-check**
 
 Run: `cd dashboard && pnpm test && cd .. && pnpm tsgo`
 Expected: All pass
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): session rename via double-click" dashboard/src/components/panels/chat/SessionSidebar.tsx dashboard/src/components/panels/chat/chat-api.ts
@@ -1114,7 +1114,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): session rename via double-
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Add search state and filter**
+- [x] **Step 1: Add search state and filter**
 
 In `dashboard/src/components/panels/chat/SessionSidebar.tsx`, add:
 
@@ -1157,7 +1157,7 @@ Insert the search input after the "New session" button, before the session list:
 
 Replace `sessionMetas.map` with `filteredMetas.map` in the session list.
 
-- [ ] **Step 2: Add i18n keys**
+- [x] **Step 2: Add i18n keys**
 
 In `dashboard/src/i18n/en.json`, add to `"chat"`:
 
@@ -1171,12 +1171,12 @@ In `dashboard/src/i18n/zh.json`, add to `"chat"`:
 "searchSessions": "搜索会话..."
 ```
 
-- [ ] **Step 3: Run tests and type-check**
+- [x] **Step 3: Run tests and type-check**
 
 Run: `cd dashboard && pnpm test && cd .. && pnpm tsgo`
 Expected: All pass
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): session search filter in sidebar" dashboard/src/components/panels/chat/SessionSidebar.tsx dashboard/src/i18n/en.json dashboard/src/i18n/zh.json
@@ -1202,7 +1202,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): session search filter in s
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Update ToolResultCard to handle array content**
+- [x] **Step 1: Update ToolResultCard to handle array content**
 
 In `dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx`, change the `content` prop type:
 
@@ -1233,7 +1233,7 @@ const contentStr =
 
 This replaces the existing `contentStr` line. The existing rendering pipeline (bash/diff/read/raw) then works on the concatenated text.
 
-- [ ] **Step 2: Update the parent that passes content**
+- [x] **Step 2: Update the parent that passes content**
 
 Find where `ToolResultCard` is rendered (in `MessageList.tsx` or a block renderer). Ensure `content` is passed as-is (not pre-stringified). Check the current code:
 
@@ -1242,12 +1242,12 @@ Find where `ToolResultCard` is rendered (in `MessageList.tsx` or a block rendere
 // Change to: content={block.content}
 ```
 
-- [ ] **Step 3: Run tests and type-check**
+- [x] **Step 3: Run tests and type-check**
 
 Run: `cd dashboard && pnpm test && cd .. && pnpm tsgo`
 Expected: All pass
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): tool result nested content block rendering" dashboard/src/components/panels/chat/blocks/ToolResultCard.tsx dashboard/src/components/panels/chat/MessageList.tsx
@@ -1273,7 +1273,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): tool result nested content
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Add expiry check in MessageInput**
+- [x] **Step 1: Add expiry check in MessageInput**
 
 In `dashboard/src/components/panels/chat/MessageInput.tsx`, add a `useEffect` near the approval-related code:
 
@@ -1302,12 +1302,12 @@ useEffect(() => {
 }, [activeApproval?.id, activeApproval?.expiresAtMs, activeSessionKey]);
 ```
 
-- [ ] **Step 2: Run tests**
+- [x] **Step 2: Run tests**
 
 Run: `cd dashboard && pnpm test`
 Expected: All pass
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): auto-clear expired approvals client-side" dashboard/src/components/panels/chat/MessageInput.tsx
@@ -1335,7 +1335,7 @@ scripts/committer "[enhanced][codex-impl] feat(deck): auto-clear expired approva
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Add partial result indicator in MessageList**
+- [x] **Step 1: Add partial result indicator in MessageList**
 
 In `dashboard/src/components/panels/chat/MessageList.tsx`, the session-level `isStreaming` is already available via `useSessionStreaming()`. Find where each assistant message is rendered. After the message content block, add:
 
@@ -1355,7 +1355,7 @@ In `dashboard/src/components/panels/chat/MessageList.tsx`, the session-level `is
 
 Where `sessionIsStreaming` is the session-level streaming state (from the store hook already in MessageList scope), and `message.streaming` is the per-message flag. If the message rendering happens in a child component, pass `sessionIsStreaming` as a prop.
 
-- [ ] **Step 2: Add i18n keys**
+- [x] **Step 2: Add i18n keys**
 
 In `dashboard/src/i18n/en.json`, add to `"chat"`:
 
@@ -1369,12 +1369,12 @@ In `dashboard/src/i18n/zh.json`, add to `"chat"`:
 "partialResult": "流中断 — 部分结果"
 ```
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run: `cd dashboard && pnpm test`
 Expected: All pass
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): partial result indicator for interrupted streams" dashboard/src/components/panels/chat/MessageList.tsx dashboard/src/i18n/en.json dashboard/src/i18n/zh.json
@@ -1400,22 +1400,22 @@ scripts/committer "[enhanced][codex-impl] feat(deck): partial result indicator f
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Type check**
+- [x] **Step 1: Type check**
 
 Run: `pnpm tsgo`
 Expected: Zero errors
 
-- [ ] **Step 2: Lint and format**
+- [x] **Step 2: Lint and format**
 
 Run: `pnpm check`
 Expected: All pass
 
-- [ ] **Step 3: Full test suite**
+- [x] **Step 3: Full test suite**
 
 Run: `cd dashboard && pnpm test`
 Expected: All pass (895+ tests)
 
-- [ ] **Step 4: Commit if any format fixes needed**
+- [x] **Step 4: Commit if any format fixes needed**
 
 ```bash
 pnpm format:fix
@@ -1442,7 +1442,7 @@ scripts/committer "[enhanced][codex-impl] style(deck): format fixes" <changed-fi
 
 **复杂度:** `simple`
 
-- [ ] **Step 1: Update matrix**
+- [x] **Step 1: Update matrix**
 
 In `docs/plans/2026-04-03-deck-web-replacement-matrix.md`, change:
 
@@ -1452,7 +1452,7 @@ Notes: `Phase 2 P0+P1 complete: status badge, SSE banner, config toggles, sessio
 Approval row: `partial` → `replacement-ready`
 Notes: `Phase 2 P0+P1 complete: SLC-3 fix, countdown timer, security metadata, loading state, client-side expiry cleanup`
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-finish] docs(deck): update matrix — Chat + Approval now replacement-ready" docs/plans/2026-04-03-deck-web-replacement-matrix.md
