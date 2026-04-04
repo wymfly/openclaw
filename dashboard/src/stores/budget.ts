@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DeckApiError, fetchApi } from "@/lib/errors";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -72,80 +73,57 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   fetchRules: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/usage/budget");
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to fetch rules", loading: false });
-        return;
-      }
-      const data = (await res.json()) as { rules: BudgetRule[] };
+      const data = await fetchApi<{ rules: BudgetRule[] }>("/api/usage/budget");
       set({ rules: data.rules, loading: false });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Failed to fetch rules", loading: false });
+      set({
+        error: err instanceof DeckApiError ? err.body.error : "Failed to fetch rules",
+        loading: false,
+      });
     }
   },
 
   createRule: async (input) => {
     set({ error: null });
     try {
-      const res = await fetch("/api/usage/budget", {
+      await fetchApi<BudgetRule>("/api/usage/budget", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to create rule" });
-        return;
-      }
       await get().fetchRules();
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Failed to create rule" });
+      set({ error: err instanceof DeckApiError ? err.body.error : "Failed to create rule" });
     }
   },
 
   updateRule: async (id, input) => {
     set({ error: null });
     try {
-      const res = await fetch(`/api/usage/budget/${id}`, {
+      await fetchApi<BudgetRule>(`/api/usage/budget/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to update rule" });
-        return;
-      }
       await get().fetchRules();
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Failed to update rule" });
+      set({ error: err instanceof DeckApiError ? err.body.error : "Failed to update rule" });
     }
   },
 
   deleteRule: async (id) => {
     set({ error: null });
     try {
-      const res = await fetch(`/api/usage/budget/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to delete rule" });
-        return;
-      }
+      await fetchApi<{ deleted: boolean }>(`/api/usage/budget/${id}`, { method: "DELETE" });
       await get().fetchRules();
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Failed to delete rule" });
+      set({ error: err instanceof DeckApiError ? err.body.error : "Failed to delete rule" });
     }
   },
 
   evaluateBudgets: async () => {
     try {
-      const res = await fetch("/api/usage/budget/evaluate");
-      if (!res.ok) {
-        set({ evaluations: [] });
-        return;
-      }
-      const data = (await res.json()) as { evaluations: RuleEvaluation[] };
+      const data = await fetchApi<{ evaluations: RuleEvaluation[] }>("/api/usage/budget/evaluate");
       set({ evaluations: data.evaluations });
     } catch {
       set({ evaluations: [] });

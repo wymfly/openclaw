@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DeckApiError, fetchApi } from "@/lib/errors";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -131,30 +132,23 @@ export const useCronStore = create<CronState>((set) => ({
   fetchJobs: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/cron");
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to fetch jobs", loading: false });
-        return;
-      }
-      const data = (await res.json()) as { jobs?: CronJob[] };
+      const data = await fetchApi<{ jobs?: CronJob[] }>("/api/cron");
       set({ jobs: data.jobs ?? [], loading: false });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Failed to fetch jobs", loading: false });
+      set({
+        error: err instanceof DeckApiError ? err.body.error : "Failed to fetch jobs",
+        loading: false,
+      });
     }
   },
 
   addJob: async (job) => {
     try {
-      const res = await fetch("/api/cron", {
+      const created = await fetchApi<CronJob>("/api/cron", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(job),
       });
-      if (!res.ok) {
-        return null;
-      }
-      const created = (await res.json()) as CronJob;
       set((s) => ({ jobs: [...s.jobs, created] }));
       return created;
     } catch {
@@ -164,15 +158,11 @@ export const useCronStore = create<CronState>((set) => ({
 
   updateJob: async (jobId, patch) => {
     try {
-      const res = await fetch(`/api/cron/${jobId}`, {
+      const updated = await fetchApi<CronJob>(`/api/cron/${jobId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      if (!res.ok) {
-        return false;
-      }
-      const updated = (await res.json()) as CronJob;
       set((s) => ({ jobs: s.jobs.map((j) => (j.id === jobId ? updated : j)) }));
       return true;
     } catch {
@@ -182,10 +172,7 @@ export const useCronStore = create<CronState>((set) => ({
 
   removeJob: async (jobId) => {
     try {
-      const res = await fetch(`/api/cron/${jobId}`, { method: "DELETE" });
-      if (!res.ok) {
-        return false;
-      }
+      await fetchApi<unknown>(`/api/cron/${jobId}`, { method: "DELETE" });
       set((s) => ({
         jobs: s.jobs.filter((j) => j.id !== jobId),
         selectedJobId: s.selectedJobId === jobId ? null : s.selectedJobId,
@@ -198,8 +185,8 @@ export const useCronStore = create<CronState>((set) => ({
 
   runJob: async (jobId) => {
     try {
-      const res = await fetch(`/api/cron/${jobId}/run`, { method: "POST" });
-      return res.ok;
+      await fetchApi<unknown>(`/api/cron/${jobId}/run`, { method: "POST" });
+      return true;
     } catch {
       return false;
     }
@@ -207,12 +194,7 @@ export const useCronStore = create<CronState>((set) => ({
 
   fetchRuns: async (jobId) => {
     try {
-      const res = await fetch(`/api/cron/${jobId}/runs`);
-      if (!res.ok) {
-        set({ runs: [] });
-        return;
-      }
-      const data = (await res.json()) as { entries?: CronRunEntry[] };
+      const data = await fetchApi<{ entries?: CronRunEntry[] }>(`/api/cron/${jobId}/runs`);
       set({ runs: data.entries ?? [] });
     } catch {
       set({ runs: [] });
@@ -221,11 +203,7 @@ export const useCronStore = create<CronState>((set) => ({
 
   fetchStatus: async () => {
     try {
-      const res = await fetch("/api/cron/status");
-      if (!res.ok) {
-        return;
-      }
-      const data = (await res.json()) as CronStatus;
+      const data = await fetchApi<CronStatus>("/api/cron/status");
       set({ status: data });
     } catch {
       // best-effort
