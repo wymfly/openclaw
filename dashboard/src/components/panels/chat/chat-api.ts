@@ -30,8 +30,7 @@ type RawSessionMeta = {
   spawnedWorkspaceDir?: string;
 };
 
-// Re-use the canonical ErrorBody from lib/errors (with Partial for unknown JSON parsing)
-type ApiErrorBody = Partial<import("@/lib/errors").ErrorBody>;
+import type { ErrorBody } from "@/lib/errors";
 
 export type ChatAttachmentPayload = {
   type?: string;
@@ -92,8 +91,8 @@ async function parseResponseJson<T>(response: Response): Promise<T> {
 
 async function readApiError(response: Response): Promise<string> {
   const body = await response.json().catch(() => null);
-  if (body && typeof body === "object" && typeof (body as ApiErrorBody).error === "string") {
-    return (body as ApiErrorBody).error as string;
+  if (body && typeof body === "object" && typeof (body as Partial<ErrorBody>).error === "string") {
+    return (body as Partial<ErrorBody>).error as string;
   }
   return `Request failed (${response.status})`;
 }
