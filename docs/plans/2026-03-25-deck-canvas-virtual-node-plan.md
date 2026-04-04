@@ -1,5 +1,9 @@
 # Deck Canvas Virtual Node Implementation Plan
 
+> **SUPERSEDED** by `docs/plans/2026-04-04-canvas-replacement-ready-plan.md` (gap closure plan).
+> Core functionality (~88%) was implemented during Phase 1/2 platform work. Remaining gaps closed by the replacement-ready plan (4 tasks, all complete).
+> This plan's steps are left unchecked because they were not tracked individually — the work was done across multiple prior sessions.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let Deck Web Dashboard independently support Canvas rendering by registering as a virtual canvas node with the Gateway, receiving `node.invoke.request` events via a second WebSocket connection, and forwarding them to the browser via SSE for iframe rendering.
