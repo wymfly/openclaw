@@ -1,11 +1,11 @@
 ## 1. Upstream Result Schemas
 
-- [ ] 1.1 为 `sessions.usage` 添加 result schema（从 handler `respond()` 调用点推导 TypeBox schema）+ methodDefs
-- [ ] 1.2 为 `sessions.usage.logs` 添加 result schema + methodDefs
-- [ ] 1.3 为 `sessions.usage.timeseries` 添加 result schema + methodDefs
-- [ ] 1.4 为 `tools.effective` 添加 result schema + methodDefs
-- [ ] 1.5 为 `skills.install` 添加 result schema + methodDefs
-- [ ] 1.6 在 `src/gateway/method-registry-data.ts` 中将新增 methodDefs 接入 allMethodDefs
+- [x] 1.1 为 `sessions.usage` 添加 result schema（从 handler `respond()` 调用点推导 TypeBox schema）+ methodDefs
+- [x] 1.2 为 `sessions.usage.logs` 添加 result schema + methodDefs
+- [x] 1.3 为 `sessions.usage.timeseries` 添加 result schema + methodDefs
+- [x] 1.4 `tools.effective` dead route 清理（Gateway 无此 handler，改为 stub 返回空 groups）
+- [x] 1.5 为 `skills.install` 添加 result schema + methodDefs
+- [x] 1.6 在 `src/gateway/method-registry-data.ts` 中将新增 methodDefs 接入 allMethodDefs
 - [ ] 1.7 运行 `pnpm protocol:gen:ts` 重新生成 typed client，验证 5 个方法出现在 GatewayMethodMap
 - [ ] 1.8 迁移 5 个 dashboard API routes 从 `gatewayRequest()` 到 typed `gwRequest()`：`usage/sessions/route.ts`、`usage/sessions/logs/route.ts`、`usage/timeseries/route.ts`、`deck/tools-effective/route.ts`、`skills/install/route.ts`
 - [ ] 1.9 运行 `pnpm protocol:gen:check` + `pnpm check` + `pnpm build` 验证
