@@ -15,11 +15,28 @@ interface RunStatusBarProps {
   /** Session-level cumulative stats (from sessions.changed SSE events). */
   sessionTotalTokens?: number;
   sessionCostUsd?: number;
+  sessionStatus?: "idle" | "running" | "done" | "failed" | "killed" | "timeout";
 }
 
-export function RunStatusBar({ metadata, sessionTotalTokens, sessionCostUsd }: RunStatusBarProps) {
+const STATUS_COLORS: Record<NonNullable<RunStatusBarProps["sessionStatus"]>, string> = {
+  idle: "var(--muted-foreground)",
+  running: "var(--warning)",
+  done: "var(--success)",
+  failed: "var(--destructive)",
+  killed: "var(--destructive)",
+  timeout: "var(--destructive)",
+};
+
+export function RunStatusBar({
+  metadata,
+  sessionTotalTokens,
+  sessionCostUsd,
+  sessionStatus,
+}: RunStatusBarProps) {
   const t = useTranslations("chat");
   const [elapsed, setElapsed] = useState<number | undefined>(metadata.durationMs);
+  const statusColor = sessionStatus ? STATUS_COLORS[sessionStatus] : "var(--muted-foreground)";
+  const statusLabel = sessionStatus ? t(`status_${sessionStatus}`) : null;
 
   // Live elapsed timer while streaming
   useEffect(() => {
@@ -40,6 +57,25 @@ export function RunStatusBar({ metadata, sessionTotalTokens, sessionCostUsd }: R
 
   return (
     <div className="flex items-center gap-3 mt-1 px-1 text-[10px] font-mono text-[var(--muted-foreground)]">
+      {/* Session status badge */}
+      {statusLabel && sessionStatus !== "idle" && (
+        <span
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
+          style={{
+            color: statusColor,
+            backgroundColor: `color-mix(in srgb, ${statusColor} 12%, transparent)`,
+          }}
+        >
+          {sessionStatus === "running" && (
+            <span
+              className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ backgroundColor: statusColor }}
+            />
+          )}
+          {statusLabel}
+        </span>
+      )}
+
       {/* Model badge */}
       {metadata.model && (
         <span className="flex items-center gap-1">
