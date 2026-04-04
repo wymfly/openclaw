@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DeckApiError, fetchApi } from "@/lib/errors";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -118,31 +119,27 @@ export const useSkillsStore = create<SkillsState>((set) => ({
     set({ loading: true, error: null });
     try {
       const url = agentId ? `/api/skills?agentId=${agentId}` : "/api/skills";
-      const res = await fetch(url);
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to fetch skills", loading: false });
-        return;
-      }
-      const data = (await res.json()) as { skills?: Record<string, unknown>[] };
+      const data = await fetchApi<{ skills?: Record<string, unknown>[] }>(url);
       const skills = (data.skills ?? []).map(normalizeSkill);
       set({ skills, loading: false });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Failed to fetch skills", loading: false });
+      set({
+        error: err instanceof DeckApiError ? err.body.error : "Failed to fetch skills",
+        loading: false,
+      });
     }
   },
 
   updateSkill: async (skillKey, patch) => {
     try {
-      const res = await fetch(`/api/skills/${encodeURIComponent(skillKey)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      if (!res.ok) {
-        return false;
-      }
-      const data = (await res.json()) as { ok?: boolean; config?: Record<string, unknown> };
+      const data = await fetchApi<{ ok?: boolean; config?: Record<string, unknown> }>(
+        `/api/skills/${encodeURIComponent(skillKey)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        },
+      );
       if (data.ok) {
         set((s) => ({
           skills: s.skills.map((sk) =>
@@ -166,15 +163,11 @@ export const useSkillsStore = create<SkillsState>((set) => ({
 
   installSkill: async (name, installId) => {
     try {
-      const res = await fetch("/api/skills/install", {
+      const data = await fetchApi<{ ok?: boolean }>("/api/skills/install", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, installId }),
       });
-      if (!res.ok) {
-        return false;
-      }
-      const data = (await res.json()) as { ok?: boolean };
       return !!data.ok;
     } catch {
       return false;

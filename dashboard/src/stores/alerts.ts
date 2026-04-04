@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DeckApiError, fetchApi } from "@/lib/errors";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,17 +61,11 @@ export const useAlertsStore = create<AlertsState>((set) => ({
   fetchRules: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/alerts");
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to fetch alert rules", loading: false });
-        return;
-      }
-      const data = (await res.json()) as { rules: AlertRule[] };
+      const data = await fetchApi<{ rules: AlertRule[] }>("/api/alerts");
       set({ rules: data.rules, loading: false });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Failed to fetch alert rules",
+        error: err instanceof DeckApiError ? err.body.error : "Failed to fetch alert rules",
         loading: false,
       });
     }
@@ -79,21 +74,15 @@ export const useAlertsStore = create<AlertsState>((set) => ({
   createRule: async (rule) => {
     set({ error: null });
     try {
-      const res = await fetch("/api/alerts", {
+      const data = await fetchApi<{ rule: AlertRule }>("/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(rule),
       });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to create rule" });
-        return;
-      }
-      const data = (await res.json()) as { rule: AlertRule };
       set((state) => ({ rules: [...state.rules, data.rule] }));
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Failed to create rule",
+        error: err instanceof DeckApiError ? err.body.error : "Failed to create rule",
       });
     }
   },
@@ -101,23 +90,17 @@ export const useAlertsStore = create<AlertsState>((set) => ({
   updateRule: async (id, patch) => {
     set({ error: null });
     try {
-      const res = await fetch(`/api/alerts/${id}`, {
+      const data = await fetchApi<{ rule: AlertRule }>(`/api/alerts/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to update rule" });
-        return;
-      }
-      const data = (await res.json()) as { rule: AlertRule };
       set((state) => ({
         rules: state.rules.map((r) => (r.id === id ? data.rule : r)),
       }));
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Failed to update rule",
+        error: err instanceof DeckApiError ? err.body.error : "Failed to update rule",
       });
     }
   },
@@ -125,16 +108,11 @@ export const useAlertsStore = create<AlertsState>((set) => ({
   deleteRule: async (id) => {
     set({ error: null });
     try {
-      const res = await fetch(`/api/alerts/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        set({ error: body.error ?? "Failed to delete rule" });
-        return;
-      }
+      await fetchApi<{ ok: boolean }>(`/api/alerts/${id}`, { method: "DELETE" });
       set((state) => ({ rules: state.rules.filter((r) => r.id !== id) }));
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Failed to delete rule",
+        error: err instanceof DeckApiError ? err.body.error : "Failed to delete rule",
       });
     }
   },
