@@ -23,19 +23,20 @@
 
 ## File Map
 
-| File                                                  | Action | Responsibility                                                                                                                                                                                                       |
-| ----------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dashboard/server/projection-store.ts`                | Modify | Add generic `getProjection/setProjection/clearProjection` with domain-aware key routing; add `getApprovalProjectionWithMigration`; add `getEventsSinceWithGap`; remove chat-specific wrappers after caller migration |
-| `dashboard/server/approval-bridge.ts`                 | Modify | Replace `persistApprovalProjection` to use `setProjection("approval", ...)` / `clearProjection("approval", ...)`                                                                                                     |
-| `dashboard/src/app/api/stream/route.ts`               | Modify | Use `getEventsSinceWithGap()`, emit `projection.gap` SSE event                                                                                                                                                       |
-| `dashboard/src/app/api/chat/snapshot/route.ts`        | Modify | Read approval from `getApprovalProjectionWithMigration(key)`, read chat from `getProjection("chat", key)`                                                                                                            |
-| `dashboard/src/app/api/chat/projection/route.ts`      | Modify | Migrate to `getProjection("chat", ...)` / `setProjection("chat", ...)`                                                                                                                                               |
-| `dashboard/src/app/api/chat/sessions/clear/route.ts`  | Modify | Migrate `clearChatSessionProjection` → `clearProjection("chat", ...)`                                                                                                                                                |
-| `dashboard/src/app/api/chat/sessions/reset/route.ts`  | Modify | Migrate `clearChatSessionProjection` → `clearProjection("chat", ...)`                                                                                                                                                |
-| `dashboard/server/runtime.ts`                         | Modify | Migrate `clearChatSessionProjection` → `clearProjection("chat", ...)`                                                                                                                                                |
-| `dashboard/server/__tests__/projection-store.test.ts` | Modify | Add tests for generic API, gap detection, migration                                                                                                                                                                  |
-| `dashboard/server/__tests__/approval-bridge.test.ts`  | Modify | Update mocks, add approval domain tests                                                                                                                                                                              |
-| `dashboard/src/app/api/chat/snapshot/route.test.ts`   | Modify | Update mock to use new API                                                                                                                                                                                           |
+| File                                                  | Action | Responsibility                                                                                                                                                                                                                              |
+| ----------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dashboard/server/projection-store.ts`                | Modify | Add generic `getProjection/setProjection/clearProjection`; refactor chat wrappers to delegate; add `getApprovalProjectionWithMigration`; enhance `getEventsSince` to return `{ events, gapDetected }`; remove chat wrappers after migration |
+| `dashboard/server/approval-bridge.ts`                 | Modify | Replace `persistApprovalProjection` to use `setProjection("approval", ...)` / `clearProjection("approval", ...)`                                                                                                                            |
+| `dashboard/src/app/api/stream/route.ts`               | Modify | Use enhanced `getEventsSince()`, emit `projection.gap` SSE event                                                                                                                                                                            |
+| `dashboard/src/app/api/stream/route.test.ts`          | Modify | Update store mock for new return type, add gap event tests                                                                                                                                                                                  |
+| `dashboard/src/app/api/chat/snapshot/route.ts`        | Modify | Read approval from `getApprovalProjectionWithMigration(key)`, read chat from `getProjection("chat", key)`                                                                                                                                   |
+| `dashboard/src/app/api/chat/projection/route.ts`      | Modify | Trigger migration, then write via `setProjection("chat", ...)` / `clearProjection("chat", ...)`                                                                                                                                             |
+| `dashboard/src/app/api/chat/sessions/clear/route.ts`  | Modify | Clear both `chat` and `approval` domains via `clearSessionProjections()`                                                                                                                                                                    |
+| `dashboard/src/app/api/chat/sessions/reset/route.ts`  | Modify | Clear both `chat` and `approval` domains via `clearSessionProjections()`                                                                                                                                                                    |
+| `dashboard/server/runtime.ts`                         | Modify | Clear both `chat` and `approval` domains via `clearSessionProjections()`                                                                                                                                                                    |
+| `dashboard/server/__tests__/projection-store.test.ts` | Modify | Add tests for generic API, gap detection, migration; migrate existing chat tests after wrapper removal                                                                                                                                      |
+| `dashboard/server/__tests__/approval-bridge.test.ts`  | Modify | Update mocks, add approval domain tests                                                                                                                                                                                                     |
+| `dashboard/src/app/api/chat/snapshot/route.test.ts`   | Modify | Update mock to use new API                                                                                                                                                                                                                  |
 
 ---
 
@@ -197,12 +198,32 @@ Add methods to `ProjectionStore` class, after the chat session projection method
   }
 ```
 
-- [ ] **Step 4: Run all projection-store tests**
+- [ ] **Step 4: Refactor chat wrappers to delegate to generic API (OpenSpec 1.2)**
+
+In `dashboard/server/projection-store.ts`, replace the bodies of the three chat-specific methods to delegate:
+
+```typescript
+  getChatSessionProjection(sessionKey: string): ChatSessionProjection | null {
+    return this.getProjection<ChatSessionProjection>("chat", sessionKey);
+  }
+
+  setChatSessionProjection(sessionKey: string, projection: ChatSessionProjection): void {
+    this.setProjection("chat", sessionKey, projection);
+  }
+
+  clearChatSessionProjection(sessionKey: string): boolean {
+    return this.clearProjection("chat", sessionKey);
+  }
+```
+
+Remove `chatSessionProjectionKey` private method and `isObject` helper (no longer needed — generic API handles key routing and JSON parsing).
+
+- [ ] **Step 5: Run all projection-store tests**
 
 Run: `pnpm test -- dashboard/server/__tests__/projection-store.test.ts`
-Expected: ALL PASS (new generic API tests + existing chat tests both pass — backward compat verified)
+Expected: ALL PASS (existing chat tests pass via delegation, new generic API tests pass directly)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): add generic domain-keyed projection API to ProjectionStore" \
@@ -527,6 +548,58 @@ describe("approval migration from legacy chat blob", () => {
     expect(store.getApprovalProjectionWithMigration("")).toBeNull();
     expect(store.getApprovalProjectionWithMigration("  ")).toBeNull();
   });
+
+  it("does not overwrite a concurrent approval domain write during migration (3.3)", () => {
+    // Seed legacy data in chat blob
+    store.setChatSessionProjection("session-race", {
+      a2uiState: { visible: true },
+      activeApproval: { id: "apr-stale", toolName: "command" },
+    });
+
+    // Simulate a concurrent write: approval bridge writes a newer approval
+    // to the approval domain AFTER the outer check but before the transaction.
+    // Since SQLite is synchronous, we simulate by writing directly before calling migration.
+    store.setProjection("approval", "session-race", {
+      id: "apr-fresh",
+      toolName: "command",
+      command: "new-cmd",
+    });
+
+    // Migration should detect the fresh approval inside the transaction
+    // and return it without overwriting with the stale legacy data.
+    const result = store.getApprovalProjectionWithMigration("session-race");
+    expect(result).toEqual({
+      id: "apr-fresh",
+      toolName: "command",
+      command: "new-cmd",
+    });
+
+    // Chat blob should NOT have been modified (migration was skipped)
+    expect(store.getChatSessionProjection("session-race")?.activeApproval?.id).toBe("apr-stale");
+  });
+
+  it("preserves concurrent a2uiState update during migration (3.3)", () => {
+    // Seed legacy data
+    store.setChatSessionProjection("session-a2ui-race", {
+      a2uiState: { visible: false },
+      activeApproval: { id: "apr-a2ui-race", toolName: "command" },
+    });
+
+    // Simulate a2uiState update that happened concurrently
+    // (in reality, between the outer chatBlob read and the transaction)
+    store.setChatSessionProjection("session-a2ui-race", {
+      a2uiState: { visible: true, url: "/updated" },
+      activeApproval: { id: "apr-a2ui-race", toolName: "command" },
+    });
+
+    // Migration should read the fresh chat blob inside the transaction,
+    // preserving the updated a2uiState
+    store.getApprovalProjectionWithMigration("session-a2ui-race");
+
+    const chatBlob = store.getChatSessionProjection("session-a2ui-race");
+    expect(chatBlob?.a2uiState).toEqual({ visible: true, url: "/updated" });
+    expect(chatBlob?.activeApproval).toBeUndefined();
+  });
 });
 ```
 
@@ -572,8 +645,18 @@ Add to `ProjectionStore` class in `dashboard/server/projection-store.ts`, after 
 
     // Migrate atomically within a SQLite transaction
     const migrate = this.db.transaction(() => {
-      // Re-read inside transaction to guard against concurrent writes
-      const fresh = this.getChatSessionProjection(normalized);
+      // Re-check approval domain inside transaction — a concurrent write by
+      // approval-bridge may have populated it between the outer check and BEGIN
+      const freshApproval = this.getProjection<NonNullable<ChatSessionProjection["activeApproval"]>>(
+        "approval",
+        normalized,
+      );
+      if (freshApproval) {
+        return freshApproval;
+      }
+
+      // Re-read chat blob inside transaction to guard against concurrent a2uiState writes
+      const fresh = this.getProjection<ChatSessionProjection>("chat", normalized);
       if (!fresh?.activeApproval) {
         return null;
       }
@@ -585,9 +668,9 @@ Add to `ProjectionStore` class in `dashboard/server/projection-store.ts`, after 
 
       // Remove activeApproval from chat blob, preserve a2uiState
       if (fresh.a2uiState != null) {
-        this.setChatSessionProjection(normalized, { a2uiState: fresh.a2uiState });
+        this.setProjection("chat", normalized, { a2uiState: fresh.a2uiState });
       } else {
-        this.clearChatSessionProjection(normalized);
+        this.clearProjection("chat", normalized);
       }
 
       return approval;
@@ -617,24 +700,40 @@ scripts/committer "[enhanced][codex-impl] feat(deck): add transaction-protected 
 
 ---
 
-### Task 4: Chat Caller Migration + Snapshot Update [backend] [simple]
+### Task 4: Chat Caller Migration + Snapshot Update [backend] [complex]
 
 **covers:** OpenSpec 4.1, 4.2, 4.3, snapshot approval read (2.3)
 **blockedBy:** Task 3
 
 **Files:**
 
+- Modify: `dashboard/server/projection-store.ts` (add `clearSessionProjections` helper; remove chat wrappers)
 - Modify: `dashboard/src/app/api/chat/projection/route.ts`
 - Modify: `dashboard/src/app/api/chat/sessions/clear/route.ts`
 - Modify: `dashboard/src/app/api/chat/sessions/reset/route.ts`
 - Modify: `dashboard/src/app/api/chat/snapshot/route.ts`
 - Modify: `dashboard/src/app/api/chat/snapshot/route.test.ts`
 - Modify: `dashboard/server/runtime.ts`
-- Modify: `dashboard/server/projection-store.ts` (remove chat wrappers)
+- Modify: `dashboard/server/__tests__/projection-store.test.ts` (migrate existing tests after wrapper removal)
 
-- [ ] **Step 1: Migrate chat/projection/route.ts**
+- [ ] **Step 1: Add `clearSessionProjections` helper to ProjectionStore**
 
-Replace the entire handler body. After approval extraction, the chat blob only contains `a2uiState`, simplifying the logic:
+In `dashboard/server/projection-store.ts`, add after the generic projection methods:
+
+```typescript
+  /**
+   * Clear all projection domains for a session (chat + approval).
+   * Used by session clear/reset/delete operations that need to wipe all state.
+   */
+  clearSessionProjections(sessionKey: string): void {
+    this.clearProjection("chat", sessionKey);
+    this.clearProjection("approval", sessionKey);
+  }
+```
+
+- [ ] **Step 2: Migrate chat/projection/route.ts (with migration trigger)**
+
+Replace the entire handler body. **Critical:** Must trigger approval migration before writing, to prevent overwriting un-migrated legacy `activeApproval`:
 
 ```typescript
 import { getRuntime } from "@server/runtime";
@@ -662,6 +761,10 @@ export const POST = withAuth(async (request: NextRequest) => {
     return NextResponse.json({ error: "a2uiState is required" }, { status: 400 });
   }
 
+  // Trigger migration before writing — ensures any legacy activeApproval
+  // embedded in the chat blob is moved to the approval domain first.
+  runtime.store.getApprovalProjectionWithMigration(sessionKey);
+
   if (body.a2uiState == null) {
     runtime.store.clearProjection("chat", sessionKey);
   } else {
@@ -672,23 +775,23 @@ export const POST = withAuth(async (request: NextRequest) => {
 });
 ```
 
-- [ ] **Step 2: Migrate sessions/clear/route.ts**
+- [ ] **Step 3: Migrate sessions/clear/route.ts (dual-domain clear)**
 
-Replace line 19:
+Replace line 19 to clear both domains:
 
 ```typescript
-getRuntime()?.store.clearProjection("chat", body.sessionKey);
+getRuntime()?.store.clearSessionProjections(body.sessionKey);
 ```
 
-- [ ] **Step 3: Migrate sessions/reset/route.ts**
+- [ ] **Step 4: Migrate sessions/reset/route.ts (dual-domain clear)**
 
 Replace line 21:
 
 ```typescript
-getRuntime()?.store.clearProjection("chat", body.sessionKey);
+getRuntime()?.store.clearSessionProjections(body.sessionKey);
 ```
 
-- [ ] **Step 4: Migrate runtime.ts**
+- [ ] **Step 5: Migrate runtime.ts (dual-domain clear)**
 
 At `dashboard/server/runtime.ts:124`, replace:
 
@@ -699,10 +802,10 @@ store.clearChatSessionProjection(sessionKey);
 With:
 
 ```typescript
-store.clearProjection("chat", sessionKey);
+store.clearSessionProjections(sessionKey);
 ```
 
-- [ ] **Step 5: Update snapshot route to read from both domains**
+- [ ] **Step 6: Update snapshot route to read from both domains**
 
 In `dashboard/src/app/api/chat/snapshot/route.ts`, replace lines 71-92:
 
@@ -727,9 +830,7 @@ return NextResponse.json({
 });
 ```
 
-Remove the `ChatSessionProjection` type if no longer needed (it may still be referenced by `getApprovalProjectionWithMigration` in projection-store.ts).
-
-- [ ] **Step 6: Update snapshot route test**
+- [ ] **Step 7: Update snapshot route test**
 
 In `dashboard/src/app/api/chat/snapshot/route.test.ts`, update the store mock:
 
@@ -750,45 +851,103 @@ In `dashboard/src/app/api/chat/snapshot/route.test.ts`, update the store mock:
       },
 ```
 
-- [ ] **Step 7: Remove chat-specific wrappers from ProjectionStore**
+- [ ] **Step 8: Remove chat-specific wrappers from ProjectionStore**
 
 In `dashboard/server/projection-store.ts`:
 
-**Remove** these methods and helpers (all external callers are now migrated):
+**Remove** these methods (all external callers now migrated, wrappers were thin delegates from Task 1):
 
 - `getChatSessionProjection` method
 - `setChatSessionProjection` method
 - `clearChatSessionProjection` method
-- `chatSessionProjectionKey` private method
-- `isObject` helper (only used by `getChatSessionProjection`)
 
 **Keep:**
 
 - `CHAT_SESSION_PROJECTION_PREFIX` constant (used by `projectionKey` for backward-compat routing)
 - `ChatSessionProjection` type (used by `getApprovalProjectionWithMigration` return type)
 
-**Update `getApprovalProjectionWithMigration`** to use the generic API (its internal calls to the removed methods must be replaced):
+- [ ] **Step 9: Migrate existing projection-store tests to generic API**
 
-- `this.getChatSessionProjection(normalized)` → `this.getProjection<ChatSessionProjection>("chat", normalized)`
-- `this.setChatSessionProjection(normalized, { a2uiState: fresh.a2uiState })` → `this.setProjection("chat", normalized, { a2uiState: fresh.a2uiState })`
-- `this.clearChatSessionProjection(normalized)` → `this.clearProjection("chat", normalized)`
+In `dashboard/server/__tests__/projection-store.test.ts`, replace the "chat session projections" describe block. All calls to `getChatSessionProjection`/`setChatSessionProjection`/`clearChatSessionProjection` must be replaced:
 
-- [ ] **Step 8: Verify TypeScript compiles**
+```typescript
+describe("chat session projections (via generic API)", () => {
+  it("stores and loads a session-scoped projection payload", () => {
+    store.setProjection("chat", "agent:main:main", {
+      a2uiState: {
+        visible: true,
+        url: "/api/canvas/index.html",
+        surfaces: ["main"],
+        eventLog: [
+          {
+            timestamp: 1,
+            direction: "inbound",
+            action: "surfaceUpdate",
+            summary: "Surface main updated",
+            raw: { surfaceId: "main" },
+          },
+        ],
+      },
+    });
 
-Run: `cd dashboard && pnpm tsgo`
+    expect(store.getProjection("chat", "agent:main:main")).toEqual({
+      a2uiState: {
+        visible: true,
+        url: "/api/canvas/index.html",
+        surfaces: ["main"],
+        eventLog: [
+          {
+            timestamp: 1,
+            direction: "inbound",
+            action: "surfaceUpdate",
+            summary: "Surface main updated",
+            raw: { surfaceId: "main" },
+          },
+        ],
+      },
+    });
+  });
+
+  it("returns null when a chat projection is missing", () => {
+    expect(store.getProjection("chat", "missing-session")).toBeNull();
+  });
+
+  it("clears only the targeted session projection", () => {
+    store.setProjection("chat", "session-a", {
+      a2uiState: { visible: true, surfaces: ["a"] },
+    });
+    store.setProjection("chat", "session-b", {
+      a2uiState: { visible: false, surfaces: ["b"] },
+    });
+
+    expect(store.clearProjection("chat", "session-a")).toBe(true);
+    expect(store.getProjection("chat", "session-a")).toBeNull();
+    expect(store.getProjection("chat", "session-b")).toEqual({
+      a2uiState: { visible: false, surfaces: ["b"] },
+    });
+  });
+});
+```
+
+Also update Task 3's migration tests that use `setChatSessionProjection`/`getChatSessionProjection` — replace them with the generic API equivalents (`setProjection("chat", ...)` / `getProjection("chat", ...)`).
+
+- [ ] **Step 10: Verify TypeScript compiles**
+
+Run: `pnpm tsgo`
 Expected: Zero type errors. All callers now use the generic API.
 
-- [ ] **Step 9: Run all server tests**
+- [ ] **Step 11: Run all server tests**
 
 Run: `pnpm test -- dashboard/server/ dashboard/src/app/api/chat/`
 Expected: ALL PASS
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 12: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] refactor(deck): migrate all chat callers to generic projection API and remove wrappers" \
   dashboard/server/projection-store.ts \
   dashboard/server/runtime.ts \
+  dashboard/server/__tests__/projection-store.test.ts \
   dashboard/src/app/api/chat/projection/route.ts \
   dashboard/src/app/api/chat/sessions/clear/route.ts \
   dashboard/src/app/api/chat/sessions/reset/route.ts \
@@ -801,12 +960,13 @@ scripts/committer "[enhanced][codex-impl] refactor(deck): migrate all chat calle
 ### Task 5: SSE Replay Gap Detection [backend] [complex]
 
 **covers:** OpenSpec 5.1, 5.2, 5.3, 5.4
-**blockedBy:** Task 1 (uses ProjectionStore)
+**blockedBy:** Task 4 (both modify projection-store.ts)
 
 **Files:**
 
 - Modify: `dashboard/server/projection-store.ts`
 - Modify: `dashboard/src/app/api/stream/route.ts`
+- Modify: `dashboard/src/app/api/stream/route.test.ts`
 - Modify: `dashboard/server/__tests__/projection-store.test.ts`
 
 - [ ] **Step 1: Write failing tests for gap detection**
@@ -815,16 +975,16 @@ Add to `dashboard/server/__tests__/projection-store.test.ts`:
 
 ```typescript
 // ---------------------------------------------------------------------------
-// getEventsSinceWithGap — gap detection
+// getEventsSince — gap detection (enhanced return type)
 // ---------------------------------------------------------------------------
 
-describe("getEventsSinceWithGap", () => {
+describe("getEventsSince with gap detection", () => {
   it("returns gapDetected: false when lastId is within outbox range", () => {
     store.appendEvent("a", 1);
     store.appendEvent("b", 2);
     store.appendEvent("c", 3);
 
-    const result = store.getEventsSinceWithGap(1);
+    const result = store.getEventsSince(1);
     expect(result.gapDetected).toBe(false);
     expect(result.events).toHaveLength(2);
     expect(result.events[0].id).toBe(2);
@@ -835,13 +995,13 @@ describe("getEventsSinceWithGap", () => {
     store.appendEvent("a", 1);
     store.appendEvent("b", 2);
 
-    const result = store.getEventsSinceWithGap(0);
+    const result = store.getEventsSince(0);
     expect(result.gapDetected).toBe(false);
     expect(result.events).toHaveLength(2);
   });
 
   it("returns gapDetected: false for empty outbox", () => {
-    const result = store.getEventsSinceWithGap(5);
+    const result = store.getEventsSince(5);
     expect(result.gapDetected).toBe(false);
     expect(result.events).toHaveLength(0);
   });
@@ -857,22 +1017,19 @@ describe("getEventsSinceWithGap", () => {
 
     // Outbox now has ids 2,3 (id 1 pruned).
     // Per spec: lastId > 0 AND lastId < min(id) → gapDetected: true
-    // lastId=1, min(id)=2 → gap (client's checkpoint has been pruned)
-    const result = store.getEventsSinceWithGap(1);
+    const result = store.getEventsSince(1);
     expect(result.gapDetected).toBe(true);
     expect(result.events).toHaveLength(2);
   });
 
   it("returns gapDetected: true when lastId is well below min outbox id", () => {
-    // Start fresh with high IDs by inserting and pruning
     for (let i = 0; i < 5; i++) {
       store.appendEvent("fill", i);
     }
-    // Manually delete low IDs to simulate pruning
     db.prepare("DELETE FROM outbox WHERE id <= 3").run();
 
     // Outbox now has ids 4, 5. Request from lastId=1.
-    const result = store.getEventsSinceWithGap(1);
+    const result = store.getEventsSince(1);
     expect(result.gapDetected).toBe(true);
     expect(result.events).toHaveLength(2);
     expect(result.events[0].id).toBe(4);
@@ -883,21 +1040,35 @@ describe("getEventsSinceWithGap", () => {
       store.appendEvent("e", i);
     }
 
-    const result = store.getEventsSinceWithGap(0, 3);
+    const result = store.getEventsSince(0, 3);
     expect(result.gapDetected).toBe(false);
     expect(result.events).toHaveLength(3);
   });
 });
 ```
 
+Also update the existing `getEventsSince` tests (in the "getEventsSince" describe block) to use the new return type — replace `store.getEventsSince(...)` with `store.getEventsSince(...).events` in assertions. For example:
+
+```typescript
+// Before:
+const events = store.getEventsSince(1);
+expect(events).toHaveLength(2);
+
+// After:
+const { events } = store.getEventsSince(1);
+expect(events).toHaveLength(2);
+```
+
+Apply this pattern to all existing getEventsSince tests.
+
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm test -- dashboard/server/__tests__/projection-store.test.ts -t "getEventsSinceWithGap"`
-Expected: FAIL — `store.getEventsSinceWithGap is not a function`
+Run: `pnpm test -- dashboard/server/__tests__/projection-store.test.ts -t "gap detection"`
+Expected: FAIL — `store.getEventsSince(...)` returns array, not `{ events, gapDetected }`
 
-- [ ] **Step 3: Implement gap detection**
+- [ ] **Step 3: Enhance getEventsSince with gap detection**
 
-Add a new prepared statement and method to `ProjectionStore` in `dashboard/server/projection-store.ts`:
+In `dashboard/server/projection-store.ts`:
 
 Add new lazy statement field:
 
@@ -915,7 +1086,7 @@ Add getter:
   }
 ```
 
-Add the return type:
+Add the return type (export from module):
 
 ```typescript
 export type EventsSinceResult = {
@@ -924,20 +1095,25 @@ export type EventsSinceResult = {
 };
 ```
 
-Add method to the Outbox API section:
+Replace the existing `getEventsSince` method:
 
 ```typescript
   /**
-   * Read outbox events with `id > lastId`, with gap detection.
+   * Read outbox events with `id > lastId`, ordered ascending, with gap detection.
    * Gap is detected when lastId > 0 and lastId < min(id) in outbox,
-   * meaning events between the client's checkpoint and the current outbox
-   * start have been pruned.
+   * meaning events between the client's checkpoint and the oldest surviving
+   * event have been pruned.
+   * Default limit is 500.
    */
-  getEventsSinceWithGap(lastId: number, limit = 500): EventsSinceResult {
-    const events = this.getEventsSince(lastId, limit);
+  getEventsSince(lastId: number, limit = 500): EventsSinceResult {
+    const safeLastId = Number.isFinite(lastId) && lastId >= 0 ? lastId : 0;
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 500;
+    const events = (this.selectAfterStmt.all(safeLastId, safeLimit) as OutboxRow[]).map(
+      toOutboxEntry,
+    );
 
     // First connection (lastId = 0) — never a gap per spec
-    if (lastId <= 0) {
+    if (safeLastId <= 0) {
       return { events, gapDetected: false };
     }
 
@@ -949,15 +1125,15 @@ Add method to the Outbox API section:
     }
 
     // Gap: client's checkpoint is before the oldest surviving event
-    const gapDetected = lastId < minId;
+    const gapDetected = safeLastId < minId;
     return { events, gapDetected };
   }
 ```
 
 - [ ] **Step 4: Run gap detection tests**
 
-Run: `pnpm test -- dashboard/server/__tests__/projection-store.test.ts -t "getEventsSinceWithGap"`
-Expected: ALL PASS
+Run: `pnpm test -- dashboard/server/__tests__/projection-store.test.ts`
+Expected: ALL PASS (both new gap detection tests and updated existing tests)
 
 - [ ] **Step 5: Update SSE stream route to use gap detection**
 
@@ -980,7 +1156,7 @@ With:
 ```typescript
 // Replay missed events from the durable outbox when available.
 if (runtime?.store) {
-  const { events, gapDetected } = runtime.store.getEventsSinceWithGap(lastEventId);
+  const { events, gapDetected } = runtime.store.getEventsSince(lastEventId);
   if (gapDetected) {
     controller.enqueue(
       encoder.encode(
@@ -999,18 +1175,154 @@ if (runtime?.store) {
 }
 ```
 
-- [ ] **Step 6: Run all projection-store and stream tests**
+- [ ] **Step 6: Update stream route test for new return type and gap event**
 
-Run: `pnpm test -- dashboard/server/__tests__/projection-store.test.ts`
+In `dashboard/src/app/api/stream/route.test.ts`:
+
+Update the `storeGetEventsSince` mock type and return value:
+
+```typescript
+const storeGetEventsSince = vi.fn<
+  () => {
+    events: Array<{
+      id: number;
+      eventType: string;
+      payload: unknown;
+      createdAt: string;
+    }>;
+    gapDetected: boolean;
+  }
+>(() => ({ events: [], gapDetected: false }));
+```
+
+Update the existing replay test (`"replays missed events from the persistent outbox"`) mock:
+
+```typescript
+storeGetEventsSince.mockReturnValue({
+  events: [
+    {
+      id: 41,
+      eventType: "chat",
+      payload: { state: "final", sessionKey: "session-1" },
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  gapDetected: false,
+});
+```
+
+Add new tests:
+
+```typescript
+it("emits projection.gap SSE event when gap is detected", async () => {
+  delete process.env.DECK_ACCESS_TOKEN;
+  storeGetEventsSince.mockReturnValue({
+    events: [
+      {
+        id: 100,
+        eventType: "chat",
+        payload: { token: "hi" },
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    gapDetected: true,
+  });
+  getRuntime.mockReturnValue({
+    store: { getEventsSince: storeGetEventsSince },
+  });
+
+  const { GET } = await import("./route.js");
+  const response = GET(
+    new Request("http://localhost/api/stream", {
+      headers: { "Last-Event-ID": "5" },
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  const reader = response.body?.getReader();
+  const first = await reader?.read();
+  await reader?.cancel();
+
+  const chunk = new TextDecoder().decode(first?.value);
+  expect(chunk).toContain("event: projection.gap");
+  expect(chunk).toContain('"reason":"events_pruned"');
+});
+
+it("does NOT emit projection.gap when no gap detected", async () => {
+  delete process.env.DECK_ACCESS_TOKEN;
+  storeGetEventsSince.mockReturnValue({
+    events: [
+      {
+        id: 6,
+        eventType: "chat",
+        payload: { token: "ok" },
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    gapDetected: false,
+  });
+  getRuntime.mockReturnValue({
+    store: { getEventsSince: storeGetEventsSince },
+  });
+
+  const { GET } = await import("./route.js");
+  const response = GET(
+    new Request("http://localhost/api/stream", {
+      headers: { "Last-Event-ID": "5" },
+    }),
+  );
+
+  const reader = response.body?.getReader();
+  const first = await reader?.read();
+  await reader?.cancel();
+
+  const chunk = new TextDecoder().decode(first?.value);
+  expect(chunk).not.toContain("projection.gap");
+});
+
+it("falls back to EventBus when runtime store is unavailable", async () => {
+  delete process.env.DECK_ACCESS_TOKEN;
+  getEventsSince.mockReturnValue([
+    { id: 10, type: "chat", data: { token: "bus" }, timestamp: Date.now() },
+  ]);
+  getRuntime.mockReturnValue(null); // No runtime → no store
+
+  const { GET } = await import("./route.js");
+  const response = GET(
+    new Request("http://localhost/api/stream", {
+      headers: { "Last-Event-ID": "9" },
+    }),
+  );
+
+  const reader = response.body?.getReader();
+  const first = await reader?.read();
+  await reader?.cancel();
+
+  expect(getEventsSince).toHaveBeenCalledWith(9);
+  expect(storeGetEventsSince).not.toHaveBeenCalled();
+});
+```
+
+Also update the mock reset in `afterEach`:
+
+```typescript
+storeGetEventsSince.mockReset();
+storeGetEventsSince.mockReturnValue({ events: [], gapDetected: false });
+```
+
+- [ ] **Step 7: Run all stream and projection-store tests**
+
+Run: `pnpm test -- dashboard/server/__tests__/projection-store.test.ts dashboard/src/app/api/stream/route.test.ts`
 Expected: ALL PASS
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): add SSE replay gap detection with projection.gap event" \
   dashboard/server/projection-store.ts \
   dashboard/server/__tests__/projection-store.test.ts \
-  dashboard/src/app/api/stream/route.ts
+  dashboard/src/app/api/stream/route.ts \
+  dashboard/src/app/api/stream/route.test.ts
 ```
 
 ---
@@ -1054,11 +1366,23 @@ The `/api/chat/snapshot` response must still return `{ messages, meta, activeApp
 Run: `pnpm test -- dashboard/src/app/api/chat/snapshot/route.test.ts -v`
 Expected: PASS with response shape `{ messages, meta, activeApproval, a2uiState }` asserted
 
-- [ ] **Step 7: Fix any issues found**
+- [ ] **Step 7: Update OpenSpec spec for chat domain key routing exception**
+
+In `openspec/changes/deck-projection-platform/specs/projection-store-platform/spec.md`, update the generic API scenarios to reflect that the chat domain uses the legacy `chat_projection:` key prefix (design decision D6):
+
+Add a note after the "Module writes a projection" scenario:
+
+```markdown
+#### Note: Chat domain backward compatibility
+
+The `chat` domain uses the legacy `chat_projection:{key}` storage key prefix for zero-migration backward compatibility with existing data. New domains (e.g., `approval`) use the standard `projection:{domain}:{key}` prefix. Phase 2 unifies all domains to the standard prefix.
+```
+
+- [ ] **Step 8: Fix any issues found**
 
 If any verification step fails, fix the issue and re-run.
 
-- [ ] **Step 8: Final commit (if fixes needed)**
+- [ ] **Step 9: Final commit (if fixes needed)**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] fix(deck): verification fixes for projection platform" \
