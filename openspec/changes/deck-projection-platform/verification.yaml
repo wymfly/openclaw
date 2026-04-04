@@ -1,0 +1,145 @@
+# Closure Verification for deck-projection-platform
+# Generated: 2026-04-04
+# Verifies each spec scenario against implementation evidence
+
+change: deck-projection-platform
+archiveReady: true
+gapCount: 0
+
+specs:
+  projection-store-platform:
+    scenarios:
+      # Requirement: ProjectionStore SHALL provide a generic domain-keyed API
+      - id: PSP-1
+        title: "Module reads a projection by domain and key"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/projection-store.ts:202-216 — getProjection<T>(domain, key)"
+          test: "dashboard/server/__tests__/projection-store.test.ts — 'writes and reads a projection by domain and key'"
+
+      - id: PSP-2
+        title: "Module writes a projection by domain and key"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/projection-store.ts:218-225 — setProjection<T>(domain, key, data)"
+          test: "dashboard/server/__tests__/projection-store.test.ts — 'overwrites an existing projection'"
+
+      - id: PSP-3
+        title: "Module clears a projection by domain and key"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/projection-store.ts:227-233 — clearProjection(domain, key)"
+          test: "dashboard/server/__tests__/projection-store.test.ts — 'clears a projection and returns true'"
+
+      # Requirement: Approval projection SHALL be stored independently from chat projection
+      - id: PSP-4
+        title: "Approval bridge writes to the approval domain"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/approval-bridge.ts:65-66 — setProjection('approval', normalized, activeApproval)"
+          test: "dashboard/server/__tests__/approval-bridge.test.ts — 'writes approval to the approval domain on exec.approval.requested'"
+
+      - id: PSP-5
+        title: "Approval bridge clears the approval domain on resolution"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/approval-bridge.ts:68 — clearProjection('approval', normalized)"
+          test: "dashboard/server/__tests__/approval-bridge.test.ts — 'clears approval domain on exec.approval.resolved'"
+
+      - id: PSP-6
+        title: "Chat snapshot reads approval from the approval domain"
+        status: CLOSED
+        evidence:
+          code: "dashboard/src/app/api/chat/snapshot/route.ts:74 — store.getApprovalProjectionWithMigration(sessionKey)"
+          test: "dashboard/src/app/api/chat/snapshot/route.test.ts — 'falls back to the persisted projection'"
+
+      # Requirement: Approval projection SHALL remain server-write-only
+      - id: PSP-7
+        title: "No HTTP endpoint exposes approval projection writes"
+        status: CLOSED
+        evidence:
+          code: "No POST/PUT/PATCH endpoint for approval projection exists in dashboard/src/app/api/"
+          note: "approval-bridge.ts is server-side only, triggered by Gateway events via EventBus"
+
+      # Requirement: Legacy chat projections containing activeApproval SHALL be migrated transparently
+      - id: PSP-8
+        title: "Migration on first read"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/projection-store.ts:247-294 — getApprovalProjectionWithMigration (transaction-protected)"
+          test: "dashboard/server/__tests__/projection-store.test.ts — 'migrates activeApproval from chat blob to approval domain on first read'"
+
+      - id: PSP-9
+        title: "Migration does not overwrite concurrent A2UI updates"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/projection-store.ts:276-288 — re-reads freshChatBlob inside transaction"
+          test: "dashboard/server/__tests__/projection-store.test.ts — 'preserves concurrent a2uiState update during migration (3.3)'"
+
+      # Requirement: Chat projection callers SHALL migrate to the generic API
+      - id: PSP-10
+        title: "Chat-specific methods become thin wrappers"
+        status: CLOSED
+        evidence:
+          code: "Task 1 made them thin wrappers; Task 4 removed them entirely"
+          note: "getChatSessionProjection/setChatSessionProjection/clearChatSessionProjection no longer exist in projection-store.ts"
+
+      - id: PSP-11
+        title: "All direct callers are migrated"
+        status: CLOSED
+        evidence:
+          code: |
+            dashboard/src/app/api/chat/projection/route.ts:31-35 — setProjection/clearProjection("chat", ...)
+            dashboard/src/app/api/chat/sessions/clear/route.ts:19 — clearSessionProjections()
+            dashboard/src/app/api/chat/sessions/reset/route.ts:21 — clearSessionProjections()
+            dashboard/server/runtime.ts:124 — clearSessionProjections()
+            dashboard/src/app/api/chat/snapshot/route.ts:75 — getProjection("chat", ...)
+          test: "pnpm tsgo passes with zero errors (no references to removed methods)"
+
+  projection-gap-detection:
+    scenarios:
+      # Requirement: getEventsSince SHALL signal when events have been pruned
+      - id: PGD-1
+        title: "No gap — all requested events available"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/projection-store.ts:162-163 — safeLastId <= 0 returns gapDetected: false"
+          test: "dashboard/server/__tests__/projection-store.test.ts — 'returns gapDetected: false when lastId is within outbox range'"
+
+      - id: PGD-2
+        title: "Gap detected — events have been pruned"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/projection-store.ts:172 — gapDetected: safeLastId < minId"
+          test: "dashboard/server/__tests__/projection-store.test.ts — 'returns gapDetected: true when lastId is below minimum outbox id (pruned)'"
+
+      - id: PGD-3
+        title: "First connection — no prior checkpoint"
+        status: CLOSED
+        evidence:
+          code: "dashboard/server/projection-store.ts:162 — safeLastId <= 0 returns gapDetected: false"
+          test: "dashboard/server/__tests__/projection-store.test.ts — 'returns gapDetected: false for first connection (lastId = 0)'"
+
+      # Requirement: SSE stream SHALL emit a gap event when replay gap is detected
+      - id: PGD-4
+        title: "Gap event emitted on reconnect with pruned events"
+        status: CLOSED
+        evidence:
+          code: "dashboard/src/app/api/stream/route.ts:134-139 — emits 'event: projection.gap' with {reason: 'events_pruned'}"
+          test: "dashboard/src/app/api/stream/route.test.ts — 'emits projection.gap SSE event when gap is detected'"
+
+      - id: PGD-5
+        title: "No gap event when replay is complete"
+        status: CLOSED
+        evidence:
+          code: "dashboard/src/app/api/stream/route.ts:133 — gapDetected false skips emission"
+          test: "dashboard/src/app/api/stream/route.test.ts — 'does NOT emit projection.gap when no gap detected'"
+
+      - id: PGD-6
+        title: "Gap event is non-breaking for existing clients"
+        status: CLOSED
+        evidence:
+          code: "SSE spec: unknown event types are ignored by EventSource API"
+          note: "No client-side handler registered for projection.gap (Phase 2). Per SSE spec, unregistered event types are silently dropped."
+
+gaps: []
