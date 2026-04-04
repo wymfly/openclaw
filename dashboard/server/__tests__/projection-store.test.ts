@@ -297,6 +297,133 @@ describe("generic projection API", () => {
 });
 
 // ---------------------------------------------------------------------------
+// approval migration from legacy chat blob
+// ---------------------------------------------------------------------------
+
+describe("approval migration from legacy chat blob", () => {
+  it("migrates activeApproval from chat blob to approval domain on first read", () => {
+    store.setChatSessionProjection("session-migrate", {
+      a2uiState: { visible: true },
+      activeApproval: {
+        id: "apr-legacy",
+        toolName: "command",
+        command: "rm -rf /",
+        description: "/tmp",
+      },
+    });
+
+    const approval = store.getApprovalProjectionWithMigration("session-migrate");
+    expect(approval).toEqual({
+      id: "apr-legacy",
+      toolName: "command",
+      command: "rm -rf /",
+      description: "/tmp",
+    });
+
+    const chatBlob = store.getChatSessionProjection("session-migrate");
+    expect(chatBlob).toEqual({ a2uiState: { visible: true } });
+    expect(chatBlob?.activeApproval).toBeUndefined();
+
+    expect(store.getProjection("approval", "session-migrate")).toEqual({
+      id: "apr-legacy",
+      toolName: "command",
+      command: "rm -rf /",
+      description: "/tmp",
+    });
+  });
+
+  it("returns null when neither approval domain nor chat blob has approval", () => {
+    store.setChatSessionProjection("session-no-approval", {
+      a2uiState: { visible: false },
+    });
+
+    expect(store.getApprovalProjectionWithMigration("session-no-approval")).toBeNull();
+  });
+
+  it("reads from approval domain without migration when already populated", () => {
+    store.setProjection("approval", "session-pre", { id: "apr-new", toolName: "command" });
+    store.setChatSessionProjection("session-pre", {
+      activeApproval: { id: "apr-stale", toolName: "command" },
+    });
+
+    expect(store.getApprovalProjectionWithMigration("session-pre")).toEqual({
+      id: "apr-new",
+      toolName: "command",
+    });
+    expect(store.getChatSessionProjection("session-pre")?.activeApproval?.id).toBe("apr-stale");
+  });
+
+  it("preserves a2uiState in chat blob during migration", () => {
+    const a2ui = { visible: true, url: "/canvas", surfaces: ["main"] };
+    store.setChatSessionProjection("session-a2ui", {
+      a2uiState: a2ui,
+      activeApproval: { id: "apr-a2ui", toolName: "command" },
+    });
+
+    store.getApprovalProjectionWithMigration("session-a2ui");
+
+    const chatBlob = store.getChatSessionProjection("session-a2ui");
+    expect(chatBlob?.a2uiState).toEqual(a2ui);
+    expect(chatBlob?.activeApproval).toBeUndefined();
+  });
+
+  it("clears chat blob entirely if only activeApproval was present", () => {
+    store.setChatSessionProjection("session-only-approval", {
+      activeApproval: { id: "apr-only", toolName: "command" },
+    });
+
+    store.getApprovalProjectionWithMigration("session-only-approval");
+
+    expect(store.getChatSessionProjection("session-only-approval")).toBeNull();
+  });
+
+  it("returns null for empty/whitespace session key", () => {
+    expect(store.getApprovalProjectionWithMigration("")).toBeNull();
+    expect(store.getApprovalProjectionWithMigration("  ")).toBeNull();
+  });
+
+  it("does not overwrite a concurrent approval domain write during migration (3.3)", () => {
+    store.setChatSessionProjection("session-race", {
+      a2uiState: { visible: true },
+      activeApproval: { id: "apr-stale", toolName: "command" },
+    });
+
+    store.setProjection("approval", "session-race", {
+      id: "apr-fresh",
+      toolName: "command",
+      command: "new-cmd",
+    });
+
+    const result = store.getApprovalProjectionWithMigration("session-race");
+    expect(result).toEqual({
+      id: "apr-fresh",
+      toolName: "command",
+      command: "new-cmd",
+    });
+
+    expect(store.getChatSessionProjection("session-race")?.activeApproval?.id).toBe("apr-stale");
+  });
+
+  it("preserves concurrent a2uiState update during migration (3.3)", () => {
+    store.setChatSessionProjection("session-a2ui-race", {
+      a2uiState: { visible: false },
+      activeApproval: { id: "apr-a2ui-race", toolName: "command" },
+    });
+
+    store.setChatSessionProjection("session-a2ui-race", {
+      a2uiState: { visible: true, url: "/updated" },
+      activeApproval: { id: "apr-a2ui-race", toolName: "command" },
+    });
+
+    store.getApprovalProjectionWithMigration("session-a2ui-race");
+
+    const chatBlob = store.getChatSessionProjection("session-a2ui-race");
+    expect(chatBlob?.a2uiState).toEqual({ visible: true, url: "/updated" });
+    expect(chatBlob?.activeApproval).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // pruneEvents
 // ---------------------------------------------------------------------------
 

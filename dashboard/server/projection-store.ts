@@ -219,6 +219,62 @@ export class ProjectionStore {
     return this.deleteSetting(storageKey);
   }
 
+  // -- Approval migration (legacy chat blob -> approval domain) -------------
+
+  /**
+   * Read approval projection with transparent migration from legacy chat blob.
+   * If approval storage is empty but the legacy chat blob still contains
+   * `activeApproval`, migrate it atomically inside a SQLite transaction.
+   */
+  getApprovalProjectionWithMigration(
+    sessionKey: string,
+  ): ChatSessionProjection["activeApproval"] | null {
+    const normalized = sessionKey.trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const existing = this.getProjection<NonNullable<ChatSessionProjection["activeApproval"]>>(
+      "approval",
+      normalized,
+    );
+    if (existing) {
+      return existing;
+    }
+
+    const chatBlob = this.getProjection<ChatSessionProjection>("chat", normalized);
+    if (!chatBlob?.activeApproval) {
+      return null;
+    }
+
+    const migrate = this.db.transaction(() => {
+      const freshApproval = this.getProjection<
+        NonNullable<ChatSessionProjection["activeApproval"]>
+      >("approval", normalized);
+      if (freshApproval) {
+        return freshApproval;
+      }
+
+      const freshChatBlob = this.getProjection<ChatSessionProjection>("chat", normalized);
+      if (!freshChatBlob?.activeApproval) {
+        return null;
+      }
+
+      const approval = freshChatBlob.activeApproval;
+      this.setProjection("approval", normalized, approval);
+
+      if (freshChatBlob.a2uiState != null) {
+        this.setProjection("chat", normalized, { a2uiState: freshChatBlob.a2uiState });
+      } else {
+        this.clearProjection("chat", normalized);
+      }
+
+      return approval;
+    });
+
+    return migrate();
+  }
+
   // -- Maintenance -----------------------------------------------------------
 
   /**
