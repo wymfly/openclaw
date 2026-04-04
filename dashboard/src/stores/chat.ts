@@ -362,6 +362,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         isStreaming: streaming,
         status: streaming ? "running" : "idle",
         streamingRunId: streaming ? (runId ?? session.streamingRunId) : null,
+        // SLC-3: clear stale approval when streaming stops
+        activeApproval: streaming ? session.activeApproval : null,
         lastAccessedAt: Date.now(),
       });
       return { sessions: next };
