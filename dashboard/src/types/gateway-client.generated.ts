@@ -207,6 +207,12 @@ export interface GatewayClient {
     delete(params: import("./gateway-protocol.generated").SessionsDeleteParams, options?: { timeoutMs?: number }): Promise<import("./gateway-protocol.generated").SessionsDeleteResult>;
     compact(params: import("./gateway-protocol.generated").SessionsCompactParams, options?: { timeoutMs?: number }): Promise<import("./gateway-protocol.generated").SessionsCompactResult>;
   };
+  skills: {
+    install(
+      params: import("./gateway-protocol.generated").SkillsInstallParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SkillsInstallResult>;
+  };
   deck: {
     commands: {
       discover(params: import("./gateway-protocol.generated").DeckCommandsDiscoverParams, options?: { timeoutMs?: number }): Promise<import("./gateway-protocol.generated").DeckCommandsDiscoverResult>;
@@ -289,6 +295,9 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       clear: call("sessions.clear"),
       delete: call("sessions.delete"),
       compact: call("sessions.compact"),
+    },
+    skills: {
+      install: call("skills.install"),
     },
     deck: {
       commands: {

@@ -118,6 +118,11 @@ function quoteKey(key: string): string {
   return isSafeIdentifier(key) ? key : `"${key}"`;
 }
 
+function shouldEmitInterface(body: string): boolean {
+  const trimmed = body.trim();
+  return trimmed.startsWith("{") && trimmed.endsWith("}") && !trimmed.includes("|");
+}
+
 /** Convert dot-separated method name to PascalCase interface name. */
 function methodToInterfaceName(method: string): string {
   return method
@@ -176,8 +181,10 @@ function generateProtocolTypes(): string {
       const body = schemaToTS(def.params);
       if (body === "{}") {
         lines.push(`export type ${safeName}Params = Record<string, never>;`);
-      } else {
+      } else if (shouldEmitInterface(body)) {
         lines.push(`export interface ${safeName}Params ${body}`);
+      } else {
+        lines.push(`export type ${safeName}Params = ${body};`);
       }
       lines.push("");
     }
@@ -186,8 +193,10 @@ function generateProtocolTypes(): string {
       const body = schemaToTS(def.result);
       if (body === "{}") {
         lines.push(`export type ${safeName}Result = Record<string, never>;`);
-      } else {
+      } else if (shouldEmitInterface(body)) {
         lines.push(`export interface ${safeName}Result ${body}`);
+      } else {
+        lines.push(`export type ${safeName}Result = ${body};`);
       }
       lines.push("");
     }

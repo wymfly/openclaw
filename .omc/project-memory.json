@@ -577,6 +577,12 @@
       "accessCount": 2,
       "lastAccessed": 1776222871720,
       "type": "file"
+    },
+    {
+      "path": "src/gateway/protocol/schema/protocol-schemas.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776222943495,
+      "type": "file"
     }
   ],
   "userDirectives": []

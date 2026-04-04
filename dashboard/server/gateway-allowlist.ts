@@ -15,7 +15,6 @@ const EXTRA_METHODS = new Set<string>([
   "sessions.usage.logs",
   "sessions.steer",
   "sessions.get",
-  "tools.effective",
 ]);
 
 export const DEFAULT_METHOD_ALLOWLIST = new Set<string>([

@@ -253,6 +253,21 @@ export const SkillsInstallParamsSchema = Type.Union([
   ),
 ]);
 
+export const SkillsInstallResultSchema = Type.Object(
+  {
+    ok: Type.Boolean(),
+    message: Type.String(),
+    stdout: Type.String(),
+    stderr: Type.String(),
+    code: Type.Union([Type.Integer(), Type.Null()]),
+    slug: Type.Optional(Type.String()),
+    version: Type.Optional(Type.String()),
+    targetDir: Type.Optional(Type.String()),
+    warnings: Type.Optional(Type.Array(Type.String())),
+  },
+  { additionalProperties: false },
+);
+
 export const SkillsUpdateParamsSchema = Type.Union([
   Type.Object(
     {

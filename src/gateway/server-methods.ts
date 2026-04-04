@@ -31,6 +31,7 @@ import { pushHandlers } from "./server-methods/push.js";
 import { sendHandlers } from "./server-methods/send.js";
 import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
 import { sessionsHandlers } from "./server-methods/sessions.js";
+import { skillsMethodDefs } from "./server-methods/skills-method-defs.js";
 import { skillsHandlers } from "./server-methods/skills.js";
 import { systemHandlers } from "./server-methods/system.js";
 import { talkHandlers } from "./server-methods/talk.js";
@@ -116,6 +117,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
 export const gatewayMethodRegistry = buildMethodRegistry(coreGatewayHandlers, [
   chatMethodDefs,
   sessionsMethodDefs,
+  skillsMethodDefs,
   deckMethodDefs,
   deckAuthMethodDefs,
 ], gatewayEventDefs);

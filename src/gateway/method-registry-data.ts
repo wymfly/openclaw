@@ -9,6 +9,7 @@ import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
 import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
 import { deckMethodDefs } from "./server-methods/deck/index.js";
 import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
+import { skillsMethodDefs } from "./server-methods/skills-method-defs.js";
 
 export { PROTOCOL_VERSION };
 
@@ -19,6 +20,7 @@ export { PROTOCOL_VERSION };
 export const allMethodDefs: Record<string, MethodMetadata> = {
   ...chatMethodDefs,
   ...sessionsMethodDefs,
+  ...skillsMethodDefs,
   ...deckMethodDefs,
   ...deckAuthMethodDefs,
 };

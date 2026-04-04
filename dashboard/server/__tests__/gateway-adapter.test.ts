@@ -107,7 +107,6 @@ describe("DEFAULT_METHOD_ALLOWLIST", () => {
     "sessions.messages.subscribe",
     "sessions.messages.unsubscribe",
     // upstream tools/config API
-    "tools.effective",
     "config.schema.lookup",
     // models catalog
     "models.catalog.providers",
