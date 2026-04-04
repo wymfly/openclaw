@@ -5,12 +5,11 @@
  * or { source: "clawhub", slug } for ClawHub installs.
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
+import type { SkillsInstallParams } from "@/types/gateway-protocol.generated";
 
 export const POST = withAuth(async (request: NextRequest) => {
-  const body = (await request.json()) as
-    | { name: string; installId: string; timeoutMs?: number }
-    | { source: "clawhub"; slug: string };
-  return gatewayRequest("skills.install", body);
+  const body = (await request.json()) as SkillsInstallParams;
+  return gwRequest("skills.install", body);
 });

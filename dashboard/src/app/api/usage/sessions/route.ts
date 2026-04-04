@@ -4,12 +4,13 @@
  * Query params: startDate, endDate, limit
  */
 import { NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
+import type { SessionsUsageParams } from "@/types/gateway-protocol.generated";
 
 export const GET = withAuth(async (request: NextRequest) => {
   const sp = request.nextUrl.searchParams;
-  const params: Record<string, unknown> = {};
+  const params: SessionsUsageParams = {};
 
   const startDate = sp.get("startDate");
   const endDate = sp.get("endDate");
@@ -28,5 +29,5 @@ export const GET = withAuth(async (request: NextRequest) => {
     }
   }
 
-  return gatewayRequest("sessions.usage", params);
+  return gwRequest("sessions.usage", params);
 });

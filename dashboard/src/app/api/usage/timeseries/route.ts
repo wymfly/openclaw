@@ -1,13 +1,17 @@
 /**
  * GET /api/usage/timeseries — Fetch usage timeseries data from the Gateway.
  *
- * Gateway contract (`sessions.usage.timeseries`): { days?: number }
+ * Gateway contract (`sessions.usage.timeseries`): { key: string }
  */
 import { NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { NextResponse } from "next/server";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
-  const days = request.nextUrl.searchParams.get("days") ?? "1";
-  return gatewayRequest("sessions.usage.timeseries", { days: parseInt(days, 10) });
+  const key = request.nextUrl.searchParams.get("key");
+  if (!key) {
+    return NextResponse.json({ error: "key query parameter is required" }, { status: 400 });
+  }
+  return gwRequest("sessions.usage.timeseries", { key });
 });
