@@ -155,6 +155,7 @@ export function MessageInput() {
   const hasMessages = messages.length > 0;
   const activeAgentId = useChatStore((s) => s.activeAgentId);
   const pendingCount = useApprovalsStore((s) => s.pending.length);
+  const removePending = useApprovalsStore((s) => s.removePending);
   const resolveApproval = useApprovalsStore((s) => s.resolveApproval);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -192,6 +193,7 @@ export function MessageInput() {
       if (activeSessionKey) {
         useChatStore.getState().setActiveApproval(activeSessionKey, null);
       }
+      removePending(approvalId);
       return;
     }
     const timer = setTimeout(() => {
@@ -202,9 +204,10 @@ export function MessageInput() {
       if (current?.id === approvalId && activeSessionKey) {
         useChatStore.getState().setActiveApproval(activeSessionKey, null);
       }
+      removePending(approvalId);
     }, remaining);
     return () => clearTimeout(timer);
-  }, [activeApproval?.id, activeApproval?.expiresAtMs, activeSessionKey]);
+  }, [activeApproval?.id, activeApproval?.expiresAtMs, activeSessionKey, removePending]);
 
   const addFiles = useCallback(
     (newFiles: File[]) => {

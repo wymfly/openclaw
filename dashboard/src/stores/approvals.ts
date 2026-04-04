@@ -38,6 +38,17 @@ export interface ApprovalPolicy {
   allowlist: string[];
 }
 
+function isExpiredPendingApproval(approval: PendingApproval, now = Date.now()): boolean {
+  return Number.isFinite(approval.expiresAtMs) && approval.expiresAtMs <= now;
+}
+
+function filterActivePendingApprovals(
+  approvals: PendingApproval[],
+  now = Date.now(),
+): PendingApproval[] {
+  return approvals.filter((approval) => !isExpiredPendingApproval(approval, now));
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -106,7 +117,7 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
         return;
       }
       const data = (await res.json()) as { pending?: PendingApproval[] };
-      set({ pending: data.pending ?? [] });
+      set({ pending: filterActivePendingApprovals(data.pending ?? []) });
     } catch {
       // best-effort recovery
     }
@@ -161,10 +172,13 @@ export const useApprovalsStore = create<ApprovalsState>((set, get) => ({
 
   addPending: (approval) =>
     set((s) => {
+      if (isExpiredPendingApproval(approval)) {
+        return s;
+      }
       if (s.pending.some((p) => p.id === approval.id)) {
         return s;
       }
-      return { pending: [...s.pending, approval] };
+      return { pending: [...filterActivePendingApprovals(s.pending), approval] };
     }),
 
   removePending: (id) => set((s) => ({ pending: s.pending.filter((p) => p.id !== id) })),

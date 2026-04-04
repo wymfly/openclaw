@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { deckStream } from "@/lib/deck-client";
+import { useApprovalsStore } from "@/stores/approvals";
 import { useChatStore } from "@/stores/chat";
 import type {
   AgentEventPayload,
@@ -309,6 +310,17 @@ export function useChatSSE() {
               createdAtMs?: number;
               expiresAtMs?: number;
             };
+            if (payload.id) {
+              useApprovalsStore.getState().addPending({
+                id: payload.id,
+                command: payload.command ?? "",
+                cwd: payload.cwd,
+                agentId: payload.agentId,
+                sessionKey: payload.sessionKey,
+                createdAtMs: payload.createdAtMs ?? Date.now(),
+                expiresAtMs: payload.expiresAtMs ?? Date.now(),
+              });
+            }
             if (payload.sessionKey) {
               dispatchApproval(
                 {
@@ -328,7 +340,10 @@ export function useChatSSE() {
             return;
           }
           if (event.event === "approval.resolved") {
-            const payload = JSON.parse(event.data) as { sessionKey?: string };
+            const payload = JSON.parse(event.data) as { id?: string; sessionKey?: string };
+            if (payload.id) {
+              useApprovalsStore.getState().removePending(payload.id);
+            }
             if (payload.sessionKey) {
               dispatchApprovalResolved({ sessionKey: payload.sessionKey }, api);
             }
