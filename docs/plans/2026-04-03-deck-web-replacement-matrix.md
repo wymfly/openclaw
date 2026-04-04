@@ -70,15 +70,89 @@ Five top-level tracks. Domain Modules has three sub-waves.
 
 ## Gateway Capability Coverage Baseline
 
-覆盖口径定义：Gateway 方法族按 `src/gateway/server-methods/` 下的文件分组。对于每个方法族：
+> Established: 2026-04-04
 
-- **Covered**: Deck 通过 typed client 调用了该方法族中所有用户可见的方法，且有对应的 UI 入口
-- **Partial**: 部分方法已覆盖，但关键方法缺失
-- **Not covered**: 未覆盖
+覆盖口径定义：Gateway 方法族按 `src/gateway/server-methods/` 下的文件分组（逻辑相关的文件合并为一个族）。
 
-覆盖率 = Covered 方法族数 / 总方法族数。Phase 5 的最低门槛为：所有 P0 方法族 Covered，P1 方法族至少 Partial。
+覆盖等级：
 
-具体的方法族清单和覆盖状态将在 Phase 1 期间建立，作为 Capability Coverage Gate 的第一个交付物。
+- **Covered**: Deck 通过 typed `gwRequest` 调用了该方法族中所有用户可见的方法，且有对应的 UI 入口
+- **Functional**: Deck 通过 untyped `gatewayRequest` 提供了完整 UI 功能，但尚未迁移到 typed client
+- **Partial**: 部分方法已覆盖，但有缺口（见 Notes）
+- **N/A**: 不适用于 Web Dashboard（CLI-only / 语音 / 基础设施）
+
+覆盖率统计（仅计 Deck-relevant 方法族，排除 N/A）：
+
+| 等级                 |  数量  | 占比 |
+| -------------------- | :----: | :--: |
+| Covered (typed)      |   7    | 32%  |
+| Functional (untyped) |   11   | 50%  |
+| Partial              |   4    | 18%  |
+| **合计**             | **22** |      |
+
+Phase 5 门槛：所有 P0 方法族 ≥ Functional，P1 ≥ Partial。**当前状态：P0 11/11 ✅，P1 8/8 ✅**。
+
+### P0 — Core（必须 Covered 或 Functional）
+
+| #   | Method Family  | Source File(s)                                | Methods | Coverage   | Via                  | Notes                                                                                                                                              |
+| --- | -------------- | --------------------------------------------- | :-----: | ---------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | deck.agents    | `deck/agents.ts` `deck/agents-preview.ts`     |    9    | Covered    | typed gwRequest      | detail, skills.get/set, subagents.get/set, eventStreams.get/set, toolPolicy.preview, systemPrompt.preview                                          |
+| 2   | deck.subagents | `deck/subagents.ts` `deck/subagents-steer.ts` |    4    | Covered    | typed gwRequest      | list, kill, lineage, steer                                                                                                                         |
+| 3   | deck.routing   | `deck/routing.ts`                             |    5    | Covered    | typed gwRequest      | list, add, remove, validate, simulate                                                                                                              |
+| 4   | deck.commands  | `deck/commands.ts`                            |    1    | Covered    | typed gwRequest      | discover                                                                                                                                           |
+| 5   | deck.identity  | `deck/identity.ts`                            |    3    | Covered    | typed gwRequest      | list, link, unlink                                                                                                                                 |
+| 6   | deck.threads   | `deck/threads.ts`                             |    1    | Covered    | typed gwRequest      | list                                                                                                                                               |
+| 7   | deck.auth      | `deck-auth.ts`                                |    2    | Covered    | typed gwRequest      | overview, probe                                                                                                                                    |
+| 8   | chat           | `chat.ts`                                     |    3    | Functional | gatewayRequest       | history, send, abort — typed client 已定义但 API routes 仍走 untyped                                                                               |
+| 9   | sessions       | `sessions.ts`                                 |   15    | Functional | gatewayRequest + SSE | list/create/delete/patch/reset/clear/compact/abort/steer via gatewayRequest; subscribe/unsubscribe via SSE EventBus; send/preview 由 chat 路径代替 |
+| 10  | config         | `config.ts`                                   |    6    | Functional | gatewayRequest       | get, patch, apply, schema, schema.lookup — 全部通过 API routes 调用                                                                                |
+| 11  | agents (core)  | `agents.ts`                                   |    7    | Functional | gatewayRequest       | list, create, update, delete, files.list/get/set + agent.identity.get                                                                              |
+
+### P1 — Extended（必须 ≥ Partial）
+
+| #   | Method Family  | Source File(s)                            | Methods | Coverage   | Via            | Notes                                                                                                                   |
+| --- | -------------- | ----------------------------------------- | :-----: | ---------- | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 12  | channels       | `channels.ts`                             |    2    | Functional | gatewayRequest | status (with/without probe), logout                                                                                     |
+| 13  | models         | `models.ts` `models-catalog-providers.ts` |    3    | Functional | gatewayRequest | list, configured, catalog.providers                                                                                     |
+| 14  | cron           | `cron.ts`                                 |    7    | Functional | gatewayRequest | list, add, update, remove, run, runs, status — 全部覆盖                                                                 |
+| 15  | usage          | `usage.ts` + sessions.usage.\*            |    5    | Functional | gatewayRequest | usage.status, usage.cost, sessions.usage, sessions.usage.logs, sessions.usage.timeseries                                |
+| 16  | tools          | `tools-catalog.ts`                        |    2    | Functional | gatewayRequest | tools.catalog, tools.effective                                                                                          |
+| 17  | exec-approvals | `exec-approvals.ts` `exec-approval.ts`    |    7    | Partial    | gatewayRequest | approvals.get/set + approval.resolve 已覆盖; request/waitDecision 是 CLI session 内部方法，Deck 通过 SSE 事件处理审批流 |
+| 18  | skills         | `skills.ts`                               |    4    | Partial    | gatewayRequest | status, install, update 已覆盖; bins 未调用（Deck 直接使用 skills.status 返回的数据）                                   |
+| 19  | logs           | `logs.ts`                                 |    1    | Functional | gatewayRequest | logs.tail — ExecMon 使用                                                                                                |
+
+### P2 — Infrastructure
+
+| #   | Method Family   | Source File(s) | Methods | Coverage | Notes                                                           |
+| --- | --------------- | -------------- | :-----: | -------- | --------------------------------------------------------------- |
+| 20  | health / status | `health.ts`    |    2    | Partial  | health + status 用于 Gateway 连接检测                           |
+| 21  | agent (core)    | `agent.ts`     |    3    | Partial  | agent.identity.get 已覆盖; agent/agent.wait 是 CLI session 方法 |
+| 22  | doctor          | `doctor.ts`    |    1    | Partial  | doctor.memory.status — Settings 面板可扩展                      |
+
+### N/A — Not Applicable to Web Dashboard（12 族）
+
+| Method Family     | Source File(s)            | Methods | Reason                                    |
+| ----------------- | ------------------------- | :-----: | ----------------------------------------- |
+| tts               | `tts.ts`                  |    6    | 语音合成，CLI/App 独有                    |
+| talk              | `talk.ts`                 |    3    | 语音对话，CLI/App 独有                    |
+| voicewake         | `voicewake.ts`            |    2    | 语音唤醒，CLI/App 独有                    |
+| wizard            | `wizard.ts`               |    4    | CLI 初始化向导                            |
+| send              | `send.ts`                 |    1    | CLI 直接发送消息                          |
+| update            | `update.ts`               |    1    | CLI 自更新                                |
+| browser           | `browser.ts`              |    1    | 浏览器代理                                |
+| nodes             | `nodes.ts`                |   15    | 节点配对/管理; Deck 使用 Ed25519 设备认证 |
+| devices           | `devices.ts`              |    6    | 设备配对; 同上                            |
+| secrets           | `secrets.ts`              |    2    | 运行时密钥管理，内部基础设施              |
+| connect           | `connect.ts`              |    3    | 心跳/唤醒，内部基础设施                   |
+| system / describe | `system.ts` `describe.ts` |    4    | Gateway 自省，内部基础设施                |
+
+### Coverage Improvement Path
+
+将 Functional → Covered 的路径（非 P0 阻塞项，可渐进推进）：
+
+1. **补齐 result schema**：6 个上游方法（sessions.usage/steer/get, tools.effective 等）需要 result schema 才能进入 typed client
+2. **迁移 API routes**：将 Functional 级别的 11 个方法族从 `gatewayRequest` 迁移到 typed `gwRequest`，逐族执行
+3. **优先级**：chat → sessions → config → agents(core) → 其余 P1 族
 
 ## Change Multi-Track Classification Rule
 
