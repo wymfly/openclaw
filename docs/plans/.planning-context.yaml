@@ -1,62 +1,81 @@
-# Planning Context for Phase 2 Chat + Approval Domain Hardening
+# Planning Context for deck-platform-hardening
 # Generated: 2026-04-04
-mode: 1
-pre_g2: unlikely
+mode: 2
+
+openspec:
+  change: deck-platform-hardening
+  proposal: openspec/changes/deck-platform-hardening/proposal.md
+  design: openspec/changes/deck-platform-hardening/design.md
+  specs:
+    - openspec/changes/deck-platform-hardening/specs/upstream-result-schemas/spec.md
+    - openspec/changes/deck-platform-hardening/specs/unified-error-model/spec.md
+    - openspec/changes/deck-platform-hardening/specs/panel-registry/spec.md
+    - openspec/changes/deck-platform-hardening/specs/coverage-gate-automation/spec.md
+    - openspec/changes/deck-platform-hardening/specs/gateway-communication/spec.md
+  tasks: openspec/changes/deck-platform-hardening/tasks.md
 
 team:
   enabled: false
 
 execution:
   mode: codex
-  reason: "12 项差距修复，跨 Chat + Approval 两个域，Mode 1 Codex 主导"
+  reason: "4 个独立 capability，跨 Gateway + Dashboard + Scripts，Mode 2 OpenSpec + Codex 主导"
 
 context:
   existing_components: |
-    Chat Domain:
-      - MessageInput (dashboard/src/components/panels/chat/MessageInput.tsx): 消息输入+slash命令+approval内联
-      - MessageList (dashboard/src/components/panels/chat/MessageList.tsx): 消息渲染列表
-      - ChatPanel (dashboard/src/components/panels/chat/ChatPanel.tsx): Chat 容器组件
-      - RunStatusBar (dashboard/src/components/panels/chat/RunStatusBar.tsx): 运行状态栏
-      - SessionSidebar (dashboard/src/components/panels/chat/SessionSidebar.tsx): 会话列表
-      - ToolResultCard (dashboard/src/components/panels/chat/ToolResultCard.tsx): 工具结果渲染
-      - ImageBlock (dashboard/src/components/panels/chat/ImageBlock.tsx): 图片块渲染
-      - SlashCommands (dashboard/src/components/panels/chat/slash-commands.ts): 命令注册表
-      - SlashCommandExecutor (dashboard/src/components/panels/chat/slash-command-executor.ts): 命令执行
-      - useChatSSE (dashboard/src/components/panels/chat/useChatSSE.ts): SSE 连接+事件分发
-      - chat-api (dashboard/src/components/panels/chat/chat-api.ts): API 客户端
-      - chat store (dashboard/src/stores/chat.ts): Zustand store
-      - chat-types (dashboard/src/stores/chat-types.ts): 类型定义
-      - chat-dispatchers (dashboard/src/stores/chat-dispatchers.ts): SSE 事件处理
-      - chat-hooks (dashboard/src/stores/chat-hooks.ts): React hooks
-    Approval Domain:
-      - ApprovalDialog (dashboard/src/components/panels/chat/ApprovalDialog.tsx): 内联审批对话框
-      - ApprovalsPanel (dashboard/src/components/panels/approvals/ApprovalsPanel.tsx): 独立面板
-      - PendingList (dashboard/src/components/panels/approvals/PendingList.tsx): 待审批列表
-      - approvals store (dashboard/src/stores/approvals.ts): Zustand store
-      - approval-bridge (dashboard/server/approval-bridge.ts): 后端桥接
-    Transport:
-      - deck-client (dashboard/src/lib/deck-client.ts): deckFetch + deckStream (带 auth + 自动重连)
+    Gateway Protocol SDK:
+      - method-registry-data (src/gateway/method-registry-data.ts): allMethodDefs + allMethodNames 聚合
+      - protocol schema (src/gateway/protocol/schema/): TypeBox result schema 定义
+      - protocol-gen-ts (scripts/protocol-gen-ts.ts): TypeScript codegen 脚本
+      - server-methods (src/gateway/server-methods/): handler + methodDefs 导出
+    Dashboard Transport:
+      - api-helpers (dashboard/src/lib/api-helpers.ts): gwRequest (typed) + gatewayRequest (deprecated)
+      - with-auth (dashboard/src/lib/with-auth.ts): 认证+限流中间件
+      - generated types (dashboard/src/types/gateway-protocol.generated.ts): GatewayMethodMap
+      - generated client (dashboard/src/types/gateway-client.generated.ts): GatewayClient + ALLOWLIST
+    Dashboard Shell:
+      - ui store (dashboard/src/stores/ui.ts): Panel type union (L18-41)
+      - NavRail (dashboard/src/components/layout/NavRail.tsx): 导航栏 navGroups (L47-90) + settings (L215-231)
+      - page.tsx (dashboard/src/app/page.tsx): lazy imports (L18-93) + ActivePanel (L124-177)
+      - useKeyboardShortcuts (dashboard/src/hooks/useKeyboardShortcuts.ts): Alt+N (L10-20)
+    Error Handling:
+      - ErrorBody in api-helpers.ts (L14)
+      - ErrorBody in with-auth.ts (L17)
+      - ApiErrorBody in chat-api.ts (L33)
+      - normalizeGatewayError in chat-api.ts
   design_decisions: |
-    D1: Chat 和 Approval 的 P0+P1 差距修复，不改架构，只补齐缺失的 UI 功能
-    D2: SLC-3 修复在 setStreaming 中添加 activeApproval 清理
-    D3: 连接状态通过 SSE hook 内部状态 + 顶部 banner 展示
-    D4: Model/Thinking/Fast 选择器作为 MessageInput 工具栏组件
-    D5: 会话重命名通过 sessions.patch Gateway RPC
+    D1: 从 handler respond() 推导 TypeBox schema，遵循 Protocol SDK 设计
+    D2: gwRequest 保持返回 NextResponse 不变，fetchApi 仅限客户端
+    D3: 集中定义 PanelRegistry（非分散 registry.ts），支持 eager/position 标记
+    D4: typed 判定基于 GatewayMethodMap keys（非 ALLOWLIST）
 
 key_files:
-  # Chat
-  - dashboard/src/components/panels/chat/RunStatusBar.tsx
-  - dashboard/src/components/panels/chat/MessageInput.tsx
-  - dashboard/src/components/panels/chat/SessionSidebar.tsx
-  - dashboard/src/components/panels/chat/ToolResultCard.tsx
-  - dashboard/src/components/panels/chat/useChatSSE.ts
-  - dashboard/src/stores/chat.ts
-  - dashboard/src/stores/chat-types.ts
-  # Approval
-  - dashboard/src/components/panels/chat/ApprovalDialog.tsx
-  - dashboard/src/stores/approvals.ts
+  # Gateway Protocol
+  - src/gateway/method-registry-data.ts
+  - src/gateway/protocol/schema/
+  - scripts/protocol-gen-ts.ts
+  # Dashboard Transport
+  - dashboard/src/lib/api-helpers.ts
+  - dashboard/src/lib/with-auth.ts
+  - dashboard/src/types/gateway-protocol.generated.ts
+  - dashboard/src/types/gateway-client.generated.ts
+  # Dashboard Shell
+  - dashboard/src/stores/ui.ts
+  - dashboard/src/components/layout/NavRail.tsx
+  - dashboard/src/app/page.tsx
+  - dashboard/src/hooks/useKeyboardShortcuts.ts
+  # API Routes to migrate
+  - dashboard/src/app/api/usage/sessions/route.ts
+  - dashboard/src/app/api/usage/sessions/logs/route.ts
+  - dashboard/src/app/api/usage/timeseries/route.ts
+  - dashboard/src/app/api/deck/tools-effective/route.ts
+  - dashboard/src/app/api/skills/install/route.ts
+  # Error handling
+  - dashboard/src/components/panels/chat/chat-api.ts
   # i18n
   - dashboard/src/i18n/zh.json
   - dashboard/src/i18n/en.json
 
-external_references: []
+external_references:
+  - docs/plans/2026-03-27-gateway-protocol-sdk-design.md
+  - docs/plans/2026-04-03-deck-web-replacement-matrix.md
