@@ -4,15 +4,16 @@
  * Query params: key, limit
  */
 import { NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
+import type { SessionsUsageLogsParams } from "@/types/gateway-protocol.generated";
 
 export const GET = withAuth(async (request: NextRequest) => {
   const sp = request.nextUrl.searchParams;
   const key = sp.get("key") ?? "";
   const limit = sp.get("limit");
 
-  const params: Record<string, unknown> = { key };
+  const params: SessionsUsageLogsParams = { key };
   if (limit) {
     const parsed = parseInt(limit, 10);
     if (Number.isFinite(parsed) && parsed > 0) {
@@ -20,5 +21,5 @@ export const GET = withAuth(async (request: NextRequest) => {
     }
   }
 
-  return gatewayRequest("sessions.usage.logs", params);
+  return gwRequest("sessions.usage.logs", params);
 });
