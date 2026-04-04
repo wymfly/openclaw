@@ -177,6 +177,7 @@ bash start.sh pm2          # 强制 PM2 模式
 ### 底层命令（高级用户）
 
 Docker 模式:
+
 ```bash
 cd deploy/docker
 docker compose --env-file ../.env ps
@@ -184,6 +185,7 @@ docker compose --env-file ../.env logs -f
 ```
 
 PM2 模式:
+
 ```bash
 pm2 status
 pm2 logs

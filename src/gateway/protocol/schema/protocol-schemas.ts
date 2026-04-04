@@ -156,21 +156,6 @@ import {
   LogsTailResultSchema,
 } from "./logs-chat.js";
 import {
-  SessionMessageEventPayloadSchema,
-  SessionsChangedEventPayloadSchema,
-  SessionSnapshotFieldsSchema,
-  SessionToolEventDataSchema,
-  SessionToolEventPayloadSchema,
-  TranscriptBlockSchema,
-  TranscriptFileBlockSchema,
-  TranscriptImageBlockSchema,
-  TranscriptMessageSchema,
-  TranscriptRoleSchema,
-  TranscriptTextBlockSchema,
-  TranscriptThinkingBlockSchema,
-  TranscriptToolUseBlockSchema,
-} from "./transcript.js";
-import {
   NodeDescribeParamsSchema,
   NodeEventParamsSchema,
   NodePendingDrainParamsSchema,
@@ -226,6 +211,21 @@ import {
   SessionsUsageParamsSchema,
 } from "./sessions.js";
 import { PresenceEntrySchema, SnapshotSchema, StateVersionSchema } from "./snapshot.js";
+import {
+  SessionMessageEventPayloadSchema,
+  SessionsChangedEventPayloadSchema,
+  SessionSnapshotFieldsSchema,
+  SessionToolEventDataSchema,
+  SessionToolEventPayloadSchema,
+  TranscriptBlockSchema,
+  TranscriptFileBlockSchema,
+  TranscriptImageBlockSchema,
+  TranscriptMessageSchema,
+  TranscriptRoleSchema,
+  TranscriptTextBlockSchema,
+  TranscriptThinkingBlockSchema,
+  TranscriptToolUseBlockSchema,
+} from "./transcript.js";
 import {
   CostUsageTotalsSchema,
   SessionCostSummarySchema,

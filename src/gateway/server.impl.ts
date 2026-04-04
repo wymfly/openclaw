@@ -90,6 +90,7 @@ import { createReadinessChecker } from "./server/readiness.js";
 import { loadGatewayTlsRuntime } from "./server/tls.js";
 import { resolveSharedGatewaySessionGeneration } from "./server/ws-shared-generation.js";
 import { maybeSeedControlUiAllowedOriginsAtStartup } from "./startup-control-ui-origins.js";
+import { canonicalizeTranscriptMessage } from "./transcript-canonical.js";
 
 export { __resetModelCatalogCacheForTest } from "./server-model-catalog.js";
 

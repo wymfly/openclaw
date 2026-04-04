@@ -21,7 +21,10 @@ type TranscriptRenderRegistry = {
   ) => ReactNode;
 };
 
-const textRenderer = ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "text" }>>) => (
+const textRenderer = ({
+  block,
+  keyValue,
+}: RendererProps<Extract<ContentBlock, { type: "text" }>>) => (
   <div key={keyValue} className="chat-prose max-w-none text-sm">
     <Streamdown mode="static" className="streamdown-chat">
       {block.text}
@@ -31,16 +34,10 @@ const textRenderer = ({ block, keyValue }: RendererProps<Extract<ContentBlock, {
 
 const transcriptRenderRegistry = {
   text: textRenderer,
-  thinking: ({
-    block,
-    keyValue,
-  }: RendererProps<Extract<ContentBlock, { type: "thinking" }>>) => (
+  thinking: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "thinking" }>>) => (
     <ThinkingBlock key={keyValue} text={block.text} />
   ),
-  tool_use: ({
-    block,
-    keyValue,
-  }: RendererProps<Extract<ContentBlock, { type: "tool_use" }>>) => (
+  tool_use: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "tool_use" }>>) => (
     <ToolUseCard key={keyValue} name={block.name} input={block.input} />
   ),
   tool_result: ({
@@ -55,10 +52,7 @@ const transcriptRenderRegistry = {
   file: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "file" }>>) => (
     <FileBlock key={keyValue} {...block} />
   ),
-  unknown: ({
-    block,
-    keyValue,
-  }: RendererProps<Extract<ContentBlock, { type: "unknown" }>>) => (
+  unknown: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "unknown" }>>) => (
     <UnknownBlockCard key={keyValue} rawType={block.rawType} summary={block.summary} />
   ),
 } satisfies TranscriptRenderRegistry;

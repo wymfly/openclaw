@@ -1142,7 +1142,10 @@ describe("agent event handler", () => {
     expect(broadcastToConnIds.mock.calls[0]?.[0]).toBe("session.tool");
     const payload = broadcastToConnIds.mock.calls[0]?.[1] as {
       data?: {
-        result?: { content?: Array<{ type?: string; text?: string }>; details?: { exitCode?: number } };
+        result?: {
+          content?: Array<{ type?: string; text?: string }>;
+          details?: { exitCode?: number };
+        };
       };
     };
     expect(payload.data?.result).toEqual({

@@ -115,14 +115,18 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
 };
 
 // Assemble the method registry (metadata-only, no runtime behavior change)
-export const gatewayMethodRegistry = buildMethodRegistry(coreGatewayHandlers, [
-  chatMethodDefs,
-  sessionsMethodDefs,
-  usageMethodDefs,
-  skillsMethodDefs,
-  deckMethodDefs,
-  deckAuthMethodDefs,
-], gatewayEventDefs);
+export const gatewayMethodRegistry = buildMethodRegistry(
+  coreGatewayHandlers,
+  [
+    chatMethodDefs,
+    sessionsMethodDefs,
+    usageMethodDefs,
+    skillsMethodDefs,
+    deckMethodDefs,
+    deckAuthMethodDefs,
+  ],
+  gatewayEventDefs,
+);
 
 // Wire describe handler to registry
 setDescribeRegistry(gatewayMethodRegistry);

@@ -1,8 +1,11 @@
 # closure-migration-retained-evidence Specification
 
 ## Purpose
+
 TBD - created by archiving change openspec-closure-repo-extraction. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Historical verification evidence SHALL be retained in OpenClaw
 
 Cleaning generic tooling out of OpenClaw SHALL preserve the historical records that prove this repository actually ran and validated closure workflows.
@@ -20,4 +23,3 @@ Cleaning generic tooling out of OpenClaw SHALL preserve the historical records t
 - **WHEN** OpenClaw keeps archived evidence related to closure tooling work
 - **THEN** those retained records SHALL be treated as provenance or historical evidence
 - **AND** they SHALL NOT cause OpenClaw to continue advertising closure tooling as a current repo-owned capability
-

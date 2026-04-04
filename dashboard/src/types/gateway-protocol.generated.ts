@@ -2,24 +2,134 @@
 
 export const GENERATED_SCHEMA_VERSION = "3";
 
+export type TranscriptBlock =
+  | {
+      type: "text";
+      text: string;
+    }
+  | {
+      type: "thinking";
+      text: string;
+    }
+  | {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    }
+  | {
+      type: "tool_result";
+      toolUseId: string;
+      content: string | TranscriptBlock[];
+      isError?: boolean;
+    }
+  | {
+      type: "image";
+      data: string;
+      mimeType: string;
+      fileName?: string;
+    }
+  | {
+      type: "file";
+      data: string;
+      mimeType: string;
+      fileName: string;
+      size?: number;
+    };
+
+export type TranscriptMessage = {
+  id?: string;
+  role: "user" | "assistant" | "system";
+  content: (
+    | {
+        type: "text";
+        text: string;
+      }
+    | {
+        type: "thinking";
+        text: string;
+      }
+    | {
+        type: "tool_use";
+        id: string;
+        name: string;
+        input: Record<string, unknown>;
+      }
+    | {
+        type: "tool_result";
+        toolUseId: string;
+        content: string | TranscriptBlock[];
+        isError?: boolean;
+      }
+    | {
+        type: "image";
+        data: string;
+        mimeType: string;
+        fileName?: string;
+      }
+    | {
+        type: "file";
+        data: string;
+        mimeType: string;
+        fileName: string;
+        size?: number;
+      }
+  )[];
+  timestamp: number;
+};
+
 export interface ChatHistoryParams {
   sessionKey: string;
   limit?: number;
 }
 
-export interface ChatHistoryResult {
+export type ChatHistoryResult = {
   sessionKey: string;
   sessionId: string;
   messages: {
     id?: string;
-    role?: string;
-    content?: unknown;
-    timestamp?: number;
+    role: "user" | "assistant" | "system";
+    content: (
+      | {
+          type: "text";
+          text: string;
+        }
+      | {
+          type: "thinking";
+          text: string;
+        }
+      | {
+          type: "tool_use";
+          id: string;
+          name: string;
+          input: Record<string, unknown>;
+        }
+      | {
+          type: "tool_result";
+          toolUseId: string;
+          content: string | TranscriptBlock[];
+          isError?: boolean;
+        }
+      | {
+          type: "image";
+          data: string;
+          mimeType: string;
+          fileName?: string;
+        }
+      | {
+          type: "file";
+          data: string;
+          mimeType: string;
+          fileName: string;
+          size?: number;
+        }
+    )[];
+    timestamp: number;
   }[];
   thinkingLevel?: string;
   fastMode?: boolean;
   verboseLevel?: string;
-}
+};
 
 export interface ChatAbortParams {
   sessionKey: string;
@@ -1307,3 +1417,364 @@ export interface GatewayMethodMap {
 }
 
 export type GatewayMethodName = keyof GatewayMethodMap;
+
+export type ChatEventPayload = {
+  runId: string;
+  sessionKey: string;
+  seq: number;
+  state: "delta" | "final" | "aborted" | "error";
+  message?: {
+    id?: string;
+    role: "user" | "assistant" | "system";
+    content: (
+      | {
+          type: "text";
+          text: string;
+        }
+      | {
+          type: "thinking";
+          text: string;
+        }
+      | {
+          type: "tool_use";
+          id: string;
+          name: string;
+          input: Record<string, unknown>;
+        }
+      | {
+          type: "tool_result";
+          toolUseId: string;
+          content: string | TranscriptBlock[];
+          isError?: boolean;
+        }
+      | {
+          type: "image";
+          data: string;
+          mimeType: string;
+          fileName?: string;
+        }
+      | {
+          type: "file";
+          data: string;
+          mimeType: string;
+          fileName: string;
+          size?: number;
+        }
+    )[];
+    timestamp: number;
+  };
+  errorMessage?: string;
+  usage?: unknown;
+  stopReason?: string;
+  mediaUrl?: string;
+  mediaUrls?: string[];
+  mediaType?: string;
+};
+
+export interface AgentEventPayload {
+  runId: string;
+  seq: number;
+  stream: string;
+  ts: number;
+  data: Record<string, unknown>;
+}
+
+export type SessionMessageEventPayload = {
+  sessionKey: string;
+  message: {
+    id?: string;
+    role: "user" | "assistant" | "system";
+    content: (
+      | {
+          type: "text";
+          text: string;
+        }
+      | {
+          type: "thinking";
+          text: string;
+        }
+      | {
+          type: "tool_use";
+          id: string;
+          name: string;
+          input: Record<string, unknown>;
+        }
+      | {
+          type: "tool_result";
+          toolUseId: string;
+          content: string | TranscriptBlock[];
+          isError?: boolean;
+        }
+      | {
+          type: "image";
+          data: string;
+          mimeType: string;
+          fileName?: string;
+        }
+      | {
+          type: "file";
+          data: string;
+          mimeType: string;
+          fileName: string;
+          size?: number;
+        }
+    )[];
+    timestamp: number;
+  };
+  messageId?: string;
+  messageSeq?: number;
+  updatedAt?: number;
+  sessionId?: string;
+  kind?: "direct" | "group" | "global" | "unknown";
+  channel?: string;
+  label?: string;
+  displayName?: string;
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
+  parentSessionKey?: string;
+  childSessions?: string[];
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
+  systemSent?: boolean;
+  abortedLastRun?: boolean;
+  lastChannel?: string;
+  lastTo?: string;
+  lastAccountId?: string;
+  totalTokens?: number;
+  totalTokensFresh?: boolean;
+  contextTokens?: number;
+  estimatedCostUsd?: number;
+  modelProvider?: string;
+  model?: string;
+  status?: "running" | "done" | "failed" | "killed" | "timeout";
+  startedAt?: number;
+  endedAt?: number;
+  runtimeMs?: number;
+};
+
+export type SessionToolEventPayload = {
+  runId: string;
+  seq: number;
+  stream: "tool";
+  ts: number;
+  sessionKey: string;
+  data: {
+    phase: string;
+    name?: string;
+    toolCallId?: string;
+    args?: Record<string, unknown>;
+    result?:
+      | string
+      | (
+          | {
+              type: "text";
+              text: string;
+            }
+          | {
+              type: "thinking";
+              text: string;
+            }
+          | {
+              type: "tool_use";
+              id: string;
+              name: string;
+              input: Record<string, unknown>;
+            }
+          | {
+              type: "tool_result";
+              toolUseId: string;
+              content: string | TranscriptBlock[];
+              isError?: boolean;
+            }
+          | {
+              type: "image";
+              data: string;
+              mimeType: string;
+              fileName?: string;
+            }
+          | {
+              type: "file";
+              data: string;
+              mimeType: string;
+              fileName: string;
+              size?: number;
+            }
+        )[]
+      | {
+          content?:
+            | string
+            | (
+                | {
+                    type: "text";
+                    text: string;
+                  }
+                | {
+                    type: "thinking";
+                    text: string;
+                  }
+                | {
+                    type: "tool_use";
+                    id: string;
+                    name: string;
+                    input: Record<string, unknown>;
+                  }
+                | {
+                    type: "tool_result";
+                    toolUseId: string;
+                    content: string | TranscriptBlock[];
+                    isError?: boolean;
+                  }
+                | {
+                    type: "image";
+                    data: string;
+                    mimeType: string;
+                    fileName?: string;
+                  }
+                | {
+                    type: "file";
+                    data: string;
+                    mimeType: string;
+                    fileName: string;
+                    size?: number;
+                  }
+              )[];
+          details?: Record<string, unknown>;
+        };
+    partialResult?:
+      | string
+      | (
+          | {
+              type: "text";
+              text: string;
+            }
+          | {
+              type: "thinking";
+              text: string;
+            }
+          | {
+              type: "tool_use";
+              id: string;
+              name: string;
+              input: Record<string, unknown>;
+            }
+          | {
+              type: "tool_result";
+              toolUseId: string;
+              content: string | TranscriptBlock[];
+              isError?: boolean;
+            }
+          | {
+              type: "image";
+              data: string;
+              mimeType: string;
+              fileName?: string;
+            }
+          | {
+              type: "file";
+              data: string;
+              mimeType: string;
+              fileName: string;
+              size?: number;
+            }
+        )[]
+      | {
+          content?:
+            | string
+            | (
+                | {
+                    type: "text";
+                    text: string;
+                  }
+                | {
+                    type: "thinking";
+                    text: string;
+                  }
+                | {
+                    type: "tool_use";
+                    id: string;
+                    name: string;
+                    input: Record<string, unknown>;
+                  }
+                | {
+                    type: "tool_result";
+                    toolUseId: string;
+                    content: string | TranscriptBlock[];
+                    isError?: boolean;
+                  }
+                | {
+                    type: "image";
+                    data: string;
+                    mimeType: string;
+                    fileName?: string;
+                  }
+                | {
+                    type: "file";
+                    data: string;
+                    mimeType: string;
+                    fileName: string;
+                    size?: number;
+                  }
+              )[];
+          details?: Record<string, unknown>;
+        };
+    isError?: boolean;
+    error?: string;
+  };
+};
+
+export type SessionsChangedEventPayload = {
+  sessionKey: string;
+  phase?: string;
+  ts: number;
+  runId?: string;
+  messageId?: string;
+  messageSeq?: number;
+  reason?: string;
+  parentSessionKey?: unknown;
+  label?: unknown;
+  displayName?: unknown;
+  updatedAt?: number;
+  sessionId?: string;
+  kind?: "direct" | "group" | "global" | "unknown";
+  channel?: string;
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
+  childSessions?: string[];
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
+  systemSent?: boolean;
+  abortedLastRun?: boolean;
+  lastChannel?: string;
+  lastTo?: string;
+  lastAccountId?: string;
+  totalTokens?: number;
+  totalTokensFresh?: boolean;
+  contextTokens?: number;
+  estimatedCostUsd?: number;
+  modelProvider?: string;
+  model?: string;
+  status?: "running" | "done" | "failed" | "killed" | "timeout";
+  startedAt?: number;
+  endedAt?: number;
+  runtimeMs?: number;
+};
+
+export interface GatewayEventPayloadMap {
+  chat: ChatEventPayload;
+  agent: AgentEventPayload;
+  "session.message": SessionMessageEventPayload;
+  "session.tool": SessionToolEventPayload;
+  "sessions.changed": SessionsChangedEventPayload;
+}
+
+export type GatewayTypedEventName = keyof GatewayEventPayloadMap;

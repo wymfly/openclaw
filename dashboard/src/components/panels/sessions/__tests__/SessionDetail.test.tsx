@@ -2,12 +2,14 @@
 import { render, screen } from "@testing-library/react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SessionDetail } from "../SessionDetail";
 import { useSessionsStore } from "@/stores/sessions";
+import { SessionDetail } from "../SessionDetail";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => {
-    const t = ((key: string) => key) as ((key: string) => string) & { has: (key: string) => boolean };
+    const t = ((key: string) => key) as ((key: string) => string) & {
+      has: (key: string) => boolean;
+    };
     t.has = () => false;
     return t;
   },
@@ -112,6 +114,6 @@ describe("SessionDetail", () => {
     expect(screen.getByText("Unsupported block: refusal")).toBeTruthy();
     expect(screen.getByText("final answer")).toBeTruthy();
     expect(screen.getByRole("img", { name: "diagram.png" })).toBeTruthy();
-    expect(screen.queryByText(/\{\"type\":\"text\"/)).toBeNull();
+    expect(screen.queryByText(/\{"type":"text"/)).toBeNull();
   });
 });

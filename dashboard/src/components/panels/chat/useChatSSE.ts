@@ -4,13 +4,6 @@ import { useEffect, useRef } from "react";
 import { deckStream } from "@/lib/deck-client";
 import { useApprovalsStore } from "@/stores/approvals";
 import { useChatStore } from "@/stores/chat";
-import type {
-  AgentEventPayload,
-  ChatEventPayload,
-  SessionMessageEventPayload,
-  SessionToolEventPayload,
-  SessionsChangedEventPayload,
-} from "@/types/gateway-protocol.generated";
 import {
   type ChatStoreAPI,
   type StreamingTracker,
@@ -22,6 +15,13 @@ import {
   dispatchSessionStateEvent,
 } from "@/stores/chat-dispatchers";
 import { DEFAULT_EVICT_IDLE_MS } from "@/stores/chat-types";
+import type {
+  AgentEventPayload,
+  ChatEventPayload,
+  SessionMessageEventPayload,
+  SessionToolEventPayload,
+  SessionsChangedEventPayload,
+} from "@/types/gateway-protocol.generated";
 import { fetchChatSnapshot, persistChatProjection } from "./chat-api";
 import { normalizeHistoryMessages } from "./history-normalize";
 
@@ -290,10 +290,7 @@ export function useChatSSE() {
             return;
           }
           if (event.event === "session-msg") {
-            dispatchSessionMessageEvent(
-              JSON.parse(event.data) as SessionMessageEventPayload,
-              api,
-            );
+            dispatchSessionMessageEvent(JSON.parse(event.data) as SessionMessageEventPayload, api);
             return;
           }
           if (event.event === "session-state") {

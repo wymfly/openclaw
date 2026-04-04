@@ -6,7 +6,9 @@ import { TranscriptBlocks } from "../TranscriptBlocks";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => {
-    const t = ((key: string) => key) as ((key: string) => string) & { has: (key: string) => boolean };
+    const t = ((key: string) => key) as ((key: string) => string) & {
+      has: (key: string) => boolean;
+    };
     t.has = () => false;
     return t;
   },
@@ -55,6 +57,6 @@ describe("TranscriptBlocks", () => {
     expect(screen.getByRole("img", { name: "diagram.png" })).toBeTruthy();
     expect(screen.getByText("Unsupported block: refusal")).toBeTruthy();
     expect(screen.getByText("final answer")).toBeTruthy();
-    expect(screen.queryByText(/\{\"type\":\"text\"/)).toBeNull();
+    expect(screen.queryByText(/\{"type":"text"/)).toBeNull();
   });
 });

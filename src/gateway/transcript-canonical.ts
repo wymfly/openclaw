@@ -119,7 +119,7 @@ function normalizeToolResultContent(value: unknown): string | TranscriptBlock[] 
   if (value == null) {
     return "";
   }
-  return String(value);
+  return JSON.stringify(value) ?? "unknown";
 }
 
 function canonicalizeTranscriptArrayEntry(value: unknown): TranscriptBlock | null {
@@ -133,7 +133,7 @@ function canonicalizeTranscriptArrayEntry(value: unknown): TranscriptBlock | nul
   if (value == null) {
     return null;
   }
-  return { type: "text", text: String(value) };
+  return { type: "text", text: JSON.stringify(value) ?? "unknown" };
 }
 
 export function canonicalizeTranscriptBlock(raw: TranscriptRecord): TranscriptBlock | null {
@@ -154,8 +154,7 @@ export function canonicalizeTranscriptBlock(raw: TranscriptRecord): TranscriptBl
   if (type === "tool_result" || type === "toolResult") {
     return {
       type: "tool_result",
-      toolUseId:
-        firstString(raw.toolUseId, raw.tool_use_id, raw.toolCallId, raw.id) ?? "",
+      toolUseId: firstString(raw.toolUseId, raw.tool_use_id, raw.toolCallId, raw.id) ?? "",
       content: normalizeToolResultContent(raw.content ?? raw.result),
       ...(typeof raw.isError === "boolean"
         ? { isError: raw.isError }
@@ -201,7 +200,7 @@ export function canonicalizeTranscriptContent(content: unknown): TranscriptBlock
   if (content == null) {
     return [];
   }
-  return [{ type: "text", text: String(content) }];
+  return [{ type: "text", text: JSON.stringify(content) ?? "unknown" }];
 }
 
 function normalizeTranscriptRole(role: unknown): "user" | "assistant" | "system" {
@@ -260,7 +259,9 @@ function canonicalizeSessionToolResultValue(value: unknown): unknown {
   return block ?? value;
 }
 
-export function canonicalizeSessionToolPayload(payload: Record<string, unknown>): Record<string, unknown> {
+export function canonicalizeSessionToolPayload(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const data = asRecord(payload.data);
   if (!data) {
     return payload;

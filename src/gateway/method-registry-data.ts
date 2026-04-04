@@ -1,9 +1,9 @@
+import { gatewayEventDefs } from "./event-defs.js";
 // Side-effect-free export for codegen consumption.
 // MUST NOT import modules with side-effects at module scope.
 //
 // Verify: bun -e 'import("./src/gateway/method-registry-data.ts")'
 import type { MethodMetadata } from "./method-registry.js";
-import { gatewayEventDefs } from "./event-defs.js";
 import { PROTOCOL_VERSION } from "./protocol/schema/protocol-schemas.js";
 import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
 import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
