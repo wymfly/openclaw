@@ -67,7 +67,7 @@ describe("getEventsSince", () => {
     store.appendEvent("chat.delta", "b");
     store.appendEvent("chat.final", "c");
 
-    const events = store.getEventsSince(1);
+    const { events } = store.getEventsSince(1);
     expect(events).toHaveLength(2);
     expect(events[0].id).toBe(2);
     expect(events[1].id).toBe(3);
@@ -77,13 +77,13 @@ describe("getEventsSince", () => {
     store.appendEvent("chat.delta", "a");
     store.appendEvent("chat.delta", "b");
 
-    const events = store.getEventsSince(0);
+    const { events } = store.getEventsSince(0);
     expect(events).toHaveLength(2);
   });
 
   it("returns empty array when no events match", () => {
     store.appendEvent("chat.delta", "a");
-    expect(store.getEventsSince(999)).toHaveLength(0);
+    expect(store.getEventsSince(999).events).toHaveLength(0);
   });
 
   it("respects limit parameter", () => {
@@ -91,7 +91,7 @@ describe("getEventsSince", () => {
       store.appendEvent("chat.delta", i);
     }
 
-    const events = store.getEventsSince(0, 3);
+    const { events } = store.getEventsSince(0, 3);
     expect(events).toHaveLength(3);
     expect(events[0].id).toBe(1);
     expect(events[2].id).toBe(3);
@@ -101,10 +101,78 @@ describe("getEventsSince", () => {
     const payload = { message: "hello", count: 7 };
     store.appendEvent("chat.delta", payload);
 
-    const events = store.getEventsSince(0);
+    const { events } = store.getEventsSince(0);
     expect(events[0].payload).toEqual(payload);
     expect(events[0].eventType).toBe("chat.delta");
     expect(events[0].createdAt).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getEventsSince — gap detection (enhanced return type)
+// ---------------------------------------------------------------------------
+
+describe("getEventsSince with gap detection", () => {
+  it("returns gapDetected: false when lastId is within outbox range", () => {
+    store.appendEvent("a", 1);
+    store.appendEvent("b", 2);
+    store.appendEvent("c", 3);
+
+    const result = store.getEventsSince(1);
+    expect(result.gapDetected).toBe(false);
+    expect(result.events).toHaveLength(2);
+    expect(result.events[0].id).toBe(2);
+    expect(result.events[1].id).toBe(3);
+  });
+
+  it("returns gapDetected: false for first connection (lastId = 0)", () => {
+    store.appendEvent("a", 1);
+    store.appendEvent("b", 2);
+
+    const result = store.getEventsSince(0);
+    expect(result.gapDetected).toBe(false);
+    expect(result.events).toHaveLength(2);
+  });
+
+  it("returns gapDetected: false for empty outbox", () => {
+    const result = store.getEventsSince(5);
+    expect(result.gapDetected).toBe(false);
+    expect(result.events).toHaveLength(0);
+  });
+
+  it("returns gapDetected: true when lastId is below minimum outbox id (pruned)", () => {
+    db.prepare(
+      "INSERT INTO outbox (event_type, payload, created_at) VALUES (?, ?, datetime('now', '-7200 seconds'))",
+    ).run("old", '"old"');
+    store.appendEvent("new-1", "data-1");
+    store.appendEvent("new-2", "data-2");
+    store.pruneEvents(60 * 60 * 1000);
+
+    const result = store.getEventsSince(1);
+    expect(result.gapDetected).toBe(true);
+    expect(result.events).toHaveLength(2);
+  });
+
+  it("returns gapDetected: true when lastId is well below min outbox id", () => {
+    for (let i = 0; i < 5; i++) {
+      store.appendEvent("fill", i);
+    }
+    db.prepare("DELETE FROM outbox WHERE id <= 3").run();
+
+    const result = store.getEventsSince(1);
+    expect(result.gapDetected).toBe(true);
+    expect(result.events).toHaveLength(2);
+    expect(result.events[0].id).toBe(4);
+  });
+
+  it("respects limit parameter", () => {
+    for (let i = 0; i < 10; i++) {
+      store.appendEvent("e", i);
+    }
+
+    const result = store.getEventsSince(0, 3);
+    expect(result.gapDetected).toBe(false);
+    expect(result.events).toHaveLength(3);
   });
 });
 
@@ -465,7 +533,7 @@ describe("pruneEvents", () => {
     expect(pruned).toBe(1);
 
     // Only the recent event should remain.
-    const remaining = store.getEventsSince(0);
+    const { events: remaining } = store.getEventsSince(0);
     expect(remaining).toHaveLength(1);
     expect(remaining[0].eventType).toBe("new.event");
   });

@@ -129,11 +129,23 @@ export function GET(request: Request): Response {
       };
 
       // Replay missed events from the durable outbox when available.
-      const missed =
-        runtime?.store?.getEventsSince(lastEventId).map((entry) => toPersistedReplayEvent(entry)) ??
-        bus.getEventsSince(lastEventId);
-      for (const event of missed) {
-        controller.enqueue(encoder.encode(formatSSE(event)));
+      if (runtime?.store) {
+        const { events, gapDetected } = runtime.store.getEventsSince(lastEventId);
+        if (gapDetected) {
+          controller.enqueue(
+            encoder.encode(
+              `event: projection.gap\ndata: ${JSON.stringify({ reason: "events_pruned" })}\n\n`,
+            ),
+          );
+        }
+        for (const entry of events) {
+          controller.enqueue(encoder.encode(formatSSE(toPersistedReplayEvent(entry))));
+        }
+      } else {
+        const missed = bus.getEventsSince(lastEventId);
+        for (const event of missed) {
+          controller.enqueue(encoder.encode(formatSSE(event)));
+        }
       }
 
       // Subscribe to live events.
