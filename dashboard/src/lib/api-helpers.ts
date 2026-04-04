@@ -9,10 +9,19 @@ import { getRuntime } from "@server/runtime";
  *   3. `extractPlatformHeaders()` — forward tenant/user context (for Deck-layer logging only)
  */
 import { NextResponse } from "next/server";
+import { GatewayErrorCode } from "@/lib/errors";
 import type { ErrorBody } from "@/lib/errors";
 import type { GatewayMethodMap, GatewayMethodName } from "@/types/gateway-protocol.generated";
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+function mapGatewayError(err: ControlPlaneGatewayError): string {
+  const code = err.code;
+  if (code && code in GatewayErrorCode) {
+    return code;
+  }
+  return GatewayErrorCode.GATEWAY_ERROR;
+}
 
 /** Send a typed RPC request through the Gateway adapter. */
 export async function gwRequest<M extends GatewayMethodName>(
@@ -32,9 +41,12 @@ export async function gwRequest<M extends GatewayMethodName>(
     return NextResponse.json(data);
   } catch (err) {
     if (err instanceof ControlPlaneGatewayError) {
-      return NextResponse.json({ error: err.message, code: err.code } satisfies ErrorBody, {
-        status: 502,
-      });
+      return NextResponse.json(
+        { error: err.message, code: mapGatewayError(err) } satisfies ErrorBody,
+        {
+          status: 502,
+        },
+      );
     }
     // In production, do not leak internal error details to the client.
     const message = IS_PRODUCTION
@@ -67,9 +79,12 @@ export async function gatewayRequest(
     return NextResponse.json(data);
   } catch (err) {
     if (err instanceof ControlPlaneGatewayError) {
-      return NextResponse.json({ error: err.message, code: err.code } satisfies ErrorBody, {
-        status: 502,
-      });
+      return NextResponse.json(
+        { error: err.message, code: mapGatewayError(err) } satisfies ErrorBody,
+        {
+          status: 502,
+        },
+      );
     }
     const message = IS_PRODUCTION
       ? "Internal server error"
