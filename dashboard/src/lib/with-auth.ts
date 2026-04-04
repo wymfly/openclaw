@@ -13,8 +13,7 @@ import { getRuntime } from "@server/runtime";
  * checks inside each route handler instead.
  */
 import { NextRequest, NextResponse } from "next/server";
-
-type ErrorBody = { error: string };
+import type { ErrorBody } from "@/lib/errors";
 
 /**
  * Extract the client IP from the request.
