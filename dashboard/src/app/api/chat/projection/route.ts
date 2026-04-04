@@ -24,7 +24,13 @@ export const POST = withAuth(async (request: NextRequest) => {
     return NextResponse.json({ error: "a2uiState is required" }, { status: 400 });
   }
 
-  store.getApprovalProjectionWithMigration(sessionKey);
+  // Trigger legacy approval migration (chat blob → approval domain) before overwriting chat projection.
+  // Migration failure should not block the primary a2uiState write.
+  try {
+    store.getApprovalProjectionWithMigration(sessionKey);
+  } catch (err) {
+    console.error("[ProjectionRoute] approval migration failed, continuing with write:", err);
+  }
 
   if (body.a2uiState == null) {
     store.clearProjection("chat", sessionKey);
