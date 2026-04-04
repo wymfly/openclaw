@@ -90,6 +90,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
             void bridge.eval(javaScript, `replay-${sessionKey}-${index}`);
           });
         }
+        bridge.requestTree();
       },
       onUserAction: (action: UserAction) => {
         // Record outbound event
@@ -105,13 +106,20 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
           bridge.sendActionStatus(action.id, ok, error);
         });
       },
+      onTreeData: (tree: unknown) => {
+        useChatStore.getState().setA2UIState(sessionKey, { treeData: tree });
+      },
       onSurfacesChanged: (surfaces: string[]) => {
         useChatStore.getState().updateA2UISurfaces(sessionKey, surfaces);
         if (surfaces.length > 0) {
           setState("ready");
+          bridge.requestTree();
         } else {
           setState("empty");
-          useChatStore.getState().setA2UIState(sessionKey, { visible: false });
+          useChatStore.getState().setA2UIState(sessionKey, {
+            visible: false,
+            treeData: undefined,
+          });
         }
         persistProjection(sessionKey);
       },
@@ -195,6 +203,12 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
           case "a2ui_reset":
             bridge?.reset();
             setState("empty");
+            if (activeSessionKey) {
+              useChatStore.getState().setA2UIState(activeSessionKey, { treeData: undefined });
+            }
+            break;
+          case "request_tree":
+            bridge?.requestTree();
             break;
           case "present":
             // Visibility is already tracked in session-scoped A2UI state.

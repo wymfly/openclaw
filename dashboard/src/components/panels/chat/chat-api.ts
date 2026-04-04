@@ -85,7 +85,7 @@ export type ChatSnapshot = {
   a2uiState: A2UIState | null;
 };
 
-type PersistedA2UIState = Omit<A2UIState, "bridgeStatus">;
+type PersistedA2UIState = Omit<A2UIState, "bridgeStatus" | "treeData">;
 
 async function parseResponseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
@@ -168,8 +168,9 @@ function sanitizeA2UIState(state: A2UIState | null): PersistedA2UIState | null {
   if (!state) {
     return null;
   }
-  const { bridgeStatus: _bridgeStatus, ...rest } = state;
+  const { bridgeStatus: _bridgeStatus, treeData: _treeData, ...rest } = state;
   void _bridgeStatus;
+  void _treeData;
   return rest;
 }
 

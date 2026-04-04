@@ -1,5 +1,6 @@
 "use client";
 
+import { RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,10 @@ export function CanvasDebugPanel() {
     const key = s.activeSessionKey;
     return key ? (s.sessions.get(key)?.a2uiState?.surfaces ?? []) : [];
   });
+  const treeData = useChatStore((s) => {
+    const key = s.activeSessionKey;
+    return key ? (s.sessions.get(key)?.a2uiState?.treeData ?? null) : null;
+  });
   const [activeTab, setActiveTab] = useState<"messages" | "tree">("messages");
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
@@ -23,6 +28,13 @@ export function CanvasDebugPanel() {
     }
     // Reset event log by setting it to empty
     useChatStore.getState().setA2UIState(activeSessionKey, { eventLog: [] });
+  };
+
+  const handleRefreshTree = () => {
+    if (!activeSessionKey) {
+      return;
+    }
+    useChatStore.getState().pushCanvasCommand(activeSessionKey, { action: "request_tree" });
   };
 
   return (
@@ -102,18 +114,37 @@ export function CanvasDebugPanel() {
               ))}
             </div>
           )
-        ) : surfaces.length > 0 ? (
-          <div className="p-3 space-y-1">
-            {surfaces.map((s) => (
-              <div key={s} className="flex items-center gap-2 text-[10px]">
-                <span className="text-[var(--success)]">{"\u25CF"}</span>
-                <span className="text-[var(--foreground)]">{s}</span>
-              </div>
-            ))}
-          </div>
         ) : (
-          <div className="p-3 text-center text-[var(--muted-foreground)] text-[10px]">
-            {t("debugTreeUnavailable")}
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-end px-2 py-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleRefreshTree}
+                className="p-1 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                title={t("debugRefreshTree")}
+                aria-label={t("debugRefreshTree")}
+              >
+                <RefreshCw size={10} />
+              </button>
+            </div>
+            {treeData != null ? (
+              <pre className="flex-1 px-3 pb-3 text-[10px] text-[var(--foreground)] overflow-auto whitespace-pre-wrap">
+                {JSON.stringify(treeData, null, 2)}
+              </pre>
+            ) : surfaces.length > 0 ? (
+              <div className="p-3 space-y-1">
+                {surfaces.map((s) => (
+                  <div key={s} className="flex items-center gap-2 text-[10px]">
+                    <span className="text-[var(--success)]">{"\u25CF"}</span>
+                    <span className="text-[var(--foreground)]">{s}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 text-center text-[var(--muted-foreground)] text-[10px]">
+                {t("debugTreeUnavailable")}
+              </div>
+            )}
           </div>
         )}
       </div>

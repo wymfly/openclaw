@@ -77,7 +77,7 @@ const messages = {
 };
 
 function Wrapper({ children }: { children: ReactNode }) {
-  return createElement(NextIntlClientProvider, { locale: "en", messages }, children);
+  return createElement(NextIntlClientProvider, { locale: "en", messages, children });
 }
 
 describe("showToolResult block filter", () => {
