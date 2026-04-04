@@ -110,6 +110,7 @@
     "status_failed": "Failed",
     "status_killed": "Killed",
     "status_timeout": "Timeout",
+    "partialResult": "Stream interrupted — partial result",
     "sseReconnecting": "Reconnecting to server...",
     "sseDisconnected": "Disconnected from server",
     "openArtifact": "Open",
