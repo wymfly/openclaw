@@ -324,6 +324,319 @@ export interface SessionsCompactResult {
   reason?: string;
 }
 
+export type SessionsUsageParams = {
+  key?: string;
+  startDate?: string;
+  endDate?: string;
+  mode?: "utc" | "gateway" | "specific";
+  utcOffset?: string;
+  limit?: number;
+  includeContextWeight?: boolean;
+};
+
+export type SessionsUsageResult = {
+  updatedAt: number;
+  startDate: string;
+  endDate: string;
+  sessions: {
+    key: string;
+    label?: string;
+    sessionId?: string;
+    updatedAt?: number;
+    agentId?: string;
+    channel?: string;
+    chatType?: string;
+    origin?: {
+      label?: string;
+      provider?: string;
+      surface?: string;
+      chatType?: string;
+      from?: string;
+      to?: string;
+      accountId?: string;
+      threadId?: string | number;
+    };
+    modelOverride?: string;
+    providerOverride?: string;
+    modelProvider?: string;
+    model?: string;
+    usage: {
+      input: number;
+      output: number;
+      cacheRead: number;
+      cacheWrite: number;
+      totalTokens: number;
+      totalCost: number;
+      inputCost: number;
+      outputCost: number;
+      cacheReadCost: number;
+      cacheWriteCost: number;
+      missingCostEntries: number;
+      sessionId?: string;
+      sessionFile?: string;
+      firstActivity?: number;
+      lastActivity?: number;
+      durationMs?: number;
+      activityDates?: string[];
+      dailyBreakdown?: {
+        date: string;
+        tokens: number;
+        cost: number;
+      }[];
+      dailyMessageCounts?: {
+        date: string;
+        total: number;
+        user: number;
+        assistant: number;
+        toolCalls: number;
+        toolResults: number;
+        errors: number;
+      }[];
+      dailyLatency?: {
+        date: string;
+        count: number;
+        avgMs: number;
+        p95Ms: number;
+        minMs: number;
+        maxMs: number;
+      }[];
+      dailyModelUsage?: {
+        date: string;
+        provider?: string;
+        model?: string;
+        tokens: number;
+        cost: number;
+        count: number;
+      }[];
+      messageCounts?: {
+        total: number;
+        user: number;
+        assistant: number;
+        toolCalls: number;
+        toolResults: number;
+        errors: number;
+      };
+      toolUsage?: {
+        totalCalls: number;
+        uniqueTools: number;
+        tools: {
+          name: string;
+          count: number;
+        }[];
+      };
+      modelUsage?: {
+        provider?: string;
+        model?: string;
+        count: number;
+        totals: {
+          input: number;
+          output: number;
+          cacheRead: number;
+          cacheWrite: number;
+          totalTokens: number;
+          totalCost: number;
+          inputCost: number;
+          outputCost: number;
+          cacheReadCost: number;
+          cacheWriteCost: number;
+          missingCostEntries: number;
+        };
+      }[];
+      latency?: {
+        count: number;
+        avgMs: number;
+        p95Ms: number;
+        minMs: number;
+        maxMs: number;
+      };
+    } | null;
+    contextWeight?: {
+      source: "run" | "estimate";
+      generatedAt: number;
+      sessionId?: string;
+      sessionKey?: string;
+      provider?: string;
+      model?: string;
+      workspaceDir?: string;
+      bootstrapMaxChars?: number;
+      bootstrapTotalMaxChars?: number;
+      bootstrapTruncation?: {
+        warningMode?: "off" | "once" | "always";
+        warningShown?: boolean;
+        promptWarningSignature?: string;
+        warningSignaturesSeen?: string[];
+        truncatedFiles?: number;
+        nearLimitFiles?: number;
+        totalNearLimit?: boolean;
+      };
+      sandbox?: {
+        mode?: string;
+        sandboxed?: boolean;
+      };
+      systemPrompt: {
+        chars: number;
+        projectContextChars: number;
+        nonProjectContextChars: number;
+      };
+      injectedWorkspaceFiles: {
+        name: string;
+        path: string;
+        missing: boolean;
+        rawChars: number;
+        injectedChars: number;
+        truncated: boolean;
+      }[];
+      skills: {
+        promptChars: number;
+        entries: {
+          name: string;
+          blockChars: number;
+        }[];
+      };
+      tools: {
+        listChars: number;
+        schemaChars: number;
+        entries: {
+          name: string;
+          summaryChars: number;
+          schemaChars: number;
+          propertiesCount?: number | null;
+        }[];
+      };
+    } | null;
+  }[];
+  totals: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    totalTokens: number;
+    totalCost: number;
+    inputCost: number;
+    outputCost: number;
+    cacheReadCost: number;
+    cacheWriteCost: number;
+    missingCostEntries: number;
+  };
+  aggregates: {
+    messages: {
+      total: number;
+      user: number;
+      assistant: number;
+      toolCalls: number;
+      toolResults: number;
+      errors: number;
+    };
+    tools: {
+      totalCalls: number;
+      uniqueTools: number;
+      tools: {
+        name: string;
+        count: number;
+      }[];
+    };
+    byModel: {
+      provider?: string;
+      model?: string;
+      count: number;
+      totals: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        totalTokens: number;
+        totalCost: number;
+        inputCost: number;
+        outputCost: number;
+        cacheReadCost: number;
+        cacheWriteCost: number;
+        missingCostEntries: number;
+      };
+    }[];
+    byProvider: {
+      provider?: string;
+      model?: string;
+      count: number;
+      totals: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        totalTokens: number;
+        totalCost: number;
+        inputCost: number;
+        outputCost: number;
+        cacheReadCost: number;
+        cacheWriteCost: number;
+        missingCostEntries: number;
+      };
+    }[];
+    byAgent: {
+      agentId: string;
+      totals: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        totalTokens: number;
+        totalCost: number;
+        inputCost: number;
+        outputCost: number;
+        cacheReadCost: number;
+        cacheWriteCost: number;
+        missingCostEntries: number;
+      };
+    }[];
+    byChannel: {
+      channel: string;
+      totals: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        totalTokens: number;
+        totalCost: number;
+        inputCost: number;
+        outputCost: number;
+        cacheReadCost: number;
+        cacheWriteCost: number;
+        missingCostEntries: number;
+      };
+    }[];
+    latency?: {
+      count: number;
+      avgMs: number;
+      p95Ms: number;
+      minMs: number;
+      maxMs: number;
+    };
+    dailyLatency?: {
+      date: string;
+      count: number;
+      avgMs: number;
+      p95Ms: number;
+      minMs: number;
+      maxMs: number;
+    }[];
+    modelDaily?: {
+      date: string;
+      provider?: string;
+      model?: string;
+      tokens: number;
+      cost: number;
+      count: number;
+    }[];
+    daily: {
+      date: string;
+      tokens: number;
+      cost: number;
+      messages: number;
+      toolCalls: number;
+      errors: number;
+    }[];
+  };
+};
+
 export type SkillsInstallParams =
   | {
       name: string;
@@ -895,6 +1208,7 @@ export interface GatewayMethodMap {
   "sessions.clear": { params: SessionsClearParams; result: SessionsClearResult };
   "sessions.delete": { params: SessionsDeleteParams; result: SessionsDeleteResult };
   "sessions.compact": { params: SessionsCompactParams; result: SessionsCompactResult };
+  "sessions.usage": { params: SessionsUsageParams; result: SessionsUsageResult };
   "skills.install": { params: SkillsInstallParams; result: SkillsInstallResult };
   "deck.commands.discover": {
     params: DeckCommandsDiscoverParams;

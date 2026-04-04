@@ -40,6 +40,7 @@ import { toolsEffectiveHandlers } from "./server-methods/tools-effective.js";
 import { ttsHandlers } from "./server-methods/tts.js";
 import type { GatewayRequestHandlers, GatewayRequestOptions } from "./server-methods/types.js";
 import { updateHandlers } from "./server-methods/update.js";
+import { usageMethodDefs } from "./server-methods/usage-method-defs.js";
 import { usageHandlers } from "./server-methods/usage.js";
 import { voicewakeHandlers } from "./server-methods/voicewake.js";
 import { webHandlers } from "./server-methods/web.js";
@@ -117,6 +118,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
 export const gatewayMethodRegistry = buildMethodRegistry(coreGatewayHandlers, [
   chatMethodDefs,
   sessionsMethodDefs,
+  usageMethodDefs,
   skillsMethodDefs,
   deckMethodDefs,
   deckAuthMethodDefs,
