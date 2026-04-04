@@ -231,7 +231,7 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   const eventBus = getEventBus();
   eventBus.setReplayStore({
     appendEvent: (type, data) => store.appendEvent(type, data),
-    getEventsSince: (lastId) => store.getEventsSince(lastId).map(toReplayEvent),
+    getEventsSince: (lastId) => store.getEventsSince(lastId).events.map(toReplayEvent),
   });
 
   const gwSettings = resolveGatewaySettings(settings, store);

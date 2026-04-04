@@ -35,7 +35,7 @@ export const GET = withAuth(async (request: NextRequest) => {
   const since = parseInt(sinceParam ?? "0", 10) || 0;
 
   try {
-    const outboxEntries = runtime.store.getEventsSince(since, limit);
+    const { events: outboxEntries } = runtime.store.getEventsSince(since, limit);
 
     // Map outbox entries into ActivityEvent shape.
     const events: ActivityEvent[] = outboxEntries

@@ -36,6 +36,11 @@ export type OutboxEntry = {
   createdAt: string;
 };
 
+export type EventsSinceResult = {
+  events: OutboxEntry[];
+  gapDetected: boolean;
+};
+
 export type ChatSessionProjection = {
   a2uiState?: unknown;
   activeApproval?: {
@@ -70,6 +75,7 @@ export class ProjectionStore {
   // Prepared statements (lazy — created on first use).
   private _insertOutbox: Statement<[string, string], unknown> | null = null;
   private _selectAfter: Statement<[number, number], OutboxRow> | null = null;
+  private _selectMinId: Statement<[], { min_id: number | null }> | null = null;
   private _selectHead: Statement<[], { head: number }> | null = null;
   private _getSetting: Statement<[string], SettingRow | undefined> | null = null;
   private _upsertSetting: Statement<[string, string], unknown> | null = null;
@@ -98,6 +104,10 @@ export class ProjectionStore {
     return (this._selectHead ??= this.db.prepare(
       "SELECT COALESCE(MAX(id), 0) AS head FROM outbox",
     ));
+  }
+
+  private get selectMinIdStmt() {
+    return (this._selectMinId ??= this.db.prepare("SELECT MIN(id) AS min_id FROM outbox"));
   }
 
   private get getSettingStmt() {
@@ -137,13 +147,29 @@ export class ProjectionStore {
   }
 
   /**
-   * Read outbox events with `id > lastId`, ordered ascending.
+   * Read outbox events with `id > lastId`, ordered ascending, with gap detection.
+   * Gap is detected when lastId > 0 and lastId < min(id) in outbox,
+   * meaning replay history has already been pruned past the client checkpoint.
    * Default limit is 500.
    */
-  getEventsSince(lastId: number, limit = 500): OutboxEntry[] {
+  getEventsSince(lastId: number, limit = 500): EventsSinceResult {
     const safeLastId = Number.isFinite(lastId) && lastId >= 0 ? lastId : 0;
     const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 500;
-    return (this.selectAfterStmt.all(safeLastId, safeLimit) as OutboxRow[]).map(toOutboxEntry);
+    const events = (this.selectAfterStmt.all(safeLastId, safeLimit) as OutboxRow[]).map(
+      toOutboxEntry,
+    );
+
+    if (safeLastId <= 0) {
+      return { events, gapDetected: false };
+    }
+
+    const minRow = this.selectMinIdStmt.get() as { min_id: number | null } | undefined;
+    const minId = minRow?.min_id;
+    if (minId == null) {
+      return { events, gapDetected: false };
+    }
+
+    return { events, gapDetected: safeLastId < minId };
   }
 
   /** Return the highest outbox ID (0 if empty). */
