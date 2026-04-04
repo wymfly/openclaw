@@ -2,39 +2,51 @@
 
 ### Requirement: PanelRegistry central data structure
 
-The system SHALL provide a `PanelRegistry` in `dashboard/src/lib/panel-registry.ts` that stores panel metadata: `id` (Panel type), `group` (nav group), `icon` (LucideIcon), `labelKey` (i18n key), `component` (lazy React component), `shortcutIndex?` (optional keyboard shortcut position).
+The system SHALL provide a `PANELS` array in `dashboard/src/lib/panel-registry.ts` where each entry contains: `id` (string literal), `group` (nav group name), `icon` (LucideIcon), `labelKey` (i18n key), `component` (lazy or eager React component), `shortcutIndex?` (optional keyboard shortcut position 1-9), `eager?` (boolean, default false), `position?` ('bottom' for fixed-bottom items like settings).
 
-#### Scenario: Registry contains all 23 existing panels
+#### Scenario: Registry contains all existing panels
 
-- **WHEN** `getPanelRegistry()` is called
-- **THEN** it SHALL return entries for all 23 currently registered panels (chat, agents, gateway, models, usage, sessions, memory, logs, activity, threads, cron, webhooks, approvals, skills, budget, alerts, channels, routing, subagents, identity, config, docs, settings)
+- **WHEN** the `PANELS` array is read
+- **THEN** it SHALL contain entries for all 23 currently registered panels plus settings (24 total): chat, agents, gateway, models, usage, sessions, memory, logs, activity, threads, cron, webhooks, approvals, skills, budget, alerts, channels, routing, subagents, identity, config, docs, settings
 
 ### Requirement: Panel type derived from registry
 
-The `Panel` type union in `dashboard/src/stores/ui.ts` SHALL be derived from the registry entries rather than manually maintained.
+The `Panel` type in `dashboard/src/stores/ui.ts` SHALL be derived from the registry entries' `id` field: `type Panel = typeof PANELS[number]['id']`.
 
-#### Scenario: Adding a new panel to registry auto-extends type
+#### Scenario: Panel type matches registry entries
 
-- **WHEN** a new panel entry is added to the registry barrel
-- **THEN** the `Panel` type SHALL automatically include the new panel's id without editing `ui.ts`
+- **WHEN** a new entry with `id: 'newpanel'` is added to the PANELS array
+- **THEN** the `Panel` type SHALL automatically include `'newpanel'` without editing `ui.ts`
 
 ### Requirement: NavRail reads from registry
 
-`NavRail.tsx` SHALL read its nav groups and menu items from the registry instead of hardcoded `navGroups` array.
+`NavRail.tsx` SHALL read its nav groups and menu items from the registry instead of hardcoded `navGroups` array. Entries with `position: 'bottom'` SHALL be rendered separately at the bottom of the rail.
 
-#### Scenario: NavRail renders all registered panels
+#### Scenario: NavRail renders grouped panels
 
 - **WHEN** NavRail renders
-- **THEN** it SHALL display panels grouped by their `group` field from the registry, in the order defined by group priority
+- **THEN** it SHALL display panels grouped by their `group` field from the registry
+
+#### Scenario: Settings renders at bottom
+
+- **WHEN** NavRail renders
+- **THEN** the settings entry (with `position: 'bottom'`) SHALL render below the scrollable groups, matching current behavior
+  Evidence: `dashboard/src/components/layout/NavRail.tsx:215-231` currently renders settings separately
 
 ### Requirement: Page routing reads from registry
 
-`page.tsx` SHALL derive its lazy imports and `ActivePanel` routing from the registry instead of hardcoded if-else chain.
+`page.tsx` SHALL derive its component loading from the registry. Entries with `eager: true` SHALL use static import; all others SHALL use `lazy()`.
 
-#### Scenario: Panel component loads from registry
+#### Scenario: Chat loads eagerly
 
-- **WHEN** user navigates to a registered panel
-- **THEN** `page.tsx` SHALL load the component from the corresponding registry entry's `component` field
+- **WHEN** the chat panel is activated
+- **THEN** it SHALL load via static import (not lazy), matching current behavior
+  Evidence: `dashboard/src/app/page.tsx:11` currently imports ChatPanel eagerly
+
+#### Scenario: Other panels load lazily
+
+- **WHEN** any non-eager panel is activated
+- **THEN** it SHALL load via the `component` field from the registry entry (lazy import)
 
 ### Requirement: Keyboard shortcuts read from registry
 
@@ -47,9 +59,9 @@ The `Panel` type union in `dashboard/src/stores/ui.ts` SHALL be derived from the
 
 ### Requirement: Adding a new panel requires only registry entry
 
-Adding a new panel to Deck SHALL require creating at most 2 files: the panel component and its registry entry. No changes to Shell, NavRail, page.tsx, useKeyboardShortcuts, or ui.ts SHALL be necessary.
+Adding a new panel to Deck SHALL require: (1) creating the panel component file, (2) adding one entry to the PANELS array in `panel-registry.ts`, (3) adding i18n keys. No changes to NavRail, page.tsx, useKeyboardShortcuts, or ui.ts SHALL be necessary.
 
 #### Scenario: New panel registration
 
-- **WHEN** a developer creates `dashboard/src/components/panels/newpanel/NewPanel.tsx` and adds a registry entry to the barrel
-- **THEN** the panel SHALL appear in NavRail, be routable, and have the correct i18n label without modifying any of the 5 previously hardcoded touch points
+- **WHEN** a developer adds a new entry to the PANELS array with a lazy component import
+- **THEN** the panel SHALL appear in NavRail, be routable via page.tsx, and have keyboard shortcut support (if shortcutIndex provided) without modifying any other file

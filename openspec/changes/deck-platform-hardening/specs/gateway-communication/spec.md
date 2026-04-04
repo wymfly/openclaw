@@ -2,12 +2,12 @@
 
 ### Requirement: Typed client coverage
 
-The Deck typed client SHALL cover all Gateway methods that are called by the dashboard. The `GENERATED_METHOD_ALLOWLIST` SHALL include every method for which a result schema exists in the protocol schema directory.
+The Deck typed client SHALL cover all Gateway methods that are called by the dashboard and have result schemas. The `GatewayMethodMap` SHALL include entries for every method with a registered result schema in `methodDefs`.
 
-#### Scenario: All Deck-used upstream methods are in typed client
+#### Scenario: All 5 new upstream methods appear in GatewayMethodMap
 
-- **WHEN** `pnpm protocol:gen:ts` is executed
-- **THEN** the generated `GatewayMethodMap` SHALL include entries for `sessions.usage`, `sessions.usage.logs`, `sessions.usage.timeseries`, `tools.effective`, `skills.install`, and `config.set` in addition to all previously covered methods
+- **WHEN** `pnpm protocol:gen:ts` is executed after adding result schemas
+- **THEN** the generated `GatewayMethodMap` SHALL include entries for `sessions.usage`, `sessions.usage.logs`, `sessions.usage.timeseries`, `tools.effective`, and `skills.install` in addition to all previously covered methods
 
 #### Scenario: No regression in existing typed methods
 
