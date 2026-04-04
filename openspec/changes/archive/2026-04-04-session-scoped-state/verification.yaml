@@ -1,10 +1,10 @@
 # Session-Scoped State — Closure Verification
 # Date: 2026-04-04
 # Specs: session-state-isolation (21 scenarios), session-lifecycle (16 scenarios)
-# Result: 36/37 CLOSED, 1 KNOWN GAP (deferred to Phase 2 Approval)
+# Result: 37/37 CLOSED, 0 GAP (SLC-3 fixed in Phase 2)
 
 archiveReady: true
-gapCount: 1
+gapCount: 0
 
 scenarios:
   # =========================================================================
@@ -147,8 +147,9 @@ scenarios:
 
   SLC-3:
     name: Approval keeps active
-    status: GAP
-    note: "setStreaming(false) unconditionally sets status='idle' without checking activeApproval. Deferred to Phase 2 Approval module — the approval domain is being rebuilt there and this guard belongs with it."
+    status: CLOSED
+    evidence: dashboard/src/stores/chat.ts:364
+    note: "Fixed in Phase 2: setStreaming(false) now sets activeApproval: null. Commit c874e8d331."
 
   SLC-4:
     name: Active session never evicted
