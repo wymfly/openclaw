@@ -171,20 +171,6 @@ export class ProjectionStore {
     return (info.changes ?? 0) > 0;
   }
 
-  // -- Chat session projection API ------------------------------------------
-
-  getChatSessionProjection(sessionKey: string): ChatSessionProjection | null {
-    return this.getProjection<ChatSessionProjection>("chat", sessionKey);
-  }
-
-  setChatSessionProjection(sessionKey: string, projection: ChatSessionProjection): void {
-    this.setProjection("chat", sessionKey, projection);
-  }
-
-  clearChatSessionProjection(sessionKey: string): boolean {
-    return this.clearProjection("chat", sessionKey);
-  }
-
   // -- Generic projection API -------------------------------------------------
 
   getProjection<T>(domain: string, key: string): T | null {
@@ -217,6 +203,11 @@ export class ProjectionStore {
       return false;
     }
     return this.deleteSetting(storageKey);
+  }
+
+  clearSessionProjections(sessionKey: string): void {
+    this.clearProjection("chat", sessionKey);
+    this.clearProjection("approval", sessionKey);
   }
 
   // -- Approval migration (legacy chat blob -> approval domain) -------------

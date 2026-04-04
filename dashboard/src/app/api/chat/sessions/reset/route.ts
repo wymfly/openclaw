@@ -18,7 +18,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     reason: body.reason ?? "reset",
   });
   if (response.ok) {
-    getRuntime()?.store.clearChatSessionProjection(body.sessionKey);
+    getRuntime()?.store.clearSessionProjections(body.sessionKey);
   }
   return response;
 });
