@@ -1,93 +1,11 @@
 "use client";
 
-import {
-  MessageSquare,
-  Bot,
-  Radio,
-  Cpu,
-  BarChart3,
-  ScrollText,
-  Brain,
-  FileText,
-  Activity,
-  Clock,
-  Webhook,
-  ShieldCheck,
-  Wrench,
-  Wallet,
-  Bell,
-  Share2,
-  GitBranch,
-  Network,
-  Settings,
-  FileCode,
-  Fingerprint,
-  MessagesSquare,
-  PanelLeftClose,
-  PanelLeft,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { PanelLeftClose, PanelLeft, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
+import { getBottomPanels, getPanelGroups, type PanelEntry } from "@/lib/panel-registry";
 import { useUIStore, type Panel } from "@/stores/ui";
-
-interface NavItem {
-  panel: Panel;
-  labelKey: string;
-  icon: LucideIcon;
-}
-
-interface NavGroup {
-  titleKey: string;
-  items: NavItem[];
-}
-
-const navGroups: NavGroup[] = [
-  {
-    titleKey: "core",
-    items: [
-      { panel: "chat", labelKey: "chat", icon: MessageSquare },
-      { panel: "agents", labelKey: "agents", icon: Bot },
-      { panel: "gateway", labelKey: "gateway", icon: Radio },
-      { panel: "models", labelKey: "models", icon: Cpu },
-    ],
-  },
-  {
-    titleKey: "observe",
-    items: [
-      { panel: "usage", labelKey: "usage", icon: BarChart3 },
-      { panel: "sessions", labelKey: "sessions", icon: ScrollText },
-      { panel: "memory", labelKey: "memory", icon: Brain },
-      { panel: "logs", labelKey: "logs", icon: FileText },
-      { panel: "activity", labelKey: "activity", icon: Activity },
-      { panel: "threads", labelKey: "threads", icon: MessagesSquare },
-    ],
-  },
-  {
-    titleKey: "automate",
-    items: [
-      { panel: "cron", labelKey: "cron", icon: Clock },
-      { panel: "webhooks", labelKey: "webhooks", icon: Webhook },
-      { panel: "approvals", labelKey: "approvals", icon: ShieldCheck },
-      { panel: "skills", labelKey: "skills", icon: Wrench },
-    ],
-  },
-  {
-    titleKey: "control",
-    items: [
-      { panel: "budget", labelKey: "budget", icon: Wallet },
-      { panel: "alerts", labelKey: "alerts", icon: Bell },
-      { panel: "channels", labelKey: "channels", icon: Share2 },
-      { panel: "routing", labelKey: "routing", icon: GitBranch },
-      { panel: "subagents", labelKey: "subagents", icon: Network },
-      { panel: "identity", labelKey: "identity", icon: Fingerprint },
-      { panel: "config", labelKey: "config", icon: Settings },
-      { panel: "docs", labelKey: "docs", icon: FileCode },
-    ],
-  },
-];
 
 export function NavRail() {
   const t = useTranslations("nav");
@@ -103,6 +21,8 @@ export function NavRail() {
 
   const isTablet = useMediaQuery(BREAKPOINTS.tablet);
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);
+  const navGroups = getPanelGroups();
+  const bottomPanels = getBottomPanels();
 
   // Auto-collapse sidebar on tablet breakpoint
   useEffect(() => {
@@ -184,12 +104,12 @@ export function NavRail() {
               </div>
             )}
             {group.items.map((item) => {
-              const isActive = activePanel === item.panel;
+              const isActive = activePanel === item.id;
               const Icon = item.icon;
               return (
                 <button
-                  key={item.panel}
-                  onClick={() => handleNavClick(item.panel)}
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id as Panel)}
                   className={`flex items-center gap-2.5 w-full px-3 py-1.5 text-sm transition-colors ${
                     collapsed ? "justify-center" : ""
                   }`}
@@ -212,23 +132,29 @@ export function NavRail() {
 
       {/* Bottom: Settings */}
       <div className="border-t py-2" style={{ borderColor: "var(--border)" }}>
-        <button
-          onClick={() => handleNavClick("settings")}
-          className={`flex items-center gap-2.5 w-full px-3 py-1.5 text-sm transition-colors ${
-            collapsed ? "justify-center" : ""
-          }`}
-          style={{
-            color: activePanel === "settings" ? "var(--primary)" : "var(--foreground)",
-            backgroundColor:
-              activePanel === "settings"
-                ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                : "transparent",
-          }}
-          title={collapsed ? t("settings") : undefined}
-        >
-          <Settings size={16} />
-          {!collapsed && <span>{t("settings")}</span>}
-        </button>
+        {bottomPanels.map((item: PanelEntry) => {
+          const isActive = activePanel === item.id;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item.id as Panel)}
+              className={`flex items-center gap-2.5 w-full px-3 py-1.5 text-sm transition-colors ${
+                collapsed ? "justify-center" : ""
+              }`}
+              style={{
+                color: isActive ? "var(--primary)" : "var(--foreground)",
+                backgroundColor: isActive
+                  ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                  : "transparent",
+              }}
+              title={collapsed ? t(item.labelKey) : undefined}
+            >
+              <Icon size={16} />
+              {!collapsed && <span>{t(item.labelKey)}</span>}
+            </button>
+          );
+        })}
       </div>
     </nav>
   );

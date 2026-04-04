@@ -1,23 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { getShortcutPanels } from "@/lib/panel-registry";
 import { useUIStore, type Panel } from "@/stores/ui";
-
-/**
- * Ordered panel list matching NavRail display order (navGroups flattened).
- * Alt+1 through Alt+9 map to the first 9 entries.
- */
-const NAV_PANELS: Panel[] = [
-  "chat",
-  "agents",
-  "gateway",
-  "models",
-  "usage",
-  "sessions",
-  "memory",
-  "logs",
-  "activity",
-];
+const NAV_PANELS = getShortcutPanels().map((p) => p.id as Panel);
 
 /** Returns true when the active element is a text input or editable area. */
 function isEditableTarget(el: EventTarget | null): boolean {

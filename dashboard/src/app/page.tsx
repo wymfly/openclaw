@@ -1,96 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Shell } from "@/components/layout/Shell";
 import { ThemeSync } from "@/components/layout/ThemeSync";
 import { ToastContainer } from "@/components/notifications/ToastContainer";
 import { useNotificationSSE } from "@/components/notifications/useNotificationSSE";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-// ChatPanel is the default panel — keep eager to avoid flash-of-loading on startup.
-import { ChatPanel } from "@/components/panels/chat/ChatPanel";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { findPanel } from "@/lib/panel-registry";
 import { useUIStore, type Panel } from "@/stores/ui";
-
-// ---------------------------------------------------------------------------
-// Lazy-loaded panels — code-split so only the active panel is fetched.
-// ---------------------------------------------------------------------------
-const LazyAgentsPanel = lazy(() =>
-  import("@/components/panels/agents/AgentsPanel").then((m) => ({ default: m.AgentsPanel })),
-);
-const LazyMonitorPanel = lazy(() =>
-  import("@/components/panels/monitor/MonitorPanel").then((m) => ({ default: m.MonitorPanel })),
-);
-const LazyModelsPanel = lazy(() =>
-  import("@/components/panels/models/ModelsPanel").then((m) => ({ default: m.ModelsPanel })),
-);
-const LazyUsagePanel = lazy(() =>
-  import("@/components/panels/usage/UsagePanel").then((m) => ({ default: m.UsagePanel })),
-);
-const LazySessionsPanel = lazy(() =>
-  import("@/components/panels/sessions/SessionsPanel").then((m) => ({ default: m.SessionsPanel })),
-);
-const LazyLogsPanel = lazy(() =>
-  import("@/components/panels/logs/LogsPanel").then((m) => ({ default: m.LogsPanel })),
-);
-const LazyMemoryPanel = lazy(() =>
-  import("@/components/panels/memory/MemoryPanel").then((m) => ({ default: m.MemoryPanel })),
-);
-const LazyActivityPanel = lazy(() =>
-  import("@/components/panels/activity/ActivityPanel").then((m) => ({ default: m.ActivityPanel })),
-);
-const LazyChannelsPanel = lazy(() =>
-  import("@/components/panels/channels/ChannelsPanel").then((m) => ({ default: m.ChannelsPanel })),
-);
-const LazyConfigPanel = lazy(() =>
-  import("@/components/panels/config-editor/ConfigPanel").then((m) => ({ default: m.ConfigPanel })),
-);
-const LazySchedulerPanel = lazy(() =>
-  import("@/components/panels/scheduler/SchedulerPanel").then((m) => ({
-    default: m.SchedulerPanel,
-  })),
-);
-const LazyWebhooksPanel = lazy(() =>
-  import("@/components/panels/webhooks/WebhooksPanel").then((m) => ({ default: m.WebhooksPanel })),
-);
-const LazyApprovalsPanel = lazy(() =>
-  import("@/components/panels/approvals/ApprovalsPanel").then((m) => ({
-    default: m.ApprovalsPanel,
-  })),
-);
-const LazySkillsPanel = lazy(() =>
-  import("@/components/panels/skills/SkillsPanel").then((m) => ({ default: m.SkillsPanel })),
-);
-const LazyBudgetPanel = lazy(() =>
-  import("@/components/panels/budget/BudgetPanel").then((m) => ({ default: m.BudgetPanel })),
-);
-const LazyAlertsPanel = lazy(() =>
-  import("@/components/panels/alerts/AlertsPanel").then((m) => ({ default: m.AlertsPanel })),
-);
-const LazyDocHubPanel = lazy(() =>
-  import("@/components/panels/docs/DocHubPanel").then((m) => ({ default: m.DocHubPanel })),
-);
-const LazyRoutingPanel = lazy(() =>
-  import("@/components/panels/routing/RoutingPanel").then((m) => ({ default: m.RoutingPanel })),
-);
-const LazySubagentsPanel = lazy(() =>
-  import("@/components/panels/subagents/SubagentsPanel").then((m) => ({
-    default: m.SubagentsPanel,
-  })),
-);
-const LazyIdentityPanel = lazy(() =>
-  import("@/components/panels/identity/IdentityPanel").then((m) => ({
-    default: m.IdentityPanel,
-  })),
-);
-const LazyThreadsPanel = lazy(() =>
-  import("@/components/panels/threads/ThreadsPanel").then((m) => ({
-    default: m.ThreadsPanel,
-  })),
-);
-const LazySettingsPanel = lazy(() =>
-  import("@/components/panels/settings/SettingsPanel").then((m) => ({ default: m.SettingsPanel })),
-);
 
 // ---------------------------------------------------------------------------
 // Suspense fallback — minimal spinner themed via CSS variables.
@@ -122,67 +41,18 @@ function PanelPlaceholder({ panel }: { panel: Panel }) {
 }
 
 function ActivePanel({ panel }: { panel: Panel }) {
-  // ChatPanel is eager-loaded (default panel) — no Suspense needed.
-  if (panel === "chat") {
-    return <ChatPanel />;
-  }
-
-  // All other panels are lazy-loaded and wrapped in Suspense.
-  let LazyComponent: React.ComponentType | null = null;
-
-  if (panel === "agents") {
-    LazyComponent = LazyAgentsPanel;
-  } else if (panel === "gateway") {
-    LazyComponent = LazyMonitorPanel;
-  } else if (panel === "models") {
-    LazyComponent = LazyModelsPanel;
-  } else if (panel === "usage") {
-    LazyComponent = LazyUsagePanel;
-  } else if (panel === "sessions") {
-    LazyComponent = LazySessionsPanel;
-  } else if (panel === "logs") {
-    LazyComponent = LazyLogsPanel;
-  } else if (panel === "memory") {
-    LazyComponent = LazyMemoryPanel;
-  } else if (panel === "activity") {
-    LazyComponent = LazyActivityPanel;
-  } else if (panel === "channels") {
-    LazyComponent = LazyChannelsPanel;
-  } else if (panel === "config") {
-    LazyComponent = LazyConfigPanel;
-  } else if (panel === "cron") {
-    LazyComponent = LazySchedulerPanel;
-  } else if (panel === "webhooks") {
-    LazyComponent = LazyWebhooksPanel;
-  } else if (panel === "approvals") {
-    LazyComponent = LazyApprovalsPanel;
-  } else if (panel === "skills") {
-    LazyComponent = LazySkillsPanel;
-  } else if (panel === "budget") {
-    LazyComponent = LazyBudgetPanel;
-  } else if (panel === "alerts") {
-    LazyComponent = LazyAlertsPanel;
-  } else if (panel === "docs") {
-    LazyComponent = LazyDocHubPanel;
-  } else if (panel === "routing") {
-    LazyComponent = LazyRoutingPanel;
-  } else if (panel === "subagents") {
-    LazyComponent = LazySubagentsPanel;
-  } else if (panel === "identity") {
-    LazyComponent = LazyIdentityPanel;
-  } else if (panel === "threads") {
-    LazyComponent = LazyThreadsPanel;
-  } else if (panel === "settings") {
-    LazyComponent = LazySettingsPanel;
-  }
-
-  if (!LazyComponent) {
+  const entry = findPanel(panel);
+  if (!entry) {
     return <PanelPlaceholder panel={panel} />;
+  }
+  const PanelComponent = entry.component;
+  if (entry.eager) {
+    return <PanelComponent />;
   }
 
   return (
     <Suspense fallback={<PanelLoadingFallback />}>
-      <LazyComponent />
+      <PanelComponent />
     </Suspense>
   );
 }
