@@ -210,7 +210,8 @@ export class ProjectionStore {
     }
     try {
       return JSON.parse(raw) as T;
-    } catch {
+    } catch (err) {
+      console.error(`[ProjectionStore] corrupt JSON for key "${storageKey}":`, err);
       return null;
     }
   }

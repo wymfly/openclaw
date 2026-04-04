@@ -83,6 +83,10 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
     for (const [id, approval] of pendingMap) {
       if (approval.expiresAtMs && approval.expiresAtMs < now) {
         pendingMap.delete(id);
+        // Clear persisted approval projection to stay in sync with in-memory map
+        if (approval.sessionKey) {
+          runtime.store.clearProjection("approval", approval.sessionKey);
+        }
       }
     }
   }, 30_000);
