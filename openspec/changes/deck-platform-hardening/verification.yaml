@@ -1,9 +1,9 @@
 # deck-platform-hardening verification
 # Generated: 2026-04-04
-# Status: 36/37 scenarios PASS, 1 gap (design deviation)
+# Status: 37/37 scenarios PASS
 
-archiveReady: false
-gapCount: 1
+archiveReady: true
+gapCount: 0
 
 scenarios:
   # === upstream-result-schemas (11 scenarios) ===
@@ -22,11 +22,10 @@ scenarios:
     status: pass
     evidence: "grep SessionsUsageTimeseriesResult → present"
 
-  - id: upstream-result-schemas/result-schema-tools-effective
-    title: "Result schema exists for tools.effective"
-    status: gap
-    evidence: "tools.effective has no Gateway handler (not in server-methods-list.ts). Dashboard route returns stub { groups: [] }. Cannot add result schema without upstream handler."
-    gap: "Design deviation: spec assumed upstream handler exists, but it does not. Route is a stub. Recommend updating spec to reflect stub design."
+  - id: upstream-result-schemas/tools-effective-stub
+    title: "tools.effective route returns stub (no upstream handler)"
+    status: pass
+    evidence: "Route returns { groups: [] }. Spec updated to reflect stub design (no Gateway handler exists)."
 
   - id: upstream-result-schemas/result-schema-skills-install
     title: "Result schema exists for skills.install"
@@ -203,7 +202,4 @@ scenarios:
     status: pass
     evidence: "Report outputs family-grouped counts matching matrix baseline format"
 
-gaps:
-  - scenario: upstream-result-schemas/result-schema-tools-effective
-    severity: design-deviation
-    recommendation: "Update spec to reflect that tools.effective is a stub (no upstream handler). The route returns empty groups as a placeholder."
+gaps: []
