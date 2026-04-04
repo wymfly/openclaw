@@ -19,10 +19,11 @@ All Gateway methods called by Deck dashboard SHALL have a TypeBox result schema 
 - **WHEN** `pnpm protocol:gen:ts` is executed
 - **THEN** `gateway-protocol.generated.ts` SHALL contain a `SessionsUsageTimeseriesResult` type and `sessions.usage.timeseries` SHALL appear in the `GatewayMethodMap`
 
-#### Scenario: Result schema exists for tools.effective
+#### Scenario: tools.effective route returns stub (no upstream handler)
 
-- **WHEN** `pnpm protocol:gen:ts` is executed
-- **THEN** `gateway-protocol.generated.ts` SHALL contain a `ToolsEffectiveResult` type and `tools.effective` SHALL appear in the `GatewayMethodMap`
+- **GIVEN** `tools.effective` has no Gateway handler (not registered in `server-methods-list.ts`)
+- **WHEN** the dashboard route `/api/deck/tools-effective` is called
+- **THEN** it SHALL return `{ groups: [] }` as a placeholder until an upstream handler is implemented
 
 #### Scenario: Result schema exists for skills.install
 
