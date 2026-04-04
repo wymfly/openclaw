@@ -11,6 +11,7 @@ import type {
   ToolProgress,
   ApprovalRequest,
   RunMetadata,
+  SSEConnectionStatus,
 } from "./chat-types";
 import { createEmptySessionState, MAX_CACHED_SESSIONS, MAX_A2UI_EVENT_LOG } from "./chat-types";
 
@@ -35,6 +36,7 @@ export interface ChatState {
   sessionMeta: SessionMeta[];
   activeSessionKey: string | null;
   activeAgentId: string | null;
+  sseStatus: SSEConnectionStatus;
 
   // Session management
   ensureSession: (key: string) => SessionState;
@@ -115,6 +117,7 @@ export interface ChatState {
   /** Alias for setSessionMetas — used by tests and legacy consumers. */
   setSessionMeta: (metas: SessionMeta[]) => void;
   setActiveAgent: (agentId: string | null) => void;
+  setSSEStatus: (status: SSEConnectionStatus) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,6 +131,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessionMeta: [],
   activeSessionKey: null,
   activeAgentId: null,
+  sseStatus: "disconnected" as SSEConnectionStatus,
 
   // -------------------------------------------------------------------------
   // Session management
@@ -569,6 +573,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setSessionMetas: (metas) => set({ sessionMetas: metas, sessionMeta: metas }),
   setSessionMeta: (metas) => set({ sessionMetas: metas, sessionMeta: metas }),
   setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
+  setSSEStatus: (status) => set({ sseStatus: status }),
 
   // -------------------------------------------------------------------------
   // Aliases (keep parity with tests / legacy consumers)

@@ -171,3 +171,7 @@ export function useSessionA2UIBridgeStatus(
 export function useSessionMetaList(): SessionMeta[] {
   return useChatStore((s) => s.sessionMetas ?? EMPTY_METAS);
 }
+
+export function useSSEStatus() {
+  return useChatStore((s) => s.sseStatus);
+}

@@ -257,6 +257,12 @@ export function useChatSSE() {
     void deckStream("/api/stream", {
       signal: controller.signal,
       reconnect: true,
+      onOpen() {
+        useChatStore.getState().setSSEStatus("connected");
+      },
+      onRetry() {
+        useChatStore.getState().setSSEStatus("reconnecting");
+      },
       onEvent(event) {
         if (!event.event || !event.data) {
           return;
@@ -355,6 +361,7 @@ export function useChatSSE() {
     return () => {
       controller.abort();
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      useChatStore.getState().setSSEStatus("disconnected");
     };
   }, []); // empty deps — stream lives for the component lifetime
 }
