@@ -203,7 +203,7 @@ function bridgeToActivity(
   eventBus.broadcast("activity.event", activityPayload);
 }
 
-function toReplayEvent(entry: ReturnType<ProjectionStore["getEventsSince"]>[number]) {
+function toReplayEvent(entry: ReturnType<ProjectionStore["getEventsSince"]>["events"][number]) {
   return {
     id: entry.id,
     type: entry.eventType as DeckEventType,
