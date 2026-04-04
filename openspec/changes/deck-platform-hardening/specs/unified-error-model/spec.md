@@ -2,12 +2,26 @@
 
 ### Requirement: Single ErrorCode enumeration
 
-The system SHALL define a single `GatewayErrorCode` enumeration in `dashboard/src/lib/errors.ts` covering all Deck-recognized error conditions: `NOT_CONFIGURED`, `GATEWAY_ERROR`, `UNAUTHORIZED`, `RATE_LIMITED`, `VALIDATION`, `INTERNAL`.
+The system SHALL define a single `GatewayErrorCode` enumeration in `dashboard/src/lib/errors.ts` with exactly 6 values: `NOT_CONFIGURED`, `GATEWAY_ERROR`, `UNAUTHORIZED`, `RATE_LIMITED`, `VALIDATION`, `INTERNAL`.
 
 #### Scenario: ErrorCode enum is importable
 
 - **WHEN** a dashboard module imports `GatewayErrorCode` from `@/lib/errors`
 - **THEN** it SHALL have access to all 6 error codes as string literal values
+
+### Requirement: Error code mapping from Gateway errors
+
+The system SHALL provide a `mapGatewayError(err: ControlPlaneGatewayError): GatewayErrorCode` function that maps Gateway error codes to the unified enum.
+
+#### Scenario: Gateway error with known code maps correctly
+
+- **WHEN** a `ControlPlaneGatewayError` has `code: "UNAUTHORIZED"`
+- **THEN** `mapGatewayError` SHALL return `"UNAUTHORIZED"`
+
+#### Scenario: Gateway error with unknown code maps to GATEWAY_ERROR
+
+- **WHEN** a `ControlPlaneGatewayError` has an unrecognized `code` value
+- **THEN** `mapGatewayError` SHALL return `"GATEWAY_ERROR"`
 
 ### Requirement: DeckApiError class
 
@@ -15,27 +29,32 @@ The system SHALL provide a `DeckApiError` class in `dashboard/src/lib/errors.ts`
 
 #### Scenario: DeckApiError from Gateway 502
 
-- **WHEN** gwRequest catches a `ControlPlaneGatewayError`
-- **THEN** it SHALL create a `DeckApiError` with `code: "GATEWAY_ERROR"` and `status: 502`
+- **WHEN** a client-side fetch receives HTTP 502 with `{ error: "timeout", code: "GATEWAY_ERROR" }`
+- **THEN** `fetchApi` SHALL throw a `DeckApiError` with `code: "GATEWAY_ERROR"`, `message: "timeout"`, `status: 502`
 
-#### Scenario: DeckApiError from missing runtime
+#### Scenario: DeckApiError from 401 Unauthorized
 
-- **WHEN** gwRequest detects no Gateway runtime
-- **THEN** it SHALL create a `DeckApiError` with `code: "NOT_CONFIGURED"` and `status: 503`
+- **WHEN** a client-side fetch receives HTTP 401 with `{ error: "Unauthorized" }`
+- **THEN** `fetchApi` SHALL throw a `DeckApiError` with `code: "UNAUTHORIZED"`, `message: "Unauthorized"`, `status: 401`
+
+#### Scenario: DeckApiError from 429 Rate Limited
+
+- **WHEN** a client-side fetch receives HTTP 429 with `{ error: "Too many requests" }`
+- **THEN** `fetchApi` SHALL throw a `DeckApiError` with `code: "RATE_LIMITED"`, `message: "Too many requests"`, `status: 429`
+
+#### Scenario: DeckApiError from missing runtime (503)
+
+- **WHEN** a client-side fetch receives HTTP 503 with `{ error: "Gateway not configured" }`
+- **THEN** `fetchApi` SHALL throw a `DeckApiError` with `code: "NOT_CONFIGURED"`, `message: "Gateway not configured"`, `status: 503`
 
 ### Requirement: Shared fetchApi helper
 
-The system SHALL provide a `fetchApi<T>(url, options?)` function in `dashboard/src/lib/errors.ts` that encapsulates: fetch call, `res.ok` check, JSON parsing, and error typing into `DeckApiError`.
+The system SHALL provide a `fetchApi<T>(url, options?)` function in `dashboard/src/lib/errors.ts` that encapsulates: fetch call, `res.ok` check, JSON parsing, and error typing into `DeckApiError`. This is a **client-side only** helper used by stores and hooks.
 
 #### Scenario: Successful fetch
 
 - **WHEN** `fetchApi<T>("/api/skills")` receives HTTP 200 with JSON body
 - **THEN** it SHALL return the parsed body typed as `T`
-
-#### Scenario: Failed fetch with error body
-
-- **WHEN** `fetchApi("/api/skills")` receives HTTP 502 with `{ error: "Gateway timeout", code: "GATEWAY_ERROR" }`
-- **THEN** it SHALL throw a `DeckApiError` with `code: "GATEWAY_ERROR"`, `message: "Gateway timeout"`, `status: 502`
 
 #### Scenario: Network failure
 
@@ -50,3 +69,12 @@ The `ErrorBody` type SHALL be defined exactly once in `dashboard/src/lib/errors.
 
 - **WHEN** searching for `type ErrorBody` or `type ApiErrorBody` in the dashboard codebase
 - **THEN** only `dashboard/src/lib/errors.ts` SHALL define these types
+
+### Requirement: gwRequest return contract unchanged
+
+The `gwRequest()` function SHALL continue to return `NextResponse` (not throw). Only the internal error construction SHALL use the unified ErrorBody type from `errors.ts`.
+
+#### Scenario: gwRequest still returns NextResponse on error
+
+- **WHEN** gwRequest encounters a ControlPlaneGatewayError
+- **THEN** it SHALL return `NextResponse.json({ error, code }, { status: 502 })` as before, not throw

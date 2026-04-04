@@ -11,21 +11,27 @@ The system SHALL provide a script at `scripts/protocol-coverage-check.ts` that c
 
 ### Requirement: Script reads method registry
 
-The script SHALL extract all registered Gateway method names from `src/gateway/method-registry-data.ts`.
+The script SHALL extract all registered Gateway method names from `src/gateway/method-registry-data.ts` (specifically `allMethodNames` or equivalent export).
 
 #### Scenario: All registered methods are discovered
 
 - **WHEN** the script reads the method registry
-- **THEN** it SHALL list every method name that appears in `allMethodDefs` or `allMethodNames`
+- **THEN** it SHALL list every method name that appears in the registry
+  Evidence: `src/gateway/method-registry-data.ts` exports `allMethodDefs` and `allMethodNames`
 
-### Requirement: Script reads typed client allowlist
+### Requirement: Script identifies typed methods from GatewayMethodMap
 
-The script SHALL extract the `GENERATED_METHOD_ALLOWLIST` from `dashboard/src/types/gateway-client.generated.ts`.
+The script SHALL extract the keys of `GatewayMethodMap` from `dashboard/src/types/gateway-protocol.generated.ts` to identify methods with complete type definitions (params + result). This is NOT the `GENERATED_METHOD_ALLOWLIST` which includes all known methods regardless of result schema presence.
 
-#### Scenario: Typed methods are identified
+#### Scenario: Typed methods are correctly identified
 
-- **WHEN** the script reads the allowlist
-- **THEN** it SHALL classify methods in the allowlist as "typed"
+- **WHEN** the script reads `GatewayMethodMap` keys
+- **THEN** it SHALL classify only methods present in `GatewayMethodMap` as "typed"
+
+#### Scenario: ALLOWLIST methods without result schema are not classified as typed
+
+- **WHEN** a method appears in `GENERATED_METHOD_ALLOWLIST` but not in `GatewayMethodMap`
+- **THEN** it SHALL NOT be classified as "typed"
 
 ### Requirement: Script detects untyped gatewayRequest calls
 

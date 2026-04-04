@@ -2,7 +2,7 @@
 
 ### Requirement: Upstream methods have result schemas
 
-All Gateway methods called by Deck dashboard SHALL have a TypeBox result schema registered in the method's `methodDefs` export. The 6 methods currently lacking result schemas are: `sessions.usage`, `sessions.usage.logs`, `sessions.usage.timeseries`, `tools.effective`, `skills.install`, `config.set`.
+All Gateway methods called by Deck dashboard SHALL have a TypeBox result schema registered in the method's `methodDefs` export and integrated into `method-registry-data.ts`. The 5 methods currently lacking result schemas are: `sessions.usage`, `sessions.usage.logs`, `sessions.usage.timeseries`, `tools.effective`, `skills.install`.
 
 #### Scenario: Result schema exists for sessions.usage
 
@@ -29,11 +29,6 @@ All Gateway methods called by Deck dashboard SHALL have a TypeBox result schema 
 - **WHEN** `pnpm protocol:gen:ts` is executed
 - **THEN** `gateway-protocol.generated.ts` SHALL contain a `SkillsInstallResult` type and `skills.install` SHALL appear in the `GatewayMethodMap`
 
-#### Scenario: Result schema exists for config.set
-
-- **WHEN** `pnpm protocol:gen:ts` is executed
-- **THEN** `gateway-protocol.generated.ts` SHALL contain a `ConfigSetResult` type and `config.set` SHALL appear in the `GatewayMethodMap`
-
 ### Requirement: API routes migrate to typed gwRequest
 
 After result schemas are added, the corresponding dashboard API routes SHALL use typed `gwRequest()` instead of deprecated `gatewayRequest()`.
@@ -42,11 +37,31 @@ After result schemas are added, the corresponding dashboard API routes SHALL use
 
 - **WHEN** `dashboard/src/app/api/usage/sessions/route.ts` calls the Gateway
 - **THEN** it SHALL use `gwRequest("sessions.usage", params)` instead of `gatewayRequest("sessions.usage", params)`
+  Evidence: `dashboard/src/app/api/usage/sessions/route.ts:31` currently calls `gatewayRequest("sessions.usage", params)`
+
+#### Scenario: sessions.usage.logs route uses gwRequest
+
+- **WHEN** `dashboard/src/app/api/usage/sessions/logs/route.ts` calls the Gateway
+- **THEN** it SHALL use `gwRequest("sessions.usage.logs", params)`
+  Evidence: `dashboard/src/app/api/usage/sessions/logs/route.ts:23` currently calls `gatewayRequest("sessions.usage.logs", params)`
+
+#### Scenario: sessions.usage.timeseries route uses gwRequest
+
+- **WHEN** `dashboard/src/app/api/usage/timeseries/route.ts` calls the Gateway
+- **THEN** it SHALL use `gwRequest("sessions.usage.timeseries", params)`
+  Evidence: `dashboard/src/app/api/usage/timeseries/route.ts:12` currently calls `gatewayRequest("sessions.usage.timeseries", ...)`
 
 #### Scenario: tools.effective route uses gwRequest
 
 - **WHEN** `dashboard/src/app/api/deck/tools-effective/route.ts` calls the Gateway
-- **THEN** it SHALL use `gwRequest("tools.effective", params)` instead of `gatewayRequest("tools.effective", params)`
+- **THEN** it SHALL use `gwRequest("tools.effective", params)`
+  Evidence: `dashboard/src/app/api/deck/tools-effective/route.ts:17` currently calls `gatewayRequest("tools.effective", ...)`
+
+#### Scenario: skills.install route uses gwRequest
+
+- **WHEN** `dashboard/src/app/api/skills/install/route.ts` calls the Gateway
+- **THEN** it SHALL use `gwRequest("skills.install", body)`
+  Evidence: `dashboard/src/app/api/skills/install/route.ts:15` currently calls `gatewayRequest("skills.install", body)`
 
 #### Scenario: pnpm protocol:gen:check passes
 
