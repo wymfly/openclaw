@@ -157,6 +157,8 @@
     "configThinking": "Thinking",
     "configFast": "Fast",
     "configVerbose": "Verbose",
+    "configThinkingToggle": "Click to cycle thinking level",
+    "configFastToggle": "Click to toggle fast mode",
     "cmdCatSession": "Session",
     "cmdCatModel": "Model",
     "cmdCatTools": "Tools",

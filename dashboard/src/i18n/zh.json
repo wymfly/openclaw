@@ -157,6 +157,8 @@
     "configThinking": "思考",
     "configFast": "快速",
     "configVerbose": "详细",
+    "configThinkingToggle": "点击切换思考级别",
+    "configFastToggle": "点击切换快速模式",
     "cmdCatSession": "会话",
     "cmdCatModel": "模型",
     "cmdCatTools": "工具",
