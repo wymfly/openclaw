@@ -4,7 +4,7 @@
 
 **Goal:** Align the existing session-scoped state implementation with the newly completed projection platform — specifically, handle `projection.gap` SSE events to trigger snapshot recovery, and activate the `visibilitychange` eviction trigger specified in the session-lifecycle spec.
 
-**Architecture:** The SSE stream endpoint (`/api/stream`) already emits `projection.gap` events when outbox events are pruned. The client-side `useChatSSE` hook needs a new event branch that evicts stale cached sessions and refetches the active session's snapshot. A `visibilitychange` listener in the same hook handles aggressive eviction when the tab goes hidden.
+**Architecture:** The SSE stream endpoint (`/api/stream`) already emits `projection.gap` events when outbox events are pruned. The client-side `useChatSSE` hook needs a new event branch that evicts stale cached sessions and refetches the active session's snapshot. A module-level in-flight guard prevents concurrent gap recovery. A `visibilitychange` listener in the same hook handles aggressive eviction when the tab goes hidden.
 
 **Tech Stack:** TypeScript, React (hooks), Zustand, Vitest
 
@@ -12,31 +12,34 @@
 
 ## File Structure
 
-| File                                                                    | Action | Responsibility                                                   |
-| ----------------------------------------------------------------------- | ------ | ---------------------------------------------------------------- |
-| `dashboard/src/components/panels/chat/useChatSSE.ts`                    | Modify | Add `projection.gap` event handler + `visibilitychange` listener |
-| `dashboard/src/components/panels/chat/__tests__/projection-gap.test.ts` | Create | Unit tests for gap recovery handler                              |
-| `dashboard/src/stores/__tests__/chat-store.test.ts`                     | Modify | Add eviction trigger tests                                       |
+| File                                                                           | Action | Responsibility                                                   |
+| ------------------------------------------------------------------------------ | ------ | ---------------------------------------------------------------- |
+| `dashboard/src/components/panels/chat/useChatSSE.ts`                           | Modify | Add `projection.gap` event handler + `visibilitychange` listener |
+| `dashboard/src/components/panels/chat/__tests__/projection-gap.test.ts`        | Create | Unit tests for gap recovery handler                              |
+| `dashboard/src/components/panels/chat/__tests__/useChatSSE-visibility.test.ts` | Create | Hook-level visibilitychange eviction tests                       |
 
 ---
 
 ### Task 1: projection.gap Event Handler
 
-**实施描述:** Add `handleProjectionGap()` function in `useChatSSE.ts` that evicts stale cached sessions and refetches the active session's snapshot. Wire it into the SSE event switch as a new `projection.gap` branch.
+**实施描述:** Add `handleProjectionGap()` function in `useChatSSE.ts` with an in-flight guard to prevent concurrent recovery. Evicts stale cached sessions and refetches the active session's snapshot. Wire it into the SSE event switch as a new `projection.gap` branch.
 
 **验收标准:**
 
 - `projection.gap` SSE event triggers `evictStale(0)` on the store
 - Active session's snapshot is refetched and applied (messages, approval, a2uiState)
-- Non-active cached sessions are evicted from the Map
+- Non-active, non-streaming cached sessions whose `lastAccessedAt` is > 0ms ago are evicted from the Map
 - No error thrown if no active session exists
 - Streaming sessions are not interrupted
+- Concurrent gap events are coalesced (in-flight guard prevents duplicate fetches)
 
 **测试要求:**
 
 - Test: gap event triggers evictStale and snapshot refetch
 - Test: gap event with no active session is a safe no-op
 - Test: gap event preserves streaming sessions
+- Test: concurrent gap calls are coalesced (second call returns immediately)
+- Test: snapshot fetch failure is handled gracefully
 
 **依赖关系:** 无
 
@@ -56,7 +59,7 @@ Create `dashboard/src/components/panels/chat/__tests__/projection-gap.test.ts`:
 ```typescript
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock chat-api before importing the module under test
+// Mock chat-api and history-normalize before any imports
 vi.mock("../chat-api", () => ({
   fetchChatSnapshot: vi.fn(),
   persistChatProjection: vi.fn().mockResolvedValue(undefined),
@@ -73,28 +76,24 @@ vi.mock("../history-normalize", () => ({
   ),
 }));
 
-import { fetchChatSnapshot } from "../chat-api";
-import { normalizeHistoryMessages } from "../history-normalize";
-
-// Reset zustand store between tests
+// Dynamic imports — re-acquired after each vi.resetModules() so mock
+// instances stay in sync with the modules the code under test uses.
+let fetchChatSnapshot: typeof import("../chat-api").fetchChatSnapshot;
+let normalizeHistoryMessages: typeof import("../history-normalize").normalizeHistoryMessages;
+let handleProjectionGap: typeof import("../useChatSSE").handleProjectionGap;
 let useChatStore: typeof import("@/stores/chat").useChatStore;
 
 beforeEach(async () => {
   vi.resetModules();
-  // Re-import fresh store
-  const chatMod = await import("@/stores/chat");
-  useChatStore = chatMod.useChatStore;
-
-  // Re-import to get handleProjectionGap with fresh store reference
-  const sseMod = await import("../useChatSSE");
-  handleProjectionGap = sseMod.handleProjectionGap;
+  ({ fetchChatSnapshot } = await import("../chat-api"));
+  ({ normalizeHistoryMessages } = await import("../history-normalize"));
+  ({ handleProjectionGap } = await import("../useChatSSE"));
+  ({ useChatStore } = await import("@/stores/chat"));
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-let handleProjectionGap: typeof import("../useChatSSE").handleProjectionGap;
 
 describe("handleProjectionGap", () => {
   it("evicts stale sessions and refetches active session snapshot", async () => {
@@ -190,6 +189,36 @@ describe("handleProjectionGap", () => {
     // Should not throw
     await expect(handleProjectionGap()).resolves.toBeUndefined();
   });
+
+  it("coalesces concurrent gap calls via in-flight guard", async () => {
+    const store = useChatStore.getState();
+    store.ensureSession("active-sess");
+    store.setActiveSession("active-sess");
+    useChatStore.setState({ activeAgentId: "main" });
+
+    // Create a deferred promise so we can control resolution timing
+    let resolve!: (v: unknown) => void;
+    const deferred = new Promise((r) => {
+      resolve = r;
+    });
+    vi.mocked(fetchChatSnapshot).mockReturnValue(deferred as ReturnType<typeof fetchChatSnapshot>);
+
+    // Fire two concurrent calls
+    const p1 = handleProjectionGap();
+    const p2 = handleProjectionGap();
+
+    // Second call should return immediately (in-flight guard)
+    resolve({
+      messages: [],
+      meta: null,
+      activeApproval: null,
+      a2uiState: null,
+    });
+    await Promise.all([p1, p2]);
+
+    // Only one fetch should have been made
+    expect(fetchChatSnapshot).toHaveBeenCalledTimes(1);
+  });
 });
 ```
 
@@ -202,48 +231,57 @@ Expected: FAIL — `handleProjectionGap` is not exported from `useChatSSE`
 
 Modify `dashboard/src/components/panels/chat/useChatSSE.ts`:
 
-**Add imports** at the top (after existing imports):
+**Add imports** at the top (after existing imports, `persistChatProjection` is already imported):
 
 ```typescript
-import { fetchChatSnapshot, persistChatProjection } from "./chat-api";
+import { fetchChatSnapshot } from "./chat-api";
 import { normalizeHistoryMessages } from "./history-normalize";
 ```
 
-Note: `persistChatProjection` is already imported. Only add `fetchChatSnapshot` and the `normalizeHistoryMessages` import.
-
-**Add `handleProjectionGap` function** after the `handleCanvasEvent` function (before `export function useChatSSE()`):
+**Add in-flight guard + `handleProjectionGap` function** after the `handleCanvasEvent` function (before `export function useChatSSE()`):
 
 ```typescript
+// ---------------------------------------------------------------------------
+// projection.gap recovery — in-flight guard prevents concurrent fetches
+// ---------------------------------------------------------------------------
+
+let _gapRecoveryInFlight = false;
+
 /**
  * Handle a projection.gap SSE event — the server detected that the client
  * missed events from the outbox (e.g. due to pruning or long disconnect).
  *
- * Recovery: evict all stale cached sessions (they may hold outdated state),
+ * Recovery: evict stale cached sessions (they may hold outdated state),
  * then refetch the active session's snapshot so the user sees current data.
+ * An in-flight guard coalesces rapid consecutive gap events.
  *
- * @internal — exported for testing
+ * @internal — exported for testing only
  */
 export async function handleProjectionGap(): Promise<void> {
-  const store = useChatStore.getState();
-
-  // Evict all non-active, non-streaming sessions — their cached state is
-  // potentially stale after the gap. They will be refetched on next access.
-  store.evictStale(0);
-
-  const { activeSessionKey, activeAgentId } = store;
-  if (!activeSessionKey) {
+  if (_gapRecoveryInFlight) {
     return;
   }
-
-  // Skip refetch if the active session is currently streaming — SSE events
-  // are the source of truth during streaming, and reloadFullContent handles
-  // the final sync.
-  const session = store.sessions.get(activeSessionKey);
-  if (session?.isStreaming) {
-    return;
-  }
-
+  _gapRecoveryInFlight = true;
   try {
+    const store = useChatStore.getState();
+
+    // Evict non-active, non-streaming sessions — their cached state is
+    // potentially stale after the gap. They will be refetched on next access.
+    store.evictStale(0);
+
+    const { activeSessionKey, activeAgentId } = store;
+    if (!activeSessionKey) {
+      return;
+    }
+
+    // Skip refetch if the active session is currently streaming — SSE events
+    // are the source of truth during streaming, and reloadFullContent handles
+    // the final sync.
+    const session = store.sessions.get(activeSessionKey);
+    if (session?.isStreaming) {
+      return;
+    }
+
     const snapshot = await fetchChatSnapshot({
       sessionKey: activeSessionKey,
       agentId: activeAgentId ?? undefined,
@@ -263,11 +301,13 @@ export async function handleProjectionGap(): Promise<void> {
     currentStore.setA2UIState(activeSessionKey, snapshot.a2uiState);
   } catch {
     // Snapshot fetch failed — non-critical, user can manually refresh
+  } finally {
+    _gapRecoveryInFlight = false;
   }
 }
 ```
 
-**Wire into SSE event switch** — add after the `canvas` handler block (before the catch):
+**Wire into SSE event switch** — add after the `canvas` handler block (before the closing `catch`), at approximately line 223:
 
 ```typescript
 if (event.event === "projection.gap") {
@@ -279,7 +319,7 @@ if (event.event === "projection.gap") {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd dashboard && pnpm test -- src/components/panels/chat/__tests__/projection-gap.test.ts -v`
-Expected: PASS — all 5 tests green
+Expected: PASS — all 6 tests green
 
 - [ ] **Step 5: Run full dashboard test suite**
 
@@ -309,10 +349,10 @@ scripts/committer "[enhanced][codex-impl] feat(deck): add projection.gap SSE han
 
 **测试要求:**
 
-- Test: visibilitychange hidden triggers evictStale
+- Test: visibilitychange hidden triggers evictStale with DEFAULT_EVICT_IDLE_MS
 - Test: visibilitychange visible does NOT trigger evictStale
 
-**依赖关系:** 无（Task 1 已完成时更好，但可独立）
+**依赖关系:** blockedBy Task 1 (both modify `useChatSSE.ts`)
 
 **域标签:** `[frontend]`
 
@@ -321,74 +361,112 @@ scripts/committer "[enhanced][codex-impl] feat(deck): add projection.gap SSE han
 **Files:**
 
 - Modify: `dashboard/src/components/panels/chat/useChatSSE.ts:118-234`
-- Modify: `dashboard/src/stores/__tests__/chat-store.test.ts`
+- Create: `dashboard/src/components/panels/chat/__tests__/useChatSSE-visibility.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing test file**
 
-Add to the end of `dashboard/src/stores/__tests__/chat-store.test.ts`:
+Create `dashboard/src/components/panels/chat/__tests__/useChatSSE-visibility.test.ts`:
 
 ```typescript
-// ---------------------------------------------------------------------------
-// visibilitychange eviction integration
-// ---------------------------------------------------------------------------
+// @vitest-environment jsdom
+import { renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_EVICT_IDLE_MS } from "@/stores/chat-types";
 
-describe("evictStale with immediate threshold", () => {
-  it("evicts all idle non-active sessions when called with threshold 0", () => {
-    vi.useFakeTimers();
-    const store = useChatStore.getState();
-    store.ensureSession("active-sess");
-    store.setActiveSession("active-sess");
-    store.ensureSession("idle-1");
-    store.ensureSession("idle-2");
+// Mock deckStream to prevent actual SSE connection
+vi.mock("@/lib/deck-client", () => ({
+  deckStream: vi.fn().mockResolvedValue(new Response(null, { status: 204 })),
+  deckFetch: vi.fn().mockResolvedValue(new Response("{}", { status: 200 })),
+}));
 
-    // Advance time so idle sessions are stale even with threshold 0
-    vi.advanceTimersByTime(1);
+// Mock chat-api to prevent actual API calls
+vi.mock("../chat-api", () => ({
+  fetchChatSnapshot: vi.fn(),
+  persistChatProjection: vi.fn().mockResolvedValue(undefined),
+}));
 
-    useChatStore.getState().evictStale(0);
+vi.mock("../history-normalize", () => ({
+  normalizeHistoryMessages: vi.fn(() => []),
+}));
 
-    // Active session preserved
-    expect(useChatStore.getState().sessions.has("active-sess")).toBe(true);
-    // Idle sessions evicted (threshold 0: now - lastAccessedAt > 0 is true after 1ms)
-    expect(useChatStore.getState().sessions.has("idle-1")).toBe(false);
-    expect(useChatStore.getState().sessions.has("idle-2")).toBe(false);
+let useChatSSE: typeof import("../useChatSSE").useChatSSE;
+let useChatStore: typeof import("@/stores/chat").useChatStore;
 
-    vi.useRealTimers();
+function setVisibility(state: DocumentVisibilityState) {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => state,
+  });
+}
+
+beforeEach(async () => {
+  vi.resetModules();
+  ({ useChatSSE } = await import("../useChatSSE"));
+  ({ useChatStore } = await import("@/stores/chat"));
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("useChatSSE visibility eviction", () => {
+  it("calls evictStale(DEFAULT_EVICT_IDLE_MS) when page goes hidden", () => {
+    const spy = vi.spyOn(useChatStore.getState(), "evictStale");
+    const { unmount } = renderHook(() => useChatSSE());
+
+    setVisibility("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    expect(spy).toHaveBeenCalledWith(DEFAULT_EVICT_IDLE_MS);
+    unmount();
   });
 
-  it("preserves streaming sessions even with threshold 0", () => {
-    vi.useFakeTimers();
-    const store = useChatStore.getState();
-    store.ensureSession("streaming-sess");
-    store.setStreaming("streaming-sess", true, "run-1");
-    store.setActiveSession("other-sess");
+  it("does NOT call evictStale when page becomes visible", () => {
+    const spy = vi.spyOn(useChatStore.getState(), "evictStale");
+    const { unmount } = renderHook(() => useChatSSE());
 
-    vi.advanceTimersByTime(1);
+    setVisibility("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
 
-    useChatStore.getState().evictStale(0);
+    expect(spy).not.toHaveBeenCalled();
+    unmount();
+  });
 
-    expect(useChatStore.getState().sessions.has("streaming-sess")).toBe(true);
+  it("removes listener on unmount", () => {
+    const removeSpy = vi.spyOn(document, "removeEventListener");
+    const { unmount } = renderHook(() => useChatSSE());
 
-    vi.useRealTimers();
+    unmount();
+
+    expect(removeSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
   });
 });
 ```
 
-- [ ] **Step 2: Run test to verify it passes (or identify threshold behavior)**
+- [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd dashboard && pnpm test -- src/stores/__tests__/chat-store.test.ts -t "evictStale with immediate threshold" -v`
-Expected: PASS (these test existing evictStale behavior)
+Run: `cd dashboard && pnpm test -- src/components/panels/chat/__tests__/useChatSSE-visibility.test.ts -v`
+Expected: FAIL — evictStale not called (listener not yet implemented)
 
 - [ ] **Step 3: Implement visibilitychange listener**
 
 Modify `dashboard/src/components/panels/chat/useChatSSE.ts`.
 
-**Add import** at the top:
+**Add import** at the top (after existing imports):
 
 ```typescript
 import { DEFAULT_EVICT_IDLE_MS } from "@/stores/chat-types";
 ```
 
-**Add visibilitychange listener** inside the `useEffect(() => { ... }, [])`, before the `return () => controller.abort()` line:
+**Add visibilitychange listener** inside the `useEffect(() => { ... }, [])`, before the `return` cleanup. Then replace the existing single-line cleanup with an expanded one:
+
+Replace the existing cleanup return:
+
+```typescript
+return () => controller.abort();
+```
+
+With:
 
 ```typescript
 // Aggressively evict idle sessions when the page goes hidden to free memory.
@@ -405,19 +483,22 @@ return () => {
 };
 ```
 
-Note: replace the existing `return () => controller.abort();` with the expanded cleanup above.
+- [ ] **Step 4: Run test to verify it passes**
 
-- [ ] **Step 4: Run full dashboard test suite**
+Run: `cd dashboard && pnpm test -- src/components/panels/chat/__tests__/useChatSSE-visibility.test.ts -v`
+Expected: PASS — all 3 tests green
+
+- [ ] **Step 5: Run full dashboard test suite**
 
 Run: `cd dashboard && pnpm test`
 Expected: All tests pass
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 scripts/committer "[enhanced][codex-impl] feat(deck): add visibilitychange eviction trigger for session lifecycle" \
   dashboard/src/components/panels/chat/useChatSSE.ts \
-  dashboard/src/stores/__tests__/chat-store.test.ts
+  dashboard/src/components/panels/chat/__tests__/useChatSSE-visibility.test.ts
 ```
 
 ---
@@ -448,7 +529,7 @@ Expected: 0 errors
 - [ ] **Step 2: Run lint/format**
 
 Run: `pnpm check`
-Expected: Clean
+Expected: Clean (run `pnpm format:fix` if format issues found)
 
 - [ ] **Step 3: Run build**
 
@@ -462,8 +543,9 @@ Expected: All tests pass
 
 - [ ] **Step 5: Commit if any fixups needed**
 
+Only if lint/format auto-fixes were applied:
+
 ```bash
-# Only if lint/format auto-fixes were applied:
 scripts/committer "[enhanced][codex-impl] style(deck): lint and format fixes for projection alignment" \
-  <changed-files>
+  dashboard/src/components/panels/chat/useChatSSE.ts
 ```
