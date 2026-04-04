@@ -30,9 +30,8 @@ type RawSessionMeta = {
   spawnedWorkspaceDir?: string;
 };
 
-type ApiErrorBody = {
-  error?: string;
-};
+// Re-use the canonical ErrorBody from lib/errors (with Partial for unknown JSON parsing)
+type ApiErrorBody = Partial<import("@/lib/errors").ErrorBody>;
 
 export type ChatAttachmentPayload = {
   type?: string;

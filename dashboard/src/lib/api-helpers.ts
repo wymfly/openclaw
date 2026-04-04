@@ -9,9 +9,8 @@ import { getRuntime } from "@server/runtime";
  *   3. `extractPlatformHeaders()` — forward tenant/user context (for Deck-layer logging only)
  */
 import { NextResponse } from "next/server";
+import type { ErrorBody } from "@/lib/errors";
 import type { GatewayMethodMap, GatewayMethodName } from "@/types/gateway-protocol.generated";
-
-type ErrorBody = { error: string; code?: string };
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
