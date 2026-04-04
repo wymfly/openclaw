@@ -12,18 +12,18 @@
 
 ## 3. 建立平台优先的实施顺序
 
-- [ ] 3.1 明确 `Core Platform` 的前置 backlog：typed gateway coverage、Deck route facade、transport/auth、snapshot/stream/replay/projection、shared mutation/error model
-- [ ] 3.2 明确 `Session Runtime` 的前置 backlog：session-scoped state、hydrate/reconnect/recovery、history/live merge、right-panel state
-- [ ] 3.3 明确 `UI Framework` 的前置 backlog：shared list infra、schema-driven form/table、panel shell、empty/error/loading patterns
+- [x] 3.1 明确 `Core Platform` 的前置 backlog：typed gateway coverage、Deck route facade、transport/auth、snapshot/stream/replay/projection、shared mutation/error model — 全量 matrix 评估完成（2026-04-03）：Gateway Transport partial（6 upstream schemas 待补）、Deck Transport/Auth/Stream replacement-ready、Replay/Projection replacement-ready、Deck Persistence replacement-ready、Shared Error/Mutation partial（缺 unified error codes）
+- [x] 3.2 明确 `Session Runtime` 的前置 backlog：session-scoped state、hydrate/reconnect/recovery、history/live merge、right-panel state — Session-Scoped State replacement-ready（Phase 1 complete，Phase 2 multi-pane deferred）
+- [x] 3.3 明确 `UI Framework` 的前置 backlog：shared list infra、schema-driven form/table、panel shell、empty/error/loading patterns — Shared Lists replacement-ready（G3）、Shell/Panel partial（PanelRegistry refactor deferred）、Schema-Driven UI platform-first（proposal 0/45 tasks）
 
 ## 4. 以模块闭环而不是页面数量驱动推进
 
-- [ ] 4.1 为 `chat`、`approval`、`canvas / A2UI`、`sessions / logs`、`execution monitor` 建立高优先级 runtime-core 目标
-- [ ] 4.2 为 `agents`、`config editor`、`channels`、`routing / session-channel`、`dynamic commands` 建立 config-control 目标
-- [ ] 4.3 为 `usage`、`activity`、`cron`、`webhooks`、`skills`、`budget`、`alerts` 建立 observe-automate 目标
+- [x] 4.1 为 `chat`、`approval`、`canvas / A2UI`、`sessions / logs`、`execution monitor` 建立高优先级 runtime-core 目标 — 全部 6 个模块 replacement-ready（chat/approval/canvas/sessions-logs via OpenSpec G3，execution monitor via dedicated proposal）
+- [x] 4.2 为 `agents`、`config editor`、`channels`、`routing / session-channel`、`dynamic commands` 建立 config-control 目标 — 4/5 replacement-ready（agents/config-editor/channels/dynamic-commands），routing partial（缺 session cleanup + rule validation）
+- [x] 4.3 为 `usage`、`activity`、`cron`、`webhooks`、`skills`、`budget`、`alerts` 建立 observe-automate 目标 — 5/7 replacement-ready（usage/skills/budget/alerts/onboarding），activity platform-first，cron/webhooks partial（Gateway trigger 待确认）
 
 ## 5. 建立替代验收门
 
-- [ ] 5.1 建立 capability coverage review，明确“Gateway 方法族覆盖”如何判定
-- [ ] 5.2 建立 workflow validation，要求关键真实工作流在历史态、实时态、刷新、重连下保持一致
-- [ ] 5.3 建立 `enhanced` 合流门：只有模块通过 closure checklist 与 workflow validation 后才进入稳定集成
+- [x] 5.1 建立 capability coverage review，明确”Gateway 方法族覆盖”如何判定 — Gateway 方法族覆盖清单已建立（2026-04-04）：22 个 Deck-relevant 族（7 Covered + 11 Functional + 4 Partial），P0 11/11 ✅，P1 8/8 ✅
+- [ ] 5.2 建立 workflow validation，要求关键真实工作流在历史态、实时态、刷新、重连下保持一致 — Playwright 已配置 + 5 个 E2E specs（navigation/onboarding/settings/doc-hub/models）；待补：P0 模块（Chat/Approval/Canvas/Sessions）的完整工作流 specs
+- [ ] 5.3 建立 `enhanced` 合流门：只有模块通过 closure checklist 与 workflow validation 后才进入稳定集成 — 待定义形式化合流标准
