@@ -1,5 +1,6 @@
 import { getPendingApprovals } from "@server/approval-bridge";
 import { ControlPlaneGatewayError } from "@server/gateway-adapter";
+import type { ChatSessionProjection } from "@server/projection-store";
 import { getRuntime } from "@server/runtime";
 import { type NextRequest, NextResponse } from "next/server";
 import type { TranscriptMessage } from "@/types/gateway-protocol.generated";
@@ -67,13 +68,8 @@ export const GET = withAuth(async (request: NextRequest) => {
 
     const pendingApproval =
       getPendingApprovals().find((approval) => approval.sessionKey === sessionKey) ?? null;
-    const projection = runtime.store.getChatSessionProjection(sessionKey);
-    const projectedApproval =
-      projection?.activeApproval &&
-      typeof projection.activeApproval === "object" &&
-      typeof projection.activeApproval.id === "string"
-        ? projection.activeApproval
-        : null;
+    const projectedApproval = runtime.store.getApprovalProjectionWithMigration(sessionKey);
+    const projection = runtime.store.getProjection<ChatSessionProjection>("chat", sessionKey);
 
     return NextResponse.json({
       messages,

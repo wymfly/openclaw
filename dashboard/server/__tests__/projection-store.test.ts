@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import { openDb, preloadSqlJs } from "../db.js";
 import type { Database } from "../db.js";
+import type { ChatSessionProjection } from "../projection-store.js";
 import { ProjectionStore } from "../projection-store.js";
 
 beforeAll(async () => {
@@ -168,7 +169,7 @@ describe("settings", () => {
 
 describe("chat session projections", () => {
   it("stores and loads a session-scoped projection payload", () => {
-    store.setChatSessionProjection("agent:main:main", {
+    store.setProjection("chat", "agent:main:main", {
       a2uiState: {
         visible: true,
         url: "/api/canvas/index.html",
@@ -185,7 +186,7 @@ describe("chat session projections", () => {
       },
     });
 
-    expect(store.getChatSessionProjection("agent:main:main")).toEqual({
+    expect(store.getProjection("chat", "agent:main:main")).toEqual({
       a2uiState: {
         visible: true,
         url: "/api/canvas/index.html",
@@ -204,22 +205,37 @@ describe("chat session projections", () => {
   });
 
   it("returns null when a chat projection is missing", () => {
-    expect(store.getChatSessionProjection("missing-session")).toBeNull();
+    expect(store.getProjection("chat", "missing-session")).toBeNull();
   });
 
   it("clears only the targeted session projection", () => {
-    store.setChatSessionProjection("session-a", {
+    store.setProjection("chat", "session-a", {
       a2uiState: { visible: true, surfaces: ["a"] },
     });
-    store.setChatSessionProjection("session-b", {
+    store.setProjection("chat", "session-b", {
       a2uiState: { visible: false, surfaces: ["b"] },
     });
 
-    expect(store.clearChatSessionProjection("session-a")).toBe(true);
-    expect(store.getChatSessionProjection("session-a")).toBeNull();
-    expect(store.getChatSessionProjection("session-b")).toEqual({
+    expect(store.clearProjection("chat", "session-a")).toBe(true);
+    expect(store.getProjection("chat", "session-a")).toBeNull();
+    expect(store.getProjection("chat", "session-b")).toEqual({
       a2uiState: { visible: false, surfaces: ["b"] },
     });
+  });
+
+  it("clears chat and approval projections for the same session together", () => {
+    store.setProjection("chat", "session-shared", {
+      a2uiState: { visible: true },
+    });
+    store.setProjection("approval", "session-shared", {
+      id: "apr-shared",
+      toolName: "command",
+    });
+
+    store.clearSessionProjections("session-shared");
+
+    expect(store.getProjection("chat", "session-shared")).toBeNull();
+    expect(store.getProjection("approval", "session-shared")).toBeNull();
   });
 });
 
@@ -280,8 +296,11 @@ describe("generic projection API", () => {
     expect(JSON.parse(raw!)).toEqual({ id: "apr-x" });
   });
 
-  it("reads legacy chat data written by old chat-specific API", () => {
-    store.setChatSessionProjection("session-legacy", { a2uiState: { url: "/test" } });
+  it("reads legacy chat data stored under the chat prefix", () => {
+    store.setSetting(
+      "chat_projection:session-legacy",
+      JSON.stringify({ a2uiState: { url: "/test" } }),
+    );
     expect(store.getProjection("chat", "session-legacy")).toEqual({ a2uiState: { url: "/test" } });
   });
 
@@ -302,7 +321,7 @@ describe("generic projection API", () => {
 
 describe("approval migration from legacy chat blob", () => {
   it("migrates activeApproval from chat blob to approval domain on first read", () => {
-    store.setChatSessionProjection("session-migrate", {
+    store.setProjection("chat", "session-migrate", {
       a2uiState: { visible: true },
       activeApproval: {
         id: "apr-legacy",
@@ -320,7 +339,7 @@ describe("approval migration from legacy chat blob", () => {
       description: "/tmp",
     });
 
-    const chatBlob = store.getChatSessionProjection("session-migrate");
+    const chatBlob = store.getProjection<ChatSessionProjection>("chat", "session-migrate");
     expect(chatBlob).toEqual({ a2uiState: { visible: true } });
     expect(chatBlob?.activeApproval).toBeUndefined();
 
@@ -333,7 +352,7 @@ describe("approval migration from legacy chat blob", () => {
   });
 
   it("returns null when neither approval domain nor chat blob has approval", () => {
-    store.setChatSessionProjection("session-no-approval", {
+    store.setProjection("chat", "session-no-approval", {
       a2uiState: { visible: false },
     });
 
@@ -342,7 +361,7 @@ describe("approval migration from legacy chat blob", () => {
 
   it("reads from approval domain without migration when already populated", () => {
     store.setProjection("approval", "session-pre", { id: "apr-new", toolName: "command" });
-    store.setChatSessionProjection("session-pre", {
+    store.setProjection("chat", "session-pre", {
       activeApproval: { id: "apr-stale", toolName: "command" },
     });
 
@@ -350,31 +369,33 @@ describe("approval migration from legacy chat blob", () => {
       id: "apr-new",
       toolName: "command",
     });
-    expect(store.getChatSessionProjection("session-pre")?.activeApproval?.id).toBe("apr-stale");
+    expect(
+      store.getProjection<ChatSessionProjection>("chat", "session-pre")?.activeApproval?.id,
+    ).toBe("apr-stale");
   });
 
   it("preserves a2uiState in chat blob during migration", () => {
     const a2ui = { visible: true, url: "/canvas", surfaces: ["main"] };
-    store.setChatSessionProjection("session-a2ui", {
+    store.setProjection("chat", "session-a2ui", {
       a2uiState: a2ui,
       activeApproval: { id: "apr-a2ui", toolName: "command" },
     });
 
     store.getApprovalProjectionWithMigration("session-a2ui");
 
-    const chatBlob = store.getChatSessionProjection("session-a2ui");
+    const chatBlob = store.getProjection<ChatSessionProjection>("chat", "session-a2ui");
     expect(chatBlob?.a2uiState).toEqual(a2ui);
     expect(chatBlob?.activeApproval).toBeUndefined();
   });
 
   it("clears chat blob entirely if only activeApproval was present", () => {
-    store.setChatSessionProjection("session-only-approval", {
+    store.setProjection("chat", "session-only-approval", {
       activeApproval: { id: "apr-only", toolName: "command" },
     });
 
     store.getApprovalProjectionWithMigration("session-only-approval");
 
-    expect(store.getChatSessionProjection("session-only-approval")).toBeNull();
+    expect(store.getProjection("chat", "session-only-approval")).toBeNull();
   });
 
   it("returns null for empty/whitespace session key", () => {
@@ -383,7 +404,7 @@ describe("approval migration from legacy chat blob", () => {
   });
 
   it("does not overwrite a concurrent approval domain write during migration (3.3)", () => {
-    store.setChatSessionProjection("session-race", {
+    store.setProjection("chat", "session-race", {
       a2uiState: { visible: true },
       activeApproval: { id: "apr-stale", toolName: "command" },
     });
@@ -401,23 +422,25 @@ describe("approval migration from legacy chat blob", () => {
       command: "new-cmd",
     });
 
-    expect(store.getChatSessionProjection("session-race")?.activeApproval?.id).toBe("apr-stale");
+    expect(
+      store.getProjection<ChatSessionProjection>("chat", "session-race")?.activeApproval?.id,
+    ).toBe("apr-stale");
   });
 
   it("preserves concurrent a2uiState update during migration (3.3)", () => {
-    store.setChatSessionProjection("session-a2ui-race", {
+    store.setProjection("chat", "session-a2ui-race", {
       a2uiState: { visible: false },
       activeApproval: { id: "apr-a2ui-race", toolName: "command" },
     });
 
-    store.setChatSessionProjection("session-a2ui-race", {
+    store.setProjection("chat", "session-a2ui-race", {
       a2uiState: { visible: true, url: "/updated" },
       activeApproval: { id: "apr-a2ui-race", toolName: "command" },
     });
 
     store.getApprovalProjectionWithMigration("session-a2ui-race");
 
-    const chatBlob = store.getChatSessionProjection("session-a2ui-race");
+    const chatBlob = store.getProjection<ChatSessionProjection>("chat", "session-a2ui-race");
     expect(chatBlob?.a2uiState).toEqual({ visible: true, url: "/updated" });
     expect(chatBlob?.activeApproval).toBeUndefined();
   });

@@ -36,13 +36,13 @@ describe("/api/chat/snapshot", () => {
           }),
       },
       store: {
-        getChatSessionProjection: vi.fn(() => ({
-          activeApproval: {
-            id: "apr-projected",
-            toolName: "command",
-            command: "ls -la",
-            description: "/tmp",
-          },
+        getApprovalProjectionWithMigration: vi.fn(() => ({
+          id: "apr-projected",
+          toolName: "command",
+          command: "ls -la",
+          description: "/tmp",
+        })),
+        getProjection: vi.fn(() => ({
           a2uiState: {
             visible: true,
           },

@@ -121,7 +121,7 @@ function bridgeDomainEvent(
         sessionKey &&
         (reason === "clear" || reason === "reset" || reason === "deleted" || reason === "delete")
       ) {
-        store.clearChatSessionProjection(sessionKey);
+        store.clearSessionProjections(sessionKey);
       }
     }
 
