@@ -1215,6 +1215,7 @@
     "approve": "Approve",
     "approveAlways": "Always Approve",
     "deny": "Deny",
+    "pendingBadge": "pending",
     "command": "Command",
     "agent": "Agent",
     "requestedAt": "Requested At",

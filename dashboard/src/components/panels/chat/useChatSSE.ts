@@ -299,6 +299,9 @@ export function useChatSSE() {
               id: string;
               command?: string;
               cwd?: string;
+              agentId?: string;
+              createdAtMs?: number;
+              expiresAtMs?: number;
             };
             if (payload.sessionKey) {
               dispatchApproval(
@@ -308,6 +311,10 @@ export function useChatSSE() {
                   toolName: "command",
                   command: payload.command,
                   description: payload.cwd,
+                  cwd: payload.cwd,
+                  agentId: payload.agentId,
+                  createdAtMs: payload.createdAtMs,
+                  expiresAtMs: payload.expiresAtMs,
                 },
                 api,
               );
