@@ -7,39 +7,46 @@ import { ADMIN_SCOPE, authorizeOperatorScopesForMethod } from "./method-scopes.j
 import { ErrorCodes, errorShape } from "./protocol/index.js";
 import { isRoleAuthorizedForMethod, parseGatewayRole } from "./role-policy.js";
 import { agentHandlers } from "./server-methods/agent.js";
-import { agentsHandlers } from "./server-methods/agents.js";
-import { browserHandlers } from "./server-methods/browser.js";
-import { channelsHandlers } from "./server-methods/channels.js";
+import { agentMethodDefs } from "./server-methods/agent.js";
+import { agentsHandlers, agentsMethodDefs } from "./server-methods/agents.js";
+import { channelsHandlers, channelsMethodDefs } from "./server-methods/channels.js";
 import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
 import { chatHandlers } from "./server-methods/chat.js";
+import { configMethodDefs } from "./server-methods/config-method-defs.js";
 import { configHandlers } from "./server-methods/config.js";
 import { connectHandlers } from "./server-methods/connect.js";
 import { cronHandlers } from "./server-methods/cron.js";
 import { deckAuthHandlers, deckAuthMethodDefs } from "./server-methods/deck-auth.js";
 import { deckHandlers, deckMethodDefs } from "./server-methods/deck/index.js";
-import { describeHandlers, setDescribeRegistry } from "./server-methods/describe.js";
+import {
+  describeHandlers,
+  describeMethodDefs,
+  setDescribeRegistry,
+} from "./server-methods/describe.js";
 import { deviceHandlers } from "./server-methods/devices.js";
 import { doctorHandlers } from "./server-methods/doctor.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
 import { healthHandlers } from "./server-methods/health.js";
-import { logsHandlers } from "./server-methods/logs.js";
+import { logsHandlers, logsMethodDefs } from "./server-methods/logs.js";
 import { modelsCatalogProvidersHandlers } from "./server-methods/models-catalog-providers.js";
-import { modelsHandlers } from "./server-methods/models.js";
+import { modelsHandlers, modelsMethodDefs } from "./server-methods/models.js";
 import { nodePendingHandlers } from "./server-methods/nodes-pending.js";
 import { nodeHandlers } from "./server-methods/nodes.js";
 import { pushHandlers } from "./server-methods/push.js";
 import { sendHandlers } from "./server-methods/send.js";
 import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
 import { sessionsHandlers } from "./server-methods/sessions.js";
-import { skillsMethodDefs } from "./server-methods/skills-method-defs.js";
 import { skillsHandlers } from "./server-methods/skills.js";
 import { systemHandlers } from "./server-methods/system.js";
 import { talkHandlers } from "./server-methods/talk.js";
-import { toolsCatalogHandlers } from "./server-methods/tools-catalog.js";
+import { toolsCatalogHandlers, toolsCatalogMethodDefs } from "./server-methods/tools-catalog.js";
+import {
+  toolsEffectiveHandlers,
+  toolsEffectiveMethodDefs,
+} from "./server-methods/tools-effective.js";
 import { ttsHandlers } from "./server-methods/tts.js";
 import type { GatewayRequestHandlers, GatewayRequestOptions } from "./server-methods/types.js";
 import { updateHandlers } from "./server-methods/update.js";
-import { usageMethodDefs } from "./server-methods/usage-method-defs.js";
 import { usageHandlers } from "./server-methods/usage.js";
 import { voicewakeHandlers } from "./server-methods/voicewake.js";
 import { webHandlers } from "./server-methods/web.js";
@@ -93,6 +100,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...wizardHandlers,
   ...talkHandlers,
   ...toolsCatalogHandlers,
+  ...toolsEffectiveHandlers,
   ...ttsHandlers,
   ...skillsHandlers,
   ...sessionsHandlers,
@@ -105,10 +113,9 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...usageHandlers,
   ...agentHandlers,
   ...agentsHandlers,
-  ...browserHandlers,
+  ...describeHandlers,
   ...deckAuthHandlers,
   ...deckHandlers,
-  ...describeHandlers,
 };
 
 // Assemble the method registry (metadata-only, no runtime behavior change)
@@ -116,16 +123,21 @@ export const gatewayMethodRegistry = buildMethodRegistry(
   coreGatewayHandlers,
   [
     chatMethodDefs,
+    configMethodDefs,
     sessionsMethodDefs,
-    usageMethodDefs,
-    skillsMethodDefs,
     deckMethodDefs,
     deckAuthMethodDefs,
+    describeMethodDefs,
+    agentMethodDefs,
+    agentsMethodDefs,
+    modelsMethodDefs,
+    channelsMethodDefs,
+    logsMethodDefs,
+    toolsCatalogMethodDefs,
+    toolsEffectiveMethodDefs,
   ],
   gatewayEventDefs,
 );
-
-// Wire describe handler to registry
 setDescribeRegistry(gatewayMethodRegistry);
 
 export async function handleGatewayRequest(

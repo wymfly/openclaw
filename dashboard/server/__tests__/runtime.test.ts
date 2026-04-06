@@ -7,6 +7,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // Mock gateway-adapter
 const mockAdapterStart = vi.fn().mockResolvedValue(undefined);
 const mockAdapterStop = vi.fn().mockResolvedValue(undefined);
+const mockAdapterRequest = vi.fn().mockResolvedValue({
+  methods: {
+    "gateway.describe": {},
+    "sessions.create": {},
+    "sessions.send": {},
+    "sessions.abort": {},
+    "sessions.subscribe": {},
+    "sessions.messages.subscribe": {},
+    "config.schema.lookup": {},
+  },
+  events: {},
+  schemaVersion: "3.test",
+});
 let capturedOnDomainEvent: ((event: unknown) => void) | undefined;
 let capturedLoadSettings: (() => unknown) | undefined;
 
@@ -19,6 +32,7 @@ vi.mock("../gateway-adapter.js", () => {
     capturedLoadSettings = opts.loadSettings as () => unknown;
     this.start = mockAdapterStart;
     this.stop = mockAdapterStop;
+    this.request = mockAdapterRequest;
     this.getStatus = () => "connected";
   });
   return { OpenClawGatewayAdapter };
@@ -51,7 +65,6 @@ const mockEventBus = {
   unsubscribe: vi.fn(),
   getEventsSince: vi.fn().mockReturnValue([]),
   setReplayStore: vi.fn(),
-  hasReplayStore: vi.fn(() => true),
   subscriberCount: 0,
 };
 vi.mock("../event-bus.js", () => ({
@@ -64,6 +77,26 @@ const mockDispose = vi.fn();
 const mockCheckLimit = vi.fn().mockReturnValue({ allowed: true, remaining: 59, resetAt: 0 });
 vi.mock("../rate-limit.js", () => ({
   createRateLimiter: vi.fn(() => ({ checkLimit: mockCheckLimit, dispose: mockDispose })),
+}));
+
+const { mockRunEventPipelineDestroy, mockRunEventPipelineHandleEvent, runEventPipelineCtor } =
+  vi.hoisted(() => {
+    const mockRunEventPipelineDestroy = vi.fn();
+    const mockRunEventPipelineHandleEvent = vi.fn();
+    const runEventPipelineCtor = vi.fn(function (this: Record<string, unknown>) {
+      this.handleEvent = mockRunEventPipelineHandleEvent;
+      this.destroy = mockRunEventPipelineDestroy;
+    });
+    return { mockRunEventPipelineDestroy, mockRunEventPipelineHandleEvent, runEventPipelineCtor };
+  });
+vi.mock("../run-event-pipeline.js", () => ({
+  RunEventPipeline: runEventPipelineCtor,
+}));
+const { mockAppendRunEvents } = vi.hoisted(() => ({
+  mockAppendRunEvents: vi.fn(),
+}));
+vi.mock("../run-event-store.js", () => ({
+  getRunEventStore: vi.fn(() => ({ appendEvents: mockAppendRunEvents })),
 }));
 
 // ---------------------------------------------------------------------------
@@ -93,6 +126,22 @@ describe("Server Runtime Singleton", () => {
     vi.clearAllMocks();
     capturedOnDomainEvent = undefined;
     capturedLoadSettings = undefined;
+    mockAdapterRequest.mockResolvedValue({
+      methods: {
+        "gateway.describe": {},
+        "sessions.create": {},
+        "sessions.send": {},
+        "sessions.abort": {},
+        "sessions.subscribe": {},
+        "sessions.messages.subscribe": {},
+        "config.schema.lookup": {},
+      },
+      events: {},
+      schemaVersion: "3.test",
+    });
+    mockRunEventPipelineDestroy.mockClear();
+    mockRunEventPipelineHandleEvent.mockClear();
+    mockAppendRunEvents.mockClear();
     // Clear env vars
     delete process.env.DECK_GATEWAY_URL;
     delete process.env.DECK_GATEWAY_TOKEN;
@@ -120,9 +169,11 @@ describe("Server Runtime Singleton", () => {
     expect(runtime!.store).toBeDefined();
     expect(runtime!.rateLimiter).toBeDefined();
     expect(runtime!.rateLimiter.checkLimit).toBe(mockCheckLimit);
+    expect(runtime!.capabilities.status).toBe("pending");
 
-    // Adapter.start should have been called
-    expect(mockAdapterStart).toHaveBeenCalledOnce();
+    expect(mockEventBus.setReplayStore).toHaveBeenCalledOnce();
+    expect(runEventPipelineCtor).toHaveBeenCalledOnce();
+    expect(mockEventBus.subscribe).toHaveBeenCalledWith(mockRunEventPipelineHandleEvent);
   });
 
   // -----------------------------------------------------------------------
@@ -165,6 +216,27 @@ describe("Server Runtime Singleton", () => {
     capturedOnDomainEvent!(domainEvent);
 
     expect(mockBroadcast).toHaveBeenCalledOnce();
+    expect(mockBroadcast).toHaveBeenCalledWith("gateway.event", domainEvent);
+  });
+
+  it("normalizes session gateway events through runtime intake before generic broadcast", () => {
+    process.env.DECK_GATEWAY_URL = "ws://localhost:18789";
+    process.env.DECK_GATEWAY_TOKEN = "test-token";
+
+    initRuntime();
+
+    const domainEvent = {
+      type: "gateway.event" as const,
+      event: "session.message",
+      seq: 2,
+      connectionEpoch: "epoch-1",
+      payload: { sessionKey: "agent:main:main", message: { id: "m1" } },
+      asOf: new Date().toISOString(),
+    };
+
+    capturedOnDomainEvent!(domainEvent);
+
+    expect(mockBroadcast).toHaveBeenCalledWith("session-msg", domainEvent.payload);
     expect(mockBroadcast).toHaveBeenCalledWith("gateway.event", domainEvent);
   });
 
@@ -225,7 +297,6 @@ describe("Server Runtime Singleton", () => {
     });
 
     expect(runtime).not.toBeNull();
-    expect(mockAdapterStart).toHaveBeenCalledOnce();
   });
 
   // -----------------------------------------------------------------------
@@ -248,6 +319,121 @@ describe("Server Runtime Singleton", () => {
     expect(runtime).not.toBeNull();
   });
 
+  it("bootstraps required gateway capabilities after adapter start", async () => {
+    process.env.DECK_GATEWAY_URL = "ws://localhost:18789";
+    process.env.DECK_GATEWAY_TOKEN = "test-token";
+
+    const runtime = initRuntime();
+
+    expect(runtime).not.toBeNull();
+    await runtime!.capabilities.ready;
+
+    expect(mockAdapterStart).toHaveBeenCalled();
+    expect(mockAdapterRequest).toHaveBeenCalledWith("gateway.describe", {
+      filter: "all",
+      includeSchemas: false,
+    });
+    expect(runtime!.capabilities.status).toBe("ready");
+    expect(runtime!.capabilities.snapshot?.methods.has("sessions.send")).toBe(true);
+  });
+
+  it("marks runtime incompatible when required gateway capability is missing", async () => {
+    process.env.DECK_GATEWAY_URL = "ws://localhost:18789";
+    process.env.DECK_GATEWAY_TOKEN = "test-token";
+    mockAdapterRequest.mockResolvedValueOnce({
+      methods: {
+        "gateway.describe": {},
+        "sessions.create": {},
+      },
+      events: {},
+      schemaVersion: "3.test",
+    });
+
+    const runtime = initRuntime();
+    expect(runtime).not.toBeNull();
+
+    await runtime!.capabilities.ready;
+
+    expect(runtime!.capabilities.status).toBe("incompatible");
+    expect(runtime!.capabilities.reason).toContain("sessions.send");
+    expect(mockAdapterStop).not.toHaveBeenCalled();
+  });
+
+  it("keeps runtime pending on transient describe failure instead of latching incompatibility", async () => {
+    process.env.DECK_GATEWAY_URL = "ws://localhost:18789";
+    process.env.DECK_GATEWAY_TOKEN = "test-token";
+    mockAdapterRequest.mockRejectedValueOnce(new Error("temporary describe failure"));
+
+    const runtime = initRuntime();
+    expect(runtime).not.toBeNull();
+
+    await runtime!.capabilities.ready;
+
+    expect(runtime!.capabilities.status).toBe("pending");
+    expect(runtime!.capabilities.reason).toContain("temporary describe failure");
+    expect(mockAdapterStop).not.toHaveBeenCalled();
+  });
+
+  it("marks runtime incompatible when gateway.describe is unknown", async () => {
+    process.env.DECK_GATEWAY_URL = "ws://localhost:18789";
+    process.env.DECK_GATEWAY_TOKEN = "test-token";
+    mockAdapterRequest.mockRejectedValueOnce(
+      Object.assign(new Error("unknown method: gateway.describe"), { code: "INVALID_REQUEST" }),
+    );
+
+    const runtime = initRuntime();
+    expect(runtime).not.toBeNull();
+
+    await runtime!.capabilities.ready;
+
+    expect(runtime!.capabilities.status).toBe("incompatible");
+    expect(runtime!.capabilities.reason).toContain("gateway.describe");
+  });
+
+  it("re-runs capability bootstrap on reconnect even after a ready snapshot exists", async () => {
+    process.env.DECK_GATEWAY_URL = "ws://localhost:18789";
+    process.env.DECK_GATEWAY_TOKEN = "test-token";
+    mockAdapterRequest
+      .mockResolvedValueOnce({
+        methods: {
+          "gateway.describe": {},
+          "sessions.create": {},
+          "sessions.send": {},
+          "sessions.abort": {},
+          "sessions.subscribe": {},
+          "sessions.messages.subscribe": {},
+          "config.schema.lookup": {},
+        },
+        events: {},
+        schemaVersion: "3.test",
+      })
+      .mockResolvedValueOnce({
+        methods: {
+          "gateway.describe": {},
+          "sessions.create": {},
+        },
+        events: {},
+        schemaVersion: "3.test",
+      });
+
+    const runtime = initRuntime();
+    expect(runtime).not.toBeNull();
+    await runtime!.capabilities.ready;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    capturedOnDomainEvent!({
+      type: "runtime.status",
+      status: "connected",
+      reason: null,
+      asOf: new Date().toISOString(),
+    });
+
+    await vi.waitFor(() => {
+      expect(mockAdapterRequest).toHaveBeenCalledTimes(2);
+      expect(runtime!.capabilities.status).toBe("incompatible");
+    });
+  });
+
   // -----------------------------------------------------------------------
   // shutdownRuntime cleans up resources
   // -----------------------------------------------------------------------
@@ -262,6 +448,8 @@ describe("Server Runtime Singleton", () => {
 
     expect(mockAdapterStop).toHaveBeenCalledOnce();
     expect(mockDispose).toHaveBeenCalledOnce();
+    expect(mockEventBus.unsubscribe).toHaveBeenCalledWith(mockRunEventPipelineHandleEvent);
+    expect(mockRunEventPipelineDestroy).toHaveBeenCalledOnce();
 
     // Singleton should be cleared
     const g = globalThis as unknown as Record<string, unknown>;
@@ -308,7 +496,5 @@ describe("Server Runtime Singleton", () => {
     const second = initRuntime();
 
     expect(first).toBe(second);
-    // Adapter should only be started once
-    expect(mockAdapterStart).toHaveBeenCalledOnce();
   });
 });

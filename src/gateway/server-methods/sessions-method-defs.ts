@@ -11,6 +11,8 @@ import {
   SessionsCreateResultSchema,
   SessionsDeleteParamsSchema,
   SessionsDeleteResultSchema,
+  SessionsGetParamsSchema,
+  SessionsGetResultSchema,
   SessionsListParamsSchema,
   SessionsListResultSchema,
   SessionsMessagesSubscribeParamsSchema,
@@ -25,6 +27,10 @@ import {
   SessionsSendParamsSchema,
   SessionsSendResultSchema,
   SessionsSubscribeResultSchema,
+  SessionsUsageLogsResultSchema,
+  SessionsUsageParamsSchema,
+  SessionsUsageResultSchema,
+  SessionsUsageTimeseriesResultSchema,
 } from "../protocol/schema/sessions.js";
 
 export const sessionsMethodDefs: Record<string, MethodMetadata> = {
@@ -54,6 +60,11 @@ export const sessionsMethodDefs: Record<string, MethodMetadata> = {
   "sessions.preview": {
     params: SessionsPreviewParamsSchema,
     result: SessionsPreviewResultSchema,
+    scope: READ_SCOPE,
+  },
+  "sessions.get": {
+    params: SessionsGetParamsSchema,
+    result: SessionsGetResultSchema,
     scope: READ_SCOPE,
   },
   "sessions.create": {
@@ -100,5 +111,20 @@ export const sessionsMethodDefs: Record<string, MethodMetadata> = {
     params: SessionsCompactParamsSchema,
     result: SessionsCompactResultSchema,
     scope: ADMIN_SCOPE,
+  },
+  "sessions.usage": {
+    params: SessionsUsageParamsSchema,
+    result: SessionsUsageResultSchema,
+    scope: READ_SCOPE,
+  },
+  "sessions.usage.timeseries": {
+    params: SessionsUsageParamsSchema,
+    result: SessionsUsageTimeseriesResultSchema,
+    scope: READ_SCOPE,
+  },
+  "sessions.usage.logs": {
+    params: SessionsUsageParamsSchema,
+    result: SessionsUsageLogsResultSchema,
+    scope: READ_SCOPE,
   },
 };

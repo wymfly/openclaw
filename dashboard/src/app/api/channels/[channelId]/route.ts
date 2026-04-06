@@ -9,7 +9,7 @@
  *   3. Send full config via config.patch with baseHash
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 type RouteContext = { params: Promise<{ channelId: string }> };
@@ -19,7 +19,7 @@ export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
   const patch = (await request.json()) as Record<string, unknown>;
 
   // 1. Read current config
-  const configRes = await gatewayRequest("config.get", {});
+  const configRes = await gwRequest("config.get", {});
   if (configRes.status !== 200) {
     return configRes;
   }
@@ -37,7 +37,7 @@ export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
   config.channels = channels;
 
   // 3. Send full config via config.patch
-  return gatewayRequest("config.patch", {
+  return gwRequest("config.patch", {
     raw: JSON.stringify(config, null, 2),
     ...(baseHash ? { baseHash } : {}),
   });

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 describe("gateway.describe handler", () => {
+  it("registers the gateway.describe RPC handler", async () => {
+    const { coreGatewayHandlers } = await import("../server-methods.js");
+    expect(coreGatewayHandlers["gateway.describe"]).toBeTypeOf("function");
+  });
+
   it("returns protocol version and method list", async () => {
     const { gatewayMethodRegistry } = await import("../server-methods.js");
     const desc = gatewayMethodRegistry.describe({ filter: "all" });
@@ -10,6 +15,8 @@ describe("gateway.describe handler", () => {
     // deck.agents.detail should be typed
     expect(desc.methods["deck.agents.detail"]).toBeDefined();
     expect(desc.methods["deck.agents.detail"].scope).toBe("operator.read");
+    expect(desc.methods["gateway.describe"]).toBeDefined();
+    expect(desc.methods["gateway.describe"].scope).toBe("operator.read");
   });
 
   it("lists untyped methods separately", async () => {

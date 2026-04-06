@@ -36,6 +36,7 @@ import {
 import { resolveAssistantIdentity } from "../assistant-identity.js";
 import { parseMessageWithAttachments } from "../chat-attachments.js";
 import { resolveAssistantAvatarUrl } from "../control-ui-shared.js";
+import type { MethodMetadata } from "../method-registry.js";
 import { ADMIN_SCOPE } from "../method-scopes.js";
 import { GATEWAY_CLIENT_CAPS, hasGatewayClientCap } from "../protocol/client-info.js";
 import {
@@ -46,6 +47,11 @@ import {
   validateAgentParams,
   validateAgentWaitParams,
 } from "../protocol/index.js";
+import {
+  AgentIdentityParamsSchema,
+  AgentIdentityResultSchema,
+  AgentWaitParamsSchema,
+} from "../protocol/schema/agent.js";
 import { performGatewaySessionReset } from "../session-reset-service.js";
 import { reactivateCompletedSubagentSession } from "../session-subagent-reactivation.js";
 import {
@@ -867,5 +873,17 @@ export const agentHandlers: GatewayRequestHandlers = {
       endedAt: snapshot.endedAt,
       error: snapshot.error,
     });
+  },
+};
+
+export const agentMethodDefs: Record<string, MethodMetadata> = {
+  "agent.identity.get": {
+    params: AgentIdentityParamsSchema,
+    result: AgentIdentityResultSchema,
+    scope: "operator.read",
+  },
+  "agent.wait": {
+    params: AgentWaitParamsSchema,
+    scope: "operator.read",
   },
 };

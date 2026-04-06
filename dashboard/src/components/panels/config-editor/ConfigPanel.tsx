@@ -3,6 +3,7 @@
 import { RefreshCw, Save, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useCallback, useState } from "react";
+import { resolveSectionSchemaNode, type ConfigLookupResult } from "@/lib/config-lookup";
 import { parseConfigSearch, filterFields, buildTagIndex } from "@/lib/config-search";
 import type { FormField } from "@/lib/schema-parser";
 import { parseSchemaSection } from "@/lib/schema-parser";
@@ -26,6 +27,7 @@ export function ConfigPanel() {
   const {
     schema,
     uiHints,
+    schemaCache,
     editedConfig,
     isDirty,
     saving,
@@ -35,6 +37,7 @@ export function ConfigPanel() {
     activeSection,
     fetchSchema,
     fetchConfig,
+    lookupSchema,
     setEditedConfig,
     setActiveSection,
     saveConfig,
@@ -42,11 +45,18 @@ export function ConfigPanel() {
   } = useConfigStore();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeSectionLookup, setActiveSectionLookup] = useState<ConfigLookupResult | null>(null);
 
   useEffect(() => {
     void fetchSchema();
     void fetchConfig();
   }, [fetchSchema, fetchConfig]);
+
+  useEffect(() => {
+    if (!schemaCache.has("")) {
+      void lookupSchema("");
+    }
+  }, [lookupSchema, schemaCache]);
 
   // Navigation guard: warn about unsaved changes
   useEffect(() => {
@@ -61,15 +71,12 @@ export function ConfigPanel() {
 
   // Derive sections from schema top-level keys
   const sections = useMemo(() => {
-    if (!schema) {
-      return [];
+    const rootLookup = schemaCache.get("");
+    if (rootLookup && rootLookup.children.length > 0) {
+      return rootLookup.children.map((child) => child.path || child.key);
     }
-    const props = schema.properties;
-    if (props && typeof props === "object") {
-      return Object.keys(props as Record<string, unknown>);
-    }
-    return Object.keys(schema);
-  }, [schema]);
+    return [];
+  }, [schemaCache]);
 
   // Auto-select first section
   useEffect(() => {
@@ -78,30 +85,58 @@ export function ConfigPanel() {
     }
   }, [sections, activeSection, setActiveSection]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeSection) {
+      setActiveSectionLookup(null);
+      return;
+    }
+    void (async () => {
+      const result = await lookupSchema(activeSection);
+      if (!cancelled) {
+        setActiveSectionLookup(result);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSection, lookupSchema]);
+
+  useEffect(() => {
+    if (sections.length === 0) {
+      return;
+    }
+    for (const section of sections) {
+      if (schemaCache.has(section)) {
+        continue;
+      }
+      void lookupSchema(section);
+    }
+  }, [sections, schemaCache, lookupSchema]);
+
   // Build tag index from all fields across all sections
   const allSectionFields = useMemo(() => {
-    if (!schema) {
-      return [] as FormField[];
-    }
-    const props = schema.properties as Record<string, Record<string, unknown>> | undefined;
-    if (!props) {
+    if (sections.length === 0) {
       return [] as FormField[];
     }
 
     const all: FormField[] = [];
-    for (const sectionKey of Object.keys(props)) {
-      const sectionSchema = props[sectionKey];
-      if (!sectionSchema || typeof sectionSchema !== "object") {
+    for (const sectionKey of sections) {
+      const sectionSchemaNode = resolveSectionSchemaNode({
+        activeSection: sectionKey,
+        lookupResult: schemaCache.get(sectionKey) ?? null,
+      });
+      if (!sectionSchemaNode) {
         continue;
       }
-      let fields = parseSchemaSection(sectionSchema);
+      let fields = parseSchemaSection(sectionSchemaNode);
       if (uiHints) {
         fields = applyUiHints(fields, uiHints, `${sectionKey}.`);
       }
       all.push(...fields);
     }
     return all;
-  }, [schema, uiHints]);
+  }, [sections, schemaCache, uiHints]);
 
   const tagIndex = useMemo(() => buildTagIndex(allSectionFields), [allSectionFields]);
   const parsedSearch = useMemo(() => parseConfigSearch(searchQuery), [searchQuery]);
@@ -132,20 +167,14 @@ export function ConfigPanel() {
 
   // Get fields for current section from schema, apply uiHints, then apply search filter
   const currentFields = useMemo(() => {
-    if (!schema || !activeSection) {
+    if (!activeSection) {
       return [];
     }
-    const props = schema.properties as Record<string, Record<string, unknown>> | undefined;
-    if (!props) {
-      return [];
-    }
-    const parts = activeSection.split(".");
-    let node: Record<string, unknown> | undefined = props[parts[0]];
-    for (let i = 1; i < parts.length && node; i++) {
-      const nested = node.properties as Record<string, Record<string, unknown>> | undefined;
-      node = nested?.[parts[i]];
-    }
-    if (!node || typeof node !== "object") {
+    const node = resolveSectionSchemaNode({
+      activeSection,
+      lookupResult: activeSectionLookup,
+    });
+    if (!node) {
       return [];
     }
     let fields = parseSchemaSection(node);
@@ -153,7 +182,28 @@ export function ConfigPanel() {
       fields = applyUiHints(fields, uiHints, `${activeSection}.`);
     }
     return filterFields(fields, parsedSearch, `${activeSection}.`);
-  }, [schema, activeSection, uiHints, parsedSearch]);
+  }, [schema, activeSection, activeSectionLookup, uiHints, parsedSearch]);
+
+  const activeFieldHints = useMemo(() => {
+    if (!activeSectionLookup) {
+      return undefined;
+    }
+    const hints: Record<
+      string,
+      { inputType?: string; enum?: string[]; sensitive?: boolean; placeholder?: string }
+    > = {};
+    for (const child of activeSectionLookup.children) {
+      const hint = child.hint;
+      if (!hint) {
+        continue;
+      }
+      hints[child.path] = {
+        ...(hint.sensitive ? { sensitive: true, inputType: "password" } : {}),
+        ...(typeof hint.placeholder === "string" ? { placeholder: hint.placeholder } : {}),
+      };
+    }
+    return hints;
+  }, [activeSectionLookup]);
 
   // Get values for the active section (supports dotted paths)
   const sectionValues = useMemo(() => {
@@ -351,6 +401,7 @@ export function ConfigPanel() {
                     fields={currentFields}
                     values={sectionValues}
                     onChange={handleFieldChange}
+                    hints={activeFieldHints}
                     searchQuery={parsedSearch.text}
                   />
                 )

@@ -13,7 +13,7 @@
  */
 import { type NextRequest } from "next/server";
 import YAML from "yaml";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 /**
@@ -38,7 +38,7 @@ function normalizeRawToJson(raw: string): string {
 }
 
 export const GET = withAuth(async (_request: NextRequest) => {
-  const res = await gatewayRequest("config.get", {});
+  const res = await gwRequest("config.get", {});
   if (!res.ok) {
     return res;
   }
@@ -65,7 +65,7 @@ export const PATCH = withAuth(async (request: NextRequest) => {
 
   // Client sends JSON raw config — pass through as-is.
   // Gateway config.patch accepts JSON/JSON5/YAML; JSON is safest.
-  return gatewayRequest("config.patch", {
+  return gwRequest("config.patch", {
     raw: body.raw,
     ...(body.baseHash ? { baseHash: body.baseHash } : {}),
     ...(body.note ? { note: body.note } : {}),

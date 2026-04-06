@@ -15,7 +15,7 @@ describe("resolveInitialSessionSendPlan", () => {
     });
   });
 
-  it("uses steer when attachments were deferred out of sessions.create", () => {
+  it("uses send when attachments were deferred out of sessions.create", () => {
     expect(
       resolveInitialSessionSendPlan({
         hasAttachments: true,
@@ -37,7 +37,7 @@ describe("resolveInitialSessionSendPlan", () => {
     });
   });
 
-  it("falls back to steer only when create returned no run and no error", () => {
+  it("falls back to send only when create returned no run and no error", () => {
     expect(
       resolveInitialSessionSendPlan({
         hasAttachments: false,

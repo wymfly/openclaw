@@ -638,6 +638,11 @@ export function dispatchA2UIEvent(
  *
  * Retries once on failure. If both attempts fail, the original content
  * is preserved.
+ *
+ * IMPORTANT: this function intentionally reads through `/api/chat/history`,
+ * which is a narrow compatibility seam over `chat.history`. Do not replace
+ * it with `sessions.preview`; preview payloads are summaries, not full
+ * transcript equivalents.
  */
 export async function reloadFullContent(
   sessionKey: string,

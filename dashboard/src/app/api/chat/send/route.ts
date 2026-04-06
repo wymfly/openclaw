@@ -1,5 +1,5 @@
 /**
- * POST /api/chat/send — Send a message via sessions.steer (safe for idle and running).
+ * POST /api/chat/send — Send a message via sessions.send.
  *
  * Gateway contract (`SessionsSendParamsSchema`):
  *   { key, message, thinking?, attachments?, timeoutMs?, idempotencyKey? }
@@ -32,7 +32,7 @@ export const POST = withAuth(async (request: NextRequest) => {
 
   const idempotencyKey = body.idempotencyKey?.trim() || randomUUID();
 
-  return gwRequest("sessions.steer", {
+  return gwRequest("sessions.send", {
     key: body.sessionKey,
     message: body.message ?? "",
     thinking: body.thinking ?? undefined,

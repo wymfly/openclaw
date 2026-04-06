@@ -11,11 +11,11 @@
  *   agents.delete: { agentId, deleteFiles? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async () => {
-  return gatewayRequest("agents.list", {});
+  return gwRequest("agents.list", {});
 });
 
 export const POST = withAuth(async (request: NextRequest) => {
@@ -36,7 +36,7 @@ export const POST = withAuth(async (request: NextRequest) => {
   // which points to the mounted workspace volume in Docker deployments.
   const workspace = body.workspace?.trim() || undefined;
 
-  return gatewayRequest("agents.create", {
+  return gwRequest("agents.create", {
     name,
     ...(workspace ? { workspace } : {}),
     ...(body.emoji ? { emoji: body.emoji } : {}),
@@ -52,7 +52,7 @@ export const DELETE = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "agentId is required" }, { status: 400 });
   }
 
-  return gatewayRequest("agents.delete", {
+  return gwRequest("agents.delete", {
     agentId,
   });
 });

@@ -476,7 +476,7 @@ export function MessageInput() {
           text || (pendingFiles.length > 0 ? pendingFiles.map((f) => f.name).join(", ") : "");
 
         // Create session (with message only if no attachments — attachments
-        // are not supported by sessions.create, so we send them via steer)
+        // are not supported by sessions.create, so we send them via sessions.send)
         const createData = await createChatSession({
           agentId,
           ...(!hasAttachments && messageText ? { message: messageText } : {}),
@@ -515,7 +515,7 @@ export function MessageInput() {
         });
 
         if (sendPlan.kind === "send") {
-          // Send message+attachments via sessions.steer (create didn't include the message)
+          // Send message+attachments via sessions.send (create didn't include the message)
           useChatStore.getState().setSessionStreaming(sessionKey, true);
           try {
             await sendChatMessage({
@@ -534,7 +534,7 @@ export function MessageInput() {
           useChatStore.getState().setSessionStreaming(sessionKey, true);
         }
       } else {
-        // Existing session — add user message then send via sessions.steer
+        // Existing session — add user message then send via sessions.send
         useChatStore.getState().addMessage(sessionKey, {
           id: `user-${Date.now()}`,
           role: "user",

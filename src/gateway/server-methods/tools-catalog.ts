@@ -11,12 +11,17 @@ import {
 } from "../../agents/tool-catalog.js";
 import { loadConfig } from "../../config/config.js";
 import { getPluginToolMeta, resolvePluginTools } from "../../plugins/tools.js";
+import type { MethodMetadata } from "../method-registry.js";
 import {
   ErrorCodes,
   errorShape,
   formatValidationErrors,
   validateToolsCatalogParams,
 } from "../protocol/index.js";
+import {
+  ToolsCatalogParamsSchema,
+  ToolsCatalogResultSchema,
+} from "../protocol/schema/agents-models-skills.js";
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
 type ToolCatalogEntry = {
@@ -163,5 +168,13 @@ export const toolsCatalogHandlers: GatewayRequestHandlers = {
       },
       undefined,
     );
+  },
+};
+
+export const toolsCatalogMethodDefs: Record<string, MethodMetadata> = {
+  "tools.catalog": {
+    params: ToolsCatalogParamsSchema,
+    result: ToolsCatalogResultSchema,
+    scope: "operator.read",
   },
 };

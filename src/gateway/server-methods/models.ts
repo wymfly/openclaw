@@ -13,6 +13,7 @@ import {
 } from "../../agents/model-selection.js";
 import { normalizeProviderId } from "../../agents/provider-id.js";
 import { loadConfig } from "../../config/config.js";
+import type { MethodMetadata } from "../method-registry.js";
 import {
   ErrorCodes,
   errorShape,
@@ -20,6 +21,12 @@ import {
   validateModelsConfiguredParams,
   validateModelsListParams,
 } from "../protocol/index.js";
+import {
+  ModelsConfiguredParamsSchema,
+  ModelsConfiguredResultSchema,
+  ModelsListParamsSchema,
+  ModelsListResultSchema,
+} from "../protocol/schema/agents-models-skills.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
 /** Read agent-level models.json (best-effort, returns empty on failure). */
@@ -288,5 +295,18 @@ export const modelsHandlers: GatewayRequestHandlers = {
     } catch (err) {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
+  },
+};
+
+export const modelsMethodDefs: Record<string, MethodMetadata> = {
+  "models.list": {
+    params: ModelsListParamsSchema,
+    result: ModelsListResultSchema,
+    scope: "operator.read",
+  },
+  "models.configured": {
+    params: ModelsConfiguredParamsSchema,
+    result: ModelsConfiguredResultSchema,
+    scope: "operator.read",
   },
 };

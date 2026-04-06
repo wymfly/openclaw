@@ -9,7 +9,7 @@
  *   agents.update: { agentId, name?, workspace?, model?, avatar? }
  */
 import { type NextRequest, NextResponse } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 type RouteContext = { params: Promise<{ agentId: string }> };
@@ -17,7 +17,7 @@ type RouteContext = { params: Promise<{ agentId: string }> };
 export const GET = withAuth(async (_request: NextRequest, ctx: unknown) => {
   const { agentId } = await (ctx as RouteContext).params;
   // agents.list takes no params; filter client-side
-  const res = await gatewayRequest("agents.list", {});
+  const res = await gwRequest("agents.list", {});
   if (res.status !== 200) {
     return res;
   }
@@ -40,7 +40,7 @@ export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
     avatar?: string;
   };
 
-  return gatewayRequest("agents.update", {
+  return gwRequest("agents.update", {
     agentId,
     ...(body.name ? { name: body.name } : {}),
     ...(body.workspace ? { workspace: body.workspace } : {}),

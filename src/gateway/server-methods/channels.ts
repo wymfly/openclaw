@@ -13,6 +13,7 @@ import { loadConfig, readConfigFileSnapshot } from "../../config/config.js";
 import { getChannelActivity } from "../../infra/channel-activity.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
+import type { MethodMetadata } from "../method-registry.js";
 import {
   ErrorCodes,
   errorShape,
@@ -20,6 +21,11 @@ import {
   validateChannelsLogoutParams,
   validateChannelsStatusParams,
 } from "../protocol/index.js";
+import {
+  ChannelsLogoutParamsSchema,
+  ChannelsStatusParamsSchema,
+  ChannelsStatusResultSchema,
+} from "../protocol/schema/channels.js";
 import { formatForLog } from "../ws-log.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "./types.js";
 
@@ -288,5 +294,17 @@ export const channelsHandlers: GatewayRequestHandlers = {
     } catch (err) {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
     }
+  },
+};
+
+export const channelsMethodDefs: Record<string, MethodMetadata> = {
+  "channels.status": {
+    params: ChannelsStatusParamsSchema,
+    result: ChannelsStatusResultSchema,
+    scope: "operator.read",
+  },
+  "channels.logout": {
+    params: ChannelsLogoutParamsSchema,
+    scope: "operator.admin",
   },
 };

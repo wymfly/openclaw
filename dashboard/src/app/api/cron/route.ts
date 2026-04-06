@@ -5,11 +5,12 @@
  * POST → cron.add  { name, schedule, sessionTarget, wakeMode, payload, ... }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
+import type { GatewayMethodMap } from "@/types/gateway-protocol.generated";
 
 export const GET = withAuth(async (request: NextRequest) => {
-  const params: Record<string, unknown> = {};
+  const params: GatewayMethodMap["cron.list"]["params"] = {};
   const sp = request.nextUrl.searchParams;
 
   const limit = sp.get("limit");
@@ -41,10 +42,10 @@ export const GET = withAuth(async (request: NextRequest) => {
     params.includeDisabled = includeDisabled === "true";
   }
 
-  return gatewayRequest("cron.list", params);
+  return gwRequest("cron.list", params);
 });
 
 export const POST = withAuth(async (request: NextRequest) => {
   const body = await request.json();
-  return gatewayRequest("cron.add", body);
+  return gwRequest("cron.add", body);
 });

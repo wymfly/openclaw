@@ -17,7 +17,7 @@
  *   config.patch:                      { raw, baseHash } (merge-patch JSON string)
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest, gwRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
@@ -96,14 +96,14 @@ export const POST = withAuth(async (request: NextRequest) => {
       const patch = buildMergePatch(path, value);
 
       // Fetch current configHash for optimistic locking
-      const configRes = await gatewayRequest("config.get", {});
+      const configRes = await gwRequest("config.get", {});
       if (configRes.status !== 200) {
         return configRes;
       }
       const configData = (await configRes.json()) as { baseHash?: string };
       const baseHash = configData.baseHash;
 
-      return gatewayRequest("config.patch", {
+      return gwRequest("config.patch", {
         raw: JSON.stringify(patch),
         ...(baseHash ? { baseHash } : {}),
       });

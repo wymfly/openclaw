@@ -15,6 +15,8 @@ import type { DeckEventType } from "./event-bus";
 import { OpenClawGatewayAdapter } from "./gateway-adapter";
 import { ProjectionStore } from "./projection-store";
 import { createRateLimiter } from "./rate-limit";
+import { RunEventPipeline } from "./run-event-pipeline";
+import { getRunEventStore } from "./run-event-store";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,11 +29,25 @@ export type DeckRuntime = {
   db: Database;
   store: ProjectionStore;
   rateLimiter: ReturnType<typeof createRateLimiter>;
+  capabilities: DeckCapabilityState;
 };
 
 export type InitRuntimeSettings = {
   gatewayUrl?: string;
   gatewayToken?: string;
+};
+
+export type DeckCapabilitySnapshot = {
+  methods: ReadonlySet<string>;
+  events: ReadonlySet<string>;
+  schemaVersion: string | null;
+};
+
+export type DeckCapabilityState = {
+  status: "pending" | "ready" | "incompatible";
+  reason: string | null;
+  snapshot: DeckCapabilitySnapshot | null;
+  ready: Promise<void>;
 };
 
 // ---------------------------------------------------------------------------
@@ -95,8 +111,23 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "canvas",
 ]);
 
+const REQUIRED_GATEWAY_METHODS = [
+  "gateway.describe",
+  "sessions.create",
+  "sessions.send",
+  "sessions.abort",
+  "sessions.subscribe",
+  "sessions.messages.subscribe",
+  "config.schema.lookup",
+] as const;
+
 /** Events that should be bridged to the activity feed outbox. */
 const ACTIVITY_BRIDGE_EVENTS = new Set<string>(["chat", "agent", "agent.updated"]);
+const SESSION_EVENT_INTAKE_MAP = {
+  "sessions.changed": "session-state",
+  "session.message": "session-msg",
+  "session.tool": "session-tool",
+} as const satisfies Record<string, DeckEventType>;
 
 /**
  * Map ControlPlaneDomainEvent to DeckEventType and broadcast.
@@ -113,6 +144,10 @@ function bridgeDomainEvent(
   store?: ProjectionStore,
 ): void {
   if (event.type === "gateway.event" && "event" in event) {
+    const normalizedEventType = SESSION_EVENT_INTAKE_MAP[event.event];
+    if (normalizedEventType) {
+      eventBus.broadcast(normalizedEventType, event.payload);
+    }
     if (event.event === "sessions.changed" && store) {
       const payload = event.payload as { sessionKey?: unknown; reason?: unknown } | undefined;
       const sessionKey = typeof payload?.sessionKey === "string" ? payload.sessionKey : "";
@@ -212,6 +247,154 @@ function toReplayEvent(entry: ReturnType<ProjectionStore["getEventsSince"]>["eve
   };
 }
 
+function createPendingCapabilityState(): {
+  state: DeckCapabilityState;
+  beginBootstrap: () => void;
+  markReady: (snapshot: DeckCapabilitySnapshot) => void;
+  markIncompatible: (reason: string) => void;
+  markTransientFailure: (reason: string) => void;
+} {
+  let resolveReady!: () => void;
+  let readySettled = false;
+  const state: DeckCapabilityState = {
+    status: "pending",
+    reason: null,
+    snapshot: null,
+    ready: Promise.resolve(),
+  };
+  const resetReady = () => {
+    readySettled = false;
+    state.ready = new Promise<void>((resolve) => {
+      resolveReady = resolve;
+    });
+  };
+  resetReady();
+  return {
+    state,
+    beginBootstrap() {
+      if (!readySettled && state.status === "pending" && !state.snapshot && !state.reason) {
+        return;
+      }
+      state.status = "pending";
+      state.reason = null;
+      state.snapshot = null;
+      resetReady();
+    },
+    markReady(snapshot) {
+      state.status = "ready";
+      state.snapshot = snapshot;
+      state.reason = null;
+      readySettled = true;
+      resolveReady();
+    },
+    markIncompatible(reason) {
+      state.status = "incompatible";
+      state.reason = reason;
+      state.snapshot = null;
+      readySettled = true;
+      resolveReady();
+    },
+    markTransientFailure(reason) {
+      state.status = "pending";
+      state.reason = reason;
+      state.snapshot = null;
+      readySettled = true;
+      resolveReady();
+    },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object");
+}
+
+function buildCapabilitySnapshot(payload: unknown):
+  | {
+      ok: true;
+      snapshot: DeckCapabilitySnapshot;
+    }
+  | {
+      ok: false;
+      reason: string;
+    } {
+  if (!isRecord(payload)) {
+    return { ok: false, reason: "gateway.describe returned a non-object payload" };
+  }
+  const methods = payload.methods;
+  const events = payload.events;
+  if (!isRecord(methods) || !isRecord(events)) {
+    return { ok: false, reason: "gateway.describe payload missing methods/events objects" };
+  }
+  const methodNames = new Set(Object.keys(methods));
+  const missing = REQUIRED_GATEWAY_METHODS.filter((method) => !methodNames.has(method));
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      reason: `Gateway missing required capability: ${missing.join(", ")}`,
+    };
+  }
+  return {
+    ok: true,
+    snapshot: {
+      methods: methodNames,
+      events: new Set(Object.keys(events)),
+      schemaVersion: typeof payload.schemaVersion === "string" ? payload.schemaVersion : null,
+    },
+  };
+}
+
+function classifyCapabilityBootstrapError(error: unknown): {
+  incompatible: boolean;
+  reason: string;
+} {
+  if (
+    error instanceof Error &&
+    "code" in error &&
+    error.code === "INVALID_REQUEST" &&
+    error.message.includes("unknown method: gateway.describe")
+  ) {
+    return {
+      incompatible: true,
+      reason: "Gateway missing required capability: gateway.describe",
+    };
+  }
+  return {
+    incompatible: false,
+    reason: error instanceof Error ? error.message : String(error),
+  };
+}
+
+async function bootstrapGatewayCapabilities(runtime: DeckRuntime): Promise<
+  | {
+      ok: true;
+      snapshot: DeckCapabilitySnapshot;
+    }
+  | {
+      ok: false;
+      incompatible: boolean;
+      reason: string;
+    }
+> {
+  try {
+    const payload = await runtime.adapter.request("gateway.describe", {
+      filter: "all",
+      includeSchemas: false,
+    });
+    const normalized = buildCapabilitySnapshot(payload);
+    if (!normalized.ok) {
+      return { ok: false, incompatible: true, reason: normalized.reason };
+    }
+    return { ok: true, snapshot: normalized.snapshot };
+  } catch (err) {
+    const classified = classifyCapabilityBootstrapError(err);
+    return {
+      ok: false,
+      incompatible: classified.incompatible,
+      reason: classified.reason,
+    };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // initRuntime
 // ---------------------------------------------------------------------------
@@ -240,6 +423,9 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   }
 
   const rateLimiter = createRateLimiter();
+  const capabilityState = createPendingCapabilityState();
+  let capabilityBootstrapInFlight: Promise<void> | null = null;
+  let runtime!: DeckRuntime;
 
   const adapter = new OpenClawGatewayAdapter({
     loadSettings: () => {
@@ -247,26 +433,79 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
       const latest = resolveGatewaySettings(settings, store);
       return latest ?? gwSettings;
     },
-    onDomainEvent: (event) => bridgeDomainEvent(event, eventBus, store),
+    onDomainEvent: (event) => {
+      bridgeDomainEvent(event, eventBus, store);
+      if (event.type === "runtime.status" && event.status === "connected") {
+        triggerCapabilityBootstrap();
+      }
+    },
     db,
-  });
-
-  // Start the adapter (non-blocking — reconnection is handled internally).
-  void adapter.start().catch((err) => {
-    console.error("[DeckRuntime] adapter start failed:", err);
   });
 
   const gw = createGatewayClient((method, params, options) =>
     adapter.request(method, params, options),
   );
 
-  const runtime: DeckRuntime = { adapter, gw, eventBus, db, store, rateLimiter };
+  runtime = {
+    adapter,
+    gw,
+    eventBus,
+    db,
+    store,
+    rateLimiter,
+    capabilities: capabilityState.state,
+  };
   g[GLOBAL_KEY] = runtime;
+
+  function triggerCapabilityBootstrap(): void {
+    if (capabilityBootstrapInFlight) {
+      return;
+    }
+    capabilityState.beginBootstrap();
+    capabilityBootstrapInFlight = bootstrapGatewayCapabilities(runtime)
+      .then((result) => {
+        if (result.ok) {
+          capabilityState.markReady(result.snapshot);
+          return;
+        }
+        if (result.incompatible) {
+          capabilityState.markIncompatible(result.reason);
+          return;
+        }
+        capabilityState.markTransientFailure(result.reason);
+      })
+      .catch((err) => {
+        capabilityState.markTransientFailure(err instanceof Error ? err.message : String(err));
+        console.error("[DeckRuntime] capability bootstrap failed:", err);
+      })
+      .finally(() => {
+        capabilityBootstrapInFlight = null;
+      });
+  }
+
+  // Start adapter (non-blocking — reconnection handled internally) and bootstrap capabilities.
+  void adapter
+    .start()
+    .then(() => {
+      triggerCapabilityBootstrap();
+    })
+    .catch((err) => {
+      capabilityState.markTransientFailure(err instanceof Error ? err.message : String(err));
+      console.error("[DeckRuntime] adapter start failed:", err);
+    });
 
   // Initialize P2 subsystem bridges — store cleanup refs on globalThis for HMR safety (F12)
   const gCleanup = globalThis as Record<string, unknown>;
   gCleanup.__deckCleanupApproval = initApprovalBridge(runtime);
   gCleanup.__deckCleanupAlerts = initAlertEngine(runtime);
+  const runEventPipeline = new RunEventPipeline((events) =>
+    getRunEventStore().appendEvents(events),
+  );
+  eventBus.subscribe(runEventPipeline.handleEvent);
+  gCleanup.__deckCleanupRunEventPipeline = () => {
+    eventBus.unsubscribe(runEventPipeline.handleEvent);
+    runEventPipeline.destroy();
+  };
 
   // F10: Schedule webhook retry processor every 60s
   const retryTimer = setInterval(async () => {
@@ -321,9 +560,11 @@ export async function shutdownRuntime(): Promise<void> {
   const gCleanup = globalThis as Record<string, unknown>;
   (gCleanup.__deckCleanupApproval as (() => void) | undefined)?.();
   (gCleanup.__deckCleanupAlerts as (() => void) | undefined)?.();
+  (gCleanup.__deckCleanupRunEventPipeline as (() => void) | undefined)?.();
   clearInterval(gCleanup.__deckRetryTimer as ReturnType<typeof setInterval>);
   gCleanup.__deckCleanupApproval = undefined;
   gCleanup.__deckCleanupAlerts = undefined;
+  gCleanup.__deckCleanupRunEventPipeline = undefined;
   gCleanup.__deckRetryTimer = undefined;
   runtime.eventBus.setReplayStore(null);
 

@@ -56,6 +56,12 @@ function createMockRuntime(eventBus: EventBus): MockRuntime {
         clearProjection,
       } as unknown as DeckRuntime["store"],
       rateLimiter: {} as DeckRuntime["rateLimiter"],
+      capabilities: {
+        status: "ready",
+        reason: null,
+        snapshot: null,
+        ready: Promise.resolve(),
+      },
     },
   };
 }

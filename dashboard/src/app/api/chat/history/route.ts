@@ -1,6 +1,10 @@
 /**
  * GET /api/chat/history — Fetch chat message history for a session.
  *
+ * IMPORTANT: this route is a narrow transcript-read compatibility seam.
+ * It intentionally continues to use `chat.history` until Gateway exposes a
+ * native `sessions.*` equivalent for full transcript retrieval.
+ *
  * Gateway contract (`ChatHistoryParamsSchema`):
  *   { sessionKey, limit? }
  */

@@ -9,7 +9,6 @@ export type GatewayRequestFn = <M extends GatewayMethodName>(
 ) => Promise<GatewayMethodMap[M]["result"]>;
 
 export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
-  "agent",
   "agent.identity.get",
   "agent.wait",
   "agents.create",
@@ -19,7 +18,6 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "agents.files.set",
   "agents.list",
   "agents.update",
-  "browser.request",
   "channels.logout",
   "channels.status",
   "chat.abort",
@@ -63,52 +61,25 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "deck.subagents.list",
   "deck.subagents.steer",
   "deck.threads.list",
-  "device.pair.approve",
-  "device.pair.list",
-  "device.pair.reject",
-  "device.pair.remove",
-  "device.token.revoke",
-  "device.token.rotate",
   "doctor.memory.status",
   "exec.approval.request",
   "exec.approval.resolve",
-  "exec.approval.waitDecision",
   "exec.approvals.get",
   "exec.approvals.node.get",
   "exec.approvals.node.set",
   "exec.approvals.set",
   "gateway.describe",
-  "gateway.identity.get",
   "health",
-  "last-heartbeat",
   "logs.tail",
   "models.catalog.providers",
   "models.configured",
   "models.list",
-  "node.canvas.capability.refresh",
-  "node.describe",
-  "node.event",
-  "node.invoke",
-  "node.invoke.result",
-  "node.list",
-  "node.pair.approve",
-  "node.pair.list",
-  "node.pair.reject",
-  "node.pair.request",
-  "node.pair.verify",
-  "node.pending.ack",
-  "node.pending.drain",
-  "node.pending.enqueue",
-  "node.pending.pull",
-  "node.rename",
-  "secrets.reload",
-  "secrets.resolve",
-  "send",
   "sessions.abort",
   "sessions.clear",
   "sessions.compact",
   "sessions.create",
   "sessions.delete",
+  "sessions.get",
   "sessions.list",
   "sessions.messages.subscribe",
   "sessions.messages.unsubscribe",
@@ -122,34 +93,15 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "sessions.usage",
   "sessions.usage.logs",
   "sessions.usage.timeseries",
-  "set-heartbeats",
   "skills.bins",
   "skills.install",
   "skills.status",
   "skills.update",
   "status",
-  "system-event",
-  "system-presence",
-  "talk.config",
-  "talk.mode",
-  "talk.speak",
   "tools.catalog",
-  "tts.convert",
-  "tts.disable",
-  "tts.enable",
-  "tts.providers",
-  "tts.setProvider",
-  "tts.status",
-  "update.run",
+  "tools.effective",
   "usage.cost",
   "usage.status",
-  "voicewake.get",
-  "voicewake.set",
-  "wake",
-  "wizard.cancel",
-  "wizard.next",
-  "wizard.start",
-  "wizard.status",
 ]);
 
 export const GENERATED_EVENT_NAMES: ReadonlySet<string> = new Set([
@@ -200,6 +152,114 @@ export interface GatewayClient {
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").ChatSendResult>;
   };
+  config: {
+    get(
+      params: import("./gateway-protocol.generated").ConfigGetParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ConfigGetResult>;
+    schema: {
+      $call(
+        params: import("./gateway-protocol.generated").ConfigSchemaParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").ConfigSchemaResult>;
+      lookup(
+        params: import("./gateway-protocol.generated").ConfigSchemaLookupParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").ConfigSchemaLookupResult>;
+    };
+    apply(
+      params: import("./gateway-protocol.generated").ConfigApplyParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ConfigApplyResult>;
+    patch(
+      params: import("./gateway-protocol.generated").ConfigPatchParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ConfigPatchResult>;
+    set(
+      params: import("./gateway-protocol.generated").ConfigSetParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ConfigSetResult>;
+  };
+  skills: {
+    status(
+      params: import("./gateway-protocol.generated").SkillsStatusParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+    bins(
+      params: import("./gateway-protocol.generated").SkillsBinsParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SkillsBinsResult>;
+    install(
+      params: import("./gateway-protocol.generated").SkillsInstallParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+    update(
+      params: import("./gateway-protocol.generated").SkillsUpdateParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+  };
+  cron: {
+    list(
+      params: import("./gateway-protocol.generated").CronListParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+    status(
+      params: import("./gateway-protocol.generated").CronStatusParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+    add(
+      params: import("./gateway-protocol.generated").CronAddParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+    update(
+      params: import("./gateway-protocol.generated").CronUpdateParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+    remove(
+      params: import("./gateway-protocol.generated").CronRemoveParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+    run(
+      params: import("./gateway-protocol.generated").CronRunParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+    runs(
+      params: import("./gateway-protocol.generated").CronRunsParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+  };
+  exec: {
+    approvals: {
+      get(
+        params: import("./gateway-protocol.generated").ExecApprovalsGetParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").ExecApprovalsGetResult>;
+      set(
+        params: import("./gateway-protocol.generated").ExecApprovalsSetParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").ExecApprovalsSetResult>;
+      node: {
+        get(
+          params: import("./gateway-protocol.generated").ExecApprovalsNodeGetParams,
+          options?: { timeoutMs?: number },
+        ): Promise<import("./gateway-protocol.generated").ExecApprovalsNodeGetResult>;
+        set(
+          params: import("./gateway-protocol.generated").ExecApprovalsNodeSetParams,
+          options?: { timeoutMs?: number },
+        ): Promise<import("./gateway-protocol.generated").ExecApprovalsNodeSetResult>;
+      };
+    };
+    approval: {
+      request(
+        params: import("./gateway-protocol.generated").ExecApprovalRequestParams,
+        options?: { timeoutMs?: number },
+      ): Promise<unknown>;
+      resolve(
+        params: import("./gateway-protocol.generated").ExecApprovalResolveParams,
+        options?: { timeoutMs?: number },
+      ): Promise<unknown>;
+    };
+  };
   sessions: {
     list(
       params: import("./gateway-protocol.generated").SessionsListParams,
@@ -227,6 +287,10 @@ export interface GatewayClient {
       params: import("./gateway-protocol.generated").SessionsPreviewParams,
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").SessionsPreviewResult>;
+    get(
+      params: import("./gateway-protocol.generated").SessionsGetParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SessionsGetResult>;
     create(
       params: import("./gateway-protocol.generated").SessionsCreateParams,
       options?: { timeoutMs?: number },
@@ -268,21 +332,85 @@ export interface GatewayClient {
         params: import("./gateway-protocol.generated").SessionsUsageParams,
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").SessionsUsageResult>;
-      logs(
-        params: import("./gateway-protocol.generated").SessionsUsageLogsParams,
-        options?: { timeoutMs?: number },
-      ): Promise<import("./gateway-protocol.generated").SessionsUsageLogsResult>;
       timeseries(
         params: import("./gateway-protocol.generated").SessionsUsageTimeseriesParams,
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").SessionsUsageTimeseriesResult>;
+      logs(
+        params: import("./gateway-protocol.generated").SessionsUsageLogsParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsUsageLogsResult>;
     };
   };
-  skills: {
-    install(
-      params: import("./gateway-protocol.generated").SkillsInstallParams,
+  agent: {
+    identity: {
+      get(
+        params: import("./gateway-protocol.generated").AgentIdentityGetParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").AgentIdentityGetResult>;
+    };
+    wait(
+      params: import("./gateway-protocol.generated").AgentWaitParams,
       options?: { timeoutMs?: number },
-    ): Promise<import("./gateway-protocol.generated").SkillsInstallResult>;
+    ): Promise<unknown>;
+  };
+  agents: {
+    list(
+      params: import("./gateway-protocol.generated").AgentsListParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").AgentsListResult>;
+    create(
+      params: import("./gateway-protocol.generated").AgentsCreateParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").AgentsCreateResult>;
+    update(
+      params: import("./gateway-protocol.generated").AgentsUpdateParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").AgentsUpdateResult>;
+    delete(
+      params: import("./gateway-protocol.generated").AgentsDeleteParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").AgentsDeleteResult>;
+    files: {
+      list(
+        params: import("./gateway-protocol.generated").AgentsFilesListParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").AgentsFilesListResult>;
+      get(
+        params: import("./gateway-protocol.generated").AgentsFilesGetParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").AgentsFilesGetResult>;
+      set(
+        params: import("./gateway-protocol.generated").AgentsFilesSetParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").AgentsFilesSetResult>;
+    };
+  };
+  channels: {
+    status(
+      params: import("./gateway-protocol.generated").ChannelsStatusParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ChannelsStatusResult>;
+    logout(
+      params: import("./gateway-protocol.generated").ChannelsLogoutParams,
+      options?: { timeoutMs?: number },
+    ): Promise<unknown>;
+  };
+  models: {
+    list(
+      params: import("./gateway-protocol.generated").ModelsListParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ModelsListResult>;
+    configured(
+      params: import("./gateway-protocol.generated").ModelsConfiguredParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ModelsConfiguredResult>;
+  };
+  logs: {
+    tail(
+      params: import("./gateway-protocol.generated").LogsTailParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").LogsTailResult>;
   };
   deck: {
     commands: {
@@ -410,6 +538,22 @@ export interface GatewayClient {
       ): Promise<import("./gateway-protocol.generated").DeckAuthProbeResult>;
     };
   };
+  gateway: {
+    describe(
+      params: import("./gateway-protocol.generated").GatewayDescribeParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").GatewayDescribeResult>;
+  };
+  tools: {
+    catalog(
+      params: import("./gateway-protocol.generated").ToolsCatalogParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ToolsCatalogResult>;
+    effective(
+      params: import("./gateway-protocol.generated").ToolsEffectiveParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ToolsEffectiveResult>;
+  };
 }
 
 export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
@@ -424,6 +568,45 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       abort: call("chat.abort"),
       send: call("chat.send"),
     },
+    config: {
+      get: call("config.get"),
+      schema: {
+        $call: call("config.schema"),
+        lookup: call("config.schema.lookup"),
+      },
+      apply: call("config.apply"),
+      patch: call("config.patch"),
+      set: call("config.set"),
+    },
+    skills: {
+      status: call("skills.status"),
+      bins: call("skills.bins"),
+      install: call("skills.install"),
+      update: call("skills.update"),
+    },
+    cron: {
+      list: call("cron.list"),
+      status: call("cron.status"),
+      add: call("cron.add"),
+      update: call("cron.update"),
+      remove: call("cron.remove"),
+      run: call("cron.run"),
+      runs: call("cron.runs"),
+    },
+    exec: {
+      approvals: {
+        get: call("exec.approvals.get"),
+        set: call("exec.approvals.set"),
+        node: {
+          get: call("exec.approvals.node.get"),
+          set: call("exec.approvals.node.set"),
+        },
+      },
+      approval: {
+        request: call("exec.approval.request"),
+        resolve: call("exec.approval.resolve"),
+      },
+    },
     sessions: {
       list: call("sessions.list"),
       subscribe: call("sessions.subscribe"),
@@ -433,6 +616,7 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
         unsubscribe: call("sessions.messages.unsubscribe"),
       },
       preview: call("sessions.preview"),
+      get: call("sessions.get"),
       create: call("sessions.create"),
       send: call("sessions.send"),
       steer: call("sessions.steer"),
@@ -444,12 +628,37 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       compact: call("sessions.compact"),
       usage: {
         $call: call("sessions.usage"),
-        logs: call("sessions.usage.logs"),
         timeseries: call("sessions.usage.timeseries"),
+        logs: call("sessions.usage.logs"),
       },
     },
-    skills: {
-      install: call("skills.install"),
+    agent: {
+      identity: {
+        get: call("agent.identity.get"),
+      },
+      wait: call("agent.wait"),
+    },
+    agents: {
+      list: call("agents.list"),
+      create: call("agents.create"),
+      update: call("agents.update"),
+      delete: call("agents.delete"),
+      files: {
+        list: call("agents.files.list"),
+        get: call("agents.files.get"),
+        set: call("agents.files.set"),
+      },
+    },
+    channels: {
+      status: call("channels.status"),
+      logout: call("channels.logout"),
+    },
+    models: {
+      list: call("models.list"),
+      configured: call("models.configured"),
+    },
+    logs: {
+      tail: call("logs.tail"),
     },
     deck: {
       commands: {
@@ -501,6 +710,13 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
         overview: call("deck.auth.overview"),
         probe: call("deck.auth.probe"),
       },
+    },
+    gateway: {
+      describe: call("gateway.describe"),
+    },
+    tools: {
+      catalog: call("tools.catalog"),
+      effective: call("tools.effective"),
     },
   };
 }

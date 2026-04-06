@@ -9,18 +9,58 @@ import { getRuntime } from "@server/runtime";
  *   3. `extractPlatformHeaders()` — forward tenant/user context (for Deck-layer logging only)
  */
 import { NextResponse } from "next/server";
-import { GatewayErrorCode } from "@/lib/errors";
-import type { ErrorBody } from "@/lib/errors";
 import type { GatewayMethodMap, GatewayMethodName } from "@/types/gateway-protocol.generated";
 
-const IS_PRODUCTION = process.env.NODE_ENV === "production";
+type ErrorBody = { error: string; code?: string };
 
-function mapGatewayError(err: ControlPlaneGatewayError): string {
-  const code = err.code;
-  if (code && code in GatewayErrorCode) {
-    return code;
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const CAPABILITY_BOOTSTRAP_WAIT_MS = 750;
+
+async function waitForCapabilityBootstrap(
+  runtime: NonNullable<ReturnType<typeof getRuntime>>,
+): Promise<void> {
+  if (runtime.capabilities.status !== "pending") {
+    return;
   }
-  return GatewayErrorCode.GATEWAY_ERROR;
+  await Promise.race([
+    runtime.capabilities.ready,
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, CAPABILITY_BOOTSTRAP_WAIT_MS);
+    }),
+  ]);
+}
+
+async function ensureRuntimeCompatibility(
+  runtime: NonNullable<ReturnType<typeof getRuntime>>,
+): Promise<string | null> {
+  await waitForCapabilityBootstrap(runtime);
+  if (runtime.capabilities.status !== "incompatible") {
+    return null;
+  }
+  return runtime.capabilities.reason ?? "Gateway is incompatible with this Deck build";
+}
+
+/** Send a typed RPC request through the Gateway adapter and return raw data. */
+export async function gwCall<M extends GatewayMethodName>(
+  method: M,
+  params: GatewayMethodMap[M]["params"],
+  options?: { timeoutMs?: number },
+): Promise<GatewayMethodMap[M]["result"]> {
+  const runtime = getRuntime();
+  if (!runtime) {
+    throw new ControlPlaneGatewayError({
+      code: "GATEWAY_UNAVAILABLE",
+      message: "Gateway not configured",
+    });
+  }
+  const incompatibleReason = await ensureRuntimeCompatibility(runtime);
+  if (incompatibleReason) {
+    throw new ControlPlaneGatewayError({
+      code: "GATEWAY_INCOMPATIBLE",
+      message: incompatibleReason,
+    });
+  }
+  return runtime.adapter.request(method, params, options);
 }
 
 /** Send a typed RPC request through the Gateway adapter. */
@@ -35,18 +75,27 @@ export async function gwRequest<M extends GatewayMethodName>(
       status: 503,
     });
   }
+  const incompatibleReason = await ensureRuntimeCompatibility(runtime);
+  if (incompatibleReason) {
+    return NextResponse.json(
+      {
+        error: incompatibleReason,
+        code: "GATEWAY_INCOMPATIBLE",
+      } satisfies ErrorBody,
+      { status: 503 },
+    );
+  }
 
   try {
-    const data = await runtime.adapter.request(method, params, options);
+    const data = await gwCall(method, params, options);
     return NextResponse.json(data);
   } catch (err) {
     if (err instanceof ControlPlaneGatewayError) {
-      return NextResponse.json(
-        { error: err.message, code: mapGatewayError(err) } satisfies ErrorBody,
-        {
-          status: 502,
-        },
-      );
+      const status =
+        err.code === "GATEWAY_INCOMPATIBLE" || err.code === "GATEWAY_UNAVAILABLE" ? 503 : 502;
+      return NextResponse.json({ error: err.message, code: err.code } satisfies ErrorBody, {
+        status,
+      });
     }
     // In production, do not leak internal error details to the client.
     const message = IS_PRODUCTION
@@ -73,18 +122,25 @@ export async function gatewayRequest(
       status: 503,
     });
   }
+  const incompatibleReason = await ensureRuntimeCompatibility(runtime);
+  if (incompatibleReason) {
+    return NextResponse.json(
+      {
+        error: incompatibleReason,
+        code: "GATEWAY_INCOMPATIBLE",
+      } satisfies ErrorBody,
+      { status: 503 },
+    );
+  }
 
   try {
     const data = await runtime.adapter.request(method, params, options);
     return NextResponse.json(data);
   } catch (err) {
     if (err instanceof ControlPlaneGatewayError) {
-      return NextResponse.json(
-        { error: err.message, code: mapGatewayError(err) } satisfies ErrorBody,
-        {
-          status: 502,
-        },
-      );
+      return NextResponse.json({ error: err.message, code: err.code } satisfies ErrorBody, {
+        status: 502,
+      });
     }
     const message = IS_PRODUCTION
       ? "Internal server error"
