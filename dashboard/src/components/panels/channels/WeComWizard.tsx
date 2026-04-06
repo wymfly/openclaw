@@ -142,6 +142,7 @@ export function WeComWizard({
             agentSecret: form.agentSecret,
             token: form.agentToken,
             encodingAESKey: form.agentEncodingAESKey,
+            dm: { policy: form.dmPolicy },
           },
         };
       default:
@@ -486,6 +487,7 @@ export function WeComWizard({
             case "kf-api":
               return (
                 form.corpId.trim() !== "" &&
+                form.agentId.trim() !== "" &&
                 form.agentSecret.trim() !== "" &&
                 form.agentToken.trim() !== "" &&
                 form.agentEncodingAESKey.trim() !== ""
@@ -495,6 +497,7 @@ export function WeComWizard({
                 form.botId.trim() !== "" &&
                 form.botSecret.trim() !== "" &&
                 form.corpId.trim() !== "" &&
+                form.agentId.trim() !== "" &&
                 form.agentSecret.trim() !== "" &&
                 form.agentToken.trim() !== "" &&
                 form.agentEncodingAESKey.trim() !== ""
