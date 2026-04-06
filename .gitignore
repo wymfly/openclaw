@@ -94,6 +94,9 @@ USER.md
 
 # local tooling
 .serena/
+.omc/
+.omx/
+.playwright-mcp/
 
 # Agent credentials and memory (NEVER COMMIT)
 /memory/

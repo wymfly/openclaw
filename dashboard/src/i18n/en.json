@@ -316,6 +316,8 @@
   "models": {
     "title": "Models",
     "catalog": {
+      "runtimeInventoryTitle": "Runtime Provider Inventory",
+      "runtimeInventoryHint": "This view shows runtime-visible providers and models. It can include global config, agent-local models, auth profiles, and environment-backed providers.",
       "setDefault": "Set as Default",
       "addToFallback": "Add to Fallback Chain",
       "goConfig": "Configure",
@@ -372,8 +374,8 @@
     "noModels": "No models found",
     "selectProvider": "Select a provider to configure",
     "tabs": {
-      "catalog": "Catalog",
-      "config": "Provider Config",
+      "catalog": "Runtime Inventory",
+      "config": "Global Provider Config",
       "fallbacks": "Fallbacks",
       "usage": "Usage"
     },
@@ -419,6 +421,11 @@
       "viewDetails": "View detailed analysis"
     },
     "config": {
+      "globalOnlyTitle": "Global Provider Config",
+      "globalOnlyHint": "This tab edits openclaw.json > models.providers only. Runtime inventory can also include agent-local or environment-backed providers.",
+      "formScopeHint": "Changes here update the global provider config only. Agent-local and environment-backed providers remain read-only in this view.",
+      "readOnlyTitle": "Runtime-only provider",
+      "readOnlyHint": "This provider is currently visible from agent-local or runtime sources only. Add it to the global config before editing it here.",
       "configured": "Configured",
       "unconfigured": "Unconfigured",
       "apiKey": "API Key",
@@ -511,7 +518,28 @@
       "apiFormat": "API Format",
       "apiKey": "API Key",
       "apiKeyPlaceholder": "sk-... or $'{ENV_VAR_NAME}'",
-      "envVarHint": "Prefix with $'{' to reference an environment variable"
+      "envVarHint": "Prefix with $'{' to reference an environment variable",
+      "globalOnlyHint": "New providers added here are written to the global provider config."
+    },
+    "provenance": {
+      "providerSource": "Provider Source",
+      "scope": "Scope",
+      "presence": "Presence",
+      "editability": "Editability",
+      "config": "Global config",
+      "agentModels": "Agent-local models",
+      "authProfile": "Auth profile",
+      "env": "Environment",
+      "runtime": "Runtime-only",
+      "mixed": "Mixed",
+      "global": "Global",
+      "agent": "Agent-local",
+      "editable": "Editable",
+      "readOnly": "Read-only",
+      "configPresent": "Config present",
+      "configMissing": "Config missing",
+      "authPresent": "Credentials present",
+      "authMissing": "Credentials missing"
     }
   },
   "routing": {
@@ -1023,7 +1051,8 @@
         "jitter": "Jitter",
         "totalTime": "Total time: {time}"
       },
-      "reset": "Reset"
+      "reset": "Reset",
+      "configureWizard": "Configure Connection (Wizard)"
     },
     "schemaForm": {
       "noSchemaFields": "No configurable fields for this channel.",
@@ -1479,5 +1508,59 @@
     "minutesAgo": "{n}m ago",
     "hoursAgo": "{n}h ago",
     "daysAgo": "{n}d ago"
+  },
+  "wizard": {
+    "stepProgress": "Step {current} / {total}",
+    "back": "Back",
+    "next": "Next",
+    "complete": "Complete",
+    "validating": "Validating...",
+    "testConnection": "Test Connection",
+    "testing": "Testing...",
+    "wecom": {
+      "title": "Configure WeCom",
+      "step1Title": "Select Connection Mode",
+      "step2Title": "Enter Credentials",
+      "step3Title": "DM Policy",
+      "step4Title": "Callback URL",
+      "step5Title": "Test Connection",
+      "transportBotWs": "Bot WebSocket",
+      "transportBotWsDesc": "Real-time push via WebSocket. Simplest setup — no public domain needed.",
+      "transportBotWebhook": "Bot Webhook",
+      "transportBotWebhookDesc": "Event-driven via HTTP callback. Requires a public domain.",
+      "transportAgentCallback": "Agent Callback",
+      "transportAgentCallbackDesc": "Full Agent API: proactive messaging, media upload, broadcasts.",
+      "transportDualMode": "Bot WS + Agent",
+      "transportDualModeDesc": "Recommended for production. Bot handles real-time chat, Agent handles media & broadcasts.",
+      "transportKfApi": "Customer Service API",
+      "transportKfApiDesc": "WeCom Customer Service platform integration.",
+      "pluginNotInstalled": "WeCom plugin is not installed. Install it first via CLI: openclaw plugins install wecom",
+      "botId": "Bot ID",
+      "botIdHint": "Machine robot ID from WeCom admin console",
+      "botSecret": "Bot Secret",
+      "botSecretHint": "Robot secret key",
+      "token": "Callback Token",
+      "tokenHint": "Verification token for callback URL",
+      "encodingAESKey": "EncodingAESKey",
+      "encodingAESKeyHint": "43-character encryption key for callback messages",
+      "corpId": "Corp ID",
+      "corpIdHint": "Enterprise ID from WeCom admin console",
+      "agentId": "Agent ID",
+      "agentIdHint": "Application ID (numeric)",
+      "agentSecret": "Agent Secret",
+      "agentSecretHint": "Application secret key (corpSecret)",
+      "callbackUrlDesc": "Copy this URL and paste it into the WeCom admin console as the callback URL:",
+      "callbackUrlNote": "Replace '{GATEWAY_URL}' with your actual gateway address (e.g. https://your-domain.com)",
+      "noCallbackNeeded": "Bot WebSocket mode does not require a callback URL.",
+      "dualModeCallbackNote": "Agent callback URL (Bot WS does not need a callback):",
+      "testDesc": "Save the configuration first, then test the connection to verify credentials.",
+      "probeConfigNote": "Make sure to click \"Complete\" to save before testing. The probe checks the live gateway status.",
+      "probeSuccess": "Connected successfully!",
+      "probeNoChannel": "WeCom channel not found in gateway. Is the plugin installed?",
+      "probeFailed": "Connection test failed. Check credentials and try again.",
+      "dmPolicyLabel": "Choose who can send direct messages to this bot:",
+      "sectionBot": "Bot Credentials",
+      "sectionAgent": "Agent Credentials"
+    }
   }
 }

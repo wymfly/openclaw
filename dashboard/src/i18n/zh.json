@@ -313,6 +313,8 @@
   "models": {
     "title": "模型管理",
     "catalog": {
+      "runtimeInventoryTitle": "运行时供应商清单",
+      "runtimeInventoryHint": "此视图展示运行时真实可见的供应商和模型，可能同时包含全局配置、agent 本地模型、认证配置以及环境变量来源。",
       "setDefault": "设为默认",
       "addToFallback": "加入回退链",
       "goConfig": "去配置",
@@ -369,8 +371,8 @@
     "noModels": "未发现模型",
     "selectProvider": "选择供应商进行配置",
     "tabs": {
-      "catalog": "目录",
-      "config": "提供商配置",
+      "catalog": "运行时清单",
+      "config": "全局提供商配置",
       "fallbacks": "回退链",
       "usage": "用量"
     },
@@ -416,6 +418,11 @@
       "viewDetails": "查看详细分析"
     },
     "config": {
+      "globalOnlyTitle": "全局提供商配置",
+      "globalOnlyHint": "此标签页只编辑 openclaw.json > models.providers。运行时清单还可能包含 agent 本地或环境变量来源的提供商。",
+      "formScopeHint": "这里的修改只会更新全局提供商配置。agent 本地或环境变量来源的提供商在此视图中仍为只读。",
+      "readOnlyTitle": "仅运行时提供商",
+      "readOnlyHint": "该提供商当前只来自 agent 本地或运行时来源。请先把它加入全局配置，再在这里编辑。",
       "configured": "已配置",
       "unconfigured": "未配置",
       "apiKey": "API Key",
@@ -508,7 +515,28 @@
       "apiFormat": "API 格式",
       "apiKey": "API Key",
       "apiKeyPlaceholder": "sk-... 或 $'{ENV_VAR_NAME}'",
-      "envVarHint": "以 $'{' 开头将作为环境变量引用"
+      "envVarHint": "以 $'{' 开头将作为环境变量引用",
+      "globalOnlyHint": "这里新增的提供商会写入全局提供商配置。"
+    },
+    "provenance": {
+      "providerSource": "提供商来源",
+      "scope": "作用域",
+      "presence": "存在性",
+      "editability": "可编辑性",
+      "config": "全局配置",
+      "agentModels": "Agent 本地模型",
+      "authProfile": "认证配置",
+      "env": "环境变量",
+      "runtime": "仅运行时",
+      "mixed": "混合来源",
+      "global": "全局",
+      "agent": "Agent 本地",
+      "editable": "可编辑",
+      "readOnly": "只读",
+      "configPresent": "已存在配置",
+      "configMissing": "缺少配置",
+      "authPresent": "已存在凭据",
+      "authMissing": "缺少凭据"
     }
   },
   "routing": {
@@ -1020,7 +1048,8 @@
         "jitter": "抖动系数",
         "totalTime": "总耗时: {time}"
       },
-      "reset": "重置"
+      "reset": "重置",
+      "configureWizard": "配置连接（向导）"
     },
     "schemaForm": {
       "noSchemaFields": "此渠道无可配置项。",
@@ -1475,5 +1504,59 @@
     "minutesAgo": "{n} 分钟前",
     "hoursAgo": "{n} 小时前",
     "daysAgo": "{n} 天前"
+  },
+  "wizard": {
+    "stepProgress": "第 {current} 步 / 共 {total} 步",
+    "back": "上一步",
+    "next": "下一步",
+    "complete": "完成",
+    "validating": "验证中...",
+    "testConnection": "测试连接",
+    "testing": "测试中...",
+    "wecom": {
+      "title": "配置企业微信",
+      "step1Title": "选择连接方式",
+      "step2Title": "填写凭证",
+      "step3Title": "私聊策略",
+      "step4Title": "回调 URL",
+      "step5Title": "测试连接",
+      "transportBotWs": "Bot WebSocket",
+      "transportBotWsDesc": "WebSocket 实时推送，配置最简单，无需公网域名。",
+      "transportBotWebhook": "Bot Webhook",
+      "transportBotWebhookDesc": "HTTP 回调驱动，需要公网域名。",
+      "transportAgentCallback": "Agent 应用回调",
+      "transportAgentCallbackDesc": "完整 Agent API：主动推送、媒体上传、群发广播。",
+      "transportDualMode": "Bot WS + Agent",
+      "transportDualModeDesc": "生产推荐。Bot 负责实时对话，Agent 负责媒体和主动推送。",
+      "transportKfApi": "客服 API",
+      "transportKfApiDesc": "企业微信客服平台集成。",
+      "pluginNotInstalled": "WeCom 插件未安装。请先通过 CLI 安装：openclaw plugins install wecom",
+      "botId": "Bot ID",
+      "botIdHint": "企微管理后台的机器人 ID",
+      "botSecret": "Bot Secret",
+      "botSecretHint": "机器人密钥",
+      "token": "回调 Token",
+      "tokenHint": "回调 URL 验证令牌",
+      "encodingAESKey": "EncodingAESKey",
+      "encodingAESKeyHint": "43 位回调消息加密密钥",
+      "corpId": "企业 ID",
+      "corpIdHint": "企微管理后台的企业 ID",
+      "agentId": "应用 ID",
+      "agentIdHint": "应用 ID（数字）",
+      "agentSecret": "应用密钥",
+      "agentSecretHint": "应用密钥（corpSecret）",
+      "callbackUrlDesc": "复制此 URL 并粘贴到企微管理后台作为回调地址：",
+      "callbackUrlNote": "将 '{GATEWAY_URL}' 替换为实际的网关地址（如 https://your-domain.com）",
+      "noCallbackNeeded": "Bot WebSocket 模式不需要回调 URL。",
+      "dualModeCallbackNote": "Agent 回调 URL（Bot WS 不需要回调）：",
+      "testDesc": "先保存配置，然后测试连接以验证凭证。",
+      "probeConfigNote": "请先点击「完成」保存配置，探针检查的是实时网关状态。",
+      "probeSuccess": "连接成功！",
+      "probeNoChannel": "网关中未找到 WeCom 渠道。插件是否已安装？",
+      "probeFailed": "连接测试失败，请检查凭证后重试。",
+      "dmPolicyLabel": "选择谁可以向此机器人发送私信：",
+      "sectionBot": "Bot 凭证",
+      "sectionAgent": "Agent 凭证"
+    }
   }
 }
