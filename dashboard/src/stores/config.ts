@@ -1,4 +1,10 @@
 import { create } from "zustand";
+import {
+  parseConfigGetResult,
+  parseConfigLookupResult,
+  parseConfigSchemaResult,
+  type ConfigLookupResult,
+} from "@/lib/config-lookup";
 import type { UiHintsMap } from "@/lib/ui-hints";
 
 // ---------------------------------------------------------------------------
@@ -17,8 +23,7 @@ interface ConfigState {
   loading: boolean;
   error: string | null;
   activeSection: string | null;
-  schemaCache: Map<string, unknown>;
-  lookupFallbackMode: boolean;
+  schemaCache: Map<string, ConfigLookupResult>;
   /** Remote config snapshot captured when a conflict is detected */
   remoteConfig: string | null;
 
@@ -28,7 +33,7 @@ interface ConfigState {
   setActiveSection: (section: string | null) => void;
   saveConfig: () => Promise<boolean>;
   reloadConfig: () => Promise<void>;
-  lookupSchema: (path: string) => Promise<unknown>;
+  lookupSchema: (path: string) => Promise<ConfigLookupResult | null>;
   /** Resolve conflict by saving a merged config with the latest baseHash */
   resolveConflict: (mergedConfig: Record<string, unknown>) => Promise<boolean>;
 }
@@ -46,7 +51,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   error: null,
   activeSection: null,
   schemaCache: new Map(),
-  lookupFallbackMode: false,
   remoteConfig: null,
 
   fetchSchema: async () => {
@@ -55,11 +59,13 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       if (!res.ok) {
         return;
       }
-      const data = (await res.json()) as Record<string, unknown>;
-      // config.schema returns `{ schema, uiHints, version }` — unwrap.
+      const data = parseConfigSchemaResult(await res.json());
+      if (!data) {
+        return;
+      }
       set({
         schema: (data.schema as Record<string, unknown>) ?? data,
-        uiHints: (data.uiHints as UiHintsMap) ?? null,
+        uiHints: data.uiHints as UiHintsMap,
       });
     } catch {
       // Schema fetch is best-effort
@@ -75,7 +81,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         set({ error: (data as { error?: string }).error ?? "Failed to fetch config" });
         return;
       }
-      const data = await res.json();
+      const data = parseConfigGetResult(await res.json());
+      if (!data) {
+        set({ error: "Failed to fetch config" });
+        return;
+      }
       const raw =
         typeof data.config === "string" ? data.config : JSON.stringify(data.config ?? {}, null, 2);
       const baseHash =
@@ -140,7 +150,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
           try {
             const remoteRes = await fetch("/api/config");
             if (remoteRes.ok) {
-              const remoteData = await remoteRes.json();
+              const remoteData = parseConfigGetResult(await remoteRes.json());
+              if (!remoteData) {
+                throw new Error("invalid remote config payload");
+              }
               const remoteRaw =
                 typeof remoteData.config === "string"
                   ? remoteData.config
@@ -229,7 +242,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
           try {
             const remoteRes = await fetch("/api/config");
             if (remoteRes.ok) {
-              const remoteData = await remoteRes.json();
+              const remoteData = parseConfigGetResult(await remoteRes.json());
+              if (!remoteData) {
+                throw new Error("invalid remote config payload");
+              }
               const remoteRaw =
                 typeof remoteData.config === "string"
                   ? remoteData.config
@@ -288,9 +304,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   },
 
   lookupSchema: async (path: string) => {
-    if (get().lookupFallbackMode) {
-      return null;
-    }
     const cached = get().schemaCache.get(path);
     if (cached) {
       return cached;
@@ -305,7 +318,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       if (!res.ok) {
         throw new Error("lookup failed");
       }
-      const data = await res.json();
+      const data = parseConfigLookupResult(await res.json());
+      if (!data) {
+        throw new Error("lookup returned invalid payload");
+      }
       set((state) => {
         const cache = new Map(state.schemaCache);
         cache.set(path, data);
@@ -313,8 +329,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       });
       return data;
     } catch {
-      // Single failed lookup triggers fallback mode for the session
-      set({ lookupFallbackMode: true });
       return null;
     }
   },

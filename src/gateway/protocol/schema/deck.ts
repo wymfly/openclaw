@@ -320,6 +320,10 @@ export const DeckAgentsDetailResultSchema = Type.Object({
   name: Type.Optional(Type.String()),
   workspace: Type.String(),
   model: Type.Optional(Type.String()),
+  reasoningDefault: Type.Optional(
+    Type.Union([Type.Literal("on"), Type.Literal("off"), Type.Literal("stream")]),
+  ),
+  fastModeDefault: Type.Optional(Type.Boolean()),
   isDefault: Type.Boolean(),
   bindingCount: Type.Integer(),
   sessionCount: Type.Integer(),

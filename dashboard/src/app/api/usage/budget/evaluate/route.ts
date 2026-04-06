@@ -1,5 +1,6 @@
 import { getRuntime } from "@server/runtime";
 import { NextResponse } from "next/server";
+import { gwCall } from "@/lib/api-helpers";
 import { evaluateBudgetRule, type BudgetDimension, type BudgetRule } from "@/lib/budget-governance";
 /**
  * GET /api/usage/budget/evaluate — Evaluate all enabled budget rules.
@@ -39,7 +40,7 @@ export const GET = withAuth(async () => {
   // Fetch current usage from Gateway
   let usageData: Record<string, unknown> = {};
   try {
-    usageData = await runtime.adapter.request("usage.cost", { days: 30 });
+    usageData = await gwCall("usage.cost", { days: 30 });
   } catch {
     return NextResponse.json({ error: "Failed to fetch usage data" }, { status: 502 });
   }

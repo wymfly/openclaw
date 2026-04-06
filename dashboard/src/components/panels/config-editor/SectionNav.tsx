@@ -17,6 +17,7 @@ import {
 import { useTranslations } from "next-intl";
 import type { ComponentType } from "react";
 import { useState } from "react";
+import type { ConfigLookupChild } from "@/lib/config-lookup";
 import { SECTION_META } from "@/lib/section-metadata";
 import { useConfigStore } from "@/stores/config";
 
@@ -40,27 +41,18 @@ interface SectionNavProps {
   onSelect: (section: string) => void;
 }
 
-interface ChildEntry {
-  key: string;
-  path: string;
-  type: string;
-  required?: boolean;
-  hasChildren?: boolean;
-  hint?: unknown;
-}
-
 /**
  * Sidebar navigation for config sections.
  * Enhanced with section icons, field count badges, and advanced field indicators.
  */
 export function SectionNav({ sections, activeSection, onSelect }: SectionNavProps) {
   const t = useTranslations("config");
-  const schema = useConfigStore((s) => s.schema);
+  const schemaCache = useConfigStore((s) => s.schemaCache);
   const lookupSchema = useConfigStore((s) => s.lookupSchema);
 
   // Track expanded sections and their lazy-loaded children
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [sectionChildren, setSectionChildren] = useState<Record<string, ChildEntry[]>>({});
+  const [sectionChildren, setSectionChildren] = useState<Record<string, ConfigLookupChild[]>>({});
 
   // Map known section keys to translated labels
   const KNOWN_SECTIONS: Record<string, string> = {
@@ -73,22 +65,11 @@ export function SectionNav({ sections, activeSection, onSelect }: SectionNavProp
 
   /** Count configurable fields for a given section from the schema */
   const getFieldCount = (section: string): number | null => {
-    if (!schema) {
-      return null;
+    const cachedLookup = schemaCache.get(section);
+    if (cachedLookup) {
+      return cachedLookup.children.length;
     }
-    const props = schema.properties as Record<string, Record<string, unknown>> | undefined;
-    if (!props) {
-      return null;
-    }
-    const sectionSchema = props[section];
-    if (!sectionSchema) {
-      return null;
-    }
-    const sectionProps = sectionSchema.properties as Record<string, unknown> | undefined;
-    if (!sectionProps) {
-      return null;
-    }
-    return Object.keys(sectionProps).length;
+    return null;
   };
 
   const handleExpand = async (section: string) => {
@@ -98,14 +79,10 @@ export function SectionNav({ sections, activeSection, onSelect }: SectionNavProp
     // Only fetch when expanding and we haven't loaded children yet
     if (!isCurrentlyExpanded && !sectionChildren[section]) {
       const result = await lookupSchema(section);
-      if (
-        result &&
-        typeof result === "object" &&
-        Array.isArray((result as { children?: unknown }).children)
-      ) {
+      if (result) {
         setSectionChildren((prev) => ({
           ...prev,
-          [section]: (result as { children: ChildEntry[] }).children,
+          [section]: result.children,
         }));
       }
     }

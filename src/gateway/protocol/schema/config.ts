@@ -2,17 +2,48 @@ import { Type } from "@sinclair/typebox";
 import { NonEmptyString } from "./primitives.js";
 
 const ConfigSchemaLookupPathString = Type.String({
-  minLength: 1,
+  minLength: 0,
   maxLength: 1024,
-  pattern: "^[A-Za-z0-9_./\\[\\]\\-*]+$",
+  pattern: "^$|^[A-Za-z0-9_./\\[\\]\\-*]+$",
 });
 
 export const ConfigGetParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const ConfigGetResultSchema = Type.Object(
+  {
+    path: Type.String(),
+    exists: Type.Boolean(),
+    raw: Type.Union([Type.String(), Type.Null()]),
+    parsed: Type.Unsafe<unknown>({}),
+    sourceConfig: Type.Unsafe<unknown>({}),
+    resolved: Type.Unsafe<unknown>({}),
+    valid: Type.Boolean(),
+    runtimeConfig: Type.Unsafe<unknown>({}),
+    config: Type.Unsafe<unknown>({}),
+    hash: Type.Optional(Type.String()),
+    issues: Type.Array(Type.Unsafe<unknown>({})),
+    warnings: Type.Array(Type.Unsafe<unknown>({})),
+    legacyIssues: Type.Array(Type.Unsafe<unknown>({})),
+  },
+  { additionalProperties: false },
+);
 
 export const ConfigSetParamsSchema = Type.Object(
   {
     raw: NonEmptyString,
     baseHash: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const ConfigWriteResultSchema = Type.Object(
+  {
+    ok: Type.Boolean(),
+    noop: Type.Optional(Type.Boolean()),
+    path: Type.String(),
+    config: Type.Unsafe<unknown>({}),
+    restart: Type.Optional(Type.Unsafe<unknown>({})),
+    sentinel: Type.Optional(Type.Unsafe<unknown>({})),
   },
   { additionalProperties: false },
 );
@@ -112,7 +143,7 @@ export const ConfigSchemaLookupChildSchema = Type.Object(
 
 export const ConfigSchemaLookupResultSchema = Type.Object(
   {
-    path: NonEmptyString,
+    path: ConfigSchemaLookupPathString,
     schema: Type.Unknown(),
     hint: Type.Optional(ConfigUiHintSchema),
     hintPath: Type.Optional(Type.String()),

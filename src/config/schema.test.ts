@@ -382,6 +382,13 @@ describe("config schema", () => {
     expect(schema?.properties).toBeUndefined();
   });
 
+  it("supports root lookup for top-level section discovery", () => {
+    const lookup = lookupConfigSchema(baseSchema, "");
+    expect(lookup?.path).toBe("");
+    expect(lookup?.children.some((child) => child.path === "gateway")).toBe(true);
+    expect(lookup?.children.some((child) => child.path === "agents")).toBe(true);
+  });
+
   it("returns a shallow lookup schema without nested composition keywords", () => {
     const lookup = lookupConfigSchema(baseSchema, "agents.list.0.runtime");
     expect(lookup?.path).toBe("agents.list.0.runtime");

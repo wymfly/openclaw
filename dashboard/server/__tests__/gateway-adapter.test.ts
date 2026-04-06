@@ -101,7 +101,6 @@ describe("DEFAULT_METHOD_ALLOWLIST", () => {
     "sessions.send",
     "sessions.steer",
     "sessions.abort",
-    "sessions.get",
     "sessions.subscribe",
     "sessions.unsubscribe",
     "sessions.messages.subscribe",

@@ -12,8 +12,8 @@ import { readdir, readFile, lstat, realpath } from "node:fs/promises";
  * Uses realpath() to resolve symlinks BEFORE checking path boundaries.
  */
 import { resolve, relative, sep } from "node:path";
-import { getRuntime } from "@server/runtime";
 import { NextRequest, NextResponse } from "next/server";
+import { gwCall } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 type FileEntry = {
@@ -28,14 +28,9 @@ type FileEntry = {
  * Tries Gateway RPC `config.get` first, falls back to ~/.openclaw/agents/{agentId}.
  */
 async function resolveMemoryPath(agentId: string): Promise<string | null> {
-  const runtime = getRuntime();
-  if (!runtime) {
-    return null;
-  }
-
   try {
     // Ask Gateway for the agent's memory/files path.
-    const res = await runtime.adapter.request("agents.files.list", { agentId });
+    const res = await gwCall("agents.files.list", { agentId });
     // Gateway returns `workspace` from agents.files.list.
     if (res && typeof res === "object" && "workspace" in res) {
       return (res as { workspace: string }).workspace;

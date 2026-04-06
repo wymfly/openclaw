@@ -5,7 +5,7 @@
  *   Params: { search?, limit?, activeMinutes?, includeGlobal?, agentId? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
@@ -13,7 +13,7 @@ export const GET = withAuth(async (request: NextRequest) => {
   const limit = request.nextUrl.searchParams.get("limit");
   const activeMinutes = request.nextUrl.searchParams.get("activeMinutes");
 
-  return gatewayRequest("sessions.list", {
+  return gwRequest("sessions.list", {
     ...(search ? { search } : {}),
     ...(limit ? { limit: parseInt(limit, 10) } : {}),
     ...(activeMinutes ? { activeMinutes: parseInt(activeMinutes, 10) } : {}),

@@ -683,11 +683,8 @@ export function lookupConfigSchema(
   path: string,
 ): ConfigSchemaLookupResult | null {
   const normalizedPath = normalizeLookupPath(path);
-  if (!normalizedPath) {
-    return null;
-  }
   const parts = splitLookupPath(normalizedPath);
-  if (parts.length === 0 || parts.length > MAX_LOOKUP_PATH_SEGMENTS) {
+  if (parts.length > MAX_LOOKUP_PATH_SEGMENTS) {
     return null;
   }
 
@@ -703,7 +700,7 @@ export function lookupConfigSchema(
     current = next;
   }
 
-  const resolvedHint = resolveUiHintMatch(response.uiHints, normalizedPath);
+  const resolvedHint = normalizedPath ? resolveUiHintMatch(response.uiHints, normalizedPath) : null;
   return {
     path: normalizedPath,
     schema: stripSchemaForLookup(current),

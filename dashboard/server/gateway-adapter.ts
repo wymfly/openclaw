@@ -30,7 +30,6 @@ import {
   type DeviceIdentity,
   type DbLike,
 } from "./device-identity";
-import { getEventBus, type DeckEventType } from "./event-bus";
 import { DEFAULT_METHOD_ALLOWLIST } from "./gateway-allowlist";
 import { ControlPlaneGatewayError } from "./gateway-errors";
 import { NodeConnection } from "./node-connection";
@@ -59,16 +58,6 @@ const CONNECT_CLIENT_MODE_LEGACY = "webchat";
 const CONNECT_CLIENT_PLATFORM_LEGACY = "web";
 
 const CONNECT_CAPABILITIES = ["tool-events"];
-
-/**
- * Map Gateway session event names to typed EventBus event types (Layer 2).
- * These are broadcast directly on the EventBus, bypassing RunEventPipeline.
- */
-const SESSION_EVENT_MAP: Record<string, DeckEventType> = {
-  "sessions.changed": "session-state",
-  "session.message": "session-msg",
-  "session.tool": "session-tool",
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -376,14 +365,8 @@ export class OpenClawGatewayAdapter {
             return;
           }
 
-          // Session events → direct EventBus broadcast (Layer 2 bypass)
-          const sessionEventType = SESSION_EVENT_MAP[parsed.event];
-          if (sessionEventType) {
-            const bus = getEventBus();
-            bus.broadcast(sessionEventType, parsed.payload);
-          }
-
-          // Generic gateway.event emission continues for all events
+          // All Gateway events emit through the domain-event callback.
+          // Runtime-level intake decides whether and how to normalize them.
           this.emitEvent({
             type: "gateway.event",
             event: parsed.event,

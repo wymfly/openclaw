@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const getPendingApprovals = vi.fn(() => []);
 const getRuntime = vi.fn<() => unknown>(() => null);
+const fetchTranscriptHistory = vi.fn();
+const gwCall = vi.fn();
 
 vi.mock("@server/approval-bridge", () => ({
   getPendingApprovals,
@@ -12,28 +14,37 @@ vi.mock("@server/runtime", () => ({
   getRuntime,
 }));
 
+vi.mock("@/lib/transcript-history", () => ({
+  fetchTranscriptHistory,
+}));
+
+vi.mock("@/lib/api-helpers", () => ({
+  gwCall,
+}));
+
 describe("/api/chat/snapshot", () => {
   afterEach(() => {
     vi.resetModules();
     getPendingApprovals.mockReset();
     getPendingApprovals.mockReturnValue([]);
     getRuntime.mockReset();
+    fetchTranscriptHistory.mockReset();
+    gwCall.mockReset();
     delete process.env.DECK_ACCESS_TOKEN;
   });
 
   it("falls back to the persisted projection when no in-memory approval exists", async () => {
+    gwCall.mockResolvedValueOnce({
+      sessions: [{ key: "session-1", agentId: "main", updatedAt: 1 }],
+    });
+    fetchTranscriptHistory.mockResolvedValue([
+      { role: "assistant", content: [{ type: "text", text: "hi" }] },
+    ]);
     getRuntime.mockReturnValue({
       db: undefined,
       rateLimiter: undefined,
       adapter: {
-        request: vi
-          .fn()
-          .mockResolvedValueOnce({
-            messages: [{ role: "assistant", content: [{ type: "text", text: "hi" }] }],
-          })
-          .mockResolvedValueOnce({
-            sessions: [{ key: "session-1", agentId: "main", updatedAt: 1 }],
-          }),
+        request: vi.fn(),
       },
       store: {
         getApprovalProjectionWithMigration: vi.fn(() => ({
@@ -67,5 +78,13 @@ describe("/api/chat/snapshot", () => {
       command: "ls -la",
     });
     expect(body.a2uiState).toMatchObject({ visible: true });
+    expect(fetchTranscriptHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionKey: "session-1" }),
+    );
+    expect(gwCall).toHaveBeenNthCalledWith(
+      1,
+      "sessions.list",
+      expect.objectContaining({ limit: 50 }),
+    );
   });
 });

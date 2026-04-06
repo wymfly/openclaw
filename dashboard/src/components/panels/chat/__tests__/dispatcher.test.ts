@@ -818,6 +818,11 @@ describe("reloadFullContent", () => {
 
     await reloadFullContent("sess-1", "run-1");
 
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/chat/history?sessionKey=sess-1&limit=5",
+      expect.any(Object),
+    );
+
     const sess = useChatStore.getState().sessions.get("sess-1")!;
     const msg = sess.messages.find((m) => m.id === "run-1")!;
     // Should have mapped blocks
@@ -908,6 +913,31 @@ describe("reloadFullContent", () => {
     const sess = useChatStore.getState().sessions.get("sess-1")!;
     const msg = sess.messages.find((m) => m.id === "run-1")!;
     expect(msg.content[0]).toEqual({ type: "text", text: "ok" });
+  });
+
+  it("uses the history seam instead of sessions.preview", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          messages: [{ role: "assistant", content: [{ type: "text", text: "ok" }] }],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    useChatStore.getState().ensureSession("sess-1");
+    useChatStore.getState().addMessage("sess-1", {
+      id: "run-1",
+      role: "assistant",
+      content: [{ type: "text", text: "original" }],
+      timestamp: Date.now(),
+    });
+
+    await reloadFullContent("sess-1", "run-1");
+
+    const [url] = vi.mocked(globalThis.fetch).mock.calls[0] ?? [];
+    expect(url).toBe("/api/chat/history?sessionKey=sess-1&limit=5");
+    expect(url).not.toContain("sessions.preview");
   });
 
   it("keeps original content when both retries fail", async () => {

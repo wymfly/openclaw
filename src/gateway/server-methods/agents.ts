@@ -40,6 +40,7 @@ import {
 import { movePathToTrash } from "../../plugin-sdk/browser-maintenance.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../../routing/session-key.js";
 import { resolveUserPath } from "../../utils.js";
+import type { MethodMetadata } from "../method-registry.js";
 import {
   ErrorCodes,
   errorShape,
@@ -52,6 +53,22 @@ import {
   validateAgentsListParams,
   validateAgentsUpdateParams,
 } from "../protocol/index.js";
+import {
+  AgentsCreateParamsSchema,
+  AgentsCreateResultSchema,
+  AgentsDeleteParamsSchema,
+  AgentsDeleteResultSchema,
+  AgentsFilesGetParamsSchema,
+  AgentsFilesGetResultSchema,
+  AgentsFilesListParamsSchema,
+  AgentsFilesListResultSchema,
+  AgentsFilesSetParamsSchema,
+  AgentsFilesSetResultSchema,
+  AgentsListParamsSchema,
+  AgentsListResultSchema,
+  AgentsUpdateParamsSchema,
+  AgentsUpdateResultSchema,
+} from "../protocol/schema/agents-models-skills.js";
 import { listAgentsForGateway } from "../session-utils.js";
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
@@ -782,5 +799,43 @@ export const agentsHandlers: GatewayRequestHandlers = {
       },
       undefined,
     );
+  },
+};
+
+export const agentsMethodDefs: Record<string, MethodMetadata> = {
+  "agents.list": {
+    params: AgentsListParamsSchema,
+    result: AgentsListResultSchema,
+    scope: "operator.read",
+  },
+  "agents.create": {
+    params: AgentsCreateParamsSchema,
+    result: AgentsCreateResultSchema,
+    scope: "operator.admin",
+  },
+  "agents.update": {
+    params: AgentsUpdateParamsSchema,
+    result: AgentsUpdateResultSchema,
+    scope: "operator.admin",
+  },
+  "agents.delete": {
+    params: AgentsDeleteParamsSchema,
+    result: AgentsDeleteResultSchema,
+    scope: "operator.admin",
+  },
+  "agents.files.list": {
+    params: AgentsFilesListParamsSchema,
+    result: AgentsFilesListResultSchema,
+    scope: "operator.read",
+  },
+  "agents.files.get": {
+    params: AgentsFilesGetParamsSchema,
+    result: AgentsFilesGetResultSchema,
+    scope: "operator.read",
+  },
+  "agents.files.set": {
+    params: AgentsFilesSetParamsSchema,
+    result: AgentsFilesSetResultSchema,
+    scope: "operator.admin",
   },
 };

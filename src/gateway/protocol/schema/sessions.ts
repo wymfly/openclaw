@@ -197,6 +197,22 @@ export const SessionsResolveResultSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const SessionsGetParamsSchema = Type.Object(
+  {
+    key: Type.Optional(NonEmptyString),
+    sessionKey: Type.Optional(NonEmptyString),
+    limit: Type.Optional(Type.Integer({ minimum: 1 })),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsGetResultSchema = Type.Object(
+  {
+    messages: Type.Array(Type.Unknown()),
+  },
+  { additionalProperties: false },
+);
+
 export const SessionsCreateResultSchema = Type.Object(
   {
     ok: Type.Boolean(),
@@ -563,6 +579,47 @@ export const SessionsUsageParamsSchema = Type.Object(
     limit: Type.Optional(Type.Integer({ minimum: 1 })),
     /** Include context weight breakdown (systemPromptReport). */
     includeContextWeight: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsUsageEntrySchema = Type.Object(
+  {
+    key: NonEmptyString,
+    label: Type.Optional(Type.String()),
+    sessionId: Type.Optional(Type.String()),
+    updatedAt: Type.Optional(Type.Number()),
+    agentId: Type.Optional(Type.String()),
+    channel: Type.Optional(Type.String()),
+    chatType: Type.Optional(Type.String()),
+    origin: Type.Optional(Type.Unknown()),
+    modelOverride: Type.Optional(Type.String()),
+    providerOverride: Type.Optional(Type.String()),
+    modelProvider: Type.Optional(Type.String()),
+    model: Type.Optional(Type.String()),
+    usage: Type.Union([Type.Null(), Type.Unknown()]),
+    contextWeight: Type.Optional(Type.Union([Type.Null(), Type.Unknown()])),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsUsageResultSchema = Type.Object(
+  {
+    updatedAt: Type.Number(),
+    startDate: Type.String(),
+    endDate: Type.String(),
+    sessions: Type.Array(SessionsUsageEntrySchema),
+    totals: Type.Unknown(),
+    aggregates: Type.Unknown(),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsUsageTimeseriesResultSchema = Type.Unknown();
+
+export const SessionsUsageLogsResultSchema = Type.Object(
+  {
+    logs: Type.Array(Type.Unknown()),
   },
   { additionalProperties: false },
 );

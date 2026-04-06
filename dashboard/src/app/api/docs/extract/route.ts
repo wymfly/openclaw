@@ -7,6 +7,7 @@
 import { getRuntime } from "@server/runtime";
 import { NextRequest, NextResponse } from "next/server";
 import { extractDocsFromMessages } from "@/lib/doc-extractor";
+import { fetchTranscriptHistory } from "@/lib/transcript-history";
 import { withAuth } from "@/lib/with-auth";
 
 export const POST = withAuth(async (request: NextRequest) => {
@@ -22,13 +23,10 @@ export const POST = withAuth(async (request: NextRequest) => {
     // content may be string or ContentBlock[] — doc-extractor.flattenContent handles both.
     let messages: Array<{ role: string; content: unknown }> = [];
     try {
-      const params: Record<string, unknown> = {};
-      if (body.sessionKey) {
-        params.sessionKey = body.sessionKey;
+      if (!body.sessionKey) {
+        return NextResponse.json({ error: "sessionKey is required" }, { status: 400 });
       }
-      const raw = await runtime.adapter.request("chat.history", params);
-      const typed = raw as { messages?: Array<{ role: string; content: unknown }> } | undefined;
-      messages = typed?.messages ?? [];
+      messages = await fetchTranscriptHistory({ sessionKey: body.sessionKey });
     } catch {
       return NextResponse.json({ error: "Failed to fetch conversation history" }, { status: 502 });
     }

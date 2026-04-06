@@ -1,10 +1,21 @@
 /**
- * POST /api/deck/tools-effective — Stub: tools.effective has no Gateway handler.
+ * POST /api/deck/tools-effective — Get effective tools after policy filtering.
  *
- * This method does not exist in the Gateway server-methods-list.
- * Returns empty groups until a real implementation is added upstream.
+ * Gateway contract:
+ *   Params: { agentId?, sessionKey? }
+ *   Returns: { groups[{ name, tools[{ id, name, allowed, source }] }] }
  */
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
-export const POST = withAuth(async () => NextResponse.json({ groups: [] }));
+export const POST = withAuth(async (request: NextRequest) => {
+  const body = (await request.json()) as {
+    agentId?: string;
+    sessionKey?: string;
+  };
+  return gwRequest("tools.effective", {
+    ...(body.agentId ? { agentId: body.agentId } : {}),
+    ...(body.sessionKey ? { sessionKey: body.sessionKey } : {}),
+  });
+});

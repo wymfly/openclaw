@@ -5,17 +5,18 @@
  * PUT → exec.approvals.set { file, baseHash } → updated snapshot
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
+import type { GatewayMethodMap } from "@/types/gateway-protocol.generated";
 
 export const GET = withAuth(async () => {
-  return gatewayRequest("exec.approvals.get", {});
+  return gwRequest("exec.approvals.get", {});
 });
 
 export const PUT = withAuth(async (request: NextRequest) => {
   const body = (await request.json()) as { file: unknown; baseHash?: string };
-  return gatewayRequest("exec.approvals.set", {
+  return gwRequest("exec.approvals.set", {
     file: body.file,
     ...(body.baseHash ? { baseHash: body.baseHash } : {}),
-  });
+  } as GatewayMethodMap["exec.approvals.set"]["params"]);
 });

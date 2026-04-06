@@ -3,8 +3,9 @@ import { ControlPlaneGatewayError } from "@server/gateway-adapter";
 import type { ChatSessionProjection } from "@server/projection-store";
 import { getRuntime } from "@server/runtime";
 import { type NextRequest, NextResponse } from "next/server";
+import { gwCall } from "@/lib/api-helpers";
+import { fetchTranscriptHistory } from "@/lib/transcript-history";
 import { withAuth } from "@/lib/with-auth";
-import type { TranscriptMessage } from "@/types/gateway-protocol.generated";
 
 type RawSessionMeta = Record<string, unknown>;
 
@@ -44,22 +45,21 @@ export const GET = withAuth(async (request: NextRequest) => {
     limitStr && Number.isFinite(Number(limitStr)) ? Math.max(1, Number(limitStr)) : undefined;
 
   try {
-    const [historyPayload, sessionsPayload] = await Promise.all([
-      runtime.adapter.request("chat.history", {
+    // NOTE: transcript reads still use chat.history as a narrow compatibility
+    // seam. Do not replace this with sessions.preview; preview is summary data,
+    // not a full transcript contract.
+    const [messages, sessionsPayload] = await Promise.all([
+      fetchTranscriptHistory({
         sessionKey,
         ...(limit !== undefined ? { limit } : {}),
       }),
-      runtime.adapter.request("sessions.list", {
+      gwCall("sessions.list", {
         ...(agentId ? { agentId } : {}),
         includeDerivedTitles: true,
         includeLastMessage: true,
         limit: 50,
       }),
     ]);
-
-    const messages = Array.isArray((historyPayload as { messages?: unknown[] }).messages)
-      ? (historyPayload as { messages: TranscriptMessage[] }).messages
-      : [];
 
     const meta =
       listFromSessionsPayload(sessionsPayload).find((entry) => {

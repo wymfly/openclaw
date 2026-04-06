@@ -1,4 +1,3 @@
-import { getRuntime } from "@server/runtime";
 /**
  * GET /api/memory/health — Memory system health diagnostics.
  *
@@ -7,6 +6,7 @@ import { getRuntime } from "@server/runtime";
  * the doctor endpoint.
  */
 import { NextResponse } from "next/server";
+import { gwCall } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 type HealthEntry = {
@@ -17,13 +17,8 @@ type HealthEntry = {
 };
 
 export const GET = withAuth(async () => {
-  const runtime = getRuntime();
-  if (!runtime) {
-    return NextResponse.json({ error: "Gateway not configured" }, { status: 503 });
-  }
-
   try {
-    const data = await runtime.adapter.request("doctor.memory.status", {});
+    const data = await gwCall("doctor.memory.status", {});
     // Gateway may return { entries: [...], lanceDbEnabled: boolean }
     if (data && typeof data === "object") {
       return NextResponse.json(data);

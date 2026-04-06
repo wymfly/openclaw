@@ -107,6 +107,8 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     // Effective model: per-agent → defaults fallback
     const effectiveModel =
       resolveModelString(agentConfig.model) ?? resolveModelString(cfg.agents?.defaults?.model);
+    const reasoningDefault = agentConfig.reasoningDefault ?? cfg.agents?.defaults?.reasoningDefault;
+    const fastModeDefault = agentConfig.fastModeDefault ?? cfg.agents?.defaults?.fastModeDefault;
 
     // Fallback models: per-agent → defaults fallback
     const agentModelObj = agentConfig.model ?? cfg.agents?.defaults?.model;
@@ -130,6 +132,8 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
       name: agentConfig.name,
       workspace: workspaceDir,
       model: effectiveModel,
+      reasoningDefault,
+      fastModeDefault,
       isDefault,
       bindingCount,
       sessionCount,

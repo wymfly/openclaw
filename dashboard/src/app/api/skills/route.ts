@@ -4,10 +4,10 @@
  * Gateway contract: skills.status { agentId? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
   const agentId = request.nextUrl.searchParams.get("agentId") ?? undefined;
-  return gatewayRequest("skills.status", agentId ? { agentId } : {});
+  return gwRequest("skills.status", agentId ? { agentId } : {});
 });

@@ -262,6 +262,10 @@ export type AgentDefaultsConfig = {
   thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive";
   /** Default verbose level when no /verbose directive is present. */
   verboseDefault?: "off" | "on" | "full";
+  /** Default reasoning delivery mode when no /reasoning directive is present. */
+  reasoningDefault?: "on" | "off" | "stream";
+  /** Default fast mode when no /fast directive is present. */
+  fastModeDefault?: boolean;
   /** Default elevated level when no /elevated directive is present. */
   elevatedDefault?: "off" | "on" | "ask" | "full";
   /** Default block streaming level when no override is present. */

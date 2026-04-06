@@ -9,7 +9,6 @@
  *   bun scripts/protocol-gen-ts.ts          # generate
  *   bun scripts/protocol-gen-ts.ts --check  # verify up-to-date
  */
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { TSchema } from "@sinclair/typebox";
@@ -18,12 +17,12 @@ import {
   allEventDefs,
   allEventNames,
   allMethodDefs,
-  allMethodNames,
 } from "../src/gateway/method-registry-data.js";
 import {
   TranscriptBlockSchema,
   TranscriptMessageSchema,
 } from "../src/gateway/protocol/schema/transcript.js";
+import { formatGeneratedModule } from "./lib/format-generated-module.mjs";
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const PROTOCOL_OUT = resolve(ROOT, "dashboard/src/types/gateway-protocol.generated.ts");
@@ -104,7 +103,21 @@ function schemaToTS(schema: TSchema, indent = 0): string {
   // Union types (Type.Union → anyOf)
   if ("anyOf" in s) {
     const variants = s.anyOf as TSchema[];
-    return variants.map((v) => schemaToTS(v, indent)).join(" | ");
+    const rendered = variants.map((v) => schemaToTS(v, indent));
+    const deduped = [...new Set(rendered)];
+    if (deduped.includes("unknown")) {
+      return "unknown";
+    }
+    if (deduped.includes("string")) {
+      return "string";
+    }
+    if (deduped.includes("number")) {
+      return "number";
+    }
+    if (deduped.includes("boolean")) {
+      return "boolean";
+    }
+    return deduped.join(" | ");
   }
 
   return "unknown";
@@ -117,11 +130,6 @@ function isSafeIdentifier(s: string): boolean {
 
 function quoteKey(key: string): string {
   return isSafeIdentifier(key) ? key : `"${key}"`;
-}
-
-function shouldEmitInterface(body: string): boolean {
-  const trimmed = body.trim();
-  return trimmed.startsWith("{") && trimmed.endsWith("}") && !trimmed.includes("|");
 }
 
 /** Convert dot-separated method name to PascalCase interface name. */
@@ -179,27 +187,11 @@ function generateProtocolTypes(): string {
     const safeName = methodToInterfaceName(method);
 
     if (def.params) {
-      const body = schemaToTS(def.params);
-      if (body === "{}") {
-        lines.push(`export type ${safeName}Params = Record<string, never>;`);
-      } else if (shouldEmitInterface(body)) {
-        lines.push(`export interface ${safeName}Params ${body}`);
-      } else {
-        lines.push(`export type ${safeName}Params = ${body};`);
-      }
-      lines.push("");
+      emitNamedSchemaType(lines, `${safeName}Params`, def.params);
     }
 
     if (def.result) {
-      const body = schemaToTS(def.result);
-      if (body === "{}") {
-        lines.push(`export type ${safeName}Result = Record<string, never>;`);
-      } else if (shouldEmitInterface(body)) {
-        lines.push(`export interface ${safeName}Result ${body}`);
-      } else {
-        lines.push(`export type ${safeName}Result = ${body};`);
-      }
-      lines.push("");
+      emitNamedSchemaType(lines, `${safeName}Result`, def.result);
     }
 
     const paramsType = def.params ? `${safeName}Params` : "Record<string, unknown>";
@@ -335,9 +327,11 @@ function generateClient(): string {
     "",
   ];
 
-  // Allowlist of ALL known methods (including untyped)
+  // Allowlist of all Deck-consumed methods with registry/codegen ownership.
+  // Keep this derived from method defs so Deck route allowlisting does not
+  // drift from the Gateway registry surface.
   lines.push("export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([");
-  for (const m of [...allMethodNames].toSorted()) {
+  for (const m of Object.keys(allMethodDefs).toSorted()) {
     lines.push(`  "${m}",`);
   }
   lines.push("]);");
@@ -383,28 +377,20 @@ function generateClient(): string {
   return lines.join("\n") + "\n";
 }
 
-function formatGeneratedTypeScript(filePath: string, content: string): string {
-  const result = spawnSync("oxfmt", ["--stdin-filepath", filePath], {
-    input: content,
-    encoding: "utf-8",
-  });
-
-  if (result.status !== 0) {
-    const stderr = result.stderr.trim();
-    throw new Error(
-      stderr ? `oxfmt failed for ${filePath}: ${stderr}` : `oxfmt failed for ${filePath}`,
-    );
-  }
-
-  return result.stdout;
-}
-
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-const protocolContent = formatGeneratedTypeScript(PROTOCOL_OUT, generateProtocolTypes());
-const clientContent = formatGeneratedTypeScript(CLIENT_OUT, generateClient());
+const protocolContent = formatGeneratedModule(generateProtocolTypes(), {
+  repoRoot: ROOT,
+  outputPath: PROTOCOL_OUT,
+  errorLabel: "gateway protocol",
+});
+const clientContent = formatGeneratedModule(generateClient(), {
+  repoRoot: ROOT,
+  outputPath: CLIENT_OUT,
+  errorLabel: "gateway client",
+});
 
 if (CHECK_MODE) {
   let exitCode = 0;

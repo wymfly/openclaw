@@ -157,7 +157,14 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
                   const sb = detail.sandbox as Record<string, unknown>;
                   const elevation = typeof sb.elevation === "string" ? sb.elevation : undefined;
                   const filesystem = typeof sb.filesystem === "string" ? sb.filesystem : undefined;
-                  if (!elevation && !filesystem) {
+                  const backend = typeof sb.backend === "string" ? sb.backend : undefined;
+                  const sshConfigured =
+                    sb.ssh && typeof sb.ssh === "object"
+                      ? t("configured")
+                      : typeof sb.ssh === "string"
+                        ? sb.ssh
+                        : undefined;
+                  if (!elevation && !filesystem && !backend && !sshConfigured) {
                     return null;
                   }
                   return (
@@ -182,6 +189,18 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
                           </dd>
                         </div>
                       ) : null}
+                      {backend ? (
+                        <div>
+                          <dt className="text-[var(--muted-foreground)]">{t("sandboxBackend")}</dt>
+                          <dd className="text-[var(--foreground)]">{backend}</dd>
+                        </div>
+                      ) : null}
+                      {sshConfigured ? (
+                        <div>
+                          <dt className="text-[var(--muted-foreground)]">{t("sandboxSsh")}</dt>
+                          <dd className="text-[var(--foreground)]">{sshConfigured}</dd>
+                        </div>
+                      ) : null}
                     </dl>
                   );
                 })()
@@ -201,6 +220,17 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
             {detail.fallbackModels && detail.fallbackModels.length > 0 && (
               <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
                 {t("fallbacks")}: {detail.fallbackModels.join(", ")}
+              </p>
+            )}
+            {detail.reasoningDefault && (
+              <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
+                {t("config.reasoningDefault")}: {t(`config.reasoning_${detail.reasoningDefault}`)}
+              </p>
+            )}
+            {typeof detail.fastModeDefault === "boolean" && (
+              <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
+                {t("config.fastModeDefault")}:{" "}
+                {detail.fastModeDefault ? t("config.enabled") : t("config.disabled")}
               </p>
             )}
           </CardContent>

@@ -9,7 +9,7 @@
  *   agents.files.set:  { agentId, name, content }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 type RouteContext = { params: Promise<{ agentId: string }> };
@@ -17,7 +17,7 @@ type RouteContext = { params: Promise<{ agentId: string }> };
 export const GET = withAuth(async (_request: NextRequest, ctx: unknown) => {
   const { agentId } = await (ctx as RouteContext).params;
 
-  return gatewayRequest("agents.files.list", {
+  return gwRequest("agents.files.list", {
     agentId,
   });
 });
@@ -36,7 +36,7 @@ export const POST = withAuth(async (request: NextRequest, ctx: unknown) => {
     return Response.json({ error: "content is required" }, { status: 400 });
   }
 
-  return gatewayRequest("agents.files.set", {
+  return gwRequest("agents.files.set", {
     agentId,
     name: body.name.trim(),
     content: body.content,

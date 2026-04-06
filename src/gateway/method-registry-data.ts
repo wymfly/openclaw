@@ -5,12 +5,20 @@ import { gatewayEventDefs } from "./event-defs.js";
 // Verify: bun -e 'import("./src/gateway/method-registry-data.ts")'
 import type { MethodMetadata } from "./method-registry.js";
 import { PROTOCOL_VERSION } from "./protocol/schema/protocol-schemas.js";
+import { agentMethodDefs } from "./server-methods/agent.js";
+import { agentsMethodDefs } from "./server-methods/agents.js";
+import { channelsMethodDefs } from "./server-methods/channels.js";
 import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
+import { configMethodDefs } from "./server-methods/config-method-defs.js";
+import { controlPlaneMethodDefs } from "./server-methods/control-plane-method-defs.js";
 import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
 import { deckMethodDefs } from "./server-methods/deck/index.js";
+import { describeMethodDefs } from "./server-methods/describe.js";
+import { logsMethodDefs } from "./server-methods/logs.js";
+import { modelsMethodDefs } from "./server-methods/models.js";
 import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
-import { skillsMethodDefs } from "./server-methods/skills-method-defs.js";
-import { usageMethodDefs } from "./server-methods/usage-method-defs.js";
+import { toolsCatalogMethodDefs } from "./server-methods/tools-catalog.js";
+import { toolsEffectiveMethodDefs } from "./server-methods/tools-effective.js";
 
 export { PROTOCOL_VERSION };
 
@@ -20,11 +28,19 @@ export { PROTOCOL_VERSION };
 
 export const allMethodDefs: Record<string, MethodMetadata> = {
   ...chatMethodDefs,
+  ...configMethodDefs,
+  ...controlPlaneMethodDefs,
   ...sessionsMethodDefs,
-  ...usageMethodDefs,
-  ...skillsMethodDefs,
+  ...agentMethodDefs,
+  ...agentsMethodDefs,
+  ...channelsMethodDefs,
+  ...modelsMethodDefs,
+  ...logsMethodDefs,
   ...deckMethodDefs,
   ...deckAuthMethodDefs,
+  ...describeMethodDefs,
+  ...toolsCatalogMethodDefs,
+  ...toolsEffectiveMethodDefs,
 };
 
 export const allEventDefs = gatewayEventDefs;
@@ -101,6 +117,7 @@ export const allMethodNames: readonly string[] = [
   "sessions.messages.subscribe",
   "sessions.messages.unsubscribe",
   "sessions.preview",
+  "sessions.get",
   "sessions.create",
   "sessions.send",
   "sessions.steer",
@@ -111,8 +128,8 @@ export const allMethodNames: readonly string[] = [
   "sessions.delete",
   "sessions.compact",
   "sessions.usage",
-  "sessions.usage.logs",
   "sessions.usage.timeseries",
+  "sessions.usage.logs",
   "last-heartbeat",
   "set-heartbeats",
   "wake",

@@ -5,6 +5,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 const mockConfig = {
   agents: {
     defaults: {
+      reasoningDefault: "on",
+      fastModeDefault: true,
       subagents: {
         maxSpawnDepth: 3,
         maxChildrenPerAgent: 5,
@@ -30,6 +32,8 @@ const mockConfig = {
         name: "Coder",
         workspace: "/tmp/coder",
         skills: ["python", "node"],
+        reasoningDefault: "stream",
+        fastModeDefault: false,
         // no subagents → empty
       },
       {
@@ -169,6 +173,8 @@ describe("deck.agents.detail", () => {
     expect(p.id).toBe("coder");
     expect(p.name).toBe("Coder");
     expect(p.isDefault).toBe(false);
+    expect(p.reasoningDefault).toBe("stream");
+    expect(p.fastModeDefault).toBe(false);
     expect(p.skillMode).toBe("whitelist");
     expect(p.effectiveSkills).toEqual(["python", "node"]);
     expect(p.totalAvailableSkills).toBe(4);
@@ -188,6 +194,8 @@ describe("deck.agents.detail", () => {
     const p = result.payload as Record<string, unknown>;
     expect(p.id).toBe("main");
     expect(p.isDefault).toBe(true);
+    expect(p.reasoningDefault).toBe("on");
+    expect(p.fastModeDefault).toBe(true);
     expect(p.skillMode).toBe("all");
     // All 4 skill keys
     expect(p.effectiveSkills).toEqual(expect.arrayContaining(["python", "node", "git", "docker"]));

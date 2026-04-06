@@ -79,6 +79,7 @@ function setNestedKey(updates: Record<string, unknown>, path: string, value: unk
 // ---------------------------------------------------------------------------
 
 const THINKING_OPTIONS = ["off", "minimal", "low", "medium", "high", "xhigh", "adaptive"] as const;
+const REASONING_OPTIONS = ["on", "off", "stream"] as const;
 
 // ---------------------------------------------------------------------------
 // Event stream options
@@ -161,6 +162,8 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
       "model",
       "model.fallbacks",
       "thinkingDefault",
+      "reasoningDefault",
+      "fastModeDefault",
       "temperature",
       "tools.profile",
       "tools.allow",
@@ -182,6 +185,8 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
       "model",
       "model.fallbacks",
       "thinkingDefault",
+      "reasoningDefault",
+      "fastModeDefault",
       "temperature",
       "tools.profile",
       "tools.allow",
@@ -283,6 +288,44 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
                 </option>
               ))}
             </select>
+          </FieldRow>
+
+          {/* Reasoning Default */}
+          <FieldRow
+            label={t("reasoningDefault")}
+            isOverride={isOverride("reasoningDefault")}
+            onReset={() => handleReset("reasoningDefault")}
+          >
+            <select
+              value={asConfigString(effectiveValue("reasoningDefault"), "on")}
+              onChange={(e) => handleChange("reasoningDefault", e.target.value)}
+              className="flex-1 min-w-0 rounded-md border border-[var(--border)] bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            >
+              {REASONING_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {t(`reasoning_${opt}` as "reasoning_on")}
+                </option>
+              ))}
+            </select>
+          </FieldRow>
+
+          {/* Fast Mode Default */}
+          <FieldRow
+            label={t("fastModeDefault")}
+            isOverride={isOverride("fastModeDefault")}
+            onReset={() => handleReset("fastModeDefault")}
+          >
+            <label className="inline-flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(effectiveValue("fastModeDefault"))}
+                onChange={(e) => handleChange("fastModeDefault", e.target.checked)}
+                className="rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]"
+              />
+              <span className="text-xs text-muted-foreground">
+                {effectiveValue("fastModeDefault") ? t("enabled") : t("disabled")}
+              </span>
+            </label>
           </FieldRow>
 
           {/* Temperature */}

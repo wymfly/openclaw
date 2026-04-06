@@ -16,6 +16,8 @@ import { SearchHighlight } from "./SearchHighlight";
 export interface FieldHint {
   inputType?: string;
   enum?: string[];
+  sensitive?: boolean;
+  placeholder?: string;
 }
 
 interface SchemaFormProps {
@@ -336,16 +338,21 @@ function FieldRenderer({
   const fullKey = `${prefix}${field.key}`;
   const value = values[field.key];
   const hint = hints?.[fullKey];
+  const effectiveField =
+    hint?.placeholder && !field.placeholder ? { ...field, placeholder: hint.placeholder } : field;
 
   // --- Advanced field component routing (before basic type switch) ---
 
   // Sensitive / password field (already wired, keep first)
-  if (field.type === "string" && (field.sensitive || hint?.inputType === "password")) {
+  if (
+    effectiveField.type === "string" &&
+    (effectiveField.sensitive || hint?.sensitive || hint?.inputType === "password")
+  ) {
     const strVal = typeof value === "string" ? value : value != null ? JSON.stringify(value) : "";
     return (
       <PasswordField
         key={fullKey}
-        field={field}
+        field={effectiveField}
         value={strVal}
         onChange={(v) => onChange(field.key, v)}
         searchQuery={searchQuery}
@@ -354,11 +361,11 @@ function FieldRenderer({
   }
 
   // Union field (discriminated or simple)
-  if (field.variants && field.variants.length > 0) {
+  if (effectiveField.variants && effectiveField.variants.length > 0) {
     return (
       <UnionField
         key={fullKey}
-        field={field}
+        field={effectiveField}
         value={value}
         onChange={onChange}
         prefix={prefix}
@@ -368,11 +375,11 @@ function FieldRenderer({
   }
 
   // Record/map field
-  if (field.type === "object" && field.valueSchema) {
+  if (effectiveField.type === "object" && effectiveField.valueSchema) {
     return (
       <RecordField
         key={fullKey}
-        field={field}
+        field={effectiveField}
         value={(value as Record<string, unknown>) ?? {}}
         onChange={onChange}
         prefix={prefix}
@@ -382,11 +389,11 @@ function FieldRenderer({
   }
 
   // Typed array field
-  if (field.type === "array" && field.itemSchema) {
+  if (effectiveField.type === "array" && effectiveField.itemSchema) {
     return (
       <TypedArrayField
         key={fullKey}
-        field={field}
+        field={effectiveField}
         value={Array.isArray(value) ? value : []}
         onChange={(v) => onChange(field.key, v)}
         prefix={prefix}
@@ -396,7 +403,7 @@ function FieldRenderer({
   }
 
   // --- Basic type switch ---
-  switch (field.type) {
+  switch (effectiveField.type) {
     case "string": {
       const strVal = typeof value === "string" ? value : value != null ? JSON.stringify(value) : "";
       // Use EnumField when hint provides enum options (progressive enhancement)
@@ -404,7 +411,7 @@ function FieldRenderer({
         return (
           <EnumField
             key={fullKey}
-            field={field}
+            field={effectiveField}
             value={strVal}
             options={hint.enum}
             onChange={(v) => onChange(field.key, v)}
@@ -415,7 +422,7 @@ function FieldRenderer({
       return (
         <StringField
           key={fullKey}
-          field={field}
+          field={effectiveField}
           value={strVal}
           onChange={(v) => onChange(field.key, v)}
           searchQuery={searchQuery}
@@ -426,7 +433,7 @@ function FieldRenderer({
       return (
         <NumberField
           key={fullKey}
-          field={field}
+          field={effectiveField}
           value={typeof value === "number" ? value : ""}
           onChange={(v) => onChange(field.key, v)}
           searchQuery={searchQuery}
@@ -436,7 +443,7 @@ function FieldRenderer({
       return (
         <BooleanField
           key={fullKey}
-          field={field}
+          field={effectiveField}
           value={Boolean(value ?? field.defaultValue ?? false)}
           onChange={(v) => onChange(field.key, v)}
           searchQuery={searchQuery}
@@ -446,7 +453,7 @@ function FieldRenderer({
       return (
         <EnumField
           key={fullKey}
-          field={field}
+          field={effectiveField}
           value={typeof value === "string" ? value : value != null ? JSON.stringify(value) : ""}
           onChange={(v) => onChange(field.key, v)}
           searchQuery={searchQuery}
@@ -456,7 +463,7 @@ function FieldRenderer({
       return (
         <ArrayField
           key={fullKey}
-          field={field}
+          field={effectiveField}
           value={value}
           searchQuery={searchQuery}
           onChange={(v) => {
@@ -472,7 +479,7 @@ function FieldRenderer({
       return (
         <ObjectField
           key={fullKey}
-          field={field}
+          field={effectiveField}
           values={values}
           onChange={onChange}
           prefix={prefix}

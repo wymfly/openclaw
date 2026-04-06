@@ -20,7 +20,7 @@ export type TranscriptBlock =
   | {
       type: "tool_result";
       toolUseId: string;
-      content: string | TranscriptBlock[];
+      content: string;
       isError?: boolean;
     }
   | {
@@ -58,7 +58,7 @@ export type TranscriptMessage = {
     | {
         type: "tool_result";
         toolUseId: string;
-        content: string | TranscriptBlock[];
+        content: string;
         isError?: boolean;
       }
     | {
@@ -81,6 +81,7 @@ export type TranscriptMessage = {
 export interface ChatHistoryParams {
   sessionKey: string;
   limit?: number;
+  maxChars?: number;
 }
 
 export type ChatHistoryResult = {
@@ -107,7 +108,7 @@ export type ChatHistoryResult = {
       | {
           type: "tool_result";
           toolUseId: string;
-          content: string | TranscriptBlock[];
+          content: string;
           isError?: boolean;
         }
       | {
@@ -147,6 +148,10 @@ export interface ChatSendParams {
   message: string;
   thinking?: string;
   deliver?: boolean;
+  originatingChannel?: string;
+  originatingTo?: string;
+  originatingAccountId?: string;
+  originatingThreadId?: string;
   attachments?: unknown[];
   timeoutMs?: number;
   systemInputProvenance?: {
@@ -168,6 +173,749 @@ export interface ChatSendResult {
   status?: string;
 }
 
+export type ConfigGetParams = Record<string, never>;
+
+export interface ConfigGetResult {
+  path: string;
+  exists: boolean;
+  raw: string;
+  parsed: unknown;
+  sourceConfig: unknown;
+  resolved: unknown;
+  valid: boolean;
+  runtimeConfig: unknown;
+  config: unknown;
+  hash?: string;
+  issues: unknown[];
+  warnings: unknown[];
+  legacyIssues: unknown[];
+}
+
+export type ConfigSchemaParams = Record<string, never>;
+
+export interface ConfigSchemaResult {
+  schema: unknown;
+  uiHints: Record<
+    string,
+    {
+      label?: string;
+      help?: string;
+      tags?: string[];
+      group?: string;
+      order?: number;
+      advanced?: boolean;
+      sensitive?: boolean;
+      placeholder?: string;
+      itemTemplate?: unknown;
+    }
+  >;
+  version: string;
+  generatedAt: string;
+}
+
+export interface ConfigSchemaLookupParams {
+  path: string;
+}
+
+export interface ConfigSchemaLookupResult {
+  path: string;
+  schema: unknown;
+  hint?: {
+    label?: string;
+    help?: string;
+    tags?: string[];
+    group?: string;
+    order?: number;
+    advanced?: boolean;
+    sensitive?: boolean;
+    placeholder?: string;
+    itemTemplate?: unknown;
+  };
+  hintPath?: string;
+  children: {
+    key: string;
+    path: string;
+    type?: string;
+    required: boolean;
+    hasChildren: boolean;
+    hint?: {
+      label?: string;
+      help?: string;
+      tags?: string[];
+      group?: string;
+      order?: number;
+      advanced?: boolean;
+      sensitive?: boolean;
+      placeholder?: string;
+      itemTemplate?: unknown;
+    };
+    hintPath?: string;
+  }[];
+}
+
+export interface ConfigApplyParams {
+  raw: string;
+  baseHash?: string;
+  sessionKey?: string;
+  note?: string;
+  restartDelayMs?: number;
+}
+
+export interface ConfigApplyResult {
+  ok: boolean;
+  noop?: boolean;
+  path: string;
+  config: unknown;
+  restart?: unknown;
+  sentinel?: unknown;
+}
+
+export interface ConfigPatchParams {
+  raw: string;
+  baseHash?: string;
+  sessionKey?: string;
+  note?: string;
+  restartDelayMs?: number;
+}
+
+export interface ConfigPatchResult {
+  ok: boolean;
+  noop?: boolean;
+  path: string;
+  config: unknown;
+  restart?: unknown;
+  sentinel?: unknown;
+}
+
+export interface ConfigSetParams {
+  raw: string;
+  baseHash?: string;
+}
+
+export interface ConfigSetResult {
+  ok: boolean;
+  noop?: boolean;
+  path: string;
+  config: unknown;
+  restart?: unknown;
+  sentinel?: unknown;
+}
+
+export interface SkillsStatusParams {
+  agentId?: string;
+}
+
+export type SkillsBinsParams = Record<string, never>;
+
+export interface SkillsBinsResult {
+  bins: string[];
+}
+
+export type SkillsInstallParams =
+  | {
+      name: string;
+      installId: string;
+      dangerouslyForceUnsafeInstall?: boolean;
+      timeoutMs?: number;
+    }
+  | {
+      source: "clawhub";
+      slug: string;
+      version?: string;
+      force?: boolean;
+      timeoutMs?: number;
+    };
+
+export type SkillsUpdateParams =
+  | {
+      skillKey: string;
+      enabled?: boolean;
+      apiKey?: string;
+      env?: Record<string, string>;
+    }
+  | {
+      source: "clawhub";
+      slug?: string;
+      all?: boolean;
+    };
+
+export type CronListParams = {
+  includeDisabled?: boolean;
+  limit?: number;
+  offset?: number;
+  query?: string;
+  enabled?: "all" | "enabled" | "disabled";
+  sortBy?: "nextRunAtMs" | "updatedAtMs" | "name";
+  sortDir?: "asc" | "desc";
+};
+
+export type CronStatusParams = Record<string, never>;
+
+export type CronAddParams = {
+  name: string;
+  agentId?: string;
+  sessionKey?: string;
+  description?: string;
+  enabled?: boolean;
+  deleteAfterRun?: boolean;
+  schedule:
+    | {
+        kind: "at";
+        at: string;
+      }
+    | {
+        kind: "every";
+        everyMs: number;
+        anchorMs?: number;
+      }
+    | {
+        kind: "cron";
+        expr: string;
+        tz?: string;
+        staggerMs?: number;
+      };
+  sessionTarget: string;
+  wakeMode: "next-heartbeat" | "now";
+  payload:
+    | {
+        kind: "systemEvent";
+        text: string;
+      }
+    | {
+        kind: "agentTurn";
+        message: string;
+        model?: string;
+        fallbacks?: string[];
+        thinking?: string;
+        timeoutSeconds?: number;
+        allowUnsafeExternalContent?: boolean;
+        lightContext?: boolean;
+        toolsAllow?: string[];
+      };
+  delivery?:
+    | {
+        mode: "none";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to?: string;
+      }
+    | {
+        mode: "announce";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to?: string;
+      }
+    | {
+        mode: "webhook";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to: string;
+      };
+  failureAlert?:
+    | false
+    | {
+        after?: number;
+        channel?: string;
+        to?: string;
+        cooldownMs?: number;
+        mode?: "announce" | "webhook";
+        accountId?: string;
+      };
+};
+
+export type CronUpdateParams =
+  | {
+      id: string;
+      patch: {
+        name?: string;
+        agentId?: string;
+        sessionKey?: string;
+        description?: string;
+        enabled?: boolean;
+        deleteAfterRun?: boolean;
+        schedule?:
+          | {
+              kind: "at";
+              at: string;
+            }
+          | {
+              kind: "every";
+              everyMs: number;
+              anchorMs?: number;
+            }
+          | {
+              kind: "cron";
+              expr: string;
+              tz?: string;
+              staggerMs?: number;
+            };
+        sessionTarget?: string;
+        wakeMode?: "next-heartbeat" | "now";
+        payload?:
+          | {
+              kind: "systemEvent";
+              text?: string;
+            }
+          | {
+              kind: "agentTurn";
+              message?: string;
+              model?: string;
+              fallbacks?: string[];
+              thinking?: string;
+              timeoutSeconds?: number;
+              allowUnsafeExternalContent?: boolean;
+              lightContext?: boolean;
+              toolsAllow?: string[] | null;
+            };
+        delivery?: {
+          mode?: "none" | "announce" | "webhook";
+          channel?: string;
+          accountId?: string;
+          bestEffort?: boolean;
+          failureDestination?: {
+            channel?: string;
+            to?: string;
+            accountId?: string;
+            mode?: "announce" | "webhook";
+          };
+          to?: string;
+        };
+        failureAlert?:
+          | false
+          | {
+              after?: number;
+              channel?: string;
+              to?: string;
+              cooldownMs?: number;
+              mode?: "announce" | "webhook";
+              accountId?: string;
+            };
+        state?: {
+          nextRunAtMs?: number;
+          runningAtMs?: number;
+          lastRunAtMs?: number;
+          lastRunStatus?: "ok" | "error" | "skipped";
+          lastStatus?: "ok" | "error" | "skipped";
+          lastError?: string;
+          lastErrorReason?:
+            | "auth"
+            | "format"
+            | "rate_limit"
+            | "billing"
+            | "timeout"
+            | "model_not_found"
+            | "unknown";
+          lastDurationMs?: number;
+          consecutiveErrors?: number;
+          lastDelivered?: boolean;
+          lastDeliveryStatus?: "delivered" | "not-delivered" | "unknown" | "not-requested";
+          lastDeliveryError?: string;
+          lastFailureAlertAtMs?: number;
+        };
+      };
+    }
+  | {
+      jobId: string;
+      patch: {
+        name?: string;
+        agentId?: string;
+        sessionKey?: string;
+        description?: string;
+        enabled?: boolean;
+        deleteAfterRun?: boolean;
+        schedule?:
+          | {
+              kind: "at";
+              at: string;
+            }
+          | {
+              kind: "every";
+              everyMs: number;
+              anchorMs?: number;
+            }
+          | {
+              kind: "cron";
+              expr: string;
+              tz?: string;
+              staggerMs?: number;
+            };
+        sessionTarget?: string;
+        wakeMode?: "next-heartbeat" | "now";
+        payload?:
+          | {
+              kind: "systemEvent";
+              text?: string;
+            }
+          | {
+              kind: "agentTurn";
+              message?: string;
+              model?: string;
+              fallbacks?: string[];
+              thinking?: string;
+              timeoutSeconds?: number;
+              allowUnsafeExternalContent?: boolean;
+              lightContext?: boolean;
+              toolsAllow?: string[] | null;
+            };
+        delivery?: {
+          mode?: "none" | "announce" | "webhook";
+          channel?: string;
+          accountId?: string;
+          bestEffort?: boolean;
+          failureDestination?: {
+            channel?: string;
+            to?: string;
+            accountId?: string;
+            mode?: "announce" | "webhook";
+          };
+          to?: string;
+        };
+        failureAlert?:
+          | false
+          | {
+              after?: number;
+              channel?: string;
+              to?: string;
+              cooldownMs?: number;
+              mode?: "announce" | "webhook";
+              accountId?: string;
+            };
+        state?: {
+          nextRunAtMs?: number;
+          runningAtMs?: number;
+          lastRunAtMs?: number;
+          lastRunStatus?: "ok" | "error" | "skipped";
+          lastStatus?: "ok" | "error" | "skipped";
+          lastError?: string;
+          lastErrorReason?:
+            | "auth"
+            | "format"
+            | "rate_limit"
+            | "billing"
+            | "timeout"
+            | "model_not_found"
+            | "unknown";
+          lastDurationMs?: number;
+          consecutiveErrors?: number;
+          lastDelivered?: boolean;
+          lastDeliveryStatus?: "delivered" | "not-delivered" | "unknown" | "not-requested";
+          lastDeliveryError?: string;
+          lastFailureAlertAtMs?: number;
+        };
+      };
+    };
+
+export type CronRemoveParams =
+  | {
+      id: string;
+    }
+  | {
+      jobId: string;
+    };
+
+export type CronRunParams =
+  | {
+      id: string;
+      mode?: "due" | "force";
+    }
+  | {
+      jobId: string;
+      mode?: "due" | "force";
+    };
+
+export type CronRunsParams = {
+  scope?: "job" | "all";
+  id?: string;
+  jobId?: string;
+  limit?: number;
+  offset?: number;
+  statuses?: ("ok" | "error" | "skipped")[];
+  status?: "all" | "ok" | "error" | "skipped";
+  deliveryStatuses?: ("delivered" | "not-delivered" | "unknown" | "not-requested")[];
+  deliveryStatus?: "delivered" | "not-delivered" | "unknown" | "not-requested";
+  query?: string;
+  sortDir?: "asc" | "desc";
+};
+
+export type ExecApprovalsGetParams = Record<string, never>;
+
+export interface ExecApprovalsGetResult {
+  path: string;
+  exists: boolean;
+  hash: string;
+  file: {
+    version: 1;
+    socket?: {
+      path?: string;
+      token?: string;
+    };
+    defaults?: {
+      security?: string;
+      ask?: string;
+      askFallback?: string;
+      autoAllowSkills?: boolean;
+    };
+    agents?: Record<
+      string,
+      {
+        security?: string;
+        ask?: string;
+        askFallback?: string;
+        autoAllowSkills?: boolean;
+        allowlist?: {
+          id?: string;
+          pattern: string;
+          argPattern?: string;
+          lastUsedAt?: number;
+          lastUsedCommand?: string;
+          lastResolvedPath?: string;
+        }[];
+      }
+    >;
+  };
+}
+
+export interface ExecApprovalsSetParams {
+  file: {
+    version: 1;
+    socket?: {
+      path?: string;
+      token?: string;
+    };
+    defaults?: {
+      security?: string;
+      ask?: string;
+      askFallback?: string;
+      autoAllowSkills?: boolean;
+    };
+    agents?: Record<
+      string,
+      {
+        security?: string;
+        ask?: string;
+        askFallback?: string;
+        autoAllowSkills?: boolean;
+        allowlist?: {
+          id?: string;
+          pattern: string;
+          argPattern?: string;
+          lastUsedAt?: number;
+          lastUsedCommand?: string;
+          lastResolvedPath?: string;
+        }[];
+      }
+    >;
+  };
+  baseHash?: string;
+}
+
+export interface ExecApprovalsSetResult {
+  path: string;
+  exists: boolean;
+  hash: string;
+  file: {
+    version: 1;
+    socket?: {
+      path?: string;
+      token?: string;
+    };
+    defaults?: {
+      security?: string;
+      ask?: string;
+      askFallback?: string;
+      autoAllowSkills?: boolean;
+    };
+    agents?: Record<
+      string,
+      {
+        security?: string;
+        ask?: string;
+        askFallback?: string;
+        autoAllowSkills?: boolean;
+        allowlist?: {
+          id?: string;
+          pattern: string;
+          argPattern?: string;
+          lastUsedAt?: number;
+          lastUsedCommand?: string;
+          lastResolvedPath?: string;
+        }[];
+      }
+    >;
+  };
+}
+
+export interface ExecApprovalsNodeGetParams {
+  nodeId: string;
+}
+
+export interface ExecApprovalsNodeGetResult {
+  path: string;
+  exists: boolean;
+  hash: string;
+  file: {
+    version: 1;
+    socket?: {
+      path?: string;
+      token?: string;
+    };
+    defaults?: {
+      security?: string;
+      ask?: string;
+      askFallback?: string;
+      autoAllowSkills?: boolean;
+    };
+    agents?: Record<
+      string,
+      {
+        security?: string;
+        ask?: string;
+        askFallback?: string;
+        autoAllowSkills?: boolean;
+        allowlist?: {
+          id?: string;
+          pattern: string;
+          argPattern?: string;
+          lastUsedAt?: number;
+          lastUsedCommand?: string;
+          lastResolvedPath?: string;
+        }[];
+      }
+    >;
+  };
+}
+
+export interface ExecApprovalsNodeSetParams {
+  nodeId: string;
+  file: {
+    version: 1;
+    socket?: {
+      path?: string;
+      token?: string;
+    };
+    defaults?: {
+      security?: string;
+      ask?: string;
+      askFallback?: string;
+      autoAllowSkills?: boolean;
+    };
+    agents?: Record<
+      string,
+      {
+        security?: string;
+        ask?: string;
+        askFallback?: string;
+        autoAllowSkills?: boolean;
+        allowlist?: {
+          id?: string;
+          pattern: string;
+          argPattern?: string;
+          lastUsedAt?: number;
+          lastUsedCommand?: string;
+          lastResolvedPath?: string;
+        }[];
+      }
+    >;
+  };
+  baseHash?: string;
+}
+
+export interface ExecApprovalsNodeSetResult {
+  path: string;
+  exists: boolean;
+  hash: string;
+  file: {
+    version: 1;
+    socket?: {
+      path?: string;
+      token?: string;
+    };
+    defaults?: {
+      security?: string;
+      ask?: string;
+      askFallback?: string;
+      autoAllowSkills?: boolean;
+    };
+    agents?: Record<
+      string,
+      {
+        security?: string;
+        ask?: string;
+        askFallback?: string;
+        autoAllowSkills?: boolean;
+        allowlist?: {
+          id?: string;
+          pattern: string;
+          argPattern?: string;
+          lastUsedAt?: number;
+          lastUsedCommand?: string;
+          lastResolvedPath?: string;
+        }[];
+      }
+    >;
+  };
+}
+
+export type ExecApprovalRequestParams = {
+  id?: string;
+  command?: string;
+  commandArgv?: string[];
+  systemRunPlan?: {
+    argv: string[];
+    cwd: string;
+    commandText: string;
+    commandPreview?: string;
+    agentId: string;
+    sessionKey: string;
+    mutableFileOperand?: {
+      argvIndex: number;
+      path: string;
+      sha256: string;
+    } | null;
+  };
+  env?: Record<string, string>;
+  cwd?: string;
+  nodeId?: string;
+  host?: string;
+  security?: string;
+  ask?: string;
+  agentId?: string;
+  resolvedPath?: string;
+  sessionKey?: string;
+  turnSourceChannel?: string;
+  turnSourceTo?: string;
+  turnSourceAccountId?: string;
+  turnSourceThreadId?: string;
+  timeoutMs?: number;
+  twoPhase?: boolean;
+};
+
+export interface ExecApprovalResolveParams {
+  id: string;
+  decision: string;
+}
+
 export interface SessionsListParams {
   limit?: number;
   activeMinutes?: number;
@@ -186,9 +934,9 @@ export type SessionsListResult = {
   path: string;
   count: number;
   defaults: {
-    modelProvider: string | null;
-    model: string | null;
-    contextTokens: number | null;
+    modelProvider: string;
+    model: string;
+    contextTokens: number;
   };
   sessions: {
     key: string;
@@ -204,7 +952,7 @@ export type SessionsListResult = {
     space?: string;
     chatType?: string;
     origin?: unknown;
-    updatedAt: number | null;
+    updatedAt: number;
     sessionId?: string;
     systemSent?: boolean;
     abortedLastRun?: boolean;
@@ -233,7 +981,7 @@ export type SessionsListResult = {
       channel?: string;
       to?: string;
       accountId?: string;
-      threadId?: string | number;
+      threadId?: string;
     };
     lastChannel?: string;
     lastTo?: string;
@@ -285,6 +1033,16 @@ export type SessionsPreviewResult = {
     }[];
   }[];
 };
+
+export interface SessionsGetParams {
+  key?: string;
+  sessionKey?: string;
+  limit?: number;
+}
+
+export interface SessionsGetResult {
+  messages: unknown[];
+}
 
 export interface SessionsCreateParams {
   key?: string;
@@ -348,27 +1106,27 @@ export interface SessionsAbortParams {
 
 export type SessionsAbortResult = {
   ok: boolean;
-  abortedRunId?: string | null;
+  abortedRunId?: string;
   status: "aborted" | "no-active-run";
 };
 
 export type SessionsPatchParams = {
   key: string;
-  label?: string | null;
-  thinkingLevel?: string | null;
-  fastMode?: boolean | null;
-  verboseLevel?: string | null;
-  reasoningLevel?: string | null;
+  label?: string;
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
+  reasoningLevel?: string;
   responseUsage?: "off" | "tokens" | "full" | "on" | null;
-  elevatedLevel?: string | null;
-  execHost?: string | null;
-  execSecurity?: string | null;
-  execAsk?: string | null;
-  execNode?: string | null;
-  model?: string | null;
-  spawnedBy?: string | null;
-  spawnedWorkspaceDir?: string | null;
-  spawnDepth?: number | null;
+  elevatedLevel?: string;
+  execHost?: string;
+  execSecurity?: string;
+  execAsk?: string;
+  execNode?: string;
+  model?: string;
+  spawnedBy?: string;
+  spawnedWorkspaceDir?: string;
+  spawnDepth?: number;
   subagentRole?: "orchestrator" | "leaf" | null;
   subagentControlScope?: "children" | "none" | null;
   sendPolicy?: "allow" | "deny" | null;
@@ -444,7 +1202,7 @@ export type SessionsUsageParams = {
   includeContextWeight?: boolean;
 };
 
-export type SessionsUsageResult = {
+export interface SessionsUsageResult {
   updatedAt: number;
   startDate: string;
   endDate: string;
@@ -456,356 +1214,289 @@ export type SessionsUsageResult = {
     agentId?: string;
     channel?: string;
     chatType?: string;
-    origin?: {
-      label?: string;
-      provider?: string;
-      surface?: string;
-      chatType?: string;
-      from?: string;
-      to?: string;
-      accountId?: string;
-      threadId?: string | number;
-    };
+    origin?: unknown;
     modelOverride?: string;
     providerOverride?: string;
     modelProvider?: string;
     model?: string;
-    usage: {
+    usage: unknown;
+    contextWeight?: unknown;
+  }[];
+  totals: unknown;
+  aggregates: unknown;
+}
+
+export type SessionsUsageTimeseriesParams = {
+  key?: string;
+  startDate?: string;
+  endDate?: string;
+  mode?: "utc" | "gateway" | "specific";
+  utcOffset?: string;
+  limit?: number;
+  includeContextWeight?: boolean;
+};
+
+export type SessionsUsageTimeseriesResult = unknown;
+
+export type SessionsUsageLogsParams = {
+  key?: string;
+  startDate?: string;
+  endDate?: string;
+  mode?: "utc" | "gateway" | "specific";
+  utcOffset?: string;
+  limit?: number;
+  includeContextWeight?: boolean;
+};
+
+export interface SessionsUsageLogsResult {
+  logs: unknown[];
+}
+
+export interface AgentIdentityGetParams {
+  agentId?: string;
+  sessionKey?: string;
+}
+
+export interface AgentIdentityGetResult {
+  agentId: string;
+  name?: string;
+  avatar?: string;
+  emoji?: string;
+}
+
+export interface AgentWaitParams {
+  runId: string;
+  timeoutMs?: number;
+}
+
+export type AgentsListParams = Record<string, never>;
+
+export type AgentsListResult = {
+  defaultId: string;
+  mainKey: string;
+  scope: "per-sender" | "global";
+  agents: {
+    id: string;
+    name?: string;
+    identity?: {
+      name?: string;
+      theme?: string;
+      emoji?: string;
+      avatar?: string;
+      avatarUrl?: string;
+    };
+    workspace?: string;
+    model?: {
+      primary?: string;
+      fallbacks?: string[];
+    };
+  }[];
+};
+
+export interface AgentsCreateParams {
+  name: string;
+  workspace: string;
+  emoji?: string;
+  avatar?: string;
+}
+
+export interface AgentsCreateResult {
+  ok: true;
+  agentId: string;
+  name: string;
+  workspace: string;
+}
+
+export interface AgentsUpdateParams {
+  agentId: string;
+  name?: string;
+  workspace?: string;
+  model?: string;
+  avatar?: string;
+}
+
+export interface AgentsUpdateResult {
+  ok: true;
+  agentId: string;
+}
+
+export interface AgentsDeleteParams {
+  agentId: string;
+  deleteFiles?: boolean;
+}
+
+export interface AgentsDeleteResult {
+  ok: true;
+  agentId: string;
+  removedBindings: number;
+}
+
+export interface AgentsFilesListParams {
+  agentId: string;
+}
+
+export interface AgentsFilesListResult {
+  agentId: string;
+  workspace: string;
+  files: {
+    name: string;
+    path: string;
+    missing: boolean;
+    size?: number;
+    updatedAtMs?: number;
+    content?: string;
+  }[];
+}
+
+export interface AgentsFilesGetParams {
+  agentId: string;
+  name: string;
+}
+
+export interface AgentsFilesGetResult {
+  agentId: string;
+  workspace: string;
+  file: {
+    name: string;
+    path: string;
+    missing: boolean;
+    size?: number;
+    updatedAtMs?: number;
+    content?: string;
+  };
+}
+
+export interface AgentsFilesSetParams {
+  agentId: string;
+  name: string;
+  content: string;
+}
+
+export interface AgentsFilesSetResult {
+  ok: true;
+  agentId: string;
+  workspace: string;
+  file: {
+    name: string;
+    path: string;
+    missing: boolean;
+    size?: number;
+    updatedAtMs?: number;
+    content?: string;
+  };
+}
+
+export interface ChannelsStatusParams {
+  probe?: boolean;
+  timeoutMs?: number;
+}
+
+export interface ChannelsStatusResult {
+  ts: number;
+  channelOrder: string[];
+  channelLabels: Record<string, string>;
+  channelDetailLabels?: Record<string, string>;
+  channelSystemImages?: Record<string, string>;
+  channelMeta?: {
+    id: string;
+    label: string;
+    detailLabel: string;
+    systemImage?: string;
+  }[];
+  channels: Record<string, unknown>;
+  channelAccounts: Record<
+    string,
+    {
+      accountId: string;
+      name?: string;
+      enabled?: boolean;
+      configured?: boolean;
+      linked?: boolean;
+      running?: boolean;
+      connected?: boolean;
+      reconnectAttempts?: number;
+      lastConnectedAt?: number;
+      lastError?: string;
+      healthState?: string;
+      lastStartAt?: number;
+      lastStopAt?: number;
+      lastInboundAt?: number;
+      lastOutboundAt?: number;
+      busy?: boolean;
+      activeRuns?: number;
+      lastRunActivityAt?: number;
+      lastProbeAt?: number;
+      mode?: string;
+      dmPolicy?: string;
+      allowFrom?: string[];
+      tokenSource?: string;
+      botTokenSource?: string;
+      appTokenSource?: string;
+      baseUrl?: string;
+      allowUnmentionedGroups?: boolean;
+      cliPath?: string;
+      dbPath?: string;
+      port?: number;
+      probe?: unknown;
+      audit?: unknown;
+      application?: unknown;
+    }[]
+  >;
+  channelDefaultAccountId: Record<string, string>;
+}
+
+export interface ChannelsLogoutParams {
+  channel: string;
+  accountId?: string;
+}
+
+export type ModelsListParams = Record<string, never>;
+
+export interface ModelsListResult {
+  models: {
+    id: string;
+    name: string;
+    provider: string;
+    contextWindow?: number;
+    reasoning?: boolean;
+  }[];
+}
+
+export type ModelsConfiguredParams = Record<string, never>;
+
+export interface ModelsConfiguredResult {
+  models: {
+    id: string;
+    name: string;
+    provider: string;
+    contextWindow?: number;
+    reasoning?: boolean;
+    input?: string[];
+    cost?: {
       input: number;
       output: number;
       cacheRead: number;
       cacheWrite: number;
-      totalTokens: number;
-      totalCost: number;
-      inputCost: number;
-      outputCost: number;
-      cacheReadCost: number;
-      cacheWriteCost: number;
-      missingCostEntries: number;
-      sessionId?: string;
-      sessionFile?: string;
-      firstActivity?: number;
-      lastActivity?: number;
-      durationMs?: number;
-      activityDates?: string[];
-      dailyBreakdown?: {
-        date: string;
-        tokens: number;
-        cost: number;
-      }[];
-      dailyMessageCounts?: {
-        date: string;
-        total: number;
-        user: number;
-        assistant: number;
-        toolCalls: number;
-        toolResults: number;
-        errors: number;
-      }[];
-      dailyLatency?: {
-        date: string;
-        count: number;
-        avgMs: number;
-        p95Ms: number;
-        minMs: number;
-        maxMs: number;
-      }[];
-      dailyModelUsage?: {
-        date: string;
-        provider?: string;
-        model?: string;
-        tokens: number;
-        cost: number;
-        count: number;
-      }[];
-      messageCounts?: {
-        total: number;
-        user: number;
-        assistant: number;
-        toolCalls: number;
-        toolResults: number;
-        errors: number;
-      };
-      toolUsage?: {
-        totalCalls: number;
-        uniqueTools: number;
-        tools: {
-          name: string;
-          count: number;
-        }[];
-      };
-      modelUsage?: {
-        provider?: string;
-        model?: string;
-        count: number;
-        totals: {
-          input: number;
-          output: number;
-          cacheRead: number;
-          cacheWrite: number;
-          totalTokens: number;
-          totalCost: number;
-          inputCost: number;
-          outputCost: number;
-          cacheReadCost: number;
-          cacheWriteCost: number;
-          missingCostEntries: number;
-        };
-      }[];
-      latency?: {
-        count: number;
-        avgMs: number;
-        p95Ms: number;
-        minMs: number;
-        maxMs: number;
-      };
-    } | null;
-    contextWeight?: {
-      source: "run" | "estimate";
-      generatedAt: number;
-      sessionId?: string;
-      sessionKey?: string;
-      provider?: string;
-      model?: string;
-      workspaceDir?: string;
-      bootstrapMaxChars?: number;
-      bootstrapTotalMaxChars?: number;
-      bootstrapTruncation?: {
-        warningMode?: "off" | "once" | "always";
-        warningShown?: boolean;
-        promptWarningSignature?: string;
-        warningSignaturesSeen?: string[];
-        truncatedFiles?: number;
-        nearLimitFiles?: number;
-        totalNearLimit?: boolean;
-      };
-      sandbox?: {
-        mode?: string;
-        sandboxed?: boolean;
-      };
-      systemPrompt: {
-        chars: number;
-        projectContextChars: number;
-        nonProjectContextChars: number;
-      };
-      injectedWorkspaceFiles: {
-        name: string;
-        path: string;
-        missing: boolean;
-        rawChars: number;
-        injectedChars: number;
-        truncated: boolean;
-      }[];
-      skills: {
-        promptChars: number;
-        entries: {
-          name: string;
-          blockChars: number;
-        }[];
-      };
-      tools: {
-        listChars: number;
-        schemaChars: number;
-        entries: {
-          name: string;
-          summaryChars: number;
-          schemaChars: number;
-          propertiesCount?: number | null;
-        }[];
-      };
-    } | null;
+    };
+    maxTokens?: number;
+    authStatus: string;
   }[];
-  totals: {
-    input: number;
-    output: number;
-    cacheRead: number;
-    cacheWrite: number;
-    totalTokens: number;
-    totalCost: number;
-    inputCost: number;
-    outputCost: number;
-    cacheReadCost: number;
-    cacheWriteCost: number;
-    missingCostEntries: number;
-  };
-  aggregates: {
-    messages: {
-      total: number;
-      user: number;
-      assistant: number;
-      toolCalls: number;
-      toolResults: number;
-      errors: number;
-    };
-    tools: {
-      totalCalls: number;
-      uniqueTools: number;
-      tools: {
-        name: string;
-        count: number;
-      }[];
-    };
-    byModel: {
-      provider?: string;
-      model?: string;
-      count: number;
-      totals: {
-        input: number;
-        output: number;
-        cacheRead: number;
-        cacheWrite: number;
-        totalTokens: number;
-        totalCost: number;
-        inputCost: number;
-        outputCost: number;
-        cacheReadCost: number;
-        cacheWriteCost: number;
-        missingCostEntries: number;
-      };
-    }[];
-    byProvider: {
-      provider?: string;
-      model?: string;
-      count: number;
-      totals: {
-        input: number;
-        output: number;
-        cacheRead: number;
-        cacheWrite: number;
-        totalTokens: number;
-        totalCost: number;
-        inputCost: number;
-        outputCost: number;
-        cacheReadCost: number;
-        cacheWriteCost: number;
-        missingCostEntries: number;
-      };
-    }[];
-    byAgent: {
-      agentId: string;
-      totals: {
-        input: number;
-        output: number;
-        cacheRead: number;
-        cacheWrite: number;
-        totalTokens: number;
-        totalCost: number;
-        inputCost: number;
-        outputCost: number;
-        cacheReadCost: number;
-        cacheWriteCost: number;
-        missingCostEntries: number;
-      };
-    }[];
-    byChannel: {
-      channel: string;
-      totals: {
-        input: number;
-        output: number;
-        cacheRead: number;
-        cacheWrite: number;
-        totalTokens: number;
-        totalCost: number;
-        inputCost: number;
-        outputCost: number;
-        cacheReadCost: number;
-        cacheWriteCost: number;
-        missingCostEntries: number;
-      };
-    }[];
-    latency?: {
-      count: number;
-      avgMs: number;
-      p95Ms: number;
-      minMs: number;
-      maxMs: number;
-    };
-    dailyLatency?: {
-      date: string;
-      count: number;
-      avgMs: number;
-      p95Ms: number;
-      minMs: number;
-      maxMs: number;
-    }[];
-    modelDaily?: {
-      date: string;
-      provider?: string;
-      model?: string;
-      tokens: number;
-      cost: number;
-      count: number;
-    }[];
-    daily: {
-      date: string;
-      tokens: number;
-      cost: number;
-      messages: number;
-      toolCalls: number;
-      errors: number;
-    }[];
-  };
-};
+}
 
-export interface SessionsUsageLogsParams {
-  key: string;
+export interface LogsTailParams {
+  cursor?: number;
   limit?: number;
+  maxBytes?: number;
 }
 
-export type SessionsUsageLogsResult = {
-  logs: {
-    timestamp: number;
-    role: "user" | "assistant" | "tool" | "toolResult";
-    content: string;
-    tokens?: number;
-    cost?: number;
-  }[];
-};
-
-export interface SessionsUsageTimeseriesParams {
-  key: string;
+export interface LogsTailResult {
+  file: string;
+  cursor: number;
+  size: number;
+  lines: string[];
+  truncated?: boolean;
+  reset?: boolean;
 }
-
-export interface SessionsUsageTimeseriesResult {
-  sessionId?: string;
-  points: {
-    timestamp: number;
-    input: number;
-    output: number;
-    cacheRead: number;
-    cacheWrite: number;
-    totalTokens: number;
-    cost: number;
-    cumulativeTokens: number;
-    cumulativeCost: number;
-  }[];
-}
-
-export type SkillsInstallParams =
-  | {
-      name: string;
-      installId: string;
-      timeoutMs?: number;
-    }
-  | {
-      source: "clawhub";
-      slug: string;
-      version?: string;
-      force?: boolean;
-      timeoutMs?: number;
-    };
-
-export type SkillsInstallResult = {
-  ok: boolean;
-  message: string;
-  stdout: string;
-  stderr: string;
-  code: number | null;
-  slug?: string;
-  version?: string;
-  targetDir?: string;
-  warnings?: string[];
-};
 
 export interface DeckCommandsDiscoverParams {
   agentId?: string;
@@ -981,11 +1672,13 @@ export interface DeckAgentsDetailParams {
   agentId: string;
 }
 
-export interface DeckAgentsDetailResult {
+export type DeckAgentsDetailResult = {
   id: string;
   name?: string;
   workspace: string;
   model?: string;
+  reasoningDefault?: "on" | "off" | "stream";
+  fastModeDefault?: boolean;
   isDefault: boolean;
   bindingCount: number;
   sessionCount: number;
@@ -1002,7 +1695,7 @@ export interface DeckAgentsDetailResult {
   sandbox?: unknown;
   identityExists: boolean;
   fallbackModels?: string[];
-}
+};
 
 export interface DeckAgentsSkillsGetParams {
   agentId: string;
@@ -1059,12 +1752,12 @@ export interface DeckAgentsSubagentsGetResult {
   configHash: string;
 }
 
-export type DeckAgentsSubagentsSetParams = {
+export interface DeckAgentsSubagentsSetParams {
   agentId: string;
   allowAgents: string[];
-  model?: string | null;
+  model?: string;
   baseHash: string;
-};
+}
 
 export interface DeckAgentsSubagentsSetResult {
   ok: boolean;
@@ -1195,7 +1888,7 @@ export interface DeckSubagentsLineageParams {
   sessionKey?: string;
 }
 
-export type DeckSubagentsLineageResult = {
+export interface DeckSubagentsLineageResult {
   root: {
     sessionKey: string;
     agentId: string;
@@ -1208,11 +1901,11 @@ export type DeckSubagentsLineageResult = {
     agentName?: string;
     task?: string;
     depth: number;
-    parentRunId: string | null;
+    parentRunId: string;
     status: string;
     durationMs?: number;
   }[];
-};
+}
 
 export interface DeckSubagentsSteerParams {
   runId: string;
@@ -1289,7 +1982,7 @@ export type DeckAuthOverviewResult = {
     provider: string;
     status: string;
     auth: {
-      type: string | null;
+      type: string;
       source: string;
       profileId?: string;
     } | null;
@@ -1327,10 +2020,118 @@ export interface DeckAuthProbeResult {
   latencyMs?: number;
 }
 
+export interface GatewayDescribeParams {
+  filter?: string;
+  includeSchemas?: boolean;
+}
+
+export interface GatewayDescribeResult {
+  protocol: number;
+  schemaVersion: string;
+  methods: Record<
+    string,
+    {
+      params?: Record<string, unknown>;
+      result?: Record<string, unknown>;
+      scope: string;
+      since?: number;
+    }
+  >;
+  events: Record<
+    string,
+    {
+      payload?: Record<string, unknown>;
+      since?: number;
+    }
+  >;
+  untyped: string[];
+}
+
+export interface ToolsCatalogParams {
+  agentId?: string;
+  includePlugins?: boolean;
+}
+
+export type ToolsCatalogResult = {
+  agentId: string;
+  profiles: {
+    id: "minimal" | "coding" | "messaging" | "full";
+    label: string;
+  }[];
+  groups: {
+    id: string;
+    label: string;
+    source: "core" | "plugin";
+    pluginId?: string;
+    tools: {
+      id: string;
+      label: string;
+      description: string;
+      source: "core" | "plugin";
+      pluginId?: string;
+      optional?: boolean;
+      defaultProfiles: ("minimal" | "coding" | "messaging" | "full")[];
+    }[];
+  }[];
+};
+
+export interface ToolsEffectiveParams {
+  agentId?: string;
+  sessionKey: string;
+}
+
+export type ToolsEffectiveResult = {
+  agentId: string;
+  profile: string;
+  groups: {
+    id: "core" | "plugin" | "channel";
+    label: string;
+    source: "core" | "plugin" | "channel";
+    tools: {
+      id: string;
+      label: string;
+      description: string;
+      rawDescription: string;
+      source: "core" | "plugin" | "channel";
+      pluginId?: string;
+      channelId?: string;
+    }[];
+  }[];
+};
+
 export interface GatewayMethodMap {
   "chat.history": { params: ChatHistoryParams; result: ChatHistoryResult };
   "chat.abort": { params: ChatAbortParams; result: ChatAbortResult };
   "chat.send": { params: ChatSendParams; result: ChatSendResult };
+  "config.get": { params: ConfigGetParams; result: ConfigGetResult };
+  "config.schema": { params: ConfigSchemaParams; result: ConfigSchemaResult };
+  "config.schema.lookup": { params: ConfigSchemaLookupParams; result: ConfigSchemaLookupResult };
+  "config.apply": { params: ConfigApplyParams; result: ConfigApplyResult };
+  "config.patch": { params: ConfigPatchParams; result: ConfigPatchResult };
+  "config.set": { params: ConfigSetParams; result: ConfigSetResult };
+  "skills.status": { params: SkillsStatusParams; result: unknown };
+  "skills.bins": { params: SkillsBinsParams; result: SkillsBinsResult };
+  "skills.install": { params: SkillsInstallParams; result: unknown };
+  "skills.update": { params: SkillsUpdateParams; result: unknown };
+  "cron.list": { params: CronListParams; result: unknown };
+  "cron.status": { params: CronStatusParams; result: unknown };
+  "cron.add": { params: CronAddParams; result: unknown };
+  "cron.update": { params: CronUpdateParams; result: unknown };
+  "cron.remove": { params: CronRemoveParams; result: unknown };
+  "cron.run": { params: CronRunParams; result: unknown };
+  "cron.runs": { params: CronRunsParams; result: unknown };
+  "exec.approvals.get": { params: ExecApprovalsGetParams; result: ExecApprovalsGetResult };
+  "exec.approvals.set": { params: ExecApprovalsSetParams; result: ExecApprovalsSetResult };
+  "exec.approvals.node.get": {
+    params: ExecApprovalsNodeGetParams;
+    result: ExecApprovalsNodeGetResult;
+  };
+  "exec.approvals.node.set": {
+    params: ExecApprovalsNodeSetParams;
+    result: ExecApprovalsNodeSetResult;
+  };
+  "exec.approval.request": { params: ExecApprovalRequestParams; result: unknown };
+  "exec.approval.resolve": { params: ExecApprovalResolveParams; result: unknown };
   "sessions.list": { params: SessionsListParams; result: SessionsListResult };
   "sessions.subscribe": { params: Record<string, unknown>; result: SessionsSubscribeResult };
   "sessions.unsubscribe": { params: Record<string, unknown>; result: SessionsUnsubscribeResult };
@@ -1343,6 +2144,7 @@ export interface GatewayMethodMap {
     result: SessionsMessagesUnsubscribeResult;
   };
   "sessions.preview": { params: SessionsPreviewParams; result: SessionsPreviewResult };
+  "sessions.get": { params: SessionsGetParams; result: SessionsGetResult };
   "sessions.create": { params: SessionsCreateParams; result: SessionsCreateResult };
   "sessions.send": { params: SessionsSendParams; result: SessionsSendResult };
   "sessions.steer": { params: SessionsSteerParams; result: SessionsSteerResult };
@@ -1353,12 +2155,25 @@ export interface GatewayMethodMap {
   "sessions.delete": { params: SessionsDeleteParams; result: SessionsDeleteResult };
   "sessions.compact": { params: SessionsCompactParams; result: SessionsCompactResult };
   "sessions.usage": { params: SessionsUsageParams; result: SessionsUsageResult };
-  "sessions.usage.logs": { params: SessionsUsageLogsParams; result: SessionsUsageLogsResult };
   "sessions.usage.timeseries": {
     params: SessionsUsageTimeseriesParams;
     result: SessionsUsageTimeseriesResult;
   };
-  "skills.install": { params: SkillsInstallParams; result: SkillsInstallResult };
+  "sessions.usage.logs": { params: SessionsUsageLogsParams; result: SessionsUsageLogsResult };
+  "agent.identity.get": { params: AgentIdentityGetParams; result: AgentIdentityGetResult };
+  "agent.wait": { params: AgentWaitParams; result: unknown };
+  "agents.list": { params: AgentsListParams; result: AgentsListResult };
+  "agents.create": { params: AgentsCreateParams; result: AgentsCreateResult };
+  "agents.update": { params: AgentsUpdateParams; result: AgentsUpdateResult };
+  "agents.delete": { params: AgentsDeleteParams; result: AgentsDeleteResult };
+  "agents.files.list": { params: AgentsFilesListParams; result: AgentsFilesListResult };
+  "agents.files.get": { params: AgentsFilesGetParams; result: AgentsFilesGetResult };
+  "agents.files.set": { params: AgentsFilesSetParams; result: AgentsFilesSetResult };
+  "channels.status": { params: ChannelsStatusParams; result: ChannelsStatusResult };
+  "channels.logout": { params: ChannelsLogoutParams; result: unknown };
+  "models.list": { params: ModelsListParams; result: ModelsListResult };
+  "models.configured": { params: ModelsConfiguredParams; result: ModelsConfiguredResult };
+  "logs.tail": { params: LogsTailParams; result: LogsTailResult };
   "deck.commands.discover": {
     params: DeckCommandsDiscoverParams;
     result: DeckCommandsDiscoverResult;
@@ -1414,6 +2229,9 @@ export interface GatewayMethodMap {
   "deck.threads.list": { params: DeckThreadsListParams; result: DeckThreadsListResult };
   "deck.auth.overview": { params: Record<string, unknown>; result: DeckAuthOverviewResult };
   "deck.auth.probe": { params: Record<string, unknown>; result: DeckAuthProbeResult };
+  "gateway.describe": { params: GatewayDescribeParams; result: GatewayDescribeResult };
+  "tools.catalog": { params: ToolsCatalogParams; result: ToolsCatalogResult };
+  "tools.effective": { params: ToolsEffectiveParams; result: ToolsEffectiveResult };
 }
 
 export type GatewayMethodName = keyof GatewayMethodMap;
@@ -1444,7 +2262,7 @@ export type ChatEventPayload = {
       | {
           type: "tool_result";
           toolUseId: string;
-          content: string | TranscriptBlock[];
+          content: string;
           isError?: boolean;
         }
       | {
@@ -1502,7 +2320,7 @@ export type SessionMessageEventPayload = {
       | {
           type: "tool_result";
           toolUseId: string;
-          content: string | TranscriptBlock[];
+          content: string;
           isError?: boolean;
         }
       | {
@@ -1533,7 +2351,7 @@ export type SessionMessageEventPayload = {
     channel?: string;
     to?: string;
     accountId?: string;
-    threadId?: string | number;
+    threadId?: string;
   };
   parentSessionKey?: string;
   childSessions?: string[];
@@ -1557,7 +2375,7 @@ export type SessionMessageEventPayload = {
   runtimeMs?: number;
 };
 
-export type SessionToolEventPayload = {
+export interface SessionToolEventPayload {
   runId: string;
   seq: number;
   stream: "tool";
@@ -1568,164 +2386,12 @@ export type SessionToolEventPayload = {
     name?: string;
     toolCallId?: string;
     args?: Record<string, unknown>;
-    result?:
-      | string
-      | (
-          | {
-              type: "text";
-              text: string;
-            }
-          | {
-              type: "thinking";
-              text: string;
-            }
-          | {
-              type: "tool_use";
-              id: string;
-              name: string;
-              input: Record<string, unknown>;
-            }
-          | {
-              type: "tool_result";
-              toolUseId: string;
-              content: string | TranscriptBlock[];
-              isError?: boolean;
-            }
-          | {
-              type: "image";
-              data: string;
-              mimeType: string;
-              fileName?: string;
-            }
-          | {
-              type: "file";
-              data: string;
-              mimeType: string;
-              fileName: string;
-              size?: number;
-            }
-        )[]
-      | {
-          content?:
-            | string
-            | (
-                | {
-                    type: "text";
-                    text: string;
-                  }
-                | {
-                    type: "thinking";
-                    text: string;
-                  }
-                | {
-                    type: "tool_use";
-                    id: string;
-                    name: string;
-                    input: Record<string, unknown>;
-                  }
-                | {
-                    type: "tool_result";
-                    toolUseId: string;
-                    content: string | TranscriptBlock[];
-                    isError?: boolean;
-                  }
-                | {
-                    type: "image";
-                    data: string;
-                    mimeType: string;
-                    fileName?: string;
-                  }
-                | {
-                    type: "file";
-                    data: string;
-                    mimeType: string;
-                    fileName: string;
-                    size?: number;
-                  }
-              )[];
-          details?: Record<string, unknown>;
-        };
-    partialResult?:
-      | string
-      | (
-          | {
-              type: "text";
-              text: string;
-            }
-          | {
-              type: "thinking";
-              text: string;
-            }
-          | {
-              type: "tool_use";
-              id: string;
-              name: string;
-              input: Record<string, unknown>;
-            }
-          | {
-              type: "tool_result";
-              toolUseId: string;
-              content: string | TranscriptBlock[];
-              isError?: boolean;
-            }
-          | {
-              type: "image";
-              data: string;
-              mimeType: string;
-              fileName?: string;
-            }
-          | {
-              type: "file";
-              data: string;
-              mimeType: string;
-              fileName: string;
-              size?: number;
-            }
-        )[]
-      | {
-          content?:
-            | string
-            | (
-                | {
-                    type: "text";
-                    text: string;
-                  }
-                | {
-                    type: "thinking";
-                    text: string;
-                  }
-                | {
-                    type: "tool_use";
-                    id: string;
-                    name: string;
-                    input: Record<string, unknown>;
-                  }
-                | {
-                    type: "tool_result";
-                    toolUseId: string;
-                    content: string | TranscriptBlock[];
-                    isError?: boolean;
-                  }
-                | {
-                    type: "image";
-                    data: string;
-                    mimeType: string;
-                    fileName?: string;
-                  }
-                | {
-                    type: "file";
-                    data: string;
-                    mimeType: string;
-                    fileName: string;
-                    size?: number;
-                  }
-              )[];
-          details?: Record<string, unknown>;
-        };
+    result?: string;
+    partialResult?: string;
     isError?: boolean;
     error?: string;
   };
-};
+}
 
 export type SessionsChangedEventPayload = {
   sessionKey: string;
@@ -1746,7 +2412,7 @@ export type SessionsChangedEventPayload = {
     channel?: string;
     to?: string;
     accountId?: string;
-    threadId?: string | number;
+    threadId?: string;
   };
   childSessions?: string[];
   thinkingLevel?: string;

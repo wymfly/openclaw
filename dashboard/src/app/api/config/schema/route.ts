@@ -7,9 +7,9 @@
  *   config.schema: {} (no params)
  *   Returns: JSON Schema object
  */
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async () => {
-  return gatewayRequest("config.schema", {});
+  return gwRequest("config.schema", {});
 });

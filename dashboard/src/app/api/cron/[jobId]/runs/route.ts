@@ -4,15 +4,16 @@
  * Gateway contract: cron.runs { jobId, limit?, offset?, statuses?, sortDir? }
  */
 import { type NextRequest } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
+import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
+import type { GatewayMethodMap } from "@/types/gateway-protocol.generated";
 
 type RouteContext = { params: Promise<{ jobId: string }> };
 
 export const GET = withAuth(async (request: NextRequest, ctx: unknown) => {
   const { jobId } = await (ctx as RouteContext).params;
   const sp = request.nextUrl.searchParams;
-  const params: Record<string, unknown> = { scope: "job", jobId };
+  const params: GatewayMethodMap["cron.runs"]["params"] = { scope: "job", jobId };
 
   const limit = sp.get("limit");
   if (limit) {
@@ -31,5 +32,5 @@ export const GET = withAuth(async (request: NextRequest, ctx: unknown) => {
     params.statuses = statuses.split(",");
   }
 
-  return gatewayRequest("cron.runs", params);
+  return gwRequest("cron.runs", params);
 });

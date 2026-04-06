@@ -1,19 +1,108 @@
 import { describe, it, expect, vi } from "vitest";
 
 // Mock top-level dependencies of api-helpers before import
-vi.mock("next/server", () => ({ NextResponse: { json: vi.fn() } }));
-vi.mock("@server/runtime", () => ({ getRuntime: vi.fn(() => null) }));
+const { nextJsonMock, getRuntimeMock } = vi.hoisted(() => ({
+  nextJsonMock: vi.fn((_body, init) => ({ body: _body, init })),
+  getRuntimeMock: vi.fn(() => null),
+}));
+vi.mock("next/server", () => ({ NextResponse: { json: nextJsonMock } }));
+vi.mock("@server/runtime", () => ({ getRuntime: getRuntimeMock }));
 vi.mock("@server/gateway-adapter", () => ({
-  ControlPlaneGatewayError: class extends Error {},
+  ControlPlaneGatewayError: class extends Error {
+    code: string;
+    details?: unknown;
+    constructor(params: { code: string; message: string; details?: unknown }) {
+      super(params.message);
+      this.code = params.code;
+      this.details = params.details;
+    }
+  },
 }));
 
-import { extractPlatformHeaders } from "../api-helpers.js";
+import { extractPlatformHeaders, gwCall, gwRequest } from "../api-helpers.js";
 
 function makeRequest(headers: Record<string, string> = {}): Request {
   return new Request("http://localhost/api/test", { headers });
 }
 
 describe("extractPlatformHeaders", () => {
+  it("returns deterministic compatibility errors when runtime is incompatible", async () => {
+    getRuntimeMock.mockReturnValueOnce({
+      capabilities: {
+        status: "incompatible",
+        reason: "Gateway missing required capability: sessions.send",
+        snapshot: null,
+        ready: Promise.resolve(),
+      },
+    });
+
+    const response = await gwRequest("sessions.list", { limit: 1 });
+
+    expect(nextJsonMock).toHaveBeenCalledWith(
+      {
+        error: "Gateway missing required capability: sessions.send",
+        code: "GATEWAY_INCOMPATIBLE",
+      },
+      { status: 503 },
+    );
+    expect(response).toEqual({
+      body: {
+        error: "Gateway missing required capability: sessions.send",
+        code: "GATEWAY_INCOMPATIBLE",
+      },
+      init: { status: 503 },
+    });
+  });
+
+  it("waits for pending capability bootstrap before returning incompatibility", async () => {
+    let resolveReady!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      resolveReady = resolve;
+    });
+    const runtime = {
+      capabilities: {
+        status: "pending" as const,
+        reason: null as string | null,
+        snapshot: null,
+        ready,
+      },
+      adapter: { request: vi.fn() },
+    };
+    getRuntimeMock.mockReturnValueOnce(runtime);
+
+    const responsePromise = gwRequest("sessions.list", { limit: 1 });
+    runtime.capabilities.status = "incompatible";
+    runtime.capabilities.reason = "Gateway missing required capability: sessions.send";
+    resolveReady();
+
+    const response = await responsePromise;
+
+    expect(runtime.adapter.request).not.toHaveBeenCalled();
+    expect(response).toEqual({
+      body: {
+        error: "Gateway missing required capability: sessions.send",
+        code: "GATEWAY_INCOMPATIBLE",
+      },
+      init: { status: 503 },
+    });
+  });
+
+  it("gwCall throws deterministic compatibility errors when runtime is incompatible", async () => {
+    getRuntimeMock.mockReturnValueOnce({
+      capabilities: {
+        status: "incompatible",
+        reason: "Gateway missing required capability: sessions.send",
+        snapshot: null,
+        ready: Promise.resolve(),
+      },
+    });
+
+    await expect(gwCall("sessions.list", { limit: 1 })).rejects.toMatchObject({
+      code: "GATEWAY_INCOMPATIBLE",
+      message: "Gateway missing required capability: sessions.send",
+    });
+  });
+
   it("extracts X-Tenant-Id and X-User-Id when present", () => {
     const req = makeRequest({ "X-Tenant-Id": "tenant-abc", "X-User-Id": "user-123" });
     expect(extractPlatformHeaders(req)).toEqual({

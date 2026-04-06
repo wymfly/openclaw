@@ -198,7 +198,9 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
 
   fetchHistory: async (sessionKey) => {
     try {
-      const res = await fetch(`/api/sessions/${encodeURIComponent(sessionKey)}`);
+      // Keep transcript reads on the dedicated chat-history seam so the
+      // session panel does not create a second full-transcript authority.
+      const res = await fetch(`/api/chat/history?sessionKey=${encodeURIComponent(sessionKey)}`);
       if (!res.ok) {
         return;
       }
