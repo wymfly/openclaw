@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useChannelsStore } from "@/stores/channels";
 import { ConfigWizard, type WizardStep } from "./ConfigWizard";
+import { DmPolicySelector } from "./DmPolicySelector";
 
-type WeComTransport = "bot-ws" | "bot-webhook" | "agent-callback" | "kf-api";
+type WeComTransport = "bot-ws" | "bot-webhook" | "agent-callback" | "dual" | "kf-api";
 
 interface WeComFormData {
   transport: WeComTransport | null;
@@ -26,6 +27,8 @@ interface WeComFormData {
   agentSecret: string;
   agentToken: string;
   agentEncodingAESKey: string;
+  // DM policy
+  dmPolicy: string;
 }
 
 const INITIAL_FORM: WeComFormData = {
@@ -39,6 +42,7 @@ const INITIAL_FORM: WeComFormData = {
   agentSecret: "",
   agentToken: "",
   agentEncodingAESKey: "",
+  dmPolicy: "pairing",
 };
 
 export function WeComWizard({
@@ -102,6 +106,7 @@ export function WeComWizard({
           bot: {
             primaryTransport: "ws",
             ws: { botId: form.botId, secret: form.botSecret },
+            dm: { policy: form.dmPolicy },
           },
         };
       case "bot-webhook":
@@ -109,11 +114,28 @@ export function WeComWizard({
           bot: {
             primaryTransport: "webhook",
             webhook: { token: form.botToken, encodingAESKey: form.botEncodingAESKey },
+            dm: { policy: form.dmPolicy },
           },
         };
       case "agent-callback":
       case "kf-api":
         return {
+          agent: {
+            corpId: form.corpId,
+            agentId: form.agentId,
+            agentSecret: form.agentSecret,
+            token: form.agentToken,
+            encodingAESKey: form.agentEncodingAESKey,
+            dm: { policy: form.dmPolicy },
+          },
+        };
+      case "dual":
+        return {
+          bot: {
+            primaryTransport: "ws",
+            ws: { botId: form.botId, secret: form.botSecret },
+            dm: { policy: form.dmPolicy },
+          },
           agent: {
             corpId: form.corpId,
             agentId: form.agentId,
@@ -131,7 +153,7 @@ export function WeComWizard({
     if (form.transport === "bot-webhook") {
       return `{GATEWAY_URL}/wecom/bot/callback`;
     }
-    if (form.transport === "agent-callback") {
+    if (form.transport === "agent-callback" || form.transport === "dual") {
       return `{GATEWAY_URL}/wecom/agent/callback`;
     }
     return null;
@@ -153,6 +175,11 @@ export function WeComWizard({
         id: "agent-callback",
         title: t("wecom.transportAgentCallback"),
         desc: t("wecom.transportAgentCallbackDesc"),
+      },
+      {
+        id: "dual",
+        title: t("wecom.transportDualMode"),
+        desc: t("wecom.transportDualModeDesc"),
       },
       { id: "kf-api", title: t("wecom.transportKfApi"), desc: t("wecom.transportKfApiDesc") },
     ],
@@ -293,15 +320,105 @@ export function WeComWizard({
           </div>
         </>
       )}
+      {form.transport === "dual" && (
+        <>
+          <p className="text-xs font-medium text-[var(--foreground)]">{t("wecom.sectionBot")}</p>
+          <div>
+            <Label className="text-xs">{t("wecom.botId")}</Label>
+            <Input
+              value={form.botId}
+              onChange={(e) => updateField("botId", e.target.value)}
+              placeholder={t("wecom.botIdHint")}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">{t("wecom.botSecret")}</Label>
+            <Input
+              type="password"
+              value={form.botSecret}
+              onChange={(e) => updateField("botSecret", e.target.value)}
+              placeholder={t("wecom.botSecretHint")}
+              className="mt-1"
+            />
+          </div>
+          <div className="border-t pt-3 mt-1" style={{ borderColor: "var(--border)" }}>
+            <p className="text-xs font-medium text-[var(--foreground)]">
+              {t("wecom.sectionAgent")}
+            </p>
+          </div>
+          <div>
+            <Label className="text-xs">{t("wecom.corpId")}</Label>
+            <Input
+              value={form.corpId}
+              onChange={(e) => updateField("corpId", e.target.value)}
+              placeholder={t("wecom.corpIdHint")}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">{t("wecom.agentId")}</Label>
+            <Input
+              value={form.agentId}
+              onChange={(e) => updateField("agentId", e.target.value)}
+              placeholder={t("wecom.agentIdHint")}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">{t("wecom.agentSecret")}</Label>
+            <Input
+              type="password"
+              value={form.agentSecret}
+              onChange={(e) => updateField("agentSecret", e.target.value)}
+              placeholder={t("wecom.agentSecretHint")}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">{t("wecom.token")}</Label>
+            <Input
+              value={form.agentToken}
+              onChange={(e) => updateField("agentToken", e.target.value)}
+              placeholder={t("wecom.tokenHint")}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">{t("wecom.encodingAESKey")}</Label>
+            <Input
+              value={form.agentEncodingAESKey}
+              onChange={(e) => updateField("agentEncodingAESKey", e.target.value)}
+              placeholder={t("wecom.encodingAESKeyHint")}
+              className="mt-1"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 
-  // Step 3: callback URL (only for webhook / agent-callback)
-  const step3Content = (
+  // DM policy step
+  const dmPolicyContent = (
+    <div className="space-y-3">
+      <p className="text-xs text-[var(--muted-foreground)]">{t("wecom.dmPolicyLabel")}</p>
+      <DmPolicySelector
+        value={form.dmPolicy}
+        onChange={(policy) => updateField("dmPolicy", policy)}
+      />
+    </div>
+  );
+
+  // Callback URL step (webhook / agent-callback / dual)
+  const callbackUrlContent = (
     <div className="space-y-3">
       {callbackUrl ? (
         <>
-          <p className="text-xs text-[var(--muted-foreground)]">{t("wecom.callbackUrlDesc")}</p>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            {form.transport === "dual"
+              ? t("wecom.dualModeCallbackNote")
+              : t("wecom.callbackUrlDesc")}
+          </p>
           <div className="flex items-center gap-2 rounded-lg bg-[var(--neutral-muted)] px-3 py-2">
             <code className="flex-1 text-xs font-mono text-[var(--foreground)] break-all">
               {callbackUrl}
@@ -318,8 +435,8 @@ export function WeComWizard({
     </div>
   );
 
-  // Step 4: connection test
-  const step4Content = (
+  // Connection test step
+  const probeContent = (
     <div className="space-y-4">
       <p className="text-xs text-[var(--muted-foreground)]">{t("wecom.testDesc")}</p>
       <div className="flex items-start gap-2 rounded-lg bg-[var(--primary-muted)] px-3 py-2 text-[10px] text-[var(--muted-foreground)]">
@@ -373,6 +490,15 @@ export function WeComWizard({
                 form.agentToken.trim() !== "" &&
                 form.agentEncodingAESKey.trim() !== ""
               );
+            case "dual":
+              return (
+                form.botId.trim() !== "" &&
+                form.botSecret.trim() !== "" &&
+                form.corpId.trim() !== "" &&
+                form.agentSecret.trim() !== "" &&
+                form.agentToken.trim() !== "" &&
+                form.agentEncodingAESKey.trim() !== ""
+              );
             default:
               return false;
           }
@@ -380,11 +506,15 @@ export function WeComWizard({
       },
       {
         title: t("wecom.step3Title"),
-        content: step3Content,
+        content: dmPolicyContent,
       },
       {
         title: t("wecom.step4Title"),
-        content: step4Content,
+        content: callbackUrlContent,
+      },
+      {
+        title: t("wecom.step5Title"),
+        content: probeContent,
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps

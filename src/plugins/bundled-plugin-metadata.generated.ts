@@ -3882,7 +3882,7 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
       built: "index.js",
     },
     packageName: "@openclaw-enhanced/wecom",
-    packageVersion: "2026.3.17",
+    packageVersion: "2026.3.23",
     packageDescription:
       "OpenClaw Enhanced Fork — 企业微信（WeCom）频道插件，基于 @yanhaidao/wecom fork，增强配额追踪、持久化去重、MCP Skill 等企业级能力",
     packageManifest: {
