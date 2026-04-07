@@ -34,6 +34,9 @@ export type DeckEventType =
   | "webhook.delivery"
   | "cron.run.complete"
   | "canvas"
+  // Device pairing events
+  | "device.pair.requested"
+  | "device.pair.resolved"
   // Upstream session events (Layer 2 — bypass RunEventPipeline)
   | "session-state"
   | "session-msg"

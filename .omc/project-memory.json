@@ -567,6 +567,12 @@
       "type": "file"
     },
     {
+      "path": "src/gateway/server-methods.ts",
+      "accessCount": 4,
+      "lastAccessed": 1776223039997,
+      "type": "file"
+    },
+    {
       "path": "src/gateway/protocol/index.ts",
       "accessCount": 2,
       "lastAccessed": 1776222810330,

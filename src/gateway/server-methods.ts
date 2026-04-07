@@ -17,7 +17,12 @@ import { connectHandlers } from "./server-methods/connect.js";
 import { cronHandlers } from "./server-methods/cron.js";
 import { deckAuthHandlers, deckAuthMethodDefs } from "./server-methods/deck-auth.js";
 import { deckHandlers, deckMethodDefs } from "./server-methods/deck/index.js";
-import { describeHandlers, setDescribeRegistry } from "./server-methods/describe.js";
+import {
+  describeHandlers,
+  describeMethodDefs,
+  setDescribeRegistry,
+} from "./server-methods/describe.js";
+import { deviceMethodDefs } from "./server-methods/device-method-defs.js";
 import { deviceHandlers } from "./server-methods/devices.js";
 import { doctorHandlers } from "./server-methods/doctor.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
@@ -44,6 +49,7 @@ import { usageMethodDefs } from "./server-methods/usage-method-defs.js";
 import { usageHandlers } from "./server-methods/usage.js";
 import { voicewakeHandlers } from "./server-methods/voicewake.js";
 import { webHandlers } from "./server-methods/web.js";
+import { wizardMethodDefs } from "./server-methods/wizard-method-defs.js";
 import { wizardHandlers } from "./server-methods/wizard.js";
 
 const CONTROL_PLANE_WRITE_METHODS = new Set(["config.apply", "config.patch", "update.run"]);
@@ -124,6 +130,16 @@ export const gatewayMethodRegistry = buildMethodRegistry(
     skillsMethodDefs,
     deckMethodDefs,
     deckAuthMethodDefs,
+    describeMethodDefs,
+    agentMethodDefs,
+    agentsMethodDefs,
+    modelsMethodDefs,
+    channelsMethodDefs,
+    logsMethodDefs,
+    toolsCatalogMethodDefs,
+    toolsEffectiveMethodDefs,
+    deviceMethodDefs,
+    wizardMethodDefs,
   ],
   gatewayEventDefs,
 );

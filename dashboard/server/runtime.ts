@@ -109,6 +109,9 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   "webhook.delivery",
   "cron.run.complete",
   "canvas",
+  // Device pairing events
+  "device.pair.requested",
+  "device.pair.resolved",
 ]);
 
 const REQUIRED_GATEWAY_METHODS = [
@@ -144,7 +147,8 @@ function bridgeDomainEvent(
   store?: ProjectionStore,
 ): void {
   if (event.type === "gateway.event" && "event" in event) {
-    const normalizedEventType = SESSION_EVENT_INTAKE_MAP[event.event];
+    const normalizedEventType =
+      SESSION_EVENT_INTAKE_MAP[event.event as keyof typeof SESSION_EVENT_INTAKE_MAP];
     if (normalizedEventType) {
       eventBus.broadcast(normalizedEventType, event.payload);
     }

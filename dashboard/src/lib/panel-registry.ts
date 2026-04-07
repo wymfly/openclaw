@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import { ChatPanel } from "@/components/panels/chat/ChatPanel";
+import { useDevicesStore } from "@/stores/devices";
 
 type PanelComponent = ComponentType | LazyExoticComponent<ComponentType>;
 
@@ -37,6 +38,7 @@ export interface PanelEntry {
   readonly shortcutIndex?: number;
   readonly eager?: boolean;
   readonly position?: "bottom";
+  readonly badge?: () => number;
 }
 
 export const PANELS = [
@@ -275,6 +277,7 @@ export const PANELS = [
       })),
     ),
     position: "bottom",
+    badge: () => useDevicesStore.getState().pending.length,
   },
 ] as const satisfies readonly PanelEntry[];
 
