@@ -1,6 +1,14 @@
+import * as fs from "node:fs";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 // Mock the dependencies
+vi.mock("node:fs", async () => {
+  const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
+  return {
+    ...actual,
+    readFileSync: vi.fn(actual.readFileSync),
+  };
+});
 vi.mock("../../config/config.js", () => ({
   loadConfig: vi.fn(),
 }));
@@ -45,6 +53,7 @@ describe("models.configured", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(fs.readFileSync).mockReset();
   });
 
   it("returns configured models with auth status and merged cost data", async () => {
@@ -97,6 +106,9 @@ describe("models.configured", () => {
             id: "deepseek-chat",
             provider: "deepseek",
             authStatus: "ready",
+            source: "config",
+            scope: "global",
+            editable: true,
             cost: expect.objectContaining({ input: 0.14, output: 0.28 }),
             maxTokens: 8192,
           }),
@@ -163,6 +175,50 @@ describe("models.configured", () => {
           expect.objectContaining({
             id: "gpt-5.4",
             authStatus: "missing",
+          }),
+        ],
+      }),
+      undefined,
+    );
+  });
+
+  it("marks agent-local models as read-only agent-model sources", async () => {
+    loadConfig.mockReturnValue({});
+    buildConfiguredModelCatalog.mockReturnValue([]);
+    buildAuthOverview.mockResolvedValue({
+      providers: [{ provider: "cpa", status: "ready", auth: { type: "api_key", source: "store" } }],
+    });
+
+    vi.mocked(fs.readFileSync).mockImplementation(() =>
+      JSON.stringify({
+        providers: {
+          cpa: {
+            models: [{ id: "gpt-5.4", name: "GPT 5.4" }],
+          },
+        },
+      }),
+    );
+
+    const mockContext = { loadGatewayModelCatalog: vi.fn().mockResolvedValue([]) };
+    const respond = vi.fn();
+    await modelsHandlers["models.configured"]({
+      req: dummyReq,
+      params: {},
+      client: null,
+      isWebchatConnect: () => false,
+      respond,
+      context: mockContext as never,
+    });
+
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        models: [
+          expect.objectContaining({
+            provider: "cpa",
+            source: "agent-models",
+            scope: "agent:main",
+            editable: false,
           }),
         ],
       }),

@@ -20,7 +20,7 @@ describe("/api/approvals", () => {
     gwRequest.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const { GET, POST } = await import("./route.js");
 
-    await GET();
+    await GET(new NextRequest("http://localhost"));
     await POST(
       new NextRequest("http://localhost/api/approvals", {
         method: "POST",

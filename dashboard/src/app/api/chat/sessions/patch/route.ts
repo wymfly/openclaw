@@ -1,10 +1,12 @@
 /**
  * POST /api/chat/sessions/patch — Patch session directives via sessions.patch.
  *
- * Supports: model, thinkingLevel, fastMode, verboseLevel.
+ * Supports: model, thinkingLevel, fastMode, verboseLevel, reasoningLevel,
+ *           responseUsage, sendPolicy.
  *
  * Gateway contract (`SessionsPatchParamsSchema`):
- *   { key, model?, thinkingLevel?, fastMode?, verboseLevel?, ... }
+ *   { key, model?, thinkingLevel?, fastMode?, verboseLevel?, reasoningLevel?,
+ *     responseUsage?, sendPolicy?, ... }
  */
 import { NextRequest } from "next/server";
 import { gwRequest } from "@/lib/api-helpers";
@@ -17,6 +19,9 @@ export const POST = withAuth(async (request: NextRequest) => {
     thinkingLevel?: string;
     fastMode?: boolean;
     verboseLevel?: string;
+    reasoningLevel?: string;
+    responseUsage?: "off" | "tokens" | "full" | "on" | null;
+    sendPolicy?: "allow" | "deny" | null;
   };
 
   if (!body.sessionKey?.trim()) {

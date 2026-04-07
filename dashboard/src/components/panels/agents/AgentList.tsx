@@ -15,8 +15,15 @@ const STATUS_COLORS: Record<string, string> = {
 export function AgentList() {
   const t = useTranslations("agents");
   const tc = useTranslations("common");
-  const { agents, selectedAgentId, loading, selectAgent, createAgent, deleteAgent } =
-    useAgentsStore();
+  const {
+    agents,
+    selectedAgentId,
+    defaultAgentId,
+    loading,
+    selectAgent,
+    createAgent,
+    deleteAgent,
+  } = useAgentsStore();
 
   const [showDialog, setShowDialog] = useState(false);
   const [newName, setNewName] = useState("");
@@ -142,15 +149,17 @@ export function AgentList() {
                   </div>
                 </div>
               </div>
-              <span
-                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
-                onClick={(e) => void handleDelete(agent.id, e)}
-                role="button"
-                tabIndex={-1}
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                <Trash2 size={12} />
-              </span>
+              {agent.id !== defaultAgentId && (
+                <span
+                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
+                  onClick={(e) => void handleDelete(agent.id, e)}
+                  role="button"
+                  tabIndex={-1}
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  <Trash2 size={12} />
+                </span>
+              )}
             </button>
           );
         })}

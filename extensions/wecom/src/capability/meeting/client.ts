@@ -28,10 +28,13 @@ function readOptionalSettings(value: unknown): WecomMeetingSettings | undefined 
   return value as WecomMeetingSettings;
 }
 
-async function parseJsonResponse(res: Response, actionLabel: string): Promise<any> {
-  let payload: any = null;
+async function parseJsonResponse(
+  res: Response,
+  actionLabel: string,
+): Promise<Record<string, unknown>> {
+  let payload: Record<string, unknown> | null = null;
   try {
-    payload = await res.json();
+    payload = (await res.json()) as Record<string, unknown>;
   } catch {
     if (!res.ok) {
       throw new Error(`WeCom ${actionLabel} failed: HTTP ${res.status}`);
@@ -62,7 +65,7 @@ export class WecomMeetingClient {
     actionLabel: string;
     agent: ResolvedAgentAccount;
     body: Record<string, unknown>;
-  }): Promise<any> {
+  }): Promise<Record<string, unknown>> {
     const { path, actionLabel, agent, body } = params;
 
     const token = await getAccessToken(agent);
@@ -106,7 +109,7 @@ export class WecomMeetingClient {
       password?: string;
       settings?: WecomMeetingSettings;
     },
-  ): Promise<{ raw: any; meeting: WecomMeeting }> {
+  ): Promise<{ raw: Record<string, unknown>; meeting: WecomMeeting }> {
     const title = readString(params.title);
     const startTime = readString(params.start_time);
     const endTime = readString(params.end_time);
@@ -141,7 +144,7 @@ export class WecomMeetingClient {
     agent: ResolvedAgentAccount,
     meetingid: string,
     params: { title?: string; start_time?: string; end_time?: string },
-  ): Promise<{ raw: any; meetingid: string }> {
+  ): Promise<{ raw: Record<string, unknown>; meetingid: string }> {
     const normalizedMeetingId = readString(meetingid);
     if (!normalizedMeetingId) throw new Error("meetingid required");
 
@@ -182,7 +185,7 @@ export class WecomMeetingClient {
   async cancel(
     agent: ResolvedAgentAccount,
     meetingid: string,
-  ): Promise<{ raw: any; meetingid: string }> {
+  ): Promise<{ raw: Record<string, unknown>; meetingid: string }> {
     const normalizedMeetingId = readString(meetingid);
     if (!normalizedMeetingId) throw new Error("meetingid required");
 
@@ -207,13 +210,13 @@ export class WecomMeetingClient {
       body: { meetingid: normalizedMeetingId },
     });
 
-    const info = json.meeting_info ?? {};
+    const info = (json.meeting_info ?? {}) as Record<string, unknown>;
     // Normalize WeCom API field names to our type (meeting_start → start_time)
     return {
       ...info,
       start_time: info.meeting_start ?? info.start_time ?? "",
       end_time: info.meeting_end ?? info.end_time ?? "",
-    } as WecomMeeting;
+    } as unknown as WecomMeeting;
   }
 
   async listUserMeetings(

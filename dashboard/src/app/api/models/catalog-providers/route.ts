@@ -7,9 +7,9 @@
  * Gateway contract: {} (no params)
  */
 import { type NextRequest } from "next/server";
-import { gwRequest } from "@/lib/api-helpers";
+import { gatewayRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (_request: NextRequest) => {
-  return gwRequest("models.catalog.providers", {});
+  return gatewayRequest("models.catalog.providers", {});
 });

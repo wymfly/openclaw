@@ -26,6 +26,7 @@ import {
   ChannelsStatusParamsSchema,
   ChannelsStatusResultSchema,
 } from "../protocol/schema/channels.js";
+import { ChannelsLogoutResultSchema } from "../protocol/schema/control-plane-results.js";
 import { formatForLog } from "../ws-log.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "./types.js";
 
@@ -305,6 +306,7 @@ export const channelsMethodDefs: Record<string, MethodMetadata> = {
   },
   "channels.logout": {
     params: ChannelsLogoutParamsSchema,
+    result: ChannelsLogoutResultSchema,
     scope: "operator.admin",
   },
 };

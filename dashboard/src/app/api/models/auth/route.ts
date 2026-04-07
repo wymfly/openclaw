@@ -1,8 +1,8 @@
 /**
- * GET /api/models/auth — Provider auth overview.
+ * GET /api/models/auth — Provider auth overview with provenance.
  *
- * Calls `deck.auth.overview` RPC to retrieve authentication status
- * for all configured providers.
+ * Calls `deck.auth.overview` RPC to retrieve auth health plus provider/source
+ * boundary information for runtime-visible providers.
  *
  * Gateway contract (`DeckAuthOverviewParamsSchema`): {} (no params)
  */

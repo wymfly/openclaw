@@ -52,7 +52,7 @@ export function parseConfigLookupResult(value: unknown): ConfigLookupResult | nu
   if (!isHintShape(value.hint)) {
     return null;
   }
-  return value as ConfigLookupResult;
+  return value as unknown as ConfigLookupResult;
 }
 
 export function parseConfigSchemaResult(value: unknown): ConfigSchemaBootstrap | null {
@@ -65,7 +65,7 @@ export function parseConfigSchemaResult(value: unknown): ConfigSchemaBootstrap |
   if (typeof value.version !== "string" || typeof value.generatedAt !== "string") {
     return null;
   }
-  return value as ConfigSchemaBootstrap;
+  return value as unknown as ConfigSchemaBootstrap;
 }
 
 export function parseConfigGetResult(value: unknown): ConfigReadSnapshot | null {
@@ -88,7 +88,7 @@ export function parseConfigGetResult(value: unknown): ConfigReadSnapshot | null 
   if (value.hash !== undefined && typeof value.hash !== "string") {
     return null;
   }
-  return value as ConfigReadSnapshot;
+  return value as unknown as ConfigReadSnapshot;
 }
 
 export function resolveSectionSchemaNode(params: {

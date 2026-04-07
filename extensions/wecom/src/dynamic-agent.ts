@@ -5,7 +5,7 @@
  * 参考: openclaw-plugin-wecom/dynamic-agent.js
  */
 
-import type { OpenClawConfig } from "openclaw/plugin-sdk/wecom";
+import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 
 export interface DynamicAgentConfig {
   enabled: boolean;
@@ -151,8 +151,10 @@ function upsertAgentIdOnlyEntry(cfg: Record<string, unknown>, agentId: string): 
  * - 串行：使用 Promise 队列避免并发冲突
  * - 异步：不阻塞消息处理流程
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function ensureDynamicAgentListed(agentId: string, runtime: any): Promise<void> {
+export async function ensureDynamicAgentListed(
+  agentId: string,
+  runtime: PluginRuntime,
+): Promise<void> {
   const normalizedId = String(agentId).trim().toLowerCase();
   if (!normalizedId) return;
   if (ensuredDynamicAgentIds.has(normalizedId)) return;
@@ -169,13 +171,16 @@ export async function ensureDynamicAgentListed(agentId: string, runtime: any): P
 
       const changed = upsertAgentIdOnlyEntry(latestConfig as Record<string, unknown>, normalizedId);
       if (changed) {
-        await configRuntime.writeConfigFile!(latestConfig as unknown);
+        await configRuntime.writeConfigFile!(latestConfig as Record<string, unknown>);
       }
 
       ensuredDynamicAgentIds.add(normalizedId);
     })
     .catch((err) => {
-      console.warn(`[wecom] 动态 Agent 添加失败: ${normalizedId}`, err);
+      // No account-level runtime context available here; keep console.warn as fallback
+      console.warn(
+        `[wecom] 动态 Agent 添加失败: ${normalizedId} ${err instanceof Error ? err.message : String(err)}`,
+      );
     });
 
   await ensureDynamicAgentWriteQueue;

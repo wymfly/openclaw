@@ -59,7 +59,7 @@ function parseSubagentNodes(events: RunEventRow[]): LineageNode[] {
         (parsed.agentName as string | undefined) ?? (parsed.childAgentName as string | undefined),
       task: parsed.task as string | undefined,
       depth: typeof parsed.depth === "number" ? parsed.depth : 0,
-      parentRunId: (parsed.parentRunId as string | undefined) ?? null,
+      parentRunId: (parsed.parentRunId as string | undefined) ?? "",
       status,
       durationMs: typeof parsed.durationMs === "number" ? parsed.durationMs : undefined,
     });

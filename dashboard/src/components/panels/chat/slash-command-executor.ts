@@ -32,7 +32,16 @@ export interface SlashCommandResult {
   toastType?: ToastType;
   /** Optimistic config update to apply to SessionMeta immediately. */
   configUpdate?: Partial<
-    Pick<SessionMeta, "model" | "thinkingLevel" | "fastMode" | "verboseLevel">
+    Pick<
+      SessionMeta,
+      | "model"
+      | "thinkingLevel"
+      | "fastMode"
+      | "verboseLevel"
+      | "reasoningLevel"
+      | "responseUsage"
+      | "sendPolicy"
+    >
   >;
 }
 
@@ -62,6 +71,8 @@ export function initializeLocalCommands(): void {
     verbose: (sessionKey, args) => executeVerbose(sessionKey, args),
     usage: (sessionKey) => executeUsage(sessionKey),
     agents: () => executeAgents(),
+    reasoning: (sessionKey, args) => executeReasoning(sessionKey, args),
+    sendpolicy: (sessionKey, args) => executeSendPolicy(sessionKey, args),
   };
 
   for (const [name, handler] of Object.entries(handlers)) {
@@ -384,11 +395,56 @@ async function executeAgents(): Promise<SlashCommandResult> {
   }
 }
 
+async function executeReasoning(sessionKey: string, args: string): Promise<SlashCommandResult> {
+  const level = args.trim().toLowerCase();
+  if (!level) {
+    return { content: "Usage: /reasoning <off|on|stream>" };
+  }
+  if (level !== "off" && level !== "on" && level !== "stream") {
+    return { content: `Invalid reasoning level "${args.trim()}". Valid: off, on, stream` };
+  }
+  return patchSession(
+    sessionKey,
+    { reasoningLevel: level as "off" | "on" | "stream" },
+    "toastReasoning",
+    level,
+    "toastReasoningFailed",
+  );
+}
+
+async function executeSendPolicy(sessionKey: string, args: string): Promise<SlashCommandResult> {
+  const policy = args.trim().toLowerCase();
+  if (!policy) {
+    return { content: "Usage: /sendpolicy <allow|deny>" };
+  }
+  if (policy !== "allow" && policy !== "deny") {
+    return { content: `Invalid send policy "${args.trim()}". Valid: allow, deny` };
+  }
+  return patchSession(
+    sessionKey,
+    { sendPolicy: policy as "allow" | "deny" },
+    "toastSendPolicy",
+    policy,
+    "toastSendPolicyFailed",
+  );
+}
+
 // ── Shared ──
 
 async function patchSession(
   sessionKey: string,
-  params: Partial<Pick<SessionMeta, "model" | "thinkingLevel" | "fastMode" | "verboseLevel">>,
+  params: Partial<
+    Pick<
+      SessionMeta,
+      | "model"
+      | "thinkingLevel"
+      | "fastMode"
+      | "verboseLevel"
+      | "reasoningLevel"
+      | "responseUsage"
+      | "sendPolicy"
+    >
+  >,
   successKey: string,
   successValue: string,
   errorKey: string,

@@ -123,11 +123,14 @@ export function createBotWebhookRequestHandler(params: {
       res.end(body.error || "invalid payload");
       return true;
     }
-    const record = body.value as any;
+    const record = body.value as Record<string, unknown>;
     const encrypt = String(record?.encrypt ?? record?.Encrypt ?? "");
-    console.log(
-      `[wecom] inbound(bot): reqId=${reqId} rawJsonBytes=${Buffer.byteLength(JSON.stringify(record), "utf8")} hasEncrypt=${Boolean(encrypt)} encryptLen=${encrypt.length}`,
-    );
+    if (targets[0]) {
+      logInfo(
+        targets[0],
+        `inbound(bot): reqId=${reqId} rawJsonBytes=${Buffer.byteLength(JSON.stringify(record), "utf8")} hasEncrypt=${Boolean(encrypt)} encryptLen=${encrypt.length}`,
+      );
+    }
     const signatureMatches = targets.filter(
       (target) =>
         target.account.token &&
@@ -174,7 +177,9 @@ export function createBotWebhookRequestHandler(params: {
 
     const expected = resolveBotIdentitySet(target);
     if (expected.size > 0) {
-      const inboundAibotId = String((msg as any).aibotid ?? "").trim();
+      const inboundAibotId = String(
+        (msg as unknown as Record<string, unknown>).aibotid ?? "",
+      ).trim();
       if (!inboundAibotId || !expected.has(inboundAibotId)) {
         target.runtime.error?.(
           `[wecom] inbound(bot): reqId=${reqId} accountId=${target.account.accountId} aibotid_mismatch expected=${Array.from(expected).join(",")} actual=${inboundAibotId || "N/A"}`,
@@ -191,7 +196,9 @@ export function createBotWebhookRequestHandler(params: {
     const proxyUrl = resolveWecomEgressProxyUrl(target.config);
 
     if (msgtype === "event") {
-      const eventtype = String((msg as any).event?.eventtype ?? "").toLowerCase();
+      const eventtype = String(
+        (msg as unknown as Record<string, Record<string, unknown>>).event?.eventtype ?? "",
+      ).toLowerCase();
 
       if (eventtype === "template_card_event") {
         const msgid = msg.msgid ? String(msg.msgid) : undefined;
@@ -219,11 +226,16 @@ export function createBotWebhookRequestHandler(params: {
           return true;
         }
 
-        const cardEvent = (msg as any).event?.template_card_event;
+        const cardEvent = (
+          msg as unknown as Record<string, Record<string, Record<string, unknown>>>
+        ).event?.template_card_event as Record<string, unknown> | undefined;
         let interactionDesc = `[卡片交互] 按钮: ${cardEvent?.event_key || "unknown"}`;
-        if (cardEvent?.selected_items?.selected_item?.length) {
-          const selects = cardEvent.selected_items.selected_item.map(
-            (i: any) => `${i.question_key}=${i.option_ids?.option_id?.join(",")}`,
+        if ((cardEvent?.selected_items as Record<string, unknown>)?.selected_item) {
+          const selectedItems = (cardEvent?.selected_items as Record<string, unknown>)
+            ?.selected_item as Array<Record<string, unknown>>;
+          const selects = selectedItems.map(
+            (i: Record<string, unknown>) =>
+              `${i.question_key}=${(i.option_ids as Record<string, unknown>)?.option_id ? ((i.option_ids as Record<string, unknown>).option_id as string[]).join(",") : ""}`,
           );
           interactionDesc += ` 选择: ${selects.join("; ")}`;
         }
@@ -246,7 +258,11 @@ export function createBotWebhookRequestHandler(params: {
         startAgentForStream({
           target: { ...target, core },
           accountId: target.account.accountId,
-          msg: { ...msg, msgtype: "text", text: { content: interactionDesc } } as any,
+          msg: {
+            ...msg,
+            msgtype: "text",
+            text: { content: interactionDesc },
+          } as unknown as WecomInboundMessage,
           streamId,
         }).catch((err) => target.runtime.error?.(`interaction failed: ${String(err)}`));
         return true;
@@ -279,7 +295,9 @@ export function createBotWebhookRequestHandler(params: {
     }
 
     if (msgtype === "stream") {
-      const streamId = String((msg as any).stream?.id ?? "").trim();
+      const streamId = String(
+        (msg as unknown as Record<string, Record<string, unknown>>).stream?.id ?? "",
+      ).trim();
       const state = streamStore.getStream(streamId);
       const reply = state
         ? buildStreamReplyFromState(state)
@@ -329,7 +347,7 @@ export function createBotWebhookRequestHandler(params: {
 
       logInfo(
         target,
-        `inbound: msgtype=${msgtype} chattype=${String(msg.chattype ?? "")} chatid=${String(msg.chatid ?? "")} from=${userid} msgid=${String(msg.msgid ?? "")} hasResponseUrl=${Boolean((msg as any).response_url)}`,
+        `inbound: msgtype=${msgtype} chattype=${String(msg.chattype ?? "")} chatid=${String(msg.chatid ?? "")} from=${userid} msgid=${String(msg.msgid ?? "")} hasResponseUrl=${Boolean((msg as unknown as Record<string, unknown>).response_url)}`,
       );
 
       if (msg.msgid) {
@@ -372,7 +390,9 @@ export function createBotWebhookRequestHandler(params: {
         msgContent,
         nonce,
         timestamp,
-        debounceMs: (target.account.config as any).debounceMs,
+        debounceMs: (target.account.config as unknown as Record<string, unknown>).debounceMs as
+          | number
+          | undefined,
       });
 
       if (msg.response_url) {

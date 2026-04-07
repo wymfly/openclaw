@@ -3,8 +3,10 @@
 import { ChevronRight, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { scopeTranslationKey, sourceTranslationKey } from "@/lib/model-provenance";
 import { cn } from "@/lib/utils";
 import type { AuthOverviewEntry, Model } from "@/stores/models";
 import { AuthStatusDot } from "../shared/AuthStatusDot";
@@ -64,6 +66,7 @@ export function ProviderList({
   allowlistActive,
 }: ProviderListProps) {
   const t = useTranslations("models");
+  const tp = useTranslations("models.provenance");
 
   // Track which providers are expanded; default all open
   const [expanded, setExpanded] = useState<Set<string>>(() => {
@@ -92,6 +95,8 @@ export function ProviderList({
     const entry = auth.find((a) => a.provider === provider);
     return entry?.status ?? "unknown";
   };
+
+  const getAuthEntry = (provider: string) => auth.find((a) => a.provider === provider);
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--card)]">
@@ -126,6 +131,7 @@ export function ProviderList({
           {[...grouped.entries()].map(([provider, providerModels]) => {
             const isProviderSelected = selectedProvider === provider && !selectedModel;
             const isOpen = expanded.has(provider);
+            const authEntry = getAuthEntry(provider);
 
             return (
               <Collapsible
@@ -183,6 +189,22 @@ export function ProviderList({
                       : providerModels.length}
                   </span>
                 </CollapsibleTrigger>
+
+                {authEntry && (
+                  <div className="flex flex-wrap items-center gap-1 px-8 pb-1 text-[10px]">
+                    <Badge variant="secondary" className="h-4 px-1.5 py-0 leading-tight">
+                      {tp(sourceTranslationKey(authEntry.source))}
+                    </Badge>
+                    <Badge variant="outline" className="h-4 px-1.5 py-0 leading-tight">
+                      {tp(scopeTranslationKey(authEntry.scope))}
+                    </Badge>
+                    {!authEntry.editable && (
+                      <Badge variant="outline" className="h-4 px-1.5 py-0 leading-tight">
+                        {tp("readOnly")}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 {/* Model list */}
                 <CollapsibleContent>

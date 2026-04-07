@@ -16,10 +16,13 @@ function readString(value: unknown): string {
   return trimmed || "";
 }
 
-async function parseJsonResponse(res: Response, actionLabel: string): Promise<any> {
-  let payload: any = null;
+async function parseJsonResponse(
+  res: Response,
+  actionLabel: string,
+): Promise<Record<string, unknown>> {
+  let payload: Record<string, unknown> | null = null;
   try {
-    payload = await res.json();
+    payload = (await res.json()) as Record<string, unknown>;
   } catch {
     if (!res.ok) {
       throw new Error(`WeCom ${actionLabel} failed: HTTP ${res.status}`);
@@ -50,7 +53,7 @@ export class WecomExternalContactClient {
     actionLabel: string;
     agent: ResolvedAgentAccount;
     query?: Record<string, string>;
-  }): Promise<any> {
+  }): Promise<Record<string, unknown>> {
     const { path, actionLabel, agent, query } = params;
     const token = await getAccessToken(agent);
     const qs = new URLSearchParams({ access_token: token, ...query });
@@ -82,7 +85,7 @@ export class WecomExternalContactClient {
     actionLabel: string;
     agent: ResolvedAgentAccount;
     body: Record<string, unknown>;
-  }): Promise<any> {
+  }): Promise<Record<string, unknown>> {
     const { path, actionLabel, agent, body } = params;
     const token = await getAccessToken(agent);
     const url = `https://qyapi.weixin.qq.com${path}?access_token=${encodeURIComponent(token)}`;

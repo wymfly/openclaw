@@ -258,12 +258,41 @@ stage_deps() {
 # Manifest
 # ---------------------------------------------------------------------------
 write_manifest() {
+  # Compute checksums for incremental upgrade detection
+  local lockfile_hash="" dist_hash="" standalone_hash=""
+  local src="$STAGING_DIR/$PKG_NAME/source"
+  [ -f "$src/pnpm-lock.yaml" ] && lockfile_hash=$(shasum -a 256 "$src/pnpm-lock.yaml" | cut -d' ' -f1)
+  [ -f "$src/dist/cli-startup-metadata.json" ] && dist_hash=$(shasum -a 256 "$src/dist/cli-startup-metadata.json" | cut -d' ' -f1)
+  [ -f "$src/dashboard/.next/standalone/dashboard/server.js" ] && standalone_hash=$(shasum -a 256 "$src/dashboard/.next/standalone/dashboard/server.js" | cut -d' ' -f1)
+
+  # Read seed version (defaults to 1)
+  local seed_version=1
+  [ -f "$DEPLOY_DIR/seed/VERSION" ] && seed_version=$(cat "$DEPLOY_DIR/seed/VERSION" 2>/dev/null || echo 1)
+
+  # Extract env var names from .env.example
+  local env_vars=""
+  if [ -f "$DEPLOY_DIR/.env.example" ]; then
+    env_vars=$(grep -E '^[A-Z_][A-Z0-9_]*=' "$DEPLOY_DIR/.env.example" | cut -d= -f1 | sort | while read -r v; do printf '"%s",' "$v"; done | sed 's/,$//')
+  fi
+
+  # Read version from package.json
+  local pkg_version=""
+  pkg_version=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('$REPO_DIR/package.json','utf8')).version||'')" 2>/dev/null || echo "")
+
   cat > "$STAGING_DIR/$PKG_NAME/manifest.json" <<EOF
 {
-  "format": 1,
+  "format": 2,
+  "version": "$pkg_version",
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "commit": "$(cd "$REPO_DIR" && git rev-parse --short HEAD)",
   "branch": "$(cd "$REPO_DIR" && git branch --show-current)",
+  "seedVersion": $seed_version,
+  "checksums": {
+    "lockfile": "$lockfile_hash",
+    "gatewayDist": "$dist_hash",
+    "deckStandalone": "$standalone_hash"
+  },
+  "envVars": [$env_vars],
   "contents": {
     "source": true,
     "prebuilt": $HAS_PREBUILT,
@@ -274,7 +303,7 @@ write_manifest() {
   }
 }
 EOF
-  log "Manifest written"
+  log "Manifest written (format 2, seedVersion=$seed_version)"
 }
 
 # ---------------------------------------------------------------------------

@@ -18,6 +18,14 @@ export interface Model {
   input?: string[];
   /** Maximum output tokens. */
   maxTokens?: number;
+  /** Where this runtime model came from. */
+  source?: "config" | "agent-models" | "mixed" | "runtime";
+  /** Which scope owns the runtime visibility. */
+  scope?: string;
+  /** Whether the provider can be edited from global config. */
+  editable?: boolean;
+  /** Provider auth status for runtime inventory views. */
+  authStatus?: string;
 }
 
 export interface ProviderModelEntry {
@@ -42,6 +50,11 @@ export interface ProviderConfig {
 export interface AuthOverviewEntry {
   provider: string;
   status: "ready" | "warning" | "missing" | "unknown";
+  source: "config" | "auth-profile" | "agent-models" | "env" | "mixed";
+  scope: string;
+  configPresent: boolean;
+  authPresent: boolean;
+  editable: boolean;
   auth: {
     type: "api_key" | "oauth" | "token" | "aws-sdk" | null;
     source: string;
@@ -513,6 +526,10 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
             reasoning: m.reasoning as boolean | undefined,
             input: m.input as string[] | undefined,
             maxTokens: m.maxTokens as number | undefined,
+            source: (m.source as Model["source"]) ?? "runtime",
+            scope: typeof m.scope === "string" ? (m.scope as string) : "global",
+            editable: typeof m.editable === "boolean" ? (m.editable as boolean) : false,
+            authStatus: typeof m.authStatus === "string" ? (m.authStatus as string) : "unknown",
           };
         });
       set({ usableModels: list });
@@ -602,7 +619,16 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
         : Array.isArray(data?.providers)
           ? data.providers
           : [];
-      set({ authOverview: providers });
+      set({
+        authOverview: providers.map((entry: Record<string, unknown>) => ({
+          source: "mixed",
+          scope: "global",
+          configPresent: false,
+          authPresent: false,
+          editable: false,
+          ...entry,
+        })),
+      });
     } catch {
       // best-effort
     } finally {

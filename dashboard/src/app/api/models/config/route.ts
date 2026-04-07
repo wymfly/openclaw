@@ -1,15 +1,16 @@
 /**
- * /api/models/config — Provider configuration.
+ * /api/models/config — Global provider configuration.
  *
- * GET   — Read provider config (API keys, base URLs)
- * PATCH — Update provider config
+ * GET   — Read global provider config from openclaw.json
+ * PATCH — Update global provider config
  *
  * Gateway contracts:
  *   config.get:   {} (no params, returns { raw, hash })
  *   config.patch: { raw, baseHash?, sessionKey?, note?, restartDelayMs? }
  *
  * The Gateway returns raw config as YAML. We normalize it to JSON
- * for the client store (which uses JSON.parse).
+ * for the client store (which uses JSON.parse). This route only edits
+ * the global config layer, not agent-local runtime inventory.
  */
 import { type NextRequest } from "next/server";
 import YAML from "yaml";

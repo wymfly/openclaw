@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { ErrorCodes } from "../protocol/index.js";
-import { deckAuthHandlers } from "./deck-auth.js";
 
 vi.mock("../../config/config.js", () => ({
   loadConfig: vi.fn(() => ({
@@ -80,8 +79,9 @@ vi.mock("../../commands/models/list.probe.js", () => ({
 
 type RespondCall = [boolean, unknown?, { code: number; message: string }?];
 
-function createInvokeParams(method: string, params: Record<string, unknown>) {
+async function createInvokeParams(method: string, params: Record<string, unknown>) {
   const respond = vi.fn();
+  const { deckAuthHandlers } = await import("./deck-auth.js");
   const handler = deckAuthHandlers[method];
   return {
     respond,
@@ -99,7 +99,7 @@ function createInvokeParams(method: string, params: Record<string, unknown>) {
 
 describe("deck.auth.overview handler", () => {
   it("responds with a provider list from buildAuthOverview", async () => {
-    const { respond, invoke } = createInvokeParams("deck.auth.overview", {});
+    const { respond, invoke } = await createInvokeParams("deck.auth.overview", {});
     await invoke();
 
     const call = respond.mock.calls[0] as RespondCall | undefined;
@@ -108,12 +108,19 @@ describe("deck.auth.overview handler", () => {
     expect(payload.providers).toHaveLength(1);
     expect(payload.providers[0]?.provider).toBe("anthropic");
     expect(payload.providers[0]?.status).toBe("ready");
+    expect(payload.providers[0]).toMatchObject({
+      source: "mixed",
+      scope: "agent:main",
+      configPresent: true,
+      authPresent: true,
+      editable: true,
+    });
   });
 });
 
 describe("deck.auth.probe handler", () => {
   it("rejects when provider param is missing", async () => {
-    const { respond, invoke } = createInvokeParams("deck.auth.probe", {});
+    const { respond, invoke } = await createInvokeParams("deck.auth.probe", {});
     await invoke();
 
     const call = respond.mock.calls[0] as RespondCall | undefined;
@@ -123,7 +130,7 @@ describe("deck.auth.probe handler", () => {
   });
 
   it("rejects when provider param is empty string", async () => {
-    const { respond, invoke } = createInvokeParams("deck.auth.probe", { provider: "  " });
+    const { respond, invoke } = await createInvokeParams("deck.auth.probe", { provider: "  " });
     await invoke();
 
     const call = respond.mock.calls[0] as RespondCall | undefined;
@@ -132,7 +139,7 @@ describe("deck.auth.probe handler", () => {
   });
 
   it("returns probe result with status and latencyMs", async () => {
-    const { respond, invoke } = createInvokeParams("deck.auth.probe", {
+    const { respond, invoke } = await createInvokeParams("deck.auth.probe", {
       provider: "anthropic",
     });
     await invoke();
@@ -153,7 +160,7 @@ describe("deck.auth.probe handler", () => {
     const { runAuthProbes } = await import("../../commands/models/list.probe.js");
     vi.mocked(runAuthProbes).mockClear();
 
-    const { invoke } = createInvokeParams("deck.auth.probe", {
+    const { invoke } = await createInvokeParams("deck.auth.probe", {
       provider: "anthropic",
     });
     await invoke();
@@ -173,7 +180,7 @@ describe("deck.auth.probe handler", () => {
     const { runAuthProbes } = await import("../../commands/models/list.probe.js");
     vi.mocked(runAuthProbes).mockClear();
 
-    const { invoke } = createInvokeParams("deck.auth.probe", {
+    const { invoke } = await createInvokeParams("deck.auth.probe", {
       provider: "anthropic",
       timeoutMs: 15_000,
       maxTokens: 16,

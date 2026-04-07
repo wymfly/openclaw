@@ -37,6 +37,10 @@ function toStr(val: unknown, fallback: string): string {
   return fallback;
 }
 
+function asConfigString(val: unknown, fallback: string): string {
+  return typeof val === "string" && val.trim().length > 0 ? val : fallback;
+}
+
 /** Read a dot-separated path from a nested object. */
 function getNestedValue(obj: Record<string, unknown> | null | undefined, path: string): unknown {
   if (!obj) {
@@ -217,18 +221,40 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
 
     // Build the flat updates to apply to the agent entry.
     // Special handling: "model" is a union type (string | { primary, fallbacks }).
-    // If both "model" and "model.fallbacks" are edited, combine into object form
-    // to avoid setNestedKey overwriting one with the other.
+    // Combine model + model.fallbacks into a single key to avoid setNestedKey
+    // overwriting one with the other.
     const edits = { ...localEdits };
-    if ("model" in edits && "model.fallbacks" in edits) {
-      const primary = edits["model"];
-      const fallbacks = edits["model.fallbacks"];
+    if ("model" in edits || "model.fallbacks" in edits) {
+      const primaryEdit = edits["model"];
+      const fallbacksEdit = edits["model.fallbacks"];
       delete edits["model"];
       delete edits["model.fallbacks"];
-      edits["model"] =
-        primary != null || fallbacks != null
-          ? { primary: primary ?? undefined, fallbacks: fallbacks ?? undefined }
-          : null;
+
+      // Resolve the effective primary: edit value → current entry → undefined
+      const currentModel = getNestedValue(entry, "model");
+      const currentPrimary =
+        typeof currentModel === "string"
+          ? currentModel
+          : (currentModel as Record<string, unknown> | null)?.primary;
+      const primary = primaryEdit !== undefined ? primaryEdit : currentPrimary;
+
+      // Resolve the effective fallbacks: edit value → current entry → undefined
+      const currentFallbacks = Array.isArray(
+        (currentModel as Record<string, unknown> | null)?.fallbacks,
+      )
+        ? (currentModel as Record<string, unknown>).fallbacks
+        : undefined;
+      const fallbacks = fallbacksEdit !== undefined ? fallbacksEdit : currentFallbacks;
+
+      // Combine: if both null → reset model; otherwise build object or string
+      if (primary == null && fallbacks == null) {
+        edits["model"] = null;
+      } else if (fallbacks == null || (Array.isArray(fallbacks) && fallbacks.length === 0)) {
+        // No fallbacks: use plain string form if we have a primary
+        edits["model"] = primary ?? null;
+      } else {
+        edits["model"] = { primary: primary ?? undefined, fallbacks };
+      }
     }
     const updates: Record<string, unknown> = {};
     for (const [path, value] of Object.entries(edits)) {
@@ -240,7 +266,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
       setLocalEdits({});
     }
     setSaving(false);
-  }, [isDirty, localEdits, agentId, saveAgentConfig]);
+  }, [isDirty, localEdits, agentId, entry, saveAgentConfig]);
 
   if (!agentRawConfig) {
     return (

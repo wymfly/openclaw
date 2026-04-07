@@ -29,12 +29,12 @@ describe("extractPlatformHeaders", () => {
   it("returns deterministic compatibility errors when runtime is incompatible", async () => {
     getRuntimeMock.mockReturnValueOnce({
       capabilities: {
-        status: "incompatible",
+        status: "incompatible" as const,
         reason: "Gateway missing required capability: sessions.send",
         snapshot: null,
         ready: Promise.resolve(),
       },
-    });
+    } as unknown as ReturnType<typeof getRuntimeMock>);
 
     const response = await gwRequest("sessions.list", { limit: 1 });
 
@@ -61,14 +61,14 @@ describe("extractPlatformHeaders", () => {
     });
     const runtime = {
       capabilities: {
-        status: "pending" as const,
+        status: "pending" as "pending" | "ready" | "incompatible",
         reason: null as string | null,
         snapshot: null,
         ready,
       },
       adapter: { request: vi.fn() },
     };
-    getRuntimeMock.mockReturnValueOnce(runtime);
+    getRuntimeMock.mockReturnValueOnce(runtime as unknown as ReturnType<typeof getRuntimeMock>);
 
     const responsePromise = gwRequest("sessions.list", { limit: 1 });
     runtime.capabilities.status = "incompatible";
@@ -90,12 +90,12 @@ describe("extractPlatformHeaders", () => {
   it("gwCall throws deterministic compatibility errors when runtime is incompatible", async () => {
     getRuntimeMock.mockReturnValueOnce({
       capabilities: {
-        status: "incompatible",
+        status: "incompatible" as const,
         reason: "Gateway missing required capability: sessions.send",
         snapshot: null,
         ready: Promise.resolve(),
       },
-    });
+    } as unknown as ReturnType<typeof getRuntimeMock>);
 
     await expect(gwCall("sessions.list", { limit: 1 })).rejects.toMatchObject({
       code: "GATEWAY_INCOMPATIBLE",

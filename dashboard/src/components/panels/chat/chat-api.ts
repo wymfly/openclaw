@@ -19,6 +19,9 @@ type RawSessionMeta = {
   thinkingLevel?: string;
   fastMode?: boolean;
   verboseLevel?: string;
+  reasoningLevel?: string | null;
+  responseUsage?: string | null;
+  sendPolicy?: string | null;
   totalTokens?: number;
   totalTokensFresh?: boolean;
   estimatedCostUsd?: number;
@@ -134,6 +137,25 @@ export function resolveInitialSessionSendPlan(params: {
   return { kind: "send" };
 }
 
+const REASONING_VALUES = new Set(["off", "on", "stream"]);
+function normalizeReasoning(v: string | null | undefined): "off" | "on" | "stream" | undefined {
+  if (!v) return undefined;
+  return REASONING_VALUES.has(v) ? (v as "off" | "on" | "stream") : undefined;
+}
+
+const USAGE_VALUES = new Set(["off", "tokens", "full"]);
+function normalizeUsage(v: string | null | undefined): "off" | "tokens" | "full" | undefined {
+  if (!v) return undefined;
+  // Gateway backward compat: "on" → "full"
+  if (v === "on") return "full";
+  return USAGE_VALUES.has(v) ? (v as "off" | "tokens" | "full") : undefined;
+}
+
+function normalizeSendPolicy(v: string | null | undefined): "allow" | "deny" | undefined {
+  if (v === "allow" || v === "deny") return v;
+  return undefined;
+}
+
 function normalizeSessionMeta(raw: RawSessionMeta, fallbackAgentId?: string): SessionMeta {
   return {
     key: raw.key ?? raw.sessionKey ?? "",
@@ -150,6 +172,9 @@ function normalizeSessionMeta(raw: RawSessionMeta, fallbackAgentId?: string): Se
     thinkingLevel: raw.thinkingLevel,
     fastMode: raw.fastMode,
     verboseLevel: raw.verboseLevel,
+    reasoningLevel: normalizeReasoning(raw.reasoningLevel),
+    responseUsage: normalizeUsage(raw.responseUsage),
+    sendPolicy: normalizeSendPolicy(raw.sendPolicy),
     totalTokens: raw.totalTokens,
     totalTokensFresh: raw.totalTokensFresh,
     estimatedCostUsd: raw.estimatedCostUsd,
@@ -243,6 +268,9 @@ export async function patchSession(
     thinkingLevel?: string | null;
     fastMode?: boolean | null;
     verboseLevel?: string | null;
+    reasoningLevel?: string | null;
+    responseUsage?: string | null;
+    sendPolicy?: string | null;
   },
 ): Promise<boolean> {
   try {
@@ -314,6 +342,9 @@ export async function patchChatSession(params: {
   thinkingLevel?: string;
   fastMode?: boolean;
   verboseLevel?: string;
+  reasoningLevel?: string;
+  responseUsage?: string;
+  sendPolicy?: string;
 }): Promise<Response> {
   const response = await deckFetch("/api/chat/sessions/patch", {
     method: "POST",

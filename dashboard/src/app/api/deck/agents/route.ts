@@ -100,8 +100,8 @@ export const POST = withAuth(async (request: NextRequest) => {
       if (configRes.status !== 200) {
         return configRes;
       }
-      const configData = (await configRes.json()) as { baseHash?: string };
-      const baseHash = configData.baseHash;
+      const configData = (await configRes.json()) as { baseHash?: string; hash?: string };
+      const baseHash = configData.baseHash ?? configData.hash;
 
       return gwRequest("config.patch", {
         raw: JSON.stringify(patch),

@@ -30,6 +30,7 @@ import {
   type DeviceIdentity,
   type DbLike,
 } from "./device-identity";
+import { getEventBus } from "./event-bus";
 import { DEFAULT_METHOD_ALLOWLIST } from "./gateway-allowlist";
 import { ControlPlaneGatewayError } from "./gateway-errors";
 import { NodeConnection } from "./node-connection";

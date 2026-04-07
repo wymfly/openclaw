@@ -27,15 +27,15 @@ export const GET = withAuth(async (request: NextRequest) => {
   }
   const enabled = sp.get("enabled");
   if (enabled) {
-    params.enabled = enabled;
+    params.enabled = enabled as "all" | "enabled" | "disabled";
   }
   const sortBy = sp.get("sortBy");
   if (sortBy) {
-    params.sortBy = sortBy;
+    params.sortBy = sortBy as typeof params.sortBy;
   }
   const sortDir = sp.get("sortDir");
   if (sortDir) {
-    params.sortDir = sortDir;
+    params.sortDir = sortDir as "asc" | "desc";
   }
   const includeDisabled = sp.get("includeDisabled");
   if (includeDisabled) {

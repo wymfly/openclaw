@@ -59,6 +59,7 @@ services:
       DECK_GATEWAY_URL: ws://localhost:18789
       DECK_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       DECK_DB_PATH: /data/deck.db
+      DECK_MIGRATION_DIR: /app/dashboard/migrations
     depends_on:
       gateway:
         condition: service_healthy

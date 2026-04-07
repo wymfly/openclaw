@@ -23,10 +23,13 @@ function withoutErrFields<T extends Record<string, unknown>>(
   return cloned;
 }
 
-async function parseJsonResponse(res: Response, actionLabel: string): Promise<any> {
-  let payload: any = null;
+async function parseJsonResponse(
+  res: Response,
+  actionLabel: string,
+): Promise<Record<string, unknown>> {
+  let payload: Record<string, unknown> | null = null;
   try {
-    payload = await res.json();
+    payload = (await res.json()) as Record<string, unknown>;
   } catch {
     if (!res.ok) {
       throw new Error(`WeCom ${actionLabel} failed: HTTP ${res.status}`);
@@ -57,7 +60,7 @@ export class WecomTodoClient {
     actionLabel: string;
     agent: ResolvedAgentAccount;
     body: Record<string, unknown>;
-  }): Promise<any> {
+  }): Promise<Record<string, unknown>> {
     const { path, actionLabel, agent, body } = params;
 
     const token = await getAccessToken(agent);

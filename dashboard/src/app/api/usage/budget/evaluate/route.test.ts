@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getRuntime = vi.fn();
@@ -58,7 +59,7 @@ describe("/api/usage/budget/evaluate", () => {
   it("uses gwCall for usage.cost before evaluating rules", async () => {
     const { GET } = await import("./route.js");
 
-    const response = await GET();
+    const response = await GET(new NextRequest("http://localhost"));
     const body = await response.json();
 
     expect(gwCall).toHaveBeenCalledWith("usage.cost", { days: 30 });

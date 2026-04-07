@@ -12,6 +12,7 @@ Browser ──→ Deck(:3000) ──ws──→ Gateway(:18789) ──→ AI Pro
 
 - **Gateway** — OpenClaw 核心引擎，处理 AI 调用、工具执行、会话管理
 - **Deck** — Next.js Web 仪表板，通过 WebSocket 连接 Gateway
+- **WeCom 插件** — 企业微信频道插件（`extensions/wecom`），已内置并默认启用
 - Docker 模式下 Deck 与 Gateway 共享网络命名空间，通过 localhost 自动完成设备配对
 
 ## 部署模式

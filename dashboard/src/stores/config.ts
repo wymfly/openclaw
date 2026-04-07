@@ -88,12 +88,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       }
       const raw =
         typeof data.config === "string" ? data.config : JSON.stringify(data.config ?? {}, null, 2);
-      const baseHash =
-        typeof data.baseHash === "string"
-          ? data.baseHash
-          : typeof data.hash === "string"
-            ? data.hash
-            : null;
+      const baseHash = typeof data.hash === "string" ? data.hash : null;
 
       set({
         rawConfig: raw,
@@ -158,12 +153,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
                 typeof remoteData.config === "string"
                   ? remoteData.config
                   : JSON.stringify(remoteData.config ?? {}, null, 2);
-              const remoteHash =
-                typeof remoteData.baseHash === "string"
-                  ? remoteData.baseHash
-                  : typeof remoteData.hash === "string"
-                    ? remoteData.hash
-                    : null;
+              const remoteHash = typeof remoteData.hash === "string" ? remoteData.hash : null;
               set({ conflict: true, remoteConfig: remoteRaw, baseHash: remoteHash });
             } else {
               console.error(
@@ -250,12 +240,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
                 typeof remoteData.config === "string"
                   ? remoteData.config
                   : JSON.stringify(remoteData.config ?? {}, null, 2);
-              const remoteHash =
-                typeof remoteData.baseHash === "string"
-                  ? remoteData.baseHash
-                  : typeof remoteData.hash === "string"
-                    ? remoteData.hash
-                    : null;
+              const remoteHash = typeof remoteData.hash === "string" ? remoteData.hash : null;
               set({ remoteConfig: remoteRaw, baseHash: remoteHash, error: errorMsg });
             } else {
               console.error(

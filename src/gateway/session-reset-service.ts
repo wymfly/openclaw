@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { CURRENT_SESSION_VERSION } from "@mariozechner/pi-coding-agent";
-import { closeTrackedBrowserTabsForSessions } from "../../extensions/browser/runtime-api.js";
 import { getAcpSessionManager } from "../acp/control-plane/manager.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { clearBootstrapSnapshot } from "../agents/bootstrap-cache.js";
@@ -13,6 +12,7 @@ import {
   buildSessionEndHookPayload,
   buildSessionStartHookPayload,
 } from "../auto-reply/reply/session-hooks.js";
+import { closeTrackedBrowserTabsForSessions } from "../browser/session-tab-registry.js";
 import { loadConfig } from "../config/config.js";
 import {
   snapshotSessionOrigin,

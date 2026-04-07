@@ -1,7 +1,13 @@
 import fs from "node:fs";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
+import { getAccountRuntime } from "../../runtime.js";
 import type { ResolvedAgentAccount } from "../../types/index.js";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
+import {
+  buildToolError,
+  buildToolResult as buildBaseToolResult,
+  type WecomToolContext,
+} from "../shared-tool-types.js";
 import { WecomDocClient } from "./client.js";
 import { wecomDocToolSchema } from "./schema.js";
 import { UpdateRequest } from "./types.js";
@@ -16,21 +22,23 @@ function mapDocTypeLabel(docType: number): string {
   return docType === 4 ? "表格" : "文档";
 }
 
-function summarizeDocInfo(info: any = {}) {
+function summarizeDocInfo(info: Record<string, unknown> = {}) {
   const docName = readString(info.doc_name) || "未命名文档";
   const docType = mapDocTypeLabel(Number(info.doc_type));
   return `${docType}"${docName}"信息已获取`;
 }
 
-function summarizeDocAuth(result: any = {}) {
-  return `权限信息已获取：通知成员 ${result.docMembers?.length ?? 0}，协作者 ${result.coAuthList?.length ?? 0}`;
+function summarizeDocAuth(result: Record<string, unknown> = {}) {
+  const docMembers = Array.isArray(result.docMembers) ? result.docMembers : [];
+  const coAuthList = Array.isArray(result.coAuthList) ? result.coAuthList : [];
+  return `权限信息已获取：通知成员 ${docMembers.length}，协作者 ${coAuthList.length}`;
 }
 
 function readBooleanFlag(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
 
-function formatDocMemberRef(value: any) {
+function formatDocMemberRef(value: Record<string, unknown>) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return "";
   const userid = readString(value.userid ?? value.userId);
   if (userid) return `userid:${userid}`;
@@ -41,9 +49,9 @@ function formatDocMemberRef(value: any) {
   return "";
 }
 
-function mapDocMemberList(values: any) {
+function mapDocMemberList(values: unknown) {
   return Array.isArray(values)
-    ? values.map((item) => formatDocMemberRef(item)).filter(Boolean)
+    ? values.map((item: Record<string, unknown>) => formatDocMemberRef(item)).filter(Boolean)
     : [];
 }
 
@@ -58,9 +66,11 @@ function describeFlagState(
   return unknownLabel;
 }
 
-function buildDocAuthDiagnosis(result: any = {}, requesterSenderId = "") {
+function buildDocAuthDiagnosis(result: Record<string, unknown> = {}, requesterSenderId = "") {
   const accessRule =
-    result.accessRule && typeof result.accessRule === "object" ? result.accessRule : {};
+    result.accessRule && typeof result.accessRule === "object"
+      ? (result.accessRule as Record<string, unknown>)
+      : ({} as Record<string, unknown>);
   const viewers = mapDocMemberList(result.docMembers);
   const collaborators = mapDocMemberList(result.coAuthList);
   const requester = readString(requesterSenderId);
@@ -119,7 +129,7 @@ function buildDocAuthDiagnosis(result: any = {}, requesterSenderId = "") {
   };
 }
 
-function summarizeDocAuthDiagnosis(diagnosis: any = {}) {
+function summarizeDocAuthDiagnosis(diagnosis: Record<string, unknown> = {}) {
   const parts = Array.isArray(diagnosis.findings) ? diagnosis.findings : [];
   return parts.length > 0 ? `文档权限诊断：${parts.join("，")}` : "文档权限诊断已完成";
 }
@@ -155,7 +165,7 @@ function buildShareLinkDiagnosis(params: {
   finalUrl: string;
   status: number;
   contentType: string;
-  basicClientVars: any;
+  basicClientVars: Record<string, unknown> | null;
 }) {
   const { shareUrl, finalUrl, status, contentType, basicClientVars } = params;
   const parsedUrl = new URL(finalUrl || shareUrl);
@@ -163,20 +173,28 @@ function buildShareLinkDiagnosis(params: {
   const pathResourceType = readString(pathSegments[0]);
   const pathResourceId = readString(pathSegments[1]);
   const shareCode = readString(parsedUrl.searchParams.get("scode"));
-  const userInfo =
+  const userInfo = (
     basicClientVars?.userInfo && typeof basicClientVars.userInfo === "object"
       ? basicClientVars.userInfo
-      : {};
-  const docInfo =
+      : {}
+  ) as Record<string, unknown>;
+  const docInfo = (
     basicClientVars?.docInfo && typeof basicClientVars.docInfo === "object"
       ? basicClientVars.docInfo
-      : {};
-  const padInfo = docInfo?.padInfo && typeof docInfo.padInfo === "object" ? docInfo.padInfo : {};
-  const ownerInfo =
-    docInfo?.ownerInfo && typeof docInfo.ownerInfo === "object" ? docInfo.ownerInfo : {};
-  const shareInfo =
-    docInfo?.shareInfo && typeof docInfo.shareInfo === "object" ? docInfo.shareInfo : {};
-  const aclInfo = docInfo?.aclInfo && typeof docInfo.aclInfo === "object" ? docInfo.aclInfo : {};
+      : {}
+  ) as Record<string, unknown>;
+  const padInfo = (
+    docInfo?.padInfo && typeof docInfo.padInfo === "object" ? docInfo.padInfo : {}
+  ) as Record<string, unknown>;
+  const ownerInfo = (
+    docInfo?.ownerInfo && typeof docInfo.ownerInfo === "object" ? docInfo.ownerInfo : {}
+  ) as Record<string, unknown>;
+  const shareInfo = (
+    docInfo?.shareInfo && typeof docInfo.shareInfo === "object" ? docInfo.shareInfo : {}
+  ) as Record<string, unknown>;
+  const aclInfo = (
+    docInfo?.aclInfo && typeof docInfo.aclInfo === "object" ? docInfo.aclInfo : {}
+  ) as Record<string, unknown>;
   const userType = readString(userInfo.userType);
   const padType = readString(padInfo.padType);
   const padId = readString(padInfo.padId);
@@ -274,16 +292,17 @@ async function inspectWecomShareLink(params: { shareUrl: string }) {
   };
 }
 
-function summarizeShareLinkDiagnosis(diagnosis: any = {}) {
+function summarizeShareLinkDiagnosis(diagnosis: Record<string, unknown> = {}) {
   const parts = Array.isArray(diagnosis.findings) ? diagnosis.findings : [];
   return parts.length > 0 ? `分享链接校验：${parts.join("，")}` : "分享链接校验已完成";
 }
 
-function summarizeSheetProperties(result: any = {}) {
-  return `表格属性已获取：工作表 ${result.properties?.length ?? 0}`;
+function summarizeSheetProperties(result: Record<string, unknown> = {}) {
+  const properties = Array.isArray(result.properties) ? result.properties : [];
+  return `表格属性已获取：工作表 ${properties.length}`;
 }
 
-function summarizeDocAccess(result: any = {}) {
+function summarizeDocAccess(result: Record<string, unknown> = {}) {
   const parts = [];
   if (result.addedViewerCount) parts.push(`新增查看成员 ${result.addedViewerCount}`);
   if (result.addedCollaboratorCount) parts.push(`新增协作者 ${result.addedCollaboratorCount}`);
@@ -292,34 +311,39 @@ function summarizeDocAccess(result: any = {}) {
   return parts.length > 0 ? `文档权限已更新：${parts.join("，")}` : "文档权限已更新";
 }
 
-function summarizeFormInfo(result: any = {}) {
-  const title = readString(result.formInfo?.form_title) || "未命名收集表";
+function summarizeFormInfo(result: Record<string, unknown> = {}) {
+  const formInfo = result.formInfo as Record<string, unknown> | undefined;
+  const title = readString(formInfo?.form_title) || "未命名收集表";
   return `收集表"${title}"信息已获取`;
 }
 
-function summarizeFormAnswer(result: any = {}) {
-  return `收集表答案已获取：字段 ${result.answerList?.length ?? 0}`;
+function summarizeFormAnswer(result: Record<string, unknown> = {}) {
+  const answerList = Array.isArray(result.answerList) ? result.answerList : [];
+  return `收集表答案已获取：字段 ${answerList.length}`;
 }
 
-function summarizeFormStatistic(result: any = {}) {
-  return `收集表统计已获取：请求 ${result.items?.length ?? 0}，成功 ${result.successCount ?? 0}`;
+function summarizeFormStatistic(result: Record<string, unknown> = {}) {
+  const items = Array.isArray(result.items) ? result.items : [];
+  return `收集表统计已获取：请求 ${items.length}，成功 ${result.successCount ?? 0}`;
 }
 
-function summarizeAdvancedAccount(result: any = {}, action: string) {
+function summarizeAdvancedAccount(result: Record<string, unknown> = {}, action: string) {
   if (action === "assign") return `高级功能账号分配任务已提交，jobid: ${result.jobid || "未知"}`;
   if (action === "cancel") return `高级功能账号取消任务已提交，jobid: ${result.jobid || "未知"}`;
-  return `高级功能账号列表已获取：${result.userList?.length ?? 0} 个`;
+  const userList = Array.isArray(result.userList) ? result.userList : [];
+  return `高级功能账号列表已获取：${userList.length} 个`;
 }
 
-function readMemberUserId(value: any) {
+function readMemberUserId(value: unknown) {
   if (typeof value === "string" || typeof value === "number") {
     return readString(value);
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) return "";
-  return readString(value.userid ?? value.userId);
+  const obj = value as Record<string, unknown>;
+  return readString(obj.userid ?? obj.userId);
 }
 
-function hasMemberUserId(values: any, requesterSenderId: string) {
+function hasMemberUserId(values: unknown, requesterSenderId: string) {
   const normalizedRequesterSenderId = readString(requesterSenderId);
   if (!normalizedRequesterSenderId) return false;
   return (
@@ -328,7 +352,10 @@ function hasMemberUserId(values: any, requesterSenderId: string) {
   );
 }
 
-function resolveCreateCollaborators(params: { toolContext: any; requestParams: any }) {
+function resolveCreateCollaborators(params: {
+  toolContext: WecomToolContext;
+  requestParams: Record<string, unknown>;
+}) {
   const { toolContext, requestParams } = params;
   const explicitCollaborators = Array.isArray(requestParams?.collaborators)
     ? [...requestParams.collaborators]
@@ -342,30 +369,28 @@ function resolveCreateCollaborators(params: { toolContext: any; requestParams: a
   return explicitCollaborators;
 }
 
-function buildToolResult(payload: any) {
+function buildDocToolResult(payload: Record<string, unknown>) {
   // To avoid formatting issues with URLs having underscores rendering as markdown Italics
   if (payload.url) payload.url = `<${payload.url}>`;
-  if (payload.diagnosis?.finalUrl) payload.diagnosis.finalUrl = `<${payload.diagnosis.finalUrl}>`;
-  if (payload.diagnosis?.shareUrl) payload.diagnosis.shareUrl = `<${payload.diagnosis.shareUrl}>`;
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
-    details: payload,
-  };
+  const diagnosis = payload.diagnosis as Record<string, unknown> | undefined;
+  if (diagnosis?.finalUrl) diagnosis.finalUrl = `<${diagnosis.finalUrl}>`;
+  if (diagnosis?.shareUrl) diagnosis.shareUrl = `<${diagnosis.shareUrl}>`;
+  return buildBaseToolResult(payload);
 }
 
 export function registerWecomDocTools(api: OpenClawPluginApi) {
   if (typeof api?.registerTool !== "function") return;
   const docClient = new WecomDocClient();
 
-  api.registerTool((toolContext: any) => ({
+  api.registerTool((toolContext: WecomToolContext) => ({
     name: "wecom_doc",
     label: "WeCom Doc",
     description:
       "企业微信文档工具。支持文档/表格/收集表完整CRUD操作、查看/协作者权限配置、属性查询以及分享打不开可用性诊断功能。",
     parameters: wecomDocToolSchema,
-    async execute(_toolCallId, params: any) {
+    async execute(_toolCallId: string, params: Record<string, unknown>) {
       try {
-        let accountId = params.accountId || toolContext?.accountId || "default";
+        let accountId = (params.accountId as string) || toolContext?.accountId || "default";
         const account = resolveAgentAccountOrUndefined(api.config, accountId);
         if (!account || !account.configured) {
           throw new Error(`WeCom account ${accountId} not configured for Doc API requirements`);
@@ -379,11 +404,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               : [];
             const result = await docClient.createDoc({
               agent: account,
-              docName: params.docName,
+              docName: params.docName as string,
               docType: params.docType,
-              spaceId: params.spaceId,
-              fatherId: params.fatherId,
-              adminUsers: params.adminUsers,
+              spaceId: params.spaceId as string | undefined,
+              fatherId: params.fatherId as string | undefined,
+              adminUsers: params.adminUsers as string[] | undefined,
             });
 
             // Auto-set security rules for better default permissions (internal users can edit)
@@ -404,13 +429,14 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
 
             // Handle initial content (title/body separation) if provided
             // Supports: string (text) or {type: "text"|"image", content/url: string}
-            let contentResult: any = null;
+            let contentResult: string | null = null;
             if (Array.isArray(params.init_content) && params.init_content.length > 0) {
               try {
                 // Helper: check if content item is an image
-                const isImageItem = (item: any): boolean => {
+                const isImageItem = (item: unknown): boolean => {
                   if (typeof item === "object" && item !== null) {
-                    return item.type === "image" || (item.url && !item.content);
+                    const obj = item as Record<string, unknown>;
+                    return obj.type === "image" || (!!obj.url && !obj.content);
                   }
                   if (typeof item === "string") {
                     // Detect image URLs
@@ -428,9 +454,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                 };
 
                 // Helper: get image URL from content item
-                const getImageUrl = (item: any): string => {
+                const getImageUrl = (item: unknown): string => {
                   if (typeof item === "object" && item !== null) {
-                    return item.url || item.content || "";
+                    const obj = item as Record<string, unknown>;
+                    return String(obj.url || obj.content || "");
                   }
                   return String(item);
                 };
@@ -446,9 +473,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                 };
 
                 // Helper: get text from content item
-                const getText = (item: any): string => {
+                const getText = (item: unknown): string => {
                   if (typeof item === "object" && item !== null) {
-                    return item.content || item.text || "";
+                    const obj = item as Record<string, unknown>;
+                    return String(obj.content || obj.text || "");
                   }
                   return String(item);
                 };
@@ -479,14 +507,16 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                             insert_image: {
                               image_id: uploadResult.url,
                               location: { index: 0 },
-                              width: uploadResult.width,
-                              height: uploadResult.height,
+                              width: uploadResult.width as number | undefined,
+                              height: uploadResult.height as number | undefined,
                             },
                           },
                         ],
                       });
                     } catch (uploadErr) {
-                      console.error(`Failed to upload first image ${imgUrl}:`, uploadErr);
+                      getAccountRuntime(account.accountId)?.log.error?.(
+                        `Failed to upload first image ${imgUrl}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+                      );
                       throw new Error(
                         `First image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
                       );
@@ -571,14 +601,16 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                             insert_image: {
                               image_id: uploadResult.url,
                               location: { index: docEndIndex + 1 },
-                              width: uploadResult.width,
-                              height: uploadResult.height,
+                              width: uploadResult.width as number | undefined,
+                              height: uploadResult.height as number | undefined,
                             },
                           },
                         ],
                       });
                     } catch (uploadErr) {
-                      console.error(`Failed to upload image ${imgUrl}:`, uploadErr);
+                      getAccountRuntime(account.accountId)?.log.error?.(
+                        `Failed to upload image ${imgUrl}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+                      );
                       throw new Error(
                         `Image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
                       );
@@ -617,7 +649,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               }
             }
 
-            let accessResult: any = null;
+            let accessResult: Record<string, unknown> | null = null;
             if (
               (Array.isArray(params.viewers) && params.viewers.length > 0) ||
               explicitCollaborators.length > 0
@@ -630,7 +662,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                   collaborators: explicitCollaborators,
                 });
               } catch (err) {
-                return buildToolResult({
+                return buildDocToolResult({
                   ok: false,
                   partial: true,
                   action: "create",
@@ -647,7 +679,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                 });
               }
             }
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "create",
               accountId: account.accountId,
@@ -668,10 +700,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "rename": {
             const result = await docClient.renameDoc({
               agent: account,
-              docId: params.docId,
-              newName: params.newName,
+              docId: params.docId as string,
+              newName: params.newName as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "rename",
               accountId: account.accountId,
@@ -684,12 +716,12 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "copy": {
             const result = await docClient.copyDoc({
               agent: account,
-              docId: params.docId,
-              newName: params.newName,
-              spaceId: params.spaceId,
-              fatherId: params.fatherId,
+              docId: params.docId as string,
+              newName: params.newName as string | undefined,
+              spaceId: params.spaceId as string | undefined,
+              fatherId: params.fatherId as string | undefined,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "copy",
               accountId: account.accountId,
@@ -701,30 +733,31 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_info": {
             const result = await docClient.getDocBaseInfo({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
             });
-            return buildToolResult({
+            const info = result.info as Record<string, unknown>;
+            return buildDocToolResult({
               ok: true,
               action: "get_info",
               accountId: account.accountId,
-              docId: params.docId,
-              title: readString(result.info?.doc_name) || undefined,
+              docId: params.docId as string,
+              title: readString(info?.doc_name) || undefined,
               resourceType:
-                Number(result.info?.doc_type) === 10
+                Number(info?.doc_type) === 10
                   ? "smart_table"
-                  : Number(result.info?.doc_type) === 4
+                  : Number(info?.doc_type) === 4
                     ? "spreadsheet"
                     : "doc",
-              summary: summarizeDocInfo(result.info),
+              summary: summarizeDocInfo(info),
               raw: result.raw,
             });
           }
           case "share": {
             const result = await docClient.shareDoc({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "share",
               accountId: account.accountId,
@@ -734,17 +767,17 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               summary: result.shareUrl
                 ? `文档分享链接已获取（docId: ${params.docId}）`
                 : `文档分享接口调用成功（docId: ${params.docId}）`,
-              usageHint: buildDocIdUsageHint(params.docId) || undefined,
+              usageHint: buildDocIdUsageHint(params.docId as string | undefined) || undefined,
               raw: result.raw,
             });
           }
           case "get_auth": {
             const result = await docClient.getDocAuth({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
             });
             const diagnosis = buildDocAuthDiagnosis(result, toolContext?.senderId);
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "get_auth",
               accountId: account.accountId,
@@ -758,10 +791,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "diagnose_auth": {
             const result = await docClient.getDocAuth({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
             });
             const diagnosis = buildDocAuthDiagnosis(result, toolContext?.senderId);
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "diagnose_auth",
               accountId: account.accountId,
@@ -774,9 +807,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           }
           case "validate_share_link": {
             const result = await inspectWecomShareLink({
-              shareUrl: params.shareUrl,
+              shareUrl: params.shareUrl as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "validate_share_link",
               accountId: account.accountId,
@@ -789,10 +822,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "delete": {
             const result = await docClient.deleteDoc({
               agent: account,
-              docId: params.docId,
-              formId: params.formId,
+              docId: params.docId as string | undefined,
+              formId: params.formId as string | undefined,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "delete",
               accountId: account.accountId,
@@ -805,10 +838,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "set_join_rule": {
             const result = await docClient.setDocJoinRule({
               agent: account,
-              docId: params.docId,
-              request: params.request,
+              docId: params.docId as string,
+              request: params.request as Record<string, unknown>,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "set_join_rule",
               accountId: account.accountId,
@@ -820,10 +853,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "set_member_auth": {
             const result = await docClient.setDocMemberAuth({
               agent: account,
-              docId: params.docId,
-              request: params.request,
+              docId: params.docId as string,
+              request: params.request as Record<string, unknown>,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "set_member_auth",
               accountId: account.accountId,
@@ -835,14 +868,14 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "grant_access": {
             const result = await docClient.grantDocAccess({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               viewers: params.viewers,
               collaborators: params.collaborators,
               removeViewers: params.removeViewers,
               removeCollaborators: params.removeCollaborators,
-              authLevel: params.auth,
+              authLevel: params.auth as number | undefined,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "grant_access",
               accountId: account.accountId,
@@ -854,11 +887,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "add_collaborators": {
             const result = await docClient.addDocCollaborators({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               collaborators: params.collaborators,
-              auth: params.auth,
+              auth: params.auth as number | undefined,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "add_collaborators",
               accountId: account.accountId,
@@ -870,9 +903,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_content": {
             const result = await docClient.getDocContent({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "get_content",
               accountId: account.accountId,
@@ -886,13 +919,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
 
             const result = await docClient.updateDocContent({
               agent: account,
-              docId: params.docId,
-              requests: params.requests,
-              version: params.version,
+              docId: params.docId as string,
+              requests: params.requests as UpdateRequest[],
+              version: params.version as number | undefined,
               batchMode: batchMode,
             });
 
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "update_content",
               accountId: account.accountId,
@@ -904,10 +937,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "set_safety_setting": {
             const result = await docClient.setDocSafetySetting({
               agent: account,
-              docId: params.docId,
-              request: params.request,
+              docId: params.docId as string,
+              request: params.request as Record<string, unknown>,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "set_safety_setting",
               accountId: account.accountId,
@@ -919,9 +952,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_doc_security_setting": {
             const result = await docClient.getDocAuth({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "get_doc_security_setting",
               accountId: account.accountId,
@@ -935,10 +968,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             // Alias to setDocSafetySetting logic
             const result = await docClient.setDocSafetySetting({
               agent: account,
-              docId: params.docId,
-              request: params.setting,
+              docId: params.docId as string,
+              request: params.setting as Record<string, unknown>,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "mod_doc_security_setting",
               accountId: account.accountId,
@@ -950,11 +983,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "mod_doc_member_notified_scope": {
             const result = await docClient.modDocMemberNotifiedScope({
               agent: account,
-              docId: params.docId,
-              notified_scope_type: params.notified_scope_type,
-              notified_member_list: params.notified_member_list,
+              docId: params.docId as string,
+              notified_scope_type: params.notified_scope_type as number,
+              notified_member_list: params.notified_member_list as
+                | Array<Record<string, unknown>>
+                | undefined,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "mod_doc_member_notified_scope",
               accountId: account.accountId,
@@ -969,12 +1004,12 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             try {
               const result = await docClient.createCollect({
                 agent: account,
-                formInfo: params.formInfo,
-                spaceId: params.spaceId,
-                fatherId: params.fatherId,
+                formInfo: params.formInfo as Record<string, unknown>,
+                spaceId: params.spaceId as string | undefined,
+                fatherId: params.fatherId as string | undefined,
               });
               const title = readString(result.title);
-              return buildToolResult({
+              return buildDocToolResult({
                 ok: true,
                 action: "create_collect",
                 accountId: account.accountId,
@@ -997,7 +1032,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
 - reply_type 对照表：1 文本，2 单选，3 多选，5 位置，9 图片，10 文件，11 日期，14 时间，15 下拉列表，16 体温，17 签名，18 部门，19 成员，22 时长
 
 错误详情：${errorMsg}`;
-              return buildToolResult({
+              return buildDocToolResult({
                 ok: false,
                 action: "create_collect",
                 accountId: account.accountId,
@@ -1011,12 +1046,12 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "modify_collect": {
             const result = await docClient.modifyCollect({
               agent: account,
-              oper: params.oper,
-              formId: params.formId,
-              formInfo: params.formInfo,
+              oper: params.oper as string,
+              formId: params.formId as string,
+              formInfo: params.formInfo as Record<string, unknown>,
             });
             const title = readString(result.title);
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "modify_collect",
               accountId: account.accountId,
@@ -1031,9 +1066,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_form_info": {
             const result = await docClient.getFormInfo({
               agent: account,
-              formId: params.formId,
+              formId: params.formId as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "get_form_info",
               accountId: account.accountId,
@@ -1046,10 +1081,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_form_answer": {
             const result = await docClient.getFormAnswer({
               agent: account,
-              repeatedId: params.repeatedId,
-              answerIds: params.answerIds,
+              repeatedId: params.repeatedId as string,
+              answerIds: params.answerIds as unknown[] | undefined,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "get_form_answer",
               accountId: account.accountId,
@@ -1061,9 +1096,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_form_statistic": {
             const result = await docClient.getFormStatistic({
               agent: account,
-              requests: params.requests,
+              requests: params.requests as unknown[],
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "get_form_statistic",
               accountId: account.accountId,
@@ -1074,9 +1109,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_sheet_properties": {
             const result = await docClient.getSheetProperties({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "get_sheet_properties",
               accountId: account.accountId,
@@ -1088,13 +1123,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "edit_sheet_data": {
             const result = await docClient.editSheetData({
               agent: account,
-              docId: params.docId,
-              sheetId: params.sheetId,
-              startRow: params.startRow ?? 0,
-              startColumn: params.startColumn ?? 0,
-              gridData: params.gridData,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              startRow: (params.startRow ?? 0) as number,
+              startColumn: (params.startColumn ?? 0) as number,
+              gridData: params.gridData as Record<string, unknown> | undefined,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "edit_sheet_data",
               accountId: account.accountId,
@@ -1106,11 +1141,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_sheet_data": {
             const result = await docClient.getSheetData({
               agent: account,
-              docId: params.docId,
-              sheetId: params.sheetId,
-              range: params.range,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              range: params.range as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "get_sheet_data",
               accountId: account.accountId,
@@ -1123,10 +1158,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "modify_sheet_properties": {
             const result = await docClient.modifySheetProperties({
               agent: account,
-              docId: params.docId,
-              requests: params.requests,
+              docId: params.docId as string,
+              requests: params.requests as unknown[],
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "modify_sheet_properties",
               accountId: account.accountId,
@@ -1138,11 +1173,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_add_records": {
             const result = await docClient.smartTableOperate({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               operation: "add_records",
               bodyData: params,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1154,11 +1189,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_update_records": {
             const result = await docClient.smartTableOperate({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               operation: "update_records",
               bodyData: params,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1170,11 +1205,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_del_records": {
             const result = await docClient.smartTableOperate({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               operation: "del_records",
               bodyData: params,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1186,11 +1221,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_get_records": {
             const result = await docClient.smartTableOperate({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               operation: "get_records",
               bodyData: params,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1200,8 +1235,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_add_sheet": {
-            const result = await docClient.smartTableAddSheet({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableAddSheet({
+              agent: account,
+              docId: params.docId as string,
+              title: params.title as string,
+              index: params.index as number | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1211,8 +1251,12 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_del_sheet": {
-            const result = await docClient.smartTableDelSheet({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableDelSheet({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1222,8 +1266,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_update_sheet": {
-            const result = await docClient.smartTableUpdateSheet({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableUpdateSheet({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              title: params.title as string,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1233,8 +1282,16 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_add_view": {
-            const result = await docClient.smartTableAddView({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableAddView({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              view_title: params.view_title as string,
+              view_type: params.view_type as string,
+              property_gantt: params.property_gantt as Record<string, unknown> | undefined,
+              property_calendar: params.property_calendar as Record<string, unknown> | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1244,8 +1301,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_del_view": {
-            const result = await docClient.smartTableDelView({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableDelView({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              view_ids: params.view_ids as string[],
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1257,11 +1319,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_get_views": {
             const result = await docClient.smartTableOperate({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               operation: "get_views",
               bodyData: { sheet_id: params.sheetId },
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1271,8 +1333,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_add_fields": {
-            const result = await docClient.smartTableAddFields({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableAddFields({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              fields: params.fields as Array<Record<string, unknown>>,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1282,8 +1349,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_del_fields": {
-            const result = await docClient.smartTableDelFields({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableDelFields({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              field_ids: params.field_ids as string[],
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1293,8 +1365,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_update_fields": {
-            const result = await docClient.smartTableUpdateFields({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableUpdateFields({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              fields: params.fields as Array<Record<string, unknown>>,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1304,8 +1381,16 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_update_view": {
-            const result = await docClient.smartTableUpdateView({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableUpdateView({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              view_id: params.view_id as string,
+              view_title: params.view_title as string | undefined,
+              property_gantt: params.property_gantt as Record<string, unknown> | undefined,
+              property_calendar: params.property_calendar as Record<string, unknown> | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1317,11 +1402,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_get_fields": {
             const result = await docClient.smartTableOperate({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               operation: "get_fields",
               bodyData: { sheet_id: params.sheetId, view_id: params.view_id },
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1331,8 +1416,14 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_add_group": {
-            const result = await docClient.smartTableAddGroup({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableAddGroup({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              name: params.name as string,
+              children: params.children as string[] | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1342,8 +1433,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_del_group": {
-            const result = await docClient.smartTableDelGroup({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableDelGroup({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              field_group_id: params.field_group_id as string,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1353,8 +1449,15 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_update_group": {
-            const result = await docClient.smartTableUpdateGroup({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableUpdateGroup({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              field_group_id: params.field_group_id as string,
+              name: params.name as string | undefined,
+              children: params.children as string[] | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1364,8 +1467,12 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_get_groups": {
-            const result = await docClient.smartTableGetGroups({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableGetGroups({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1377,9 +1484,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_add_external_records": {
             const result = await docClient.smartTableAddExternalRecords({
               agent: account,
-              ...params,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              records: params.records as Array<Record<string, unknown>>,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1391,9 +1500,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_update_external_records": {
             const result = await docClient.smartTableUpdateExternalRecords({
               agent: account,
-              ...params,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              records: params.records as Array<Record<string, unknown>>,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1403,8 +1514,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_add_records": {
-            const result = await docClient.smartTableAddRecords({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableAddRecords({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              records: params.records as Array<Record<string, unknown>>,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1414,8 +1530,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_update_records": {
-            const result = await docClient.smartTableUpdateRecords({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableUpdateRecords({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              records: params.records as Array<Record<string, unknown>>,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1425,8 +1546,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_del_records": {
-            const result = await docClient.smartTableDelRecords({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableDelRecords({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              record_ids: params.record_ids as string[],
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1436,8 +1562,15 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_get_records": {
-            const result = await docClient.smartTableGetRecords({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableGetRecords({
+              agent: account,
+              docId: params.docId as string,
+              sheetId: params.sheetId as string,
+              record_ids: params.record_ids as string[] | undefined,
+              offset: params.offset as number | undefined,
+              limit: params.limit as number | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1449,9 +1582,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "smartsheet_get_sheets": {
             const result = await docClient.smartTableGetSheets({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action: "smartsheet_get_sheets",
               accountId: account.accountId,
@@ -1461,8 +1594,13 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_get_sheet_priv": {
-            const result = await docClient.smartTableGetSheetPriv({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableGetSheetPriv({
+              agent: account,
+              docId: params.docId as string,
+              type: params.type as number,
+              rule_id_list: params.rule_id_list as number[] | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1472,8 +1610,15 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_update_sheet_priv": {
-            const result = await docClient.smartTableUpdateSheetPriv({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableUpdateSheetPriv({
+              agent: account,
+              docId: params.docId as string,
+              type: params.type as number,
+              rule_id: params.rule_id as number | undefined,
+              name: params.name as string | undefined,
+              priv_list: params.priv_list as Array<Record<string, unknown>>,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1483,8 +1628,12 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_create_rule": {
-            const result = await docClient.smartTableCreateRule({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableCreateRule({
+              agent: account,
+              docId: params.docId as string,
+              name: params.name as string,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1494,8 +1643,14 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_mod_rule_member": {
-            const result = await docClient.smartTableModRuleMember({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableModRuleMember({
+              agent: account,
+              docId: params.docId as string,
+              rule_id: params.rule_id as number,
+              add_member_range: params.add_member_range as Record<string, unknown> | undefined,
+              del_member_range: params.del_member_range as Record<string, unknown> | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1505,8 +1660,12 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_delete_rule": {
-            const result = await docClient.smartTableDeleteRule({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.smartTableDeleteRule({
+              agent: account,
+              docId: params.docId as string,
+              rule_id_list: params.rule_id_list as number[],
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1518,32 +1677,42 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "doc_assign_advanced_account": {
             const result = await docClient.assignDocAdvancedAccount({
               agent: account,
-              userid_list: params.userid_list,
+              userid_list: params.userid_list as string[],
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
-              summary: summarizeAdvancedAccount(result.raw, "assign"),
+              summary: summarizeAdvancedAccount(
+                result.raw as Record<string, unknown> | undefined,
+                "assign",
+              ),
               raw: result.raw,
             });
           }
           case "doc_cancel_advanced_account": {
             const result = await docClient.cancelDocAdvancedAccount({
               agent: account,
-              userid_list: params.userid_list,
+              userid_list: params.userid_list as string[],
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
-              summary: summarizeAdvancedAccount(result.raw, "cancel"),
+              summary: summarizeAdvancedAccount(
+                result.raw as Record<string, unknown> | undefined,
+                "cancel",
+              ),
               raw: result.raw,
             });
           }
           case "doc_get_advanced_account_list": {
-            const result = await docClient.getDocAdvancedAccountList({ agent: account, ...params });
-            return buildToolResult({
+            const result = await docClient.getDocAdvancedAccountList({
+              agent: account,
+              offset: params.offset as number | undefined,
+              limit: params.limit as number | undefined,
+            });
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1552,7 +1721,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "upload_doc_image": {
-            const filePath = params.file_path;
+            const filePath = params.file_path as string;
             if (!fs.existsSync(filePath)) {
               throw new Error(`File not found: ${filePath}`);
             }
@@ -1561,10 +1730,10 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
 
             const result = await docClient.uploadDocImage({
               agent: account,
-              docId: params.docId,
+              docId: params.docId as string,
               base64_content: base64Content,
             });
-            return buildToolResult({
+            return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
@@ -1582,24 +1751,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             throw new Error(`Unsupported action: ${String(action)}`);
         }
       } catch (err) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  ok: false,
-                  action: params?.action,
-                  error: err instanceof Error ? err.message : String(err),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-          details: {},
-          isError: true,
-        };
+        return buildToolError(params?.action as string | undefined, err);
       }
     },
   }));

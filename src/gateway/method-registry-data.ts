@@ -14,11 +14,14 @@ import { controlPlaneMethodDefs } from "./server-methods/control-plane-method-de
 import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
 import { deckMethodDefs } from "./server-methods/deck/index.js";
 import { describeMethodDefs } from "./server-methods/describe.js";
+import { deviceMethodDefs } from "./server-methods/device-method-defs.js";
 import { logsMethodDefs } from "./server-methods/logs.js";
 import { modelsMethodDefs } from "./server-methods/models.js";
 import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
+import { talkMethodDefs } from "./server-methods/talk-method-defs.js";
 import { toolsCatalogMethodDefs } from "./server-methods/tools-catalog.js";
 import { toolsEffectiveMethodDefs } from "./server-methods/tools-effective.js";
+import { wizardMethodDefs } from "./server-methods/wizard-method-defs.js";
 
 export { PROTOCOL_VERSION };
 
@@ -39,8 +42,11 @@ export const allMethodDefs: Record<string, MethodMetadata> = {
   ...deckMethodDefs,
   ...deckAuthMethodDefs,
   ...describeMethodDefs,
+  ...talkMethodDefs,
   ...toolsCatalogMethodDefs,
   ...toolsEffectiveMethodDefs,
+  ...wizardMethodDefs,
+  ...deviceMethodDefs,
 };
 
 export const allEventDefs = gatewayEventDefs;

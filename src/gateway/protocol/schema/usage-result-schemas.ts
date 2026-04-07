@@ -385,3 +385,57 @@ export const SessionsUsageTimeseriesResultSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+// ---------------------------------------------------------------------------
+// usage.status — provider usage summary
+// ---------------------------------------------------------------------------
+
+const UsageWindowSchema = Type.Object(
+  {
+    label: Type.String(),
+    usedPercent: Type.Number(),
+    resetAt: Type.Optional(Type.Number()),
+  },
+  { additionalProperties: false },
+);
+
+const ProviderUsageSnapshotSchema = Type.Object(
+  {
+    provider: Type.String(),
+    displayName: Type.String(),
+    windows: Type.Array(UsageWindowSchema),
+    plan: Type.Optional(Type.String()),
+    error: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const UsageStatusResultSchema = Type.Object(
+  {
+    updatedAt: Type.Number(),
+    providers: Type.Array(ProviderUsageSnapshotSchema),
+  },
+  { additionalProperties: false },
+);
+
+// ---------------------------------------------------------------------------
+// usage.cost — cost usage summary
+// ---------------------------------------------------------------------------
+
+const CostUsageDailyEntrySchema = Type.Object(
+  {
+    ...CostUsageTotalsProperties,
+    date: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
+export const UsageCostResultSchema = Type.Object(
+  {
+    updatedAt: Type.Number(),
+    days: Type.Number(),
+    daily: Type.Array(CostUsageDailyEntrySchema),
+    totals: CostUsageTotalsSchema,
+  },
+  { additionalProperties: false },
+);

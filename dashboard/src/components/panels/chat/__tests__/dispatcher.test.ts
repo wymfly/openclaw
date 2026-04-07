@@ -354,6 +354,90 @@ describe("dispatchChatEvent — aborted event", () => {
     const msg = sess.messages.find((m) => m.id === "run-1")!;
     expect(msg.streaming).toBe(false);
   });
+
+  it("updates message content with abort payload (buffered text)", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    // Start streaming — delta with partial text
+    dispatchChatEvent({
+      runId: "run-1",
+      sessionKey: "sess-1",
+      seq: 0,
+      state: "delta",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "Hello" }],
+      },
+    });
+
+    // Aborted with full buffered text (includes throttled tokens)
+    dispatchChatEvent({
+      runId: "run-1",
+      sessionKey: "sess-1",
+      seq: 1,
+      state: "aborted",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "Hello, world! This was buffered" }],
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    const msg = sess.messages.find((m) => m.id === "run-1")!;
+    expect(msg.streaming).toBe(false);
+    // The abort payload's full text should replace the partial delta text
+    const textBlock = msg.content.find((b) => b.type === "text");
+    expect(textBlock).toBeDefined();
+    expect((textBlock as { text: string }).text).toBe("Hello, world! This was buffered");
+  });
+
+  it("preserves tool blocks when updating content on abort", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    // Start streaming
+    dispatchChatEvent({
+      runId: "run-1",
+      sessionKey: "sess-1",
+      seq: 0,
+      state: "delta",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "Let me check" }],
+      },
+    });
+
+    // Add a tool block via agent event
+    useChatStore.getState().appendContentBlock("sess-1", "run-1", {
+      type: "tool_use",
+      id: "tool-1",
+      name: "search",
+      input: {},
+    });
+
+    // Aborted with full text
+    dispatchChatEvent({
+      runId: "run-1",
+      sessionKey: "sess-1",
+      seq: 1,
+      state: "aborted",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "Let me check something" }],
+      },
+    });
+
+    const msg = useChatStore
+      .getState()
+      .sessions.get("sess-1")!
+      .messages.find((m) => m.id === "run-1")!;
+    expect(msg.streaming).toBe(false);
+    // Should have both: abort text + preserved tool block
+    const textBlocks = msg.content.filter((b) => b.type === "text");
+    const toolBlocks = msg.content.filter((b) => b.type === "tool_use");
+    expect(textBlocks).toHaveLength(1);
+    expect(toolBlocks).toHaveLength(1);
+    expect((textBlocks[0] as { text: string }).text).toBe("Let me check something");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -698,6 +782,80 @@ describe("dispatchSessionMessageEvent", () => {
         timestamp: 1234,
       },
     ]);
+  });
+
+  it("deduplicates user messages echoed by Gateway with different ID", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    // Locally added user message (from MessageInput.tsx sendMessage)
+    useChatStore.getState().addMessage("sess-1", {
+      id: "user-1712345678901",
+      role: "user",
+      content: [{ type: "text", text: "hello world" }],
+      timestamp: 1712345678901,
+    });
+
+    // Gateway echoes the same message via session-msg with an authoritative ID
+    dispatchSessionMessageEvent({
+      sessionKey: "sess-1",
+      messageId: "gw-msg-42",
+      message: {
+        role: "user",
+        content: [{ type: "text", text: "hello world" }],
+        timestamp: 1712345678901,
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages).toHaveLength(1);
+    expect(sess.messages[0].id).toBe("user-1712345678901");
+  });
+
+  it("deduplicates assistant messages echoed by Gateway with different ID", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    // Assistant message added via chat event stream (using runId)
+    useChatStore.getState().addMessage("sess-1", {
+      id: "run-abc-123",
+      role: "assistant",
+      content: [{ type: "text", text: "I can help with that" }],
+      timestamp: 1712345679000,
+      streaming: false,
+    });
+
+    // Gateway echoes the same assistant message via session-msg
+    dispatchSessionMessageEvent({
+      sessionKey: "sess-1",
+      messageId: "sess-1:1712345679000:1",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "I can help with that" }],
+        timestamp: 1712345679000,
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages).toHaveLength(1);
+    expect(sess.messages[0].id).toBe("run-abc-123");
+  });
+
+  it("still adds genuinely new messages from other sources", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    // A message from CLI (not locally added, arrives via session-msg)
+    dispatchSessionMessageEvent({
+      sessionKey: "sess-1",
+      messageId: "cli-msg-1",
+      message: {
+        role: "user",
+        content: [{ type: "text", text: "sent from CLI" }],
+        timestamp: 1712345680000,
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages).toHaveLength(1);
+    expect(sess.messages[0].id).toBe("cli-msg-1");
   });
 });
 

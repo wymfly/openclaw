@@ -1,27 +1,21 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
+import { buildToolError, buildToolResult, type WecomToolContext } from "../shared-tool-types.js";
 import { WecomTodoClient } from "./client.js";
 import { wecomTodoToolSchema } from "./schema.js";
-
-function buildToolResult(payload: any) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
-    details: payload,
-  };
-}
 
 export function registerWecomTodoTools(api: OpenClawPluginApi) {
   if (typeof api?.registerTool !== "function") return;
   const todoClient = new WecomTodoClient();
 
-  api.registerTool((toolContext: any) => ({
+  api.registerTool((toolContext: WecomToolContext) => ({
     name: "wecom_todo",
     label: "WeCom Todo",
     description: "企业微信待办工具，支持创建待办、更新状态和查询详情。",
     parameters: wecomTodoToolSchema,
-    async execute(_toolCallId, params: any) {
+    async execute(_toolCallId: string, params: Record<string, unknown>) {
       try {
-        const accountId = params.accountId || toolContext?.accountId || "default";
+        const accountId = (params.accountId as string) || toolContext?.accountId || "default";
         const account = resolveAgentAccountOrUndefined(api.config, accountId);
         if (!account || !account.configured) {
           throw new Error(`WeCom account ${accountId} not configured for Todo API requirements`);
@@ -31,11 +25,11 @@ export function registerWecomTodoTools(api: OpenClawPluginApi) {
         switch (action) {
           case "create": {
             const spNo = await todoClient.create(account, {
-              title: params.title,
-              creator: params.creator,
-              url: params.url,
-              appname: params.appname,
-              userids: params.userids,
+              title: params.title as string,
+              creator: params.creator as string,
+              url: params.url as string | undefined,
+              appname: params.appname as string | undefined,
+              userids: params.userids as string[] | undefined,
             });
             return buildToolResult({
               ok: true,
@@ -47,7 +41,7 @@ export function registerWecomTodoTools(api: OpenClawPluginApi) {
           }
           case "update_status": {
             const status = Number(params.status);
-            await todoClient.updateStatus(account, params.sp_no, status);
+            await todoClient.updateStatus(account, params.sp_no as string, status);
             const statusLabel = status === 1 ? "已完成" : "未完成";
             return buildToolResult({
               ok: true,
@@ -60,7 +54,7 @@ export function registerWecomTodoTools(api: OpenClawPluginApi) {
             });
           }
           case "get": {
-            const workRecord = await todoClient.get(account, params.sp_no);
+            const workRecord = await todoClient.get(account, params.sp_no as string);
             return buildToolResult({
               ok: true,
               action,
@@ -73,24 +67,7 @@ export function registerWecomTodoTools(api: OpenClawPluginApi) {
             throw new Error(`Unsupported action: ${String(action)}`);
         }
       } catch (err) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  ok: false,
-                  action: params?.action,
-                  error: err instanceof Error ? err.message : String(err),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-          details: {},
-          isError: true,
-        };
+        return buildToolError(params?.action as string | undefined, err);
       }
     },
   }));

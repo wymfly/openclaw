@@ -10,6 +10,9 @@
  *   agents.create: { name, workspace, emoji?, avatar? }
  *   agents.delete: { agentId, deleteFiles? }
  */
+import os from "node:os";
+import path from "node:path";
+import { getRuntime } from "@server/runtime";
 import { type NextRequest } from "next/server";
 import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
@@ -31,14 +34,34 @@ export const POST = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "name is required" }, { status: 400 });
   }
 
-  // Only send workspace when explicitly provided by the caller.
-  // When omitted, Gateway uses agents.defaults.workspace from config,
-  // which points to the mounted workspace volume in Docker deployments.
-  const workspace = body.workspace?.trim() || undefined;
+  // Gateway schema requires `workspace`. When the caller omits it,
+  // resolve the default from config, falling back to the same pattern
+  // as resolveAgentWorkspaceDir: `${stateDir}/workspace-${agentId}`.
+  let workspace = body.workspace?.trim() || undefined;
+  if (!workspace) {
+    try {
+      const runtime = getRuntime();
+      if (runtime) {
+        const cfg = (await runtime.adapter.request("config.get", {
+          path: "agents.defaults.workspace",
+        })) as { exists?: boolean; raw?: string };
+        if (cfg.exists && cfg.raw) {
+          workspace = cfg.raw;
+        }
+      }
+    } catch {
+      // Ignore — use computed fallback below.
+    }
+  }
+  if (!workspace) {
+    const stateDir = process.env.OPENCLAW_STATE_DIR || path.join(os.homedir(), ".openclaw");
+    const agentId = name.toLowerCase().replace(/\s+/g, "-");
+    workspace = path.join(stateDir, `workspace-${agentId}`);
+  }
 
   return gwRequest("agents.create", {
     name,
-    ...(workspace ? { workspace } : {}),
+    workspace,
     ...(body.emoji ? { emoji: body.emoji } : {}),
     ...(body.avatar ? { avatar: body.avatar } : {}),
   });

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { scopeTranslationKey, sourceTranslationKey } from "@/lib/model-provenance";
 import { cn } from "@/lib/utils";
 import type { AuthOverviewEntry, ProbeResult } from "@/stores/models";
 import { AuthStatusDot } from "../shared/AuthStatusDot";
@@ -64,6 +65,7 @@ function statusBadgeVariant(status: string): "default" | "secondary" | "destruct
  */
 export function AuthHealthCard({ entry, probeResult, probeLoading, onProbe }: AuthHealthCardProps) {
   const t = useTranslations("models");
+  const tp = useTranslations("models.provenance");
 
   const oauthExpiryMs = entry.oauth?.remainingMs ?? 0;
   const cooldownMs = entry.cooldown?.remainingMs ?? 0;
@@ -96,6 +98,35 @@ export function AuthHealthCard({ entry, probeResult, probeLoading, onProbe }: Au
           <span className="text-muted-foreground">{t("auth.type")}</span>
           <span className="font-medium text-[var(--foreground)]">
             {authTypeLabel(entry.auth?.type)}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{tp("providerSource")}</span>
+          <span className="font-medium text-[var(--foreground)]">
+            {tp(sourceTranslationKey(entry.source))}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{tp("scope")}</span>
+          <span className="font-medium text-[var(--foreground)]">
+            {tp(scopeTranslationKey(entry.scope))}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{tp("presence")}</span>
+          <span className="font-medium text-[var(--foreground)]">
+            {entry.configPresent ? tp("configPresent") : tp("configMissing")} ·{" "}
+            {entry.authPresent ? tp("authPresent") : tp("authMissing")}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{tp("editability")}</span>
+          <span className="font-medium text-[var(--foreground)]">
+            {entry.editable ? tp("editable") : tp("readOnly")}
           </span>
         </div>
 

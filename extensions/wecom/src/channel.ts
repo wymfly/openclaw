@@ -7,6 +7,7 @@ import type {
   ChannelPlugin,
   OpenClawConfig,
 } from "openclaw/plugin-sdk/wecom";
+import { probeWecomAccount } from "./channel-probe.js";
 import {
   DEFAULT_ACCOUNT_ID,
   listWecomAccountIds,
@@ -18,7 +19,7 @@ import {
 import { monitorWecomProvider } from "./gateway-monitor.js";
 import { wecomSetupWizard } from "./onboarding.js";
 import { wecomOutbound } from "./outbound.js";
-import type { ResolvedWecomAccount } from "./types/index.js";
+import type { ResolvedWecomAccount, WecomChannelSnapshot } from "./types/index.js";
 
 const meta = {
   id: "wecom",
@@ -164,36 +165,40 @@ export const wecomPlugin: ChannelPlugin<ResolvedWecomAccount> = {
       lastStopAt: null,
       lastError: null,
     },
-    buildChannelSummary: ({ snapshot }) => ({
+    buildChannelSummary: ({ snapshot }: { snapshot: WecomChannelSnapshot }) => ({
       configured: snapshot.configured ?? false,
       running: snapshot.running ?? false,
       webhookPath: snapshot.webhookPath ?? null,
-      transport: (snapshot as { transport?: string }).transport ?? null,
-      ownerId: (snapshot as { ownerId?: string }).ownerId ?? null,
-      health: (snapshot as { health?: string }).health ?? "idle",
-      ownerDriftAt: (snapshot as { ownerDriftAt?: number | null }).ownerDriftAt ?? null,
-      connected: (snapshot as { connected?: boolean }).connected,
-      authenticated: (snapshot as { authenticated?: boolean }).authenticated,
+      transport: snapshot.transport ?? null,
+      ownerId: snapshot.ownerId ?? null,
+      health: snapshot.health ?? "idle",
+      ownerDriftAt: snapshot.ownerDriftAt ?? null,
+      connected: snapshot.connected,
+      authenticated: snapshot.authenticated,
       lastStartAt: snapshot.lastStartAt ?? null,
       lastStopAt: snapshot.lastStopAt ?? null,
       lastError: snapshot.lastError ?? null,
-      lastErrorAt: (snapshot as { lastErrorAt?: number | null }).lastErrorAt ?? null,
+      lastErrorAt: snapshot.lastErrorAt ?? null,
       lastInboundAt: snapshot.lastInboundAt ?? null,
       lastOutboundAt: snapshot.lastOutboundAt ?? null,
-      recentInboundSummary:
-        (snapshot as { recentInboundSummary?: string | null }).recentInboundSummary ?? null,
-      recentOutboundSummary:
-        (snapshot as { recentOutboundSummary?: string | null }).recentOutboundSummary ?? null,
-      recentIssueCategory:
-        (snapshot as { recentIssueCategory?: string | null }).recentIssueCategory ?? null,
-      recentIssueSummary:
-        (snapshot as { recentIssueSummary?: string | null }).recentIssueSummary ?? null,
-      transportSessions: (snapshot as { transportSessions?: string[] }).transportSessions ?? [],
+      recentInboundSummary: snapshot.recentInboundSummary ?? null,
+      recentOutboundSummary: snapshot.recentOutboundSummary ?? null,
+      recentIssueCategory: snapshot.recentIssueCategory ?? null,
+      recentIssueSummary: snapshot.recentIssueSummary ?? null,
+      transportSessions: snapshot.transportSessions ?? [],
       probe: snapshot.probe,
       lastProbeAt: snapshot.lastProbeAt ?? null,
     }),
-    probeAccount: async () => ({ ok: true }),
-    buildAccountSnapshot: ({ account, runtime, cfg }) => {
+    probeAccount: async ({ account, timeoutMs }) => probeWecomAccount({ account, timeoutMs }),
+    buildAccountSnapshot: ({
+      account,
+      runtime,
+      cfg,
+    }: {
+      account: ResolvedWecomAccount;
+      runtime?: WecomChannelSnapshot;
+      cfg: unknown;
+    }) => {
       const conflict = resolveWecomAccountConflict({
         cfg: cfg as OpenClawConfig,
         accountId: account.accountId,
@@ -206,34 +211,24 @@ export const wecomPlugin: ChannelPlugin<ResolvedWecomAccount> = {
         webhookPath: resolveAccountInboundPath(account),
         primaryTransport:
           account.bot?.primaryTransport ?? (account.agent ? "agent-callback" : null),
-        transport: (runtime as { transport?: string } | undefined)?.transport ?? null,
-        ownerId: (runtime as { ownerId?: string } | undefined)?.ownerId ?? null,
-        health: (runtime as { health?: string } | undefined)?.health ?? "idle",
-        ownerDriftAt:
-          (runtime as { ownerDriftAt?: number | null } | undefined)?.ownerDriftAt ?? null,
-        connected: (runtime as { connected?: boolean } | undefined)?.connected,
-        authenticated: (runtime as { authenticated?: boolean } | undefined)?.authenticated,
+        transport: runtime?.transport ?? null,
+        ownerId: runtime?.ownerId ?? null,
+        health: runtime?.health ?? "idle",
+        ownerDriftAt: runtime?.ownerDriftAt ?? null,
+        connected: runtime?.connected,
+        authenticated: runtime?.authenticated,
         running: runtime?.running ?? false,
         lastStartAt: runtime?.lastStartAt ?? null,
         lastStopAt: runtime?.lastStopAt ?? null,
         lastError: runtime?.lastError ?? conflict?.message ?? null,
-        lastErrorAt: (runtime as { lastErrorAt?: number | null } | undefined)?.lastErrorAt ?? null,
+        lastErrorAt: runtime?.lastErrorAt ?? null,
         lastInboundAt: runtime?.lastInboundAt ?? null,
         lastOutboundAt: runtime?.lastOutboundAt ?? null,
-        recentInboundSummary:
-          (runtime as { recentInboundSummary?: string | null } | undefined)?.recentInboundSummary ??
-          null,
-        recentOutboundSummary:
-          (runtime as { recentOutboundSummary?: string | null } | undefined)
-            ?.recentOutboundSummary ?? null,
-        recentIssueCategory:
-          (runtime as { recentIssueCategory?: string | null } | undefined)?.recentIssueCategory ??
-          null,
-        recentIssueSummary:
-          (runtime as { recentIssueSummary?: string | null } | undefined)?.recentIssueSummary ??
-          null,
-        transportSessions:
-          (runtime as { transportSessions?: string[] } | undefined)?.transportSessions ?? [],
+        recentInboundSummary: runtime?.recentInboundSummary ?? null,
+        recentOutboundSummary: runtime?.recentOutboundSummary ?? null,
+        recentIssueCategory: runtime?.recentIssueCategory ?? null,
+        recentIssueSummary: runtime?.recentIssueSummary ?? null,
+        transportSessions: runtime?.transportSessions ?? [],
         dmPolicy: account.bot?.config.dm?.policy ?? "pairing",
       };
     },

@@ -4,6 +4,7 @@ import { ArrowRight, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { scopeTranslationKey, sourceTranslationKey } from "@/lib/model-provenance";
 import { cn } from "@/lib/utils";
 import type { AuthOverviewEntry, Model } from "@/stores/models";
 import { AuthStatusDot } from "../shared/AuthStatusDot";
@@ -46,6 +47,7 @@ export function ProviderOverview({
   onToggleEnabled,
 }: ProviderOverviewProps) {
   const t = useTranslations("models");
+  const tp = useTranslations("models.provenance");
 
   const authSource = auth?.auth?.source;
   const authStatus = auth?.status ?? "unknown";
@@ -67,6 +69,15 @@ export function ProviderOverview({
                 : t("catalog.authNone")}
             </span>
           </div>
+          {auth && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-[var(--muted-foreground)]">
+              <span>{tp(sourceTranslationKey(auth.source))}</span>
+              <span>·</span>
+              <span>{tp(scopeTranslationKey(auth.scope))}</span>
+              <span>·</span>
+              <span>{auth.editable ? tp("editable") : tp("readOnly")}</span>
+            </div>
+          )}
         </div>
 
         <Button variant="ghost" size="sm" onClick={onGoConfig}>

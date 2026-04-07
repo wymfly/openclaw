@@ -101,3 +101,12 @@ export const WizardStatusResultSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+// wizard.cancel returns the same shape as wizard.status (readWizardStatus)
+export const WizardCancelResultSchema = Type.Object(
+  {
+    status: WizardRunStatusSchema,
+    error: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);

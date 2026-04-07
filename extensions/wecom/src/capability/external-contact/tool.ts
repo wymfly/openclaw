@@ -2,28 +2,22 @@
 
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
+import { buildToolError, buildToolResult, type WecomToolContext } from "../shared-tool-types.js";
 import { WecomExternalContactClient } from "./client.js";
 import { wecomExternalContactToolSchema } from "./schema.js";
-
-function buildToolResult(payload: any) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
-    details: payload,
-  };
-}
 
 export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
   if (typeof api?.registerTool !== "function") return;
   const externalContactClient = new WecomExternalContactClient();
 
-  api.registerTool((toolContext: any) => ({
+  api.registerTool((toolContext: WecomToolContext) => ({
     name: "wecom_external_contact",
     label: "WeCom External Contact",
     description: "企业微信客户联系工具，支持获取外部联系人详情、列表和客户群列表。",
     parameters: wecomExternalContactToolSchema,
-    async execute(_toolCallId, params: any) {
+    async execute(_toolCallId: string, params: Record<string, unknown>) {
       try {
-        const accountId = params.accountId || toolContext?.accountId || "default";
+        const accountId = (params.accountId as string) || toolContext?.accountId || "default";
         const account = resolveAgentAccountOrUndefined(api.config, accountId);
         if (!account || !account.configured) {
           throw new Error(
@@ -34,7 +28,10 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
         const action = params.action;
         switch (action) {
           case "get": {
-            const detail = await externalContactClient.get(account, params.external_userid);
+            const detail = await externalContactClient.get(
+              account,
+              params.external_userid as string,
+            );
             const contactName = detail.external_contact?.name || params.external_userid;
             return buildToolResult({
               ok: true,
@@ -45,7 +42,10 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
             });
           }
           case "list": {
-            const externalUserids = await externalContactClient.list(account, params.userid);
+            const externalUserids = await externalContactClient.list(
+              account,
+              params.userid as string,
+            );
             return buildToolResult({
               ok: true,
               action,
@@ -57,10 +57,10 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
           }
           case "list_groups": {
             const result = await externalContactClient.listGroups(account, {
-              status_filter: params.status_filter,
-              owner_filter: params.owner_filter,
-              cursor: params.cursor,
-              limit: params.limit,
+              status_filter: params.status_filter as number | undefined,
+              owner_filter: params.owner_filter as { userid_list?: string[] } | undefined,
+              cursor: params.cursor as string | undefined,
+              limit: params.limit as number | undefined,
             });
             return buildToolResult({
               ok: true,
@@ -72,7 +72,10 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
             });
           }
           case "get_group_detail": {
-            const groupChat = await externalContactClient.getGroupDetail(account, params.chat_id);
+            const groupChat = await externalContactClient.getGroupDetail(
+              account,
+              params.chat_id as string,
+            );
             return buildToolResult({
               ok: true,
               action,
@@ -85,24 +88,7 @@ export function registerWecomExternalContactTools(api: OpenClawPluginApi) {
             throw new Error(`Unsupported action: ${String(action)}`);
         }
       } catch (err) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  ok: false,
-                  action: params?.action,
-                  error: err instanceof Error ? err.message : String(err),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-          details: {},
-          isError: true,
-        };
+        return buildToolError(params?.action as string | undefined, err);
       }
     },
   }));

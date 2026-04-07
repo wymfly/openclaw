@@ -110,42 +110,70 @@ export function ProviderConfigTab({
   }, [selectedProvider, runProbe]);
 
   return (
-    <div className="flex h-full">
-      {/* Left pane: provider list */}
-      <ProviderSidebar
-        auth={authOverview}
-        selected={selectedProvider}
-        onSelect={setSelectedProvider}
-        onAddProvider={() => setAddDialogOpen(true)}
-      />
-
-      {/* Right pane: details for selected provider */}
-      <div className="flex-1 overflow-auto border-l border-[var(--border)] p-4 space-y-4">
-        {selectedEntry ? (
-          <>
-            <AuthHealthCard
-              entry={selectedEntry}
-              probeResult={selectedProvider ? probeResults[selectedProvider] : undefined}
-              probeLoading={!!(selectedProvider && probeLoading[selectedProvider])}
-              onProbe={() => void handleProbe()}
-            />
-            <ConfigForm
-              provider={selectedProvider!}
-              initialConfig={selectedConfig}
-              authType={configAuthType ?? selectedEntry?.auth?.type ?? null}
-              onSave={updateProviderConfig}
-            />
-          </>
-        ) : (
-          /* Empty state */
-          <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-[var(--muted-foreground)]">{t("selectProvider")}</p>
-          </div>
-        )}
-
-        {/* Bedrock Discovery — global config */}
-        <BedrockDiscoveryCard config={bedrockDiscovery} onUpdate={updateBedrockDiscovery} />
+    <div className="flex h-full flex-col">
+      <div className="border-b border-[var(--border)] bg-[var(--card)] px-4 py-3">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">
+          {t("config.globalOnlyTitle")}
+        </h2>
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">{t("config.globalOnlyHint")}</p>
       </div>
+
+      <div className="flex min-h-0 flex-1">
+        {/* Left pane: provider list */}
+        <ProviderSidebar
+          auth={authOverview}
+          selected={selectedProvider}
+          onSelect={setSelectedProvider}
+          onAddProvider={() => setAddDialogOpen(true)}
+        />
+
+        {/* Right pane: details for selected provider */}
+        <div className="flex-1 overflow-auto border-l border-[var(--border)] p-4 space-y-4">
+          {selectedEntry ? (
+            <>
+              <AuthHealthCard
+                entry={selectedEntry}
+                probeResult={selectedProvider ? probeResults[selectedProvider] : undefined}
+                probeLoading={!!(selectedProvider && probeLoading[selectedProvider])}
+                onProbe={() => void handleProbe()}
+              />
+              {selectedEntry.editable || selectedConfig ? (
+                <ConfigForm
+                  provider={selectedProvider!}
+                  initialConfig={selectedConfig}
+                  authType={configAuthType ?? selectedEntry?.auth?.type ?? null}
+                  onSave={updateProviderConfig}
+                />
+              ) : (
+                <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--muted)]/60 px-4 py-3">
+                  <h3 className="text-sm font-medium text-[var(--foreground)]">
+                    {t("config.readOnlyTitle")}
+                  </h3>
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                    {t("config.readOnlyHint")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAddDialogOpen(true)}
+                    className="mt-3 rounded-md border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--accent)]"
+                  >
+                    {t("config.addProvider")}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Empty state */
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm text-[var(--muted-foreground)]">{t("selectProvider")}</p>
+            </div>
+          )}
+
+          {/* Bedrock Discovery — global config */}
+          <BedrockDiscoveryCard config={bedrockDiscovery} onUpdate={updateBedrockDiscovery} />
+        </div>
+      </div>
+
       <AddProviderWizard
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}

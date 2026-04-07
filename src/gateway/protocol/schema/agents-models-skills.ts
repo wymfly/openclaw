@@ -175,6 +175,15 @@ export const ModelsListResultSchema = Type.Object(
 
 export const ModelsConfiguredParamsSchema = Type.Object({}, { additionalProperties: false });
 
+const ConfiguredModelSourceSchema = Type.Union([
+  Type.Literal("config"),
+  Type.Literal("agent-models"),
+  Type.Literal("mixed"),
+  Type.Literal("runtime"),
+]);
+
+const ProviderScopeSchema = Type.Union([Type.Literal("global"), NonEmptyString]);
+
 export const ModelsConfiguredResultSchema = Type.Object(
   {
     models: Type.Array(
@@ -195,6 +204,9 @@ export const ModelsConfiguredResultSchema = Type.Object(
         ),
         maxTokens: Type.Optional(Type.Number()),
         authStatus: Type.String(),
+        source: ConfiguredModelSourceSchema,
+        scope: ProviderScopeSchema,
+        editable: Type.Boolean(),
       }),
     ),
   },
@@ -273,10 +285,89 @@ export const SkillsUpdateParamsSchema = Type.Union([
   ),
 ]);
 
+const SkillInstallOptionSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    kind: Type.String(),
+    label: NonEmptyString,
+    bins: Type.Array(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+const RequirementsSchema = Type.Object(
+  {
+    bins: Type.Array(Type.String()),
+    anyBins: Type.Array(Type.String()),
+    env: Type.Array(Type.String()),
+    config: Type.Array(Type.String()),
+    os: Type.Array(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+const SkillStatusConfigCheckSchema = Type.Object(
+  {
+    path: Type.String(),
+    satisfied: Type.Boolean(),
+  },
+  { additionalProperties: false },
+);
+
+const SkillStatusEntrySchema = Type.Object(
+  {
+    name: NonEmptyString,
+    description: Type.String(),
+    source: Type.String(),
+    bundled: Type.Boolean(),
+    filePath: Type.String(),
+    baseDir: Type.String(),
+    skillKey: Type.String(),
+    primaryEnv: Type.Optional(Type.String()),
+    emoji: Type.Optional(Type.String()),
+    homepage: Type.Optional(Type.String()),
+    always: Type.Boolean(),
+    disabled: Type.Boolean(),
+    blockedByAllowlist: Type.Boolean(),
+    eligible: Type.Boolean(),
+    requirements: RequirementsSchema,
+    missing: RequirementsSchema,
+    configChecks: Type.Array(SkillStatusConfigCheckSchema),
+    install: Type.Array(SkillInstallOptionSchema),
+  },
+  { additionalProperties: false },
+);
+
+export const SkillsStatusResultSchema = Type.Object(
+  {
+    workspaceDir: Type.String(),
+    managedSkillsDir: Type.String(),
+    skills: Type.Array(SkillStatusEntrySchema),
+  },
+  { additionalProperties: false },
+);
+
+export const SkillsUpdateResultSchema = Type.Object(
+  {
+    ok: Type.Boolean(),
+    skillKey: Type.String(),
+    config: Type.Unknown(),
+  },
+  { additionalProperties: false },
+);
+
 export const ToolsCatalogParamsSchema = Type.Object(
   {
     agentId: Type.Optional(NonEmptyString),
     includePlugins: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const ToolsEffectiveParamsSchema = Type.Object(
+  {
+    agentId: Type.Optional(NonEmptyString),
+    sessionKey: NonEmptyString,
   },
   { additionalProperties: false },
 );
@@ -330,6 +421,38 @@ export const ToolsCatalogResultSchema = Type.Object(
     agentId: NonEmptyString,
     profiles: Type.Array(ToolCatalogProfileSchema),
     groups: Type.Array(ToolCatalogGroupSchema),
+  },
+  { additionalProperties: false },
+);
+
+export const ToolsEffectiveEntrySchema = Type.Object(
+  {
+    id: NonEmptyString,
+    label: NonEmptyString,
+    description: Type.String(),
+    rawDescription: Type.String(),
+    source: Type.Union([Type.Literal("core"), Type.Literal("plugin"), Type.Literal("channel")]),
+    pluginId: Type.Optional(NonEmptyString),
+    channelId: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const ToolsEffectiveGroupSchema = Type.Object(
+  {
+    id: Type.Union([Type.Literal("core"), Type.Literal("plugin"), Type.Literal("channel")]),
+    label: NonEmptyString,
+    source: Type.Union([Type.Literal("core"), Type.Literal("plugin"), Type.Literal("channel")]),
+    tools: Type.Array(ToolsEffectiveEntrySchema),
+  },
+  { additionalProperties: false },
+);
+
+export const ToolsEffectiveResultSchema = Type.Object(
+  {
+    agentId: NonEmptyString,
+    profile: NonEmptyString,
+    groups: Type.Array(ToolsEffectiveGroupSchema),
   },
   { additionalProperties: false },
 );

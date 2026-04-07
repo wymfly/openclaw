@@ -25,11 +25,11 @@ export const GET = withAuth(async (request: NextRequest, ctx: unknown) => {
   }
   const sortDir = sp.get("sortDir");
   if (sortDir) {
-    params.sortDir = sortDir;
+    params.sortDir = sortDir as "asc" | "desc";
   }
   const statuses = sp.get("statuses");
   if (statuses) {
-    params.statuses = statuses.split(",");
+    params.statuses = statuses.split(",") as ("ok" | "error" | "skipped")[];
   }
 
   return gwRequest("cron.runs", params);

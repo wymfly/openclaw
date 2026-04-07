@@ -290,11 +290,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (!session) {
         return s;
       }
-      // Merge: keep SSE-only messages (UUID-like IDs not present in history) appended after history.
-      // History IDs use the "key:ts:idx" format; SSE IDs are UUIDs or run IDs.
+      // Merge: keep SSE-only messages (UUID-like IDs not present in history) appended after history,
+      // but filter out SSE messages that are echoes of history messages (same role + close timestamp).
       const historyIds = new Set(messages.map((m) => m.id));
       const isHistoryId = (id: string) => /^[^:]+:\d+:\d+$/.test(id);
-      const sseOnly = session.messages.filter((m) => !historyIds.has(m.id) && !isHistoryId(m.id));
+      const sseOnly = session.messages.filter((m) => {
+        if (historyIds.has(m.id) || isHistoryId(m.id)) {
+          return false;
+        }
+        // Check if a history message with the same role and close timestamp exists.
+        // This catches SSE messages that were added via chat/session-msg events
+        // before history was loaded, preventing duplicates after reloadFullContent.
+        const hasSameRoleInHistory = messages.some(
+          (h) => h.role === m.role && Math.abs(h.timestamp - m.timestamp) < 60_000,
+        );
+        if (hasSameRoleInHistory) {
+          return false;
+        }
+        return true;
+      });
       const merged = sseOnly.length > 0 ? [...messages, ...sseOnly] : messages;
       const next = new Map(s.sessions);
       next.set(sessionKey, {

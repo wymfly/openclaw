@@ -1,9 +1,6 @@
 import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { buildAuthOverview } from "../../agents/auth-diagnostics.js";
-import { ensureAuthProfileStore } from "../../agents/auth-profiles.js";
-import { resolveEnvApiKey } from "../../agents/model-auth.js";
-import { parseModelRef } from "../../agents/model-selection.js";
 import { runAuthProbes, type AuthProbeResult } from "../../commands/models/list.probe.js";
 import { loadConfig } from "../../config/config.js";
 import type { MethodMetadata } from "../method-registry.js";
@@ -12,72 +9,8 @@ import {
   DeckAuthOverviewResultSchema,
   DeckAuthProbeResultSchema,
 } from "../protocol/schema/deck.js";
+import { createProviderProvenance } from "./model-provider-provenance.js";
 import type { GatewayRequestHandlers } from "./types.js";
-
-const DEFAULT_PROVIDER = "anthropic";
-
-/**
- * Resolve the union of providers visible in config, auth store, and env vars.
- *
- * Mirrors the logic in `list.status-command.ts` so the RPC returns the
- * same set a CLI `models status` would show.
- */
-function resolveVisibleProviders(cfg: ReturnType<typeof loadConfig>): string[] {
-  const store = ensureAuthProfileStore(resolveOpenClawAgentDir());
-
-  const fromStore = new Set(
-    Object.values(store.profiles)
-      .map((profile) => profile.provider)
-      .filter((p): p is string => Boolean(p)),
-  );
-
-  const fromConfig = new Set(
-    Object.keys(cfg.models?.providers ?? {})
-      .map((p) => (typeof p === "string" ? p.trim() : ""))
-      .filter(Boolean),
-  );
-
-  const fromModels = new Set<string>();
-  const defaultModel = cfg.agents?.defaults?.model;
-  const rawModel =
-    typeof defaultModel === "string"
-      ? defaultModel
-      : typeof defaultModel === "object" && defaultModel !== null
-        ? (((defaultModel as Record<string, unknown>).primary as string) ?? "")
-        : "";
-  for (const raw of [rawModel]) {
-    const parsed = parseModelRef(String(raw ?? ""), DEFAULT_PROVIDER);
-    if (parsed?.provider) {
-      fromModels.add(parsed.provider);
-    }
-  }
-
-  const fromEnv = new Set<string>();
-  const envProbeProviders = [
-    "anthropic",
-    "github-copilot",
-    "google-vertex",
-    "openai",
-    "google",
-    "groq",
-    "cerebras",
-    "xai",
-    "openrouter",
-    "zai",
-    "mistral",
-    "synthetic",
-  ];
-  for (const provider of envProbeProviders) {
-    if (resolveEnvApiKey(provider)) {
-      fromEnv.add(provider);
-    }
-  }
-
-  return Array.from(new Set([...fromStore, ...fromConfig, ...fromModels, ...fromEnv]))
-    .map((p) => (typeof p === "string" ? p.trim() : ""))
-    .filter(Boolean)
-    .toSorted((a, b) => a.localeCompare(b));
-}
 
 /**
  * In-flight probe deduplication map.
@@ -94,10 +27,27 @@ export const deckAuthHandlers: GatewayRequestHandlers = {
     try {
       const cfg = loadConfig();
       const agentDir = resolveOpenClawAgentDir();
-      const providers = resolveVisibleProviders(cfg);
+      const provenance = createProviderProvenance(cfg, agentDir);
+      const providers = provenance.visibleProviders;
 
       const result = await buildAuthOverview({ providers, cfg, agentDir });
-      respond(true, result, undefined);
+      respond(
+        true,
+        {
+          providers: result.providers.map((entry) => {
+            const meta = provenance.inspect(entry.provider);
+            return {
+              ...entry,
+              source: meta.authSource,
+              scope: meta.scope,
+              configPresent: meta.configPresent,
+              authPresent: meta.authPresent,
+              editable: meta.editable,
+            };
+          }),
+        },
+        undefined,
+      );
     } catch (err) {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
@@ -144,7 +94,7 @@ export const deckAuthHandlers: GatewayRequestHandlers = {
 
     const probePromise = (async (): Promise<AuthProbeResult | null> => {
       const cfg = loadConfig();
-      const providers = resolveVisibleProviders(cfg);
+      const providers = createProviderProvenance(cfg, resolveOpenClawAgentDir()).visibleProviders;
 
       // Build model candidates from config for probe target selection.
       const defaultModel = cfg.agents?.defaults?.model;
