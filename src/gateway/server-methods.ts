@@ -23,6 +23,7 @@ import {
   describeMethodDefs,
   setDescribeRegistry,
 } from "./server-methods/describe.js";
+import { deviceMethodDefs } from "./server-methods/device-method-defs.js";
 import { deviceHandlers } from "./server-methods/devices.js";
 import { doctorHandlers } from "./server-methods/doctor.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
@@ -50,6 +51,7 @@ import { updateHandlers } from "./server-methods/update.js";
 import { usageHandlers } from "./server-methods/usage.js";
 import { voicewakeHandlers } from "./server-methods/voicewake.js";
 import { webHandlers } from "./server-methods/web.js";
+import { wizardMethodDefs } from "./server-methods/wizard-method-defs.js";
 import { wizardHandlers } from "./server-methods/wizard.js";
 
 const CONTROL_PLANE_WRITE_METHODS = new Set(["config.apply", "config.patch", "update.run"]);
@@ -135,6 +137,8 @@ export const gatewayMethodRegistry = buildMethodRegistry(
     logsMethodDefs,
     toolsCatalogMethodDefs,
     toolsEffectiveMethodDefs,
+    deviceMethodDefs,
+    wizardMethodDefs,
   ],
   gatewayEventDefs,
 );

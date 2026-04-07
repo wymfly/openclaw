@@ -6,6 +6,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { ConnectionSection } from "./ConnectionSection";
+import { DevicesSection } from "./DevicesSection";
 import { NotificationSection } from "./NotificationSection";
 
 export function SettingsPanel() {
@@ -57,6 +58,7 @@ export function SettingsPanel() {
           <div className="flex flex-col gap-6 max-w-lg">
             <AppearanceSection />
             <ConnectionSection />
+            <DevicesSection />
             <NotificationSection />
             <AboutSection />
           </div>

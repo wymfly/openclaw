@@ -60,6 +60,27 @@ export function NavRail() {
     }
   };
 
+  const renderBadge = (item: PanelEntry) => {
+    if (!item.badge) {
+      return null;
+    }
+    const count = item.badge();
+    if (count <= 0) {
+      return null;
+    }
+    return (
+      <span
+        className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full text-[10px] font-semibold"
+        style={{
+          backgroundColor: "var(--destructive)",
+          color: "var(--destructive-fg)",
+        }}
+      >
+        {count > 99 ? "99+" : count}
+      </span>
+    );
+  };
+
   const navContent = (
     <nav
       className={`flex flex-col h-full border-r transition-all duration-200 ${
@@ -121,7 +142,10 @@ export function NavRail() {
                   }}
                   title={collapsed ? t(item.labelKey) : undefined}
                 >
-                  <Icon size={16} />
+                  <span className="relative">
+                    <Icon size={16} />
+                    {renderBadge(item)}
+                  </span>
                   {!collapsed && <span>{t(item.labelKey)}</span>}
                 </button>
               );
@@ -150,7 +174,10 @@ export function NavRail() {
               }}
               title={collapsed ? t(item.labelKey) : undefined}
             >
-              <Icon size={16} />
+              <span className="relative">
+                <Icon size={16} />
+                {renderBadge(item)}
+              </span>
               {!collapsed && <span>{t(item.labelKey)}</span>}
             </button>
           );
