@@ -11,9 +11,14 @@ import {
   resolveWecomAccount,
   resolveWecomAccountConflict,
 } from "./config/index.js";
+import {
+  createWecomPendingReplyManager,
+  type PendingReplyManager,
+} from "./enhanced/pending-reply.js";
 import { createQuotaTracker } from "./enhanced/quota-tracker.js";
+import { createInMemoryReliableDeliveryStore } from "./enhanced/reliable-delivery-store.js";
 import { createReqIdStore, type ReqIdStore } from "./enhanced/reqid-store.js";
-import { setQuotaTracker } from "./outbound.js";
+import { setPendingReplyManager, setQuotaTracker } from "./outbound.js";
 import type { ResolvedWecomAccount, WecomConfig } from "./types/index.js";
 import type { WecomRuntimeEnv } from "./types/runtime-context.js";
 
@@ -124,6 +129,7 @@ export async function monitorWecomProvider(
   const botService = new WecomBotCapabilityService(accountRuntime, cfg, runtimeEnv);
   const agentIngress = new WecomAgentIngressService(accountRuntime, cfg, runtimeEnv);
   let reqIdStore: ReqIdStore | undefined;
+  let pendingReplyMgr: PendingReplyManager | undefined;
   try {
     ctx.log?.info(
       `[${account.accountId}] wecom runtime start bot=${bot?.primaryTransport ?? "disabled"} agent=${agentConfigured ? "callback/api" : "disabled"}`,
@@ -165,9 +171,38 @@ export async function monitorWecomProvider(
         ctx.log?.info(`[${account.accountId}] enhanced: reqId dedup persistence enabled`);
       }
 
-      // TODO: [enhanced] PendingReplyManager wiring deferred — requires
-      // ReliableDeliveryStore implementation and deliverPendingReply callback
-      // that depend on more runtime context. Wire up in a follow-up.
+      // [enhanced] PendingReplyManager — in-memory reliable delivery retry queue
+      const pendingReplyEnabled = enhancedConfig.pendingReply?.enabled !== false;
+      if (pendingReplyEnabled) {
+        const reliableStore = createInMemoryReliableDeliveryStore();
+        pendingReplyMgr = createWecomPendingReplyManager({
+          reliableDeliveryStore: reliableStore,
+          resolveWecomPendingReplyPolicy: () => ({
+            enabled: true,
+            ...enhancedConfig.pendingReply,
+          }),
+          deliverPendingReply: async (entry, _trigger) => {
+            try {
+              if (!account.agent?.apiConfigured) {
+                return { ok: false, error: "agent not configured" };
+              }
+              const { WecomAgentDeliveryService } = await import("./capability/agent/index.js");
+              const svc = new WecomAgentDeliveryService(account.agent);
+              await svc.sendText({ to: entry.to, text: entry.text ?? "" });
+              return { ok: true };
+            } catch (err) {
+              return { ok: false, error: err instanceof Error ? err.message : String(err) };
+            }
+          },
+          logger: {
+            info: (msg) => ctx.log?.info(msg),
+            warn: (msg) => ctx.log?.warn?.(msg) ?? ctx.log?.info(msg),
+          },
+        });
+        await pendingReplyMgr.initialize(cfg);
+        setPendingReplyManager(pendingReplyMgr);
+        ctx.log?.info(`[${account.accountId}] enhanced: pending reply manager enabled`);
+      }
     }
 
     accountRouteRegistry.set(account.accountId, { botPaths, agentPaths });
@@ -191,6 +226,14 @@ export async function monitorWecomProvider(
 
     await waitForAbortSignal(ctx.abortSignal);
   } finally {
+    // [enhanced] Cleanup pendingReplyMgr — flush due entries on shutdown
+    if (pendingReplyMgr) {
+      try {
+        await pendingReplyMgr.flushDuePendingReplies("shutdown");
+      } catch {
+        // best-effort on shutdown
+      }
+    }
     // [enhanced] Cleanup reqIdStore — flush pending writes and cancel timers
     if (reqIdStore) {
       try {

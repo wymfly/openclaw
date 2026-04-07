@@ -1,30 +1,24 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
+import { buildToolError, buildToolResult, type WecomToolContext } from "../shared-tool-types.js";
 import { WecomContactClient } from "./client.js";
 import { wecomContactToolSchema } from "./schema.js";
 
 const MEMBER_PRIVACY_NOTE =
   "自 2022-06-20 起，非通讯录同步应用调用 user/get 可能拿不到 avatar/mobile/email 等敏感字段。";
 
-function buildToolResult(payload: any) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
-    details: payload,
-  };
-}
-
 export function registerWecomContactTools(api: OpenClawPluginApi) {
   if (typeof api?.registerTool !== "function") return;
   const contactClient = new WecomContactClient();
 
-  api.registerTool((toolContext: any) => ({
+  api.registerTool((toolContext: WecomToolContext) => ({
     name: "wecom_contact",
     label: "WeCom Contact",
     description: "企业微信通讯录工具，支持成员、部门、标签成员查询以及本地搜索。",
     parameters: wecomContactToolSchema,
-    async execute(_toolCallId, params: any) {
+    async execute(_toolCallId: string, params: Record<string, unknown>) {
       try {
-        const accountId = params.accountId || toolContext?.accountId || "default";
+        const accountId = (params.accountId as string) || toolContext?.accountId || "default";
         const account = resolveAgentAccountOrUndefined(api.config, accountId);
         if (!account || !account.configured) {
           throw new Error(`WeCom account ${accountId} not configured for Contact API requirements`);
@@ -33,7 +27,7 @@ export function registerWecomContactTools(api: OpenClawPluginApi) {
         const action = params.action;
         switch (action) {
           case "get_member": {
-            const result = await contactClient.getMember(account, params.userid);
+            const result = await contactClient.getMember(account, params.userid as string);
             return buildToolResult({
               ok: true,
               action,
@@ -62,7 +56,10 @@ export function registerWecomContactTools(api: OpenClawPluginApi) {
             });
           }
           case "list_departments": {
-            const result = await contactClient.listDepartments(account, params.parentId);
+            const result = await contactClient.listDepartments(
+              account,
+              params.parentId as number | undefined,
+            );
             return buildToolResult({
               ok: true,
               action,
@@ -99,7 +96,7 @@ export function registerWecomContactTools(api: OpenClawPluginApi) {
             const result = await contactClient.search(
               account,
               Number(params.departmentId),
-              params.query,
+              params.query as string,
             );
             return buildToolResult({
               ok: true,
@@ -117,24 +114,7 @@ export function registerWecomContactTools(api: OpenClawPluginApi) {
             throw new Error(`Unsupported action: ${String(action)}`);
         }
       } catch (err) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  ok: false,
-                  action: params?.action,
-                  error: err instanceof Error ? err.message : String(err),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-          details: {},
-          isError: true,
-        };
+        return buildToolError(params?.action as string | undefined, err);
       }
     },
   }));

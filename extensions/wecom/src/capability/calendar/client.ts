@@ -119,7 +119,7 @@ function validateArray<T>(
   value: unknown,
   fieldName: string,
   opts?: { min?: number; max?: number; required?: boolean },
-): any[] {
+): unknown[] {
   if (!Array.isArray(value)) {
     if (opts?.required) throw new Error(`${fieldName} 必须是数组`);
     return [];
@@ -188,9 +188,9 @@ function validateScheduleAttendees(
   }));
 }
 
-function validateReminders(reminders?: any): any | undefined {
+function validateReminders(reminders?: ScheduleReminders): ScheduleReminders | undefined {
   if (!reminders) return undefined;
-  const result: any = {};
+  const result: Record<string, unknown> = {} as Record<string, unknown>;
 
   if (reminders.is_remind !== undefined) {
     if (![0, 1].includes(reminders.is_remind)) throw new Error("reminders.is_remind 必须是 0 或 1");
@@ -204,7 +204,9 @@ function validateReminders(reminders?: any): any | undefined {
 
   if (reminders.remind_before_event_secs !== undefined) {
     const val = reminders.remind_before_event_secs;
-    if (!CALENDAR_LIMITS.REMINDER_BEFORE_EVENT_VALUES.includes(val)) {
+    if (
+      !CALENDAR_LIMITS.REMINDER_BEFORE_EVENT_VALUES.includes(val as 0 | 300 | 900 | 3600 | 86400)
+    ) {
       throw new Error(
         `reminders.remind_before_event_secs 必须是 ${CALENDAR_LIMITS.REMINDER_BEFORE_EVENT_VALUES.join(",")}`,
       );
@@ -215,12 +217,16 @@ function validateReminders(reminders?: any): any | undefined {
   if (reminders.remind_time_diffs !== undefined) {
     validateArray(reminders.remind_time_diffs, "reminders.remind_time_diffs");
     result.remind_time_diffs = reminders.remind_time_diffs.map((v: number, i: number) => {
-      if (!CALENDAR_LIMITS.REMINDER_TIME_DIFFS_VALUES.includes(v as any)) {
+      if (
+        !CALENDAR_LIMITS.REMINDER_TIME_DIFFS_VALUES.includes(
+          v as (typeof CALENDAR_LIMITS.REMINDER_TIME_DIFFS_VALUES)[number],
+        )
+      ) {
         throw new Error(
           `reminders.remind_time_diffs[${i}] 必须是 ${CALENDAR_LIMITS.REMINDER_TIME_DIFFS_VALUES.join(",")}`,
         );
       }
-      return v as any;
+      return v;
     });
   }
 
@@ -279,20 +285,30 @@ function validateReminders(reminders?: any): any | undefined {
 
   if (reminders.exclude_time_list !== undefined) {
     validateArray(reminders.exclude_time_list, "reminders.exclude_time_list");
-    result.exclude_time_list = reminders.exclude_time_list.map((item: any, i: number) => ({
-      start_time: validateNumber(item.start_time, `reminders.exclude_time_list[${i}].start_time`, {
-        min: 0,
-        required: true,
+    result.exclude_time_list = reminders.exclude_time_list.map(
+      (item: { start_time: number }, i: number) => ({
+        start_time: validateNumber(
+          item.start_time,
+          `reminders.exclude_time_list[${i}].start_time`,
+          {
+            min: 0,
+            required: true,
+          },
+        ),
       }),
-    }));
+    );
   }
 
-  return result;
+  return result as unknown as ScheduleReminders;
 }
 
 function validateOpMode(opMode?: number): 0 | 1 | 2 | undefined {
   if (opMode === undefined) return undefined;
-  if (!CALENDAR_LIMITS.OP_MODE_VALUES.includes(opMode as any)) {
+  if (
+    !CALENDAR_LIMITS.OP_MODE_VALUES.includes(
+      opMode as (typeof CALENDAR_LIMITS.OP_MODE_VALUES)[number],
+    )
+  ) {
     throw new Error(`op_mode 必须是 ${CALENDAR_LIMITS.OP_MODE_VALUES.join(",")}`);
   }
   return opMode as 0 | 1 | 2;
@@ -303,7 +319,7 @@ function validateOpMode(opMode?: number): 0 | 1 | 2 | undefined {
 // ============================================================================
 
 async function parseResponse<T>(res: Response, label: string): Promise<T> {
-  let json: any;
+  let json: unknown;
   try {
     json = await res.json();
   } catch {
@@ -315,14 +331,18 @@ async function parseResponse<T>(res: Response, label: string): Promise<T> {
   }
 
   if (Array.isArray(json)) {
-    const failed = json.find((i: any) => Number(i?.errcode ?? 0) !== 0);
-    if (failed) throw new Error(`${label}: ${failed?.errmsg || "failed"} (${failed?.errcode})`);
+    const failed = json.find((i: Record<string, unknown>) => Number(i?.errcode ?? 0) !== 0);
+    if (failed)
+      throw new Error(
+        `${label}: ${(failed as Record<string, unknown>)?.errmsg || "failed"} (${(failed as Record<string, unknown>)?.errcode})`,
+      );
     return json as T;
   }
 
-  const errCode = Number(json.errcode ?? 0);
+  const record = json as Record<string, unknown>;
+  const errCode = Number(record.errcode ?? 0);
   if (errCode !== 0) {
-    throw new Error(`${label}: ${json.errmsg || "failed"} (${errCode})`);
+    throw new Error(`${label}: ${record.errmsg || "failed"} (${errCode})`);
   }
 
   return json as T;
@@ -342,7 +362,7 @@ export class WecomCalendarClient {
     path: string,
     label: string,
     agent: ResolvedAgentAccount,
-    body: any,
+    body: unknown,
   ): Promise<T> {
     if (!agent?.corpId || !agent?.corpSecret) {
       throw new Error(`${label}: 账号配置不完整，需要 corpId 和 corpSecret`);
@@ -734,8 +754,8 @@ export class WecomCalendarClient {
         attendees,
         reminders,
       },
-      skip_attendees: p.request.skip_attendees as any,
-      op_mode: opMode as any,
+      skip_attendees: p.request.skip_attendees as 0 | 1 | undefined,
+      op_mode: opMode as 0 | 1 | 2 | undefined,
       op_start_time: opStartTime,
     };
 
@@ -897,7 +917,7 @@ export class WecomCalendarClient {
 
     const request: DeleteScheduleRequest = {
       schedule_id: scheduleId,
-      op_mode: opMode as any,
+      op_mode: opMode as 0 | 1 | 2 | undefined,
       op_start_time: opStartTime,
     };
 
@@ -1035,10 +1055,10 @@ export class WecomCalendarClient {
 
     const request: RespondScheduleRequest = {
       schedule_id: scheduleId,
-      op_mode: opMode as any,
+      op_mode: opMode as 0 | 1 | 2 | undefined,
       op_start_time: opStartTime,
       attendee,
-      response_status: p.request.response_status as any,
+      response_status: p.request.response_status as 1 | 2 | 4,
     };
 
     const json = await this.post<RespondScheduleResponse>(

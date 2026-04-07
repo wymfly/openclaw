@@ -49,6 +49,8 @@
 | `openclaw.json` schema | `seed/openclaw.json.tmpl` |
 | `dashboard/server/db.ts` (sql.js) | `docker/Dockerfile.deck`（确认无 native addon 残留） |
 | `dashboard/migrations/` | `docker/Dockerfile.deck` COPY 步骤 |
+| `dashboard/standalone-entry.mjs` | `docker/Dockerfile.deck` COPY + CMD |
+| `extensions/wecom/` (deps/config) | `seed/openclaw.json.tmpl` plugins entries |
 | Node.js 版本升级 | `docker/Dockerfile.deck` FROM, `scripts/install.sh` check_node, `scripts/prepare-deps.sh` NODE_VERSION |
 | pnpm 版本升级 | `docker/Dockerfile.deck` corepack prepare |
 

@@ -334,13 +334,31 @@ export function dispatchChatEvent(
   }
 
   if (payload.state === "aborted") {
+    const abortContent = payload.message?.content ?? [];
     const existingMessages = api.getSessionMessages(sessionKey);
     const existing = existingMessages.find((m) => m.id === payload.runId);
+
     if (existing) {
+      // The abort payload carries the full buffered text (including tokens
+      // that were throttled and never sent as a delta).  Merge it in the
+      // same way the "final" handler does so the user sees all generated
+      // text up to the abort point.
+      if (abortContent.length > 0) {
+        const existingToolBlocks = existing.content.filter(
+          (b) => b.type === "tool_use" || b.type === "tool_result",
+        );
+        const merged =
+          existingToolBlocks.length > 0 ? [...abortContent, ...existingToolBlocks] : abortContent;
+        api.updateStreamingContent(sessionKey, payload.runId, merged);
+      }
       api.finalizeMessage(sessionKey, payload.runId);
     }
     api.setSessionStreaming(sessionKey, false);
     resetTracker(trk, sessionKey);
+
+    // Reload full content from Gateway history (same as "final") so the
+    // persisted aborted partial text is authoritative.
+    void reloadFullContent(sessionKey, payload.runId, api);
   }
 }
 
@@ -553,17 +571,86 @@ export function dispatchSessionMessageEvent(
   const message = normalizeSessionMessagePayload(payload);
 
   api.ensureSession(sessionKey);
-  const existing = api.getSessionMessages(sessionKey).find((entry) => entry.id === message.id);
-  if (existing) {
+  const messages = api.getSessionMessages(sessionKey);
+
+  // 1. Exact ID match → update existing message
+  const exactMatch = messages.find((entry) => entry.id === message.id);
+  if (exactMatch) {
     api.updateStreamingContent(sessionKey, message.id, message.content);
-    if (existing.streaming) {
+    if (exactMatch.streaming) {
       api.finalizeMessage(sessionKey, message.id);
     }
-  } else {
-    api.addMessage(sessionKey, message);
+    dispatchSessionStateEvent(payload, store);
+    return;
   }
 
+  // 2. Fuzzy dedup — session-msg events from Gateway may echo messages already
+  //    added locally (user messages with "user-*" ID) or via chat events
+  //    (assistant messages with runId). Detect and skip to prevent duplicates.
+  if (findFuzzyDuplicate(messages, message)) {
+    dispatchSessionStateEvent(payload, store);
+    return;
+  }
+
+  api.addMessage(sessionKey, message);
   dispatchSessionStateEvent(payload, store);
+}
+
+/**
+ * Check if the incoming message is a duplicate of one already present
+ * under a different ID. Handles two cases:
+ * - User messages added locally with "user-*" ID echoed by Gateway
+ * - Assistant messages added via "chat" SSE events echoed via "session-msg"
+ */
+function findFuzzyDuplicate(
+  existing: ChatMessage[],
+  incoming: ChatMessage,
+): ChatMessage | undefined {
+  const incomingText = extractText(incoming);
+
+  if (incoming.role === "user" && incomingText) {
+    // Local user messages use "user-<timestamp>" IDs; Gateway echoes use
+    // authoritative IDs. Match by text content to detect the echo.
+    // Gateway may wrap the original text with "Sender (untrusted metadata): ..."
+    // prefix, so use substring containment instead of exact match.
+    return existing.find((m) => {
+      if (m.role !== "user" || !m.id.startsWith("user-")) {
+        return false;
+      }
+      const existingText = extractText(m);
+      if (!existingText) {
+        return false;
+      }
+      return (
+        existingText === incomingText ||
+        incomingText.includes(existingText) ||
+        existingText.includes(incomingText)
+      );
+    });
+  }
+
+  if (incoming.role === "assistant") {
+    // Chat events create assistant messages with runId (UUID-like, not the
+    // "key:ts:idx" history format). If one exists within a reasonable time
+    // window, the session-msg is a redundant echo.
+    const isSSEOriginId = (id: string) => !/^[^:]+:\d+:\d+$/.test(id);
+    return existing.find(
+      (m) =>
+        m.role === "assistant" &&
+        isSSEOriginId(m.id) &&
+        Math.abs(m.timestamp - incoming.timestamp) < 60_000,
+    );
+  }
+
+  return undefined;
+}
+
+/** Extract concatenated text from text-type content blocks. */
+function extractText(msg: ChatMessage): string {
+  return msg.content
+    .filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text")
+    .map((b) => b.text.trim())
+    .join("\n");
 }
 
 /**
@@ -832,6 +919,21 @@ export function dispatchSessionStateEvent(
   const verboseLevel =
     typeof statePayload.verboseLevel === "string" ? statePayload.verboseLevel : undefined;
   const model = typeof statePayload.model === "string" ? statePayload.model : undefined;
+  const rawReasoning = statePayload.reasoningLevel;
+  const reasoningLevel: SessionMeta["reasoningLevel"] =
+    rawReasoning === "off" || rawReasoning === "on" || rawReasoning === "stream"
+      ? rawReasoning
+      : undefined;
+  const rawUsage = statePayload.responseUsage;
+  const responseUsage: SessionMeta["responseUsage"] =
+    rawUsage === "off" || rawUsage === "tokens" || rawUsage === "full"
+      ? rawUsage
+      : rawUsage === "on"
+        ? "full"
+        : undefined;
+  const rawSendPolicy = statePayload.sendPolicy;
+  const sendPolicy: SessionMeta["sendPolicy"] =
+    rawSendPolicy === "allow" || rawSendPolicy === "deny" ? rawSendPolicy : undefined;
   const contextTokens =
     typeof statePayload.contextTokens === "number" ? statePayload.contextTokens : undefined;
 
@@ -853,6 +955,15 @@ export function dispatchSessionStateEvent(
   }
   if (model !== undefined) {
     metaPatch.model = model;
+  }
+  if (reasoningLevel !== undefined) {
+    metaPatch.reasoningLevel = reasoningLevel;
+  }
+  if (responseUsage !== undefined) {
+    metaPatch.responseUsage = responseUsage;
+  }
+  if (sendPolicy !== undefined) {
+    metaPatch.sendPolicy = sendPolicy;
   }
   if (status !== undefined) {
     metaPatch.status = status;

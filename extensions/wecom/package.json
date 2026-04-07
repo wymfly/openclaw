@@ -1,6 +1,6 @@
 {
   "name": "@openclaw-enhanced/wecom",
-  "version": "2026.3.17",
+  "version": "2026.3.23",
   "description": "OpenClaw Enhanced Fork — 企业微信（WeCom）频道插件，基于 @yanhaidao/wecom fork，增强配额追踪、持久化去重、MCP Skill 等企业级能力",
   "license": "ISC",
   "author": "wymfly (fork of YanHaidao)",

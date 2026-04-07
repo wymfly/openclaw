@@ -52,6 +52,7 @@ export type WecomHttpOptions = {
   proxyUrl?: string;
   timeoutMs?: number;
   signal?: AbortSignal;
+  logger?: { info?: (msg: string) => void; error?: (msg: string) => void };
 };
 
 /**
@@ -89,22 +90,23 @@ export async function wecomFetch(
     headers,
   };
 
+  const log = opts?.logger;
   try {
-    console.log(
+    (log?.info ?? console.log)(
       `[wecom-http] request method=${method} target=${target} proxy=${proxyUrl || "none"} timeoutMs=${String(opts?.timeoutMs ?? "none")}`,
     );
     const response = (await undiciFetch(
       input,
       nextInit as Parameters<typeof undiciFetch>[1],
     )) as unknown as Response;
-    console.log(
+    (log?.info ?? console.log)(
       `[wecom-http] response method=${method} target=${target} status=${response.status} durationMs=${Date.now() - startedAt}`,
     );
     return response;
   } catch (err: unknown) {
     if (err instanceof Error && err.name === "TypeError" && err.message === "fetch failed") {
       const cause = (err as any).cause;
-      console.error(
+      (log?.error ?? console.error)(
         `[wecom-http] fetch failed method=${method} target=${target} durationMs=${Date.now() - startedAt} proxy=${proxyUrl || "none"}${cause ? ` cause=${String(cause)}` : ""}`,
       );
     }

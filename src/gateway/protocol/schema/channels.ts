@@ -9,6 +9,15 @@ export const TalkModeParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const TalkModeResultSchema = Type.Object(
+  {
+    enabled: Type.Boolean(),
+    phase: Type.Union([Type.String(), Type.Null()]),
+    ts: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
 export const TalkConfigParamsSchema = Type.Object(
   {
     includeSecrets: Type.Optional(Type.Boolean()),

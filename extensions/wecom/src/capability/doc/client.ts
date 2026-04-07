@@ -120,10 +120,13 @@ function buildDocMemberAuthRequest(params: {
   return payload;
 }
 
-async function parseJsonResponse(res: Response, actionLabel: string): Promise<any> {
-  let payload: any = null;
+async function parseJsonResponse(
+  res: Response,
+  actionLabel: string,
+): Promise<Record<string, unknown>> {
+  let payload: Record<string, unknown> | null = null;
   try {
-    payload = await res.json();
+    payload = (await res.json()) as Record<string, unknown>;
   } catch {
     if (!res.ok) {
       throw new Error(`WeCom ${actionLabel} failed: HTTP ${res.status}`);
@@ -159,14 +162,14 @@ export class WecomDocClient {
     actionLabel: string;
     agent: ResolvedAgentAccount;
     body: Record<string, unknown> | unknown[];
-  }): Promise<any> {
+  }): Promise<Record<string, unknown>> {
     const { path, actionLabel, agent, body } = params;
 
     const token = await getAccessToken(agent);
     const url = `https://qyapi.weixin.qq.com${path}?access_token=${encodeURIComponent(token)}`;
     const proxyUrl = resolveWecomEgressProxyUrlFromNetwork(agent.network);
 
-    let lastErr: any;
+    let lastErr: unknown;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const res = await wecomFetch(
@@ -357,7 +360,11 @@ export class WecomDocClient {
     };
   }
 
-  async setDocJoinRule(params: { agent: ResolvedAgentAccount; docId: string; request: any }) {
+  async setDocJoinRule(params: {
+    agent: ResolvedAgentAccount;
+    docId: string;
+    request: Record<string, unknown>;
+  }) {
     const { agent, docId, request } = params;
     const payload = {
       ...readObject(request),
@@ -376,7 +383,11 @@ export class WecomDocClient {
     };
   }
 
-  async setDocMemberAuth(params: { agent: ResolvedAgentAccount; docId: string; request: any }) {
+  async setDocMemberAuth(params: {
+    agent: ResolvedAgentAccount;
+    docId: string;
+    request: Record<string, unknown>;
+  }) {
     const { agent, docId, request } = params;
     const payload = {
       ...readObject(request),
@@ -416,8 +427,8 @@ export class WecomDocClient {
         const currentAuth = await this.getDocAuth({ agent, docId });
         const viewerUserIds = new Set(
           (currentAuth.docMembers || [])
-            .filter((m: any) => m.type === 1 && m.userid)
-            .map((m: any) => m.userid),
+            .filter((m: Record<string, unknown>) => m.type === 1 && m.userid)
+            .map((m: Record<string, unknown>) => m.userid),
         );
         const newCollaboratorUserIds = normalizeDocMemberEntryList(collaborators)
           .map((e) => e.userid)
@@ -452,10 +463,10 @@ export class WecomDocClient {
     });
     return {
       ...result,
-      addedViewerCount: (payload.update_file_member_list as any[])?.length ?? 0,
-      addedCollaboratorCount: (payload.update_co_auth_list as any[])?.length ?? 0,
-      removedViewerCount: (payload.del_file_member_list as any[])?.length ?? 0,
-      removedCollaboratorCount: (payload.del_co_auth_list as any[])?.length ?? 0,
+      addedViewerCount: (payload.update_file_member_list as unknown[])?.length ?? 0,
+      addedCollaboratorCount: (payload.update_co_auth_list as unknown[])?.length ?? 0,
+      removedViewerCount: (payload.del_file_member_list as unknown[])?.length ?? 0,
+      removedCollaboratorCount: (payload.del_co_auth_list as unknown[])?.length ?? 0,
     };
   }
 
@@ -474,7 +485,11 @@ export class WecomDocClient {
     });
   }
 
-  async setDocSafetySetting(params: { agent: ResolvedAgentAccount; docId: string; request: any }) {
+  async setDocSafetySetting(params: {
+    agent: ResolvedAgentAccount;
+    docId: string;
+    request: Record<string, unknown>;
+  }) {
     const { agent, docId, request } = params;
     const payload = {
       ...readObject(request),
@@ -495,7 +510,7 @@ export class WecomDocClient {
 
   async createCollect(params: {
     agent: ResolvedAgentAccount;
-    formInfo: any;
+    formInfo: Record<string, unknown>;
     spaceId?: string;
     fatherId?: string;
   }) {
@@ -511,29 +526,26 @@ export class WecomDocClient {
       throw new Error("form_title 必填");
     }
 
-    if (
-      !formInfo.form_question ||
-      !formInfo.form_question.items ||
-      !Array.isArray(formInfo.form_question.items)
-    ) {
+    const formQuestion = formInfo.form_question as Record<string, unknown> | undefined;
+    if (!formQuestion || !formQuestion.items || !Array.isArray(formQuestion.items)) {
       throw new Error("form_question.items 必填且必须为数组");
     }
 
     // Validate questions count ≤ 200
-    const questions = formInfo.form_question.items;
+    const questions = formQuestion.items as Array<Record<string, unknown>>;
     if (questions.length > 200) {
       throw new Error("问题数量不能超过 200 个");
     }
 
     // Validate each question
-    questions.forEach((q: any, index: number) => {
-      if (!q.question_id || !Number.isInteger(q.question_id) || q.question_id < 1) {
+    questions.forEach((q: Record<string, unknown>, index: number) => {
+      if (!q.question_id || !Number.isInteger(q.question_id) || (q.question_id as number) < 1) {
         throw new Error(`第${index + 1}个问题：question_id 必填且必须从 1 开始`);
       }
       if (!q.title || readString(q.title).length === 0) {
         throw new Error(`第${index + 1}个问题：title 必填`);
       }
-      if (!q.pos || !Number.isInteger(q.pos) || q.pos < 1) {
+      if (!q.pos || !Number.isInteger(q.pos) || (q.pos as number) < 1) {
         throw new Error(`第${index + 1}个问题：pos 必填且必须从 1 开始`);
       }
       if (q.reply_type === undefined || !Number.isInteger(q.reply_type)) {
@@ -544,14 +556,14 @@ export class WecomDocClient {
       }
 
       // Validate option_item for single/multiple/dropdown questions
-      const requiresOptions = [2, 3, 15].includes(q.reply_type); // 单选/多选/下拉列表
+      const requiresOptions = [2, 3, 15].includes(q.reply_type as number); // 单选/多选/下拉列表
       if (requiresOptions) {
         if (!Array.isArray(q.option_item) || q.option_item.length === 0) {
           throw new Error(`第${index + 1}个问题：单选/多选/下拉列表必须提供 option_item 数组`);
         }
         // Validate option keys are sequential from 1
-        q.option_item.forEach((opt: any, optIndex: number) => {
-          if (!opt.key || !Number.isInteger(opt.key) || opt.key < 1) {
+        q.option_item.forEach((opt: Record<string, unknown>, optIndex: number) => {
+          if (!opt.key || !Number.isInteger(opt.key) || (opt.key as number) < 1) {
             throw new Error(`第${index + 1}个问题的第${optIndex + 1}个选项：key 必填且从 1 开始`);
           }
           if (!opt.value || readString(opt.value).length === 0) {
@@ -561,17 +573,22 @@ export class WecomDocClient {
       }
 
       // Validate image/file upload limits
-      if ([9, 10].includes(q.reply_type)) {
+      if ([9, 10].includes(q.reply_type as number)) {
         // 图片/文件
-        const setting = q.question_extend_setting;
+        const setting = q.question_extend_setting as
+          | Record<string, Record<string, Record<string, unknown>>>
+          | undefined;
         if (setting) {
           const limit =
             setting.image_setting?.upload_image_limit || setting.file_setting?.upload_file_limit;
           if (limit) {
-            if (limit.count !== undefined && (limit.count < 1 || limit.count > 9)) {
+            if (
+              limit.count !== undefined &&
+              ((limit.count as number) < 1 || (limit.count as number) > 9)
+            ) {
               throw new Error(`第${index + 1}个问题：图片/文件上传数量限制必须在 1-9 之间`);
             }
-            if (limit.max_size !== undefined && limit.max_size > 3000) {
+            if (limit.max_size !== undefined && (limit.max_size as number) > 3000) {
               throw new Error(`第${index + 1}个问题：单个文件大小限制最大 3000MB`);
             }
           }
@@ -580,8 +597,11 @@ export class WecomDocClient {
     });
 
     // Validate timed_repeat_info and timed_finish are mutually exclusive
-    const formSetting = formInfo.form_setting || {};
-    if (formSetting.timed_repeat_info?.enable && formSetting.timed_finish) {
+    const formSetting = (formInfo.form_setting || {}) as Record<string, unknown>;
+    if (
+      (formSetting.timed_repeat_info as Record<string, unknown>)?.enable &&
+      formSetting.timed_finish
+    ) {
       console.warn("警告：timed_finish 与 timed_repeat_info 互斥，若都填优先定时重复");
     }
 
@@ -610,7 +630,7 @@ export class WecomDocClient {
     return {
       raw: json,
       formId: readString(json.formid),
-      title: readString((payload.form_info as any).form_title),
+      title: readString((payload.form_info as Record<string, unknown>).form_title),
     };
   }
 
@@ -618,7 +638,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     oper: string;
     formId: string;
-    formInfo: any;
+    formInfo: Record<string, unknown>;
   }) {
     const { agent, oper, formId, formInfo } = params;
 
@@ -639,27 +659,28 @@ export class WecomDocClient {
 
     if (operNum === 1) {
       // 全量修改问题：必须提供完整的 form_question 数组
-      if (!formInfo || !formInfo.form_question || !Array.isArray(formInfo.form_question.items)) {
+      const modFormQuestion = formInfo.form_question as Record<string, unknown> | undefined;
+      if (!formInfo || !modFormQuestion || !Array.isArray(modFormQuestion.items)) {
         throw new Error(
           "oper=1 时，必须提供 form_question.items 数组（包含所有问题，缺失的问题将被删除）",
         );
       }
 
       // Validate questions count ≤ 200
-      const questions = formInfo.form_question.items;
+      const questions = modFormQuestion.items as Array<Record<string, unknown>>;
       if (questions.length > 200) {
         throw new Error("问题数量不能超过 200 个");
       }
 
       // Validate each question (same as createCollect)
-      questions.forEach((q: any, index: number) => {
-        if (!q.question_id || !Number.isInteger(q.question_id) || q.question_id < 1) {
+      questions.forEach((q: Record<string, unknown>, index: number) => {
+        if (!q.question_id || !Number.isInteger(q.question_id) || (q.question_id as number) < 1) {
           throw new Error(`第${index + 1}个问题：question_id 必填且必须从 1 开始`);
         }
         if (!q.title || readString(q.title).length === 0) {
           throw new Error(`第${index + 1}个问题：title 必填`);
         }
-        if (!q.pos || !Number.isInteger(q.pos) || q.pos < 1) {
+        if (!q.pos || !Number.isInteger(q.pos) || (q.pos as number) < 1) {
           throw new Error(`第${index + 1}个问题：pos 必填且必须从 1 开始`);
         }
         if (q.reply_type === undefined || !Number.isInteger(q.reply_type)) {
@@ -670,13 +691,13 @@ export class WecomDocClient {
         }
 
         // Validate option_item for single/multiple/dropdown questions
-        const requiresOptions = [2, 3, 15].includes(q.reply_type);
+        const requiresOptions = [2, 3, 15].includes(q.reply_type as number);
         if (requiresOptions) {
           if (!Array.isArray(q.option_item) || q.option_item.length === 0) {
             throw new Error(`第${index + 1}个问题：单选/多选/下拉列表必须提供 option_item 数组`);
           }
-          q.option_item.forEach((opt: any, optIndex: number) => {
-            if (!opt.key || !Number.isInteger(opt.key) || opt.key < 1) {
+          q.option_item.forEach((opt: Record<string, unknown>, optIndex: number) => {
+            if (!opt.key || !Number.isInteger(opt.key) || (opt.key as number) < 1) {
               throw new Error(`第${index + 1}个问题的第${optIndex + 1}个选项：key 必填且从 1 开始`);
             }
             if (!opt.value || readString(opt.value).length === 0) {
@@ -694,8 +715,11 @@ export class WecomDocClient {
       }
 
       // Validate timed_repeat_info and timed_finish are mutually exclusive
-      const formSetting = formInfo.form_setting;
-      if (formSetting.timed_repeat_info?.enable && formSetting.timed_finish) {
+      const formSetting = formInfo.form_setting as Record<string, unknown>;
+      if (
+        (formSetting.timed_repeat_info as Record<string, unknown>)?.enable &&
+        formSetting.timed_finish
+      ) {
         console.warn("警告：timed_finish 与 timed_repeat_info 互斥，若都填优先定时重复");
       }
 
@@ -759,7 +783,7 @@ export class WecomDocClient {
     return {
       raw: json,
       answer,
-      answerList: readArray((answer as any).answer_list),
+      answerList: readArray((answer as Record<string, unknown>).answer_list),
     };
   }
 
@@ -781,7 +805,9 @@ export class WecomDocClient {
     return {
       raw: json,
       items: statisticList,
-      successCount: statisticList.filter((item: any) => Number(item?.errcode ?? 0) === 0).length,
+      successCount: statisticList.filter(
+        (item: unknown) => Number((item as Record<string, unknown>)?.errcode ?? 0) === 0,
+      ).length,
     };
   }
 
@@ -794,7 +820,7 @@ export class WecomDocClient {
       actionLabel: "get_doc_content",
       agent,
       body: { docid: readString(docId) },
-    })) as GetDocContentResponse;
+    })) as unknown as GetDocContentResponse;
 
     // Ensure structure strictly matches official API: { version: number, document: Node }
     return {
@@ -833,7 +859,7 @@ export class WecomDocClient {
       actionLabel: "update_doc_content",
       agent,
       body,
-    })) as BatchUpdateDocResponse;
+    })) as unknown as BatchUpdateDocResponse;
     return { raw: json };
   }
 
@@ -863,7 +889,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     notified_scope_type: number;
-    notified_member_list?: any[];
+    notified_member_list?: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, notified_scope_type, notified_member_list } = params;
     const json = await this.postWecomDocApi({
@@ -881,7 +907,7 @@ export class WecomDocClient {
     sheetId: string;
     startRow?: number;
     startColumn?: number;
-    gridData?: any;
+    gridData?: Record<string, unknown>;
   }) {
     const { agent, docId, sheetId, startRow = 0, startColumn = 0, gridData } = params;
 
@@ -899,20 +925,25 @@ export class WecomDocClient {
 
     // Build GridData per official API
     // gridData.rows[i].values[j] must be: {cell_value: {text} | {link: {text, url}}, cell_format?: {...}}
-    const rows = (gridData?.rows || []).map((row: any) => ({
-      values: (row.values || []).map((cell: any) => {
-        // If already CellData format, use as-is
-        if (cell && typeof cell === "object" && cell.cell_value) {
-          return cell;
-        }
-        // Otherwise wrap primitive as CellValue
-        return { cell_value: { text: String(cell ?? "") } };
-      }),
-    }));
+    const rows = ((gridData?.rows as unknown[]) || []).map((row) => {
+      const r = row as Record<string, unknown>;
+      return {
+        values: ((r.values as unknown[]) || []).map((cell: unknown) => {
+          // If already CellData format, use as-is
+          if (cell && typeof cell === "object" && (cell as Record<string, unknown>).cell_value) {
+            return cell;
+          }
+          // Otherwise wrap primitive as CellValue
+          return { cell_value: { text: String(cell ?? "") } };
+        }),
+      };
+    });
 
     // Validate range limits per API spec
     const rowCount = rows.length;
-    const rowWidths = rows.map((row: any) => row.values?.length || 0);
+    const rowWidths = rows.map(
+      (row: Record<string, unknown>) => (row.values as unknown[] | undefined)?.length || 0,
+    );
     const columnCount = rowWidths.length > 0 ? Math.max(...rowWidths) : 0;
     const totalCells = rowWidths.reduce((sum: number, width: number) => sum + width, 0);
 
@@ -955,15 +986,20 @@ export class WecomDocClient {
     return {
       raw: json,
       docId: body.docid as string,
-      updatedCells: json.data?.responses?.[0]?.update_range_response?.updated_cells || 0,
+      updatedCells:
+        ((
+          (json.data as Record<string, unknown>)?.responses as Array<
+            Record<string, Record<string, unknown>>
+          >
+        )?.[0]?.update_range_response?.updated_cells as number) || 0,
     };
   }
 
   /**
    * Build CellFormat object per official API
    */
-  private buildCellFormat(formatData: any): any {
-    const textFormat: any = {};
+  private buildCellFormat(formatData: Record<string, unknown>): Record<string, unknown> | null {
+    const textFormat: Record<string, string | number | boolean | Record<string, number>> = {};
 
     // Font properties
     if (formatData.font != null) {
@@ -987,7 +1023,7 @@ export class WecomDocClient {
 
     // Color (RGBA)
     if (formatData.color != null && typeof formatData.color === "object") {
-      const color = formatData.color;
+      const color = formatData.color as Record<string, unknown>;
       textFormat.color = {
         red: Math.min(255, Math.max(0, Number(color.red ?? 0))),
         green: Math.min(255, Math.max(0, Number(color.green ?? 0))),
@@ -1046,7 +1082,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     operation: string;
-    bodyData: any;
+    bodyData: Record<string, unknown>;
   }) {
     const { agent, docId, operation, bodyData } = params;
     const body = { docid: readString(docId), ...readObject(bodyData) };
@@ -1123,8 +1159,8 @@ export class WecomDocClient {
     sheetId: string;
     view_title: string;
     view_type: string;
-    property_gantt?: any;
-    property_calendar?: any;
+    property_gantt?: Record<string, unknown>;
+    property_calendar?: Record<string, unknown>;
   }) {
     const { agent, docId, sheetId, view_title, view_type, property_gantt, property_calendar } =
       params;
@@ -1142,8 +1178,8 @@ export class WecomDocClient {
     sheetId: string;
     view_id: string;
     view_title?: string;
-    property_gantt?: any;
-    property_calendar?: any;
+    property_gantt?: Record<string, unknown>;
+    property_calendar?: Record<string, unknown>;
   }) {
     const { agent, docId, sheetId, view_id, view_title, property_gantt, property_calendar } =
       params;
@@ -1174,7 +1210,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     sheetId: string;
-    fields: any[];
+    fields: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, sheetId, fields } = params;
     return this.smartTableOperate({
@@ -1204,7 +1240,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     sheetId: string;
-    fields: any[];
+    fields: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, sheetId, fields } = params;
     return this.smartTableOperate({
@@ -1281,7 +1317,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     sheetId: string;
-    records: any[];
+    records: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, sheetId, records } = params;
     return this.smartTableOperate({
@@ -1296,7 +1332,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     sheetId: string;
-    records: any[];
+    records: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, sheetId, records } = params;
     return this.smartTableOperate({
@@ -1311,7 +1347,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     sheetId: string;
-    records: any[];
+    records: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, sheetId, records } = params;
     return this.smartTableOperate({
@@ -1326,7 +1362,7 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     sheetId: string;
-    records: any[];
+    records: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, sheetId, records } = params;
     return this.smartTableOperate({
@@ -1393,10 +1429,10 @@ export class WecomDocClient {
     type: number;
     rule_id?: number;
     name?: string;
-    priv_list: any[];
+    priv_list: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, type, rule_id, name, priv_list } = params;
-    const body: any = { docid: readString(docId), type, priv_list };
+    const body: Record<string, unknown> = { docid: readString(docId), type, priv_list };
     if (rule_id !== undefined) body.rule_id = rule_id;
     if (name !== undefined) body.name = name;
 
@@ -1424,11 +1460,11 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     rule_id: number;
-    add_member_range?: any;
-    del_member_range?: any;
+    add_member_range?: Record<string, unknown>;
+    del_member_range?: Record<string, unknown>;
   }) {
     const { agent, docId, rule_id, add_member_range, del_member_range } = params;
-    const body: any = { docid: readString(docId), rule_id };
+    const body: Record<string, unknown> = { docid: readString(docId), rule_id };
     if (add_member_range) body.add_member_range = add_member_range;
     if (del_member_range) body.del_member_range = del_member_range;
 

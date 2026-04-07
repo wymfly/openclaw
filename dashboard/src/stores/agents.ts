@@ -12,6 +12,8 @@ const statusSet: Record<string, true> = { idle: true, busy: true, error: true, o
 interface AgentsState {
   agents: Agent[];
   selectedAgentId: string | null;
+  /** The default (main) agent ID returned by Gateway. */
+  defaultAgentId: string | null;
   /** Pending tab hint consumed by AgentDetail on navigation. */
   pendingTab: string | null;
   loading: boolean;
@@ -30,6 +32,7 @@ interface AgentsState {
 export const useAgentsStore = create<AgentsState>((set, get) => ({
   agents: [],
   selectedAgentId: null,
+  defaultAgentId: null,
   pendingTab: null,
   loading: false,
 
@@ -65,7 +68,8 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
           ? a.status
           : "idle") as Agent["status"],
       }));
-      set({ agents: list });
+      const defaultAgentId = typeof data?.defaultId === "string" ? data.defaultId : null;
+      set({ agents: list, defaultAgentId });
     } finally {
       set({ loading: false });
     }

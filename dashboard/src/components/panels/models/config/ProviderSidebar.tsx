@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { sourceTranslationKey, scopeTranslationKey } from "@/lib/model-provenance";
 import { cn } from "@/lib/utils";
 import type { AuthOverviewEntry } from "@/stores/models";
 import { AuthStatusDot } from "../shared/AuthStatusDot";
@@ -37,6 +38,7 @@ function authTypeLabel(type: string | null | undefined): string {
  */
 export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: ProviderSidebarProps) {
   const t = useTranslations("models");
+  const tp = useTranslations("models.provenance");
 
   const configured = auth.filter((e) => e.status !== "missing" && e.status !== "unknown");
   const unconfigured = auth.filter((e) => e.status === "missing" || e.status === "unknown");
@@ -87,6 +89,20 @@ export function ProviderSidebar({ auth, selected, onSelect, onAddProvider }: Pro
             {authTypeLabel(entry.auth.type)}
           </Badge>
         )}
+
+        <div className="mt-1 flex w-full flex-wrap items-center gap-1 pl-5">
+          <Badge variant="secondary" className="h-4 px-1.5 py-0 text-[10px] leading-tight">
+            {tp(sourceTranslationKey(entry.source))}
+          </Badge>
+          <Badge variant="outline" className="h-4 px-1.5 py-0 text-[10px] leading-tight">
+            {tp(scopeTranslationKey(entry.scope))}
+          </Badge>
+          {!entry.editable && (
+            <Badge variant="outline" className="h-4 px-1.5 py-0 text-[10px] leading-tight">
+              {tp("readOnly")}
+            </Badge>
+          )}
+        </div>
       </button>
     );
   };

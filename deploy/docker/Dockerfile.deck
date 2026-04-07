@@ -85,6 +85,15 @@ COPY --from=builder /app/dashboard/.next/static ./dashboard/.next/static
 # in the standalone output directory structure.
 COPY --from=builder /app/dashboard/migrations ./dashboard/migrations
 
+# Copy standalone-entry.mjs — preloads sql.js WASM before server.js.
+# instrumentation.ts is NOT included in standalone trace, so this
+# wrapper is the only way to initialize sql.js in production.
+COPY --from=builder /app/dashboard/standalone-entry.mjs ./dashboard/standalone-entry.mjs
+
+# Copy sql-wasm.wasm — Next.js standalone trace copies JS but not
+# the .wasm binary. Without this, sql.js initialization fails.
+COPY --from=builder /app/node_modules/sql.js/dist/sql-wasm.wasm ./node_modules/sql.js/dist/sql-wasm.wasm
+
 # Create data volume mount point
 RUN mkdir -p /data && chown node:node /data
 
@@ -98,4 +107,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://localhost:3000/').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"
 
-CMD ["node", "dashboard/server.js"]
+CMD ["node", "dashboard/standalone-entry.mjs"]

@@ -162,6 +162,9 @@ export interface SessionMeta {
   thinkingLevel?: string;
   fastMode?: boolean;
   verboseLevel?: string;
+  reasoningLevel?: "off" | "on" | "stream";
+  responseUsage?: "off" | "tokens" | "full";
+  sendPolicy?: "allow" | "deny";
   totalTokens?: number;
   totalTokensFresh?: boolean;
   estimatedCostUsd?: number;

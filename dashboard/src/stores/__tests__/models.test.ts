@@ -87,15 +87,34 @@ const mockAuthOverview = [
   {
     provider: "moonshot",
     status: "ready",
+    source: "config",
+    scope: "global",
+    configPresent: true,
+    authPresent: true,
+    editable: true,
     auth: { type: "api_key", source: "env:MOONSHOT_API_KEY", profileId: "moonshot:default" },
   },
   {
     provider: "minimax",
     status: "warning",
+    source: "mixed",
+    scope: "agent:main",
+    configPresent: true,
+    authPresent: true,
+    editable: true,
     auth: { type: "oauth", source: "profile:minimax:oauth" },
     oauth: { expiresAt: Date.now() + 3600000, remainingMs: 3600000, status: "expiring" },
   },
-  { provider: "openai", status: "missing", auth: null },
+  {
+    provider: "openai",
+    status: "missing",
+    source: "env",
+    scope: "global",
+    configPresent: false,
+    authPresent: false,
+    editable: false,
+    auth: null,
+  },
 ];
 
 function makeConfigRaw(overrides?: Record<string, unknown>): string {
@@ -187,10 +206,26 @@ describe("fetchAuthOverview", () => {
     expect(state.authOverview[0].status).toBe("ready");
     expect(state.authOverview[1].status).toBe("warning");
     expect(state.authOverview[2].status).toBe("missing");
+    expect(state.authOverview[1]).toMatchObject({
+      source: "mixed",
+      scope: "agent:main",
+      editable: true,
+    });
   });
 
   it("S-FA-03: keeps original on API failure", async () => {
-    const existing = [{ provider: "old", status: "ready" as const, auth: null }];
+    const existing = [
+      {
+        provider: "old",
+        status: "ready" as const,
+        source: "config" as const,
+        scope: "global",
+        configPresent: true,
+        authPresent: true,
+        editable: true,
+        auth: null,
+      },
+    ];
     useModelsStore.setState({ authOverview: existing });
 
     mockFetch.mockResolvedValueOnce({ ok: false });
@@ -868,7 +903,15 @@ describe("fetchUsableModels", () => {
       ok: true,
       json: async () => ({
         models: [
-          { id: "deepseek-chat", name: "DeepSeek Chat", provider: "deepseek", authStatus: "ready" },
+          {
+            id: "deepseek-chat",
+            name: "DeepSeek Chat",
+            provider: "deepseek",
+            authStatus: "ready",
+            source: "config",
+            scope: "global",
+            editable: true,
+          },
           { id: "gpt-5.4", name: "GPT 5.4", provider: "openai", authStatus: "missing" },
         ],
       }),
@@ -879,6 +922,11 @@ describe("fetchUsableModels", () => {
     // Only "ready" models should be included
     expect(state.usableModels).toHaveLength(1);
     expect(state.usableModels[0].id).toBe("deepseek-chat");
+    expect(state.usableModels[0]).toMatchObject({
+      source: "config",
+      scope: "global",
+      editable: true,
+    });
   });
 
   it("falls back to catalog when configured endpoint fails", async () => {
@@ -913,6 +961,35 @@ describe("fetchUsableModels", () => {
     const state = useModelsStore.getState();
     expect(state.usableModels).toHaveLength(2);
     expect(state.usableModels.map((m) => m.id)).toEqual(["kimi-k2.5", "gpt-5.4"]);
+  });
+
+  it("preserves provenance fields from the runtime inventory", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        models: [
+          {
+            id: "gpt-5.4",
+            name: "GPT 5.4",
+            provider: "cpa",
+            authStatus: "ready",
+            source: "agent-models",
+            scope: "agent:main",
+            editable: false,
+          },
+        ],
+      }),
+    });
+
+    await useModelsStore.getState().fetchUsableModels();
+
+    expect(useModelsStore.getState().usableModels[0]).toMatchObject({
+      provider: "cpa",
+      source: "agent-models",
+      scope: "agent:main",
+      editable: false,
+      authStatus: "ready",
+    });
   });
 });
 

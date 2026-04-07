@@ -2,28 +2,22 @@
 
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
+import { buildToolError, buildToolResult, type WecomToolContext } from "../shared-tool-types.js";
 import { WecomApprovalClient } from "./client.js";
 import { wecomApprovalToolSchema } from "./schema.js";
-
-function buildToolResult(payload: any) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
-    details: payload,
-  };
-}
 
 export function registerWecomApprovalTools(api: OpenClawPluginApi) {
   if (typeof api?.registerTool !== "function") return;
   const approvalClient = new WecomApprovalClient();
 
-  api.registerTool((toolContext: any) => ({
+  api.registerTool((toolContext: WecomToolContext) => ({
     name: "wecom_approval",
     label: "WeCom Approval",
     description: "企业微信审批工具，支持提交审批、查询审批列表、获取审批详情和审批模板。",
     parameters: wecomApprovalToolSchema,
-    async execute(_toolCallId, params: any) {
+    async execute(_toolCallId: string, params: Record<string, unknown>) {
       try {
-        const accountId = params.accountId || toolContext?.accountId || "default";
+        const accountId = (params.accountId as string) || toolContext?.accountId || "default";
         const account = resolveAgentAccountOrUndefined(api.config, accountId);
         if (!account || !account.configured) {
           throw new Error(
@@ -35,12 +29,16 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
         switch (action) {
           case "submit": {
             const result = await approvalClient.submit(account, {
-              creator_userid: params.creator_userid,
-              template_id: params.template_id,
-              use_template_approver: params.use_template_approver,
-              approver: params.approver,
-              apply_data: params.apply_data,
-              summary_list: params.summary_list,
+              creator_userid: params.creator_userid as string,
+              template_id: params.template_id as string,
+              use_template_approver: params.use_template_approver as number | undefined,
+              approver: params.approver as Array<{ attr: number; userid: string[] }> | undefined,
+              apply_data: params.apply_data as
+                | { contents: Array<Record<string, unknown>> }
+                | undefined,
+              summary_list: params.summary_list as
+                | Array<{ summary_info: Array<{ text: string; lang: string }> }>
+                | undefined,
             });
             return buildToolResult({
               ok: true,
@@ -52,11 +50,11 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
           }
           case "list": {
             const result = await approvalClient.list(account, {
-              start_time: params.start_time,
-              end_time: params.end_time,
-              template_id: params.template_id,
-              cursor: params.cursor,
-              size: params.size,
+              start_time: params.start_time as string,
+              end_time: params.end_time as string,
+              template_id: params.template_id as string | undefined,
+              cursor: params.cursor as number | undefined,
+              size: params.size as number | undefined,
             });
             return buildToolResult({
               ok: true,
@@ -68,7 +66,7 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
             });
           }
           case "get_detail": {
-            const record = await approvalClient.getDetail(account, params.sp_no);
+            const record = await approvalClient.getDetail(account, params.sp_no as string);
             return buildToolResult({
               ok: true,
               action,
@@ -78,7 +76,10 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
             });
           }
           case "get_template": {
-            const template = await approvalClient.getTemplate(account, params.template_id);
+            const template = await approvalClient.getTemplate(
+              account,
+              params.template_id as string,
+            );
             return buildToolResult({
               ok: true,
               action,
@@ -91,24 +92,7 @@ export function registerWecomApprovalTools(api: OpenClawPluginApi) {
             throw new Error(`Unsupported action: ${String(action)}`);
         }
       } catch (err) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  ok: false,
-                  action: params?.action,
-                  error: err instanceof Error ? err.message : String(err),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-          details: {},
-          isError: true,
-        };
+        return buildToolError(params?.action as string | undefined, err);
       }
     },
   }));

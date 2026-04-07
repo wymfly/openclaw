@@ -2,7 +2,13 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useModelsStore } from "@/stores/models";
 import type { CatalogProvider } from "@/stores/models";
 import { WizardStepCustom } from "./WizardStepCustom";
@@ -95,6 +101,7 @@ export function AddProviderWizard({ open, onOpenChange, onAdd }: AddProviderWiza
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{t("globalOnlyHint")}</DialogDescription>
         </DialogHeader>
 
         {step.type === "select" && (

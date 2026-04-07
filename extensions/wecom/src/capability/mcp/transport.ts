@@ -1,5 +1,5 @@
 import { generateReqId } from "@wecom/aibot-node-sdk";
-import { getBotWsPushHandle } from "../../runtime.js";
+import { getAccountRuntime, getBotWsPushHandle } from "../../runtime.js";
 
 const HTTP_REQUEST_TIMEOUT_MS = 30_000;
 const MCP_CONFIG_FETCH_TIMEOUT_MS = 15_000;
@@ -113,7 +113,9 @@ async function fetchMcpConfig(
     throw new Error(`MCP 配置响应缺少 url 字段 (account=${accountId}, category=${category})`);
   }
 
-  console.log(`${LOG_TAG} config ready account=${accountId} category=${category} url=${body.url}`);
+  getAccountRuntime(accountId)?.log.info?.(
+    `${LOG_TAG} config ready account=${accountId} category=${category} url=${body.url}`,
+  );
   return body as Record<string, unknown>;
 }
 
@@ -323,7 +325,9 @@ async function parseSseResponse(response: Response): Promise<unknown> {
 
 export function clearWecomMcpCategoryCache(accountId: string, category: string): void {
   const key = cacheKey(accountId, category);
-  console.log(`${LOG_TAG} clear cache account=${accountId} category=${category}`);
+  getAccountRuntime(accountId)?.log.info?.(
+    `${LOG_TAG} clear cache account=${accountId} category=${category}`,
+  );
   mcpConfigCache.delete(key);
   mcpSessionCache.delete(key);
   statelessKeys.delete(key);
@@ -390,7 +394,7 @@ export async function sendJsonRpc(
       }
       return result.rpcResult;
     }
-    console.error(
+    getAccountRuntime(accountId)?.log.error?.(
       `${LOG_TAG} rpc failed account=${accountId} category=${category} method=${method} error=${error instanceof Error ? error.message : String(error)}`,
     );
     throw error;

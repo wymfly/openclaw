@@ -227,10 +227,12 @@ describe("Monitor Active Features", () => {
     expect(headers.get("content-type")).toBe("application/json");
   });
 
-  // Skip: capturedDeliver hangs under vi.useFakeTimers() due to chained async
-  // flows in media delivery + active reply that can't be fully drained by timer
-  // advancement. Same issue exists in upstream YanHaidao/wecom.
-  it.skip("should fallback non-image media to agent DM (and push a Chinese prompt)", async () => {
+  // Previously skipped: capturedDeliver hangs under vi.useFakeTimers() due to chained async
+  // flows in media delivery + active reply that can't be fully drained by timer advancement.
+  // Fix: switch to real timers for this test only, then restore fake timers afterward.
+  it("should fallback non-image media to agent DM (and push a Chinese prompt)", async () => {
+    vi.useRealTimers();
+
     const { uploadMedia, sendMedia } = agentApi as any;
     uploadMedia.mockResolvedValue("media-id-1");
     sendMedia.mockResolvedValue(undefined);
@@ -239,9 +241,7 @@ describe("Monitor Active Features", () => {
     const res = createMockResponse();
     await handleWecomWebhookRequest(req, res);
 
-    await vi.advanceTimersByTimeAsync(600);
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise((r) => setTimeout(r, 800));
 
     expect(capturedDeliver).toBeDefined();
 
@@ -265,7 +265,10 @@ describe("Monitor Active Features", () => {
     );
     // Ensure we attempted to push a prompt to response_url (uses undici fetch).
     expect(undiciFetch).toHaveBeenCalled();
-  });
+
+    // Restore fake timers for subsequent tests
+    vi.useFakeTimers();
+  }, 5000);
 
   // 注：本机路径（/Users/...、/tmp/...、/root/...、/home/...）短路发图逻辑属于运行态特性，
   // 单测在 fake timers + module singleton 状态下容易引入脆弱性；这里优先覆盖更关键的兜底链路与去重逻辑。

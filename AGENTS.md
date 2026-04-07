@@ -497,6 +497,9 @@ pnpm tsc --noEmit
 | `scripts/protocol-gen-ts.ts`                        | TypeScript codegen 脚本                                  |
 | `dashboard/src/types/gateway-protocol.generated.ts` | 生成的类型定义（不要手编）                               |
 | `dashboard/src/types/gateway-client.generated.ts`   | 生成的 typed client + allowlist（不要手编）              |
+| `scripts/deck-gap-report.ts`                        | Deck 能力差距检测（typed/partial/untyped 三级分类）      |
+
+**上游同步 Skill**：使用 `$deck-upstream-sync`（`.agents/skills/deck-upstream-sync/SKILL.md`）完成完整的 rebase → protocol sync → gap 检测 → Deck 适配 → 新功能发现工作流。
 
 **Method Registry 元数据模式**：每个 handler 文件导出并行的 `methodDefs`：
 

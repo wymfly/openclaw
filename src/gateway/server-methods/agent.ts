@@ -67,6 +67,7 @@ import {
   AgentIdentityParamsSchema,
   AgentIdentityResultSchema,
   AgentWaitParamsSchema,
+  AgentWaitResultSchema,
 } from "../protocol/schema/agent.js";
 import { performGatewaySessionReset } from "../session-reset-service.js";
 import { reactivateCompletedSubagentSession } from "../session-subagent-reactivation.js";
@@ -1053,6 +1054,7 @@ export const agentMethodDefs: Record<string, MethodMetadata> = {
   },
   "agent.wait": {
     params: AgentWaitParamsSchema,
+    result: AgentWaitResultSchema,
     scope: "operator.read",
   },
 };

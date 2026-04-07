@@ -7,9 +7,9 @@
  * → UsageSummary { updatedAt, providers: ProviderUsageSnapshot[] }
  */
 import { type NextRequest } from "next/server";
-import { gwRequest } from "@/lib/api-helpers";
+import { gatewayRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (_request: NextRequest) => {
-  return gwRequest("usage.status", {});
+  return gatewayRequest("usage.status", {});
 });

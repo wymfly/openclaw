@@ -52,6 +52,7 @@ export async function handleAgentCallbackRequest(params: {
 }): Promise<boolean> {
   const { req, res, path, reqId, targets } = params;
   if (targets.length === 0) {
+    // No runtime context available (zero targets) — keep console.error as fallback
     console.error(
       `[wecom] inbound(agent): reqId=${reqId} path=${path} no_registered_target availableTargets=0`,
     );
@@ -134,7 +135,7 @@ export async function handleAgentCallbackRequest(params: {
     return true;
   }
 
-  console.log(
+  targets[0]?.runtimeEnv?.log?.(
     `[wecom] inbound(agent): reqId=${reqId} path=${path} rawXmlBytes=${Buffer.byteLength(rawBody.value, "utf8")} rawPreview=${JSON.stringify(truncateForLog(rawBody.value))}`,
   );
 
@@ -148,7 +149,7 @@ export async function handleAgentCallbackRequest(params: {
     return true;
   }
 
-  console.log(
+  targets[0]?.runtimeEnv?.log?.(
     `[wecom] inbound(agent): reqId=${reqId} path=${path} encryptedLen=${encrypted.length}`,
   );
 

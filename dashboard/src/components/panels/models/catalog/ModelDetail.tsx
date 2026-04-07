@@ -4,6 +4,7 @@ import { Layers, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { scopeTranslationKey, sourceTranslationKey } from "@/lib/model-provenance";
 import type { AllowlistEntry, AuthOverviewEntry, Model } from "@/stores/models";
 import { AuthStatusDot } from "../shared/AuthStatusDot";
 import { ModelBadges } from "../shared/ModelBadges";
@@ -51,6 +52,7 @@ export function ModelDetail({
   onUpdateEntry,
 }: ModelDetailProps) {
   const t = useTranslations("models");
+  const tp = useTranslations("models.provenance");
 
   const authStatus = auth?.status ?? "unknown";
 
@@ -82,6 +84,23 @@ export function ModelDetail({
           </div>
           <span className="font-mono text-[10px] text-[var(--muted-foreground)]">{model.id}</span>
         </div>
+        {(model.source || model.scope || model.editable !== undefined) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-[var(--muted-foreground)]">
+            {model.source && <span>{tp(sourceTranslationKey(model.source))}</span>}
+            {model.scope && (
+              <>
+                <span>·</span>
+                <span>{tp(scopeTranslationKey(model.scope))}</span>
+              </>
+            )}
+            {typeof model.editable === "boolean" && (
+              <>
+                <span>·</span>
+                <span>{model.editable ? tp("editable") : tp("readOnly")}</span>
+              </>
+            )}
+          </div>
+        )}
         {allowlistActive && onToggleEnabled && (
           <div className="mt-2 flex items-center gap-2">
             <Switch

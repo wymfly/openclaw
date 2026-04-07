@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const gwRequest = vi.fn();
@@ -22,7 +23,7 @@ describe("/api/agents", () => {
     gwRequest.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
     const { GET } = await import("./route.js");
 
-    await GET();
+    await GET(new NextRequest("http://localhost"));
 
     expect(gwRequest).toHaveBeenCalledWith("agents.list", {});
   });

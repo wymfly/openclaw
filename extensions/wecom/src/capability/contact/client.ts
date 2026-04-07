@@ -37,10 +37,13 @@ function withoutErrFields<T extends Record<string, unknown>>(
   return cloned;
 }
 
-async function parseJsonResponse(res: Response, actionLabel: string): Promise<any> {
-  let payload: any = null;
+async function parseJsonResponse(
+  res: Response,
+  actionLabel: string,
+): Promise<Record<string, unknown>> {
+  let payload: Record<string, unknown> | null = null;
   try {
-    payload = await res.json();
+    payload = (await res.json()) as Record<string, unknown>;
   } catch {
     if (!res.ok) {
       throw new Error(`WeCom ${actionLabel} failed: HTTP ${res.status}`);
@@ -70,7 +73,7 @@ export class WecomContactClient {
     actionLabel: string;
     agent: ResolvedAgentAccount;
     query?: Record<string, string | number | undefined>;
-  }): Promise<any> {
+  }): Promise<Record<string, unknown>> {
     const { path, actionLabel, agent, query } = params;
 
     const token = await getAccessToken(agent);
@@ -108,7 +111,7 @@ export class WecomContactClient {
   async getMember(
     agent: ResolvedAgentAccount,
     userid: string,
-  ): Promise<{ raw: any; member: WecomMember }> {
+  ): Promise<{ raw: Record<string, unknown>; member: WecomMember }> {
     const normalizedUserId = readString(userid);
     if (!normalizedUserId) throw new Error("userid required");
 
@@ -121,7 +124,7 @@ export class WecomContactClient {
 
     return {
       raw: json,
-      member: withoutErrFields(json) as WecomMember,
+      member: withoutErrFields(json) as unknown as WecomMember,
     };
   }
 
@@ -130,7 +133,7 @@ export class WecomContactClient {
     departmentId: number,
     simple = false,
   ): Promise<{
-    raw: any;
+    raw: Record<string, unknown>;
     departmentId: number;
     simple: boolean;
     members: Array<WecomMember | WecomMemberSimple>;
@@ -160,7 +163,7 @@ export class WecomContactClient {
   async listDepartments(
     agent: ResolvedAgentAccount,
     parentId?: number,
-  ): Promise<{ raw: any; parentId?: number; departments: WecomDepartment[] }> {
+  ): Promise<{ raw: Record<string, unknown>; parentId?: number; departments: WecomDepartment[] }> {
     const normalizedParentId = readOptionalInteger(parentId, "parentId");
     const json = await this.getWecomContactApi({
       path: "/cgi-bin/department/list",
@@ -181,7 +184,7 @@ export class WecomContactClient {
   async getDepartment(
     agent: ResolvedAgentAccount,
     departmentId: number,
-  ): Promise<{ raw: any; department: WecomDepartment }> {
+  ): Promise<{ raw: Record<string, unknown>; department: WecomDepartment }> {
     const normalizedDepartmentId = readRequiredInteger(departmentId, "departmentId");
     const json = await this.getWecomContactApi({
       path: "/cgi-bin/department/get",
@@ -194,14 +197,14 @@ export class WecomContactClient {
 
     return {
       raw: json,
-      department: withoutErrFields(json) as WecomDepartment,
+      department: withoutErrFields(json) as unknown as WecomDepartment,
     };
   }
 
   async listTagMembers(
     agent: ResolvedAgentAccount,
     tagId: number,
-  ): Promise<{ raw: any; tag: WecomTagMemberResult }> {
+  ): Promise<{ raw: Record<string, unknown>; tag: WecomTagMemberResult }> {
     const normalizedTagId = readRequiredInteger(tagId, "tagId");
     const json = await this.getWecomContactApi({
       path: "/cgi-bin/tag/get",
@@ -213,13 +216,15 @@ export class WecomContactClient {
     });
 
     const userlist = Array.isArray(json.userlist)
-      ? json.userlist.map((item: any) => ({
+      ? json.userlist.map((item: Record<string, unknown>) => ({
           userid: readString(item?.userid),
           name: readString(item?.name),
         }))
       : [];
     const partylist = Array.isArray(json.partylist)
-      ? json.partylist.map((item: any) => Number(item)).filter((n: number) => Number.isFinite(n))
+      ? json.partylist
+          .map((item: unknown) => Number(item))
+          .filter((n: number) => Number.isFinite(n))
       : [];
 
     return {
@@ -237,7 +242,7 @@ export class WecomContactClient {
     departmentId: number,
     query: string,
   ): Promise<{
-    raw: any;
+    raw: Record<string, unknown>;
     departmentId: number;
     query: string;
     total: number;

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { resolveWecomEgressProxyUrlFromNetwork } from "../../config/index.js";
 import { readResponseBodyAsBuffer, wecomFetch } from "../../http.js";
+import { getAccountRuntime } from "../../runtime.js";
 import { API_ENDPOINTS, LIMITS } from "../../types/constants.js";
 import type { ResolvedAgentAccount } from "../../types/index.js";
 
@@ -140,7 +141,7 @@ export async function sendText(params: {
   text: string;
 }): Promise<void> {
   const { agent, toUser, toParty, toTag, chatId, text } = params;
-  console.log(
+  getAccountRuntime(agent.accountId)?.log.info?.(
     `[wecom-agent-api] sendText request account=${agent.accountId} agentId=${String(agent.agentId ?? "N/A")} ` +
       `toUser=${toUser ?? ""} toParty=${toParty ?? ""} toTag=${toTag ?? ""} chatId=${chatId ?? ""} ` +
       `textLen=${text.length} textPreview=${JSON.stringify(truncateForLog(text))}`,
@@ -183,7 +184,7 @@ export async function sendText(params: {
     invalidtag?: string;
   };
 
-  console.log(
+  getAccountRuntime(agent.accountId)?.log.info?.(
     `[wecom-agent-api] sendText response account=${agent.accountId} agentId=${String(agent.agentId ?? "N/A")} ` +
       `toUser=${toUser ?? ""} toParty=${toParty ?? ""} toTag=${toTag ?? ""} chatId=${chatId ?? ""} ` +
       `errcode=${String(json?.errcode ?? "N/A")} errmsg=${json?.errmsg ?? ""} ` +
@@ -218,7 +219,7 @@ export async function uploadMedia(params: {
   const proxyUrl = resolveWecomEgressProxyUrlFromNetwork(agent.network);
   const url = `${API_ENDPOINTS.UPLOAD_MEDIA}?access_token=${encodeURIComponent(token)}&type=${encodeURIComponent(type)}&debug=1`;
 
-  console.log(
+  getAccountRuntime(agent.accountId)?.log.info?.(
     `[wecom-upload] Uploading media: type=${type}, filename=${safeFilename}, size=${buffer.length} bytes`,
   );
 
@@ -232,7 +233,7 @@ export async function uploadMedia(params: {
     const footer = Buffer.from(`\r\n--${boundary}--\r\n`);
     const body = Buffer.concat([header, buffer, footer]);
 
-    console.log(
+    getAccountRuntime(agent.accountId)?.log.info?.(
       `[wecom-upload] Multipart body size=${body.length}, boundary=${boundary}, fileContentType=${fileContentType}`,
     );
 
@@ -249,7 +250,9 @@ export async function uploadMedia(params: {
       { proxyUrl, timeoutMs: LIMITS.REQUEST_TIMEOUT_MS },
     );
     const json = (await res.json()) as { media_id?: string; errcode?: number; errmsg?: string };
-    console.log(`[wecom-upload] Response:`, JSON.stringify(json));
+    getAccountRuntime(agent.accountId)?.log.info?.(
+      `[wecom-upload] Response: ${JSON.stringify(json)}`,
+    );
     return json;
   };
 
@@ -257,7 +260,7 @@ export async function uploadMedia(params: {
   let json = await uploadOnce(preferredContentType);
 
   if (!json?.media_id && preferredContentType !== "application/octet-stream") {
-    console.warn(
+    getAccountRuntime(agent.accountId)?.log.warn?.(
       `[wecom-upload] Upload failed with ${preferredContentType}, retrying as application/octet-stream: ${json?.errcode} ${json?.errmsg}`,
     );
     json = await uploadOnce("application/octet-stream");

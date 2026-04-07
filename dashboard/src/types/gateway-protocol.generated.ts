@@ -81,7 +81,6 @@ export type TranscriptMessage = {
 export interface ChatHistoryParams {
   sessionKey: string;
   limit?: number;
-  maxChars?: number;
 }
 
 export type ChatHistoryResult = {
@@ -148,10 +147,6 @@ export interface ChatSendParams {
   message: string;
   thinking?: string;
   deliver?: boolean;
-  originatingChannel?: string;
-  originatingTo?: string;
-  originatingAccountId?: string;
-  originatingThreadId?: string;
   attachments?: unknown[];
   timeoutMs?: number;
   systemInputProvenance?: {
@@ -301,8 +296,170 @@ export interface ConfigSetResult {
   sentinel?: unknown;
 }
 
+export interface DoctorMemoryStatusResult {
+  agentId: string;
+  provider?: string;
+  embedding: {
+    ok: boolean;
+    error?: string;
+  };
+}
+
+export interface HealthResult {
+  ok: true;
+  ts: number;
+  durationMs: number;
+  channels: Record<string, unknown>;
+  channelOrder: string[];
+  channelLabels: Record<string, string>;
+  heartbeatSeconds: number;
+  defaultAgentId: string;
+  agents: unknown[];
+  sessions: {
+    path: string;
+    count: number;
+    recent: unknown[];
+  };
+}
+
+export interface StatusResult {
+  runtimeVersion?: string;
+  linkChannel?: {
+    id: string;
+    label: string;
+    linked: boolean;
+    authAgeMs: number;
+  };
+  heartbeat: {
+    defaultAgentId: string;
+    agents: unknown[];
+  };
+  channelSummary: string[];
+  queuedSystemEvents: string[];
+  sessions: {
+    paths: string[];
+    count: number;
+    defaults: {
+      model: string;
+      contextTokens: number;
+    };
+    recent: unknown[];
+    byAgent: unknown[];
+  };
+}
+
+export interface UsageStatusResult {
+  updatedAt: number;
+  providers: {
+    provider: string;
+    displayName: string;
+    windows: {
+      label: string;
+      usedPercent: number;
+      resetAt?: number;
+    }[];
+    plan?: string;
+    error?: string;
+  }[];
+}
+
+export interface UsageCostResult {
+  updatedAt: number;
+  days: number;
+  daily: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    totalTokens: number;
+    totalCost: number;
+    inputCost: number;
+    outputCost: number;
+    cacheReadCost: number;
+    cacheWriteCost: number;
+    missingCostEntries: number;
+    date: string;
+  }[];
+  totals: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    totalTokens: number;
+    totalCost: number;
+    inputCost: number;
+    outputCost: number;
+    cacheReadCost: number;
+    cacheWriteCost: number;
+    missingCostEntries: number;
+  };
+}
+
+export interface ModelsCatalogProvidersResult {
+  providers: {
+    id: string;
+    displayName: string;
+    modelCount: number;
+    defaultBaseUrl: string;
+    authType: string;
+    api: string;
+    models: {
+      id: string;
+      name: string;
+      contextWindow: number;
+      reasoning: boolean;
+      maxTokens: number;
+    }[];
+  }[];
+}
+
 export interface SkillsStatusParams {
   agentId?: string;
+}
+
+export interface SkillsStatusResult {
+  workspaceDir: string;
+  managedSkillsDir: string;
+  skills: {
+    name: string;
+    description: string;
+    source: string;
+    bundled: boolean;
+    filePath: string;
+    baseDir: string;
+    skillKey: string;
+    primaryEnv?: string;
+    emoji?: string;
+    homepage?: string;
+    always: boolean;
+    disabled: boolean;
+    blockedByAllowlist: boolean;
+    eligible: boolean;
+    requirements: {
+      bins: string[];
+      anyBins: string[];
+      env: string[];
+      config: string[];
+      os: string[];
+    };
+    missing: {
+      bins: string[];
+      anyBins: string[];
+      env: string[];
+      config: string[];
+      os: string[];
+    };
+    configChecks: {
+      path: string;
+      satisfied: boolean;
+    }[];
+    install: {
+      id: string;
+      kind: string;
+      label: string;
+      bins: string[];
+    }[];
+  }[];
 }
 
 export type SkillsBinsParams = Record<string, never>;
@@ -315,7 +472,6 @@ export type SkillsInstallParams =
   | {
       name: string;
       installId: string;
-      dangerouslyForceUnsafeInstall?: boolean;
       timeoutMs?: number;
     }
   | {
@@ -325,6 +481,18 @@ export type SkillsInstallParams =
       force?: boolean;
       timeoutMs?: number;
     };
+
+export interface SkillsInstallResult {
+  ok: boolean;
+  message: string;
+  stdout: string;
+  stderr: string;
+  code: number;
+  slug?: string;
+  version?: string;
+  targetDir?: string;
+  warnings?: string[];
+}
 
 export type SkillsUpdateParams =
   | {
@@ -339,6 +507,12 @@ export type SkillsUpdateParams =
       all?: boolean;
     };
 
+export interface SkillsUpdateResult {
+  ok: boolean;
+  skillKey: string;
+  config: unknown;
+}
+
 export type CronListParams = {
   includeDisabled?: boolean;
   limit?: number;
@@ -349,7 +523,142 @@ export type CronListParams = {
   sortDir?: "asc" | "desc";
 };
 
+export type CronListResult = {
+  jobs: {
+    id: string;
+    agentId?: string;
+    sessionKey?: string;
+    name: string;
+    description?: string;
+    enabled: boolean;
+    deleteAfterRun?: boolean;
+    createdAtMs: number;
+    updatedAtMs: number;
+    schedule:
+      | {
+          kind: "at";
+          at: string;
+        }
+      | {
+          kind: "every";
+          everyMs: number;
+          anchorMs?: number;
+        }
+      | {
+          kind: "cron";
+          expr: string;
+          tz?: string;
+          staggerMs?: number;
+        };
+    sessionTarget: string;
+    wakeMode: "next-heartbeat" | "now";
+    payload:
+      | {
+          kind: "systemEvent";
+          text: string;
+        }
+      | {
+          kind: "agentTurn";
+          message: string;
+          model?: string;
+          fallbacks?: string[];
+          thinking?: string;
+          timeoutSeconds?: number;
+          allowUnsafeExternalContent?: boolean;
+          lightContext?: boolean;
+          deliver?: boolean;
+          channel?: string;
+          to?: string;
+          bestEffortDeliver?: boolean;
+        };
+    delivery?:
+      | {
+          mode: "none";
+          channel?: string;
+          accountId?: string;
+          bestEffort?: boolean;
+          failureDestination?: {
+            channel?: string;
+            to?: string;
+            accountId?: string;
+            mode?: "announce" | "webhook";
+          };
+          to?: string;
+        }
+      | {
+          mode: "announce";
+          channel?: string;
+          accountId?: string;
+          bestEffort?: boolean;
+          failureDestination?: {
+            channel?: string;
+            to?: string;
+            accountId?: string;
+            mode?: "announce" | "webhook";
+          };
+          to?: string;
+        }
+      | {
+          mode: "webhook";
+          channel?: string;
+          accountId?: string;
+          bestEffort?: boolean;
+          failureDestination?: {
+            channel?: string;
+            to?: string;
+            accountId?: string;
+            mode?: "announce" | "webhook";
+          };
+          to: string;
+        };
+    failureAlert?:
+      | false
+      | {
+          after?: number;
+          channel?: string;
+          to?: string;
+          cooldownMs?: number;
+          mode?: "announce" | "webhook";
+          accountId?: string;
+        };
+    state: {
+      nextRunAtMs?: number;
+      runningAtMs?: number;
+      lastRunAtMs?: number;
+      lastRunStatus?: "ok" | "error" | "skipped";
+      lastStatus?: "ok" | "error" | "skipped";
+      lastError?: string;
+      lastErrorReason?:
+        | "auth"
+        | "format"
+        | "rate_limit"
+        | "billing"
+        | "timeout"
+        | "model_not_found"
+        | "unknown";
+      lastDurationMs?: number;
+      consecutiveErrors?: number;
+      lastDelivered?: boolean;
+      lastDeliveryStatus?: "delivered" | "not-delivered" | "unknown" | "not-requested";
+      lastDeliveryError?: string;
+      lastFailureAlertAtMs?: number;
+    };
+  }[];
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+  nextOffset: number;
+};
+
 export type CronStatusParams = Record<string, never>;
+
+export interface CronStatusResult {
+  enabled: boolean;
+  storePath: string;
+  jobs: number;
+  nextWakeAtMs: number;
+}
 
 export type CronAddParams = {
   name: string;
@@ -390,7 +699,10 @@ export type CronAddParams = {
         timeoutSeconds?: number;
         allowUnsafeExternalContent?: boolean;
         lightContext?: boolean;
-        toolsAllow?: string[];
+        deliver?: boolean;
+        channel?: string;
+        to?: string;
+        bestEffortDeliver?: boolean;
       };
   delivery?:
     | {
@@ -444,6 +756,127 @@ export type CronAddParams = {
       };
 };
 
+export type CronAddResult = {
+  id: string;
+  agentId?: string;
+  sessionKey?: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  deleteAfterRun?: boolean;
+  createdAtMs: number;
+  updatedAtMs: number;
+  schedule:
+    | {
+        kind: "at";
+        at: string;
+      }
+    | {
+        kind: "every";
+        everyMs: number;
+        anchorMs?: number;
+      }
+    | {
+        kind: "cron";
+        expr: string;
+        tz?: string;
+        staggerMs?: number;
+      };
+  sessionTarget: string;
+  wakeMode: "next-heartbeat" | "now";
+  payload:
+    | {
+        kind: "systemEvent";
+        text: string;
+      }
+    | {
+        kind: "agentTurn";
+        message: string;
+        model?: string;
+        fallbacks?: string[];
+        thinking?: string;
+        timeoutSeconds?: number;
+        allowUnsafeExternalContent?: boolean;
+        lightContext?: boolean;
+        deliver?: boolean;
+        channel?: string;
+        to?: string;
+        bestEffortDeliver?: boolean;
+      };
+  delivery?:
+    | {
+        mode: "none";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to?: string;
+      }
+    | {
+        mode: "announce";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to?: string;
+      }
+    | {
+        mode: "webhook";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to: string;
+      };
+  failureAlert?:
+    | false
+    | {
+        after?: number;
+        channel?: string;
+        to?: string;
+        cooldownMs?: number;
+        mode?: "announce" | "webhook";
+        accountId?: string;
+      };
+  state: {
+    nextRunAtMs?: number;
+    runningAtMs?: number;
+    lastRunAtMs?: number;
+    lastRunStatus?: "ok" | "error" | "skipped";
+    lastStatus?: "ok" | "error" | "skipped";
+    lastError?: string;
+    lastErrorReason?:
+      | "auth"
+      | "format"
+      | "rate_limit"
+      | "billing"
+      | "timeout"
+      | "model_not_found"
+      | "unknown";
+    lastDurationMs?: number;
+    consecutiveErrors?: number;
+    lastDelivered?: boolean;
+    lastDeliveryStatus?: "delivered" | "not-delivered" | "unknown" | "not-requested";
+    lastDeliveryError?: string;
+    lastFailureAlertAtMs?: number;
+  };
+};
+
 export type CronUpdateParams =
   | {
       id: string;
@@ -486,7 +919,10 @@ export type CronUpdateParams =
               timeoutSeconds?: number;
               allowUnsafeExternalContent?: boolean;
               lightContext?: boolean;
-              toolsAllow?: string[] | null;
+              deliver?: boolean;
+              channel?: string;
+              to?: string;
+              bestEffortDeliver?: boolean;
             };
         delivery?: {
           mode?: "none" | "announce" | "webhook";
@@ -576,7 +1012,10 @@ export type CronUpdateParams =
               timeoutSeconds?: number;
               allowUnsafeExternalContent?: boolean;
               lightContext?: boolean;
-              toolsAllow?: string[] | null;
+              deliver?: boolean;
+              channel?: string;
+              to?: string;
+              bestEffortDeliver?: boolean;
             };
         delivery?: {
           mode?: "none" | "announce" | "webhook";
@@ -626,6 +1065,127 @@ export type CronUpdateParams =
       };
     };
 
+export type CronUpdateResult = {
+  id: string;
+  agentId?: string;
+  sessionKey?: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  deleteAfterRun?: boolean;
+  createdAtMs: number;
+  updatedAtMs: number;
+  schedule:
+    | {
+        kind: "at";
+        at: string;
+      }
+    | {
+        kind: "every";
+        everyMs: number;
+        anchorMs?: number;
+      }
+    | {
+        kind: "cron";
+        expr: string;
+        tz?: string;
+        staggerMs?: number;
+      };
+  sessionTarget: string;
+  wakeMode: "next-heartbeat" | "now";
+  payload:
+    | {
+        kind: "systemEvent";
+        text: string;
+      }
+    | {
+        kind: "agentTurn";
+        message: string;
+        model?: string;
+        fallbacks?: string[];
+        thinking?: string;
+        timeoutSeconds?: number;
+        allowUnsafeExternalContent?: boolean;
+        lightContext?: boolean;
+        deliver?: boolean;
+        channel?: string;
+        to?: string;
+        bestEffortDeliver?: boolean;
+      };
+  delivery?:
+    | {
+        mode: "none";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to?: string;
+      }
+    | {
+        mode: "announce";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to?: string;
+      }
+    | {
+        mode: "webhook";
+        channel?: string;
+        accountId?: string;
+        bestEffort?: boolean;
+        failureDestination?: {
+          channel?: string;
+          to?: string;
+          accountId?: string;
+          mode?: "announce" | "webhook";
+        };
+        to: string;
+      };
+  failureAlert?:
+    | false
+    | {
+        after?: number;
+        channel?: string;
+        to?: string;
+        cooldownMs?: number;
+        mode?: "announce" | "webhook";
+        accountId?: string;
+      };
+  state: {
+    nextRunAtMs?: number;
+    runningAtMs?: number;
+    lastRunAtMs?: number;
+    lastRunStatus?: "ok" | "error" | "skipped";
+    lastStatus?: "ok" | "error" | "skipped";
+    lastError?: string;
+    lastErrorReason?:
+      | "auth"
+      | "format"
+      | "rate_limit"
+      | "billing"
+      | "timeout"
+      | "model_not_found"
+      | "unknown";
+    lastDurationMs?: number;
+    consecutiveErrors?: number;
+    lastDelivered?: boolean;
+    lastDeliveryStatus?: "delivered" | "not-delivered" | "unknown" | "not-requested";
+    lastDeliveryError?: string;
+    lastFailureAlertAtMs?: number;
+  };
+};
+
 export type CronRemoveParams =
   | {
       id: string;
@@ -633,6 +1193,11 @@ export type CronRemoveParams =
   | {
       jobId: string;
     };
+
+export interface CronRemoveResult {
+  ok: boolean;
+  removed: boolean;
+}
 
 export type CronRunParams =
   | {
@@ -643,6 +1208,14 @@ export type CronRunParams =
       jobId: string;
       mode?: "due" | "force";
     };
+
+export type CronRunResult = {
+  ok: boolean;
+  enqueued?: boolean;
+  runId?: string;
+  ran?: boolean;
+  reason?: "already-running" | "not-due";
+};
 
 export type CronRunsParams = {
   scope?: "job" | "all";
@@ -656,6 +1229,40 @@ export type CronRunsParams = {
   deliveryStatus?: "delivered" | "not-delivered" | "unknown" | "not-requested";
   query?: string;
   sortDir?: "asc" | "desc";
+};
+
+export type CronRunsResult = {
+  entries: {
+    ts: number;
+    jobId: string;
+    action: "finished";
+    status?: "ok" | "error" | "skipped";
+    error?: string;
+    summary?: string;
+    delivered?: boolean;
+    deliveryStatus?: "delivered" | "not-delivered" | "unknown" | "not-requested";
+    deliveryError?: string;
+    sessionId?: string;
+    sessionKey?: string;
+    runAtMs?: number;
+    durationMs?: number;
+    nextRunAtMs?: number;
+    model?: string;
+    provider?: string;
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      total_tokens?: number;
+      cache_read_tokens?: number;
+      cache_write_tokens?: number;
+    };
+    jobName?: string;
+  }[];
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+  nextOffset: number;
 };
 
 export type ExecApprovalsGetParams = Record<string, never>;
@@ -686,7 +1293,6 @@ export interface ExecApprovalsGetResult {
         allowlist?: {
           id?: string;
           pattern: string;
-          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -719,7 +1325,6 @@ export interface ExecApprovalsSetParams {
         allowlist?: {
           id?: string;
           pattern: string;
-          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -756,7 +1361,6 @@ export interface ExecApprovalsSetResult {
         allowlist?: {
           id?: string;
           pattern: string;
-          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -796,7 +1400,6 @@ export interface ExecApprovalsNodeGetResult {
         allowlist?: {
           id?: string;
           pattern: string;
-          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -830,7 +1433,6 @@ export interface ExecApprovalsNodeSetParams {
         allowlist?: {
           id?: string;
           pattern: string;
-          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -867,7 +1469,6 @@ export interface ExecApprovalsNodeSetResult {
         allowlist?: {
           id?: string;
           pattern: string;
-          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -911,9 +1512,21 @@ export type ExecApprovalRequestParams = {
   twoPhase?: boolean;
 };
 
+export interface ExecApprovalRequestResult {
+  id: string;
+  status?: string;
+  decision?: string;
+  createdAtMs?: number;
+  expiresAtMs?: number;
+}
+
 export interface ExecApprovalResolveParams {
   id: string;
   decision: string;
+}
+
+export interface ExecApprovalResolveResult {
+  ok: true;
 }
 
 export interface SessionsListParams {
@@ -1269,6 +1882,14 @@ export interface AgentWaitParams {
   timeoutMs?: number;
 }
 
+export interface AgentWaitResult {
+  runId: string;
+  status: string;
+  startedAt?: number;
+  endedAt?: number;
+  error?: string;
+}
+
 export type AgentsListParams = Record<string, never>;
 
 export type AgentsListResult = {
@@ -1284,11 +1905,6 @@ export type AgentsListResult = {
       emoji?: string;
       avatar?: string;
       avatarUrl?: string;
-    };
-    workspace?: string;
-    model?: {
-      primary?: string;
-      fallbacks?: string[];
     };
   }[];
 };
@@ -1450,6 +2066,12 @@ export interface ChannelsLogoutParams {
   accountId?: string;
 }
 
+export interface ChannelsLogoutResult {
+  channel: string;
+  accountId: string;
+  cleared: boolean;
+}
+
 export type ModelsListParams = Record<string, never>;
 
 export interface ModelsListResult {
@@ -1464,7 +2086,7 @@ export interface ModelsListResult {
 
 export type ModelsConfiguredParams = Record<string, never>;
 
-export interface ModelsConfiguredResult {
+export type ModelsConfiguredResult = {
   models: {
     id: string;
     name: string;
@@ -1480,8 +2102,11 @@ export interface ModelsConfiguredResult {
     };
     maxTokens?: number;
     authStatus: string;
+    source: "config" | "agent-models" | "mixed" | "runtime";
+    scope: string;
+    editable: boolean;
   }[];
-}
+};
 
 export interface LogsTailParams {
   cursor?: number;
@@ -1981,6 +2606,11 @@ export type DeckAuthOverviewResult = {
   providers: {
     provider: string;
     status: string;
+    source: "config" | "auth-profile" | "agent-models" | "env" | "mixed";
+    scope: string;
+    configPresent: boolean;
+    authPresent: boolean;
+    editable: boolean;
     auth: {
       type: string;
       source: string;
@@ -2047,6 +2677,96 @@ export interface GatewayDescribeResult {
   untyped: string[];
 }
 
+export interface TalkConfigParams {
+  includeSecrets?: boolean;
+}
+
+export type TalkConfigResult = {
+  config: {
+    talk?:
+      | {
+          voiceId?: string;
+          voiceAliases?: Record<string, string>;
+          modelId?: string;
+          outputFormat?: string;
+          apiKey?: string;
+          interruptOnSpeech?: boolean;
+          silenceTimeoutMs?: number;
+        }
+      | {
+          provider?: string;
+          providers?: Record<
+            string,
+            {
+              voiceId?: string;
+              voiceAliases?: Record<string, string>;
+              modelId?: string;
+              outputFormat?: string;
+              apiKey?: string;
+            }
+          >;
+          resolved: {
+            provider: string;
+            config: {
+              voiceId?: string;
+              voiceAliases?: Record<string, string>;
+              modelId?: string;
+              outputFormat?: string;
+              apiKey?: string;
+            };
+          };
+          voiceId?: string;
+          voiceAliases?: Record<string, string>;
+          modelId?: string;
+          outputFormat?: string;
+          apiKey?: string;
+          interruptOnSpeech?: boolean;
+          silenceTimeoutMs?: number;
+        };
+    session?: {
+      mainKey?: string;
+    };
+    ui?: {
+      seamColor?: string;
+    };
+  };
+};
+
+export interface TalkSpeakParams {
+  text: string;
+  voiceId?: string;
+  modelId?: string;
+  outputFormat?: string;
+  speed?: number;
+  stability?: number;
+  similarity?: number;
+  style?: number;
+  speakerBoost?: boolean;
+  seed?: number;
+  normalize?: string;
+  language?: string;
+}
+
+export interface TalkSpeakResult {
+  audioBase64: string;
+  provider: string;
+  outputFormat?: string;
+  voiceCompatible?: boolean;
+  mimeType?: string;
+  fileExtension?: string;
+}
+
+export interface TalkModeParams {
+  enabled: boolean;
+  phase?: string;
+}
+
+export interface TalkModeResult {
+  enabled: boolean;
+  phase: string;
+  ts: number;
+}
+
 export interface ToolsCatalogParams {
   agentId?: string;
   includePlugins?: boolean;
@@ -2099,6 +2819,198 @@ export type ToolsEffectiveResult = {
   }[];
 };
 
+export type WizardStartParams = {
+  mode?: "local" | "remote";
+  workspace?: string;
+};
+
+export type WizardStartResult = {
+  sessionId: string;
+  done: boolean;
+  step?: {
+    id: string;
+    type: "note" | "select" | "text" | "confirm" | "multiselect" | "progress" | "action";
+    title?: string;
+    message?: string;
+    options?: {
+      value: unknown;
+      label: string;
+      hint?: string;
+    }[];
+    initialValue?: unknown;
+    placeholder?: string;
+    sensitive?: boolean;
+    executor?: "gateway" | "client";
+  };
+  status?: "running" | "done" | "cancelled" | "error";
+  error?: string;
+};
+
+export interface WizardNextParams {
+  sessionId: string;
+  answer?: {
+    stepId: string;
+    value?: unknown;
+  };
+}
+
+export type WizardNextResult = {
+  done: boolean;
+  step?: {
+    id: string;
+    type: "note" | "select" | "text" | "confirm" | "multiselect" | "progress" | "action";
+    title?: string;
+    message?: string;
+    options?: {
+      value: unknown;
+      label: string;
+      hint?: string;
+    }[];
+    initialValue?: unknown;
+    placeholder?: string;
+    sensitive?: boolean;
+    executor?: "gateway" | "client";
+  };
+  status?: "running" | "done" | "cancelled" | "error";
+  error?: string;
+};
+
+export interface WizardCancelParams {
+  sessionId: string;
+}
+
+export type WizardCancelResult = {
+  status: "running" | "done" | "cancelled" | "error";
+  error?: string;
+};
+
+export interface WizardStatusParams {
+  sessionId: string;
+}
+
+export type WizardStatusResult = {
+  status: "running" | "done" | "cancelled" | "error";
+  error?: string;
+};
+
+export type DevicePairListParams = Record<string, never>;
+
+export interface DevicePairListResult {
+  pending: {
+    requestId: string;
+    deviceId: string;
+    publicKey: string;
+    displayName?: string;
+    platform?: string;
+    deviceFamily?: string;
+    clientId?: string;
+    clientMode?: string;
+    role?: string;
+    roles?: string[];
+    scopes?: string[];
+    remoteIp?: string;
+    silent?: boolean;
+    isRepair?: boolean;
+    ts: number;
+  }[];
+  paired: {
+    deviceId: string;
+    publicKey: string;
+    displayName?: string;
+    platform?: string;
+    deviceFamily?: string;
+    clientId?: string;
+    clientMode?: string;
+    role?: string;
+    roles?: string[];
+    scopes?: string[];
+    remoteIp?: string;
+    createdAtMs: number;
+    approvedAtMs: number;
+    tokens?: {
+      role: string;
+      scopes: string[];
+      createdAtMs: number;
+      rotatedAtMs?: number;
+      revokedAtMs?: number;
+      lastUsedAtMs?: number;
+    }[];
+  }[];
+}
+
+export interface DevicePairApproveParams {
+  requestId: string;
+}
+
+export interface DevicePairApproveResult {
+  requestId: string;
+  device: {
+    deviceId: string;
+    publicKey: string;
+    displayName?: string;
+    platform?: string;
+    deviceFamily?: string;
+    clientId?: string;
+    clientMode?: string;
+    role?: string;
+    roles?: string[];
+    scopes?: string[];
+    remoteIp?: string;
+    createdAtMs: number;
+    approvedAtMs: number;
+    tokens?: {
+      role: string;
+      scopes: string[];
+      createdAtMs: number;
+      rotatedAtMs?: number;
+      revokedAtMs?: number;
+      lastUsedAtMs?: number;
+    }[];
+  };
+}
+
+export interface DevicePairRejectParams {
+  requestId: string;
+}
+
+export interface DevicePairRejectResult {
+  requestId: string;
+  deviceId: string;
+}
+
+export interface DevicePairRemoveParams {
+  deviceId: string;
+}
+
+export interface DevicePairRemoveResult {
+  deviceId: string;
+}
+
+export interface DeviceTokenRotateParams {
+  deviceId: string;
+  role: string;
+  scopes?: string[];
+}
+
+export interface DeviceTokenRotateResult {
+  deviceId: string;
+  role: string;
+  token: string;
+  scopes: string[];
+  rotatedAtMs: number;
+}
+
+export interface DeviceTokenRevokeParams {
+  deviceId: string;
+  role: string;
+}
+
+export interface DeviceTokenRevokeResult {
+  deviceId: string;
+  role: string;
+  revokedAtMs: number;
+}
+
 export interface GatewayMethodMap {
   "chat.history": { params: ChatHistoryParams; result: ChatHistoryResult };
   "chat.abort": { params: ChatAbortParams; result: ChatAbortResult };
@@ -2109,17 +3021,26 @@ export interface GatewayMethodMap {
   "config.apply": { params: ConfigApplyParams; result: ConfigApplyResult };
   "config.patch": { params: ConfigPatchParams; result: ConfigPatchResult };
   "config.set": { params: ConfigSetParams; result: ConfigSetResult };
-  "skills.status": { params: SkillsStatusParams; result: unknown };
+  "doctor.memory.status": { params: Record<string, unknown>; result: DoctorMemoryStatusResult };
+  health: { params: Record<string, unknown>; result: HealthResult };
+  status: { params: Record<string, unknown>; result: StatusResult };
+  "usage.status": { params: Record<string, unknown>; result: UsageStatusResult };
+  "usage.cost": { params: Record<string, unknown>; result: UsageCostResult };
+  "models.catalog.providers": {
+    params: Record<string, unknown>;
+    result: ModelsCatalogProvidersResult;
+  };
+  "skills.status": { params: SkillsStatusParams; result: SkillsStatusResult };
   "skills.bins": { params: SkillsBinsParams; result: SkillsBinsResult };
-  "skills.install": { params: SkillsInstallParams; result: unknown };
-  "skills.update": { params: SkillsUpdateParams; result: unknown };
-  "cron.list": { params: CronListParams; result: unknown };
-  "cron.status": { params: CronStatusParams; result: unknown };
-  "cron.add": { params: CronAddParams; result: unknown };
-  "cron.update": { params: CronUpdateParams; result: unknown };
-  "cron.remove": { params: CronRemoveParams; result: unknown };
-  "cron.run": { params: CronRunParams; result: unknown };
-  "cron.runs": { params: CronRunsParams; result: unknown };
+  "skills.install": { params: SkillsInstallParams; result: SkillsInstallResult };
+  "skills.update": { params: SkillsUpdateParams; result: SkillsUpdateResult };
+  "cron.list": { params: CronListParams; result: CronListResult };
+  "cron.status": { params: CronStatusParams; result: CronStatusResult };
+  "cron.add": { params: CronAddParams; result: CronAddResult };
+  "cron.update": { params: CronUpdateParams; result: CronUpdateResult };
+  "cron.remove": { params: CronRemoveParams; result: CronRemoveResult };
+  "cron.run": { params: CronRunParams; result: CronRunResult };
+  "cron.runs": { params: CronRunsParams; result: CronRunsResult };
   "exec.approvals.get": { params: ExecApprovalsGetParams; result: ExecApprovalsGetResult };
   "exec.approvals.set": { params: ExecApprovalsSetParams; result: ExecApprovalsSetResult };
   "exec.approvals.node.get": {
@@ -2130,8 +3051,8 @@ export interface GatewayMethodMap {
     params: ExecApprovalsNodeSetParams;
     result: ExecApprovalsNodeSetResult;
   };
-  "exec.approval.request": { params: ExecApprovalRequestParams; result: unknown };
-  "exec.approval.resolve": { params: ExecApprovalResolveParams; result: unknown };
+  "exec.approval.request": { params: ExecApprovalRequestParams; result: ExecApprovalRequestResult };
+  "exec.approval.resolve": { params: ExecApprovalResolveParams; result: ExecApprovalResolveResult };
   "sessions.list": { params: SessionsListParams; result: SessionsListResult };
   "sessions.subscribe": { params: Record<string, unknown>; result: SessionsSubscribeResult };
   "sessions.unsubscribe": { params: Record<string, unknown>; result: SessionsUnsubscribeResult };
@@ -2161,7 +3082,7 @@ export interface GatewayMethodMap {
   };
   "sessions.usage.logs": { params: SessionsUsageLogsParams; result: SessionsUsageLogsResult };
   "agent.identity.get": { params: AgentIdentityGetParams; result: AgentIdentityGetResult };
-  "agent.wait": { params: AgentWaitParams; result: unknown };
+  "agent.wait": { params: AgentWaitParams; result: AgentWaitResult };
   "agents.list": { params: AgentsListParams; result: AgentsListResult };
   "agents.create": { params: AgentsCreateParams; result: AgentsCreateResult };
   "agents.update": { params: AgentsUpdateParams; result: AgentsUpdateResult };
@@ -2170,7 +3091,7 @@ export interface GatewayMethodMap {
   "agents.files.get": { params: AgentsFilesGetParams; result: AgentsFilesGetResult };
   "agents.files.set": { params: AgentsFilesSetParams; result: AgentsFilesSetResult };
   "channels.status": { params: ChannelsStatusParams; result: ChannelsStatusResult };
-  "channels.logout": { params: ChannelsLogoutParams; result: unknown };
+  "channels.logout": { params: ChannelsLogoutParams; result: ChannelsLogoutResult };
   "models.list": { params: ModelsListParams; result: ModelsListResult };
   "models.configured": { params: ModelsConfiguredParams; result: ModelsConfiguredResult };
   "logs.tail": { params: LogsTailParams; result: LogsTailResult };
@@ -2230,8 +3151,21 @@ export interface GatewayMethodMap {
   "deck.auth.overview": { params: Record<string, unknown>; result: DeckAuthOverviewResult };
   "deck.auth.probe": { params: Record<string, unknown>; result: DeckAuthProbeResult };
   "gateway.describe": { params: GatewayDescribeParams; result: GatewayDescribeResult };
+  "talk.config": { params: TalkConfigParams; result: TalkConfigResult };
+  "talk.speak": { params: TalkSpeakParams; result: TalkSpeakResult };
+  "talk.mode": { params: TalkModeParams; result: TalkModeResult };
   "tools.catalog": { params: ToolsCatalogParams; result: ToolsCatalogResult };
   "tools.effective": { params: ToolsEffectiveParams; result: ToolsEffectiveResult };
+  "wizard.start": { params: WizardStartParams; result: WizardStartResult };
+  "wizard.next": { params: WizardNextParams; result: WizardNextResult };
+  "wizard.cancel": { params: WizardCancelParams; result: WizardCancelResult };
+  "wizard.status": { params: WizardStatusParams; result: WizardStatusResult };
+  "device.pair.list": { params: DevicePairListParams; result: DevicePairListResult };
+  "device.pair.approve": { params: DevicePairApproveParams; result: DevicePairApproveResult };
+  "device.pair.reject": { params: DevicePairRejectParams; result: DevicePairRejectResult };
+  "device.pair.remove": { params: DevicePairRemoveParams; result: DevicePairRemoveResult };
+  "device.token.rotate": { params: DeviceTokenRotateParams; result: DeviceTokenRotateResult };
+  "device.token.revoke": { params: DeviceTokenRevokeParams; result: DeviceTokenRevokeResult };
 }
 
 export type GatewayMethodName = keyof GatewayMethodMap;

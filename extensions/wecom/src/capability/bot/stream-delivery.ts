@@ -24,7 +24,7 @@ export function createBotReplyDispatcher(params: {
   target: WecomWebhookTarget;
   accountId: string;
   config: WecomWebhookTarget["config"];
-  msg: any;
+  msg: Record<string, unknown>;
   streamId: string;
   rawBody: string;
   chatType: "group" | "direct";
@@ -53,8 +53,8 @@ export function createBotReplyDispatcher(params: {
   } = params;
 
   return {
-    deliver: async (payload: any, info: { kind?: string }) => {
-      let text = payload.text ?? "";
+    deliver: async (payload: Record<string, unknown>, info: { kind?: string }) => {
+      let text = (payload.text as string) ?? "";
       const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
       const thinks: string[] = [];
       text = text.replace(thinkRegex, (match: string) => {
@@ -104,7 +104,9 @@ export function createBotReplyDispatcher(params: {
             const cardTitle = parsed.template_card.main_title?.title || "交互卡片";
             const cardDesc = parsed.template_card.main_title?.desc || "";
             const buttons =
-              parsed.template_card.button_list?.map((b: any) => b.text).join(" / ") || "";
+              parsed.template_card.button_list
+                ?.map((b: Record<string, unknown>) => b.text)
+                .join(" / ") || "";
             text = `📋 **${cardTitle}**${cardDesc ? `\n${cardDesc}` : ""}${buttons ? `\n\n选项: ${buttons}` : ""}`;
           }
         } catch {
@@ -112,7 +114,7 @@ export function createBotReplyDispatcher(params: {
         }
       }
 
-      text = core.channel.text.convertMarkdownTables(text, tableMode as any);
+      text = core.channel.text.convertMarkdownTables(text, tableMode as "off" | "bullets" | "code");
       thinks.forEach((think, i) => {
         text = text.replace(`__THINK_PLACEHOLDER_${i}__`, think);
       });
@@ -148,10 +150,14 @@ export function createBotReplyDispatcher(params: {
       const deliverKind = info?.kind ?? "block";
       logVerbose(
         target,
-        `deliver: kind=${deliverKind} chatType=${current.chatType ?? chatType} user=${current.userId ?? userId} textLen=${text.length} mediaCount=${(payload.mediaUrls?.length ?? 0) + (payload.mediaUrl ? 1 : 0)}`,
+        `deliver: kind=${deliverKind} chatType=${current.chatType ?? chatType} user=${current.userId ?? userId} textLen=${text.length} mediaCount=${((payload.mediaUrls as string[] | undefined)?.length ?? 0) + (payload.mediaUrl ? 1 : 0)}`,
       );
 
-      if (!payload.mediaUrl && !(payload.mediaUrls?.length ?? 0) && text.includes("/")) {
+      if (
+        !payload.mediaUrl &&
+        !((payload.mediaUrls as string[] | undefined)?.length ?? 0) &&
+        text.includes("/")
+      ) {
         const candidates = extractLocalImagePathsFromText({ text, mustAlsoAppearIn: rawBody });
         if (candidates.length > 0) {
           logVerbose(
@@ -230,7 +236,8 @@ export function createBotReplyDispatcher(params: {
         return;
       }
 
-      const mediaUrls = payload.mediaUrls || (payload.mediaUrl ? [payload.mediaUrl] : []);
+      const mediaUrls =
+        (payload.mediaUrls as string[]) || (payload.mediaUrl ? [payload.mediaUrl as string] : []);
       for (const mediaPath of mediaUrls) {
         let contentType: string | undefined;
         let filename = mediaPath.split("/").pop() || "attachment";

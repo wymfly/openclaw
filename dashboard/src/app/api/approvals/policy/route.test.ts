@@ -20,7 +20,7 @@ describe("/api/approvals/policy", () => {
     gwRequest.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const { GET, PUT } = await import("./route.js");
 
-    await GET();
+    await GET(new NextRequest("http://localhost"));
     await PUT(
       new NextRequest("http://localhost/api/approvals/policy", {
         method: "PUT",

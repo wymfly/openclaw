@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const gwCall = vi.fn();
@@ -19,7 +20,7 @@ describe("/api/memory/health", () => {
     gwCall.mockResolvedValue({ entries: [], lanceDbEnabled: false });
     const { GET } = await import("./route.js");
 
-    const response = await GET();
+    const response = await GET(new NextRequest("http://localhost"));
     const body = await response.json();
 
     expect(gwCall).toHaveBeenCalledWith("doctor.memory.status", {});

@@ -12,10 +12,13 @@ function readString(value: unknown): string {
   return trimmed || "";
 }
 
-async function parseJsonResponse(res: Response, actionLabel: string): Promise<any> {
-  let payload: any = null;
+async function parseJsonResponse(
+  res: Response,
+  actionLabel: string,
+): Promise<Record<string, unknown>> {
+  let payload: Record<string, unknown> | null = null;
   try {
-    payload = await res.json();
+    payload = (await res.json()) as Record<string, unknown>;
   } catch {
     if (!res.ok) {
       throw new Error(`WeCom ${actionLabel} failed: HTTP ${res.status}`);
@@ -46,7 +49,7 @@ export class WecomApprovalClient {
     actionLabel: string;
     agent: ResolvedAgentAccount;
     body: Record<string, unknown>;
-  }): Promise<any> {
+  }): Promise<Record<string, unknown>> {
     const { path, actionLabel, agent, body } = params;
 
     const token = await getAccessToken(agent);
@@ -90,7 +93,7 @@ export class WecomApprovalClient {
       apply_data?: { contents: Array<Record<string, unknown>> };
       summary_list?: Array<{ summary_info: Array<{ text: string; lang: string }> }>;
     },
-  ): Promise<{ raw: any; sp_no: string }> {
+  ): Promise<{ raw: Record<string, unknown>; sp_no: string }> {
     const creatorUserid = readString(params.creator_userid);
     const templateId = readString(params.template_id);
     if (!creatorUserid) throw new Error("creator_userid required");
@@ -126,7 +129,7 @@ export class WecomApprovalClient {
       cursor?: number;
       size?: number;
     },
-  ): Promise<{ raw: any; sp_no_list: string[]; next_cursor?: number }> {
+  ): Promise<{ raw: Record<string, unknown>; sp_no_list: string[]; next_cursor?: number }> {
     const startTime = readString(params.start_time);
     const endTime = readString(params.end_time);
     if (!startTime) throw new Error("start_time required");

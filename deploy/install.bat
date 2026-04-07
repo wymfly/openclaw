@@ -20,7 +20,6 @@ if exist "%SCRIPT_DIR%source\deploy\scripts\install.sh" (
 )
 
 set "ARGS=%*"
-if "%ARGS%"=="" set "ARGS=bare-metal"
 
 REM --- Find bash ---
 set "BASH_EXE="

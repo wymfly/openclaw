@@ -28,7 +28,7 @@ export function getWecomRuntime(): PluginRuntime {
 
 export function registerAccountRuntime(accountRuntime: WecomAccountRuntime): void {
   runtimes.set(accountRuntime.account.accountId, accountRuntime);
-  console.log(`[wecom-runtime] register account=${accountRuntime.account.accountId}`);
+  accountRuntime.log.info?.(`[wecom-runtime] register account=${accountRuntime.account.accountId}`);
 }
 
 export function getAccountRuntime(accountId: string): WecomAccountRuntime | undefined {
@@ -52,7 +52,8 @@ export function unregisterBotWsPushHandle(accountId: string): void {
 }
 
 export function unregisterAccountRuntime(accountId: string): void {
+  const rt = runtimes.get(accountId);
+  rt?.log.info?.(`[wecom-runtime] unregister account=${accountId}`);
   runtimes.delete(accountId);
   botWsPushHandles.delete(accountId);
-  console.log(`[wecom-runtime] unregister account=${accountId}`);
 }

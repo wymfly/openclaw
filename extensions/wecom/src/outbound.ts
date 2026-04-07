@@ -1,4 +1,5 @@
 import type { ChannelOutboundAdapter } from "openclaw/plugin-sdk/channel-send-result";
+import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/infra-runtime";
 
 type WecomOutboundContext = Parameters<NonNullable<ChannelOutboundAdapter["sendText"]>>[0];
 import { WecomAgentDeliveryService } from "./capability/agent/index.js";
@@ -151,11 +152,13 @@ async function sendTextViaBotWs(params: {
       `WeCom outbound account=${accountId} is configured for Bot WS active push, but the WS transport is not connected.`,
     );
   }
-  console.log(
+  getAccountRuntime(accountId)?.log.info?.(
     `[wecom-outbound] Sending Bot WS active message to target=${String(params.to ?? "")} chatId=${chatId} (len=${params.text.length})`,
   );
   await handle.sendMarkdown(chatId, params.text);
-  console.log(`[wecom-outbound] Successfully sent Bot WS active message to ${chatId}`);
+  getAccountRuntime(accountId)?.log.info?.(
+    `[wecom-outbound] Successfully sent Bot WS active message to ${chatId}`,
+  );
   return true;
 }
 
@@ -203,7 +206,7 @@ export const wecomOutbound: ChannelOutboundAdapter = {
     }
 
     let sentViaBotWs = false;
-    let agent: any = null;
+    let agent: ReturnType<typeof resolveAgentConfigOrThrow> | null = null;
 
     try {
       sentViaBotWs = await sendTextViaBotWs({
@@ -223,7 +226,9 @@ export const wecomOutbound: ChannelOutboundAdapter = {
           to,
           text: outgoingText,
         });
-        console.log(`[wecom-outbound] Successfully sent Agent text to ${String(to ?? "")}`);
+        getAccountRuntime(agent.accountId)?.log.info?.(
+          `[wecom-outbound] Successfully sent Agent text to ${String(to ?? "")}`,
+        );
       }
     } catch (err) {
       if (agent) {
@@ -260,7 +265,7 @@ export const wecomOutbound: ChannelOutboundAdapter = {
 
     const { preferred } = shouldPreferBotWsOutbound({ cfg, accountId, to });
     if (preferred) {
-      console.log(
+      getAccountRuntime(accountId?.trim() || "")?.log.info?.(
         `[wecom-outbound] Bot WS active push does not support outbound media; falling back to Agent for target=${String(to ?? "")}`,
       );
     }
@@ -278,24 +283,48 @@ export const wecomOutbound: ChannelOutboundAdapter = {
     const isRemoteUrl = /^https?:\/\//i.test(mediaUrl);
 
     if (isRemoteUrl) {
-      const res = await fetch(mediaUrl, { signal: AbortSignal.timeout(30000) });
-      if (!res.ok) {
-        throw new Error(`Failed to download media: ${res.status}`);
+      const { response: guardedRes, release } = await fetchWithSsrFGuard({
+        url: mediaUrl,
+        timeoutMs: 30_000,
+        mode: "strict",
+        auditContext: "wecom-outbound-media-download",
+      });
+      try {
+        if (!guardedRes.ok) {
+          throw new Error(`Failed to download media: ${guardedRes.status}`);
+        }
+        buffer = Buffer.from(await guardedRes.arrayBuffer());
+        contentType = guardedRes.headers.get("content-type") || "application/octet-stream";
+        const urlPath = new URL(mediaUrl).pathname;
+        filename = urlPath.split("/").pop() || "media";
+      } finally {
+        await release();
       }
-      buffer = Buffer.from(await res.arrayBuffer());
-      contentType = res.headers.get("content-type") || "application/octet-stream";
-      const urlPath = new URL(mediaUrl).pathname;
-      filename = urlPath.split("/").pop() || "media";
     } else {
       // 本地文件路径
       const fs = await import("node:fs/promises");
-      const path = await import("node:path");
+      const nodePath = await import("node:path");
+      const os = await import("node:os");
 
-      buffer = await fs.readFile(mediaUrl);
-      filename = path.basename(mediaUrl);
+      const resolved = nodePath.resolve(mediaUrl);
+      const allowedPrefixes = [
+        nodePath.resolve(os.tmpdir()),
+        nodePath.resolve(os.homedir(), ".openclaw"),
+      ];
+      const isAllowed = allowedPrefixes.some(
+        (prefix) => resolved.startsWith(prefix + nodePath.sep) || resolved === prefix,
+      );
+      if (!isAllowed) {
+        throw new Error(
+          `WeCom outbound media: local file path must be under ${allowedPrefixes.join(" or ")}. Got: ${resolved}`,
+        );
+      }
+
+      buffer = await fs.readFile(resolved);
+      filename = nodePath.basename(resolved);
 
       // 根据扩展名推断 content-type
-      const ext = path.extname(mediaUrl).slice(1).toLowerCase();
+      const ext = nodePath.extname(resolved).slice(1).toLowerCase();
       const mimeTypes: Record<string, string> = {
         jpg: "image/jpeg",
         jpeg: "image/jpeg",
@@ -332,12 +361,12 @@ export const wecomOutbound: ChannelOutboundAdapter = {
         odt: "application/vnd.oasis.opendocument.text",
       };
       contentType = mimeTypes[ext] || "application/octet-stream";
-      console.log(
-        `[wecom-outbound] Reading local file: ${mediaUrl}, ext=${ext}, contentType=${contentType}`,
+      getAccountRuntime(agent.accountId)?.log.info?.(
+        `[wecom-outbound] Reading local file: ${resolved}, ext=${ext}, contentType=${contentType}`,
       );
     }
 
-    console.log(
+    getAccountRuntime(agent.accountId)?.log.info?.(
       `[wecom-outbound] Sending media to ${String(to ?? "")} (filename=${filename}, contentType=${contentType})`,
     );
 
@@ -349,9 +378,13 @@ export const wecomOutbound: ChannelOutboundAdapter = {
         filename,
         contentType,
       });
-      console.log(`[wecom-outbound] Successfully sent media to ${String(to ?? "")}`);
+      getAccountRuntime(agent.accountId)?.log.info?.(
+        `[wecom-outbound] Successfully sent media to ${String(to ?? "")}`,
+      );
     } catch (err) {
-      console.error(`[wecom-outbound] Failed to send media to ${String(to ?? "")}:`, err);
+      getAccountRuntime(agent.accountId)?.log.error?.(
+        `[wecom-outbound] Failed to send media to ${String(to ?? "")}: ${err instanceof Error ? err.message : String(err)}`,
+      );
       throw err;
     }
 

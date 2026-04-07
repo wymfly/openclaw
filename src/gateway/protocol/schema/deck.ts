@@ -565,6 +565,17 @@ export const DeckThreadsListResultSchema = Type.Object({
 const AuthOverviewProviderSchema = Type.Object({
   provider: Type.String(),
   status: Type.String(),
+  source: Type.Union([
+    Type.Literal("config"),
+    Type.Literal("auth-profile"),
+    Type.Literal("agent-models"),
+    Type.Literal("env"),
+    Type.Literal("mixed"),
+  ]),
+  scope: Type.Union([Type.Literal("global"), NonEmptyString]),
+  configPresent: Type.Boolean(),
+  authPresent: Type.Boolean(),
+  editable: Type.Boolean(),
   auth: Type.Union([
     Type.Object({
       type: Type.Union([Type.String(), Type.Null()]),

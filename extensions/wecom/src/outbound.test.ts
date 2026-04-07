@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BotWsPushHandle } from "./app/index.js";
 
+const { fetchWithSsrFGuardMock } = vi.hoisted(() => ({
+  fetchWithSsrFGuardMock: vi.fn(),
+}));
+
+vi.mock("openclaw/plugin-sdk/infra-runtime", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, fetchWithSsrFGuard: fetchWithSsrFGuardMock };
+});
+
 vi.mock("./transport/agent-api/core.js", () => ({
   sendText: vi.fn(),
   sendMedia: vi.fn(),
@@ -306,14 +315,14 @@ describe("wecomOutbound", () => {
     (api.uploadMedia as any).mockResolvedValue("media-1");
     (api.sendMedia as any).mockResolvedValue(undefined);
     (api.sendMedia as any).mockClear();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
-        headers: new Headers({ "content-type": "image/png" }),
+    const release = vi.fn(async () => {});
+    fetchWithSsrFGuardMock.mockResolvedValue({
+      response: new Response(new Uint8Array([1, 2, 3]).buffer, {
+        status: 200,
+        headers: { "content-type": "image/png" },
       }),
-    );
+      release,
+    });
 
     const cfg = {
       channels: {

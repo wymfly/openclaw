@@ -4,27 +4,49 @@ import {
   SkillsBinsParamsSchema,
   SkillsBinsResultSchema,
   SkillsInstallParamsSchema,
+  SkillsInstallResultSchema,
   SkillsStatusParamsSchema,
+  SkillsStatusResultSchema,
   SkillsUpdateParamsSchema,
+  SkillsUpdateResultSchema,
 } from "../protocol/schema/agents-models-skills.js";
 import {
+  DoctorMemoryStatusResultSchema,
+  HealthResultSchema,
+  ModelsCatalogProvidersResultSchema,
+  StatusResultSchema,
+} from "../protocol/schema/control-plane-results.js";
+import {
   CronAddParamsSchema,
+  CronAddResultSchema,
   CronListParamsSchema,
+  CronListResultSchema,
   CronRemoveParamsSchema,
+  CronRemoveResultSchema,
   CronRunParamsSchema,
+  CronRunResultSchema,
   CronRunsParamsSchema,
+  CronRunsResultSchema,
   CronStatusParamsSchema,
+  CronStatusResultSchema,
   CronUpdateParamsSchema,
+  CronUpdateResultSchema,
 } from "../protocol/schema/cron.js";
 import {
   ExecApprovalRequestParamsSchema,
+  ExecApprovalRequestResultSchema,
   ExecApprovalResolveParamsSchema,
+  ExecApprovalResolveResultSchema,
   ExecApprovalsGetParamsSchema,
   ExecApprovalsNodeGetParamsSchema,
   ExecApprovalsNodeSetParamsSchema,
   ExecApprovalsSetParamsSchema,
   ExecApprovalsSnapshotSchema,
 } from "../protocol/schema/exec-approvals.js";
+import {
+  UsageCostResultSchema,
+  UsageStatusResultSchema,
+} from "../protocol/schema/usage-result-schemas.js";
 
 /**
  * Metadata for existing Gateway control-plane methods that Deck already
@@ -35,25 +57,32 @@ import {
  */
 export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   "doctor.memory.status": {
+    result: DoctorMemoryStatusResultSchema,
     scope: READ_SCOPE,
   },
   health: {
+    result: HealthResultSchema,
     scope: READ_SCOPE,
   },
   status: {
+    result: StatusResultSchema,
     scope: READ_SCOPE,
   },
   "usage.status": {
+    result: UsageStatusResultSchema,
     scope: READ_SCOPE,
   },
   "usage.cost": {
+    result: UsageCostResultSchema,
     scope: READ_SCOPE,
   },
   "models.catalog.providers": {
+    result: ModelsCatalogProvidersResultSchema,
     scope: READ_SCOPE,
   },
   "skills.status": {
     params: SkillsStatusParamsSchema,
+    result: SkillsStatusResultSchema,
     scope: READ_SCOPE,
   },
   "skills.bins": {
@@ -63,38 +92,47 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   },
   "skills.install": {
     params: SkillsInstallParamsSchema,
+    result: SkillsInstallResultSchema,
     scope: ADMIN_SCOPE,
   },
   "skills.update": {
     params: SkillsUpdateParamsSchema,
+    result: SkillsUpdateResultSchema,
     scope: ADMIN_SCOPE,
   },
   "cron.list": {
     params: CronListParamsSchema,
+    result: CronListResultSchema,
     scope: READ_SCOPE,
   },
   "cron.status": {
     params: CronStatusParamsSchema,
+    result: CronStatusResultSchema,
     scope: READ_SCOPE,
   },
   "cron.add": {
     params: CronAddParamsSchema,
+    result: CronAddResultSchema,
     scope: ADMIN_SCOPE,
   },
   "cron.update": {
     params: CronUpdateParamsSchema,
+    result: CronUpdateResultSchema,
     scope: ADMIN_SCOPE,
   },
   "cron.remove": {
     params: CronRemoveParamsSchema,
+    result: CronRemoveResultSchema,
     scope: ADMIN_SCOPE,
   },
   "cron.run": {
     params: CronRunParamsSchema,
+    result: CronRunResultSchema,
     scope: ADMIN_SCOPE,
   },
   "cron.runs": {
     params: CronRunsParamsSchema,
+    result: CronRunsResultSchema,
     scope: READ_SCOPE,
   },
   "exec.approvals.get": {
@@ -119,10 +157,12 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   },
   "exec.approval.request": {
     params: ExecApprovalRequestParamsSchema,
+    result: ExecApprovalRequestResultSchema,
     scope: APPROVALS_SCOPE,
   },
   "exec.approval.resolve": {
     params: ExecApprovalResolveParamsSchema,
+    result: ExecApprovalResolveResultSchema,
     scope: APPROVALS_SCOPE,
   },
 };

@@ -29,6 +29,23 @@ export function copyChannelAgentToolMeta(source: ChannelAgentTool, target: Chann
   }
 }
 
+type ChannelAgentToolMeta = {
+  channelId: string;
+};
+
+const channelAgentToolMeta = new WeakMap<ChannelAgentTool, ChannelAgentToolMeta>();
+
+export function getChannelAgentToolMeta(tool: ChannelAgentTool): ChannelAgentToolMeta | undefined {
+  return channelAgentToolMeta.get(tool);
+}
+
+export function copyChannelAgentToolMeta(source: ChannelAgentTool, target: ChannelAgentTool): void {
+  const meta = channelAgentToolMeta.get(source);
+  if (meta) {
+    channelAgentToolMeta.set(target, meta);
+  }
+}
+
 /**
  * Get the list of supported message actions for a specific channel.
  * Returns an empty array if channel is not found or has no actions configured.

@@ -187,6 +187,17 @@ export const AgentWaitParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const AgentWaitResultSchema = Type.Object(
+  {
+    runId: NonEmptyString,
+    status: Type.String(),
+    startedAt: Type.Optional(Type.Integer({ minimum: 0 })),
+    endedAt: Type.Optional(Type.Integer({ minimum: 0 })),
+    error: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 export const WakeParamsSchema = Type.Object(
   {
     mode: Type.Union([Type.Literal("now"), Type.Literal("next-heartbeat")]),

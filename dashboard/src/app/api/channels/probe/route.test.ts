@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const gwRequest = vi.fn();
@@ -19,7 +20,7 @@ describe("/api/channels/probe", () => {
     gwRequest.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
     const { POST } = await import("./route.js");
 
-    await POST();
+    await POST(new NextRequest("http://localhost"));
 
     expect(gwRequest).toHaveBeenCalledWith("channels.status", { probe: true });
   });

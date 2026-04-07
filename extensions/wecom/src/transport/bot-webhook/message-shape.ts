@@ -13,8 +13,9 @@ export type BotInboundProcessDecision = {
 export function resolveWecomSenderUserId(msg: WecomInboundMessage): string | undefined {
   const direct = msg.from?.userid?.trim();
   if (direct) return direct;
+  const msgRecord = msg as unknown as Record<string, unknown>;
   const legacy = String(
-    (msg as any).fromuserid ?? (msg as any).from_userid ?? (msg as any).fromUserId ?? "",
+    msgRecord.fromuserid ?? msgRecord.from_userid ?? msgRecord.fromUserId ?? "",
   ).trim();
   return legacy || undefined;
 }
@@ -67,29 +68,32 @@ function formatQuote(quote: WecomInboundQuote): string {
 export function buildInboundBody(msg: WecomInboundMessage): string {
   let body = "";
   const msgtype = String(msg.msgtype ?? "").toLowerCase();
+  const m = msg as unknown as Record<string, Record<string, unknown> | undefined>;
 
-  if (msgtype === "text") body = (msg as any).text?.content || "";
-  else if (msgtype === "voice") body = (msg as any).voice?.content || "[voice]";
+  if (msgtype === "text") body = (m.text?.content as string) || "";
+  else if (msgtype === "voice") body = (m.voice?.content as string) || "[voice]";
   else if (msgtype === "mixed") {
-    const items = (msg as any).mixed?.msg_item;
+    const items = (m.mixed?.msg_item as unknown[]) ?? undefined;
     if (Array.isArray(items)) {
       body = items
-        .map((item: any) => {
+        .map((rawItem) => {
+          const item = rawItem as Record<string, unknown>;
           const t = String(item?.msgtype ?? "").toLowerCase();
-          if (t === "text") return item?.text?.content || "";
-          if (t === "image") return `[image] ${item?.image?.url || ""}`;
+          if (t === "text") return (item?.text as Record<string, unknown>)?.content || "";
+          if (t === "image")
+            return `[image] ${(item?.image as Record<string, unknown>)?.url || ""}`;
           return `[${t || "item"}]`;
         })
         .filter(Boolean)
         .join("\n");
     } else body = "[mixed]";
-  } else if (msgtype === "image") body = `[image] ${(msg as any).image?.url || ""}`;
-  else if (msgtype === "file") body = `[file] ${(msg as any).file?.url || ""}`;
-  else if (msgtype === "event") body = `[event] ${(msg as any).event?.eventtype || ""}`;
-  else if (msgtype === "stream") body = `[stream_refresh] ${(msg as any).stream?.id || ""}`;
+  } else if (msgtype === "image") body = `[image] ${(m.image?.url as string) || ""}`;
+  else if (msgtype === "file") body = `[file] ${(m.file?.url as string) || ""}`;
+  else if (msgtype === "event") body = `[event] ${(m.event?.eventtype as string) || ""}`;
+  else if (msgtype === "stream") body = `[stream_refresh] ${(m.stream?.id as string) || ""}`;
   else body = msgtype ? `[${msgtype}]` : "";
 
-  const quote = (msg as any).quote;
+  const quote = m.quote as WecomInboundQuote | undefined;
   if (quote) {
     const quoteText = formatQuote(quote).trim();
     if (quoteText) body += `\n\n> ${quoteText}`;

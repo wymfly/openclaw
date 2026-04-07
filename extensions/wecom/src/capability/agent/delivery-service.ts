@@ -1,4 +1,4 @@
-import { getWecomRuntime } from "../../runtime.js";
+import { getAccountRuntime, getWecomRuntime } from "../../runtime.js";
 import { resolveScopedWecomTarget } from "../../target.js";
 import { deliverAgentApiMedia, deliverAgentApiText } from "../../transport/agent-api/delivery.js";
 import type { ResolvedAgentAccount } from "../../types/index.js";
@@ -18,11 +18,13 @@ export class WecomAgentDeliveryService {
   resolveTargetOrThrow(to: string | undefined) {
     const scoped = resolveScopedWecomTarget(to, this.agent.accountId);
     if (!scoped) {
-      console.error(`[wecom-agent-delivery] missing target account=${this.agent.accountId}`);
+      getAccountRuntime(this.agent.accountId)?.log.error?.(
+        `[wecom-agent-delivery] missing target account=${this.agent.accountId}`,
+      );
       throw new Error("WeCom outbound requires a target (userid, partyid, tagid or chatid).");
     }
     if (scoped.accountId && scoped.accountId !== this.agent.accountId) {
-      console.error(
+      getAccountRuntime(this.agent.accountId)?.log.error?.(
         `[wecom-agent-delivery] account mismatch current=${this.agent.accountId} targetAccount=${scoped.accountId} raw=${String(to ?? "")}`,
       );
       throw new Error(
@@ -31,7 +33,7 @@ export class WecomAgentDeliveryService {
     }
     const target = scoped.target;
     if (target.chatid) {
-      console.warn(
+      getAccountRuntime(this.agent.accountId)?.log.warn?.(
         `[wecom-agent-delivery] blocked chat target account=${this.agent.accountId} chatId=${target.chatid}`,
       );
       throw new Error(
@@ -46,7 +48,7 @@ export class WecomAgentDeliveryService {
   async sendText(params: { to: string | undefined; text: string }): Promise<void> {
     this.assertAvailable();
     const target = this.resolveTargetOrThrow(params.to);
-    console.log(
+    getAccountRuntime(this.agent.accountId)?.log.info?.(
       `[wecom-agent-delivery] sendText account=${this.agent.accountId} to=${String(params.to ?? "")} len=${params.text.length}`,
     );
 
@@ -72,7 +74,7 @@ export class WecomAgentDeliveryService {
   }): Promise<void> {
     this.assertAvailable();
     const target = this.resolveTargetOrThrow(params.to);
-    console.log(
+    getAccountRuntime(this.agent.accountId)?.log.info?.(
       `[wecom-agent-delivery] sendMedia account=${this.agent.accountId} to=${String(params.to ?? "")} filename=${params.filename} contentType=${params.contentType}`,
     );
     await deliverAgentApiMedia({

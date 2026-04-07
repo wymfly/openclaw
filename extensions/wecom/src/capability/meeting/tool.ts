@@ -1,27 +1,22 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
+import { buildToolError, buildToolResult, type WecomToolContext } from "../shared-tool-types.js";
 import { WecomMeetingClient } from "./client.js";
 import { wecomMeetingToolSchema } from "./schema.js";
-
-function buildToolResult(payload: any) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
-    details: payload,
-  };
-}
+import type { WecomMeetingSettings } from "./types.js";
 
 export function registerWecomMeetingTools(api: OpenClawPluginApi) {
   if (typeof api?.registerTool !== "function") return;
   const meetingClient = new WecomMeetingClient();
 
-  api.registerTool((toolContext: any) => ({
+  api.registerTool((toolContext: WecomToolContext) => ({
     name: "wecom_meeting",
     label: "WeCom Meeting",
     description: "企业微信会议工具，支持创建、更新、取消及查询会议。",
     parameters: wecomMeetingToolSchema,
-    async execute(_toolCallId, params: any) {
+    async execute(_toolCallId: string, params: Record<string, unknown>) {
       try {
-        const accountId = params.accountId || toolContext?.accountId || "default";
+        const accountId = (params.accountId as string) || toolContext?.accountId || "default";
         const account = resolveAgentAccountOrUndefined(api.config, accountId);
         if (!account || !account.configured) {
           throw new Error(`WeCom account ${accountId} not configured for Meeting API requirements`);
@@ -31,12 +26,12 @@ export function registerWecomMeetingTools(api: OpenClawPluginApi) {
         switch (action) {
           case "create": {
             const result = await meetingClient.create(account, {
-              title: params.title,
-              start_time: params.start_time,
-              end_time: params.end_time,
-              invitees: params.invitees,
-              password: params.password,
-              settings: params.settings,
+              title: params.title as string,
+              start_time: params.start_time as string,
+              end_time: params.end_time as string,
+              invitees: params.invitees as string[] | undefined,
+              password: params.password as string | undefined,
+              settings: params.settings as WecomMeetingSettings | undefined,
             });
             return buildToolResult({
               ok: true,
@@ -48,10 +43,10 @@ export function registerWecomMeetingTools(api: OpenClawPluginApi) {
             });
           }
           case "update": {
-            const result = await meetingClient.update(account, params.meetingid, {
-              title: params.title,
-              start_time: params.start_time,
-              end_time: params.end_time,
+            const result = await meetingClient.update(account, params.meetingid as string, {
+              title: params.title as string | undefined,
+              start_time: params.start_time as string | undefined,
+              end_time: params.end_time as string | undefined,
             });
             return buildToolResult({
               ok: true,
@@ -63,7 +58,7 @@ export function registerWecomMeetingTools(api: OpenClawPluginApi) {
             });
           }
           case "cancel": {
-            const result = await meetingClient.cancel(account, params.meetingid);
+            const result = await meetingClient.cancel(account, params.meetingid as string);
             return buildToolResult({
               ok: true,
               action,
@@ -74,7 +69,7 @@ export function registerWecomMeetingTools(api: OpenClawPluginApi) {
             });
           }
           case "get_info": {
-            const meeting = await meetingClient.getInfo(account, params.meetingid);
+            const meeting = await meetingClient.getInfo(account, params.meetingid as string);
             return buildToolResult({
               ok: true,
               action,
@@ -84,7 +79,10 @@ export function registerWecomMeetingTools(api: OpenClawPluginApi) {
             });
           }
           case "list_user_meetings": {
-            const meetingList = await meetingClient.listUserMeetings(account, params.userid);
+            const meetingList = await meetingClient.listUserMeetings(
+              account,
+              params.userid as string,
+            );
             return buildToolResult({
               ok: true,
               action,
@@ -98,24 +96,7 @@ export function registerWecomMeetingTools(api: OpenClawPluginApi) {
             throw new Error(`Unsupported action: ${String(action)}`);
         }
       } catch (err) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  ok: false,
-                  action: params?.action,
-                  error: err instanceof Error ? err.message : String(err),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-          details: {},
-          isError: true,
-        };
+        return buildToolError(params?.action as string | undefined, err);
       }
     },
   }));

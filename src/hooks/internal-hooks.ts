@@ -259,6 +259,17 @@ export function setInternalHooksEnabled(enabled: boolean): void {
 }
 
 /**
+ * Check if any hooks are registered for the given event type and action.
+ * Returns true if handlers exist for either the general type key or the
+ * specific type:action key.
+ */
+export function hasInternalHookListeners(type: string, action: string): boolean {
+  return (
+    (handlers.get(type)?.length ?? 0) > 0 || (handlers.get(`${type}:${action}`)?.length ?? 0) > 0
+  );
+}
+
+/**
  * Get all registered event keys (useful for debugging)
  */
 export function getRegisteredEventKeys(): string[] {
