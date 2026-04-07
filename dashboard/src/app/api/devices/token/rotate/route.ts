@@ -1,10 +1,10 @@
 /**
  * /api/devices/token/rotate — Rotate a device token.
  *
- * POST { deviceId, role, scopes? }
+ * POST { deviceId, role }
  *
  * Gateway contract:
- *   device.token.rotate: { deviceId, role, scopes? }
+ *   device.token.rotate: { deviceId, role }
  *   Returns: { deviceId, role, token, scopes, rotatedAtMs }
  */
 import { ControlPlaneGatewayError } from "@server/gateway-adapter";
@@ -13,21 +13,16 @@ import { gwCall } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 export const POST = withAuth(async (request: NextRequest) => {
-  const { deviceId, role, scopes } = (await request.json()) as {
+  const { deviceId, role } = (await request.json()) as {
     deviceId: string;
     role: string;
-    scopes?: string[];
   };
   if (!deviceId || !role) {
     return NextResponse.json({ error: "deviceId and role are required" }, { status: 400 });
   }
 
   try {
-    const data = await gwCall("device.token.rotate", {
-      deviceId,
-      role,
-      ...(scopes ? { scopes } : {}),
-    });
+    const data = await gwCall("device.token.rotate", { deviceId, role });
     return NextResponse.json(data);
   } catch (err) {
     if (err instanceof ControlPlaneGatewayError) {

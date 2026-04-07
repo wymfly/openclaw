@@ -40,6 +40,7 @@ interface PendingRequestRowProps {
 
 export function PendingRequestRow({ request, onApprove, onReject }: PendingRequestRowProps) {
   const t = useTranslations("devices");
+  const tc = useTranslations("common");
   const { addToast } = useNotificationsStore();
   const [loadingAction, setLoadingAction] = useState<"approve" | "reject" | null>(null);
 
@@ -91,7 +92,7 @@ export function PendingRequestRow({ request, onApprove, onReject }: PendingReque
           onClick={() => void handleAction("approve")}
           className="cursor-pointer"
         >
-          {loadingAction === "approve" ? "..." : t("approve")}
+          {loadingAction === "approve" ? tc("loading") : t("approve")}
         </Button>
         <Button
           size="xs"
@@ -100,7 +101,7 @@ export function PendingRequestRow({ request, onApprove, onReject }: PendingReque
           onClick={() => void handleAction("reject")}
           className="cursor-pointer"
         >
-          {loadingAction === "reject" ? "..." : t("reject")}
+          {loadingAction === "reject" ? tc("loading") : t("reject")}
         </Button>
       </div>
     </div>
