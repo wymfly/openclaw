@@ -18,6 +18,7 @@ import {
   normalizeTranscriptMessages,
   normalizeTranscriptToolResultContent,
 } from "@/lib/transcript-adapter";
+import { useSessionsStore, type SessionsChangedPayload } from "@/stores/sessions";
 import type {
   AgentEventPayload as GatewayAgentEventPayload,
   ChatEventPayload as GatewayChatEventPayload,
@@ -817,6 +818,14 @@ export function dispatchSessionStateEvent(
   if (!sessionKey) {
     return;
   }
+
+  // Unified dispatch: also update the sessions store so non-chat panels
+  // (sessions list, monitor) get real-time session state updates.
+  // This replaces the unused useSessionEvents.ts hook with a single dispatch path.
+  // Safe cast: applySessionChangedEvent guards every field with typeof checks.
+  useSessionsStore
+    .getState()
+    .applySessionChangedEvent(statePayload as unknown as SessionsChangedPayload);
 
   const phase = typeof statePayload.phase === "string" ? statePayload.phase : undefined;
   const reason = typeof statePayload.reason === "string" ? statePayload.reason : undefined;
