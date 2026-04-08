@@ -2,12 +2,12 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { deckFetch } from "@/lib/deck-client";
-import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
+import { AgentTabs } from "./AgentTabs";
 import { patchSession } from "./chat-api";
 
 function formatTime(ts?: number): string {
@@ -58,12 +58,6 @@ export function SessionSidebar() {
   const sessionMetas = useChatStore((s) => s.sessionMetas);
   const setActiveSession = useChatStore((s) => s.setActiveSession);
   const setActiveAgent = useChatStore((s) => s.setActiveAgent);
-  const agents = useAgentsStore((s) => s.agents);
-  const fetchAgents = useAgentsStore((s) => s.fetchAgents);
-
-  useEffect(() => {
-    void fetchAgents();
-  }, [fetchAgents]);
 
   const handleNew = () => {
     setActiveSession(null);
@@ -140,26 +134,8 @@ export function SessionSidebar() {
       className="flex flex-col w-56 shrink-0 border-r h-full"
       style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
     >
-      {/* Agent selector */}
-      <div className="p-2 border-b" style={{ borderColor: "var(--border)" }}>
-        <select
-          value={activeAgentId ?? ""}
-          onChange={(e) => setActiveAgent(e.target.value || null)}
-          className="w-full text-xs rounded px-2 py-1.5"
-          style={{
-            backgroundColor: "var(--background)",
-            color: "var(--foreground)",
-            border: "1px solid var(--border)",
-          }}
-        >
-          <option value="">{t("defaultAgent")}</option>
-          {agents.map((agent) => (
-            <option key={agent.id} value={agent.id}>
-              {agent.name || agent.id}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Agent tabs */}
+      <AgentTabs />
 
       {/* New session button */}
       <button

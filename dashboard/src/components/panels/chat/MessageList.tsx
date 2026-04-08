@@ -8,6 +8,7 @@ import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import type { ChatBlockPreferences } from "@/stores/chat-preferences";
 import type { ChatMessage, RunMetadata } from "@/stores/chat-types";
 import { CompactionNotice } from "./CompactionNotice";
+import { MessageActions } from "./MessageActions";
 import { RunStatusBar } from "./RunStatusBar";
 import { TranscriptBlocks } from "./TranscriptBlocks";
 
@@ -17,6 +18,19 @@ const STABLE_EMPTY_RUN_META: Record<string, RunMetadata> = {};
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
+
+/** Extract plain text from a ChatMessage for copy actions. */
+function extractPlainText(message: ChatMessage): string {
+  return message.content
+    .map((block) => {
+      if (block.type === "text") {
+        return block.text;
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
 
 function MessageBubble({
   message,
@@ -36,7 +50,7 @@ function MessageBubble({
   const isUser = message.role === "user";
 
   return (
-    <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""} mb-4`}>
+    <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""} mb-4 group/msg`}>
       {/* Avatar */}
       <div
         className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
@@ -82,6 +96,9 @@ function MessageBubble({
         <span className="text-[10px] mt-0.5 px-1" style={{ color: "var(--muted-foreground)" }}>
           {new Date(message.timestamp).toLocaleTimeString()}
         </span>
+
+        {/* Message actions (assistant messages only) */}
+        {!isUser && <MessageActions content={extractPlainText(message)} />}
       </div>
     </div>
   );
@@ -150,7 +167,7 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
 
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-3" onScroll={handleScroll}>
-      {messages.map((msg) => {
+      {messages.map((msg, idx) => {
         // Render compaction notices as system cards (not message bubbles)
         if (msg.role === "system" && msg.id.startsWith("compaction-")) {
           return <CompactionNotice key={msg.id} timestamp={msg.timestamp} />;
@@ -170,15 +187,16 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
           : undefined;
 
         return (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            blockPrefs={blockPreferences}
-            runMetadata={runMeta}
-            sessionTotalTokens={sessionMeta?.totalTokens}
-            sessionCostUsd={sessionMeta?.estimatedCostUsd}
-            sessionStatus={sessionStatus}
-          />
+          <div key={msg.id} data-message-idx={idx}>
+            <MessageBubble
+              message={msg}
+              blockPrefs={blockPreferences}
+              runMetadata={runMeta}
+              sessionTotalTokens={sessionMeta?.totalTokens}
+              sessionCostUsd={sessionMeta?.estimatedCostUsd}
+              sessionStatus={sessionStatus}
+            />
+          </div>
         );
       })}
 

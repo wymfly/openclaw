@@ -146,7 +146,14 @@ function ArtifactToggle({ label }: { label: string }) {
   );
 }
 
-export function MessageInput() {
+interface MessageInputProps {
+  /** Text injected from EmptyState suggested prompts. */
+  suggestedText?: string;
+  /** Called after suggestedText is consumed (filled into input). */
+  onSuggestedTextConsumed?: () => void;
+}
+
+export function MessageInput({ suggestedText, onSuggestedTextConsumed }: MessageInputProps = {}) {
   const t = useTranslations("chat");
   const activeSessionKey = useActiveSessionKey();
   const activeApproval = useSessionApproval();
@@ -159,6 +166,14 @@ export function MessageInput() {
   const resolveApproval = useApprovalsStore((s) => s.resolveApproval);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+
+  // Fill input from EmptyState suggested prompt
+  useEffect(() => {
+    if (suggestedText) {
+      setInput(suggestedText);
+      onSuggestedTextConsumed?.();
+    }
+  }, [suggestedText, onSuggestedTextConsumed]);
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

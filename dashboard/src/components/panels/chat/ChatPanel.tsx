@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useCommandDiscovery } from "@/hooks/use-command-discovery";
 import { useChatStore } from "@/stores/chat";
 import {
@@ -24,6 +24,7 @@ import {
   persistChatProjection,
   setSessionMessageSubscription,
 } from "./chat-api";
+import { EmptyState } from "./EmptyState";
 import { normalizeHistoryMessages } from "./history-normalize";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
@@ -32,7 +33,10 @@ import { SessionConfigBar } from "./SessionConfigBar";
 import { SessionSidebar } from "./SessionSidebar";
 import { initializeLocalCommands } from "./slash-command-executor";
 import { SSEStatusBanner } from "./SSEStatusBanner";
+import { SteerDialog } from "./SteerDialog";
+import { SubagentTree } from "./SubagentTree";
 import { ToolProgressBar } from "./ToolProgressBar";
+import { TranscriptSearch } from "./TranscriptSearch";
 import { useChatSSE } from "./useChatSSE";
 
 /** Context for artifact interactions — consumed by ToolResultCard and MessageInput. */
@@ -58,6 +62,23 @@ export function ChatPanel() {
   const messages = useSessionMessages();
   const { isStreaming } = useSessionStreaming();
   const [blockPrefs, setBlockPrefs] = useState<ChatBlockPreferences>(loadBlockPreferences);
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Cmd/Ctrl+F to toggle transcript search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        setShowSearch((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Fill message input from EmptyState suggested prompt
+  const [suggestedText, setSuggestedText] = useState("");
+  const handleSuggestedTextConsumed = useCallback(() => setSuggestedText(""), []);
 
   // Right panel state: hidden, canvas (A2UI), or artifact viewer
   const [rightPanelMode, setRightPanelMode] = useState<"hidden" | "canvas" | "artifact">("hidden");
@@ -255,13 +276,23 @@ export function ChatPanel() {
         <SessionSidebar />
         <div className="flex flex-col flex-1 min-w-0">
           <SSEStatusBanner />
-          <MessageList blockPreferences={blockPrefs} />
+          {showSearch && <TranscriptSearch onClose={() => setShowSearch(false)} />}
+          {activeSessionKey ? (
+            <MessageList blockPreferences={blockPrefs} />
+          ) : (
+            <EmptyState onSelectPrompt={setSuggestedText} />
+          )}
           {hasFilterableBlocks && (
             <BlockFilterBar preferences={blockPrefs} onChange={handleBlockPrefsChange} />
           )}
+          <SteerDialog />
+          <SubagentTree />
           <ToolProgressBar />
           <SessionConfigBar />
-          <MessageInput />
+          <MessageInput
+            suggestedText={suggestedText}
+            onSuggestedTextConsumed={handleSuggestedTextConsumed}
+          />
         </div>
         <RightPanel mode={rightPanelMode} onClose={handleCloseRightPanel}>
           {rightPanelMode === "canvas" && <CanvasPanel onClose={handleCloseRightPanel} />}

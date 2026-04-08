@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
 
@@ -12,6 +12,11 @@ import { useChatStore } from "@/stores/chat";
 export function AgentTabs() {
   const t = useTranslations("chat");
   const agents = useAgentsStore((s) => s.agents);
+  const fetchAgents = useAgentsStore((s) => s.fetchAgents);
+
+  useEffect(() => {
+    void fetchAgents();
+  }, [fetchAgents]);
   const activeAgentId = useChatStore((s) => s.activeAgentId);
   const setActiveAgent = useChatStore((s) => s.setActiveAgent);
   const sessionMetas = useChatStore((s) => s.sessionMetas);
