@@ -651,6 +651,30 @@
     "statSubagents": "Subagents",
     "statSessions": "Sessions",
     "statActiveRuns": "Active Runs",
+    "statMessages": "Messages",
+    "toolPolicyEditor": "Edit Tool Policy",
+    "allowList": "Allow List",
+    "denyList": "Deny List",
+    "noToolsInList": "No tools in this list",
+    "addToolPlaceholder": "Type tool name...",
+    "cloneAgent": "Clone Agent",
+    "cloneName": "New Agent Name",
+    "cloneDescription": "Creates a new agent with the same model and configuration.",
+    "clone": "Clone",
+    "saveAsTemplate": "Save as Template",
+    "templateName": "Template Name",
+    "noTemplates": "No templates saved yet.",
+    "insertVariable": "Insert Variable",
+    "preview": "Preview",
+    "charCount": "{chars} chars · {words} words",
+    "emptyPrompt": "No content",
+    "variable": {
+      "agentName": "Agent Name",
+      "agentId": "Agent ID",
+      "model": "Model",
+      "timestamp": "Timestamp",
+      "channelId": "Channel ID"
+    },
     "addBinding": "Add Binding",
     "viewAllRouting": "View all in Routing panel",
     "noBindings": "No routing rules for this agent",
@@ -1099,6 +1123,34 @@
       "success": "Connected",
       "failure": "Connection Failed",
       "timeout": "Connection Timeout"
+    },
+    "health": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "down": "Down",
+      "unknown": "Unknown"
+    },
+    "analytics": {
+      "totalIn": "Messages In",
+      "totalOut": "Messages Out",
+      "errorRate": "Error Rate",
+      "latency": "Latency",
+      "throughput": "Throughput",
+      "noData": "No analytics data available"
+    },
+    "test": {
+      "placeholder": "Enter test message...",
+      "success": "Delivered",
+      "sendTest": "Send Test"
+    },
+    "accountConfig": {
+      "title": "Configure {account}",
+      "accountId": "Account ID",
+      "status": "Status",
+      "dmPolicy": "DM Policy",
+      "override": "Override",
+      "inherit": "Inherit",
+      "inheritDescription": "Using channel-level DM policy setting."
     }
   },
   "config": {
@@ -1551,6 +1603,18 @@
     "validating": "Validating...",
     "testConnection": "Test Connection",
     "testing": "Testing...",
+    "validation": {
+      "description": "Test the connection to verify your configuration is working.",
+      "testConnection": "Test Connection",
+      "testing": "Testing...",
+      "probeSuccess": "Connection successful!",
+      "probeNoChannel": "Channel not detected. Check your configuration.",
+      "probeFailed": "Connection test failed. Please check your settings.",
+      "hint": "Click the button above to test your connection."
+    },
+    "dmPolicy": {
+      "description": "Choose how the bot handles direct messages from users."
+    },
     "wecom": {
       "title": "Configure WeCom",
       "step1Title": "Select Connection Mode",

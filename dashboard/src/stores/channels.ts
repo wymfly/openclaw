@@ -41,6 +41,15 @@ export interface ProbeResult {
   probedAt: number;
 }
 
+export type ChannelHealthStatus = "healthy" | "degraded" | "down" | "unknown";
+
+export interface ChannelHealth {
+  status: ChannelHealthStatus;
+  latencyMs?: number;
+  error?: string;
+  lastCheckedAt: number;
+}
+
 // ---------------------------------------------------------------------------
 // Throughput types
 // ---------------------------------------------------------------------------
@@ -85,6 +94,10 @@ interface ChannelsState {
   probeResults: Map<string, ProbeResult>;
   probing: Set<string>;
 
+  // Real-time health state (SSE-driven)
+  channelHealthMap: Map<string, ChannelHealth>;
+  updateChannelHealth: (channelId: string, health: ChannelHealth) => void;
+
   fetchChannels: () => Promise<void>;
   selectChannel: (id: string | null) => void;
   updateChannelConfig: (channelId: string, patch: Record<string, unknown>) => Promise<boolean>;
@@ -107,6 +120,13 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
   throughputWindow: "1h" as ThroughputWindow,
   channelConfig: null,
   channelConfigSaveError: null,
+  channelHealthMap: new Map(),
+  updateChannelHealth: (channelId, health) =>
+    set((state) => {
+      const next = new Map(state.channelHealthMap);
+      next.set(channelId, health);
+      return { channelHealthMap: next };
+    }),
   channelSchemas: new Map(),
   probeResults: new Map(),
   probing: new Set(),

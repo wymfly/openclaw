@@ -15,6 +15,7 @@ import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useAgentMetricsSSE, useAgentMetricsStore } from "@/hooks/useAgentMetricsSSE";
 import { navigateToSubagents } from "@/lib/panel-navigation";
 import { useDeckAgentsStore, type AgentDetail } from "@/stores/deck-agents";
 import { ChannelEventStreamSection } from "./ChannelEventStreamSection";
@@ -39,6 +40,10 @@ interface StatCardDef {
 export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
   const t = useTranslations("agentDetail");
   const { agentIdentity, fetchIdentity } = useDeckAgentsStore();
+  const agentMetrics = useAgentMetricsStore((s) => s.metrics.get(detail.id));
+
+  // SSE-driven real-time metrics for this agent
+  useAgentMetricsSSE(detail.id);
 
   useEffect(() => {
     void fetchIdentity(detail.id);
@@ -75,16 +80,15 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
     },
     {
       label: t("statActiveRuns"),
-      value: 0,
+      value: agentMetrics?.activeRuns ?? 0,
       icon: <Play size={14} />,
       panelAction: navigateToSubagents,
       color: "text-emerald-400",
     },
     {
-      label: t("statContext"),
-      value: 0,
+      label: t("statMessages"),
+      value: agentMetrics?.messageCount ?? 0,
       icon: <Layers size={14} />,
-      tab: "context",
       color: "text-indigo-400",
     },
   ];

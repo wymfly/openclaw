@@ -4,6 +4,7 @@ import { Radio } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { useChannelsStore, type ChannelInfo } from "@/stores/channels";
+import { ChannelHealthBadge } from "./ChannelHealthBadge";
 
 /**
  * Derive a status color from the channel's accounts.
@@ -47,7 +48,7 @@ function getStatusLabel(channel: ChannelInfo, t: ReturnType<typeof useTranslatio
 export function ChannelList() {
   const t = useTranslations("channels");
   const tc = useTranslations("common");
-  const { channels, channelOrder, selectedId, loading, selectChannel, channelSchemas } =
+  const { channels, channelOrder, selectedId, loading, selectChannel, channelSchemas, channelHealthMap } =
     useChannelsStore();
 
   // Channels discovered from schema but not yet in channelOrder (unconfigured)
@@ -91,6 +92,7 @@ export function ChannelList() {
           }
 
           const isActive = selectedId === chId;
+          const health = channelHealthMap.get(chId);
           const statusColor = getStatusColor(channel);
           const statusText = getStatusLabel(channel, t);
 
@@ -111,10 +113,14 @@ export function ChannelList() {
                 <div className="flex flex-col items-start min-w-0">
                   <span className="truncate w-full text-left">{channel.label}</span>
                   <div className="flex items-center gap-1">
-                    <span
-                      className="inline-block w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: statusColor }}
-                    />
+                    {health ? (
+                      <ChannelHealthBadge status={health.status} compact />
+                    ) : (
+                      <span
+                        className="inline-block w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: statusColor }}
+                      />
+                    )}
                     <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                       {statusText}
                     </span>

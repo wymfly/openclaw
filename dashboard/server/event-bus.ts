@@ -37,6 +37,9 @@ export type DeckEventType =
   // Device pairing events
   | "device.pair.requested"
   | "device.pair.resolved"
+  // Phase 2 real-time status events (server-side health poller derives these)
+  | "agent.status.changed"
+  | "channel.health.changed"
   // Upstream session events (Layer 2 — bypass RunEventPipeline)
   | "session-state"
   | "session-msg"

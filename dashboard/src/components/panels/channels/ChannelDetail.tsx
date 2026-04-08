@@ -6,6 +6,7 @@ import { useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useChannelsStore, type ChannelAccount } from "@/stores/channels";
 import { BindingsTab } from "./BindingsTab";
+import { ChannelHealthBadge } from "./ChannelHealthBadge";
 import { ChannelProbeStatus } from "./ChannelProbeStatus";
 import { ChannelSettingsTab } from "./ChannelSettingsTab";
 
@@ -78,7 +79,7 @@ function AccountStatusBadge({ account }: { account: ChannelAccount }) {
 export function ChannelDetail({ channelId }: { channelId: string }) {
   const t = useTranslations("channels");
   const tc = useTranslations("common");
-  const { channels, logoutChannel, updateChannelConfig, channelSchemas } = useChannelsStore();
+  const { channels, logoutChannel, updateChannelConfig, channelSchemas, channelHealthMap } = useChannelsStore();
 
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -146,9 +147,19 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
-        <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-          {channel.label}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+            {channel.label}
+          </h2>
+          {channelHealthMap.get(channelId) && (
+            <ChannelHealthBadge
+              status={channelHealthMap.get(channelId)!.status}
+              latencyMs={channelHealthMap.get(channelId)!.latencyMs}
+              error={channelHealthMap.get(channelId)!.error}
+              lastCheckedAt={channelHealthMap.get(channelId)!.lastCheckedAt}
+            />
+          )}
+        </div>
         <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
           ID: {channel.id}
         </span>
