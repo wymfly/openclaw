@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useGatewayStore, type GatewayStatus } from "@/stores/gateway";
+import { useMonitorStore, type GatewayStatus } from "@/stores/monitor";
 
 const STATUS_CONFIG: Record<
   GatewayStatus,
@@ -51,8 +51,9 @@ function statusI18nKey(status: GatewayStatus): string {
 }
 
 export function ConnectionCard() {
-  const t = useTranslations("gateway");
-  const { status, latency } = useGatewayStore();
+  const t = useTranslations("monitor");
+  const status = useMonitorStore((s) => s.gatewayStatus);
+  const latency = useMonitorStore((s) => s.gatewayLatency);
   const config = STATUS_CONFIG[status];
   const Icon = config.icon;
 

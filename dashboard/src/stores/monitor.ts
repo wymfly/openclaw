@@ -1,14 +1,40 @@
 import { create } from "zustand";
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — Gateway diagnostics
+// ---------------------------------------------------------------------------
+
+export type GatewayStatus = "connected" | "connecting" | "reconnecting" | "disconnected" | "error";
+
+export type ChannelHealth = {
+  configured?: boolean;
+  lastError?: string | null;
+  lastInboundAt?: string | null;
+  lastOutboundAt?: string | null;
+  accountId?: string;
+};
+
+export type HealthSummary = {
+  sessions?: { active: number; total: number; count?: number };
+  channels?: Record<string, string | ChannelHealth>;
+  auth?: string;
+};
+
+export type StatusSummary = {
+  sessions?: number;
+  channels?: Record<string, string>;
+  heartbeat?: string;
+  state?: "active" | "paused";
+};
+
+// ---------------------------------------------------------------------------
+// Types — Monitor
 // ---------------------------------------------------------------------------
 
 export type MonitorTab = "overview" | "timeline" | "history";
 
 export type LiveEventType = "tool_call" | "chat" | "status" | "agent" | "system";
 
-/** Same shape as old ActivityEvent — renamed for monitor context. */
 export interface LiveEvent {
   id: string;
   timestamp: number;
@@ -97,7 +123,7 @@ interface MonitorState {
   runEvents: RunEventRow[];
   runDetailLoading: boolean;
 
-  // Live events (migrated from activity store)
+  // Live events
   liveEvents: LiveEvent[];
   liveEventsLoading: boolean;
 
@@ -107,6 +133,14 @@ interface MonitorState {
 
   // Filters
   filters: MonitorFilters;
+
+  // Gateway diagnostics
+  gatewayStatus: GatewayStatus;
+  gatewayLatency: number | null;
+  healthSummary: HealthSummary | null;
+  statusSummary: StatusSummary | null;
+  healthLoading: boolean;
+  statusLoading: boolean;
 
   // Actions
   setActiveTab: (tab: MonitorTab) => void;
@@ -120,6 +154,10 @@ interface MonitorState {
   fetchRunDetail: (runId: string) => Promise<void>;
   fetchStats: () => Promise<void>;
   fetchRecentLiveEvents: () => Promise<void>;
+  setGatewayStatus: (status: GatewayStatus) => void;
+  setGatewayLatency: (ms: number | null) => void;
+  fetchHealth: () => Promise<void>;
+  fetchStatus: () => Promise<void>;
 }
 
 const EMPTY_FILTERS: MonitorFilters = {
@@ -150,11 +188,19 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
 
   filters: { ...EMPTY_FILTERS },
 
+  // Gateway diagnostics
+  gatewayStatus: "disconnected",
+  gatewayLatency: null,
+  healthSummary: null,
+  statusSummary: null,
+  healthLoading: false,
+  statusLoading: false,
+
   // ── Tab ──
 
   setActiveTab: (tab) => set({ activeTab: tab }),
 
-  // ── Live events (migrated from activity store) ──
+  // ── Live events ──
 
   addLiveEvent: (event) =>
     set((state) => {
@@ -318,6 +364,57 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
       // Silently ignore — will retry via SSE.
     } finally {
       set({ liveEventsLoading: false });
+    }
+  },
+
+  // ── Gateway diagnostics ──
+
+  setGatewayStatus: (status) => set({ gatewayStatus: status }),
+  setGatewayLatency: (latency) => set({ gatewayLatency: latency }),
+
+  fetchHealth: async () => {
+    set({ healthLoading: true });
+    try {
+      const start = Date.now();
+      const res = await fetch("/api/gateway/health");
+      const latency = Date.now() - start;
+      if (res.ok) {
+        const raw = await res.json();
+        const agents = Array.isArray(raw.agents) ? raw.agents : [];
+        const totalSessions = agents.reduce(
+          (sum: number, a: { sessions?: { count?: number } }) => sum + (a.sessions?.count ?? 0),
+          0,
+        );
+        const data: HealthSummary = {
+          sessions: { active: agents.length, total: totalSessions },
+          channels: raw.channels ?? {},
+          auth: raw.ok ? "ok" : "unknown",
+        };
+        set({ healthSummary: data, gatewayStatus: "connected", gatewayLatency: latency });
+      } else {
+        set({ gatewayStatus: "error" });
+      }
+    } catch {
+      set({ gatewayStatus: "disconnected" });
+    } finally {
+      set({ healthLoading: false });
+    }
+  },
+
+  fetchStatus: async () => {
+    set({ statusLoading: true });
+    try {
+      const res = await fetch("/api/gateway/status");
+      if (res.ok) {
+        const data = (await res.json()) as StatusSummary;
+        set({ statusSummary: data, gatewayStatus: "connected" });
+      } else {
+        set({ gatewayStatus: "error" });
+      }
+    } catch {
+      set({ gatewayStatus: "disconnected" });
+    } finally {
+      set({ statusLoading: false });
     }
   },
 }));

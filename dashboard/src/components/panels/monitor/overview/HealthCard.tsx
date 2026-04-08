@@ -5,12 +5,12 @@ import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useGatewayStore } from "@/stores/gateway";
+import { useMonitorStore } from "@/stores/monitor";
 
 export function HealthCard() {
-  const t = useTranslations("gateway");
+  const t = useTranslations("monitor");
   const tc = useTranslations("common");
-  const { healthSummary, healthLoading, fetchHealth } = useGatewayStore();
+  const { healthSummary, healthLoading, fetchHealth } = useMonitorStore();
 
   useEffect(() => {
     void fetchHealth();
@@ -96,7 +96,7 @@ export function HealthCard() {
             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--muted)]">
               <span className="flex items-center gap-1.5 text-[11px] text-[var(--muted-foreground)]">
                 <Shield size={12} className="text-[var(--primary)]" />
-                Auth
+                {t("auth")}
               </span>
               <span className="text-xs font-medium text-[var(--foreground)]">
                 {auth ?? "\u2014"}
