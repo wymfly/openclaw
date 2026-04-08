@@ -16,9 +16,12 @@ export interface ActivityEvent {
   details?: string;
 }
 
+export type ActivityTimeRange = "1h" | "6h" | "24h" | "7d" | "all";
+
 interface ActivityFilters {
   agentId: string | null;
   eventType: ActivityEventType | null;
+  timeRange: ActivityTimeRange;
 }
 
 // ---------------------------------------------------------------------------
@@ -36,12 +39,13 @@ interface ActivityState {
   addEvents: (events: ActivityEvent[]) => void;
   setAgentFilter: (agentId: string | null) => void;
   setTypeFilter: (type: ActivityEventType | null) => void;
+  setTimeRange: (range: ActivityTimeRange) => void;
   fetchRecent: () => Promise<void>;
 }
 
 export const useActivityStore = create<ActivityState>((set) => ({
   events: [],
-  filters: { agentId: null, eventType: null },
+  filters: { agentId: null, eventType: null, timeRange: "all" as ActivityTimeRange },
   loading: false,
 
   addEvent: (event) =>
@@ -70,6 +74,8 @@ export const useActivityStore = create<ActivityState>((set) => ({
   setAgentFilter: (agentId) => set((state) => ({ filters: { ...state.filters, agentId } })),
 
   setTypeFilter: (eventType) => set((state) => ({ filters: { ...state.filters, eventType } })),
+
+  setTimeRange: (timeRange) => set((state) => ({ filters: { ...state.filters, timeRange } })),
 
   fetchRecent: async () => {
     set({ loading: true });

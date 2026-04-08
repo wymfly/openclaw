@@ -1031,8 +1031,19 @@
     "statusChange": "状态变化",
     "noEvents": "暂无动态",
     "agent": "智能体",
+    "system": "系统",
     "type": "类型",
-    "time": "时间"
+    "time": "时间",
+    "timeRange": "时间范围",
+    "lastHour": "最近 1 小时",
+    "last6Hours": "最近 6 小时",
+    "last24Hours": "最近 24 小时",
+    "last7Days": "最近 7 天",
+    "allTime": "全部时间",
+    "today": "今天",
+    "yesterday": "昨天",
+    "thisWeek": "本周",
+    "older": "更早"
   },
   "channels": {
     "title": "渠道管理",
