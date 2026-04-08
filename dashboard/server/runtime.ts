@@ -13,6 +13,7 @@ import type { DeckEventType } from "./event-bus";
  * Lazy-initializes from environment variables on first access.
  */
 import { OpenClawGatewayAdapter } from "./gateway-adapter";
+import { initHealthPoller } from "./health-poller";
 import { ProjectionStore } from "./projection-store";
 import { createRateLimiter } from "./rate-limit";
 import { RunEventPipeline } from "./run-event-pipeline";
@@ -112,6 +113,9 @@ const VALID_DECK_EVENTS = new Set<DeckEventType>([
   // Device pairing events
   "device.pair.requested",
   "device.pair.resolved",
+  // Phase 2 real-time status events
+  "agent.status.changed",
+  "channel.health.changed",
 ]);
 
 const REQUIRED_GATEWAY_METHODS = [
@@ -511,6 +515,9 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
     runEventPipeline.destroy();
   };
 
+  // Phase 2: Health poller derives agent.status.changed + channel.health.changed events
+  gCleanup.__deckCleanupHealthPoller = initHealthPoller(gw, eventBus);
+
   // F10: Schedule webhook retry processor every 60s
   const retryTimer = setInterval(async () => {
     try {
@@ -565,10 +572,12 @@ export async function shutdownRuntime(): Promise<void> {
   (gCleanup.__deckCleanupApproval as (() => void) | undefined)?.();
   (gCleanup.__deckCleanupAlerts as (() => void) | undefined)?.();
   (gCleanup.__deckCleanupRunEventPipeline as (() => void) | undefined)?.();
+  (gCleanup.__deckCleanupHealthPoller as (() => void) | undefined)?.();
   clearInterval(gCleanup.__deckRetryTimer as ReturnType<typeof setInterval>);
   gCleanup.__deckCleanupApproval = undefined;
   gCleanup.__deckCleanupAlerts = undefined;
   gCleanup.__deckCleanupRunEventPipeline = undefined;
+  gCleanup.__deckCleanupHealthPoller = undefined;
   gCleanup.__deckRetryTimer = undefined;
   runtime.eventBus.setReplayStore(null);
 

@@ -30,6 +30,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const t = useTranslations("agentDetail");
   const ta = useTranslations("agents");
   const { currentDetail, loading, fetchDetail } = useDeckAgentsStore();
+  const agent = useAgentsStore((s) => s.agents.find((a) => a.id === agentId));
   const pendingTab = useAgentsStore((s) => s.pendingTab);
   const setPendingTab = useAgentsStore((s) => s.setPendingTab);
   const selectAgent = useAgentsStore((s) => s.selectAgent);
@@ -102,7 +103,9 @@ export function AgentDetail({ agentId }: { agentId: string }) {
               {t("defaultAgent")}
             </Badge>
           )}
-          <Badge className={`text-[10px] border-0 ${STATUS_BADGE.idle}`}>{ta("idle")}</Badge>
+          <Badge className={`text-[10px] border-0 ${STATUS_BADGE[agent?.status ?? "idle"] ?? STATUS_BADGE.idle}`}>
+            {ta(agent?.status ?? "idle")}
+          </Badge>
         </div>
       </div>
 

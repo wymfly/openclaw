@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { useChannelHealthSSE } from "@/hooks/useChannelHealthSSE";
 import { useChannelsStore } from "@/stores/channels";
 import { ChannelDetail } from "./ChannelDetail";
 import { ChannelList } from "./ChannelList";
@@ -18,6 +19,9 @@ export function ChannelsPanel() {
     void fetchChannels();
     void fetchChannelSchemas();
   }, [fetchChannels, fetchChannelSchemas]);
+
+  // SSE-driven real-time channel health updates
+  useChannelHealthSSE();
 
   return (
     <div

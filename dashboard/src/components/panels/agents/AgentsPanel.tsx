@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { useAgentStatusSSE } from "@/hooks/useAgentStatusSSE";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { useAgentsStore } from "@/stores/agents";
 import { AgentDetail } from "./AgentDetail";
@@ -20,6 +21,9 @@ export function AgentsPanel() {
   useEffect(() => {
     void fetchAgents();
   }, [fetchAgents]);
+
+  // SSE-driven real-time agent status updates
+  useAgentStatusSSE();
 
   // Mobile: show detail when agent selected, list otherwise
   if (isMobile && selectedAgentId) {
