@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useLogsStore } from "@/stores/logs";
 import { LogFilters } from "./LogFilters";
 import { LogStream } from "./LogStream";
-import { useLogPolling } from "./useLogPolling";
+import { useLogSSE } from "./useLogSSE";
 
 /**
  * LogsPanel — top toolbar with filters + clear/pause, and log stream below.
@@ -15,8 +15,8 @@ export function LogsPanel() {
   const totalEntries = useLogsStore((s) => s.entries.length);
   const maxEntries = useLogsStore((s) => s.maxEntries);
 
-  // Start polling on mount.
-  useLogPolling();
+  // Subscribe to log SSE stream.
+  useLogSSE();
 
   return (
     <div

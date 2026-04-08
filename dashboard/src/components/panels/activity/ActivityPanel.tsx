@@ -2,7 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { useActivityStore, type ActivityEventType } from "@/stores/activity";
+import {
+  useActivityStore,
+  type ActivityEventType,
+  type ActivityTimeRange,
+} from "@/stores/activity";
 import { EventTimeline } from "./EventTimeline";
 import { useActivitySSE } from "./useActivitySSE";
 
@@ -21,7 +25,17 @@ const EVENT_TYPE_LABEL_KEYS: Record<string, string> = {
   chat: "chatMessage",
   status: "statusChange",
   agent: "agent",
-  system: "type",
+  system: "system",
+};
+
+const TIME_RANGES: ActivityTimeRange[] = ["1h", "6h", "24h", "7d", "all"];
+
+const TIME_RANGE_LABEL_KEYS: Record<ActivityTimeRange, string> = {
+  "1h": "lastHour",
+  "6h": "last6Hours",
+  "24h": "last24Hours",
+  "7d": "last7Days",
+  all: "allTime",
 };
 
 /**
@@ -29,7 +43,7 @@ const EVENT_TYPE_LABEL_KEYS: Record<string, string> = {
  */
 export function ActivityPanel() {
   const t = useTranslations("activity");
-  const { filters, setAgentFilter, setTypeFilter, fetchRecent } = useActivityStore();
+  const { filters, setAgentFilter, setTypeFilter, setTimeRange, fetchRecent } = useActivityStore();
 
   // Connect to SSE for real-time activity events.
   useActivitySSE();
@@ -55,6 +69,29 @@ export function ActivityPanel() {
         <h2 className="text-sm font-semibold shrink-0" style={{ color: "var(--foreground)" }}>
           {t("title")}
         </h2>
+
+        {/* Time range filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
+            {t("timeRange")}:
+          </span>
+          <select
+            value={filters.timeRange}
+            onChange={(e) => setTimeRange(e.target.value as ActivityTimeRange)}
+            className="text-xs rounded px-2 py-1 border"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--background)",
+              color: "var(--foreground)",
+            }}
+          >
+            {TIME_RANGES.map((range) => (
+              <option key={range} value={range}>
+                {t(TIME_RANGE_LABEL_KEYS[range])}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Agent filter */}
         <div className="flex items-center gap-2">

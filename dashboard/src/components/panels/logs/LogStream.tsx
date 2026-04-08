@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLogsStore, type LogLevel } from "@/stores/logs";
 
 // ---------------------------------------------------------------------------
@@ -15,20 +15,35 @@ const LEVEL_COLORS: Record<LogLevel, { bg: string; text: string }> = {
   error: { bg: "var(--destructive-muted)", text: "var(--destructive)" },
 };
 
+/** Fixed row height for virtualization (12px font × 1.6 line-height + 4px padding). */
+const ROW_HEIGHT = 24;
+
+/** Extra rows rendered above/below the visible area. */
+const OVERSCAN = 20;
+
+/** Threshold in px: if user is within this distance from bottom, auto-scroll. */
+const NEAR_BOTTOM_PX = 40;
+
 /**
- * LogStream — auto-scrolling monospace log output with color-coded level badges.
+ * LogStream — virtualized monospace log output with color-coded level badges.
+ *
+ * Only visible rows (+ overscan) are rendered in the DOM, keeping
+ * performance stable even with the full 5 000-entry ring buffer.
  */
 export function LogStream() {
   const t = useTranslations("logs");
   const allEntries = useLogsStore((s) => s.entries);
   const filters = useLogsStore((s) => s.filters);
   const streaming = useLogsStore((s) => s.streaming);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Render-time filtering — ring buffer retains ALL entries
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+  const isNearBottomRef = useRef(true);
+
+  // Render-time filtering — ring buffer retains ALL entries.
   const entries = useMemo(() => {
     return allEntries.filter((entry) => {
-      // Level filter
       if (
         filters.levels.length > 0 &&
         filters.levels.length < 4 &&
@@ -36,11 +51,9 @@ export function LogStream() {
       ) {
         return false;
       }
-      // Source filter
       if (filters.source !== "all" && entry.source !== filters.source) {
         return false;
       }
-      // Session filter
       if (
         filters.sessionKey &&
         entry.sessionKey !== filters.sessionKey &&
@@ -52,16 +65,50 @@ export function LogStream() {
     });
   }, [allEntries, filters]);
 
-  // Auto-scroll to bottom when new entries arrive, unless paused.
+  // Virtual window calculation.
+  const totalHeight = entries.length * ROW_HEIGHT;
+  const startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+  const endIdx = Math.min(
+    entries.length,
+    Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + OVERSCAN,
+  );
+  const visibleEntries = entries.slice(startIdx, endIdx);
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) {
+      return;
+    }
+    setScrollTop(el.scrollTop);
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+  }, []);
+
+  // Track container size via ResizeObserver.
   useEffect(() => {
-    if (!streaming) {
+    const el = containerRef.current;
+    if (!el) {
+      return;
+    }
+    const observer = new ResizeObserver((observed) => {
+      for (const entry of observed) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(el);
+    setContainerHeight(el.clientHeight);
+    return () => observer.disconnect();
+  }, []);
+
+  // Auto-scroll to bottom when streaming and near bottom.
+  useEffect(() => {
+    if (!streaming || !isNearBottomRef.current) {
       return;
     }
     const el = containerRef.current;
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [entries, streaming]);
+  }, [entries.length, streaming]);
 
   if (entries.length === 0) {
     return (
@@ -77,7 +124,8 @@ export function LogStream() {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto p-3"
+      className="flex-1 overflow-y-auto"
+      onScroll={handleScroll}
       style={{
         fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace",
         fontSize: 12,
@@ -85,50 +133,61 @@ export function LogStream() {
         backgroundColor: "var(--background)",
       }}
     >
-      {entries.map((entry, idx) => {
-        const colors = LEVEL_COLORS[entry.level];
-        return (
-          <div
-            key={idx}
-            className="flex items-start gap-2 py-0.5"
-            style={{ color: "var(--foreground)" }}
-          >
-            {/* Timestamp */}
-            <span className="shrink-0" style={{ color: "var(--muted-foreground)", minWidth: 180 }}>
-              {entry.timestamp}
-            </span>
-
-            {/* Level badge */}
-            <span
-              className="shrink-0 rounded px-1.5 py-0 text-center uppercase"
+      <div style={{ height: totalHeight, position: "relative" }}>
+        {visibleEntries.map((entry, i) => {
+          const idx = startIdx + i;
+          const colors = LEVEL_COLORS[entry.level];
+          return (
+            <div
+              key={idx}
+              className="flex items-center gap-2"
               style={{
-                backgroundColor: colors.bg,
-                color: colors.text,
-                fontSize: 10,
-                fontWeight: 600,
-                minWidth: 48,
-                lineHeight: "18px",
+                position: "absolute",
+                top: idx * ROW_HEIGHT,
+                left: 0,
+                right: 0,
+                height: ROW_HEIGHT,
+                paddingLeft: 12,
+                paddingRight: 12,
+                color: "var(--foreground)",
               }}
             >
-              {entry.level}
-            </span>
+              {/* Timestamp */}
+              <span
+                className="shrink-0"
+                style={{ color: "var(--muted-foreground)", minWidth: 180 }}
+              >
+                {entry.timestamp}
+              </span>
 
-            {/* Source */}
-            <span
-              className="shrink-0"
-              style={{
-                color: "var(--muted-foreground)",
-                minWidth: 64,
-              }}
-            >
-              [{entry.source}]
-            </span>
+              {/* Level badge */}
+              <span
+                className="shrink-0 rounded px-1.5 text-center uppercase"
+                style={{
+                  backgroundColor: colors.bg,
+                  color: colors.text,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  minWidth: 48,
+                  lineHeight: "18px",
+                }}
+              >
+                {entry.level}
+              </span>
 
-            {/* Message */}
-            <span className="break-all">{entry.message}</span>
-          </div>
-        );
-      })}
+              {/* Source */}
+              <span className="shrink-0" style={{ color: "var(--muted-foreground)", minWidth: 64 }}>
+                [{entry.source}]
+              </span>
+
+              {/* Message (truncated to single line, full text on hover) */}
+              <span className="truncate min-w-0" title={entry.message}>
+                {entry.message}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

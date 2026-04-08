@@ -1034,8 +1034,19 @@
     "statusChange": "Status Change",
     "noEvents": "No activity",
     "agent": "Agent",
+    "system": "System",
     "type": "Type",
-    "time": "Time"
+    "time": "Time",
+    "timeRange": "Time Range",
+    "lastHour": "Last Hour",
+    "last6Hours": "Last 6 Hours",
+    "last24Hours": "Last 24 Hours",
+    "last7Days": "Last 7 Days",
+    "allTime": "All Time",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "older": "Older"
   },
   "channels": {
     "title": "Channels",
