@@ -13,7 +13,7 @@ import {
   MessageSquare,
   MessagesSquare,
   Network,
-  Radio,
+  MonitorDot,
   ScrollText,
   Settings,
   Share2,
@@ -64,7 +64,7 @@ export const PANELS = [
   {
     id: "gateway",
     group: "core",
-    icon: Radio,
+    icon: MonitorDot,
     labelKey: "gateway",
     component: lazy(() =>
       import("@/components/panels/monitor/MonitorPanel").then((m) => ({ default: m.MonitorPanel })),

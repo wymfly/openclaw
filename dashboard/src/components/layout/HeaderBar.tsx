@@ -3,7 +3,7 @@
 import { Globe, Menu, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
-import { useGatewayStore } from "@/stores/gateway";
+import { useMonitorStore } from "@/stores/monitor";
 import { useUIStore } from "@/stores/ui";
 
 const statusColors: Record<string, string> = {
@@ -17,7 +17,7 @@ const statusColors: Record<string, string> = {
 export function HeaderBar() {
   const tNav = useTranslations("nav");
   const tHeader = useTranslations("header");
-  const { status } = useGatewayStore();
+  const status = useMonitorStore((s) => s.gatewayStatus);
   const { activePanel, theme, locale, setTheme, setLocale, setMobileNavOpen } = useUIStore();
 
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);

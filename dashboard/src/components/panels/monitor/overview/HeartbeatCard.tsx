@@ -5,12 +5,12 @@ import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useGatewayStore } from "@/stores/gateway";
+import { useMonitorStore } from "@/stores/monitor";
 
 export function HeartbeatCard() {
-  const t = useTranslations("gateway");
+  const t = useTranslations("monitor");
   const tc = useTranslations("common");
-  const { statusSummary, statusLoading, fetchStatus } = useGatewayStore();
+  const { statusSummary, statusLoading, fetchStatus } = useMonitorStore();
 
   useEffect(() => {
     void fetchStatus();
