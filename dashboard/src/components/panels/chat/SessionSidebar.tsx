@@ -130,7 +130,8 @@ export function SessionSidebar() {
     const q = searchQuery.toLowerCase();
     return sessionMetas.filter((session) => {
       const title = (session.title ?? sessionTitle(session)).toLowerCase();
-      return title.includes(q);
+      const preview = (session.lastMessagePreview ?? "").toLowerCase();
+      return title.includes(q) || preview.includes(q);
     });
   }, [sessionMetas, searchQuery]);
 
@@ -235,7 +236,15 @@ export function SessionSidebar() {
                     {sessionTitle(session)}
                   </button>
                 )}
-                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                {session.lastMessagePreview && (
+                  <span
+                    className="truncate w-full text-[10px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    {session.lastMessagePreview}
+                  </span>
+                )}
+                <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
                   {formatTime(session.updatedAt)}
                 </span>
               </div>
