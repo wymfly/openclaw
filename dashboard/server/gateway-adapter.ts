@@ -12,6 +12,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { WebSocket } from "ws";
+import { SubscriptionManager } from "../src/lib/subscription-manager";
 import type {
   ControlPlaneConnectionStatus,
   ControlPlaneDomainEvent,
@@ -152,8 +153,8 @@ export class OpenClawGatewayAdapter {
   private legacyProfileSwitchPromise: Promise<void> | null = null;
   private nodeConnection: NodeConnection | null = null;
 
-  /** Tracks active per-session message subscriptions for reconnect re-subscribe. */
-  private activeMessageSubscriptions = new Set<string>();
+  /** Unified subscription orchestration — replaces raw activeMessageSubscriptions Set. */
+  private readonly subscriptions: SubscriptionManager;
 
   constructor(options: OpenClawAdapterOptions) {
     this.loadSettings = options.loadSettings;
@@ -172,6 +173,14 @@ export class OpenClawGatewayAdapter {
         db: this.db,
       });
     }
+    this.subscriptions = new SubscriptionManager({
+      sendRpc: (method, params) => this.request(method, params),
+      onStateChange: (state) => {
+        if (state === "ERROR") {
+          console.error("[SubscriptionManager] entered ERROR state");
+        }
+      },
+    });
   }
 
   getStatus(): ControlPlaneConnectionStatus {
@@ -186,16 +195,19 @@ export class OpenClawGatewayAdapter {
     return this.nodeConnection;
   }
 
-  /** Subscribe to per-session message events and track for reconnect re-subscribe. */
+  /** Subscribe to per-session message events. Reference-counted via SubscriptionManager. */
   async subscribeSessionMessages(key: string): Promise<void> {
-    this.activeMessageSubscriptions.add(key);
-    await this.request("sessions.messages.subscribe", { key });
+    await this.subscriptions.subscribeSession(key);
   }
 
-  /** Unsubscribe from per-session message events and stop tracking. */
+  /** Unsubscribe from per-session message events. Only unsubscribes when refcount hits zero. */
   async unsubscribeSessionMessages(key: string): Promise<void> {
-    this.activeMessageSubscriptions.delete(key);
-    await this.request("sessions.messages.unsubscribe", { key });
+    await this.subscriptions.unsubscribeSession(key);
+  }
+
+  /** Expose subscription manager for introspection (e.g. active subscription count). */
+  getSubscriptionManager(): SubscriptionManager {
+    return this.subscriptions;
   }
 
   async start(): Promise<void> {
@@ -396,12 +408,9 @@ export class OpenClawGatewayAdapter {
                 console.error("[NodeConnection] failed to start:", err);
               });
             }
-            // Subscribe to Layer 2 session events (non-fatal if fails)
-            this.request("sessions.subscribe", {}).catch(() => {});
-            // Re-subscribe per-session message subscriptions after reconnect
-            for (const key of this.activeMessageSubscriptions) {
-              this.request("sessions.messages.subscribe", { key }).catch(() => {});
-            }
+            // Notify subscription manager and re-subscribe all active subscriptions
+            this.subscriptions.handleOpen();
+            this.subscriptions.resubscribeAll().catch(() => {});
             settle(() => resolve());
             return;
           }
@@ -662,6 +671,25 @@ export class OpenClawGatewayAdapter {
   private updateStatus(status: ControlPlaneConnectionStatus, reason: string | null): void {
     this.status = status;
     this.statusReason = reason;
+
+    // Synchronize subscription-manager state machine with adapter lifecycle.
+    switch (status) {
+      case "connecting":
+      case "reconnecting":
+        this.subscriptions.connect();
+        break;
+      case "connected":
+        // handleOpen() + resubscribeAll() are called inline at the connect
+        // success site for precise sequencing after the HELLO handshake.
+        break;
+      case "stopped":
+        this.subscriptions.disconnect();
+        break;
+      case "error":
+        this.subscriptions.handleError(new Error(reason ?? "connection_error"));
+        break;
+    }
+
     this.emitEvent({
       type: "runtime.status",
       status,
