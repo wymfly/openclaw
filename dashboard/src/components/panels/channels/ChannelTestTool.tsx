@@ -90,17 +90,15 @@ export function ChannelTestTool({ channelId }: ChannelTestToolProps) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") void handleSend();
+            if (e.key === "Enter") {
+              void handleSend();
+            }
           }}
           placeholder={t("test.placeholder")}
           className="text-xs flex-1"
         />
         <Button size="sm" onClick={() => void handleSend()} disabled={sending || !message.trim()}>
-          {sending ? (
-            <Loader2 size={12} className="animate-spin" />
-          ) : (
-            <Send size={12} />
-          )}
+          {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         </Button>
       </div>
 
@@ -124,9 +122,7 @@ export function ChannelTestTool({ channelId }: ChannelTestToolProps) {
                   <XCircle size={12} className="text-[var(--destructive)] shrink-0" />
                 )}
                 <span className="truncate" style={{ color: "var(--foreground)" }}>
-                  {r.ok
-                    ? `${t("test.success")}${r.messageId ? ` (${r.messageId})` : ""}`
-                    : r.error}
+                  {r.ok ? `${t("test.success")}${r.messageId ? ` (${r.messageId})` : ""}` : r.error}
                 </span>
               </div>
               <span className="text-[10px] text-[var(--muted-foreground)] shrink-0 ml-2">

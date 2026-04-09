@@ -7,6 +7,7 @@ import { InheritBadge } from "@/components/shared/InheritBadge";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 import { useModelsStore } from "@/stores/models";
 import { FallbackChainEditor } from "./FallbackChainEditor";
+import { ToolPolicyEditor } from "./ToolPolicyEditor";
 import ToolProfileSelector from "./ToolProfileSelector";
 import { ToolsCatalog } from "./ToolsCatalog";
 
@@ -109,6 +110,7 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
   // Local edits tracking — flat dot-path keys to new values (null = reset)
   const [localEdits, setLocalEdits] = useState<Record<string, unknown>>({});
   const [saving, setSaving] = useState(false);
+  const [showPolicyEditor, setShowPolicyEditor] = useState(false);
 
   useEffect(() => {
     void fetchAgentRawConfig(agentId);
@@ -531,24 +533,45 @@ export function AgentConfigTab({ agentId }: AgentConfigTabProps) {
         </div>
       </div>
 
-      {/* Tools Catalog (collapsible, below grid) */}
-      <ToolsCatalog
-        agentId={agentId}
-        toolsAllow={
-          Array.isArray(effectiveValue("tools.allow"))
-            ? (effectiveValue("tools.allow") as string[])
-            : []
-        }
-        toolsDeny={
-          Array.isArray(effectiveValue("tools.deny"))
-            ? (effectiveValue("tools.deny") as string[])
-            : []
-        }
-        onOverrideChange={(allow, deny) => {
-          handleChange("tools.allow", allow.length > 0 ? allow : null);
-          handleChange("tools.deny", deny.length > 0 ? deny : null);
-        }}
-      />
+      {/* Tools: Policy Editor or Catalog */}
+      {showPolicyEditor ? (
+        <ToolPolicyEditor
+          agentId={agentId}
+          allowList={
+            Array.isArray(effectiveValue("tools.allow"))
+              ? (effectiveValue("tools.allow") as string[])
+              : []
+          }
+          denyList={
+            Array.isArray(effectiveValue("tools.deny"))
+              ? (effectiveValue("tools.deny") as string[])
+              : []
+          }
+          onClose={() => {
+            setShowPolicyEditor(false);
+            void fetchAgentRawConfig(agentId);
+          }}
+        />
+      ) : (
+        <ToolsCatalog
+          agentId={agentId}
+          toolsAllow={
+            Array.isArray(effectiveValue("tools.allow"))
+              ? (effectiveValue("tools.allow") as string[])
+              : []
+          }
+          toolsDeny={
+            Array.isArray(effectiveValue("tools.deny"))
+              ? (effectiveValue("tools.deny") as string[])
+              : []
+          }
+          onOverrideChange={(allow, deny) => {
+            handleChange("tools.allow", allow.length > 0 ? allow : null);
+            handleChange("tools.deny", deny.length > 0 ? deny : null);
+          }}
+          onEditPolicy={() => setShowPolicyEditor(true)}
+        />
+      )}
 
       {/* Save Bar */}
       <div className="flex flex-col gap-1 rounded-lg border border-[var(--border-subtle)] bg-card px-4 py-3">

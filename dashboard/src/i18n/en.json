@@ -791,6 +791,7 @@
       "overrideCount": "{count} overrides",
       "inheritedCount": "{count} inherited",
       "resetAll": "Reset All",
+      "editPolicy": "Edit Policy",
       "toolsCatalog": "Tools Catalog",
       "toolsCatalogDescription": "Expand to view all available tools with per-tool allow/deny overrides",
       "toolName": "Tool Name",
@@ -1086,7 +1087,8 @@
       "status": "Status",
       "bindings": "Bindings",
       "settings": "Settings",
-      "settingsPlaceholder": "Settings coming soon"
+      "settingsPlaceholder": "Settings coming soon",
+      "analytics": "Analytics"
     },
     "settings": {
       "dmPolicy": {
@@ -1139,6 +1141,7 @@
       "noData": "No analytics data available"
     },
     "test": {
+      "title": "Test Message",
       "placeholder": "Enter test message...",
       "success": "Delivered",
       "sendTest": "Send Test"
@@ -1150,7 +1153,8 @@
       "dmPolicy": "DM Policy",
       "override": "Override",
       "inherit": "Inherit",
-      "inheritDescription": "Using channel-level DM policy setting."
+      "inheritDescription": "Using channel-level DM policy setting.",
+      "configure": "Configure"
     }
   },
   "config": {

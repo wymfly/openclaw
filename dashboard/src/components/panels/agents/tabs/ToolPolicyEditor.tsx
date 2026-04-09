@@ -39,13 +39,17 @@ export function ToolPolicyEditor({
 
   // All known tool names for autocomplete
   const allToolNames = useMemo(() => {
-    if (!effectiveTools) return [];
-    return effectiveTools.map((t) => t.name).sort();
+    if (!effectiveTools) {
+      return [];
+    }
+    return effectiveTools.map((t) => t.name).toSorted();
   }, [effectiveTools]);
 
   // Filter suggestions based on input
   const allowSuggestions = useMemo(() => {
-    if (!allowInput.trim()) return [];
+    if (!allowInput.trim()) {
+      return [];
+    }
     const q = allowInput.toLowerCase();
     return allToolNames
       .filter((n) => n.toLowerCase().includes(q) && !allowList.includes(n))
@@ -53,7 +57,9 @@ export function ToolPolicyEditor({
   }, [allowInput, allToolNames, allowList]);
 
   const denySuggestions = useMemo(() => {
-    if (!denyInput.trim()) return [];
+    if (!denyInput.trim()) {
+      return [];
+    }
     const q = denyInput.toLowerCase();
     return allToolNames
       .filter((n) => n.toLowerCase().includes(q) && !denyList.includes(n))
@@ -179,7 +185,9 @@ export function ToolPolicyEditor({
 
       {/* Deny list */}
       <div className="space-y-2">
-        <h4 className="text-xs font-medium text-[var(--destructive-muted-text)]">{t("denyList")}</h4>
+        <h4 className="text-xs font-medium text-[var(--destructive-muted-text)]">
+          {t("denyList")}
+        </h4>
         <div className="flex flex-wrap gap-1.5">
           {denyList.map((name) => (
             <Badge

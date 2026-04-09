@@ -33,17 +33,27 @@ export function initHealthPoller(
   let prevAgents = new Map<string, string>();
   let prevChannels = new Map<string, ChannelSnapshot>();
   let timer: ReturnType<typeof setInterval> | null = null;
+  let polling = false;
+  let stopped = false;
 
   async function poll(): Promise<void> {
+    if (polling || stopped) {
+      return;
+    } // Guard: skip if in-flight or stopped
+    polling = true;
     try {
-      await pollAgentStatus();
-    } catch {
-      // Gateway unreachable — skip this cycle.
-    }
-    try {
-      await pollChannelHealth();
-    } catch {
-      // Gateway unreachable — skip this cycle.
+      try {
+        await pollAgentStatus();
+      } catch {
+        // Gateway unreachable — skip this cycle.
+      }
+      try {
+        await pollChannelHealth();
+      } catch {
+        // Gateway unreachable — skip this cycle.
+      }
+    } finally {
+      polling = false;
     }
   }
 
@@ -54,7 +64,8 @@ export function initHealthPoller(
 
     const current = new Map<string, string>();
     for (const a of agents) {
-      const agentId = typeof a.agentId === "string" ? a.agentId : String(a.name ?? "main");
+      const agentId =
+        typeof a.agentId === "string" ? a.agentId : typeof a.name === "string" ? a.name : "main";
       const sessions = a.sessions as { count?: number } | undefined;
       const status = (sessions?.count ?? 0) > 0 ? "busy" : "idle";
       current.set(agentId, status);
@@ -129,6 +140,7 @@ export function initHealthPoller(
 
   // Return cleanup function
   return () => {
+    stopped = true;
     if (timer) {
       clearInterval(timer);
       timer = null;
@@ -171,7 +183,11 @@ function deriveChannelHealth(channelId: string, info: unknown): ChannelSnapshot 
     }
     // Direct status fields
     if (obj.lastError) {
-      return { channelId, status: "down", error: String(obj.lastError) };
+      return {
+        channelId,
+        status: "down",
+        error: typeof obj.lastError === "string" ? obj.lastError : JSON.stringify(obj.lastError),
+      };
     }
     if (obj.configured || obj.connected) {
       return { channelId, status: "healthy" };

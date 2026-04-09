@@ -1,14 +1,17 @@
 "use client";
 
-import { LogOut, Power, PowerOff, AlertCircle } from "lucide-react";
+import { LogOut, Power, PowerOff, AlertCircle, Settings2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useChannelsStore, type ChannelAccount } from "@/stores/channels";
+import { AccountConfigDialog } from "./AccountConfigDialog";
 import { BindingsTab } from "./BindingsTab";
+import { ChannelAnalytics } from "./ChannelAnalytics";
 import { ChannelHealthBadge } from "./ChannelHealthBadge";
 import { ChannelProbeStatus } from "./ChannelProbeStatus";
 import { ChannelSettingsTab } from "./ChannelSettingsTab";
+import { ChannelTestTool } from "./ChannelTestTool";
 
 function AccountStatusBadge({ account }: { account: ChannelAccount }) {
   const t = useTranslations("channels");
@@ -79,11 +82,13 @@ function AccountStatusBadge({ account }: { account: ChannelAccount }) {
 export function ChannelDetail({ channelId }: { channelId: string }) {
   const t = useTranslations("channels");
   const tc = useTranslations("common");
-  const { channels, logoutChannel, updateChannelConfig, channelSchemas, channelHealthMap } = useChannelsStore();
+  const { channels, logoutChannel, updateChannelConfig, channelSchemas, channelHealthMap } =
+    useChannelsStore();
 
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [configAccount, setConfigAccount] = useState<ChannelAccount | null>(null);
 
   const channel = channels.get(channelId);
 
@@ -177,12 +182,15 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
           <TabsTrigger value="settings" aria-label={t("tabs.settings")}>
             {t("tabs.settings")}
           </TabsTrigger>
+          <TabsTrigger value="analytics" aria-label={t("tabs.analytics")}>
+            {t("tabs.analytics")}
+          </TabsTrigger>
         </TabsList>
 
         {/* Status tab — probe + accounts + logout */}
         <TabsContent value="status" className="flex-1 overflow-y-auto">
           <div className="px-4 py-3 space-y-4">
-            {/* Connection probe */}
+            {/* Connection probe + test tool */}
             <div className="pb-3 border-b" style={{ borderColor: "var(--border)" }}>
               <label
                 className="block text-xs font-medium mb-2"
@@ -191,6 +199,15 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
                 {t("probe.title")}
               </label>
               <ChannelProbeStatus channelId={channelId} />
+              <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
+                <label
+                  className="block text-xs font-medium mb-2"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  {t("test.title")}
+                </label>
+                <ChannelTestTool channelId={channelId} />
+              </div>
             </div>
 
             {/* Accounts section */}
@@ -274,6 +291,18 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
                           </>
                         )}
                       </button>
+                      <button
+                        onClick={() => setConfigAccount(account)}
+                        className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
+                        style={{
+                          border: "1px solid var(--border)",
+                          color: "var(--foreground)",
+                          backgroundColor: "var(--background)",
+                        }}
+                      >
+                        <Settings2 size={10} />
+                        {t("accountConfig.configure")}
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -340,7 +369,26 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
         <TabsContent value="settings" className="flex-1 overflow-hidden">
           <ChannelSettingsTab channelId={channelId} />
         </TabsContent>
+
+        {/* Analytics tab */}
+        <TabsContent value="analytics" className="flex-1 overflow-y-auto">
+          <ChannelAnalytics channelId={channelId} />
+        </TabsContent>
       </Tabs>
+
+      {/* Account config dialog */}
+      {configAccount && (
+        <AccountConfigDialog
+          open={!!configAccount}
+          onOpenChange={(open) => {
+            if (!open) {
+              setConfigAccount(null);
+            }
+          }}
+          channelId={channelId}
+          account={configAccount}
+        />
+      )}
     </div>
   );
 }

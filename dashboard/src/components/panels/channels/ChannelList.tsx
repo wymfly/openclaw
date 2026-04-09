@@ -48,8 +48,15 @@ function getStatusLabel(channel: ChannelInfo, t: ReturnType<typeof useTranslatio
 export function ChannelList() {
   const t = useTranslations("channels");
   const tc = useTranslations("common");
-  const { channels, channelOrder, selectedId, loading, selectChannel, channelSchemas, channelHealthMap } =
-    useChannelsStore();
+  const {
+    channels,
+    channelOrder,
+    selectedId,
+    loading,
+    selectChannel,
+    channelSchemas,
+    channelHealthMap,
+  } = useChannelsStore();
 
   // Channels discovered from schema but not yet in channelOrder (unconfigured)
   const discoveredOnlyIds = useMemo(

@@ -45,9 +45,7 @@ export function CredentialsStep({ fields, values, onChange, description }: Crede
 
   return (
     <div className="space-y-3">
-      {description && (
-        <p className="text-xs text-[var(--muted-foreground)]">{description}</p>
-      )}
+      {description && <p className="text-xs text-[var(--muted-foreground)]">{description}</p>}
       {fields.map((field) => (
         <div key={field.key} className="space-y-1">
           <Label className="text-xs">

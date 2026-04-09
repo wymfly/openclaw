@@ -59,17 +59,51 @@ export function useAgentMetricsSSE(agentId: string | null) {
   const agentIdRef = useRef(agentId);
   agentIdRef.current = agentId;
 
+  // Bootstrap initial metrics from current agent status (avoids zero-flash)
   useEffect(() => {
-    if (!agentId) return;
+    if (!agentId) {
+      return;
+    }
+    void fetch("/api/deck/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "health" }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data || !agentIdRef.current) {
+          return;
+        }
+        const agents = Array.isArray(data.agents) ? (data.agents as Record<string, unknown>[]) : [];
+        const match = agents.find(
+          (a) => a.agentId === agentIdRef.current || a.name === agentIdRef.current,
+        );
+        if (match) {
+          const sessions = match.sessions as { count?: number } | undefined;
+          const activeRuns = sessions?.count ?? 0;
+          update(agentIdRef.current, { activeRuns });
+        }
+      })
+      .catch(() => {});
+  }, [agentId, update]);
+
+  useEffect(() => {
+    if (!agentId) {
+      return;
+    }
 
     const controller = new AbortController();
     void deckStream("/api/stream", {
       signal: controller.signal,
       reconnect: true,
       onEvent(event) {
-        if (!event.data) return;
+        if (!event.data) {
+          return;
+        }
         const currentId = agentIdRef.current;
-        if (!currentId) return;
+        if (!currentId) {
+          return;
+        }
 
         try {
           if (event.event === "activity.event") {
@@ -78,7 +112,9 @@ export function useAgentMetricsSSE(agentId: string | null) {
               agentId?: string;
               description?: string;
             };
-            if (payload.agentId !== currentId) return;
+            if (payload.agentId !== currentId) {
+              return;
+            }
 
             if (payload.type === "chat") {
               incrementMessages(currentId);
@@ -88,7 +124,9 @@ export function useAgentMetricsSSE(agentId: string | null) {
               agentId?: string;
               status?: string;
             };
-            if (payload.agentId !== currentId) return;
+            if (payload.agentId !== currentId) {
+              return;
+            }
 
             if (payload.status === "busy") {
               incrementRuns(currentId, 1);
