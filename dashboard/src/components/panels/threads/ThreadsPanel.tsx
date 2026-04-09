@@ -2,12 +2,13 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useThreadsStore } from "@/stores/deck-threads";
 import { ThreadList } from "./ThreadList";
 
 export function ThreadsPanel() {
   const t = useTranslations("threads");
-  const tc = useTranslations("common");
 
   const {
     loading,
@@ -74,36 +75,23 @@ export function ThreadsPanel() {
         />
 
         {/* Status toggle */}
-        <div
-          className="flex rounded-md overflow-hidden border"
-          style={{ borderColor: "var(--border)" }}
+        <ToggleGroup
+          value={[filterStatus]}
+          onValueChange={(v: readonly string[]) => {
+            const last = v[v.length - 1];
+            if (last === "active" || last === "all") {
+              setFilterStatus(last);
+            }
+          }}
+          className="h-7"
         >
-          <button
-            type="button"
-            className="px-2.5 py-1 text-xs font-medium transition-colors"
-            style={{
-              backgroundColor: filterStatus === "active" ? "var(--primary)" : "var(--background)",
-              color:
-                filterStatus === "active" ? "var(--primary-foreground)" : "var(--muted-foreground)",
-            }}
-            onClick={() => setFilterStatus("active")}
-          >
+          <ToggleGroupItem value="active" className="text-xs px-2.5 h-7">
             {t("statusActive")}
-          </button>
-          <button
-            type="button"
-            className="px-2.5 py-1 text-xs font-medium transition-colors border-l"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: filterStatus === "all" ? "var(--primary)" : "var(--background)",
-              color:
-                filterStatus === "all" ? "var(--primary-foreground)" : "var(--muted-foreground)",
-            }}
-            onClick={() => setFilterStatus("all")}
-          >
+          </ToggleGroupItem>
+          <ToggleGroupItem value="all" className="text-xs px-2.5 h-7">
             {t("statusAll")}
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {/* Error banner */}
@@ -122,14 +110,7 @@ export function ThreadsPanel() {
 
       {/* Content */}
       <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
-        {loading && (
-          <div
-            className="flex items-center justify-center h-full text-sm"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            {tc("loading")}
-          </div>
-        )}
+        {loading && <PanelSkeleton variant="list" />}
         {!loading && <ThreadList />}
       </div>
     </div>

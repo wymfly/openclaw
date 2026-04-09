@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useUsageStore } from "@/stores/usage";
 import { BreakdownTable } from "./BreakdownTable";
 import { ContextPressure } from "./ContextPressure";
@@ -78,17 +81,14 @@ export function UsagePanel() {
         className="flex-1 overflow-y-auto p-4 space-y-4"
         style={{ backgroundColor: "var(--background)" }}
       >
-        {error && !isLoading && (
-          <div
-            className="flex items-center justify-center py-12"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
+        {error && !isLoading && <PanelError error={error} onRetry={() => void fetchAll()} />}
+
+        {isLoading && !totals && <PanelSkeleton variant="cards" />}
 
         {/* Summary cards — show as soon as any totals available */}
-        <SummaryCards totals={totals} aggregates={aggregates} loading={isLoading} />
+        {(!isLoading || totals) && (
+          <SummaryCards totals={totals} aggregates={aggregates} loading={isLoading} />
+        )}
 
         {/* Time series chart */}
         {aggregates && <UsageChart daily={aggregates.daily} modelDaily={aggregates.modelDaily} />}
@@ -111,12 +111,7 @@ export function UsagePanel() {
 
         {/* Empty state */}
         {!isLoading && !error && !totals && (
-          <div
-            className="flex items-center justify-center py-12"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <p className="text-sm">{t("noData")}</p>
-          </div>
+          <PanelEmptyState title={t("noData")} description={t("emptyDescription")} />
         )}
       </div>
     </div>

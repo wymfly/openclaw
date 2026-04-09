@@ -4,6 +4,9 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListSearchBar, PaginatedList } from "@/components/lists";
 import type { FilterFieldDef, FilterState } from "@/components/lists/types";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useSessionsStore, type SessionsFetchOpts } from "@/stores/sessions";
 import { SessionDetail } from "./SessionDetail";
 import { SessionList } from "./SessionList";
@@ -23,7 +26,6 @@ interface SessionFilters extends FilterState {
  */
 export function SessionsPanel() {
   const t = useTranslations("sessions");
-  const tc = useTranslations("common");
   const { sessions, selectedKey, loading, error, fetchSessions } = useSessionsStore();
 
   // Local filter state — NOT in global store to avoid polluting other consumers
@@ -143,31 +145,14 @@ export function SessionsPanel() {
 
         {/* List body */}
         <div className="flex-1 overflow-y-auto">
-          {loading && (
-            <div
-              className="flex items-center justify-center py-12"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              <p className="text-sm">{tc("loading")}</p>
-            </div>
-          )}
+          {loading && <PanelSkeleton variant="list" />}
 
           {error && !loading && (
-            <div
-              className="flex items-center justify-center py-12 px-4"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              <p className="text-sm">{error}</p>
-            </div>
+            <PanelError error={error} onRetry={() => void fetchSessions(fetchOpts)} />
           )}
 
           {!loading && !error && sessions.length === 0 && (
-            <div
-              className="flex items-center justify-center py-12"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              <p className="text-sm">{t("noSessions")}</p>
-            </div>
+            <PanelEmptyState title={t("noSessions")} description={t("emptyDescription")} />
           )}
 
           {!loading && !error && sessions.length > 0 && (
@@ -192,12 +177,7 @@ export function SessionsPanel() {
         {selectedKey ? (
           <SessionDetail />
         ) : (
-          <div
-            className="flex items-center justify-center h-full"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <p className="text-sm">{t("noSessions")}</p>
-          </div>
+          <PanelEmptyState title={t("selectHint")} description={t("emptyDescription")} />
         )}
       </div>
     </div>

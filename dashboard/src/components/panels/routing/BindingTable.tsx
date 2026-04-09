@@ -1,11 +1,14 @@
 "use client";
 
 import { Plus, Trash2, Filter } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { AgentBadge } from "@/components/shared/AgentBadge";
 import { BindingDialog } from "@/components/shared/BindingDialog";
 import { TierBadge } from "@/components/shared/TierBadge";
 import { Button } from "@/components/ui/button";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import {
   Select,
   SelectContent,
@@ -61,6 +64,7 @@ function summarizeMatch(match: Binding["match"]): string {
 }
 
 export function BindingTable() {
+  const t = useTranslations("routing");
   const { bindings, configHash, dmScope, loading, fetchBindings, addBinding, removeBinding } =
     useDeckRoutingStore();
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
@@ -116,14 +120,14 @@ export function BindingTable() {
     <div className="flex flex-col h-full min-h-0">
       {/* Header + filters */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--border-subtle)] shrink-0">
-        <h3 className="text-sm font-semibold text-[var(--foreground)]">Binding Rules</h3>
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">{t("bindings")}</h3>
         <Button
           size="sm"
           onClick={() => setDialogOpen(true)}
           className="h-7 gap-1.5 text-xs cursor-pointer"
         >
           <Plus size={14} />
-          Add Rule
+          {t("addRule")}
         </Button>
       </div>
 
@@ -132,10 +136,10 @@ export function BindingTable() {
         <Filter size={13} className="text-[var(--muted-foreground)] shrink-0" />
         <Select value={channelFilter} onValueChange={(v) => setChannelFilter(v ?? "__all__")}>
           <SelectTrigger className="h-7 w-[130px] text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
-            <SelectValue placeholder="Channel" />
+            <SelectValue placeholder={t("dimChannel")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Channels</SelectItem>
+            <SelectItem value="__all__">{t("filterAllChannels")}</SelectItem>
             {channelOrder.map((ch) => (
               <SelectItem key={ch} value={ch}>
                 {ch}
@@ -145,10 +149,10 @@ export function BindingTable() {
         </Select>
         <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v ?? "__all__")}>
           <SelectTrigger className="h-7 w-[130px] text-xs bg-[var(--background)] border-[var(--border)] cursor-pointer">
-            <SelectValue placeholder="Agent" />
+            <SelectValue placeholder={t("selectAgent")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Agents</SelectItem>
+            <SelectItem value="__all__">{t("allAgents")}</SelectItem>
             {agents.map((a) => (
               <SelectItem key={a.id} value={a.id}>
                 {a.name || a.id}
@@ -161,25 +165,17 @@ export function BindingTable() {
       {/* Table */}
       <div className="flex-1 overflow-auto min-h-0">
         {loading ? (
-          <div className="flex items-center justify-center h-32 text-xs text-[var(--muted-foreground)]">
-            <div
-              className="animate-spin rounded-full h-5 w-5 border-2 border-current mr-2"
-              style={{ borderTopColor: "transparent" }}
-            />
-            Loading...
-          </div>
+          <PanelSkeleton variant="table" />
         ) : sorted.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-xs text-[var(--muted-foreground)]">
-            No binding rules found
-          </div>
+          <PanelEmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
         ) : (
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] text-[var(--muted-foreground)]">
-                <th className="text-left px-4 py-2 font-medium">Tier</th>
-                <th className="text-left px-3 py-2 font-medium">Match Conditions</th>
-                <th className="text-left px-3 py-2 font-medium">Agent</th>
-                <th className="text-right px-4 py-2 font-medium w-16">Actions</th>
+                <th className="text-left px-4 py-2 font-medium">{t("tier")}</th>
+                <th className="text-left px-3 py-2 font-medium">{t("matchConditions")}</th>
+                <th className="text-left px-3 py-2 font-medium">{t("defaultAgent")}</th>
+                <th className="text-right px-4 py-2 font-medium w-16">{t("actionsHeader")}</th>
               </tr>
             </thead>
             <tbody>

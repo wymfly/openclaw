@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
 import {
   Select,
   SelectContent,
@@ -145,9 +146,7 @@ export function ActiveRunsTab() {
       {/* Content area */}
       <div className="flex-1 overflow-auto p-4">
         {filtered.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-[var(--muted-foreground)]">No active runs</p>
-          </div>
+          <PanelEmptyState title={t("noRunsFound")} description={t("emptyDescription")} />
         ) : (
           <div className="space-y-6">
             {/* Run cards in tree layout */}

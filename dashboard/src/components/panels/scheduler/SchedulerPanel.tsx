@@ -4,6 +4,9 @@ import { Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCronStore } from "@/stores/cron";
@@ -16,7 +19,6 @@ import { RunNowButton } from "./RunNowButton";
 
 function CronJobsContent() {
   const t = useTranslations("cron");
-  const tc = useTranslations("common");
 
   const { jobs, selectedJobId, loading, error, fetchJobs, selectJob, removeJob } = useCronStore();
 
@@ -52,27 +54,19 @@ function CronJobsContent() {
 
       {/* Detail area */}
       <div className="flex flex-col flex-1 min-w-0">
-        {loading && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--muted-foreground)]">
-            <p className="text-sm">{tc("loading")}</p>
-          </div>
-        )}
+        {loading && <PanelSkeleton variant="list" />}
 
-        {error && !loading && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--muted-foreground)]">
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
+        {error && !loading && <PanelError error={error} onRetry={() => void fetchJobs()} />}
 
         {!loading && !error && !selectedJobId && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--muted-foreground)]">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--muted)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
-              <Clock size={20} className="text-[var(--primary)]" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-[var(--foreground)]">{t("noJobs")}</p>
-            </div>
-          </div>
+          <PanelEmptyState
+            icon={
+              <div className="w-12 h-12 rounded-2xl bg-[var(--muted)] flex items-center justify-center ring-1 ring-[var(--border-subtle)]">
+                <Clock size={20} className="text-[var(--primary)]" />
+              </div>
+            }
+            title={t("noJobs")}
+          />
         )}
 
         {!loading && !error && isNewJob && (

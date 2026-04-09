@@ -3,6 +3,8 @@
 import { Radio } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useChannelsStore, type ChannelInfo } from "@/stores/channels";
 import { ChannelHealthBadge } from "./ChannelHealthBadge";
 
@@ -47,7 +49,6 @@ function getStatusLabel(channel: ChannelInfo, t: ReturnType<typeof useTranslatio
 
 export function ChannelList() {
   const t = useTranslations("channels");
-  const tc = useTranslations("common");
   const {
     channels,
     channelOrder,
@@ -82,15 +83,9 @@ export function ChannelList() {
 
       {/* Channel list */}
       <div className="flex-1 overflow-y-auto">
-        {loading && channelOrder.length === 0 && (
-          <div className="p-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
-            {tc("loading")}
-          </div>
-        )}
+        {loading && channelOrder.length === 0 && <PanelSkeleton variant="list" />}
         {!loading && channelOrder.length === 0 && discoveredOnlyIds.length === 0 && (
-          <div className="p-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
-            {t("noChannels")}
-          </div>
+          <PanelEmptyState title={t("noChannels")} />
         )}
         {channelOrder.map((chId) => {
           const channel = channels.get(chId);

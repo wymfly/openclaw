@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useSettingsStore } from "@/stores/settings";
 import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";
@@ -11,7 +13,6 @@ import { NotificationSection } from "./NotificationSection";
 
 export function SettingsPanel() {
   const t = useTranslations("settings");
-  const tc = useTranslations("common");
   const fetchSettings = useSettingsStore((s) => s.fetchSettings);
   const loading = useSettingsStore((s) => s.loading);
   const error = useSettingsStore((s) => s.error);
@@ -37,23 +38,10 @@ export function SettingsPanel() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4" style={{ backgroundColor: "var(--background)" }}>
-        {error && (
-          <div
-            className="mb-4 px-3 py-2 text-xs rounded-md"
-            style={{
-              color: "var(--destructive)",
-              backgroundColor: "var(--destructive-muted)",
-              border: "1px solid var(--destructive)",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        {error && <PanelError error={error} onRetry={() => void fetchSettings()} />}
 
         {loading ? (
-          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-            {tc("loading")}
-          </p>
+          <PanelSkeleton variant="detail" />
         ) : (
           <div className="flex flex-col gap-6 max-w-lg">
             <AppearanceSection />

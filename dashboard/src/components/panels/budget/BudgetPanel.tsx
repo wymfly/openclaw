@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useBudgetStore, type BudgetRule, type CreateRuleInput } from "@/stores/budget";
 import { BudgetStatus } from "./BudgetStatus";
 import { RuleForm } from "./RuleForm";
@@ -98,11 +101,7 @@ export function BudgetPanel() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading && (
-            <p className="text-xs p-3" style={{ color: "var(--muted-foreground)" }}>
-              {tc("loading")}
-            </p>
-          )}
+          {loading && <PanelSkeleton variant="list" />}
 
           {!loading && (
             <RuleList
@@ -120,18 +119,7 @@ export function BudgetPanel() {
         className="flex-1 flex flex-col overflow-hidden"
         style={{ backgroundColor: "var(--background)" }}
       >
-        {error && (
-          <div
-            className="px-4 py-2 text-xs border-b"
-            style={{
-              borderColor: "var(--border)",
-              color: "var(--destructive)",
-              backgroundColor: "var(--destructive-muted)",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        {error && <PanelError error={error} onRetry={() => void fetchRules()} />}
 
         <div className="flex-1 overflow-y-auto p-4">
           {viewMode === "form" && (
@@ -189,11 +177,7 @@ export function BudgetPanel() {
             <div className="flex flex-col gap-4">
               <BudgetStatus evaluations={evaluations} />
               {evaluations.length === 0 && !loading && (
-                <div className="flex items-center justify-center py-8">
-                  <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                    {t("noRules")}
-                  </p>
-                </div>
+                <PanelEmptyState title={t("noRules")} description={t("emptyDescription")} />
               )}
             </div>
           )}
