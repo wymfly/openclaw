@@ -43,6 +43,13 @@ function PanelPlaceholder({ panel }: { panel: Panel }) {
 }
 
 function ActivePanel({ panel }: { panel: Panel }) {
+  if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+    const testWindow = window as Window & { __TEST_FORCE_PANEL_ERROR__?: string | null };
+    if (testWindow.__TEST_FORCE_PANEL_ERROR__ === panel) {
+      throw new Error(`Forced panel error: ${panel}`);
+    }
+  }
+
   const entry = findPanel(panel);
   if (!entry) {
     return <PanelPlaceholder panel={panel} />;

@@ -63,7 +63,10 @@ export class PanelErrorBoundary extends Component<Props, State> {
     const { error, showDetails } = this.state;
 
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
+      <div
+        data-testid="panel-error-boundary"
+        className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center"
+      >
         <div className="text-[var(--destructive)]">
           <AlertTriangle size={40} strokeWidth={1.5} />
         </div>
@@ -76,6 +79,7 @@ export class PanelErrorBoundary extends Component<Props, State> {
           <button
             type="button"
             onClick={this.handleRetry}
+            data-testid="panel-error-retry"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 transition-opacity"
           >
             <RotateCcw size={12} />
@@ -84,6 +88,7 @@ export class PanelErrorBoundary extends Component<Props, State> {
           <button
             type="button"
             onClick={this.toggleDetails}
+            data-testid="panel-error-details"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors hover:bg-[var(--accent)]"
             style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
           >

@@ -96,8 +96,14 @@ export function ChannelTestTool({ channelId }: ChannelTestToolProps) {
           }}
           placeholder={t("test.placeholder")}
           className="text-xs flex-1"
+          aria-label={t("test.title")}
         />
-        <Button size="sm" onClick={() => void handleSend()} disabled={sending || !message.trim()}>
+        <Button
+          size="sm"
+          onClick={() => void handleSend()}
+          disabled={sending || !message.trim()}
+          aria-label={t("test.sendTest")}
+        >
           {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         </Button>
       </div>

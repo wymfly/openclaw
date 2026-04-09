@@ -474,6 +474,7 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
       <div className="flex items-end gap-2">
         <button
           onClick={() => fileInputRef.current?.click()}
+          aria-label="Attach files"
           className="p-1.5 rounded hover:opacity-80 transition-opacity shrink-0"
           style={{ color: "var(--muted-foreground)" }}
         >
@@ -545,6 +546,7 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
         {isStreaming ? (
           <button
             onClick={() => void handleAbort()}
+            aria-label={t("abort")}
             className="p-2 rounded-lg shrink-0 hover:opacity-80 transition-opacity"
             style={{
               backgroundColor: "var(--status-disconnected)",
@@ -558,6 +560,7 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
           <button
             onClick={() => void sendMessage()}
             disabled={!input.trim() && files.length === 0}
+            aria-label={t("send")}
             className="p-2 rounded-lg shrink-0 hover:opacity-80 transition-opacity disabled:opacity-40"
             style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}
             title={t("send")}
