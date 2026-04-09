@@ -16,11 +16,14 @@ interface AgentsState {
   defaultAgentId: string | null;
   /** Pending tab hint consumed by AgentDetail on navigation. */
   pendingTab: string | null;
+  /** When set, AgentsPanel shows the compare view with this agent pre-selected as left. */
+  compareAgentId: string | null;
   loading: boolean;
 
   setAgents: (agents: Agent[]) => void;
   selectAgent: (id: string | null) => void;
   setPendingTab: (tab: string | null) => void;
+  setCompareAgentId: (id: string | null) => void;
   updateAgent: (id: string, patch: Partial<Agent>) => void;
   setLoading: (loading: boolean) => void;
 
@@ -34,11 +37,13 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
   selectedAgentId: null,
   defaultAgentId: null,
   pendingTab: null,
+  compareAgentId: null,
   loading: false,
 
   setAgents: (agents) => set({ agents }),
   selectAgent: (selectedAgentId) => set({ selectedAgentId }),
   setPendingTab: (pendingTab) => set({ pendingTab }),
+  setCompareAgentId: (compareAgentId) => set({ compareAgentId }),
   updateAgent: (id, patch) =>
     set((state) => ({
       agents: state.agents.map((a) => (a.id === id ? { ...a, ...patch } : a)),

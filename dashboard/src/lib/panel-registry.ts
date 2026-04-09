@@ -14,6 +14,7 @@ import {
   MessagesSquare,
   Network,
   MonitorDot,
+  Server,
   ScrollText,
   Settings,
   Share2,
@@ -21,6 +22,7 @@ import {
   Wallet,
   Webhook,
   Wrench,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
@@ -145,6 +147,13 @@ export const PANELS = [
     ),
   },
   {
+    id: "api-explorer",
+    group: "observe",
+    icon: Zap,
+    labelKey: "apiExplorer",
+    component: lazy(() => import("@/components/panels/api-explorer/ApiExplorerPanel")),
+  },
+  {
     id: "cron",
     group: "automate",
     icon: Clock,
@@ -256,6 +265,13 @@ export const PANELS = [
         default: m.ConfigPanel,
       })),
     ),
+  },
+  {
+    id: "nodes",
+    group: "control",
+    icon: Server,
+    labelKey: "nodes",
+    component: lazy(() => import("@/components/panels/nodes/NodeManagementPanel")),
   },
   {
     id: "docs",

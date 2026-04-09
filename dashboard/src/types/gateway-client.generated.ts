@@ -80,6 +80,14 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "models.catalog.providers",
   "models.configured",
   "models.list",
+  "node.describe",
+  "node.list",
+  "node.pair.approve",
+  "node.pair.list",
+  "node.pair.reject",
+  "node.pair.request",
+  "node.pair.verify",
+  "node.rename",
   "sessions.abort",
   "sessions.clear",
   "sessions.compact",
@@ -661,6 +669,42 @@ export interface GatewayClient {
       ): Promise<import("./gateway-protocol.generated").DeviceTokenRevokeResult>;
     };
   };
+  node: {
+    list(
+      params: import("./gateway-protocol.generated").NodeListParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").NodeListResult>;
+    describe(
+      params: import("./gateway-protocol.generated").NodeDescribeParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").NodeDescribeResult>;
+    pair: {
+      list(
+        params: import("./gateway-protocol.generated").NodePairListParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").NodePairListResult>;
+      request(
+        params: import("./gateway-protocol.generated").NodePairRequestParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").NodePairRequestResult>;
+      approve(
+        params: import("./gateway-protocol.generated").NodePairApproveParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").NodePairApproveResult>;
+      reject(
+        params: import("./gateway-protocol.generated").NodePairRejectParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").NodePairRejectResult>;
+      verify(
+        params: import("./gateway-protocol.generated").NodePairVerifyParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").NodePairVerifyResult>;
+    };
+    rename(
+      params: import("./gateway-protocol.generated").NodeRenameParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").NodeRenameResult>;
+  };
 }
 
 export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
@@ -861,6 +905,18 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
         rotate: call("device.token.rotate"),
         revoke: call("device.token.revoke"),
       },
+    },
+    node: {
+      list: call("node.list"),
+      describe: call("node.describe"),
+      pair: {
+        list: call("node.pair.list"),
+        request: call("node.pair.request"),
+        approve: call("node.pair.approve"),
+        reject: call("node.pair.reject"),
+        verify: call("node.pair.verify"),
+      },
+      rename: call("node.rename"),
     },
   };
 }
