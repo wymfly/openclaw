@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwCall = vi.fn();
+const request = vi.fn();
+const getRuntime = vi.fn();
 
-vi.mock("@/lib/api-helpers", () => ({
-  gwCall,
+vi.mock("@server/runtime", () => ({
+  getRuntime,
 }));
 
 vi.mock("@/lib/with-auth", () => ({
@@ -13,17 +14,21 @@ vi.mock("@/lib/with-auth", () => ({
 
 describe("/api/memory/health", () => {
   afterEach(() => {
-    gwCall.mockReset();
+    request.mockReset();
+    getRuntime.mockReset();
   });
 
-  it("uses gwCall for doctor.memory.status", async () => {
-    gwCall.mockResolvedValue({ entries: [], lanceDbEnabled: false });
+  it("uses runtime.adapter.request for doctor.memory.status", async () => {
+    request.mockResolvedValue({ entries: [], lanceDbEnabled: false });
+    getRuntime.mockReturnValue({
+      adapter: { request },
+    });
     const { GET } = await import("./route.js");
 
     const response = await GET(new NextRequest("http://localhost"));
     const body = await response.json();
 
-    expect(gwCall).toHaveBeenCalledWith("doctor.memory.status", {});
+    expect(request).toHaveBeenCalledWith("doctor.memory.status", {});
     expect(body).toEqual({ entries: [], lanceDbEnabled: false });
   });
 });

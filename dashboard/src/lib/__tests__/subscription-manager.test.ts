@@ -4,6 +4,8 @@ import {
   classifyError,
   computeReconnectDelay,
   type SubscriptionManagerOptions,
+  type SubscriptionError,
+  type SubscriptionState,
 } from "../subscription-manager";
 
 // ---------------------------------------------------------------------------
@@ -23,15 +25,15 @@ function createManager(
   }>,
 ) {
   const sendRpc = overrides?.sendRpc ?? createMockSendRpc();
-  const onStateChange = vi.fn() as unknown as SubscriptionManagerOptions["onStateChange"];
-  const onFatal = vi.fn() as unknown as SubscriptionManagerOptions["onFatal"];
-  const onReconnectScheduled =
-    vi.fn() as unknown as SubscriptionManagerOptions["onReconnectScheduled"];
+  const onStateChange = vi.fn<(state: SubscriptionState, prev: SubscriptionState) => void>();
+  const onFatal = vi.fn<(error: SubscriptionError) => void>();
+  const onReconnectScheduled = vi.fn<(delayMs: number) => void>();
   const mgr = new SubscriptionManager({
     sendRpc,
-    onStateChange,
-    onFatal,
-    onReconnectScheduled,
+    onStateChange: onStateChange as SubscriptionManagerOptions["onStateChange"],
+    onFatal: onFatal as SubscriptionManagerOptions["onFatal"],
+    onReconnectScheduled:
+      onReconnectScheduled as SubscriptionManagerOptions["onReconnectScheduled"],
     maxConsecutiveFailures: overrides?.maxConsecutiveFailures ?? 5,
   });
   return { mgr, sendRpc, onStateChange, onFatal, onReconnectScheduled };
