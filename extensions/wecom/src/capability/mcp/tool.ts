@@ -2,7 +2,6 @@ import type {
   OpenClawPluginToolContext,
   OpenClawPluginToolFactory,
 } from "openclaw/plugin-sdk/core";
-import { resolveWecomSourceSnapshot } from "../../runtime/source-registry.js";
 import { cleanSchemaForGemini } from "./schema.js";
 import { clearWecomMcpCategoryCache, sendJsonRpc, type McpToolInfo } from "./transport.js";
 
@@ -105,15 +104,11 @@ export function createWeComMcpToolFactory(): OpenClawPluginToolFactory {
     if (toolContext.messageChannel !== "wecom") {
       return null;
     }
-    const accountId = extractToolAccountId(toolContext);
-    const source = resolveWecomSourceSnapshot({
-      accountId,
-      sessionKey: toolContext.sessionKey,
-      sessionId: toolContext.sessionId,
-    });
-    if (!source || source.source !== "bot-ws") {
-      return null;
-    }
+
+    // Bot-ws connection check is deferred to execution time (transport.ts
+    // validates via getBotWsPushHandle). Checking source snapshot here was
+    // too strict: the toolContext session identifiers often don't match the
+    // inbound-message snapshot, causing the tool to be silently dropped.
 
     return {
       name: "wecom_mcp",
