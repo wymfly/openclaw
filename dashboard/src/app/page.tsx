@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
+import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";
+import { PanelErrorBoundary } from "@/components/layout/PanelErrorBoundary";
 import { Shell } from "@/components/layout/Shell";
 import { ThemeSync } from "@/components/layout/ThemeSync";
 import { ToastContainer } from "@/components/notifications/ToastContainer";
@@ -66,7 +68,7 @@ export default function Home() {
 
   // Register global keyboard shortcuts (Alt+N panels, Ctrl/Cmd+K search, etc.)
   // Must be outside Suspense so shortcuts work even while a panel chunk is loading.
-  useKeyboardShortcuts();
+  const { shortcutsOpen, setShortcutsOpen } = useKeyboardShortcuts();
 
   useEffect(() => {
     void fetch("/api/onboarding/status")
@@ -103,9 +105,12 @@ export default function Home() {
     <>
       <ThemeSync />
       <Shell>
-        <ActivePanel panel={activePanel} />
+        <PanelErrorBoundary resetKey={activePanel}>
+          <ActivePanel panel={activePanel} />
+        </PanelErrorBoundary>
       </Shell>
       <ToastContainer />
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </>
   );
 }

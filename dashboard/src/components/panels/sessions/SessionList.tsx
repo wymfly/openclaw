@@ -85,33 +85,7 @@ const KIND_BADGE_STYLES: Record<SessionKind, string> = {
   unknown: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
 };
 
-function pressureBarClass(pct: number): string {
-  if (pct >= 80) {
-    return "bg-[var(--destructive)]";
-  }
-  if (pct >= 60) {
-    return "bg-[var(--warning)]";
-  }
-  return "bg-[var(--success)]";
-}
-
-function pressureTextClass(pct: number): string {
-  if (pct >= 80) {
-    return "text-[var(--destructive)]";
-  }
-  if (pct >= 60) {
-    return "text-[var(--warning)]";
-  }
-  return "text-[var(--success)]";
-}
-
-function contextPct(session: SessionEntry): number {
-  if (session.contextWindow <= 0) {
-    return 0;
-  }
-  const used = session.tokensIn + session.tokensOut;
-  return Math.min(100, Math.round((used / session.contextWindow) * 100));
-}
+import { contextPct, pressureBarClass, pressureTextClass } from "@/lib/context-utils";
 
 function shortKey(key: string, maxLen = 20): string {
   return key.length > maxLen ? `${key.slice(0, maxLen)}...` : key;

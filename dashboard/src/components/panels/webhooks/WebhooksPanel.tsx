@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useCallback } from "react";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useWebhookStore, type Webhook, type CreateWebhookInput } from "@/stores/webhooks";
 import { DeliveryHistory } from "./DeliveryHistory";
 import { WebhookForm } from "./WebhookForm";
@@ -115,17 +118,9 @@ export function WebhooksPanel() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading && (
-            <p className="text-xs p-3" style={{ color: "var(--muted-foreground)" }}>
-              {tc("loading")}
-            </p>
-          )}
+          {loading && <PanelSkeleton variant="list" />}
 
-          {!loading && webhooks.length === 0 && (
-            <p className="text-xs p-3 text-center" style={{ color: "var(--muted-foreground)" }}>
-              {t("noWebhooks")}
-            </p>
-          )}
+          {!loading && webhooks.length === 0 && <PanelEmptyState title={t("noWebhooks")} />}
 
           {webhooks.map((wh) => (
             <button
@@ -168,18 +163,7 @@ export function WebhooksPanel() {
         className="flex-1 flex flex-col overflow-hidden"
         style={{ backgroundColor: "var(--background)" }}
       >
-        {error && (
-          <div
-            className="px-4 py-2 text-xs border-b"
-            style={{
-              borderColor: "var(--border)",
-              color: "var(--destructive)",
-              backgroundColor: "var(--destructive-muted)",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        {error && <PanelError error={error} onRetry={() => void fetchWebhooks()} />}
 
         <div className="flex-1 overflow-y-auto p-4">
           {viewMode === "form" && (
@@ -269,11 +253,7 @@ export function WebhooksPanel() {
           )}
 
           {viewMode === "list" && !selectedWebhookId && (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                {t("noWebhooks")}
-              </p>
-            </div>
+            <PanelEmptyState title={t("noWebhooks")} description={t("emptyDescription")} />
           )}
         </div>
       </div>

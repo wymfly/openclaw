@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useSkillsStore } from "@/stores/skills";
 import { SkillConfig } from "./SkillConfig";
 import { SkillInfoTab } from "./SkillInfoTab";
@@ -11,7 +14,6 @@ type DetailTab = "info" | "config";
 
 export function SkillsPanel() {
   const t = useTranslations("skills");
-  const tc = useTranslations("common");
 
   const { skills, selectedSkillKey, loading, error, fetchSkills } = useSkillsStore();
   const [activeTab, setActiveTab] = useState<DetailTab>("info");
@@ -62,32 +64,11 @@ export function SkillsPanel() {
 
         {/* Detail area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {loading && (
-            <div
-              className="flex items-center justify-center py-12"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              <p className="text-sm">{tc("loading")}</p>
-            </div>
-          )}
+          {loading && <PanelSkeleton variant="cards" />}
 
-          {error && !loading && (
-            <div
-              className="flex items-center justify-center py-12"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
+          {error && !loading && <PanelError error={error} onRetry={() => void fetchSkills()} />}
 
-          {!loading && !error && !selectedSkill && (
-            <div
-              className="flex items-center justify-center py-12"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              <p className="text-sm">{t("selectSkillHint")}</p>
-            </div>
-          )}
+          {!loading && !error && !selectedSkill && <PanelEmptyState title={t("selectSkillHint")} />}
 
           {!loading && !error && selectedSkill && (
             <>

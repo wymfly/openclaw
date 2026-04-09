@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useAlertsStore, type AlertRule, type AlertAction } from "@/stores/alerts";
 import { FiredAlertsList } from "./FiredAlertsList";
 import { RuleForm } from "./RuleForm";
@@ -29,7 +31,6 @@ type RuleFormData = {
 
 export function AlertsPanel() {
   const t = useTranslations("alerts");
-  const tc = useTranslations("common");
 
   const { rules, firedAlerts, loading, error, fetchRules, createRule, updateRule, deleteRule } =
     useAlertsStore();
@@ -120,23 +121,9 @@ export function AlertsPanel() {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto p-4" style={{ backgroundColor: "var(--background)" }}>
-        {loading && (
-          <div
-            className="flex items-center justify-center py-12"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <p className="text-sm">{tc("loading")}</p>
-          </div>
-        )}
+        {loading && <PanelSkeleton variant="list" />}
 
-        {error && !loading && (
-          <div
-            className="flex items-center justify-center py-12"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
+        {error && !loading && <PanelError error={error} onRetry={() => void fetchRules()} />}
 
         {!loading && !error && tab === "rules" && (
           <>

@@ -67,8 +67,21 @@ export function HealthCard() {
                     let label: string;
                     let variant: "outline" | "default" | "secondary" | "destructive" = "outline";
                     if (liveHealth) {
-                      label = t(liveHealth.status === "healthy" ? "connected" : liveHealth.status === "degraded" ? "reconnecting" : liveHealth.status === "down" ? "error" : "disconnected");
-                      variant = liveHealth.status === "down" ? "destructive" : liveHealth.status === "degraded" ? "secondary" : "outline";
+                      label = t(
+                        liveHealth.status === "healthy"
+                          ? "connected"
+                          : liveHealth.status === "degraded"
+                            ? "reconnecting"
+                            : liveHealth.status === "down"
+                              ? "error"
+                              : "disconnected",
+                      );
+                      variant =
+                        liveHealth.status === "down"
+                          ? "destructive"
+                          : liveHealth.status === "degraded"
+                            ? "secondary"
+                            : "outline";
                     } else if (typeof status === "string") {
                       label = status;
                     } else if (status && typeof status === "object") {

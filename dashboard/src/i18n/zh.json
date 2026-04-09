@@ -224,6 +224,15 @@
     "thumbsDown": "踩",
     "steerPlaceholder": "输入指令以改变执行方向...",
     "steer": "引导",
+    "mentionAgents": "智能体",
+    "promptTemplates": "提示模板",
+    "templateAnalyze": "分析这段代码中的问题",
+    "templateExplain": "逐步解释这个概念",
+    "templateWrite": "帮我写创意文案",
+    "templateDebug": "调试这个错误并给出修复建议",
+    "templateSummarize": "总结要点",
+    "contextLabel": "上下文",
+    "contextWarning": "上下文窗口接近满载 — 建议压缩或新建会话",
     "emptyTitle": "开始新对话",
     "emptyDescription": "选择一个话题开始，或直接输入你的问题",
     "suggestCreative": "帮我写一段创意文案",
@@ -606,7 +615,11 @@
     "noActivity": "暂无活动事件",
     "conflictDetected": "检测到冲突",
     "overlapExact": "与另一规则条件完全重叠",
-    "overlapSubset": "被更具体的规则覆盖"
+    "overlapSubset": "被更具体的规则覆盖",
+    "emptyTitle": "暂无绑定规则",
+    "emptyDescription": "添加规则以将消息路由到指定 Agent",
+    "actionsHeader": "操作",
+    "filterAllChannels": "所有渠道"
   },
   "subagents": {
     "title": "子智能体监控",
@@ -628,7 +641,8 @@
       "6h": "6 小时",
       "24h": "24 小时",
       "all": "全部"
-    }
+    },
+    "emptyDescription": "没有符合当前过滤条件的子 Agent 运行记录"
   },
   "agentDetail": {
     "overview": "概览",
@@ -930,7 +944,8 @@
     "logTokens": "Token",
     "logCost": "费用",
     "na": "N/A",
-    "loadingDetail": "加载中..."
+    "loadingDetail": "加载中...",
+    "emptyDescription": "所选时间范围内暂无用量数据"
   },
   "sessions": {
     "title": "会话浏览器",
@@ -993,7 +1008,9 @@
     "thinkingHigh": "高",
     "patchFailed": "修改失败",
     "label": "标签",
-    "editLabel": "编辑标签"
+    "editLabel": "编辑标签",
+    "emptyDescription": "开始一个对话，会话将显示在这里",
+    "selectHint": "选择一个会话以查看详情"
   },
   "logs": {
     "title": "日志查看器",
@@ -1036,7 +1053,8 @@
     "tierCore": "核心",
     "tierWorking": "工作",
     "tierPeripheral": "外围",
-    "decayScore": "衰减分数"
+    "decayScore": "衰减分数",
+    "searchEmptyDescription": "在上方输入查询内容并点击搜索"
   },
   "activity": {
     "title": "动态信息流",
@@ -1347,7 +1365,8 @@
     "confirmDelete": "确定删除此 Webhook？",
     "testSent": "测试投递已发送",
     "show": "显示",
-    "hide": "隐藏"
+    "hide": "隐藏",
+    "emptyDescription": "创建 Webhook 以接收事件通知"
   },
   "approvals": {
     "title": "审批与安全",
@@ -1447,7 +1466,8 @@
     "confirmDelete": "确定删除此规则？",
     "enabled": "已启用",
     "enabledToggle": "启用",
-    "disabled": "已禁用"
+    "disabled": "已禁用",
+    "emptyDescription": "创建规则以设置消费限额"
   },
   "alerts": {
     "title": "告警管理",
@@ -1525,12 +1545,18 @@
     "confirmDelete": "确认删除此文档？"
   },
   "shortcuts": {
-    "panelNav": "切换面板（Alt+1~9）",
-    "search": "聚焦搜索（Ctrl/Cmd+K）",
-    "send": "发送消息（Ctrl/Cmd+Enter）",
-    "escape": "关闭/取消（Esc）",
-    "openSettings": "打开设置（Ctrl/Cmd+,）",
-    "toggleNav": "折叠/展开导航（Ctrl/Cmd+/）"
+    "title": "键盘快捷键",
+    "switchPanel": "切换到面板 1–9",
+    "focusSearch": "聚焦搜索框",
+    "sendMessage": "发送消息",
+    "closeCancel": "关闭 / 取消",
+    "openSettings": "打开设置",
+    "toggleNavRail": "切换导航栏",
+    "showHelp": "显示键盘快捷键",
+    "newSession": "新建聊天会话",
+    "commandPalette": "命令面板",
+    "prevNextPanel": "上一个 / 下一个面板",
+    "copyLastReply": "复制最近一条助手回复"
   },
   "settings": {
     "title": "设置",
@@ -1575,7 +1601,8 @@
     "noPeers": "暂无关联的 peer",
     "canonicalPlaceholder": "例如 john-doe",
     "channelPlaceholder": "例如 telegram",
-    "peerIdPlaceholder": "例如 123456789"
+    "peerIdPlaceholder": "例如 123456789",
+    "emptyDescription": "关联身份以跨渠道映射联系人"
   },
   "threads": {
     "title": "线程绑定",
@@ -1703,5 +1730,12 @@
     "errorForbidden": "权限不足，无法执行此操作。",
     "errorNetwork": "Gateway 连接错误，请重试。",
     "operationFailed": "操作失败"
+  },
+  "panelError": {
+    "loadFailed": "加载数据失败",
+    "retry": "重试",
+    "details": "错误详情",
+    "title": "出现错误",
+    "description": "此面板遇到错误，其他面板不受影响。"
   }
 }

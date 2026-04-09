@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useChatStore } from "@/stores/chat";
 import { useDocsStore } from "@/stores/docs";
 import { CategoryFilter } from "./CategoryFilter";
@@ -10,7 +12,6 @@ import { DocViewer } from "./DocViewer";
 
 export function DocHubPanel() {
   const t = useTranslations("docs");
-  const tc = useTranslations("common");
   const { loading, error, fetchDocs, extractDocs, searchQuery, setSearchQuery } = useDocsStore();
   const activeSessionKey = useChatStore((s) => s.activeSessionKey);
 
@@ -68,29 +69,15 @@ export function DocHubPanel() {
 
       {/* Body */}
       <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
-        {loading && (
-          <div
-            className="flex items-center justify-center py-12"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <p className="text-sm">{tc("loading")}</p>
-          </div>
-        )}
+        {loading && <PanelSkeleton variant="list" />}
 
-        {error && !loading && (
-          <div
-            className="flex items-center justify-center py-12"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
+        {error && !loading && <PanelError error={error} onRetry={() => void fetchDocs()} />}
 
         {!loading && !error && (
-          <div className="flex h-full">
+          <div className="flex flex-col md:flex-row h-full">
             {/* Left: Doc list */}
             <div
-              className="w-1/3 min-w-[200px] border-r overflow-y-auto p-3"
+              className="w-full md:w-1/3 md:min-w-[200px] border-b md:border-b-0 md:border-r overflow-y-auto p-3"
               style={{ borderColor: "var(--border)" }}
             >
               <DocList />

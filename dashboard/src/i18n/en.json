@@ -227,6 +227,15 @@
     "thumbsDown": "Dislike",
     "steerPlaceholder": "Enter instruction to redirect execution...",
     "steer": "Steer",
+    "mentionAgents": "Agents",
+    "promptTemplates": "Prompt Templates",
+    "templateAnalyze": "Analyze this code for issues",
+    "templateExplain": "Explain this concept step by step",
+    "templateWrite": "Help me write creative copy",
+    "templateDebug": "Debug this error and suggest fixes",
+    "templateSummarize": "Summarize the key points",
+    "contextLabel": "Context",
+    "contextWarning": "Context window nearly full — consider compacting or starting a new session",
     "emptyTitle": "Start a conversation",
     "emptyDescription": "Pick a topic to get started, or type your question",
     "suggestCreative": "Help me write creative copy",
@@ -609,7 +618,11 @@
     "noActivity": "No activity events",
     "conflictDetected": "Conflict Detected",
     "overlapExact": "Exact overlap with another rule",
-    "overlapSubset": "Shadowed by a more specific rule"
+    "overlapSubset": "Shadowed by a more specific rule",
+    "emptyTitle": "No binding rules",
+    "emptyDescription": "Add a rule to route messages to specific agents",
+    "actionsHeader": "Actions",
+    "filterAllChannels": "All Channels"
   },
   "subagents": {
     "title": "Subagent Monitor",
@@ -631,7 +644,8 @@
       "6h": "6 Hours",
       "24h": "24 Hours",
       "all": "All"
-    }
+    },
+    "emptyDescription": "No subagent runs match the current filters"
   },
   "agentDetail": {
     "overview": "Overview",
@@ -933,7 +947,8 @@
     "logTokens": "Tokens",
     "logCost": "Cost",
     "na": "N/A",
-    "loadingDetail": "Loading..."
+    "loadingDetail": "Loading...",
+    "emptyDescription": "No usage data for the selected time range"
   },
   "sessions": {
     "title": "Session Browser",
@@ -996,7 +1011,9 @@
     "thinkingHigh": "High",
     "patchFailed": "Patch failed",
     "label": "Label",
-    "editLabel": "Edit label"
+    "editLabel": "Edit label",
+    "emptyDescription": "Start a conversation to see sessions here",
+    "selectHint": "Select a session to view details"
   },
   "logs": {
     "title": "Log Viewer",
@@ -1039,7 +1056,8 @@
     "tierCore": "Core",
     "tierWorking": "Working",
     "tierPeripheral": "Peripheral",
-    "decayScore": "Decay Score"
+    "decayScore": "Decay Score",
+    "searchEmptyDescription": "Enter a query above and press Search"
   },
   "activity": {
     "title": "Activity Feed",
@@ -1350,7 +1368,8 @@
     "confirmDelete": "Delete this webhook?",
     "testSent": "Test delivery sent",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "emptyDescription": "Create a webhook to receive event notifications"
   },
   "approvals": {
     "title": "Approvals & Security",
@@ -1451,7 +1470,8 @@
     "confirmDelete": "Delete this rule?",
     "enabled": "Enabled",
     "enabledToggle": "Enabled",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "emptyDescription": "Create a rule to set spending limits"
   },
   "alerts": {
     "title": "Alert Management",
@@ -1529,12 +1549,18 @@
     "confirmDelete": "Delete this document?"
   },
   "shortcuts": {
-    "panelNav": "Switch panel (Alt+1~9)",
-    "search": "Focus search (Ctrl/Cmd+K)",
-    "send": "Send message (Ctrl/Cmd+Enter)",
-    "escape": "Close/Cancel (Esc)",
-    "openSettings": "Open Settings (Ctrl/Cmd+,)",
-    "toggleNav": "Toggle navigation (Ctrl/Cmd+/)"
+    "title": "Keyboard Shortcuts",
+    "switchPanel": "Switch to panel 1–9",
+    "focusSearch": "Focus search input",
+    "sendMessage": "Send message",
+    "closeCancel": "Close / Cancel",
+    "openSettings": "Open Settings",
+    "toggleNavRail": "Toggle navigation rail",
+    "showHelp": "Show keyboard shortcuts",
+    "newSession": "New chat session",
+    "commandPalette": "Command palette",
+    "prevNextPanel": "Previous / Next panel",
+    "copyLastReply": "Copy last assistant reply"
   },
   "settings": {
     "title": "Settings",
@@ -1579,7 +1605,8 @@
     "noPeers": "No peers linked",
     "canonicalPlaceholder": "e.g. john-doe",
     "channelPlaceholder": "e.g. telegram",
-    "peerIdPlaceholder": "e.g. 123456789"
+    "peerIdPlaceholder": "e.g. 123456789",
+    "emptyDescription": "Link an identity to map contacts across channels"
   },
   "threads": {
     "title": "Thread Bindings",
@@ -1707,5 +1734,12 @@
     "errorForbidden": "Insufficient permissions for this operation.",
     "errorNetwork": "Gateway connection error. Please retry.",
     "operationFailed": "Operation failed"
+  },
+  "panelError": {
+    "loadFailed": "Failed to load data",
+    "retry": "Retry",
+    "details": "Error details",
+    "title": "Something went wrong",
+    "description": "This panel encountered an error. Other panels are unaffected."
   }
 }

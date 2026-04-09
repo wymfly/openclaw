@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { navigateToSession, navigateToSubagents } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
-import { useSessionsStore, type HistoryMessage, type SessionEntry } from "@/stores/sessions";
+import { useSessionsStore, type HistoryMessage } from "@/stores/sessions";
 import { TranscriptBlocks } from "../chat/TranscriptBlocks";
 import { SessionExport } from "./SessionExport";
 import { TranscriptSearch } from "./TranscriptSearch";
@@ -29,33 +29,7 @@ const STATUS_CONFIG: Record<string, { cssVar: string; key: string }> = {
   idle: { cssVar: "var(--neutral-muted-text)", key: "statusIdle" },
 };
 
-function pressureBarClass(pct: number): string {
-  if (pct >= 80) {
-    return "bg-[var(--destructive)]";
-  }
-  if (pct >= 60) {
-    return "bg-[var(--warning)]";
-  }
-  return "bg-[var(--success)]";
-}
-
-function pressureTextClass(pct: number): string {
-  if (pct >= 80) {
-    return "text-[var(--destructive)]";
-  }
-  if (pct >= 60) {
-    return "text-[var(--warning)]";
-  }
-  return "text-[var(--success)]";
-}
-
-function contextPct(session: SessionEntry): number {
-  if (session.contextWindow <= 0) {
-    return 0;
-  }
-  const used = session.tokensIn + session.tokensOut;
-  return Math.min(100, Math.round((used / session.contextWindow) * 100));
-}
+import { contextPct, pressureBarClass, pressureTextClass } from "@/lib/context-utils";
 
 function formatTime(ts: number): string {
   if (!ts) {

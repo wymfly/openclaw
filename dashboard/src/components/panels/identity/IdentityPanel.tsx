@@ -2,13 +2,15 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useIdentityStore } from "@/stores/deck-identity";
 import { IdentityList } from "./IdentityList";
 import { LinkDialog } from "./LinkDialog";
 
 export function IdentityPanel() {
   const t = useTranslations("identity");
-  const tc = useTranslations("common");
 
   const { links, loading, error, selectedCanonical, fetchLinks } = useIdentityStore();
   const [showDialog, setShowDialog] = useState(false);
@@ -49,41 +51,18 @@ export function IdentityPanel() {
         </div>
 
         {/* Error banner */}
-        {error && (
-          <div
-            className="px-4 py-2 text-xs border-b"
-            style={{
-              borderColor: "var(--border)",
-              color: "var(--destructive)",
-              backgroundColor: "var(--destructive-muted)",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        {error && <PanelError error={error} onRetry={() => void fetchLinks()} />}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {loading && (
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-              {tc("loading")}
-            </p>
-          )}
+          {loading && <PanelSkeleton variant="list" />}
 
           {!loading && links.length === 0 && (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                {t("noLinks")}
-              </p>
-            </div>
+            <PanelEmptyState title={t("noLinks")} description={t("emptyDescription")} />
           )}
 
           {!loading && links.length > 0 && !selectedCanonical && (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                {t("selectIdentity")}
-              </p>
-            </div>
+            <PanelEmptyState title={t("selectIdentity")} />
           )}
 
           {!loading &&

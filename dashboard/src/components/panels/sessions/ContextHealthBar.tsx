@@ -3,51 +3,9 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { contextPct, pressureBarClass, pressureTextClass, formatTokens } from "@/lib/context-utils";
 import { cn } from "@/lib/utils";
 import type { SessionEntry } from "@/stores/sessions";
-
-/**
- * Compute context usage percentage.
- * Prefers contextWindow (updated by sessions.changed events) over computing
- * from tokensIn + tokensOut when the session has a valid contextWindow.
- */
-function contextPct(session: SessionEntry): number {
-  if (session.contextWindow <= 0) {
-    return 0;
-  }
-  const used = session.tokensIn + session.tokensOut;
-  return Math.min(100, Math.round((used / session.contextWindow) * 100));
-}
-
-function pressureBarClass(pct: number): string {
-  if (pct >= 80) {
-    return "bg-[var(--destructive)]";
-  }
-  if (pct >= 60) {
-    return "bg-[var(--warning)]";
-  }
-  return "bg-[var(--success)]";
-}
-
-function pressureTextClass(pct: number): string {
-  if (pct >= 80) {
-    return "text-[var(--destructive)]";
-  }
-  if (pct >= 60) {
-    return "text-[var(--warning)]";
-  }
-  return "text-[var(--success)]";
-}
-
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) {
-    return `${(n / 1_000_000).toFixed(1)}M`;
-  }
-  if (n >= 1_000) {
-    return `${(n / 1_000).toFixed(1)}K`;
-  }
-  return String(n);
-}
 
 const STATUS_DOT_COLOR: Record<string, string> = {
   running: "var(--primary)",

@@ -24,6 +24,7 @@ import {
   persistChatProjection,
   setSessionMessageSubscription,
 } from "./chat-api";
+import { ChatContextBar } from "./ChatContextBar";
 import { EmptyState } from "./EmptyState";
 import { normalizeHistoryMessages } from "./history-normalize";
 import { MessageInput } from "./MessageInput";
@@ -276,6 +277,9 @@ export function ChatPanel() {
         <SessionSidebar />
         <div className="flex flex-col flex-1 min-w-0">
           <SSEStatusBanner />
+          <div className="flex items-center justify-end px-3 py-1 shrink-0">
+            <ChatContextBar />
+          </div>
           {showSearch && <TranscriptSearch onClose={() => setShowSearch(false)} />}
           {activeSessionKey ? (
             <MessageList blockPreferences={blockPrefs} />

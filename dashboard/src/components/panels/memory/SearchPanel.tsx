@@ -2,6 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
+import { PanelError } from "@/components/ui/panel-error";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useMemoryStore, type MemoryTier } from "@/stores/memory";
 
 // Tier badge colors for visual distinction
@@ -105,26 +108,20 @@ export function SearchPanel() {
 
       {/* Error display */}
       {error && (
-        <div
-          className="text-xs px-3 py-2 rounded"
-          style={{
-            backgroundColor: "var(--destructive-muted)",
-            color: "var(--destructive)",
-          }}
-        >
-          {error}
-        </div>
+        <PanelError
+          error={error}
+          onRetry={() =>
+            void searchMemory(query.trim(), selectedAgentId ?? undefined, selectedScope)
+          }
+        />
       )}
 
       {/* Results */}
       <div className="flex-1 overflow-y-auto">
-        {searchResults.length === 0 && !loading && (
-          <div
-            className="flex items-center justify-center h-full"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <p className="text-sm">{t("noResults")}</p>
-          </div>
+        {loading && <PanelSkeleton variant="list" />}
+
+        {searchResults.length === 0 && !loading && !error && (
+          <PanelEmptyState title={t("noResults")} description={t("searchEmptyDescription")} />
         )}
 
         {searchResults.map((result, idx) => (
