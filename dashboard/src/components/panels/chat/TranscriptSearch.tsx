@@ -22,7 +22,9 @@ export function TranscriptSearch({ onClose }: { onClose: () => void }) {
   );
 
   const matches = useMemo(() => {
-    if (!query.trim()) return [];
+    if (!query.trim()) {
+      return [];
+    }
     const q = query.toLowerCase();
     const results: { messageIdx: number; message: ChatMessage }[] = [];
     messages.forEach((msg, idx) => {
@@ -36,7 +38,9 @@ export function TranscriptSearch({ onClose }: { onClose: () => void }) {
 
   const navigate = useCallback(
     (direction: 1 | -1) => {
-      if (matches.length === 0) return;
+      if (matches.length === 0) {
+        return;
+      }
       setCurrentIdx((prev) => (prev + direction + matches.length) % matches.length);
     },
     [matches.length],
@@ -44,11 +48,13 @@ export function TranscriptSearch({ onClose }: { onClose: () => void }) {
 
   // Scroll to current match
   useEffect(() => {
-    if (matches.length === 0) return;
+    if (matches.length === 0) {
+      return;
+    }
     const match = matches[currentIdx];
-    if (!match) return;
-    // Requires parent message list to set data-message-idx={idx} on each message wrapper.
-    // TODO: Add data-message-idx to MessageList render during ChatPanel integration.
+    if (!match) {
+      return;
+    }
     const el = document.querySelector(`[data-message-idx="${match.messageIdx}"]`);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [currentIdx, matches]);
@@ -106,11 +112,15 @@ export function TranscriptSearch({ onClose }: { onClose: () => void }) {
 
 /** Extract searchable text from a ChatMessage. */
 function extractText(msg: ChatMessage): string {
-  if (typeof msg.content === "string") return msg.content;
+  if (typeof msg.content === "string") {
+    return msg.content;
+  }
   if (Array.isArray(msg.content)) {
     return msg.content
       .map((block) => {
-        if (typeof block === "string") return block;
+        if (typeof block === "string") {
+          return block;
+        }
         if (typeof block === "object" && block !== null && "text" in block) {
           return (block as { text: string }).text;
         }
