@@ -289,10 +289,25 @@ export function openDb(dbPath?: string): DatabaseAdapter {
     }
   }
 
-  // Load existing database file if present
+  // Load existing database file if present.
+  // Guard: validate the SQLite magic header before passing to sql.js.
+  // On Windows, a failed atomic rename (EPERM from antivirus/file lock) can leave
+  // a 0-byte or partial file that passes existsSync but is not a valid database.
   let buffer: Uint8Array | undefined;
   if (resolvedPath !== ":memory:" && fs.existsSync(resolvedPath)) {
-    buffer = new Uint8Array(fs.readFileSync(resolvedPath));
+    const raw = new Uint8Array(fs.readFileSync(resolvedPath));
+    // SQLite header is 100 bytes minimum; magic string is "SQLite format 3\0" (16 bytes).
+    const SQLITE_MAGIC = "SQLite format 3\0";
+    const validHeader =
+      raw.length >= 100 && SQLITE_MAGIC.split("").every((ch, i) => raw[i] === ch.charCodeAt(0));
+    if (validHeader) {
+      buffer = raw;
+    } else {
+      // File is corrupt or empty — discard and start fresh.
+      console.warn(
+        `[deck-db] ${resolvedPath} is not a valid SQLite database (size=${raw.length}). Starting fresh.`,
+      );
+    }
   }
 
   const sqlDb = new engine.Database(buffer);

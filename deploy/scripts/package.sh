@@ -152,51 +152,49 @@ stage_images() {
 # Layer C: Pre-built artifacts
 # ---------------------------------------------------------------------------
 stage_prebuilt() {
-  log "Staging pre-built artifacts..."
+  log "Building fresh artifacts to ensure package includes latest code..."
   local src="$STAGING_DIR/$PKG_NAME/source"
 
-  # Gateway dist
-  if [ -d "$REPO_DIR/dist" ]; then
-    cp -r "$REPO_DIR/dist" "$src/dist"
-  else
-    err "Gateway dist/ not found. Run 'pnpm build' first."
-  fi
+  # Always rebuild Gateway from source
+  log "Building Gateway..."
+  (cd "$REPO_DIR" && pnpm build)
+  cp -r "$REPO_DIR/dist" "$src/dist"
 
-  # Deck standalone
+  # Always rebuild Deck from source
+  log "Building Deck..."
+  rm -rf "$REPO_DIR/dashboard/.next"
+  (cd "$REPO_DIR/dashboard" && pnpm install && npx next build --webpack)
+
   local standalone="$REPO_DIR/dashboard/.next/standalone"
-  if [ -d "$standalone" ]; then
-    mkdir -p "$src/dashboard/.next"
-    cp -r "$standalone" "$src/dashboard/.next/standalone"
-    # Static assets
-    [ -d "$REPO_DIR/dashboard/.next/static" ] && \
-      cp -r "$REPO_DIR/dashboard/.next/static" "$src/dashboard/.next/standalone/dashboard/.next/static"
-    # Public assets
-    [ -d "$REPO_DIR/dashboard/public" ] && \
-      cp -r "$REPO_DIR/dashboard/public" "$src/dashboard/.next/standalone/dashboard/public"
-    # Migrations
-    [ -d "$REPO_DIR/dashboard/migrations" ] && \
-      cp -r "$REPO_DIR/dashboard/migrations" "$src/dashboard/.next/standalone/dashboard/migrations"
-    # Standalone entry (preloads sql.js WASM)
-    [ -f "$REPO_DIR/dashboard/standalone-entry.mjs" ] && \
-      cp "$REPO_DIR/dashboard/standalone-entry.mjs" "$src/dashboard/.next/standalone/dashboard/standalone-entry.mjs"
-    # sql.js WASM binary (Next.js standalone trace copies JS but not the .wasm file)
-    local sql_wasm_dst="$src/dashboard/.next/standalone/node_modules/sql.js/dist/sql-wasm.wasm"
-    if [ ! -f "$sql_wasm_dst" ]; then
-      local sql_wasm_src=""
-      [ -f "$REPO_DIR/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="$REPO_DIR/node_modules/sql.js/dist/sql-wasm.wasm"
-      [ -z "$sql_wasm_src" ] && [ -f "$REPO_DIR/dashboard/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="$REPO_DIR/dashboard/node_modules/sql.js/dist/sql-wasm.wasm"
-      if [ -n "$sql_wasm_src" ]; then
-        mkdir -p "$(dirname "$sql_wasm_dst")"
-        cp "$sql_wasm_src" "$sql_wasm_dst"
-        log "sql-wasm.wasm copied to standalone"
-      fi
+  mkdir -p "$src/dashboard/.next"
+  cp -r "$standalone" "$src/dashboard/.next/standalone"
+  # Static assets
+  [ -d "$REPO_DIR/dashboard/.next/static" ] && \
+    cp -r "$REPO_DIR/dashboard/.next/static" "$src/dashboard/.next/standalone/dashboard/.next/static"
+  # Public assets
+  [ -d "$REPO_DIR/dashboard/public" ] && \
+    cp -r "$REPO_DIR/dashboard/public" "$src/dashboard/.next/standalone/dashboard/public"
+  # Migrations
+  [ -d "$REPO_DIR/dashboard/migrations" ] && \
+    cp -r "$REPO_DIR/dashboard/migrations" "$src/dashboard/.next/standalone/dashboard/migrations"
+  # Standalone entry (preloads sql.js WASM)
+  [ -f "$REPO_DIR/dashboard/standalone-entry.mjs" ] && \
+    cp "$REPO_DIR/dashboard/standalone-entry.mjs" "$src/dashboard/.next/standalone/dashboard/standalone-entry.mjs"
+  # sql.js WASM binary (Next.js standalone trace copies JS but not the .wasm file)
+  local sql_wasm_dst="$src/dashboard/.next/standalone/node_modules/sql.js/dist/sql-wasm.wasm"
+  if [ ! -f "$sql_wasm_dst" ]; then
+    local sql_wasm_src=""
+    [ -f "$REPO_DIR/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="$REPO_DIR/node_modules/sql.js/dist/sql-wasm.wasm"
+    [ -z "$sql_wasm_src" ] && [ -f "$REPO_DIR/dashboard/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="$REPO_DIR/dashboard/node_modules/sql.js/dist/sql-wasm.wasm"
+    if [ -n "$sql_wasm_src" ]; then
+      mkdir -p "$(dirname "$sql_wasm_dst")"
+      cp "$sql_wasm_src" "$sql_wasm_dst"
+      log "sql-wasm.wasm copied to standalone"
     fi
-  else
-    err "Deck standalone not found. Run 'cd dashboard && npx next build --webpack' first."
   fi
 
   HAS_PREBUILT=true
-  log "Pre-built artifacts staged"
+  log "Fresh artifacts built and staged"
 }
 
 # ---------------------------------------------------------------------------
@@ -316,8 +314,8 @@ exec "$(dirname "$0")/source/deploy/scripts/install.sh" "$@"
 INSTALLER
   chmod +x "$STAGING_DIR/$PKG_NAME/install.sh"
 
-  # Ops scripts — start/stop/status forwarders (sh + bat)
-  for script in start.sh stop.sh status.sh; do
+  # Ops scripts — start/stop/status/tui forwarders (sh + bat)
+  for script in start.sh stop.sh status.sh tui.sh; do
     cat > "$STAGING_DIR/$PKG_NAME/$script" <<OPSEOF
 #!/usr/bin/env bash
 exec "\$(dirname "\$0")/source/deploy/$script" "\$@"
@@ -325,7 +323,7 @@ OPSEOF
     chmod +x "$STAGING_DIR/$PKG_NAME/$script"
   done
 
-  for name in start stop status; do
+  for name in start stop status tui; do
     local bat_src="$DEPLOY_DIR/${name}.bat"
     if [ -f "$bat_src" ]; then
       cp "$bat_src" "$STAGING_DIR/$PKG_NAME/${name}.bat"
@@ -333,7 +331,7 @@ OPSEOF
       printf '@echo off\r\nsetlocal\r\nset "SD=%%~dp0"\r\nwhere bash >nul 2>&1 && (bash "%%SD%%source\\deploy\\%s.sh" %%* & goto :d)\r\nif exist "C:\\Program Files\\Git\\bin\\bash.exe" ("C:\\Program Files\\Git\\bin\\bash.exe" "%%SD%%source\\deploy\\%s.sh" %%* & goto :d)\r\necho bash not found. & pause & exit /b 1\r\n:d\r\nif %%ERRORLEVEL%% neq 0 pause\r\nendlocal\r\n' "$name" "$name" > "$STAGING_DIR/$PKG_NAME/${name}.bat"
     fi
   done
-  log "Ops scripts (start/stop/status .sh + .bat) written"
+  log "Ops scripts (start/stop/status/tui .sh + .bat) written"
 
   # Windows install.bat — copy from deploy dir (has pause + registry detection)
   if [ -f "$DEPLOY_DIR/install.bat" ]; then
