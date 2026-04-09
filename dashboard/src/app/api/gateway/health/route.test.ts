@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwRequest = vi.fn();
+const gatewayRequest = vi.fn();
 
 vi.mock("@/lib/api-helpers", () => ({
-  gwRequest,
+  gatewayRequest,
 }));
 
 vi.mock("@/lib/with-auth", () => ({
@@ -13,15 +13,15 @@ vi.mock("@/lib/with-auth", () => ({
 
 describe("/api/gateway/health", () => {
   afterEach(() => {
-    gwRequest.mockReset();
+    gatewayRequest.mockReset();
   });
 
-  it("uses typed gwRequest for health", async () => {
-    gwRequest.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+  it("uses typed gatewayRequest for health", async () => {
+    gatewayRequest.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const { GET } = await import("./route.js");
 
     await GET(new NextRequest("http://localhost/api/gateway/health"));
 
-    expect(gwRequest).toHaveBeenCalledWith("health", {});
+    expect(gatewayRequest).toHaveBeenCalledWith("health", {});
   });
 });

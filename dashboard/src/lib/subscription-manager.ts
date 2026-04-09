@@ -316,7 +316,7 @@ export class SubscriptionManager {
     if (current <= 1) {
       this.sessionRefs.delete(key);
       if (this._state === "ACTIVE") {
-        await this.opts.sendRpc("sessions.messages.unsubscribe", { key }).catch(() => {});
+        await this.opts.sendRpc("sessions.messages.unsubscribe", { key });
       }
     } else {
       this.sessionRefs.set(key, current - 1);

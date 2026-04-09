@@ -9,10 +9,16 @@ import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async (request: NextRequest) => {
   const sp = request.nextUrl.searchParams;
-  const key = sp.get("key") ?? undefined;
-  const startDate = sp.get("startDate") ?? undefined;
-  const endDate = sp.get("endDate") ?? undefined;
-  const mode = sp.get("mode") as "utc" | "gateway" | "specific" | undefined;
-  const utcOffset = sp.get("utcOffset") ?? undefined;
-  return gwRequest("sessions.usage.timeseries", { key, startDate, endDate, mode, utcOffset });
+  const key = sp.get("key");
+  const startDate = sp.get("startDate");
+  const endDate = sp.get("endDate");
+  const rawMode = sp.get("mode");
+  const utcOffset = sp.get("utcOffset");
+  return gwRequest("sessions.usage.timeseries", {
+    ...(key ? { key } : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(rawMode ? { mode: rawMode as "utc" | "gateway" | "specific" } : {}),
+    ...(utcOffset ? { utcOffset } : {}),
+  });
 });

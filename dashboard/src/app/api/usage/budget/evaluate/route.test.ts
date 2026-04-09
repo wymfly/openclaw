@@ -2,14 +2,10 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getRuntime = vi.fn();
-const gwCall = vi.fn();
+const request = vi.fn();
 
 vi.mock("@server/runtime", () => ({
   getRuntime,
-}));
-
-vi.mock("@/lib/api-helpers", () => ({
-  gwCall,
 }));
 
 vi.mock("@/lib/with-auth", () => ({
@@ -40,8 +36,11 @@ describe("/api/usage/budget/evaluate", () => {
       eventBus: {
         broadcast: vi.fn(),
       },
+      adapter: {
+        request,
+      },
     });
-    gwCall.mockResolvedValue({
+    request.mockResolvedValue({
       totals: {
         totalCost: 12,
         input: 100,
@@ -53,16 +52,16 @@ describe("/api/usage/budget/evaluate", () => {
 
   afterEach(() => {
     getRuntime.mockReset();
-    gwCall.mockReset();
+    request.mockReset();
   });
 
-  it("uses gwCall for usage.cost before evaluating rules", async () => {
+  it("uses runtime.adapter.request for usage.cost before evaluating rules", async () => {
     const { GET } = await import("./route.js");
 
     const response = await GET(new NextRequest("http://localhost"));
     const body = await response.json();
 
-    expect(gwCall).toHaveBeenCalledWith("usage.cost", { days: 30 });
+    expect(request).toHaveBeenCalledWith("usage.cost", { days: 30 });
     expect(body.evaluations).toHaveLength(1);
     expect(body.evaluations[0].ruleId).toBe("rule-1");
   });

@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwRequest = vi.fn();
+const gatewayRequest = vi.fn();
 
 vi.mock("@/lib/api-helpers", () => ({
-  gwRequest,
+  gatewayRequest,
 }));
 
 vi.mock("@/lib/with-auth", () => ({
@@ -13,11 +13,11 @@ vi.mock("@/lib/with-auth", () => ({
 
 describe("/api/deck/tools-effective", () => {
   afterEach(() => {
-    gwRequest.mockReset();
+    gatewayRequest.mockReset();
   });
 
-  it("uses typed gwRequest for tools.effective", async () => {
-    gwRequest.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
+  it("uses typed gatewayRequest for tools.effective", async () => {
+    gatewayRequest.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
     const { POST } = await import("./route.js");
     const request = new NextRequest("http://localhost/api/deck/tools-effective", {
       method: "POST",
@@ -27,7 +27,7 @@ describe("/api/deck/tools-effective", () => {
 
     await POST(request);
 
-    expect(gwRequest).toHaveBeenCalledWith("tools.effective", {
+    expect(gatewayRequest).toHaveBeenCalledWith("tools.effective", {
       agentId: "main",
       sessionKey: "agent:main:main",
     });

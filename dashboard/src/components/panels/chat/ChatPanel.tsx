@@ -35,7 +35,6 @@ import { SessionSidebar } from "./SessionSidebar";
 import { initializeLocalCommands } from "./slash-command-executor";
 import { SSEStatusBanner } from "./SSEStatusBanner";
 import { SteerDialog } from "./SteerDialog";
-import { SubagentTree } from "./SubagentTree";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { TranscriptSearch } from "./TranscriptSearch";
 import { useChatSSE } from "./useChatSSE";
@@ -290,7 +289,6 @@ export function ChatPanel() {
             <BlockFilterBar preferences={blockPrefs} onChange={handleBlockPrefsChange} />
           )}
           <SteerDialog />
-          <SubagentTree />
           <ToolProgressBar />
           <SessionConfigBar />
           <MessageInput

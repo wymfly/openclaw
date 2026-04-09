@@ -147,6 +147,7 @@ describe("setMessages", () => {
 
     // Simulate SSE messages arriving first (UUID-like IDs, no colon)
     const sseMsg = makeMsg("550e8400-e29b-41d4-a716-446655440000", "assistant", "streaming...");
+    sseMsg.timestamp -= 120_000;
     useChatStore.getState().addMessage("sess-1", sseMsg);
 
     // Now history arrives

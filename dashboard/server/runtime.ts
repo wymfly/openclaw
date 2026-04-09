@@ -464,6 +464,7 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
     capabilities: capabilityState.state,
   };
   g[GLOBAL_KEY] = runtime;
+  const healthPoller = initHealthPoller(gw, eventBus, undefined, false);
 
   function triggerCapabilityBootstrap(): void {
     if (capabilityBootstrapInFlight) {
@@ -474,6 +475,9 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
       .then((result) => {
         if (result.ok) {
           capabilityState.markReady(result.snapshot);
+          // Avoid extra startup RPC traffic until the next scheduled interval;
+          // the underlying panels already fetch their own initial snapshots.
+          healthPoller.start(false);
           return;
         }
         if (result.incompatible) {
@@ -515,8 +519,8 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
     runEventPipeline.destroy();
   };
 
-  // Phase 2: Health poller derives agent.status.changed + channel.health.changed events
-  gCleanup.__deckCleanupHealthPoller = initHealthPoller(gw, eventBus);
+  // Phase 2: start health polling only after a successful capability bootstrap.
+  gCleanup.__deckCleanupHealthPoller = () => healthPoller.stop();
 
   // F10: Schedule webhook retry processor every 60s
   const retryTimer = setInterval(async () => {

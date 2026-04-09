@@ -197,12 +197,29 @@ export class OpenClawGatewayAdapter {
 
   /** Subscribe to per-session message events. Reference-counted via SubscriptionManager. */
   async subscribeSessionMessages(key: string): Promise<void> {
+    // Record the desired subscription even while disconnected so reconnect can
+    // restore it, but surface the disconnected state to HTTP callers instead
+    // of reporting a false-positive success.
     await this.subscriptions.subscribeSession(key);
+    if (this.status !== "connected") {
+      throw new ControlPlaneGatewayError({
+        code: "GATEWAY_UNAVAILABLE",
+        message: "Gateway is unavailable for session message subscription.",
+      });
+    }
   }
 
   /** Unsubscribe from per-session message events. Only unsubscribes when refcount hits zero. */
   async unsubscribeSessionMessages(key: string): Promise<void> {
+    // Mirror subscribeSessionMessages(): update the desired subscription set
+    // first, then tell callers they are currently disconnected.
     await this.subscriptions.unsubscribeSession(key);
+    if (this.status !== "connected") {
+      throw new ControlPlaneGatewayError({
+        code: "GATEWAY_UNAVAILABLE",
+        message: "Gateway is unavailable for session message subscription.",
+      });
+    }
   }
 
   /** Expose subscription manager for introspection (e.g. active subscription count). */

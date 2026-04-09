@@ -25,16 +25,23 @@ type ChannelSnapshot = {
 
 const DEFAULT_INTERVAL_MS = 60_000;
 
+export interface HealthPollerController {
+  start: (runImmediately?: boolean) => void;
+  stop: () => void;
+}
+
 export function initHealthPoller(
   gw: GatewayClient,
   eventBus: EventBus,
   intervalMs = DEFAULT_INTERVAL_MS,
-): () => void {
+  autoStart = true,
+): HealthPollerController {
   let prevAgents = new Map<string, string>();
   let prevChannels = new Map<string, ChannelSnapshot>();
   let timer: ReturnType<typeof setInterval> | null = null;
   let polling = false;
   let stopped = false;
+  let started = false;
 
   async function poll(): Promise<void> {
     if (polling || stopped) {
@@ -134,18 +141,30 @@ export function initHealthPoller(
     prevChannels = current;
   }
 
-  // Start polling
-  void poll();
-  timer = setInterval(() => void poll(), intervalMs);
+  function start(runImmediately = true) {
+    if (started || stopped) {
+      return;
+    }
+    started = true;
+    if (runImmediately) {
+      void poll();
+    }
+    timer = setInterval(() => void poll(), intervalMs);
+  }
 
-  // Return cleanup function
-  return () => {
+  function stop() {
     stopped = true;
     if (timer) {
       clearInterval(timer);
       timer = null;
     }
-  };
+  }
+
+  if (autoStart) {
+    start();
+  }
+
+  return { start, stop };
 }
 
 // ---------------------------------------------------------------------------

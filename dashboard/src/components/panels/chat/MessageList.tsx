@@ -39,6 +39,8 @@ function MessageBubble({
   sessionTotalTokens,
   sessionCostUsd,
   sessionStatus,
+  sessionStreaming,
+  partialResultLabel,
 }: {
   message: ChatMessage;
   blockPrefs?: ChatBlockPreferences;
@@ -46,8 +48,11 @@ function MessageBubble({
   sessionTotalTokens?: number;
   sessionCostUsd?: number;
   sessionStatus?: "idle" | "running" | "done" | "failed" | "killed" | "timeout";
+  sessionStreaming: boolean;
+  partialResultLabel: string;
 }) {
   const isUser = message.role === "user";
+  const showPartialResult = !isUser && message.streaming && !sessionStreaming;
 
   return (
     <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""} mb-4 group/msg`}>
@@ -90,6 +95,12 @@ function MessageBubble({
             sessionCostUsd={sessionCostUsd}
             sessionStatus={sessionStatus}
           />
+        )}
+
+        {showPartialResult && (
+          <span className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+            {partialResultLabel}
+          </span>
         )}
 
         {/* Timestamp */}
@@ -195,6 +206,8 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
               sessionTotalTokens={sessionMeta?.totalTokens}
               sessionCostUsd={sessionMeta?.estimatedCostUsd}
               sessionStatus={sessionStatus}
+              sessionStreaming={isStreaming}
+              partialResultLabel={t("partialResult")}
             />
           </div>
         );
