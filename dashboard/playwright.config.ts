@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const liveSmoke = process.env.PLAYWRIGHT_LIVE_SMOKE === "1";
+const useExternalServer = process.env.PLAYWRIGHT_EXTERNAL_SERVER === "1";
+
 /**
  * Playwright E2E configuration for openclaw-deck.
  *
@@ -11,15 +14,15 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  fullyParallel: !liveSmoke,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI || liveSmoke ? 1 : undefined,
   reporter: "html",
 
   use: {
     baseURL: "http://localhost:3000",
-    trace: "on-first-retry",
+    trace: liveSmoke ? "retain-on-failure" : "on-first-retry",
   },
 
   projects: [
@@ -29,9 +32,13 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: "pnpm dev",
-    port: 3000,
-    reuseExistingServer: true,
-  },
+  ...(useExternalServer
+    ? {}
+    : {
+        webServer: {
+          command: "pnpm dev",
+          port: 3000,
+          reuseExistingServer: true,
+        },
+      }),
 });

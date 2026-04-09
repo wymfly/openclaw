@@ -3,6 +3,7 @@
 import { Globe, Menu, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
+import { findPanel } from "@/lib/panel-registry";
 import { useMonitorStore } from "@/stores/monitor";
 import { useUIStore } from "@/stores/ui";
 
@@ -21,6 +22,8 @@ export function HeaderBar() {
   const { activePanel, theme, locale, setTheme, setLocale, setMobileNavOpen } = useUIStore();
 
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);
+  const activePanelEntry = findPanel(activePanel);
+  const activePanelLabelKey = activePanelEntry?.labelKey ?? activePanel;
 
   const statusLabel =
     status === "connected"
@@ -63,7 +66,7 @@ export function HeaderBar() {
           </button>
         )}
         <h1 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-          {tNav(activePanel)}
+          {tNav(activePanelLabelKey)}
         </h1>
       </div>
 
