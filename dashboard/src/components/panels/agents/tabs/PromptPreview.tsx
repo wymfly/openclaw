@@ -48,9 +48,7 @@ export function PromptPreview({ content, detail }: PromptPreviewProps) {
           color: "var(--foreground)",
         }}
       >
-        {rendered || (
-          <span className="text-[var(--muted-foreground)]">{t("emptyPrompt")}</span>
-        )}
+        {rendered || <span className="text-[var(--muted-foreground)]">{t("emptyPrompt")}</span>}
       </div>
     </div>
   );

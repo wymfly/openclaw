@@ -65,7 +65,9 @@ export function CloneDialog({ open, onOpenChange, sourceAgent }: CloneDialogProp
   }, [open, sourceAgent.name]);
 
   const handleClone = useCallback(async () => {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      return;
+    }
     setCreating(true);
     try {
       // Create agent via API, then apply source config
@@ -103,7 +105,9 @@ export function CloneDialog({ open, onOpenChange, sourceAgent }: CloneDialogProp
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") void handleClone();
+                if (e.key === "Enter") {
+                  void handleClone();
+                }
               }}
               className="text-xs"
               autoFocus
@@ -148,7 +152,9 @@ export function SaveTemplateDialog({ open, onOpenChange, sourceAgent }: SaveTemp
   }, [open, sourceAgent.name]);
 
   const handleSave = useCallback(() => {
-    if (!templateName.trim()) return;
+    if (!templateName.trim()) {
+      return;
+    }
     const templates = loadTemplates();
     const template: AgentTemplate = {
       name: templateName.trim(),
@@ -176,7 +182,9 @@ export function SaveTemplateDialog({ open, onOpenChange, sourceAgent }: SaveTemp
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleSave();
+                if (e.key === "Enter") {
+                  handleSave();
+                }
               }}
               className="text-xs"
               autoFocus
@@ -223,9 +231,7 @@ export function TemplateList({ onSelect }: TemplateListProps) {
 
   if (templates.length === 0) {
     return (
-      <p className="text-xs text-[var(--muted-foreground)] py-4 text-center">
-        {t("noTemplates")}
-      </p>
+      <p className="text-xs text-[var(--muted-foreground)] py-4 text-center">{t("noTemplates")}</p>
     );
   }
 
@@ -240,7 +246,9 @@ export function TemplateList({ onSelect }: TemplateListProps) {
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter") onSelect(tmpl);
+            if (e.key === "Enter") {
+              onSelect(tmpl);
+            }
           }}
         >
           <div className="min-w-0">

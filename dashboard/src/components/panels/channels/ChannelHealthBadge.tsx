@@ -4,10 +4,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { type ChannelHealthStatus } from "@/stores/channels";
 
-const STATUS_CONFIG: Record<
-  ChannelHealthStatus,
-  { dot: string; text: string; label: string }
-> = {
+const STATUS_CONFIG: Record<ChannelHealthStatus, { dot: string; text: string; label: string }> = {
   healthy: {
     dot: "bg-[var(--status-connected)]",
     text: "text-[var(--success-muted-text)]",
@@ -73,9 +70,7 @@ export function ChannelHealthBadge({
           status === "healthy" && "animate-pulse",
         )}
       />
-      {!compact && (
-        <span className="text-[10px] font-medium">{t(`health.${config.label}`)}</span>
-      )}
+      {!compact && <span className="text-[10px] font-medium">{t(`health.${config.label}`)}</span>}
     </span>
   );
 }

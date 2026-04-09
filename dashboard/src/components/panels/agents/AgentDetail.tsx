@@ -1,14 +1,16 @@
 "use client";
 
-import { ArrowLeft, Bot } from "lucide-react";
+import { ArrowLeft, Bot, Copy, Download } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { useAgentsStore } from "@/stores/agents";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
+import { CloneDialog, SaveTemplateDialog } from "./AgentTemplateDialog";
 import { AgentConfigTab } from "./tabs/AgentConfigTab";
 import { ContextTab } from "./tabs/ContextTab";
 import { OverviewTab } from "./tabs/OverviewTab";
@@ -36,6 +38,8 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const selectAgent = useAgentsStore((s) => s.selectAgent);
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);
   const [activeTab, setActiveTab] = useState<TabValue>("overview");
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
 
   useEffect(() => {
     void fetchDetail(agentId);
@@ -103,11 +107,43 @@ export function AgentDetail({ agentId }: { agentId: string }) {
               {t("defaultAgent")}
             </Badge>
           )}
-          <Badge className={`text-[10px] border-0 ${STATUS_BADGE[agent?.status ?? "idle"] ?? STATUS_BADGE.idle}`}>
+          <Badge
+            className={`text-[10px] border-0 ${STATUS_BADGE[agent?.status ?? "idle"] ?? STATUS_BADGE.idle}`}
+          >
             {ta(agent?.status ?? "idle")}
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => setCloneOpen(true)}
+          >
+            <Copy size={10} className="mr-1" />
+            {t("clone")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => setTemplateOpen(true)}
+          >
+            <Download size={10} className="mr-1" />
+            {t("saveAsTemplate")}
+          </Button>
         </div>
       </div>
+
+      {/* Clone & Template dialogs */}
+      {detail && (
+        <>
+          <CloneDialog open={cloneOpen} onOpenChange={setCloneOpen} sourceAgent={detail} />
+          <SaveTemplateDialog
+            open={templateOpen}
+            onOpenChange={setTemplateOpen}
+            sourceAgent={detail}
+          />
+        </>
+      )}
 
       {/* Tabs */}
       <Tabs

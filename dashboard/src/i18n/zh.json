@@ -788,6 +788,7 @@
       "overrideCount": "{count} 个覆盖",
       "inheritedCount": "{count} 个继承",
       "resetAll": "重置全部",
+      "editPolicy": "编辑策略",
       "toolsCatalog": "工具目录",
       "toolsCatalogDescription": "展开查看所有可用工具，可逐个覆盖 allow/deny",
       "toolName": "工具名称",
@@ -1083,7 +1084,8 @@
       "status": "状态",
       "bindings": "绑定",
       "settings": "设置",
-      "settingsPlaceholder": "设置功能即将推出"
+      "settingsPlaceholder": "设置功能即将推出",
+      "analytics": "分析"
     },
     "settings": {
       "dmPolicy": {
@@ -1136,6 +1138,7 @@
       "noData": "暂无分析数据"
     },
     "test": {
+      "title": "测试消息",
       "placeholder": "输入测试消息...",
       "success": "发送成功",
       "sendTest": "发送测试"
@@ -1147,7 +1150,8 @@
       "dmPolicy": "私信策略",
       "override": "覆盖",
       "inherit": "继承",
-      "inheritDescription": "使用渠道级别的私信策略设置。"
+      "inheritDescription": "使用渠道级别的私信策略设置。",
+      "configure": "配置"
     }
   },
   "config": {

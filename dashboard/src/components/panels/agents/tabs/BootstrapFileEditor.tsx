@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 import type { BootstrapFileEntry } from "@/stores/deck-agents";
+import { PromptPreview } from "./PromptPreview";
+import { PromptVariableInserter } from "./PromptVariableInserter";
 
 interface BootstrapFileEditorProps {
   agentId: string;
@@ -31,7 +33,9 @@ export function BootstrapFileEditor({
   selectedFileName = null,
 }: BootstrapFileEditorProps) {
   const t = useTranslations("context");
-  const { fetchBootstrapFile, saveBootstrapFile, fetchSystemPromptPreview } = useDeckAgentsStore();
+  const { fetchBootstrapFile, saveBootstrapFile, fetchSystemPromptPreview, currentDetail } =
+    useDeckAgentsStore();
+  const detail = currentDetail?.id === agentId ? currentDetail : null;
 
   const [state, setState] = useState<FileEditorState>({
     activeName: null,
@@ -188,19 +192,36 @@ export function BootstrapFileEditor({
             {/* Inline editor */}
             {isActive && state.editorReady && (
               <div className="border-t border-[var(--border-subtle)] px-3 py-2 space-y-2">
+                {/* Variable inserter toolbar */}
+                <div className="flex items-center justify-end">
+                  <PromptVariableInserter
+                    onInsert={(variable) => {
+                      setState((s) => ({
+                        ...s,
+                        draftContent: s.draftContent + variable,
+                      }));
+                    }}
+                  />
+                </div>
+
                 <textarea
                   value={state.draftContent}
                   onChange={(e) => setState((s) => ({ ...s, draftContent: e.target.value }))}
                   placeholder={t("editorPlaceholder")}
                   rows={8}
                   className={cn(
-                    "w-full text-xs font-mono resize-y",
+                    "w-full text-xs font-mono resize-y leading-relaxed",
                     "bg-[var(--card)] text-[var(--foreground)]",
                     "border border-[var(--border)] rounded px-2 py-1.5",
                     "focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]",
                     "placeholder:text-[var(--muted-foreground)]",
                   )}
                 />
+
+                {/* Prompt preview */}
+                {state.draftContent && detail && (
+                  <PromptPreview content={state.draftContent} detail={detail} />
+                )}
 
                 {/* Feedback */}
                 {feedback === "saved" && (

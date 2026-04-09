@@ -20,6 +20,7 @@ interface ToolsCatalogProps {
   toolsAllow: string[];
   toolsDeny: string[];
   onOverrideChange: (allow: string[], deny: string[]) => void;
+  onEditPolicy?: () => void;
 }
 
 function getOverrideState(toolId: string, allow: string[], deny: string[]): OverrideState {
@@ -37,6 +38,7 @@ export function ToolsCatalog({
   toolsAllow,
   toolsDeny,
   onOverrideChange,
+  onEditPolicy,
 }: ToolsCatalogProps) {
   const t = useTranslations("agentDetail.config");
   const { toolsCatalog, toolsCatalogLoading, fetchToolsCatalog } = useDeckAgentsStore();
@@ -78,15 +80,17 @@ export function ToolsCatalog({
   return (
     <Card className="bg-[var(--background)] border-[var(--border)] overflow-hidden">
       <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger render={<button className="w-full cursor-pointer" />}>
-          <div className="flex items-center gap-2 px-4 py-3">
-            <span className="text-xs font-medium text-[var(--foreground)] flex-1 text-left">
+        <div className="flex items-center gap-2 px-4 py-3">
+          <CollapsibleTrigger
+            render={<span className="flex-1 flex items-center gap-2 text-left cursor-pointer" />}
+          >
+            <span className="text-xs font-medium text-[var(--foreground)]">
               {t("toolsCatalog")}
             </span>
             {toolsCatalog && (
               <Badge
                 variant="outline"
-                className="text-[10px] border-[var(--border)] text-[var(--muted-foreground)] mr-1"
+                className="text-[10px] border-[var(--border)] text-[var(--muted-foreground)]"
               >
                 {toolsCatalog.groups.reduce((sum, g) => sum + g.tools.length, 0)}
               </Badge>
@@ -98,8 +102,17 @@ export function ToolsCatalog({
                 open && "rotate-90",
               )}
             />
-          </div>
-        </CollapsibleTrigger>
+          </CollapsibleTrigger>
+          {onEditPolicy && (
+            <button
+              type="button"
+              onClick={onEditPolicy}
+              className="text-[10px] px-2 py-0.5 rounded border border-[var(--border)] text-[var(--primary)] hover:bg-[var(--primary-muted)] transition-colors shrink-0"
+            >
+              {t("editPolicy")}
+            </button>
+          )}
+        </div>
         <CollapsibleContent>
           <div className="border-t border-[var(--border-subtle)] px-4 py-3 space-y-3">
             <p className="text-[10px] text-[var(--muted-foreground)]">

@@ -50,12 +50,14 @@ export function AccountConfigDialog({
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const patch: Record<string, unknown> = {};
       if (overrideDm) {
-        patch[`accounts.${account.accountId}.dm.policy`] = dmPolicy;
-      }
-      if (Object.keys(patch).length > 0) {
-        await updateChannelConfig(channelId, patch);
+        await updateChannelConfig(channelId, {
+          accounts: {
+            [account.accountId]: {
+              dm: { policy: dmPolicy },
+            },
+          },
+        });
       }
       onOpenChange(false);
     } finally {

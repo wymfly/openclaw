@@ -32,6 +32,7 @@ export const GET = withAuth(async (request: NextRequest) => {
 });
 
 type AgentAction =
+  | "health"
   | "skills.get"
   | "skills.set"
   | "subagents.get"
@@ -72,6 +73,8 @@ export const POST = withAuth(async (request: NextRequest) => {
   const p = params as never;
 
   switch (action) {
+    case "health":
+      return gwRequest("health", p);
     case "skills.get":
       return gwRequest("deck.agents.skills.get", p);
     case "skills.set":

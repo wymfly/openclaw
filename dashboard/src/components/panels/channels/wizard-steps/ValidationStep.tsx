@@ -77,7 +77,8 @@ export function ValidationStep({ channelId, onProbe }: ValidationStepProps) {
               status === "success"
                 ? "color-mix(in srgb, var(--success) 10%, transparent)"
                 : "color-mix(in srgb, var(--destructive) 10%, transparent)",
-            color: status === "success" ? "var(--success-muted-text)" : "var(--destructive-muted-text)",
+            color:
+              status === "success" ? "var(--success-muted-text)" : "var(--destructive-muted-text)",
           }}
         >
           {status === "success" ? (
