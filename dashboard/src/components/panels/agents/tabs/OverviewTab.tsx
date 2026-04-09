@@ -286,6 +286,10 @@ export function OverviewTab({ detail, onNavigateTab }: OverviewTabProps) {
       </Card>
 
       {/* Stat cards row */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
+        <span className="text-[10px] text-[var(--muted-foreground)]">{t("liveMetrics")}</span>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {statCards.map((card) => (
           <button

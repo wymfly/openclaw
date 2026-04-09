@@ -5,12 +5,14 @@ import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useChannelsStore } from "@/stores/channels";
 import { useMonitorStore } from "@/stores/monitor";
 
 export function HealthCard() {
   const t = useTranslations("monitor");
   const tc = useTranslations("common");
   const { healthSummary, healthLoading, fetchHealth } = useMonitorStore();
+  const channelHealthMap = useChannelsStore((s) => s.channelHealthMap);
 
   useEffect(() => {
     void fetchHealth();
@@ -60,10 +62,14 @@ export function HealthCard() {
               {channels ? (
                 <div className="space-y-1.5">
                   {Object.entries(channels).map(([name, status]) => {
-                    // status can be a string or an object { configured, lastError, ... }
+                    // Prefer live SSE health data when available
+                    const liveHealth = channelHealthMap.get(name);
                     let label: string;
                     let variant: "outline" | "default" | "secondary" | "destructive" = "outline";
-                    if (typeof status === "string") {
+                    if (liveHealth) {
+                      label = t(liveHealth.status === "healthy" ? "connected" : liveHealth.status === "degraded" ? "reconnecting" : liveHealth.status === "down" ? "error" : "disconnected");
+                      variant = liveHealth.status === "down" ? "destructive" : liveHealth.status === "degraded" ? "secondary" : "outline";
+                    } else if (typeof status === "string") {
                       label = status;
                     } else if (status && typeof status === "object") {
                       if (status.lastError) {
