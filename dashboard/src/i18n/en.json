@@ -650,6 +650,7 @@
     "statSkills": "Skills",
     "statSubagents": "Subagents",
     "statSessions": "Sessions",
+    "liveMetrics": "Live Metrics",
     "statActiveRuns": "Active Runs",
     "statMessages": "Messages",
     "toolPolicyEditor": "Edit Tool Policy",

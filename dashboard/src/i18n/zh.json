@@ -647,6 +647,7 @@
     "statSkills": "技能",
     "statSubagents": "子智能体",
     "statSessions": "会话",
+    "liveMetrics": "实时指标",
     "statActiveRuns": "活跃运行",
     "statMessages": "消息数",
     "toolPolicyEditor": "编辑工具策略",
