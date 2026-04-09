@@ -53,6 +53,9 @@ export function TranscriptBlocks({
       return false;
     }
     if (block.type === "tool_result") {
+      if (blockPreferences?.showToolResult === false) {
+        return false;
+      }
       return !toolUseBlocks.some((toolUse) => toolUse.id === block.toolUseId);
     }
     return true;
@@ -77,7 +80,7 @@ export function TranscriptBlocks({
               return (
                 <div key={toolUse.id} className="flex flex-col gap-2">
                   <ToolUseCard name={toolUse.name} input={toolUse.input} defaultOpen={streaming} />
-                  {result && (
+                  {result && blockPreferences?.showToolResult && (
                     <ToolResultCard
                       content={result.content}
                       isError={result.isError}
@@ -95,7 +98,7 @@ export function TranscriptBlocks({
             return (
               <div key={toolUse.id} className="flex flex-col gap-2">
                 <ToolUseCard name={toolUse.name} input={toolUse.input} defaultOpen={streaming} />
-                {result && (
+                {result && blockPreferences?.showToolResult !== false && (
                   <ToolResultCard
                     content={result.content}
                     isError={result.isError}
