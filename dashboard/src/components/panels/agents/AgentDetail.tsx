@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Bot, Copy, Download } from "lucide-react";
+import { ArrowLeft, Bot, Copy, Download, GitCompareArrows } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +112,15 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           >
             {ta(agent?.status ?? "idle")}
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => useAgentsStore.getState().setCompareAgentId(agentId)}
+          >
+            <GitCompareArrows size={10} className="mr-1" />
+            {t("compare")}
+          </Button>
           <Button
             variant="outline"
             size="sm"

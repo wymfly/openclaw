@@ -7,6 +7,7 @@ import { useMediaQuery, BREAKPOINTS } from "@/hooks/useMediaQuery";
 import { useAgentsStore } from "@/stores/agents";
 import { AgentDetail } from "./AgentDetail";
 import { AgentList } from "./AgentList";
+import { AgentComparePanel } from "./compare/AgentComparePanel";
 
 /**
  * Agents panel — entry point component.
@@ -15,7 +16,7 @@ import { AgentList } from "./AgentList";
  */
 export function AgentsPanel() {
   const t = useTranslations("agents");
-  const { selectedAgentId, fetchAgents } = useAgentsStore();
+  const { selectedAgentId, compareAgentId, fetchAgents } = useAgentsStore();
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);
 
   useEffect(() => {
@@ -24,6 +25,11 @@ export function AgentsPanel() {
 
   // SSE-driven real-time agent status updates
   useAgentStatusSSE();
+
+  // Compare view when compareAgentId is set
+  if (compareAgentId) {
+    return <AgentComparePanel initialLeftId={compareAgentId} />;
+  }
 
   // Mobile: show detail when agent selected, list otherwise
   if (isMobile && selectedAgentId) {

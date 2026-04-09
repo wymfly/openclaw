@@ -17,6 +17,7 @@ import { describeMethodDefs } from "./server-methods/describe.js";
 import { deviceMethodDefs } from "./server-methods/device-method-defs.js";
 import { logsMethodDefs } from "./server-methods/logs.js";
 import { modelsMethodDefs } from "./server-methods/models.js";
+import { nodeMethodDefs } from "./server-methods/node-method-defs.js";
 import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
 import { talkMethodDefs } from "./server-methods/talk-method-defs.js";
 import { toolsCatalogMethodDefs } from "./server-methods/tools-catalog.js";
@@ -47,6 +48,7 @@ export const allMethodDefs: Record<string, MethodMetadata> = {
   ...toolsEffectiveMethodDefs,
   ...wizardMethodDefs,
   ...deviceMethodDefs,
+  ...nodeMethodDefs,
 };
 
 export const allEventDefs = gatewayEventDefs;

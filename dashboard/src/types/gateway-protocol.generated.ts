@@ -3011,6 +3011,203 @@ export interface DeviceTokenRevokeResult {
   revokedAtMs: number;
 }
 
+export type NodeListParams = Record<string, never>;
+
+export interface NodeListResult {
+  ts: number;
+  nodes: {
+    nodeId: string;
+    displayName?: string;
+    platform?: string;
+    version?: string;
+    coreVersion?: string;
+    uiVersion?: string;
+    deviceFamily?: string;
+    modelIdentifier?: string;
+    remoteIp?: string;
+    caps: string[];
+    commands: string[];
+    pathEnv?: string;
+    permissions?: Record<string, boolean>;
+    connectedAtMs?: number;
+    paired: boolean;
+    connected: boolean;
+  }[];
+}
+
+export interface NodeDescribeParams {
+  nodeId: string;
+}
+
+export interface NodeDescribeResult {
+  ts: number;
+  nodeId: string;
+  displayName?: string;
+  platform?: string;
+  version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
+  deviceFamily?: string;
+  modelIdentifier?: string;
+  remoteIp?: string;
+  caps: string[];
+  commands: string[];
+  pathEnv?: string;
+  permissions?: Record<string, boolean>;
+  connectedAtMs?: number;
+  paired: boolean;
+  connected: boolean;
+}
+
+export type NodePairListParams = Record<string, never>;
+
+export interface NodePairListResult {
+  pending: {
+    requestId: string;
+    nodeId: string;
+    displayName?: string;
+    platform?: string;
+    version?: string;
+    coreVersion?: string;
+    uiVersion?: string;
+    deviceFamily?: string;
+    modelIdentifier?: string;
+    caps?: string[];
+    commands?: string[];
+    remoteIp?: string;
+    silent?: boolean;
+    isRepair?: boolean;
+    ts: number;
+  }[];
+  paired: {
+    nodeId: string;
+    displayName?: string;
+    platform?: string;
+    version?: string;
+    coreVersion?: string;
+    uiVersion?: string;
+    deviceFamily?: string;
+    modelIdentifier?: string;
+    caps?: string[];
+    commands?: string[];
+    remoteIp?: string;
+    token: string;
+    bins?: string[];
+    createdAtMs: number;
+    approvedAtMs: number;
+    lastConnectedAtMs?: number;
+  }[];
+}
+
+export interface NodePairRequestParams {
+  nodeId: string;
+  displayName?: string;
+  platform?: string;
+  version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
+  deviceFamily?: string;
+  modelIdentifier?: string;
+  caps?: string[];
+  commands?: string[];
+  remoteIp?: string;
+  silent?: boolean;
+}
+
+export interface NodePairRequestResult {
+  status: string;
+  request: {
+    requestId: string;
+    nodeId: string;
+    displayName?: string;
+    platform?: string;
+    version?: string;
+    coreVersion?: string;
+    uiVersion?: string;
+    deviceFamily?: string;
+    modelIdentifier?: string;
+    caps?: string[];
+    commands?: string[];
+    remoteIp?: string;
+    silent?: boolean;
+    isRepair?: boolean;
+    ts: number;
+  };
+  created: boolean;
+}
+
+export interface NodePairApproveParams {
+  requestId: string;
+}
+
+export interface NodePairApproveResult {
+  requestId: string;
+  node: {
+    nodeId: string;
+    displayName?: string;
+    platform?: string;
+    version?: string;
+    coreVersion?: string;
+    uiVersion?: string;
+    deviceFamily?: string;
+    modelIdentifier?: string;
+    caps?: string[];
+    commands?: string[];
+    remoteIp?: string;
+    token: string;
+    bins?: string[];
+    createdAtMs: number;
+    approvedAtMs: number;
+    lastConnectedAtMs?: number;
+  };
+}
+
+export interface NodePairRejectParams {
+  requestId: string;
+}
+
+export interface NodePairRejectResult {
+  requestId: string;
+  nodeId: string;
+}
+
+export interface NodePairVerifyParams {
+  nodeId: string;
+  token: string;
+}
+
+export interface NodePairVerifyResult {
+  ok: boolean;
+  node?: {
+    nodeId: string;
+    displayName?: string;
+    platform?: string;
+    version?: string;
+    coreVersion?: string;
+    uiVersion?: string;
+    deviceFamily?: string;
+    modelIdentifier?: string;
+    caps?: string[];
+    commands?: string[];
+    remoteIp?: string;
+    token: string;
+    bins?: string[];
+    createdAtMs: number;
+    approvedAtMs: number;
+    lastConnectedAtMs?: number;
+  };
+}
+
+export interface NodeRenameParams {
+  nodeId: string;
+  displayName: string;
+}
+
+export interface NodeRenameResult {
+  nodeId: string;
+  displayName: string;
+}
+
 export interface GatewayMethodMap {
   "chat.history": { params: ChatHistoryParams; result: ChatHistoryResult };
   "chat.abort": { params: ChatAbortParams; result: ChatAbortResult };
@@ -3166,6 +3363,14 @@ export interface GatewayMethodMap {
   "device.pair.remove": { params: DevicePairRemoveParams; result: DevicePairRemoveResult };
   "device.token.rotate": { params: DeviceTokenRotateParams; result: DeviceTokenRotateResult };
   "device.token.revoke": { params: DeviceTokenRevokeParams; result: DeviceTokenRevokeResult };
+  "node.list": { params: NodeListParams; result: NodeListResult };
+  "node.describe": { params: NodeDescribeParams; result: NodeDescribeResult };
+  "node.pair.list": { params: NodePairListParams; result: NodePairListResult };
+  "node.pair.request": { params: NodePairRequestParams; result: NodePairRequestResult };
+  "node.pair.approve": { params: NodePairApproveParams; result: NodePairApproveResult };
+  "node.pair.reject": { params: NodePairRejectParams; result: NodePairRejectResult };
+  "node.pair.verify": { params: NodePairVerifyParams; result: NodePairVerifyResult };
+  "node.rename": { params: NodeRenameParams; result: NodeRenameResult };
 }
 
 export type GatewayMethodName = keyof GatewayMethodMap;
