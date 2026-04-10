@@ -1,9 +1,12 @@
 "use client";
 
-import { Plus, Trash2, Bot } from "lucide-react";
+import { Bot, Copy, Plus, Square, SquareCheck, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { BatchActionBar } from "@/components/lists/BatchActionBar";
 import { useAgentsStore } from "@/stores/agents";
+import { useNotificationsStore } from "@/stores/notifications";
+import { buildAgentBatchExportText, summarizeAgents } from "./agent-batch-actions";
 
 const STATUS_COLORS: Record<string, string> = {
   idle: "var(--status-connected)",
@@ -18,16 +21,26 @@ export function AgentList() {
   const {
     agents,
     selectedAgentId,
+    selectedIds,
     defaultAgentId,
     loading,
     selectAgent,
     createAgent,
     deleteAgent,
+    toggleSelected,
+    clearSelection,
+    selectAll,
   } = useAgentsStore();
 
   const [showDialog, setShowDialog] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const addToast = useNotificationsStore((s) => s.addToast);
+  const selectedAgents = useMemo(
+    () => agents.filter((agent) => selectedIds.has(agent.id)),
+    [agents, selectedIds],
+  );
+  const batchSummary = summarizeAgents(selectedAgents);
 
   const handleCreate = async () => {
     const name = newName.trim();
@@ -47,6 +60,12 @@ export function AgentList() {
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     await deleteAgent(id);
+  };
+
+  const handleBatchExport = async () => {
+    const text = buildAgentBatchExportText(selectedAgents);
+    await navigator.clipboard.writeText(text);
+    addToast("success", t("batchCopied"), 3000);
   };
 
   return (
@@ -113,6 +132,36 @@ export function AgentList() {
 
       {/* Agent list */}
       <div className="flex-1 overflow-y-auto">
+        <div className="p-2">
+          <BatchActionBar
+            selectedIds={selectedIds}
+            selectedItems={selectedAgents}
+            isAllSelected={agents.length > 0 && selectedIds.size === agents.length}
+            isPartialSelected={selectedIds.size > 0 && selectedIds.size < agents.length}
+            onSelectAll={selectAll}
+            onClearSelection={clearSelection}
+            actions={() => (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void handleBatchExport()}
+                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium text-[var(--foreground)] border"
+                  style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}
+                >
+                  <Copy size={12} />
+                  {t("batchExport")}
+                </button>
+                <span className="text-[10px] text-[var(--muted-foreground)]">
+                  {t("batchSummary", {
+                    total: batchSummary.total,
+                    idle: batchSummary.byStatus.idle ?? 0,
+                    busy: batchSummary.byStatus.busy ?? 0,
+                  })}
+                </span>
+              </>
+            )}
+          />
+        </div>
         {loading && agents.length === 0 && (
           <div className="p-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
             {tc("loading")}
@@ -133,6 +182,18 @@ export function AgentList() {
               }}
             >
               <div className="flex items-center gap-2 min-w-0">
+                <span
+                  role="checkbox"
+                  aria-checked={selectedIds.has(agent.id)}
+                  aria-label={`Select agent ${agent.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelected(agent.id);
+                  }}
+                  className="shrink-0 text-[var(--primary)]"
+                >
+                  {selectedIds.has(agent.id) ? <SquareCheck size={14} /> : <Square size={14} />}
+                </span>
                 <Bot size={14} className="shrink-0" />
                 <div className="flex flex-col items-start min-w-0">
                   <span className="truncate w-full text-left">{agent.name}</span>

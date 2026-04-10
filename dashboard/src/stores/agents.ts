@@ -12,6 +12,7 @@ const statusSet: Record<string, true> = { idle: true, busy: true, error: true, o
 interface AgentsState {
   agents: Agent[];
   selectedAgentId: string | null;
+  selectedIds: Set<string>;
   /** The default (main) agent ID returned by Gateway. */
   defaultAgentId: string | null;
   /** Pending tab hint consumed by AgentDetail on navigation. */
@@ -22,6 +23,9 @@ interface AgentsState {
 
   setAgents: (agents: Agent[]) => void;
   selectAgent: (id: string | null) => void;
+  toggleSelected: (id: string) => void;
+  clearSelection: () => void;
+  selectAll: () => void;
   setPendingTab: (tab: string | null) => void;
   setCompareAgentId: (id: string | null) => void;
   updateAgent: (id: string, patch: Partial<Agent>) => void;
@@ -35,6 +39,7 @@ interface AgentsState {
 export const useAgentsStore = create<AgentsState>((set, get) => ({
   agents: [],
   selectedAgentId: null,
+  selectedIds: new Set(),
   defaultAgentId: null,
   pendingTab: null,
   compareAgentId: null,
@@ -42,6 +47,16 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
 
   setAgents: (agents) => set({ agents }),
   selectAgent: (selectedAgentId) => set({ selectedAgentId }),
+  toggleSelected: (id) =>
+    set((state) => {
+      const next = new Set(state.selectedIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { selectedIds: next };
+    }),
+  clearSelection: () => set({ selectedIds: new Set() }),
+  selectAll: () =>
+    set((state) => ({ selectedIds: new Set(state.agents.map((agent) => agent.id)) })),
   setPendingTab: (pendingTab) => set({ pendingTab }),
   setCompareAgentId: (compareAgentId) => set({ compareAgentId }),
   updateAgent: (id, patch) =>
@@ -74,7 +89,13 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
           : "idle") as Agent["status"],
       }));
       const defaultAgentId = typeof data?.defaultId === "string" ? data.defaultId : null;
-      set({ agents: list, defaultAgentId });
+      set((state) => ({
+        agents: list,
+        defaultAgentId,
+        selectedIds: new Set(
+          [...state.selectedIds].filter((id) => list.some((agent) => agent.id === id)),
+        ),
+      }));
     } finally {
       set({ loading: false });
     }
@@ -100,6 +121,11 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
       if (selectedAgentId === id) {
         set({ selectedAgentId: null });
       }
+      set((state) => {
+        const next = new Set(state.selectedIds);
+        next.delete(id);
+        return { selectedIds: next };
+      });
       await get().fetchAgents();
     }
   },
