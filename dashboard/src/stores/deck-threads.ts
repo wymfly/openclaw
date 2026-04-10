@@ -25,11 +25,13 @@ interface ThreadsState {
   threads: ThreadEntry[];
   loading: boolean;
   error: string | null;
+  selectedThreadId: string | null;
   filterAgent: string;
   filterChannel: string;
   filterStatus: "active" | "all";
 
   fetchThreads: () => Promise<void>;
+  selectThread: (threadId: string | null) => void;
   setFilterAgent: (agentId: string) => void;
   setFilterChannel: (channel: string) => void;
   setFilterStatus: (status: "active" | "all") => void;
@@ -41,6 +43,7 @@ export const useThreadsStore = create<ThreadsState>((set, get) => ({
   threads: [],
   loading: false,
   error: null,
+  selectedThreadId: null,
   filterAgent: "",
   filterChannel: "",
   filterStatus: "active",
@@ -67,13 +70,26 @@ export const useThreadsStore = create<ThreadsState>((set, get) => ({
         return;
       }
       const data = await res.json();
-      set({ threads: Array.isArray(data.threads) ? data.threads : [] });
+      const threads: ThreadEntry[] = Array.isArray(data.threads) ? data.threads : [];
+      set((state) => {
+        const selectedStillExists = threads.some(
+          (thread) => thread.threadId === state.selectedThreadId,
+        );
+        return {
+          threads,
+          selectedThreadId: selectedStillExists
+            ? state.selectedThreadId
+            : (threads[0]?.threadId ?? null),
+        };
+      });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "Failed to fetch threads" });
     } finally {
       set({ loading: false });
     }
   },
+
+  selectThread: (selectedThreadId) => set({ selectedThreadId }),
 
   setFilterAgent: (agentId) => {
     set({ filterAgent: agentId });

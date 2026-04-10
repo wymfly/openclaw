@@ -50,7 +50,7 @@ function relativeTime(
 export function ThreadList() {
   const t = useTranslations("threads");
   const tc = useTranslations("common");
-  const { threads, loading } = useThreadsStore();
+  const { threads, loading, selectedThreadId, selectThread } = useThreadsStore();
 
   const sorted = useMemo(
     () => [...threads].toSorted((a, b) => b.lastActivityAt - a.lastActivityAt),
@@ -101,11 +101,17 @@ export function ThreadList() {
       {/* Rows */}
       <div className="flex-1 overflow-y-auto">
         {sorted.map((thread: ThreadEntry) => (
-          <div
+          <button
             key={thread.threadId}
-            className="grid grid-cols-6 gap-2 px-3 py-2 text-xs border-b transition-colors"
+            type="button"
+            onClick={() => selectThread(thread.threadId)}
+            className="grid w-full grid-cols-6 gap-2 px-3 py-2 text-xs border-b text-left transition-colors hover:bg-[var(--muted)]"
             style={{
               borderColor: "var(--border-subtle)",
+              backgroundColor:
+                selectedThreadId === thread.threadId
+                  ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                  : "transparent",
               color: "var(--foreground)",
             }}
           >
@@ -142,7 +148,7 @@ export function ThreadList() {
             <span style={{ color: "var(--text-tertiary)" }}>
               {relativeTime(thread.lastActivityAt, t)}
             </span>
-          </div>
+          </button>
         ))}
       </div>
     </div>

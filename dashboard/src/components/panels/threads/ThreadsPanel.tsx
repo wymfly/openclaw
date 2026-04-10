@@ -2,9 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { PanelEmptyState } from "@/components/ui/panel-empty-state";
 import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useThreadsStore } from "@/stores/deck-threads";
+import { ThreadDetail } from "./ThreadDetail";
 import { ThreadList } from "./ThreadList";
 
 export function ThreadsPanel() {
@@ -16,6 +18,8 @@ export function ThreadsPanel() {
     filterAgent,
     filterChannel,
     filterStatus,
+    selectedThreadId,
+    threads,
     fetchThreads,
     setFilterAgent,
     setFilterChannel,
@@ -110,8 +114,27 @@ export function ThreadsPanel() {
 
       {/* Content */}
       <div className="flex-1 overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
-        {loading && <PanelSkeleton variant="list" />}
-        {!loading && <ThreadList />}
+        {loading ? (
+          <PanelSkeleton variant="list" />
+        ) : (
+          <div className="flex h-full">
+            <div
+              className="w-[38%] min-w-[260px] border-r"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <ThreadList />
+            </div>
+            <div className="flex-1 min-w-0">
+              {threads.length === 0 ? (
+                <PanelEmptyState title={t("noThreads")} description={t("diagnosticsDescription")} />
+              ) : (
+                <ThreadDetail
+                  thread={threads.find((thread) => thread.threadId === selectedThreadId) ?? null}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
