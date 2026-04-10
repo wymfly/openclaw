@@ -3,17 +3,22 @@
 import { Check, Pencil, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { useNodesStore, type NodeSummary } from "@/stores/nodes";
+import { Badge } from "@/components/ui/badge";
+import { useNodesStore, type NodeSummary, type PairingRequest } from "@/stores/nodes";
+import { getNodeLifecycleSummary } from "./node-lifecycle";
 
 interface NodeCardProps {
   node: NodeSummary;
+  pendingRequest?: PairingRequest | null;
+  describing?: boolean;
 }
 
-export function NodeCard({ node }: NodeCardProps) {
+export function NodeCard({ node, pendingRequest = null, describing = false }: NodeCardProps) {
   const t = useTranslations("nodes");
   const renameNode = useNodesStore((s) => s.renameNode);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState(node.displayName ?? "");
+  const lifecycle = getNodeLifecycleSummary(node, pendingRequest);
 
   const handleRename = async () => {
     const trimmed = newName.trim();
@@ -93,11 +98,70 @@ export function NodeCard({ node }: NodeCardProps) {
         </div>
         <div className="flex items-center gap-2 mt-1 ml-4">
           <StatusBadge connected={node.connected} paired={node.paired} />
+          {pendingRequest && (
+            <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
+              {pendingRequest.isRepair ? t("requestKindRepair") : t("requestKindPending")}
+            </Badge>
+          )}
           {node.platform && (
             <span className="text-[10px] text-[var(--text-tertiary)]">{node.platform}</span>
           )}
         </div>
       </div>
+
+      <section
+        className="rounded-lg border p-3 space-y-3"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
+      >
+        <div>
+          <h4 className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
+            {t("diagnosticsTitle")}
+          </h4>
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+            {t("diagnosticsDescription")}
+          </p>
+        </div>
+
+        <div
+          className="rounded-md px-3 py-2"
+          style={{
+            backgroundColor:
+              lifecycle.tone === "success" ? "var(--success-muted)" : "var(--warning-muted)",
+            color:
+              lifecycle.tone === "success"
+                ? "var(--success-muted-text)"
+                : "var(--warning-muted-text)",
+          }}
+        >
+          <p className="text-xs font-semibold">{t(lifecycle.titleKey)}</p>
+          <p className="mt-1 text-xs">{t(lifecycle.descriptionKey)}</p>
+        </div>
+
+        {describing && (
+          <p className="text-xs text-[var(--muted-foreground)]">{t("loadingDetail")}</p>
+        )}
+
+        {pendingRequest && (
+          <div className="rounded-md border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
+              {t("lifecycleCurrentRequest")}
+            </p>
+            <p className="mt-1 text-xs font-medium text-[var(--foreground)]">
+              {pendingRequest.isRepair ? t("requestKindRepair") : t("requestKindPending")}
+            </p>
+            <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">
+              {t("lifecycleRequestedAt")}: {new Date(pendingRequest.ts).toLocaleString()}
+            </p>
+          </div>
+        )}
+
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
+            {t("lifecycleNextStepLabel")}
+          </p>
+          <p className="mt-1 text-xs text-[var(--foreground)]">{t(lifecycle.nextStepKey)}</p>
+        </div>
+      </section>
 
       {/* Info grid */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-2">

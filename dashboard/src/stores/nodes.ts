@@ -35,8 +35,10 @@ export interface PairingRequest {
 
 interface NodesState {
   nodes: NodeSummary[];
+  nodeDetails: Record<string, NodeSummary>;
   pairingRequests: PairingRequest[];
   selectedNodeId: string | null;
+  describingNodeId: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -53,8 +55,10 @@ interface NodesActions {
 
 export const useNodesStore = create<NodesState & NodesActions>((set, get) => ({
   nodes: [],
+  nodeDetails: {},
   pairingRequests: [],
   selectedNodeId: null,
+  describingNodeId: null,
   loading: false,
   error: null,
 
@@ -68,7 +72,15 @@ export const useNodesStore = create<NodesState & NodesActions>((set, get) => ({
         return;
       }
       const data = (await res.json()) as { nodes?: NodeSummary[] };
-      set({ nodes: data.nodes ?? [], loading: false });
+      const nodes = data.nodes ?? [];
+      set((state) => {
+        const selectedStillExists = nodes.some((node) => node.nodeId === state.selectedNodeId);
+        return {
+          nodes,
+          selectedNodeId: selectedStillExists ? state.selectedNodeId : (nodes[0]?.nodeId ?? null),
+          loading: false,
+        };
+      });
     } catch (err) {
       set({ loading: false, error: err instanceof Error ? err.message : "Unknown error" });
     }
@@ -90,6 +102,7 @@ export const useNodesStore = create<NodesState & NodesActions>((set, get) => ({
   selectNode: (id) => set({ selectedNodeId: id }),
 
   describeNode: async (nodeId) => {
+    set({ describingNodeId: nodeId });
     try {
       const res = await fetch("/api/nodes", {
         method: "POST",
@@ -99,9 +112,17 @@ export const useNodesStore = create<NodesState & NodesActions>((set, get) => ({
       if (!res.ok) {
         return null;
       }
-      return (await res.json()) as NodeSummary;
+      const detail = (await res.json()) as NodeSummary;
+      set((state) => ({
+        nodeDetails: { ...state.nodeDetails, [nodeId]: detail },
+      }));
+      return detail;
     } catch {
       return null;
+    } finally {
+      set((state) => ({
+        describingNodeId: state.describingNodeId === nodeId ? null : state.describingNodeId,
+      }));
     }
   },
 
@@ -114,6 +135,9 @@ export const useNodesStore = create<NodesState & NodesActions>((set, get) => ({
       });
       if (res.ok) {
         await get().fetchNodes();
+        if (get().selectedNodeId === nodeId) {
+          await get().describeNode(nodeId);
+        }
         return true;
       }
       return false;
@@ -131,6 +155,9 @@ export const useNodesStore = create<NodesState & NodesActions>((set, get) => ({
       });
       if (res.ok) {
         await Promise.all([get().fetchNodes(), get().fetchPairing()]);
+        if (get().selectedNodeId) {
+          await get().describeNode(get().selectedNodeId!);
+        }
         return true;
       }
       return false;
@@ -148,6 +175,9 @@ export const useNodesStore = create<NodesState & NodesActions>((set, get) => ({
       });
       if (res.ok) {
         await get().fetchPairing();
+        if (get().selectedNodeId) {
+          await get().describeNode(get().selectedNodeId!);
+        }
         return true;
       }
       return false;

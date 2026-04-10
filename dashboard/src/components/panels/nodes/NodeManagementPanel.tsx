@@ -14,19 +14,29 @@ export default function NodeManagementPanel() {
   const t = useTranslations("nodes");
   const {
     nodes,
+    nodeDetails,
     pairingRequests,
     selectedNodeId,
+    describingNodeId,
     loading,
     error,
     fetchNodes,
     fetchPairing,
     selectNode,
+    describeNode,
   } = useNodesStore();
 
   useEffect(() => {
     void fetchNodes();
     void fetchPairing();
   }, [fetchNodes, fetchPairing]);
+
+  useEffect(() => {
+    if (!selectedNodeId || nodeDetails[selectedNodeId]) {
+      return;
+    }
+    void describeNode(selectedNodeId);
+  }, [describeNode, nodeDetails, selectedNodeId]);
 
   if (loading && nodes.length === 0) {
     return <PanelSkeleton variant="list" />;
@@ -44,7 +54,11 @@ export default function NodeManagementPanel() {
     );
   }
 
-  const selectedNode = nodes.find((n) => n.nodeId === selectedNodeId);
+  const selectedNodeSummary = nodes.find((n) => n.nodeId === selectedNodeId) ?? null;
+  const selectedNode = selectedNodeId ? (nodeDetails[selectedNodeId] ?? selectedNodeSummary) : null;
+  const selectedRequest = selectedNodeId
+    ? (pairingRequests.find((request) => request.nodeId === selectedNodeId) ?? null)
+    : null;
 
   return (
     <div className="flex h-full">
@@ -118,7 +132,11 @@ export default function NodeManagementPanel() {
       {/* Right: detail */}
       <div className="flex-1 overflow-y-auto">
         {selectedNode ? (
-          <NodeCard node={selectedNode} />
+          <NodeCard
+            node={selectedNode}
+            pendingRequest={selectedRequest}
+            describing={describingNodeId === selectedNode.nodeId}
+          />
         ) : (
           <div className="flex items-center justify-center h-full text-xs text-[var(--muted-foreground)]">
             {t("selectNode")}
