@@ -11,11 +11,8 @@ export type { DeckRuntime, InitRuntimeSettings } from "./runtime";
 export { EventBus, getEventBus } from "./event-bus";
 export type { ServerEvent, ServerEventSubscriber, DeckEventType } from "./event-bus";
 
-// Database
-export { getDb, openDb } from "./db";
-
-// Projection Store
-export { ProjectionStore, getProjectionStore } from "./projection-store";
+// Settings Store
+export { getSetting, setSetting, getDeckSettings } from "./deck-settings";
 
 // Gateway Adapter
 export { OpenClawGatewayAdapter } from "./gateway-adapter";

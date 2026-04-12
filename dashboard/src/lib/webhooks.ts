@@ -1,16 +1,14 @@
 /**
  * Webhook delivery engine — HMAC-SHA256 signing + exponential backoff retry.
  *
- * Transplanted from Mission Control, adapted for openclaw-deck:
- * - Single-instance (no workspace_id)
+ * Uses JSON file storage via JsonStore for webhook configs and delivery logs.
  * - Header: X-Signature-256 (per OpenSpec)
  * - User-Agent: OpenClaw-Deck-Webhook/1.0
  * - Backoff: 1s/2s/4s/8s/16s (per OpenSpec)
- * - DB passed as parameter (no lazy import)
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { Database } from "@server/db";
+import { getJsonStore } from "@server/json-store";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -21,9 +19,30 @@ export interface Webhook {
   name: string;
   url: string;
   secret: string | null;
-  events: string; // JSON array
-  enabled: number;
-  consecutive_failures: number;
+  events: string[];
+  enabled: boolean;
+  consecutiveFailures: number;
+  lastFiredAt: string | null;
+  lastStatus: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  webhookId: string;
+  eventType: string;
+  payload: string;
+  statusCode: number | null;
+  responseBody: string | null;
+  error: string | null;
+  durationMs: number;
+  attempt: number;
+  isRetry: boolean;
+  parentDeliveryId: string | null;
+  success: boolean;
+  nextRetryAt: number | null;
+  createdAt: string;
 }
 
 export interface DeliverOpts {
@@ -51,7 +70,19 @@ const BACKOFF_SECONDS = [1, 2, 4, 8, 16];
 const MAX_RETRIES = 5;
 const DELIVERY_TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BODY_LENGTH = 1000;
-const DELIVERY_PRUNE_KEEP = 200;
+const MAX_DELIVERIES = 500;
+
+// ---------------------------------------------------------------------------
+// Store accessors
+// ---------------------------------------------------------------------------
+
+export function getWebhookStore() {
+  return getJsonStore<Webhook[]>("webhooks", []);
+}
+
+export function getDeliveryStore() {
+  return getJsonStore<WebhookDelivery[]>("webhook-deliveries", []);
+}
 
 // ---------------------------------------------------------------------------
 // Core functions
@@ -109,11 +140,10 @@ export function signPayload(secret: string, body: string): string {
 
 /**
  * Deliver a webhook event to the configured URL.
- * Logs the delivery to the webhook_deliveries table and handles
+ * Logs the delivery to the deliveries store and handles
  * retry scheduling + circuit breaker logic.
  */
 export async function deliverWebhook(
-  db: Database,
   webhook: Webhook,
   eventType: string,
   payload: Record<string, unknown>,
@@ -168,61 +198,66 @@ export async function deliverWebhook(
   const durationMs = Date.now() - start;
   const success = statusCode !== null && statusCode >= 200 && statusCode < 300;
   const deliveryId = `wd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
 
-  // Log delivery attempt and handle retry/circuit-breaker logic
+  // Log delivery attempt
   try {
-    db.prepare(`
-      INSERT INTO webhook_deliveries (id, webhook_id, event_type, payload, status_code, response_body, error, duration_ms, attempt, is_retry, parent_delivery_id, success)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      deliveryId,
-      webhook.id,
+    const delivery: WebhookDelivery = {
+      id: deliveryId,
+      webhookId: webhook.id,
       eventType,
-      body,
+      payload: body,
       statusCode,
       responseBody,
       error,
       durationMs,
       attempt,
-      attempt > 0 ? 1 : 0,
+      isRetry: attempt > 0,
       parentDeliveryId,
-      success ? 1 : 0,
-    );
+      success,
+      nextRetryAt: null,
+      createdAt: now,
+    };
+
+    const deliveryStore = getDeliveryStore();
+    deliveryStore.append(delivery);
 
     // Update webhook last_fired
-    db.prepare(`
-      UPDATE webhooks SET last_fired_at = datetime('now'), last_status = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(statusCode ?? -1, webhook.id);
+    const webhookStore = getWebhookStore();
+    webhookStore.updateItem(
+      (w) => w.id === webhook.id,
+      (w) => ({ ...w, lastFiredAt: now, lastStatus: statusCode ?? -1, updatedAt: now }),
+    );
 
     // Circuit breaker + retry scheduling (skip for test deliveries)
     if (allowRetry) {
       if (success) {
-        // Reset consecutive failures on success
-        db.prepare("UPDATE webhooks SET consecutive_failures = 0 WHERE id = ?").run(webhook.id);
+        webhookStore.updateItem(
+          (w) => w.id === webhook.id,
+          (w) => ({ ...w, consecutiveFailures: 0 }),
+        );
       } else {
-        // Increment consecutive failures
-        db.prepare(
-          "UPDATE webhooks SET consecutive_failures = consecutive_failures + 1 WHERE id = ?",
-        ).run(webhook.id);
+        webhookStore.updateItem(
+          (w) => w.id === webhook.id,
+          (w) => ({ ...w, consecutiveFailures: w.consecutiveFailures + 1 }),
+        );
 
         if (attempt < MAX_RETRIES - 1) {
           // Schedule retry
           const delaySec = nextRetryDelay(attempt);
           const nextRetryAt = Math.floor(Date.now() / 1000) + delaySec;
-          db.prepare("UPDATE webhook_deliveries SET next_retry_at = ? WHERE id = ?").run(
-            nextRetryAt,
-            deliveryId,
+          deliveryStore.updateItem(
+            (d) => d.id === deliveryId,
+            (d) => ({ ...d, nextRetryAt }),
           );
         } else {
           // Exhausted retries — trip circuit breaker
-          const wh = db
-            .prepare("SELECT consecutive_failures FROM webhooks WHERE id = ?")
-            .get(webhook.id) as { consecutive_failures: number } | undefined;
-          if (wh && wh.consecutive_failures >= MAX_RETRIES) {
-            db.prepare(
-              "UPDATE webhooks SET enabled = 0, updated_at = datetime('now') WHERE id = ?",
-            ).run(webhook.id);
+          const wh = webhookStore.find((w) => w.id === webhook.id);
+          if (wh && wh.consecutiveFailures >= MAX_RETRIES) {
+            webhookStore.updateItem(
+              (w) => w.id === webhook.id,
+              (w) => ({ ...w, enabled: false, updatedAt: new Date().toISOString() }),
+            );
             console.warn(
               `[Webhook] Circuit breaker tripped — disabled webhook ${webhook.id} (${webhook.name}) after exhausting retries`,
             );
@@ -231,13 +266,8 @@ export async function deliverWebhook(
       }
     }
 
-    // Prune old deliveries (keep last N per webhook)
-    db.prepare(`
-      DELETE FROM webhook_deliveries
-      WHERE webhook_id = ? AND id NOT IN (
-        SELECT id FROM webhook_deliveries WHERE webhook_id = ? ORDER BY created_at DESC LIMIT ?
-      )
-    `).run(webhook.id, webhook.id, DELIVERY_PRUNE_KEEP);
+    // Truncate deliveries to keep last MAX_DELIVERIES
+    deliveryStore.truncate(MAX_DELIVERIES);
   } catch (logErr) {
     console.error("[Webhook] delivery logging/pruning failed:", logErr);
   }
@@ -258,65 +288,38 @@ export async function deliverWebhook(
 
 /**
  * Process pending webhook retries. Called by the scheduler.
- * Picks up deliveries where next_retry_at has passed and re-delivers them.
+ * Picks up deliveries where nextRetryAt has passed and re-delivers them.
  */
-export async function processWebhookRetries(
-  db: Database,
-): Promise<{ ok: boolean; message: string }> {
+export async function processWebhookRetries(): Promise<{ ok: boolean; message: string }> {
   try {
     const now = Math.floor(Date.now() / 1000);
+    const deliveryStore = getDeliveryStore();
+    const webhookStore = getWebhookStore();
 
-    // Find deliveries ready for retry (limit batch to 50)
-    const pendingRetries = db
-      .prepare(
-        `
-      SELECT wd.id, wd.webhook_id, wd.event_type, wd.payload, wd.attempt,
-             w.id as w_id, w.name as w_name, w.url as w_url, w.secret as w_secret,
-             w.events as w_events, w.enabled as w_enabled, w.consecutive_failures as w_consecutive_failures
-      FROM webhook_deliveries wd
-      JOIN webhooks w ON w.id = wd.webhook_id AND w.enabled = 1
-      WHERE wd.next_retry_at IS NOT NULL AND wd.next_retry_at <= ?
-      LIMIT 50
-    `,
-      )
-      .all(now) as Array<{
-      id: string;
-      webhook_id: string;
-      event_type: string;
-      payload: string;
-      attempt: number;
-      w_id: string;
-      w_name: string;
-      w_url: string;
-      w_secret: string | null;
-      w_events: string;
-      w_enabled: number;
-      w_consecutive_failures: number;
-    }>;
+    // Find deliveries ready for retry
+    const allDeliveries = deliveryStore.get();
+    const pendingRetries = allDeliveries
+      .filter((d) => d.nextRetryAt !== null && d.nextRetryAt <= now)
+      .slice(0, 50);
 
     if (pendingRetries.length === 0) {
       return { ok: true, message: "No pending retries" };
     }
 
-    // Clear next_retry_at immediately to prevent double-processing
-    const clearStmt = db.prepare("UPDATE webhook_deliveries SET next_retry_at = NULL WHERE id = ?");
-    for (const row of pendingRetries) {
-      clearStmt.run(row.id);
-    }
+    // Clear nextRetryAt to prevent double-processing
+    const retryIds = new Set(pendingRetries.map((d) => d.id));
+    deliveryStore.update((all) =>
+      all.map((d) => (retryIds.has(d.id) ? { ...d, nextRetryAt: null } : d)),
+    );
 
     // Re-deliver each
     let succeeded = 0;
     let failed = 0;
     for (const row of pendingRetries) {
-      const webhook: Webhook = {
-        id: row.w_id,
-        name: row.w_name,
-        url: row.w_url,
-        secret: row.w_secret,
-        events: row.w_events,
-        enabled: row.w_enabled,
-        consecutive_failures: row.w_consecutive_failures,
-      };
+      const webhook = webhookStore.find((w) => w.id === row.webhookId && w.enabled);
+      if (!webhook) {
+        continue;
+      }
 
       // Parse the original payload from the stored JSON body
       let parsedPayload: Record<string, unknown>;
@@ -327,7 +330,7 @@ export async function processWebhookRetries(
         parsedPayload = {};
       }
 
-      const result = await deliverWebhook(db, webhook, row.event_type, parsedPayload, {
+      const result = await deliverWebhook(webhook, row.eventType, parsedPayload, {
         attempt: row.attempt + 1,
         parentDeliveryId: row.id,
         allowRetry: true,
@@ -356,34 +359,24 @@ export async function processWebhookRetries(
 
 /**
  * Fire all matching webhooks for an event type.
- * Queries enabled webhooks whose `events` JSON array includes the event type or '*'.
+ * Queries enabled webhooks whose events array includes the event type or '*'.
  */
 export async function fireWebhooks(
-  db: Database,
   eventType: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  let webhooks: Webhook[];
-  try {
-    webhooks = db.prepare("SELECT * FROM webhooks WHERE enabled = 1").all() as unknown as Webhook[];
-  } catch {
-    return; // DB not ready or table doesn't exist yet
-  }
+  const webhookStore = getWebhookStore();
+  const webhooks = webhookStore.get();
 
-  if (webhooks.length === 0) {
+  const matchingWebhooks = webhooks.filter(
+    (wh) => wh.enabled && (wh.events.includes("*") || wh.events.includes(eventType)),
+  );
+
+  if (matchingWebhooks.length === 0) {
     return;
   }
 
-  const matchingWebhooks = webhooks.filter((wh) => {
-    try {
-      const events: string[] = JSON.parse(wh.events);
-      return events.includes("*") || events.includes(eventType);
-    } catch {
-      return false;
-    }
-  });
-
   await Promise.allSettled(
-    matchingWebhooks.map((wh) => deliverWebhook(db, wh, eventType, payload, { allowRetry: true })),
+    matchingWebhooks.map((wh) => deliverWebhook(wh, eventType, payload, { allowRetry: true })),
   );
 }

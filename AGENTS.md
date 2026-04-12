@@ -414,6 +414,18 @@ git push --force-with-lease origin enhanced
 设计文档：`docs/plans/2026-02-28-openclaw-migration-design.md`
 实施计划：`docs/plans/2026-02-28-openclaw-migration-plan.md`
 
+### Deck 客户端三层架构定位
+
+| 层             | 数据源                                   | 核心工作                                 | 典型模块                              |
+| -------------- | ---------------------------------------- | ---------------------------------------- | ------------------------------------- |
+| **实时交互层** | Gateway RPC（WebSocket/SSE）             | 渲染优化、流式响应、状态同步             | Chat、Session、Agent 运行态           |
+| **配置管理层** | `openclaw.json`（通过 Gateway RPC 读写） | 对齐源码校验逻辑，设计交互友好的配置界面 | Models、Channels、Hooks、Agent 配置   |
+| **状态监控层** | Gateway RPC（只读）                      | 可视化展示运行状态                       | Device 状态、Channel 连接、Usage 统计 |
+
+- 实时交互层：后端逻辑已成熟，Deck 专注前端体验（消息渲染、流式加载、键盘快捷键等）
+- 配置管理层：必须深入理解源码中的校验规则、字段依赖、默认值逻辑，才能设计正确的表单约束和交互引导
+- 状态监控层：纯读取展示，关注数据刷新频率和可视化效果
+
 ### Deck 开发环境
 
 **强制规则：Gateway 必须从本地源码运行，不得使用全局安装的 `openclaw` 命令。**

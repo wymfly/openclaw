@@ -1,32 +1,19 @@
 /**
  * Alert Engine — evaluates alert rules against EventBus events and fires notifications.
  *
- * Subscribes to EventBus events, checks matching alert_rules from SQLite,
+ * Subscribes to EventBus events, checks matching alert rules from JSON store,
  * evaluates cooldown, fires actions (toast/activity/webhook), and creates
  * activity feed entries.
  */
 
-import type { Database } from "@server/db";
+import { getAlertRuleStore, type AlertRule } from "./budget-alert-stores";
 import type { EventBus, ServerEvent } from "./event-bus";
 import type { DeckRuntime } from "./runtime";
 
 // ---------------------------------------------------------------------------
-// Types
+// Map EventBus event types to alert entity types
 // ---------------------------------------------------------------------------
 
-type AlertRuleRow = {
-  id: string;
-  name: string;
-  entity_type: string;
-  condition: string;
-  threshold: number;
-  action: string;
-  cooldown_ms: number;
-  last_fired_at: string | null;
-  enabled: number;
-};
-
-// Map EventBus event types to alert entity types
 const EVENT_TO_ENTITY: Record<string, string> = {
   "budget.warn": "usage",
   "budget.over": "usage",
@@ -47,7 +34,6 @@ function extractEventValue(data: unknown): number {
     return 0;
   }
   const d = data as Record<string, unknown>;
-  // Try common numeric fields
   if (typeof d.value === "number") {
     return d.value;
   }
@@ -70,12 +56,12 @@ function extractEventValue(data: unknown): number {
 }
 
 /** Check if a rule is in cooldown. */
-function isInCooldown(rule: AlertRuleRow, now: number): boolean {
-  if (!rule.last_fired_at) {
+function isInCooldown(rule: AlertRule, now: number): boolean {
+  if (!rule.lastFiredAt) {
     return false;
   }
-  const lastFired = new Date(rule.last_fired_at).getTime();
-  return now - lastFired < rule.cooldown_ms;
+  const lastFired = new Date(rule.lastFiredAt).getTime();
+  return now - lastFired < rule.cooldownMs;
 }
 
 /** Determine severity based on entity type and threshold proximity. */
@@ -98,7 +84,7 @@ function determineSeverity(
 }
 
 // ---------------------------------------------------------------------------
-// F11: Condition evaluation
+// Condition evaluation
 // ---------------------------------------------------------------------------
 
 /** Evaluate a condition operator against value and threshold. */
@@ -116,9 +102,7 @@ function evaluateCondition(value: number, condition: string, threshold: number):
       return value === threshold;
     case "!=":
       return value !== threshold;
-    // "contains" removed — semantically broken for numeric comparisons (L2 review P1)
     default:
-      // Backward compat: unrecognized conditions (e.g. "cost > 100") default to >=
       return value >= threshold;
   }
 }
@@ -127,26 +111,14 @@ function evaluateCondition(value: number, condition: string, threshold: number):
 // Engine
 // ---------------------------------------------------------------------------
 
-function handleEvent(
-  event: ServerEvent,
-  db: Database,
-  eventBus: EventBus,
-  store: DeckRuntime["store"],
-): void {
+function handleEvent(event: ServerEvent, eventBus: EventBus): void {
   const entityType = EVENT_TO_ENTITY[event.type];
   if (!entityType) {
     return;
   }
 
-  // Fetch matching enabled rules
-  let rules: AlertRuleRow[];
-  try {
-    rules = db
-      .prepare("SELECT * FROM alert_rules WHERE entity_type = ? AND enabled = 1")
-      .all(entityType) as AlertRuleRow[];
-  } catch {
-    return; // Table may not exist yet
-  }
+  const store = getAlertRuleStore();
+  const rules = store.get().filter((r) => r.entityType === entityType && r.enabled);
 
   if (rules.length === 0) {
     return;
@@ -156,23 +128,21 @@ function handleEvent(
   const value = extractEventValue(event.data);
 
   for (const rule of rules) {
-    // F11: Use evaluateCondition instead of hardcoded >= check
     if (!evaluateCondition(value, rule.condition, rule.threshold)) {
       continue;
     }
 
-    // Check cooldown
     if (isInCooldown(rule, now)) {
       continue;
     }
 
     // --- Rule triggered ---
-    const severity = determineSeverity(rule.entity_type, value, rule.threshold);
+    const severity = determineSeverity(rule.entityType, value, rule.threshold);
     const firedPayload = {
       id: `af-${now}-${Math.random().toString(36).slice(2, 8)}`,
       ruleId: rule.id,
       ruleName: rule.name,
-      entityType: rule.entity_type,
+      entityType: rule.entityType,
       condition: rule.condition,
       threshold: rule.threshold,
       actualValue: value,
@@ -180,30 +150,25 @@ function handleEvent(
       timestamp: now,
     };
 
-    // Update last_fired_at
-    try {
-      db.prepare(
-        "UPDATE alert_rules SET last_fired_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
-      ).run(rule.id);
-    } catch {
-      // Non-critical
-    }
+    // Update lastFiredAt
+    store.updateItem(
+      (r) => r.id === rule.id,
+      (r) => ({ ...r, lastFiredAt: new Date().toISOString(), updatedAt: new Date().toISOString() }),
+    );
 
     // Fire action based on rule.action
     switch (rule.action) {
       case "toast":
         eventBus.broadcast("notification.toast", {
           title: rule.name,
-          message: `${rule.entity_type}: ${value} ${rule.condition} ${rule.threshold}`,
+          message: `${rule.entityType}: ${value} ${rule.condition} ${rule.threshold}`,
           severity,
         });
         break;
       case "webhook":
-        // Fire webhooks matching "alert.fired" event
-        void fireAlertWebhook(db, firedPayload);
+        void fireAlertWebhook(firedPayload);
         break;
       case "activity":
-        // Activity event is always created below
         break;
     }
 
@@ -216,26 +181,16 @@ function handleEvent(
       details: JSON.stringify(firedPayload),
     };
 
-    if (!eventBus.hasReplayStore()) {
-      try {
-        store.appendEvent("activity.event", activityPayload);
-      } catch {
-        // Non-critical
-      }
-    }
     eventBus.broadcast("activity.event", activityPayload);
-
-    // Broadcast alert.fired
     eventBus.broadcast("alert.fired", firedPayload);
   }
 }
 
 /** Fire webhook delivery for an alert event. */
-async function fireAlertWebhook(db: Database, payload: Record<string, unknown>): Promise<void> {
+async function fireAlertWebhook(payload: Record<string, unknown>): Promise<void> {
   try {
-    // Dynamic import to avoid circular dependency
     const { fireWebhooks } = await import("../src/lib/webhooks");
-    await fireWebhooks(db, "alert.fired", payload);
+    await fireWebhooks("alert.fired", payload);
   } catch {
     console.error("[AlertEngine] webhook delivery failed");
   }
@@ -246,11 +201,11 @@ async function fireAlertWebhook(db: Database, payload: Record<string, unknown>):
 // ---------------------------------------------------------------------------
 
 export function initAlertEngine(runtime: DeckRuntime): () => void {
-  const { db, eventBus, store } = runtime;
+  const { eventBus } = runtime;
 
   const subscriber = (event: ServerEvent) => {
     try {
-      handleEvent(event, db, eventBus, store);
+      handleEvent(event, eventBus);
     } catch (err) {
       console.error("[AlertEngine] error processing event:", err);
     }
@@ -258,7 +213,6 @@ export function initAlertEngine(runtime: DeckRuntime): () => void {
 
   eventBus.subscribe(subscriber);
 
-  // F12: Return cleanup function for HMR safety
   return () => {
     eventBus.unsubscribe(subscriber);
   };

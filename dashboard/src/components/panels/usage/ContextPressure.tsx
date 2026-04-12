@@ -2,7 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import { useSessionsStore, type SessionEntry } from "@/stores/sessions";
+import { contextPct } from "@/lib/context-utils";
+import { useSessionsStore } from "@/stores/sessions";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -17,15 +18,6 @@ function pressureColor(pct: number): string {
     return "var(--warning)";
   }
   return "var(--success)";
-}
-
-/** Compute context usage percentage (0-100). */
-function contextPct(session: SessionEntry): number {
-  if (session.contextWindow <= 0) {
-    return 0;
-  }
-  const used = session.tokensIn + session.tokensOut;
-  return Math.min(100, Math.round((used / session.contextWindow) * 100));
 }
 
 /** Truncate session key for display. */

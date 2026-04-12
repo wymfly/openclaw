@@ -2,10 +2,11 @@
  * Ed25519 device identity for Deck ↔ Gateway authentication.
  *
  * Provides keypair generation, deterministic device-ID derivation,
- * v3 signature payload construction, and SQLite persistence.
+ * v3 signature payload construction, and JSON file persistence.
  * All crypto uses Node.js built-in `crypto` — no external deps.
  */
 import crypto from "node:crypto";
+import { getJsonStore } from "./json-store";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,16 +18,14 @@ export interface DeviceIdentity {
   privateKeyPem: string;
 }
 
-/**
- * Minimal DB interface — compatible with better-sqlite3 but keeps the module
- * testable without importing the full driver.
- */
-export type DbLike = {
-  prepare(sql: string): {
-    run(...args: unknown[]): void;
-    get(...args: unknown[]): unknown;
-  };
-};
+/** Persisted device identity data (JSON file). */
+interface DeviceIdentityData {
+  deviceId: string;
+  publicKeyPem: string;
+  privateKeyPem: string;
+  deviceToken: string | null;
+  createdAtMs: number;
+}
 
 // ---------------------------------------------------------------------------
 // Base64-URL helpers (manual, no Node base64url)
@@ -192,58 +191,63 @@ export function publicKeyToBase64Url(publicKeyPem: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// SQLite persistence
+// JSON file persistence
 // ---------------------------------------------------------------------------
 
-interface DeviceIdentityRow {
-  device_id: string;
-  public_key_pem: string;
-  private_key_pem: string;
-  device_token: string | null;
-  created_at_ms: number;
+function getIdentityStore() {
+  return getJsonStore<DeviceIdentityData | null>("device-identity", null);
 }
 
 /**
- * Load the existing device identity from the database, or generate a new one
+ * Load the existing device identity from JSON, or generate a new one
  * and persist it. Returns the identity either way.
  */
-export function loadOrCreateDeviceIdentity(db: DbLike): DeviceIdentity {
-  const row = db
-    .prepare("SELECT device_id, public_key_pem, private_key_pem FROM device_identity WHERE id = 1")
-    .get() as DeviceIdentityRow | undefined;
+export function loadOrCreateDeviceIdentity(): DeviceIdentity {
+  const store = getIdentityStore();
+  const existing = store.get();
 
-  if (row) {
+  if (existing) {
     return {
-      deviceId: row.device_id,
-      publicKeyPem: row.public_key_pem,
-      privateKeyPem: row.private_key_pem,
+      deviceId: existing.deviceId,
+      publicKeyPem: existing.publicKeyPem,
+      privateKeyPem: existing.privateKeyPem,
     };
   }
 
   const identity = generateDeviceIdentity();
 
-  db.prepare(
-    "INSERT INTO device_identity (id, device_id, public_key_pem, private_key_pem, created_at_ms) VALUES (1, ?, ?, ?, ?)",
-  ).run(identity.deviceId, identity.publicKeyPem, identity.privateKeyPem, Date.now());
+  store.set({
+    deviceId: identity.deviceId,
+    publicKeyPem: identity.publicKeyPem,
+    privateKeyPem: identity.privateKeyPem,
+    deviceToken: null,
+    createdAtMs: Date.now(),
+  });
 
   return identity;
 }
 
 /** Load the stored device token (null if not yet registered). */
-export function loadDeviceToken(db: DbLike): string | null {
-  const row = db.prepare("SELECT device_token FROM device_identity WHERE id = 1").get() as
-    | Pick<DeviceIdentityRow, "device_token">
-    | undefined;
-
-  return row?.device_token ?? null;
+export function loadDeviceToken(): string | null {
+  return getIdentityStore().get()?.deviceToken ?? null;
 }
 
 /** Persist a device token received from the Gateway. */
-export function storeDeviceToken(db: DbLike, token: string): void {
-  db.prepare("UPDATE device_identity SET device_token = ? WHERE id = 1").run(token);
+export function storeDeviceToken(token: string): void {
+  const store = getIdentityStore();
+  const current = store.get();
+  if (!current) {
+    return;
+  }
+  store.set({ ...current, deviceToken: token });
 }
 
 /** Clear the stored device token (e.g. on logout / re-registration). */
-export function clearDeviceToken(db: DbLike): void {
-  db.prepare("UPDATE device_identity SET device_token = NULL WHERE id = 1").run();
+export function clearDeviceToken(): void {
+  const store = getIdentityStore();
+  const current = store.get();
+  if (!current) {
+    return;
+  }
+  store.set({ ...current, deviceToken: null });
 }

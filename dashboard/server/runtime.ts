@@ -3,7 +3,7 @@ import { initAlertEngine } from "./alert-engine";
 // P2 subsystem bridges (stubs — Phase 1 agents will implement)
 import { initApprovalBridge } from "./approval-bridge";
 import type { ControlPlaneGatewaySettings, ControlPlaneDomainEvent } from "./contracts";
-import { getDb, type Database } from "./db";
+import { getSetting } from "./deck-settings";
 import { EventBus, getEventBus } from "./event-bus";
 import type { DeckEventType } from "./event-bus";
 /**
@@ -14,10 +14,8 @@ import type { DeckEventType } from "./event-bus";
  */
 import { OpenClawGatewayAdapter } from "./gateway-adapter";
 import { initHealthPoller } from "./health-poller";
-import { ProjectionStore } from "./projection-store";
 import { createRateLimiter } from "./rate-limit";
-import { RunEventPipeline } from "./run-event-pipeline";
-import { getRunEventStore } from "./run-event-store";
+import { initRunAggregator } from "./run-aggregator";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,8 +25,6 @@ export type DeckRuntime = {
   adapter: OpenClawGatewayAdapter;
   gw: GatewayClient;
   eventBus: EventBus;
-  db: Database;
-  store: ProjectionStore;
   rateLimiter: ReturnType<typeof createRateLimiter>;
   capabilities: DeckCapabilityState;
 };
@@ -63,20 +59,19 @@ type GlobalStore = Record<string, DeckRuntime | undefined>;
 // Settings resolution
 // ---------------------------------------------------------------------------
 
-/** Resolve gateway settings from explicit params > env > DB settings table. */
+/** Resolve gateway settings from explicit params > env > JSON settings store. */
 function resolveGatewaySettings(
   settings?: InitRuntimeSettings,
-  store?: ProjectionStore,
 ): ControlPlaneGatewaySettings | null {
   const url =
     settings?.gatewayUrl ??
     process.env.DECK_GATEWAY_URL ??
-    store?.getSetting("gateway_url") ??
+    getSetting("gateway_url") ??
     null;
   const token =
     settings?.gatewayToken ??
     process.env.DECK_GATEWAY_TOKEN ??
-    store?.getSetting("gateway_token") ??
+    getSetting("gateway_token") ??
     null;
 
   if (!url || !token) {
@@ -148,7 +143,6 @@ const SESSION_EVENT_INTAKE_MAP = {
 function bridgeDomainEvent(
   event: ControlPlaneDomainEvent,
   eventBus: EventBus,
-  store?: ProjectionStore,
 ): void {
   if (event.type === "gateway.event" && "event" in event) {
     const normalizedEventType =
@@ -156,26 +150,14 @@ function bridgeDomainEvent(
     if (normalizedEventType) {
       eventBus.broadcast(normalizedEventType, event.payload);
     }
-    if (event.event === "sessions.changed" && store) {
-      const payload = event.payload as { sessionKey?: unknown; reason?: unknown } | undefined;
-      const sessionKey = typeof payload?.sessionKey === "string" ? payload.sessionKey : "";
-      const reason = typeof payload?.reason === "string" ? payload.reason : "";
-      if (
-        sessionKey &&
-        (reason === "clear" || reason === "reset" || reason === "deleted" || reason === "delete")
-      ) {
-        store.clearSessionProjections(sessionKey);
-      }
-    }
-
     const innerEvent = event.event as DeckEventType;
     if (VALID_DECK_EVENTS.has(innerEvent)) {
       // Broadcast the payload under the specific event type (e.g., "chat", "agent")
       eventBus.broadcast(innerEvent, event.payload);
 
       // Bridge agent/chat events into activity outbox.
-      if (ACTIVITY_BRIDGE_EVENTS.has(innerEvent) && store) {
-        bridgeToActivity(innerEvent, event.payload, store, eventBus);
+      if (ACTIVITY_BRIDGE_EVENTS.has(innerEvent)) {
+        bridgeToActivity(innerEvent, event.payload, eventBus);
       }
       return;
     }
@@ -195,7 +177,6 @@ function bridgeDomainEvent(
 function bridgeToActivity(
   eventType: string,
   payload: unknown,
-  store: ProjectionStore,
   eventBus: EventBus,
 ): void {
   const p = (payload ?? {}) as Record<string, unknown>;
@@ -246,14 +227,7 @@ function bridgeToActivity(
   eventBus.broadcast("activity.event", activityPayload);
 }
 
-function toReplayEvent(entry: ReturnType<ProjectionStore["getEventsSince"]>["events"][number]) {
-  return {
-    id: entry.id,
-    type: entry.eventType as DeckEventType,
-    data: entry.payload,
-    timestamp: new Date(entry.createdAt).getTime(),
-  };
-}
+// toReplayEvent removed — EventBus memory buffer replaces outbox persistence (S7).
 
 function createPendingCapabilityState(): {
   state: DeckCapabilityState;
@@ -417,15 +391,9 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
     return g[GLOBAL_KEY];
   }
 
-  const db = getDb();
-  const store = new ProjectionStore(db);
   const eventBus = getEventBus();
-  eventBus.setReplayStore({
-    appendEvent: (type, data) => store.appendEvent(type, data),
-    getEventsSince: (lastId) => store.getEventsSince(lastId).events.map(toReplayEvent),
-  });
 
-  const gwSettings = resolveGatewaySettings(settings, store);
+  const gwSettings = resolveGatewaySettings(settings);
   if (!gwSettings) {
     return null;
   }
@@ -438,16 +406,15 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   const adapter = new OpenClawGatewayAdapter({
     loadSettings: () => {
       // Re-resolve on every reconnect so updated settings take effect.
-      const latest = resolveGatewaySettings(settings, store);
+      const latest = resolveGatewaySettings(settings);
       return latest ?? gwSettings;
     },
     onDomainEvent: (event) => {
-      bridgeDomainEvent(event, eventBus, store);
+      bridgeDomainEvent(event, eventBus);
       if (event.type === "runtime.status" && event.status === "connected") {
         triggerCapabilityBootstrap();
       }
     },
-    db,
   });
 
   const gw = createGatewayClient((method, params, options) =>
@@ -458,8 +425,6 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
     adapter,
     gw,
     eventBus,
-    db,
-    store,
     rateLimiter,
     capabilities: capabilityState.state,
   };
@@ -510,14 +475,7 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   const gCleanup = globalThis as Record<string, unknown>;
   gCleanup.__deckCleanupApproval = initApprovalBridge(runtime);
   gCleanup.__deckCleanupAlerts = initAlertEngine(runtime);
-  const runEventPipeline = new RunEventPipeline((events) =>
-    getRunEventStore().appendEvents(events),
-  );
-  eventBus.subscribe(runEventPipeline.handleEvent);
-  gCleanup.__deckCleanupRunEventPipeline = () => {
-    eventBus.unsubscribe(runEventPipeline.handleEvent);
-    runEventPipeline.destroy();
-  };
+  gCleanup.__deckCleanupRunAggregator = initRunAggregator(eventBus);
 
   // Phase 2: start health polling only after a successful capability bootstrap.
   gCleanup.__deckCleanupHealthPoller = () => healthPoller.stop();
@@ -526,7 +484,7 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   const retryTimer = setInterval(async () => {
     try {
       const { processWebhookRetries } = await import("../src/lib/webhooks");
-      processWebhookRetries(runtime.db).catch((err: unknown) =>
+      processWebhookRetries().catch((err: unknown) =>
         console.error("[DeckRuntime] webhook retry error:", err),
       );
     } catch {
@@ -575,16 +533,14 @@ export async function shutdownRuntime(): Promise<void> {
   const gCleanup = globalThis as Record<string, unknown>;
   (gCleanup.__deckCleanupApproval as (() => void) | undefined)?.();
   (gCleanup.__deckCleanupAlerts as (() => void) | undefined)?.();
-  (gCleanup.__deckCleanupRunEventPipeline as (() => void) | undefined)?.();
+  (gCleanup.__deckCleanupRunAggregator as (() => void) | undefined)?.();
   (gCleanup.__deckCleanupHealthPoller as (() => void) | undefined)?.();
   clearInterval(gCleanup.__deckRetryTimer as ReturnType<typeof setInterval>);
   gCleanup.__deckCleanupApproval = undefined;
   gCleanup.__deckCleanupAlerts = undefined;
-  gCleanup.__deckCleanupRunEventPipeline = undefined;
+  gCleanup.__deckCleanupRunAggregator = undefined;
   gCleanup.__deckCleanupHealthPoller = undefined;
   gCleanup.__deckRetryTimer = undefined;
-  runtime.eventBus.setReplayStore(null);
-
   await runtime.adapter.stop();
   runtime.rateLimiter.dispose();
 }

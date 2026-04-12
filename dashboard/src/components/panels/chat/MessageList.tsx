@@ -181,7 +181,14 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
       {messages.map((msg, idx) => {
         // Render compaction notices as system cards (not message bubbles)
         if (msg.role === "system" && msg.id.startsWith("compaction-")) {
-          return <CompactionNotice key={msg.id} timestamp={msg.timestamp} />;
+          return (
+            <CompactionNotice
+              key={msg.id}
+              timestamp={msg.timestamp}
+              tokensBefore={msg.tokensBefore}
+              tokensAfter={msg.tokensAfter}
+            />
+          );
         }
 
         // Build RunMetadata from session state for this message

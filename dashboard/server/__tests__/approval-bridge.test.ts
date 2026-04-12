@@ -8,53 +8,12 @@ import type { DeckRuntime } from "../runtime.js";
 // Helpers
 // ---------------------------------------------------------------------------
 
-interface MockRuntime {
-  runtime: DeckRuntime;
-  setProjectionMock: ReturnType<typeof vi.fn>;
-  clearProjectionMock: ReturnType<typeof vi.fn>;
-}
-
-function createMockRuntime(eventBus: EventBus): MockRuntime {
-  const chatProjections = new Map<string, Record<string, unknown>>();
-  const approvalProjections = new Map<string, Record<string, unknown>>();
-
-  const setProjection = vi.fn((domain: string, key: string, data: Record<string, unknown>) => {
-    const map = domain === "approval" ? approvalProjections : chatProjections;
-    map.set(key, data);
-  });
-  const clearProjection = vi.fn((domain: string, key: string) => {
-    const map = domain === "approval" ? approvalProjections : chatProjections;
-    return map.delete(key);
-  });
-
-  // Legacy mocks remain for code paths that still read/write chat projections directly.
-  const getChatSessionProjection = vi.fn(
-    (sessionKey: string) => chatProjections.get(sessionKey) ?? null,
-  );
-  const setChatSessionProjection = vi.fn(
-    (sessionKey: string, projection: Record<string, unknown>) => {
-      chatProjections.set(sessionKey, projection);
-    },
-  );
-  const clearChatSessionProjection = vi.fn((sessionKey: string) =>
-    chatProjections.delete(sessionKey),
-  );
-
+function createMockRuntime(eventBus: EventBus) {
   return {
-    setProjectionMock: setProjection,
-    clearProjectionMock: clearProjection,
     runtime: {
       eventBus,
       adapter: {} as DeckRuntime["adapter"],
       gw: {} as DeckRuntime["gw"],
-      db: {} as DeckRuntime["db"],
-      store: {
-        getChatSessionProjection,
-        setChatSessionProjection,
-        clearChatSessionProjection,
-        setProjection,
-        clearProjection,
-      } as unknown as DeckRuntime["store"],
       rateLimiter: {} as DeckRuntime["rateLimiter"],
       capabilities: {
         status: "ready",
@@ -62,7 +21,7 @@ function createMockRuntime(eventBus: EventBus): MockRuntime {
         snapshot: null,
         ready: Promise.resolve(),
       },
-    },
+    } as unknown as DeckRuntime,
   };
 }
 
@@ -82,7 +41,7 @@ beforeEach(() => {
 
 describe("initApprovalBridge", () => {
   it("adds pending approval on exec.approval.requested gateway event", () => {
-    const { runtime, setProjectionMock } = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     initApprovalBridge(runtime);
 
     const received: ServerEvent[] = [];
@@ -123,16 +82,10 @@ describe("initApprovalBridge", () => {
     const pending = getPendingApprovals();
     expect(pending).toHaveLength(1);
     expect(pending[0].id).toBe("apr-1");
-    expect(setProjectionMock).toHaveBeenCalledWith("approval", "agent:main:main", {
-      id: "apr-1",
-      toolName: "command",
-      command: "rm -rf /",
-      description: undefined,
-    });
   });
 
   it("removes pending approval on exec.approval.resolved gateway event", () => {
-    const { runtime, clearProjectionMock } = createMockRuntime(bus);
+    const { runtime } = createMockRuntime(bus);
     initApprovalBridge(runtime);
 
     // Add one first
@@ -164,7 +117,6 @@ describe("initApprovalBridge", () => {
 
     expect(resolved).toHaveLength(1);
     expect(getPendingApprovals()).toHaveLength(0);
-    expect(clearProjectionMock).toHaveBeenCalledWith("approval", "session-2");
   });
 
   it("ignores non-approval gateway events", () => {
@@ -219,66 +171,13 @@ describe("initApprovalBridge", () => {
   });
 });
 
-describe("approval projection domain", () => {
-  it("writes approval to the approval domain on exec.approval.requested", () => {
-    const { runtime, setProjectionMock } = createMockRuntime(bus);
-    initApprovalBridge(runtime);
-
-    bus.broadcast("gateway.event", {
-      type: "gateway.event",
-      event: "exec.approval.requested",
-      payload: {
-        id: "apr-domain-1",
-        request: {
-          command: "npm install",
-          agentId: "agent-x",
-          sessionKey: "agent:main:main",
-          runId: "run-1",
-          cwd: "/workspace",
-        },
-        createdAtMs: 1000,
-        expiresAtMs: 2000,
-      },
-    });
-
-    expect(setProjectionMock).toHaveBeenCalledWith("approval", "agent:main:main", {
-      id: "apr-domain-1",
-      toolName: "command",
-      command: "npm install",
-      description: "/workspace",
-    });
-  });
-
-  it("clears approval domain on exec.approval.resolved", () => {
-    const { runtime, clearProjectionMock } = createMockRuntime(bus);
-    initApprovalBridge(runtime);
-
-    bus.broadcast("gateway.event", {
-      type: "gateway.event",
-      event: "exec.approval.requested",
-      payload: {
-        id: "apr-domain-2",
-        request: { command: "echo hello", sessionKey: "session-2" },
-        createdAtMs: 1000,
-        expiresAtMs: 2000,
-      },
-    });
-
-    bus.broadcast("gateway.event", {
-      type: "gateway.event",
-      event: "exec.approval.resolved",
-      payload: { id: "apr-domain-2", decision: "allow-once" },
-    });
-
-    expect(clearProjectionMock).toHaveBeenCalledWith("approval", "session-2");
-  });
-
-  it("broadcasts approval.resolved and clears approval projection when a pending approval expires", () => {
+describe("approval expiry broadcasts approval.resolved", () => {
+  it("broadcasts approval.resolved when a pending approval expires", () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date("2026-04-05T00:00:00.000Z"));
 
-      const { runtime, clearProjectionMock } = createMockRuntime(bus);
+      const { runtime } = createMockRuntime(bus);
       const cleanup = initApprovalBridge(runtime);
 
       const resolved: ServerEvent[] = [];
@@ -308,7 +207,6 @@ describe("approval projection domain", () => {
       vi.advanceTimersByTime(30_000);
 
       expect(getPendingApprovals()).toHaveLength(0);
-      expect(clearProjectionMock).toHaveBeenCalledWith("approval", "session-expired");
       expect(resolved).toHaveLength(1);
       expect(resolved[0].data).toMatchObject({
         id: "apr-expired-1",

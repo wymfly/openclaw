@@ -1,81 +1,46 @@
 /**
  * GET /api/docs — List docs with optional category filter and search.
  */
-import { getRuntime } from "@server/runtime";
+import { getJsonStore } from "@server/json-store";
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 
-type DocRow = {
+export interface DocEntry {
   id: string;
   title: string;
   category: string;
   content: string;
-  source_session: string | null;
-  source_agent: string | null;
-  keywords: string;
+  sourceSession: string | null;
+  sourceAgent: string | null;
+  keywords: string[];
   language: string;
-  extracted_at: string;
-  updated_at: string;
-};
+  extractedAt: string;
+  updatedAt: string;
+}
 
-function mapRow(row: DocRow) {
-  let keywords: string[] = [];
-  try {
-    keywords = JSON.parse(row.keywords);
-  } catch {
-    /* ignore malformed JSON */
-  }
-  return {
-    id: row.id,
-    title: row.title,
-    category: row.category,
-    content: row.content,
-    sourceSession: row.source_session,
-    sourceAgent: row.source_agent,
-    keywords,
-    language: row.language,
-    extractedAt: row.extracted_at,
-    updatedAt: row.updated_at,
-  };
+export function getDocStore() {
+  return getJsonStore<DocEntry[]>("docs", []);
 }
 
 export const GET = withAuth(async (request: NextRequest) => {
-  const runtime = getRuntime();
-  if (!runtime) {
-    return NextResponse.json({ error: "Gateway not configured" }, { status: 503 });
-  }
-
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
-  const q = searchParams.get("q");
+  const q = searchParams.get("q")?.toLowerCase();
 
-  try {
-    let sql = "SELECT * FROM docs";
-    const conditions: string[] = [];
-    const params: string[] = [];
+  let docs = [...getDocStore().get()];
 
-    if (category) {
-      conditions.push("category = ?");
-      params.push(category);
-    }
-    if (q) {
-      conditions.push(
-        "(title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR keywords LIKE ? ESCAPE '\\')",
-      );
-      // Escape LIKE metacharacters to prevent wildcard injection (L2 review P2)
-      const escaped = q.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
-      const pattern = `%${escaped}%`;
-      params.push(pattern, pattern, pattern);
-    }
-
-    if (conditions.length > 0) {
-      sql += " WHERE " + conditions.join(" AND ");
-    }
-    sql += " ORDER BY extracted_at DESC";
-
-    const rows = runtime.db.prepare(sql).all(...params) as unknown as DocRow[];
-    return NextResponse.json({ docs: rows.map(mapRow) });
-  } catch {
-    return NextResponse.json({ docs: [] });
+  if (category) {
+    docs = docs.filter((d) => d.category === category);
   }
+  if (q) {
+    docs = docs.filter(
+      (d) =>
+        d.title.toLowerCase().includes(q) ||
+        d.content.toLowerCase().includes(q) ||
+        d.keywords.some((k) => k.toLowerCase().includes(q)),
+    );
+  }
+
+  docs.sort((a, b) => new Date(b.extractedAt).getTime() - new Date(a.extractedAt).getTime());
+  return NextResponse.json({ docs });
 });

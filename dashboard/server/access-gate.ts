@@ -5,21 +5,17 @@
  *   1. `Authorization: Bearer <token>`
  *   2. `x-deck-token: <token>`
  *
- * Token source priority: env `DECK_ACCESS_TOKEN` > SQLite settings table.
+ * Token source priority: env `DECK_ACCESS_TOKEN` > JSON settings store.
  * When no token is configured, authentication is skipped (local dev mode).
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { getSetting } from "./deck-settings";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export type AccessGateResult = { valid: boolean; error?: string };
-
-/** Minimal DB interface — avoids importing better-sqlite3 at the type level. */
-export type AccessGateDb = {
-  prepare(sql: string): { get(...params: unknown[]): unknown };
-};
 
 // ---------------------------------------------------------------------------
 // Token resolution
@@ -29,23 +25,13 @@ export type AccessGateDb = {
  * Resolve the configured access token.
  * Returns `null` when no token is configured (local dev mode).
  */
-export function resolveToken(db?: AccessGateDb): string | null {
+export function resolveToken(): string | null {
   const envToken = process.env.DECK_ACCESS_TOKEN;
   if (envToken) {
     return envToken;
   }
 
-  if (!db) {
-    return null;
-  }
-  try {
-    const row = db.prepare("SELECT value FROM settings WHERE key = ?").get("access_token") as
-      | { value: string }
-      | undefined;
-    return row?.value ?? null;
-  } catch {
-    return null;
-  }
+  return getSetting("access_token") ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -100,9 +86,8 @@ function extractToken(headers: Record<string, string | undefined>): string | nul
 
 export function validateRequest(
   headers: Record<string, string | undefined>,
-  db?: AccessGateDb,
 ): AccessGateResult {
-  const expected = resolveToken(db);
+  const expected = resolveToken();
 
   // No token configured → local dev mode, allow all.
   if (!expected) {

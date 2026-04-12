@@ -1,18 +1,12 @@
-import { getRunEventStore } from "@server/run-event-store";
-import type { RunStatus } from "@server/run-event-store";
+import { getRunAggregator } from "@server/run-aggregator";
+import type { RunStatus } from "@server/run-aggregator";
 /**
  * GET /api/monitor/runs — Paginated list of execution runs with optional filters.
  *
  * Query params:
- *   - agentId (optional): filter by agent
- *   - sessionKey (optional): filter by session
- *   - since (optional): ISO timestamp lower bound
- *   - until (optional): ISO timestamp upper bound
- *   - status (optional): "completed" | "error" | "running"
- *   - cursor (optional): opaque cursor for pagination
- *   - limit (optional, default 20): page size
+ *   - agentId, sessionKey, since, until, status, cursor, limit
  *
- * Returns: { runs: RunListItem[], nextCursor: string | null }
+ * Returns: { runs: RunRecord[], nextCursor: string | null }
  */
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
@@ -20,7 +14,7 @@ import { withAuth } from "@/lib/with-auth";
 const VALID_STATUSES = new Set<RunStatus>(["completed", "error", "running"]);
 
 export const GET = withAuth(async (request: NextRequest) => {
-  const store = getRunEventStore();
+  const aggregator = getRunAggregator();
   const { searchParams } = request.nextUrl;
 
   const statusParam = searchParams.get("status") ?? undefined;
@@ -29,7 +23,7 @@ export const GET = withAuth(async (request: NextRequest) => {
       ? (statusParam as RunStatus)
       : undefined;
 
-  const result = store.listRuns({
+  const result = aggregator.listRuns({
     agentId: searchParams.get("agentId") ?? undefined,
     sessionKey: searchParams.get("sessionKey") ?? undefined,
     since: searchParams.get("since") ?? undefined,

@@ -38,24 +38,15 @@ vi.mock("../gateway-adapter.js", () => {
   return { OpenClawGatewayAdapter };
 });
 
-// Mock db — return a minimal fake DB
-const fakeDb = { close: vi.fn() };
-vi.mock("../db.js", () => ({
-  getDb: vi.fn(() => fakeDb),
+// Mock deck-settings — hoisted so vi.mock factory can reference them
+const { mockGetSetting } = vi.hoisted(() => ({
+  mockGetSetting: vi.fn<(key: string) => string | undefined>().mockReturnValue(undefined),
 }));
-
-// Mock projection-store — must use `function` for `new` invocation
-const mockGetSetting = vi.fn().mockReturnValue(undefined);
-vi.mock("../projection-store.js", () => {
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  const ProjectionStore = vi.fn(function (this: Record<string, unknown>) {
-    this.getSetting = mockGetSetting;
-    this.setSetting = vi.fn();
-    this.appendEvent = vi.fn();
-    this.outboxHead = vi.fn().mockReturnValue(0);
-  });
-  return { ProjectionStore };
-});
+vi.mock("../deck-settings.js", () => ({
+  getSetting: mockGetSetting,
+  setSetting: vi.fn(),
+  getDeckSettings: vi.fn(() => ({ get: () => ({}), set: vi.fn() })),
+}));
 
 // Mock event-bus — use a real-ish EventBus so we can verify broadcasts
 const mockBroadcast = vi.fn();
@@ -64,7 +55,6 @@ const mockEventBus = {
   subscribe: vi.fn(),
   unsubscribe: vi.fn(),
   getEventsSince: vi.fn().mockReturnValue([]),
-  setReplayStore: vi.fn(),
   subscriberCount: 0,
 };
 vi.mock("../event-bus.js", () => ({
@@ -79,24 +69,12 @@ vi.mock("../rate-limit.js", () => ({
   createRateLimiter: vi.fn(() => ({ checkLimit: mockCheckLimit, dispose: mockDispose })),
 }));
 
-const { mockRunEventPipelineDestroy, mockRunEventPipelineHandleEvent, runEventPipelineCtor } =
-  vi.hoisted(() => {
-    const mockRunEventPipelineDestroy = vi.fn();
-    const mockRunEventPipelineHandleEvent = vi.fn();
-    const runEventPipelineCtor = vi.fn(function (this: Record<string, unknown>) {
-      this.handleEvent = mockRunEventPipelineHandleEvent;
-      this.destroy = mockRunEventPipelineDestroy;
-    });
-    return { mockRunEventPipelineDestroy, mockRunEventPipelineHandleEvent, runEventPipelineCtor };
-  });
-vi.mock("../run-event-pipeline.js", () => ({
-  RunEventPipeline: runEventPipelineCtor,
+const { mockRunAggregatorCleanup } = vi.hoisted(() => ({
+  mockRunAggregatorCleanup: vi.fn(),
 }));
-const { mockAppendRunEvents } = vi.hoisted(() => ({
-  mockAppendRunEvents: vi.fn(),
-}));
-vi.mock("../run-event-store.js", () => ({
-  getRunEventStore: vi.fn(() => ({ appendEvents: mockAppendRunEvents })),
+vi.mock("../run-aggregator.js", () => ({
+  initRunAggregator: vi.fn(() => mockRunAggregatorCleanup),
+  getRunAggregator: vi.fn(() => ({ handleEvent: vi.fn() })),
 }));
 
 // ---------------------------------------------------------------------------
@@ -139,9 +117,7 @@ describe("Server Runtime Singleton", () => {
       events: {},
       schemaVersion: "3.test",
     });
-    mockRunEventPipelineDestroy.mockClear();
-    mockRunEventPipelineHandleEvent.mockClear();
-    mockAppendRunEvents.mockClear();
+    mockRunAggregatorCleanup.mockClear();
     // Clear env vars
     delete process.env.DECK_GATEWAY_URL;
     delete process.env.DECK_GATEWAY_TOKEN;
@@ -165,15 +141,11 @@ describe("Server Runtime Singleton", () => {
     expect(runtime).not.toBeNull();
     expect(runtime!.adapter).toBeDefined();
     expect(runtime!.eventBus).toBe(mockEventBus);
-    expect(runtime!.db).toBe(fakeDb);
-    expect(runtime!.store).toBeDefined();
     expect(runtime!.rateLimiter).toBeDefined();
     expect(runtime!.rateLimiter.checkLimit).toBe(mockCheckLimit);
     expect(runtime!.capabilities.status).toBe("pending");
 
-    expect(mockEventBus.setReplayStore).toHaveBeenCalledOnce();
-    expect(runEventPipelineCtor).toHaveBeenCalledOnce();
-    expect(mockEventBus.subscribe).toHaveBeenCalledWith(mockRunEventPipelineHandleEvent);
+    expect(mockEventBus.subscribe).toHaveBeenCalled();
   });
 
   // -----------------------------------------------------------------------
@@ -263,8 +235,7 @@ describe("Server Runtime Singleton", () => {
   // -----------------------------------------------------------------------
 
   it("getRuntime returns null when no gateway settings available", () => {
-    // No env vars, no DB settings
-    mockGetSetting.mockReturnValue(undefined);
+    // No env vars, no settings store values
 
     const runtime = getRuntime();
 
@@ -300,10 +271,10 @@ describe("Server Runtime Singleton", () => {
   });
 
   // -----------------------------------------------------------------------
-  // initRuntime reads gateway settings from DB via ProjectionStore
+  // initRuntime reads gateway settings from JSON settings store
   // -----------------------------------------------------------------------
 
-  it("initRuntime falls back to DB settings", () => {
+  it("initRuntime falls back to JSON settings store", () => {
     mockGetSetting.mockImplementation((key: string) => {
       if (key === "gateway_url") {
         return "ws://from-db:18789";
@@ -448,8 +419,7 @@ describe("Server Runtime Singleton", () => {
 
     expect(mockAdapterStop).toHaveBeenCalledOnce();
     expect(mockDispose).toHaveBeenCalledOnce();
-    expect(mockEventBus.unsubscribe).toHaveBeenCalledWith(mockRunEventPipelineHandleEvent);
-    expect(mockRunEventPipelineDestroy).toHaveBeenCalledOnce();
+    expect(mockRunAggregatorCleanup).toHaveBeenCalledOnce();
 
     // Singleton should be cleared
     const g = globalThis as unknown as Record<string, unknown>;

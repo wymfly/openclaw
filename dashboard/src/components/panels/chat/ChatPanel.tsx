@@ -24,6 +24,10 @@ import {
   persistChatProjection,
   setSessionMessageSubscription,
 } from "./chat-api";
+import { Navigation } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getCachedTranscript, setCachedTranscript } from "@/lib/transcript-cache";
 import { ChatContextBar } from "./ChatContextBar";
 import { EmptyState } from "./EmptyState";
 import { normalizeHistoryMessages } from "./history-normalize";
@@ -51,6 +55,7 @@ export const ArtifactContext = createContext<{
  * Composes session sidebar, message list, and input area.
  */
 export function ChatPanel() {
+  const tc = useTranslations("chat");
   useCommandDiscovery();
 
   useEffect(() => {
@@ -63,6 +68,14 @@ export function ChatPanel() {
   const { isStreaming } = useSessionStreaming();
   const [blockPrefs, setBlockPrefs] = useState<ChatBlockPreferences>(loadBlockPreferences);
   const [showSearch, setShowSearch] = useState(false);
+  const steerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToSteer = useCallback(() => {
+    if (!steerRef.current) return;
+    steerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    const input = steerRef.current.querySelector<HTMLInputElement>("input");
+    input?.focus();
+  }, []);
 
   // Cmd/Ctrl+F to toggle transcript search
   useEffect(() => {
@@ -215,12 +228,19 @@ export function ChatPanel() {
     if (session?.isStreaming) {
       return;
     }
+    // Check transcript cache first (shared with Sessions panel)
+    const cached = getCachedTranscript(activeSessionKey);
+    if (cached && cached.length > 0) {
+      useChatStore.getState().setMessages(activeSessionKey, cached);
+    }
+
     void fetchChatSnapshot({
       sessionKey: activeSessionKey,
       agentId: activeAgentId ?? undefined,
     })
       .then((snapshot) => {
         const msgs = normalizeHistoryMessages(activeSessionKey, snapshot.messages);
+        setCachedTranscript(activeSessionKey, msgs);
         // For brand-new sessions the server returns empty history.
         // Preserve locally-added messages (e.g. the user message just sent)
         // to avoid a race where setMessages([]) wipes a pending outbound message.
@@ -276,8 +296,28 @@ export function ChatPanel() {
         <SessionSidebar />
         <div className="flex flex-col flex-1 min-w-0">
           <SSEStatusBanner />
-          <div className="flex items-center justify-end px-3 py-1 shrink-0">
+          <div className="flex items-center justify-end px-3 py-1 shrink-0 gap-1.5">
             <ChatContextBar />
+            {isStreaming && (
+              <Tooltip>
+                <TooltipTrigger render={<span />}>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={scrollToSteer}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") scrollToSteer();
+                    }}
+                    className="inline-flex items-center justify-center w-5 h-5 rounded cursor-pointer text-[var(--primary)] hover:bg-[var(--primary-muted)] transition-colors"
+                  >
+                    <Navigation size={12} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{tc("steerQuickAccess")}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
           {showSearch && <TranscriptSearch onClose={() => setShowSearch(false)} />}
           {activeSessionKey ? (
@@ -288,7 +328,9 @@ export function ChatPanel() {
           {hasFilterableBlocks && (
             <BlockFilterBar preferences={blockPrefs} onChange={handleBlockPrefsChange} />
           )}
-          <SteerDialog />
+          <div ref={steerRef}>
+            <SteerDialog />
+          </div>
           <ToolProgressBar />
           <SessionConfigBar />
           <MessageInput

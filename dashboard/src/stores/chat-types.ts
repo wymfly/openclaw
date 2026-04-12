@@ -34,6 +34,12 @@ export interface ChatMessage {
   streaming?: boolean;
   /** Error associated with this message. */
   error?: string;
+  /** Token count before compaction (compaction notice only). */
+  tokensBefore?: number;
+  /** Token count after compaction (compaction notice only). */
+  tokensAfter?: number;
+  /** Whether this message is a compaction summary from Gateway transcript. */
+  isCompaction?: boolean;
 }
 
 // ---------------------------------------------------------------------------

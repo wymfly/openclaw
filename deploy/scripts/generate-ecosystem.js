@@ -56,8 +56,7 @@ const deckEnv = {
   PORT: dkPort,
   DECK_GATEWAY_URL: `ws://localhost:${gwPort}`,
   DECK_GATEWAY_TOKEN: token,
-  DECK_DB_PATH: path.join(deckDataDir, "deck.db"),
-  DECK_MIGRATION_DIR: path.join(repoDir, "dashboard", "migrations"),
+  DECK_DATA_DIR: deckDataDir,
   NO_PROXY: "localhost,127.0.0.1",
 };
 

@@ -1,5 +1,10 @@
 import { create } from "zustand";
 import { normalizeTranscriptMessages } from "@/lib/transcript-adapter";
+import {
+  getCachedTranscript,
+  setCachedTranscript,
+  invalidateTranscript,
+} from "@/lib/transcript-cache";
 import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
 import type { SessionsChangedEventPayload } from "@/types/gateway-protocol.generated";
 
@@ -36,6 +41,10 @@ export interface SessionEntry {
 export type HistoryMessage = ChatMessage;
 export type SessionsChangedPayload = SessionsChangedEventPayload & {
   reason?: string;
+  compacted?: boolean;
+  compactionCount?: number;
+  inputTokens?: number;
+  outputTokens?: number;
   subagentRole?: SessionEntry["subagentRole"];
   subagentControlScope?: SessionEntry["subagentControlScope"];
   spawnedWorkspaceDir?: string;
@@ -104,6 +113,10 @@ function normalizeSession(raw: Record<string, unknown>): SessionEntry {
     tokensOut: Number(raw.outputTokens ?? raw.tokensOut ?? 0),
     contextWindow: Number(raw.contextTokens ?? raw.contextWindow ?? 0),
     updatedAt: Number(raw.updatedAt ?? raw.lastActivityAt ?? 0),
+    totalTokens: typeof raw.totalTokens === "number" ? raw.totalTokens : undefined,
+    estimatedCostUsd: typeof raw.estimatedCostUsd === "number" ? raw.estimatedCostUsd : undefined,
+    compactionCount: typeof raw.compactionCount === "number" ? raw.compactionCount : undefined,
+    status: typeof raw.status === "string" ? raw.status : undefined,
     label: typeof raw.label === "string" ? raw.label : undefined,
     thinkingLevel: typeof raw.thinkingLevel === "string" ? raw.thinkingLevel : undefined,
     fastMode: typeof raw.fastMode === "boolean" ? raw.fastMode : undefined,
@@ -141,6 +154,8 @@ interface SessionsState {
   patchSession: (sessionKey: string, patch: SessionPatchFields) => Promise<boolean>;
   /** Apply an incoming sessions.changed event to update or insert a session. */
   applySessionChangedEvent: (payload: SessionsChangedPayload) => void;
+  /** Compact a session's context via sessions.compact RPC. */
+  compactSession: (key: string) => Promise<{ ok: boolean; reason?: string }>;
 }
 
 export const useSessionsStore = create<SessionsState>((set, get) => ({
@@ -198,8 +213,13 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
 
   fetchHistory: async (sessionKey) => {
     try {
-      // Keep transcript reads on the dedicated chat-history seam so the
-      // session panel does not create a second full-transcript authority.
+      // Check transcript cache first (shared with Chat panel)
+      const cached = getCachedTranscript(sessionKey);
+      if (cached) {
+        set({ history: cached });
+        return;
+      }
+
       const res = await fetch(`/api/chat/history?sessionKey=${encodeURIComponent(sessionKey)}`);
       if (!res.ok) {
         return;
@@ -214,6 +234,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
         sessionKey,
         rawMessages as Record<string, unknown>[],
       );
+      setCachedTranscript(sessionKey, messages);
       set({ history: messages });
     } catch {
       // silently ignore — history is non-critical
@@ -228,7 +249,8 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
       if (!res.ok) {
         return;
       }
-      // Remove from local list and clear selection if active.
+      // Remove from local list, clear selection if active, and invalidate cache.
+      invalidateTranscript(sessionKey);
       const state = get();
       set({
         sessions: state.sessions.filter((s) => s.key !== sessionKey),
@@ -272,6 +294,8 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
     if (!key) {
       return;
     }
+    // Invalidate transcript cache on any session state change (SSE event-driven)
+    invalidateTranscript(key);
 
     set((state) => {
       const sessions = [...state.sessions];
@@ -288,6 +312,11 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
           : {}),
         ...(typeof payload.contextTokens === "number"
           ? { contextWindow: payload.contextTokens }
+          : {}),
+        ...(typeof payload.inputTokens === "number" ? { tokensIn: payload.inputTokens } : {}),
+        ...(typeof payload.outputTokens === "number" ? { tokensOut: payload.outputTokens } : {}),
+        ...(typeof payload.compactionCount === "number"
+          ? { compactionCount: payload.compactionCount }
           : {}),
         ...(typeof payload.parentSessionKey === "string"
           ? { parentSessionKey: payload.parentSessionKey }
@@ -306,6 +335,19 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
           ? { spawnedWorkspaceDir: payload.spawnedWorkspaceDir }
           : {}),
       };
+
+      // After compaction, Gateway deletes inputTokens/outputTokens/totalTokens.
+      // The event sends undefined for these fields (skipped by typeof guards above).
+      // Explicitly reset them so the UI shows accurate post-compaction values.
+      if (payload.compacted === true) {
+        patch.tokensIn = patch.tokensIn ?? 0;
+        patch.tokensOut = patch.tokensOut ?? 0;
+        patch.totalTokens = patch.totalTokens ?? 0;
+        // Only increment locally if the payload didn't already provide an authoritative count
+        if (typeof patch.compactionCount !== "number" && idx >= 0) {
+          patch.compactionCount = (sessions[idx].compactionCount ?? 0) + 1;
+        }
+      }
 
       if (idx >= 0) {
         sessions[idx] = { ...sessions[idx], ...patch };
@@ -335,5 +377,24 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
 
       return { sessions };
     });
+  },
+
+  compactSession: async (key) => {
+    try {
+      const res = await fetch("/api/chat/compact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionKey: key }),
+      });
+      const data = (await res.json()) as { ok?: boolean; reason?: string };
+      if (!res.ok || !data.ok) {
+        return { ok: false, reason: data.reason ?? "Compact failed" };
+      }
+      // Re-fetch sessions to pick up post-compaction token values
+      void get().fetchSessions();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, reason: err instanceof Error ? err.message : "Compact failed" };
+    }
   },
 }));

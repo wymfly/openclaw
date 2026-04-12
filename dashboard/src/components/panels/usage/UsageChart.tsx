@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceLine,
 } from "recharts";
 import type { DailyAggregate, SessionDailyModelUsage } from "@/stores/usage";
 
@@ -20,9 +21,15 @@ import type { DailyAggregate, SessionDailyModelUsage } from "@/stores/usage";
 
 type ChartView = "tokens" | "cost" | "byModel";
 
+export interface CompactionEvent {
+  date: string;
+  label?: string;
+}
+
 interface UsageChartProps {
   daily: DailyAggregate[];
   modelDaily?: SessionDailyModelUsage[];
+  compactionEvents?: CompactionEvent[];
 }
 
 // ---------------------------------------------------------------------------
@@ -42,7 +49,7 @@ const MODEL_COLORS = [
 // Component
 // ---------------------------------------------------------------------------
 
-export function UsageChart({ daily, modelDaily }: UsageChartProps) {
+export function UsageChart({ daily, modelDaily, compactionEvents }: UsageChartProps) {
   const t = useTranslations("usage");
   const [view, setView] = useState<ChartView>("tokens");
 
@@ -135,6 +142,15 @@ export function UsageChart({ daily, modelDaily }: UsageChartProps) {
               }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
+            {compactionEvents?.map((ev, i) => (
+              <ReferenceLine
+                key={`compact-${i}`}
+                x={ev.date}
+                stroke="var(--warning)"
+                strokeDasharray="4 3"
+                label={{ value: "⊘", position: "top", fontSize: 10, fill: "var(--warning)" }}
+              />
+            ))}
             {modelNames.map((name, i) => (
               <Area
                 key={name}
@@ -168,6 +184,15 @@ export function UsageChart({ daily, modelDaily }: UsageChartProps) {
                 fontSize: 12,
               }}
             />
+            {compactionEvents?.map((ev, i) => (
+              <ReferenceLine
+                key={`compact-${i}`}
+                x={ev.date}
+                stroke="var(--warning)"
+                strokeDasharray="4 3"
+                label={{ value: "⊘", position: "top", fontSize: 10, fill: "var(--warning)" }}
+              />
+            ))}
             {view === "tokens" ? (
               <Area
                 type="monotone"

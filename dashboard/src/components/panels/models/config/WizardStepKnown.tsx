@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, Link2, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Link2, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { CatalogProvider } from "@/stores/models";
+import { AdvancedProviderFields } from "./AdvancedProviderFields";
 import { ModelCheckboxList } from "./ModelCheckboxList";
 import { MODEL_APIS } from "./WizardStepCustom";
 
@@ -26,18 +28,28 @@ interface WizardStepKnownProps {
     baseUrl: string;
     apiKey?: string;
     models: Array<{ id: string; name: string; contextWindow: number; maxTokens: number }>;
+    headers?: Record<string, string>;
+    authHeader?: boolean;
+    injectNumCtxForOpenAICompat?: boolean;
   }) => Promise<boolean>;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (providerName: string, models: Array<{ id: string; name: string }>) => void;
 }
 
 export function WizardStepKnown({ provider, onAdd, onBack, onComplete }: WizardStepKnownProps) {
   const t = useTranslations("models.wizard");
+  const tm = useTranslations("models");
 
   const [baseUrl, setBaseUrl] = useState(provider.defaultBaseUrl);
   const [api, setApi] = useState(provider.api);
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Advanced provider fields state
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [headers, setHeaders] = useState<Record<string, string>>({});
+  const [authHeader, setAuthHeader] = useState(false);
+  const [injectNumCtxForOpenAICompat, setInjectNumCtxForOpenAICompat] = useState(false);
 
   // Default all models selected
   const [selectedModels, setSelectedModels] = useState<Set<string>>(
@@ -90,9 +102,15 @@ export function WizardStepKnown({ provider, onAdd, onBack, onComplete }: WizardS
         baseUrl: baseUrl.trim(),
         apiKey: apiKey.trim() || undefined,
         models,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        authHeader: authHeader || undefined,
+        injectNumCtxForOpenAICompat: injectNumCtxForOpenAICompat || undefined,
       });
       if (ok) {
-        onComplete();
+        onComplete(
+          provider.id,
+          models.map((m) => ({ id: m.id, name: m.name })),
+        );
       }
     } finally {
       setSaving(false);
@@ -175,6 +193,27 @@ export function WizardStepKnown({ provider, onAdd, onBack, onComplete }: WizardS
           {t("noModelsInCatalog")}
         </p>
       )}
+
+      {/* Advanced Configuration (collapsible) */}
+      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+        <CollapsibleTrigger className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+          {advancedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          <span>{tm("advanced.title")}</span>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-3 pl-3 border-l border-border">
+            <AdvancedProviderFields
+              headers={headers}
+              authHeader={authHeader}
+              injectNumCtxForOpenAICompat={injectNumCtxForOpenAICompat}
+              onHeadersChange={setHeaders}
+              onAuthHeaderChange={setAuthHeader}
+              onInjectNumCtxChange={setInjectNumCtxForOpenAICompat}
+              disabled={saving}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Footer: Back + Add Provider */}
       <div className="flex items-center justify-between pt-2 border-t border-border">

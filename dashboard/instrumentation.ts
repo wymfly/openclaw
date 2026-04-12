@@ -1,10 +1,7 @@
 /**
- * Next.js instrumentation hook — preloads sql.js WASM engine at server startup.
- * This ensures getDb()/openDb() can operate synchronously after init.
+ * Next.js instrumentation hook — server startup initialization.
+ * sql.js preloading removed — all persistence now uses JSON files.
  */
 export async function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { preloadSqlJs } = await import("./server/db");
-    await preloadSqlJs();
-  }
+  // No-op — retained for future instrumentation hooks.
 }

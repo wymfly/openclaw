@@ -1,4 +1,4 @@
-import { validateRequest, type AccessGateDb } from "@server/access-gate";
+import { validateRequest } from "@server/access-gate";
 import { getRuntime } from "@server/runtime";
 /**
  * withAuth — higher-order function that wraps API route handlers with
@@ -9,7 +9,7 @@ import { getRuntime } from "@server/runtime";
  *   export const POST = withAuth(async (req) => { ... });
  *
  * Because Next.js middleware runs in the Edge Runtime (which cannot
- * import native Node modules like better-sqlite3), we perform auth
+ * import native Node modules), we perform auth
  * checks inside each route handler instead.
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -51,8 +51,7 @@ export function withAuth(handler: RouteHandler): RouteHandler {
     const runtime = getRuntime();
 
     // 1. Authentication check
-    const db = runtime?.db as unknown as AccessGateDb | undefined;
-    const authResult = validateRequest(headersToRecord(req), db);
+    const authResult = validateRequest(headersToRecord(req));
     if (!authResult.valid) {
       return NextResponse.json({ error: authResult.error ?? "Unauthorized" } satisfies ErrorBody, {
         status: 401,

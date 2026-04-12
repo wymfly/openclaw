@@ -8,6 +8,8 @@ import { ModelDetail } from "../catalog/ModelDetail";
 import { ProviderList } from "../catalog/ProviderList";
 import { ProviderOverview } from "../catalog/ProviderOverview";
 
+type CapabilityFilter = "reasoning" | "vision" | "text";
+
 interface Selection {
   type: "provider" | "model";
   provider: string;
@@ -43,6 +45,7 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
     providerApiMap,
   } = useModelsStore();
   const [selected, setSelected] = useState<Selection | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Set<CapabilityFilter>>(new Set());
 
   useEffect(() => {
     void fetchUsableModels();
@@ -52,13 +55,36 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
   const selectedProvider = selected?.provider ?? null;
   const selectedModel = selected?.type === "model" ? (selected.model ?? null) : null;
 
+  // Derive filtered models list from active capability filters (AND logic)
+  const filteredModels = useMemo(() => {
+    if (activeFilters.size === 0) return models;
+    return models.filter((m) => {
+      if (activeFilters.has("reasoning") && !m.reasoning) return false;
+      if (activeFilters.has("vision") && !m.input?.includes("image")) return false;
+      if (activeFilters.has("text") && m.input && !m.input.includes("text")) return false;
+      return true;
+    });
+  }, [models, activeFilters]);
+
+  const toggleFilter = useCallback((cap: CapabilityFilter) => {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(cap)) {
+        next.delete(cap);
+      } else {
+        next.add(cap);
+      }
+      return next;
+    });
+  }, []);
+
   // Group models by provider for the overview pane
   const providerModels = useMemo(() => {
     if (!selectedProvider) {
       return [];
     }
-    return models.filter((m) => m.provider === selectedProvider);
-  }, [models, selectedProvider]);
+    return filteredModels.filter((m) => m.provider === selectedProvider);
+  }, [filteredModels, selectedProvider]);
 
   // Find the specific selected model object
   const selectedModelObj = useMemo(() => {
@@ -67,6 +93,12 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
     }
     return models.find((m) => m.id === selectedModel) ?? null;
   }, [models, selectedModel]);
+
+  const CAPABILITY_CHIPS: { key: CapabilityFilter; label: string }[] = [
+    { key: "reasoning", label: t("filter.reasoning") },
+    { key: "vision", label: t("filter.vision") },
+    { key: "text", label: t("filter.text") },
+  ];
 
   // Find auth entry for the selected provider
   const selectedAuth = useMemo(() => {
@@ -158,10 +190,34 @@ export function CatalogTab({ onGoConfig, onGoFallbacks }: CatalogTabProps = {}) 
         )}
       </div>
 
+      {/* Capability filter bar — only shown when there are models to filter */}
+      {models.length > 0 && (
+        <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2">
+          {CAPABILITY_CHIPS.map(({ key, label }) => {
+            const active = activeFilters.has(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleFilter(key)}
+                className={[
+                  "rounded-full px-3 py-0.5 text-xs font-medium transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-accent",
+                ].join(" ")}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1">
         {/* Left pane: provider/model tree */}
         <ProviderList
-          models={models}
+          models={filteredModels}
           auth={authOverview}
           loading={loading}
           selectedProvider={selectedProvider}

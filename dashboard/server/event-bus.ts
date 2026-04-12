@@ -54,43 +54,28 @@ export type ServerEvent = {
 
 export type ServerEventSubscriber = (event: ServerEvent) => void;
 
-export type ReplayStore = {
-  appendEvent: (type: DeckEventType, data: unknown) => number;
-  getEventsSince: (lastId: number) => ServerEvent[];
-};
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // EventBus
 // ---------------------------------------------------------------------------
 
-const REPLAY_BUFFER_SIZE = 100;
+const REPLAY_BUFFER_SIZE = 2000;
 
 export class EventBus {
   private nextId = 1;
   private subscribers = new Set<ServerEventSubscriber>();
   private buffer: ServerEvent[] = [];
-  private replayStore: ReplayStore | null = null;
 
   /** Broadcast an event to all subscribers. Each subscriber is error-isolated. */
   broadcast(type: DeckEventType, data: unknown): ServerEvent {
-    let id: number;
-    if (this.replayStore) {
-      try {
-        id = this.replayStore.appendEvent(type, data);
-      } catch (err) {
-        console.error("[EventBus] replay append failed:", err);
-        id = this.nextId;
-      }
-    } else {
-      id = this.nextId;
-    }
+    const id = this.nextId++;
     const event: ServerEvent = {
       id,
       type,
       data,
       timestamp: Date.now(),
     };
-    this.nextId = Math.max(this.nextId, id + 1);
 
     // Maintain fixed-size replay buffer (ring-style trim).
     this.buffer.push(event);
@@ -117,24 +102,23 @@ export class EventBus {
     this.subscribers.delete(callback);
   }
 
-  /** Return events with id > lastId from the replay buffer. */
-  getEventsSince(lastId: number): ServerEvent[] {
-    if (this.replayStore) {
-      try {
-        return this.replayStore.getEventsSince(lastId);
-      } catch (err) {
-        console.error("[EventBus] replay read failed:", err);
-      }
+  /**
+   * Return events with id > lastId from the replay buffer.
+   * Returns { events, gapDetected } — gap means lastId fell out of buffer.
+   */
+  getEventsSince(lastId: number): { events: ServerEvent[]; gapDetected: boolean } {
+    if (this.buffer.length === 0) {
+      return { events: [], gapDetected: false };
     }
-    return this.buffer.filter((e) => e.id > lastId);
-  }
-
-  setReplayStore(store: ReplayStore | null): void {
-    this.replayStore = store;
-  }
-
-  hasReplayStore(): boolean {
-    return this.replayStore !== null;
+    // lastId 0 means "give me everything in the buffer" (no gap possible).
+    if (lastId === 0) {
+      return { events: [...this.buffer], gapDetected: false };
+    }
+    const oldest = this.buffer[0];
+    // If requested ID is older than buffer start, a gap exists.
+    const gapDetected = lastId < oldest.id;
+    const events = this.buffer.filter((e) => e.id > lastId);
+    return { events, gapDetected };
   }
 
   /** Current subscriber count (useful for tests / diagnostics). */

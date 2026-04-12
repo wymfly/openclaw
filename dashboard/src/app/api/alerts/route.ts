@@ -1,63 +1,17 @@
 /**
- * GET /api/alerts — List all alert rules from SQLite.
+ * GET /api/alerts — List all alert rules.
  * POST /api/alerts — Create a new alert rule.
  */
-import { getRuntime } from "@server/runtime";
+import { getAlertRuleStore, type AlertRule } from "@server/budget-alert-stores";
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 
-type AlertRuleRow = {
-  id: string;
-  name: string;
-  entity_type: string;
-  condition: string;
-  threshold: number;
-  action: string;
-  cooldown_ms: number;
-  last_fired_at: string | null;
-  enabled: number;
-  created_at: string;
-  updated_at: string;
-};
-
-function mapRow(row: AlertRuleRow) {
-  return {
-    id: row.id,
-    name: row.name,
-    entityType: row.entity_type,
-    condition: row.condition,
-    threshold: row.threshold,
-    action: row.action,
-    cooldownMs: row.cooldown_ms,
-    lastFiredAt: row.last_fired_at,
-    enabled: row.enabled === 1,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
 export const GET = withAuth(async () => {
-  const runtime = getRuntime();
-  if (!runtime) {
-    return NextResponse.json({ error: "Gateway not configured" }, { status: 503 });
-  }
-
-  try {
-    const rows = runtime.db
-      .prepare("SELECT * FROM alert_rules ORDER BY created_at DESC")
-      .all() as unknown as AlertRuleRow[];
-    return NextResponse.json({ rules: rows.map(mapRow) });
-  } catch {
-    return NextResponse.json({ rules: [] });
-  }
+  const rules = [...getAlertRuleStore().get()].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return NextResponse.json({ rules });
 });
 
 export const POST = withAuth(async (request: NextRequest) => {
-  const runtime = getRuntime();
-  if (!runtime) {
-    return NextResponse.json({ error: "Gateway not configured" }, { status: 503 });
-  }
-
   const body = (await request.json()) as Record<string, unknown>;
   const name = body.name as string | undefined;
   const entityType = body.entityType as string | undefined;
@@ -74,23 +28,21 @@ export const POST = withAuth(async (request: NextRequest) => {
     );
   }
 
-  const id = `ar-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+  const rule: AlertRule = {
+    id: `ar-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    entityType,
+    condition,
+    threshold,
+    action,
+    cooldownMs,
+    lastFiredAt: null,
+    enabled,
+    createdAt: now,
+    updatedAt: now,
+  };
 
-  try {
-    runtime.db
-      .prepare(
-        `INSERT INTO alert_rules (id, name, entity_type, condition, threshold, action, cooldown_ms, enabled)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(id, name, entityType, condition, threshold, action, cooldownMs, enabled ? 1 : 0);
-
-    const row = runtime.db
-      .prepare("SELECT * FROM alert_rules WHERE id = ?")
-      .get(id) as unknown as AlertRuleRow;
-
-    return NextResponse.json({ rule: mapRow(row) }, { status: 201 });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to create rule";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  getAlertRuleStore().append(rule);
+  return NextResponse.json({ rule }, { status: 201 });
 });

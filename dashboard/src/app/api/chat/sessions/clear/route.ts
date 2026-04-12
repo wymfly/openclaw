@@ -1,4 +1,3 @@
-import { getRuntime } from "@server/runtime";
 import { NextRequest } from "next/server";
 import { gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
@@ -12,11 +11,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     return Response.json({ error: "sessionKey is required" }, { status: 400 });
   }
 
-  const response = await gwRequest("sessions.clear", {
+  return gwRequest("sessions.clear", {
     key: body.sessionKey,
   });
-  if (response.ok) {
-    getRuntime()?.store.clearSessionProjections(body.sessionKey);
-  }
-  return response;
 });

@@ -77,11 +77,17 @@ export function useSessionToolProgress(sessionKey?: string): Record<string, Tool
 // Approval
 // ---------------------------------------------------------------------------
 
-/** Subscribe to the active approval request for a session (defaults to active session). */
+/** Subscribe to the active approval request for a session (defaults to active session).
+ *  Filters out expired approvals so stale requests don't show on session switch. */
 export function useSessionApproval(sessionKey?: string): ApprovalRequest | null {
   return useChatStore((s) => {
     const key = sessionKey ?? s.activeSessionKey;
-    return key ? (s.sessions.get(key)?.activeApproval ?? null) : null;
+    if (!key) return null;
+    const approval = s.sessions.get(key)?.activeApproval ?? null;
+    if (approval?.expiresAtMs && approval.expiresAtMs <= Date.now()) {
+      return null;
+    }
+    return approval;
   });
 }
 

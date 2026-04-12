@@ -1,0 +1,169 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - generic [ref=e13]:
+    - navigation [ref=e14]:
+      - button [ref=e15]:
+        - img [ref=e16]
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: 核心
+          - button "对话" [ref=e22]:
+            - img [ref=e24]
+            - generic [ref=e26]: 对话
+          - button "智能体" [ref=e27]:
+            - img [ref=e29]
+            - generic [ref=e32]: 智能体
+          - button "监控" [ref=e33]:
+            - img [ref=e35]
+            - generic [ref=e38]: 监控
+          - button "模型" [ref=e39]:
+            - img [ref=e41]
+            - generic [ref=e44]: 模型
+        - generic [ref=e45]:
+          - generic [ref=e46]: 观测
+          - button "用量" [ref=e47]:
+            - img [ref=e49]
+            - generic [ref=e51]: 用量
+          - button "会话" [ref=e52]:
+            - img [ref=e54]
+            - generic [ref=e57]: 会话
+          - button "记忆" [ref=e58]:
+            - img [ref=e60]
+            - generic [ref=e68]: 记忆
+          - button "日志" [ref=e69]:
+            - img [ref=e71]
+            - generic [ref=e74]: 日志
+          - button "动态" [ref=e75]:
+            - img [ref=e77]
+            - generic [ref=e79]: 动态
+          - button "线程" [ref=e80]:
+            - img [ref=e82]
+            - generic [ref=e85]: 线程
+          - button "API 浏览器" [ref=e86]:
+            - img [ref=e88]
+            - generic [ref=e90]: API 浏览器
+        - generic [ref=e91]:
+          - generic [ref=e92]: 自动化
+          - button "定时任务" [ref=e93]:
+            - img [ref=e95]
+            - generic [ref=e98]: 定时任务
+          - button "Webhooks" [ref=e99]:
+            - img [ref=e101]
+            - generic [ref=e105]: Webhooks
+          - button "审批" [ref=e106]:
+            - img [ref=e108]
+            - generic [ref=e111]: 审批
+          - button "技能" [ref=e112]:
+            - img [ref=e114]
+            - generic [ref=e116]: 技能
+        - generic [ref=e117]:
+          - generic [ref=e118]: 控制
+          - button "预算" [ref=e119]:
+            - img [ref=e121]
+            - generic [ref=e124]: 预算
+          - button "告警" [ref=e125]:
+            - img [ref=e127]
+            - generic [ref=e130]: 告警
+          - button "渠道" [ref=e131]:
+            - img [ref=e133]
+            - generic [ref=e139]: 渠道
+          - button "消息路由" [ref=e140]:
+            - img [ref=e142]
+            - generic [ref=e146]: 消息路由
+          - button "子智能体" [ref=e147]:
+            - img [ref=e149]
+            - generic [ref=e154]: 子智能体
+          - button "身份" [ref=e155]:
+            - img [ref=e157]
+            - generic [ref=e166]: 身份
+          - button "配置" [ref=e167]:
+            - img [ref=e169]
+            - generic [ref=e172]: 配置
+          - button "节点" [ref=e173]:
+            - img [ref=e175]
+            - generic [ref=e178]: 节点
+          - button "文档" [ref=e179]:
+            - img [ref=e181]
+            - generic [ref=e186]: 文档
+      - button "设置" [ref=e188]:
+        - img [ref=e190]
+        - generic [ref=e193]: 设置
+    - generic [ref=e194]:
+      - banner [ref=e195]:
+        - heading "对话" [level=1] [ref=e197]
+        - generic [ref=e198]:
+          - button "已连接" [ref=e199] [cursor=pointer]: 已连接
+          - button "EN" [ref=e201]:
+            - img [ref=e202]
+            - text: EN
+          - button [ref=e205]:
+            - img [ref=e206]
+      - main [ref=e208]:
+        - generic [ref=e209]:
+          - complementary [ref=e210]:
+            - tablist [ref=e211]:
+              - tab "全部 8" [selected] [ref=e212]:
+                - generic [ref=e213]: 全部
+                - generic [ref=e214]: "8"
+              - tab "main 8" [ref=e215]:
+                - generic [ref=e216]: main
+                - generic [ref=e217]: "8"
+              - tab "e2e-test-agent" [ref=e218]:
+                - generic [ref=e219]: e2e-test-agent
+              - tab "new-agent" [ref=e220]:
+                - generic [ref=e221]: new-agent
+              - tab "test-agent" [ref=e222]:
+                - generic [ref=e223]: test-agent
+            - button "新建会话" [ref=e224]:
+              - img [ref=e225]
+              - text: 新建会话
+            - textbox "搜索会话..." [ref=e227]
+            - generic [ref=e228]:
+              - generic [ref=e229] [cursor=pointer]:
+                - generic [ref=e230]
+                - button "删除会话" [ref=e234]
+              - generic [ref=e238] [cursor=pointer]:
+                - generic [ref=e239]
+                - button "删除会话" [ref=e243]
+              - generic [ref=e247] [cursor=pointer]:
+                - generic [ref=e248]
+                - button "删除会话" [ref=e252]
+              - generic [ref=e256] [cursor=pointer]:
+                - generic [ref=e257]
+                - button "删除会话" [ref=e260]
+              - generic [ref=e264] [cursor=pointer]:
+                - generic [ref=e265]
+                - button "删除会话" [ref=e269]
+              - generic [ref=e273] [cursor=pointer]:
+                - generic [ref=e274]
+                - button "删除会话" [ref=e277]
+              - generic [ref=e281] [cursor=pointer]:
+                - generic [ref=e282]
+                - button "删除会话" [ref=e286]
+              - generic [ref=e290] [cursor=pointer]:
+                - generic [ref=e291]
+                - button "删除会话" [ref=e295]
+          - generic [ref=e299]:
+            - generic [ref=e301]:
+              - generic [ref=e302]:
+                - img [ref=e304]
+                - heading "开始新对话" [level=2] [ref=e306]
+                - paragraph [ref=e307]: 选择一个话题开始，或直接输入你的问题
+              - generic [ref=e308]:
+                - button "帮我写一段创意文案" [ref=e309]
+                - button "分析这段代码的性能问题" [ref=e314]
+                - button "解释一个复杂的技术概念" [ref=e318]
+            - generic [ref=e323]:
+              - button "Attach files" [ref=e324]:
+                - img [ref=e325]
+              - button "画布面板" [ref=e327] [cursor=pointer]:
+                - img [ref=e328]
+              - button "工件面板" [ref=e330] [cursor=pointer]:
+                - img [ref=e331]
+              - button "提示模板" [ref=e336]:
+                - img [ref=e337]
+              - textbox "输入消息..." [ref=e342]
+              - button "发送" [disabled] [ref=e343]:
+                - img [ref=e344]

@@ -7,6 +7,15 @@ import { EventBus } from "../event-bus.js";
 import type { ServerEvent } from "../event-bus.js";
 import { NodeConnection } from "../node-connection.js";
 
+// Partial mock: keep real crypto but spy on token persistence
+const { mockStoreDeviceToken } = vi.hoisted(() => ({
+  mockStoreDeviceToken: vi.fn(),
+}));
+vi.mock("../device-identity.js", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../device-identity.js")>();
+  return { ...mod, storeDeviceToken: mockStoreDeviceToken };
+});
+
 // ---------------------------------------------------------------------------
 // Mock WebSocket
 // ---------------------------------------------------------------------------
@@ -462,22 +471,17 @@ describe("NodeConnection", () => {
   describe("deviceToken caching", () => {
     it("stores deviceToken from hello-ok response", async () => {
       vi.useRealTimers();
+      mockStoreDeviceToken.mockClear();
+
       const identity = generateDeviceIdentity();
       const eventBus = new EventBus();
       const mockWs = new MockWebSocket();
-      const mockDb = {
-        prepare: vi.fn().mockReturnValue({
-          run: vi.fn(),
-          get: vi.fn().mockReturnValue(undefined),
-        }),
-      };
 
       const conn = new NodeConnection({
         deviceIdentity: identity,
         eventBus,
         loadSettings,
         createWebSocket: () => mockWs as unknown as WebSocket,
-        db: mockDb,
       });
 
       const startP = conn.start();
@@ -506,11 +510,8 @@ describe("NodeConnection", () => {
 
       await startP;
 
-      // Verify storeDeviceToken was called.
-      const updateCall = mockDb.prepare.mock.calls.find(
-        (c: string[]) => typeof c[0] === "string" && c[0].includes("UPDATE"),
-      );
-      expect(updateCall).toBeDefined();
+      // Verify storeDeviceToken was called with the token.
+      expect(mockStoreDeviceToken).toHaveBeenCalledWith("dt-abc-123");
 
       await conn.stop();
     });

@@ -1,6 +1,5 @@
 import { getPendingApprovals } from "@server/approval-bridge";
 import { ControlPlaneGatewayError } from "@server/gateway-adapter";
-import type { ChatSessionProjection } from "@server/projection-store";
 import { getRuntime } from "@server/runtime";
 import { type NextRequest, NextResponse } from "next/server";
 import { gwCall } from "@/lib/api-helpers";
@@ -66,10 +65,10 @@ export const GET = withAuth(async (request: NextRequest) => {
         return entry.key === sessionKey || entry.sessionKey === sessionKey;
       }) ?? null;
 
+    // Approval state from in-memory bridge — no SQLite dependency.
+    // See: .omc/plans/deck-api-resilience.md S2+S5
     const pendingApproval =
       getPendingApprovals().find((approval) => approval.sessionKey === sessionKey) ?? null;
-    const projectedApproval = runtime.store.getApprovalProjectionWithMigration(sessionKey);
-    const projection = runtime.store.getProjection<ChatSessionProjection>("chat", sessionKey);
 
     return NextResponse.json({
       messages,
@@ -81,8 +80,10 @@ export const GET = withAuth(async (request: NextRequest) => {
             command: pendingApproval.command,
             description: pendingApproval.cwd,
           }
-        : projectedApproval,
-      a2uiState: projection?.a2uiState ?? null,
+        : null,
+      // a2uiState: no longer read from SQLite projection.
+      // Will be sourced from sessionStorage after Step 3b.
+      a2uiState: null,
     });
   } catch (err) {
     if (err instanceof ControlPlaneGatewayError) {

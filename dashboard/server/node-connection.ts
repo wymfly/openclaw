@@ -24,7 +24,6 @@ import {
   loadDeviceToken,
   storeDeviceToken,
   type DeviceIdentity,
-  type DbLike,
 } from "./device-identity";
 import type { EventBus } from "./event-bus";
 
@@ -82,7 +81,6 @@ export type NodeConnectionOptions = {
   eventBus: EventBus;
   loadSettings: () => ControlPlaneGatewaySettings;
   createWebSocket?: (url: string) => WebSocket;
-  db?: DbLike;
 };
 
 // ---------------------------------------------------------------------------
@@ -110,14 +108,11 @@ export class NodeConnection {
   private readonly eventBus: EventBus;
   private readonly loadSettings: () => ControlPlaneGatewaySettings;
   private readonly createWebSocket: (url: string) => WebSocket;
-  private readonly db: DbLike | undefined;
-
   constructor(options: NodeConnectionOptions) {
     this.deviceIdentity = options.deviceIdentity;
     this.eventBus = options.eventBus;
     this.loadSettings = options.loadSettings;
     this.createWebSocket = options.createWebSocket ?? ((url) => new WebSocket(url));
-    this.db = options.db;
   }
 
   /** The node ID is the device identity's deterministic device ID. */
@@ -327,10 +322,10 @@ export class NodeConnection {
         if (parsed.id === this.connectRequestId) {
           if (parsed.ok) {
             // Cache deviceToken from hello-ok response.
-            if (this.db && parsed.payload) {
+            if (parsed.payload) {
               const helloPayload = parsed.payload as { auth?: { deviceToken?: string } };
               if (typeof helloPayload.auth?.deviceToken === "string") {
-                storeDeviceToken(this.db, helloPayload.auth.deviceToken);
+                storeDeviceToken(helloPayload.auth.deviceToken);
               }
             }
             settle(() => resolve());
@@ -406,11 +401,9 @@ export class NodeConnection {
     }
 
     const auth: Record<string, string> = { token };
-    if (this.db) {
-      const cachedToken = loadDeviceToken(this.db);
-      if (cachedToken) {
-        auth.deviceToken = cachedToken;
-      }
+    const cachedToken = loadDeviceToken();
+    if (cachedToken) {
+      auth.deviceToken = cachedToken;
     }
 
     const connectFrame = {

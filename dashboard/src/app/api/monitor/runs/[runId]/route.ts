@@ -1,9 +1,9 @@
-import { getRunEventStore } from "@server/run-event-store";
+import { getRunAggregator } from "@server/run-aggregator";
 /**
- * GET /api/monitor/runs/:runId — Single run detail: events + summary.
+ * GET /api/monitor/runs/:runId — Single run detail: summary stats.
  *
- * Returns: { events: RunEventRow[], summary: RunSummary }
- * Returns 404 if the run has no events.
+ * Returns: { summary: RunSummary }
+ * Returns 404 if the run is not tracked.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
@@ -14,14 +14,12 @@ export const GET = withAuth(async (_request: NextRequest, ...args: unknown[]) =>
   const ctx = args[0] as RouteContext;
   const { runId } = await ctx.params;
 
-  const store = getRunEventStore();
-  const events = store.getRunEvents(runId);
+  const aggregator = getRunAggregator();
+  const summary = aggregator.getRunSummary(runId);
 
-  if (events.length === 0) {
+  if (!summary) {
     return NextResponse.json({ error: "Run not found" }, { status: 404 });
   }
 
-  const summary = store.getRunSummary(runId);
-
-  return NextResponse.json({ events, summary });
+  return NextResponse.json({ summary });
 });

@@ -174,24 +174,9 @@ stage_prebuilt() {
   # Public assets
   [ -d "$REPO_DIR/dashboard/public" ] && \
     cp -r "$REPO_DIR/dashboard/public" "$src/dashboard/.next/standalone/dashboard/public"
-  # Migrations
-  [ -d "$REPO_DIR/dashboard/migrations" ] && \
-    cp -r "$REPO_DIR/dashboard/migrations" "$src/dashboard/.next/standalone/dashboard/migrations"
-  # Standalone entry (preloads sql.js WASM)
+  # Standalone entry (wrapper that starts server.js)
   [ -f "$REPO_DIR/dashboard/standalone-entry.mjs" ] && \
     cp "$REPO_DIR/dashboard/standalone-entry.mjs" "$src/dashboard/.next/standalone/dashboard/standalone-entry.mjs"
-  # sql.js WASM binary (Next.js standalone trace copies JS but not the .wasm file)
-  local sql_wasm_dst="$src/dashboard/.next/standalone/node_modules/sql.js/dist/sql-wasm.wasm"
-  if [ ! -f "$sql_wasm_dst" ]; then
-    local sql_wasm_src=""
-    [ -f "$REPO_DIR/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="$REPO_DIR/node_modules/sql.js/dist/sql-wasm.wasm"
-    [ -z "$sql_wasm_src" ] && [ -f "$REPO_DIR/dashboard/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="$REPO_DIR/dashboard/node_modules/sql.js/dist/sql-wasm.wasm"
-    if [ -n "$sql_wasm_src" ]; then
-      mkdir -p "$(dirname "$sql_wasm_dst")"
-      cp "$sql_wasm_src" "$sql_wasm_dst"
-      log "sql-wasm.wasm copied to standalone"
-    fi
-  fi
 
   HAS_PREBUILT=true
   log "Fresh artifacts built and staged"

@@ -1,4 +1,4 @@
-import { getRunEventStore } from "@server/run-event-store";
+import { getRunAggregator } from "@server/run-aggregator";
 /**
  * GET /api/monitor/stats — Aggregate overview statistics for all runs.
  *
@@ -8,7 +8,6 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async () => {
-  const store = getRunEventStore();
-  const stats = store.getStats();
+  const stats = getRunAggregator().getStats();
   return NextResponse.json(stats);
 });

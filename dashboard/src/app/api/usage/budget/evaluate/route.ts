@@ -1,6 +1,6 @@
 import { getRuntime } from "@server/runtime";
 import { NextResponse } from "next/server";
-import { evaluateBudgetRule, type BudgetDimension, type BudgetRule } from "@/lib/budget-governance";
+import { evaluateBudgetRule, type BudgetDimension, type BudgetRule as GovBudgetRule } from "@/lib/budget-governance";
 /**
  * GET /api/usage/budget/evaluate — Evaluate all enabled budget rules.
  *
@@ -8,19 +8,7 @@ import { evaluateBudgetRule, type BudgetDimension, type BudgetRule } from "@/lib
  * rule, and broadcasts budget.warn / budget.over events via EventBus.
  */
 import { withAuth } from "@/lib/with-auth";
-
-interface BudgetRuleRow {
-  id: string;
-  name: string;
-  scope: string;
-  agent_id: string | null;
-  task_id: string | null;
-  dimension: string;
-  warn_threshold: number | null;
-  over_threshold: number | null;
-  period: string;
-  enabled: number;
-}
+import { getBudgetRuleStore } from "@server/budget-alert-stores";
 
 export const GET = withAuth(async () => {
   const runtime = getRuntime();
@@ -28,11 +16,9 @@ export const GET = withAuth(async () => {
     return NextResponse.json({ error: "Not configured" }, { status: 503 });
   }
 
-  const rows = runtime.db
-    .prepare("SELECT * FROM budget_rules WHERE enabled = 1")
-    .all() as unknown as BudgetRuleRow[];
+  const rules = getBudgetRuleStore().get().filter((r) => r.enabled);
 
-  if (rows.length === 0) {
+  if (rules.length === 0) {
     return NextResponse.json({ evaluations: [] });
   }
 
@@ -55,18 +41,18 @@ export const GET = withAuth(async () => {
     cost: Number(totals.totalCost ?? 0),
   };
 
-  const evaluations = rows.map((row) => {
-    const rule: BudgetRule = {
+  const evaluations = rules.map((row) => {
+    const rule: GovBudgetRule = {
       id: row.id,
       name: row.name,
       scope: row.scope,
-      agentId: row.agent_id ?? undefined,
-      taskId: row.task_id ?? undefined,
+      agentId: row.agentId ?? undefined,
+      taskId: row.taskId ?? undefined,
       dimension: row.dimension as BudgetDimension,
-      warnThreshold: row.warn_threshold ?? undefined,
-      overThreshold: row.over_threshold ?? undefined,
+      warnThreshold: row.warnThreshold ?? undefined,
+      overThreshold: row.overThreshold ?? undefined,
       period: row.period,
-      enabled: row.enabled,
+      enabled: row.enabled ? 1 : 0,
     };
 
     const currentValue = usageValues[rule.dimension] ?? 0;

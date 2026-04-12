@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useModelsStore } from "@/stores/models";
 import type { CatalogProvider } from "@/stores/models";
 import { WizardStepCustom } from "./WizardStepCustom";
@@ -18,7 +26,8 @@ import { WizardStepSelect } from "./WizardStepSelect";
 type WizardStep =
   | { type: "select" }
   | { type: "known"; provider: CatalogProvider }
-  | { type: "custom" };
+  | { type: "custom" }
+  | { type: "success"; provider: string; models: Array<{ id: string; name: string }> };
 
 interface AddProviderWizardProps {
   open: boolean;
@@ -30,6 +39,9 @@ interface AddProviderWizardProps {
     baseUrl: string;
     apiKey?: string;
     models: Array<{ id: string; name: string; contextWindow: number; maxTokens: number }>;
+    headers?: Record<string, string>;
+    authHeader?: boolean;
+    injectNumCtxForOpenAICompat?: boolean;
   }) => Promise<boolean>;
 }
 
@@ -43,9 +55,13 @@ export function AddProviderWizard({ open, onOpenChange, onAdd }: AddProviderWiza
     providers,
     authOverview,
     fetchCatalogProviders,
+    primaryModel,
+    fallbacks,
+    updateFallbacks,
   } = useModelsStore();
 
   const [step, setStep] = useState<WizardStep>({ type: "select" });
+  const [selectedModel, setSelectedModel] = useState<string>("");
 
   // Derive configured provider set from store
   const configuredProviders = useMemo(() => new Set(providers.map((p) => p.provider)), [providers]);
@@ -79,10 +95,14 @@ export function AddProviderWizard({ open, onOpenChange, onAdd }: AddProviderWiza
     [onOpenChange],
   );
 
-  const handleComplete = useCallback(() => {
-    setStep({ type: "select" });
-    onOpenChange(false);
-  }, [onOpenChange]);
+  const handleComplete = useCallback(
+    (providerName: string, models: Array<{ id: string; name: string }>) => {
+      // Auto-select if only one model
+      setSelectedModel(models.length === 1 ? `${providerName}/${models[0].id}` : "");
+      setStep({ type: "success", provider: providerName, models });
+    },
+    [],
+  );
 
   // Dialog title depends on step
   const title = useMemo(() => {
@@ -93,6 +113,8 @@ export function AddProviderWizard({ open, onOpenChange, onAdd }: AddProviderWiza
         return t("configureProvider", { provider: step.provider.displayName });
       case "custom":
         return t("title");
+      case "success":
+        return t("postAdd.title");
     }
   }, [step, t]);
 
@@ -132,6 +154,64 @@ export function AddProviderWizard({ open, onOpenChange, onAdd }: AddProviderWiza
             onBack={() => setStep({ type: "select" })}
             onComplete={handleComplete}
           />
+        )}
+
+        {step.type === "success" && (
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              {t("postAdd.description", { provider: step.provider })}
+            </p>
+
+            {step.models.length > 1 && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">{t("postAdd.selectModel")}</p>
+                <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v ?? "")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("postAdd.selectModel")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {step.models.map((m) => (
+                      <SelectItem key={m.id} value={`${step.provider}/${m.id}`}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                className="bg-primary text-primary-foreground w-full"
+                disabled={!selectedModel}
+                onClick={async () => {
+                  if (!selectedModel) return;
+                  await updateFallbacks(selectedModel, fallbacks);
+                  handleClose(false);
+                }}
+              >
+                {t("postAdd.setAsPrimary")}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={!selectedModel}
+                onClick={async () => {
+                  if (!selectedModel) return;
+                  await updateFallbacks(primaryModel ?? selectedModel, [
+                    ...fallbacks,
+                    selectedModel,
+                  ]);
+                  handleClose(false);
+                }}
+              >
+                {t("postAdd.addToFallback")}
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>
+                {t("postAdd.close")}
+              </Button>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>

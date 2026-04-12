@@ -171,7 +171,7 @@ export function SessionsPanel() {
 
       {/* Right detail (70%) */}
       <div
-        className="flex flex-col flex-1 min-w-0"
+        className="flex flex-col flex-1 min-w-0 min-h-0"
         style={{ backgroundColor: "var(--background)" }}
       >
         {selectedKey ? (

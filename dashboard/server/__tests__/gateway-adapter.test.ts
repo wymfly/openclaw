@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import type {
   ControlPlaneConnectionStatus,
   ControlPlaneDomainEvent,
-  ControlPlaneOutboxEntry,
   ControlPlaneGatewaySettings,
   ControlPlaneRuntimeSnapshot,
   GatewayEventFrame,
@@ -285,26 +284,11 @@ describe("contracts type exports", () => {
     expect(settings.token).toBeTruthy();
   });
 
-  it("ControlPlaneOutboxEntry shape", () => {
-    const entry: ControlPlaneOutboxEntry = {
-      id: 1,
-      event: {
-        type: "runtime.status",
-        status: "connected",
-        asOf: new Date().toISOString(),
-        reason: null,
-      },
-      createdAt: new Date().toISOString(),
-    };
-    expect(entry.id).toBe(1);
-  });
-
   it("ControlPlaneRuntimeSnapshot shape", () => {
     const snap: ControlPlaneRuntimeSnapshot = {
       status: "connected",
       reason: null,
       asOf: new Date().toISOString(),
-      outboxHead: 0,
     };
     expect(snap.status).toBe("connected");
   });

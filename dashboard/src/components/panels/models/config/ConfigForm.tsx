@@ -1,11 +1,22 @@
 "use client";
 
-import { Eye, EyeOff, Loader2, Save, Check, Plus, Trash2, ListPlus } from "lucide-react";
+import {
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Loader2,
+  Save,
+  Check,
+  Plus,
+  Trash2,
+  ListPlus,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,6 +28,8 @@ import {
 } from "@/components/ui/select";
 import type { ProviderConfig, ProviderModelEntry } from "@/stores/models";
 import { useModelsStore } from "@/stores/models";
+import { AdvancedModelFields } from "./AdvancedModelFields";
+import { AdvancedProviderFields } from "./AdvancedProviderFields";
 import { ModelCheckboxList } from "./ModelCheckboxList";
 
 const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
@@ -95,6 +108,19 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Advanced provider fields
+  const [provHeaders, setProvHeaders] = useState<Record<string, string>>(
+    initialConfig?.headers ?? {},
+  );
+  const [provAuthHeader, setProvAuthHeader] = useState(initialConfig?.authHeader ?? false);
+  const [provInjectNumCtx, setProvInjectNumCtx] = useState(
+    initialConfig?.injectNumCtxForOpenAICompat ?? false,
+  );
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  // Per-model advanced fields (keyed by model id)
+  const [modelAdvancedOpen, setModelAdvancedOpen] = useState<Record<string, boolean>>({});
+
   // Editable models list
   const [localModels, setLocalModels] = useState<ProviderModelEntry[]>(initialConfig?.models ?? []);
   const [showAddModel, setShowAddModel] = useState(false);
@@ -162,6 +188,11 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
     setAuthMode(initialConfig?.auth ?? "");
     setApiProtocol(initialConfig?.api ?? "");
     setLocalModels(initialConfig?.models ?? []);
+    setProvHeaders(initialConfig?.headers ?? {});
+    setProvAuthHeader(initialConfig?.authHeader ?? false);
+    setProvInjectNumCtx(initialConfig?.injectNumCtxForOpenAICompat ?? false);
+    setAdvancedOpen(false);
+    setModelAdvancedOpen({});
     setShowKey(false);
     setSaved(false);
     setShowAddModel(false);
@@ -174,6 +205,9 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
     initialConfig?.auth,
     initialConfig?.api,
     initialConfig?.models,
+    initialConfig?.headers,
+    initialConfig?.authHeader,
+    initialConfig?.injectNumCtxForOpenAICompat,
   ]);
 
   const handleAddModel = useCallback(() => {
@@ -212,6 +246,9 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
         auth: authMode || undefined,
         api: apiProtocol || undefined,
         models: localModels.length > 0 ? localModels : undefined,
+        headers: Object.keys(provHeaders).length > 0 ? provHeaders : undefined,
+        authHeader: provAuthHeader || undefined,
+        injectNumCtxForOpenAICompat: provInjectNumCtx || undefined,
       };
 
       // Only send apiKey if user changed it (not the redacted placeholder)
@@ -238,6 +275,9 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
     authMode,
     apiProtocol,
     localModels,
+    provHeaders,
+    provAuthHeader,
+    provInjectNumCtx,
     onSave,
   ]);
 
@@ -597,6 +637,95 @@ export function ConfigForm({ provider, initialConfig, authType, onSave }: Config
             </div>
           )}
         </div>
+
+        {/* Advanced Provider Configuration */}
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <CollapsibleTrigger className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors py-1">
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${advancedOpen ? "" : "-rotate-90"}`}
+            />
+            {t("advanced.title")}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3 space-y-4">
+            <AdvancedProviderFields
+              headers={provHeaders}
+              authHeader={provAuthHeader}
+              injectNumCtxForOpenAICompat={provInjectNumCtx}
+              onHeadersChange={setProvHeaders}
+              onAuthHeaderChange={setProvAuthHeader}
+              onInjectNumCtxChange={setProvInjectNumCtx}
+            />
+
+            {/* Per-model advanced fields */}
+            {localModels.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">
+                  {t("advanced.model.compat.title")}
+                </Label>
+                {localModels.map((m, idx) => (
+                  <Collapsible
+                    key={m.id}
+                    open={modelAdvancedOpen[m.id] ?? false}
+                    onOpenChange={(open) =>
+                      setModelAdvancedOpen((prev) => ({ ...prev, [m.id]: open }))
+                    }
+                  >
+                    <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer w-full py-1">
+                      <ChevronDown
+                        size={12}
+                        className={`transition-transform ${modelAdvancedOpen[m.id] ? "" : "-rotate-90"}`}
+                      />
+                      <span className="font-mono">{m.name || m.id}</span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-4 pt-2 pb-2">
+                      <AdvancedModelFields
+                        api={m.api}
+                        cost={m.cost}
+                        headers={m.headers}
+                        compat={m.compat}
+                        onApiChange={(v) => {
+                          setLocalModels((prev) =>
+                            prev.map((x, i) => (i === idx ? { ...x, api: v } : x)),
+                          );
+                        }}
+                        onCostChange={(v) => {
+                          setLocalModels((prev) =>
+                            prev.map((x, i) => (i === idx ? { ...x, cost: v } : x)),
+                          );
+                        }}
+                        onHeadersChange={(v) => {
+                          setLocalModels((prev) =>
+                            prev.map((x, i) =>
+                              i === idx
+                                ? {
+                                    ...x,
+                                    headers: Object.keys(v).length > 0 ? v : undefined,
+                                  }
+                                : x,
+                            ),
+                          );
+                        }}
+                        onCompatChange={(v) => {
+                          setLocalModels((prev) =>
+                            prev.map((x, i) =>
+                              i === idx
+                                ? {
+                                    ...x,
+                                    compat: Object.keys(v).length > 0 ? v : undefined,
+                                  }
+                                : x,
+                            ),
+                          );
+                        }}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+              </div>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Save */}
         <div className="pt-1">

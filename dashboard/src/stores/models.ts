@@ -28,6 +28,13 @@ export interface Model {
   authStatus?: string;
 }
 
+export interface ModelCost {
+  input?: number;
+  output?: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+}
+
 export interface ProviderModelEntry {
   id: string;
   name: string;
@@ -36,6 +43,9 @@ export interface ProviderModelEntry {
   input?: string[];
   contextWindow?: number;
   maxTokens?: number;
+  cost?: ModelCost;
+  headers?: Record<string, string>;
+  compat?: Record<string, unknown>;
 }
 
 export interface ProviderConfig {
@@ -45,6 +55,9 @@ export interface ProviderConfig {
   auth?: string; // "api-key" | "aws-sdk" | "oauth" | "token"
   api?: string; // "openai-completions" | "openai-responses" | etc.
   models?: ProviderModelEntry[];
+  headers?: Record<string, string>;
+  authHeader?: boolean;
+  injectNumCtxForOpenAICompat?: boolean;
 }
 
 export interface AuthOverviewEntry {
@@ -191,6 +204,9 @@ interface ModelsState {
     api?: string;
     auth?: string;
     models?: Array<{ id: string; name: string; contextWindow: number; maxTokens: number }>;
+    headers?: Record<string, string>;
+    authHeader?: boolean;
+    injectNumCtxForOpenAICompat?: boolean;
   }) => Promise<boolean>;
   fetchUsageSummary: () => Promise<void>;
   toggleAllowlist: (active: boolean) => Promise<boolean>;
@@ -329,16 +345,48 @@ function getNestedProviders(config: Record<string, unknown>): ProviderConfig[] {
         baseUrl: typeof v.baseUrl === "string" ? v.baseUrl : undefined,
         auth: typeof v.auth === "string" ? v.auth : undefined,
         api: typeof v.api === "string" ? v.api : undefined,
+        headers:
+          typeof v.headers === "object" && v.headers !== null && !Array.isArray(v.headers)
+            ? (v.headers as Record<string, string>)
+            : undefined,
+        authHeader: typeof v.authHeader === "boolean" ? v.authHeader : undefined,
+        injectNumCtxForOpenAICompat:
+          typeof v.injectNumCtxForOpenAICompat === "boolean"
+            ? v.injectNumCtxForOpenAICompat
+            : undefined,
         models: Array.isArray(v.models)
-          ? (v.models as Array<Record<string, unknown>>).map((m) => ({
-              id: typeof m.id === "string" ? m.id : "",
-              name: typeof m.name === "string" ? m.name : "",
-              api: typeof m.api === "string" ? m.api : undefined,
-              reasoning: typeof m.reasoning === "boolean" ? m.reasoning : undefined,
-              input: Array.isArray(m.input) ? (m.input as string[]) : undefined,
-              contextWindow: typeof m.contextWindow === "number" ? m.contextWindow : undefined,
-              maxTokens: typeof m.maxTokens === "number" ? m.maxTokens : undefined,
-            }))
+          ? (v.models as Array<Record<string, unknown>>).map((m) => {
+              const rawCost = m.cost as Record<string, unknown> | undefined;
+              const cost: ModelCost | undefined =
+                typeof rawCost === "object" && rawCost !== null
+                  ? {
+                      input: typeof rawCost.input === "number" ? rawCost.input : undefined,
+                      output: typeof rawCost.output === "number" ? rawCost.output : undefined,
+                      cacheRead:
+                        typeof rawCost.cacheRead === "number" ? rawCost.cacheRead : undefined,
+                      cacheWrite:
+                        typeof rawCost.cacheWrite === "number" ? rawCost.cacheWrite : undefined,
+                    }
+                  : undefined;
+              return {
+                id: typeof m.id === "string" ? m.id : "",
+                name: typeof m.name === "string" ? m.name : "",
+                api: typeof m.api === "string" ? m.api : undefined,
+                reasoning: typeof m.reasoning === "boolean" ? m.reasoning : undefined,
+                input: Array.isArray(m.input) ? (m.input as string[]) : undefined,
+                contextWindow: typeof m.contextWindow === "number" ? m.contextWindow : undefined,
+                maxTokens: typeof m.maxTokens === "number" ? m.maxTokens : undefined,
+                cost,
+                headers:
+                  typeof m.headers === "object" && m.headers !== null && !Array.isArray(m.headers)
+                    ? (m.headers as Record<string, string>)
+                    : undefined,
+                compat:
+                  typeof m.compat === "object" && m.compat !== null && !Array.isArray(m.compat)
+                    ? (m.compat as Record<string, unknown>)
+                    : undefined,
+              };
+            })
           : undefined,
       });
     }
@@ -590,6 +638,16 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
     if (providerConfig.models !== undefined) {
       updated.models = providerConfig.models;
     }
+    if (providerConfig.headers !== undefined) {
+      updated.headers =
+        Object.keys(providerConfig.headers).length > 0 ? providerConfig.headers : undefined;
+    }
+    if (providerConfig.authHeader !== undefined) {
+      updated.authHeader = providerConfig.authHeader;
+    }
+    if (providerConfig.injectNumCtxForOpenAICompat !== undefined) {
+      updated.injectNumCtxForOpenAICompat = providerConfig.injectNumCtxForOpenAICompat;
+    }
     providers[providerConfig.provider] = updated;
 
     const updatedConfig = {
@@ -796,6 +854,13 @@ export const useModelsStore = create<ModelsState>((set, get) => ({
       ...(params.auth ? { auth: params.auth } : {}),
       ...(params.api ? { api: params.api } : {}),
       ...(params.models ? { models: params.models } : {}),
+      ...(params.headers && Object.keys(params.headers).length > 0
+        ? { headers: params.headers }
+        : {}),
+      ...(params.authHeader != null ? { authHeader: params.authHeader } : {}),
+      ...(params.injectNumCtxForOpenAICompat != null
+        ? { injectNumCtxForOpenAICompat: params.injectNumCtxForOpenAICompat }
+        : {}),
     };
 
     const updatedConfig = {

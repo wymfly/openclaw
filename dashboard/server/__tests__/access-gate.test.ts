@@ -1,31 +1,35 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   validateRequest,
   resolveToken,
   checkPublicBind,
-  type AccessGateDb,
 } from "../access-gate.js";
+
+// Mock the deck-settings module
+vi.mock("../deck-settings.js", () => {
+  let settings: Record<string, string> = {};
+  return {
+    getSetting: (key: string) => settings[key],
+    setSetting: (key: string, value: string) => { settings[key] = value; },
+    getDeckSettings: () => ({
+      get: () => settings,
+      set: (v: Record<string, string>) => { settings = v; },
+    }),
+    __setMockSettings: (s: Record<string, string>) => { settings = s; },
+  };
+});
+
+// Helper to set mock settings
+async function setMockSettings(s: Record<string, string>) {
+  const mod = await import("../deck-settings.js") as unknown as { __setMockSettings: (s: Record<string, string>) => void };
+  mod.__setMockSettings(s);
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const SECRET = "deck-test-token-abc123";
-
-function makeMockDb(token?: string): AccessGateDb {
-  return {
-    prepare(_sql: string) {
-      return {
-        get(..._params: unknown[]) {
-          if (token) {
-            return { value: token };
-          }
-          return undefined;
-        },
-      };
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Token resolution
@@ -42,25 +46,21 @@ describe("resolveToken", () => {
     }
   });
 
-  it("prefers env var over db", () => {
+  it("prefers env var over settings store", async () => {
     process.env.DECK_ACCESS_TOKEN = "env-token";
-    const db = makeMockDb("db-token");
-    expect(resolveToken(db)).toBe("env-token");
+    await setMockSettings({ access_token: "store-token" });
+    expect(resolveToken()).toBe("env-token");
   });
 
-  it("falls back to db when env is unset", () => {
+  it("falls back to settings store when env is unset", async () => {
     delete process.env.DECK_ACCESS_TOKEN;
-    const db = makeMockDb("db-token");
-    expect(resolveToken(db)).toBe("db-token");
+    await setMockSettings({ access_token: "store-token" });
+    expect(resolveToken()).toBe("store-token");
   });
 
-  it("returns null when neither env nor db has a token", () => {
+  it("returns null when neither env nor store has a token", async () => {
     delete process.env.DECK_ACCESS_TOKEN;
-    expect(resolveToken(makeMockDb())).toBeNull();
-  });
-
-  it("returns null when no db is provided and env is unset", () => {
-    delete process.env.DECK_ACCESS_TOKEN;
+    await setMockSettings({});
     expect(resolveToken()).toBeNull();
   });
 });
@@ -136,9 +136,10 @@ describe("validateRequest", () => {
     expect(result.error).toContain("Missing");
   });
 
-  it("allows request when no token is configured (local dev mode)", () => {
+  it("allows request when no token is configured (local dev mode)", async () => {
     delete process.env.DECK_ACCESS_TOKEN;
-    const result = validateRequest({}, makeMockDb());
+    await setMockSettings({});
+    const result = validateRequest({});
     expect(result).toEqual({ valid: true });
   });
 
@@ -156,10 +157,10 @@ describe("validateRequest", () => {
     expect(result.error).toContain("Invalid");
   });
 
-  it("uses db token when env is unset", () => {
+  it("uses settings store token when env is unset", async () => {
     delete process.env.DECK_ACCESS_TOKEN;
-    const db = makeMockDb("db-secret");
-    const result = validateRequest({ "x-deck-token": "db-secret" }, db);
+    await setMockSettings({ access_token: "store-secret" });
+    const result = validateRequest({ "x-deck-token": "store-secret" });
     expect(result).toEqual({ valid: true });
   });
 });

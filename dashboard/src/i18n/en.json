@@ -141,6 +141,8 @@
     "canvasError": "Canvas failed to load",
     "canvasRetry": "Retry",
     "canvasEmpty": "No canvas content",
+    "virtualExpand": "Expand",
+    "virtualCollapse": "Collapse",
     "debugTitle": "Debug panel",
     "debugMessages": "Messages",
     "debugTree": "Tree",
@@ -187,6 +189,14 @@
     "cmdCatSkills": "Skills",
     "cmdCatPlugins": "Plugins",
     "cmdCatMore": "More",
+    "cmdBack": "Back",
+    "cmdTagPlaceholder": "Type your prompt...",
+    "cmdTagRemove": "Click to remove command",
+    "deleteConfirmTitle": "Delete Session",
+    "deleteConfirmMessage": "Are you sure you want to delete this session? This action cannot be undone.",
+    "deleteConfirmOk": "Delete",
+    "deleteConfirmCancel": "Cancel",
+    "virtualLines": "Lines {start}–{end} of {total}",
     "compacted": "Context compacted",
     "sessionTokens": "Session total",
     "sessionCost": "Est. cost",
@@ -229,6 +239,7 @@
     "thumbsDown": "Dislike",
     "steerPlaceholder": "Enter instruction to redirect execution...",
     "steer": "Steer",
+    "steerQuickAccess": "Jump to steer input",
     "mentionAgents": "Agents",
     "promptTemplates": "Prompt Templates",
     "templateAnalyze": "Analyze this code for issues",
@@ -238,6 +249,8 @@
     "templateSummarize": "Summarize the key points",
     "contextLabel": "Context",
     "contextWarning": "Context window nearly full — consider compacting or starting a new session",
+    "contextCompacted": "Context compressed {count, plural, one {# time} other {# times}}",
+    "contextOverflowWarning": "Context window nearly full — responses may fail or trigger auto-compression",
     "emptyTitle": "Start a conversation",
     "emptyDescription": "Pick a topic to get started, or type your question",
     "suggestCreative": "Help me write creative copy",
@@ -553,7 +566,15 @@
       "apiKey": "API Key",
       "apiKeyPlaceholder": "sk-... or $'{ENV_VAR_NAME}'",
       "envVarHint": "Prefix with $'{' to reference an environment variable",
-      "globalOnlyHint": "New providers added here are written to the global provider config."
+      "globalOnlyHint": "New providers added here are written to the global provider config.",
+      "postAdd": {
+        "title": "Provider Added",
+        "description": "{provider} was added successfully. Would you like to configure it as your primary model or add it to the fallback chain?",
+        "selectModel": "Select a model",
+        "setAsPrimary": "Set as Primary",
+        "addToFallback": "Add to Fallback",
+        "close": "Configure Later"
+      }
     },
     "provenance": {
       "providerSource": "Provider Source",
@@ -574,6 +595,79 @@
       "configMissing": "Config missing",
       "authPresent": "Credentials present",
       "authMissing": "Credentials missing"
+    },
+    "advanced": {
+      "title": "Advanced Configuration",
+      "provider": {
+        "headers": "Custom Headers",
+        "headersHint": "HTTP headers appended to every API request",
+        "authHeader": "Send Auth Header",
+        "authHeaderHint": "Include Authorization header in requests",
+        "injectNumCtx": "Inject num_ctx Parameter",
+        "injectNumCtxHint": "Auto-inject num_ctx for OpenAI-compatible endpoints"
+      },
+      "model": {
+        "apiOverride": "API Protocol Override",
+        "apiOverrideHint": "Override provider-level API protocol for this model",
+        "cost": {
+          "title": "Pricing (per million tokens)",
+          "input": "Input",
+          "output": "Output",
+          "cacheRead": "Cache Read",
+          "cacheWrite": "Cache Write"
+        },
+        "headers": "Model-Level Headers",
+        "headersHint": "HTTP headers appended only for this model",
+        "compat": {
+          "title": "Compatibility Flags",
+          "apiBehavior": "API Behavior",
+          "reasoning": "Reasoning / Thinking",
+          "toolHandling": "Tool Handling",
+          "streaming": "Streaming",
+          "supportsStore": "Supports Store (prompt caching)",
+          "supportsDeveloperRole": "Supports Developer Role",
+          "supportsStrictMode": "Supports Strict Mode",
+          "maxTokensField": "max_tokens Field Name",
+          "maxTokensFieldHint": "Field name used by the API",
+          "supportsReasoningEffort": "Supports Reasoning Effort",
+          "requiresThinkingAsText": "Requires Thinking as Text",
+          "thinkingFormat": "Thinking Format",
+          "thinkingFormatHint": "Thinking output format used by the provider",
+          "supportsTools": "Supports Function Calling",
+          "requiresToolResultName": "Tool Result Requires Name",
+          "requiresAssistantAfterToolResult": "Requires Assistant After Tool Result",
+          "toolSchemaProfile": "xAI Tool Schema",
+          "toolSchemaProfileHint": "Enable xAI-specific tool schema format",
+          "nativeWebSearchTool": "Native Web Search",
+          "toolCallArgumentsEncoding": "HTML Entity Argument Encoding",
+          "toolCallArgumentsEncodingHint": "Tool call arguments use HTML entity encoding",
+          "requiresMistralToolIds": "Mistral Tool ID Format",
+          "requiresOpenAiAnthropicToolPayload": "OpenAI-Anthropic Tool Payload",
+          "supportsUsageInStreaming": "Usage Stats in Streaming"
+        }
+      }
+    },
+    "postAdd": {
+      "title": "Provider Added",
+      "description": "Provider {provider} was added successfully. You can:",
+      "setAsPrimary": "Set as Primary Model",
+      "addToFallback": "Add to Fallback Chain",
+      "selectModel": "Select Model",
+      "close": "Configure Later"
+    },
+    "filter": {
+      "reasoning": "Reasoning",
+      "vision": "Vision",
+      "text": "Text",
+      "all": "All"
+    },
+    "kv": {
+      "key": "Key",
+      "value": "Value",
+      "addRow": "Add",
+      "remove": "Remove",
+      "keyPlaceholder": "Header name",
+      "valuePlaceholder": "Header value"
     }
   },
   "routing": {
@@ -927,6 +1021,9 @@
     "chartTokens": "Tokens",
     "chartCost": "Cost",
     "chartByModel": "By Model",
+    "compactionEvent": "Compaction event",
+    "compactionMarker": "Context compacted",
+    "compactionMarkersNone": "No compaction events",
     "proportion": "Proportion",
     "dateRange": "Date Range",
     "startDate": "Start Date",
@@ -963,8 +1060,11 @@
     "tokensIn": "Input",
     "tokensOut": "Output",
     "context": "Context Usage",
+    "tokensCurrent": "Current",
     "history": "History",
     "noSessions": "No sessions",
+    "healthWarning": "Context window nearly full — consider compacting or starting a new session",
+    "compactionWarning": "Context compressed {count, plural, one {# time} other {# times}}",
     "model": "Model",
     "updatedAt": "Updated",
     "confirmDelete": "Delete this session?",
@@ -1016,7 +1116,34 @@
     "label": "Label",
     "editLabel": "Edit label",
     "emptyDescription": "Start a conversation to see sessions here",
-    "selectHint": "Select a session to view details"
+    "selectHint": "Select a session to view details",
+    "compact": "Compact",
+    "compactConfirm": "Click again to compact context",
+    "compactSuccess": "Context compacted successfully",
+    "compactFailed": "Compaction failed: {reason}",
+    "compacting": "Compacting…",
+    "compactionSummary": "Compaction Summary",
+    "compressedMessages": "Compressed messages above",
+    "contextWeight": {
+      "title": "Context Weight",
+      "systemPrompt": "System Prompt",
+      "tools": "Tools",
+      "skills": "Skills",
+      "files": "Workspace Files",
+      "loading": "Loading context weight…",
+      "error": "Failed to load context weight",
+      "empty": "No context weight data available"
+    },
+    "timeline": {
+      "title": "Timeline",
+      "transcript": "Transcript",
+      "timeline": "Timeline",
+      "highCost": "High cost",
+      "compactionEvent": "Compaction",
+      "loading": "Loading timeline…",
+      "error": "Failed to load timeline",
+      "empty": "No log entries available"
+    }
   },
   "logs": {
     "title": "Log Viewer",

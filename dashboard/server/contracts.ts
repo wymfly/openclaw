@@ -21,12 +21,6 @@ export type ControlPlaneDomainEvent =
       asOf: string;
     };
 
-export type ControlPlaneOutboxEntry = {
-  id: number;
-  event: ControlPlaneDomainEvent;
-  createdAt: string;
-};
-
 export type GatewayEventFrame = {
   type: "event";
   event: string;
@@ -51,5 +45,4 @@ export type ControlPlaneRuntimeSnapshot = {
   status: ControlPlaneConnectionStatus;
   reason: string | null;
   asOf: string | null;
-  outboxHead: number;
 };

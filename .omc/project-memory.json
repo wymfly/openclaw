@@ -589,6 +589,12 @@
       "accessCount": 2,
       "lastAccessed": 1776222943495,
       "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "accessCount": 2,
+      "lastAccessed": 1776223141455,
+      "type": "file"
     }
   ],
   "userDirectives": []

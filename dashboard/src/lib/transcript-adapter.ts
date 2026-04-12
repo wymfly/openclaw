@@ -268,8 +268,12 @@ export function normalizeTranscriptMessage(
 ): ChatMessage {
   const timestamp =
     typeof messageRecord.timestamp === "number" ? messageRecord.timestamp : Date.now();
-  const role =
-    messageRecord.role === "toolResult"
+  // Detect compaction summary messages from Gateway transcript JSONL.
+  // Source: role "compactionSummary" defined in src/types/pi-agent-core.d.ts:6-10
+  const isCompaction = messageRecord.role === "compactionSummary";
+  const role = isCompaction
+    ? "system"
+    : messageRecord.role === "toolResult"
       ? "user"
       : ((messageRecord.role as ChatMessage["role"]) ?? "assistant");
   return {
@@ -284,6 +288,7 @@ export function normalizeTranscriptMessage(
     role,
     content: normalizeTranscriptContent(messageRecord.content),
     timestamp,
+    ...(isCompaction ? { isCompaction: true } : {}),
   };
 }
 

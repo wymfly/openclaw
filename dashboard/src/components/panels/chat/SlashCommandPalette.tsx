@@ -41,9 +41,14 @@ interface SlashCommandPaletteProps {
   selectedIndex: number;
   onSelectedIndexChange: (index: number) => void;
   onSelect: (command: RegisteredCommand) => void;
+  onSelectWithArg?: (command: RegisteredCommand, arg: string) => void;
   onDismiss: () => void;
   navigableCommandsRef: React.MutableRefObject<PaletteCommand[]>;
   visibilityContext?: CommandVisibilityContext;
+  /** When set, shows a secondary options panel instead of the command list. */
+  argOptionsState?: { command: RegisteredCommand; options: string[]; selectedIndex: number } | null;
+  onArgOptionsBack?: () => void;
+  onArgOptionsIndexChange?: (index: number) => void;
 }
 
 export interface PaletteCommand {
@@ -113,9 +118,13 @@ export function SlashCommandPalette({
   selectedIndex,
   onSelectedIndexChange,
   onSelect,
+  onSelectWithArg,
   onDismiss,
   navigableCommandsRef,
   visibilityContext,
+  argOptionsState,
+  onArgOptionsBack,
+  onArgOptionsIndexChange,
 }: SlashCommandPaletteProps) {
   const t = useTranslations("chat");
   const listRef = useRef<HTMLDivElement>(null);
@@ -230,8 +239,58 @@ export function SlashCommandPalette({
     return () => document.removeEventListener("mousedown", handler);
   }, [onDismiss]);
 
-  if (allCommands.length === 0) {
+  if (!argOptionsState && allCommands.length === 0) {
     return null;
+  }
+
+  // ArgOptions secondary panel
+  if (argOptionsState) {
+    return (
+      <div ref={containerRef} className="absolute bottom-full left-0 right-0 mb-1 z-50">
+        <div
+          ref={listRef}
+          className="max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--popover)] shadow-lg"
+          data-palette-active="true"
+        >
+          <div className="flex items-center gap-2 px-3 pt-2 pb-1">
+            <button
+              type="button"
+              className="text-[10px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onArgOptionsBack?.();
+              }}
+            >
+              ← {t("cmdBack")}
+            </button>
+            <span className="text-[10px] font-semibold text-[var(--muted-foreground)]">
+              /{argOptionsState.command.name}
+            </span>
+          </div>
+          {argOptionsState.options.map((opt, idx) => (
+            <div
+              key={opt}
+              data-index={idx}
+              role="option"
+              aria-selected={idx === argOptionsState.selectedIndex}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs transition-colors",
+                idx === argOptionsState.selectedIndex
+                  ? "bg-[var(--accent)] text-[var(--foreground)]"
+                  : "text-[var(--foreground)] hover:bg-[var(--accent)]",
+              )}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelectWithArg?.(argOptionsState.command, opt);
+              }}
+              onMouseEnter={() => onArgOptionsIndexChange?.(idx)}
+            >
+              <span className="font-mono text-[var(--primary)]">{opt}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   let globalIndex = -1;

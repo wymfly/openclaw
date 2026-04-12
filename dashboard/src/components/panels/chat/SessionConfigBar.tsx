@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, BarChart2, Brain, Cpu, Lightbulb, Terminal, Zap } from "lucide-react";
+import { Ban, BarChart2, Brain, Cpu, Terminal, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
@@ -8,7 +8,6 @@ import type { SessionMeta } from "@/stores/chat-types";
 import { patchSession } from "./chat-api";
 
 const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
-const REASONING_LEVELS = ["off", "on", "stream"] as const;
 const RESPONSE_USAGE_LEVELS = ["off", "tokens", "full"] as const;
 
 export function SessionConfigBar() {
@@ -42,18 +41,6 @@ export function SessionConfigBar() {
       thinkingLevel: next === "off" ? undefined : next,
     }));
     void patchSession(activeSessionKey, { thinkingLevel: next === "off" ? null : next });
-  };
-
-  const handleCycleReasoning = () => {
-    const current = meta.reasoningLevel ?? "off";
-    const idx = REASONING_LEVELS.indexOf(current as (typeof REASONING_LEVELS)[number]);
-    const next = REASONING_LEVELS[(idx + 1) % REASONING_LEVELS.length];
-    updateMetas((target) => ({
-      ...target,
-      reasoningLevel: next === "off" ? undefined : next,
-    }));
-    // Gateway schema: reasoningLevel is string (no null); send "off" to clear.
-    void patchSession(activeSessionKey, { reasoningLevel: next });
   };
 
   const handleCycleUsage = () => {
@@ -97,17 +84,6 @@ export function SessionConfigBar() {
         <Brain size={10} />
         <span>{t("configThinking")}</span>
         <span className="text-[var(--primary)]">{meta.thinkingLevel ?? "off"}</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={handleCycleReasoning}
-        className="flex items-center gap-1 hover:text-[var(--primary)] transition-colors"
-        title={t("configReasoningToggle")}
-      >
-        <Lightbulb size={10} />
-        <span>{t("configReasoning")}</span>
-        <span className="text-[var(--primary)]">{meta.reasoningLevel ?? "off"}</span>
       </button>
 
       <button

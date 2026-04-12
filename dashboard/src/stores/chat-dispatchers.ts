@@ -819,6 +819,17 @@ export function dispatchSessionStateEvent(
     return;
   }
 
+  // Snapshot token state before compaction resets it (used for CompactionNotice).
+  // IMPORTANT: must be captured before applySessionChangedEvent() which
+  // synchronously resets tokens to 0 via Zustand set().
+  let tokensBefore: number | undefined;
+  if (statePayload.compacted === true) {
+    const prev = useSessionsStore.getState().sessions.find((s) => s.key === sessionKey);
+    if (prev) {
+      tokensBefore = prev.totalTokens ?? prev.tokensIn + prev.tokensOut;
+    }
+  }
+
   // Unified dispatch: also update the sessions store so non-chat panels
   // (sessions list, monitor) get real-time session state updates.
   // This replaces the unused useSessionEvents.ts hook with a single dispatch path.
@@ -909,11 +920,19 @@ export function dispatchSessionStateEvent(
       Date.now() - lastMsg.timestamp < 5000;
 
     if (!isRecentCompaction) {
+      // Read post-compaction token count from the updated sessions store.
+      const postSession = useSessionsStore.getState().sessions.find((s) => s.key === sessionKey);
+      const tokensAfter = postSession
+        ? (postSession.totalTokens ?? postSession.tokensIn + postSession.tokensOut)
+        : undefined;
+
       api.addMessage(sessionKey, {
         id: `compaction-${Date.now()}`,
         role: "system",
         content: [{ type: "text" as const, text: "compacted" }],
         timestamp: Date.now(),
+        tokensBefore,
+        tokensAfter,
       });
     }
   }

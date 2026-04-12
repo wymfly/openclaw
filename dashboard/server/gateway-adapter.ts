@@ -29,7 +29,6 @@ import {
   signPayload,
   publicKeyToBase64Url,
   type DeviceIdentity,
-  type DbLike,
 } from "./device-identity";
 import { getEventBus } from "./event-bus";
 import { DEFAULT_METHOD_ALLOWLIST } from "./gateway-allowlist";
@@ -123,7 +122,6 @@ export type OpenClawAdapterOptions = {
   createWebSocket?: (url: string, opts: { origin: string }) => WebSocket;
   methodAllowlist?: Set<string>;
   onDomainEvent?: (event: ControlPlaneDomainEvent) => void;
-  db?: DbLike;
 };
 
 // ---------------------------------------------------------------------------
@@ -149,7 +147,6 @@ export class OpenClawGatewayAdapter {
   private onDomainEvent?: (event: ControlPlaneDomainEvent) => void;
   private useLegacyControlUiProfile = false;
   private deviceIdentity: DeviceIdentity | null = null;
-  private db: DbLike | undefined;
   private legacyProfileSwitchPromise: Promise<void> | null = null;
   private nodeConnection: NodeConnection | null = null;
 
@@ -161,16 +158,12 @@ export class OpenClawGatewayAdapter {
     this.createWebSocket = options.createWebSocket ?? ((url, opts) => new WebSocket(url, opts));
     this.methodAllowlist = options.methodAllowlist ?? DEFAULT_METHOD_ALLOWLIST;
     this.onDomainEvent = options.onDomainEvent;
-    this.db = options.db;
-    if (this.db) {
-      this.deviceIdentity = loadOrCreateDeviceIdentity(this.db);
-    }
-    if (this.db && this.deviceIdentity) {
+    this.deviceIdentity = loadOrCreateDeviceIdentity();
+    if (this.deviceIdentity) {
       this.nodeConnection = new NodeConnection({
         deviceIdentity: this.deviceIdentity,
         eventBus: getEventBus(),
         loadSettings: () => this.loadSettings(),
-        db: this.db,
       });
     }
     this.subscriptions = new SubscriptionManager({
@@ -317,11 +310,11 @@ export class OpenClawGatewayAdapter {
       return response as T;
     } catch (error) {
       if (
-        this.db &&
+        this.deviceIdentity &&
         error instanceof ControlPlaneGatewayError &&
         (error.message.includes("device_token_mismatch") || error.code === "NOT_PAIRED")
       ) {
-        clearDeviceToken(this.db);
+        clearDeviceToken();
         await this.stop();
         this.stopping = false;
         await this.start();
@@ -412,10 +405,10 @@ export class OpenClawGatewayAdapter {
         }
         if (parsed.id === this.connectRequestId) {
           if (parsed.ok) {
-            if (this.db && parsed.payload) {
+            if (this.deviceIdentity && parsed.payload) {
               const helloPayload = parsed.payload as { auth?: { deviceToken?: string } };
               if (typeof helloPayload.auth?.deviceToken === "string") {
-                storeDeviceToken(this.db, helloPayload.auth.deviceToken);
+                storeDeviceToken(helloPayload.auth.deviceToken);
               }
             }
             this.reconnectAttempt = 0;
@@ -541,8 +534,8 @@ export class OpenClawGatewayAdapter {
     }
 
     const auth: Record<string, string> = { token };
-    if (this.db && !legacy) {
-      const cachedToken = loadDeviceToken(this.db);
+    if (this.deviceIdentity && !legacy) {
+      const cachedToken = loadDeviceToken();
       if (cachedToken) {
         auth.deviceToken = cachedToken;
       }

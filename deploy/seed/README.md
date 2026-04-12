@@ -25,7 +25,7 @@ seed/
 | ----------- | -------------------------------- | ------------------------------------------ |
 | init-once   | 仅首次部署写入，用户修改后不覆盖 | openclaw.json, agents/, cron/, extensions/ |
 | always-sync | 每次升级覆盖                     | skills/（自定义 skills 始终保持最新）      |
-| never-seed  | 运行时生成                       | devices/, logs/, sessions/, deck.db        |
+| never-seed  | 运行时生成                       | devices/, logs/, sessions/, deck JSON 文件 |
 
 ## 定制方式
 

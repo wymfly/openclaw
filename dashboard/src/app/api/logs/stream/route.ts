@@ -6,7 +6,7 @@
  *
  * Supports `Last-Event-ID` header for reconnection (cursor resume).
  */
-import { validateRequest, type AccessGateDb } from "@server/access-gate";
+import { validateRequest } from "@server/access-gate";
 import { getRuntime } from "@server/runtime";
 import { gwCall } from "@/lib/api-helpers";
 
@@ -22,8 +22,7 @@ function extractAuthHeaders(request: Request): Record<string, string | undefined
 
 export function GET(request: Request): Response {
   const runtime = getRuntime();
-  const db = runtime?.db as unknown as AccessGateDb | undefined;
-  const auth = validateRequest(extractAuthHeaders(request), db);
+  const auth = validateRequest(extractAuthHeaders(request));
   if (!auth.valid) {
     return Response.json({ error: auth.error ?? "Unauthorized" }, { status: 401 });
   }

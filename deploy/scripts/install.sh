@@ -339,25 +339,10 @@ bare_metal_install() {
     log "Pre-built Deck detected, skipping build."
   fi
 
-  # Copy standalone entry point (preloads sql.js before server.js)
+  # Copy standalone entry point (wrapper that starts server.js)
   if [ -f dashboard/standalone-entry.mjs ] && [ ! -f dashboard/.next/standalone/dashboard/standalone-entry.mjs ]; then
     cp dashboard/standalone-entry.mjs dashboard/.next/standalone/dashboard/standalone-entry.mjs
     log "Copied standalone-entry.mjs"
-  fi
-
-  # Ensure sql.js WASM binary is available in standalone (Next.js trace copies JS but not .wasm)
-  local sql_wasm_dst="dashboard/.next/standalone/node_modules/sql.js/dist/sql-wasm.wasm"
-  if [ ! -f "$sql_wasm_dst" ]; then
-    log "Copying sql-wasm.wasm to standalone..."
-    local sql_wasm_src=""
-    [ -f "node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="node_modules/sql.js/dist/sql-wasm.wasm"
-    [ -z "$sql_wasm_src" ] && [ -f "dashboard/node_modules/sql.js/dist/sql-wasm.wasm" ] && sql_wasm_src="dashboard/node_modules/sql.js/dist/sql-wasm.wasm"
-    if [ -n "$sql_wasm_src" ]; then
-      mkdir -p "$(dirname "$sql_wasm_dst")"
-      cp "$sql_wasm_src" "$sql_wasm_dst"
-    else
-      log "WARNING: sql-wasm.wasm not found in node_modules — Deck database may fail"
-    fi
   fi
 
   # Seed
@@ -482,7 +467,7 @@ upgrade_from_package() {
     echo ""
     log "Will PRESERVE:"
     log "  deploy/.env"
-    log "  data/ (config, agents, sessions, cron, extensions, deck.db)"
+    log "  data/ (config, agents, sessions, cron, extensions, deck JSON)"
     echo ""
     log "Will REPLACE:"
     log "  Source code"
@@ -571,18 +556,6 @@ upgrade_from_package() {
   if [ -f dashboard/standalone-entry.mjs ] && [ ! -f dashboard/.next/standalone/dashboard/standalone-entry.mjs ]; then
     cp dashboard/standalone-entry.mjs dashboard/.next/standalone/dashboard/standalone-entry.mjs
     log "Copied standalone-entry.mjs"
-  fi
-
-  local sql_wasm="dashboard/.next/standalone/node_modules/sql.js/dist/sql-wasm.wasm"
-  if [ ! -f "$sql_wasm" ]; then
-    local wasm_src=""
-    [ -f "node_modules/sql.js/dist/sql-wasm.wasm" ] && wasm_src="node_modules/sql.js/dist/sql-wasm.wasm"
-    [ -z "$wasm_src" ] && [ -f "dashboard/node_modules/sql.js/dist/sql-wasm.wasm" ] && wasm_src="dashboard/node_modules/sql.js/dist/sql-wasm.wasm"
-    if [ -n "$wasm_src" ]; then
-      mkdir -p "$(dirname "$sql_wasm")"
-      cp "$wasm_src" "$sql_wasm"
-      log "Copied sql-wasm.wasm"
-    fi
   fi
 
   # --- Additive seed ---

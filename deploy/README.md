@@ -7,7 +7,7 @@ OpenClaw Gateway + Deck Dashboard 的统一部署方案。
 ```
 Browser ──→ Deck(:3000) ──ws──→ Gateway(:18789) ──→ AI Providers
                 ↓                       ↓
-          deck.db (SQLite)      .openclaw/ (config/agents/sessions)
+          JSON files            .openclaw/ (config/agents/sessions)
 ```
 
 - **Gateway** — OpenClaw 核心引擎，处理 AI 调用、工具执行、会话管理
@@ -136,7 +136,7 @@ deploy/data/
     agents/main/          # Agent 目录
     cron/jobs.json        # 定时任务
   openclaw-deck/          # Deck 数据
-    deck.db               # SQLite 数据库
+    *.json                # JSON 配置和状态文件（运行时自动创建）
 ```
 
 ## 种子定制

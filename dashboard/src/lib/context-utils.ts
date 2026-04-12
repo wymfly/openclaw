@@ -6,11 +6,14 @@ export function contextPct(session: {
   contextWindow: number;
   tokensIn: number;
   tokensOut: number;
+  totalTokens?: number;
 }): number {
   if (session.contextWindow <= 0) {
     return 0;
   }
-  const used = session.tokensIn + session.tokensOut;
+  // Prefer totalTokens (last API call snapshot — accurate post-compaction)
+  // over cumulative tokensIn + tokensOut which overstates after compaction.
+  const used = session.totalTokens ?? session.tokensIn + session.tokensOut;
   return Math.min(100, Math.round((used / session.contextWindow) * 100));
 }
 

@@ -5,7 +5,7 @@
 ## 部署架构
 
 - Gateway（:18789）: OpenClaw 核心，源码构建运行
-- Deck（:3000）: Next.js standalone dashboard，sql.js (WASM SQLite) 无 native addon
+- Deck（:3000）: Next.js standalone dashboard，JSON 文件持久化，无 native addon
 - 连接: Deck → Gateway via WebSocket（`DECK_GATEWAY_URL`）
 - 认证: `OPENCLAW_GATEWAY_TOKEN` + Ed25519 device identity
 - Docker 模式: Deck 与 Gateway 共享网络（`network_mode: service:gateway`），通过 localhost 自动配对
@@ -47,8 +47,7 @@
 | `src/gateway/` (启动参数) | `ecosystem.config.cjs.tmpl`, `docker/docker-compose.yml` command |
 | `.env` 新增变量 | `.env.example`, `scripts/seed.js` TEMPLATE_VARS, `scripts/generate-ecosystem.js` providerKeys |
 | `openclaw.json` schema | `seed/openclaw.json.tmpl` |
-| `dashboard/server/db.ts` (sql.js) | `docker/Dockerfile.deck`（确认无 native addon 残留） |
-| `dashboard/migrations/` | `docker/Dockerfile.deck` COPY 步骤 |
+| `dashboard/server/json-store.ts` | `docker/Dockerfile.deck`（确认 DECK_DATA_DIR 一致） |
 | `dashboard/standalone-entry.mjs` | `docker/Dockerfile.deck` COPY + CMD |
 | `extensions/wecom/` (deps/config) | `seed/openclaw.json.tmpl` plugins entries |
 | Node.js 版本升级 | `docker/Dockerfile.deck` FROM, `scripts/install.sh` check_node, `scripts/prepare-deps.sh` NODE_VERSION |
@@ -99,7 +98,7 @@ deploy/scripts/package.sh --with-local        # 收集本地插件/skills
 
 - Gateway 必须从增强 fork 源码运行（包含自定义 RPC handlers），不得使用全局 `openclaw` 命令
 - 不走官方 `openclaw setup` 向导，完全通过 seed 模板 + `.env` 替代
-- Deck 使用 sql.js (WASM SQLite)，**无 native addon**，Dockerfile 中不需要 node-gyp/prebuild-install
+- Deck 使用 JSON 文件持久化（JsonStore），**无 native addon**，Dockerfile 中不需要 node-gyp/prebuild-install
 - Docker 模式 Gateway 使用 `--bind lan`（容器对外），裸机使用 `--bind loopback`（安全）
 - Seed 策略：`init-once`（config/agents/cron/extensions）、`always-sync`（skills）
 - Agent 目录中的 `.tmpl` 文件（如 `auth-profiles.json.tmpl`）会被渲染后写入，已有文件不覆盖
@@ -113,9 +112,6 @@ Deck 使用 Next.js standalone 输出部署，有几个已知问题需要 workar
 
 | 问题 | Workaround |
 |------|-----------|
-| `instrumentation.ts` 不包含在 standalone 输出 | `standalone-entry.mjs` 在 `server.js` 前预加载 sql.js |
-| sql-wasm.wasm 不被 standalone trace 复制 | `package.sh` / `install.sh` 手动复制 WASM 文件 |
-| `import.meta.url` 路径在 bundle 后不正确 | `DECK_MIGRATION_DIR` 环境变量覆盖 migration 路径 |
 | Deck 绑定到 APIPA 地址而非 0.0.0.0 | PM2 env 设置 `HOSTNAME=0.0.0.0` |
 | 自定义 provider 显示"未配置" | `auth-profiles.json.tmpl` seed 模板注册 auth profile |
 
@@ -138,7 +134,7 @@ bash deploy/scripts/update.sh new-package.tar.gz
 | `data/.openclaw/agents/` | 保留 | 会话、auth profile |
 | `data/.openclaw/cron/` | 保留 | 定时任务 |
 | `data/.openclaw/extensions/` | 保留 | 用户安装的插件 |
-| `data/openclaw-deck/deck.db` | 保留 | migration 自动升级 |
+| `data/openclaw-deck/*.json` | 保留 | Deck 配置和状态数据 |
 | `data/.openclaw/skills/` | 覆盖 | always-sync |
 | `source/dist/`、`dashboard/.next/` | 替换 | 构建产物 |
 | `deploy/scripts/` | 替换 | 部署脚本 |
@@ -153,8 +149,6 @@ bash deploy/scripts/update.sh new-package.tar.gz
 | Deck 白屏 | `DECK_GATEWAY_URL` 正确、migrations 目录存在 |
 | NOT_PAIRED | Docker: `network_mode: service:gateway`；裸机: localhost |
 | PM2 启动失败 | `pm2 logs`、检查 `ecosystem.config.cjs` 路径 |
-| Docker 构建失败 | 检查 `docker/Dockerfile.deck` 是否引用了已移除的 better-sqlite3 |
-| sql.js not preloaded | 确认 `standalone-entry.mjs` 存在且 PM2 script 指向它 |
-| no such table | 确认 `DECK_MIGRATION_DIR` 环境变量指向正确的 migrations 目录 |
+| Docker 构建失败 | 检查 `docker/Dockerfile.deck` 依赖和 COPY 步骤 |
 | 供应商显示未配置 | 确认 `auth-profiles.json` 存在于 `data/.openclaw/agents/main/agent/` |
 | Windows 端口被占用 | `netstat -ano \| findstr :18789`，`taskkill /PID <pid> /F` |

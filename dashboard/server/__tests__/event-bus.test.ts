@@ -81,16 +81,16 @@ describe("event ID auto-increment", () => {
 // ---------------------------------------------------------------------------
 
 describe("replay buffer", () => {
-  it("retains the most recent 100 events", () => {
-    for (let i = 0; i < 120; i++) {
+  it("retains the most recent 2000 events", () => {
+    for (let i = 0; i < 2020; i++) {
       bus.broadcast("gateway.event", i);
     }
 
-    const all = bus.getEventsSince(0);
-    expect(all).toHaveLength(100);
-    // First retained event should be id=21 (120 - 100 + 1)
+    const { events: all } = bus.getEventsSince(0);
+    expect(all).toHaveLength(2000);
+    // First retained event should be id=21 (2020 - 2000 + 1)
     expect(all[0].id).toBe(21);
-    expect(all[99].id).toBe(120);
+    expect(all[1999].id).toBe(2020);
   });
 
   it("getEventsSince returns events after the given ID", () => {
@@ -98,7 +98,7 @@ describe("replay buffer", () => {
     bus.broadcast("chat", "b");
     bus.broadcast("chat", "c");
 
-    const since1 = bus.getEventsSince(1);
+    const { events: since1 } = bus.getEventsSince(1);
     expect(since1).toHaveLength(2);
     expect(since1[0].id).toBe(2);
     expect(since1[1].id).toBe(3);
@@ -108,51 +108,32 @@ describe("replay buffer", () => {
     bus.broadcast("runtime.status", "x");
     bus.broadcast("agent.updated", "y");
 
-    const all = bus.getEventsSince(0);
-    expect(all).toHaveLength(2);
+    const { events, gapDetected } = bus.getEventsSince(0);
+    expect(events).toHaveLength(2);
+    expect(gapDetected).toBe(false);
   });
 
   it("getEventsSince with future ID returns empty", () => {
     bus.broadcast("chat", "a");
-    expect(bus.getEventsSince(999)).toHaveLength(0);
+    const { events } = bus.getEventsSince(999);
+    expect(events).toHaveLength(0);
   });
 
-  it("uses persistent replay storage when configured", () => {
-    const appendEvent = vi
-      .fn<(type: DeckEventType, payload: unknown) => number>()
-      .mockReturnValueOnce(7)
-      .mockReturnValueOnce(8);
-    const getPersistedEventsSince = vi.fn<(lastId: number) => ServerEvent[]>().mockReturnValue([
-      {
-        id: 8,
-        type: "chat",
-        data: { state: "final" },
-        timestamp: Date.now(),
-      },
-    ]);
+  it("detects gap when lastId falls out of buffer", () => {
+    // Fill beyond buffer
+    for (let i = 0; i < 2010; i++) {
+      bus.broadcast("gateway.event", i);
+    }
+    // Asking for id=5 which has been evicted
+    const { gapDetected } = bus.getEventsSince(5);
+    expect(gapDetected).toBe(true);
+  });
 
-    bus.setReplayStore({
-      appendEvent,
-      getEventsSince: getPersistedEventsSince,
-    });
-
-    const first = bus.broadcast("chat", { state: "delta" });
-    const second = bus.broadcast("chat", { state: "final" });
-    const replay = bus.getEventsSince(7);
-
-    expect(first.id).toBe(7);
-    expect(second.id).toBe(8);
-    expect(appendEvent).toHaveBeenNthCalledWith(1, "chat", { state: "delta" });
-    expect(appendEvent).toHaveBeenNthCalledWith(2, "chat", { state: "final" });
-    expect(replay).toEqual([
-      {
-        id: 8,
-        type: "chat",
-        data: { state: "final" },
-        timestamp: expect.any(Number),
-      },
-    ]);
-    expect(getPersistedEventsSince).toHaveBeenCalledWith(7);
+  it("no gap when lastId is within buffer", () => {
+    bus.broadcast("chat", "a");
+    bus.broadcast("chat", "b");
+    const { gapDetected } = bus.getEventsSince(1);
+    expect(gapDetected).toBe(false);
   });
 });
 

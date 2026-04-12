@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Loader2, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AdvancedProviderFields } from "./AdvancedProviderFields";
 
 // Must match MODEL_APIS in src/config/types.models.ts
 export const MODEL_APIS = [
@@ -41,9 +43,12 @@ interface WizardStepCustomProps {
     baseUrl: string;
     apiKey?: string;
     models: ModelEntry[];
+    headers?: Record<string, string>;
+    authHeader?: boolean;
+    injectNumCtxForOpenAICompat?: boolean;
   }) => Promise<boolean>;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (providerName: string, models: Array<{ id: string; name: string }>) => void;
 }
 
 export const emptyModel = (): ModelEntry => ({
@@ -56,6 +61,7 @@ export const emptyModel = (): ModelEntry => ({
 export function WizardStepCustom({ onAdd, onBack, onComplete }: WizardStepCustomProps) {
   const t = useTranslations("models.config");
   const tw = useTranslations("models.wizard");
+  const tm = useTranslations("models");
 
   const [providerName, setProviderName] = useState("");
   const [api, setApi] = useState<string>("openai-completions");
@@ -65,6 +71,12 @@ export function WizardStepCustom({ onAdd, onBack, onComplete }: WizardStepCustom
   const [models, setModels] = useState<ModelEntry[]>([emptyModel()]);
   const [saving, setSaving] = useState(false);
 
+  // Advanced provider fields state
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [headers, setHeaders] = useState<Record<string, string>>({});
+  const [authHeader, setAuthHeader] = useState(false);
+  const [injectNumCtxForOpenAICompat, setInjectNumCtxForOpenAICompat] = useState(false);
+
   const reset = useCallback(() => {
     setProviderName("");
     setApi("openai-completions");
@@ -73,6 +85,10 @@ export function WizardStepCustom({ onAdd, onBack, onComplete }: WizardStepCustom
     setApiKey("");
     setModels([emptyModel()]);
     setSaving(false);
+    setAdvancedOpen(false);
+    setHeaders({});
+    setAuthHeader(false);
+    setInjectNumCtxForOpenAICompat(false);
   }, []);
 
   const addModelRow = () => setModels((prev) => [...prev, emptyModel()]);
@@ -104,10 +120,17 @@ export function WizardStepCustom({ onAdd, onBack, onComplete }: WizardStepCustom
           id: m.id.trim(),
           name: m.name.trim() || m.id.trim(),
         })),
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        authHeader: authHeader || undefined,
+        injectNumCtxForOpenAICompat: injectNumCtxForOpenAICompat || undefined,
       });
       if (ok) {
+        const savedModels = models.map((m) => ({
+          id: m.id.trim(),
+          name: m.name.trim() || m.id.trim(),
+        }));
         reset();
-        onComplete();
+        onComplete(providerName.trim(), savedModels);
       }
     } finally {
       setSaving(false);
@@ -295,6 +318,27 @@ export function WizardStepCustom({ onAdd, onBack, onComplete }: WizardStepCustom
           <p className="text-xs text-muted-foreground text-center py-2">{t("noModelsAdded")}</p>
         )}
       </div>
+
+      {/* Advanced Configuration (collapsible) */}
+      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+        <CollapsibleTrigger className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+          {advancedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          <span>{tm("advanced.title")}</span>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-3 pl-3 border-l border-border">
+            <AdvancedProviderFields
+              headers={headers}
+              authHeader={authHeader}
+              injectNumCtxForOpenAICompat={injectNumCtxForOpenAICompat}
+              onHeadersChange={setHeaders}
+              onAuthHeaderChange={setAuthHeader}
+              onInjectNumCtxChange={setInjectNumCtxForOpenAICompat}
+              disabled={saving}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Footer: Back + Add Provider */}
       <div className="flex items-center justify-between pt-2 border-t border-border">

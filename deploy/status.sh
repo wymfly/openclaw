@@ -69,7 +69,7 @@ else
 fi
 if [ -d "$DECK_DATA" ]; then
   echo "  Deck data:     $DECK_DATA"
-  [ -f "$DECK_DATA/deck.db" ] && echo "    database: OK" || echo "    database: MISSING"
+  ls "$DECK_DATA"/*.json >/dev/null 2>&1 && echo "    data files: OK" || echo "    data files: EMPTY (will be created on first run)"
 else
   echo "  Deck data:     NOT FOUND ($DECK_DATA)"
 fi

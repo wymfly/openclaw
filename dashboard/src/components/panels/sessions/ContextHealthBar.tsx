@@ -19,7 +19,7 @@ const STATUS_DOT_COLOR: Record<string, string> = {
 export function ContextHealthBar({ session }: { session: SessionEntry }) {
   const t = useTranslations("sessions");
   const pct = contextPct(session);
-  const totalUsed = session.tokensIn + session.tokensOut;
+  const totalUsed = session.totalTokens ?? session.tokensIn + session.tokensOut;
   const showBar = session.contextWindow > 0;
   const statusColor = session.status ? STATUS_DOT_COLOR[session.status] : undefined;
 

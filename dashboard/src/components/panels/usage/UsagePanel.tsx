@@ -1,11 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { PanelEmptyState } from "@/components/ui/panel-empty-state";
 import { PanelError } from "@/components/ui/panel-error";
 import { PanelSkeleton } from "@/components/ui/panel-skeleton";
+import { useSessionsStore } from "@/stores/sessions";
 import { useUsageStore } from "@/stores/usage";
+import type { CompactionEvent } from "./UsageChart";
 import { BreakdownTable } from "./BreakdownTable";
 import { ContextPressure } from "./ContextPressure";
 import { DateRangePicker } from "./DateRangePicker";
@@ -40,6 +42,20 @@ export function UsagePanel() {
   const totals = sessionsUsage?.totals ?? costFallback?.totals ?? null;
   const aggregates = sessionsUsage?.aggregates ?? null;
   const isLoading = costLoading || sessionsLoading;
+
+  // Derive compaction events from sessions with compactionCount > 0
+  const sessions = useSessionsStore((s) => s.sessions);
+  const compactionEvents = useMemo<CompactionEvent[]>(() => {
+    return sessions
+      .filter((s) => s.compactionCount && s.compactionCount > 0 && s.updatedAt > 0)
+      .map((s) => {
+        const d = new Date(s.updatedAt);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return { date: `${y}-${m}-${day}` };
+      });
+  }, [sessions]);
 
   // Force refresh (reset dedup)
   const handleRefresh = () => {
@@ -91,7 +107,13 @@ export function UsagePanel() {
         )}
 
         {/* Time series chart */}
-        {aggregates && <UsageChart daily={aggregates.daily} modelDaily={aggregates.modelDaily} />}
+        {aggregates && (
+          <UsageChart
+            daily={aggregates.daily}
+            modelDaily={aggregates.modelDaily}
+            compactionEvents={compactionEvents}
+          />
+        )}
 
         {/* Main content: breakdown + context pressure side by side on large screens */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">

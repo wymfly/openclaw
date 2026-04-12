@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowRight, ExternalLink, GitBranch, Trash2, User, Bot } from "lucide-react";
+import { ArrowRight, ExternalLink, GitBranch, Minimize2, Trash2, User, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { InlineEdit } from "@/components/lists";
 import { LineageTree } from "@/components/shared/LineageTree";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +14,10 @@ import { cn } from "@/lib/utils";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { useSessionsStore, type HistoryMessage } from "@/stores/sessions";
 import { TranscriptBlocks } from "../chat/TranscriptBlocks";
+import { ContextWeightBreakdown } from "./ContextWeightBreakdown";
 import { SessionExport } from "./SessionExport";
 import { TranscriptSearch } from "./TranscriptSearch";
+import { TurnTimeline } from "./TurnTimeline";
 
 // ---------------------------------------------------------------------------
 // Status badge config (mirrors SessionList)
@@ -48,8 +51,52 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-function HistoryBubble({ message }: { message: HistoryMessage }) {
+function HistoryBubble({
+  message,
+  showCompactionSeparator,
+}: {
+  message: HistoryMessage;
+  showCompactionSeparator?: boolean;
+}) {
+  const t = useTranslations("sessions");
   const isUser = message.role === "user";
+
+  if (message.isCompaction) {
+    return (
+      <>
+        {showCompactionSeparator && (
+          <div className="flex items-center gap-2 my-3">
+            <div className="flex-1 border-t border-dashed border-[var(--warning)]/40" />
+            <span className="text-[10px] text-[var(--warning-muted-text)] shrink-0">
+              {t("compressedMessages")}
+            </span>
+            <div className="flex-1 border-t border-dashed border-[var(--warning)]/40" />
+          </div>
+        )}
+        <div className="flex gap-3 mb-4 transition-panel">
+          <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center ring-1 bg-[var(--warning-muted)] text-[var(--warning)] ring-[var(--warning)]/20">
+            <Minimize2 size={12} />
+          </div>
+          <div className="flex flex-col max-w-[75%] min-w-0 items-start">
+            <div className="rounded-lg px-3 py-2 bg-[var(--warning-muted)] text-[var(--foreground)]">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Minimize2 size={11} className="text-[var(--warning)]" />
+                <span className="text-[11px] font-semibold text-[var(--warning)]">
+                  {t("compactionSummary")}
+                </span>
+              </div>
+              <TranscriptBlocks message={message} isUser={false} />
+            </div>
+            {message.timestamp && (
+              <span className="text-[10px] mt-1 px-1 text-[var(--muted-foreground)] font-mono">
+                {new Date(message.timestamp).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <div className={cn("flex gap-3 mb-4 transition-panel", isUser && "flex-row-reverse")}>
@@ -80,12 +127,85 @@ function HistoryBubble({ message }: { message: HistoryMessage }) {
   );
 }
 
+function VirtualizedHistory({
+  history,
+  highlightIndices,
+  bubbleRefs,
+  scrollToIndexRef,
+}: {
+  history: HistoryMessage[];
+  highlightIndices: number[];
+  bubbleRefs: React.RefObject<(HTMLDivElement | null)[]>;
+  scrollToIndexRef?: React.RefObject<((index: number) => void) | null>;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: history.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: (i) => {
+      const msg = history[i];
+      const hasTools = msg.content.some((b) => b.type === "tool_use" || b.type === "tool_result");
+      return hasTools ? 200 : 80;
+    },
+    overscan: 5,
+  });
+
+  // Expose scrollToIndex for search navigation from parent
+  useEffect(() => {
+    if (scrollToIndexRef && "current" in scrollToIndexRef) {
+      (scrollToIndexRef as React.MutableRefObject<((index: number) => void) | null>).current =
+        (index: number) => {
+          virtualizer.scrollToIndex(index, { align: "center" });
+        };
+    }
+  }, [virtualizer, scrollToIndexRef]);
+
+  return (
+    <div ref={parentRef} className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
+        {virtualizer.getVirtualItems().map((virtualItem) => {
+          const msg = history[virtualItem.index];
+          const i = virtualItem.index;
+          return (
+            <div
+              key={`${msg.role}-${i}`}
+              data-index={i}
+              ref={(el) => {
+                virtualizer.measureElement(el);
+                bubbleRefs.current[i] = el;
+              }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+              className={cn(
+                highlightIndices.includes(i) && "ring-2 ring-[var(--primary)] rounded-lg",
+              )}
+            >
+              <HistoryBubble
+                message={msg}
+                showCompactionSeparator={msg.isCompaction && i > 0}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function SessionDetail() {
   const t = useTranslations("sessions");
   const tc = useTranslations("common");
-  const { sessions, selectedKey, history, deleteSession, patchSession } = useSessionsStore();
+  const { sessions, selectedKey, history, deleteSession, patchSession, compactSession } =
+    useSessionsStore();
   const { lineage, fetchLineage } = useDeckSubagentsStore();
   const [confirming, setConfirming] = useState(false);
+  const [compactConfirming, setCompactConfirming] = useState(false);
+  const [compacting, setCompacting] = useState(false);
   const [patchError, setPatchError] = useState<string | null>(null);
 
   const handlePatch = useCallback(
@@ -102,10 +222,18 @@ export function SessionDetail() {
     },
     [selectedKey, patchSession, t],
   );
+  const [viewMode, setViewMode] = useState<"transcript" | "timeline">("transcript");
   const [highlightIndices, setHighlightIndices] = useState<number[]>([]);
   const bubbleRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const scrollToIndexRef = useRef<((index: number) => void) | null>(null);
 
   const handleSearchNavigate = useCallback((index: number) => {
+    // Use virtualizer's scrollToIndex for reliable off-screen navigation
+    if (scrollToIndexRef.current) {
+      scrollToIndexRef.current(index);
+      return;
+    }
+    // Fallback for non-virtualized contexts
     bubbleRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
@@ -134,8 +262,24 @@ export function SessionDetail() {
     setConfirming(false);
   };
 
+  const handleCompact = () => {
+    if (!compactConfirming) {
+      setCompactConfirming(true);
+      return;
+    }
+    setCompactConfirming(false);
+    setCompacting(true);
+    void compactSession(session.key).then((result) => {
+      setCompacting(false);
+      if (!result.ok) {
+        setPatchError(t("compactFailed", { reason: result.reason ?? "" }));
+        setTimeout(() => setPatchError(null), 3000);
+      }
+    });
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Patch error banner */}
       {patchError && (
         <div
@@ -196,6 +340,28 @@ export function SessionDetail() {
 
         <div className="flex items-center gap-1 shrink-0">
           <SessionExport session={session} messages={history} />
+          {session.contextWindow > 0 && pct >= 20 && (
+            <Button
+              variant={compactConfirming ? "default" : "ghost"}
+              size="icon-sm"
+              title={compactConfirming ? t("compactConfirm") : t("compact")}
+              onClick={handleCompact}
+              onBlur={() => setCompactConfirming(false)}
+              disabled={compacting}
+              className={cn(
+                "cursor-pointer",
+                !compactConfirming &&
+                  !compacting &&
+                  "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+              )}
+            >
+              {compacting ? (
+                <span className="animate-spin text-[10px]">⟳</span>
+              ) : (
+                <Minimize2 size={15} />
+              )}
+            </Button>
+          )}
           <Button
             variant={confirming ? "destructive" : "ghost"}
             size="icon-sm"
@@ -265,7 +431,7 @@ export function SessionDetail() {
           {typeof session.totalTokens === "number" && session.totalTokens > 0 && (
             <div>
               <span className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
-                {t("tokensIn")} + {t("tokensOut")}
+                {t("tokensCurrent")}
               </span>
               <p className="text-sm font-semibold font-mono text-[var(--foreground)]">
                 {formatTokens(session.totalTokens)}
@@ -304,6 +470,11 @@ export function SessionDetail() {
           </div>
         )}
       </div>
+
+      {/* Context weight breakdown (lazy-loaded on expand) */}
+      {session.contextWindow > 0 && (
+        <ContextWeightBreakdown sessionKey={session.key} contextWindow={session.contextWindow} />
+      )}
 
       {/* Session directives: thinkingLevel + fastMode */}
       <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
@@ -458,37 +629,62 @@ export function SessionDetail() {
         </div>
       )}
 
-      {/* Transcript search */}
-      {history.length > 0 && (
-        <TranscriptSearch
-          messages={history}
-          onHighlight={setHighlightIndices}
-          onNavigate={handleSearchNavigate}
+      {/* View mode toggle + Transcript search */}
+      <div className="px-4 py-2 border-b border-[var(--border)] flex items-center gap-2 shrink-0">
+        <div className="inline-flex rounded-md border border-[var(--border)] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setViewMode("transcript")}
+            className={cn(
+              "px-2.5 py-1 text-[10px] font-medium transition-colors cursor-pointer",
+              viewMode === "transcript"
+                ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
+            )}
+          >
+            {t("timeline.transcript")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("timeline")}
+            className={cn(
+              "px-2.5 py-1 text-[10px] font-medium transition-colors cursor-pointer",
+              viewMode === "timeline"
+                ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
+            )}
+          >
+            {t("timeline.timeline")}
+          </button>
+        </div>
+        {viewMode === "transcript" && history.length > 0 && (
+          <div className="flex-1">
+            <TranscriptSearch
+              messages={history}
+              onHighlight={setHighlightIndices}
+              onNavigate={handleSearchNavigate}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Conversation history / Timeline — virtualized for performance */}
+      {viewMode === "timeline" ? (
+        <ScrollArea className="flex-1 min-h-0 px-5 py-4">
+          <TurnTimeline sessionKey={session.key} />
+        </ScrollArea>
+      ) : history.length === 0 ? (
+        <div className="flex-1 min-h-0 flex items-center justify-center text-[var(--muted-foreground)]">
+          <p className="text-sm">{t("history")}</p>
+        </div>
+      ) : (
+        <VirtualizedHistory
+          history={history}
+          highlightIndices={highlightIndices}
+          bubbleRefs={bubbleRefs}
+          scrollToIndexRef={scrollToIndexRef}
         />
       )}
-
-      {/* Conversation history */}
-      <ScrollArea className="flex-1 px-5 py-4">
-        {history.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[var(--muted-foreground)]">
-            <p className="text-sm">{t("history")}</p>
-          </div>
-        ) : (
-          history.map((msg, i) => (
-            <div
-              key={`${msg.role}-${i}`}
-              ref={(el) => {
-                bubbleRefs.current[i] = el;
-              }}
-              className={cn(
-                highlightIndices.includes(i) && "ring-2 ring-[var(--primary)] rounded-lg",
-              )}
-            >
-              <HistoryBubble message={msg} />
-            </div>
-          ))
-        )}
-      </ScrollArea>
     </div>
   );
 }

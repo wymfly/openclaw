@@ -1,10 +1,10 @@
 "use client";
 
-import { Send, Square, Paperclip } from "lucide-react";
+import { AlertTriangle, Send, Square, Paperclip } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useMention } from "@/hooks/useMention";
-import { useSlashCommand } from "@/hooks/useSlashCommand";
+import { resolveSelectMode, useSlashCommand } from "@/hooks/useSlashCommand";
 import type { RegisteredCommand } from "@/lib/command-types";
 import { useApprovalsStore } from "@/stores/approvals";
 import { useChatStore } from "@/stores/chat";
@@ -15,6 +15,7 @@ import {
   useSessionStreaming,
 } from "@/stores/chat-hooks";
 import { useNotificationsStore } from "@/stores/notifications";
+import { useSessionsStore } from "@/stores/sessions";
 import { ApprovalDialog } from "./ApprovalDialog";
 import {
   abortChatRun,
@@ -52,7 +53,8 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
   const { isStreaming } = useSessionStreaming();
   const hasMessages = messages.length > 0;
   const activeAgentId = useChatStore((s) => s.activeAgentId);
-  const pendingCount = useApprovalsStore((s) => s.pending.length);
+  const pendingApprovals = useApprovalsStore((s) => s.pending);
+  const pendingCount = pendingApprovals.length;
   const removePending = useApprovalsStore((s) => s.removePending);
   const resolveApproval = useApprovalsStore((s) => s.resolveApproval);
   const [input, setInput] = useState("");
@@ -63,6 +65,19 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
   const slash = useSlashCommand(input);
   const mention = useMention();
   const history = useInputHistory();
+
+  // Context pressure detection — warn before user sends into a near-full window.
+  // Use chat store sessionMetas (always populated) merged with sessions store (SSE-driven).
+  const chatMeta = useChatStore((s) =>
+    activeSessionKey ? s.sessionMetas.find((m) => m.key === activeSessionKey) : undefined,
+  );
+  const sessionEntry = useSessionsStore((s) =>
+    activeSessionKey ? s.sessions.find((e) => e.key === activeSessionKey) : undefined,
+  );
+  const ctxWindow = sessionEntry?.contextWindow ?? chatMeta?.contextTokens ?? 0;
+  const ctxUsed = sessionEntry?.totalTokens ?? chatMeta?.totalTokens ?? 0;
+  const pct = ctxWindow > 0 ? Math.min(100, Math.round((ctxUsed / ctxWindow) * 100)) : 0;
+  const contextCritical = pct >= 95;
 
   useEffect(() => {
     if (suggestedText) {
@@ -278,8 +293,47 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
     [activeSessionKey, activeAgentId, handleAbort, t, slash],
   );
 
+  /** Route command selection based on its type: immediate / argOptions / tag. */
+  const handleCommandSelect = useCallback(
+    (cmd: RegisteredCommand) => {
+      const mode = resolveSelectMode(cmd);
+      if (mode === "argOptions") {
+        slash.enterArgOptionsMode(cmd);
+        return;
+      }
+      if (mode === "tag") {
+        slash.enterTagMode(cmd);
+        setInput("");
+        return;
+      }
+      // immediate
+      void handleSlashCommand(cmd);
+    },
+    [slash, handleSlashCommand],
+  );
+
+  /** Execute a command with a specific arg (from argOptions panel). */
+  const handleArgOptionSelect = useCallback(
+    (cmd: RegisteredCommand, arg: string) => {
+      slash.closePalette();
+      setInput("");
+      void handleSlashCommand(cmd, arg);
+    },
+    [slash, handleSlashCommand],
+  );
+
   const sendMessage = useCallback(async () => {
     const text = input.trim();
+    // When tag is active, combine tag command with text and send
+    if (slash.activeTag) {
+      if (!text) return;
+      const cmd = slash.activeTag;
+      slash.clearTag();
+      setInput("");
+      await handleSlashCommand(cmd, text);
+      return;
+    }
+
     if ((!text && files.length === 0) || isStreaming || isSending) {
       return;
     }
@@ -413,10 +467,23 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
     t,
     handleSlashCommand,
     history,
+    slash,
   ]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (slash.handlePaletteKeyDown(e, (cmd) => void handleSlashCommand(cmd))) {
+    if (
+      slash.handlePaletteKeyDown(
+        e,
+        (cmd) => handleCommandSelect(cmd),
+        (cmd, arg) => handleArgOptionSelect(cmd, arg),
+      )
+    ) {
+      return;
+    }
+    // Backspace on empty input clears active tag
+    if (e.key === "Backspace" && slash.activeTag && !input) {
+      e.preventDefault();
+      slash.clearTag();
       return;
     }
     if (e.key === "ArrowUp" && !input.trim()) {
@@ -460,12 +527,18 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
       }}
       onDragOver={(e) => e.preventDefault()}
     >
-      {activeApproval && (
+      {activeApproval && pendingApprovals.some((p) => p.id === activeApproval.id) && (
         <ApprovalDialog
           approval={activeApproval}
           pendingCount={pendingCount}
           onResolve={handleResolveApproval}
         />
+      )}
+      {contextCritical && (
+        <div className="flex items-center gap-2 mb-2 px-3 py-1.5 rounded-md text-xs bg-[var(--warning-muted)] text-[var(--warning-muted-text)]">
+          <AlertTriangle size={12} className="shrink-0" />
+          <span>{t("contextOverflowWarning")}</span>
+        </div>
       )}
       <FileAttachmentBar
         files={files}
@@ -499,12 +572,16 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
           {slash.showPalette && (
             <SlashCommandPalette
               filter={slash.slashFilter}
-              selectedIndex={slash.paletteIndex}
+              selectedIndex={slash.argOptionsState?.selectedIndex ?? slash.paletteIndex}
               onSelectedIndexChange={slash.setPaletteIndex}
-              onSelect={(cmd) => void handleSlashCommand(cmd)}
+              onSelect={(cmd) => handleCommandSelect(cmd)}
+              onSelectWithArg={(cmd, arg) => handleArgOptionSelect(cmd, arg)}
               onDismiss={slash.closePalette}
               navigableCommandsRef={slash.navigableCommandsRef}
               visibilityContext={{ isStreaming, hasMessages }}
+              argOptionsState={slash.argOptionsState}
+              onArgOptionsBack={slash.exitArgOptionsMode}
+              onArgOptionsIndexChange={slash.setArgOptionsIndex}
             />
           )}
           {mention.showMention && (
@@ -520,28 +597,49 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
               <span style={{ color: "var(--muted-foreground)" }}>{slash.ghostHint}</span>
             </div>
           )}
-          <textarea
-            ref={textareaRef}
-            data-chat-input
-            value={input}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onPaste={(e) => {
-              const pf = Array.from(e.clipboardData.files);
-              if (pf.length > 0) {
-                addFiles(pf);
-              }
-            }}
-            placeholder={t("placeholder")}
-            rows={1}
-            className="relative z-10 w-full resize-none text-sm rounded-lg px-3 py-2 outline-none"
+          <div
+            className="relative z-10 flex items-start gap-0 w-full rounded-lg"
             style={{
               backgroundColor: "var(--card)",
-              color: "var(--foreground)",
               border: "1px solid var(--border)",
-              maxHeight: 120,
             }}
-          />
+          >
+            {slash.activeTag && (
+              <span
+                className="inline-flex items-center gap-1 shrink-0 ml-2 mt-2 px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80"
+                style={{
+                  backgroundColor:
+                    "var(--primary-muted, color-mix(in srgb, var(--primary) 15%, transparent))",
+                  color: "var(--primary)",
+                }}
+                onClick={() => slash.clearTag()}
+                title={t("cmdTagRemove")}
+              >
+                /{slash.activeTag.name}
+                <span className="text-[10px] opacity-60">×</span>
+              </span>
+            )}
+            <textarea
+              ref={textareaRef}
+              data-chat-input
+              value={input}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={(e) => {
+                const pf = Array.from(e.clipboardData.files);
+                if (pf.length > 0) {
+                  addFiles(pf);
+                }
+              }}
+              placeholder={slash.activeTag ? t("cmdTagPlaceholder") : t("placeholder")}
+              rows={3}
+              className="flex-1 resize-none text-sm px-3 py-2 outline-none bg-transparent"
+              style={{
+                color: "var(--foreground)",
+                maxHeight: 200,
+              }}
+            />
+          </div>
         </div>
         {isStreaming ? (
           <button

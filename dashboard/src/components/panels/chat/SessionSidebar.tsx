@@ -2,7 +2,9 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { deckFetch } from "@/lib/deck-client";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
@@ -70,21 +72,34 @@ export function SessionSidebar() {
     }
   };
 
-  const handleDelete = async (sessionKey: string, e: React.MouseEvent) => {
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  const handleDeleteClick = useCallback((sessionKey: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const res = await deckFetch("/api/chat/sessions", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionKey, agentId: activeAgentId }),
-    });
-    if (res.ok) {
-      useChatStore.getState().setSessionMetas(sessionMetas.filter((s) => s.key !== sessionKey));
-      useChatStore.getState().removeSession(sessionKey);
-      if (activeSessionKey === sessionKey) {
-        setActiveSession(null);
+    setDeleteTarget(sessionKey);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      const res = await deckFetch("/api/chat/sessions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionKey: deleteTarget, agentId: activeAgentId }),
+      });
+      if (res.ok) {
+        useChatStore.getState().setSessionMetas(sessionMetas.filter((s) => s.key !== deleteTarget));
+        useChatStore.getState().removeSession(deleteTarget);
+        if (activeSessionKey === deleteTarget) {
+          setActiveSession(null);
+        }
       }
+    } catch {
+      // Network error — silently close dialog
+    } finally {
+      setDeleteTarget(null);
     }
-  };
+  }, [deleteTarget, activeAgentId, sessionMetas, activeSessionKey, setActiveSession]);
 
   const handleStartRename = (session: SessionMeta) => {
     cancelRenameRef.current = false;
@@ -170,12 +185,17 @@ export function SessionSidebar() {
           return (
             <div
               key={session.key}
-              className="flex items-center justify-between w-full px-3 py-2 text-xs transition-colors group"
+              className="flex items-center justify-between w-full px-3 py-3 text-xs transition-colors group cursor-pointer"
               style={{
                 backgroundColor: isActive
                   ? "color-mix(in srgb, var(--primary) 12%, transparent)"
                   : "transparent",
                 color: isActive ? "var(--primary)" : "var(--foreground)",
+              }}
+              onClick={() => handleSelect(session)}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                handleStartRename(session);
               }}
             >
               <div className="flex flex-col items-start min-w-0 flex-1">
@@ -185,7 +205,9 @@ export function SessionSidebar() {
                     className="w-full text-xs bg-[var(--background)] text-[var(--foreground)] border border-[var(--border)] rounded px-1 py-0.5"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => {
+                      e.stopPropagation();
                       if (e.key === "Enter") {
                         e.preventDefault();
                         e.currentTarget.blur();
@@ -200,17 +222,9 @@ export function SessionSidebar() {
                     autoFocus
                   />
                 ) : (
-                  <button
-                    type="button"
-                    className="truncate w-full text-left"
-                    onClick={() => handleSelect(session)}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      handleStartRename(session);
-                    }}
-                  >
+                  <span className="truncate w-full text-left font-medium">
                     {sessionTitle(session)}
-                  </button>
+                  </span>
                 )}
                 {session.lastMessagePreview && (
                   <span
@@ -226,8 +240,9 @@ export function SessionSidebar() {
               </div>
               <button
                 type="button"
-                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
-                onClick={(e) => void handleDelete(session.key, e)}
+                aria-label={t("deleteConfirmTitle")}
+                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1 p-1 rounded hover:bg-[var(--muted)]"
+                onClick={(e) => handleDeleteClick(session.key, e)}
                 style={{ color: "var(--muted-foreground)" }}
               >
                 <Trash2 size={12} />
@@ -236,6 +251,38 @@ export function SessionSidebar() {
           );
         })}
       </div>
+
+      {/* Delete confirmation dialog — compact */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent showCloseButton={false} className="max-w-[220px] p-3 gap-2 rounded-lg">
+          <p className="text-xs text-center" style={{ color: "var(--foreground)" }}>
+            {t("deleteConfirmMessage")}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-3"
+              onClick={() => setDeleteTarget(null)}
+            >
+              {t("deleteConfirmCancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-7 text-xs px-3"
+              onClick={() => void handleDeleteConfirm()}
+            >
+              {t("deleteConfirmOk")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

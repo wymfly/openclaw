@@ -1,6 +1,6 @@
-import { validateRequest, type AccessGateDb } from "@server/access-gate";
+import { validateRequest } from "@server/access-gate";
 import { getEventBus } from "@server/event-bus";
-import type { DeckEventType, ServerEvent, ServerEventSubscriber } from "@server/event-bus";
+import type { ServerEvent, ServerEventSubscriber } from "@server/event-bus";
 /**
  * SSE stream endpoint for openclaw-deck.
  *
@@ -26,7 +26,7 @@ import type { DeckEventType, ServerEvent, ServerEventSubscriber } from "@server/
  *   - Maximum 50 concurrent SSE connections (returns 503 if exceeded)
  *   - Same Deck access-gate auth model as JSON routes
  */
-import { getRuntime } from "@server/runtime";
+// runtime import removed — SSE replay uses EventBus memory buffer only (S7).
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 const MAX_SSE_CONNECTIONS = 50;
@@ -55,19 +55,6 @@ function formatSSE(event: ServerEvent): string {
   return `id: ${event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`;
 }
 
-function toPersistedReplayEvent(entry: {
-  id: number;
-  eventType: string;
-  payload: unknown;
-  createdAt: string;
-}): ServerEvent {
-  return {
-    id: entry.id,
-    type: entry.eventType as DeckEventType,
-    data: entry.payload,
-    timestamp: new Date(entry.createdAt).getTime(),
-  };
-}
 
 function extractAuthHeaders(request: Request): Record<string, string | undefined> {
   return {
@@ -81,9 +68,7 @@ function extractAuthHeaders(request: Request): Record<string, string | undefined
 // ---------------------------------------------------------------------------
 
 export function GET(request: Request): Response {
-  const runtime = getRuntime();
-  const db = runtime?.db as unknown as AccessGateDb | undefined;
-  const auth = validateRequest(extractAuthHeaders(request), db);
+  const auth = validateRequest(extractAuthHeaders(request));
   if (!auth.valid) {
     return Response.json({ error: auth.error ?? "Unauthorized" }, { status: 401 });
   }
@@ -128,9 +113,9 @@ export function GET(request: Request): Response {
         }
       };
 
-      // Replay missed events from the durable outbox when available.
-      if (runtime?.store) {
-        const { events, gapDetected } = runtime.store.getEventsSince(lastEventId);
+      // Replay missed events from the in-memory ring buffer.
+      if (lastEventId > 0) {
+        const { events: missed, gapDetected } = bus.getEventsSince(lastEventId);
         if (gapDetected) {
           controller.enqueue(
             encoder.encode(
@@ -138,11 +123,6 @@ export function GET(request: Request): Response {
             ),
           );
         }
-        for (const entry of events) {
-          controller.enqueue(encoder.encode(formatSSE(toPersistedReplayEvent(entry))));
-        }
-      } else {
-        const missed = bus.getEventsSince(lastEventId);
         for (const event of missed) {
           controller.enqueue(encoder.encode(formatSSE(event)));
         }

@@ -48,27 +48,6 @@ export function getPendingApprovals(): PendingApproval[] {
   return Array.from(getPendingMap().values());
 }
 
-function persistApprovalProjection(
-  runtime: DeckRuntime,
-  sessionKey: string | undefined,
-  activeApproval: {
-    id: string;
-    toolName: string;
-    command?: string;
-    description?: string;
-  } | null,
-): void {
-  const normalized = sessionKey?.trim();
-  if (!normalized) {
-    return;
-  }
-  if (activeApproval) {
-    runtime.store.setProjection("approval", normalized, activeApproval);
-  } else {
-    runtime.store.clearProjection("approval", normalized);
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Bridge initialization
 // ---------------------------------------------------------------------------
@@ -83,10 +62,6 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
     for (const [id, approval] of pendingMap) {
       if (approval.expiresAtMs && approval.expiresAtMs < now) {
         pendingMap.delete(id);
-        // Clear persisted approval projection to stay in sync with in-memory map
-        if (approval.sessionKey) {
-          runtime.store.clearProjection("approval", approval.sessionKey);
-        }
         eventBus.broadcast("approval.resolved", {
           id,
           sessionKey: approval.sessionKey,
@@ -142,12 +117,6 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
 
       if (approval.id) {
         pendingMap.set(approval.id, approval);
-        persistApprovalProjection(runtime, approval.sessionKey, {
-          id: approval.id,
-          toolName: "command",
-          command: approval.command,
-          description: approval.cwd,
-        });
         eventBus.broadcast("approval.pending", approval);
       }
     } else if (innerEvent === "exec.approval.resolved" && innerPayload) {
@@ -161,7 +130,6 @@ export function initApprovalBridge(runtime: DeckRuntime): () => void {
         pendingMap.delete(id);
         const sessionKey =
           typeof request.sessionKey === "string" ? request.sessionKey : existing?.sessionKey;
-        persistApprovalProjection(runtime, sessionKey, null);
         eventBus.broadcast("approval.resolved", {
           id,
           ...innerPayload,

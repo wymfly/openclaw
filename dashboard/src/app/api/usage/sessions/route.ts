@@ -29,5 +29,13 @@ export const GET = withAuth(async (request: NextRequest) => {
     }
   }
 
+  const key = sp.get("key");
+  if (key) {
+    params.key = key;
+  }
+  if (sp.get("includeContextWeight") === "true") {
+    params.includeContextWeight = true;
+  }
+
   return gwRequest("sessions.usage", params);
 });
