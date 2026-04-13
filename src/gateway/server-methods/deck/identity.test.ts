@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GatewayRequestHandlers } from "../types.js";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ import { deckThreadsHandlers } from "./threads.js";
 type RespondCall = [boolean, unknown?, { code: string; message: string }?];
 
 function createInvoke(
-  handlers: Record<string, (...args: unknown[]) => unknown>,
+  handlers: GatewayRequestHandlers,
   method: string,
   params: Record<string, unknown>,
 ) {
@@ -45,12 +46,12 @@ function createInvoke(
   return {
     respond,
     invoke: async () =>
-      await handler({
+      await (handler as (...args: unknown[]) => Promise<void>)({
         params,
-        respond: respond as never,
+        respond,
         context: {} as never,
         client: null,
-        req: { type: "req" as const, id: "req-1", method },
+        req: { type: "req" as const, id: "req-1", method, params },
         isWebchatConnect: () => false,
       }),
   };

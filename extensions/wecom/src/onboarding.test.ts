@@ -5,8 +5,8 @@ import { buildChannelSetupWizardAdapterFromSetupWizard } from "../../../src/chan
 import { wecomPlugin } from "./channel.js";
 
 const wecomSetupAdapter = buildChannelSetupWizardAdapterFromSetupWizard({
-  plugin: wecomPlugin,
-  wizard: wecomPlugin.setupWizard!,
+  plugin: wecomPlugin as never,
+  wizard: wecomPlugin.setupWizard as never,
 });
 
 function createPrompter(overrides: Partial<WizardPrompter>): WizardPrompter {

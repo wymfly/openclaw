@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { resolveDefaultAgentId } from "../../../agents/agent-scope.js";
 import { loadConfig, writeConfigFile } from "../../../config/config.js";
-import type { AgentBinding, AgentRouteBinding } from "../../../config/types.agents.js";
+import type { AgentBinding } from "../../../config/types.agents.js";
 import { type RoutePeer, resolveAgentRoute } from "../../../routing/resolve-route.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import {
@@ -228,10 +228,10 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
     const warnings = detectConflicts({ agentId: params.agentId, match: params.match }, bindings);
 
     // Build new binding
-    const newBinding: AgentBinding = {
+    const newBinding: AgentRouteBinding = {
       agentId: params.agentId,
       match: params.match,
-      ...(params.comment ? { comment: params.comment } : {}),
+      ...(params.comment && typeof params.comment === "string" ? { comment: params.comment } : {}),
     };
 
     const position =
@@ -283,7 +283,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
       respond(
         false,
         undefined,
-        errorShape("NOT_FOUND", `binding with id "${params.id}" not found`),
+        errorShape(ErrorCodes.NOT_FOUND, `binding with id "${params.id}" not found`),
       );
       return;
     }
@@ -346,11 +346,11 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
     const cfg = loadConfig();
     const result = resolveAgentRoute({
       cfg,
-      channel: params.channel,
-      accountId: params.accountId,
-      peer: params.peer,
-      guildId: params.guildId,
-      teamId: params.teamId,
+      channel: (params.channel as string | undefined) ?? "",
+      accountId: params.accountId as string | undefined,
+      peer: params.peer as RoutePeer | null | undefined,
+      guildId: params.guildId as string | undefined,
+      teamId: params.teamId as string | undefined,
       memberRoleIds: params.memberRoleIds as string[] | undefined,
     });
 
