@@ -220,7 +220,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
 
     const hashError = validateBaseHash(params.baseHash, currentHash);
     if (hashError) {
-      respond(false, undefined, errorShape(hashError.code, hashError.message));
+      respond(false, undefined, errorShape(hashError.code, hashError.message, hashError.details ? { details: hashError.details } : undefined));
       return;
     }
 
@@ -270,7 +270,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
 
     const hashError = validateBaseHash(params.baseHash, currentHash);
     if (hashError) {
-      respond(false, undefined, errorShape(hashError.code, hashError.message));
+      respond(false, undefined, errorShape(hashError.code, hashError.message, hashError.details ? { details: hashError.details } : undefined));
       return;
     }
 

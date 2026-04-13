@@ -36,12 +36,16 @@ export function computeBindingId(match: Record<string, unknown>): string {
 export function validateBaseHash(
   baseHash: string | undefined,
   currentHash: string,
-): { code: ErrorCode; message: string } | null {
+): { code: ErrorCode; message: string; details?: { reason: string } } | null {
   if (!baseHash || typeof baseHash !== "string") {
     return { code: ErrorCodes.INVALID_REQUEST, message: "baseHash is required for write operations" };
   }
   if (baseHash !== currentHash) {
-    return { code: ErrorCodes.INVALID_REQUEST, message: "config has changed since last read (baseHash mismatch)" };
+    return {
+      code: ErrorCodes.INVALID_REQUEST,
+      message: "baseHash conflict: config has changed since last read",
+      details: { reason: "CONFLICT" },
+    };
   }
   return null;
 }

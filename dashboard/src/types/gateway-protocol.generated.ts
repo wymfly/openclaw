@@ -1580,6 +1580,10 @@ export interface ExecApprovalResolveResult {
   ok: true;
 }
 
+export interface ExecApprovalWaitDecisionParams {
+  id: string;
+}
+
 export interface ExecApprovalWaitDecisionResult {
   id: string;
   decision?: string;
@@ -1718,6 +1722,10 @@ export interface PluginApprovalRequestResult {
   decision?: string;
   createdAtMs?: number;
   expiresAtMs?: number;
+}
+
+export interface PluginApprovalWaitDecisionParams {
+  id: string;
 }
 
 export interface PluginApprovalWaitDecisionResult {
@@ -3917,7 +3925,7 @@ export interface GatewayMethodMap {
   "exec.approval.request": { params: ExecApprovalRequestParams; result: ExecApprovalRequestResult };
   "exec.approval.resolve": { params: ExecApprovalResolveParams; result: ExecApprovalResolveResult };
   "exec.approval.waitDecision": {
-    params: Record<string, unknown>;
+    params: ExecApprovalWaitDecisionParams;
     result: ExecApprovalWaitDecisionResult;
   };
   "doctor.memory.dreamDiary": {
@@ -3949,7 +3957,7 @@ export interface GatewayMethodMap {
     result: PluginApprovalRequestResult;
   };
   "plugin.approval.waitDecision": {
-    params: Record<string, unknown>;
+    params: PluginApprovalWaitDecisionParams;
     result: PluginApprovalWaitDecisionResult;
   };
   "plugin.approval.resolve": {

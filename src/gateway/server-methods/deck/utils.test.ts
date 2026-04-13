@@ -66,10 +66,11 @@ describe("validateBaseHash", () => {
     expect(validateBaseHash("abc", "abc")).toBeNull();
   });
 
-  it("returns CONFLICT on mismatch", () => {
+  it("returns error on mismatch", () => {
     const err = validateBaseHash("old", "new");
-    expect(err?.code).toBe("CONFLICT");
-    expect(err?.message).toContain("baseHash");
+    expect(err?.code).toBe("INVALID_REQUEST");
+    expect(err?.message).toContain("conflict");
+    expect(err?.details).toEqual({ reason: "CONFLICT" });
   });
 
   it("returns INVALID_REQUEST when undefined", () => {

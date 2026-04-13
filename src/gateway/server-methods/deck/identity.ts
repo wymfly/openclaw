@@ -75,7 +75,7 @@ export const deckIdentityHandlers: GatewayRequestHandlers = {
 
     const hashErr = validateBaseHash(baseHash, currentHash);
     if (hashErr) {
-      respond(false, undefined, errorShape(hashErr.code, hashErr.message));
+      respond(false, undefined, errorShape(hashErr.code, hashErr.message, hashErr.details ? { details: hashErr.details } : undefined));
       return;
     }
 
@@ -123,7 +123,7 @@ export const deckIdentityHandlers: GatewayRequestHandlers = {
 
     const hashErr = validateBaseHash(baseHash, currentHash);
     if (hashErr) {
-      respond(false, undefined, errorShape(hashErr.code, hashErr.message));
+      respond(false, undefined, errorShape(hashErr.code, hashErr.message, hashErr.details ? { details: hashErr.details } : undefined));
       return;
     }
 

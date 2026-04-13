@@ -374,7 +374,7 @@ export interface GatewayClient {
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").ExecApprovalResolveResult>;
       waitDecision(
-        params: Record<string, unknown>,
+        params: import("./gateway-protocol.generated").ExecApprovalWaitDecisionParams,
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").ExecApprovalWaitDecisionResult>;
     };
@@ -386,7 +386,7 @@ export interface GatewayClient {
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").PluginApprovalRequestResult>;
       waitDecision(
-        params: Record<string, unknown>,
+        params: import("./gateway-protocol.generated").PluginApprovalWaitDecisionParams,
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").PluginApprovalWaitDecisionResult>;
       resolve(

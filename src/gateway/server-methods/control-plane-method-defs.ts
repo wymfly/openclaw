@@ -39,6 +39,7 @@ import {
   CronUpdateResultSchema,
 } from "../protocol/schema/cron.js";
 import {
+  ExecApprovalGetParamsSchema,
   ExecApprovalRequestParamsSchema,
   ExecApprovalRequestResultSchema,
   ExecApprovalResolveParamsSchema,
@@ -52,6 +53,7 @@ import {
 } from "../protocol/schema/exec-approvals.js";
 import {
   PluginApprovalRequestParamsSchema,
+  PluginApprovalWaitDecisionParamsSchema,
   PluginApprovalRequestResultSchema,
   PluginApprovalResolveParamsSchema,
   PluginApprovalResolveResultSchema,
@@ -190,6 +192,7 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
     scope: APPROVALS_SCOPE,
   },
   "exec.approval.waitDecision": {
+    params: ExecApprovalGetParamsSchema,
     result: ExecApprovalWaitDecisionResultSchema,
     scope: APPROVALS_SCOPE,
   },
@@ -231,6 +234,7 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
     scope: APPROVALS_SCOPE,
   },
   "plugin.approval.waitDecision": {
+    params: PluginApprovalWaitDecisionParamsSchema,
     result: PluginApprovalWaitDecisionResultSchema,
     scope: APPROVALS_SCOPE,
   },
