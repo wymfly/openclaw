@@ -52,6 +52,10 @@ export function SkillHubTab() {
   const [installing, setInstalling] = useState(false);
   const [installResult, setInstallResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [bins, setBins] = useState<string[]>([]);
+  const [selectedBin, setSelectedBin] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [updateResult, setUpdateResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const handleInstall = useCallback(
     async (slug: string) => {
@@ -87,8 +91,56 @@ export function SkillHubTab() {
     setTimeout(() => setCopied(false), 2000);
   }, []);
 
+  const fetchBins = useCallback(async () => {
+    try {
+      const res = await deckFetch("/api/skills/hub", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "bins" }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { bins?: string[] };
+        setBins(data.bins ?? []);
+      }
+    } catch {
+      // Bins are optional, ignore errors
+    }
+  }, []);
+
+  const handleUpdateAll = useCallback(async () => {
+    setUpdating(true);
+    setUpdateResult(null);
+    try {
+      const res = await deckFetch("/api/skills/hub", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update" }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+      if (res.ok && data.ok) {
+        setUpdateResult({ ok: true, message: data.message ?? t("hub.updateSuccess") });
+      } else {
+        setUpdateResult({
+          ok: false,
+          message: data.error ?? data.message ?? t("hub.updateFailed"),
+        });
+      }
+    } catch {
+      setUpdateResult({ ok: false, message: t("hub.updateFailed") });
+    } finally {
+      setUpdating(false);
+    }
+  }, [t]);
+
+  // Load bins on mount
+  useEffect(() => {
+    void fetchBins();
+  }, [fetchBins]);
+
   const handleSearch = useCallback(async () => {
-    if (!query.trim()) return;
+    if (!query.trim() && !selectedBin) {
+      return;
+    }
     setSearching(true);
     setError(null);
     setDetail(null);
@@ -171,6 +223,54 @@ export function SkillHubTab() {
           </Button>
         </div>
       </div>
+
+      {/* Bins filter + Update All */}
+      {(bins.length > 0 || updateResult) && (
+        <div className="px-4 py-2 border-b border-[var(--border)] bg-[var(--card)]">
+          <div className="flex items-center gap-2 flex-wrap">
+            {bins.map((bin) => (
+              <button
+                key={bin}
+                onClick={() => {
+                  setSelectedBin(selectedBin === bin ? null : bin);
+                  setQuery(selectedBin === bin ? "" : bin);
+                }}
+                className="text-[10px] px-2 py-0.5 rounded-full border transition-colors cursor-pointer"
+                style={{
+                  borderColor: selectedBin === bin ? "var(--primary)" : "var(--border)",
+                  backgroundColor: selectedBin === bin ? "var(--primary-muted)" : "transparent",
+                  color: selectedBin === bin ? "var(--primary)" : "var(--muted-foreground)",
+                }}
+              >
+                {bin}
+              </button>
+            ))}
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-[10px] cursor-pointer"
+                disabled={updating}
+                onClick={() => void handleUpdateAll()}
+              >
+                {updating ? (
+                  <Loader2 size={10} className="animate-spin mr-1" />
+                ) : (
+                  <Download size={10} className="mr-1" />
+                )}
+                {t("hub.updateAll")}
+              </Button>
+              {updateResult && (
+                <span
+                  className={`text-[10px] ${updateResult.ok ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}
+                >
+                  {updateResult.message}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">

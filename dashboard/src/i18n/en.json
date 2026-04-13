@@ -1592,7 +1592,10 @@
       "installSkill": "Install Skill",
       "installSuccess": "Skill installed successfully",
       "installFailed": "Failed to install skill",
-      "pluginInstallHint": "To install as a plugin (if applicable), run in terminal:"
+      "pluginInstallHint": "To install as a plugin (if applicable), run in terminal:",
+      "updateAll": "Update All",
+      "updateSuccess": "All skills updated",
+      "updateFailed": "Failed to update skills"
     },
     "noDescription": "No description available",
     "homepage": "Homepage",

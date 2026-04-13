@@ -1588,7 +1588,10 @@
       "installSkill": "安装技能",
       "installSuccess": "技能安装成功",
       "installFailed": "技能安装失败",
-      "pluginInstallHint": "如需作为插件安装，请在终端执行："
+      "pluginInstallHint": "如需作为插件安装，请在终端执行：",
+      "updateAll": "全部更新",
+      "updateSuccess": "所有技能已更新",
+      "updateFailed": "技能更新失败"
     },
     "noDescription": "暂无描述",
     "homepage": "主页",

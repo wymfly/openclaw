@@ -42,6 +42,15 @@ export const POST = withAuth(async (request: NextRequest) => {
         ...(body.version ? { version: body.version } : {}),
       });
 
+    case "update":
+      return gwRequest("skills.update", {
+        source: "clawhub",
+        ...(body.slug ? { slug: body.slug } : { all: true }),
+      });
+
+    case "bins":
+      return gwRequest("skills.bins", {});
+
     default:
       return Response.json({ error: `unknown action "${body.action}"` }, { status: 400 });
   }
