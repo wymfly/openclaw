@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Loader2, Search, Tag } from "lucide-react";
+import { Check, Copy, Download, ExternalLink, Loader2, Search, Tag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,43 @@ export function SkillHubTab() {
   const [detail, setDetail] = useState<HubDetailResult | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [installing, setInstalling] = useState(false);
+  const [installResult, setInstallResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleInstall = useCallback(
+    async (slug: string) => {
+      setInstalling(true);
+      setInstallResult(null);
+      try {
+        const res = await deckFetch("/api/skills/hub", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "install", slug }),
+        });
+        const data = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+        if (res.ok && data.ok) {
+          setInstallResult({ ok: true, message: data.message ?? t("hub.installSuccess") });
+        } else {
+          setInstallResult({
+            ok: false,
+            message: data.error ?? data.message ?? t("hub.installFailed"),
+          });
+        }
+      } catch {
+        setInstallResult({ ok: false, message: t("hub.installFailed") });
+      } finally {
+        setInstalling(false);
+      }
+    },
+    [t],
+  );
+
+  const handleCopyCommand = useCallback((slug: string) => {
+    void navigator.clipboard.writeText(`openclaw plugins install ${slug}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
 
   const handleSearch = useCallback(async () => {
     if (!query.trim()) return;
@@ -225,6 +262,58 @@ export function SkillHubTab() {
                 </pre>
               </div>
             )}
+
+            {/* Install actions */}
+            <div className="mt-4 space-y-2">
+              {/* Skill install button */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-7 px-3 text-xs cursor-pointer"
+                  disabled={installing}
+                  onClick={() => void handleInstall(detail.skill!.slug)}
+                >
+                  {installing ? (
+                    <Loader2 size={12} className="animate-spin mr-1.5" />
+                  ) : (
+                    <Download size={12} className="mr-1.5" />
+                  )}
+                  {t("hub.installSkill")}
+                </Button>
+                {installResult && (
+                  <span
+                    className={`text-[10px] ${installResult.ok ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}
+                  >
+                    {installResult.message}
+                  </span>
+                )}
+              </div>
+
+              {/* Plugin install CLI guidance */}
+              <div className="rounded-md border border-[var(--border-subtle)] bg-[var(--muted)] px-3 py-2">
+                <span className="text-[10px] text-[var(--muted-foreground)] block mb-1">
+                  {t("hub.pluginInstallHint")}
+                </span>
+                <div className="flex items-center gap-2">
+                  <code className="text-[10px] font-mono text-[var(--foreground)] bg-[var(--background)] px-2 py-0.5 rounded border border-[var(--border-subtle)] flex-1 select-all">
+                    openclaw plugins install {detail.skill.slug}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-1.5 cursor-pointer shrink-0"
+                    onClick={() => handleCopyCommand(detail.skill!.slug)}
+                  >
+                    {copied ? (
+                      <Check size={12} className="text-[var(--success)]" />
+                    ) : (
+                      <Copy size={12} className="text-[var(--muted-foreground)]" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </Card>
         )}
 

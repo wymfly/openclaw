@@ -1,9 +1,10 @@
 /**
- * POST /api/skills/hub — Skills Hub operations (search + detail).
+ * POST /api/skills/hub — Skills Hub operations (search + detail + install).
  *
  * Actions:
  *   { action: "search", query?, limit? }  → skills.search
  *   { action: "detail", slug }            → skills.detail
+ *   { action: "install", slug, version? } → skills.install (ClawHub source)
  */
 import { NextRequest } from "next/server";
 import { gwRequest } from "@/lib/api-helpers";
@@ -15,6 +16,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     query?: string;
     limit?: number;
     slug?: string;
+    version?: string;
   };
 
   switch (body.action) {
@@ -29,6 +31,16 @@ export const POST = withAuth(async (request: NextRequest) => {
         return Response.json({ error: "slug is required" }, { status: 400 });
       }
       return gwRequest("skills.detail", { slug: body.slug });
+
+    case "install":
+      if (!body.slug?.trim()) {
+        return Response.json({ error: "slug is required" }, { status: 400 });
+      }
+      return gwRequest("skills.install", {
+        source: "clawhub",
+        slug: body.slug,
+        ...(body.version ? { version: body.version } : {}),
+      });
 
     default:
       return Response.json({ error: `unknown action "${body.action}"` }, { status: 400 });

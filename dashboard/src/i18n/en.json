@@ -1588,7 +1588,11 @@
       "author": "Author",
       "updated": "Updated",
       "platforms": "Platforms",
-      "changelog": "Changelog"
+      "changelog": "Changelog",
+      "installSkill": "Install Skill",
+      "installSuccess": "Skill installed successfully",
+      "installFailed": "Failed to install skill",
+      "pluginInstallHint": "To install as a plugin (if applicable), run in terminal:"
     },
     "noDescription": "No description available",
     "homepage": "Homepage",

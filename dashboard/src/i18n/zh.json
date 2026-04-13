@@ -1584,7 +1584,11 @@
       "author": "作者",
       "updated": "更新时间",
       "platforms": "平台",
-      "changelog": "更新日志"
+      "changelog": "更新日志",
+      "installSkill": "安装技能",
+      "installSuccess": "技能安装成功",
+      "installFailed": "技能安装失败",
+      "pluginInstallHint": "如需作为插件安装，请在终端执行："
     },
     "noDescription": "暂无描述",
     "homepage": "主页",
