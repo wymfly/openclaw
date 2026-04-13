@@ -168,3 +168,13 @@ export const ExecApprovalResolveResultSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+export const ExecApprovalWaitDecisionResultSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    decision: Type.Union([Type.String(), Type.Null()]),
+    createdAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    expiresAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);

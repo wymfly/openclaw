@@ -531,6 +531,51 @@ export interface SkillsUpdateResult {
   config: unknown;
 }
 
+export interface SkillsSearchParams {
+  query?: string;
+  limit?: number;
+}
+
+export interface SkillsSearchResult {
+  results: {
+    score: number;
+    slug: string;
+    displayName: string;
+    summary?: string;
+    version?: string;
+    updatedAt?: number;
+  }[];
+}
+
+export interface SkillsDetailParams {
+  slug: string;
+}
+
+export type SkillsDetailResult = {
+  skill: {
+    slug: string;
+    displayName: string;
+    summary?: string;
+    tags?: Record<string, string>;
+    createdAt: number;
+    updatedAt: number;
+  } | null;
+  latestVersion?: {
+    version: string;
+    createdAt: number;
+    changelog?: string;
+  } | null;
+  metadata?: {
+    os?: string[] | null;
+    systems?: string[] | null;
+  } | null;
+  owner?: {
+    handle?: string;
+    displayName?: string;
+    image?: string;
+  } | null;
+};
+
 export type CronListParams = {
   includeDisabled?: boolean;
   limit?: number;
@@ -1535,6 +1580,170 @@ export interface ExecApprovalResolveResult {
   ok: true;
 }
 
+export interface ExecApprovalWaitDecisionResult {
+  id: string;
+  decision: string;
+  createdAtMs?: number;
+  expiresAtMs?: number;
+}
+
+export interface DoctorMemoryDreamDiaryResult {
+  agentId: string;
+  found: boolean;
+  path: string;
+  content?: string;
+  updatedAtMs?: number;
+}
+
+export interface DoctorMemoryBackfillDreamDiaryResult {
+  agentId: string;
+  action: string;
+  path?: string;
+  found?: boolean;
+  scannedFiles?: number;
+  written?: number;
+  replaced?: number;
+  removedEntries?: number;
+  removedShortTermEntries?: number;
+  changed?: boolean;
+  archiveDir?: string;
+  archivedDreamsDiary?: boolean;
+  archivedSessionCorpus?: boolean;
+  archivedSessionIngestion?: boolean;
+  warnings?: string[];
+  dedupedEntries?: number;
+  keptEntries?: number;
+}
+
+export interface DoctorMemoryResetDreamDiaryResult {
+  agentId: string;
+  action: string;
+  path?: string;
+  found?: boolean;
+  scannedFiles?: number;
+  written?: number;
+  replaced?: number;
+  removedEntries?: number;
+  removedShortTermEntries?: number;
+  changed?: boolean;
+  archiveDir?: string;
+  archivedDreamsDiary?: boolean;
+  archivedSessionCorpus?: boolean;
+  archivedSessionIngestion?: boolean;
+  warnings?: string[];
+  dedupedEntries?: number;
+  keptEntries?: number;
+}
+
+export interface DoctorMemoryResetGroundedShortTermResult {
+  agentId: string;
+  action: string;
+  path?: string;
+  found?: boolean;
+  scannedFiles?: number;
+  written?: number;
+  replaced?: number;
+  removedEntries?: number;
+  removedShortTermEntries?: number;
+  changed?: boolean;
+  archiveDir?: string;
+  archivedDreamsDiary?: boolean;
+  archivedSessionCorpus?: boolean;
+  archivedSessionIngestion?: boolean;
+  warnings?: string[];
+  dedupedEntries?: number;
+  keptEntries?: number;
+}
+
+export interface DoctorMemoryRepairDreamingArtifactsResult {
+  agentId: string;
+  action: string;
+  path?: string;
+  found?: boolean;
+  scannedFiles?: number;
+  written?: number;
+  replaced?: number;
+  removedEntries?: number;
+  removedShortTermEntries?: number;
+  changed?: boolean;
+  archiveDir?: string;
+  archivedDreamsDiary?: boolean;
+  archivedSessionCorpus?: boolean;
+  archivedSessionIngestion?: boolean;
+  warnings?: string[];
+  dedupedEntries?: number;
+  keptEntries?: number;
+}
+
+export interface DoctorMemoryDedupeDreamDiaryResult {
+  agentId: string;
+  action: string;
+  path?: string;
+  found?: boolean;
+  scannedFiles?: number;
+  written?: number;
+  replaced?: number;
+  removedEntries?: number;
+  removedShortTermEntries?: number;
+  changed?: boolean;
+  archiveDir?: string;
+  archivedDreamsDiary?: boolean;
+  archivedSessionCorpus?: boolean;
+  archivedSessionIngestion?: boolean;
+  warnings?: string[];
+  dedupedEntries?: number;
+  keptEntries?: number;
+}
+
+export interface PluginApprovalListResult {
+  id: string;
+  request: {};
+  createdAtMs: number;
+  expiresAtMs: number;
+}
+[];
+
+export interface PluginApprovalRequestParams {
+  pluginId?: string;
+  title: string;
+  description: string;
+  severity?: string;
+  toolName?: string;
+  toolCallId?: string;
+  agentId?: string;
+  sessionKey?: string;
+  turnSourceChannel?: string;
+  turnSourceTo?: string;
+  turnSourceAccountId?: string;
+  turnSourceThreadId?: string;
+  timeoutMs?: number;
+  twoPhase?: boolean;
+}
+
+export interface PluginApprovalRequestResult {
+  id: string;
+  status?: string;
+  decision?: string;
+  createdAtMs?: number;
+  expiresAtMs?: number;
+}
+
+export interface PluginApprovalWaitDecisionResult {
+  id: string;
+  decision: string;
+  createdAtMs?: number;
+  expiresAtMs?: number;
+}
+
+export interface PluginApprovalResolveParams {
+  id: string;
+  decision: string;
+}
+
+export interface PluginApprovalResolveResult {
+  ok: true;
+}
+
 export interface SessionsListParams {
   limit?: number;
   activeMinutes?: number;
@@ -1811,6 +2020,148 @@ export interface SessionsCompactResult {
   kept?: number;
   reason?: string;
 }
+
+export interface SessionsCompactionListParams {
+  key: string;
+}
+
+export type SessionsCompactionListResult = {
+  ok: true;
+  key: string;
+  checkpoints: {
+    checkpointId: string;
+    sessionKey: string;
+    sessionId: string;
+    createdAt: number;
+    reason: "manual" | "auto-threshold" | "overflow-retry" | "timeout-retry";
+    tokensBefore?: number;
+    tokensAfter?: number;
+    summary?: string;
+    firstKeptEntryId?: string;
+    preCompaction: {
+      sessionId: string;
+      sessionFile?: string;
+      leafId?: string;
+      entryId?: string;
+    };
+    postCompaction: {
+      sessionId: string;
+      sessionFile?: string;
+      leafId?: string;
+      entryId?: string;
+    };
+  }[];
+};
+
+export interface SessionsCompactionGetParams {
+  key: string;
+  checkpointId: string;
+}
+
+export type SessionsCompactionGetResult = {
+  ok: true;
+  key: string;
+  checkpoint: {
+    checkpointId: string;
+    sessionKey: string;
+    sessionId: string;
+    createdAt: number;
+    reason: "manual" | "auto-threshold" | "overflow-retry" | "timeout-retry";
+    tokensBefore?: number;
+    tokensAfter?: number;
+    summary?: string;
+    firstKeptEntryId?: string;
+    preCompaction: {
+      sessionId: string;
+      sessionFile?: string;
+      leafId?: string;
+      entryId?: string;
+    };
+    postCompaction: {
+      sessionId: string;
+      sessionFile?: string;
+      leafId?: string;
+      entryId?: string;
+    };
+  };
+};
+
+export interface SessionsCompactionBranchParams {
+  key: string;
+  checkpointId: string;
+}
+
+export type SessionsCompactionBranchResult = {
+  ok: true;
+  sourceKey: string;
+  key: string;
+  sessionId: string;
+  checkpoint: {
+    checkpointId: string;
+    sessionKey: string;
+    sessionId: string;
+    createdAt: number;
+    reason: "manual" | "auto-threshold" | "overflow-retry" | "timeout-retry";
+    tokensBefore?: number;
+    tokensAfter?: number;
+    summary?: string;
+    firstKeptEntryId?: string;
+    preCompaction: {
+      sessionId: string;
+      sessionFile?: string;
+      leafId?: string;
+      entryId?: string;
+    };
+    postCompaction: {
+      sessionId: string;
+      sessionFile?: string;
+      leafId?: string;
+      entryId?: string;
+    };
+  };
+  entry: {
+    sessionId: string;
+    updatedAt: number;
+  };
+};
+
+export interface SessionsCompactionRestoreParams {
+  key: string;
+  checkpointId: string;
+}
+
+export type SessionsCompactionRestoreResult = {
+  ok: true;
+  key: string;
+  sessionId: string;
+  checkpoint: {
+    checkpointId: string;
+    sessionKey: string;
+    sessionId: string;
+    createdAt: number;
+    reason: "manual" | "auto-threshold" | "overflow-retry" | "timeout-retry";
+    tokensBefore?: number;
+    tokensAfter?: number;
+    summary?: string;
+    firstKeptEntryId?: string;
+    preCompaction: {
+      sessionId: string;
+      sessionFile?: string;
+      leafId?: string;
+      entryId?: string;
+    };
+    postCompaction: {
+      sessionId: string;
+      sessionFile?: string;
+      leafId?: string;
+      entryId?: string;
+    };
+  };
+  entry: {
+    sessionId: string;
+    updatedAt: number;
+  };
+};
 
 export type SessionsUsageParams = {
   key?: string;
@@ -2384,6 +2735,37 @@ export interface ChannelsLogoutResult {
   accountId: string;
   cleared: boolean;
 }
+
+export type CommandsListParams = {
+  agentId?: string;
+  provider?: string;
+  scope?: "text" | "native" | "both";
+  includeArgs?: boolean;
+};
+
+export type CommandsListResult = {
+  commands: {
+    name: string;
+    nativeName?: string;
+    textAliases?: string[];
+    description: string;
+    category?: "session" | "options" | "status" | "management" | "media" | "tools" | "docks";
+    source: "native" | "skill" | "plugin";
+    scope: "text" | "native" | "both";
+    acceptsArgs: boolean;
+    args?: {
+      name: string;
+      description: string;
+      type: "string" | "number" | "boolean";
+      required?: boolean;
+      choices?: {
+        value: string;
+        label: string;
+      }[];
+      dynamic?: boolean;
+    }[];
+  }[];
+};
 
 export type ModelsListParams = Record<string, never>;
 
@@ -3521,6 +3903,8 @@ export interface GatewayMethodMap {
   "skills.bins": { params: SkillsBinsParams; result: SkillsBinsResult };
   "skills.install": { params: SkillsInstallParams; result: SkillsInstallResult };
   "skills.update": { params: SkillsUpdateParams; result: SkillsUpdateResult };
+  "skills.search": { params: SkillsSearchParams; result: SkillsSearchResult };
+  "skills.detail": { params: SkillsDetailParams; result: SkillsDetailResult };
   "cron.list": { params: CronListParams; result: CronListResult };
   "cron.status": { params: CronStatusParams; result: CronStatusResult };
   "cron.add": { params: CronAddParams; result: CronAddResult };
@@ -3540,6 +3924,47 @@ export interface GatewayMethodMap {
   };
   "exec.approval.request": { params: ExecApprovalRequestParams; result: ExecApprovalRequestResult };
   "exec.approval.resolve": { params: ExecApprovalResolveParams; result: ExecApprovalResolveResult };
+  "exec.approval.waitDecision": {
+    params: Record<string, unknown>;
+    result: ExecApprovalWaitDecisionResult;
+  };
+  "doctor.memory.dreamDiary": {
+    params: Record<string, unknown>;
+    result: DoctorMemoryDreamDiaryResult;
+  };
+  "doctor.memory.backfillDreamDiary": {
+    params: Record<string, unknown>;
+    result: DoctorMemoryBackfillDreamDiaryResult;
+  };
+  "doctor.memory.resetDreamDiary": {
+    params: Record<string, unknown>;
+    result: DoctorMemoryResetDreamDiaryResult;
+  };
+  "doctor.memory.resetGroundedShortTerm": {
+    params: Record<string, unknown>;
+    result: DoctorMemoryResetGroundedShortTermResult;
+  };
+  "doctor.memory.repairDreamingArtifacts": {
+    params: Record<string, unknown>;
+    result: DoctorMemoryRepairDreamingArtifactsResult;
+  };
+  "doctor.memory.dedupeDreamDiary": {
+    params: Record<string, unknown>;
+    result: DoctorMemoryDedupeDreamDiaryResult;
+  };
+  "plugin.approval.list": { params: Record<string, unknown>; result: PluginApprovalListResult };
+  "plugin.approval.request": {
+    params: PluginApprovalRequestParams;
+    result: PluginApprovalRequestResult;
+  };
+  "plugin.approval.waitDecision": {
+    params: Record<string, unknown>;
+    result: PluginApprovalWaitDecisionResult;
+  };
+  "plugin.approval.resolve": {
+    params: PluginApprovalResolveParams;
+    result: PluginApprovalResolveResult;
+  };
   "sessions.list": { params: SessionsListParams; result: SessionsListResult };
   "sessions.subscribe": { params: Record<string, unknown>; result: SessionsSubscribeResult };
   "sessions.unsubscribe": { params: Record<string, unknown>; result: SessionsUnsubscribeResult };
@@ -3562,6 +3987,22 @@ export interface GatewayMethodMap {
   "sessions.clear": { params: SessionsClearParams; result: SessionsClearResult };
   "sessions.delete": { params: SessionsDeleteParams; result: SessionsDeleteResult };
   "sessions.compact": { params: SessionsCompactParams; result: SessionsCompactResult };
+  "sessions.compaction.list": {
+    params: SessionsCompactionListParams;
+    result: SessionsCompactionListResult;
+  };
+  "sessions.compaction.get": {
+    params: SessionsCompactionGetParams;
+    result: SessionsCompactionGetResult;
+  };
+  "sessions.compaction.branch": {
+    params: SessionsCompactionBranchParams;
+    result: SessionsCompactionBranchResult;
+  };
+  "sessions.compaction.restore": {
+    params: SessionsCompactionRestoreParams;
+    result: SessionsCompactionRestoreResult;
+  };
   "sessions.usage": { params: SessionsUsageParams; result: SessionsUsageResult };
   "sessions.usage.timeseries": {
     params: SessionsUsageTimeseriesParams;
@@ -3579,6 +4020,7 @@ export interface GatewayMethodMap {
   "agents.files.set": { params: AgentsFilesSetParams; result: AgentsFilesSetResult };
   "channels.status": { params: ChannelsStatusParams; result: ChannelsStatusResult };
   "channels.logout": { params: ChannelsLogoutParams; result: ChannelsLogoutResult };
+  "commands.list": { params: CommandsListParams; result: CommandsListResult };
   "models.list": { params: ModelsListParams; result: ModelsListResult };
   "models.configured": { params: ModelsConfiguredParams; result: ModelsConfiguredResult };
   "logs.tail": { params: LogsTailParams; result: LogsTailResult };

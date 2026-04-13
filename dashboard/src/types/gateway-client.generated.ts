@@ -23,6 +23,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "chat.abort",
   "chat.history",
   "chat.send",
+  "commands.list",
   "config.apply",
   "config.get",
   "config.patch",
@@ -67,9 +68,16 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "device.pair.remove",
   "device.token.revoke",
   "device.token.rotate",
+  "doctor.memory.backfillDreamDiary",
+  "doctor.memory.dedupeDreamDiary",
+  "doctor.memory.dreamDiary",
+  "doctor.memory.repairDreamingArtifacts",
+  "doctor.memory.resetDreamDiary",
+  "doctor.memory.resetGroundedShortTerm",
   "doctor.memory.status",
   "exec.approval.request",
   "exec.approval.resolve",
+  "exec.approval.waitDecision",
   "exec.approvals.get",
   "exec.approvals.node.get",
   "exec.approvals.node.set",
@@ -88,9 +96,17 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "node.pair.request",
   "node.pair.verify",
   "node.rename",
+  "plugin.approval.list",
+  "plugin.approval.request",
+  "plugin.approval.resolve",
+  "plugin.approval.waitDecision",
   "sessions.abort",
   "sessions.clear",
   "sessions.compact",
+  "sessions.compaction.branch",
+  "sessions.compaction.get",
+  "sessions.compaction.list",
+  "sessions.compaction.restore",
   "sessions.create",
   "sessions.delete",
   "sessions.get",
@@ -108,7 +124,9 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "sessions.usage.logs",
   "sessions.usage.timeseries",
   "skills.bins",
+  "skills.detail",
   "skills.install",
+  "skills.search",
   "skills.status",
   "skills.update",
   "status",
@@ -139,6 +157,8 @@ export const GENERATED_EVENT_NAMES: ReadonlySet<string> = new Set([
   "node.invoke.request",
   "node.pair.requested",
   "node.pair.resolved",
+  "plugin.approval.requested",
+  "plugin.approval.resolved",
   "presence",
   "session.message",
   "session.tool",
@@ -207,6 +227,30 @@ export interface GatewayClient {
         params: Record<string, unknown>,
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").DoctorMemoryStatusResult>;
+      dreamDiary(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").DoctorMemoryDreamDiaryResult>;
+      backfillDreamDiary(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").DoctorMemoryBackfillDreamDiaryResult>;
+      resetDreamDiary(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").DoctorMemoryResetDreamDiaryResult>;
+      resetGroundedShortTerm(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").DoctorMemoryResetGroundedShortTermResult>;
+      repairDreamingArtifacts(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").DoctorMemoryRepairDreamingArtifactsResult>;
+      dedupeDreamDiary(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").DoctorMemoryDedupeDreamDiaryResult>;
     };
   };
   health(
@@ -260,6 +304,14 @@ export interface GatewayClient {
       params: import("./gateway-protocol.generated").SkillsUpdateParams,
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").SkillsUpdateResult>;
+    search(
+      params: import("./gateway-protocol.generated").SkillsSearchParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SkillsSearchResult>;
+    detail(
+      params: import("./gateway-protocol.generated").SkillsDetailParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").SkillsDetailResult>;
   };
   cron: {
     list(
@@ -321,6 +373,30 @@ export interface GatewayClient {
         params: import("./gateway-protocol.generated").ExecApprovalResolveParams,
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").ExecApprovalResolveResult>;
+      waitDecision(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").ExecApprovalWaitDecisionResult>;
+    };
+  };
+  plugin: {
+    approval: {
+      list(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").PluginApprovalListResult>;
+      request(
+        params: import("./gateway-protocol.generated").PluginApprovalRequestParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").PluginApprovalRequestResult>;
+      waitDecision(
+        params: Record<string, unknown>,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").PluginApprovalWaitDecisionResult>;
+      resolve(
+        params: import("./gateway-protocol.generated").PluginApprovalResolveParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").PluginApprovalResolveResult>;
     };
   };
   sessions: {
@@ -390,6 +466,24 @@ export interface GatewayClient {
       params: import("./gateway-protocol.generated").SessionsCompactParams,
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").SessionsCompactResult>;
+    compaction: {
+      list(
+        params: import("./gateway-protocol.generated").SessionsCompactionListParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsCompactionListResult>;
+      get(
+        params: import("./gateway-protocol.generated").SessionsCompactionGetParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsCompactionGetResult>;
+      branch(
+        params: import("./gateway-protocol.generated").SessionsCompactionBranchParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsCompactionBranchResult>;
+      restore(
+        params: import("./gateway-protocol.generated").SessionsCompactionRestoreParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").SessionsCompactionRestoreResult>;
+    };
     usage: {
       $call(
         params: import("./gateway-protocol.generated").SessionsUsageParams,
@@ -458,6 +552,12 @@ export interface GatewayClient {
       params: import("./gateway-protocol.generated").ChannelsLogoutParams,
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").ChannelsLogoutResult>;
+  };
+  commands: {
+    list(
+      params: import("./gateway-protocol.generated").CommandsListParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").CommandsListResult>;
   };
   logs: {
     tail(
@@ -732,6 +832,12 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
     doctor: {
       memory: {
         status: call("doctor.memory.status"),
+        dreamDiary: call("doctor.memory.dreamDiary"),
+        backfillDreamDiary: call("doctor.memory.backfillDreamDiary"),
+        resetDreamDiary: call("doctor.memory.resetDreamDiary"),
+        resetGroundedShortTerm: call("doctor.memory.resetGroundedShortTerm"),
+        repairDreamingArtifacts: call("doctor.memory.repairDreamingArtifacts"),
+        dedupeDreamDiary: call("doctor.memory.dedupeDreamDiary"),
       },
     },
     health: call("health"),
@@ -752,6 +858,8 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       bins: call("skills.bins"),
       install: call("skills.install"),
       update: call("skills.update"),
+      search: call("skills.search"),
+      detail: call("skills.detail"),
     },
     cron: {
       list: call("cron.list"),
@@ -774,6 +882,15 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       approval: {
         request: call("exec.approval.request"),
         resolve: call("exec.approval.resolve"),
+        waitDecision: call("exec.approval.waitDecision"),
+      },
+    },
+    plugin: {
+      approval: {
+        list: call("plugin.approval.list"),
+        request: call("plugin.approval.request"),
+        waitDecision: call("plugin.approval.waitDecision"),
+        resolve: call("plugin.approval.resolve"),
       },
     },
     sessions: {
@@ -795,6 +912,12 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       clear: call("sessions.clear"),
       delete: call("sessions.delete"),
       compact: call("sessions.compact"),
+      compaction: {
+        list: call("sessions.compaction.list"),
+        get: call("sessions.compaction.get"),
+        branch: call("sessions.compaction.branch"),
+        restore: call("sessions.compaction.restore"),
+      },
       usage: {
         $call: call("sessions.usage"),
         timeseries: call("sessions.usage.timeseries"),
@@ -821,6 +944,9 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
     channels: {
       status: call("channels.status"),
       logout: call("channels.logout"),
+    },
+    commands: {
+      list: call("commands.list"),
     },
     logs: {
       tail: call("logs.tail"),

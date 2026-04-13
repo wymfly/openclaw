@@ -7,6 +7,14 @@ import {
   SessionsClearResultSchema,
   SessionsCompactParamsSchema,
   SessionsCompactResultSchema,
+  SessionsCompactionBranchParamsSchema,
+  SessionsCompactionBranchResultSchema,
+  SessionsCompactionGetParamsSchema,
+  SessionsCompactionGetResultSchema,
+  SessionsCompactionListParamsSchema,
+  SessionsCompactionListResultSchema,
+  SessionsCompactionRestoreParamsSchema,
+  SessionsCompactionRestoreResultSchema,
   SessionsCreateParamsSchema,
   SessionsCreateResultSchema,
   SessionsDeleteParamsSchema,
@@ -110,6 +118,26 @@ export const sessionsMethodDefs: Record<string, MethodMetadata> = {
   "sessions.compact": {
     params: SessionsCompactParamsSchema,
     result: SessionsCompactResultSchema,
+    scope: ADMIN_SCOPE,
+  },
+  "sessions.compaction.list": {
+    params: SessionsCompactionListParamsSchema,
+    result: SessionsCompactionListResultSchema,
+    scope: READ_SCOPE,
+  },
+  "sessions.compaction.get": {
+    params: SessionsCompactionGetParamsSchema,
+    result: SessionsCompactionGetResultSchema,
+    scope: READ_SCOPE,
+  },
+  "sessions.compaction.branch": {
+    params: SessionsCompactionBranchParamsSchema,
+    result: SessionsCompactionBranchResultSchema,
+    scope: WRITE_SCOPE,
+  },
+  "sessions.compaction.restore": {
+    params: SessionsCompactionRestoreParamsSchema,
+    result: SessionsCompactionRestoreResultSchema,
     scope: ADMIN_SCOPE,
   },
   "sessions.usage": {

@@ -98,6 +98,50 @@ export const DoctorMemoryStatusResultSchema = Type.Object(
 );
 
 // ---------------------------------------------------------------------------
+// doctor.memory.dreamDiary — DoctorMemoryDreamDiaryPayload
+// ---------------------------------------------------------------------------
+
+export const DoctorMemoryDreamDiaryResultSchema = Type.Object(
+  {
+    agentId: Type.String(),
+    found: Type.Boolean(),
+    path: Type.String(),
+    content: Type.Optional(Type.String()),
+    updatedAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+// ---------------------------------------------------------------------------
+// doctor.memory dream actions — DoctorMemoryDreamActionPayload
+// Used by: backfillDreamDiary, resetDreamDiary, resetGroundedShortTerm,
+//          repairDreamingArtifacts, dedupeDreamDiary
+// ---------------------------------------------------------------------------
+
+export const DoctorMemoryDreamActionResultSchema = Type.Object(
+  {
+    agentId: Type.String(),
+    action: Type.String(),
+    path: Type.Optional(Type.String()),
+    found: Type.Optional(Type.Boolean()),
+    scannedFiles: Type.Optional(Type.Integer({ minimum: 0 })),
+    written: Type.Optional(Type.Integer({ minimum: 0 })),
+    replaced: Type.Optional(Type.Integer({ minimum: 0 })),
+    removedEntries: Type.Optional(Type.Integer({ minimum: 0 })),
+    removedShortTermEntries: Type.Optional(Type.Integer({ minimum: 0 })),
+    changed: Type.Optional(Type.Boolean()),
+    archiveDir: Type.Optional(Type.String()),
+    archivedDreamsDiary: Type.Optional(Type.Boolean()),
+    archivedSessionCorpus: Type.Optional(Type.Boolean()),
+    archivedSessionIngestion: Type.Optional(Type.Boolean()),
+    warnings: Type.Optional(Type.Array(Type.String())),
+    dedupedEntries: Type.Optional(Type.Integer({ minimum: 0 })),
+    keptEntries: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+// ---------------------------------------------------------------------------
 // models.catalog.providers — catalog provider list
 // ---------------------------------------------------------------------------
 

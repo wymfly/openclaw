@@ -9,6 +9,7 @@ import { agentMethodDefs } from "./server-methods/agent.js";
 import { agentsMethodDefs } from "./server-methods/agents.js";
 import { channelsMethodDefs } from "./server-methods/channels.js";
 import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
+import { commandsMethodDefs } from "./server-methods/commands.js";
 import { configMethodDefs } from "./server-methods/config-method-defs.js";
 import { controlPlaneMethodDefs } from "./server-methods/control-plane-method-defs.js";
 import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
@@ -38,6 +39,7 @@ export const allMethodDefs: Record<string, MethodMetadata> = {
   ...agentMethodDefs,
   ...agentsMethodDefs,
   ...channelsMethodDefs,
+  ...commandsMethodDefs,
   ...modelsMethodDefs,
   ...logsMethodDefs,
   ...deckMethodDefs,
@@ -67,6 +69,12 @@ export const allEventDefs = gatewayEventDefs;
 export const allMethodNames: readonly string[] = [
   "health",
   "doctor.memory.status",
+  "doctor.memory.dreamDiary",
+  "doctor.memory.backfillDreamDiary",
+  "doctor.memory.resetDreamDiary",
+  "doctor.memory.resetGroundedShortTerm",
+  "doctor.memory.repairDreamingArtifacts",
+  "doctor.memory.dedupeDreamDiary",
   "logs.tail",
   "channels.status",
   "channels.logout",
@@ -92,6 +100,10 @@ export const allMethodNames: readonly string[] = [
   "exec.approval.request",
   "exec.approval.waitDecision",
   "exec.approval.resolve",
+  "plugin.approval.list",
+  "plugin.approval.request",
+  "plugin.approval.waitDecision",
+  "plugin.approval.resolve",
   "wizard.start",
   "wizard.next",
   "wizard.cancel",
@@ -114,6 +126,9 @@ export const allMethodNames: readonly string[] = [
   "skills.bins",
   "skills.install",
   "skills.update",
+  "skills.search",
+  "skills.detail",
+  "commands.list",
   "update.run",
   "voicewake.get",
   "voicewake.set",
@@ -135,6 +150,10 @@ export const allMethodNames: readonly string[] = [
   "sessions.clear",
   "sessions.delete",
   "sessions.compact",
+  "sessions.compaction.list",
+  "sessions.compaction.get",
+  "sessions.compaction.branch",
+  "sessions.compaction.restore",
   "sessions.usage",
   "sessions.usage.timeseries",
   "sessions.usage.logs",
@@ -240,5 +259,7 @@ export const allEventNames: readonly string[] = [
   "voicewake.changed",
   "exec.approval.requested",
   "exec.approval.resolved",
+  "plugin.approval.requested",
+  "plugin.approval.resolved",
   "update.available",
 ];

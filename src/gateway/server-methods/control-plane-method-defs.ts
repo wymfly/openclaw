@@ -1,16 +1,22 @@
 import type { MethodMetadata } from "../method-registry.js";
-import { ADMIN_SCOPE, APPROVALS_SCOPE, READ_SCOPE } from "../method-scopes.js";
+import { ADMIN_SCOPE, APPROVALS_SCOPE, READ_SCOPE, WRITE_SCOPE } from "../method-scopes.js";
 import {
   SkillsBinsParamsSchema,
   SkillsBinsResultSchema,
+  SkillsDetailParamsSchema,
+  SkillsDetailResultSchema,
   SkillsInstallParamsSchema,
   SkillsInstallResultSchema,
+  SkillsSearchParamsSchema,
+  SkillsSearchResultSchema,
   SkillsStatusParamsSchema,
   SkillsStatusResultSchema,
   SkillsUpdateParamsSchema,
   SkillsUpdateResultSchema,
 } from "../protocol/schema/agents-models-skills.js";
 import {
+  DoctorMemoryDreamActionResultSchema,
+  DoctorMemoryDreamDiaryResultSchema,
   DoctorMemoryStatusResultSchema,
   HealthResultSchema,
   ModelsCatalogProvidersResultSchema,
@@ -37,12 +43,21 @@ import {
   ExecApprovalRequestResultSchema,
   ExecApprovalResolveParamsSchema,
   ExecApprovalResolveResultSchema,
+  ExecApprovalWaitDecisionResultSchema,
   ExecApprovalsGetParamsSchema,
   ExecApprovalsNodeGetParamsSchema,
   ExecApprovalsNodeSetParamsSchema,
   ExecApprovalsSetParamsSchema,
   ExecApprovalsSnapshotSchema,
 } from "../protocol/schema/exec-approvals.js";
+import {
+  PluginApprovalListResultSchema,
+  PluginApprovalRequestParamsSchema,
+  PluginApprovalRequestResultSchema,
+  PluginApprovalResolveParamsSchema,
+  PluginApprovalResolveResultSchema,
+  PluginApprovalWaitDecisionResultSchema,
+} from "../protocol/schema/plugin-approvals.js";
 import {
   UsageCostResultSchema,
   UsageStatusResultSchema,
@@ -99,6 +114,16 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
     params: SkillsUpdateParamsSchema,
     result: SkillsUpdateResultSchema,
     scope: ADMIN_SCOPE,
+  },
+  "skills.search": {
+    params: SkillsSearchParamsSchema,
+    result: SkillsSearchResultSchema,
+    scope: READ_SCOPE,
+  },
+  "skills.detail": {
+    params: SkillsDetailParamsSchema,
+    result: SkillsDetailResultSchema,
+    scope: READ_SCOPE,
   },
   "cron.list": {
     params: CronListParamsSchema,
@@ -163,6 +188,54 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   "exec.approval.resolve": {
     params: ExecApprovalResolveParamsSchema,
     result: ExecApprovalResolveResultSchema,
+    scope: APPROVALS_SCOPE,
+  },
+  "exec.approval.waitDecision": {
+    result: ExecApprovalWaitDecisionResultSchema,
+    scope: APPROVALS_SCOPE,
+  },
+  // doctor.memory dream methods
+  "doctor.memory.dreamDiary": {
+    result: DoctorMemoryDreamDiaryResultSchema,
+    scope: READ_SCOPE,
+  },
+  "doctor.memory.backfillDreamDiary": {
+    result: DoctorMemoryDreamActionResultSchema,
+    scope: WRITE_SCOPE,
+  },
+  "doctor.memory.resetDreamDiary": {
+    result: DoctorMemoryDreamActionResultSchema,
+    scope: WRITE_SCOPE,
+  },
+  "doctor.memory.resetGroundedShortTerm": {
+    result: DoctorMemoryDreamActionResultSchema,
+    scope: WRITE_SCOPE,
+  },
+  "doctor.memory.repairDreamingArtifacts": {
+    result: DoctorMemoryDreamActionResultSchema,
+    scope: WRITE_SCOPE,
+  },
+  "doctor.memory.dedupeDreamDiary": {
+    result: DoctorMemoryDreamActionResultSchema,
+    scope: WRITE_SCOPE,
+  },
+  // plugin.approval methods
+  "plugin.approval.list": {
+    result: PluginApprovalListResultSchema,
+    scope: APPROVALS_SCOPE,
+  },
+  "plugin.approval.request": {
+    params: PluginApprovalRequestParamsSchema,
+    result: PluginApprovalRequestResultSchema,
+    scope: APPROVALS_SCOPE,
+  },
+  "plugin.approval.waitDecision": {
+    result: PluginApprovalWaitDecisionResultSchema,
+    scope: APPROVALS_SCOPE,
+  },
+  "plugin.approval.resolve": {
+    params: PluginApprovalResolveParamsSchema,
+    result: PluginApprovalResolveResultSchema,
     scope: APPROVALS_SCOPE,
   },
 };
