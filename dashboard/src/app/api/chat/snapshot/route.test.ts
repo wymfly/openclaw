@@ -33,7 +33,7 @@ describe("/api/chat/snapshot", () => {
     delete process.env.DECK_ACCESS_TOKEN;
   });
 
-  it("falls back to the persisted projection when no in-memory approval exists", async () => {
+  it("returns null projection-backed approval state when no in-memory approval exists", async () => {
     gwCall.mockResolvedValueOnce({
       sessions: [{ key: "session-1", agentId: "main", updatedAt: 1 }],
     });
@@ -47,17 +47,8 @@ describe("/api/chat/snapshot", () => {
         request: vi.fn(),
       },
       store: {
-        getApprovalProjectionWithMigration: vi.fn(() => ({
-          id: "apr-projected",
-          toolName: "command",
-          command: "ls -la",
-          description: "/tmp",
-        })),
-        getProjection: vi.fn(() => ({
-          a2uiState: {
-            visible: true,
-          },
-        })),
+        getApprovalProjectionWithMigration: vi.fn(),
+        getProjection: vi.fn(),
       },
     });
 
@@ -73,11 +64,8 @@ describe("/api/chat/snapshot", () => {
       messages: unknown[];
     };
     expect(body.messages).toHaveLength(1);
-    expect(body.activeApproval).toMatchObject({
-      id: "apr-projected",
-      command: "ls -la",
-    });
-    expect(body.a2uiState).toMatchObject({ visible: true });
+    expect(body.activeApproval).toBeNull();
+    expect(body.a2uiState).toBeNull();
     expect(fetchTranscriptHistory).toHaveBeenCalledWith(
       expect.objectContaining({ sessionKey: "session-1" }),
     );

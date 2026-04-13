@@ -5,6 +5,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useSessionsStore } from "@/stores/sessions";
 import { SessionDetail } from "../SessionDetail";
 
+vi.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getTotalSize: () => count * 200,
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_value, index) => ({
+        index,
+        key: index,
+        start: index * 200,
+      })),
+    measureElement: () => {},
+    scrollToIndex: () => {},
+  }),
+}));
+
 vi.mock("next-intl", () => ({
   useTranslations: () => {
     const t = ((key: string) => key) as ((key: string) => string) & {

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getRuntime = vi.fn();
 const request = vi.fn();
+const getBudgetRuleStore = vi.fn();
 
 vi.mock("@server/runtime", () => ({
   getRuntime,
@@ -12,27 +13,13 @@ vi.mock("@/lib/with-auth", () => ({
   withAuth: (handler: () => Promise<Response> | Response) => handler,
 }));
 
+vi.mock("@server/budget-alert-stores", () => ({
+  getBudgetRuleStore,
+}));
+
 describe("/api/usage/budget/evaluate", () => {
   beforeEach(() => {
     getRuntime.mockReturnValue({
-      db: {
-        prepare: vi.fn(() => ({
-          all: vi.fn(() => [
-            {
-              id: "rule-1",
-              name: "Monthly cost",
-              scope: "global",
-              agent_id: null,
-              task_id: null,
-              dimension: "cost",
-              warn_threshold: 10,
-              over_threshold: 20,
-              period: "30d",
-              enabled: 1,
-            },
-          ]),
-        })),
-      },
       eventBus: {
         broadcast: vi.fn(),
       },
@@ -48,11 +35,28 @@ describe("/api/usage/budget/evaluate", () => {
         totalTokens: 150,
       },
     });
+    getBudgetRuleStore.mockReturnValue({
+      get: () => [
+        {
+          id: "rule-1",
+          name: "Monthly cost",
+          scope: "global",
+          agentId: null,
+          taskId: null,
+          dimension: "cost",
+          warnThreshold: 10,
+          overThreshold: 20,
+          period: "30d",
+          enabled: true,
+        },
+      ],
+    });
   });
 
   afterEach(() => {
     getRuntime.mockReset();
     request.mockReset();
+    getBudgetRuleStore.mockReset();
   });
 
   it("uses runtime.adapter.request for usage.cost before evaluating rules", async () => {

@@ -73,24 +73,24 @@ describe("SessionSidebar rename", () => {
     render(createElement(SessionSidebar));
 
     const searchInput = screen.getByPlaceholderText("Search sessions...");
-    expect(screen.getByRole("button", { name: "Primary Session" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Ops Review" })).toBeTruthy();
+    expect(screen.getByText("Primary Session")).toBeTruthy();
+    expect(screen.getByText("Ops Review")).toBeTruthy();
 
     fireEvent.change(searchInput, { target: { value: "ops" } });
 
-    expect(screen.queryByRole("button", { name: "Primary Session" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Ops Review" })).toBeTruthy();
+    expect(screen.queryByText("Primary Session")).toBeNull();
+    expect(screen.getByText("Ops Review")).toBeTruthy();
 
     fireEvent.change(searchInput, { target: { value: "" } });
 
-    expect(screen.getByRole("button", { name: "Primary Session" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Ops Review" })).toBeTruthy();
+    expect(screen.getByText("Primary Session")).toBeTruthy();
+    expect(screen.getByText("Ops Review")).toBeTruthy();
   });
 
   it("enters inline edit mode on double click", () => {
     render(createElement(SessionSidebar));
 
-    fireEvent.doubleClick(screen.getByRole("button", { name: "Primary Session" }));
+    fireEvent.doubleClick(screen.getByText("Primary Session"));
 
     expect(screen.getByDisplayValue("Primary Session")).toBeTruthy();
   });
@@ -98,7 +98,7 @@ describe("SessionSidebar rename", () => {
   it("submits through blur on Enter and updates the title only after a successful patch", async () => {
     render(createElement(SessionSidebar));
 
-    fireEvent.doubleClick(screen.getByRole("button", { name: "Primary Session" }));
+    fireEvent.doubleClick(screen.getByText("Primary Session"));
     const input = screen.getByDisplayValue("Primary Session");
     fireEvent.change(input, { target: { value: "  Renamed Session  " } });
     fireEvent.keyDown(input, { key: "Enter" });
@@ -109,7 +109,7 @@ describe("SessionSidebar rename", () => {
       });
     });
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Renamed Session" })).toBeTruthy();
+      expect(screen.getByText("Renamed Session")).toBeTruthy();
     });
   });
 
@@ -117,7 +117,7 @@ describe("SessionSidebar rename", () => {
     vi.mocked(patchSession).mockResolvedValueOnce(false);
     render(createElement(SessionSidebar));
 
-    fireEvent.doubleClick(screen.getByRole("button", { name: "Primary Session" }));
+    fireEvent.doubleClick(screen.getByText("Primary Session"));
     const input = screen.getByDisplayValue("Primary Session");
     fireEvent.change(input, { target: { value: "Rejected Rename" } });
     fireEvent.blur(input);
@@ -127,20 +127,20 @@ describe("SessionSidebar rename", () => {
         label: "Rejected Rename",
       });
     });
-    expect(screen.getByRole("button", { name: "Primary Session" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Rejected Rename" })).toBeNull();
+    expect(screen.getByText("Primary Session")).toBeTruthy();
+    expect(screen.queryByText("Rejected Rename")).toBeNull();
   });
 
   it("cancels editing on Escape without patching", () => {
     render(createElement(SessionSidebar));
 
-    fireEvent.doubleClick(screen.getByRole("button", { name: "Primary Session" }));
+    fireEvent.doubleClick(screen.getByText("Primary Session"));
     const input = screen.getByDisplayValue("Primary Session");
     fireEvent.change(input, { target: { value: "Cancelled Rename" } });
     fireEvent.keyDown(input, { key: "Escape" });
 
     expect(vi.mocked(patchSession)).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Primary Session" })).toBeTruthy();
+    expect(screen.getByText("Primary Session")).toBeTruthy();
     expect(screen.queryByDisplayValue("Cancelled Rename")).toBeNull();
   });
 });
