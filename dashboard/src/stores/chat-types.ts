@@ -19,6 +19,16 @@ export type ContentBlock =
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
   | { type: "tool_result"; toolUseId: string; content: string | ContentBlock[]; isError?: boolean }
   | { type: "thinking"; text: string }
+  | {
+      type: "canvas";
+      kind: "canvas";
+      surface: "assistant_message";
+      render: "url";
+      url: string;
+      viewId?: string;
+      title?: string;
+      preferredHeight?: number;
+    }
   | { type: "unknown"; rawType: string; summary: Record<string, unknown> };
 
 // ---------------------------------------------------------------------------

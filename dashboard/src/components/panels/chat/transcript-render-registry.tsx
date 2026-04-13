@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import type { ContentBlock } from "@/stores/chat-types";
+import { CanvasEmbed } from "./blocks/CanvasEmbed";
 import { FileBlock } from "./blocks/FileBlock";
 import { ImageBlock } from "./blocks/ImageBlock";
 import { ThinkingBlock } from "./blocks/ThinkingBlock";
@@ -52,6 +53,9 @@ const transcriptRenderRegistry = {
   file: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "file" }>>) => (
     <FileBlock key={keyValue} {...block} />
   ),
+  canvas: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "canvas" }>>) => (
+    <CanvasEmbed key={keyValue} block={block} />
+  ),
   unknown: ({ block, keyValue }: RendererProps<Extract<ContentBlock, { type: "unknown" }>>) => (
     <UnknownBlockCard key={keyValue} rawType={block.rawType} summary={block.summary} />
   ),
@@ -71,6 +75,8 @@ export function renderTranscriptBlock(block: ContentBlock, keyValue: string) {
       return transcriptRenderRegistry.image({ block, keyValue });
     case "file":
       return transcriptRenderRegistry.file({ block, keyValue });
+    case "canvas":
+      return transcriptRenderRegistry.canvas({ block, keyValue });
     case "unknown":
       return transcriptRenderRegistry.unknown({ block, keyValue });
   }

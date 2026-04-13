@@ -181,13 +181,16 @@ export function ToolResultCard({ content, isError, toolName, toolInput }: ToolRe
           if (block.type === "file") {
             return <FileBlock key={`file-${index}`} {...block} />;
           }
-          return (
-            <UnknownBlockCard
-              key={`unknown-${index}`}
-              rawType={block.rawType}
-              summary={block.summary}
-            />
-          );
+          if (block.type === "unknown") {
+            return (
+              <UnknownBlockCard
+                key={`unknown-${index}`}
+                rawType={block.rawType}
+                summary={block.summary}
+              />
+            );
+          }
+          return null;
         })}
       </div>
     );

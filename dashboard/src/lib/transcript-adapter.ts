@@ -1,3 +1,4 @@
+import { extractCanvasShortcodes } from "@/lib/embed-parser";
 import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
 import type {
   SessionMessageEventPayload,
@@ -367,6 +368,40 @@ export function mergeToolMessages(messages: ChatMessage[]): ChatMessage[] {
   return result;
 }
 
+/**
+ * Expand `[embed ...]` shortcodes inside assistant text blocks into
+ * structured `canvas` ContentBlocks.  Only applied to completed messages
+ * (transcript history), not to streaming increments.
+ */
+function expandEmbedShortcodes(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((msg) => {
+    if (msg.role !== "assistant" || msg.streaming) {
+      return msg;
+    }
+    let changed = false;
+    const expanded: ContentBlock[] = [];
+    for (const block of msg.content) {
+      if (block.type !== "text") {
+        expanded.push(block);
+        continue;
+      }
+      const { text, previews } = extractCanvasShortcodes(block.text);
+      if (previews.length === 0) {
+        expanded.push(block);
+        continue;
+      }
+      changed = true;
+      if (text.trim()) {
+        expanded.push({ type: "text", text });
+      }
+      for (const preview of previews) {
+        expanded.push(preview);
+      }
+    }
+    return changed ? { ...msg, content: expanded } : msg;
+  });
+}
+
 export function normalizeTranscriptMessages(
   sessionKey: string,
   rawMessages: TranscriptRecord[],
@@ -374,7 +409,7 @@ export function normalizeTranscriptMessages(
   const normalized = rawMessages.map((message, index) =>
     normalizeTranscriptMessage(sessionKey, message, { index }),
   );
-  return mergeToolMessages(normalized);
+  return expandEmbedShortcodes(mergeToolMessages(normalized));
 }
 
 export function normalizeSessionMessagePayload(payload: SessionMessagePayloadRecord): ChatMessage {
@@ -382,8 +417,16 @@ export function normalizeSessionMessagePayload(payload: SessionMessagePayloadRec
   const messageRecord = isRecord(payload.message)
     ? (payload.message as TranscriptRecord)
     : ({ content: "" } as TranscriptRecord);
-  return normalizeTranscriptMessage(sessionKey, messageRecord, {
+  const msg = normalizeTranscriptMessage(sessionKey, messageRecord, {
     messageId: typeof payload.messageId === "string" ? payload.messageId : undefined,
     messageSeq: typeof payload.messageSeq === "number" ? payload.messageSeq : undefined,
   });
+  // Expand embeds only for completed (non-streaming) messages
+  if (!msg.streaming) {
+    const [expanded] = expandEmbedShortcodes([msg]);
+    if (expanded) {
+      return expanded;
+    }
+  }
+  return msg;
 }

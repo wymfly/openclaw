@@ -1,7 +1,9 @@
 "use client";
 
-import { Settings } from "lucide-react";
+import { Loader2, Settings } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect, useMemo } from "react";
+import { useModelsStore, type CatalogProvider } from "@/stores/models";
 import type { OnboardingData } from "./OnboardingWizard";
 
 type Props = {
@@ -11,19 +13,51 @@ type Props = {
   onBack: () => void;
 };
 
-const PROVIDERS = [
+// Fallback when catalog is unavailable
+const FALLBACK_PROVIDERS = [
   { value: "moonshot", label: "Moonshot", defaultModel: "moonshot-v1-8k" },
   { value: "deepseek", label: "DeepSeek", defaultModel: "deepseek-chat" },
   { value: "openai", label: "OpenAI", defaultModel: "gpt-4o" },
   { value: "anthropic", label: "Anthropic", defaultModel: "claude-sonnet-4-20250514" },
-  { value: "custom", label: "Custom", defaultModel: "" },
 ] as const;
+
+function catalogToOption(p: CatalogProvider) {
+  const defaultModel = p.models[0]?.id ?? "";
+  return { value: p.id, label: p.displayName, defaultModel };
+}
 
 export function StepProvider({ data, onChange, onNext, onBack }: Props) {
   const t = useTranslations("onboarding");
+  const {
+    catalogProviders,
+    catalogProvidersLoading,
+    catalogProvidersError,
+    fetchCatalogProviders,
+  } = useModelsStore();
+
+  useEffect(() => {
+    if (catalogProviders.length === 0 && !catalogProvidersLoading) {
+      void fetchCatalogProviders();
+    }
+  }, [catalogProviders.length, catalogProvidersLoading, fetchCatalogProviders]);
+
+  const providers = useMemo(() => {
+    if (catalogProviders.length > 0) {
+      const dynamic = catalogProviders.map(catalogToOption);
+      dynamic.push({ value: "custom", label: t("customProvider"), defaultModel: "" });
+      return dynamic;
+    }
+    if (catalogProvidersError || !catalogProvidersLoading) {
+      return [
+        ...FALLBACK_PROVIDERS.map((p) => ({ ...p })),
+        { value: "custom", label: t("customProvider"), defaultModel: "" },
+      ];
+    }
+    return [];
+  }, [catalogProviders, catalogProvidersError, catalogProvidersLoading, t]);
 
   const handleProviderChange = (providerName: string) => {
-    const match = PROVIDERS.find((p) => p.value === providerName);
+    const match = providers.find((p) => p.value === providerName);
     onChange({
       providerName,
       model: match?.defaultModel ?? "",
@@ -53,19 +87,26 @@ export function StepProvider({ data, onChange, onNext, onBack }: Props) {
         >
           {t("provider")}
         </label>
-        <select
-          value={data.providerName ?? ""}
-          onChange={(e) => handleProviderChange(e.target.value)}
-          className="w-full text-sm rounded px-3 py-2"
-          style={inputStyle}
-        >
-          <option value="">{t("selectProvider")}</option>
-          {PROVIDERS.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+        {catalogProvidersLoading && providers.length === 0 ? (
+          <div className="flex items-center gap-2 py-2">
+            <Loader2 size={14} className="animate-spin text-[var(--muted-foreground)]" />
+            <span className="text-xs text-[var(--muted-foreground)]">{t("loadingProviders")}</span>
+          </div>
+        ) : (
+          <select
+            value={data.providerName ?? ""}
+            onChange={(e) => handleProviderChange(e.target.value)}
+            className="w-full text-sm rounded px-3 py-2"
+            style={inputStyle}
+          >
+            <option value="">{t("selectProvider")}</option>
+            {providers.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* API Key */}

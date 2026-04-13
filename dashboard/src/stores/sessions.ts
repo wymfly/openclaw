@@ -76,6 +76,9 @@ function blockToText(block: ContentBlock): string {
   if (block.type === "file") {
     return block.fileName;
   }
+  if (block.type === "canvas") {
+    return block.title ?? "embed";
+  }
   return block.rawType;
 }
 
