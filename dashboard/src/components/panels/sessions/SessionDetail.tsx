@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useDeckSubagentsStore } from "@/stores/deck-subagents";
 import { useSessionsStore, type HistoryMessage } from "@/stores/sessions";
 import { TranscriptBlocks } from "../chat/TranscriptBlocks";
+import { CompactionHistory } from "./CompactionHistory";
 import { ContextWeightBreakdown } from "./ContextWeightBreakdown";
 import { SessionExport } from "./SessionExport";
 import { TranscriptSearch } from "./TranscriptSearch";
@@ -473,6 +474,9 @@ export function SessionDetail() {
       {session.contextWindow > 0 && (
         <ContextWeightBreakdown sessionKey={session.key} contextWindow={session.contextWindow} />
       )}
+
+      {/* Compaction history (lazy-loaded on expand) */}
+      <CompactionHistory sessionKey={session.key} compactionCount={session.compactionCount} />
 
       {/* Session directives: thinkingLevel + fastMode */}
       <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">

@@ -4,14 +4,16 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useApprovalsStore } from "@/stores/approvals";
 import { PendingList } from "./PendingList";
+import { PluginApprovalList } from "./PluginApprovalList";
 import { PolicyEditor } from "./PolicyEditor";
 import { useApprovalsSSE } from "./useApprovalsSSE";
 
-type ApprovalsTab = "pending" | "policy";
+type ApprovalsTab = "pending" | "plugins" | "policy";
 
-const TABS: ApprovalsTab[] = ["pending", "policy"];
+const TABS: ApprovalsTab[] = ["pending", "plugins", "policy"];
 const TAB_LABEL_KEYS: Record<ApprovalsTab, string> = {
   pending: "pending",
+  plugins: "plugins",
   policy: "policy",
 };
 
@@ -86,6 +88,7 @@ export function ApprovalsPanel() {
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {activeTab === "pending" && <PendingList />}
+        {activeTab === "plugins" && <PluginApprovalList />}
         {activeTab === "policy" && <PolicyEditor />}
       </div>
     </div>

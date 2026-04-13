@@ -4,7 +4,7 @@ import { create } from "zustand";
 // Types
 // ---------------------------------------------------------------------------
 
-export type MemoryTab = "files" | "search" | "graph" | "health";
+export type MemoryTab = "files" | "search" | "graph" | "health" | "dreams";
 
 export type MemoryScope = "all" | "global" | "agent";
 

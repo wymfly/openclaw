@@ -3,18 +3,20 @@
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { useMemoryStore, type MemoryTab, type MemoryScope } from "@/stores/memory";
+import { DreamDiaryTab } from "./DreamDiaryTab";
 import { FileTree } from "./FileTree";
 import { HealthDiagnostics } from "./HealthDiagnostics";
 import { KnowledgeGraph } from "./KnowledgeGraph";
 import { SearchPanel } from "./SearchPanel";
 
-const TABS: MemoryTab[] = ["files", "search", "graph", "health"];
+const TABS: MemoryTab[] = ["files", "search", "graph", "health", "dreams"];
 
 const TAB_LABEL_KEYS: Record<MemoryTab, string> = {
   files: "fileTree",
   search: "search",
   graph: "graph",
   health: "health",
+  dreams: "dreams.tab",
 };
 
 /**
@@ -153,6 +155,7 @@ export function MemoryPanel() {
         {activeTab === "search" && <SearchPanel />}
         {activeTab === "graph" && <KnowledgeGraph />}
         {activeTab === "health" && <HealthDiagnostics />}
+        {activeTab === "dreams" && <DreamDiaryTab />}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import { useDeckAgentsStore } from "@/stores/deck-agents";
 import { CloneDialog, SaveTemplateDialog } from "./AgentTemplateDialog";
 import { AgentConfigTab } from "./tabs/AgentConfigTab";
 import { ContextTab } from "./tabs/ContextTab";
+import { EffectiveToolsTab } from "./tabs/EffectiveToolsTab";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { RoutingTab } from "./tabs/RoutingTab";
 import { SessionsTab } from "./tabs/SessionsTab";
@@ -26,7 +27,15 @@ const STATUS_BADGE: Record<string, string> = {
   offline: "bg-[var(--neutral-muted)] text-[var(--neutral-muted-text)]",
 };
 
-type TabValue = "overview" | "config" | "routing" | "skills" | "context" | "subagent" | "sessions";
+type TabValue =
+  | "overview"
+  | "config"
+  | "routing"
+  | "skills"
+  | "tools"
+  | "context"
+  | "subagent"
+  | "sessions";
 
 export function AgentDetail({ agentId }: { agentId: string }) {
   const t = useTranslations("agentDetail");
@@ -166,6 +175,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             <TabsTrigger value="config">{t("tabs.config")}</TabsTrigger>
             <TabsTrigger value="routing">{t("routing")}</TabsTrigger>
             <TabsTrigger value="skills">{t("skills")}</TabsTrigger>
+            <TabsTrigger value="tools">{t("effectiveTools.tab")}</TabsTrigger>
             <TabsTrigger value="context">{t("context")}</TabsTrigger>
             <TabsTrigger value="subagent">{t("subagent")}</TabsTrigger>
             <TabsTrigger value="sessions">{t("sessions")}</TabsTrigger>
@@ -184,6 +194,9 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           </TabsContent>
           <TabsContent value="skills" className="p-4">
             <SkillsTab agentId={agentId} />
+          </TabsContent>
+          <TabsContent value="tools" className="p-4">
+            <EffectiveToolsTab agentId={agentId} />
           </TabsContent>
           <TabsContent value="context" className="p-4">
             <ContextTab agentId={agentId} />
