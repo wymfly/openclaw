@@ -1582,7 +1582,7 @@ export interface ExecApprovalResolveResult {
 
 export interface ExecApprovalWaitDecisionResult {
   id: string;
-  decision: string;
+  decision?: string;
   createdAtMs?: number;
   expiresAtMs?: number;
 }
@@ -1695,14 +1695,6 @@ export interface DoctorMemoryDedupeDreamDiaryResult {
   keptEntries?: number;
 }
 
-export interface PluginApprovalListResult {
-  id: string;
-  request: {};
-  createdAtMs: number;
-  expiresAtMs: number;
-}
-[];
-
 export interface PluginApprovalRequestParams {
   pluginId?: string;
   title: string;
@@ -1730,7 +1722,7 @@ export interface PluginApprovalRequestResult {
 
 export interface PluginApprovalWaitDecisionResult {
   id: string;
-  decision: string;
+  decision?: string;
   createdAtMs?: number;
   expiresAtMs?: number;
 }
@@ -3952,7 +3944,6 @@ export interface GatewayMethodMap {
     params: Record<string, unknown>;
     result: DoctorMemoryDedupeDreamDiaryResult;
   };
-  "plugin.approval.list": { params: Record<string, unknown>; result: PluginApprovalListResult };
   "plugin.approval.request": {
     params: PluginApprovalRequestParams;
     result: PluginApprovalRequestResult;

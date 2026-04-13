@@ -172,7 +172,7 @@ export const ExecApprovalResolveResultSchema = Type.Object(
 export const ExecApprovalWaitDecisionResultSchema = Type.Object(
   {
     id: NonEmptyString,
-    decision: Type.Union([Type.String(), Type.Null()]),
+    decision: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     createdAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
     expiresAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
   },

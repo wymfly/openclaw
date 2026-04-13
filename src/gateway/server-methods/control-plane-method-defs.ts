@@ -51,7 +51,6 @@ import {
   ExecApprovalsSnapshotSchema,
 } from "../protocol/schema/exec-approvals.js";
 import {
-  PluginApprovalListResultSchema,
   PluginApprovalRequestParamsSchema,
   PluginApprovalRequestResultSchema,
   PluginApprovalResolveParamsSchema,
@@ -221,7 +220,9 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   },
   // plugin.approval methods
   "plugin.approval.list": {
-    result: PluginApprovalListResultSchema,
+    // Handler responds with a raw array; codegen requires Type.Object at
+    // top-level, so result is left untyped until a wrapper is introduced.
+    result: undefined,
     scope: APPROVALS_SCOPE,
   },
   "plugin.approval.request": {

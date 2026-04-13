@@ -381,10 +381,6 @@ export interface GatewayClient {
   };
   plugin: {
     approval: {
-      list(
-        params: Record<string, unknown>,
-        options?: { timeoutMs?: number },
-      ): Promise<import("./gateway-protocol.generated").PluginApprovalListResult>;
       request(
         params: import("./gateway-protocol.generated").PluginApprovalRequestParams,
         options?: { timeoutMs?: number },
@@ -887,7 +883,6 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
     },
     plugin: {
       approval: {
-        list: call("plugin.approval.list"),
         request: call("plugin.approval.request"),
         waitDecision: call("plugin.approval.waitDecision"),
         resolve: call("plugin.approval.resolve"),
