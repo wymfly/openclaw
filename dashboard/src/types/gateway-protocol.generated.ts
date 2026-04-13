@@ -81,6 +81,7 @@ export type TranscriptMessage = {
 export interface ChatHistoryParams {
   sessionKey: string;
   limit?: number;
+  maxChars?: number;
 }
 
 export type ChatHistoryResult = {
@@ -147,6 +148,10 @@ export interface ChatSendParams {
   message: string;
   thinking?: string;
   deliver?: boolean;
+  originatingChannel?: string;
+  originatingTo?: string;
+  originatingAccountId?: string;
+  originatingThreadId?: string;
   attachments?: unknown[];
   timeoutMs?: number;
   systemInputProvenance?: {
@@ -252,6 +257,12 @@ export interface ConfigApplyParams {
   raw: string;
   baseHash?: string;
   sessionKey?: string;
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string;
+  };
   note?: string;
   restartDelayMs?: number;
 }
@@ -269,6 +280,12 @@ export interface ConfigPatchParams {
   raw: string;
   baseHash?: string;
   sessionKey?: string;
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string;
+  };
   note?: string;
   restartDelayMs?: number;
 }
@@ -472,6 +489,7 @@ export type SkillsInstallParams =
   | {
       name: string;
       installId: string;
+      dangerouslyForceUnsafeInstall?: boolean;
       timeoutMs?: number;
     }
   | {
@@ -566,10 +584,7 @@ export type CronListResult = {
           timeoutSeconds?: number;
           allowUnsafeExternalContent?: boolean;
           lightContext?: boolean;
-          deliver?: boolean;
-          channel?: string;
-          to?: string;
-          bestEffortDeliver?: boolean;
+          toolsAllow?: string[];
         };
     delivery?:
       | {
@@ -699,10 +714,7 @@ export type CronAddParams = {
         timeoutSeconds?: number;
         allowUnsafeExternalContent?: boolean;
         lightContext?: boolean;
-        deliver?: boolean;
-        channel?: string;
-        to?: string;
-        bestEffortDeliver?: boolean;
+        toolsAllow?: string[];
       };
   delivery?:
     | {
@@ -798,10 +810,7 @@ export type CronAddResult = {
         timeoutSeconds?: number;
         allowUnsafeExternalContent?: boolean;
         lightContext?: boolean;
-        deliver?: boolean;
-        channel?: string;
-        to?: string;
-        bestEffortDeliver?: boolean;
+        toolsAllow?: string[];
       };
   delivery?:
     | {
@@ -919,10 +928,7 @@ export type CronUpdateParams =
               timeoutSeconds?: number;
               allowUnsafeExternalContent?: boolean;
               lightContext?: boolean;
-              deliver?: boolean;
-              channel?: string;
-              to?: string;
-              bestEffortDeliver?: boolean;
+              toolsAllow?: string[] | null;
             };
         delivery?: {
           mode?: "none" | "announce" | "webhook";
@@ -1012,10 +1018,7 @@ export type CronUpdateParams =
               timeoutSeconds?: number;
               allowUnsafeExternalContent?: boolean;
               lightContext?: boolean;
-              deliver?: boolean;
-              channel?: string;
-              to?: string;
-              bestEffortDeliver?: boolean;
+              toolsAllow?: string[] | null;
             };
         delivery?: {
           mode?: "none" | "announce" | "webhook";
@@ -1107,10 +1110,7 @@ export type CronUpdateResult = {
         timeoutSeconds?: number;
         allowUnsafeExternalContent?: boolean;
         lightContext?: boolean;
-        deliver?: boolean;
-        channel?: string;
-        to?: string;
-        bestEffortDeliver?: boolean;
+        toolsAllow?: string[];
       };
   delivery?:
     | {
@@ -1293,6 +1293,7 @@ export interface ExecApprovalsGetResult {
         allowlist?: {
           id?: string;
           pattern: string;
+          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -1325,6 +1326,7 @@ export interface ExecApprovalsSetParams {
         allowlist?: {
           id?: string;
           pattern: string;
+          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -1361,6 +1363,7 @@ export interface ExecApprovalsSetResult {
         allowlist?: {
           id?: string;
           pattern: string;
+          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -1400,6 +1403,7 @@ export interface ExecApprovalsNodeGetResult {
         allowlist?: {
           id?: string;
           pattern: string;
+          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -1433,6 +1437,7 @@ export interface ExecApprovalsNodeSetParams {
         allowlist?: {
           id?: string;
           pattern: string;
+          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -1469,6 +1474,7 @@ export interface ExecApprovalsNodeSetResult {
         allowlist?: {
           id?: string;
           pattern: string;
+          argPattern?: string;
           lastUsedAt?: number;
           lastUsedCommand?: string;
           lastResolvedPath?: string;
@@ -1729,6 +1735,7 @@ export type SessionsPatchParams = {
   thinkingLevel?: string;
   fastMode?: boolean;
   verboseLevel?: string;
+  traceLevel?: string;
   reasoningLevel?: string;
   responseUsage?: "off" | "tokens" | "full" | "on" | null;
   elevatedLevel?: string;
@@ -1815,7 +1822,7 @@ export type SessionsUsageParams = {
   includeContextWeight?: boolean;
 };
 
-export interface SessionsUsageResult {
+export type SessionsUsageResult = {
   updatedAt: number;
   startDate: string;
   endDate: string;
@@ -1827,17 +1834,296 @@ export interface SessionsUsageResult {
     agentId?: string;
     channel?: string;
     chatType?: string;
-    origin?: unknown;
+    origin?: {
+      label?: string;
+      provider?: string;
+      surface?: string;
+      chatType?: string;
+      from?: string;
+      to?: string;
+      accountId?: string;
+      threadId?: string;
+    };
     modelOverride?: string;
     providerOverride?: string;
     modelProvider?: string;
     model?: string;
-    usage: unknown;
-    contextWeight?: unknown;
+    usage: {
+      input: number;
+      output: number;
+      cacheRead: number;
+      cacheWrite: number;
+      totalTokens: number;
+      totalCost: number;
+      inputCost: number;
+      outputCost: number;
+      cacheReadCost: number;
+      cacheWriteCost: number;
+      missingCostEntries: number;
+      sessionId?: string;
+      sessionFile?: string;
+      firstActivity?: number;
+      lastActivity?: number;
+      durationMs?: number;
+      activityDates?: string[];
+      dailyBreakdown?: {
+        date: string;
+        tokens: number;
+        cost: number;
+      }[];
+      dailyMessageCounts?: {
+        date: string;
+        total: number;
+        user: number;
+        assistant: number;
+        toolCalls: number;
+        toolResults: number;
+        errors: number;
+      }[];
+      dailyLatency?: {
+        date: string;
+        count: number;
+        avgMs: number;
+        p95Ms: number;
+        minMs: number;
+        maxMs: number;
+      }[];
+      dailyModelUsage?: {
+        date: string;
+        provider?: string;
+        model?: string;
+        tokens: number;
+        cost: number;
+        count: number;
+      }[];
+      messageCounts?: {
+        total: number;
+        user: number;
+        assistant: number;
+        toolCalls: number;
+        toolResults: number;
+        errors: number;
+      };
+      toolUsage?: {
+        totalCalls: number;
+        uniqueTools: number;
+        tools: {
+          name: string;
+          count: number;
+        }[];
+      };
+      modelUsage?: {
+        provider?: string;
+        model?: string;
+        count: number;
+        totals: {
+          input: number;
+          output: number;
+          cacheRead: number;
+          cacheWrite: number;
+          totalTokens: number;
+          totalCost: number;
+          inputCost: number;
+          outputCost: number;
+          cacheReadCost: number;
+          cacheWriteCost: number;
+          missingCostEntries: number;
+        };
+      }[];
+      latency?: {
+        count: number;
+        avgMs: number;
+        p95Ms: number;
+        minMs: number;
+        maxMs: number;
+      };
+    } | null;
+    contextWeight?: {
+      source: "run" | "estimate";
+      generatedAt: number;
+      sessionId?: string;
+      sessionKey?: string;
+      provider?: string;
+      model?: string;
+      workspaceDir?: string;
+      bootstrapMaxChars?: number;
+      bootstrapTotalMaxChars?: number;
+      bootstrapTruncation?: {
+        warningMode?: "off" | "once" | "always";
+        warningShown?: boolean;
+        promptWarningSignature?: string;
+        warningSignaturesSeen?: string[];
+        truncatedFiles?: number;
+        nearLimitFiles?: number;
+        totalNearLimit?: boolean;
+      };
+      sandbox?: {
+        mode?: string;
+        sandboxed?: boolean;
+      };
+      systemPrompt: {
+        chars: number;
+        projectContextChars: number;
+        nonProjectContextChars: number;
+      };
+      injectedWorkspaceFiles: {
+        name: string;
+        path: string;
+        missing: boolean;
+        rawChars: number;
+        injectedChars: number;
+        truncated: boolean;
+      }[];
+      skills: {
+        promptChars: number;
+        entries: {
+          name: string;
+          blockChars: number;
+        }[];
+      };
+      tools: {
+        listChars: number;
+        schemaChars: number;
+        entries: {
+          name: string;
+          summaryChars: number;
+          schemaChars: number;
+          propertiesCount?: number;
+        }[];
+      };
+    } | null;
   }[];
-  totals: unknown;
-  aggregates: unknown;
-}
+  totals: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    totalTokens: number;
+    totalCost: number;
+    inputCost: number;
+    outputCost: number;
+    cacheReadCost: number;
+    cacheWriteCost: number;
+    missingCostEntries: number;
+  };
+  aggregates: {
+    messages: {
+      total: number;
+      user: number;
+      assistant: number;
+      toolCalls: number;
+      toolResults: number;
+      errors: number;
+    };
+    tools: {
+      totalCalls: number;
+      uniqueTools: number;
+      tools: {
+        name: string;
+        count: number;
+      }[];
+    };
+    byModel: {
+      provider?: string;
+      model?: string;
+      count: number;
+      totals: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        totalTokens: number;
+        totalCost: number;
+        inputCost: number;
+        outputCost: number;
+        cacheReadCost: number;
+        cacheWriteCost: number;
+        missingCostEntries: number;
+      };
+    }[];
+    byProvider: {
+      provider?: string;
+      model?: string;
+      count: number;
+      totals: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        totalTokens: number;
+        totalCost: number;
+        inputCost: number;
+        outputCost: number;
+        cacheReadCost: number;
+        cacheWriteCost: number;
+        missingCostEntries: number;
+      };
+    }[];
+    byAgent: {
+      agentId: string;
+      totals: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        totalTokens: number;
+        totalCost: number;
+        inputCost: number;
+        outputCost: number;
+        cacheReadCost: number;
+        cacheWriteCost: number;
+        missingCostEntries: number;
+      };
+    }[];
+    byChannel: {
+      channel: string;
+      totals: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        totalTokens: number;
+        totalCost: number;
+        inputCost: number;
+        outputCost: number;
+        cacheReadCost: number;
+        cacheWriteCost: number;
+        missingCostEntries: number;
+      };
+    }[];
+    latency?: {
+      count: number;
+      avgMs: number;
+      p95Ms: number;
+      minMs: number;
+      maxMs: number;
+    };
+    dailyLatency?: {
+      date: string;
+      count: number;
+      avgMs: number;
+      p95Ms: number;
+      minMs: number;
+      maxMs: number;
+    }[];
+    modelDaily?: {
+      date: string;
+      provider?: string;
+      model?: string;
+      tokens: number;
+      cost: number;
+      count: number;
+    }[];
+    daily: {
+      date: string;
+      tokens: number;
+      cost: number;
+      messages: number;
+      toolCalls: number;
+      errors: number;
+    }[];
+  };
+};
 
 export type SessionsUsageTimeseriesParams = {
   key?: string;
@@ -1849,7 +2135,20 @@ export type SessionsUsageTimeseriesParams = {
   includeContextWeight?: boolean;
 };
 
-export type SessionsUsageTimeseriesResult = unknown;
+export interface SessionsUsageTimeseriesResult {
+  sessionId?: string;
+  points: {
+    timestamp: number;
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    totalTokens: number;
+    cost: number;
+    cumulativeTokens: number;
+    cumulativeCost: number;
+  }[];
+}
 
 export type SessionsUsageLogsParams = {
   key?: string;
@@ -1861,9 +2160,15 @@ export type SessionsUsageLogsParams = {
   includeContextWeight?: boolean;
 };
 
-export interface SessionsUsageLogsResult {
-  logs: unknown[];
-}
+export type SessionsUsageLogsResult = {
+  logs: {
+    timestamp: number;
+    role: "user" | "assistant" | "tool" | "toolResult";
+    content: string;
+    tokens?: number;
+    cost?: number;
+  }[];
+};
 
 export interface AgentIdentityGetParams {
   agentId?: string;
@@ -1906,12 +2211,18 @@ export type AgentsListResult = {
       avatar?: string;
       avatarUrl?: string;
     };
+    workspace?: string;
+    model?: {
+      primary?: string;
+      fallbacks?: string[];
+    };
   }[];
 };
 
 export interface AgentsCreateParams {
   name: string;
   workspace: string;
+  model?: string;
   emoji?: string;
   avatar?: string;
 }
@@ -1921,6 +2232,7 @@ export interface AgentsCreateResult {
   agentId: string;
   name: string;
   workspace: string;
+  model?: string;
 }
 
 export interface AgentsUpdateParams {
@@ -1928,6 +2240,7 @@ export interface AgentsUpdateParams {
   name?: string;
   workspace?: string;
   model?: string;
+  emoji?: string;
   avatar?: string;
 }
 
@@ -2079,6 +2392,7 @@ export interface ModelsListResult {
     id: string;
     name: string;
     provider: string;
+    alias?: string;
     contextWindow?: number;
     reasoning?: boolean;
   }[];
@@ -2086,7 +2400,7 @@ export interface ModelsListResult {
 
 export type ModelsConfiguredParams = Record<string, never>;
 
-export type ModelsConfiguredResult = {
+export interface ModelsConfiguredResult {
   models: {
     id: string;
     name: string;
@@ -2102,11 +2416,8 @@ export type ModelsConfiguredResult = {
     };
     maxTokens?: number;
     authStatus: string;
-    source: "config" | "agent-models" | "mixed" | "runtime";
-    scope: string;
-    editable: boolean;
   }[];
-};
+}
 
 export interface LogsTailParams {
   cursor?: number;
@@ -2681,48 +2992,25 @@ export interface TalkConfigParams {
   includeSecrets?: boolean;
 }
 
-export type TalkConfigResult = {
+export interface TalkConfigResult {
   config: {
-    talk?:
-      | {
-          voiceId?: string;
-          voiceAliases?: Record<string, string>;
-          modelId?: string;
-          outputFormat?: string;
+    talk?: {
+      provider?: string;
+      providers?: Record<
+        string,
+        {
           apiKey?: string;
-          interruptOnSpeech?: boolean;
-          silenceTimeoutMs?: number;
         }
-      | {
-          provider?: string;
-          providers?: Record<
-            string,
-            {
-              voiceId?: string;
-              voiceAliases?: Record<string, string>;
-              modelId?: string;
-              outputFormat?: string;
-              apiKey?: string;
-            }
-          >;
-          resolved: {
-            provider: string;
-            config: {
-              voiceId?: string;
-              voiceAliases?: Record<string, string>;
-              modelId?: string;
-              outputFormat?: string;
-              apiKey?: string;
-            };
-          };
-          voiceId?: string;
-          voiceAliases?: Record<string, string>;
-          modelId?: string;
-          outputFormat?: string;
+      >;
+      resolved: {
+        provider: string;
+        config: {
           apiKey?: string;
-          interruptOnSpeech?: boolean;
-          silenceTimeoutMs?: number;
         };
+      };
+      interruptOnSpeech?: boolean;
+      silenceTimeoutMs?: number;
+    };
     session?: {
       mainKey?: string;
     };
@@ -2730,7 +3018,7 @@ export type TalkConfigResult = {
       seamColor?: string;
     };
   };
-};
+}
 
 export interface TalkSpeakParams {
   text: string;
@@ -2738,6 +3026,7 @@ export interface TalkSpeakParams {
   modelId?: string;
   outputFormat?: string;
   speed?: number;
+  rateWpm?: number;
   stability?: number;
   similarity?: number;
   style?: number;
@@ -2745,6 +3034,7 @@ export interface TalkSpeakParams {
   seed?: number;
   normalize?: string;
   language?: string;
+  latencyTier?: number;
 }
 
 export interface TalkSpeakResult {
@@ -3421,6 +3711,7 @@ export type ChatEventPayload = {
     timestamp: number;
   };
   errorMessage?: string;
+  errorKind?: "refusal" | "timeout" | "rate_limit" | "context_length" | "unknown";
   usage?: unknown;
   stopReason?: string;
   mediaUrl?: string;

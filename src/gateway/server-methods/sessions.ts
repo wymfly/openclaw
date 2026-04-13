@@ -1367,6 +1367,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
 
     const result = await performGatewaySessionClear({
       key,
+      reason: "reset",
       commandSource: "gateway:sessions.clear",
     });
     if (!result.ok) {
