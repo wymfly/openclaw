@@ -177,7 +177,12 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
         }
       }
 
-      set({ channels: channelMap, channelOrder: order });
+      set({
+        channels: channelMap,
+        channelOrder: order,
+        probeResults: new Map(),
+        channelHealthMap: new Map(),
+      });
     } catch {
       set({ error: "Failed to fetch channels" });
     } finally {

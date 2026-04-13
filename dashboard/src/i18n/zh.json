@@ -141,8 +141,6 @@
     "canvasError": "画布加载失败",
     "canvasRetry": "重试",
     "canvasEmpty": "暂无画布内容",
-    "virtualExpand": "展开",
-    "virtualCollapse": "收起",
     "debugTitle": "调试面板",
     "debugMessages": "消息",
     "debugTree": "树",
@@ -189,14 +187,6 @@
     "cmdCatSkills": "技能",
     "cmdCatPlugins": "插件",
     "cmdCatMore": "更多",
-    "cmdBack": "返回",
-    "cmdTagPlaceholder": "输入提示词...",
-    "cmdTagRemove": "点击移除指令",
-    "deleteConfirmTitle": "删除会话",
-    "deleteConfirmMessage": "确定要删除这个会话吗？此操作无法撤销。",
-    "deleteConfirmOk": "删除",
-    "deleteConfirmCancel": "取消",
-    "virtualLines": "第 {start}–{end} 行，共 {total} 行",
     "compacted": "上下文已压缩",
     "sessionTokens": "会话累计",
     "sessionCost": "预估费用",
@@ -236,7 +226,6 @@
     "thumbsDown": "踩",
     "steerPlaceholder": "输入指令以改变执行方向...",
     "steer": "引导",
-    "steerQuickAccess": "跳转到引导输入",
     "mentionAgents": "智能体",
     "promptTemplates": "提示模板",
     "templateAnalyze": "分析这段代码中的问题",
@@ -246,8 +235,6 @@
     "templateSummarize": "总结要点",
     "contextLabel": "上下文",
     "contextWarning": "上下文窗口接近满载 — 建议压缩或新建会话",
-    "contextCompacted": "上下文已压缩 {count} 次",
-    "contextOverflowWarning": "上下文窗口接近满载 — 回复可能失败或触发自动压缩",
     "emptyTitle": "开始新对话",
     "emptyDescription": "选择一个话题开始，或直接输入你的问题",
     "suggestCreative": "帮我写一段创意文案",
@@ -350,12 +337,12 @@
     "busy": "忙碌",
     "error": "异常",
     "offline": "离线",
-  "confirmDelete": "确定删除该智能体？",
-  "selectAgent": "选择智能体查看详情",
-  "batchExport": "复制智能体清单",
-  "batchCopied": "已复制智能体清单",
-  "batchSummary": "已选 {total} 个 · 空闲 {idle} · 忙碌 {busy}",
-  "effectiveTools": "生效工具",
+    "confirmDelete": "确定删除该智能体？",
+    "selectAgent": "选择智能体查看详情",
+    "batchExport": "复制智能体清单",
+    "batchCopied": "已复制智能体清单",
+    "batchSummary": "已选 {total} 个 · 空闲 {idle} · 忙碌 {busy}",
+    "effectiveTools": "生效工具",
     "toolAllowed": "已允许",
     "toolDenied": "已拒绝",
     "toolSource": "来源"
@@ -566,15 +553,7 @@
       "apiKey": "API Key",
       "apiKeyPlaceholder": "sk-... 或 $'{ENV_VAR_NAME}'",
       "envVarHint": "以 $'{' 开头将作为环境变量引用",
-      "globalOnlyHint": "这里新增的提供商会写入全局提供商配置。",
-      "postAdd": {
-        "title": "供应商已添加",
-        "description": "{provider} 添加成功。是否将其设为主模型或加入备选链？",
-        "selectModel": "选择模型",
-        "setAsPrimary": "设为主模型",
-        "addToFallback": "加入备选链",
-        "close": "稍后配置"
-      }
+      "globalOnlyHint": "这里新增的提供商会写入全局提供商配置。"
     },
     "provenance": {
       "providerSource": "提供商来源",
@@ -595,79 +574,6 @@
       "configMissing": "缺少配置",
       "authPresent": "已存在凭据",
       "authMissing": "缺少凭据"
-    },
-    "advanced": {
-      "title": "高级配置",
-      "provider": {
-        "headers": "自定义请求头",
-        "headersHint": "附加到每个 API 请求的 HTTP 头",
-        "authHeader": "发送 Auth Header",
-        "authHeaderHint": "是否在请求中包含 Authorization 头",
-        "injectNumCtx": "注入 num_ctx 参数",
-        "injectNumCtxHint": "OpenAI 兼容模式下自动注入 num_ctx"
-      },
-      "model": {
-        "apiOverride": "API 协议覆盖",
-        "apiOverrideHint": "覆盖供应商级 API 协议设置",
-        "cost": {
-          "title": "定价（每百万 token）",
-          "input": "输入",
-          "output": "输出",
-          "cacheRead": "缓存读取",
-          "cacheWrite": "缓存写入"
-        },
-        "headers": "模型级请求头",
-        "headersHint": "仅对此模型附加的 HTTP 头",
-        "compat": {
-          "title": "兼容性标志",
-          "apiBehavior": "API 行为",
-          "reasoning": "推理 / 思考",
-          "toolHandling": "工具处理",
-          "streaming": "流式",
-          "supportsStore": "支持 Store（提示缓存）",
-          "supportsDeveloperRole": "支持 Developer Role",
-          "supportsStrictMode": "支持 Strict Mode",
-          "maxTokensField": "max_tokens 字段名",
-          "maxTokensFieldHint": "API 使用的字段名称",
-          "supportsReasoningEffort": "支持推理深度控制",
-          "requiresThinkingAsText": "要求思考输出为文本",
-          "thinkingFormat": "思考格式",
-          "thinkingFormatHint": "供应商使用的思考输出格式",
-          "supportsTools": "支持函数调用",
-          "requiresToolResultName": "工具结果需要 name 字段",
-          "requiresAssistantAfterToolResult": "工具结果后需要 Assistant 消息",
-          "toolSchemaProfile": "xAI 工具 Schema",
-          "toolSchemaProfileHint": "启用 xAI 特有的工具 schema 格式",
-          "nativeWebSearchTool": "原生 Web 搜索",
-          "toolCallArgumentsEncoding": "HTML 实体编码参数",
-          "toolCallArgumentsEncodingHint": "工具调用参数使用 HTML 实体编码",
-          "requiresMistralToolIds": "Mistral 工具 ID 格式",
-          "requiresOpenAiAnthropicToolPayload": "OpenAI-Anthropic 工具载荷",
-          "supportsUsageInStreaming": "流式输出包含用量统计"
-        }
-      }
-    },
-    "postAdd": {
-      "title": "供应商已添加",
-      "description": "供应商 {provider} 添加成功。你可以：",
-      "setAsPrimary": "设为主模型",
-      "addToFallback": "加入降级链",
-      "selectModel": "选择模型",
-      "close": "稍后配置"
-    },
-    "filter": {
-      "reasoning": "推理",
-      "vision": "视觉",
-      "text": "文本",
-      "all": "全部"
-    },
-    "kv": {
-      "key": "键",
-      "value": "值",
-      "addRow": "添加",
-      "remove": "删除",
-      "keyPlaceholder": "Header 名称",
-      "valuePlaceholder": "Header 值"
     }
   },
   "routing": {
@@ -1021,9 +927,6 @@
     "chartTokens": "Token 用量",
     "chartCost": "费用",
     "chartByModel": "按模型",
-    "compactionEvent": "压缩事件",
-    "compactionMarker": "上下文已压缩",
-    "compactionMarkersNone": "无压缩事件",
     "proportion": "占比",
     "dateRange": "日期范围",
     "startDate": "开始日期",
@@ -1060,11 +963,8 @@
     "tokensIn": "输入",
     "tokensOut": "输出",
     "context": "上下文用量",
-    "tokensCurrent": "当前",
     "history": "对话记录",
     "noSessions": "暂无会话",
-    "healthWarning": "上下文窗口接近满载 — 建议压缩或新建会话",
-    "compactionWarning": "上下文已压缩 {count} 次",
     "model": "模型",
     "updatedAt": "更新于",
     "confirmDelete": "确定删除该会话？",
@@ -1116,34 +1016,7 @@
     "label": "标签",
     "editLabel": "编辑标签",
     "emptyDescription": "开始一个对话，会话将显示在这里",
-    "selectHint": "选择一个会话以查看详情",
-    "compact": "压缩",
-    "compactConfirm": "再次点击以压缩上下文",
-    "compactSuccess": "上下文压缩成功",
-    "compactFailed": "压缩失败：{reason}",
-    "compacting": "压缩中…",
-    "compactionSummary": "压缩摘要",
-    "compressedMessages": "以上消息已压缩",
-    "contextWeight": {
-      "title": "上下文成分",
-      "systemPrompt": "系统提示",
-      "tools": "工具",
-      "skills": "技能",
-      "files": "工作区文件",
-      "loading": "加载上下文成分中…",
-      "error": "加载上下文成分失败",
-      "empty": "暂无上下文成分数据"
-    },
-    "timeline": {
-      "title": "时间线",
-      "transcript": "对话记录",
-      "timeline": "时间线",
-      "highCost": "高消耗",
-      "compactionEvent": "压缩事件",
-      "loading": "加载时间线中…",
-      "error": "加载时间线失败",
-      "empty": "暂无日志记录"
-    }
+    "selectHint": "选择一个会话以查看详情"
   },
   "logs": {
     "title": "日志查看器",
@@ -1263,6 +1136,22 @@
       "reset": "重置",
       "configureWizard": "配置连接（向导）"
     },
+    "weixinWizard": {
+      "title": "连接微信",
+      "intro": "已安装的微信插件优先通过共享向导壳接入，而不是单独做一套重型专门向导。",
+      "pluginVisible": "该渠道已对 Deck 可见，可以通过这个登录型引导流程接入。",
+      "pluginHidden": "如果渠道尚未显示，请先确认插件已安装并启用，再执行登录。",
+      "loginDesc": "请在本地终端执行渠道登录命令，完成后回到这里刷新状态。",
+      "copyCommand": "复制登录命令",
+      "statusDesc": "登录完成后刷新状态，确认该渠道已经接入。",
+      "connected": "微信渠道已连接",
+      "notConnected": "仍未连接",
+      "statusUnknown": "尚未检查连接状态",
+      "refreshStatus": "刷新状态",
+      "stepIntro": "插件状态",
+      "stepLogin": "登录命令",
+      "stepStatus": "状态确认"
+    },
     "schemaForm": {
       "noSchemaFields": "此渠道无可配置项。",
       "requiredFields": "以下必填字段未填写"
@@ -1280,6 +1169,40 @@
       "degraded": "降级",
       "down": "离线",
       "unknown": "未知"
+    },
+    "aggregateHealthNote": "渠道健康是聚合结果。真正的问题请在下方账号诊断中定位。",
+    "alerts": {
+      "title": "当前告警",
+      "summary": "当前有 {count} 个账号需要注意。",
+      "accountTitle": "告警",
+      "probeSummary": "最近一次渠道探测仍然失败，需要继续排查。"
+    },
+    "alertCount": "{count} 条告警",
+    "diagnostics": {
+      "title": "账号诊断",
+      "nextStep": "下一步",
+      "lastError": "最后错误",
+      "healthyTitle": "健康",
+      "healthyDescription": "该账号已连接且在线。",
+      "healthyNextStep": "当前无需额外操作。",
+      "configIncompleteTitle": "配置未完成",
+      "configIncompleteDescription": "该渠道仍缺少必要配置项。",
+      "configIncompleteNextStep": "打开设置并补齐必填配置。",
+      "enabledNotLinkedTitle": "已启用但未链接",
+      "enabledNotLinkedDescription": "该账号已启用，但网关尚未真正链接到该账号。",
+      "enabledNotLinkedNextStep": "先运行探测；如果仍未连接，再重新登录或重新连接。",
+      "linkedDisconnectedTitle": "已链接但未连接",
+      "linkedDisconnectedDescription": "该账号之前已链接，但当前未连接。",
+      "linkedDisconnectedNextStep": "先运行探测并查看最后错误，再决定是否重连或重新登录。",
+      "accountErrorTitle": "账号异常",
+      "accountErrorDescription": "网关为该渠道报告了账号级错误。",
+      "accountErrorNextStep": "先查看最后错误，再运行探测或进入设置修复账号。",
+      "probeFailureTitle": "探测失败",
+      "probeFailureDescription": "该渠道最近一次连接探测失败。",
+      "probeFailureNextStep": "先处理探测错误，再检查渠道设置或重新连接账号。",
+      "disabledTitle": "已禁用",
+      "disabledDescription": "该账号当前已禁用，因此不应尝试连接。",
+      "disabledNextStep": "只有在你希望该渠道处理流量时，才重新启用它。"
     },
     "analytics": {
       "totalIn": "接收消息",

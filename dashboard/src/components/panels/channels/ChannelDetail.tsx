@@ -7,11 +7,49 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useChannelsStore, type ChannelAccount } from "@/stores/channels";
 import { AccountConfigDialog } from "./AccountConfigDialog";
 import { BindingsTab } from "./BindingsTab";
+import {
+  countChannelAlerts,
+  getAccountHealthAlert,
+  hasChannelProbeAlert,
+} from "./channel-health-alerts";
+import { getAccountHealthDiagnostic } from "./channel-health-diagnostics";
 import { ChannelAnalytics } from "./ChannelAnalytics";
 import { ChannelHealthBadge } from "./ChannelHealthBadge";
 import { ChannelProbeStatus } from "./ChannelProbeStatus";
 import { ChannelSettingsTab } from "./ChannelSettingsTab";
 import { ChannelTestTool } from "./ChannelTestTool";
+
+const DIAGNOSTIC_TONE_STYLES = {
+  success: {
+    bg: "var(--success-muted)",
+    text: "var(--success-muted-text)",
+  },
+  warning: {
+    bg: "var(--warning-muted)",
+    text: "var(--warning-muted-text)",
+  },
+  error: {
+    bg: "var(--destructive-muted)",
+    text: "var(--destructive)",
+  },
+  neutral: {
+    bg: "var(--muted)",
+    text: "var(--foreground)",
+  },
+} as const;
+
+const ALERT_SEVERITY_STYLES = {
+  error: {
+    border: "var(--destructive)",
+    bg: "var(--destructive-muted)",
+    text: "var(--destructive)",
+  },
+  warning: {
+    border: "var(--warning)",
+    bg: "var(--warning-muted)",
+    text: "var(--warning-muted-text)",
+  },
+} as const;
 
 function AccountStatusBadge({ account }: { account: ChannelAccount }) {
   const t = useTranslations("channels");
@@ -79,6 +117,58 @@ function AccountStatusBadge({ account }: { account: ChannelAccount }) {
   );
 }
 
+function AccountAlertCard({
+  title,
+  description,
+  severity,
+}: {
+  title: string;
+  description: string;
+  severity: "error" | "warning";
+}) {
+  const styles = ALERT_SEVERITY_STYLES[severity];
+  return (
+    <div
+      className="mb-2 rounded-md border px-2.5 py-2"
+      style={{
+        borderColor: styles.border,
+        backgroundColor: styles.bg,
+        color: styles.text,
+      }}
+    >
+      <p className="text-[11px] font-semibold">{title}</p>
+      <p className="mt-1 text-[11px]">{description}</p>
+    </div>
+  );
+}
+
+function AccountDiagnosticCard({
+  title,
+  description,
+  nextStep,
+  tone,
+}: {
+  title: string;
+  description: string;
+  nextStep: string;
+  tone: keyof typeof DIAGNOSTIC_TONE_STYLES;
+}) {
+  const styles = DIAGNOSTIC_TONE_STYLES[tone];
+  return (
+    <div
+      className="mb-2 rounded-md px-2.5 py-2"
+      style={{
+        backgroundColor: styles.bg,
+        color: styles.text,
+      }}
+    >
+      <p className="text-[11px] font-semibold">{title}</p>
+      <p className="mt-1 text-[11px]">{description}</p>
+      <p className="mt-2 text-[10px] font-medium">{nextStep}</p>
+    </div>
+  );
+}
+
 export function ChannelDetail({ channelId }: { channelId: string }) {
   const t = useTranslations("channels");
   const tc = useTranslations("common");
@@ -91,6 +181,10 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
   const [configAccount, setConfigAccount] = useState<ChannelAccount | null>(null);
 
   const channel = channels.get(channelId);
+  const channelHealth = channelHealthMap.get(channelId);
+  const probeResult = useChannelsStore((s) => s.probeResults.get(channelId));
+  const alertCount = channel ? countChannelAlerts(channel) : 0;
+  const hasProbeAlert = hasChannelProbeAlert(probeResult);
 
   const handleLogout = useCallback(async () => {
     setLoggingOut(true);
@@ -156,12 +250,12 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
           <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
             {channel.label}
           </h2>
-          {channelHealthMap.get(channelId) && (
+          {channelHealth && (
             <ChannelHealthBadge
-              status={channelHealthMap.get(channelId)!.status}
-              latencyMs={channelHealthMap.get(channelId)!.latencyMs}
-              error={channelHealthMap.get(channelId)!.error}
-              lastCheckedAt={channelHealthMap.get(channelId)!.lastCheckedAt}
+              status={channelHealth.status}
+              latencyMs={channelHealth.latencyMs}
+              error={channelHealth.error}
+              lastCheckedAt={channelHealth.lastCheckedAt}
             />
           )}
         </div>
@@ -212,6 +306,38 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
 
             {/* Accounts section */}
             <div>
+              {(alertCount > 0 || hasProbeAlert) && (
+                <div
+                  className="mb-3 rounded-md border px-3 py-2"
+                  style={{
+                    borderColor: "var(--destructive)",
+                    backgroundColor: "var(--destructive-muted)",
+                    color: "var(--destructive)",
+                  }}
+                >
+                  <p className="text-xs font-semibold">{t("alerts.title")}</p>
+                  {alertCount > 0 && (
+                    <p className="mt-1 text-[11px]">{t("alerts.summary", { count: alertCount })}</p>
+                  )}
+                  {hasProbeAlert && <p className="mt-1 text-[11px]">{t("alerts.probeSummary")}</p>}
+                </div>
+              )}
+              <label
+                className="block text-xs font-medium mb-2"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                {t("diagnostics.title")}
+              </label>
+              <div
+                className="mb-3 rounded-md border px-3 py-2 text-[11px]"
+                style={{
+                  borderColor: "var(--border)",
+                  backgroundColor: "var(--muted)",
+                  color: "var(--muted-foreground)",
+                }}
+              >
+                {t("aggregateHealthNote")}
+              </div>
               <label
                 className="block text-xs font-medium mb-2"
                 style={{ color: "var(--muted-foreground)" }}
@@ -226,86 +352,113 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
               )}
 
               <div className="space-y-2">
-                {channel.accounts.map((account) => (
-                  <div
-                    key={account.accountId}
-                    className="rounded-lg px-3 py-2 border"
-                    style={{
-                      borderColor: "var(--border)",
-                      backgroundColor: "var(--card)",
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
-                        {account.name ?? account.accountId}
-                      </span>
-                      <AccountStatusBadge account={account} />
-                    </div>
+                {channel.accounts.map((account) => {
+                  const diagnostic = getAccountHealthDiagnostic(account);
+                  const alert = getAccountHealthAlert(account);
 
-                    {/* Account details */}
+                  return (
                     <div
-                      className="flex items-center gap-3 text-[10px]"
-                      style={{ color: "var(--muted-foreground)" }}
+                      key={account.accountId}
+                      className="rounded-lg px-3 py-2 border"
+                      style={{
+                        borderColor: "var(--border)",
+                        backgroundColor: "var(--card)",
+                      }}
                     >
-                      <span>ID: {account.accountId}</span>
-                      {account.configured && <span>{t("configured")}</span>}
-                    </div>
+                      {alert && (
+                        <AccountAlertCard
+                          severity={alert.severity}
+                          title={`${t("alerts.accountTitle")} · ${t(`diagnostics.${alert.titleKey}`)}`}
+                          description={t(`diagnostics.${alert.descriptionKey}`)}
+                        />
+                      )}
 
-                    {/* Error message */}
-                    {account.lastError && (
-                      <div
-                        className="flex items-start gap-1.5 mt-1.5 text-[10px] rounded px-2 py-1"
-                        style={{
-                          backgroundColor:
-                            "color-mix(in srgb, var(--status-disconnected) 10%, transparent)",
-                          color: "var(--status-disconnected)",
-                        }}
-                      >
-                        <AlertCircle size={10} className="shrink-0 mt-0.5" />
-                        <span className="break-all">{account.lastError}</span>
+                      <AccountDiagnosticCard
+                        tone={diagnostic.tone}
+                        title={t(`diagnostics.${diagnostic.titleKey}`)}
+                        description={t(`diagnostics.${diagnostic.descriptionKey}`)}
+                        nextStep={`${t("diagnostics.nextStep")} · ${t(`diagnostics.${diagnostic.nextStepKey}`)}`}
+                      />
+
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className="text-xs font-medium"
+                          style={{ color: "var(--foreground)" }}
+                        >
+                          {account.name ?? account.accountId}
+                        </span>
+                        <AccountStatusBadge account={account} />
                       </div>
-                    )}
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={() => void handleToggleEnabled(account)}
-                        disabled={toggling}
-                        className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-                        style={{
-                          border: "1px solid var(--border)",
-                          color: "var(--foreground)",
-                          backgroundColor: "var(--background)",
-                        }}
-                        aria-label={account.enabled ? t("disable") : t("enable")}
+                      {/* Account details */}
+                      <div
+                        className="flex items-center gap-3 text-[10px]"
+                        style={{ color: "var(--muted-foreground)" }}
                       >
-                        {account.enabled ? (
-                          <>
-                            <PowerOff size={10} />
-                            {t("disable")}
-                          </>
-                        ) : (
-                          <>
-                            <Power size={10} />
-                            {t("enable")}
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setConfigAccount(account)}
-                        className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
-                        style={{
-                          border: "1px solid var(--border)",
-                          color: "var(--foreground)",
-                          backgroundColor: "var(--background)",
-                        }}
-                      >
-                        <Settings2 size={10} />
-                        {t("accountConfig.configure")}
-                      </button>
+                        <span>ID: {account.accountId}</span>
+                        {account.configured && <span>{t("configured")}</span>}
+                      </div>
+
+                      {/* Error message */}
+                      {account.lastError && (
+                        <div
+                          className="flex items-start gap-1.5 mt-1.5 text-[10px] rounded px-2 py-1"
+                          style={{
+                            backgroundColor:
+                              "color-mix(in srgb, var(--status-disconnected) 10%, transparent)",
+                            color: "var(--status-disconnected)",
+                          }}
+                        >
+                          <AlertCircle size={10} className="shrink-0 mt-0.5" />
+                          <span className="break-all">
+                            {t("diagnostics.lastError")}
+                            {": "}
+                            {account.lastError}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => void handleToggleEnabled(account)}
+                          disabled={toggling}
+                          className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
+                          style={{
+                            border: "1px solid var(--border)",
+                            color: "var(--foreground)",
+                            backgroundColor: "var(--background)",
+                          }}
+                          aria-label={account.enabled ? t("disable") : t("enable")}
+                        >
+                          {account.enabled ? (
+                            <>
+                              <PowerOff size={10} />
+                              {t("disable")}
+                            </>
+                          ) : (
+                            <>
+                              <Power size={10} />
+                              {t("enable")}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setConfigAccount(account)}
+                          className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
+                          style={{
+                            border: "1px solid var(--border)",
+                            color: "var(--foreground)",
+                            backgroundColor: "var(--background)",
+                          }}
+                        >
+                          <Settings2 size={10} />
+                          {t("accountConfig.configure")}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

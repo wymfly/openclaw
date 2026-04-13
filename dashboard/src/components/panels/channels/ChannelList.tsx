@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { PanelEmptyState } from "@/components/ui/panel-empty-state";
 import { PanelSkeleton } from "@/components/ui/panel-skeleton";
-import { useChannelsStore, type ChannelInfo } from "@/stores/channels";
+import { useChannelsStore, type ChannelHealth, type ChannelInfo } from "@/stores/channels";
 import { ChannelHealthBadge } from "./ChannelHealthBadge";
 
 /**
@@ -45,6 +45,17 @@ function getStatusLabel(channel: ChannelInfo, t: ReturnType<typeof useTranslatio
   }
 
   return t("unconfigured");
+}
+
+function getCurrentStatusLabel(
+  channel: ChannelInfo,
+  health: ChannelHealth | undefined,
+  t: ReturnType<typeof useTranslations>,
+): string {
+  if (health) {
+    return t(`health.${health.status}`);
+  }
+  return getStatusLabel(channel, t);
 }
 
 export function ChannelList() {
@@ -96,8 +107,7 @@ export function ChannelList() {
           const isActive = selectedId === chId;
           const health = channelHealthMap.get(chId);
           const statusColor = getStatusColor(channel);
-          const statusText = getStatusLabel(channel, t);
-
+          const statusText = getCurrentStatusLabel(channel, health, t);
           return (
             <button
               key={chId}
