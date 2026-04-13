@@ -128,6 +128,88 @@ describe("dispatchChatEvent — delta events", () => {
     const sess = useChatStore.getState().sessions.get("new-sess")!;
     expect(sess.messages).toHaveLength(1);
   });
+
+  it("seals the previous text segment after tool activity and appends later text as a new segment", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    dispatchChatEvent({
+      runId: "run-1",
+      sessionKey: "sess-1",
+      seq: 0,
+      state: "delta",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "First reply." }],
+      },
+    });
+
+    dispatchAgentEvent({
+      sessionKey: "sess-1",
+      runId: "run-1",
+      stream: "tool",
+      data: { phase: "start", name: "bash", toolCallId: "tool-1", args: { command: "ls" } },
+    });
+    dispatchAgentEvent({
+      sessionKey: "sess-1",
+      runId: "run-1",
+      stream: "tool",
+      data: { phase: "result", name: "bash", toolCallId: "tool-1", result: "file.txt" },
+    });
+
+    dispatchChatEvent({
+      runId: "run-1",
+      sessionKey: "sess-1",
+      seq: 1,
+      state: "delta",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "First reply.Second reply after tools." }],
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages[0].content).toEqual([
+      { type: "text", text: "First reply." },
+      { type: "tool_use", id: "tool-1", name: "bash", input: { command: "ls" } },
+      { type: "tool_result", toolUseId: "tool-1", content: "file.txt", isError: false },
+      { type: "text", text: "Second reply after tools." },
+    ]);
+  });
+
+  it("preserves incoming thinking blocks while updating the active text segment", () => {
+    useChatStore.getState().ensureSession("sess-1");
+
+    dispatchChatEvent({
+      runId: "run-1",
+      sessionKey: "sess-1",
+      seq: 0,
+      state: "delta",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "Hello" }],
+      },
+    });
+
+    dispatchChatEvent({
+      runId: "run-1",
+      sessionKey: "sess-1",
+      seq: 1,
+      state: "delta",
+      message: {
+        role: "assistant",
+        content: [
+          { type: "thinking", text: "plan" },
+          { type: "text", text: "Hello world" },
+        ],
+      },
+    });
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    expect(sess.messages[0].content).toEqual([
+      { type: "thinking", text: "plan" },
+      { type: "text", text: "Hello world" },
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1037,6 +1119,106 @@ describe("reloadFullContent", () => {
       { type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } },
       { type: "tool_result", toolUseId: "hist-tool", content: "file.txt", isError: false },
       { type: "text", text: "done" },
+    ]);
+  });
+
+  it("preserves sealed leading text segments after history reload replaces tool blocks", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          messages: [
+            {
+              role: "assistant",
+              timestamp: 10,
+              content: [
+                { type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } },
+              ],
+            },
+            {
+              role: "user",
+              timestamp: 11,
+              content: [{ type: "tool_result", toolUseId: "hist-tool", content: "file.txt" }],
+            },
+            {
+              role: "assistant",
+              timestamp: 12,
+              content: [{ type: "text", text: "done" }],
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    useChatStore.getState().ensureSession("sess-1");
+    useChatStore.getState().addMessage("sess-1", {
+      id: "run-1",
+      role: "assistant",
+      content: [
+        { type: "text", text: "First reply." },
+        { type: "tool_use", id: "local-tool", name: "bash", input: { command: "pwd" } },
+        { type: "tool_result", toolUseId: "local-tool", content: "stale" },
+        { type: "text", text: "Second reply after tools." },
+      ],
+      timestamp: Date.now(),
+      streaming: false,
+    });
+
+    await reloadFullContent("sess-1", "run-1");
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    const msg = sess.messages.find((entry) => entry.id === "run-1")!;
+    expect(msg.content).toEqual([
+      { type: "text", text: "First reply." },
+      { type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } },
+      { type: "tool_result", toolUseId: "hist-tool", content: "file.txt", isError: false },
+      { type: "text", text: "done" },
+    ]);
+  });
+
+  it("preserves local text segment boundaries when history only returns one final text block", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          messages: [
+            {
+              role: "assistant",
+              timestamp: 10,
+              content: [
+                { type: "text", text: "First reply.Second reply after tools." },
+                { type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } },
+                { type: "tool_result", tool_use_id: "hist-tool", content: "file.txt" },
+              ],
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    useChatStore.getState().ensureSession("sess-1");
+    useChatStore.getState().addMessage("sess-1", {
+      id: "run-1",
+      role: "assistant",
+      content: [
+        { type: "text", text: "First reply." },
+        { type: "tool_use", id: "local-tool", name: "bash", input: { command: "ls" } },
+        { type: "tool_result", toolUseId: "local-tool", content: "file.txt" },
+        { type: "text", text: "Second reply after tools." },
+      ],
+      timestamp: Date.now(),
+      streaming: false,
+    });
+
+    await reloadFullContent("sess-1", "run-1");
+
+    const sess = useChatStore.getState().sessions.get("sess-1")!;
+    const msg = sess.messages.find((entry) => entry.id === "run-1")!;
+    expect(msg.content).toEqual([
+      { type: "text", text: "First reply." },
+      { type: "tool_use", id: "hist-tool", name: "bash", input: { command: "ls" } },
+      { type: "tool_result", toolUseId: "hist-tool", content: "file.txt", isError: false },
+      { type: "text", text: "Second reply after tools." },
     ]);
   });
 

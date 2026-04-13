@@ -206,6 +206,11 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
             content: [{ type: "text" as const, text: message }],
             timestamp: Date.now(),
           });
+          useChatStore.getState().mergeSessionPreviewOverlay(sessionKey, {
+            text: message,
+            updatedAt: Date.now(),
+            source: "optimistic",
+          });
           useChatStore.getState().setSessionStreaming(sessionKey, true);
           useChatStore.getState().setSessionError(sessionKey, null);
           await sendChatMessage({ message, sessionKey });
@@ -326,7 +331,9 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
     const text = input.trim();
     // When tag is active, combine tag command with text and send
     if (slash.activeTag) {
-      if (!text) return;
+      if (!text) {
+        return;
+      }
       const cmd = slash.activeTag;
       slash.clearTag();
       setInput("");
@@ -396,6 +403,11 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
             { key: sessionKey, agentId, updatedAt: Date.now(), lastMessagePreview: displayText },
             ...useChatStore.getState().sessionMetas,
           ]);
+        useChatStore.getState().mergeSessionPreviewOverlay(sessionKey, {
+          text: displayText,
+          updatedAt: Date.now(),
+          source: "optimistic",
+        });
         useChatStore.getState().addMessage(sessionKey, {
           id: `user-${Date.now()}`,
           role: "user",
@@ -426,6 +438,11 @@ export function MessageInput({ suggestedText, onSuggestedTextConsumed }: Message
           useChatStore.getState().setSessionStreaming(sessionKey, true);
         }
       } else {
+        useChatStore.getState().mergeSessionPreviewOverlay(sessionKey, {
+          text: displayText,
+          updatedAt: Date.now(),
+          source: "optimistic",
+        });
         useChatStore.getState().addMessage(sessionKey, {
           id: `user-${Date.now()}`,
           role: "user",

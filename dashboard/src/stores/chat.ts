@@ -6,6 +6,7 @@ import type {
   ChatMessage,
   SessionState,
   SessionMeta,
+  SessionPreviewOverlay,
   A2UIState,
   A2UIEvent,
   ToolProgress,
@@ -34,6 +35,7 @@ export interface ChatState {
   sessionMetas: SessionMeta[];
   /** Alias for sessionMetas — used by tests and legacy consumers. */
   sessionMeta: SessionMeta[];
+  sessionPreviewOverlays: Record<string, SessionPreviewOverlay | undefined>;
   activeSessionKey: string | null;
   activeAgentId: string | null;
   sseStatus: SSEConnectionStatus;
@@ -116,8 +118,19 @@ export interface ChatState {
   setSessionMetas: (metas: SessionMeta[]) => void;
   /** Alias for setSessionMetas — used by tests and legacy consumers. */
   setSessionMeta: (metas: SessionMeta[]) => void;
+  mergeSessionPreviewOverlay: (sessionKey: string, overlay: SessionPreviewOverlay) => void;
+  clearSessionPreviewOverlay: (sessionKey: string) => void;
   setActiveAgent: (agentId: string | null) => void;
   setSSEStatus: (status: SSEConnectionStatus) => void;
+}
+
+function pruneSessionPreviewOverlays(
+  overlays: Record<string, SessionPreviewOverlay | undefined>,
+  validKeys: Set<string>,
+): Record<string, SessionPreviewOverlay | undefined> {
+  return Object.fromEntries(
+    Object.entries(overlays).filter(([key]) => validKeys.has(key)),
+  ) as Record<string, SessionPreviewOverlay | undefined>;
 }
 
 // ---------------------------------------------------------------------------
@@ -129,6 +142,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessionMetas: [],
   // sessionMeta is always kept in sync with sessionMetas (same reference)
   sessionMeta: [],
+  sessionPreviewOverlays: {},
   activeSessionKey: null,
   activeAgentId: null,
   sseStatus: "disconnected" as SSEConnectionStatus,
@@ -192,10 +206,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const next = new Map(s.sessions);
       next.delete(key);
       const updatedMetas = s.sessionMetas.filter((m) => m.key !== key);
+      const overlays = { ...s.sessionPreviewOverlays };
+      delete overlays[key];
       const patch: Partial<ChatState> = {
         sessions: next,
         sessionMetas: updatedMetas,
         sessionMeta: updatedMetas,
+        sessionPreviewOverlays: overlays,
       };
       if (s.activeSessionKey === key) {
         (patch as Record<string, unknown>).activeSessionKey = null;
@@ -584,8 +601,55 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Session list
   // -------------------------------------------------------------------------
 
-  setSessionMetas: (metas) => set({ sessionMetas: metas, sessionMeta: metas }),
-  setSessionMeta: (metas) => set({ sessionMetas: metas, sessionMeta: metas }),
+  setSessionMetas: (metas) =>
+    set((s) => {
+      const validKeys = new Set(metas.map((meta) => meta.key));
+      return {
+        sessionMetas: metas,
+        sessionMeta: metas,
+        sessionPreviewOverlays: pruneSessionPreviewOverlays(s.sessionPreviewOverlays, validKeys),
+      };
+    }),
+  setSessionMeta: (metas) =>
+    set((s) => {
+      const validKeys = new Set(metas.map((meta) => meta.key));
+      return {
+        sessionMetas: metas,
+        sessionMeta: metas,
+        sessionPreviewOverlays: pruneSessionPreviewOverlays(s.sessionPreviewOverlays, validKeys),
+      };
+    }),
+  mergeSessionPreviewOverlay: (sessionKey, overlay) =>
+    set((s) => {
+      const current = s.sessionPreviewOverlays[sessionKey];
+      if (current) {
+        if (current.updatedAt > overlay.updatedAt) {
+          return s;
+        }
+        if (
+          current.updatedAt === overlay.updatedAt &&
+          current.source === "optimistic" &&
+          overlay.source === "remote"
+        ) {
+          return s;
+        }
+      }
+      return {
+        sessionPreviewOverlays: {
+          ...s.sessionPreviewOverlays,
+          [sessionKey]: overlay,
+        },
+      };
+    }),
+  clearSessionPreviewOverlay: (sessionKey) =>
+    set((s) => {
+      if (!(sessionKey in s.sessionPreviewOverlays)) {
+        return s;
+      }
+      const overlays = { ...s.sessionPreviewOverlays };
+      delete overlays[sessionKey];
+      return { sessionPreviewOverlays: overlays };
+    }),
   setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
   setSSEStatus: (status) => set({ sseStatus: status }),
 

@@ -1,5 +1,11 @@
 import { deckFetch } from "@/lib/deck-client";
-import type { A2UIState, ApprovalRequest, SessionMeta } from "@/stores/chat-types";
+import type {
+  A2UIState,
+  ApprovalRequest,
+  SessionMeta,
+  SessionPreviewOverlay,
+} from "@/stores/chat-types";
+import type { SessionsPreviewResult } from "@/types/gateway-protocol.generated";
 
 type RawSessionMeta = {
   key?: string;
@@ -139,20 +145,28 @@ export function resolveInitialSessionSendPlan(params: {
 
 const REASONING_VALUES = new Set(["off", "on", "stream"]);
 function normalizeReasoning(v: string | null | undefined): "off" | "on" | "stream" | undefined {
-  if (!v) return undefined;
+  if (!v) {
+    return undefined;
+  }
   return REASONING_VALUES.has(v) ? (v as "off" | "on" | "stream") : undefined;
 }
 
 const USAGE_VALUES = new Set(["off", "tokens", "full"]);
 function normalizeUsage(v: string | null | undefined): "off" | "tokens" | "full" | undefined {
-  if (!v) return undefined;
+  if (!v) {
+    return undefined;
+  }
   // Gateway backward compat: "on" → "full"
-  if (v === "on") return "full";
+  if (v === "on") {
+    return "full";
+  }
   return USAGE_VALUES.has(v) ? (v as "off" | "tokens" | "full") : undefined;
 }
 
 function normalizeSendPolicy(v: string | null | undefined): "allow" | "deny" | undefined {
-  if (v === "allow" || v === "deny") return v;
+  if (v === "allow" || v === "deny") {
+    return v;
+  }
   return undefined;
 }
 
@@ -212,6 +226,49 @@ export async function fetchSessionList(agentId?: string): Promise<SessionMeta[]>
   );
   const sessions = Array.isArray(data) ? data : Array.isArray(data?.sessions) ? data.sessions : [];
   return sessions.map((session) => normalizeSessionMeta(session, agentId));
+}
+
+function buildSessionPreviewText(
+  items: SessionsPreviewResult["previews"][number]["items"],
+): string {
+  return items
+    .map((item) => item.text.trim())
+    .filter(Boolean)
+    .join(" · ")
+    .trim();
+}
+
+export async function fetchSessionPreviews(
+  keys: string[],
+): Promise<Record<string, SessionPreviewOverlay | null>> {
+  if (keys.length === 0) {
+    return {};
+  }
+
+  const response = await deckFetch("/api/chat/sessions/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keys }),
+  });
+  if (!response.ok) {
+    throw new Error(await readApiError(response));
+  }
+
+  const data = await parseResponseJson<SessionsPreviewResult>(response);
+  const overlays: Record<string, SessionPreviewOverlay | null> = {};
+  for (const preview of data.previews ?? []) {
+    const text = buildSessionPreviewText(preview.items);
+    if (!text) {
+      overlays[preview.key] = null;
+      continue;
+    }
+    overlays[preview.key] = {
+      text,
+      updatedAt: data.ts ?? Date.now(),
+      source: "remote",
+    };
+  }
+  return overlays;
 }
 
 export async function fetchChatSnapshot(params: {

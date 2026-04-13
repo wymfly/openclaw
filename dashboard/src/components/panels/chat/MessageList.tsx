@@ -91,9 +91,9 @@ function MessageBubble({
         {!isUser && runMetadata?.model && (
           <RunStatusBar
             metadata={runMetadata}
-            sessionTotalTokens={sessionTotalTokens}
-            sessionCostUsd={sessionCostUsd}
-            sessionStatus={sessionStatus}
+            sessionTotalTokens={message.streaming ? sessionTotalTokens : undefined}
+            sessionCostUsd={message.streaming ? sessionCostUsd : undefined}
+            sessionStatus={message.streaming ? sessionStatus : undefined}
           />
         )}
 

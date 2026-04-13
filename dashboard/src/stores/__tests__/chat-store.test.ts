@@ -379,6 +379,88 @@ describe("setSessionMeta", () => {
     expect(useChatStore.getState().sessionMeta).toHaveLength(1);
     expect(useChatStore.getState().sessionMeta[0].key).toBe("s2");
   });
+
+  it("prunes preview overlays for sessions no longer in the list", () => {
+    const store = useChatStore.getState();
+    store.mergeSessionPreviewOverlay("s1", {
+      text: "keep",
+      updatedAt: 100,
+      source: "remote",
+    });
+    store.mergeSessionPreviewOverlay("s2", {
+      text: "drop",
+      updatedAt: 100,
+      source: "remote",
+    });
+
+    store.setSessionMeta([{ key: "s1", agentId: "a1", updatedAt: 1000 }]);
+
+    expect(useChatStore.getState().sessionPreviewOverlays.s1?.text).toBe("keep");
+    expect(useChatStore.getState().sessionPreviewOverlays.s2).toBeUndefined();
+  });
+});
+
+describe("session preview overlays", () => {
+  it("prefers newer overlays", () => {
+    const store = useChatStore.getState();
+    store.mergeSessionPreviewOverlay("sess-1", {
+      text: "newer",
+      updatedAt: 200,
+      source: "remote",
+    });
+    store.mergeSessionPreviewOverlay("sess-1", {
+      text: "older",
+      updatedAt: 100,
+      source: "remote",
+    });
+
+    expect(useChatStore.getState().sessionPreviewOverlays["sess-1"]?.text).toBe("newer");
+  });
+
+  it("keeps optimistic overlay when remote preview is not newer", () => {
+    const store = useChatStore.getState();
+    store.mergeSessionPreviewOverlay("sess-1", {
+      text: "optimistic",
+      updatedAt: 200,
+      source: "optimistic",
+    });
+    store.mergeSessionPreviewOverlay("sess-1", {
+      text: "remote",
+      updatedAt: 200,
+      source: "remote",
+    });
+
+    expect(useChatStore.getState().sessionPreviewOverlays["sess-1"]?.text).toBe("optimistic");
+  });
+
+  it("replaces optimistic overlay when remote preview is newer", () => {
+    const store = useChatStore.getState();
+    store.mergeSessionPreviewOverlay("sess-1", {
+      text: "optimistic",
+      updatedAt: 100,
+      source: "optimistic",
+    });
+    store.mergeSessionPreviewOverlay("sess-1", {
+      text: "remote",
+      updatedAt: 200,
+      source: "remote",
+    });
+
+    expect(useChatStore.getState().sessionPreviewOverlays["sess-1"]?.text).toBe("remote");
+  });
+
+  it("clears a preview overlay explicitly", () => {
+    const store = useChatStore.getState();
+    store.mergeSessionPreviewOverlay("sess-1", {
+      text: "preview",
+      updatedAt: 100,
+      source: "remote",
+    });
+
+    store.clearSessionPreviewOverlay("sess-1");
+
+    expect(useChatStore.getState().sessionPreviewOverlays["sess-1"]).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

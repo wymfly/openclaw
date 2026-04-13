@@ -2,7 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { deckFetch } from "@/lib/deck-client";
@@ -10,7 +10,7 @@ import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
 import { AgentTabs } from "./AgentTabs";
-import { patchSession } from "./chat-api";
+import { fetchSessionPreviews, patchSession } from "./chat-api";
 
 function formatTime(ts?: number): string {
   if (!ts) {
@@ -48,6 +48,13 @@ function sessionTitle(session: SessionMeta): string {
   return session.key.length > 24 ? `${session.key.slice(0, 24)}...` : session.key;
 }
 
+function finalSessionPreview(
+  session: SessionMeta,
+  overlays: Record<string, { text: string } | undefined>,
+): string {
+  return overlays[session.key]?.text ?? session.lastMessagePreview ?? "";
+}
+
 export function SessionSidebar() {
   const t = useTranslations("chat");
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -58,8 +65,50 @@ export function SessionSidebar() {
   const activeSessionKey = useActiveSessionKey();
   const activeAgentId = useChatStore((s) => s.activeAgentId);
   const sessionMetas = useChatStore((s) => s.sessionMetas);
+  const sessionPreviewOverlays = useChatStore((s) => s.sessionPreviewOverlays);
   const setActiveSession = useChatStore((s) => s.setActiveSession);
   const setActiveAgent = useChatStore((s) => s.setActiveAgent);
+
+  useEffect(() => {
+    const keys = sessionMetas.map((session) => session.key);
+    if (keys.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    void fetchSessionPreviews(keys)
+      .then((overlays) => {
+        if (cancelled) {
+          return;
+        }
+        const store = useChatStore.getState();
+        for (const key of keys) {
+          const overlay = overlays[key];
+          if (overlay) {
+            store.mergeSessionPreviewOverlay(key, overlay);
+            continue;
+          }
+          if (store.sessionPreviewOverlays[key]?.source === "remote") {
+            store.clearSessionPreviewOverlay(key);
+          }
+        }
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        const store = useChatStore.getState();
+        for (const key of keys) {
+          if (store.sessionPreviewOverlays[key]?.source === "remote") {
+            store.clearSessionPreviewOverlay(key);
+          }
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionMetas]);
 
   const handleNew = () => {
     setActiveSession(null);
@@ -80,7 +129,9 @@ export function SessionSidebar() {
   }, []);
 
   const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) {
+      return;
+    }
     try {
       const res = await deckFetch("/api/chat/sessions", {
         method: "DELETE",
@@ -139,10 +190,10 @@ export function SessionSidebar() {
     const q = searchQuery.toLowerCase();
     return sessionMetas.filter((session) => {
       const title = (session.title ?? sessionTitle(session)).toLowerCase();
-      const preview = (session.lastMessagePreview ?? "").toLowerCase();
+      const preview = finalSessionPreview(session, sessionPreviewOverlays).toLowerCase();
       return title.includes(q) || preview.includes(q);
     });
-  }, [sessionMetas, searchQuery]);
+  }, [sessionMetas, searchQuery, sessionPreviewOverlays]);
 
   return (
     <aside
@@ -182,6 +233,7 @@ export function SessionSidebar() {
       <div className="flex-1 overflow-y-auto">
         {filteredMetas.map((session) => {
           const isActive = activeSessionKey === session.key;
+          const previewText = finalSessionPreview(session, sessionPreviewOverlays);
           return (
             <div
               key={session.key}
@@ -226,12 +278,12 @@ export function SessionSidebar() {
                     {sessionTitle(session)}
                   </span>
                 )}
-                {session.lastMessagePreview && (
+                {previewText && (
                   <span
                     className="truncate w-full text-[10px]"
                     style={{ color: "var(--muted-foreground)" }}
                   >
-                    {session.lastMessagePreview}
+                    {previewText}
                   </span>
                 )}
                 <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
@@ -256,7 +308,9 @@ export function SessionSidebar() {
       <Dialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
+          if (!open) {
+            setDeleteTarget(null);
+          }
         }}
       >
         <DialogContent showCloseButton={false} className="max-w-[220px] p-3 gap-2 rounded-lg">

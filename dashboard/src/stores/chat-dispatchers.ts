@@ -105,11 +105,13 @@ export type SessionStatePayload = {
 
 export interface StreamingTracker {
   prevThinking: string;
-  prevToolCount: number;
+  prevText: string;
+  textBase: string;
+  textSegmentSealed: boolean;
 }
 
 function createStreamingTracker(): StreamingTracker {
-  return { prevThinking: "", prevToolCount: 0 };
+  return { prevThinking: "", prevText: "", textBase: "", textSegmentSealed: false };
 }
 
 /** Get or create a tracker for a given session. */
@@ -124,6 +126,152 @@ function getTracker(trackers: Map<string, StreamingTracker>, sessionKey: string)
 
 function resetTracker(trackers: Map<string, StreamingTracker>, sessionKey: string): void {
   trackers.set(sessionKey, createStreamingTracker());
+}
+
+function extractTextFromBlocks(blocks: ContentBlock[]): string {
+  return blocks
+    .filter((block): block is Extract<ContentBlock, { type: "text" }> => block.type === "text")
+    .map((block) => block.text)
+    .join("");
+}
+
+function updateLastTextSegment(
+  blocks: ContentBlock[],
+  nextText: string,
+  appendWhenMissing = true,
+): ContentBlock[] {
+  const lastTextIndex = blocks.map((block) => block.type).lastIndexOf("text");
+  const nextBlocks =
+    lastTextIndex >= 0
+      ? blocks.map((block, index) =>
+          index === lastTextIndex && block.type === "text"
+            ? ({ type: "text", text: nextText } satisfies ContentBlock)
+            : block,
+        )
+      : blocks;
+
+  if (lastTextIndex < 0 && appendWhenMissing && nextText) {
+    return [...blocks, { type: "text", text: nextText } satisfies ContentBlock];
+  }
+  return nextBlocks;
+}
+
+function mergeAuxiliaryBlocks(blocks: ContentBlock[], incoming: ContentBlock[]): ContentBlock[] {
+  let next = [...blocks];
+
+  for (const block of incoming) {
+    if (block.type === "text" || block.type === "tool_use" || block.type === "tool_result") {
+      continue;
+    }
+
+    if (block.type === "thinking") {
+      const existingIdx = next.findIndex((entry) => entry.type === "thinking");
+      if (existingIdx >= 0) {
+        next[existingIdx] = block;
+      } else {
+        next = [block, ...next];
+      }
+      continue;
+    }
+
+    const alreadyPresent = next.some((entry) => JSON.stringify(entry) === JSON.stringify(block));
+    if (!alreadyPresent) {
+      next.push(block);
+    }
+  }
+
+  return next;
+}
+
+function mergeAssistantContent(
+  existing: ChatMessage | undefined,
+  incoming: ContentBlock[],
+  tracker: StreamingTracker,
+): ContentBlock[] {
+  const incomingText = extractTextFromBlocks(incoming);
+  const incomingAuxiliaryBlocks = incoming.filter((block) => block.type !== "text");
+
+  if (!existing) {
+    tracker.prevText = incomingText;
+    tracker.textBase = "";
+    tracker.textSegmentSealed = false;
+    return incoming;
+  }
+
+  const baseBlocks = mergeAuxiliaryBlocks(existing.content, incomingAuxiliaryBlocks);
+
+  if (!incomingText) {
+    return baseBlocks;
+  }
+
+  if (tracker.textSegmentSealed) {
+    const nextSegment = incomingText.startsWith(tracker.prevText)
+      ? incomingText.slice(tracker.prevText.length)
+      : incomingText;
+
+    if (!nextSegment) {
+      return existing.content;
+    }
+
+    tracker.textBase = tracker.prevText;
+    tracker.prevText = incomingText;
+    tracker.textSegmentSealed = false;
+    return [...baseBlocks, { type: "text", text: nextSegment } satisfies ContentBlock];
+  }
+
+  const nextSegment = incomingText.startsWith(tracker.textBase)
+    ? incomingText.slice(tracker.textBase.length)
+    : incomingText;
+  tracker.prevText = incomingText;
+
+  return updateLastTextSegment(baseBlocks, nextSegment);
+}
+
+function reconcileHistoryWithCurrentSegments(
+  currentBlocks: ContentBlock[],
+  historyBlocks: ContentBlock[],
+): ContentBlock[] {
+  const currentTextBlocks = currentBlocks.filter(
+    (block): block is Extract<ContentBlock, { type: "text" }> => block.type === "text",
+  );
+  const historyTextBlocks = historyBlocks.filter(
+    (block): block is Extract<ContentBlock, { type: "text" }> => block.type === "text",
+  );
+
+  if (currentTextBlocks.length <= 1 || historyTextBlocks.length !== 1) {
+    return historyBlocks;
+  }
+
+  const authoritativeText = historyTextBlocks[0].text;
+  const sealedPrefixText = currentTextBlocks
+    .slice(0, -1)
+    .map((block) => block.text)
+    .join("");
+  const finalSegmentText = authoritativeText.startsWith(sealedPrefixText)
+    ? authoritativeText.slice(sealedPrefixText.length)
+    : authoritativeText;
+  const nextTextSegments = currentTextBlocks.map((block, index) =>
+    index === currentTextBlocks.length - 1 ? finalSegmentText : block.text,
+  );
+
+  const historyToolBlocks = historyBlocks.filter(
+    (block) => block.type === "tool_use" || block.type === "tool_result",
+  );
+  let textIndex = 0;
+  let toolIndex = 0;
+
+  return currentBlocks.map((block) => {
+    if (block.type === "text") {
+      return {
+        type: "text",
+        text: nextTextSegments[textIndex++] ?? "",
+      } satisfies ContentBlock;
+    }
+    if (block.type === "tool_use" || block.type === "tool_result") {
+      return historyToolBlocks[toolIndex++] ?? block;
+    }
+    return block;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -267,7 +415,9 @@ export function dispatchChatEvent(
       // First delta for this runId — create the message
       api.setStreaming(sessionKey, true, payload.runId);
       tracker.prevThinking = "";
-      tracker.prevToolCount = 0;
+      tracker.prevText = extractTextFromBlocks(content);
+      tracker.textBase = "";
+      tracker.textSegmentSealed = false;
       api.addMessage(sessionKey, {
         id: payload.runId,
         role: "assistant",
@@ -276,13 +426,9 @@ export function dispatchChatEvent(
         streaming: true,
       });
     } else {
-      // Subsequent delta — gateway sends accumulated text/thinking content but
-      // does NOT include tool_use/tool_result blocks (those arrive via agent events).
-      // Merge: keep locally-added tool blocks, replace text/thinking with gateway content.
-      const existingToolBlocks = existing.content.filter(
-        (b) => b.type === "tool_use" || b.type === "tool_result",
-      );
-      const merged = existingToolBlocks.length > 0 ? [...content, ...existingToolBlocks] : content;
+      // Subsequent delta — keep assistant turn ownership stable, but never
+      // mutate a text segment that was already sealed by tool activity.
+      const merged = mergeAssistantContent(existing, content, tracker);
       api.updateStreamingContent(sessionKey, payload.runId, merged);
     }
     return;
@@ -296,11 +442,7 @@ export function dispatchChatEvent(
     if (existing) {
       // Was streaming — merge final content with locally-added tool blocks
       if (content.length > 0) {
-        const existingToolBlocks = existing.content.filter(
-          (b) => b.type === "tool_use" || b.type === "tool_result",
-        );
-        const merged =
-          existingToolBlocks.length > 0 ? [...content, ...existingToolBlocks] : content;
+        const merged = mergeAssistantContent(existing, content, tracker);
         api.updateStreamingContent(sessionKey, payload.runId, merged);
       }
       api.finalizeMessage(sessionKey, payload.runId);
@@ -315,6 +457,7 @@ export function dispatchChatEvent(
     }
 
     api.setSessionStreaming(sessionKey, false);
+    tracker.textSegmentSealed = true;
     resetTracker(trk, sessionKey);
 
     // Fire-and-forget reload of full content blocks from gateway history
@@ -345,11 +488,7 @@ export function dispatchChatEvent(
       // same way the "final" handler does so the user sees all generated
       // text up to the abort point.
       if (abortContent.length > 0) {
-        const existingToolBlocks = existing.content.filter(
-          (b) => b.type === "tool_use" || b.type === "tool_result",
-        );
-        const merged =
-          existingToolBlocks.length > 0 ? [...abortContent, ...existingToolBlocks] : abortContent;
+        const merged = mergeAssistantContent(existing, abortContent, tracker);
         api.updateStreamingContent(sessionKey, payload.runId, merged);
       }
       api.finalizeMessage(sessionKey, payload.runId);
@@ -441,6 +580,8 @@ export function dispatchAgentEvent(
         status: "running",
         startedAt: Date.now(),
       });
+      tracker.textBase = tracker.prevText;
+      tracker.textSegmentSealed = true;
     } else if (phase === "result") {
       api.appendContentBlock(sessionKey, messageId, {
         type: "tool_result",
@@ -457,6 +598,8 @@ export function dispatchAgentEvent(
         startedAt: 0,
         completedAt: Date.now(),
       });
+      tracker.textBase = tracker.prevText;
+      tracker.textSegmentSealed = true;
     } else if (phase === "error") {
       api.updateToolProgress(sessionKey, toolCallId, {
         toolUseId: toolCallId,
@@ -464,6 +607,8 @@ export function dispatchAgentEvent(
         status: "error",
         startedAt: 0,
       });
+      tracker.textBase = tracker.prevText;
+      tracker.textSegmentSealed = true;
     }
   }
 
@@ -782,12 +927,13 @@ export async function reloadFullContent(
       const historyNonTool = assistantMsg.content.filter(
         (b) => b.type !== "tool_use" && b.type !== "tool_result",
       );
-      const merged =
+      const mergedRaw =
         historyToolBlocks.length > 0
           ? assistantMsg.content
           : existingToolBlocks.length > 0
             ? [...existingToolBlocks, ...historyNonTool]
             : assistantMsg.content;
+      const merged = reconcileHistoryWithCurrentSegments(currentMsg.content, mergedRaw);
 
       const updated = [...messages];
       updated[msgIdx] = { ...updated[msgIdx], content: merged };

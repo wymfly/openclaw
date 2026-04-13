@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { resolveInitialSessionSendPlan } from "../chat-api";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fetchSessionPreviews, resolveInitialSessionSendPlan } from "../chat-api";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("resolveInitialSessionSendPlan", () => {
   it("prefers the create error over a second steer attempt", () => {
@@ -45,6 +49,53 @@ describe("resolveInitialSessionSendPlan", () => {
       }),
     ).toEqual({
       kind: "send",
+    });
+  });
+});
+
+describe("fetchSessionPreviews", () => {
+  it("returns remote preview overlays keyed by session", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ts: 123,
+          previews: [
+            {
+              key: "sess-1",
+              status: "ok",
+              items: [
+                { role: "user", text: "hello" },
+                { role: "assistant", text: "world" },
+              ],
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(fetchSessionPreviews(["sess-1"])).resolves.toEqual({
+      "sess-1": {
+        text: "hello · world",
+        updatedAt: 123,
+        source: "remote",
+      },
+    });
+  });
+
+  it("skips empty remote preview items", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ts: 321,
+          previews: [{ key: "sess-1", status: "empty", items: [] }],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(fetchSessionPreviews(["sess-1"])).resolves.toEqual({
+      "sess-1": null,
     });
   });
 });

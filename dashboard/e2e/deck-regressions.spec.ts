@@ -8,6 +8,60 @@ import {
 } from "./helpers";
 
 test.describe("Deck regression coverage", () => {
+  test("chat sidebar prefers remote session preview and falls back silently on preview failure", async ({
+    page,
+  }) => {
+    await setEnglishLocale(page);
+    await stubDashboardShell(page, { streamStatus: 503 });
+
+    await page.route("**/api/chat/sessions", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            key: "sess-1",
+            agentId: "main",
+            title: "Primary Session",
+            updatedAt: Date.now(),
+            lastMessagePreview: "fallback preview",
+          },
+        ]),
+      }),
+    );
+    await page.route("**/api/chat/sessions/preview", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ts: Date.now(),
+          previews: [
+            {
+              key: "sess-1",
+              status: "ok",
+              items: [{ role: "assistant", text: "remote preview" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    await gotoDashboard(page);
+    await expect(page.getByText("remote preview")).toBeVisible();
+
+    await page.unroute("**/api/chat/sessions/preview");
+    await page.route("**/api/chat/sessions/preview", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "preview unavailable" }),
+      }),
+    );
+
+    await page.reload();
+    await expect(page.getByText("fallback preview")).toBeVisible();
+  });
+
   test("chat keeps the disconnected banner visible and still sends a suggested prompt", async ({
     page,
   }) => {

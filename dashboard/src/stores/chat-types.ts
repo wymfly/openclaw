@@ -183,6 +183,12 @@ export interface SessionMeta {
   spawnedWorkspaceDir?: string;
 }
 
+export interface SessionPreviewOverlay {
+  text: string;
+  updatedAt: number;
+  source: "optimistic" | "remote";
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
