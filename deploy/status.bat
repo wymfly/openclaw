@@ -2,44 +2,31 @@
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "SH_SCRIPT=%SCRIPT_DIR%status.sh"
-set "BASH_EXE="
+set "PS_SCRIPT=%SCRIPT_DIR%status.ps1"
+set "PS_EXE="
 
-where bash >nul 2>&1
+where pwsh >nul 2>&1
 if !ERRORLEVEL! equ 0 (
-  set "BASH_EXE=bash"
+  set "PS_EXE=pwsh"
   goto :run
 )
 
-if exist "C:\Program Files\Git\bin\bash.exe" (
-  set "BASH_EXE=C:\Program Files\Git\bin\bash.exe"
+if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
+  set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
   goto :run
 )
 
-if exist "C:\Program Files (x86)\Git\bin\bash.exe" (
-  set "BASH_EXE=C:\Program Files (x86)\Git\bin\bash.exe"
-  goto :run
-)
-
-for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\GitForWindows" /v InstallPath 2^>nul') do (
-  if exist "%%b\bin\bash.exe" (
-    set "BASH_EXE=%%b\bin\bash.exe"
-    goto :run
-  )
-)
-
-where wsl >nul 2>&1
+where powershell >nul 2>&1
 if !ERRORLEVEL! equ 0 (
-  set "BASH_EXE=wsl bash"
+  set "PS_EXE=powershell"
   goto :run
 )
 
-echo [status.bat] ERROR: bash not found.
-echo Please install Git for Windows: https://git-scm.com/download/win
+echo [status.bat] ERROR: PowerShell not found.
 pause
 exit /b 1
 
 :run
-"%BASH_EXE%" "%SH_SCRIPT%" %*
+"%PS_EXE%" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" %*
 pause
 endlocal

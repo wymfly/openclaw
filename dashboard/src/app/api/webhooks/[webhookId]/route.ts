@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getWebhookStore } from "@/lib/webhooks";
 /**
  * PATCH /api/webhooks/:webhookId — Update a webhook.
  * DELETE /api/webhooks/:webhookId — Delete a webhook.
@@ -6,7 +7,6 @@ import { NextRequest, NextResponse } from "next/server";
  * JSON file storage via JsonStore.
  */
 import { withAuth } from "@/lib/with-auth";
-import { getWebhookStore } from "@/lib/webhooks";
 
 type RouteContext = { params: Promise<{ webhookId: string }> };
 

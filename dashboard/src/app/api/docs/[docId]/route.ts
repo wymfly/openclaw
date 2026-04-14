@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
-import { getDocStore } from "../route";
+import { getDocStore } from "../store";
 
 type RouteContext = { params: Promise<{ docId: string }> };
 

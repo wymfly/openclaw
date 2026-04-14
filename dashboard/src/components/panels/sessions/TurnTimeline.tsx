@@ -11,23 +11,20 @@ function formatTs(ts: number): string {
 }
 
 function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toFixed(1)}M`;
+  }
+  if (n >= 1_000) {
+    return `${(n / 1_000).toFixed(1)}K`;
+  }
   return String(n);
 }
 
-function TurnEntry({
-  entry,
-  isHighCost,
-}: {
-  entry: SessionLogEntry;
-  isHighCost: boolean;
-}) {
+function TurnEntry({ entry, isHighCost }: { entry: SessionLogEntry; isHighCost: boolean }) {
   const t = useTranslations("sessions");
   const isCompaction = entry.role === "compactionSummary";
   const isUser = entry.role === "user";
-  const preview =
-    entry.content.length > 80 ? `${entry.content.slice(0, 77)}…` : entry.content;
+  const preview = entry.content.length > 80 ? `${entry.content.slice(0, 77)}…` : entry.content;
 
   return (
     <div
@@ -48,13 +45,7 @@ function TurnEntry({
               : "bg-[var(--muted)] text-[var(--muted-foreground)] ring-[var(--border)]",
         )}
       >
-        {isCompaction ? (
-          <Minimize2 size={8} />
-        ) : isUser ? (
-          <User size={8} />
-        ) : (
-          <Bot size={8} />
-        )}
+        {isCompaction ? <Minimize2 size={8} /> : isUser ? <User size={8} /> : <Bot size={8} />}
       </div>
 
       {/* Content card */}
@@ -137,13 +128,9 @@ export function TurnTimeline({ sessionKey }: { sessionKey: string }) {
   }
 
   // Calculate average tokens for high-cost detection (> 2x average)
-  const tokenValues = logs
-    .map((e) => e.tokens ?? 0)
-    .filter((t) => t > 0);
+  const tokenValues = logs.map((e) => e.tokens ?? 0).filter((t) => t > 0);
   const avgTokens =
-    tokenValues.length > 0
-      ? tokenValues.reduce((a, b) => a + b, 0) / tokenValues.length
-      : 0;
+    tokenValues.length > 0 ? tokenValues.reduce((a, b) => a + b, 0) / tokenValues.length : 0;
 
   return (
     <div className="py-2">

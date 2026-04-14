@@ -6,11 +6,14 @@
 #   deploy/scripts/package.sh                     # A-layer: source only
 #   deploy/scripts/package.sh --with-images       # A+B: source + Docker images
 #   deploy/scripts/package.sh --with-prebuilt     # A+C: source + pre-built artifacts
+#   deploy/scripts/package.sh --windows-self-contained # A+C + source/node_modules from current platform
 #   deploy/scripts/package.sh --full              # A+B+C: everything
 #   deploy/scripts/package.sh --with-local        # Include runtime plugins + skills
+#   deploy/scripts/package.sh --with-node-modules # Include source/node_modules if present
 #   deploy/scripts/package.sh --with-deps         # Include pre-downloaded deps (deploy/deps/)
 #   deploy/scripts/package.sh --platform linux    # Docker platform: linux/amd64
 #   deploy/scripts/package.sh --platform mac      # Docker platform: linux/arm64
+#   deploy/scripts/package.sh --bootstrap-base-url https://host/path
 #   deploy/scripts/package.sh --output /path      # Custom output directory
 #
 # Package layers:
@@ -37,15 +40,39 @@ OUTPUT_DIR="${DEPLOY_DIR}"
 WITH_IMAGES=false
 WITH_PREBUILT=false
 WITH_LOCAL=false
+WITH_NODE_MODULES=false
 WITH_DEPS=false
 DOCKER_PLATFORM=""
+BOOTSTRAP_BASE_URL=""
 HAS_IMAGES=false
 HAS_PREBUILT=false
 HAS_LOCAL=false
+HAS_NODE_MODULES=false
 HAS_DEPS=false
 
 log() { echo "[package] $*"; }
 err() { echo "[package] ERROR: $*" >&2; exit 1; }
+
+compute_sha256() {
+  local file="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$file" | awk '{print $1}'
+    return
+  fi
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$file" | awk '{print $1}'
+    return
+  fi
+  python - <<'PY' "$file"
+import hashlib, sys
+path = sys.argv[1]
+h = hashlib.sha256()
+with open(path, 'rb') as f:
+    for chunk in iter(lambda: f.read(1024 * 1024), b''):
+        h.update(chunk)
+print(h.hexdigest())
+PY
+}
 
 # ---------------------------------------------------------------------------
 # Parse arguments
@@ -54,8 +81,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --with-images)   WITH_IMAGES=true; shift ;;
     --with-prebuilt) WITH_PREBUILT=true; shift ;;
+    --windows-self-contained) WITH_PREBUILT=true; WITH_NODE_MODULES=true; shift ;;
     --full)          WITH_IMAGES=true; WITH_PREBUILT=true; shift ;;
     --with-local)    WITH_LOCAL=true; shift ;;
+    --with-node-modules) WITH_NODE_MODULES=true; shift ;;
     --with-deps)     WITH_DEPS=true; shift ;;
     --platform)
       shift
@@ -65,6 +94,7 @@ while [[ $# -gt 0 ]]; do
         *)     err "Unknown platform: ${1:-}. Use 'linux' or 'mac'." ;;
       esac
       shift ;;
+    --bootstrap-base-url) shift; BOOTSTRAP_BASE_URL="${1:-}"; shift ;;
     --output) shift; OUTPUT_DIR="${1:-$OUTPUT_DIR}"; shift ;;
     -h|--help)
       head -20 "$0" | grep "^#" | sed 's/^# \?//'
@@ -93,7 +123,9 @@ stage_source() {
   # Copy deploy/ scripts (may have uncommitted changes)
   rsync -a \
     --exclude='data' \
+    --exclude='deps' \
     --exclude='.env' \
+    --exclude='openclaw-deploy-*' \
     --exclude='*.tar.gz' \
     --exclude='*.zip' \
     --exclude='.DS_Store' \
@@ -180,6 +212,25 @@ stage_prebuilt() {
 
   HAS_PREBUILT=true
   log "Fresh artifacts built and staged"
+}
+
+# ---------------------------------------------------------------------------
+# Optional runtime node_modules (platform-specific)
+# ---------------------------------------------------------------------------
+stage_node_modules() {
+  local src="$REPO_DIR/node_modules"
+  [ -d "$src" ] || err "--with-node-modules requested but $src is missing. Run pnpm install on the target platform first."
+
+  log "Staging source/node_modules..."
+  mkdir -p "$STAGING_DIR/$PKG_NAME/source"
+  rsync -a \
+    --exclude='.cache' \
+    --exclude='.pnpm-store' \
+    --exclude='.vite' \
+    "$src/" "$STAGING_DIR/$PKG_NAME/source/node_modules/"
+
+  HAS_NODE_MODULES=true
+  log "source/node_modules staged"
 }
 
 # ---------------------------------------------------------------------------
@@ -279,6 +330,7 @@ write_manifest() {
   "contents": {
     "source": true,
     "prebuilt": $HAS_PREBUILT,
+    "nodeModules": $HAS_NODE_MODULES,
     "dockerImages": $HAS_IMAGES,
     "dockerPlatform": "$DOCKER_PLATFORM",
     "localExtensions": $HAS_LOCAL,
@@ -298,6 +350,13 @@ write_installer() {
 exec "$(dirname "$0")/source/deploy/scripts/install.sh" "$@"
 INSTALLER
   chmod +x "$STAGING_DIR/$PKG_NAME/install.sh"
+
+  for script in install update start stop status; do
+    cat > "$STAGING_DIR/$PKG_NAME/${script}.ps1" <<PSEOF
+& (Join-Path \$PSScriptRoot "source\\deploy\\${script}.ps1") @Args
+exit \$LASTEXITCODE
+PSEOF
+  done
 
   # Ops scripts — start/stop/status/tui forwarders (sh + bat)
   for script in start.sh stop.sh status.sh tui.sh; do
@@ -321,6 +380,9 @@ OPSEOF
   # Windows install.bat — copy from deploy dir (has pause + registry detection)
   if [ -f "$DEPLOY_DIR/install.bat" ]; then
     cp "$DEPLOY_DIR/install.bat" "$STAGING_DIR/$PKG_NAME/install.bat"
+  fi
+  if [ -f "$DEPLOY_DIR/update.bat" ]; then
+    cp "$DEPLOY_DIR/update.bat" "$STAGING_DIR/$PKG_NAME/update.bat"
   fi
 }
 
@@ -351,6 +413,7 @@ write_readme() {
 | 层 | 包含 |
 |----|------|
 | 源码 | $([ "$HAS_PREBUILT" = true ] && echo "是（含预构建产物，无需编译）" || echo "是（需要编译）") |
+| Runtime node_modules | $([ "$HAS_NODE_MODULES" = true ] && echo "是（平台绑定，自包含）" || echo "否") |
 | Docker 镜像 | $([ "$HAS_IMAGES" = true ] && echo "是" || echo "否") |
 | 本地插件/Skills | $([ "$HAS_LOCAL" = true ] && echo "是" || echo "否") |
 | Windows 离线依赖 | $([ "$HAS_DEPS" = true ] && echo "是（Git + Node.js + Docker Desktop）" || echo "否") |
@@ -382,6 +445,8 @@ bash stop.sh      # 停止（Windows: 双击 stop.bat）
 
 API Key 和 Token 已预填，无需手动编辑 \`.env\`。
 
+$([ "$HAS_NODE_MODULES" = true ] && echo "> 该包包含当前打包平台的 \`source/node_modules\`，适合发布给相同平台/架构的用户。" || true)
+
 ## 验证
 
 - Gateway: http://localhost:18789/healthz
@@ -389,6 +454,40 @@ API Key 和 Token 已预填，无需手动编辑 \`.env\`。
 READMEEOF
 
   log "README written"
+}
+
+write_windows_bootstrap_assets() {
+  local tar_path="$1"
+  [ -n "$BOOTSTRAP_BASE_URL" ] || return 0
+
+  local normalized_base
+  normalized_base="${BOOTSTRAP_BASE_URL%/}"
+  local package_file
+  package_file="$(basename "$tar_path")"
+  local package_sha
+  package_sha="$(compute_sha256 "$tar_path")"
+  local version
+  version="$(node -e "const pkg=JSON.parse(require('fs').readFileSync('$REPO_DIR/package.json','utf8'));process.stdout.write(pkg.version||'unknown')")"
+
+  local manifest_out="$OUTPUT_DIR/windows-latest.json"
+  cat > "$manifest_out" <<EOF
+{
+  "channel": "stable",
+  "version": "$version",
+  "generatedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "packageFile": "$package_file",
+  "packageUrl": "$normalized_base/$package_file",
+  "packageSha256": "$package_sha"
+}
+EOF
+
+  local bootstrap_src="$DEPLOY_DIR/bootstrap-install.ps1"
+  [ -f "$bootstrap_src" ] || err "Missing bootstrap installer template: $bootstrap_src"
+  local bootstrap_out="$OUTPUT_DIR/install.ps1"
+  sed "s#__WINDOWS_MANIFEST_URL__#$normalized_base/windows-latest.json#g" "$bootstrap_src" > "$bootstrap_out"
+
+  log "Windows bootstrap manifest written: $manifest_out"
+  log "Windows bootstrap installer written: $bootstrap_out"
 }
 
 # ---------------------------------------------------------------------------
@@ -414,6 +513,10 @@ verify_package() {
   if [ "$HAS_PREBUILT" = true ]; then
     [ -f "$STAGING_DIR/$PKG_NAME/source/dist/cli-startup-metadata.json" ] || { log "FAIL: Gateway dist missing"; ok=false; }
     [ -f "$STAGING_DIR/$PKG_NAME/source/dashboard/.next/standalone/dashboard/server.js" ] || { log "FAIL: Deck standalone missing"; ok=false; }
+  fi
+
+  if [ "$HAS_NODE_MODULES" = true ]; then
+    [ -d "$STAGING_DIR/$PKG_NAME/source/node_modules" ] || { log "FAIL: source/node_modules missing"; ok=false; }
   fi
 
   if [ "$HAS_IMAGES" = true ]; then
@@ -442,6 +545,10 @@ if [ "$WITH_PREBUILT" = true ]; then
   stage_prebuilt
 fi
 
+if [ "$WITH_NODE_MODULES" = true ]; then
+  stage_node_modules
+fi
+
 # Deps: optional
 if [ "$WITH_DEPS" = true ]; then
   stage_deps
@@ -464,15 +571,28 @@ verify_package
 mkdir -p "$OUTPUT_DIR"
 local_tar="$OUTPUT_DIR/$PKG_NAME.tar.gz"
 log "Creating $local_tar..."
-tar czf "$local_tar" -C "$STAGING_DIR" "$PKG_NAME"
+tar_args=(czf "$local_tar" -C "$STAGING_DIR" "$PKG_NAME")
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  tar_args=(czf "$local_tar" --no-mac-metadata --no-xattrs -C "$STAGING_DIR" "$PKG_NAME")
+fi
+tar "${tar_args[@]}"
+write_windows_bootstrap_assets "$local_tar"
 
 # Summary
 local_size=$(du -sh "$local_tar" | cut -f1)
 log "=== Package complete ==="
 log "File: $local_tar"
 log "Size: $local_size"
-log "Layers: source$([ "$HAS_IMAGES" = true ] && echo " + images")$([ "$HAS_PREBUILT" = true ] && echo " + prebuilt")$([ "$HAS_LOCAL" = true ] && echo " + local")$([ "$HAS_DEPS" = true ] && echo " + deps")"
+log "Layers: source$([ "$HAS_IMAGES" = true ] && echo " + images")$([ "$HAS_PREBUILT" = true ] && echo " + prebuilt")$([ "$HAS_NODE_MODULES" = true ] && echo " + node_modules")$([ "$HAS_LOCAL" = true ] && echo " + local")$([ "$HAS_DEPS" = true ] && echo " + deps")"
 log ""
+if [ -n "$BOOTSTRAP_BASE_URL" ]; then
+  log "Windows bootstrap assets:"
+  log "  $OUTPUT_DIR/install.ps1"
+  log "  $OUTPUT_DIR/windows-latest.json"
+  log "Windows one-liner:"
+  log "  iwr -useb ${BOOTSTRAP_BASE_URL%/}/install.ps1 | iex"
+  log ""
+fi
 log "To deploy (Linux/macOS):"
 log "  scp $local_tar user@target:/tmp/"
 log "  ssh user@target 'tar xzf /tmp/$PKG_NAME.tar.gz && cd $PKG_NAME && ./install.sh'"

@@ -1,6 +1,11 @@
+import { getBudgetRuleStore } from "@server/budget-alert-stores";
 import { getRuntime } from "@server/runtime";
 import { NextResponse } from "next/server";
-import { evaluateBudgetRule, type BudgetDimension, type BudgetRule as GovBudgetRule } from "@/lib/budget-governance";
+import {
+  evaluateBudgetRule,
+  type BudgetDimension,
+  type BudgetRule as GovBudgetRule,
+} from "@/lib/budget-governance";
 /**
  * GET /api/usage/budget/evaluate — Evaluate all enabled budget rules.
  *
@@ -8,7 +13,6 @@ import { evaluateBudgetRule, type BudgetDimension, type BudgetRule as GovBudgetR
  * rule, and broadcasts budget.warn / budget.over events via EventBus.
  */
 import { withAuth } from "@/lib/with-auth";
-import { getBudgetRuleStore } from "@server/budget-alert-stores";
 
 export const GET = withAuth(async () => {
   const runtime = getRuntime();
@@ -16,7 +20,9 @@ export const GET = withAuth(async () => {
     return NextResponse.json({ error: "Not configured" }, { status: 503 });
   }
 
-  const rules = getBudgetRuleStore().get().filter((r) => r.enabled);
+  const rules = getBudgetRuleStore()
+    .get()
+    .filter((r) => r.enabled);
 
   if (rules.length === 0) {
     return NextResponse.json({ evaluations: [] });
@@ -25,10 +31,7 @@ export const GET = withAuth(async () => {
   // Fetch current usage from Gateway
   let usageData: Record<string, unknown> = {};
   try {
-    usageData = (await runtime.adapter.request("usage.cost", { days: 30 })) as Record<
-      string,
-      unknown
-    >;
+    usageData = await runtime.adapter.request("usage.cost", { days: 30 });
   } catch {
     return NextResponse.json({ error: "Failed to fetch usage data" }, { status: 502 });
   }

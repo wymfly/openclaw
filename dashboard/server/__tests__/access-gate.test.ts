@@ -1,27 +1,31 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
-  validateRequest,
-  resolveToken,
-  checkPublicBind,
-} from "../access-gate.js";
+import { validateRequest, resolveToken, checkPublicBind } from "../access-gate.js";
 
 // Mock the deck-settings module
 vi.mock("../deck-settings.js", () => {
   let settings: Record<string, string> = {};
   return {
     getSetting: (key: string) => settings[key],
-    setSetting: (key: string, value: string) => { settings[key] = value; },
+    setSetting: (key: string, value: string) => {
+      settings[key] = value;
+    },
     getDeckSettings: () => ({
       get: () => settings,
-      set: (v: Record<string, string>) => { settings = v; },
+      set: (v: Record<string, string>) => {
+        settings = v;
+      },
     }),
-    __setMockSettings: (s: Record<string, string>) => { settings = s; },
+    __setMockSettings: (s: Record<string, string>) => {
+      settings = s;
+    },
   };
 });
 
 // Helper to set mock settings
 async function setMockSettings(s: Record<string, string>) {
-  const mod = await import("../deck-settings.js") as unknown as { __setMockSettings: (s: Record<string, string>) => void };
+  const mod = (await import("../deck-settings.js")) as unknown as {
+    __setMockSettings: (s: Record<string, string>) => void;
+  };
   mod.__setMockSettings(s);
 }
 

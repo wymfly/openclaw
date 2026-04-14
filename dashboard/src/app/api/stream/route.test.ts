@@ -3,7 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const subscribe = vi.fn();
 const unsubscribe = vi.fn();
 const getEventsSince = vi.fn<
-  () => { events: Array<{ id: number; type: string; data: unknown; timestamp: number }>; gapDetected: boolean }
+  () => {
+    events: Array<{ id: number; type: string; data: unknown; timestamp: number }>;
+    gapDetected: boolean;
+  }
 >(() => ({ events: [], gapDetected: false }));
 
 vi.mock("@server/event-bus", () => ({
@@ -67,7 +70,12 @@ describe("/api/stream", () => {
     delete process.env.DECK_ACCESS_TOKEN;
     getEventsSince.mockReturnValue({
       events: [
-        { id: 41, type: "chat", data: { state: "final", sessionKey: "session-1" }, timestamp: Date.now() },
+        {
+          id: 41,
+          type: "chat",
+          data: { state: "final", sessionKey: "session-1" },
+          timestamp: Date.now(),
+        },
       ],
       gapDetected: false,
     });
@@ -93,9 +101,7 @@ describe("/api/stream", () => {
   it("emits projection.gap SSE event when gap is detected", async () => {
     delete process.env.DECK_ACCESS_TOKEN;
     getEventsSince.mockReturnValue({
-      events: [
-        { id: 100, type: "chat", data: { token: "hi" }, timestamp: Date.now() },
-      ],
+      events: [{ id: 100, type: "chat", data: { token: "hi" }, timestamp: Date.now() }],
       gapDetected: true,
     });
 
@@ -119,9 +125,7 @@ describe("/api/stream", () => {
   it("does NOT emit projection.gap when no gap detected", async () => {
     delete process.env.DECK_ACCESS_TOKEN;
     getEventsSince.mockReturnValue({
-      events: [
-        { id: 6, type: "chat", data: { token: "ok" }, timestamp: Date.now() },
-      ],
+      events: [{ id: 6, type: "chat", data: { token: "ok" }, timestamp: Date.now() }],
       gapDetected: false,
     });
 

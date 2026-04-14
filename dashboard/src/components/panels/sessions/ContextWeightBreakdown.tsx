@@ -7,21 +7,19 @@ import { cn } from "@/lib/utils";
 import { useUsageStore, type ContextWeightReport } from "@/stores/usage";
 
 function formatChars(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toFixed(1)}M`;
+  }
+  if (n >= 1_000) {
+    return `${(n / 1_000).toFixed(1)}K`;
+  }
   return String(n);
 }
 
-function BarSegment({
-  pct,
-  color,
-  label,
-}: {
-  pct: number;
-  color: string;
-  label: string;
-}) {
-  if (pct < 1) return null;
+function BarSegment({ pct, color, label }: { pct: number; color: string; label: string }) {
+  if (pct < 1) {
+    return null;
+  }
   return (
     <div
       className="h-full transition-all duration-300"
@@ -39,7 +37,9 @@ function CategoryList({
   renderItem: (item: Record<string, unknown>, i: number) => React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return null;
+  }
   return (
     <div>
       <button
@@ -81,10 +81,26 @@ function BreakdownContent({
     <div className="space-y-3">
       {/* Stacked bar */}
       <div className="h-2 rounded-full overflow-hidden flex bg-[var(--muted)]">
-        <BarSegment pct={pctOf(systemChars)} color="var(--primary)" label={t("contextWeight.systemPrompt")} />
-        <BarSegment pct={pctOf(toolsChars)} color="var(--warning)" label={t("contextWeight.tools")} />
-        <BarSegment pct={pctOf(skillsChars)} color="var(--purple)" label={t("contextWeight.skills")} />
-        <BarSegment pct={pctOf(filesChars)} color="var(--success)" label={t("contextWeight.files")} />
+        <BarSegment
+          pct={pctOf(systemChars)}
+          color="var(--primary)"
+          label={t("contextWeight.systemPrompt")}
+        />
+        <BarSegment
+          pct={pctOf(toolsChars)}
+          color="var(--warning)"
+          label={t("contextWeight.tools")}
+        />
+        <BarSegment
+          pct={pctOf(skillsChars)}
+          color="var(--purple)"
+          label={t("contextWeight.skills")}
+        />
+        <BarSegment
+          pct={pctOf(filesChars)}
+          color="var(--success)"
+          label={t("contextWeight.files")}
+        />
       </div>
 
       {/* Legend + details */}
@@ -93,7 +109,9 @@ function BreakdownContent({
         <div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-[var(--primary)]" />
-            <span className="text-[var(--muted-foreground)]">{t("contextWeight.systemPrompt")}</span>
+            <span className="text-[var(--muted-foreground)]">
+              {t("contextWeight.systemPrompt")}
+            </span>
           </div>
           <span className="font-mono font-semibold text-[var(--foreground)] ml-3.5">
             {formatChars(systemChars)}
@@ -112,9 +130,14 @@ function BreakdownContent({
           <CategoryList
             items={report.tools.entries}
             renderItem={(item, i) => (
-              <div key={i} className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+              <div
+                key={i}
+                className="flex justify-between text-[10px] text-[var(--muted-foreground)]"
+              >
                 <span className="font-mono truncate">{String(item.name)}</span>
-                <span className="font-mono shrink-0 ml-2">{formatChars(Number(item.schemaChars ?? 0))}</span>
+                <span className="font-mono shrink-0 ml-2">
+                  {formatChars(Number(item.schemaChars ?? 0))}
+                </span>
               </div>
             )}
           />
@@ -132,9 +155,14 @@ function BreakdownContent({
           <CategoryList
             items={report.skills.entries}
             renderItem={(item, i) => (
-              <div key={i} className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+              <div
+                key={i}
+                className="flex justify-between text-[10px] text-[var(--muted-foreground)]"
+              >
                 <span className="font-mono truncate">{String(item.name)}</span>
-                <span className="font-mono shrink-0 ml-2">{formatChars(Number(item.blockChars ?? 0))}</span>
+                <span className="font-mono shrink-0 ml-2">
+                  {formatChars(Number(item.blockChars ?? 0))}
+                </span>
               </div>
             )}
           />
@@ -153,7 +181,10 @@ function BreakdownContent({
             <CategoryList
               items={report.injectedWorkspaceFiles}
               renderItem={(item, i) => (
-                <div key={i} className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+                <div
+                  key={i}
+                  className="flex justify-between text-[10px] text-[var(--muted-foreground)]"
+                >
                   <span className="font-mono truncate">{String(item.name)}</span>
                   <span className="font-mono shrink-0 ml-2">
                     {formatChars(Number(item.injectedChars ?? 0))}

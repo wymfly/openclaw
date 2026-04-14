@@ -121,4 +121,52 @@ describe("deckStream", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(events).toEqual(["ready"]);
   });
+
+  it("retries a reconnecting stream after an initial 500 response", async () => {
+    const encoder = new TextEncoder();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("server-error", { status: 500 }))
+      .mockResolvedValueOnce(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(encoder.encode('id: 10\nevent: ready\ndata: {"ok":true}\n\n'));
+              controller.close();
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          },
+        ),
+      );
+    globalThis.fetch = fetchMock;
+
+    const { deckStream, setDeckAccessToken } = await import("./deck-client.js");
+    setDeckAccessToken(null);
+    const events: string[] = [];
+    const retries: string[] = [];
+    const controller = new AbortController();
+
+    const response = await deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      retryDelayMs: 0,
+      onRetry() {
+        retries.push("retry");
+      },
+      onEvent(event) {
+        if (event.event) {
+          events.push(event.event);
+          controller.abort();
+        }
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(retries).toEqual(["retry"]);
+    expect(events).toEqual(["ready"]);
+  });
 });

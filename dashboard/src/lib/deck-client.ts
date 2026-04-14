@@ -155,7 +155,12 @@ export async function deckStream(
       }
 
       if (!response.ok || !response.body) {
-        return response;
+        if (!options.reconnect || response.status === 401) {
+          return response;
+        }
+        options.onRetry?.();
+        await waitForReconnect(options.retryDelayMs ?? DEFAULT_STREAM_RETRY_MS, options.signal);
+        continue;
       }
 
       options.onOpen?.();
@@ -207,6 +212,10 @@ export async function deckStream(
       if (!options.reconnect) {
         throw error;
       }
+    }
+
+    if (options.signal?.aborted) {
+      break;
     }
 
     options.onRetry?.();

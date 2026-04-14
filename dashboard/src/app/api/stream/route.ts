@@ -55,7 +55,6 @@ function formatSSE(event: ServerEvent): string {
   return `id: ${event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`;
 }
 
-
 function extractAuthHeaders(request: Request): Record<string, string | undefined> {
   return {
     authorization: request.headers.get("authorization") ?? undefined,

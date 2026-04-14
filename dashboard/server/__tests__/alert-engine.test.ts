@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { EventBus } from "../event-bus.js";
 import type { AlertRule } from "../budget-alert-stores.js";
+import { EventBus } from "../event-bus.js";
 
 // Mock the webhooks module before importing alert engine
 vi.mock("../../src/lib/webhooks.js", () => ({
@@ -106,7 +106,15 @@ describe("alert-engine", () => {
 
   it("should respect cooldown period", () => {
     const recentTime = new Date(Date.now() - 1000).toISOString();
-    mockRules = [makeRule({ id: "rule-3", condition: ">", threshold: 50, cooldownMs: 300000, lastFiredAt: recentTime })];
+    mockRules = [
+      makeRule({
+        id: "rule-3",
+        condition: ">",
+        threshold: 50,
+        cooldownMs: 300000,
+        lastFiredAt: recentTime,
+      }),
+    ];
     const { runtime, eventBus } = createMockRuntime();
     initAlertEngine(runtime);
 
@@ -119,7 +127,16 @@ describe("alert-engine", () => {
 
   it("should fire after cooldown expires", () => {
     const oldTime = new Date(Date.now() - 600000).toISOString();
-    mockRules = [makeRule({ id: "rule-4", condition: ">", threshold: 50, action: "activity", cooldownMs: 300000, lastFiredAt: oldTime })];
+    mockRules = [
+      makeRule({
+        id: "rule-4",
+        condition: ">",
+        threshold: 50,
+        action: "activity",
+        cooldownMs: 300000,
+        lastFiredAt: oldTime,
+      }),
+    ];
     const { runtime, eventBus } = createMockRuntime();
     initAlertEngine(runtime);
 
@@ -143,7 +160,16 @@ describe("alert-engine", () => {
   });
 
   it("should always create activity event regardless of action type", () => {
-    mockRules = [makeRule({ id: "rule-6", entityType: "cron", condition: ">", threshold: 10, action: "webhook", cooldownMs: 0 })];
+    mockRules = [
+      makeRule({
+        id: "rule-6",
+        entityType: "cron",
+        condition: ">",
+        threshold: 10,
+        action: "webhook",
+        cooldownMs: 0,
+      }),
+    ];
     const { runtime, eventBus } = createMockRuntime();
     initAlertEngine(runtime);
 

@@ -84,9 +84,7 @@ function extractToken(headers: Record<string, string | undefined>): string | nul
 // Main validator
 // ---------------------------------------------------------------------------
 
-export function validateRequest(
-  headers: Record<string, string | undefined>,
-): AccessGateResult {
+export function validateRequest(headers: Record<string, string | undefined>): AccessGateResult {
   const expected = resolveToken();
 
   // No token configured → local dev mode, allow all.

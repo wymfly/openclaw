@@ -1,7 +1,11 @@
 "use client";
 
+import { Navigation } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { createContext, useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCommandDiscovery } from "@/hooks/use-command-discovery";
+import { getCachedTranscript, setCachedTranscript } from "@/lib/transcript-cache";
 import { useChatStore } from "@/stores/chat";
 import {
   useSessionMessages,
@@ -24,10 +28,6 @@ import {
   persistChatProjection,
   setSessionMessageSubscription,
 } from "./chat-api";
-import { Navigation } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getCachedTranscript, setCachedTranscript } from "@/lib/transcript-cache";
 import { ChatContextBar } from "./ChatContextBar";
 import { EmptyState } from "./EmptyState";
 import { normalizeHistoryMessages } from "./history-normalize";
@@ -71,7 +71,9 @@ export function ChatPanel() {
   const steerRef = useRef<HTMLDivElement>(null);
 
   const scrollToSteer = useCallback(() => {
-    if (!steerRef.current) return;
+    if (!steerRef.current) {
+      return;
+    }
     steerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     const input = steerRef.current.querySelector<HTMLInputElement>("input");
     input?.focus();
@@ -306,7 +308,9 @@ export function ChatPanel() {
                     tabIndex={0}
                     onClick={scrollToSteer}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") scrollToSteer();
+                      if (e.key === "Enter" || e.key === " ") {
+                        scrollToSteer();
+                      }
                     }}
                     className="inline-flex items-center justify-center w-5 h-5 rounded cursor-pointer text-[var(--primary)] hover:bg-[var(--primary-muted)] transition-colors"
                   >

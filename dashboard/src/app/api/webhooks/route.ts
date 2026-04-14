@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getWebhookStore, type Webhook } from "@/lib/webhooks";
 /**
  * GET /api/webhooks — List all webhooks.
  * POST /api/webhooks — Create a new webhook.
@@ -6,11 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
  * JSON file storage via JsonStore.
  */
 import { withAuth } from "@/lib/with-auth";
-import { getWebhookStore, type Webhook } from "@/lib/webhooks";
 
 export const GET = withAuth(async () => {
   const store = getWebhookStore();
-  const webhooks = [...store.get()].sort(
+  const webhooks = [...store.get()].toSorted(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   return NextResponse.json({ webhooks });

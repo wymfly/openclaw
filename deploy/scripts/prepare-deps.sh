@@ -3,7 +3,7 @@
 # prepare-deps.sh — Download Windows deployment prerequisites for offline install.
 #
 # Usage:
-#   deploy/scripts/prepare-deps.sh              # Download all (Node.js + Docker Desktop)
+#   deploy/scripts/prepare-deps.sh              # Download all (Node.js + Docker Desktop + optional Git fallback)
 #   deploy/scripts/prepare-deps.sh --node-only  # Node.js MSI only (bare-metal mode)
 #   deploy/scripts/prepare-deps.sh --docker-only # Docker Desktop only
 #
@@ -92,9 +92,9 @@ Node.js 22 LTS Windows installers.
 | `node-*-x64.msi` | Windows x64 | Double-click, follow wizard |
 | `node-*-arm64.msi` | Windows ARM64 | Double-click, follow wizard |
 
-After Node.js install, open PowerShell and run:
+After Node.js install, open PowerShell and run the package installer from the package root:
 ```powershell
-npm install -g pnpm pm2
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 ### docker/
@@ -114,22 +114,26 @@ wsl --install
 (< 250 employees / < $10M annual revenue). Larger organizations need a
 [paid subscription](https://www.docker.com/pricing/).
 
-### git/
+### git/ (optional fallback)
 Git for Windows installer (includes Git Bash).
 
 | File | Platform | Install |
 |------|----------|---------|
 | `Git-*-64-bit.exe` | Windows x64 | Run installer, use default options |
 
-Git Bash provides the bash environment required to run `install.sh`.
+Git is **not required** for the new PowerShell install/update path. Keep it only if you
+want a legacy shell fallback or the existing Docker-on-Windows shell workflow.
 
 ## Install Order
 
-1. Install Git for Windows from `git/*.exe` (provides Git Bash)
-2. Install Node.js from `node/*.msi`
-3. Open PowerShell: `npm install -g pnpm pm2`
+1. Install Node.js from `node/*.msi`
+2. Go back to the extracted deploy package root (the parent of `deps/`)
+3. Open PowerShell and run:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\install.ps1
+   ```
 4. (Optional) Install Docker Desktop from `docker/DockerDesktopInstaller.exe`
-5. Open Git Bash, run `./install.sh bare-metal` (or `docker`)
+5. (Optional) Install Git for Windows from `git/*.exe` if you need the legacy shell fallback
 EOF
   log "README written to deps/README.md"
 }
@@ -151,8 +155,8 @@ case "${1:-}" in
     echo "Downloads Windows deployment prerequisites to deploy/deps/"
     echo "  --node-only   Node.js MSI only (~60MB)"
     echo "  --docker-only Docker Desktop only (~550MB)"
-    echo "  --git-only    Git for Windows only (~65MB)"
-    echo "  (no args)     All (~675MB)"
+    echo "  --git-only    Git for Windows only (~65MB, optional fallback)"
+    echo "  (no args)     All (~675MB, includes optional Git fallback)"
     exit 0 ;;
   "") ;; # download all
   *) err "Unknown argument: $1" ;;

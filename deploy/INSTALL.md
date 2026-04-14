@@ -2,7 +2,7 @@
 
 ## 一键安装
 
-安装脚本会自动处理所有依赖（Node.js、pnpm、PM2），无需手动安装。
+安装脚本会自动处理 Windows bare-metal 所需依赖（Node.js、pnpm），并安装 Windows 启动服务。
 
 API Key 和 Gateway Token 已预填，无需手动编辑配置文件。
 
@@ -11,7 +11,13 @@ cd deploy
 bash install.sh bare-metal
 ```
 
-Windows 用户：双击 `install.bat`。
+Windows 用户优先使用：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+也可以双击 `install.bat`。
 
 安装完成后：
 
@@ -27,7 +33,13 @@ bash start.sh     # 启动
 bash stop.sh      # 停止
 ```
 
-Windows 用户：双击 `status.bat` / `start.bat` / `stop.bat`。
+Windows 用户：
+
+```powershell
+.\status.ps1
+.\start.ps1
+.\stop.ps1
+```
 
 ## 安装包模式
 
@@ -36,12 +48,12 @@ Windows 用户：双击 `status.bat` / `start.bat` / `stop.bat`。
 ```bash
 tar xzf openclaw-deploy-*.tar.gz
 cd openclaw-deploy-*
-bash install.sh bare-metal
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 # 运维
-bash status.sh
-bash start.sh
-bash stop.sh
+.\status.ps1
+.\start.ps1
+.\stop.ps1
 ```
 
 ## 其他安装模式
@@ -68,5 +80,24 @@ bash deploy/stop.sh && bash deploy/start.sh   # 重启生效
 2. **Gateway token 不匹配** — 检查 `.env` 中 `OPENCLAW_GATEWAY_TOKEN` 和 seed 配置一致
 3. **Docker 构建慢** — 首次构建需下载依赖，后续利用缓存
 4. **Deck 无法连接 Gateway** — Docker 模式需 `network_mode: service:gateway`
+
+Windows bare-metal 现在优先走 PowerShell。Docker-on-Windows 仍可继续使用现有 `install.sh docker` shell 路径。
+
+如果维护者已经发布 bootstrap 资产，Windows 也可以直接使用：
+
+```powershell
+iwr -useb http://<your-host>:8088/<release-label>/install.ps1 | iex
+```
+
+如果维护者要发布给 Windows 用户的真正自包含包，优先使用同平台环境打包 `deploy/scripts/package.sh --windows-self-contained`，或在 Windows 机器上对现有 tar.gz 再执行 `deploy/package-self-contained.ps1` 补齐 `source/node_modules`。
+
+安装资产发布请走**独立 HTTP 端口**，不要复用 Deck 的 `3340` 或默认 `80/443`。推荐：
+
+```powershell
+cd deploy
+.\serve-release-http.cmd
+```
+
+默认端口为 `8088`。
 
 详细文档见 [deploy/README.md](README.md)。

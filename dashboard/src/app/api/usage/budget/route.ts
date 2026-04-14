@@ -1,3 +1,4 @@
+import { getBudgetRuleStore, type BudgetRule } from "@server/budget-alert-stores";
 import { NextRequest, NextResponse } from "next/server";
 /**
  * GET /api/usage/budget — List all budget rules.
@@ -6,13 +7,14 @@ import { NextRequest, NextResponse } from "next/server";
  * JSON file storage via JsonStore.
  */
 import { withAuth } from "@/lib/with-auth";
-import { getBudgetRuleStore, type BudgetRule } from "@server/budget-alert-stores";
 
 const VALID_DIMENSIONS = new Set(["tokensIn", "tokensOut", "totalTokens", "cost"]);
 const VALID_PERIODS = new Set(["daily", "weekly", "monthly"]);
 
 export const GET = withAuth(async () => {
-  const rules = [...getBudgetRuleStore().get()].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const rules = [...getBudgetRuleStore().get()].toSorted(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
   return NextResponse.json({ rules });
 });
 

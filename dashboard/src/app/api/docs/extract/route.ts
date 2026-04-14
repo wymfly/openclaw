@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractDocsFromMessages } from "@/lib/doc-extractor";
 import { fetchTranscriptHistory } from "@/lib/transcript-history";
 import { withAuth } from "@/lib/with-auth";
-import { getDocStore, type DocEntry } from "../route";
+import { getDocStore, type DocEntry } from "../store";
 
 export const POST = withAuth(async (request: NextRequest) => {
   const runtime = getRuntime();

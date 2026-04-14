@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "PS_SCRIPT=%SCRIPT_DIR%stop.ps1"
+set "PS_SCRIPT=%SCRIPT_DIR%update.ps1"
 set "PS_EXE="
 
 where pwsh >nul 2>&1
@@ -22,7 +22,7 @@ if !ERRORLEVEL! equ 0 (
   goto :run
 )
 
-echo [stop.bat] ERROR: PowerShell not found.
+echo [update.bat] ERROR: PowerShell not found.
 pause
 exit /b 1
 

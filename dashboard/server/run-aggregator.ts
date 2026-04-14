@@ -22,8 +22,16 @@ const STALE_THRESHOLD_MS = 5 * 60 * 1000;
 const GLOBAL_KEY = "__oclRunAggregator__";
 
 const FILE_TOOLS = new Set([
-  "read", "write", "edit", "multiedit", "glob",
-  "read_file", "write_file", "edit_file", "create_file", "delete_file",
+  "read",
+  "write",
+  "edit",
+  "multiedit",
+  "glob",
+  "read_file",
+  "write_file",
+  "edit_file",
+  "create_file",
+  "delete_file",
 ]);
 
 const SUBAGENT_TOOLS = new Set(["agent", "taskcreate"]);
@@ -168,9 +176,7 @@ export class RunAggregator {
       // Extract token usage
       const usage = p.usage as Record<string, unknown> | undefined;
       if (usage) {
-        record.totalTokens +=
-          Number(usage.input_tokens ?? 0) +
-          Number(usage.output_tokens ?? 0);
+        record.totalTokens += Number(usage.input_tokens ?? 0) + Number(usage.output_tokens ?? 0);
       }
     }
 
@@ -237,7 +243,8 @@ export class RunAggregator {
     }
 
     const page = runs.slice(startIdx, startIdx + limit);
-    const nextCursor = startIdx + limit < runs.length ? page[page.length - 1]?.runId ?? null : null;
+    const nextCursor =
+      startIdx + limit < runs.length ? (page[page.length - 1]?.runId ?? null) : null;
 
     return { runs: page, nextCursor };
   }
@@ -295,7 +302,7 @@ export class RunAggregator {
 
     const topAgents = Array.from(agentCounts.entries())
       .map(([agentId, runCount]) => ({ agentId, runCount }))
-      .sort((a, b) => b.runCount - a.runCount)
+      .toSorted((a, b) => b.runCount - a.runCount)
       .slice(0, 5);
 
     return {

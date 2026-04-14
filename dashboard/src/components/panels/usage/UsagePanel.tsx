@@ -7,13 +7,13 @@ import { PanelError } from "@/components/ui/panel-error";
 import { PanelSkeleton } from "@/components/ui/panel-skeleton";
 import { useSessionsStore } from "@/stores/sessions";
 import { useUsageStore } from "@/stores/usage";
-import type { CompactionEvent } from "./UsageChart";
 import { BreakdownTable } from "./BreakdownTable";
 import { ContextPressure } from "./ContextPressure";
 import { DateRangePicker } from "./DateRangePicker";
 import { LatencyCard } from "./LatencyCard";
 import { SessionUsageList } from "./SessionUsageList";
 import { SummaryCards } from "./SummaryCards";
+import type { CompactionEvent } from "./UsageChart";
 import { UsageChart } from "./UsageChart";
 
 export function UsagePanel() {

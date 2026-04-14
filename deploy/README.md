@@ -21,7 +21,7 @@ Browser ──→ Deck(:3000) ──ws──→ Gateway(:18789) ──→ AI Pro
 | ------------ | ---------------------------- | ------------------- |
 | Docker       | 推荐。隔离环境，一键部署     | Docker + Compose v2 |
 | Docker Build | 同上，强制重建镜像           | Docker + Compose v2 |
-| 裸机 (PM2)   | 开发环境、无 Docker 的服务器 | Node.js 22+, pnpm   |
+| 裸机         | 开发环境、无 Docker 的服务器 | Node.js 22+, pnpm   |
 
 ## 快速开始（一键安装）
 
@@ -33,6 +33,69 @@ bash install.sh bare-metal
 
 # 验证
 bash status.sh
+```
+
+Windows bare-metal 推荐改用 PowerShell（安装后由 Scheduled Task / Startup fallback 托管）：
+
+```powershell
+cd deploy
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+如果你把 bootstrap 资产发布到**独立 HTTP 端口**，最终的一条命令可以是：
+
+```powershell
+iwr -useb http://<your-host>:8088/<release-label>/install.ps1 | iex
+```
+
+维护者/后续 agent 接手说明见：
+
+```text
+deploy/HANDOFF.md
+```
+
+### Windows 用户速查
+
+默认安装路径：
+
+```text
+%LOCALAPPDATA%\OpenClawDeploy
+```
+
+安装 / 更新：
+
+```powershell
+iwr -useb http://<your-host>:8088/<release-label>/install.ps1 | iex
+```
+
+手动启停 / 查看状态：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\OpenClawDeploy\start.ps1"
+powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\OpenClawDeploy\stop.ps1"
+powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\OpenClawDeploy\status.ps1"
+```
+
+也可以直接双击安装目录里的：
+
+- `start.bat`
+- `stop.bat`
+- `status.bat`
+
+### 自定义安装目录
+
+如果你不想安装到默认的 `%LOCALAPPDATA%\OpenClawDeploy`，可以显式传 `-InstallRoot`：
+
+```powershell
+& ([scriptblock]::Create((iwr -useb http://<your-host>:8088/<release-label>/install.ps1))) -InstallRoot D:\OpenClawDeploy
+```
+
+之后手动启停也改为使用你指定的目录，例如：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "D:\OpenClawDeploy\start.ps1"
+powershell -ExecutionPolicy Bypass -File "D:\OpenClawDeploy\stop.ps1"
+powershell -ExecutionPolicy Bypass -File "D:\OpenClawDeploy\status.ps1"
 ```
 
 API Key 和 Gateway Token 已在 `.env.example` 中预填，无需手动编辑。
@@ -53,6 +116,9 @@ deploy/scripts/package.sh
 # A+C: 源码 + 预构建产物 (~60MB)
 deploy/scripts/package.sh --with-prebuilt
 
+# Windows 自包含包（预构建 + source/node_modules，需在同平台环境打包）
+deploy/scripts/package.sh --windows-self-contained
+
 # A+B: 源码 + Docker 镜像 (~800MB)
 deploy/scripts/package.sh --with-images --platform linux
 
@@ -65,23 +131,30 @@ deploy/scripts/package.sh --with-local
 # 包含 Windows 离线安装包（Node.js MSI + Docker Desktop）
 deploy/scripts/prepare-deps.sh   # 先下载依赖
 deploy/scripts/package.sh --with-deps
+
+# 额外生成可托管的一条命令 Windows bootstrap 资产
+deploy/scripts/package.sh --bootstrap-base-url https://<your-host>/windows
+
+# 给已有 tar.gz 增补 Windows source/node_modules（适合在 Windows 服务器上补全发布物）
+powershell -ExecutionPolicy Bypass -File .\\deploy\\package-self-contained.ps1 -BasePackage .\\openclaw-deploy-*.tar.gz -NodeModulesPath .\\node_modules -BootstrapBaseUrl https://<your-host>/windows
 ```
 
 ### 打包层说明
 
-| 层           | 内容                           | 大小   | 用途                                           |
-| ------------ | ------------------------------ | ------ | ---------------------------------------------- |
-| A (source)   | 源码 + 部署脚本 + seed         | ~50MB  | 始终包含                                       |
-| B (images)   | Docker 镜像 (.tar.gz)          | ~800MB | 离线 Docker 部署（建议在目标机构建）           |
-| C (prebuilt) | Gateway dist + Deck standalone | ~10MB  | 跳过裸机构建                                   |
-| deps         | Windows 离线安装包             | ~675MB | Git for Windows + Node.js MSI + Docker Desktop |
+| 层           | 内容                           | 大小       | 用途                                             |
+| ------------ | ------------------------------ | ---------- | ------------------------------------------------ |
+| A (source)   | 源码 + 部署脚本 + seed         | ~50MB      | 始终包含                                         |
+| B (images)   | Docker 镜像 (.tar.gz)          | ~800MB     | 离线 Docker 部署（建议在目标机构建）             |
+| C (prebuilt) | Gateway dist + Deck standalone | ~10MB      | 跳过裸机构建                                     |
+| node_modules | Runtime 依赖                   | 视环境而定 | Windows 同平台自包含发布                         |
+| deps         | Windows 离线安装包             | ~675MB     | Node.js MSI + Docker Desktop + 可选 Git fallback |
 
 ### Windows 离线部署
 
 提前下载 Windows 依赖，避免目标机下载缓慢：
 
 ```bash
-# 下载全部（Node.js + Docker Desktop）
+# 下载全部（Node.js + Docker Desktop + 可选 Git fallback）
 deploy/scripts/prepare-deps.sh
 
 # 仅 Node.js（~60MB）
@@ -91,21 +164,70 @@ deploy/scripts/prepare-deps.sh --node-only
 deploy/scripts/package.sh --with-prebuilt --with-deps
 ```
 
-安装包内 `deps/` 目录包含 MSI/EXE 安装程序，目标机按 `deps/README.md` 手动安装后再运行 `install.sh`。
+安装包内 `deps/` 目录包含 MSI/EXE 安装程序。Windows bare-metal 优先运行 `install.ps1`；Git for Windows 仅作为兼容 shell fallback。
 
 ### 部署安装包
 
-```bash
-scp openclaw-deploy-*.tar.gz user@target:/tmp/
-ssh user@target
-tar xzf /tmp/openclaw-deploy-*.tar.gz
-cd openclaw-deploy-*
-./install.sh bare-metal   # 一键安装（API Key 已预填）
+Windows 目标机：
 
-# 运维
-./status.sh               # 查看状态
-./start.sh                # 启动
-./stop.sh                 # 停止
+```powershell
+tar xzf .\openclaw-deploy-*.tar.gz
+cd .\openclaw-deploy-*
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+
+.\status.ps1
+.\start.ps1
+.\stop.ps1
+```
+
+### Windows 一条命令分发
+
+如果你要把 Windows 包发布到静态 HTTP 目录：
+
+1. 运行：
+
+```bash
+deploy/scripts/package.sh --with-prebuilt --bootstrap-base-url https://<your-host>/windows --output /path/to/publish-dir
+```
+
+如果你要发布给 Windows 用户的一键自包含包，优先在 Windows 对应运行时环境使用：
+
+```bash
+deploy/scripts/package.sh --windows-self-contained --bootstrap-base-url http://<your-host>:8088/<release-label> --output /path/to/publish-dir
+```
+
+或者先产出普通 `--with-prebuilt` 包，再在 Windows 机器上执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\package-self-contained.ps1 -BasePackage .\openclaw-deploy-*.tar.gz -NodeModulesPath .\node_modules -BootstrapBaseUrl http://<your-host>:8088/<release-label>
+```
+
+2. 输出目录会多出：
+   - `install.ps1` — hostable bootstrap installer
+   - `windows-latest.json` — latest package manifest
+   - `openclaw-deploy-*.tar.gz` — deploy package
+
+3. 把这三个文件发布到同一个 HTTP 目录后，Windows 用户即可执行：
+
+```powershell
+iwr -useb http://<your-host>:8088/<release-label>/install.ps1 | iex
+```
+
+重复执行同一条命令即可走更新路径。
+
+### Windows 发布 HTTP 端口
+
+Windows 安装资产不要复用 Deck 的 `3340`，也不要依赖默认 `80/443`。请为 `publish/` 单独启动一个静态文件端口，例如 `8088`：
+
+```powershell
+cd deploy
+.\serve-release-http.cmd
+```
+
+默认发布根目录：
+
+```text
+deploy/publish/
 ```
 
 ## 环境变量
@@ -210,7 +332,14 @@ bash deploy/scripts/update.sh openclaw-deploy-NEW.tar.gz
 - 停止服务 → 备份数据 → 替换源码/构建产物 → 安装新依赖 → 同步 skills → 重启
 - **保留**：`.env`、`data/`（配置、Agent、会话、auth profile、定时任务、Deck 数据库）
 - **替换**：源码、构建产物、部署脚本、skills
-- 支持回滚（备份在 `.backup-YYYYMMDD-HHMMSS/`）
+- 支持回滚（当前备份目录为 `.backup/`）
+
+Windows bare-metal 对应 PowerShell 入口：
+
+```powershell
+.\update.ps1 -Package C:\path\to\openclaw-deploy-NEW.tar.gz -DryRun
+.\update.ps1 -Package C:\path\to\openclaw-deploy-NEW.tar.gz
+```
 
 ### 必须全量重装的情况
 

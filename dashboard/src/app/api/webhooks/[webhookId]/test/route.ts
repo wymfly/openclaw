@@ -17,12 +17,7 @@ export const POST = withAuth(async (_req: NextRequest, ctx: unknown) => {
     return NextResponse.json({ error: "Webhook not found" }, { status: 404 });
   }
 
-  const result = await deliverWebhook(
-    webhook,
-    "test.ping",
-    { test: true },
-    { allowRetry: false },
-  );
+  const result = await deliverWebhook(webhook, "test.ping", { test: true }, { allowRetry: false });
 
   return NextResponse.json({
     success: result.success,

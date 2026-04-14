@@ -18,7 +18,15 @@ export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
   }
 
   const body = (await request.json()) as Record<string, unknown>;
-  const allowed = new Set(["name", "entityType", "condition", "threshold", "action", "cooldownMs", "enabled"]);
+  const allowed = new Set([
+    "name",
+    "entityType",
+    "condition",
+    "threshold",
+    "action",
+    "cooldownMs",
+    "enabled",
+  ]);
 
   const hasUpdate = Object.keys(body).some((k) => allowed.has(k));
   if (!hasUpdate) {

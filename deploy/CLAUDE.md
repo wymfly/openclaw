@@ -9,23 +9,36 @@
 - 连接: Deck → Gateway via WebSocket（`DECK_GATEWAY_URL`）
 - 认证: `OPENCLAW_GATEWAY_TOKEN` + Ed25519 device identity
 - Docker 模式: Deck 与 Gateway 共享网络（`network_mode: service:gateway`），通过 localhost 自动配对
-- 裸机模式: PM2 进程管理，`ecosystem.config.cjs` 配置
+- 裸机模式:
+  - Windows PowerShell 路径: Scheduled Task / Startup fallback + 单一 supervisor
+  - 现有 shell 路径: PM2 进程管理，`ecosystem.config.cjs` 配置
 
 ## 关键文件索引
 
 | 文件 | 用途 | 何时修改 |
 |------|------|---------|
+| `install.ps1` | Windows 原生安装入口（bare-metal） | 修改 Windows 主安装路径时 |
 | `install.sh` | 根目录安装入口（forwarder） | 一般不改 |
+| `update.ps1` | Windows 原生更新入口（bare-metal） | 修改 Windows 更新流程时 |
+| `start.ps1` / `stop.ps1` / `status.ps1` | Windows 原生运维入口 | 修改 Windows 运维流程时 |
 | `start.sh` / `start.bat` | 根目录启动脚本 | 修改启动逻辑时 |
 | `stop.sh` / `stop.bat` | 根目录停止脚本 | 修改停止逻辑时 |
 | `status.sh` / `status.bat` | 根目录状态脚本 | 修改状态检查时 |
+| `scripts/windows/common.ps1` | Windows PowerShell 共享辅助函数 | 修改 Windows 依赖、自举、env/路径逻辑时 |
+| `scripts/windows/install-or-upgrade.ps1` | Windows bare-metal install/update/rollback 核心逻辑 | 修改 Windows 安装/升级机制时 |
+| `scripts/windows/service.ps1` | Windows 服务安装/启动/停止/状态（Scheduled Task / Startup fallback） | 修改 Windows 运行时治理时 |
+| `scripts/windows/supervisor.mjs` | Windows 单一 supervisor（拉起 Gateway + Deck） | 修改 Windows 进程模型时 |
+| `scripts/windows/package-self-contained.ps1` | 给已有 deploy tar.gz 增补 Windows `source/node_modules` | 产出 Windows 自包含发布物时 |
 | `scripts/install.sh` | 实际安装逻辑（自动装依赖 + 构建 + 启动） | 新增安装模式或依赖时 |
 | `scripts/package.sh` | 打包入口（A/B/C 叠加层） | 新增打包层时 |
+| `bootstrap-install.ps1` | 可托管 Windows bootstrap 安装器模板 | 修改一条命令分发逻辑时 |
+| `serve-release-http.cmd` | Windows 发布 HTTP 启动入口 | 修改安装包独立发布端口时 |
+| `scripts/windows/serve-release-http.mjs` | Windows 安装包静态文件服务 | 修改 `publish/` 暴露逻辑时 |
 | `scripts/seed.js` | 种子注入（Node.js 跨平台） | 新增 seed 内容或模板变量时 |
 | `scripts/generate-ecosystem.js` | PM2 配置生成 | 修改启动参数或 env 时 |
 | `scripts/teardown.sh` | 卸载清理 | 修改安装路径时 |
 | `scripts/update.sh` | 增量更新（保留用户数据） | 更新流程变化时 |
-| `scripts/prepare-deps.sh` | Windows 离线依赖下载（Git + Node.js + Docker） | 版本升级时 |
+| `scripts/prepare-deps.sh` | Windows 离线依赖下载（Node.js + Docker + 可选 Git fallback） | 版本升级时 |
 | `docker/docker-compose.yml` | Docker 编排 | 修改容器配置时 |
 | `docker/docker-compose.package.yml` | 预构建镜像 overlay | 修改镜像 tag 时 |
 | `docker/docker-compose.sandbox.yml` | Sandbox overlay | 修改沙箱配置时 |
@@ -65,6 +78,16 @@ bash status.sh               # 验证
 
 `.env.example` 已预填 CPA 凭据和 Gateway Token，`install.sh` 自动从 example 创建 `.env`。
 
+### Windows bare-metal（PowerShell）
+
+```powershell
+cd deploy
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+.\status.ps1
+```
+
+当前 Windows PowerShell 路径只覆盖 **Windows bare-metal**。Docker-on-Windows 仍走现有 shell 路径。
+
 ### Docker 模式
 
 ```bash
@@ -82,16 +105,28 @@ bash stop.sh      # 停止（Windows: 双击 stop.bat）
 bash status.sh    # 状态（Windows: 双击 status.bat）
 ```
 
+Windows PowerShell 等价命令：
+
+```powershell
+cd deploy
+.\start.ps1
+.\stop.ps1
+.\status.ps1
+```
+
 ### 打包
 
 ```bash
 deploy/scripts/package.sh                     # A: 仅源码
 deploy/scripts/package.sh --with-prebuilt     # A+C: 含预构建
+deploy/scripts/package.sh --windows-self-contained  # A+C + source/node_modules，自包含 Windows 包
 deploy/scripts/package.sh --with-images       # A+B: 含 Docker 镜像（建议在目标机构建）
 deploy/scripts/package.sh --full              # A+B+C: 全部
 deploy/scripts/prepare-deps.sh               # 下载 Windows 离线依赖
 deploy/scripts/package.sh --with-deps         # 打包时包含离线依赖
 deploy/scripts/package.sh --with-local        # 收集本地插件/skills
+deploy/scripts/package.sh --bootstrap-base-url https://<your-host>/windows  # 额外产出可托管 bootstrap 资产
+powershell -ExecutionPolicy Bypass -File .\deploy\package-self-contained.ps1 -BasePackage .\openclaw-deploy-*.tar.gz -NodeModulesPath .\node_modules
 ```
 
 ## 架构约束
@@ -123,6 +158,31 @@ bash deploy/scripts/update.sh new-package.tar.gz --dry
 
 # 执行更新
 bash deploy/scripts/update.sh new-package.tar.gz
+```
+
+Windows bare-metal PowerShell：
+
+```powershell
+.\update.ps1 -Package C:\path\to\openclaw-deploy-NEW.tar.gz -DryRun
+.\update.ps1 -Package C:\path\to\openclaw-deploy-NEW.tar.gz
+```
+
+## Windows 发布端口
+
+Windows 用户安装资产必须走**独立 HTTP 端口**，不要复用 Deck 的 `3340` 或默认 `80/443`。
+
+推荐：
+
+```powershell
+cd deploy
+.\serve-release-http.cmd
+```
+
+默认：
+
+```text
+根目录: deploy/publish
+端口: 8088
 ```
 
 **数据保留策略**：

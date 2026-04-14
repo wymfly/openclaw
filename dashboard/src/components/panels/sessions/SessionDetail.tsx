@@ -1,9 +1,9 @@
 "use client";
 
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowRight, ExternalLink, GitBranch, Minimize2, Trash2, User, Bot } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { InlineEdit } from "@/components/lists";
 import { LineageTree } from "@/components/shared/LineageTree";
 import { Badge } from "@/components/ui/badge";
@@ -153,10 +153,11 @@ function VirtualizedHistory({
   // Expose scrollToIndex for search navigation from parent
   useEffect(() => {
     if (scrollToIndexRef && "current" in scrollToIndexRef) {
-      (scrollToIndexRef as React.MutableRefObject<((index: number) => void) | null>).current =
-        (index: number) => {
-          virtualizer.scrollToIndex(index, { align: "center" });
-        };
+      (scrollToIndexRef as React.MutableRefObject<((index: number) => void) | null>).current = (
+        index: number,
+      ) => {
+        virtualizer.scrollToIndex(index, { align: "center" });
+      };
     }
   }, [virtualizer, scrollToIndexRef]);
 
@@ -185,10 +186,7 @@ function VirtualizedHistory({
                 highlightIndices.includes(i) && "ring-2 ring-[var(--primary)] rounded-lg",
               )}
             >
-              <HistoryBubble
-                message={msg}
-                showCompactionSeparator={msg.isCompaction && i > 0}
-              />
+              <HistoryBubble message={msg} showCompactionSeparator={msg.isCompaction && i > 0} />
             </div>
           );
         })}

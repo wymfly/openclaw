@@ -7,7 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
 
 export const GET = withAuth(async () => {
-  const rules = [...getAlertRuleStore().get()].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const rules = [...getAlertRuleStore().get()].toSorted(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
   return NextResponse.json({ rules });
 });
 

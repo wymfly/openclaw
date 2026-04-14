@@ -64,15 +64,9 @@ function resolveGatewaySettings(
   settings?: InitRuntimeSettings,
 ): ControlPlaneGatewaySettings | null {
   const url =
-    settings?.gatewayUrl ??
-    process.env.DECK_GATEWAY_URL ??
-    getSetting("gateway_url") ??
-    null;
+    settings?.gatewayUrl ?? process.env.DECK_GATEWAY_URL ?? getSetting("gateway_url") ?? null;
   const token =
-    settings?.gatewayToken ??
-    process.env.DECK_GATEWAY_TOKEN ??
-    getSetting("gateway_token") ??
-    null;
+    settings?.gatewayToken ?? process.env.DECK_GATEWAY_TOKEN ?? getSetting("gateway_token") ?? null;
 
   if (!url || !token) {
     return null;
@@ -140,10 +134,7 @@ const SESSION_EVENT_INTAKE_MAP = {
  * Agent/chat events are also persisted to the outbox as activity events and
  * broadcast on the "activity.event" channel for the Activity Feed panel.
  */
-function bridgeDomainEvent(
-  event: ControlPlaneDomainEvent,
-  eventBus: EventBus,
-): void {
+function bridgeDomainEvent(event: ControlPlaneDomainEvent, eventBus: EventBus): void {
   if (event.type === "gateway.event" && "event" in event) {
     const normalizedEventType =
       SESSION_EVENT_INTAKE_MAP[event.event as keyof typeof SESSION_EVENT_INTAKE_MAP];
@@ -174,11 +165,7 @@ function bridgeDomainEvent(
 }
 
 /** Derive an activity event from a Gateway domain event and persist + broadcast it. */
-function bridgeToActivity(
-  eventType: string,
-  payload: unknown,
-  eventBus: EventBus,
-): void {
+function bridgeToActivity(eventType: string, payload: unknown, eventBus: EventBus): void {
   const p = (payload ?? {}) as Record<string, unknown>;
   const now = Date.now();
   const id = `act-${now}-${Math.random().toString(36).slice(2, 8)}`;

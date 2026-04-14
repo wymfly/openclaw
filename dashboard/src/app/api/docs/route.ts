@@ -1,26 +1,9 @@
 /**
  * GET /api/docs — List docs with optional category filter and search.
  */
-import { getJsonStore } from "@server/json-store";
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
-
-export interface DocEntry {
-  id: string;
-  title: string;
-  category: string;
-  content: string;
-  sourceSession: string | null;
-  sourceAgent: string | null;
-  keywords: string[];
-  language: string;
-  extractedAt: string;
-  updatedAt: string;
-}
-
-export function getDocStore() {
-  return getJsonStore<DocEntry[]>("docs", []);
-}
+import { getDocStore } from "./store";
 
 export const GET = withAuth(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);

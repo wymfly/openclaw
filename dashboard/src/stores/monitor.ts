@@ -377,9 +377,13 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
     try {
       const start = Date.now();
       const res = await fetch("/api/gateway/health");
-      const latency = Date.now() - start;
+      const roundTripLatency = Date.now() - start;
       if (res.ok) {
         const raw = await res.json();
+        const gatewayLatency =
+          typeof raw?.durationMs === "number" && Number.isFinite(raw.durationMs)
+            ? raw.durationMs
+            : roundTripLatency;
         const agents = Array.isArray(raw.agents) ? raw.agents : [];
         const totalSessions = agents.reduce(
           (sum: number, a: { sessions?: { count?: number } }) => sum + (a.sessions?.count ?? 0),
@@ -390,7 +394,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
           channels: raw.channels ?? {},
           auth: raw.ok ? "ok" : "unknown",
         };
-        set({ healthSummary: data, gatewayStatus: "connected", gatewayLatency: latency });
+        set({ healthSummary: data, gatewayStatus: "connected", gatewayLatency: gatewayLatency });
       } else {
         set({ gatewayStatus: "error" });
       }
