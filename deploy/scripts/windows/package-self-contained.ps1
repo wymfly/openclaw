@@ -155,6 +155,20 @@ try {
     Write-DeployInfo ("Copying node_modules from: {0}" -f $resolvedNodeModules)
     Sync-DirectoryTree -Source $resolvedNodeModules -Destination $destNodeModules
 
+    # Copy per-extension node_modules (pnpm workspace creates these)
+    $sourceRoot = Split-Path -Parent $resolvedNodeModules
+    $extDir = Join-Path $sourceRoot "extensions"
+    if (Test-Path -LiteralPath $extDir) {
+        Get-ChildItem -LiteralPath $extDir -Directory | ForEach-Object {
+            $extNm = Join-Path $_.FullName "node_modules"
+            if (Test-Path -LiteralPath $extNm) {
+                $destExtNm = Join-Path $packageSourceDir "extensions" $_.Name "node_modules"
+                Write-DeployInfo ("Copying extensions/{0}/node_modules" -f $_.Name)
+                Sync-DirectoryTree -Source $extNm -Destination $destExtNm
+            }
+        }
+    }
+
     $manifestPath = Join-Path $pkgDir.FullName "manifest.json"
     Update-SelfContainedManifest -ManifestPath $manifestPath | Out-Null
 

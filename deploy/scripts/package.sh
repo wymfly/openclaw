@@ -229,6 +229,22 @@ stage_node_modules() {
     --exclude='.vite' \
     "$src/" "$STAGING_DIR/$PKG_NAME/source/node_modules/"
 
+  # Stage per-extension node_modules (pnpm workspace creates these)
+  local ext_dir="$REPO_DIR/extensions"
+  if [ -d "$ext_dir" ]; then
+    for ext_nm in "$ext_dir"/*/node_modules; do
+      [ -d "$ext_nm" ] || continue
+      local ext_name
+      ext_name="$(basename "$(dirname "$ext_nm")")"
+      local dest="$STAGING_DIR/$PKG_NAME/source/extensions/$ext_name/node_modules"
+      log "Staging extensions/$ext_name/node_modules..."
+      mkdir -p "$(dirname "$dest")"
+      rsync -a \
+        --exclude='.cache' \
+        "$ext_nm/" "$dest/"
+    done
+  fi
+
   HAS_NODE_MODULES=true
   log "source/node_modules staged"
 }

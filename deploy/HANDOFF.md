@@ -2,6 +2,12 @@
 
 This file is the quickest starting point for the next agent/operator who needs to continue Windows deploy work.
 
+> **Agent context chain**: after reading this file, also read the following before starting any deploy work:
+>
+> 1. `.agents/skills/openclaw-deploy-release/SKILL.md` — release workflow
+> 2. `.agents/skills/openclaw-deploy-release/references/validated-release-flow.md` — commands and checklists
+> 3. `deploy/CLAUDE.md` — file index and evolution contracts
+
 ## Current validated state
 
 ### Server

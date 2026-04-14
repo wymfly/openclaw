@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenClaw Deploy Release"
+  short_description: "Guide OpenClaw package release ops"
+  default_prompt: "Use $openclaw-deploy-release to prepare, publish, validate, and clean up an OpenClaw deploy release."
