@@ -1,4 +1,6 @@
 import { generateReqId } from "@wecom/aibot-node-sdk";
+import { resolveWecomEgressProxyUrlFromNetwork } from "../../config/index.js";
+import { wecomFetch } from "../../http.js";
 import { getAccountRuntime, getBotWsPushHandle } from "../../runtime.js";
 
 const HTTP_REQUEST_TIMEOUT_MS = 30_000;
@@ -134,74 +136,73 @@ async function sendRawJsonRpc(
   url: string,
   session: McpSession,
   body: JsonRpcRequest,
+  proxyUrl?: string,
 ): Promise<{ rpcResult: unknown; newSessionId: string | null }> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), HTTP_REQUEST_TIMEOUT_MS);
-  try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Accept: "application/json, text/event-stream",
-    };
-    if (session.sessionId) {
-      headers["Mcp-Session-Id"] = session.sessionId;
-    }
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+  };
+  if (session.sessionId) {
+    headers["Mcp-Session-Id"] = session.sessionId;
+  }
 
-    const response = await fetch(url, {
+  const response = await wecomFetch(
+    url,
+    {
       method: "POST",
       headers,
       body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    const newSessionId = response.headers.get("mcp-session-id");
+    },
+    { proxyUrl, timeoutMs: HTTP_REQUEST_TIMEOUT_MS },
+  );
+  const newSessionId = response.headers.get("mcp-session-id");
 
-    if (!response.ok) {
-      throw new McpHttpError(
-        response.status,
-        `MCP HTTP 请求失败: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const contentLength = response.headers.get("content-length");
-    if (response.status === 204 || contentLength === "0") {
-      return { rpcResult: undefined, newSessionId };
-    }
-
-    const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.includes("text/event-stream")) {
-      return {
-        rpcResult: await parseSseResponse(response),
-        newSessionId,
-      };
-    }
-
-    const text = await response.text();
-    if (!text.trim()) {
-      return { rpcResult: undefined, newSessionId };
-    }
-
-    const rpc = JSON.parse(text) as JsonRpcResponse;
-    if (rpc.error) {
-      throw new McpRpcError(
-        rpc.error.code,
-        `MCP 调用错误 [${rpc.error.code}]: ${rpc.error.message}`,
-        rpc.error.data,
-      );
-    }
-    return { rpcResult: rpc.result, newSessionId };
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error(`MCP 请求超时 (${HTTP_REQUEST_TIMEOUT_MS}ms)`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
+  if (!response.ok) {
+    throw new McpHttpError(
+      response.status,
+      `MCP HTTP 请求失败: ${response.status} ${response.statusText}`,
+    );
   }
+
+  const contentLength = response.headers.get("content-length");
+  if (response.status === 204 || contentLength === "0") {
+    return { rpcResult: undefined, newSessionId };
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("text/event-stream")) {
+    return {
+      rpcResult: await parseSseResponse(response),
+      newSessionId,
+    };
+  }
+
+  const text = await response.text();
+  if (!text.trim()) {
+    return { rpcResult: undefined, newSessionId };
+  }
+
+  const rpc = JSON.parse(text) as JsonRpcResponse;
+  if (rpc.error) {
+    throw new McpRpcError(
+      rpc.error.code,
+      `MCP 调用错误 [${rpc.error.code}]: ${rpc.error.message}`,
+      rpc.error.data,
+    );
+  }
+  return { rpcResult: rpc.result, newSessionId };
+}
+
+function resolveProxyUrlForAccount(accountId: string): string | undefined {
+  const runtime = getAccountRuntime(accountId);
+  return resolveWecomEgressProxyUrlFromNetwork(runtime?.resolved.account.agent?.network);
 }
 
 async function initializeSession(
   accountId: string,
   category: string,
   url: string,
+  proxyUrl?: string,
 ): Promise<McpSession> {
   const key = cacheKey(accountId, category);
   const session: McpSession = { sessionId: null, initialized: false, stateless: false };
@@ -217,7 +218,7 @@ async function initializeSession(
     },
   };
 
-  const initResult = await sendRawJsonRpc(url, session, initializeRequest);
+  const initResult = await sendRawJsonRpc(url, session, initializeRequest, proxyUrl);
   if (initResult.newSessionId) {
     session.sessionId = initResult.newSessionId;
   }
@@ -233,7 +234,7 @@ async function initializeSession(
     jsonrpc: "2.0",
     method: "notifications/initialized",
   };
-  const notifyResult = await sendRawJsonRpc(url, session, notifyRequest);
+  const notifyResult = await sendRawJsonRpc(url, session, notifyRequest, proxyUrl);
   if (notifyResult.newSessionId) {
     session.sessionId = notifyResult.newSessionId;
   }
@@ -263,7 +264,8 @@ async function getOrCreateSession(
     return inflight;
   }
 
-  const promise = initializeSession(accountId, category, url).finally(() => {
+  const proxyUrl = resolveProxyUrlForAccount(accountId);
+  const promise = initializeSession(accountId, category, url, proxyUrl).finally(() => {
     inflightInitRequests.delete(key);
   });
   inflightInitRequests.set(key, promise);
@@ -278,7 +280,8 @@ async function rebuildSession(
   const key = cacheKey(accountId, category);
   const inflight = inflightInitRequests.get(key);
   if (inflight) return inflight;
-  const promise = initializeSession(accountId, category, url).finally(() => {
+  const proxyUrl = resolveProxyUrlForAccount(accountId);
+  const promise = initializeSession(accountId, category, url, proxyUrl).finally(() => {
     inflightInitRequests.delete(key);
   });
   inflightInitRequests.set(key, promise);
@@ -363,6 +366,7 @@ export async function sendJsonRpc(
   params?: Record<string, unknown>,
 ): Promise<unknown> {
   const url = await getMcpUrl(accountId, category);
+  const proxyUrl = resolveProxyUrlForAccount(accountId);
   const body: JsonRpcRequest = {
     jsonrpc: "2.0",
     id: generateReqId("mcp_rpc"),
@@ -373,7 +377,7 @@ export async function sendJsonRpc(
   let session = await getOrCreateSession(accountId, category, url);
 
   try {
-    const result = await sendRawJsonRpc(url, session, body);
+    const result = await sendRawJsonRpc(url, session, body, proxyUrl);
     if (result.newSessionId) {
       session.sessionId = result.newSessionId;
     }
@@ -388,7 +392,7 @@ export async function sendJsonRpc(
     if (error instanceof McpHttpError && error.statusCode === 404) {
       mcpSessionCache.delete(cacheKey(accountId, category));
       session = await rebuildSession(accountId, category, url);
-      const result = await sendRawJsonRpc(url, session, body);
+      const result = await sendRawJsonRpc(url, session, body, proxyUrl);
       if (result.newSessionId) {
         session.sessionId = result.newSessionId;
       }

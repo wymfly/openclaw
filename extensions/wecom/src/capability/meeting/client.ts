@@ -3,60 +3,18 @@ import { wecomFetch } from "../../http.js";
 import { getAccessToken } from "../../transport/agent-api/core.js";
 import { LIMITS } from "../../types/constants.js";
 import type { ResolvedAgentAccount } from "../../types/index.js";
+import {
+  isRetryableError,
+  parseJsonResponse,
+  readString,
+  readStringArray,
+  withoutErrFields,
+} from "../shared-client-utils.js";
 import type { WecomMeeting, WecomMeetingListItem, WecomMeetingSettings } from "./types.js";
-
-function readString(value: unknown): string {
-  const trimmed = String(value ?? "").trim();
-  return trimmed || "";
-}
-
-function readStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.map((item) => readString(item)).filter(Boolean) : [];
-}
-
-function withoutErrFields<T extends Record<string, unknown>>(
-  value: T,
-): Omit<T, "errcode" | "errmsg"> {
-  const cloned = { ...value };
-  delete (cloned as { errcode?: unknown }).errcode;
-  delete (cloned as { errmsg?: unknown }).errmsg;
-  return cloned;
-}
 
 function readOptionalSettings(value: unknown): WecomMeetingSettings | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   return value as WecomMeetingSettings;
-}
-
-async function parseJsonResponse(
-  res: Response,
-  actionLabel: string,
-): Promise<Record<string, unknown>> {
-  let payload: Record<string, unknown> | null = null;
-  try {
-    payload = (await res.json()) as Record<string, unknown>;
-  } catch {
-    if (!res.ok) {
-      throw new Error(`WeCom ${actionLabel} failed: HTTP ${res.status}`);
-    }
-    throw new Error(`WeCom ${actionLabel} failed: invalid JSON response`);
-  }
-
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error(`WeCom ${actionLabel} failed: empty response`);
-  }
-
-  if (!res.ok) {
-    throw new Error(`WeCom ${actionLabel} failed: HTTP ${res.status} ${JSON.stringify(payload)}`);
-  }
-
-  if (Number(payload.errcode ?? 0) !== 0) {
-    throw new Error(
-      `WeCom ${actionLabel} failed: ${String(payload.errmsg || "unknown error")} (errcode ${String(payload.errcode)})`,
-    );
-  }
-
-  return payload;
 }
 
 export class WecomMeetingClient {
@@ -89,6 +47,7 @@ export class WecomMeetingClient {
 
         return await parseJsonResponse(res, actionLabel);
       } catch (err) {
+        if (!isRetryableError(err)) throw err;
         lastErr = err;
         if (attempt < 3) {
           await new Promise((resolve) => setTimeout(resolve, 1000));

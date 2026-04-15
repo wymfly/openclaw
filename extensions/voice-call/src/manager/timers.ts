@@ -27,13 +27,16 @@ export function startMaxDurationTimer(params: {
   ctx: MaxDurationTimerContext;
   callId: CallId;
   onTimeout: (callId: CallId) => Promise<void>;
+  /** Override the delay instead of using the full maxDurationSeconds (e.g. for restored calls). */
+  remainingMs?: number;
 }): void {
   clearMaxDurationTimer(params.ctx, params.callId);
 
-  const maxDurationMs = params.ctx.config.maxDurationSeconds * 1000;
-  console.log(
-    `[voice-call] Starting max duration timer (${params.ctx.config.maxDurationSeconds}s) for call ${params.callId}`,
-  );
+  const maxDurationMs = params.remainingMs ?? params.ctx.config.maxDurationSeconds * 1000;
+  const label = params.remainingMs
+    ? `${Math.round(params.remainingMs / 1000)}s remaining`
+    : `${params.ctx.config.maxDurationSeconds}s`;
+  console.log(`[voice-call] Starting max duration timer (${label}) for call ${params.callId}`);
 
   const timer = setTimeout(async () => {
     params.ctx.maxDurationTimers.delete(params.callId);

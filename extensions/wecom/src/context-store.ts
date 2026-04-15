@@ -42,7 +42,9 @@ function resolveStateDir(): string {
 }
 
 function resolveContextFilePath(accountId: string): string {
-  return path.join(resolveStateDir(), "wecom", "context", `${accountId}.json`);
+  // Sanitize accountId to prevent path traversal (e.g. "../" in user-configured YAML keys)
+  const safeId = accountId.replace(/[/\\]/g, "_").replace(/\.\./g, "_");
+  return path.join(resolveStateDir(), "wecom", "context", `${safeId}.json`);
 }
 
 /** Persist peer contexts for an account to disk */

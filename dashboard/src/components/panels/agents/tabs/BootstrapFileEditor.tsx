@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useDeckAgentsStore } from "@/stores/deck-agents";
 import type { BootstrapFileEntry } from "@/stores/deck-agents";
@@ -45,13 +45,18 @@ export function BootstrapFileEditor({
     editorReady: false,
   });
 
+  const activeNameRef = useRef(state.activeName);
+  const editorReadyRef = useRef(state.editorReady);
+  activeNameRef.current = state.activeName;
+  editorReadyRef.current = state.editorReady;
+
   const openFile = useCallback(
     async (name: string, exists: boolean, allowToggle = true) => {
-      if (allowToggle && state.activeName === name) {
+      if (allowToggle && activeNameRef.current === name) {
         setState((s) => ({ ...s, activeName: null, editorReady: false }));
         return;
       }
-      if (!allowToggle && state.activeName === name && state.editorReady) {
+      if (!allowToggle && activeNameRef.current === name && editorReadyRef.current) {
         return;
       }
 
@@ -89,7 +94,7 @@ export function BootstrapFileEditor({
         editorReady: true,
       }));
     },
-    [agentId, fetchBootstrapFile, state.activeName, state.editorReady],
+    [agentId, fetchBootstrapFile],
   );
 
   useEffect(() => {

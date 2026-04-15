@@ -289,7 +289,10 @@ export function SkillsTab({ agentId }: SkillsTabProps) {
                     <button
                       type="button"
                       className="p-2 border-y border-r border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent)] text-[var(--muted-foreground)] cursor-pointer transition-colors"
-                      onClick={() => void handleUpdateClawHub(entry.key, entryConfig.slug!)}
+                      onClick={() => {
+                        const slug = entryConfig?.slug;
+                        if (slug) void handleUpdateClawHub(entry.key, slug);
+                      }}
                       title={t("updateSkill")}
                       disabled={isUpdating}
                     >

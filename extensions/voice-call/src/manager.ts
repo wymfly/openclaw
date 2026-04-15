@@ -113,14 +113,18 @@ export class CallManager {
           );
           continue;
         }
+        const remainingMs = maxDurationMs - elapsed;
         startMaxDurationTimer({
           ctx: this.getContext(),
           callId,
+          remainingMs,
           onTimeout: async (id) => {
             await endCallWithContext(this.getContext(), id, { reason: "timeout" });
           },
         });
-        console.log(`[voice-call] Restarted max-duration timer for restored call ${callId}`);
+        console.log(
+          `[voice-call] Restarted max-duration timer for restored call ${callId} (${Math.round(remainingMs / 1000)}s remaining)`,
+        );
       }
     }
 
@@ -155,7 +159,8 @@ export class CallManager {
       }
 
       // Skip calls older than maxDurationSeconds (time-based fallback)
-      if (now - call.startedAt > maxAgeMs) {
+      // Use answeredAt when available to stay consistent with the timer logic in initialize()
+      if (now - (call.answeredAt ?? call.startedAt) > maxAgeMs) {
         console.log(
           `[voice-call] Skipping restored call ${callId} (older than maxDurationSeconds)`,
         );
