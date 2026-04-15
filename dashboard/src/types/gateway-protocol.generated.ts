@@ -1716,32 +1716,9 @@ export interface PluginApprovalRequestParams {
   twoPhase?: boolean;
 }
 
-export interface PluginApprovalRequestResult {
-  id: string;
-  status?: string;
-  decision?: string;
-  createdAtMs?: number;
-  expiresAtMs?: number;
-}
-
-export interface PluginApprovalWaitDecisionParams {
-  id: string;
-}
-
-export interface PluginApprovalWaitDecisionResult {
-  id: string;
-  decision?: string;
-  createdAtMs?: number;
-  expiresAtMs?: number;
-}
-
 export interface PluginApprovalResolveParams {
   id: string;
   decision: string;
-}
-
-export interface PluginApprovalResolveResult {
-  ok: true;
 }
 
 export interface SessionsListParams {
@@ -2173,7 +2150,7 @@ export type SessionsUsageParams = {
   includeContextWeight?: boolean;
 };
 
-export type SessionsUsageResult = {
+export interface SessionsUsageResult {
   updatedAt: number;
   startDate: string;
   endDate: string;
@@ -2185,296 +2162,17 @@ export type SessionsUsageResult = {
     agentId?: string;
     channel?: string;
     chatType?: string;
-    origin?: {
-      label?: string;
-      provider?: string;
-      surface?: string;
-      chatType?: string;
-      from?: string;
-      to?: string;
-      accountId?: string;
-      threadId?: string;
-    };
+    origin?: unknown;
     modelOverride?: string;
     providerOverride?: string;
     modelProvider?: string;
     model?: string;
-    usage: {
-      input: number;
-      output: number;
-      cacheRead: number;
-      cacheWrite: number;
-      totalTokens: number;
-      totalCost: number;
-      inputCost: number;
-      outputCost: number;
-      cacheReadCost: number;
-      cacheWriteCost: number;
-      missingCostEntries: number;
-      sessionId?: string;
-      sessionFile?: string;
-      firstActivity?: number;
-      lastActivity?: number;
-      durationMs?: number;
-      activityDates?: string[];
-      dailyBreakdown?: {
-        date: string;
-        tokens: number;
-        cost: number;
-      }[];
-      dailyMessageCounts?: {
-        date: string;
-        total: number;
-        user: number;
-        assistant: number;
-        toolCalls: number;
-        toolResults: number;
-        errors: number;
-      }[];
-      dailyLatency?: {
-        date: string;
-        count: number;
-        avgMs: number;
-        p95Ms: number;
-        minMs: number;
-        maxMs: number;
-      }[];
-      dailyModelUsage?: {
-        date: string;
-        provider?: string;
-        model?: string;
-        tokens: number;
-        cost: number;
-        count: number;
-      }[];
-      messageCounts?: {
-        total: number;
-        user: number;
-        assistant: number;
-        toolCalls: number;
-        toolResults: number;
-        errors: number;
-      };
-      toolUsage?: {
-        totalCalls: number;
-        uniqueTools: number;
-        tools: {
-          name: string;
-          count: number;
-        }[];
-      };
-      modelUsage?: {
-        provider?: string;
-        model?: string;
-        count: number;
-        totals: {
-          input: number;
-          output: number;
-          cacheRead: number;
-          cacheWrite: number;
-          totalTokens: number;
-          totalCost: number;
-          inputCost: number;
-          outputCost: number;
-          cacheReadCost: number;
-          cacheWriteCost: number;
-          missingCostEntries: number;
-        };
-      }[];
-      latency?: {
-        count: number;
-        avgMs: number;
-        p95Ms: number;
-        minMs: number;
-        maxMs: number;
-      };
-    } | null;
-    contextWeight?: {
-      source: "run" | "estimate";
-      generatedAt: number;
-      sessionId?: string;
-      sessionKey?: string;
-      provider?: string;
-      model?: string;
-      workspaceDir?: string;
-      bootstrapMaxChars?: number;
-      bootstrapTotalMaxChars?: number;
-      bootstrapTruncation?: {
-        warningMode?: "off" | "once" | "always";
-        warningShown?: boolean;
-        promptWarningSignature?: string;
-        warningSignaturesSeen?: string[];
-        truncatedFiles?: number;
-        nearLimitFiles?: number;
-        totalNearLimit?: boolean;
-      };
-      sandbox?: {
-        mode?: string;
-        sandboxed?: boolean;
-      };
-      systemPrompt: {
-        chars: number;
-        projectContextChars: number;
-        nonProjectContextChars: number;
-      };
-      injectedWorkspaceFiles: {
-        name: string;
-        path: string;
-        missing: boolean;
-        rawChars: number;
-        injectedChars: number;
-        truncated: boolean;
-      }[];
-      skills: {
-        promptChars: number;
-        entries: {
-          name: string;
-          blockChars: number;
-        }[];
-      };
-      tools: {
-        listChars: number;
-        schemaChars: number;
-        entries: {
-          name: string;
-          summaryChars: number;
-          schemaChars: number;
-          propertiesCount?: number;
-        }[];
-      };
-    } | null;
+    usage: unknown;
+    contextWeight?: unknown;
   }[];
-  totals: {
-    input: number;
-    output: number;
-    cacheRead: number;
-    cacheWrite: number;
-    totalTokens: number;
-    totalCost: number;
-    inputCost: number;
-    outputCost: number;
-    cacheReadCost: number;
-    cacheWriteCost: number;
-    missingCostEntries: number;
-  };
-  aggregates: {
-    messages: {
-      total: number;
-      user: number;
-      assistant: number;
-      toolCalls: number;
-      toolResults: number;
-      errors: number;
-    };
-    tools: {
-      totalCalls: number;
-      uniqueTools: number;
-      tools: {
-        name: string;
-        count: number;
-      }[];
-    };
-    byModel: {
-      provider?: string;
-      model?: string;
-      count: number;
-      totals: {
-        input: number;
-        output: number;
-        cacheRead: number;
-        cacheWrite: number;
-        totalTokens: number;
-        totalCost: number;
-        inputCost: number;
-        outputCost: number;
-        cacheReadCost: number;
-        cacheWriteCost: number;
-        missingCostEntries: number;
-      };
-    }[];
-    byProvider: {
-      provider?: string;
-      model?: string;
-      count: number;
-      totals: {
-        input: number;
-        output: number;
-        cacheRead: number;
-        cacheWrite: number;
-        totalTokens: number;
-        totalCost: number;
-        inputCost: number;
-        outputCost: number;
-        cacheReadCost: number;
-        cacheWriteCost: number;
-        missingCostEntries: number;
-      };
-    }[];
-    byAgent: {
-      agentId: string;
-      totals: {
-        input: number;
-        output: number;
-        cacheRead: number;
-        cacheWrite: number;
-        totalTokens: number;
-        totalCost: number;
-        inputCost: number;
-        outputCost: number;
-        cacheReadCost: number;
-        cacheWriteCost: number;
-        missingCostEntries: number;
-      };
-    }[];
-    byChannel: {
-      channel: string;
-      totals: {
-        input: number;
-        output: number;
-        cacheRead: number;
-        cacheWrite: number;
-        totalTokens: number;
-        totalCost: number;
-        inputCost: number;
-        outputCost: number;
-        cacheReadCost: number;
-        cacheWriteCost: number;
-        missingCostEntries: number;
-      };
-    }[];
-    latency?: {
-      count: number;
-      avgMs: number;
-      p95Ms: number;
-      minMs: number;
-      maxMs: number;
-    };
-    dailyLatency?: {
-      date: string;
-      count: number;
-      avgMs: number;
-      p95Ms: number;
-      minMs: number;
-      maxMs: number;
-    }[];
-    modelDaily?: {
-      date: string;
-      provider?: string;
-      model?: string;
-      tokens: number;
-      cost: number;
-      count: number;
-    }[];
-    daily: {
-      date: string;
-      tokens: number;
-      cost: number;
-      messages: number;
-      toolCalls: number;
-      errors: number;
-    }[];
-  };
-};
+  totals: unknown;
+  aggregates: unknown;
+}
 
 export type SessionsUsageTimeseriesParams = {
   key?: string;
@@ -2486,20 +2184,7 @@ export type SessionsUsageTimeseriesParams = {
   includeContextWeight?: boolean;
 };
 
-export interface SessionsUsageTimeseriesResult {
-  sessionId?: string;
-  points: {
-    timestamp: number;
-    input: number;
-    output: number;
-    cacheRead: number;
-    cacheWrite: number;
-    totalTokens: number;
-    cost: number;
-    cumulativeTokens: number;
-    cumulativeCost: number;
-  }[];
-}
+export type SessionsUsageTimeseriesResult = unknown;
 
 export type SessionsUsageLogsParams = {
   key?: string;
@@ -2511,15 +2196,9 @@ export type SessionsUsageLogsParams = {
   includeContextWeight?: boolean;
 };
 
-export type SessionsUsageLogsResult = {
-  logs: {
-    timestamp: number;
-    role: "user" | "assistant" | "tool" | "toolResult";
-    content: string;
-    tokens?: number;
-    cost?: number;
-  }[];
-};
+export interface SessionsUsageLogsResult {
+  logs: unknown[];
+}
 
 export interface AgentIdentityGetParams {
   agentId?: string;
@@ -2666,107 +2345,6 @@ export interface AgentsFilesSetResult {
   };
 }
 
-export interface ChannelsStatusParams {
-  probe?: boolean;
-  timeoutMs?: number;
-}
-
-export interface ChannelsStatusResult {
-  ts: number;
-  channelOrder: string[];
-  channelLabels: Record<string, string>;
-  channelDetailLabels?: Record<string, string>;
-  channelSystemImages?: Record<string, string>;
-  channelMeta?: {
-    id: string;
-    label: string;
-    detailLabel: string;
-    systemImage?: string;
-  }[];
-  channels: Record<string, unknown>;
-  channelAccounts: Record<
-    string,
-    {
-      accountId: string;
-      name?: string;
-      enabled?: boolean;
-      configured?: boolean;
-      linked?: boolean;
-      running?: boolean;
-      connected?: boolean;
-      reconnectAttempts?: number;
-      lastConnectedAt?: number;
-      lastError?: string;
-      healthState?: string;
-      lastStartAt?: number;
-      lastStopAt?: number;
-      lastInboundAt?: number;
-      lastOutboundAt?: number;
-      busy?: boolean;
-      activeRuns?: number;
-      lastRunActivityAt?: number;
-      lastProbeAt?: number;
-      mode?: string;
-      dmPolicy?: string;
-      allowFrom?: string[];
-      tokenSource?: string;
-      botTokenSource?: string;
-      appTokenSource?: string;
-      baseUrl?: string;
-      allowUnmentionedGroups?: boolean;
-      cliPath?: string;
-      dbPath?: string;
-      port?: number;
-      probe?: unknown;
-      audit?: unknown;
-      application?: unknown;
-    }[]
-  >;
-  channelDefaultAccountId: Record<string, string>;
-}
-
-export interface ChannelsLogoutParams {
-  channel: string;
-  accountId?: string;
-}
-
-export interface ChannelsLogoutResult {
-  channel: string;
-  accountId: string;
-  cleared: boolean;
-}
-
-export type CommandsListParams = {
-  agentId?: string;
-  provider?: string;
-  scope?: "text" | "native" | "both";
-  includeArgs?: boolean;
-};
-
-export type CommandsListResult = {
-  commands: {
-    name: string;
-    nativeName?: string;
-    textAliases?: string[];
-    description: string;
-    category?: "session" | "options" | "status" | "management" | "media" | "tools" | "docks";
-    source: "native" | "skill" | "plugin";
-    scope: "text" | "native" | "both";
-    acceptsArgs: boolean;
-    args?: {
-      name: string;
-      description: string;
-      type: "string" | "number" | "boolean";
-      required?: boolean;
-      choices?: {
-        value: string;
-        label: string;
-      }[];
-      dynamic?: boolean;
-    }[];
-  }[];
-};
-
 export type ModelsListParams = Record<string, never>;
 
 export interface ModelsListResult {
@@ -2799,21 +2377,6 @@ export interface ModelsConfiguredResult {
     maxTokens?: number;
     authStatus: string;
   }[];
-}
-
-export interface LogsTailParams {
-  cursor?: number;
-  limit?: number;
-  maxBytes?: number;
-}
-
-export interface LogsTailResult {
-  file: string;
-  cursor: number;
-  size: number;
-  lines: string[];
-  truncated?: boolean;
-  reset?: boolean;
 }
 
 export interface DeckCommandsDiscoverParams {
@@ -3439,58 +3002,6 @@ export interface TalkModeResult {
   ts: number;
 }
 
-export interface ToolsCatalogParams {
-  agentId?: string;
-  includePlugins?: boolean;
-}
-
-export type ToolsCatalogResult = {
-  agentId: string;
-  profiles: {
-    id: "minimal" | "coding" | "messaging" | "full";
-    label: string;
-  }[];
-  groups: {
-    id: string;
-    label: string;
-    source: "core" | "plugin";
-    pluginId?: string;
-    tools: {
-      id: string;
-      label: string;
-      description: string;
-      source: "core" | "plugin";
-      pluginId?: string;
-      optional?: boolean;
-      defaultProfiles: ("minimal" | "coding" | "messaging" | "full")[];
-    }[];
-  }[];
-};
-
-export interface ToolsEffectiveParams {
-  agentId?: string;
-  sessionKey: string;
-}
-
-export type ToolsEffectiveResult = {
-  agentId: string;
-  profile: string;
-  groups: {
-    id: "core" | "plugin" | "channel";
-    label: string;
-    source: "core" | "plugin" | "channel";
-    tools: {
-      id: string;
-      label: string;
-      description: string;
-      rawDescription: string;
-      source: "core" | "plugin" | "channel";
-      pluginId?: string;
-      channelId?: string;
-    }[];
-  }[];
-};
-
 export type WizardStartParams = {
   mode?: "local" | "remote";
   workspace?: string;
@@ -3952,18 +3463,8 @@ export interface GatewayMethodMap {
     params: Record<string, unknown>;
     result: DoctorMemoryDedupeDreamDiaryResult;
   };
-  "plugin.approval.request": {
-    params: PluginApprovalRequestParams;
-    result: PluginApprovalRequestResult;
-  };
-  "plugin.approval.waitDecision": {
-    params: PluginApprovalWaitDecisionParams;
-    result: PluginApprovalWaitDecisionResult;
-  };
-  "plugin.approval.resolve": {
-    params: PluginApprovalResolveParams;
-    result: PluginApprovalResolveResult;
-  };
+  "plugin.approval.request": { params: PluginApprovalRequestParams; result: unknown };
+  "plugin.approval.resolve": { params: PluginApprovalResolveParams; result: unknown };
   "sessions.list": { params: SessionsListParams; result: SessionsListResult };
   "sessions.subscribe": { params: Record<string, unknown>; result: SessionsSubscribeResult };
   "sessions.unsubscribe": { params: Record<string, unknown>; result: SessionsUnsubscribeResult };
@@ -4017,12 +3518,8 @@ export interface GatewayMethodMap {
   "agents.files.list": { params: AgentsFilesListParams; result: AgentsFilesListResult };
   "agents.files.get": { params: AgentsFilesGetParams; result: AgentsFilesGetResult };
   "agents.files.set": { params: AgentsFilesSetParams; result: AgentsFilesSetResult };
-  "channels.status": { params: ChannelsStatusParams; result: ChannelsStatusResult };
-  "channels.logout": { params: ChannelsLogoutParams; result: ChannelsLogoutResult };
-  "commands.list": { params: CommandsListParams; result: CommandsListResult };
   "models.list": { params: ModelsListParams; result: ModelsListResult };
   "models.configured": { params: ModelsConfiguredParams; result: ModelsConfiguredResult };
-  "logs.tail": { params: LogsTailParams; result: LogsTailResult };
   "deck.commands.discover": {
     params: DeckCommandsDiscoverParams;
     result: DeckCommandsDiscoverResult;
@@ -4082,8 +3579,6 @@ export interface GatewayMethodMap {
   "talk.config": { params: TalkConfigParams; result: TalkConfigResult };
   "talk.speak": { params: TalkSpeakParams; result: TalkSpeakResult };
   "talk.mode": { params: TalkModeParams; result: TalkModeResult };
-  "tools.catalog": { params: ToolsCatalogParams; result: ToolsCatalogResult };
-  "tools.effective": { params: ToolsEffectiveParams; result: ToolsEffectiveResult };
   "wizard.start": { params: WizardStartParams; result: WizardStartResult };
   "wizard.next": { params: WizardNextParams; result: WizardNextResult };
   "wizard.cancel": { params: WizardCancelParams; result: WizardCancelResult };

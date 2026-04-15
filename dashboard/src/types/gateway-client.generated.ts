@@ -18,12 +18,9 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "agents.files.set",
   "agents.list",
   "agents.update",
-  "channels.logout",
-  "channels.status",
   "chat.abort",
   "chat.history",
   "chat.send",
-  "commands.list",
   "config.apply",
   "config.get",
   "config.patch",
@@ -84,7 +81,6 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "exec.approvals.set",
   "gateway.describe",
   "health",
-  "logs.tail",
   "models.catalog.providers",
   "models.configured",
   "models.list",
@@ -133,8 +129,6 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "talk.config",
   "talk.mode",
   "talk.speak",
-  "tools.catalog",
-  "tools.effective",
   "usage.cost",
   "usage.status",
   "wizard.cancel",
@@ -384,15 +378,11 @@ export interface GatewayClient {
       request(
         params: import("./gateway-protocol.generated").PluginApprovalRequestParams,
         options?: { timeoutMs?: number },
-      ): Promise<import("./gateway-protocol.generated").PluginApprovalRequestResult>;
-      waitDecision(
-        params: import("./gateway-protocol.generated").PluginApprovalWaitDecisionParams,
-        options?: { timeoutMs?: number },
-      ): Promise<import("./gateway-protocol.generated").PluginApprovalWaitDecisionResult>;
+      ): Promise<unknown>;
       resolve(
         params: import("./gateway-protocol.generated").PluginApprovalResolveParams,
         options?: { timeoutMs?: number },
-      ): Promise<import("./gateway-protocol.generated").PluginApprovalResolveResult>;
+      ): Promise<unknown>;
     };
   };
   sessions: {
@@ -539,28 +529,6 @@ export interface GatewayClient {
       ): Promise<import("./gateway-protocol.generated").AgentsFilesSetResult>;
     };
   };
-  channels: {
-    status(
-      params: import("./gateway-protocol.generated").ChannelsStatusParams,
-      options?: { timeoutMs?: number },
-    ): Promise<import("./gateway-protocol.generated").ChannelsStatusResult>;
-    logout(
-      params: import("./gateway-protocol.generated").ChannelsLogoutParams,
-      options?: { timeoutMs?: number },
-    ): Promise<import("./gateway-protocol.generated").ChannelsLogoutResult>;
-  };
-  commands: {
-    list(
-      params: import("./gateway-protocol.generated").CommandsListParams,
-      options?: { timeoutMs?: number },
-    ): Promise<import("./gateway-protocol.generated").CommandsListResult>;
-  };
-  logs: {
-    tail(
-      params: import("./gateway-protocol.generated").LogsTailParams,
-      options?: { timeoutMs?: number },
-    ): Promise<import("./gateway-protocol.generated").LogsTailResult>;
-  };
   deck: {
     commands: {
       discover(
@@ -706,16 +674,6 @@ export interface GatewayClient {
       params: import("./gateway-protocol.generated").TalkModeParams,
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").TalkModeResult>;
-  };
-  tools: {
-    catalog(
-      params: import("./gateway-protocol.generated").ToolsCatalogParams,
-      options?: { timeoutMs?: number },
-    ): Promise<import("./gateway-protocol.generated").ToolsCatalogResult>;
-    effective(
-      params: import("./gateway-protocol.generated").ToolsEffectiveParams,
-      options?: { timeoutMs?: number },
-    ): Promise<import("./gateway-protocol.generated").ToolsEffectiveResult>;
   };
   wizard: {
     start(
@@ -884,7 +842,6 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
     plugin: {
       approval: {
         request: call("plugin.approval.request"),
-        waitDecision: call("plugin.approval.waitDecision"),
         resolve: call("plugin.approval.resolve"),
       },
     },
@@ -935,16 +892,6 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
         get: call("agents.files.get"),
         set: call("agents.files.set"),
       },
-    },
-    channels: {
-      status: call("channels.status"),
-      logout: call("channels.logout"),
-    },
-    commands: {
-      list: call("commands.list"),
-    },
-    logs: {
-      tail: call("logs.tail"),
     },
     deck: {
       commands: {
@@ -1004,10 +951,6 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       config: call("talk.config"),
       speak: call("talk.speak"),
       mode: call("talk.mode"),
-    },
-    tools: {
-      catalog: call("tools.catalog"),
-      effective: call("tools.effective"),
     },
     wizard: {
       start: call("wizard.start"),
