@@ -38,7 +38,10 @@ export function validateBaseHash(
   currentHash: string,
 ): { code: ErrorCode; message: string; details?: { reason: string } } | null {
   if (!baseHash || typeof baseHash !== "string") {
-    return { code: ErrorCodes.INVALID_REQUEST, message: "baseHash is required for write operations" };
+    return {
+      code: ErrorCodes.INVALID_REQUEST,
+      message: "baseHash is required for write operations",
+    };
   }
   if (baseHash !== currentHash) {
     return {

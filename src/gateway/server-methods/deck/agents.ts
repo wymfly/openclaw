@@ -220,7 +220,15 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     const currentHash = resolveConfigSnapshotHash(snapshot) ?? "";
     const hashError = validateBaseHash(baseHash, currentHash);
     if (hashError) {
-      respond(false, undefined, errorShape(hashError.code, hashError.message, hashError.details ? { details: hashError.details } : undefined));
+      respond(
+        false,
+        undefined,
+        errorShape(
+          hashError.code,
+          hashError.message,
+          hashError.details ? { details: hashError.details } : undefined,
+        ),
+      );
       return;
     }
 
@@ -340,7 +348,15 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     const currentHash = resolveConfigSnapshotHash(snapshot) ?? "";
     const hashError = validateBaseHash(baseHash, currentHash);
     if (hashError) {
-      respond(false, undefined, errorShape(hashError.code, hashError.message, hashError.details ? { details: hashError.details } : undefined));
+      respond(
+        false,
+        undefined,
+        errorShape(
+          hashError.code,
+          hashError.message,
+          hashError.details ? { details: hashError.details } : undefined,
+        ),
+      );
       return;
     }
 
@@ -448,7 +464,15 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     const currentHash = resolveConfigSnapshotHash(snapshot) ?? "";
     const hashError = validateBaseHash(baseHash, currentHash);
     if (hashError) {
-      respond(false, undefined, errorShape(hashError.code, hashError.message, hashError.details ? { details: hashError.details } : undefined));
+      respond(
+        false,
+        undefined,
+        errorShape(
+          hashError.code,
+          hashError.message,
+          hashError.details ? { details: hashError.details } : undefined,
+        ),
+      );
       return;
     }
 

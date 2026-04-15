@@ -13,9 +13,8 @@ afterEach(() => {
 
 describe("nodes store", () => {
   it("refreshes selected node detail after approving a pairing request", async () => {
-    const fetchMock = vi.fn<
-      typeof fetch
-    >()
+    const fetchMock = vi
+      .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(
         Response.json({
