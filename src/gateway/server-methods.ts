@@ -12,6 +12,7 @@ import { channelsHandlers } from "./server-methods/channels.js";
 import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
 import { chatHandlers } from "./server-methods/chat.js";
 import { commandsHandlers } from "./server-methods/commands.js";
+import { configMethodDefs } from "./server-methods/config-method-defs.js";
 import { configHandlers } from "./server-methods/config.js";
 import { connectHandlers } from "./server-methods/connect.js";
 import { cronHandlers } from "./server-methods/cron.js";
@@ -124,6 +125,7 @@ export const gatewayMethodRegistry = buildMethodRegistry(
   coreGatewayHandlers,
   [
     chatMethodDefs,
+    configMethodDefs,
     sessionsMethodDefs,
     usageMethodDefs,
     skillsMethodDefs,

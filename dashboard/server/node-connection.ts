@@ -37,7 +37,7 @@ const CONNECT_PROTOCOL = 3;
 
 const NODE_CLIENT_ID = "node-host";
 const NODE_CLIENT_MODE = "node";
-const NODE_CLIENT_PLATFORM = "web";
+const NODE_CLIENT_PLATFORM = "node";
 
 /** Canvas commands the node advertises (Gateway expects string[]). */
 const NODE_CANVAS_COMMANDS: string[] = [
@@ -379,12 +379,23 @@ export class NodeConnection {
     let device: Record<string, unknown> | undefined;
     if (nonce) {
       const signedAt = Date.now();
+      // Include operator scopes so the initial device pairing record covers
+      // both the node-connection (role=node) and the gateway-adapter (role=operator).
+      // Without this, the adapter's scope-upgrade request is rejected (silent=false
+      // for scope-upgrade in the Gateway handshake), blocking the control-plane.
+      const nodeScopes = [
+        "operator.admin",
+        "operator.read",
+        "operator.write",
+        "operator.approvals",
+        "operator.pairing",
+      ];
       const payload = buildV3SignaturePayload({
         deviceId,
         clientId: NODE_CLIENT_ID,
         clientMode: NODE_CLIENT_MODE,
         role: "node",
-        scopes: [],
+        scopes: nodeScopes,
         signedAtMs: signedAt,
         token,
         nonce,
@@ -423,7 +434,13 @@ export class NodeConnection {
         auth,
         ...(device ? { device } : {}),
         role: "node",
-        scopes: [],
+        scopes: [
+          "operator.admin",
+          "operator.read",
+          "operator.write",
+          "operator.approvals",
+          "operator.pairing",
+        ],
         caps: ["canvas"],
         commands: NODE_CANVAS_COMMANDS,
       },
