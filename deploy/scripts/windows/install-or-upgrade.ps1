@@ -29,9 +29,17 @@ function Copy-DeckStandaloneAssets {
         }
         Copy-Item -LiteralPath $publicDir -Destination $standalonePublic -Recurse -Force
     }
-    if ((Test-Path -LiteralPath $entrySrc) -and -not (Test-Path -LiteralPath $entryDst)) {
+    if (Test-Path -LiteralPath $entrySrc) {
         Copy-Item -LiteralPath $entrySrc -Destination $entryDst -Force
         Write-DeployInfo "Copied standalone-entry.mjs"
+    }
+
+    # Validate critical assets exist after copy
+    if (-not (Test-Path -LiteralPath $standaloneStatic)) {
+        Write-DeployWarn "WARNING: .next/static not found at $standaloneStatic after asset copy"
+    }
+    if (-not (Test-Path -LiteralPath $entryDst)) {
+        Write-DeployWarn "WARNING: standalone-entry.mjs not found at $entryDst after asset copy"
     }
 }
 

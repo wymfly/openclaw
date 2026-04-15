@@ -195,7 +195,7 @@ stage_prebuilt() {
   # Always rebuild Deck from source
   log "Building Deck..."
   rm -rf "$REPO_DIR/dashboard/.next"
-  (cd "$REPO_DIR/dashboard" && pnpm install && npx next build --webpack)
+  (cd "$REPO_DIR/dashboard" && pnpm install && DECK_GATEWAY_URL="ws://localhost:${GATEWAY_PORT:-18789}" npx next build --webpack)
 
   local standalone="$REPO_DIR/dashboard/.next/standalone"
   mkdir -p "$src/dashboard/.next"

@@ -340,7 +340,7 @@ bare_metal_install() {
   fi
 
   # Copy standalone entry point (wrapper that starts server.js)
-  if [ -f dashboard/standalone-entry.mjs ] && [ ! -f dashboard/.next/standalone/dashboard/standalone-entry.mjs ]; then
+  if [ -f dashboard/standalone-entry.mjs ]; then
     cp dashboard/standalone-entry.mjs dashboard/.next/standalone/dashboard/standalone-entry.mjs
     log "Copied standalone-entry.mjs"
   fi
@@ -553,7 +553,7 @@ upgrade_from_package() {
   fi
 
   # --- Post-update fixups ---
-  if [ -f dashboard/standalone-entry.mjs ] && [ ! -f dashboard/.next/standalone/dashboard/standalone-entry.mjs ]; then
+  if [ -f dashboard/standalone-entry.mjs ]; then
     cp dashboard/standalone-entry.mjs dashboard/.next/standalone/dashboard/standalone-entry.mjs
     log "Copied standalone-entry.mjs"
   fi

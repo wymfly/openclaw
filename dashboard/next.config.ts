@@ -3,31 +3,14 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
-// Derive Gateway HTTP base from the WebSocket URL used by Deck server
-const gatewayWsUrl = process.env.DECK_GATEWAY_URL ?? "ws://localhost:18789";
-const gatewayHttpUrl = gatewayWsUrl.replace(/^ws(s)?:\/\//, "http$1://");
-
 const nextConfig: NextConfig = {
   // Server needs native modules (ws)
   serverExternalPackages: ["ws"],
   // Support standalone output for Docker deployment
   output: "standalone",
 
-  // Reverse-proxy plugin webhook paths to Gateway (loopback-only),
-  // so external services (e.g. WeCom callback) can reach plugin HTTP
-  // routes via the public Deck port.
-  async rewrites() {
-    return [
-      {
-        source: "/plugins/:path*",
-        destination: `${gatewayHttpUrl}/plugins/:path*`,
-      },
-      {
-        source: "/wecom/:path*",
-        destination: `${gatewayHttpUrl}/wecom/:path*`,
-      },
-    ];
-  },
+  // Plugin webhook proxy (e.g. WeCom callback) is handled by
+  // src/middleware.ts at runtime — no build-time rewrites needed.
 
   // Security headers
   async headers() {
