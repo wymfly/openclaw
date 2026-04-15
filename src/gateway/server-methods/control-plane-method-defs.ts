@@ -53,11 +53,7 @@ import {
 } from "../protocol/schema/exec-approvals.js";
 import {
   PluginApprovalRequestParamsSchema,
-  PluginApprovalWaitDecisionParamsSchema,
-  PluginApprovalRequestResultSchema,
   PluginApprovalResolveParamsSchema,
-  PluginApprovalResolveResultSchema,
-  PluginApprovalWaitDecisionResultSchema,
 } from "../protocol/schema/plugin-approvals.js";
 import {
   UsageCostResultSchema,
@@ -230,17 +226,17 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   },
   "plugin.approval.request": {
     params: PluginApprovalRequestParamsSchema,
-    result: PluginApprovalRequestResultSchema,
+    result: undefined,
     scope: APPROVALS_SCOPE,
   },
   "plugin.approval.waitDecision": {
-    params: PluginApprovalWaitDecisionParamsSchema,
-    result: PluginApprovalWaitDecisionResultSchema,
+    params: undefined,
+    result: undefined,
     scope: APPROVALS_SCOPE,
   },
   "plugin.approval.resolve": {
     params: PluginApprovalResolveParamsSchema,
-    result: PluginApprovalResolveResultSchema,
+    result: undefined,
     scope: APPROVALS_SCOPE,
   },
 };

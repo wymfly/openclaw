@@ -6,7 +6,7 @@ import {
   type OpenClawConfig,
 } from "openclaw/plugin-sdk/wecom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createRuntimeEnv } from "../../../test/helpers/extensions/runtime-env.js";
+import { createRuntimeEnv } from "../../../test/helpers/plugins/runtime-env.js";
 import { wecomPlugin } from "./channel.js";
 import { computeWecomMsgSignature, encryptWecomPlaintext } from "./crypto.js";
 import { handleWecomWebhookRequest } from "./monitor.js";
@@ -45,7 +45,9 @@ function createMockResponse(): ServerResponse & {
     return true;
   };
   res.end = ((chunk?: string | Uint8Array) => {
-    if (chunk) data += String(chunk);
+    if (chunk) {
+      data += String(chunk);
+    }
     return res;
   }) as MockResponse["end"];
   res._getData = () => data;
@@ -57,6 +59,7 @@ function createCtx(params: {
   cfg: OpenClawConfig;
   accountId?: string;
   abortController: AbortController;
+  // oxlint-disable-next-line typescript/no-redundant-type-constituents -- oxlint cannot resolve openclaw/plugin-sdk/wecom package re-export
 }): ChannelGatewayContext<ResolvedWecomAccount> & {
   statusUpdates: Array<Partial<ChannelAccountSnapshot>>;
 } {

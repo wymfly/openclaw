@@ -10,7 +10,8 @@ import {
 } from "../../../agents/subagent-registry.js";
 import { clearSessionQueues } from "../../../auto-reply/reply/queue.js";
 import { loadConfig } from "../../../config/config.js";
-import { loadSessionStore, resolveStorePath } from "../../../config/sessions.js";
+import { loadSessionStore } from "../../../config/sessions.js";
+import { resolveStorePath } from "../../../config/sessions/paths.js";
 import { callGateway } from "../../../gateway/call.js";
 import { parseAgentSessionKey } from "../../../routing/session-key.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../../utils/message-channel.js";
@@ -65,7 +66,7 @@ function resolveSessionId(childSessionKey: string): string | undefined {
   if (!parsed) {
     return undefined;
   }
-  const storePath = resolveStorePath(cfg, parsed.agentId);
+  const storePath = resolveStorePath(cfg.session?.store, { agentId: parsed.agentId });
   const store = loadSessionStore(storePath);
   const entry = store[childSessionKey];
   return typeof entry?.sessionId === "string" && entry.sessionId.trim()

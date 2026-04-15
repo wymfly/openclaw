@@ -236,7 +236,7 @@ export const deckRoutingHandlers: GatewayRequestHandlers = {
     const warnings = detectConflicts({ agentId: params.agentId, match: params.match }, bindings);
 
     // Build new binding
-    const newBinding: AgentRouteBinding = {
+    const newBinding: AgentBinding = {
       agentId: params.agentId,
       match: params.match,
       ...(params.comment && typeof params.comment === "string" ? { comment: params.comment } : {}),

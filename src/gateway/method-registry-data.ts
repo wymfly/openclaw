@@ -7,22 +7,17 @@ import type { MethodMetadata } from "./method-registry.js";
 import { PROTOCOL_VERSION } from "./protocol/schema/protocol-schemas.js";
 import { agentMethodDefs } from "./server-methods/agent.js";
 import { agentsMethodDefs } from "./server-methods/agents.js";
-import { channelsMethodDefs } from "./server-methods/channels.js";
 import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
-import { commandsMethodDefs } from "./server-methods/commands.js";
 import { configMethodDefs } from "./server-methods/config-method-defs.js";
 import { controlPlaneMethodDefs } from "./server-methods/control-plane-method-defs.js";
 import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
 import { deckMethodDefs } from "./server-methods/deck/index.js";
 import { describeMethodDefs } from "./server-methods/describe.js";
 import { deviceMethodDefs } from "./server-methods/device-method-defs.js";
-import { logsMethodDefs } from "./server-methods/logs.js";
 import { modelsMethodDefs } from "./server-methods/models.js";
 import { nodeMethodDefs } from "./server-methods/node-method-defs.js";
 import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
 import { talkMethodDefs } from "./server-methods/talk-method-defs.js";
-import { toolsCatalogMethodDefs } from "./server-methods/tools-catalog.js";
-import { toolsEffectiveMethodDefs } from "./server-methods/tools-effective.js";
 import { wizardMethodDefs } from "./server-methods/wizard-method-defs.js";
 
 export { PROTOCOL_VERSION };
@@ -38,16 +33,11 @@ export const allMethodDefs: Record<string, MethodMetadata> = {
   ...sessionsMethodDefs,
   ...agentMethodDefs,
   ...agentsMethodDefs,
-  ...channelsMethodDefs,
-  ...commandsMethodDefs,
   ...modelsMethodDefs,
-  ...logsMethodDefs,
   ...deckMethodDefs,
   ...deckAuthMethodDefs,
   ...describeMethodDefs,
   ...talkMethodDefs,
-  ...toolsCatalogMethodDefs,
-  ...toolsEffectiveMethodDefs,
   ...wizardMethodDefs,
   ...deviceMethodDefs,
   ...nodeMethodDefs,

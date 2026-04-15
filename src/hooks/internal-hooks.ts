@@ -276,12 +276,6 @@ export function getRegisteredEventKeys(): string[] {
   return Array.from(handlers.keys());
 }
 
-export function hasInternalHookListeners(type: InternalHookEventType, action: string): boolean {
-  return (
-    (handlers.get(type)?.length ?? 0) > 0 || (handlers.get(`${type}:${action}`)?.length ?? 0) > 0
-  );
-}
-
 /**
  * Trigger a hook event
  *

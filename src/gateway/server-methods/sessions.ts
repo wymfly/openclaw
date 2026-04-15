@@ -64,13 +64,7 @@ import {
   getSessionCompactionCheckpoint,
   listSessionCompactionCheckpoints,
 } from "../session-compaction-checkpoints.js";
-import {
-  archiveSessionTranscriptsForSession,
-  cleanupSessionBeforeMutation,
-  emitSessionUnboundLifecycleEvent,
-  performGatewaySessionClear,
-  performGatewaySessionReset,
-} from "../session-reset-service.js";
+import { performGatewaySessionReset } from "../session-reset-service.js";
 import { reactivateCompletedSubagentSession } from "../session-subagent-reactivation.js";
 import {
   archiveFileOnDisk,
@@ -1365,7 +1359,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const result = await performGatewaySessionClear({
+    const result = await performGatewaySessionReset({
       key,
       reason: "reset",
       commandSource: "gateway:sessions.clear",

@@ -6,8 +6,8 @@ import { buildMethodRegistry } from "./method-registry.js";
 import { ADMIN_SCOPE, authorizeOperatorScopesForMethod } from "./method-scopes.js";
 import { ErrorCodes, errorShape } from "./protocol/index.js";
 import { isRoleAuthorizedForMethod, parseGatewayRole } from "./role-policy.js";
-import { agentHandlers } from "./server-methods/agent.js";
-import { agentsHandlers } from "./server-methods/agents.js";
+import { agentHandlers, agentMethodDefs } from "./server-methods/agent.js";
+import { agentsHandlers, agentsMethodDefs } from "./server-methods/agents.js";
 import { channelsHandlers } from "./server-methods/channels.js";
 import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
 import { chatHandlers } from "./server-methods/chat.js";
@@ -29,7 +29,7 @@ import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
 import { healthHandlers } from "./server-methods/health.js";
 import { logsHandlers } from "./server-methods/logs.js";
 import { modelsCatalogProvidersHandlers } from "./server-methods/models-catalog-providers.js";
-import { modelsHandlers } from "./server-methods/models.js";
+import { modelsHandlers, modelsMethodDefs } from "./server-methods/models.js";
 import { nodePendingHandlers } from "./server-methods/nodes-pending.js";
 import { nodeHandlers } from "./server-methods/nodes.js";
 import { pushHandlers } from "./server-methods/push.js";
@@ -114,7 +114,6 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...usageHandlers,
   ...agentHandlers,
   ...agentsHandlers,
-  ...browserHandlers,
   ...deckAuthHandlers,
   ...deckHandlers,
   ...describeHandlers,
@@ -134,10 +133,6 @@ export const gatewayMethodRegistry = buildMethodRegistry(
     agentMethodDefs,
     agentsMethodDefs,
     modelsMethodDefs,
-    channelsMethodDefs,
-    logsMethodDefs,
-    toolsCatalogMethodDefs,
-    toolsEffectiveMethodDefs,
     deviceMethodDefs,
     wizardMethodDefs,
   ],

@@ -20,13 +20,6 @@ export const SessionCompactionTranscriptReferenceSchema = Type.Object(
 
 const ThreadIdSchema = Type.Union([Type.String(), Type.Number()]);
 
-export const SessionCompactionCheckpointReasonSchema = Type.Union([
-  Type.Literal("manual"),
-  Type.Literal("auto-threshold"),
-  Type.Literal("overflow-retry"),
-  Type.Literal("timeout-retry"),
-]);
-
 export const DeliveryContextSchema = Type.Object(
   {
     channel: Type.Optional(Type.String()),
