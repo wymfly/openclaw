@@ -138,6 +138,14 @@ ui/src/ui/__screenshots__
 ui/src/ui/views/__screenshots__
 ui/.vitest-attachments
 docs/superpowers
+# Allow tracked design specs and implementation plans. Re-including a nested
+# path requires re-including every ancestor first, otherwise git does not
+# descend into the ignored parent directory.
+!docs/superpowers/
+!docs/superpowers/specs/
+!docs/superpowers/specs/**
+!docs/superpowers/plans/
+!docs/superpowers/plans/**
 
 # Generated docs baseline artifacts (locally generated, only hashes tracked)
 docs/.generated/*.json
