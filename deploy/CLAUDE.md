@@ -17,6 +17,7 @@
 
 | 文件 | 用途 | 何时修改 |
 |------|------|---------|
+| `STATUS.md` | 当前部署状态与下一次部署上下文 | 每次部署/发布/验证完成后 |
 | `install.ps1` | Windows 原生安装入口（bare-metal） | 修改 Windows 主安装路径时 |
 | `install.sh` | 根目录安装入口（forwarder） | 一般不改 |
 | `update.ps1` | Windows 原生更新入口（bare-metal） | 修改 Windows 更新流程时 |
@@ -50,6 +51,16 @@
 | `docs/INSTALL-*.md` | 分平台安装指南 | 安装流程变化时 |
 
 ## 演进契约
+
+**每次真实部署、升级、发布、验证、回滚之后，都要更新 `deploy/STATUS.md`。**
+
+至少记录：
+
+- 当前 live app root / task / 端口
+- 最近一次备份路径
+- 当前 publish 目录和 install 命令
+- 外部验证结果
+- 是否还有“live 已升级但发布包未更新”之类的遗留项
 
 **当修改以下文件时，检查是否需要同步更新 deploy/ 下的对应文件：**
 

@@ -150,6 +150,20 @@ Remove:
 - scratch scripts and logs in `D:\openclaw\publish\` that are not release artifacts
 - broken or obsolete startup-task entries tied to deleted test installs
 
+## Post-deploy status maintenance
+
+After any deploy, publish, validation, or rollback step that changes the current truth, update `deploy/STATUS.md`.
+
+Minimum fields to refresh:
+
+- latest backup path
+- current live app root
+- current live task names and ports
+- current publish directory
+- user install/update command
+- external verification results
+- whether the public package is fully current or still pending refresh
+
 ## Current validated result to preserve
 
 The validated user requirement is:

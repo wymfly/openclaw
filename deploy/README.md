@@ -51,6 +51,7 @@ iwr -useb http://<your-host>:8088/<release-label>/install.ps1 | iex
 维护者/后续 agent 接手说明见：
 
 ```text
+deploy/STATUS.md
 deploy/HANDOFF.md
 ```
 

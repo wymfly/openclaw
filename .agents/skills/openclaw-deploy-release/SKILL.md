@@ -18,6 +18,7 @@ Use this skill to run the validated OpenClaw release workflow: build a local bas
 - Prioritize proving the main user path: **install works, update works, user data survives update**.
 - Only spend time on rollback when explicitly requested.
 - Before cleanup, ensure **one chosen service is healthy** and know which install root you are preserving.
+- Treat `deploy/STATUS.md` as the deployment source of truth. After any deploy, publish, validation, or rollback step that changes reality, update `deploy/STATUS.md` before you stop.
 
 ## Workflow
 
@@ -36,6 +37,9 @@ Use this skill to run the validated OpenClaw release workflow: build a local bas
 5. **Clean temporary artifacts**.
    - Keep the final publish directory, the source checkout used for Windows node_modules, and one healthy install root.
    - Remove old self-test roots, stale `.update-*` / `.rollback-*` staging dirs, and scratch scripts/logs in `publish/` that are not part of the final release.
+6. **Update deployment state documentation**.
+   - Update `deploy/STATUS.md` with the latest live root, backup path, publish directory, verification result, and remaining deployment gap.
+   - If the handoff guidance changed materially, update `deploy/HANDOFF.md` too.
 
 ## What to read next
 

@@ -2,11 +2,16 @@
 
 This file is the quickest starting point for the next agent/operator who needs to continue Windows deploy work.
 
+> **Deployment source of truth**: read `deploy/STATUS.md` first. If this file and `deploy/STATUS.md` disagree, `deploy/STATUS.md` wins.
+>
+> **Maintenance rule**: after any deployment, publish, verification, or rollback step that changes reality, update `deploy/STATUS.md` before handoff.
+>
 > **Agent context chain**: after reading this file, also read the following before starting any deploy work:
 >
-> 1. `.agents/skills/openclaw-deploy-release/SKILL.md` — release workflow
-> 2. `.agents/skills/openclaw-deploy-release/references/validated-release-flow.md` — commands and checklists
-> 3. `deploy/CLAUDE.md` — file index and evolution contracts
+> 1. `deploy/STATUS.md` — current live/publish status
+> 2. `.agents/skills/openclaw-deploy-release/SKILL.md` — release workflow
+> 3. `.agents/skills/openclaw-deploy-release/references/validated-release-flow.md` — commands and checklists
+> 4. `deploy/CLAUDE.md` — file index and evolution contracts
 
 ## Current validated state
 
@@ -99,10 +104,11 @@ Otherwise old browser bundles can make a fixed server still look broken.
 
 Start here, in order:
 
-1. `deploy/HANDOFF.md`
-2. `deploy/README.md`
-3. `deploy/CLAUDE.md`
-4. local skill:
+1. `deploy/STATUS.md`
+2. `deploy/HANDOFF.md`
+3. `deploy/README.md`
+4. `deploy/CLAUDE.md`
+5. local skill:
    - `~/.codex/skills/openclaw-deploy-release/SKILL.md`
    - `~/.codex/skills/openclaw-deploy-release/references/validated-release-flow.md`
 
@@ -162,3 +168,13 @@ powershell -ExecutionPolicy Bypass -File .\deploy\package-self-contained.ps1 `
 - app root still contains user data under:
   - `data\.openclaw`
   - `data\openclaw-deck`
+
+## Status-file discipline
+
+Before ending a deploy session, update `deploy/STATUS.md` with at least:
+
+- latest backup path
+- latest live app root
+- latest publish directory
+- whether the public install/update package is fully current or still pending refresh
+- the latest external verification results

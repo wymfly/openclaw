@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
+import http from "node:http";
 import path from "node:path";
 
 function parseArgs(argv) {
@@ -133,7 +134,7 @@ const gatewayEnv = {
   ...process.env,
   ...envValues,
   NODE_ENV: "production",
-  NO_PROXY: "localhost,127.0.0.1",
+  NO_PROXY: "localhost,127.0.0.1,::1",
   OPENCLAW_HOME: getOpenClawHome(stateDir),
   OPENCLAW_STATE_DIR: stateDir,
   OPENCLAW_GATEWAY_TOKEN: token,
@@ -143,10 +144,10 @@ const deckEnv = {
   ...process.env,
   ...envValues,
   NODE_ENV: "production",
-  NO_PROXY: "localhost,127.0.0.1",
+  NO_PROXY: "localhost,127.0.0.1,::1",
   HOSTNAME: "0.0.0.0",
   PORT: deckPort,
-  DECK_GATEWAY_URL: `ws://localhost:${gatewayPort}`,
+  DECK_GATEWAY_URL: `ws://127.0.0.1:${gatewayPort}`,
   DECK_GATEWAY_TOKEN: token,
   DECK_DATA_DIR: deckDataDir,
 };
@@ -206,6 +207,21 @@ function scheduleRestart(name) {
   if (stopping) {
     return;
   }
+  if (name === "gateway") {
+    log("gateway exited unexpectedly; restarting gateway and deck after gateway health");
+    const deck = children.deck;
+    if (deck && !deck.killed) {
+      try {
+        deck.kill("SIGTERM");
+      } catch {}
+    }
+    setTimeout(() => {
+      if (!stopping) {
+        void startGatewayThenDeck();
+      }
+    }, 5000);
+    return;
+  }
   log(`${name} exited unexpectedly; restarting in 5 seconds`);
   setTimeout(() => {
     if (!stopping) {
@@ -234,6 +250,9 @@ function attachChild(name, child, spec) {
 }
 
 function startChild(name) {
+  if (children[name]) {
+    return;
+  }
   const spec = childSpecs[name];
   const child = spawn(process.execPath, spec.args, {
     cwd: spec.cwd,
@@ -243,6 +262,48 @@ function startChild(name) {
   });
   log(`started ${name} pid=${child.pid}`);
   attachChild(name, child, spec);
+}
+
+function probeGatewayHealth() {
+  const url = `http://127.0.0.1:${gatewayPort}/healthz`;
+  return new Promise((resolve) => {
+    const req = http.get(url, { timeout: 2_000 }, (res) => {
+      res.resume();
+      resolve(res.statusCode === 200);
+    });
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.on("error", () => resolve(false));
+  });
+}
+
+async function waitForGatewayHealth(timeoutMs = 120_000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (stopping) {
+      return false;
+    }
+    if (await probeGatewayHealth()) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  return false;
+}
+
+async function startGatewayThenDeck() {
+  startChild("gateway");
+  const healthy = await waitForGatewayHealth();
+  if (healthy) {
+    log("gateway health ready; starting deck");
+  } else {
+    log("gateway health not ready before timeout; starting deck so adapter can retry");
+  }
+  if (!stopping) {
+    startChild("deck");
+  }
 }
 
 async function shutdown(exitCode = 0) {
@@ -275,6 +336,5 @@ process.on("exit", () => {
 });
 
 log("supervisor starting");
-startChild("gateway");
-startChild("deck");
+await startGatewayThenDeck();
 await writeSupervisorState();
