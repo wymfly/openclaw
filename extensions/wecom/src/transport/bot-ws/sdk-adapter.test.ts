@@ -5,6 +5,7 @@ const sdkMockState = vi.hoisted(() => {
     readonly handlers = new Map<string, Array<(payload: any) => void>>();
     readonly isConnected = true;
     readonly replyStream = vi.fn().mockResolvedValue(undefined);
+    readonly sendMessage = vi.fn().mockResolvedValue(undefined);
 
     constructor(_options: unknown) {
       sdkMockState.client = this;
@@ -41,6 +42,7 @@ vi.mock("@wecom/aibot-node-sdk", () => ({
   generateReqId: (prefix: string) => `${prefix}-1`,
 }));
 
+import { getBotWsPushHandle, unregisterBotWsPushHandle } from "../../runtime.js";
 import { BotWsSdkAdapter } from "./sdk-adapter.js";
 
 const waitForAsyncCallbacks = async () => {
@@ -57,6 +59,7 @@ describe("BotWsSdkAdapter", () => {
   afterEach(() => {
     process.off("unhandledRejection", onUnhandledRejection);
     unhandledRejections.length = 0;
+    unregisterBotWsPushHandle("acc-1");
     sdkMockState.client = null;
   });
 
@@ -122,5 +125,51 @@ describe("BotWsSdkAdapter", () => {
       ),
     );
     expect(unhandledRejections).toHaveLength(0);
+  });
+
+  it("falls back to legacy markdown for active push when markdown_v2 is rejected", async () => {
+    const runtime = {
+      account: {
+        accountId: "acc-1",
+        bot: {
+          wsConfigured: true,
+          ws: {
+            botId: "bot-1",
+            secret: "secret-1",
+          },
+          config: {},
+        },
+      },
+      handleEvent: vi.fn(),
+      updateTransportSession: vi.fn(),
+      touchTransportSession: vi.fn(),
+      recordOperationalIssue: vi.fn(),
+    };
+    const log = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+
+    new BotWsSdkAdapter(runtime as any, log as any).start();
+
+    sdkMockState.client?.sendMessage
+      .mockRejectedValueOnce(new Error("unsupported markdown_v2"))
+      .mockResolvedValueOnce(undefined);
+
+    const handle = getBotWsPushHandle("acc-1");
+    expect(handle).toBeDefined();
+
+    await handle?.sendMarkdown("user-1", "hello");
+
+    expect(sdkMockState.client?.sendMessage).toHaveBeenCalledTimes(2);
+    expect(sdkMockState.client?.sendMessage).toHaveBeenNthCalledWith(1, "user-1", {
+      msgtype: "markdown_v2",
+      markdown_v2: { content: "hello" },
+    });
+    expect(sdkMockState.client?.sendMessage).toHaveBeenNthCalledWith(2, "user-1", {
+      msgtype: "markdown",
+      markdown: { content: "hello" },
+    });
   });
 });

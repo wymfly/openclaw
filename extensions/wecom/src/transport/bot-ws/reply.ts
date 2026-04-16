@@ -1,6 +1,5 @@
 import {
   generateReqId,
-  type SendMsgBody,
   type WsFrame,
   type BaseMessage,
   type EventMessage,
@@ -8,6 +7,7 @@ import {
 } from "@wecom/aibot-node-sdk";
 import { formatErrorMessage } from "openclaw/plugin-sdk/infra-runtime";
 import type { ReplyHandle, ReplyPayload } from "../../types/index.js";
+import { sendBotWsMarkdown } from "./send-markdown.js";
 
 const PLACEHOLDER_KEEPALIVE_MS = 3000;
 const MAX_KEEPALIVE_MS = 120 * 1000; // Force stop keepalive after 120s if ignored
@@ -235,12 +235,7 @@ export function createBotWsReplyHandle(params: {
             text: { content: outboundText },
           });
         } else if (isEvent) {
-          // Send push message for other events
-          await params.client.sendMessage(peerId, {
-            msgtype: "markdown_v2",
-            markdown_v2: { content: outboundText },
-          } as unknown as SendMsgBody);
-          // TODO: remove cast when @wecom/aibot-node-sdk supports markdown_v2 natively
+          await sendBotWsMarkdown({ client: params.client, chatId: peerId, content: outboundText });
         } else {
           await params.client.replyStream(
             params.frame,
@@ -275,11 +270,7 @@ export function createBotWsReplyHandle(params: {
             text: { content: text },
           });
         } else if (isEvent) {
-          await params.client.sendMessage(peerId, {
-            msgtype: "markdown_v2",
-            markdown_v2: { content: text },
-          } as unknown as SendMsgBody);
-          // TODO: remove cast when @wecom/aibot-node-sdk supports markdown_v2 natively
+          await sendBotWsMarkdown({ client: params.client, chatId: peerId, content: text });
         } else {
           await params.client.replyStream(params.frame, resolveStreamId(), text, true);
         }

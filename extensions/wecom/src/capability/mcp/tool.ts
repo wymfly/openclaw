@@ -2,6 +2,7 @@ import type {
   OpenClawPluginToolContext,
   OpenClawPluginToolFactory,
 } from "openclaw/plugin-sdk/core";
+import { getBotWsPushHandle } from "../../runtime.js";
 import { cleanSchemaForGemini } from "./schema.js";
 import { clearWecomMcpCategoryCache, sendJsonRpc, type McpToolInfo } from "./transport.js";
 
@@ -23,8 +24,8 @@ function textResult<TDetails>(data: TDetails) {
 
 function errorResult(error: unknown) {
   if (error && typeof error === "object" && "errcode" in error) {
-    const errcode = Number((error as { errcode?: number }).errcode ?? 0);
-    const errmsg = String((error as { errmsg?: string }).errmsg ?? `错误码: ${errcode}`);
+    const errcode = (error as { errcode?: number }).errcode ?? 0;
+    const errmsg = (error as { errmsg?: string }).errmsg ?? `错误码: ${errcode}`;
     return textResult({ error: errmsg, errcode });
   }
   return textResult({
@@ -33,20 +34,26 @@ function errorResult(error: unknown) {
 }
 
 function parseArgs(args: string | Record<string, unknown> | undefined): Record<string, unknown> {
-  if (!args) return {};
-  if (typeof args === "object") return args;
+  if (!args) {
+    return {};
+  }
+  if (typeof args === "object") {
+    return args;
+  }
   try {
     return JSON.parse(args) as Record<string, unknown>;
   } catch (error) {
     const detail = error instanceof SyntaxError ? error.message : String(error);
-    throw new Error(`args 不是合法的 JSON: ${args} (${detail})`);
+    throw new Error(`args 不是合法的 JSON: ${args} (${detail})`, { cause: error });
   }
 }
 
 function extractToolAccountId(ctx: OpenClawPluginToolContext): string | undefined {
-  const explicit = String((ctx as { accountId?: string }).accountId ?? "").trim();
-  if (explicit) return explicit;
-  const agentAccountId = String(ctx.agentAccountId ?? "").trim();
+  const explicit = ((ctx as { accountId?: string }).accountId ?? "").trim();
+  if (explicit) {
+    return explicit;
+  }
+  const agentAccountId = (ctx.agentAccountId ?? "").trim();
   return agentAccountId || undefined;
 }
 
@@ -68,11 +75,17 @@ async function handleList(accountId: string, category: string): Promise<unknown>
 }
 
 function checkBizErrorAndClearCache(result: unknown, accountId: string, category: string): void {
-  if (!result || typeof result !== "object") return;
+  if (!result || typeof result !== "object") {
+    return;
+  }
   const content = (result as { content?: Array<{ type: string; text?: string }> }).content;
-  if (!Array.isArray(content)) return;
+  if (!Array.isArray(content)) {
+    return;
+  }
   for (const item of content) {
-    if (item.type !== "text" || !item.text) continue;
+    if (item.type !== "text" || !item.text) {
+      continue;
+    }
     try {
       const parsed = JSON.parse(item.text) as { errcode?: number };
       if (typeof parsed.errcode === "number" && BIZ_CACHE_CLEAR_ERROR_CODES.has(parsed.errcode)) {
@@ -105,16 +118,20 @@ export function createWeComMcpToolFactory(): OpenClawPluginToolFactory {
       return null;
     }
 
-    // Bot-ws connection check is deferred to execution time (transport.ts
-    // validates via getBotWsPushHandle). Checking source snapshot here was
-    // too strict: the toolContext session identifiers often don't match the
-    // inbound-message snapshot, causing the tool to be silently dropped.
+    const effectiveAccountId = extractToolAccountId(toolContext);
+    if (!effectiveAccountId) {
+      return null;
+    }
+    const handle = getBotWsPushHandle(effectiveAccountId);
+    if (!handle?.isConnected() || typeof handle.replyCommand !== "function") {
+      return null;
+    }
 
     return {
       name: "wecom_mcp",
       label: "WeCom MCP",
       description:
-        "企业微信 Bot WS MCP 工具。仅在 WeCom Bot WS 会话中可用，用于列出和调用企业微信 MCP 能力。",
+        "企业微信 Bot WS MCP 工具。当前账号存在可用 Bot WS MCP 通道时可用，用于列出和调用企业微信 MCP 能力。",
       parameters: {
         type: "object" as const,
         properties: {
@@ -141,11 +158,6 @@ export function createWeComMcpToolFactory(): OpenClawPluginToolFactory {
       async execute(_toolCallId: string, rawParams: unknown) {
         try {
           const params = rawParams as WecomMcpParams;
-          const effectiveAccountId = extractToolAccountId(toolContext);
-          if (!effectiveAccountId) {
-            throw new Error("当前会话缺少 WeCom accountId，无法调用 wecom_mcp。");
-          }
-
           if (params.action === "list") {
             return textResult(await handleList(effectiveAccountId, params.category));
           }

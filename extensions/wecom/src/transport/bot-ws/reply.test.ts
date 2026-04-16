@@ -232,6 +232,34 @@ describe("createBotWsReplyHandle", () => {
     });
   });
 
+  it("falls back to legacy markdown when event push rejects markdown_v2", async () => {
+    mockClient.sendMessage
+      .mockRejectedValueOnce(new Error("unsupported markdown_v2"))
+      .mockResolvedValueOnce({} as any);
+
+    const handle = createBotWsReplyHandle({
+      client: mockClient,
+      frame: {
+        headers: { req_id: "event_req_compat" },
+        body: { chattype: "single", from: { userid: "alice" } },
+      } as unknown as ReplyHandleParams["frame"],
+      accountId: "default",
+      inboundKind: "event",
+    });
+
+    await handle.deliver({ text: "Compat Reply", isReasoning: false }, { kind: "final" });
+
+    expect(mockClient.sendMessage).toHaveBeenCalledTimes(2);
+    expect(mockClient.sendMessage).toHaveBeenNthCalledWith(1, "alice", {
+      msgtype: "markdown_v2",
+      markdown_v2: { content: "Compat Reply" },
+    });
+    expect(mockClient.sendMessage).toHaveBeenNthCalledWith(2, "alice", {
+      msgtype: "markdown",
+      markdown: { content: "Compat Reply" },
+    });
+  });
+
   it("sends replyWelcome for welcome events", async () => {
     const handle = createBotWsReplyHandle({
       client: mockClient,

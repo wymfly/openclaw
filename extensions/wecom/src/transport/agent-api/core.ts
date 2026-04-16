@@ -91,6 +91,55 @@ function requireAgentId(agent: ResolvedAgentAccount): number {
   );
 }
 
+function isMarkdownCompatErrcode(params: { errcode?: number; errmsg?: string }): boolean {
+  const text = (params.errmsg ?? "").toLowerCase();
+  if (text.includes("markdown_v2")) {
+    return true;
+  }
+  const mentionsMarkdown = text.includes("markdown");
+  const mentionsCompat =
+    text.includes("unsupported") ||
+    text.includes("not support") ||
+    text.includes("invalid") ||
+    text.includes("msgtype") ||
+    text.includes("message type");
+  return mentionsMarkdown && mentionsCompat && (params.errcode ?? 0) !== 0;
+}
+
+function buildSendTextBody(params: {
+  useChat: boolean;
+  chatId?: string;
+  text: string;
+  toUser?: string;
+  toParty?: string;
+  toTag?: string;
+  agent: ResolvedAgentAccount;
+  legacyMarkdown?: boolean;
+}) {
+  if (params.useChat) {
+    return params.legacyMarkdown
+      ? { chatid: params.chatId, msgtype: "markdown", markdown: { content: params.text } }
+      : { chatid: params.chatId, msgtype: "markdown_v2", markdown_v2: { content: params.text } };
+  }
+  return params.legacyMarkdown
+    ? {
+        touser: params.toUser,
+        toparty: params.toParty,
+        totag: params.toTag,
+        msgtype: "markdown",
+        agentid: requireAgentId(params.agent),
+        markdown: { content: params.text },
+      }
+    : {
+        touser: params.toUser,
+        toparty: params.toParty,
+        totag: params.toTag,
+        msgtype: "markdown_v2",
+        agentid: requireAgentId(params.agent),
+        markdown_v2: { content: params.text },
+      };
+}
+
 export async function getAccessToken(agent: ResolvedAgentAccount): Promise<string> {
   const cacheKey = `${agent.corpId}:${String(agent.agentId ?? "na")}`;
   let cache = tokenCaches.get(cacheKey);
@@ -159,36 +208,57 @@ export async function sendText(params: {
     ? `${API_ENDPOINTS.SEND_APPCHAT}?access_token=${encodeURIComponent(token)}`
     : `${API_ENDPOINTS.SEND_MESSAGE}?access_token=${encodeURIComponent(token)}`;
 
-  const body = useChat
-    ? { chatid: chatId, msgtype: "markdown_v2", markdown_v2: { content: text } }
-    : {
-        touser: toUser,
-        toparty: toParty,
-        totag: toTag,
-        msgtype: "markdown_v2",
-        agentid: requireAgentId(agent),
-        markdown_v2: { content: text },
-      };
-
-  const res = await wecomFetch(
-    url,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-    {
-      proxyUrl: resolveWecomEgressProxyUrlFromNetwork(agent.network),
-      timeoutMs: LIMITS.REQUEST_TIMEOUT_MS,
-    },
-  );
-  const json = (await res.json()) as {
-    errcode?: number;
-    errmsg?: string;
-    invaliduser?: string;
-    invalidparty?: string;
-    invalidtag?: string;
+  const proxyUrl = resolveWecomEgressProxyUrlFromNetwork(agent.network);
+  const sendBody = async (body: Record<string, unknown>) => {
+    const res = await wecomFetch(
+      url,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+      {
+        proxyUrl,
+        timeoutMs: LIMITS.REQUEST_TIMEOUT_MS,
+      },
+    );
+    return (await res.json()) as {
+      errcode?: number;
+      errmsg?: string;
+      invaliduser?: string;
+      invalidparty?: string;
+      invalidtag?: string;
+    };
   };
+
+  let json = await sendBody(
+    buildSendTextBody({
+      useChat,
+      chatId,
+      text,
+      toUser,
+      toParty,
+      toTag,
+      agent,
+    }),
+  );
+  if (json?.errcode !== 0 && isMarkdownCompatErrcode(json)) {
+    getAccountRuntime(agent.accountId)?.log.warn?.(
+      `[wecom-agent-api] markdown_v2 rejected for account=${agent.accountId}; retrying with legacy markdown`,
+    );
+    json = await sendBody(
+      buildSendTextBody({
+        useChat,
+        chatId,
+        text,
+        toUser,
+        toParty,
+        toTag,
+        agent,
+        legacyMarkdown: true,
+      }),
+    );
+  }
 
   getAccountRuntime(agent.accountId)?.log.info?.(
     `[wecom-agent-api] sendText response account=${agent.accountId} agentId=${String(agent.agentId ?? "N/A")} ` +

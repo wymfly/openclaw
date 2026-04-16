@@ -1,10 +1,5 @@
 import crypto from "node:crypto";
-import AiBot, {
-  type BaseMessage,
-  type EventMessage,
-  type SendMsgBody,
-  type WsFrame,
-} from "@wecom/aibot-node-sdk";
+import AiBot, { type BaseMessage, type EventMessage, type WsFrame } from "@wecom/aibot-node-sdk";
 import type { WecomAccountRuntime } from "../../app/account-runtime.js";
 import { registerBotWsPushHandle, unregisterBotWsPushHandle } from "../../app/index.js";
 import { fetchAndSaveMcpConfig } from "../../enhanced/mcp-config.js";
@@ -13,6 +8,7 @@ import { registerWecomSourceSnapshot } from "../../runtime/source-registry.js";
 import type { RuntimeLogSink } from "../../types/index.js";
 import { mapBotWsFrameToInboundEvent } from "./inbound.js";
 import { createBotWsReplyHandle } from "./reply.js";
+import { sendBotWsMarkdown } from "./send-markdown.js";
 import { createBotWsSessionSnapshot } from "./session.js";
 
 export class BotWsSdkAdapter {
@@ -54,13 +50,8 @@ export class BotWsSdkAdapter {
     this.client = client;
     registerBotWsPushHandle(this.runtime.account.accountId, {
       isConnected: () => client.isConnected,
-      // sendMarkdown: 实际发送 markdown_v2 以支持表格/图片/列表渲染
       sendMarkdown: async (chatId, content) => {
-        await client.sendMessage(chatId, {
-          msgtype: "markdown_v2",
-          markdown_v2: { content },
-        } as unknown as SendMsgBody);
-        // TODO: remove cast when @wecom/aibot-node-sdk supports markdown_v2 natively
+        await sendBotWsMarkdown({ client, chatId, content });
         this.runtime.touchTransportSession("bot-ws", {
           ownerId: this.ownerId,
           running: true,
