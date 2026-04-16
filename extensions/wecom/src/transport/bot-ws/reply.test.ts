@@ -66,14 +66,18 @@ describe("createBotWsReplyHandle", () => {
 
     vi.advanceTimersByTime(3000);
     // Flush the microtasks so `placeholderInFlight` becomes false
-    for (let i = 0; i < 10; i++) await Promise.resolve();
+    for (let i = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
 
     // Now trigger the next timer
     vi.advanceTimersByTime(3000);
-    for (let i = 0; i < 10; i++) await Promise.resolve();
+    for (let i = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
     expect(mockClient.replyStream).toHaveBeenCalledTimes(2);
 
-    handle.deliver({ text: "最终回复", isReasoning: false }, { kind: "final" });
+    void handle.deliver({ text: "最终回复", isReasoning: false }, { kind: "final" });
     await Promise.resolve();
 
     expect(mockClient.replyStream).toHaveBeenCalledWith(
@@ -188,7 +192,7 @@ describe("createBotWsReplyHandle", () => {
     const handle = createBotWsReplyHandle({
       client: mockClient,
       frame: {
-        headers: { req_id: String(error.headers.req_id) },
+        headers: { req_id: error.headers.req_id },
         body: {},
       } as unknown as ReplyHandleParams["frame"],
       accountId: "default",
@@ -219,12 +223,12 @@ describe("createBotWsReplyHandle", () => {
     // Events should not send stream placeholders
     expect(mockClient.replyStream).not.toHaveBeenCalled();
 
-    handle.deliver({ text: "Event Reply", isReasoning: false }, { kind: "final" });
+    void handle.deliver({ text: "Event Reply", isReasoning: false }, { kind: "final" });
     await Promise.resolve();
 
     expect(mockClient.sendMessage).toHaveBeenCalledWith("alice", {
-      msgtype: "markdown",
-      markdown: { content: "Event Reply" },
+      msgtype: "markdown_v2",
+      markdown_v2: { content: "Event Reply" },
     });
   });
 
@@ -239,7 +243,7 @@ describe("createBotWsReplyHandle", () => {
       inboundKind: "welcome",
     });
 
-    handle.deliver({ text: "Hello Bob", isReasoning: false }, { kind: "final" });
+    void handle.deliver({ text: "Hello Bob", isReasoning: false }, { kind: "final" });
     await Promise.resolve();
 
     expect(mockClient.replyWelcome).toHaveBeenCalledWith(

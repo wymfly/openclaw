@@ -15,13 +15,17 @@ const tokenCaches = new Map<string, TokenCache>();
 
 function truncateForLog(raw: string, maxChars = 180): string {
   const compact = raw.replace(/\s+/g, " ").trim();
-  if (compact.length <= maxChars) return compact;
+  if (compact.length <= maxChars) {
+    return compact;
+  }
   return `${compact.slice(0, maxChars)}...(truncated)`;
 }
 
 function normalizeUploadFilename(filename: string): string {
   const trimmed = filename.trim();
-  if (!trimmed) return "file.bin";
+  if (!trimmed) {
+    return "file.bin";
+  }
   const ext = trimmed.includes(".") ? `.${trimmed.split(".").pop()!.toLowerCase()}` : "";
   const base = ext ? trimmed.slice(0, -ext.length) : trimmed;
   const sanitizedBase = base
@@ -79,7 +83,9 @@ function guessUploadContentType(filename: string): string {
 }
 
 function requireAgentId(agent: ResolvedAgentAccount): number {
-  if (typeof agent.agentId === "number" && Number.isFinite(agent.agentId)) return agent.agentId;
+  if (typeof agent.agentId === "number" && Number.isFinite(agent.agentId)) {
+    return agent.agentId;
+  }
   throw new Error(
     `wecom agent account=${agent.accountId} missing agentId; sending via cgi-bin/message/send requires agentId`,
   );
@@ -121,11 +127,11 @@ export async function getAccessToken(agent: ResolvedAgentAccount): Promise<strin
         throw new Error(`gettoken failed: ${json?.errcode} ${json?.errmsg}`);
       }
 
-      cache!.token = json.access_token;
-      cache!.expiresAt = Date.now() + (json.expires_in ?? 7200) * 1000;
-      return cache!.token;
+      cache.token = json.access_token;
+      cache.expiresAt = Date.now() + (json.expires_in ?? 7200) * 1000;
+      return cache.token;
     } finally {
-      cache!.refreshPromise = null;
+      cache.refreshPromise = null;
     }
   })();
 
@@ -154,14 +160,14 @@ export async function sendText(params: {
     : `${API_ENDPOINTS.SEND_MESSAGE}?access_token=${encodeURIComponent(token)}`;
 
   const body = useChat
-    ? { chatid: chatId, msgtype: "text", text: { content: text } }
+    ? { chatid: chatId, msgtype: "markdown_v2", markdown_v2: { content: text } }
     : {
         touser: toUser,
         toparty: toParty,
         totag: toTag,
-        msgtype: "text",
+        msgtype: "markdown_v2",
         agentid: requireAgentId(agent),
-        text: { content: text },
+        markdown_v2: { content: text },
       };
 
   const res = await wecomFetch(
@@ -365,9 +371,9 @@ export async function downloadMedia(params: {
   const filename = (() => {
     const mStar = disposition.match(/filename\*\s*=\s*([^;]+)/i);
     if (mStar) {
-      const raw = mStar[1]!.trim().replace(/^"(.*)"$/, "$1");
+      const raw = mStar[1].trim().replace(/^"(.*)"$/, "$1");
       const parts = raw.split("''");
-      const encoded = parts.length === 2 ? parts[1]! : raw;
+      const encoded = parts.length === 2 ? parts[1] : raw;
       try {
         return decodeURIComponent(encoded);
       } catch {
@@ -375,8 +381,10 @@ export async function downloadMedia(params: {
       }
     }
     const m = disposition.match(/filename\s*=\s*([^;]+)/i);
-    if (!m) return undefined;
-    return m[1]!.trim().replace(/^"(.*)"$/, "$1") || undefined;
+    if (!m) {
+      return undefined;
+    }
+    return m[1].trim().replace(/^"(.*)"$/, "$1") || undefined;
   })();
 
   if (contentType.includes("application/json")) {

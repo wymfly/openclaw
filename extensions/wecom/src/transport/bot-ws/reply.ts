@@ -1,5 +1,6 @@
 import {
   generateReqId,
+  type SendMsgBody,
   type WsFrame,
   type BaseMessage,
   type EventMessage,
@@ -15,8 +16,9 @@ function isInvalidReqIdError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
     return false;
   }
-  const errcode = "errcode" in error ? Number(error.errcode) : undefined;
-  const errmsg = "errmsg" in error ? String(error.errmsg ?? "") : "";
+  const err = error as { errcode?: unknown; errmsg?: unknown };
+  const errcode = err.errcode != null ? Number(err.errcode) : undefined;
+  const errmsg = typeof err.errmsg === "string" ? err.errmsg : "";
   return errcode === 846605 || errmsg.includes("invalid req_id");
 }
 
@@ -24,8 +26,9 @@ function isExpiredStreamUpdateError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
     return false;
   }
-  const errcode = "errcode" in error ? Number(error.errcode) : undefined;
-  const errmsg = "errmsg" in error ? String(error.errmsg ?? "").toLowerCase() : "";
+  const err = error as { errcode?: unknown; errmsg?: unknown };
+  const errcode = err.errcode != null ? Number(err.errcode) : undefined;
+  const errmsg = typeof err.errmsg === "string" ? err.errmsg.toLowerCase() : "";
   return errcode === 846608 || errmsg.includes("stream message update expired");
 }
 
@@ -73,11 +76,13 @@ export function createBotWsReplyHandle(params: {
   let placeholderTimeout: ReturnType<typeof setTimeout> | undefined;
 
   // Extract peerId for clustering handles
-  const body = params.frame.body as any;
-  const peerId = String(
-    (body?.chattype === "group" ? body?.chatid || body?.from?.userid : body?.from?.userid) ||
-      "unknown",
-  );
+  const body = params.frame.body as Record<string, unknown>;
+  const from = body?.from as Record<string, unknown> | undefined;
+  const rawPeerId =
+    body?.chattype === "group"
+      ? ((body?.chatid as string) ?? (from?.userid as string))
+      : (from?.userid as string);
+  const peerId = rawPeerId || "unknown";
   const reqId = params.frame.headers.req_id || "unknown";
 
   const isEvent =
@@ -110,13 +115,17 @@ export function createBotWsReplyHandle(params: {
   };
 
   const settleStream = () => {
-    if (streamSettled) return;
+    if (streamSettled) {
+      return;
+    }
     streamSettled = true;
     stopPlaceholderKeepalive();
   };
 
   const sendPlaceholder = () => {
-    if (streamSettled || placeholderInFlight || isEvent) return;
+    if (streamSettled || placeholderInFlight || isEvent) {
+      return;
+    }
     placeholderInFlight = true;
     params.client
       .replyStream(params.frame, resolveStreamId(), placeholderText, false)
@@ -196,7 +205,9 @@ export function createBotWsReplyHandle(params: {
       }
 
       const text = payload.text?.trim();
-      if (!text) return;
+      if (!text) {
+        return;
+      }
 
       if (info.kind === "block") {
         accumulatedText = accumulatedText ? `${accumulatedText}\n${text}` : text;
@@ -226,9 +237,10 @@ export function createBotWsReplyHandle(params: {
         } else if (isEvent) {
           // Send push message for other events
           await params.client.sendMessage(peerId, {
-            msgtype: "markdown",
-            markdown: { content: outboundText },
-          });
+            msgtype: "markdown_v2",
+            markdown_v2: { content: outboundText },
+          } as unknown as SendMsgBody);
+          // TODO: remove cast when @wecom/aibot-node-sdk supports markdown_v2 natively
         } else {
           await params.client.replyStream(
             params.frame,
@@ -264,9 +276,10 @@ export function createBotWsReplyHandle(params: {
           });
         } else if (isEvent) {
           await params.client.sendMessage(peerId, {
-            msgtype: "markdown",
-            markdown: { content: text },
-          });
+            msgtype: "markdown_v2",
+            markdown_v2: { content: text },
+          } as unknown as SendMsgBody);
+          // TODO: remove cast when @wecom/aibot-node-sdk supports markdown_v2 natively
         } else {
           await params.client.replyStream(params.frame, resolveStreamId(), text, true);
         }

@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
-import AiBot, { type BaseMessage, type EventMessage, type WsFrame } from "@wecom/aibot-node-sdk";
+import AiBot, {
+  type BaseMessage,
+  type EventMessage,
+  type SendMsgBody,
+  type WsFrame,
+} from "@wecom/aibot-node-sdk";
 import type { WecomAccountRuntime } from "../../app/account-runtime.js";
 import { registerBotWsPushHandle, unregisterBotWsPushHandle } from "../../app/index.js";
 import { fetchAndSaveMcpConfig } from "../../enhanced/mcp-config.js";
@@ -49,11 +54,13 @@ export class BotWsSdkAdapter {
     this.client = client;
     registerBotWsPushHandle(this.runtime.account.accountId, {
       isConnected: () => client.isConnected,
+      // sendMarkdown: 实际发送 markdown_v2 以支持表格/图片/列表渲染
       sendMarkdown: async (chatId, content) => {
         await client.sendMessage(chatId, {
-          msgtype: "markdown",
-          markdown: { content },
-        });
+          msgtype: "markdown_v2",
+          markdown_v2: { content },
+        } as unknown as SendMsgBody);
+        // TODO: remove cast when @wecom/aibot-node-sdk supports markdown_v2 natively
         this.runtime.touchTransportSession("bot-ws", {
           ownerId: this.ownerId,
           running: true,
@@ -104,7 +111,7 @@ export class BotWsSdkAdapter {
     });
 
     client.on("disconnected", (reason) => {
-      const normalizedReason = String(reason ?? "").toLowerCase();
+      const normalizedReason = (reason ?? "").toLowerCase();
       const kicked =
         normalizedReason.includes("kick") ||
         normalizedReason.includes("owner") ||
@@ -161,24 +168,18 @@ export class BotWsSdkAdapter {
         return;
       }
       // [enhanced] dedup: reject duplicate frames after reconnect
-      const chatId =
-        (frame.body as Record<string, unknown>)?.chatid ??
-        ((frame.body as Record<string, unknown>)?.from as Record<string, unknown> | undefined)
-          ?.userid;
+      const frameBody = frame.body as Record<string, unknown>;
+      const frameFrom = frameBody?.from as Record<string, unknown> | undefined;
+      const chatId = ((frameBody?.chatid ?? frameFrom?.userid) as string) ?? "";
       const reqId = frame.headers.req_id;
-      if (
-        this.reqIdStore &&
-        chatId &&
-        reqId &&
-        this.reqIdStore.has(String(chatId), String(reqId))
-      ) {
+      if (this.reqIdStore && chatId && reqId && this.reqIdStore.has(chatId, reqId)) {
         this.log.info?.(
           `[wecom-ws] dedup: skipping duplicate frame reqId=${reqId} chatId=${chatId}`,
         );
         return;
       }
       if (this.reqIdStore && chatId && reqId) {
-        this.reqIdStore.set(String(chatId), String(reqId));
+        this.reqIdStore.set(chatId, reqId);
       }
       this.log.info?.(
         `[wecom-ws] frame account=${this.runtime.account.accountId} cmd=${frame.cmd} reqId=${frame.headers.req_id ?? "n/a"}`,
