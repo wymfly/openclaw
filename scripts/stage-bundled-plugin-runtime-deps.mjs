@@ -160,12 +160,24 @@ function resolveRuntimeDepPruneConfig(params = {}) {
 function resolveInstalledDependencyRoot(params) {
   const candidates = [];
   if (params.parentPackageRoot) {
-    const nestedDepRoot = dependencyNodeModulesPath(
-      path.join(params.parentPackageRoot, "node_modules"),
-      params.depName,
-    );
-    if (nestedDepRoot !== null) {
-      candidates.push(nestedDepRoot);
+    const stopDir = path.dirname(params.rootNodeModulesDir);
+    let currentDir = params.parentPackageRoot;
+    while (currentDir.startsWith(stopDir)) {
+      const nestedDepRoot = dependencyNodeModulesPath(
+        path.join(currentDir, "node_modules"),
+        params.depName,
+      );
+      if (nestedDepRoot !== null) {
+        candidates.push(nestedDepRoot);
+      }
+      if (currentDir === stopDir) {
+        break;
+      }
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) {
+        break;
+      }
+      currentDir = parentDir;
     }
   }
   const rootDepRoot = dependencyNodeModulesPath(params.rootNodeModulesDir, params.depName);
@@ -173,7 +185,7 @@ function resolveInstalledDependencyRoot(params) {
     candidates.push(rootDepRoot);
   }
 
-  for (const depRoot of candidates) {
+  for (const depRoot of new Set(candidates)) {
     const installedVersion = readInstalledDependencyVersionFromRoot(depRoot);
     if (installedVersion !== null && dependencyVersionSatisfied(params.spec, installedVersion)) {
       return depRoot;
@@ -637,8 +649,12 @@ function installPluginRuntimeDeps(params) {
     repoRoot &&
     stageInstalledRootRuntimeDeps({ fingerprint, packageJson, pluginDir, pruneConfig, repoRoot })
   ) {
+    console.error(
+      `[runtime-postbuild] staged ${pluginId} runtime deps from root node_modules mirror`,
+    );
     return;
   }
+  console.error(`[runtime-postbuild] staging ${pluginId} runtime deps via npm fallback install`);
   const nodeModulesDir = path.join(pluginDir, "node_modules");
   const stampPath = resolveRuntimeDepsStampPath(pluginDir);
   const tempInstallDir = makeTempDir(
@@ -716,6 +732,7 @@ export function stageBundledPluginRuntimeDeps(params = {}) {
   const pruneConfig = resolveRuntimeDepPruneConfig(params);
   for (const pluginDir of listBundledPluginRuntimeDirs(repoRoot)) {
     const pluginId = path.basename(pluginDir);
+    console.error(`[runtime-postbuild] checking bundled runtime deps for ${pluginId}`);
     const packageJson = sanitizeBundledManifestForRuntimeInstall(pluginDir);
     const nodeModulesDir = path.join(pluginDir, "node_modules");
     const stampPath = resolveRuntimeDepsStampPath(pluginDir);

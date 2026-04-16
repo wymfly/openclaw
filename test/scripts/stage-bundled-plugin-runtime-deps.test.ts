@@ -298,6 +298,62 @@ describe("stageBundledPluginRuntimeDeps", () => {
     ).toBe("module.exports = 'nested';\n");
   });
 
+  it("resolves transitive deps hoisted to an ancestor package node_modules", () => {
+    const { pluginDir, repoRoot } = createBundledPluginFixture({
+      packageJson: {
+        name: "@openclaw/fixture-plugin",
+        version: "1.0.0",
+        dependencies: { direct: "1.0.0" },
+        openclaw: { bundle: { stageRuntimeDependencies: true } },
+      },
+    });
+    const directDir = path.join(repoRoot, "node_modules", "direct");
+    const midDir = path.join(directDir, "node_modules", "mid");
+    const hoistedTransitiveDir = path.join(directDir, "node_modules", "transitive");
+    fs.mkdirSync(midDir, { recursive: true });
+    fs.mkdirSync(hoistedTransitiveDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(directDir, "package.json"),
+      '{ "name": "direct", "version": "1.0.0", "dependencies": { "mid": "1.0.0" } }\n',
+      "utf8",
+    );
+    fs.writeFileSync(path.join(directDir, "index.js"), "module.exports = 'direct';\n", "utf8");
+    fs.writeFileSync(
+      path.join(midDir, "package.json"),
+      '{ "name": "mid", "version": "1.0.0", "dependencies": { "transitive": "^1.0.0" } }\n',
+      "utf8",
+    );
+    fs.writeFileSync(path.join(midDir, "index.js"), "module.exports = 'mid';\n", "utf8");
+    fs.writeFileSync(
+      path.join(hoistedTransitiveDir, "package.json"),
+      '{ "name": "transitive", "version": "1.1.0" }\n',
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(hoistedTransitiveDir, "index.js"),
+      "module.exports = 'transitive';\n",
+      "utf8",
+    );
+
+    stageBundledPluginRuntimeDeps({ cwd: repoRoot });
+
+    expect(
+      fs.readFileSync(path.join(pluginDir, "node_modules", "direct", "index.js"), "utf8"),
+    ).toBe("module.exports = 'direct';\n");
+    expect(
+      fs.readFileSync(
+        path.join(pluginDir, "node_modules", "direct", "node_modules", "mid", "index.js"),
+        "utf8",
+      ),
+    ).toBe("module.exports = 'mid';\n");
+    expect(
+      fs.readFileSync(
+        path.join(pluginDir, "node_modules", "direct", "node_modules", "transitive", "index.js"),
+        "utf8",
+      ),
+    ).toBe("module.exports = 'transitive';\n");
+  });
+
   it("falls back to install when a dependency tree contains an unowned symlinked directory", () => {
     const { pluginDir, repoRoot } = createBundledPluginFixture({
       packageJson: {

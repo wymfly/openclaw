@@ -60,19 +60,41 @@ function resolveChannelPluginModuleEntry(
     return null;
   }
   const record = resolved as Partial<BundledChannelEntryRuntimeContract>;
-  if (record.kind !== "bundled-channel-entry") {
-    return null;
+  if (record.kind === "bundled-channel-entry") {
+    if (
+      typeof record.id !== "string" ||
+      typeof record.name !== "string" ||
+      typeof record.description !== "string" ||
+      typeof record.register !== "function" ||
+      typeof record.loadChannelPlugin !== "function"
+    ) {
+      return null;
+    }
+    return record as BundledChannelEntryRuntimeContract;
   }
+
+  // Backward compatibility for bundled channel packages that still export the
+  // channel plugin object directly instead of the generated entry contract.
+  // This keeps configured legacy bundled channels from disappearing during
+  // startup while those packages migrate to `bundled-channel-entry`.
   if (
-    typeof record.id !== "string" ||
-    typeof record.name !== "string" ||
-    typeof record.description !== "string" ||
-    typeof record.register !== "function" ||
-    typeof record.loadChannelPlugin !== "function"
+    typeof record.id === "string" &&
+    typeof record.name === "string" &&
+    typeof record.description === "string" &&
+    typeof record.register === "function"
   ) {
-    return null;
+    const plugin = resolved as ChannelPlugin;
+    return {
+      kind: "bundled-channel-entry",
+      id: record.id,
+      name: record.name,
+      description: record.description,
+      register: record.register as (api: unknown) => void,
+      loadChannelPlugin: () => plugin,
+      loadChannelSecrets: () => plugin.secrets,
+    };
   }
-  return record as BundledChannelEntryRuntimeContract;
+  return null;
 }
 
 function resolveChannelSetupModuleEntry(
