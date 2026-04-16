@@ -549,6 +549,7 @@ import {
   DeckIdentityListParamsSchema,
   DeckIdentityLinkParamsSchema,
   DeckIdentityUnlinkParamsSchema,
+  DeckPluginsListParamsSchema,
   DeckThreadsListParamsSchema,
 } from "./schema/deck.js";
 
@@ -590,6 +591,8 @@ export const validateDeckSubagentsSteerParams = ajv.compile(DeckSubagentsSteerPa
 export const validateDeckIdentityListParams = ajv.compile(DeckIdentityListParamsSchema);
 export const validateDeckIdentityLinkParams = ajv.compile(DeckIdentityLinkParamsSchema);
 export const validateDeckIdentityUnlinkParams = ajv.compile(DeckIdentityUnlinkParamsSchema);
+// deck.plugins.*
+export const validateDeckPluginsListParams = ajv.compile(DeckPluginsListParamsSchema);
 // deck.threads.*
 export const validateDeckThreadsListParams = ajv.compile(DeckThreadsListParamsSchema);
 

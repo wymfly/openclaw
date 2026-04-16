@@ -225,6 +225,17 @@ export const PANELS = [
     ),
   },
   {
+    id: "plugins",
+    group: "control",
+    icon: FileCode,
+    labelKey: "plugins",
+    component: lazy(() =>
+      import("@/components/panels/plugins/PluginsPanel").then((m) => ({
+        default: m.PluginsPanel,
+      })),
+    ),
+  },
+  {
     id: "routing",
     group: "control",
     icon: GitBranch,

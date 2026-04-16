@@ -20,6 +20,7 @@
     "budget": "预算",
     "alerts": "告警",
     "channels": "渠道",
+    "plugins": "插件",
     "config": "配置",
     "routing": "消息路由",
     "subagents": "子智能体",
@@ -247,7 +248,14 @@
     "subagents": "子智能体",
     "searchTranscript": "搜索对话...",
     "noSearchResults": "未找到匹配结果",
-    "matchCount": "{count} 个匹配"
+    "matchCount": "{count} 个匹配",
+    "virtualLines": "第 {start}–{end} 行（共 {total} 行）",
+    "virtualCollapse": "收起",
+    "virtualExpand": "展开全部",
+    "deleteConfirmTitle": "删除会话",
+    "deleteConfirmMessage": "确定要删除此会话吗？",
+    "deleteConfirmCancel": "取消",
+    "deleteConfirmOk": "删除"
   },
   "monitor": {
     "title": "监控面板",
@@ -395,6 +403,11 @@
       "thinkingBudget": "思考预算 (tokens)",
       "advancedParams": "高级参数",
       "invalidJson": "JSON 格式无效"
+    },
+    "filter": {
+      "reasoning": "推理",
+      "vision": "视觉",
+      "text": "文本"
     },
     "provider": "供应商配置",
     "name": "模型名称",
@@ -617,6 +630,9 @@
     "dimRoles": "角色",
     "dimTeamId": "团队",
     "activityFeed": "活动事件",
+    "accessControls": "访问控制",
+    "accessControlsDescription": "如果当前路由结果仍不符合预期，请检查该账号对应的 WeCom 访问控制配置。",
+    "openAccess": "打开访问控制",
     "activityBanner": "显示近期路由事件（降级模式：需要 Gateway 路由遥测支持完整 hit log）",
     "agentFilter": "智能体过滤",
     "allAgents": "全部智能体",
@@ -975,6 +991,7 @@
     "unknown": "未知",
     "tokensIn": "输入",
     "tokensOut": "输出",
+    "tokensCurrent": "当前轮",
     "context": "上下文用量",
     "history": "对话记录",
     "noSessions": "暂无会话",
@@ -1195,6 +1212,7 @@
     "accounts": "账号",
     "tabs": {
       "status": "状态",
+      "access": "访问控制",
       "bindings": "绑定",
       "settings": "设置",
       "settingsPlaceholder": "设置功能即将推出",
@@ -1222,6 +1240,7 @@
         "totalTime": "总耗时: {time}"
       },
       "reset": "重置",
+      "accessMoved": "权限编辑已移动到「访问控制」标签页。设置页仅保留连接与重试相关配置。",
       "configureWizard": "配置连接（向导）"
     },
     "weixinWizard": {
@@ -1265,6 +1284,23 @@
       "accountTitle": "告警",
       "probeSummary": "最近一次渠道探测仍然失败，需要继续排查。"
     },
+    "permissionSummary": {
+      "title": "权限摘要",
+      "botAllowlistEmpty": "{account}：bot 已启用 allowlist，但 allowFrom 为空。",
+      "agentAllowlistEmpty": "{account}：agent 已启用 allowlist，但 allowFrom 为空。",
+      "dynamicAgentsMissingAdmins": "动态 Agent 已启用，但尚未配置管理员用户。",
+      "botPolicy": "Bot：{policy} · allowFrom {count}",
+      "agentPolicy": "Agent：{policy} · allowFrom {count}",
+      "allowFromPreview": "allowFrom：{preview}{extra}",
+      "allowFromEmpty": "allowFrom：无",
+      "dynamicAgents": "动态 Agent：{enabled} · 管理员 {admins}",
+      "routing": "路由：{mode}",
+      "openAccess": "打开访问控制",
+      "enabled": "启用",
+      "disabled": "禁用",
+      "failClosed": "未命中时拒绝",
+      "fallback": "回退到默认路由"
+    },
     "alertCount": "{count} 条告警",
     "diagnostics": {
       "title": "账号诊断",
@@ -1298,13 +1334,92 @@
       "errorRate": "错误率",
       "latency": "延迟",
       "throughput": "吞吐量",
-      "noData": "暂无分析数据"
+      "runtimeHealth": "运行态健康概览",
+      "runtimeHealthDescription": "基于当前渠道快照显示的实时运行覆盖情况。",
+      "runtimeConnected": "已连接账号",
+      "runtimeConfigured": "已配置账号",
+      "runtimeErrors": "异常账号数",
+      "runtimeDefaultAccount": "默认账号",
+      "noData": "暂无分析数据",
+      "placeholder": "Deck 暂未接入历史吞吐量数据源。当前图表仅提供稳定占位面。"
     },
     "test": {
-      "title": "测试消息",
-      "placeholder": "输入测试消息...",
-      "success": "发送成功",
-      "sendTest": "发送测试"
+      "title": "连通性检查",
+      "description": "对该渠道执行基于 probe 的连通性检查。",
+      "success": "渠道可达",
+      "sendTest": "执行检查",
+      "testing": "检查中..."
+    },
+    "pluginInfo": {
+      "label": "插件",
+      "origin": "来源",
+      "configPath": "插件配置键",
+      "open": "打开插件",
+      "unavailable": "Deck 中暂不可用"
+    },
+    "bindingsTab": {
+      "openRouting": "查看全部路由规则",
+      "summaryTitle": "路由范围摘要",
+      "summaryChannel": "渠道：{channel}",
+      "summaryAccount": "账号：{account}",
+      "summaryBindings": "当前范围内绑定数：{count}",
+      "conflictTitle": "检测到绑定冲突",
+      "conflictDescription": "当前过滤范围内有 {count} 条绑定冲突重叠。请到路由面板查看并处理。",
+      "missingBindingsTitle": "当前范围没有绑定",
+      "missingBindingsDescription": "这个渠道/账号范围内没有显式绑定，流量会依赖更宽泛的路由规则或默认回退行为。",
+      "emptyTitle": "暂无绑定规则",
+      "emptyDescription": "使用“添加绑定”按钮创建新的路由规则。"
+    },
+    "access": {
+      "manage": "管理权限",
+      "title": "WeCom 访问控制",
+      "description": "管理谁可以使用该渠道、私聊授权方式，以及动态 Agent 的行为。",
+      "unsupportedTitle": "此处暂不支持访问控制",
+      "unsupportedDescription": "该渠道暂未在 Deck 中提供专门的访问控制编辑界面。",
+      "accountSelector": "账号",
+      "allAccountsTitle": "全部账号",
+      "allAccountsDescription": "对比所有 WeCom 账号的当前权限行为，点击某一行即可切换到该账号进行编辑。",
+      "botSection": "Bot 私聊策略 · {account}",
+      "botDescription": "控制用户如何向该账号的 WeCom Bot 发起私聊。",
+      "agentSection": "Agent 私聊策略 · {account}",
+      "agentDescription": "控制用户如何向该账号的 WeCom Agent 发起私聊。",
+      "allowlistEmpty": "当前已启用 allowlist，但 allowFrom 为空。在添加条目前，所有命令都会被拒绝。",
+      "allowFromHint": "格式：userid / user:userid / wecom:userid / *",
+      "allowFromPlaceholder": "添加 WeCom 用户 ID 或 *",
+      "noModes": "该账号当前没有可编辑的 bot 或 agent 权限配置。",
+      "dynamicAgentsTitle": "动态 Agent",
+      "dynamicAgentsDescription": "配置 WeCom 特有的按用户、按群独立 Agent 行为。",
+      "dynamicAgentsMissingAdmins": "动态 Agent 已启用，但尚未配置管理员用户。所有人都会被路由到独立 Agent。",
+      "dynamicAgentsEnabled": "启用动态 Agent 路由",
+      "dynamicAgentsDm": "为私聊创建独立 Agent",
+      "dynamicAgentsGroup": "为群聊创建独立 Agent",
+      "adminUsersHint": "管理员始终使用主 Agent，可使用与 allowFrom 相同的格式。",
+      "adminUsersPlaceholder": "添加管理员用户 ID",
+      "routingTitle": "路由行为",
+      "routingDescription": "控制在没有显式路由绑定命中时，WeCom 的回退行为。",
+      "failClosedLabel": "没有默认路由时拒绝消息",
+      "openRouting": "打开路由面板",
+      "routingSummary": "路由模拟和绑定管理仍在全局路由面板中完成。",
+      "table": {
+        "account": "账号",
+        "bot": "Bot",
+        "agent": "Agent",
+        "dynamicAgents": "动态 Agent",
+        "notConfigured": "未配置",
+        "enabled": "启用",
+        "disabled": "禁用"
+      },
+      "allowFromEditor": {
+        "count": "{count} 条目",
+        "placeholder": "添加条目",
+        "add": "添加",
+        "empty": "尚未配置条目。",
+        "bulkTitle": "批量导入",
+        "bulkPlaceholder": "每行一个条目，或用逗号分隔粘贴多个值",
+        "bulkApply": "应用",
+        "invalid": "无效条目：{entry}",
+        "remove": "移除 {entry}"
+      }
     },
     "accountConfig": {
       "title": "配置 {account}",
@@ -1545,6 +1660,32 @@
     "globalDefaults": "全局默认策略",
     "addAgentPlaceholder": "输入智能体 ID...",
     "saved": "策略已保存"
+  },
+  "pluginsInventory": {
+    "title": "插件",
+    "description": "只读展示插件身份、来源、能力与诊断信息。生命周期控制会在未来明确契约后再开放。",
+    "scope": "清单范围",
+    "scopeChannel": "仅显示具备渠道能力的插件",
+    "empty": "当前范围内没有插件",
+    "origin": "来源",
+    "status": "状态",
+    "capabilities": "能力",
+    "channels": "渠道",
+    "enabled": "已启用",
+    "activation": "激活信息",
+    "activationSource": "激活来源",
+    "activationReason": "激活原因",
+    "yes": "是",
+    "no": "否",
+    "none": "无",
+    "configPath": "插件配置键",
+    "diagnostics": "诊断",
+    "relatedChannels": "相关渠道",
+    "openChannel": "打开 {channel}",
+    "openAccess": "打开访问控制",
+    "openRouting": "打开路由",
+    "noVisibleChannels": "这些渠道尚未出现在 Channels 面板中",
+    "channelVisibilityWarning": "尚未在 Channels 中可见：{channels}"
   },
   "skills": {
     "title": "技能管理",
@@ -1951,6 +2092,8 @@
       "probeNoChannel": "网关中未找到 WeCom 渠道。插件是否已安装？",
       "probeFailed": "连接测试失败，请检查凭证后重试。",
       "dmPolicyLabel": "选择谁可以向此机器人发送私信：",
+      "accessTabHint": "完成接入后，更细的权限控制请在“访问控制”标签页中设置。",
+      "saveFailed": "WeCom 设置保存失败。请修正连接信息后重试。",
       "sectionBot": "Bot 凭证",
       "sectionAgent": "Agent 凭证"
     }

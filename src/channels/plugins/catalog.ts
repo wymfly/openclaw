@@ -16,6 +16,12 @@ export type ChannelUiMetaEntry = {
   label: string;
   detailLabel: string;
   systemImage?: string;
+  pluginId?: string;
+  pluginOrigin?: PluginOrigin;
+  pluginNpmSpec?: string;
+  pluginLocalPath?: string;
+  pluginDefaultInstallChoice?: "npm" | "local";
+  pluginConfigPath?: string;
 };
 
 export type ChannelUiCatalog = {
@@ -45,6 +51,7 @@ type CatalogOptions = {
   officialCatalogPaths?: string[];
   env?: NodeJS.ProcessEnv;
   excludeWorkspace?: boolean;
+  catalogEntries?: ChannelPluginCatalogEntry[];
 };
 
 const ORIGIN_PRIORITY: Record<PluginOrigin, number> = {
@@ -293,14 +300,32 @@ function buildExternalCatalogEntry(entry: ExternalCatalogEntry): ChannelPluginCa
 
 export function buildChannelUiCatalog(
   plugins: Array<{ id: string; meta: ChannelMeta }>,
+  options: CatalogOptions = {},
 ): ChannelUiCatalog {
+  const catalogByChannelId = new Map(
+    (options.catalogEntries ?? listChannelPluginCatalogEntries(options)).map(
+      (entry) => [entry.id, entry] as const,
+    ),
+  );
+
   const entries: ChannelUiMetaEntry[] = plugins.map((plugin) => {
     const detailLabel = plugin.meta.detailLabel ?? plugin.meta.selectionLabel ?? plugin.meta.label;
+    const catalogEntry = catalogByChannelId.get(plugin.id);
+    const pluginId = normalizeOptionalString(catalogEntry?.pluginId);
+    const origin = catalogEntry?.origin;
+    const install = catalogEntry?.install;
+
     return {
       id: plugin.id,
       label: plugin.meta.label,
       detailLabel,
       ...(plugin.meta.systemImage ? { systemImage: plugin.meta.systemImage } : {}),
+      ...(pluginId ? { pluginId } : {}),
+      ...(origin ? { pluginOrigin: origin } : {}),
+      ...(install?.npmSpec ? { pluginNpmSpec: install.npmSpec } : {}),
+      ...(install?.localPath ? { pluginLocalPath: install.localPath } : {}),
+      ...(install?.defaultChoice ? { pluginDefaultInstallChoice: install.defaultChoice } : {}),
+      ...(pluginId ? { pluginConfigPath: `plugins.entries.${pluginId}.config` } : {}),
     };
   });
   const order = entries.map((entry) => entry.id);

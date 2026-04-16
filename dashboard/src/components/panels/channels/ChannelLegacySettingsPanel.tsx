@@ -21,7 +21,13 @@ const DEFAULT_RETRY: RetryState = {
 };
 
 /** Hardcoded DmPolicy + Retry settings (legacy fallback when no schema) */
-export function ChannelLegacySettingsPanel({ channelId }: { channelId: string }) {
+export function ChannelLegacySettingsPanel({
+  channelId,
+  hideDmPolicy = false,
+}: {
+  channelId: string;
+  hideDmPolicy?: boolean;
+}) {
   const t = useTranslations("channels.settings");
   const tc = useTranslations("common");
 
@@ -29,13 +35,13 @@ export function ChannelLegacySettingsPanel({ channelId }: { channelId: string })
     useChannelsStore();
 
   const [dmPolicy, setDmPolicy] = useState("pairing");
-  const [retry, setRetry] = useState<RetryState>(DEFAULT_RETRY);
+  const [retry, setRetry] = useState(DEFAULT_RETRY);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const [initialDmPolicy, setInitialDmPolicy] = useState("pairing");
-  const [initialRetry, setInitialRetry] = useState<RetryState>(DEFAULT_RETRY);
+  const [initialRetry, setInitialRetry] = useState(DEFAULT_RETRY);
 
   useEffect(() => {
     setLoaded(false);
@@ -126,7 +132,20 @@ export function ChannelLegacySettingsPanel({ channelId }: { channelId: string })
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
-        <DmPolicySelector value={dmPolicy} onChange={handleDmPolicyChange} />
+        {hideDmPolicy ? (
+          <div
+            className="rounded-md border px-3 py-2 text-[11px]"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--muted)",
+              color: "var(--muted-foreground)",
+            }}
+          >
+            {t("accessMoved")}
+          </div>
+        ) : (
+          <DmPolicySelector value={dmPolicy} onChange={handleDmPolicyChange} />
+        )}
         <RetryStrategyEditor
           attempts={retry.attempts}
           minDelayMs={retry.minDelayMs}

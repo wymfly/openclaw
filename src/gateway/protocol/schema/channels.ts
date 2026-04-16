@@ -167,6 +167,14 @@ export const ChannelUiMetaSchema = Type.Object(
     label: NonEmptyString,
     detailLabel: NonEmptyString,
     systemImage: Type.Optional(Type.String()),
+    pluginId: Type.Optional(NonEmptyString),
+    pluginOrigin: Type.Optional(Type.String()),
+    pluginNpmSpec: Type.Optional(NonEmptyString),
+    pluginLocalPath: Type.Optional(Type.String()),
+    pluginDefaultInstallChoice: Type.Optional(
+      Type.Union([Type.Literal("npm"), Type.Literal("local")]),
+    ),
+    pluginConfigPath: Type.Optional(NonEmptyString),
   },
   { additionalProperties: false },
 );

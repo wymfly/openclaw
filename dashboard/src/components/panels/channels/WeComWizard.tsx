@@ -6,6 +6,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { navigateToChannelAccess } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useChannelsStore } from "@/stores/channels";
 import { ConfigWizard, type WizardStep } from "./ConfigWizard";
@@ -54,7 +55,7 @@ export function WeComWizard({
 }) {
   const t = useTranslations("wizard");
   const { channelOrder, updateChannelConfig } = useChannelsStore();
-  const [form, setForm] = useState<WeComFormData>({ ...INITIAL_FORM });
+  const [form, setForm] = useState({ ...INITIAL_FORM });
   const [probeResult, setProbeResult] = useState<"idle" | "testing" | "success" | "error">("idle");
   const [probeMessage, setProbeMessage] = useState("");
   const [copied, setCopied] = useState(false);
@@ -403,6 +404,10 @@ export function WeComWizard({
   const dmPolicyContent = (
     <div className="space-y-3">
       <p className="text-xs text-[var(--muted-foreground)]">{t("wecom.dmPolicyLabel")}</p>
+      <div className="flex items-start gap-2 rounded-lg bg-[var(--primary-muted)] px-3 py-2 text-[10px] text-[var(--muted-foreground)]">
+        <Info size={12} className="mt-0.5 shrink-0 text-[var(--primary)]" />
+        <span>{t("wecom.accessTabHint")}</span>
+      </div>
       <DmPolicySelector
         value={form.dmPolicy}
         onChange={(policy) => updateField("dmPolicy", policy)}
@@ -526,11 +531,23 @@ export function WeComWizard({
 
   const handleComplete = useCallback(async () => {
     const patch = buildConfigPatch();
-    await updateChannelConfig("wecom", patch);
-    setForm({ ...INITIAL_FORM });
-    setProbeResult("idle");
-    onOpenChange(false);
-  }, [buildConfigPatch, updateChannelConfig, onOpenChange]);
+    try {
+      const saved = await updateChannelConfig("wecom", patch);
+      if (!saved) {
+        setProbeResult("error");
+        setProbeMessage(t("wecom.saveFailed"));
+        return;
+      }
+      navigateToChannelAccess("wecom");
+      setForm({ ...INITIAL_FORM });
+      setProbeResult("idle");
+      setProbeMessage("");
+      onOpenChange(false);
+    } catch {
+      setProbeResult("error");
+      setProbeMessage(t("wecom.saveFailed"));
+    }
+  }, [buildConfigPatch, updateChannelConfig, onOpenChange, t]);
 
   return (
     <ConfigWizard

@@ -16,7 +16,7 @@ interface ChannelAnalyticsProps {
  */
 export function ChannelAnalytics({ channelId }: ChannelAnalyticsProps) {
   const t = useTranslations("channels");
-  const { throughput, fetchThroughput, channelHealthMap } = useChannelsStore();
+  const { throughput, fetchThroughput, channelHealthMap, channels } = useChannelsStore();
 
   useEffect(() => {
     fetchThroughput(channelId);
@@ -24,10 +24,16 @@ export function ChannelAnalytics({ channelId }: ChannelAnalyticsProps) {
 
   const data = throughput.get(channelId);
   const health = channelHealthMap.get(channelId);
+  const channel = channels.get(channelId);
 
   const totalIn = data?.messagesIn ?? 0;
   const totalOut = data?.messagesOut ?? 0;
   const errorRate = health?.status === "down" ? 100 : health?.status === "degraded" ? 50 : 0;
+  const accountCount = channel?.accounts.length ?? 0;
+  const configuredCount = channel?.accounts.filter((account) => account.configured).length ?? 0;
+  const connectedCount = channel?.accounts.filter((account) => account.connected).length ?? 0;
+  const errorCount = channel?.accounts.filter((account) => Boolean(account.lastError)).length ?? 0;
+  const defaultAccount = channel?.defaultAccountId ?? "\u2014";
 
   const summaryCards = [
     {
@@ -56,6 +62,25 @@ export function ChannelAnalytics({ channelId }: ChannelAnalyticsProps) {
     },
   ];
 
+  const runtimeCards = [
+    {
+      label: t("analytics.runtimeConnected"),
+      value: `${connectedCount}/${accountCount || 0}`,
+    },
+    {
+      label: t("analytics.runtimeConfigured"),
+      value: `${configuredCount}/${accountCount || 0}`,
+    },
+    {
+      label: t("analytics.runtimeErrors"),
+      value: errorCount.toLocaleString(),
+    },
+    {
+      label: t("analytics.runtimeDefaultAccount"),
+      value: defaultAccount,
+    },
+  ];
+
   return (
     <div className="space-y-4 p-4">
       {/* Summary cards */}
@@ -81,7 +106,37 @@ export function ChannelAnalytics({ channelId }: ChannelAnalyticsProps) {
           <CardTitle className="text-xs">{t("analytics.throughput")}</CardTitle>
         </CardHeader>
         <CardContent>
+          <p className="mb-3 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            {t("analytics.placeholder")}
+          </p>
           <ThroughputChart channelId={channelId} />
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[var(--background)] border-[var(--border)]">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs">{t("analytics.runtimeHealth")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            {t("analytics.runtimeHealthDescription")}
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {runtimeCards.map((card) => (
+              <div
+                key={card.label}
+                className="rounded-lg border px-3 py-2"
+                style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
+              >
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  {card.label}
+                </p>
+                <p className="mt-1 text-sm font-semibold font-mono text-[var(--foreground)]">
+                  {card.value}
+                </p>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 

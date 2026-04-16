@@ -136,6 +136,11 @@ export function ChannelList() {
                     <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                       {statusText}
                     </span>
+                    {channel.pluginId && (
+                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+                        · {channel.pluginId}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

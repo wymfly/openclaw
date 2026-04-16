@@ -20,6 +20,7 @@
     "budget": "Budget",
     "alerts": "Alerts",
     "channels": "Channels",
+    "plugins": "Plugins",
     "config": "Config",
     "routing": "Routing",
     "subagents": "Subagents",
@@ -250,7 +251,14 @@
     "subagents": "Sub-agents",
     "searchTranscript": "Search messages...",
     "noSearchResults": "No matches found",
-    "matchCount": "{count} matches"
+    "matchCount": "{count} matches",
+    "virtualLines": "Lines {start}–{end} of {total}",
+    "virtualCollapse": "Collapse",
+    "virtualExpand": "Expand all",
+    "deleteConfirmTitle": "Delete session",
+    "deleteConfirmMessage": "Are you sure you want to delete this session?",
+    "deleteConfirmCancel": "Cancel",
+    "deleteConfirmOk": "Delete"
   },
   "monitor": {
     "title": "Monitor",
@@ -398,6 +406,11 @@
       "thinkingBudget": "Thinking Budget (tokens)",
       "advancedParams": "Advanced Parameters",
       "invalidJson": "Invalid JSON"
+    },
+    "filter": {
+      "reasoning": "Reasoning",
+      "vision": "Vision",
+      "text": "Text"
     },
     "provider": "Provider Config",
     "name": "Model Name",
@@ -620,6 +633,9 @@
     "dimRoles": "Roles",
     "dimTeamId": "Team",
     "activityFeed": "Activity Feed",
+    "accessControls": "Access Controls",
+    "accessControlsDescription": "Review WeCom access rules for the selected account if this routing result still does not match operator expectations.",
+    "openAccess": "Open Access",
     "activityBanner": "Showing recent routing events (degraded mode: full hit log requires Gateway routing telemetry)",
     "agentFilter": "Agent Filter",
     "allAgents": "All Agents",
@@ -978,6 +994,7 @@
     "unknown": "Unknown",
     "tokensIn": "Input",
     "tokensOut": "Output",
+    "tokensCurrent": "Current",
     "context": "Context Usage",
     "history": "History",
     "noSessions": "No sessions",
@@ -1198,6 +1215,7 @@
     "accounts": "Accounts",
     "tabs": {
       "status": "Status",
+      "access": "Access",
       "bindings": "Bindings",
       "settings": "Settings",
       "settingsPlaceholder": "Settings coming soon",
@@ -1225,6 +1243,7 @@
         "totalTime": "Total time: {time}"
       },
       "reset": "Reset",
+      "accessMoved": "Permission editing now lives in the Access tab. Settings keeps connection and retry behavior only.",
       "configureWizard": "Configure Connection (Wizard)"
     },
     "weixinWizard": {
@@ -1268,6 +1287,24 @@
       "accountTitle": "Alert",
       "probeSummary": "The latest channel probe is still failing and needs investigation."
     },
+    "permissionSummary": {
+      "title": "Permission Summary",
+      "botAllowlistEmpty": "{account}: bot allowlist mode is enabled but allowFrom is empty.",
+      "agentAllowlistEmpty": "{account}: agent allowlist mode is enabled but allowFrom is empty.",
+      "dynamicAgentsMissingAdmins": "Dynamic agents are enabled but no admin users are configured.",
+      "dynamicAgentsMissingRouting": "Dynamic agents are enabled but no routing bindings are configured.",
+      "botPolicy": "Bot: {policy} · allowFrom {count}",
+      "agentPolicy": "Agent: {policy} · allowFrom {count}",
+      "allowFromPreview": "allowFrom: {preview}{extra}",
+      "allowFromEmpty": "allowFrom: none",
+      "dynamicAgents": "Dynamic agents: {enabled} · admins {admins}",
+      "routing": "Routing: {mode}",
+      "openAccess": "Open Access",
+      "enabled": "enabled",
+      "disabled": "disabled",
+      "failClosed": "reject unmatched",
+      "fallback": "fallback to default route"
+    },
     "alertCount": "{count} alert(s)",
     "diagnostics": {
       "title": "Account Diagnostics",
@@ -1301,13 +1338,92 @@
       "errorRate": "Error Rate",
       "latency": "Latency",
       "throughput": "Throughput",
-      "noData": "No analytics data available"
+      "runtimeHealth": "Runtime Health",
+      "runtimeHealthDescription": "Live operational coverage based on the current channel snapshot.",
+      "runtimeConnected": "Connected Accounts",
+      "runtimeConfigured": "Configured Accounts",
+      "runtimeErrors": "Accounts With Errors",
+      "runtimeDefaultAccount": "Default Account",
+      "noData": "No analytics data available",
+      "placeholder": "Historical throughput is not wired into Deck yet. This chart currently shows a stable placeholder surface."
     },
     "test": {
-      "title": "Test Message",
-      "placeholder": "Enter test message...",
-      "success": "Delivered",
-      "sendTest": "Send Test"
+      "title": "Connection Check",
+      "description": "Run a probe-based connectivity check for this channel.",
+      "success": "Channel reachable",
+      "sendTest": "Run Check",
+      "testing": "Checking..."
+    },
+    "pluginInfo": {
+      "label": "Plugin",
+      "origin": "Origin",
+      "configPath": "Plugin Config Key",
+      "open": "Open Plugin",
+      "unavailable": "Not available in Deck yet"
+    },
+    "bindingsTab": {
+      "openRouting": "View all routing rules",
+      "summaryTitle": "Routing Scope Summary",
+      "summaryChannel": "Channel: {channel}",
+      "summaryAccount": "Account: {account}",
+      "summaryBindings": "Bindings in scope: {count}",
+      "conflictTitle": "Binding conflicts detected",
+      "conflictDescription": "{count} binding conflict(s) overlap this filtered scope. Use the Routing panel to inspect and resolve them.",
+      "missingBindingsTitle": "No bindings in this scope",
+      "missingBindingsDescription": "This channel/account scope has no explicit bindings. Traffic will rely on broader routing or default fallback behavior.",
+      "emptyTitle": "No bindings found",
+      "emptyDescription": "Use the Add Binding button to create a routing rule."
+    },
+    "access": {
+      "manage": "Manage Access",
+      "title": "WeCom Access Controls",
+      "description": "Manage who can use this channel, how direct messages are authorized, and how dynamic agents behave.",
+      "unsupportedTitle": "Access controls are not available here",
+      "unsupportedDescription": "This channel does not yet expose a dedicated Access editing surface in Deck.",
+      "accountSelector": "Account",
+      "allAccountsTitle": "All Accounts",
+      "allAccountsDescription": "Compare current access behavior across all WeCom accounts and click a row to focus editing.",
+      "botSection": "Bot DM Policy · {account}",
+      "botDescription": "Controls how users can direct-message the WeCom bot for this account.",
+      "agentSection": "Agent DM Policy · {account}",
+      "agentDescription": "Controls how users can direct-message the WeCom agent for this account.",
+      "allowlistEmpty": "Allowlist mode is enabled but the allowFrom list is empty. All commands will be rejected until you add entries.",
+      "allowFromHint": "Formats: userid / user:userid / wecom:userid / *",
+      "allowFromPlaceholder": "Add a WeCom user id or *",
+      "noModes": "This account does not currently expose bot or agent permission settings.",
+      "dynamicAgentsTitle": "Dynamic Agents",
+      "dynamicAgentsDescription": "Configure WeCom-specific per-user and per-group agent isolation behavior.",
+      "dynamicAgentsMissingAdmins": "Dynamic agents are enabled but no admin users are configured. Everyone will be routed through independent agents.",
+      "dynamicAgentsEnabled": "Enable dynamic agent routing",
+      "dynamicAgentsDm": "Create independent DM agents",
+      "dynamicAgentsGroup": "Create independent group agents",
+      "adminUsersHint": "Admins always stay on the main agent. Use the same allowFrom formats.",
+      "adminUsersPlaceholder": "Add an admin user id",
+      "routingTitle": "Routing Behavior",
+      "routingDescription": "Control how WeCom behaves when no explicit route binding matches.",
+      "failClosedLabel": "Reject messages when no default route exists",
+      "openRouting": "Open Routing Panel",
+      "routingSummary": "Use the global Routing panel for route simulation and binding management.",
+      "table": {
+        "account": "Account",
+        "bot": "Bot",
+        "agent": "Agent",
+        "dynamicAgents": "Dynamic Agents",
+        "notConfigured": "Not configured",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "allowFromEditor": {
+        "count": "{count} entries",
+        "placeholder": "Add an entry",
+        "add": "Add",
+        "empty": "No entries configured.",
+        "bulkTitle": "Bulk Import",
+        "bulkPlaceholder": "Paste one entry per line or comma-separated values",
+        "bulkApply": "Apply",
+        "invalid": "Invalid entry: {entry}",
+        "remove": "Remove {entry}"
+      }
     },
     "accountConfig": {
       "title": "Configure {account}",
@@ -1549,6 +1665,32 @@
     "globalDefaults": "Global Defaults",
     "addAgentPlaceholder": "Enter agent ID...",
     "saved": "Policy saved"
+  },
+  "pluginsInventory": {
+    "title": "Plugins",
+    "description": "Read-only inventory of plugin identity, origin, capabilities, and diagnostics. Lifecycle controls are intentionally deferred.",
+    "scope": "Inventory Scope",
+    "scopeChannel": "channel-capable plugins only",
+    "empty": "No plugins in this inventory scope",
+    "origin": "Origin",
+    "status": "Status",
+    "capabilities": "Capabilities",
+    "channels": "Channels",
+    "enabled": "Enabled",
+    "activation": "Activation",
+    "activationSource": "Activation Source",
+    "activationReason": "Activation Reason",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "configPath": "Plugin Config Key",
+    "diagnostics": "Diagnostics",
+    "relatedChannels": "Related Channels",
+    "openChannel": "Open {channel}",
+    "openAccess": "Open Access",
+    "openRouting": "Open Routing",
+    "noVisibleChannels": "No visible channels in Channels yet",
+    "channelVisibilityWarning": "Not visible in Channels: {channels}"
   },
   "skills": {
     "title": "Skills",
@@ -1955,6 +2097,8 @@
       "probeNoChannel": "WeCom channel not found in gateway. Is the plugin installed?",
       "probeFailed": "Connection test failed. Check credentials and try again.",
       "dmPolicyLabel": "Choose who can send direct messages to this bot:",
+      "accessTabHint": "Detailed permission controls live in the Access tab after setup completes.",
+      "saveFailed": "Unable to save WeCom settings. Fix the connection details and try again.",
       "sectionBot": "Bot Credentials",
       "sectionAgent": "Agent Credentials"
     }

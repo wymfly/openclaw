@@ -1,8 +1,11 @@
 # Deck WeCom Permission Management UX Design
 
 **Date:** 2026-04-16
-**Status:** Approved
+**Status:** Background input only
 **Scope:** Dashboard channel permission management — generic framework + WeCom first implementation
+
+> This document preserves the original design intent, but it is no longer the authoritative execution baseline.
+> Use the current execution baseline instead: [Deck WeCom Permission Management Execution Baseline](/plans/2026-04-16-deck-wecom-permission-management-plan).
 
 ## Problem Statement
 

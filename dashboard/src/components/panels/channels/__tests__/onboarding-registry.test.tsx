@@ -20,9 +20,13 @@ vi.mock("../WeComWizard", () => ({
 }));
 
 vi.mock("../ChannelLegacySettingsPanel", () => ({
-  ChannelLegacySettingsPanel: ({ channelId }: { channelId: string }) => (
-    <div>{`Legacy Settings ${channelId}`}</div>
-  ),
+  ChannelLegacySettingsPanel: ({
+    channelId,
+    hideDmPolicy,
+  }: {
+    channelId: string;
+    hideDmPolicy?: boolean;
+  }) => <div>{`Legacy Settings ${channelId} hideDmPolicy=${hideDmPolicy ? "yes" : "no"}`}</div>,
 }));
 
 vi.mock("../OpenClawWeixinWizard", () => ({
@@ -94,7 +98,7 @@ describe("channel onboarding registry", () => {
     render(createElement(ChannelSettingsTab, { channelId: "wecom" }));
 
     expect(screen.queryByText("Weixin Status Panel")).toBeNull();
-    expect(screen.getByText("Legacy Settings wecom")).toBeTruthy();
+    expect(screen.getByText("Legacy Settings wecom hideDmPolicy=yes")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Configure Connection (Wizard)" })).toBeTruthy();
   });
 });

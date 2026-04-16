@@ -1,29 +1,43 @@
 "use client";
 
-import { Send, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Activity } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 interface TestResult {
   ok: boolean;
-  messageId?: string;
   error?: string;
   latencyMs: number;
   timestamp: number;
+  check?: string;
 }
 
 interface ChannelTestToolProps {
   channelId: string;
 }
 
+function pushResult(setResults: Dispatch<SetStateAction<TestResult[]>>, result: TestResult): void {
+  setResults((prev) => [result, ...prev].slice(0, 5));
+}
+
+function readOptionalCheck(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readErrorMessage(value: unknown, fallback: string): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  return fallback;
+}
+
 /**
- * Send test message tool — verifies end-to-end channel connectivity.
+ * Connectivity check tool — verifies channel reachability via probe.
  */
 export function ChannelTestTool({ channelId }: ChannelTestToolProps) {
   const t = useTranslations("channels");
-  const [message, setMessage] = useState("Test message from OpenClaw Deck");
   const [sending, setSending] = useState(false);
   const [results, setResults] = useState<TestResult[]>([]);
 
@@ -34,79 +48,53 @@ export function ChannelTestTool({ channelId }: ChannelTestToolProps) {
       const res = await fetch(`/api/channels/${encodeURIComponent(channelId)}/test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({}),
       });
       const latencyMs = Date.now() - start;
       if (res.ok) {
         const data = await res.json();
-        setResults((prev) =>
-          [
-            {
-              ok: true,
-              messageId: data.messageId,
-              latencyMs,
-              timestamp: Date.now(),
-            },
-            ...prev,
-          ].slice(0, 5),
-        );
+        pushResult(setResults, {
+          ok: true,
+          check: readOptionalCheck((data as { check?: unknown }).check),
+          latencyMs,
+          timestamp: Date.now(),
+        });
       } else {
-        const data = await res.json().catch(() => ({}));
-        setResults((prev) =>
-          [
-            {
-              ok: false,
-              error: (data as Record<string, unknown>).error
-                ? String((data as Record<string, unknown>).error)
-                : `HTTP ${res.status}`,
-              latencyMs,
-              timestamp: Date.now(),
-            },
-            ...prev,
-          ].slice(0, 5),
-        );
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        pushResult(setResults, {
+          ok: false,
+          error: readErrorMessage(data.error, `HTTP ${res.status}`),
+          check: readOptionalCheck(data.check),
+          latencyMs,
+          timestamp: Date.now(),
+        });
       }
     } catch (err) {
-      setResults((prev) =>
-        [
-          {
-            ok: false,
-            error: err instanceof Error ? err.message : "Network error",
-            latencyMs: Date.now() - start,
-            timestamp: Date.now(),
-          },
-          ...prev,
-        ].slice(0, 5),
-      );
+      pushResult(setResults, {
+        ok: false,
+        error: err instanceof Error ? err.message : "Network error",
+        latencyMs: Date.now() - start,
+        timestamp: Date.now(),
+      });
     } finally {
       setSending(false);
     }
-  }, [channelId, message]);
+  }, [channelId]);
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
-        <Input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              void handleSend();
-            }
-          }}
-          placeholder={t("test.placeholder")}
-          className="text-xs flex-1"
-          aria-label={t("test.title")}
-        />
-        <Button
-          size="sm"
-          onClick={() => void handleSend()}
-          disabled={sending || !message.trim()}
-          aria-label={t("test.sendTest")}
-        >
-          {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-        </Button>
-      </div>
+      <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+        {t("test.description")}
+      </p>
+      <Button
+        size="sm"
+        onClick={() => void handleSend()}
+        disabled={sending}
+        aria-label={t("test.sendTest")}
+      >
+        {sending ? <Loader2 size={12} className="animate-spin" /> : <Activity size={12} />}
+        <span className="ml-1.5">{sending ? t("test.testing") : t("test.sendTest")}</span>
+      </Button>
 
       {/* Results history */}
       {results.length > 0 && (
@@ -128,7 +116,7 @@ export function ChannelTestTool({ channelId }: ChannelTestToolProps) {
                   <XCircle size={12} className="text-[var(--destructive)] shrink-0" />
                 )}
                 <span className="truncate" style={{ color: "var(--foreground)" }}>
-                  {r.ok ? `${t("test.success")}${r.messageId ? ` (${r.messageId})` : ""}` : r.error}
+                  {r.ok ? t("test.success") : r.error}
                 </span>
               </div>
               <span className="text-[10px] text-[var(--muted-foreground)] shrink-0 ml-2">

@@ -24,7 +24,7 @@ const ONBOARDING_DESCRIPTORS: Record<string, ChannelOnboardingDescriptor> = {
     channelId: "wecom",
     kind: "adapter",
     titleKey: "channels.settings.configureWizard",
-    renderPanel: () => <ChannelLegacySettingsPanel channelId="wecom" />,
+    renderPanel: () => <ChannelLegacySettingsPanel channelId="wecom" hideDmPolicy />,
     renderDialog: ({ open, onOpenChange }) => (
       <WeComWizard open={open} onOpenChange={onOpenChange} />
     ),

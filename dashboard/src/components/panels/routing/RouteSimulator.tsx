@@ -1,7 +1,8 @@
 "use client";
 
 import { Play, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import { AgentBadge } from "@/components/shared/AgentBadge";
 import { SessionKeyDisplay } from "@/components/shared/SessionKeyDisplay";
 import { TierBadge } from "@/components/shared/TierBadge";
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { navigateToChannelAccess } from "@/lib/panel-navigation";
 import { cn } from "@/lib/utils";
 import { useAgentsStore } from "@/stores/agents";
 import { useChannelsStore } from "@/stores/channels";
@@ -33,7 +35,15 @@ const ALL_TIERS = [
 ];
 
 export function RouteSimulator() {
-  const { simulate, simulating, simulationResult, clearSimulation } = useDeckRoutingStore();
+  const t = useTranslations("routing");
+  const {
+    simulate,
+    simulating,
+    simulationResult,
+    clearSimulation,
+    pendingSimulatorInput,
+    setPendingSimulatorInput,
+  } = useDeckRoutingStore();
   const channelOrder = useChannelsStore((s) => s.channelOrder);
   const agents = useAgentsStore((s) => s.agents);
 
@@ -47,6 +57,19 @@ export function RouteSimulator() {
 
   const isDiscord = channel === "discord";
   const isSlack = channel === "slack";
+
+  useEffect(() => {
+    if (!pendingSimulatorInput) {
+      return;
+    }
+    if (pendingSimulatorInput.channel !== undefined) {
+      setChannel(pendingSimulatorInput.channel);
+    }
+    if (pendingSimulatorInput.accountId !== undefined) {
+      setAccountId(pendingSimulatorInput.accountId);
+    }
+    setPendingSimulatorInput(null);
+  }, [pendingSimulatorInput, setPendingSimulatorInput]);
 
   const handleSimulate = () => {
     const params: Record<string, unknown> = { channel };
@@ -80,6 +103,7 @@ export function RouteSimulator() {
     setRoles("");
     setTeamId("");
     clearSimulation();
+    setPendingSimulatorInput(null);
   };
 
   // Find agent details for the matched agent
@@ -273,6 +297,25 @@ export function RouteSimulator() {
                 );
               })}
             </div>
+
+            {channel === "wecom" && (
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 space-y-2">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)] block">
+                  {t("accessControls")}
+                </span>
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  {t("accessControlsDescription")}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={() => navigateToChannelAccess("wecom", accountId || undefined)}
+                >
+                  {t("openAccess")}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

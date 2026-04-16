@@ -1,54 +1,78 @@
 /**
- * POST /api/channels/[channelId]/test — Send a test message through a channel.
+ * POST /api/channels/[channelId]/test — Run a channel connectivity check.
  *
- * Probes the channel and returns a synthetic test result.
- * Uses channels.status with probe=true to verify connectivity.
+ * This route intentionally performs a probe-based connectivity check.
+ * It does not claim to deliver a real outbound message unless a future
+ * channel-specific send-test contract exists.
  */
 import { type NextRequest, NextResponse } from "next/server";
-import { gwRequest } from "@/lib/api-helpers";
+import { gwCall, gwRequest } from "@/lib/api-helpers";
 import { withAuth } from "@/lib/with-auth";
 
 type RouteContext = { params: Promise<{ channelId: string }> };
 
 export const POST = withAuth(async (request: NextRequest, ctx: unknown) => {
   const { channelId } = await (ctx as RouteContext).params;
-  const body = (await request.json().catch(() => ({}))) as { message?: string };
+  await request.json().catch(() => ({}));
   const start = Date.now();
 
   try {
-    // Use probe to verify connectivity
-    const probeRes = await gwRequest("channels.status", { probe: true });
+    const probeData = (await gwCall("channels.status", { probe: true })) as Record<string, unknown>;
     const latencyMs = Date.now() - start;
+    const allAccounts = (probeData?.channelAccounts ?? {}) as Record<
+      string,
+      Array<{ probe?: { ok?: boolean; error?: string; latencyMs?: number; elapsedMs?: number } }>
+    >;
+    const channelAccounts = Array.isArray(allAccounts[channelId]) ? allAccounts[channelId] : [];
+    const anyOk = channelAccounts.some((account) => account.probe?.ok === true);
+    const firstError = channelAccounts.find((account) => account.probe?.error)?.probe?.error;
 
-    // gwRequest returns NextResponse — extract the JSON body
-    let probeData: Record<string, unknown> | null = null;
-    if (probeRes instanceof NextResponse) {
-      probeData = (await probeRes.json().catch(() => null)) as Record<string, unknown> | null;
-    } else if (probeRes && typeof probeRes === "object") {
-      probeData = probeRes as Record<string, unknown>;
-    }
-
-    const channels = (probeData?.channels ?? probeData) as Record<string, unknown> | null;
-    const channelStatus = channels?.[channelId];
-
-    if (channelStatus) {
+    if (anyOk) {
       return NextResponse.json({
         ok: true,
-        messageId: `test-${Date.now()}`,
         channelId,
-        message: body.message ?? "Test message",
+        check: "probe",
         latencyMs,
+        checkedAt: Date.now(),
       });
     }
 
     return NextResponse.json(
-      { ok: false, error: `Channel ${channelId} not responding`, latencyMs },
+      {
+        ok: false,
+        channelId,
+        check: "probe",
+        error: firstError ?? `Channel ${channelId} did not pass connectivity probe`,
+        latencyMs,
+      },
       { status: 502 },
     );
   } catch (err) {
+    if (err instanceof Error) {
+      const fallback = await gwRequest("channels.status", { probe: true });
+      if (!fallback.ok) {
+        const errorBody = (await fallback.json().catch(() => null)) as {
+          error?: string;
+          code?: string;
+        } | null;
+        return NextResponse.json(
+          {
+            ok: false,
+            channelId,
+            check: "probe",
+            error: errorBody?.error ?? err.message,
+            code: errorBody?.code,
+            latencyMs: Date.now() - start,
+          },
+          { status: fallback.status },
+        );
+      }
+    }
     return NextResponse.json(
       {
         ok: false,
+        channelId,
+        check: "probe",
         error: err instanceof Error ? err.message : "Test failed",
         latencyMs: Date.now() - start,
       },

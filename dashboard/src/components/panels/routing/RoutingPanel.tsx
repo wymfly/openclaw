@@ -2,11 +2,12 @@
 
 import { Activity } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
+import { useDeckRoutingStore } from "@/stores/deck-routing";
 import { ActivityFeed } from "./ActivityFeed";
 import { BindingTable } from "./BindingTable";
 import { RouteSimulator } from "./RouteSimulator";
@@ -19,8 +20,19 @@ import { RouteSimulator } from "./RouteSimulator";
 export function RoutingPanel() {
   const t = useTranslations("routing");
   const isWide = useMediaQuery("(min-width: 1280px)");
+  const pendingSimulatorInput = useDeckRoutingStore((s) => s.pendingSimulatorInput);
   const [rightPane, setRightPane] = useState<"simulator" | "activity">("simulator");
-  const [mobileTab, setMobileTab] = useState("bindings");
+  const [mobileTab, setMobileTab] = useState(() =>
+    pendingSimulatorInput ? "simulator" : "bindings",
+  );
+
+  useEffect(() => {
+    if (!pendingSimulatorInput) {
+      return;
+    }
+    setRightPane("simulator");
+    setMobileTab("simulator");
+  }, [pendingSimulatorInput]);
 
   if (isWide) {
     return (

@@ -5,8 +5,8 @@
  *
  * Channel config lives in openclaw.json. To update:
  *   1. Read current config via config.get
- *   2. Merge channel changes into the channels section
- *   3. Send full config via config.patch with baseHash
+ *   2. Send only the channel subtree patch via config.patch
+ *      so nested account updates preserve sibling config.
  */
 import { type NextRequest } from "next/server";
 import { gwRequest } from "@/lib/api-helpers";
@@ -30,15 +30,22 @@ export const PATCH = withAuth(async (request: NextRequest, ctx: unknown) => {
 
   const config = configData.config ?? {};
   const baseHash = configData.baseHash;
+  if (!config || typeof config !== "object") {
+    return configRes;
+  }
 
-  // 2. Merge channel changes
-  const channels = (config.channels ?? {}) as Record<string, Record<string, unknown>>;
-  channels[channelId] = { ...channels[channelId], ...patch };
-  config.channels = channels;
-
-  // 3. Send full config via config.patch
+  // 2. Send only the channel subtree patch so Gateway-side merge-patch keeps
+  // nested account config intact instead of replacing sibling branches.
   return gwRequest("config.patch", {
-    raw: JSON.stringify(config, null, 2),
+    raw: JSON.stringify(
+      {
+        channels: {
+          [channelId]: patch,
+        },
+      },
+      null,
+      2,
+    ),
     ...(baseHash ? { baseHash } : {}),
   });
 });

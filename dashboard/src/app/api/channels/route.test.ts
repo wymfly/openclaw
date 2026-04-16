@@ -24,4 +24,16 @@ describe("/api/channels", () => {
 
     expect(gwRequest).toHaveBeenCalledWith("channels.status", { probe: false });
   });
+
+  it("honors probe query params for wizard validation flows", async () => {
+    gwRequest.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
+    const { GET } = await import("./route.js");
+
+    await GET(new NextRequest("http://localhost/api/channels?probe=true&timeoutMs=2500"));
+
+    expect(gwRequest).toHaveBeenCalledWith("channels.status", {
+      probe: true,
+      timeoutMs: 2500,
+    });
+  });
 });

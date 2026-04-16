@@ -18,6 +18,8 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "agents.files.set",
   "agents.list",
   "agents.update",
+  "channels.logout",
+  "channels.status",
   "chat.abort",
   "chat.history",
   "chat.send",
@@ -49,6 +51,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "deck.identity.link",
   "deck.identity.list",
   "deck.identity.unlink",
+  "deck.plugins.list",
   "deck.routing.add",
   "deck.routing.list",
   "deck.routing.remove",
@@ -214,6 +217,16 @@ export interface GatewayClient {
       params: import("./gateway-protocol.generated").ConfigSetParams,
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").ConfigSetResult>;
+  };
+  channels: {
+    status(
+      params: import("./gateway-protocol.generated").ChannelsStatusParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ChannelsStatusResult>;
+    logout(
+      params: import("./gateway-protocol.generated").ChannelsLogoutParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").ChannelsLogoutResult>;
   };
   doctor: {
     memory: {
@@ -638,6 +651,12 @@ export interface GatewayClient {
         options?: { timeoutMs?: number },
       ): Promise<import("./gateway-protocol.generated").DeckIdentityUnlinkResult>;
     };
+    plugins: {
+      list(
+        params: import("./gateway-protocol.generated").DeckPluginsListParams,
+        options?: { timeoutMs?: number },
+      ): Promise<import("./gateway-protocol.generated").DeckPluginsListResult>;
+    };
     threads: {
       list(
         params: import("./gateway-protocol.generated").DeckThreadsListParams,
@@ -782,6 +801,10 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       apply: call("config.apply"),
       patch: call("config.patch"),
       set: call("config.set"),
+    },
+    channels: {
+      status: call("channels.status"),
+      logout: call("channels.logout"),
     },
     doctor: {
       memory: {
@@ -935,6 +958,9 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
         list: call("deck.identity.list"),
         link: call("deck.identity.link"),
         unlink: call("deck.identity.unlink"),
+      },
+      plugins: {
+        list: call("deck.plugins.list"),
       },
       threads: {
         list: call("deck.threads.list"),

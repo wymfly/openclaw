@@ -12,19 +12,14 @@ interface ChannelSettingsTabProps {
   channelId: string;
 }
 
-interface RetryState {
-  attempts: number;
-  minDelayMs: number;
-  maxDelayMs: number;
-  jitter: number;
-}
-
-const DEFAULT_RETRY: RetryState = {
-  attempts: 3,
-  minDelayMs: 1000,
-  maxDelayMs: 30000,
-  jitter: 0.2,
-};
+const WECOM_ACCESS_EXCLUDE_PATHS = [
+  "bot.dm",
+  "agent.dm",
+  "dynamicAgents",
+  "routing.failClosedOnDefaultRoute",
+  "accounts.*.bot.dm",
+  "accounts.*.agent.dm",
+];
 
 /**
  * Settings tab for a channel.
@@ -41,6 +36,10 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
   const onboardingDescriptor = getChannelOnboardingDescriptor(channelId);
 
   if (onboardingDescriptor) {
+    const props = schemaInfo?.schema.properties;
+    const hasFields = props && typeof props === "object" && Object.keys(props).length > 0;
+    const showSchemaPanel = channelId === "wecom" && hasFields;
+
     return (
       <>
         <div className="flex flex-col h-full">
@@ -58,7 +57,17 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
               <span>{t("configureWizard")}</span>
             </button>
           </div>
-          <div className="flex-1 overflow-hidden">{onboardingDescriptor.renderPanel()}</div>
+          <div className="flex-1 overflow-hidden">
+            {showSchemaPanel && schemaInfo ? (
+              <ChannelSchemaSettings
+                channelId={channelId}
+                schemaInfo={schemaInfo}
+                excludePaths={WECOM_ACCESS_EXCLUDE_PATHS}
+              />
+            ) : (
+              onboardingDescriptor.renderPanel()
+            )}
+          </div>
         </div>
         {onboardingDescriptor.renderDialog({ open: wizardOpen, onOpenChange: setWizardOpen })}
       </>

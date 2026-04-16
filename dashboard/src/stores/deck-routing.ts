@@ -41,6 +41,10 @@ interface DeckRoutingState {
   dmScope: string | null;
   loading: boolean;
   error: string | null;
+  pendingSimulatorInput: {
+    channel?: string;
+    accountId?: string;
+  } | null;
 
   // Conflict detection
   conflictPairs: ConflictPair[];
@@ -65,6 +69,7 @@ interface DeckRoutingState {
   validateBinding: (match: BindingMatch, agentId?: string) => Promise<ValidationResult | null>;
   simulate: (params: Record<string, unknown>) => Promise<void>;
   clearSimulation: () => void;
+  setPendingSimulatorInput: (input: { channel?: string; accountId?: string } | null) => void;
 }
 
 export const useDeckRoutingStore = create<DeckRoutingState>((set, get) => ({
@@ -73,6 +78,7 @@ export const useDeckRoutingStore = create<DeckRoutingState>((set, get) => ({
   dmScope: null,
   loading: false,
   error: null,
+  pendingSimulatorInput: null,
 
   conflictPairs: [],
   simulating: false,
@@ -233,4 +239,5 @@ export const useDeckRoutingStore = create<DeckRoutingState>((set, get) => ({
   },
 
   clearSimulation: () => set({ simulationResult: null }),
+  setPendingSimulatorInput: (input) => set({ pendingSimulatorInput: input }),
 }));

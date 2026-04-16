@@ -7,13 +7,19 @@ import { parseSchemaSection } from "@/lib/schema-parser";
 import { applyUiHints } from "@/lib/ui-hints";
 import { useChannelsStore, type ChannelSchemaInfo } from "@/stores/channels";
 import { useConfigStore } from "@/stores/config";
+import { filterSchemaFields } from "./channel-schema-filter";
 
 interface ChannelSchemaSettingsProps {
   channelId: string;
   schemaInfo: ChannelSchemaInfo;
+  excludePaths?: string[];
 }
 
-export function ChannelSchemaSettings({ channelId, schemaInfo }: ChannelSchemaSettingsProps) {
+export function ChannelSchemaSettings({
+  channelId,
+  schemaInfo,
+  excludePaths = [],
+}: ChannelSchemaSettingsProps) {
   const t = useTranslations("channels.schemaForm");
   const tc = useTranslations("common");
   const { channelConfig, fetchChannelConfig, saveChannelConfig, channelConfigSaveError } =
@@ -30,11 +36,9 @@ export function ChannelSchemaSettings({ channelId, schemaInfo }: ChannelSchemaSe
   // Parse schema into FormField[] and apply uiHints
   const fields = useMemo(() => {
     const parsed = parseSchemaSection(schemaInfo.schema);
-    if (uiHints) {
-      return applyUiHints(parsed, uiHints, `${schemaInfo.configPath}.`);
-    }
-    return parsed;
-  }, [schemaInfo.schema, schemaInfo.configPath, uiHints]);
+    const hinted = uiHints ? applyUiHints(parsed, uiHints, `${schemaInfo.configPath}.`) : parsed;
+    return excludePaths.length > 0 ? filterSchemaFields(hinted, excludePaths) : hinted;
+  }, [excludePaths, schemaInfo.schema, schemaInfo.configPath, uiHints]);
 
   // Sort fields by order hint, then key
   const sortedFields = useMemo(() => {

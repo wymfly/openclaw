@@ -22,8 +22,58 @@ export interface ChannelAccount {
 export interface ChannelInfo {
   id: string;
   label: string;
+  detailLabel?: string;
+  systemImage?: string;
+  pluginId?: string;
+  pluginOrigin?: string;
+  pluginNpmSpec?: string;
+  pluginLocalPath?: string;
+  pluginDefaultInstallChoice?: "npm" | "local";
+  pluginConfigPath?: string;
   accounts: ChannelAccount[];
   defaultAccountId?: string;
+}
+
+interface ChannelUiMeta {
+  id: string;
+  label: string;
+  detailLabel?: string;
+  systemImage?: string;
+  pluginId?: string;
+  pluginOrigin?: string;
+  pluginNpmSpec?: string;
+  pluginLocalPath?: string;
+  pluginDefaultInstallChoice?: "npm" | "local";
+  pluginConfigPath?: string;
+}
+
+function buildChannelInfo(params: {
+  channelId: string;
+  labels: Record<string, string>;
+  detailLabels: Record<string, string>;
+  systemImages: Record<string, string>;
+  defaultIds: Record<string, string>;
+  rawAccounts: Record<string, Record<string, ChannelAccount>>;
+  metaById: Map<string, ChannelUiMeta>;
+}): ChannelInfo {
+  const { channelId, labels, detailLabels, systemImages, defaultIds, rawAccounts, metaById } =
+    params;
+  const meta = metaById.get(channelId);
+
+  return {
+    id: channelId,
+    label: labels[channelId] ?? channelId,
+    detailLabel: meta?.detailLabel ?? detailLabels[channelId] ?? labels[channelId] ?? channelId,
+    systemImage: meta?.systemImage ?? systemImages[channelId],
+    pluginId: meta?.pluginId,
+    pluginOrigin: meta?.pluginOrigin,
+    pluginNpmSpec: meta?.pluginNpmSpec,
+    pluginLocalPath: meta?.pluginLocalPath,
+    pluginDefaultInstallChoice: meta?.pluginDefaultInstallChoice,
+    pluginConfigPath: meta?.pluginConfigPath,
+    accounts: Object.values(rawAccounts[channelId] ?? {}),
+    defaultAccountId: defaultIds[channelId],
+  };
 }
 
 /** Schema info for a channel extracted from config.schema */
@@ -76,6 +126,7 @@ interface ChannelsState {
   channels: Map<string, ChannelInfo>;
   channelOrder: string[];
   selectedId: string | null;
+  pendingAccessTarget: { channelId: string; accountId?: string } | null;
   loading: boolean;
   error: string | null;
 
@@ -100,6 +151,7 @@ interface ChannelsState {
 
   fetchChannels: () => Promise<void>;
   selectChannel: (id: string | null) => void;
+  setPendingAccessTarget: (target: { channelId: string; accountId?: string } | null) => void;
   updateChannelConfig: (channelId: string, patch: Record<string, unknown>) => Promise<boolean>;
   logoutChannel: (channelId: string) => Promise<boolean>;
   fetchThroughput: (channelId: string) => void;
@@ -114,6 +166,7 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
   channels: new Map(),
   channelOrder: [],
   selectedId: null,
+  pendingAccessTarget: null,
   loading: false,
   error: null,
   throughput: new Map(),
@@ -143,36 +196,34 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
       const data = await res.json();
       const order: string[] = Array.isArray(data.channelOrder) ? data.channelOrder : [];
       const labels: Record<string, string> = data.channelLabels ?? {};
+      const detailLabels: Record<string, string> = data.channelDetailLabels ?? {};
+      const systemImages: Record<string, string> = data.channelSystemImages ?? {};
+      const metaEntries = Array.isArray(data.channelMeta)
+        ? (data.channelMeta as ChannelUiMeta[])
+        : [];
       const rawChannels: Record<string, unknown> = data.channels ?? {};
       const rawAccounts: Record<string, Record<string, ChannelAccount>> = data.channelAccounts ??
       {};
       const defaultIds: Record<string, string> = data.channelDefaultAccountId ?? {};
-
+      const metaById = new Map(metaEntries.map((entry) => [entry.id, entry] as const));
       const channelMap = new Map<string, ChannelInfo>();
+      const channelInfoParams = {
+        labels,
+        detailLabels,
+        systemImages,
+        defaultIds,
+        rawAccounts,
+        metaById,
+      };
 
       for (const chId of order) {
-        const accountsObj = rawAccounts[chId] ?? {};
-        const accounts: ChannelAccount[] = Object.values(accountsObj);
-
-        channelMap.set(chId, {
-          id: chId,
-          label: labels[chId] ?? chId,
-          accounts,
-          defaultAccountId: defaultIds[chId],
-        });
+        channelMap.set(chId, buildChannelInfo({ channelId: chId, ...channelInfoParams }));
       }
 
       // Also add any channels not in order (from rawChannels keys)
       for (const chId of Object.keys(rawChannels)) {
         if (!channelMap.has(chId)) {
-          const accountsObj = rawAccounts[chId] ?? {};
-          const accounts: ChannelAccount[] = Object.values(accountsObj);
-          channelMap.set(chId, {
-            id: chId,
-            label: labels[chId] ?? chId,
-            accounts,
-            defaultAccountId: defaultIds[chId],
-          });
+          channelMap.set(chId, buildChannelInfo({ channelId: chId, ...channelInfoParams }));
           order.push(chId);
         }
       }
@@ -191,6 +242,7 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
   },
 
   selectChannel: (selectedId) => set({ selectedId }),
+  setPendingAccessTarget: (pendingAccessTarget) => set({ pendingAccessTarget }),
 
   updateChannelConfig: async (channelId, patch) => {
     try {

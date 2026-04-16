@@ -8,6 +8,7 @@
 import { useAgentsStore } from "@/stores/agents";
 import { useChannelsStore } from "@/stores/channels";
 import { useDeckRoutingStore } from "@/stores/deck-routing";
+import { usePluginsStore } from "@/stores/plugins";
 import { useSessionsStore } from "@/stores/sessions";
 import { useUIStore } from "@/stores/ui";
 
@@ -43,15 +44,35 @@ export function navigateToAgent(agentId: string, tab?: AgentTab) {
 // Routing panel
 // ---------------------------------------------------------------------------
 
+type RoutingNavigationTarget =
+  | string
+  | {
+      channelId?: string;
+      accountId?: string;
+    };
+
 /**
- * Navigate to the routing panel. If `agentId` is provided the binding table
- * will refetch with that agent filter pre-applied.
+ * Navigate to the routing panel.
+ *
+ * - `string` preserves the existing agent-centric filter behavior.
+ * - `{ channelId, accountId }` preloads the standalone simulator with channel
+ *   context so Channel → Routing handoffs keep operator scope.
  */
-export function navigateToRouting(agentId?: string) {
+export function navigateToRouting(target?: RoutingNavigationTarget) {
   useUIStore.getState().setActivePanel("routing");
-  if (agentId) {
-    void useDeckRoutingStore.getState().fetchBindings(agentId);
+  if (typeof target === "string" && target) {
+    void useDeckRoutingStore.getState().fetchBindings(target);
+    return;
   }
+  const simulatorTarget = typeof target === "string" ? null : (target ?? null);
+  useDeckRoutingStore.getState().setPendingSimulatorInput(
+    simulatorTarget?.channelId || simulatorTarget?.accountId
+      ? {
+          channel: simulatorTarget.channelId,
+          accountId: simulatorTarget.accountId,
+        }
+      : null,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -60,8 +81,26 @@ export function navigateToRouting(agentId?: string) {
 
 /** Navigate to the channels panel, selecting a specific channel. */
 export function navigateToChannel(channelId: string) {
+  useChannelsStore.getState().setPendingAccessTarget(null);
   useChannelsStore.getState().selectChannel(channelId);
   useUIStore.getState().setActivePanel("channels");
+}
+
+/** Navigate to a channel and open its Access surface when available. */
+export function navigateToChannelAccess(channelId: string, accountId?: string) {
+  useChannelsStore.getState().setPendingAccessTarget({ channelId, accountId });
+  useChannelsStore.getState().selectChannel(channelId);
+  useUIStore.getState().setActivePanel("channels");
+}
+
+// ---------------------------------------------------------------------------
+// Plugins panel
+// ---------------------------------------------------------------------------
+
+/** Navigate to the plugins panel, preselecting a specific plugin when known. */
+export function navigateToPlugin(pluginId?: string) {
+  usePluginsStore.getState().selectPlugin(pluginId ?? null);
+  useUIStore.getState().setActivePanel("plugins");
 }
 
 // ---------------------------------------------------------------------------

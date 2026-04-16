@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { navigateToPlugin } = vi.hoisted(() => ({
+  navigateToPlugin: vi.fn(),
+}));
 
 vi.mock("next-intl", () => ({
   useTranslations: (ns: string) => (key: string, values?: Record<string, string | number>) => {
@@ -22,6 +26,11 @@ vi.mock("next-intl", () => ({
         enable: "Enable",
         aggregateHealthNote:
           "Channel health is aggregated. Use the account diagnostics below to find the actual failing account.",
+        "pluginInfo.label": "Plugin",
+        "pluginInfo.origin": "Origin",
+        "pluginInfo.configPath": "Plugin Config Key",
+        "pluginInfo.open": "Open Plugin",
+        "pluginInfo.unavailable": "Not available in Deck yet",
         "alerts.title": "Active Alerts",
         "alerts.summary": `${values?.count ?? 0} account alert(s) currently need attention.`,
         "alerts.accountTitle": "Alert",
@@ -78,37 +87,82 @@ vi.mock("next-intl", () => ({
       },
     };
     const scoped = table[ns];
-    if (key === "tabs.status") return "Status";
-    if (key === "tabs.bindings") return "Bindings";
-    if (key === "tabs.settings") return "Settings";
-    if (key === "tabs.analytics") return "Analytics";
-    if (key === "probe.title") return "Connection Probe";
-    if (key === "test.title") return "Test Message";
+    if (key === "tabs.status") {
+      return "Status";
+    }
+    if (key === "tabs.bindings") {
+      return "Bindings";
+    }
+    if (key === "tabs.settings") {
+      return "Settings";
+    }
+    if (key === "tabs.analytics") {
+      return "Analytics";
+    }
+    if (key === "probe.title") {
+      return "Connection Probe";
+    }
+    if (key === "test.title") {
+      return "Connection Check";
+    }
     return scoped?.[key] ?? key;
   },
 }));
 
+const channelsStoreState: Record<string, unknown> = {};
+const useChannelsStoreMock = ((selector?: (state: Record<string, unknown>) => unknown) =>
+  selector ? selector(channelsStoreState) : channelsStoreState) as ((
+  selector?: (state: Record<string, unknown>) => unknown,
+) => unknown) & {
+  setState: (next: Record<string, unknown>) => void;
+};
+useChannelsStoreMock.setState = (next) => {
+  for (const key of Object.keys(channelsStoreState)) {
+    delete channelsStoreState[key];
+  }
+  Object.assign(channelsStoreState, next);
+};
+
+vi.mock("../../../stores/channels", () => ({
+  useChannelsStore: useChannelsStoreMock,
+}));
+
+vi.mock("../../../lib/panel-navigation", () => ({
+  navigateToPlugin,
+}));
+
+vi.mock("../../ui/tabs", () => ({
+  Tabs: ({ children }: { children: unknown }) => children,
+  TabsList: ({ children }: { children: unknown }) => children,
+  TabsTrigger: ({ children }: { children: unknown }) => children,
+  TabsContent: ({ children }: { children: unknown }) => children,
+}));
+
 vi.mock("./BindingsTab", () => ({ BindingsTab: () => null }));
+vi.mock("./ChannelAccessTab", () => ({ ChannelAccessTab: () => null }));
 vi.mock("./ChannelAnalytics", () => ({ ChannelAnalytics: () => null }));
+vi.mock("./ChannelHealthBadge", () => ({ ChannelHealthBadge: () => null }));
+vi.mock("./ChannelProbeStatus", () => ({ ChannelProbeStatus: () => null }));
 vi.mock("./ChannelSettingsTab", () => ({ ChannelSettingsTab: () => null }));
 vi.mock("./ChannelTestTool", () => ({ ChannelTestTool: () => null }));
 vi.mock("./AccountConfigDialog", () => ({ AccountConfigDialog: () => null }));
 
 let ChannelDetail: typeof import("./ChannelDetail").ChannelDetail;
-let useChannelsStore: typeof import("@/stores/channels").useChannelsStore;
 
 beforeEach(async () => {
   vi.resetModules();
   ({ ChannelDetail } = await import("./ChannelDetail"));
-  ({ useChannelsStore } = await import("@/stores/channels"));
 
-  useChannelsStore.setState({
+  useChannelsStoreMock.setState({
     channels: new Map([
       [
         "telegram",
         {
           id: "telegram",
           label: "Telegram",
+          pluginId: "telegram",
+          pluginOrigin: "bundled",
+          pluginConfigPath: "plugins.entries.telegram.config",
           accounts: [
             {
               accountId: "main",
@@ -176,6 +230,12 @@ describe("ChannelDetail diagnostics", () => {
     ).toBeTruthy();
     expect(screen.getByText(/Alert · Account error/)).toBeTruthy();
     expect(screen.getByText("Account Diagnostics")).toBeTruthy();
+    expect(screen.getByText("Plugin:")).toBeTruthy();
+    expect(screen.getByText("telegram")).toBeTruthy();
+    expect(screen.getByText("Origin:")).toBeTruthy();
+    expect(screen.getByText("bundled")).toBeTruthy();
+    expect(screen.getByText("Plugin Config Key:")).toBeTruthy();
+    expect(screen.getByText("plugins.entries.telegram.config")).toBeTruthy();
     expect(
       screen.getByText(
         "Channel health is aggregated. Use the account diagnostics below to find the actual failing account.",
@@ -188,5 +248,13 @@ describe("ChannelDetail diagnostics", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText(/Last error: Token invalid/)).toBeTruthy();
+  });
+
+  it("offers a plugin handoff into the Plugins inventory", () => {
+    render(<ChannelDetail channelId="telegram" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /open plugin/i }));
+
+    expect(navigateToPlugin).toHaveBeenCalledWith("telegram");
   });
 });

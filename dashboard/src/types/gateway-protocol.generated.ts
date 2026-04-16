@@ -313,6 +313,82 @@ export interface ConfigSetResult {
   sentinel?: unknown;
 }
 
+export interface ChannelsStatusParams {
+  probe?: boolean;
+  timeoutMs?: number;
+}
+
+export type ChannelsStatusResult = {
+  ts: number;
+  channelOrder: string[];
+  channelLabels: Record<string, string>;
+  channelDetailLabels?: Record<string, string>;
+  channelSystemImages?: Record<string, string>;
+  channelMeta?: {
+    id: string;
+    label: string;
+    detailLabel: string;
+    systemImage?: string;
+    pluginId?: string;
+    pluginOrigin?: string;
+    pluginNpmSpec?: string;
+    pluginLocalPath?: string;
+    pluginDefaultInstallChoice?: "npm" | "local";
+    pluginConfigPath?: string;
+  }[];
+  channels: Record<string, unknown>;
+  channelAccounts: Record<
+    string,
+    {
+      accountId: string;
+      name?: string;
+      enabled?: boolean;
+      configured?: boolean;
+      linked?: boolean;
+      running?: boolean;
+      connected?: boolean;
+      reconnectAttempts?: number;
+      lastConnectedAt?: number;
+      lastError?: string;
+      healthState?: string;
+      lastStartAt?: number;
+      lastStopAt?: number;
+      lastInboundAt?: number;
+      lastOutboundAt?: number;
+      busy?: boolean;
+      activeRuns?: number;
+      lastRunActivityAt?: number;
+      lastProbeAt?: number;
+      mode?: string;
+      dmPolicy?: string;
+      allowFrom?: string[];
+      tokenSource?: string;
+      botTokenSource?: string;
+      appTokenSource?: string;
+      baseUrl?: string;
+      allowUnmentionedGroups?: boolean;
+      cliPath?: string;
+      dbPath?: string;
+      port?: number;
+      probe?: unknown;
+      audit?: unknown;
+      application?: unknown;
+    }[]
+  >;
+  channelDefaultAccountId: Record<string, string>;
+};
+
+export interface ChannelsLogoutParams {
+  channel: string;
+  accountId?: string;
+}
+
+export interface ChannelsLogoutResult {
+  channel: string;
+  accountId: string;
+  cleared: boolean;
+}
+
 export interface DoctorMemoryStatusResult {
   agentId: string;
   provider?: string;
@@ -2837,6 +2913,36 @@ export interface DeckIdentityUnlinkResult {
   configHash: string;
 }
 
+export type DeckPluginsListParams = {
+  capability?: "channel" | "all";
+};
+
+export interface DeckPluginsListResult {
+  scope: string;
+  plugins: {
+    id: string;
+    name: string;
+    version?: string;
+    origin: string;
+    status: string;
+    enabled: boolean;
+    explicitlyEnabled?: boolean;
+    activated?: boolean;
+    imported?: boolean;
+    activationSource?: string;
+    activationReason?: string;
+    configPath: string;
+    capabilityKinds: string[];
+    channelIds: string[];
+    providerIds: string[];
+    toolNames: string[];
+    diagnostics: {
+      level: string;
+      message: string;
+    }[];
+  }[];
+}
+
 export type DeckThreadsListParams = {
   agentId?: string;
   channel?: string;
@@ -3401,6 +3507,8 @@ export interface GatewayMethodMap {
   "config.apply": { params: ConfigApplyParams; result: ConfigApplyResult };
   "config.patch": { params: ConfigPatchParams; result: ConfigPatchResult };
   "config.set": { params: ConfigSetParams; result: ConfigSetResult };
+  "channels.status": { params: ChannelsStatusParams; result: ChannelsStatusResult };
+  "channels.logout": { params: ChannelsLogoutParams; result: ChannelsLogoutResult };
   "doctor.memory.status": { params: Record<string, unknown>; result: DoctorMemoryStatusResult };
   health: { params: Record<string, unknown>; result: HealthResult };
   status: { params: Record<string, unknown>; result: StatusResult };
@@ -3572,6 +3680,7 @@ export interface GatewayMethodMap {
   "deck.identity.list": { params: DeckIdentityListParams; result: DeckIdentityListResult };
   "deck.identity.link": { params: DeckIdentityLinkParams; result: DeckIdentityLinkResult };
   "deck.identity.unlink": { params: DeckIdentityUnlinkParams; result: DeckIdentityUnlinkResult };
+  "deck.plugins.list": { params: DeckPluginsListParams; result: DeckPluginsListResult };
   "deck.threads.list": { params: DeckThreadsListParams; result: DeckThreadsListResult };
   "deck.auth.overview": { params: Record<string, unknown>; result: DeckAuthOverviewResult };
   "deck.auth.probe": { params: Record<string, unknown>; result: DeckAuthProbeResult };

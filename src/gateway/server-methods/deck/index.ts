@@ -4,6 +4,7 @@ import { deckAgentsPreviewHandlers, deckAgentsPreviewMethodDefs } from "./agents
 import { deckAgentsHandlers, deckAgentsMethodDefs } from "./agents.js";
 import { deckCommandsHandlers, deckCommandsMethodDefs } from "./commands.js";
 import { deckIdentityHandlers, deckIdentityMethodDefs } from "./identity.js";
+import { deckPluginsHandlers, deckPluginsMethodDefs } from "./plugins.js";
 import { deckRoutingHandlers, deckRoutingMethodDefs } from "./routing.js";
 import { deckSubagentsSteerHandlers, deckSubagentsSteerMethodDefs } from "./subagents-steer.js";
 import { deckSubagentsHandlers, deckSubagentsMethodDefs } from "./subagents.js";
@@ -17,6 +18,7 @@ export const deckHandlers: GatewayRequestHandlers = {
   ...deckSubagentsHandlers,
   ...deckSubagentsSteerHandlers,
   ...deckIdentityHandlers,
+  ...deckPluginsHandlers,
   ...deckThreadsHandlers,
 };
 
@@ -28,5 +30,6 @@ export const deckMethodDefs: Record<string, MethodMetadata> = {
   ...deckSubagentsMethodDefs,
   ...deckSubagentsSteerMethodDefs,
   ...deckIdentityMethodDefs,
+  ...deckPluginsMethodDefs,
   ...deckThreadsMethodDefs,
 };

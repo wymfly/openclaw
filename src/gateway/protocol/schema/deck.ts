@@ -243,6 +243,14 @@ export const DeckThreadsListParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+// === deck.plugins.* ===
+export const DeckPluginsListParamsSchema = Type.Object(
+  {
+    capability: Type.Optional(Type.Union([Type.Literal("channel"), Type.Literal("all")])),
+  },
+  { additionalProperties: false },
+);
+
 // ============================================================
 // Result schemas — derived from handler respond(true, {...}) calls
 // ============================================================
@@ -557,6 +565,41 @@ const ThreadBindingSchema = Type.Object({
 
 export const DeckThreadsListResultSchema = Type.Object({
   threads: Type.Array(ThreadBindingSchema),
+});
+
+// === deck.plugins.* results ===
+
+const DeckPluginInventoryEntrySchema = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  version: Type.Optional(Type.String()),
+  origin: Type.String(),
+  status: Type.String(),
+  enabled: Type.Boolean(),
+  explicitlyEnabled: Type.Optional(Type.Boolean()),
+  activated: Type.Optional(Type.Boolean()),
+  imported: Type.Optional(Type.Boolean()),
+  activationSource: Type.Optional(Type.String()),
+  activationReason: Type.Optional(Type.String()),
+  configPath: Type.String(),
+  capabilityKinds: Type.Array(Type.String()),
+  channelIds: Type.Array(Type.String()),
+  providerIds: Type.Array(Type.String()),
+  toolNames: Type.Array(Type.String()),
+  diagnostics: Type.Array(
+    Type.Object(
+      {
+        level: Type.String(),
+        message: Type.String(),
+      },
+      { additionalProperties: false },
+    ),
+  ),
+});
+
+export const DeckPluginsListResultSchema = Type.Object({
+  scope: Type.String(),
+  plugins: Type.Array(DeckPluginInventoryEntrySchema),
 });
 
 // === deck.auth.* results ===

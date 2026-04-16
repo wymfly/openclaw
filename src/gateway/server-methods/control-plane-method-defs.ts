@@ -15,8 +15,14 @@ import {
   SkillsUpdateResultSchema,
 } from "../protocol/schema/agents-models-skills.js";
 import {
+  ChannelsLogoutParamsSchema,
+  ChannelsStatusParamsSchema,
+  ChannelsStatusResultSchema,
+} from "../protocol/schema/channels.js";
+import {
   DoctorMemoryDreamActionResultSchema,
   DoctorMemoryDreamDiaryResultSchema,
+  ChannelsLogoutResultSchema,
   DoctorMemoryStatusResultSchema,
   HealthResultSchema,
   ModelsCatalogProvidersResultSchema,
@@ -68,6 +74,16 @@ import {
  * than a separately curated string list.
  */
 export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
+  "channels.status": {
+    params: ChannelsStatusParamsSchema,
+    result: ChannelsStatusResultSchema,
+    scope: READ_SCOPE,
+  },
+  "channels.logout": {
+    params: ChannelsLogoutParamsSchema,
+    result: ChannelsLogoutResultSchema,
+    scope: WRITE_SCOPE,
+  },
   "doctor.memory.status": {
     result: DoctorMemoryStatusResultSchema,
     scope: READ_SCOPE,

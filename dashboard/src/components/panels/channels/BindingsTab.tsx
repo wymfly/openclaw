@@ -30,6 +30,7 @@ import { useDeckRoutingStore, type Binding, type BindingMatch } from "@/stores/d
  */
 export function BindingsTab({ channelId }: { channelId?: string } = {}) {
   const tc = useTranslations("common");
+  const t = useTranslations("channels.bindingsTab");
 
   const channelOrder = useChannelsStore((s) => s.channelOrder);
   const channelMap = useChannelsStore((s) => s.channels);
@@ -61,11 +62,14 @@ export function BindingsTab({ channelId }: { channelId?: string } = {}) {
   const accounts = selectedChannelInfo?.accounts ?? [];
 
   // Filter bindings by selected channel + account
+  const channelFilter = selectedChannel && selectedChannel !== "__all__" ? selectedChannel : "";
+  const accountFilter = selectedAccount && selectedAccount !== "__all__" ? selectedAccount : "";
+
   const filteredBindings = bindings.filter((b) => {
-    if (selectedChannel && b.match.channel !== selectedChannel) {
+    if (channelFilter && b.match.channel !== channelFilter) {
       return false;
     }
-    if (selectedAccount && b.match.accountId !== selectedAccount) {
+    if (accountFilter && b.match.accountId !== accountFilter) {
       return false;
     }
     return true;
@@ -97,6 +101,14 @@ export function BindingsTab({ channelId }: { channelId?: string } = {}) {
   const pairedUserCount = bindings.filter(
     (b) => b.match.peer?.kind === "direct" || b.match.peer?.kind === "user",
   ).length;
+  const filteredBindingIds = new Set(filteredBindings.map((binding) => binding.id));
+  const relevantConflicts = useDeckRoutingStore((s) => s.conflictPairs).filter(
+    (pair) => filteredBindingIds.has(pair.bindingA) || filteredBindingIds.has(pair.bindingB),
+  );
+  const routingTargetChannel =
+    selectedChannel && selectedChannel !== "__all__" ? selectedChannel : undefined;
+  const routingTargetAccount =
+    selectedAccount && selectedAccount !== "__all__" ? selectedAccount : undefined;
 
   return (
     <div className="flex flex-col h-full">
@@ -163,10 +175,19 @@ export function BindingsTab({ channelId }: { channelId?: string } = {}) {
               Add Binding
             </Button>
             <button
-              onClick={() => navigateToRouting()}
+              onClick={() =>
+                navigateToRouting(
+                  routingTargetChannel || routingTargetAccount
+                    ? {
+                        channelId: routingTargetChannel,
+                        accountId: routingTargetAccount,
+                      }
+                    : undefined,
+                )
+              }
               className="flex items-center gap-1 text-[10px] text-[var(--primary)] hover:underline cursor-pointer"
             >
-              View all routing rules
+              {t("openRouting")}
               <ExternalLink size={10} />
             </button>
           </div>
@@ -175,6 +196,56 @@ export function BindingsTab({ channelId }: { channelId?: string } = {}) {
 
       {/* Bindings table */}
       <ScrollArea className="flex-1">
+        {(channelFilter || accountFilter || relevantConflicts.length > 0) && (
+          <div className="px-4 pt-4 space-y-3">
+            {(channelFilter || accountFilter) && (
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] p-3 text-xs">
+                <p className="font-medium text-[var(--foreground)]">{t("summaryTitle")}</p>
+                <div className="mt-1 space-y-1 text-[var(--muted-foreground)]">
+                  {channelFilter && (
+                    <p>
+                      {t("summaryChannel", {
+                        channel: channelMap.get(channelFilter)?.label ?? channelFilter,
+                      })}
+                    </p>
+                  )}
+                  {accountFilter && <p>{t("summaryAccount", { account: accountFilter })}</p>}
+                  <p>{t("summaryBindings", { count: filteredBindings.length })}</p>
+                </div>
+              </div>
+            )}
+
+            {relevantConflicts.length > 0 && (
+              <div
+                className="rounded-lg border px-3 py-2 text-xs"
+                style={{
+                  borderColor: "var(--warning)",
+                  backgroundColor: "var(--warning-muted)",
+                  color: "var(--warning-muted-text)",
+                }}
+              >
+                <p className="font-medium">{t("conflictTitle")}</p>
+                <p className="mt-1">
+                  {t("conflictDescription", { count: relevantConflicts.length })}
+                </p>
+              </div>
+            )}
+
+            {!loading && filteredBindings.length === 0 && (channelFilter || accountFilter) && (
+              <div
+                className="rounded-lg border px-3 py-2 text-xs"
+                style={{
+                  borderColor: "var(--warning)",
+                  backgroundColor: "var(--warning-muted)",
+                  color: "var(--warning-muted-text)",
+                }}
+              >
+                <p className="font-medium">{t("missingBindingsTitle")}</p>
+                <p className="mt-1">{t("missingBindingsDescription")}</p>
+              </div>
+            )}
+          </div>
+        )}
         {loading && (
           <div className="flex items-center justify-center py-12 text-[var(--muted-foreground)]">
             <Loader2 size={16} className="animate-spin mr-2" />
@@ -184,10 +255,8 @@ export function BindingsTab({ channelId }: { channelId?: string } = {}) {
 
         {!loading && filteredBindings.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--muted-foreground)]">
-            <p className="text-sm">No bindings found</p>
-            <p className="text-xs">
-              Use the &quot;Add Binding&quot; button to create a routing rule
-            </p>
+            <p className="text-sm">{t("emptyTitle")}</p>
+            <p className="text-xs">{t("emptyDescription")}</p>
           </div>
         )}
 
