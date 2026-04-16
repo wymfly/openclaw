@@ -35,6 +35,8 @@ export function initHealthPoller(
   eventBus: EventBus,
   intervalMs = DEFAULT_INTERVAL_MS,
   autoStart = true,
+  /** Raw request function for untyped Gateway methods (e.g. channels.status). */
+  rawRequest?: (method: string, params: unknown) => Promise<unknown>,
 ): HealthPollerController {
   let prevAgents = new Map<string, string>();
   let prevChannels = new Map<string, ChannelSnapshot>();
@@ -105,8 +107,11 @@ export function initHealthPoller(
   }
 
   async function pollChannelHealth(): Promise<void> {
-    const result = await gw.channels.status({});
-    const raw = result as unknown as Record<string, unknown>;
+    if (!rawRequest) {
+      return;
+    }
+    const result = await rawRequest("channels.status", {});
+    const raw = result as Record<string, unknown>;
     const channels = (raw.channels ?? raw) as Record<string, unknown>;
 
     const current = new Map<string, ChannelSnapshot>();

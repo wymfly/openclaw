@@ -385,7 +385,7 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
     return null;
   }
 
-  const rateLimiter = createRateLimiter();
+  const rateLimiter = createRateLimiter({ maxRequests: 300 });
   const capabilityState = createPendingCapabilityState();
   let capabilityBootstrapInFlight: Promise<void> | null = null;
   let runtime!: DeckRuntime;
@@ -416,7 +416,9 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
     capabilities: capabilityState.state,
   };
   g[GLOBAL_KEY] = runtime;
-  const healthPoller = initHealthPoller(gw, eventBus, undefined, false);
+  const healthPoller = initHealthPoller(gw, eventBus, undefined, false, (method, params) =>
+    adapter.request(method, params),
+  );
 
   function triggerCapabilityBootstrap(): void {
     if (capabilityBootstrapInFlight) {

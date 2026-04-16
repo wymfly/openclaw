@@ -8,7 +8,6 @@
  */
 import { validateRequest } from "@server/access-gate";
 import { getRuntime } from "@server/runtime";
-import { gwCall } from "@/lib/api-helpers";
 
 const POLL_INTERVAL_MS = 1000;
 const HEARTBEAT_INTERVAL_MS = 15_000;
@@ -64,14 +63,18 @@ export function GET(request: Request): Response {
           return;
         }
         try {
-          const data = await gwCall("logs.tail", {
+          const data = (await runtime?.adapter.request("logs.tail", {
             ...(cursor !== null ? { cursor } : {}),
             limit: 500,
             maxBytes: 65536,
-          });
+          })) as Record<string, unknown> | undefined;
+          if (!data) {
+            return;
+          }
 
-          if (typeof data.cursor === "number") {
-            cursor = data.cursor;
+          const nextCursor = typeof data.cursor === "number" ? data.cursor : null;
+          if (nextCursor !== null) {
+            cursor = nextCursor;
           }
           if (data.reset) {
             cursor = null;
@@ -91,11 +94,11 @@ export function GET(request: Request): Response {
           if (Array.isArray(lines) && lines.length > 0) {
             const payload = JSON.stringify({
               lines,
-              cursor: data.cursor,
+              cursor: nextCursor,
             });
             try {
               controller.enqueue(
-                encoder.encode(`id: ${data.cursor ?? 0}\nevent: log.batch\ndata: ${payload}\n\n`),
+                encoder.encode(`id: ${nextCursor ?? 0}\nevent: log.batch\ndata: ${payload}\n\n`),
               );
             } catch {
               cleanup();
