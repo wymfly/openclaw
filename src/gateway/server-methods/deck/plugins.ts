@@ -1,5 +1,5 @@
 import { loadConfig } from "../../../config/config.js";
-import { buildPluginSnapshotReport } from "../../../plugins/status.js";
+import { buildPluginDiagnosticsReport } from "../../../plugins/status.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import { ErrorCodes, errorShape, validateDeckPluginsListParams } from "../../protocol/index.js";
 import {
@@ -35,7 +35,10 @@ export const deckPluginsHandlers: GatewayRequestHandlers = {
 
     try {
       const scope = (params.capability as InventoryCapability | undefined) ?? "channel";
-      const report = buildPluginSnapshotReport({ config: loadConfig() });
+      // setupWizardSpec currently lives on the plugin runtime contract rather than
+      // manifest metadata, so deck.plugins.list must inspect the loaded registry
+      // until Spec 3 moves the field onto the control-plane snapshot path.
+      const report = buildPluginDiagnosticsReport({ config: loadConfig() });
 
       const plugins = report.plugins
         .filter((plugin) => (scope === "all" ? true : plugin.channelIds.length > 0))

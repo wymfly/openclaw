@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GatewayRequestHandlerOptions, RespondFn } from "../types.js";
 
-const { mockLoadConfig, mockBuildPluginSnapshotReport } = vi.hoisted(() => ({
+const { mockLoadConfig, mockBuildPluginDiagnosticsReport } = vi.hoisted(() => ({
   mockLoadConfig: vi.fn(),
-  mockBuildPluginSnapshotReport: vi.fn(),
+  mockBuildPluginDiagnosticsReport: vi.fn(),
 }));
 
 vi.mock("../../../config/config.js", () => ({
@@ -11,7 +11,7 @@ vi.mock("../../../config/config.js", () => ({
 }));
 
 vi.mock("../../../plugins/status.js", () => ({
-  buildPluginSnapshotReport: mockBuildPluginSnapshotReport,
+  buildPluginDiagnosticsReport: mockBuildPluginDiagnosticsReport,
 }));
 
 import { deckPluginsHandlers } from "./plugins.js";
@@ -35,7 +35,7 @@ function callList(
 beforeEach(() => {
   vi.clearAllMocks();
   mockLoadConfig.mockReturnValue({});
-  mockBuildPluginSnapshotReport.mockReturnValue({
+  mockBuildPluginDiagnosticsReport.mockReturnValue({
     workspaceDir: "/workspace",
     diagnostics: [{ level: "warn", message: "warn a", pluginId: "wecom" }],
     plugins: [
@@ -84,6 +84,14 @@ beforeEach(() => {
 });
 
 describe("deck.plugins.list", () => {
+  it("reads the runtime-aware diagnostics report so bundled wizard metadata is visible", async () => {
+    await callList({});
+
+    expect(mockBuildPluginDiagnosticsReport).toHaveBeenCalledWith({
+      config: {},
+    });
+  });
+
   it("defaults to channel-capable plugins only", async () => {
     const result = await callList({});
     expect(result.ok).toBe(true);
