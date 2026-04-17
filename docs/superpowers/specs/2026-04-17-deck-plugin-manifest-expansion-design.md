@@ -350,7 +350,10 @@ dashboard/server/gateway-allowlist.ts
 
 **变更**：
 
-- Gateway：`deck.plugins.list` 加 `locales?` + `capabilities?` additive 字段（与 Spec 2 合并一次 codegen，但本 spec 独立 PR）
+- Gateway：`deck.plugins.list` 加 `locales?` + `capabilities?` additive 字段。**codegen 策略**：
+  - 若 Spec 2 已先落地 → 本 spec 只需再跑一次 `pnpm protocol:gen:ts`（additive 扩展已有 schema）
+  - 若 Spec 2 未落地或与本 spec 同窗口推进 → 两份 spec 的 PR 各跑一次 codegen，互相为 additive 基底，不冲突
+  - 无论哪种情况，**本 spec 的 PR 独立 landing**，不合并到 Spec 2 的 PR
 - Plugin：`extensions/feishu/locales/{en,zh}.json` 创建，内容从 Deck 主表 `channels.feishu.*` 整 section 剪切过来
 - Plugin：`extensions/feishu/src/channel.ts`（或 `index.ts`）注入 `locales` 字段
 - Deck：`dashboard/src/lib/plugin-locales.ts` 新建合并器
@@ -421,24 +424,46 @@ dashboard/server/gateway-allowlist.ts
 新增测试（`dashboard/src/components/panels/channels/capability-bar-no-hardcoded-ids.test.ts`）：
 
 ```typescript
-test("CapabilityActionBar.tsx has no hardcoded channel id comparisons", () => {
-  const source = readFileSync("CapabilityActionBar.tsx", "utf8");
-  expect(source).not.toMatch(/channelId\s*===\s*["'][\w-]+["']/);
-  expect(source).not.toMatch(/channelId\s*!==\s*["'][\w-]+["']/);
-});
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, test } from "vitest";
 
-test("Deck i18n main files no longer contain channels.feishu.*", () => {
-  const en = readJSON("dashboard/src/i18n/en.json");
-  const zh = readJSON("dashboard/src/i18n/zh.json");
-  expect(en.channels?.feishu).toBeUndefined();
-  expect(zh.channels?.feishu).toBeUndefined();
-});
+const CHANNELS_DIR = join(__dirname);
+const I18N_DIR = join(__dirname, "../../../i18n");
 
-test("WeCom main i18n preserved 1:1", () => {
-  const en = readJSON("dashboard/src/i18n/en.json");
-  const zh = readJSON("dashboard/src/i18n/zh.json");
-  expect(en.channels?.wecom).toBeDefined();
-  expect(zh.channels?.wecom).toBeDefined();
+function readFile(relative: string): string {
+  return readFileSync(join(CHANNELS_DIR, relative), "utf8");
+}
+function readJSON(relative: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(join(I18N_DIR, relative), "utf8"));
+}
+
+describe("structural guarantees for Spec 3", () => {
+  test("CapabilityActionBar.tsx has no hardcoded channel id comparisons", () => {
+    const source = readFile("CapabilityActionBar.tsx");
+    expect(source).not.toMatch(/channelId\s*===\s*["'][\w-]+["']/);
+    expect(source).not.toMatch(/channelId\s*!==\s*["'][\w-]+["']/);
+  });
+
+  test("Deck i18n main files no longer contain channels.feishu.*", () => {
+    const en = readJSON("en.json") as { channels?: Record<string, unknown> };
+    const zh = readJSON("zh.json") as { channels?: Record<string, unknown> };
+    expect(en.channels?.feishu).toBeUndefined();
+    expect(zh.channels?.feishu).toBeUndefined();
+  });
+
+  test("WeCom main i18n preserved 1:1 (Safety Fence)", () => {
+    const en = readJSON("en.json") as { channels?: Record<string, unknown> };
+    const zh = readJSON("zh.json") as { channels?: Record<string, unknown> };
+    expect(en.channels?.wecom).toBeDefined();
+    expect(zh.channels?.wecom).toBeDefined();
+  });
+
+  test("plugin-locales.ts wraps bundle under plugin.<id>.* namespace", () => {
+    const source = readFileSync(join(__dirname, "../../../lib/plugin-locales.ts"), "utf8");
+    expect(source).toMatch(/plugin/); // sanity: wrap is present
+    expect(source).not.toMatch(/channels\./); // no accidental channels.* wrap
+  });
 });
 ```
 
@@ -490,7 +515,7 @@ test("WeCom main i18n preserved 1:1", () => {
 
 ### 6.1 Discovery 任务（实施前）
 
-- **D1**: 验证 next-intl 的 `NextIntlClientProvider` messages 合并语义（静态 vs 动态）
+- **D1**: 确认 Deck 启动时序 —— `NextIntlClientProvider` 的创建位置相对 `deck.plugins.list` 首次 RPC 返回的时序；确认 `mergePluginLocales` 可在 provider 创建前（首屏 SSR/CSR hydration 前）完成，以便静态 messages prop 传入时已包含 plugin 内容（无需 next-intl 运行时动态合并能力）
 - **D2**: 读 `extensions/feishu/` 当前结构，确认 locale 注入位置
 - **D3**: 读 `dashboard/src/stores/channels.ts`，确认 plugin inventory 是否已暴露、是否含 capabilities
 - **D4**: 对 Feishu / Telegram / Slack / Discord 四个渠道，核对后端 RPC `channel.<id>.{login,probe,sendTest}` 是否已有

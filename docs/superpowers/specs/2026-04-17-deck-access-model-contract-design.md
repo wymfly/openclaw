@@ -60,6 +60,7 @@ Deck Dashboard 在 WeCom 权限管理落地（`93584159ff` "Give Deck operators 
 | `BindingsTab.handoff.test.tsx` / `BindingsTab.test.tsx`                                                         | **保留作回归基线** | 同上                                                                             |
 | `AllowFromEditor.test.tsx`                                                                                      | **保留作回归基线** | 同上                                                                             |
 | `WeComWizard.access-guidance.test.tsx`                                                                          | **保留作回归基线** | 同上                                                                             |
+| `dashboard/src/i18n/en.json` / `zh.json` 中 `channels.wecom.*` / `wecomWizard.*` / `wecomAccess.*` section      | **禁止修改**       | Safety Fence 补齐：i18n 资产与 Spec 3 约定保持 1:1，本 spec 明确不触碰           |
 
 ### 2.2 未知项
 

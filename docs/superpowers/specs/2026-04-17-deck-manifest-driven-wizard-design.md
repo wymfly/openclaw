@@ -472,6 +472,7 @@ Discovery 产出：1 份 discovery 笔记 +（如需要）spec 的微调。
 - `dashboard/src/components/panels/channels/wecom-settings-technical-panel.integration.test.tsx`
 - `dashboard/src/components/panels/channels/WeComWizard.access-guidance.test.tsx`
 - 其他以 `wecom` / `Wecom` / `WeCom` 前缀命名的文件
+- `dashboard/src/i18n/en.json` / `zh.json` 中 `channels.wecom.*` / `wecomWizard.*` / `wecomAccess.*` section（i18n 资产不动；Spec 3 将统一处理插件 i18n 时也遵守 Safety Fence）
 
 ### 7.2 必须保留的运行时路径
 
