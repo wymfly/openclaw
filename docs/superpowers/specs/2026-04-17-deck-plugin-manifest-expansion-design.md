@@ -1,12 +1,13 @@
 # Deck Plugin Manifest Expansion — 设计规范
 
-> **状态**: Approved (brainstorm)
+> **状态**: Revised for post-Spec1 baseline (blocked on future additive contracts)
 > **日期**: 2026-04-17
 > **范围**: Dashboard + Gateway additive 契约扩展（zero breaking change）
 > **分支**: `enhanced`
-> **前置**: Spec 1 `deck-access-model-contract`、Spec 2 `deck-manifest-driven-wizard`
+> **前置**: Spec 1 `deck-access-model-contract` 已落地；Spec 2 `deck-manifest-driven-wizard` 仍是未来提案
 > **工作流**: 主 session brainstorm → ralplan 深化 → 串行 PR 实施
-> **原始痛点**: 每加一个新渠道，Deck 主 i18n 文件膨胀 + `capabilities` 字段前端没消费
+> **原始痛点**: 每加一个新渠道，Deck 主 i18n 文件膨胀 + 插件清单缺少 Deck 可消费的渠道动作元数据
+> **当前基线**: `deck.plugins.list` 当前只返回只读 inventory 字段；不存在 `locales` / `setupWizardSpec` / Deck-facing action capabilities
 
 ---
 
@@ -22,12 +23,12 @@
 - 插件无法自带翻译资产，Deck 必须在合入插件前**同步修改**主翻译表
 - 规模线性增长：10 个渠道 = 500-2000 新 key；20 个 = 1000-4000
 
-**缺口 B — capabilities 字段未被消费**
+**缺口 B — 现有 `capabilities` 被误读**
 
-- `ChannelPlugin.capabilities: ChannelCapabilities`（`src/channels/plugins/types.plugin.ts:56`）已声明为契约字段
-- 后端声明 `login: true` / `probe: true` / `testMessage: true` 等 boolean 标志
-- Dashboard 代码 grep 结果：**0 处引用**
-- 结果：Deck 无法根据能力动态显示/隐藏按钮，永远用硬编码 UI
+- `ChannelPlugin.capabilities: ChannelCapabilities`（`src/channels/plugins/types.plugin.ts:56`）确实存在
+- 但它的真实结构是消息/渠道能力（如 `chatTypes` / `media` / `polls` / `threads` / `nativeCommands`），**不是** Deck action bar 所需的 `login/probe/testMessage` 布尔能力
+- `deck.plugins.list` 当前只透传 `capabilityKinds`（插件种类概览），不会透传原始 `ChannelCapabilities`
+- 结果：如果未来要做 `CapabilityActionBar`，不能声称“消费已有字段”，而必须新增一个 Deck-facing additive contract
 
 ### 1.2 目标
 
@@ -37,12 +38,12 @@
    - 契约：`extensions/<id>/locales/{en,zh}.json` 成为 plugin 资产
    - Gateway：`deck.plugins.list` 返回增加 `locales` 字段（内嵌 JSON bundle）
    - Deck：启动时合并所有 plugin locales，next-intl 命名空间 `plugin.<pluginId>.*`
-   - Feishu 作为**首个消费者**：主表 `channels.feishu.*` section 迁移到 `extensions/feishu/locales/`
+   - Feishu 作为**首个消费者**：主表 `wizard.feishu.*` 文案迁移到 `extensions/feishu/locales/`
 
 2. **Capability Action Bar**：
-   - 契约：已有 `ChannelCapabilities` 透传（additive）
-   - Gateway：`deck.plugins.list` 返回增加 `capabilities` 字段（plugin 声明）
-   - Deck：`<CapabilityActionBar/>` 新组件，消费 capabilities，渲染 Login/Probe/TestMessage 三个按钮
+   - 契约：新增 **Deck-facing** additive 字段（例如 `deckActionCapabilities`），而不是复用现有 `ChannelCapabilities`
+   - Gateway：`deck.plugins.list` 返回增加 `deckActionCapabilities` 字段（由 plugin/runtime 派生）
+   - Deck：`<CapabilityActionBar/>` 新组件，消费 `deckActionCapabilities`，渲染 Login/Probe/TestMessage 三个按钮
    - 按钮动作：调 `channel.<id>.<action>` RPC 或（login + qrCodeAuth 组合时）打开 Spec 2 的 WizardRunner
 
 **非目标 / Out of Scope**:
@@ -53,7 +54,7 @@
 - ❌ 不做 Capability → Tab 显隐联动（留给 future spec）
 - ❌ 不做 runtime 热更新 locale（启动一次加载）
 - ❌ 不引入条件表达式引擎
-- ❌ 不定义新的 capability 字段（本 spec 消费已有 `login` / `probe` / `testMessage`）
+- ❌ 不修改现有消息/渠道能力语义（`ChannelCapabilities` 继续表示聊天/媒体/线程等运行时能力）
 
 ### 1.3 WeCom 功能不变式（贯穿承诺）
 
@@ -66,38 +67,34 @@
 ### 2.1 i18n 现状
 
 - Deck 主文件：`dashboard/src/i18n/en.json` / `zh.json`
-- next-intl 使用方式：`useTranslations("channels.feishu")` 访问 `channels.feishu.*` section
-- Feishu 涉及 key 清单（从 `FeishuWizard.tsx` 提取）：
-  - `channels.feishu.title` / `step1Title` / `step2Title` / `step3Title`
-  - `channels.feishu.modeWebSocket` / `modeWebSocketDesc` / `modeWebhook` / `modeWebhookDesc`
-  - `channels.feishu.appId` / `appIdHint` / `appIdHelp` / `appSecret` / `appSecretHint` / `appSecretHelp`
-  - `channels.feishu.probeSuccess` / `probeFailed` / `probeNoChannel`
-  - `channels.feishu.pluginNotInstalled` / `testDesc` / `probeConfigNote`
+- next-intl 当前在 `dashboard/src/i18n/request.ts` 中一次性加载静态 locale JSON，再由 `dashboard/src/app/layout.tsx` 的 `NextIntlClientProvider` 透传
+- Feishu 当前并不使用 `channels.feishu.*`，而是 `useTranslations("wizard")` + `wizard.feishu.*` key
+- `extensions/feishu/` 当前**没有** `locales/` 目录，也没有 plugin locale bundle 注入路径
 
-### 2.2 capabilities 字段现状
+### 2.2 plugin inventory / capability 现状
 
 - 契约：`ChannelPlugin.capabilities: ChannelCapabilities`（`src/channels/plugins/types.plugin.ts:56`）
-- 已知字段（以代码为准）：`login` / `probe` / `testMessage` / `groupRouting` / `threading` / `qrCodeAuth` 等
-- Gateway 透传：**目前未透传**到 Deck（需本 spec 添加）
-- Deck 消费：**无任何消费**（需本 spec 添加）
+- 真实字段（以代码为准）：`chatTypes` / `media` / `reactions` / `threads` / `polls` / `nativeCommands` / `blockStreaming` 等
+- Gateway 透传：`deck.plugins.list` 当前不透传原始 `ChannelCapabilities`；只透传 `capabilityKinds`
+- Deck 消费：当前 `PluginsPanel` 只读展示 `capabilityKinds`，没有渠道 action bar
 
 ### 2.3 Gateway 契约扩展面
 
-本 spec 对 Gateway 的改动与 Spec 2 同类（additive field）：
+本 spec 对 Gateway 的改动与 Spec 2 同类（future additive field）：
 
 ```typescript
 // src/gateway/protocol/schema/deck.ts — DeckPluginInventoryEntrySchema
 {
   id, name, version, origin, status, enabled, ...,
-  setupWizardSpec?: WizardSpec,              // Spec 2 adds
-  locales?: PluginLocaleBundle,              // Spec 3 adds (i18n)
-  capabilities?: ChannelCapabilitiesSpec,    // Spec 3 adds (capability bar)
+  setupWizardSpec?: WizardSpec,                  // Spec 2 future
+  locales?: PluginLocaleBundle,                  // Spec 3 future
+  deckActionCapabilities?: DeckActionCapabilitiesSpec, // Spec 3 future
 }
 
 type PluginLocaleBundle = Record<string, Record<string, unknown>>;
 // e.g. { en: { wizardTitle: "..." }, zh: { wizardTitle: "..." } }
 
-type ChannelCapabilitiesSpec = {
+type DeckActionCapabilitiesSpec = {
   login?: boolean;
   probe?: boolean;
   testMessage?: boolean;
@@ -111,34 +108,34 @@ type ChannelCapabilitiesSpec = {
 
 ### 2.4 受影响文件
 
-| 文件                                                                    | 处置                                                                    |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `src/channels/plugins/types.plugin.ts`                                  | 无改动（`capabilities` / `setupWizardSpec` 已存在）                     |
-| `src/gateway/protocol/schema/deck.ts`                                   | **扩展** additive 字段（Spec 2 + Spec 3 合并一次）                      |
-| `src/gateway/server-methods/deck/plugins.ts`                            | **扩展** handler 透传 locales / capabilities                            |
-| `src/plugins/status.ts`                                                 | 可能需要扩 `SnapshotPlugin` 保留引用                                    |
-| `extensions/feishu/locales/{en,zh}.json`                                | **新增**，Feishu i18n 迁入                                              |
-| `extensions/feishu/src/channel.ts` 或 `index.ts`                        | **扩展**，加载 locale 并注入 `ChannelPlugin.locales`                    |
-| `dashboard/src/i18n/en.json` / `zh.json`                                | **删除** `channels.feishu.*` section（整 section 删）                   |
-| `dashboard/src/components/panels/channels/CapabilityActionBar.tsx`      | **新增**                                                                |
-| `dashboard/src/components/panels/channels/CapabilityActionBar.test.tsx` | **新增**                                                                |
-| `dashboard/src/components/panels/channels/ChannelDetail.tsx`            | **扩展**，header 区域加 `<CapabilityActionBar/>`（只增不改 wecom 分支） |
-| `dashboard/src/lib/plugin-locales.ts`                                   | **新增**，合并 plugin locale bundle 到 next-intl messages               |
-| `dashboard/src/app/layout.tsx` 或 i18n provider                         | **扩展**，启动时调用 `mergePluginLocales`                               |
-| `dashboard/src/stores/channels.ts`                                      | **扩展**，暴露 plugin inventory 含 capabilities（如尚未）               |
-| `docs/plugins/sdk-i18n.md`                                              | **新增**，plugin 作者 guide                                             |
-| `docs/plugins/sdk-capabilities.md`                                      | **新增**，capability guide                                              |
-| `dashboard/server/gateway-allowlist.ts`                                 | **无需改**（`deck.plugins.list` 已在 allowlist）                        |
+| 文件                                                                    | 处置                                                                                                            |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `src/channels/plugins/types.plugin.ts`                                  | **无现成字段可直接复用**；若执行本 spec，应新增或派生 Deck-facing action metadata                               |
+| `src/gateway/protocol/schema/deck.ts`                                   | **扩展** additive 字段（Spec 2 + Spec 3 若落地则需加 `setupWizardSpec` / `locales` / `deckActionCapabilities`） |
+| `src/gateway/server-methods/deck/plugins.ts`                            | **扩展** handler 透传 locales / Deck-facing action metadata                                                     |
+| `src/plugins/status.ts`                                                 | 可能需要扩 `SnapshotPlugin` 保留引用                                                                            |
+| `extensions/feishu/locales/{en,zh}.json`                                | **新增**，Feishu i18n 迁入                                                                                      |
+| `extensions/feishu/src/channel.ts` 或 `index.ts`                        | **扩展**，加载 locale 并注入 `ChannelPlugin.locales`                                                            |
+| `dashboard/src/i18n/en.json` / `zh.json`                                | **删除** `wizard.feishu.*` 对应文案（整块迁出）                                                                 |
+| `dashboard/src/components/panels/channels/CapabilityActionBar.tsx`      | **新增**                                                                                                        |
+| `dashboard/src/components/panels/channels/CapabilityActionBar.test.tsx` | **新增**                                                                                                        |
+| `dashboard/src/components/panels/channels/ChannelDetail.tsx`            | **扩展**，header 区域加 `<CapabilityActionBar/>`（只增不改 wecom 分支）                                         |
+| `dashboard/src/lib/plugin-locales.ts`                                   | **新增**，合并 plugin locale bundle 到 next-intl messages                                                       |
+| `dashboard/src/app/layout.tsx` 或 i18n provider                         | **扩展**，启动时调用 `mergePluginLocales`                                                                       |
+| `dashboard/src/stores/plugins.ts`                                       | **扩展**，若 Deck 需要缓存新的 plugin fields，应在此 store 落地                                                 |
+| `docs/plugins/sdk-i18n.md`                                              | **新增**，plugin 作者 guide                                                                                     |
+| `docs/plugins/sdk-capabilities.md`                                      | **新增**，capability guide                                                                                      |
+| `dashboard/server/gateway-allowlist.ts`                                 | **无需改**（`deck.plugins.list` 已在 allowlist）                                                                |
 
 ### 2.5 未知项（Discovery 阶段验证）
 
-1. **next-intl 是否支持运行时动态合并 messages 树**？API：`NextIntlClientProvider` 的 `messages` prop 是否允许在 client 启动后再替换 / 合并？
-2. **Feishu plugin 当前加载 locale 的机制**：是否已有 `i18n` 字段在 `openclaw.plugin.json`？若有，需对齐；若无，新建。
-3. **`channelsStore` 是否暴露 plugin inventory**：`deck.plugins.list` 结果是否已 cached 到 store？如无，需扩 store。
+1. **next-intl 是否支持运行时动态合并 messages 树**？当前 `layout.tsx` / `request.ts` 走的是静态 messages 流程，若不支持，需设计 server-side merge 路径。
+2. **Feishu plugin 当前加载 locale 的机制**：当前并无 locale 资产或 `i18n` 字段，需决定是 `channel.ts` 静态 import，还是 plugin manifest 资产声明。
+3. **`pluginsStore` 是否是 plugin inventory 的唯一前端落点**：当前 `deck.plugins.list` 结果缓存在 `dashboard/src/stores/plugins.ts`，不是 `channelsStore`。
 4. **`channel.<id>.login` / `probe` / `sendTest` 后端 RPC 是否齐备**：
    - Feishu：`probe` 已有（`FeishuWizard.tsx:53` 调 `/api/channels?probe=true`）
    - Telegram / Slack / Discord：未知，需查 `extensions/<id>/`
-5. **WeCom capabilities 声明**：`extensions/wecom/src/channel.ts` 里 `capabilities.login` 是否 true？这决定 wecom CapabilityActionBar 是否显示 Login 按钮。
+5. **WeCom 当前 plugin `capabilities` 不包含 Deck action 能力**：不能直接用它决定 action bar，要么新增字段，要么在 Gateway 侧派生。
 
 ---
 
@@ -166,7 +163,8 @@ import zhLocale from "../locales/zh.json" assert { type: "json" };
 export const feishuChannel: ChannelPlugin = {
   id: "feishu",
   // ...existing fields...
-  capabilities: { login: true, probe: true, testMessage: true },
+  // Future additive field for Deck inventory transport, not current ChannelCapabilities.
+  deckActionCapabilities: { login: true, probe: true, testMessage: true },
   locales: { en: enLocale, zh: zhLocale },
 };
 ```
@@ -212,7 +210,7 @@ export function mergePluginLocales(
 
 1. **React 组件直接消费**（Spec 2 前的路径 / 其他渠道保留）：
    ```typescript
-   // 旧写法：const t = useTranslations("channels.feishu"); t("step1Title")
+   // 旧写法：const t = useTranslations("wizard"); t("feishu.step1Title")
    // 新写法：
    const t = useTranslations("plugin.feishu");
    t("step1Title"); // resolves plugin.feishu.step1Title
@@ -233,7 +231,7 @@ export function mergePluginLocales(
 
 ### 3.2 Capability Action Bar 机制
 
-**Gateway 透传**：在 `deck.plugins.list` result 加 `capabilities?: ChannelCapabilitiesSpec` 字段。
+**Gateway 透传**：在 `deck.plugins.list` result 加 `deckActionCapabilities?: DeckActionCapabilitiesSpec` 字段。
 
 **Deck 新组件**（`dashboard/src/components/panels/channels/CapabilityActionBar.tsx`）骨架：
 
@@ -245,14 +243,14 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { gatewayRequest } from "@/lib/api-helpers";
-import { useChannelsStore } from "@/stores/channels";
+import { usePluginsStore } from "@/stores/plugins";
 import { getChannelOnboardingDescriptor } from "./onboarding-registry";
 
 export function CapabilityActionBar({ channelId }: { channelId: string }) {
   const t = useTranslations("channels.actionBar");
-  const { pluginsInventory } = useChannelsStore();
-  const plugin = pluginsInventory.find((p) => p.channelIds.includes(channelId));
-  const caps = plugin?.capabilities;
+  const { plugins } = usePluginsStore();
+  const plugin = plugins.find((p) => p.channelIds.includes(channelId));
+  const caps = plugin?.deckActionCapabilities;
 
   if (!caps) return null;
 
@@ -296,7 +294,7 @@ export function CapabilityActionBar({ channelId }: { channelId: string }) {
 
 **WeCom 自然支持**（契约层面，实际行为待 Discovery D5 验证 wecom 具体 capability 声明）：
 
-- 如果 wecom 后端已声明 `capabilities.login: true, qrCodeAuth: true` → Login 按钮出现 → 点击调 `onboarding-registry` 里 wecom 的 custom renderer → `WeComWizard` 原样打开
+- 如果未来 wecom inventory 明确声明 `deckActionCapabilities.login: true, qrCodeAuth: true` → Login 按钮出现 → 点击调 `onboarding-registry` 里 wecom 的 custom renderer → `WeComWizard` 原样打开
 - 如果 wecom 后端**未**声明这些 capability → 按钮不渲染（零影响）
 - 如果 wecom 已声明但缺 `qrCodeAuth` → Login 按钮点击会尝试直接调 `channel.wecom.login` RPC（可能失败，需补后端 handler 或调整 capability 声明）
 - **无论哪种情况，都不需要修改 wecom 任何前端文件**（Safety Fence 保证）
@@ -308,7 +306,7 @@ src/gateway/protocol/schema/deck.ts
   + DeckPluginInventoryEntrySchema 增加 optional:
     - setupWizardSpec (Spec 2)
     - locales         (Spec 3, new)
-    - capabilities    (Spec 3, new)
+    - deckActionCapabilities (Spec 3, new)
 
 src/gateway/server-methods/deck/plugins.ts
   + handler 透传这些字段（plugin 如果声明则带上）
@@ -350,16 +348,16 @@ dashboard/server/gateway-allowlist.ts
 
 **变更**：
 
-- Gateway：`deck.plugins.list` 加 `locales?` + `capabilities?` additive 字段。**codegen 策略**：
+- Gateway：`deck.plugins.list` 加 `locales?` + `deckActionCapabilities?` additive 字段。**codegen 策略**：
   - 若 Spec 2 已先落地 → 本 spec 只需再跑一次 `pnpm protocol:gen:ts`（additive 扩展已有 schema）
   - 若 Spec 2 未落地或与本 spec 同窗口推进 → 两份 spec 的 PR 各跑一次 codegen，互相为 additive 基底，不冲突
   - 无论哪种情况，**本 spec 的 PR 独立 landing**，不合并到 Spec 2 的 PR
-- Plugin：`extensions/feishu/locales/{en,zh}.json` 创建，内容从 Deck 主表 `channels.feishu.*` 整 section 剪切过来
+- Plugin：`extensions/feishu/locales/{en,zh}.json` 创建，内容从 Deck 主表 `wizard.feishu.*` 对应内容迁出
 - Plugin：`extensions/feishu/src/channel.ts`（或 `index.ts`）注入 `locales` 字段
 - Deck：`dashboard/src/lib/plugin-locales.ts` 新建合并器
 - Deck：i18n provider / layout 初始化时调 `mergePluginLocales`
-- Deck：所有对 `channels.feishu.*` 的 `useTranslations` 调用改为 `plugin.feishu.*`
-- Deck：主 `en.json/zh.json` 删除 `channels.feishu.*` section
+- Deck：所有对 `wizard.feishu.*` 的 `useTranslations("wizard")` 调用改为 `plugin.feishu.*`
+- Deck：主 `en.json/zh.json` 删除 `wizard.feishu.*` 对应内容
 - 结构性断言测试：`plugin-locales.test.ts`
 
 **规模**: ~400 行（含新合并器 + 测试 + Feishu locale 文件）
@@ -368,7 +366,7 @@ dashboard/server/gateway-allowlist.ts
 
 - `pnpm check` + `pnpm test` + `pnpm build` 全绿
 - `pnpm protocol:gen:ts` + `pnpm protocol:gen:check` 通过
-- `grep 'channels.feishu' dashboard/src/i18n/*.json` → 零命中
+- `grep 'wizard.feishu' dashboard/src/i18n/*.json` → 零命中
 - 手工：Feishu 向导在 en / zh 下正确显示
 - Safety Fence 清单满足
 
@@ -378,8 +376,8 @@ dashboard/server/gateway-allowlist.ts
 
 - Deck：`CapabilityActionBar.tsx` + 测试
 - Deck：`ChannelDetail.tsx` header 区域引入 `<CapabilityActionBar/>`
-- Deck：`stores/channels.ts` 扩展暴露 plugin inventory（如尚未）
-- Plugin：`extensions/{feishu,telegram,slack,discord}/src/channel.ts` 补全 capabilities 声明（如缺失）
+- Deck：`stores/plugins.ts` 扩展暴露新字段（当前已有 plugin inventory store）
+- Plugin：`extensions/{feishu,telegram,slack,discord}/src/channel.ts` 或等价构造位置补全 `deckActionCapabilities` 声明（如缺失）
 - 补齐后端 RPC（如缺失）：`channel.<id>.login` / `channel.<id>.probe` / `channel.<id>.sendTest`
 - 结构性断言测试：`CapabilityActionBar.tsx` 无 channel id 字面量
 - wecom 集成回归测试：wecom ChannelDetail 显示 CapabilityActionBar 且 Login 按钮点击打开 WeComWizard
@@ -413,8 +411,8 @@ dashboard/server/gateway-allowlist.ts
 ### 5.1 功能保障（必须通过）
 
 - Feishu 接入向导在中/英文下所有文本正确显示
-- Deck 主 `en.json/zh.json` 不含 `channels.feishu.*` 任何 key（grep 测试）
-- Feishu / Telegram / Slack / Discord 4 渠道的 CapabilityActionBar 按 capability 声明正确渲染按钮
+- Deck 主 `en.json/zh.json` 不含 `wizard.feishu.*` 任何 key（grep 测试）
+- Feishu / Telegram / Slack / Discord 4 渠道的 CapabilityActionBar 按 `deckActionCapabilities` 声明正确渲染按钮
 - Login / Probe / TestMessage 按钮点击：RPC 成功 → toast 成功；失败 → toast 错误
 - WeCom 所有 i18n key 保持 1:1（未删除、未改动）
 - WeCom detail 显示 CapabilityActionBar；Login 按钮点击打开 `WeComWizard`（custom renderer 路径）
@@ -445,11 +443,11 @@ describe("structural guarantees for Spec 3", () => {
     expect(source).not.toMatch(/channelId\s*!==\s*["'][\w-]+["']/);
   });
 
-  test("Deck i18n main files no longer contain channels.feishu.*", () => {
-    const en = readJSON("en.json") as { channels?: Record<string, unknown> };
-    const zh = readJSON("zh.json") as { channels?: Record<string, unknown> };
-    expect(en.channels?.feishu).toBeUndefined();
-    expect(zh.channels?.feishu).toBeUndefined();
+  test("Deck i18n main files no longer contain wizard.feishu.*", () => {
+    const en = readJSON("en.json");
+    const zh = readJSON("zh.json");
+    expect(JSON.stringify(en)).not.toContain('"feishu"');
+    expect(JSON.stringify(zh)).not.toContain('"feishu"');
   });
 
   test("WeCom main i18n preserved 1:1 (Safety Fence)", () => {
@@ -517,9 +515,9 @@ describe("structural guarantees for Spec 3", () => {
 
 - **D1**: 确认 Deck 启动时序 —— `NextIntlClientProvider` 的创建位置相对 `deck.plugins.list` 首次 RPC 返回的时序；确认 `mergePluginLocales` 可在 provider 创建前（首屏 SSR/CSR hydration 前）完成，以便静态 messages prop 传入时已包含 plugin 内容（无需 next-intl 运行时动态合并能力）
 - **D2**: 读 `extensions/feishu/` 当前结构，确认 locale 注入位置
-- **D3**: 读 `dashboard/src/stores/channels.ts`，确认 plugin inventory 是否已暴露、是否含 capabilities
+- **D3**: 读 `dashboard/src/stores/plugins.ts`，确认 plugin inventory 新字段（如 `locales` / `deckActionCapabilities`）的前端落点
 - **D4**: 对 Feishu / Telegram / Slack / Discord 四个渠道，核对后端 RPC `channel.<id>.{login,probe,sendTest}` 是否已有
-- **D5**: 读 `extensions/wecom/src/channel.ts` 的 capabilities 声明，验证 CapabilityActionBar 在 wecom 上会显示哪些按钮
+- **D5**: 读 `extensions/wecom/src/channel.ts` 的现有 `capabilities` 声明，确认它**不能**直接作为 Deck action bar 输入；决定 future 派生/新增字段策略
 - **D6**: 读 `src/plugins/status.ts` 的 `SnapshotPlugin`，确认是否保留原 `ChannelPlugin` 引用以读 `locales` / `capabilities`
 
 Discovery 产出：1 份报告 +（如必要）spec 微调 / 新增 PR 子步骤。
@@ -544,9 +542,9 @@ Discovery 产出：1 份报告 +（如必要）spec 微调 / 新增 PR 子步骤
 - `dashboard/src/components/panels/channels/AllowFromEditor.tsx`
 - `dashboard/src/components/panels/channels/BindingsTab.tsx`
 - `dashboard/src/components/panels/channels/wizard-steps/` 下 wecom 相关文件
-- `dashboard/src/components/panels/channels/ChannelSettingsTab.tsx` 中的 `WECOM_ACCESS_EXCLUDE_PATHS` 定义
-- `dashboard/src/components/panels/channels/ChannelAccessTab.tsx`（归 Spec 1 修）
-- `dashboard/src/components/panels/channels/ChannelDetail.tsx` 的 wecom summary 分支（归 Spec 1 修）
+- `dashboard/src/components/panels/channels/access-descriptors/wecom-access-descriptor.tsx`
+- `dashboard/src/components/panels/channels/ChannelAccessTab.tsx`（已由 Spec 1 收敛）
+- `dashboard/src/components/panels/channels/ChannelDetail.tsx` 的 WeCom access/summary wiring（已由 Spec 1 收敛）
 
 **测试**：
 
@@ -562,7 +560,7 @@ Discovery 产出：1 份报告 +（如必要）spec 微调 / 新增 PR 子步骤
 **例外（允许的改动）**：
 
 - `ChannelDetail.tsx` header 区域新增 `<CapabilityActionBar channelId={id}/>` —— 只增不改 wecom 条件分支
-- `dashboard/src/stores/channels.ts` 扩展暴露 plugin inventory（通用基础设施）
+- `dashboard/src/stores/plugins.ts` 扩展缓存新的 plugin inventory 字段（通用基础设施）
 
 ### 7.2 必须保留的运行时路径
 
@@ -587,10 +585,10 @@ Discovery 产出：1 份报告 +（如必要）spec 微调 / 新增 PR 子步骤
 
 PR #3 合入后：
 
-1. 更新 `.omc/project-memory.json` 记录 Spec 3 完成
+1. 更新 `.omx/project-memory.json` 记录 Spec 3 完成
 2. 基于使用反馈评估：是否要做 Discovery 3'（C schema gap）的正式 spec
 3. 未来新渠道接入的标准流程：
-   - 后端：声明 `capabilities`、提供 `locales/{en,zh}.json`、实现 `channel.<id>.<action>` RPC
+   - 后端：声明 `deckActionCapabilities`、提供 `locales/{en,zh}.json`、实现 `channel.<id>.<action>` RPC
    - Deck：**零改动**（CapabilityActionBar + Wizard DSL + AccessDescriptor 契约全覆盖）
 4. Feishu 迁移成功 → 评估是否逐步迁其他渠道（Telegram/Slack/Discord 等）
 
@@ -598,7 +596,7 @@ PR #3 合入后：
 
 ## 9. 相关引用
 
-- 讨论依据：`FeishuWizard.tsx`、`dashboard/src/i18n/{en,zh}.json` 的 `channels.feishu` section、`src/channels/plugins/types.plugin.ts:56` (`capabilities` 字段)
+- 讨论依据：`FeishuWizard.tsx`、`dashboard/src/i18n/{en,zh}.json` 的 `wizard.feishu` 文案、`src/channels/plugins/types.plugin.ts:56` (`capabilities` 字段)
 - Spec 1：`docs/superpowers/specs/2026-04-17-deck-access-model-contract-design.md`
 - Spec 2：`docs/superpowers/specs/2026-04-17-deck-manifest-driven-wizard-design.md`
 - Gateway 协议流程：根目录 `CLAUDE.md` "Gateway Protocol SDK"
@@ -609,6 +607,7 @@ PR #3 合入后：
 
 ## 10. 修订记录
 
-| 日期       | 变更                               |
-| ---------- | ---------------------------------- |
-| 2026-04-17 | 初稿（基于 brainstorm Q1-Q6 共识） |
+| 日期       | 变更                                                                                                                                                                                                                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-04-17 | 初稿（基于 brainstorm Q1-Q6 共识）                                                                                                                                                                                                                                                                                             |
+| 2026-04-17 | post-Spec1 reality alignment：下调状态为“blocked on future additive contracts”；明确当前 `deck.plugins.list` 不含 `locales/setupWizardSpec/deckActionCapabilities`，当前 `ChannelPlugin.capabilities` 是消息/渠道能力而非 Deck action bar 布尔能力，Feishu 当前文案位于 Deck 主 `wizard.feishu.*` 命名空间而非插件 locale 资产 |

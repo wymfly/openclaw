@@ -1,11 +1,12 @@
 # Deck Manifest-Driven Wizard — 设计规范
 
-> **状态**: Approved (brainstorm)
+> **状态**: Revised for post-Spec1 baseline (needs second-pass planning before implementation)
 > **日期**: 2026-04-17
 > **范围**: Dashboard (`dashboard/src/components/panels/channels/**`) 扩展 + 最小 Gateway 契约 additive 变更
 > **分支**: `enhanced`
-> **前置**: Spec 1 `deck-access-model-contract`（同日 brainstorm，独立实施）
+> **前置**: Spec 1 `deck-access-model-contract` 已在当前分支落地并修订完成
 > **工作流**: 主 session brainstorm → ralplan 深化 → 串行 PR 实施
+> **当前基线**: `onboarding-registry.tsx` 当前只接入 `wecom` / `openclaw-weixin`；`FeishuWizard.tsx` 存在但未接线；当前代码中不存在 `WizardRunner` / `WizardSpec` / `setupWizardSpec`
 
 ---
 
@@ -22,7 +23,7 @@ Deck 当前每个需要"引导式接入"的渠道都要写一个 React Wizard �
 
 Next up: Discord、Slack、Telegram 等要接入复杂渠道，继续这条路线 = **每加一个渠道写一份 ~200 行 React 组件**。
 
-同时 `ChannelPlugin` 契约早已声明 `capabilities` 和 `setupWizard` 字段（`src/channels/plugins/types.plugin.ts:53`），但 Dashboard **从未消费** —— 后端声明的能力在前端一概看不见。
+同时当前插件契约里只有**命令行/运行时接入**使用的 `setupWizard`（imperative）和现有 `ChannelCapabilities`（消息/渠道能力），Dashboard 并没有可消费的声明式 wizard 字段。也就是说，本 spec 不是“打开已有前后端通路”，而是要新增一条 Deck 专用的声明式配置通路。
 
 ### 1.2 目标
 
@@ -31,8 +32,8 @@ Next up: Discord、Slack、Telegram 等要接入复杂渠道，继续这条路�
 1. 定义可序列化的 `WizardSpec` DSL（4 种 step：`form` / `radio` / `action` / `info`）
 2. Deck 实现通用 `WizardRunner` 组件，读 spec 渲染向导
 3. Gateway 通过 additive 字段 `setupWizardSpec` 在 `deck.plugins.list` 结果里透传 DSL
-4. 把 `FeishuWizard.tsx` 作为**首个 DSL 消费者**迁移（证明契约覆盖真实渠道）
-5. 未来 Discord/Slack/Telegram 只需在 manifest 写 `setupWizardSpec`，**无需改 Deck 代码**
+4. 把 `FeishuWizard.tsx` 作为**首个 DSL 迁移目标**（它当前存在但未接入 `onboarding-registry.tsx`，风险低于 WeCom / Weixin）
+5. 未来 Discord/Slack/Telegram 只需在插件声明 `setupWizardSpec`，**无需改 Deck 代码**
 
 ### 1.3 非目标（硬性红线）
 
@@ -55,41 +56,55 @@ Next up: Discord、Slack、Telegram 等要接入复杂渠道，继续这条路�
 
 ### 2.1 受影响文件（按处置类别）
 
-| 文件                                                                | 处置                        | 说明                                                                    |
-| ------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------- |
-| `FeishuWizard.tsx`                                                  | **退役**（被 DSL 等价替代） | 改造完成后从 `onboarding-registry.tsx` 移除 feishu 的 custom descriptor |
-| `ConfigWizard.tsx`                                                  | **零改动保留**              | 通用 step runner，WeComWizard 仍然依赖，继续存在                        |
-| `onboarding-registry.tsx`                                           | **扩展**，不破坏            | 引入 DSL 查询路径；保留 custom renderer 协议                            |
-| `WeComWizard.tsx`                                                   | **完全零改动**              | Safety Fence 保护                                                       |
-| `OpenClawWeixinWizard.tsx`                                          | **完全零改动**              | Safety Fence 保护                                                       |
-| `wecom-access-model.ts` / `AllowFromEditor.tsx` / `BindingsTab.tsx` | **完全零改动**              | Safety Fence 保护                                                       |
-| `dashboard/src/i18n/en.json` / `zh.json`                            | **微调**                    | Feishu 相关 i18n key 保留（DSL 渲染时仍用 next-intl）                   |
+| 文件                                                                | 处置                           | 说明                                                                |
+| ------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| `FeishuWizard.tsx`                                                  | **当前未接线资产**；未来可退役 | 当前并未注册到 `onboarding-registry.tsx`；适合作为首个 DSL 迁移目标 |
+| `ConfigWizard.tsx`                                                  | **零改动保留**                 | 当前 imperative wizard 外壳，WeCom / Weixin 仍依赖                  |
+| `onboarding-registry.tsx`                                           | **扩展**，不破坏               | 当前只有 wecom / openclaw-weixin 两条目；未来可新增 DSL 查询路径    |
+| `WeComWizard.tsx`                                                   | **完全零改动**                 | Safety Fence 保护                                                   |
+| `OpenClawWeixinWizard.tsx`                                          | **完全零改动**                 | Safety Fence 保护                                                   |
+| `wecom-access-model.ts` / `AllowFromEditor.tsx` / `BindingsTab.tsx` | **完全零改动**                 | Safety Fence 保护                                                   |
+| `dashboard/src/i18n/en.json` / `zh.json`                            | **微调**                       | Feishu 相关 i18n key 保留（DSL 渲染时仍用 next-intl）               |
 
 ### 2.2 新增文件
 
 ```
-dashboard/src/components/panels/channels/wizard/
-├── wizard-spec.types.ts          ← WizardSpec / WizardStep / RadioOption TypeBox + TS 类型
-├── wizard-spec.validator.ts       ← 加载时校验 spec + action 命名空间检查
+dashboard/src/components/panels/channels/wizard/   # 规划中的新增目录，当前不存在
+├── wizard-spec.types.ts
+├── wizard-spec.validator.ts
 ├── wizard-spec.validator.test.ts
-├── WizardRunner.tsx              ← 通用 runner，消费 WizardSpec 渲染
+├── WizardRunner.tsx
 ├── WizardRunner.test.tsx
 ├── steps/
 │   ├── InfoStep.tsx
 │   ├── RadioStep.tsx
-│   ├── FormStep.tsx              ← 内部复用 lib/schema-parser.ts 和 SchemaForm
-│   └── ActionStep.tsx            ← 调用 Gateway RPC + 结果展示
-└── wizard-spec-loader.ts         ← 从 channelsStore 读 setupWizardSpec（由 deck.plugins.list 填充）
+│   ├── FormStep.tsx
+│   └── ActionStep.tsx
+└── wizard-spec-loader.ts
 
-src/plugin-sdk/wizard-spec.ts      ← SDK 公共契约（供插件作者 import）
-src/gateway/protocol/schema/wizard-spec.ts  ← TypeBox schema（protocol codegen）
+src/plugin-sdk/wizard-spec.ts               # 规划中的新增契约，当前不存在
+src/gateway/protocol/schema/wizard-spec.ts  # 规划中的新增协议 schema，当前不存在
 ```
 
-### 2.3 未知项（Discovery 阶段验证）
+**当前已存在、可复用的基础**：
 
-- `deck.plugins.list` 的 result schema 当前形态（字段、嵌套），加 `setupWizardSpec?` 字段的侵入度
-- Feishu 的 i18n key（`feishu.step1Title` 等）在 DSL 中是 inline 字面量还是 `t()` 引用 —— DSL 怎么处理翻译？
-  → **答案（当前方案）**：DSL 中 `title` / `body` / `label` 等字段**支持 i18n key**，约定见 §3.5（只接受 `$t:` 前缀形式，runner 用 `useTranslations` 解析）。
+- `dashboard/src/components/panels/channels/ConfigWizard.tsx`
+- `dashboard/src/components/panels/channels/wizard-steps/{CredentialsStep,DmPolicyStep,ValidationStep}.tsx`
+- `dashboard/src/components/panels/channels/FeishuWizard.tsx`
+- `dashboard/src/components/panels/channels/onboarding-registry.tsx`
+
+### 2.3 已验证的当前代码事实
+
+- `deck.plugins.list` 当前 result schema**没有** `setupWizardSpec` 字段；当前 `DeckPluginInventoryEntrySchema` 只包含 `id/name/version/origin/status/enabled/configPath/capabilityKinds/channelIds/providerIds/toolNames/diagnostics`
+- `ChannelPlugin` 当前有 `setupWizard?`，但这是 CLI / setup 流程使用的 imperative 契约，不是 Deck 可消费的 JSON DSL 字段
+- `FeishuWizard.tsx` 当前使用 `useTranslations("wizard")`，其文案 key 形态是 `wizard.feishu.*`，不是 `channels.feishu.*`
+- `onboarding-registry.tsx` 当前只返回 `wecom` 和 `openclaw-weixin` 两个 descriptor；Feishu 没有运行时入口
+
+### 2.4 未知项（Discovery 阶段验证）
+
+- `deck.plugins.list` 在未来加 `setupWizardSpec?` 字段的最小侵入路径
+- `WizardRunner` 是否直接复用 `ConfigWizard.tsx`，还是只复用其 step shell
+- Feishu 的现有 `wizard.feishu.*` 文案是否继续作为 DSL 的第一版 i18n 来源
 
 ---
 
@@ -124,7 +139,7 @@ export const WizardStepSchema = Type.Union([
 export const InfoStepSchema = Type.Object({
   id: Type.String(),
   type: Type.Literal("info"),
-  title: I18nString, // "$t:channels.feishu.intro.title" | "Introduction"
+  title: I18nString, // "$t:wizard.feishu.step1Title" | "Introduction"
   body: I18nString,
 });
 
@@ -220,7 +235,7 @@ interface WizardRunnerProps {
 **契约扩展**：
 
 ```typescript
-// src/plugin-sdk/channel-contract.ts
+// src/channels/plugins/types.plugin.ts
 export interface ChannelPlugin<...> {
   // ...existing fields...
   setupWizard?: ChannelPluginSetupWizard;        // existing imperative field (retained)
@@ -275,11 +290,11 @@ DSL 中字符串字段（`title` / `body` / `label` 等）可以是：
 示例：
 
 ```yaml
-title: "$t:channels.feishu.step1Title" # runner 查 i18n 字典
+title: "$t:wizard.feishu.step1Title" # runner 查 i18n 字典
 body: "Welcome to Feishu setup" # 直接显示
 ```
 
-Deck 现有 `en.json` / `zh.json` 的 `channels.feishu.*` 命名空间保留，迁移时不改。
+Deck 当前 `en.json` / `zh.json` 中可直接复用的是 `wizard.feishu.*` 文案；若 Spec 3 后续落地 plugin locales，再迁移命名空间。
 
 ---
 
@@ -291,7 +306,7 @@ Deck 现有 `en.json` / `zh.json` 的 `channels.feishu.*` 命名空间保留，�
 
 - 新增 `src/plugin-sdk/wizard-spec.ts`：TypeBox schema + TS 类型
 - 新增 `src/gateway/protocol/schema/wizard-spec.ts`：protocol schema
-- 修改 `src/plugin-sdk/channel-contract.ts`：添加 `setupWizardSpec?` 字段
+- 修改 `src/channels/plugins/types.plugin.ts`：添加 `setupWizardSpec?` 字段
 - 修改 `src/gateway/server-methods/deck/plugins.ts`：result 包含该字段
 - 跑 `pnpm protocol:gen:ts` 生成 typed client
 - Dashboard 侧新增 `wizard-spec.types.ts` 从 generated types 导出
@@ -314,9 +329,9 @@ Deck 现有 `en.json` / `zh.json` 的 `channels.feishu.*` 命名空间保留，�
 **变更**：
 
 - 新增 `WizardRunner.tsx` + 4 种 step 子组件 + 单元测试
-- 修改 `onboarding-registry.tsx`：feishu 条目改为"从 channelsStore 读 setupWizardSpec 并 render <WizardRunner/>"
+- 修改 `onboarding-registry.tsx`：新增 feishu DSL 查询路径；实际 spec 来源应来自 plugin inventory（当前代码对应 `pluginsStore` / `deck.plugins.list`），不是 `channelsStore`
 - **删除 `FeishuWizard.tsx`**
-- extensions/feishu 侧（后端）：manifest 加 `setupWizardSpec`（feishu 的 DSL 版本）
+- extensions/feishu 侧（后端）：在 plugin 对象上新增 `setupWizardSpec`（feishu 的 DSL 版本）
 - 运行时验证：打开 Feishu 向导 → step 1 选 mode → step 2 填凭证 → step 3 probe → onComplete 保存
 - 手工点一遍 WeCom 向导 → 视觉与行为 1:1 不变（Safety Fence 验证）
 
@@ -431,21 +446,21 @@ test("Weixin custom renderer path still active", () => {
 
 ## 6. 风险与缓解
 
-| 风险                                                       | 严重度 | 缓解                                                                                                 |
-| ---------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
-| FeishuWizard 删除后 i18n key 孤立在 Deck `zh.json/en.json` | 低     | PR #3 顺手迁移到 feishu plugin 自带翻译；不影响 PR #2                                                |
-| Gateway codegen 未同步导致 Deck 类型错误                   | 中     | PR #1 landing gate 要求 `pnpm protocol:gen:check` 通过；CI 强制                                      |
-| `$ref` JSON path 解析引入安全漏洞（如 `__proto__` 污染）   | 中     | validator 静态拒绝 `$ref` 中的危险路径段（`__proto__` / `constructor` / 非 `$steps.*.value.*` 模式） |
-| Feishu 的 "pluginInstalled 警告" 移除后用户迷惑            | 低     | Deck 外层入口（"添加渠道"按钮）判断插件安装状态；按钮 disabled + tooltip 引导安装                    |
-| DSL 迭代时需要扩字段，破坏上下游                           | 低     | 契约严格 additive；新字段一律可选；老插件的 spec 仍可被新 runner 渲染                                |
-| Action 命名空间正则误杀合法情况                            | 低     | 正则仅匹配 `channelId === "literal"`；`channelId === variable` 不受影响                              |
+| 风险                                                          | 严重度 | 缓解                                                                                                 |
+| ------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
+| FeishuWizard 删除后 `wizard.feishu.*` key 孤立在 Deck 主 i18n | 低     | 若 Spec 3 尚未落地，PR #2 先继续复用现有 `wizard.feishu.*`；不要在 Spec 2 里顺手做 i18n 插件化       |
+| Gateway codegen 未同步导致 Deck 类型错误                      | 中     | PR #1 landing gate 要求 `pnpm protocol:gen:check` 通过；CI 强制                                      |
+| `$ref` JSON path 解析引入安全漏洞（如 `__proto__` 污染）      | 中     | validator 静态拒绝 `$ref` 中的危险路径段（`__proto__` / `constructor` / 非 `$steps.*.value.*` 模式） |
+| Feishu 的 "pluginInstalled 警告" 移除后用户迷惑               | 低     | Deck 外层入口（"添加渠道"按钮）判断插件安装状态；按钮 disabled + tooltip 引导安装                    |
+| DSL 迭代时需要扩字段，破坏上下游                              | 低     | 契约严格 additive；新字段一律可选；老插件的 spec 仍可被新 runner 渲染                                |
+| Action 命名空间正则误杀合法情况                               | 低     | 正则仅匹配 `channelId === "literal"`；`channelId === variable` 不受影响                              |
 
 ### 6.1 Discovery 任务（实施前先做）
 
 在 PR #1 开工前：
 
 1. 读 `src/gateway/server-methods/deck/plugins.ts` 现有 result schema，确认加 `setupWizardSpec?` 字段的最小侵入路径
-2. 读 `extensions/feishu/src/channel.ts` + `package.json` 或 `openclaw.plugin.json`，确认 manifest 写入 DSL 的位置（是 `channel.ts` 的 `setupWizardSpec` 字段还是独立文件）
+2. 读 `extensions/feishu/src/channel.ts`，确认未来 `setupWizardSpec` 加到 plugin 对象上的位置（当前代码中还不存在此字段）
 3. 读 `ConfigWizard.tsx` 当前 step 渲染接口，确认 WizardRunner 可直接复用它（不破坏 WeComWizard）
 4. 读 `dashboard/src/lib/schema-parser.ts` 确认 FormStep 可复用（包括 password format 等细节）
 
@@ -465,9 +480,9 @@ Discovery 产出：1 份 discovery 笔记 +（如需要）spec 的微调。
 - `dashboard/src/components/panels/channels/AllowFromEditor.tsx`
 - `dashboard/src/components/panels/channels/BindingsTab.tsx`
 - `dashboard/src/components/panels/channels/wizard-steps/`（wecom 相关子文件）
-- `dashboard/src/components/panels/channels/ChannelSettingsTab.tsx` 中的 `WECOM_ACCESS_EXCLUDE_PATHS` 定义
-- `dashboard/src/components/panels/channels/ChannelDetail.tsx` 的 wecom summary 分支（这部分归 Spec 1 修）
-- `dashboard/src/components/panels/channels/ChannelAccessTab.tsx`（归 Spec 1 修）
+- `dashboard/src/components/panels/channels/access-descriptors/wecom-access-descriptor.tsx`
+- `dashboard/src/components/panels/channels/ChannelDetail.tsx` 的 WeCom access/summary wiring
+- `dashboard/src/components/panels/channels/ChannelAccessTab.tsx`
 - `dashboard/src/components/panels/channels/wecom-access-boundary.integration.test.tsx`
 - `dashboard/src/components/panels/channels/wecom-settings-technical-panel.integration.test.tsx`
 - `dashboard/src/components/panels/channels/WeComWizard.access-guidance.test.tsx`
@@ -509,7 +524,7 @@ Discovery 产出：1 份 discovery 笔记 +（如需要）spec 的微调。
 
 PR #3 合入后：
 
-1. 更新 `.omc/project-memory.json` 记录 Spec 2 完成
+1. 更新 `.omx/project-memory.json` 记录 Spec 2 完成
 2. 评估是否需要 Spec 3（如果 Spec 1 + Spec 2 已解决痛点，**建议取消 Spec 3**）
 3. 未来 Discord/Slack/Telegram 等新渠道可直接在 manifest 中写 `setupWizardSpec`，不改 Deck 代码
 
@@ -527,6 +542,7 @@ PR #3 合入后：
 
 ## 10. 修订记录
 
-| 日期       | 变更                               |
-| ---------- | ---------------------------------- |
-| 2026-04-17 | 初稿（基于 brainstorm Q1-Q6 共识） |
+| 日期       | 变更                                                                                                                                                                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-04-17 | 初稿（基于 brainstorm Q1-Q6 共识）                                                                                                                                                                                                                                             |
+| 2026-04-17 | post-Spec1 reality alignment：下调状态为“needs second-pass planning”；明确当前基线中 `FeishuWizard.tsx` 未接入 `onboarding-registry.tsx`、`deck.plugins.list` 不含 `setupWizardSpec`、当前 i18n key 来源是 `wizard.feishu.*`；更新 Safety Fence 以匹配已落地的 Spec 1 代码结构 |
