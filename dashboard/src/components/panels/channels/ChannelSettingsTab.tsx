@@ -4,6 +4,8 @@ import { Settings2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useChannelsStore } from "@/stores/channels";
+import "./access-descriptors";
+import { getAccessDescriptor } from "./access-descriptors/access-descriptor-registry";
 import { ChannelLegacySettingsPanel } from "./ChannelLegacySettingsPanel";
 import { ChannelSchemaSettings } from "./ChannelSchemaSettings";
 import { getChannelOnboardingDescriptor } from "./onboarding-registry";
@@ -11,15 +13,6 @@ import { getChannelOnboardingDescriptor } from "./onboarding-registry";
 interface ChannelSettingsTabProps {
   channelId: string;
 }
-
-const WECOM_ACCESS_EXCLUDE_PATHS = [
-  "bot.dm",
-  "agent.dm",
-  "dynamicAgents",
-  "routing.failClosedOnDefaultRoute",
-  "accounts.*.bot.dm",
-  "accounts.*.agent.dm",
-];
 
 /**
  * Settings tab for a channel.
@@ -34,11 +27,13 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
   const [wizardOpen, setWizardOpen] = useState(false);
   const schemaInfo = channelSchemas.get(channelId);
   const onboardingDescriptor = getChannelOnboardingDescriptor(channelId);
+  const accessDescriptor = getAccessDescriptor(channelId);
+  const excludePaths = accessDescriptor?.settingsExcludePaths;
 
   if (onboardingDescriptor) {
     const props = schemaInfo?.schema.properties;
     const hasFields = props && typeof props === "object" && Object.keys(props).length > 0;
-    const showSchemaPanel = channelId === "wecom" && hasFields;
+    const showSchemaPanel = Boolean(excludePaths && hasFields);
 
     return (
       <>
@@ -62,7 +57,7 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
               <ChannelSchemaSettings
                 channelId={channelId}
                 schemaInfo={schemaInfo}
-                excludePaths={WECOM_ACCESS_EXCLUDE_PATHS}
+                excludePaths={excludePaths ? [...excludePaths] : undefined}
               />
             ) : (
               onboardingDescriptor.renderPanel()

@@ -1,18 +1,18 @@
-# Deck Access Model Contract — 实施计划（G1 v2，事实对齐版）
+# Deck Access Model Contract — 实施计划（post-PR1 reality alignment）
 
-> **关联 spec**: `docs/superpowers/specs/2026-04-17-deck-access-model-contract-design.md`（Approved 2026-04-17 G2 第二轮）
+> **关联 spec**: `docs/superpowers/specs/2026-04-17-deck-access-model-contract-design.md`（Revised for second-pass ralplan）
 > **日期**: 2026-04-17
-> **阶段**: v3（G2 两轮双审全部 APPROVE，ralplan 闭环完成，可进 ralph 实施）
+> **阶段**: v4（顺序已共识批准；pre-ralph gate 尚未满足）
 > **分支**: `enhanced`
-> **交付形式**: 3 个串行 PR（契约骨架 → WeCom 迁移 → 清理）；PR #2 体量若超 1000 行，按 §2.12 拆 PR #2a/#2b
-> **v3 关键变化 vs v2**: `render` 返回真实 ReactNode（非 null）；`gw` optional；`usesAccessTabForAccountConfig` 元数据；`openAccessTab` 语义硬化（accountId + tab 切换原子）；HMR 改 `NODE_ENV` gate；规模预估上调到 1100-1200 行
+> **交付形式**: PR #1 追认审查 + 2 个后续实现 PR（WeCom 迁移 → 清理）；PR #2 体量若超 1000 行，按 §2.12 拆 PR #2a/#2b
+> **当前基线**: `enhanced` 当前只落了 PR #1 scaffold（commit `71316a1f57`）；PR #2 / PR #3 仍未开始
 
 ---
 
 ## 目录
 
 - [§0 前置（不含 Discovery——已并入 spec §2.2）](#0-前置)
-- [§1 PR #1：契约骨架 + 消费侧 Shell](#1-pr-1契约骨架--消费侧-shell)
+- [§1 PR #1：已实现基线 + 追认审查](#1-pr-1已实现基线--追认审查)
 - [§2 PR #2：WeCom 迁移（核心风险）](#2-pr-2wecom-迁移核心风险)
 - [§3 PR #3：清理 + PluginsPanel 迁移 + 结构断言](#3-pr-3清理--pluginspanel-迁移--结构断言)
 - [§4 WeCom Safety Fence（业务逻辑零改动）](#4-wecom-safety-fence业务逻辑零改动)
@@ -28,209 +28,53 @@
 ## §0 前置
 
 - spec §2.2 "已验证的代码事实"三条（Tab 显隐职责、组件 store 依赖、selectedAccountId handoff 语义）已消解原 Discovery 任务，**不再单独产出 discovery 笔记**
-- PR #1 开工前只需一次冒烟：`scripts/dev/deck-dev.sh` → 确认本地 wecom 页面可访问、5 个 tab 能切换
+- 当前分支**已落地 PR #1 scaffold**，因此本 plan 不再把 PR #1 当未来实现任务，而是把它视为后续 PR 的既有基线
+- Dashboard 组件测试必须使用 `pnpm --dir dashboard test <paths>`；根目录 `pnpm test dashboard/src/...` 是死路径，实测会返回 `No test files found`
+- pre-ralph gate 追加本任务专属产物：修订后的 spec、最终 execution plan、PR #1 追认审查结论、`.omx/plans/prd-deck-access-model-contract.md`、`.omx/plans/test-spec-deck-access-model-contract.md`
 - 本 plan 已基于实际代码行号（如 `ChannelDetail.tsx:514-657`、`ChannelAccessTab.tsx:101-621`）编写，AI 实施者遇到行号漂移（±10 行）视为正常，按**代码结构语义**而非精确行号定位
 
 ---
 
-## §1 PR #1：契约骨架 + 消费侧 Shell
+## §1 PR #1：已实现基线 + 追认审查
 
 ### 1.1 目标
 
-落地契约类型 + 注册表 + 通用 `AccessPanel` 组件 + docs；**本 PR 不注册任何具体 descriptor**，为 PR #2 的 wecom 迁移留出窗口。
+确认当前已落地的 PR #1 scaffold 是否仍是健康起点；在修订后的 spec / 最终 plan 下做**追认审查**，而不是重新实现。
 
-### 1.2 变更清单
+### 1.2 当前已落地事实
 
-#### 1.2.1 新增文件
+已落地文件：
 
-| 文件                                                                                             | 角色                 | 规模   |
-| ------------------------------------------------------------------------------------------------ | -------------------- | ------ |
-| `dashboard/src/components/panels/channels/access-descriptors/access-descriptor.types.ts`         | 契约类型             | ~60 行 |
-| `dashboard/src/components/panels/channels/access-descriptors/access-descriptor-registry.ts`      | 注册表实现           | ~50 行 |
-| `dashboard/src/components/panels/channels/access-descriptors/access-descriptor-registry.test.ts` | 注册表单测           | ~80 行 |
-| `dashboard/src/components/panels/channels/access-descriptors/AccessPanel.tsx`                    | 通用消费组件         | ~40 行 |
-| `dashboard/src/components/panels/channels/access-descriptors/index.ts`                           | 启动注册入口（暂空） | ~8 行  |
-| `docs/plugins/sdk-access-model.md`                                                               | 对外契约文档         | ~80 行 |
+- `dashboard/src/components/panels/channels/access-descriptors/access-descriptor.types.ts`
+- `dashboard/src/components/panels/channels/access-descriptors/access-descriptor-registry.ts`
+- `dashboard/src/components/panels/channels/access-descriptors/access-descriptor-registry.test.ts`
+- `dashboard/src/components/panels/channels/access-descriptors/AccessPanel.tsx`
+- `dashboard/src/components/panels/channels/access-descriptors/hooks.ts`
+- `dashboard/src/components/panels/channels/access-descriptors/index.ts`
+- `docs/plugins/sdk-access-model.md`
 
-#### 1.2.2 修改文件
+### 1.3 现状判断
 
-- 无（本 PR 只新增；消费侧改造延到 PR #2，便于回滚隔离）
+- 当前 scaffold 仍无目录外 consumer，可视为未接线基线
+- 当前 scaffold 的正式契约仍是过渡版；修订后的 spec 已把目标收敛到单轨 `AccessRenderContext`
+- 因此 PR #1 的下一个动作不是“继续实现”，而是**按修订后的 spec/plan 做追认审查**
 
-### 1.3 关键代码骨架
-
-> ⚠️ 代码骨架是 G1 草案。AI 实施者若发现与 repo 现有约定（import 顺序、barrel 风格、JSX prop 顺序）冲突，**按 repo 约定调整**，不盲从本节示例。
-
-#### `access-descriptor.types.ts`
-
-```typescript
-import type { ReactNode } from "react";
-import type { GatewayClient } from "@/types/gateway-client.generated";
-import type { ChannelInfo } from "@/stores/channels";
-
-export interface AccessLoadContext {
-  readonly channelId: string;
-  readonly gw: GatewayClient;
-  readonly channel: ChannelInfo | null;
-  readonly configSnapshot?: Record<string, unknown> | null;
-}
-
-export interface AccessActions {
-  readonly save: (patch: Record<string, unknown>) => Promise<boolean>;
-  readonly refresh: () => Promise<void>;
-  readonly openAccessTab: (accountId?: string) => void;
-}
-
-export interface AccessDescriptor<State = unknown> {
-  readonly channelId: string;
-  load(context: AccessLoadContext): Promise<State | null>;
-  render(state: State | null, actions: AccessActions): ReactNode;
-  normalize?(raw: unknown): State;
-  renderStatusSummary?(state: State | null, actions: AccessActions): ReactNode;
-  readonly settingsExcludePaths?: readonly string[];
-  handleManageAccess?(accountId: string, actions: AccessActions): void;
-}
-```
-
-#### `access-descriptor-registry.ts`
-
-```typescript
-import type { AccessDescriptor } from "./access-descriptor.types";
-
-const descriptors = new Map<string, AccessDescriptor<unknown>>();
-
-export interface RegisterOptions {
-  /** Allow replacing an existing registration (dev/HMR only). */
-  readonly allowReplace?: boolean;
-}
-
-export function registerAccessDescriptor(
-  descriptor: AccessDescriptor<unknown>,
-  options: RegisterOptions = {},
-): void {
-  if (descriptors.has(descriptor.channelId) && !options.allowReplace) {
-    throw new Error(`AccessDescriptor already registered: ${descriptor.channelId}`);
-  }
-  descriptors.set(descriptor.channelId, descriptor);
-}
-
-export function getAccessDescriptor(channelId: string): AccessDescriptor<unknown> | null {
-  return descriptors.get(channelId) ?? null;
-}
-
-export function hasAccessDescriptor(channelId: string): boolean {
-  return descriptors.has(channelId);
-}
-
-/** Test-only helper; production code must not invoke. */
-export function __resetAccessDescriptorsForTesting(): void {
-  descriptors.clear();
-}
-```
-
-#### `access-descriptor-registry.test.ts`（覆盖点清单）
-
-- ✅ register + get 返回同一对象
-- ✅ 未知 id 返回 null
-- ✅ hasAccessDescriptor 与 getAccessDescriptor !== null 等价
-- ✅ 重复注册未传 allowReplace → throw
-- ✅ 重复注册传 `{ allowReplace: true }` → 覆盖且不抛
-- ✅ `__resetAccessDescriptorsForTesting` 清空后 hasAccessDescriptor 为 false
-- ✅ 不同泛型参数（`<WeComState>` / `<unknown>`）均能过编译（type-only test 即可，用 `expectTypeOf` 或 `satisfies`）
-
-#### `AccessPanel.tsx`
-
-```tsx
-"use client";
-
-import { useTranslations } from "next-intl";
-import type { ReactNode } from "react";
-import { getAccessDescriptor } from "./access-descriptor-registry";
-import { useAccessDescriptorState } from "./hooks";
-
-// PR #1 stub: hooks.ts 在 PR #2 引入；PR #1 阶段可提供最简占位
-export function AccessPanel({
-  channelId,
-  slot,
-  selectedAccountId,
-  onSelectedAccountChange,
-}: {
-  channelId: string;
-  slot: "access-tab" | "status-summary";
-  selectedAccountId?: string;
-  onSelectedAccountChange?: (accountId: string) => void;
-}): ReactNode {
-  const t = useTranslations("channels.access");
-  const descriptor = getAccessDescriptor(channelId);
-  const { state, actions } = useAccessDescriptorState(descriptor, {
-    selectedAccountId,
-    onSelectedAccountChange,
-  });
-  if (!descriptor) {
-    if (slot === "status-summary") return null;
-    return (
-      <div className="px-4 py-4">
-        <div
-          className="rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
-        >
-          <p className="font-medium" style={{ color: "var(--foreground)" }}>
-            {t("unsupportedTitle")}
-          </p>
-          <p className="mt-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
-            {t("unsupportedDescription")}
-          </p>
-        </div>
-      </div>
-    );
-  }
-  if (slot === "status-summary") {
-    return descriptor.renderStatusSummary?.(state, actions) ?? null;
-  }
-  return descriptor.render(state, actions);
-}
-```
-
-> ⚠️ PR #1 的 `hooks.ts` 可以只给出最小骨架（`useAccessDescriptorState` 返回 `{ state: null, actions: noopActions }`），完整实现放 PR #2。或者本 PR 仅创建 `AccessPanel.tsx` 而 `hooks.ts` 完全放 PR #2，由执行者权衡（两种选择对 landing gate 都可行）。
-
-#### `access-descriptors/index.ts`
-
-```typescript
-// Registration entry point. PR #1 ships empty by design.
-// PR #2 will add: import "./wecom-access-descriptor";
-export {};
-```
-
-#### `docs/plugins/sdk-access-model.md` — 必须覆盖的小节
-
-- 契约动机（为什么不是 Schema-only / Remote Component）
-- 7 个契约成员语义（3 required + 4 optional）
-- `AccessLoadContext.gw` 为什么是 typed client 而非字符串 method
-- 最小 descriptor 示例：`telegram-access-descriptor` 仅实现 `channelId` + `load()=>null` + `render()=>null`（占位，证明契约可扩展）
-- 注册流程：descriptor 文件末尾 side-effect register + `access-descriptors/index.ts` barrel import + 顶层 side-effect import
-- **Safety 条款**：不得在 `render` 返回树里 import global store（建议而非强制；wecom 迁移期允许例外，见 §2）
-
-### 1.4 验证步骤
+### 1.4 已验证证据
 
 ```bash
-pnpm check
-pnpm test dashboard/src/components/panels/channels/access-descriptors
-pnpm build  # PR #1 全新增，理论可跳；但 enhanced 分支 push 前跑一次保险
+pnpm --dir dashboard test src/components/panels/channels/access-descriptors/access-descriptor-registry.test.ts
+pnpm --dir dashboard test \
+  src/components/panels/channels/access-descriptors/access-descriptor-registry.test.ts \
+  src/components/panels/channels/ChannelDetail.access-handoff.test.tsx \
+  src/components/panels/channels/ChannelDetail.permission-summary.test.tsx \
+  src/components/panels/channels/ChannelAccessTab.test.tsx
 ```
 
-**Landing gate**：
+### 1.5 追认审查 gate
 
-- [ ] `pnpm check` 零 warning 零 error
-- [ ] registry 测试 7 条覆盖点全中
-- [ ] `git diff --stat` 仅新增文件（无误改）
-- [ ] `rg 'access-descriptor' dashboard/src/ | rg -v 'access-descriptors/'` 返回空（确认 PR #1 未被其他文件引用）
-
-### 1.5 Commit
-
-```bash
-scripts/committer "[enhanced] feat(deck): add AccessDescriptor contract + registry scaffold" \
-  dashboard/src/components/panels/channels/access-descriptors/ \
-  docs/plugins/sdk-access-model.md
-```
+- [ ] PR #1 是否仍可作为健康起点
+- [ ] 是否需要最小对齐补丁以适配修订后的契约 / bootstrap 方案
+- [ ] `rg -n --glob '!dashboard/src/components/panels/channels/access-descriptors/**' 'access-descriptors|AccessPanel|useAccessDescriptor' dashboard/src` 仍返回空
 
 ---
 
@@ -250,7 +94,7 @@ scripts/committer "[enhanced] feat(deck): add AccessDescriptor contract + regist
 | ---------------------------------------------------------------------------------------------- | ------- |
 | `dashboard/src/components/panels/channels/access-descriptors/wecom-access-descriptor.tsx`      | ~700 行 |
 | `dashboard/src/components/panels/channels/access-descriptors/wecom-access-descriptor.test.tsx` | ~120 行 |
-| `dashboard/src/components/panels/channels/access-descriptors/hooks.ts`（若 PR #1 未建）        | ~80 行  |
+| `dashboard/src/components/panels/channels/access-descriptors/hooks.ts`（补全 PR #1 stub）      | ~80 行  |
 
 ### 2.3 修改文件
 
@@ -260,7 +104,7 @@ scripts/committer "[enhanced] feat(deck): add AccessDescriptor contract + regist
 | `dashboard/src/components/panels/channels/ChannelDetail.tsx`           | 见 §2.5 详细 diff                                                                 |
 | `dashboard/src/components/panels/channels/ChannelAccessTab.tsx`        | 外层简化为 ~40 行（见 §2.6）                                                      |
 | `dashboard/src/components/panels/channels/ChannelSettingsTab.tsx`      | 见 §2.7 详细 diff                                                                 |
-| `dashboard/src/app/providers.tsx`（或 `layout.tsx` 等效顶层）          | 加入 `import "@/components/panels/channels/access-descriptors";` 顶层 side-effect |
+| `dashboard/src/app/page.tsx`                                           | 加入 `import "@/components/panels/channels/access-descriptors";` 顶层 side-effect |
 
 ### 2.4 `wecom-access-descriptor.tsx` 结构
 
@@ -279,7 +123,12 @@ import { AllowFromEditor } from "../AllowFromEditor";
 import { DmPolicySelector } from "../DmPolicySelector";
 
 // 2. 导入 access-descriptor 契约
-import type { AccessActions, AccessDescriptor, AccessLoadContext } from "./access-descriptor.types";
+import type {
+  AccessActions,
+  AccessDescriptor,
+  AccessLoadContext,
+  AccessRenderContext,
+} from "./access-descriptor.types";
 import { registerAccessDescriptor } from "./access-descriptor-registry";
 
 // 3. 其他 deps — 从 ChannelAccessTab.tsx 和 ChannelDetail.tsx 迁入
@@ -354,20 +203,25 @@ export const wecomAccessDescriptor: AccessDescriptor<null> = {
     return null;
   },
 
-  render(_state, actions) {
-    // 真实返回 ReactNode。state 在 wecom 下未使用，因为 WecomAccessTabContent
-    // 仍保留 Zustand store 直连；actions 由子组件的 "Manage Access" 等交互路径按需调用。
+  render(context: AccessRenderContext<null>) {
+    // 真实返回 ReactNode。PR #2 起通过 AccessRenderContext 正式接收
+    // channel / selectedAccountId / onSelectedAccountChange / actions。
     return (
       <WecomAccessTabContent
-        // AccessPanel 透传的 selectedAccountId / onSelectedAccountChange 通过 actions / 外层 prop 注入
-        // —— 具体参数见 hooks.ts 和 AccessPanel.tsx 的真实数据流
-        actions={actions}
+        channel={context.channel!}
+        selectedAccountId={context.selectedAccountId}
+        onSelectedAccountChange={context.onSelectedAccountChange}
       />
     );
   },
 
-  renderStatusSummary(_state, actions) {
-    return <WecomPermissionSummary actions={actions} />;
+  renderStatusSummary(context: AccessRenderContext<null>) {
+    return (
+      <WecomPermissionSummary
+        channel={context.channel!}
+        onOpenAccess={(accountId) => context.actions.openAccessTab(accountId)}
+      />
+    );
   },
 
   settingsExcludePaths: WECOM_ACCESS_EXCLUDE_PATHS,
@@ -414,12 +268,13 @@ registerAccessDescriptor(wecomAccessDescriptor as AccessDescriptor<unknown>, {
   <AccessPanel
     slot="status-summary"
     channelId={channelId}
+    channel={channel}
     selectedAccountId={accessAccountId}
     onSelectedAccountChange={setAccessAccountId}
     onActivateAccessTab={() => setActiveTab("access")}
   />
   ```
-- Access tab（L884-890 TabsContent）保持不变（内部 `<ChannelAccessTab/>` 已走新 `AccessPanel` 路径；但 `ChannelAccessTab` 新签名需透传 `onActivateAccessTab`——见 §2.6）
+- Access tab（L884-890 TabsContent）保持不变（内部 `<ChannelAccessTab/>` 已走新 `AccessPanel` 路径；但 `ChannelAccessTab` 新签名需透传 `channel` + `onActivateAccessTab`——见 §2.6）
 - 顶层导入 `getAccessDescriptor` from `./access-descriptors/access-descriptor-registry`
 - L796-811 "Manage Access" 按钮的改写（handoff 闭环关键）：
   ```tsx
@@ -664,7 +519,7 @@ export function useAccessDescriptorState<State>(
 
 ### 2.9 顶层 side-effect import
 
-在 `dashboard/src/app/providers.tsx` 或 `dashboard/src/app/layout.tsx` 顶部添加：
+在 `dashboard/src/app/page.tsx` 顶部添加：
 
 ```typescript
 import "@/components/panels/channels/access-descriptors";
@@ -698,7 +553,7 @@ describe("access descriptor side-effect mounting", () => {
 pnpm check
 
 # 2. wecom 回归测试（Safety Fence 核心）
-pnpm test \
+pnpm --dir dashboard test \
   dashboard/src/components/panels/channels/ChannelDetail.permission-summary.test.tsx \
   dashboard/src/components/panels/channels/ChannelDetail.access-handoff.test.tsx \
   dashboard/src/components/panels/channels/wecom-access-boundary.integration.test.tsx \
@@ -709,10 +564,10 @@ pnpm test \
   dashboard/src/components/panels/channels/ChannelAccessTab.test.tsx
 
 # 3. 新增 descriptor / registry / hooks 测试
-pnpm test dashboard/src/components/panels/channels/access-descriptors
+pnpm --dir dashboard test src/components/panels/channels/access-descriptors
 
 # 4. registry 挂载冒烟
-pnpm test dashboard/src/components/panels/channels/access-descriptors/registry-mounted.test
+pnpm --dir dashboard test src/components/panels/channels/access-descriptors/registry-mounted.test.tsx
 
 # 5. build
 pnpm build
@@ -744,7 +599,7 @@ scripts/committer "[enhanced] feat(deck): migrate wecom access UI to AccessDescr
   dashboard/src/components/panels/channels/ChannelDetail.tsx \
   dashboard/src/components/panels/channels/ChannelAccessTab.tsx \
   dashboard/src/components/panels/channels/ChannelSettingsTab.tsx \
-  dashboard/src/app/providers.tsx
+  dashboard/src/app/page.tsx
 ```
 
 ### 2.12 规模预估（G2 第二轮修正版）
@@ -762,7 +617,7 @@ scripts/committer "[enhanced] feat(deck): migrate wecom access UI to AccessDescr
 - +150 `wecom-access-descriptor.test.tsx`
 - +100 `hooks.ts`
 - +40 `AccessPanel.tsx`（若 PR #1 未建）
-- +50 `index.ts` + `providers.tsx` + `registry-mounted.test.tsx`
+- +50 `index.ts` + `page.tsx` + `registry-mounted.test.tsx`
 - -759 ChannelAccessTab/ChannelDetail 中 wecom 代码迁出
 - -50 ChannelDetail 其他 wecom 分支删除（L218/L221/L285-321/L796-811/L910）
 - -15 ChannelSettingsTab.tsx 常量删除 + 分支改写
@@ -822,8 +677,8 @@ const accessChannels = visibleChannels.filter((channelId) => hasAccessDescriptor
 
 ```bash
 pnpm check
-pnpm test dashboard/src/components/panels/channels
-pnpm test dashboard/src/components/panels/plugins
+pnpm --dir dashboard test src/components/panels/channels
+pnpm --dir dashboard test src/components/panels/plugins
 pnpm build
 
 # 零引用校验
@@ -932,13 +787,13 @@ B 区（i18n section）依赖 code review 目视；C 区（测试文件）依赖
 ### 5.2 结构断言（PR #3 起持续跑）
 
 ```bash
-pnpm test dashboard/src/components/panels/channels/channel-detail-no-hardcoded-ids.test.ts
+pnpm --dir dashboard test src/components/panels/channels/channel-detail-no-hardcoded-ids.test.ts
 ```
 
 ### 5.3 Registry 挂载冒烟（PR #2 起持续跑）
 
 ```bash
-pnpm test dashboard/src/components/panels/channels/access-descriptors/registry-mounted.test.tsx
+pnpm --dir dashboard test src/components/panels/channels/access-descriptors/registry-mounted.test.tsx
 ```
 
 ### 5.4 工程 gate（每个 PR push 前）
@@ -1013,19 +868,18 @@ plan v2 §8 列出的 6 个 Q-R 已由 G2 第二轮 Claude architect + 主 sessi
 
 ## §9 执行者 checklist
 
-### PR #1 开工前
+### PR #1 追认审查前
 
 - [ ] 读完 spec §1-§3（基于 2026-04-17 Revised 版本）
-- [ ] 读完本 plan §1-§2（PR #1 + PR #2 范围）
-- [ ] G2 第二轮对本 plan APPROVE
+- [ ] 读完本 plan §1-§2（PR #1 追认审查 + PR #2 范围）
+- [ ] second-pass `ralplan` 对本 plan APPROVE
 
-### PR #1 执行中
+### PR #1 追认审查中
 
-- [ ] 6 个新文件全部创建
-- [ ] `pnpm check` 零告警
-- [ ] registry test 7 条覆盖点全中
-- [ ] `git diff --stat` 只含新增
-- [ ] Safety Fence 自检脚本（§4.D）通过
+- [ ] scaffold 仍无目录外 consumer
+- [ ] 修订后的契约 / bootstrap 方案与 PR #1 一致，或明确列出最小对齐补丁
+- [ ] `pnpm --dir dashboard test src/components/panels/channels/access-descriptors/access-descriptor-registry.test.ts` 通过
+- [ ] PR #1 追认审查结论已落盘
 
 ### PR #2 执行中
 
@@ -1033,7 +887,7 @@ plan v2 §8 列出的 6 个 Q-R 已由 G2 第二轮 Claude architect + 主 sessi
 - [ ] `WecomAccessTabContent` / `WecomPermissionSummary` 代码**逐行对比**原位置确认 1:1（`git diff --color-words`）
 - [ ] §2.5 ChannelDetail.tsx 8 处删除点全部清理
 - [ ] §2.7 ChannelSettingsTab.tsx diff 完成
-- [ ] 顶层 side-effect import 落地（providers.tsx 或等效）
+- [ ] 顶层 side-effect import 落地（`dashboard/src/app/page.tsx`）
 - [ ] §5.1 wecom 回归测试 8 条全绿
 - [ ] §5.3 registry-mounted 测试绿
 - [ ] 手工视觉验收 6 项通过
@@ -1051,7 +905,7 @@ plan v2 §8 列出的 6 个 Q-R 已由 G2 第二轮 Claude architect + 主 sessi
 ### 每个 PR push 前共性
 
 - [ ] `pnpm check` 通过
-- [ ] `pnpm test` 通过
+- [ ] `pnpm --dir dashboard test <touched-paths>` 通过
 - [ ] `git log` 仅含本 PR 预期 commit
 - [ ] Safety Fence 自检脚本（§4.D）通过
 - [ ] commit 使用 `scripts/committer`
@@ -1067,3 +921,4 @@ plan v2 §8 列出的 6 个 Q-R 已由 G2 第二轮 Claude architect + 主 sessi
 | 2026-04-17 | G1 v2        | 完全重写：基于 spec Revised 版本对齐代码事实；PR #2 规模 300→900；新增 §8 Q-R1~R6 针对性审查问题供 G2 第二轮定向裁决                                                                                                                                                                                                                                                                                                                                                                   |
 | 2026-04-17 | G2 第二轮    | Claude architect REVISE + 主 session 代码事实实测（`useGatewayClient` / `import.meta.hot` 零命中 + `ChannelDetail.tsx:799-800` 原文确认）；Q-R1~Q-R6 逐条裁决 + 3 项 blocker                                                                                                                                                                                                                                                                                                           |
 | 2026-04-17 | v3（本版本） | G3 共识修订落地：§2.4 wecom-access-descriptor `render` 改真实返回 ReactNode + HMR 改 NODE_ENV；§2.5 新增 handleManageAccess 原子闭包 + L910 条件改为 `usesAccessTabForAccountConfig`；§2.6 `_channel` 下划线移除；§2.7 ChannelSettingsTab 完整 if/else 分支 + 三条等价语义保证；§2.8 hooks 真实组装 context + openAccessTab 闭环 `onActivateAccessTab`；§2.9 registry-mounted 改 import barrel；§2.12 规模上调 ~1100-1200 行 + 拆 PR #2a/#2b 策略；§7.2/§7.3 裁决归档；§8 标记为已归档 |
+| 2026-04-17 | v4（本版本） | post-PR1 reality alignment：顶部元数据改为“pre-ralph gate 未满足”；§0 明确 PR #1 已落地、根目录 dashboard 测试命令失效、增加 task-specific pre-ralph gate；§1 改写为“已实现基线 + 追认审查”；§2 将 bootstrap 从 `providers.tsx` 改到 `dashboard/src/app/page.tsx`，并将验证命令统一为 `pnpm --dir dashboard test ...`；§9 checklist 改成 PR #1 追认审查而非重新开工                                                                                                                    |

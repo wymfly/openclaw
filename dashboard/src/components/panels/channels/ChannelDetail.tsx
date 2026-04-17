@@ -5,8 +5,9 @@ import { useTranslations } from "next-intl";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { navigateToPlugin } from "../../../lib/panel-navigation";
 import { useChannelsStore, type ChannelAccount } from "../../../stores/channels";
-import { useDeckRoutingStore } from "../../../stores/deck-routing";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../ui/tabs";
+import { getAccessDescriptor } from "./access-descriptors/access-descriptor-registry";
+import { AccessPanel } from "./access-descriptors/AccessPanel";
 import { AccountConfigDialog } from "./AccountConfigDialog";
 import { BindingsTab } from "./BindingsTab";
 import {
@@ -21,7 +22,6 @@ import { ChannelHealthBadge } from "./ChannelHealthBadge";
 import { ChannelProbeStatus } from "./ChannelProbeStatus";
 import { ChannelSettingsTab } from "./ChannelSettingsTab";
 import { ChannelTestTool } from "./ChannelTestTool";
-import { buildWecomAccessModel } from "./wecom-access-model";
 
 const DIAGNOSTIC_TONE_STYLES = {
   success: {
@@ -54,27 +54,6 @@ const ALERT_SEVERITY_STYLES = {
     text: "var(--warning-muted-text)",
   },
 } as const;
-
-function formatAllowFromPreview(
-  entries: string[],
-  t: (key: string, values?: Record<string, string | number>) => string,
-) {
-  if (entries.length === 0) {
-    return t("permissionSummary.allowFromEmpty");
-  }
-  const preview = entries.slice(0, 3).join(", ");
-  const extraCount = Math.max(entries.length - 3, 0);
-  return t("permissionSummary.allowFromPreview", {
-    preview,
-    extra: extraCount > 0 ? ` (+${extraCount})` : "",
-  });
-}
-
-type PermissionAlert = {
-  message: string;
-  accountId?: string;
-  action: "access";
-};
 
 function AccountStatusBadge({ account }: { account: ChannelAccount }) {
   const t = useTranslations("channels");
@@ -203,8 +182,8 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
     updateChannelConfig,
     channelSchemas,
     channelHealthMap,
-    channelConfig,
     fetchChannelConfig,
+    saveChannelConfig,
     pendingAccessTarget,
     setPendingAccessTarget,
   } = useChannelsStore();
@@ -215,10 +194,6 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
   const [configAccount, setConfigAccount] = useState<ChannelAccount | null>(null);
   const [activeTab, setActiveTab] = useState("status");
   const [accessAccountId, setAccessAccountId] = useState<string | undefined>(undefined);
-  const [wecomConfigLoaded, setWecomConfigLoaded] = useState(channelId !== "wecom");
-  const bindings = useDeckRoutingStore((state) => state.bindings);
-  const fetchBindings = useDeckRoutingStore((state) => state.fetchBindings);
-  const [bindingsLoaded, setBindingsLoaded] = useState(channelId !== "wecom");
 
   const channel = channels.get(channelId);
   const channelHealth = channelHealthMap.get(channelId);
@@ -282,44 +257,6 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
     setPendingAccessTarget,
   ]);
 
-  useEffect(() => {
-    if (channelId !== "wecom") {
-      setWecomConfigLoaded(true);
-      return undefined;
-    }
-
-    let cancelled = false;
-    setWecomConfigLoaded(false);
-    void fetchChannelConfig(channelId).finally(() => {
-      if (!cancelled) {
-        setWecomConfigLoaded(true);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [channelId, fetchChannelConfig]);
-
-  useEffect(() => {
-    if (channelId !== "wecom") {
-      setBindingsLoaded(true);
-      return undefined;
-    }
-
-    let cancelled = false;
-    setBindingsLoaded(false);
-    void fetchBindings().finally(() => {
-      if (!cancelled) {
-        setBindingsLoaded(true);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [channelId, fetchBindings]);
-
   // Schema-only channel (discovered but not yet configured via channels.status)
   if (!channel && schemaInfo) {
     return (
@@ -350,63 +287,16 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
     );
   }
 
-  const shouldShowWecomSummary = channelId === "wecom" && wecomConfigLoaded;
-  const wecomBindingCount = bindings.filter(
-    (binding) => binding.match.channel === channelId,
-  ).length;
-  const wecomAccessModel = shouldShowWecomSummary
-    ? buildWecomAccessModel(channel, channelConfig)
-    : null;
-  const wecomPermissionAlerts: PermissionAlert[] =
-    wecomAccessModel === null
-      ? []
-      : [
-          ...Object.entries(wecomAccessModel.accounts).flatMap(([accountId, accountState]) => {
-            const alerts: PermissionAlert[] = [];
-            if (
-              accountState.botConfigured &&
-              accountState.bot.policy === "allowlist" &&
-              accountState.bot.allowFrom.length === 0
-            ) {
-              alerts.push({
-                message: t("permissionSummary.botAllowlistEmpty", { account: accountId }),
-                accountId,
-                action: "access",
-              });
-            }
-            if (
-              accountState.agentConfigured &&
-              accountState.agent.policy === "allowlist" &&
-              accountState.agent.allowFrom.length === 0
-            ) {
-              alerts.push({
-                message: t("permissionSummary.agentAllowlistEmpty", { account: accountId }),
-                accountId,
-                action: "access",
-              });
-            }
-            return alerts;
-          }),
-          ...(wecomAccessModel.dynamicAgents.enabled &&
-          wecomAccessModel.dynamicAgents.adminUsers.length === 0
-            ? [
-                {
-                  message: t("permissionSummary.dynamicAgentsMissingAdmins"),
-                  accountId: wecomAccessModel.defaultAccountId,
-                  action: "access",
-                } satisfies PermissionAlert,
-              ]
-            : []),
-          ...(wecomAccessModel.dynamicAgents.enabled && bindingsLoaded && wecomBindingCount === 0
-            ? [
-                {
-                  message: t("permissionSummary.dynamicAgentsMissingRouting"),
-                  accountId: wecomAccessModel.defaultAccountId,
-                  action: "access",
-                } satisfies PermissionAlert,
-              ]
-            : []),
-        ];
+  const accessDescriptor = getAccessDescriptor(channelId);
+  const openAccessTabWithAccount = useCallback(
+    (accountId?: string) => {
+      if (accountId) {
+        setAccessAccountId(accountId);
+      }
+      setActiveTab("access");
+    },
+    [setAccessAccountId, setActiveTab],
+  );
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -511,150 +401,14 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
 
             {/* Accounts section */}
             <div>
-              {wecomAccessModel && (
-                <div className="mb-4 space-y-3">
-                  <label
-                    className="block text-xs font-medium"
-                    style={{ color: "var(--muted-foreground)" }}
-                  >
-                    {t("permissionSummary.title")}
-                  </label>
-
-                  {wecomPermissionAlerts.length > 0 && (
-                    <div className="space-y-2">
-                      {wecomPermissionAlerts.map((alert) => (
-                        <div
-                          key={`${alert.action}:${alert.accountId ?? "global"}:${alert.message}`}
-                          className="rounded-md border px-3 py-2 text-[11px]"
-                          style={{
-                            borderColor: "var(--warning)",
-                            backgroundColor: "var(--warning-muted)",
-                            color: "var(--warning-muted-text)",
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <span>{alert.message}</span>
-                            <button
-                              type="button"
-                              className="shrink-0 rounded border px-2 py-1 text-[10px] transition-opacity hover:opacity-80"
-                              style={{
-                                borderColor: "var(--warning)",
-                                backgroundColor: "var(--background)",
-                                color: "var(--foreground)",
-                              }}
-                              onClick={() => {
-                                if (alert.action === "access") {
-                                  setAccessAccountId(
-                                    alert.accountId ?? wecomAccessModel.defaultAccountId,
-                                  );
-                                  setActiveTab("access");
-                                }
-                              }}
-                            >
-                              {t("permissionSummary.openAccess")}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {wecomAccessModel.accountIds.map((accountId) => {
-                      const accountState = wecomAccessModel.accounts[accountId];
-                      const accountName =
-                        channel.accounts.find((account) => account.accountId === accountId)?.name ??
-                        accountId;
-
-                      return (
-                        <div
-                          key={accountId}
-                          className="rounded-lg border px-3 py-3"
-                          style={{
-                            borderColor: "var(--border)",
-                            backgroundColor: "var(--card)",
-                          }}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p
-                                className="text-sm font-medium"
-                                style={{ color: "var(--foreground)" }}
-                              >
-                                {accountName}
-                              </p>
-                              <p
-                                className="text-[11px]"
-                                style={{ color: "var(--muted-foreground)" }}
-                              >
-                                {accountId}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => {
-                                setAccessAccountId(accountId);
-                                setActiveTab("access");
-                              }}
-                              className="text-[10px] px-2 py-1 rounded border transition-opacity hover:opacity-80"
-                              style={{
-                                borderColor: "var(--border)",
-                                color: "var(--foreground)",
-                                backgroundColor: "var(--background)",
-                              }}
-                            >
-                              {t("access.manage")}
-                            </button>
-                          </div>
-
-                          <div className="mt-3 space-y-1 text-[11px]">
-                            {accountState.botConfigured && (
-                              <>
-                                <p style={{ color: "var(--muted-foreground)" }}>
-                                  {t("permissionSummary.botPolicy", {
-                                    policy: t(`settings.dmPolicy.${accountState.bot.policy}`),
-                                    count: accountState.bot.allowFrom.length,
-                                  })}
-                                </p>
-                                <p style={{ color: "var(--text-tertiary)" }}>
-                                  {formatAllowFromPreview(accountState.bot.allowFrom, t)}
-                                </p>
-                              </>
-                            )}
-                            {accountState.agentConfigured && (
-                              <>
-                                <p style={{ color: "var(--muted-foreground)" }}>
-                                  {t("permissionSummary.agentPolicy", {
-                                    policy: t(`settings.dmPolicy.${accountState.agent.policy}`),
-                                    count: accountState.agent.allowFrom.length,
-                                  })}
-                                </p>
-                                <p style={{ color: "var(--text-tertiary)" }}>
-                                  {formatAllowFromPreview(accountState.agent.allowFrom, t)}
-                                </p>
-                              </>
-                            )}
-                            <p style={{ color: "var(--muted-foreground)" }}>
-                              {t("permissionSummary.dynamicAgents", {
-                                enabled: wecomAccessModel.dynamicAgents.enabled
-                                  ? t("permissionSummary.enabled")
-                                  : t("permissionSummary.disabled"),
-                                admins: wecomAccessModel.dynamicAgents.adminUsers.length,
-                              })}
-                            </p>
-                            <p style={{ color: "var(--muted-foreground)" }}>
-                              {t("permissionSummary.routing", {
-                                mode: wecomAccessModel.failClosedOnDefaultRoute
-                                  ? t("permissionSummary.failClosed")
-                                  : t("permissionSummary.fallback"),
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              <AccessPanel
+                channelId={channelId}
+                channel={channel}
+                slot="status-summary"
+                selectedAccountId={accessAccountId}
+                onSelectedAccountChange={setAccessAccountId}
+                onActivateAccessTab={() => setActiveTab("access")}
+              />
 
               {(alertCount > 0 || hasProbeAlert) && (
                 <div
@@ -793,12 +547,18 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
                             </>
                           )}
                         </button>
-                        {channelId === "wecom" ? (
+                        {accessDescriptor?.handleManageAccess ? (
                           <button
-                            onClick={() => {
-                              setAccessAccountId(account.accountId);
-                              setActiveTab("access");
-                            }}
+                            onClick={() =>
+                              accessDescriptor.handleManageAccess?.(account.accountId, {
+                                save: async (patch) => saveChannelConfig(channelId, patch),
+                                refresh: async () => {
+                                  await fetchChannelConfig(channelId);
+                                },
+                                openAccessTab: (accountId) =>
+                                  openAccessTabWithAccount(accountId ?? account.accountId),
+                              })
+                            }
                             className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
                             style={{
                               border: "1px solid var(--border)",
@@ -887,6 +647,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
             channel={channel}
             selectedAccountId={accessAccountId}
             onSelectedAccountChange={setAccessAccountId}
+            onActivateAccessTab={() => setActiveTab("access")}
           />
         </TabsContent>
 
@@ -907,7 +668,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
       </Tabs>
 
       {/* Account config dialog */}
-      {configAccount && channelId !== "wecom" && (
+      {configAccount && !accessDescriptor?.usesAccessTabForAccountConfig && (
         <AccountConfigDialog
           open={!!configAccount}
           onOpenChange={(open) => {

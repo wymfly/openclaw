@@ -13,8 +13,8 @@ function makeDescriptor(channelId: string): AccessDescriptor {
     async load() {
       return null;
     },
-    render() {
-      return null;
+    render(_context) {
+      return "placeholder";
     },
   };
 }

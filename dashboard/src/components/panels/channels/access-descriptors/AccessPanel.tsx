@@ -3,7 +3,9 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import type { ChannelInfo } from "@/stores/channels";
+import "./index";
 import { getAccessDescriptor } from "./access-descriptor-registry";
+import type { AccessRenderContext } from "./access-descriptor.types";
 import { useAccessDescriptorState } from "./hooks";
 
 /**
@@ -41,6 +43,15 @@ export function AccessPanel({
     onActivateAccessTab,
   });
 
+  const renderContext: AccessRenderContext = {
+    channelId,
+    channel,
+    state,
+    actions,
+    selectedAccountId,
+    onSelectedAccountChange,
+  };
+
   if (!descriptor) {
     if (slot === "status-summary") {
       return null;
@@ -63,8 +74,8 @@ export function AccessPanel({
   }
 
   if (slot === "status-summary") {
-    return descriptor.renderStatusSummary?.(state, actions) ?? null;
+    return descriptor.renderStatusSummary?.(renderContext) ?? null;
   }
 
-  return descriptor.render(state, actions);
+  return descriptor.render(renderContext);
 }

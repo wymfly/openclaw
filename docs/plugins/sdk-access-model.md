@@ -27,17 +27,36 @@ It has 3 required and 5 optional members.
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `channelId: string`                       | Stable id that matches the Gateway channelId.                                                                                                                                                         |
 | `load(context) => Promise<State \| null>` | Load the access state. May return `null` when data flow stays inside the render subtree (e.g. WeCom preserves Zustand store access in children).                                                      |
-| `render(state, actions) => ReactNode`     | Render the Access tab UI. **MUST return a real ReactNode — descriptors are not allowed to return `null`.** Returning `null` is reserved for the `AccessPanel` layer when no descriptor is registered. |
+| `render(renderContext) => ReactNode`      | Render the Access tab UI. **MUST return a real ReactNode — descriptors are not allowed to return `null`.** Returning `null` is reserved for the `AccessPanel` layer when no descriptor is registered. |
 
 ### Optional
 
-| Member                                             | Purpose                                                                                                                                                                          |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `normalize(raw) => State`                          | Normalize a raw `openclaw.json` config snapshot into the descriptor's State shape.                                                                                               |
-| `renderStatusSummary(state, actions) => ReactNode` | Render the permission summary section on the Status tab. Return `null` to hide the slot for this channel.                                                                        |
-| `settingsExcludePaths: readonly string[]`          | Config field paths that the Settings tab should NOT render (because they are managed in the Access tab instead).                                                                 |
-| `handleManageAccess(accountId, actions)`           | Handle "Manage Access" clicks from the Status tab. Implementations MUST rely on `actions.openAccessTab` to perform account preselection + tab switch atomically.                 |
-| `usesAccessTabForAccountConfig: boolean`           | Whether this channel manages per-account configuration inside the Access tab (and thus should NOT render the generic `AccountConfigDialog`). Defaults to `false` when undefined. |
+| Member                                            | Purpose                                                                                                                                                                          |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `normalize(raw) => State`                         | Normalize a raw `openclaw.json` config snapshot into the descriptor's State shape.                                                                                               |
+| `renderStatusSummary(renderContext) => ReactNode` | Render the permission summary section on the Status tab. Return `null` to hide the slot for this channel.                                                                        |
+| `settingsExcludePaths: readonly string[]`         | Config field paths that the Settings tab should NOT render (because they are managed in the Access tab instead).                                                                 |
+| `handleManageAccess(accountId, actions)`          | Handle "Manage Access" clicks from the Status tab. Implementations MUST rely on `actions.openAccessTab` to perform account preselection + tab switch atomically.                 |
+| `usesAccessTabForAccountConfig: boolean`          | Whether this channel manages per-account configuration inside the Access tab (and thus should NOT render the generic `AccountConfigDialog`). Defaults to `false` when undefined. |
+
+## `AccessRenderContext`
+
+Descriptor UI entrypoints receive one formal render-time context object:
+
+```typescript
+interface AccessRenderContext<State = unknown> {
+  readonly channelId: string;
+  readonly channel: ChannelInfo | null;
+  readonly state: State | null;
+  readonly actions: AccessActions;
+  readonly selectedAccountId?: string;
+  readonly onSelectedAccountChange?: (accountId: string) => void;
+}
+```
+
+This keeps channel snapshot, loaded state, mutations, and Status -> Access
+handoff data on one explicit contract path. Descriptors should not rely on
+contract-external closure state for these values.
 
 ## `AccessLoadContext`
 
@@ -95,7 +114,7 @@ export const placeholderAccessDescriptor: AccessDescriptor<null> = {
   async load() {
     return null;
   },
-  render() {
+  render(_context) {
     return <p>Placeholder access control UI</p>;
   },
 };
@@ -110,7 +129,7 @@ registerAccessDescriptor(placeholderAccessDescriptor as AccessDescriptor<unknown
 1. Descriptor file ends with `registerAccessDescriptor(myDescriptor, options?)`.
 2. `access-descriptors/index.ts` imports each descriptor as a side-effect:
    `import "./placeholder-access-descriptor";`.
-3. Deck's top-level providers file (`dashboard/src/app/providers.tsx` or equivalent)
+3. Deck's current top-level client root (`dashboard/src/app/page.tsx`)
    imports the barrel once at startup:
    `import "@/components/panels/channels/access-descriptors";`.
 

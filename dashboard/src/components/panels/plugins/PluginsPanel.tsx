@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import "../channels/access-descriptors";
 import type { InventoryPluginEntry } from "@/stores/plugins";
 import {
   navigateToChannel,
@@ -12,7 +13,7 @@ import { useChannelsStore } from "../../../stores/channels";
 import { usePluginsStore } from "../../../stores/plugins";
 import { PanelEmptyState } from "../../ui/panel-empty-state";
 import { PanelSkeleton } from "../../ui/panel-skeleton";
-import { hasDedicatedAccessSurface } from "../channels/channel-access-registry";
+import { hasAccessDescriptor } from "../channels/access-descriptors/access-descriptor-registry";
 
 function ValueRow({ label, value }: { label: string; value: string }) {
   return (
@@ -38,9 +39,7 @@ function PluginCard({
 }) {
   const visibleChannels = plugin.channelIds.filter((channelId) => availableChannels.has(channelId));
   const hiddenChannels = plugin.channelIds.filter((channelId) => !availableChannels.has(channelId));
-  const accessChannels = visibleChannels.filter((channelId) =>
-    hasDedicatedAccessSurface(channelId),
-  );
+  const accessChannels = visibleChannels.filter((channelId) => hasAccessDescriptor(channelId));
   const routingChannelId = visibleChannels[0] ?? plugin.channelIds[0];
 
   return (

@@ -61,6 +61,33 @@ export interface AccessActions {
 }
 
 /**
+ * Render-time context that Deck passes into descriptor UI entrypoints.
+ *
+ * This keeps state, mutations, channel snapshot, and Status -> Access handoff
+ * data on one formal contract path instead of splitting them between the
+ * descriptor interface and outer consumer closures.
+ */
+export interface AccessRenderContext<State = unknown> {
+  /** Stable channel id (matches Gateway channelId). */
+  readonly channelId: string;
+
+  /** ChannelInfo snapshot; null if the channel is schema-only (not configured yet). */
+  readonly channel: ChannelInfo | null;
+
+  /** Loaded descriptor state; opaque to callers. */
+  readonly state: State | null;
+
+  /** Deck-provided mutation + navigation handlers. */
+  readonly actions: AccessActions;
+
+  /** Optional account handoff for Status -> Access flows. */
+  readonly selectedAccountId?: string;
+
+  /** Optional controlled-mode updater for account handoff. */
+  readonly onSelectedAccountChange?: (accountId: string) => void;
+}
+
+/**
  * Access control descriptor for a channel.
  *
  * Contract principle: the registry only governs HOW to mount access UI.
@@ -91,7 +118,7 @@ export interface AccessDescriptor<State = unknown> {
    * to return null. Returning null is reserved for the `AccessPanel` layer
    * when no descriptor is registered for the channel.
    */
-  render(state: State | null, actions: AccessActions): ReactNode;
+  render(context: AccessRenderContext<State>): ReactNode;
 
   /**
    * Optional: normalize a raw config snapshot into the State shape.
@@ -105,7 +132,7 @@ export interface AccessDescriptor<State = unknown> {
    * Consumed by `ChannelDetail.tsx` to replace the hard-coded wecom summary.
    * Returning null hides the summary slot for this channel.
    */
-  renderStatusSummary?(state: State | null, actions: AccessActions): ReactNode;
+  renderStatusSummary?(context: AccessRenderContext<State>): ReactNode;
 
   /**
    * Optional: config field paths that the Settings tab should NOT render

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/components/panels/channels/access-descriptors";
 import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";

@@ -1,11 +1,12 @@
 # Deck Access Model Contract — 设计规范
 
-> **状态**: Approved (2026-04-17 G2 第二轮通过，7 项契约细化已落盘)
+> **状态**: Revised for second-pass ralplan (2026-04-17 PR #1 reality alignment)
 > **日期**: 2026-04-17
 > **范围**: Dashboard (`dashboard/src/components/panels/channels/**` + `panels/plugins/PluginsPanel.tsx`) 内部重构，零 Gateway 改动
 > **分支**: `enhanced`
 > **前置讨论**: 用户选择路径 B（L2 成熟：AccessDescriptor + Wizard DSL）、3 spec 串行、本 spec 先行
 > **后续 spec**: `deck-manifest-driven-wizard`（P1）、`deck-plugin-manifest-expansion`（P2，已就绪）
+> **当前基线**: `enhanced` 当前只落了 PR #1 scaffold（commit `71316a1f57`）；PR #2 / PR #3 仍未开始
 
 ---
 
@@ -86,18 +87,18 @@ Deck Dashboard 在 WeCom 权限管理落地（`93584159ff` "Give Deck operators 
 
 #### E. 新增（PR #1 / PR #2 / PR #3）
 
-| 文件                                                    | PR                    | 规模                                             |
-| ------------------------------------------------------- | --------------------- | ------------------------------------------------ |
-| `access-descriptors/access-descriptor.types.ts`         | PR #1                 | ~60 行                                           |
-| `access-descriptors/access-descriptor-registry.ts`      | PR #1                 | ~50 行                                           |
-| `access-descriptors/access-descriptor-registry.test.ts` | PR #1                 | ~80 行                                           |
-| `access-descriptors/AccessPanel.tsx`                    | PR #1 或 PR #2        | ~40 行                                           |
-| `access-descriptors/hooks.ts`                           | PR #2                 | ~60 行                                           |
-| `access-descriptors/index.ts`                           | PR #1 + PR #2（注册） | ~10 行                                           |
-| `access-descriptors/wecom-access-descriptor.tsx`        | PR #2                 | ~700 行（含整体迁移的 WecomAccessTab + summary） |
-| `access-descriptors/wecom-access-descriptor.test.tsx`   | PR #2                 | ~120 行                                          |
-| `channel-detail-no-hardcoded-ids.test.ts`               | PR #3                 | ~30 行                                           |
-| `docs/plugins/sdk-access-model.md`                      | PR #1                 | ~80 行                                           |
+| 文件                                                    | PR                                          | 规模                                             |
+| ------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------ |
+| `access-descriptors/access-descriptor.types.ts`         | PR #1（已实现）                             | ~140 行                                          |
+| `access-descriptors/access-descriptor-registry.ts`      | PR #1（已实现）                             | ~50 行                                           |
+| `access-descriptors/access-descriptor-registry.test.ts` | PR #1（已实现）                             | ~70 行                                           |
+| `access-descriptors/AccessPanel.tsx`                    | PR #1（已实现）                             | ~70 行                                           |
+| `access-descriptors/hooks.ts`                           | PR #1（stub 已实现） + PR #2（补全 wiring） | ~50 / ~80 行                                     |
+| `access-descriptors/index.ts`                           | PR #1（空 barrel 已实现） + PR #2（注册）   | ~10 行                                           |
+| `access-descriptors/wecom-access-descriptor.tsx`        | PR #2                                       | ~700 行（含整体迁移的 WecomAccessTab + summary） |
+| `access-descriptors/wecom-access-descriptor.test.tsx`   | PR #2                                       | ~120 行                                          |
+| `channel-detail-no-hardcoded-ids.test.ts`               | PR #3                                       | ~30 行                                           |
+| `docs/plugins/sdk-access-model.md`                      | PR #1                                       | ~80 行                                           |
 
 #### F. 回归基线（保留且必须全绿）
 
@@ -129,6 +130,13 @@ Deck Dashboard 在 WeCom 权限管理落地（`93584159ff` "Give Deck operators 
    - `WecomAccessTab` 依赖 `useChannelsStore` / `useDeckRoutingStore` —— descriptor 实现中**保留 store 直连**（不强制注入），理由：迁移目标是消除硬编码 channel id，不是重写 wecom 数据流
 3. **`selectedAccountId` handoff 语义**：由 `ChannelDetail.access-handoff.test.tsx:147, 156` 强制保护；descriptor 契约必须提供 `handleManageAccess?(accountId, actions)` 接口让 ChannelDetail Status tab 的 "Manage Access" 按钮能把 accountId 传入 Access tab（受控模式）
 
+### 2.3 当前分支基线（2026-04-17 实测）
+
+- `enhanced` 当前仅已落地 PR #1 scaffold：`71316a1f57 [enhanced] feat(deck): add AccessDescriptor contract + registry scaffold (PR #1)`
+- 当前已存在：`access-descriptor.types.ts`、registry、`AccessPanel.tsx`、`hooks.ts` stub、`index.ts` 空 barrel、`docs/plugins/sdk-access-model.md`
+- `access-descriptors` 在目录外**尚无 consumer**；当前 scaffold 仍是未接线的基线，不应被误写为“未来工作”
+- 本 spec 修订以“PR #1 已实现、PR #2 / PR #3 未开始”为前提；修订目标是为第二轮 `ralplan` 和后续实现消除文档层歧义
+
 ---
 
 ## 3. 架构设计
@@ -150,7 +158,7 @@ dashboard/src/components/panels/channels/access-descriptors/
 ```
 ChannelDetail.tsx                  ChannelAccessTab.tsx
        │                                    │
-       │ <AccessPanel channelId={id}/>      │ registry.get(id)?.render(state, actions)
+       │ <AccessPanel channelId={id}/>      │ registry.get(id)?.render(renderContext)
        │                                    │
        └────────────────┬───────────────────┘
                         ▼
@@ -174,6 +182,30 @@ ChannelDetail.tsx                  ChannelAccessTab.tsx
 import type { ReactNode } from "react";
 import type { GatewayClient } from "@/types/gateway-client.generated";
 import type { ChannelInfo } from "@/stores/channels";
+
+/**
+ * Render context passed to descriptor UI entrypoints.
+ *
+ * This closes the PR #1 dual-track gap where `state/actions` lived in the
+ * formal descriptor contract but `channel/selectedAccountId` handoff lived in
+ * `AccessPanel` / `hooks` only. PR #2+ descriptors MUST receive a single
+ * render context object rather than depending on contract-external closure
+ * state.
+ */
+export interface AccessRenderContext<State = unknown> {
+  /** Stable channel id (matches Gateway channelId). */
+  readonly channelId: string;
+  /** Channel snapshot from Deck store; null for schema-only channels. */
+  readonly channel: ChannelInfo | null;
+  /** Loaded descriptor state; opaque to callers. */
+  readonly state: State | null;
+  /** Deck-provided mutation + navigation handlers. */
+  readonly actions: AccessActions;
+  /** Optional account handoff for Status → Access workflows. */
+  readonly selectedAccountId?: string;
+  /** Optional controlled-mode updater for account handoff. */
+  readonly onSelectedAccountChange?: (accountId: string) => void;
+}
 
 /**
  * Access control descriptor for a channel.
@@ -201,7 +233,7 @@ export interface AccessDescriptor<State = unknown> {
    * (including the wecom case). Returning null is reserved for "descriptor
    * unavailable" at the AccessPanel layer, not at descriptor implementations.
    */
-  render(state: State | null, actions: AccessActions): ReactNode;
+  render(context: AccessRenderContext<State>): ReactNode;
 
   /**
    * Optional: normalize a raw config snapshot into the State shape.
@@ -214,7 +246,7 @@ export interface AccessDescriptor<State = unknown> {
    * Consumed by `ChannelDetail.tsx` to replace the current L514-657 wecom summary.
    * Returning null hides the summary slot for this channel.
    */
-  renderStatusSummary?(state: State | null, actions: AccessActions): ReactNode;
+  renderStatusSummary?(context: AccessRenderContext<State>): ReactNode;
 
   /**
    * Optional: config field paths that the Settings tab should NOT render
@@ -294,8 +326,10 @@ export interface AccessActions {
 3. `normalize` 为可选，wecom 初次实现不提供（现有 `buildWecomAccessModel` 直接满足需求）
 4. `AccessLoadContext.gw` 当前为可选（`gw?`），**过渡约定**见类型注释；新 descriptor 需要 server-driven state 时一并补 `useGatewayClient()` 基础设施并把 `gw` 收紧为必填
 5. `renderStatusSummary` / `settingsExcludePaths` / `handleManageAccess` / `usesAccessTabForAccountConfig` 均可选——未来无 permission summary 或无 account 层的渠道可不实现
-6. **`render` 必须返回真实 ReactNode**（null 仅为"AccessPanel 未找到 descriptor"的兜底情况，descriptor 实现不允许）；wecom descriptor 保留 Zustand store 直连时，`render` 返回 `<WecomAccessTabContent .../>`，store 订阅发生在子组件内部（与契约透明度无冲突）
-7. `load` 可返回 `null`——wecom descriptor 现阶段保留 store 直连，`load` 实现为 `return null`，真实数据在 render 子树内部订阅
+6. **`render` / `renderStatusSummary` 均消费单一 `AccessRenderContext`**，不再让 `channel` / `selectedAccountId` handoff 停留在契约外
+7. **`render` 必须返回真实 ReactNode**（null 仅为"AccessPanel 未找到 descriptor"的兜底情况，descriptor 实现不允许）；wecom descriptor 保留 Zustand store 直连时，`render` 返回 `<WecomAccessTabContent .../>`，store 订阅发生在子组件内部（与契约透明度无冲突）
+8. `load` 可返回 `null`——wecom descriptor 现阶段保留 store 直连，`load` 实现为 `return null`，真实数据在 render 子树内部订阅
+9. **当前 PR #1 scaffold 仍是过渡签名**（`render(state, actions)`）；PR #2 开工前必须先对齐到本节定义的单轨 `AccessRenderContext` 契约，或由第二轮 `ralplan` 明确等价替代方案
 
 ### 3.4 Registry API
 
@@ -304,8 +338,15 @@ export interface AccessActions {
 
 const descriptors = new Map<string, AccessDescriptor<unknown>>();
 
-export function registerAccessDescriptor(descriptor: AccessDescriptor<unknown>): void {
-  if (descriptors.has(descriptor.channelId)) {
+export interface RegisterOptions {
+  readonly allowReplace?: boolean;
+}
+
+export function registerAccessDescriptor(
+  descriptor: AccessDescriptor<unknown>,
+  options: RegisterOptions = {},
+): void {
+  if (descriptors.has(descriptor.channelId) && !options.allowReplace) {
     throw new Error(`AccessDescriptor already registered: ${descriptor.channelId}`);
   }
   descriptors.set(descriptor.channelId, descriptor);
@@ -333,28 +374,42 @@ export function __resetAccessDescriptorsForTesting(): void {
 // access-descriptors/AccessPanel.tsx
 export function AccessPanel({
   channelId,
+  channel,
   slot,
   selectedAccountId,
   onSelectedAccountChange,
+  onActivateAccessTab,
 }: {
   channelId: string;
+  channel: ChannelInfo | null;
   slot: "access-tab" | "status-summary";
   selectedAccountId?: string;
   onSelectedAccountChange?: (accountId: string) => void;
+  onActivateAccessTab?: () => void;
 }) {
   const descriptor = getAccessDescriptor(channelId);
   const { state, actions } = useAccessDescriptorState(descriptor, {
+    channel,
     selectedAccountId,
     onSelectedAccountChange,
+    onActivateAccessTab,
   });
   if (!descriptor) return slot === "access-tab" ? <NoAccessControl /> : null;
+  const renderContext = {
+    channelId,
+    channel,
+    state,
+    actions,
+    selectedAccountId,
+    onSelectedAccountChange,
+  };
   return slot === "status-summary"
-    ? (descriptor.renderStatusSummary?.(state, actions) ?? null)
-    : descriptor.render(state, actions);
+    ? (descriptor.renderStatusSummary?.(renderContext) ?? null)
+    : descriptor.render(renderContext);
 }
 ```
 
-`AccessPanel` 是**纯透传**组件——**不得**对任何 channelId 做特判，所有业务 UI 由 descriptor 的 `render` / `renderStatusSummary` 自行返回。
+`AccessPanel` 是**纯透传**组件——**不得**对任何 channelId 做特判，所有业务 UI 由 descriptor 的 `render` / `renderStatusSummary` 自行返回。PR #1 现有 scaffold 已经把 `channel` / `selectedAccountId` handoff 走到 `AccessPanel` 和 `hooks.ts`，本修订将这条数据流正式纳入 descriptor 契约。
 
 `ChannelDetail.tsx` 中**移除 wecom 分支**，Status tab 挂 `<AccessPanel slot="status-summary" .../>`，Access tab 挂 `<AccessPanel slot="access-tab" .../>`；"Manage Access" 按钮调 `descriptor.handleManageAccess?.(accountId, actions)` 保留 handoff 语义（`actions.openAccessTab` 负责同时做 accountId 预选 + tab 切换）。
 
@@ -368,13 +423,16 @@ export function ChannelAccessTab({
   channel,
   selectedAccountId,
   onSelectedAccountChange,
+  onActivateAccessTab,
 }) {
   return (
     <AccessPanel
       channelId={channelId}
+      channel={channel}
       slot="access-tab"
       selectedAccountId={selectedAccountId}
       onSelectedAccountChange={onSelectedAccountChange}
+      onActivateAccessTab={onActivateAccessTab}
     />
   );
 }
@@ -393,27 +451,34 @@ const excludePaths = descriptor?.settingsExcludePaths;
 
 ---
 
-## 4. 实施计划（3 PR 串行）
+## 4. 实施计划（当前基线 + 后续 2 PR）
 
-### 4.1 PR #1 — 契约骨架
+### 4.1 PR #1 — 已实现基线（契约骨架）
 
-**变更**：
+**当前分支已落地**（commit `71316a1f57`）：
 
 - 新增 `access-descriptor.types.ts`
 - 新增 `access-descriptor-registry.ts` + `.test.ts`
 - 新增 `access-descriptors/index.ts`（空 registry，暂无注册）
+- 新增 `access-descriptors/AccessPanel.tsx`
+- 新增 `access-descriptors/hooks.ts`（stub 版本）
 - 新增文档 `docs/plugins/sdk-access-model.md`（与既有 `docs/plugins/sdk-channel-plugins.md`、`docs/plugins/architecture.md` 同目录）
 
-**规模**: ~100 行新增
+**现状判断**：
 
-**Landing gate**:
+- 当前 scaffold 尚无目录外 consumer，可视为未接线基线
+- 第二轮 `ralplan` 之后，PR #1 只做**追认审查**；除非修订后的契约或 bootstrap 方案与现 scaffold 不兼容，否则不预设必须补代码
 
-- `pnpm check` + `pnpm test` 绿
-- 新增测试覆盖：注册、查询、未知 id、重复注册错误、test-only reset
+**已验证证据**：
 
-**Review 焦点**: 契约设计合理性（是否足够抽象 / 是否过度抽象）
+- `pnpm --dir dashboard test src/components/panels/channels/access-descriptors/access-descriptor-registry.test.ts` 通过（1 file / 6 tests）
+- `pnpm --dir dashboard test src/components/panels/channels/access-descriptors/access-descriptor-registry.test.ts src/components/panels/channels/ChannelDetail.access-handoff.test.tsx src/components/panels/channels/ChannelDetail.permission-summary.test.tsx src/components/panels/channels/ChannelAccessTab.test.tsx` 通过（4 files / 17 tests）
+- **禁止再使用**根目录 `pnpm test dashboard/src/...` 作为 dashboard 组件测试命令；该路径实测返回 `No test files found`
 
-**预期**: 合并时是"无消费者的 scaffolding"，1-2 天窗口期由 PR #2 消化。
+**追认审查焦点**：
+
+- scaffold 是否仍是健康起点
+- 是否需要一个**最小**对齐补丁以适配修订后的契约 / bootstrap 方案
 
 ### 4.2 PR #2 — WeCom 迁移 + 消费侧切换（核心风险 PR）
 
@@ -429,7 +494,7 @@ const excludePaths = descriptor?.settingsExcludePaths;
 - 新增 `access-descriptors/hooks.ts`：`useAccessDescriptorState` / `useAccessDescriptorActions`
 - 新增 `access-descriptors/AccessPanel.tsx`：如 §3.5 骨架
 - 修改 `access-descriptors/index.ts`：`import "./wecom-access-descriptor";` 注册副作用
-- **入口文件 side-effect import**：在 `dashboard/src/app/providers.tsx`（或等效顶层）加 `import "../components/panels/channels/access-descriptors";`，避免 dead-code 摇树
+- **入口文件 side-effect import**：在 `dashboard/src/app/page.tsx`（当前总是加载的 client root）加 `import "@/components/panels/channels/access-descriptors";`，避免 dead-code 摇树
 - 修改 `ChannelDetail.tsx`：
   - 删除 L218 / L221 的 wecom useState
   - 删除 L285-302 / L304-321 的 wecom useEffect
@@ -445,7 +510,7 @@ const excludePaths = descriptor?.settingsExcludePaths;
 
 **Landing gate**:
 
-- `pnpm check` + `pnpm test` + `pnpm build` 全绿
+- `pnpm check` + `pnpm --dir dashboard test <touched-paths>` + `pnpm build` 全绿
 - **所有 wecom 相关现有测试必须通过**（见 §5.1）—— 特别是 `ChannelDetail.access-handoff.test.tsx`（受控/非受控双模式）和 `ChannelDetail.permission-summary.test.tsx`
 - CCG 双审（Claude + Codex architect）通过
 - 手工在 Deck 里点一遍 wecom channel detail → Status 页 permission summary、Access tab、"Manage Access" 按钮跳转 → 视觉与交互无回归
@@ -470,8 +535,8 @@ const excludePaths = descriptor?.settingsExcludePaths;
 
 **Landing gate**:
 
-- `pnpm check` + `pnpm test` + `pnpm build` 全绿
-- `pnpm grep 'channel-access-registry'` / `pnpm grep 'getChannelAccessDescriptor'` 必须返回**零**引用
+- `pnpm check` + `pnpm --dir dashboard test <touched-paths>` + `pnpm build` 全绿
+- `rg 'channel-access-registry' dashboard/src` / `rg 'getChannelAccessDescriptor' dashboard/src` 必须返回**零**引用
 - §5.1 所列 wecom 测试仍然全绿（回归基线）
 - §5.2 结构性断言测试通过
 
@@ -539,7 +604,8 @@ describe("channel-detail hardcoded channel id guard", () => {
 ### 5.4 工程 gate
 
 - `pnpm check` 零 warning 零 error
-- `pnpm test` 全绿
+- Dashboard 组件测试使用 `pnpm --dir dashboard test <paths>`；根目录 `pnpm test dashboard/src/...` 不是有效命令
+- `pnpm test` 全绿（仅在确有必要时跑全量）
 - `pnpm build` 成功
 - 手工在 Deck 里点一遍 wecom channel detail 页 → 视觉与交互无回归
 - CCG 双审（Claude + Codex）通过
@@ -566,8 +632,8 @@ describe("channel-detail hardcoded channel id guard", () => {
 | 某些 wecom 测试隐式依赖 `channelId === "wecom"` 分支执行顺序                   | 低-中  | PR #2 跑全量 wecom 测试（§5.1 七条），任何失败即 blocker                                                                                                            |
 | 软性 lint 断言误杀合法用法                                                     | 低     | 正则只匹配 `channelId`/`channel.id` 标识符的字面量比较，不影响 `channelId === variable`                                                                             |
 | **`selectedAccountId` handoff 语义 regression**                                | **高** | descriptor 必须实现 `handleManageAccess(accountId, actions)`；`ChannelDetail.access-handoff.test.tsx` 作 PR #2 landing gate                                         |
-| **HMR 下 `registerAccessDescriptor` 重复触发抛错**                             | **中** | registry 提供 `registerAccessDescriptor(desc, { allowReplace })` 重载；生产默认严格注册，开发模式 `import.meta.hot` 时 allowReplace=true                            |
-| **`access-descriptors/index.ts` 未被入口 side-effect import 导致 registry 空** | **高** | PR #2 在 `dashboard/src/app/providers.tsx` 或等效顶层文件添加 side-effect import；CI 新增冒烟测试 `registry-mounted.test.tsx` 断言 wecom descriptor 已注册          |
+| **HMR 下 `registerAccessDescriptor` 重复触发抛错**                             | **中** | registry 提供 `registerAccessDescriptor(desc, { allowReplace })` 重载；生产默认严格注册，开发模式用 `process.env.NODE_ENV !== "production"` gate 放行 replace       |
+| **`access-descriptors/index.ts` 未被入口 side-effect import 导致 registry 空** | **高** | PR #2 在 `dashboard/src/app/page.tsx`（当前 client root）添加 side-effect import；CI 新增冒烟测试 `registry-mounted.test.tsx` 断言 wecom descriptor 已注册          |
 | **`load` 与切渠道竞态**（快速切换时旧请求回写）                                | 低     | descriptor `load` 返回 null 的 wecom 实现不受此影响；未来其他 descriptor 需自行用 AbortController 或 cancelled flag（参考 `ChannelAccessTab.tsx:143-154` 现有实现） |
 | Permission summary slot 为 null 时 Status tab 布局错位                         | 低     | `<AccessPanel slot="status-summary"/>` 返回 null 时 ChannelDetail 不渲染外围 label；由 AccessPanel 自己处理边界                                                     |
 
@@ -593,7 +659,7 @@ scripts/dev/deck-dev.sh
 
 PR #3 合入后：
 
-1. 更新 `.omc/project-memory.json` 记录本 spec 完成
+1. 更新 `.omx/project-memory.json` 记录本 spec 完成
 2. 启动下一个 spec：`deck-manifest-driven-wizard`（对应 L2 Wizard DSL）
 3. Discord / Slack 等未来复杂渠道以 `wecomAccessDescriptor` 为模板实现各自 descriptor
 
@@ -616,3 +682,4 @@ PR #3 合入后：
 | 2026-04-17 | Cross-spec consistency audit 整改（§2.1 / §7.1 wecom i18n Safety Fence 补齐）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | 2026-04-17 | **事实对齐修订（基于 ralplan G2 双审反馈）**：<br>- §1.2 目标新增"保留 `selectedAccountId` handoff 基线"<br>- §2.1 受影响文件表按代码事实重写（承认 `ChannelAccessTab.tsx:101-621` 的 520 行 WecomAccessTab 和 `ChannelDetail.tsx:514-657` 的 140 行 permission summary 需整体迁移；新增 `ChannelSettingsTab.tsx:41` 第三处 wecom 分支；新增 `PluginsPanel.tsx:15,42` 受影响项）<br>- §2.2 原"未知项"消解为"已验证代码事实"<br>- §3.3 契约扩展 3 个可选成员（`renderStatusSummary` / `settingsExcludePaths` / `handleManageAccess`）；`AccessLoadContext.gatewayRequest` 字符串调用 → `gw: GatewayClient` typed client（遵守 CLAUDE.md 硬约束）；`load` 允许返回 null<br>- §3.5 消费侧新增独立 `AccessPanel` 组件，Status / Access tab 共享消费路径<br>- §4.2 PR #2 规模 ~300 → ~900 行；文件名 `.ts` → `.tsx`；新增 side-effect import、`ChannelSettingsTab`/`PluginsPanel` 迁移、`handleManageAccess` 接线等明确动作项<br>- §5.2 结构断言正则补强覆盖 `channel.id === "..."` / `switch (channelId)`；扫描范围 +`ChannelSettingsTab.tsx`<br>- §6 风险表新增 3 条（handoff regression 高危、HMR 重复注册、side-effect import 缺失、load 竞态）；§6.1 discovery 标记为已执行 |
 | 2026-04-17 | **G2 第二轮反馈契约收紧**：<br>- §3.3 `AccessLoadContext.gw` 从必填改为可选（Deck 尚无 `useGatewayClient()` 基础设施；过渡约定写入类型注释，首个消费 gw 的 descriptor 时收紧为必填）<br>- §3.3 契约新增 `readonly usesAccessTabForAccountConfig?: boolean` 元数据，用显式开关替换 `ChannelDetail.tsx:910` 的 `channelId !== "wecom"` gate（避免与 `handleManageAccess` 存在性耦合产生歧义）<br>- §3.3 明确 `render` 必须返回真实 ReactNode（null 仅为 AccessPanel 未命中 descriptor 的兜底；descriptor 实现禁止返回 null）<br>- §3.3 `AccessActions.openAccessTab` 语义硬化：必须**同时**做 accountId 预选 + tab 切换（对应 `ChannelDetail.tsx:799-800` 原子动作）<br>- §3.5 AccessPanel 明确为"纯透传"，不得对 channelId 做特判                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2026-04-17 | **PR #1 reality alignment**：<br>- 顶部状态从 `Approved` 下调为“second-pass ralplan 前的修订稿”，明确当前分支只落了 PR #1 scaffold<br>- §2.1 / §2.3 改写为“PR #1 已实现、PR #2 / PR #3 未开始”的当前基线<br>- §3.3 契约从 `render(state, actions)` 收紧为单轨 `AccessRenderContext`，正式纳入 `channel` / `selectedAccountId` handoff<br>- §3.4 registry API 与已落地 scaffold 对齐（`allowReplace`）<br>- §3.5 / §4.2 side-effect bootstrap 改为当前真实 client root `dashboard/src/app/page.tsx`<br>- §4 / §5 dashboard 测试命令修正为 `pnpm --dir dashboard test <paths>`；移除根目录死路径假设<br>- §4.1 / §6 / §7 明确 PR #1 先冻结并改写为“已实现基线”，`.omc` 修正为 `.omx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
