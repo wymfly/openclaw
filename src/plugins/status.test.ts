@@ -538,6 +538,49 @@ describe("plugin status reports", () => {
     );
   });
 
+  it("preserves setupWizardSpec on snapshot reports", () => {
+    setSinglePluginLoadResult(
+      createPluginRecord({
+        id: "feishu",
+        channelIds: ["feishu"],
+        setupWizardSpec: {
+          steps: [
+            {
+              id: "mode",
+              type: "radio",
+              title: "$t:wizard.feishu.step1Title",
+              options: [{ value: "websocket", label: "$t:wizard.feishu.modeWebSocket" }],
+            },
+          ],
+          onComplete: {
+            action: "channel.feishu.saveConfig",
+          },
+        },
+      }),
+    );
+
+    const report = buildPluginSnapshotReport({ config: {} });
+
+    expect(report.plugins).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "feishu",
+          setupWizardSpec: {
+            steps: [
+              expect.objectContaining({
+                id: "mode",
+                type: "radio",
+              }),
+            ],
+            onComplete: {
+              action: "channel.feishu.saveConfig",
+            },
+          },
+        }),
+      ]),
+    );
+  });
+
   it("marks errored plugin modules as imported when full diagnostics already evaluated them", () => {
     setPluginLoadResult({
       plugins: [createPluginRecord({ id: "broken-plugin", status: "error" })],

@@ -1,3 +1,4 @@
+import type { WizardSpec } from "../../plugin-sdk/wizard-spec.js";
 import type { ChannelSetupWizard, ChannelSetupWizardAdapter } from "./setup-wizard-types.js";
 import type { ChannelConfigSchema } from "./types.config.js";
 export type {
@@ -61,6 +62,7 @@ export type ChannelPlugin<ResolvedAccount = any, Probe = unknown, Audit = unknow
   };
   reload?: { configPrefixes: string[]; noopPrefixes?: string[] };
   setupWizard?: ChannelPluginSetupWizard;
+  setupWizardSpec?: WizardSpec;
   config: ChannelConfigAdapter<ResolvedAccount>;
   configSchema?: ChannelConfigSchema;
   setup?: ChannelSetupAdapter;

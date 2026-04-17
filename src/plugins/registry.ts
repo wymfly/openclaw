@@ -478,6 +478,9 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
       return;
     }
     record.channelIds.push(id);
+    if (plugin.setupWizardSpec) {
+      record.setupWizardSpec = plugin.setupWizardSpec;
+    }
     registry.channelSetups.push({
       pluginId: record.id,
       pluginName: record.name,

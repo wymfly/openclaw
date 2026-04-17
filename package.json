@@ -47,12 +47,6 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./cli-entry": "./openclaw.mjs",
-    "./extension-api": "./dist/extensionAPI.js",
-    "./plugin-sdk": {
-      "types": "./dist/plugin-sdk/index.d.ts",
-      "default": "./dist/plugin-sdk/index.js"
-    },
     "./plugin-sdk/account-core": {
       "types": "./dist/plugin-sdk/account-core.d.ts",
       "default": "./dist/plugin-sdk/account-core.js"
@@ -464,6 +458,10 @@
     "./plugin-sdk/inbound-reply-dispatch": {
       "types": "./dist/plugin-sdk/inbound-reply-dispatch.d.ts",
       "default": "./dist/plugin-sdk/inbound-reply-dispatch.js"
+    },
+    "./plugin-sdk": {
+      "types": "./dist/plugin-sdk/index.d.ts",
+      "default": "./dist/plugin-sdk/index.js"
     },
     "./plugin-sdk/infra-runtime": {
       "types": "./dist/plugin-sdk/infra-runtime.d.ts",
@@ -1093,6 +1091,10 @@
       "types": "./dist/plugin-sdk/wecom.d.ts",
       "default": "./dist/plugin-sdk/wecom.js"
     },
+    "./plugin-sdk/wizard-spec": {
+      "types": "./dist/plugin-sdk/wizard-spec.d.ts",
+      "default": "./dist/plugin-sdk/wizard-spec.js"
+    },
     "./plugin-sdk/windows-spawn": {
       "types": "./dist/plugin-sdk/windows-spawn.d.ts",
       "default": "./dist/plugin-sdk/windows-spawn.js"
@@ -1112,7 +1114,9 @@
     "./plugin-sdk/zod": {
       "types": "./dist/plugin-sdk/zod.d.ts",
       "default": "./dist/plugin-sdk/zod.js"
-    }
+    },
+    "./cli-entry": "./openclaw.mjs",
+    "./extension-api": "./dist/extensionAPI.js"
   },
   "scripts": {
     "android:assemble": "cd apps/android && ./gradlew :app:assemblePlayDebug",

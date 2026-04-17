@@ -58,6 +58,7 @@ export const deckPluginsHandlers: GatewayRequestHandlers = {
           channelIds: [...plugin.channelIds],
           providerIds: [...plugin.providerIds],
           toolNames: [...plugin.toolNames],
+          ...(plugin.setupWizardSpec ? { setupWizardSpec: plugin.setupWizardSpec } : {}),
           diagnostics: report.diagnostics
             .filter((diag) => diag.pluginId === plugin.id)
             .map((diag) => ({

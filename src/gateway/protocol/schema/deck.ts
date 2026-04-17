@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import { NonEmptyString } from "./primitives.js";
+import { WizardSpecSchema } from "./wizard-spec.js";
 
 const ChatType = Type.Union([
   Type.Literal("direct"),
@@ -586,6 +587,7 @@ const DeckPluginInventoryEntrySchema = Type.Object({
   channelIds: Type.Array(Type.String()),
   providerIds: Type.Array(Type.String()),
   toolNames: Type.Array(Type.String()),
+  setupWizardSpec: Type.Optional(WizardSpecSchema),
   diagnostics: Type.Array(
     Type.Object(
       {

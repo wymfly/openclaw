@@ -54,6 +54,19 @@ beforeEach(() => {
         toolNames: ["message_actions"],
         channelIds: ["wecom"],
         providerIds: [],
+        setupWizardSpec: {
+          steps: [
+            {
+              id: "intro",
+              type: "info",
+              title: "$t:wizard.feishu.step1Title",
+              body: "hello",
+            },
+          ],
+          onComplete: {
+            action: "channel.feishu.saveConfig",
+          },
+        },
       },
       {
         id: "openai",
@@ -84,6 +97,19 @@ describe("deck.plugins.list", () => {
           activationSource: "config",
           activationReason: "channel enabled in config",
           channelIds: ["wecom"],
+          setupWizardSpec: {
+            steps: [
+              {
+                id: "intro",
+                type: "info",
+                title: "$t:wizard.feishu.step1Title",
+                body: "hello",
+              },
+            ],
+            onComplete: {
+              action: "channel.feishu.saveConfig",
+            },
+          },
           diagnostics: [{ level: "warn", message: "warn a" }],
         }),
       ],

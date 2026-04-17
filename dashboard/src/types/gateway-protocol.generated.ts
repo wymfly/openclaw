@@ -2917,7 +2917,7 @@ export type DeckPluginsListParams = {
   capability?: "channel" | "all";
 };
 
-export interface DeckPluginsListResult {
+export type DeckPluginsListResult = {
   scope: string;
   plugins: {
     id: string;
@@ -2936,12 +2936,53 @@ export interface DeckPluginsListResult {
     channelIds: string[];
     providerIds: string[];
     toolNames: string[];
+    setupWizardSpec?: {
+      steps: (
+        | {
+            id: string;
+            type: "info";
+            title: string;
+            body: string;
+          }
+        | {
+            id: string;
+            type: "radio";
+            title: string;
+            options: {
+              value: string;
+              label: string;
+              description?: string;
+              badge?: string;
+            }[];
+          }
+        | {
+            id: string;
+            type: "form";
+            title: string;
+            schema: {};
+          }
+        | {
+            id: string;
+            type: "action";
+            title: string;
+            description?: string;
+            action: string;
+            params?: Record<string, string>;
+            successMessage?: string;
+            failureMessage?: string;
+          }
+      )[];
+      onComplete: {
+        action: string;
+        params?: Record<string, string>;
+      };
+    };
     diagnostics: {
       level: string;
       message: string;
     }[];
   }[];
-}
+};
 
 export type DeckThreadsListParams = {
   agentId?: string;

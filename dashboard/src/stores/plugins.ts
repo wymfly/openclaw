@@ -3,6 +3,14 @@ import { create } from "zustand";
 const FETCH_PLUGINS_ERROR = "Failed to fetch plugins";
 const DEFAULT_SCOPE = "channel";
 
+export type InventoryWizardSpec = {
+  steps: Array<Record<string, unknown>>;
+  onComplete: {
+    action: string;
+    params?: Record<string, unknown>;
+  };
+};
+
 type PluginsInventoryResponse = {
   scope?: string;
   plugins?: InventoryPluginEntry[];
@@ -25,6 +33,7 @@ export interface InventoryPluginEntry {
   channelIds: string[];
   providerIds: string[];
   toolNames: string[];
+  setupWizardSpec?: InventoryWizardSpec;
   diagnostics: Array<{
     level: string;
     message: string;

@@ -3,6 +3,7 @@ import type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 import type { OperatorScope } from "../gateway/operator-scopes.js";
 import type { GatewayRequestHandlers } from "../gateway/server-methods/types.js";
 import type { HookEntry } from "../hooks/types.js";
+import type { WizardSpec } from "../plugin-sdk/wizard-spec.js";
 import type { PluginActivationSource } from "./config-state.js";
 import type {
   PluginBundleFormat,
@@ -258,6 +259,7 @@ export type PluginRecord = {
   configSchema: boolean;
   configUiHints?: Record<string, PluginConfigUiHint>;
   configJsonSchema?: Record<string, unknown>;
+  setupWizardSpec?: WizardSpec;
   contracts?: PluginManifestContracts;
   memorySlotSelected?: boolean;
 };
