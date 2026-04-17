@@ -2977,6 +2977,13 @@ export type DeckPluginsListResult = {
         params?: Record<string, string>;
       };
     };
+    locales?: Record<string, Record<string, unknown>>;
+    deckActionCapabilities?: {
+      login?: boolean;
+      probe?: boolean;
+      testMessage?: boolean;
+      qrCodeAuth?: boolean;
+    };
     diagnostics: {
       level: string;
       message: string;

@@ -9,6 +9,13 @@
       "FEISHU_ENCRYPT_KEY"
     ]
   },
+  "deck": {
+    "setupWizardSpec": "./deck/setup-wizard.json",
+    "actionCapabilities": {
+      "login": true,
+      "probe": true
+    }
+  },
   "skills": ["./skills"],
   "configSchema": {
     "type": "object",

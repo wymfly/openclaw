@@ -204,6 +204,41 @@ function copyDeclaredPluginSkillPaths(params) {
   return copiedSkills;
 }
 
+function copyDeclaredPluginDeckAssets(params) {
+  const deck =
+    params.manifest && typeof params.manifest.deck === "object" ? params.manifest.deck : null;
+  if (!deck) {
+    return;
+  }
+
+  const relativePaths = [];
+  if (typeof deck.setupWizardSpec === "string" && deck.setupWizardSpec.trim()) {
+    relativePaths.push(deck.setupWizardSpec);
+  }
+  if (deck.locales && typeof deck.locales === "object") {
+    for (const value of Object.values(deck.locales)) {
+      if (typeof value === "string" && value.trim()) {
+        relativePaths.push(value);
+      }
+    }
+  }
+
+  for (const rawPath of relativePaths) {
+    const normalized = normalizeManifestRelativePath(rawPath);
+    const sourcePath = ensurePathInsideRoot(params.pluginDir, normalized);
+    if (!fs.existsSync(sourcePath)) {
+      console.warn(
+        `[bundled-plugin-metadata] skipping missing deck asset ${sourcePath} (plugin ${params.manifest.id ?? path.basename(params.pluginDir)})`,
+      );
+      continue;
+    }
+    const targetPath = ensurePathInsideRoot(params.distPluginDir, normalized);
+    removePathIfExists(targetPath);
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    fs.copyFileSync(sourcePath, targetPath);
+  }
+}
+
 /**
  * @param {{
  *   cwd?: string;
@@ -262,6 +297,11 @@ export function copyBundledPluginMetadata(params = {}) {
       // remove the older bad node_modules tree so release packs cannot pick it up.
       removePathIfExists(path.join(distPluginDir, GENERATED_BUNDLED_SKILLS_DIR));
       removePathIfExists(path.join(distPluginDir, "node_modules"));
+      copyDeclaredPluginDeckAssets({
+        manifest,
+        pluginDir,
+        distPluginDir,
+      });
       const copiedSkills = copyDeclaredPluginSkillPaths({
         manifest,
         pluginDir,

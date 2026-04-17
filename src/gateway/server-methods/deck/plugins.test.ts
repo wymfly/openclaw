@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GatewayRequestHandlerOptions, RespondFn } from "../types.js";
 
-const { mockLoadConfig, mockBuildPluginDiagnosticsReport } = vi.hoisted(() => ({
+const { mockLoadConfig, mockBuildPluginSnapshotReport } = vi.hoisted(() => ({
   mockLoadConfig: vi.fn(),
-  mockBuildPluginDiagnosticsReport: vi.fn(),
+  mockBuildPluginSnapshotReport: vi.fn(),
 }));
 
 vi.mock("../../../config/config.js", () => ({
@@ -11,7 +11,7 @@ vi.mock("../../../config/config.js", () => ({
 }));
 
 vi.mock("../../../plugins/status.js", () => ({
-  buildPluginDiagnosticsReport: mockBuildPluginDiagnosticsReport,
+  buildPluginSnapshotReport: mockBuildPluginSnapshotReport,
 }));
 
 import { deckPluginsHandlers } from "./plugins.js";
@@ -35,7 +35,7 @@ function callList(
 beforeEach(() => {
   vi.clearAllMocks();
   mockLoadConfig.mockReturnValue({});
-  mockBuildPluginDiagnosticsReport.mockReturnValue({
+  mockBuildPluginSnapshotReport.mockReturnValue({
     workspaceDir: "/workspace",
     diagnostics: [{ level: "warn", message: "warn a", pluginId: "wecom" }],
     plugins: [
@@ -54,6 +54,15 @@ beforeEach(() => {
         toolNames: ["message_actions"],
         channelIds: ["wecom"],
         providerIds: [],
+        locales: {
+          en: {
+            wizardTitle: "WeCom",
+          },
+        },
+        deckActionCapabilities: {
+          login: true,
+          probe: true,
+        },
         setupWizardSpec: {
           steps: [
             {
@@ -84,10 +93,10 @@ beforeEach(() => {
 });
 
 describe("deck.plugins.list", () => {
-  it("reads the runtime-aware diagnostics report so bundled wizard metadata is visible", async () => {
+  it("reads the snapshot report so manifest-backed deck metadata is visible", async () => {
     await callList({});
 
-    expect(mockBuildPluginDiagnosticsReport).toHaveBeenCalledWith({
+    expect(mockBuildPluginSnapshotReport).toHaveBeenCalledWith({
       config: {},
     });
   });
@@ -105,6 +114,15 @@ describe("deck.plugins.list", () => {
           activationSource: "config",
           activationReason: "channel enabled in config",
           channelIds: ["wecom"],
+          locales: {
+            en: {
+              wizardTitle: "WeCom",
+            },
+          },
+          deckActionCapabilities: {
+            login: true,
+            probe: true,
+          },
           setupWizardSpec: {
             steps: [
               {

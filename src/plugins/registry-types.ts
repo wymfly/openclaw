@@ -11,6 +11,7 @@ import type {
   PluginDiagnostic,
   PluginFormat,
 } from "./manifest-types.js";
+import type { PluginManifestDeckActionCapabilities } from "./manifest.js";
 import type { PluginManifestContracts } from "./manifest.js";
 import type { MemoryEmbeddingProviderAdapter } from "./memory-embedding-providers.js";
 import type { PluginKind } from "./plugin-kind.types.js";
@@ -260,6 +261,8 @@ export type PluginRecord = {
   configUiHints?: Record<string, PluginConfigUiHint>;
   configJsonSchema?: Record<string, unknown>;
   setupWizardSpec?: WizardSpec;
+  locales?: Record<string, Record<string, unknown>>;
+  deckActionCapabilities?: PluginManifestDeckActionCapabilities;
   contracts?: PluginManifestContracts;
   memorySlotSelected?: boolean;
 };

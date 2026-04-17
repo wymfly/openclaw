@@ -77,6 +77,7 @@ function shouldCopyRuntimeFile(sourcePath) {
   return (
     relativePath.endsWith("/package.json") ||
     relativePath.endsWith("/openclaw.plugin.json") ||
+    /\/(?:deck|locales)\/.+\.json$/u.test(relativePath) ||
     relativePath.endsWith("/.codex-plugin/plugin.json") ||
     relativePath.endsWith("/.claude-plugin/plugin.json") ||
     relativePath.endsWith("/.cursor-plugin/plugin.json") ||

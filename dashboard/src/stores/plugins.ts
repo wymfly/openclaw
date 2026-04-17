@@ -11,6 +11,15 @@ export type InventoryWizardSpec = {
   };
 };
 
+export type InventoryPluginLocaleBundle = Record<string, Record<string, unknown>>;
+
+export type InventoryDeckActionCapabilities = {
+  login?: boolean;
+  probe?: boolean;
+  testMessage?: boolean;
+  qrCodeAuth?: boolean;
+};
+
 type PluginsInventoryResponse = {
   scope?: string;
   plugins?: InventoryPluginEntry[];
@@ -34,6 +43,8 @@ export interface InventoryPluginEntry {
   providerIds: string[];
   toolNames: string[];
   setupWizardSpec?: InventoryWizardSpec;
+  locales?: InventoryPluginLocaleBundle;
+  deckActionCapabilities?: InventoryDeckActionCapabilities;
   diagnostics: Array<{
     level: string;
     message: string;

@@ -18,6 +18,7 @@ import {
   resolveMemoryDreamingConfig,
   resolveMemoryDreamingPluginConfig,
 } from "../memory-host-sdk/dreaming.js";
+import type { WizardSpec } from "../plugin-sdk/wizard-spec.js";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
@@ -48,7 +49,7 @@ import { clearPluginInteractiveHandlers } from "./interactive-registry.js";
 import { getCachedPluginJitiLoader, type PluginJitiLoaderCache } from "./jiti-loader-cache.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import type { PluginBundleFormat, PluginDiagnostic, PluginFormat } from "./manifest-types.js";
-import type { PluginManifestContracts } from "./manifest.js";
+import type { PluginManifestContracts, PluginManifestDeck } from "./manifest.js";
 import {
   clearMemoryEmbeddingProviders,
   listRegisteredMemoryEmbeddingProviders,
@@ -791,8 +792,142 @@ function createPluginRecord(params: {
     configSchema: params.configSchema,
     configUiHints: undefined,
     configJsonSchema: undefined,
+    locales: undefined,
+    deckActionCapabilities: undefined,
     contracts: params.contracts,
   };
+}
+
+function appendUniqueStrings(target: string[], values: readonly string[]) {
+  for (const value of values) {
+    if (!target.includes(value)) {
+      target.push(value);
+    }
+  }
+}
+
+function applyManifestCapabilityMetadata(params: {
+  record: PluginRecord;
+  manifestRecord: {
+    channels: string[];
+    providers: string[];
+    cliBackends: string[];
+    contracts?: PluginManifestContracts;
+  };
+}) {
+  const { record, manifestRecord } = params;
+  appendUniqueStrings(record.channelIds, manifestRecord.channels);
+  appendUniqueStrings(record.providerIds, manifestRecord.providers);
+  appendUniqueStrings(record.cliBackendIds, manifestRecord.cliBackends);
+  appendUniqueStrings(record.speechProviderIds, manifestRecord.contracts?.speechProviders ?? []);
+  appendUniqueStrings(
+    record.realtimeTranscriptionProviderIds,
+    manifestRecord.contracts?.realtimeTranscriptionProviders ?? [],
+  );
+  appendUniqueStrings(
+    record.realtimeVoiceProviderIds,
+    manifestRecord.contracts?.realtimeVoiceProviders ?? [],
+  );
+  appendUniqueStrings(
+    record.mediaUnderstandingProviderIds,
+    manifestRecord.contracts?.mediaUnderstandingProviders ?? [],
+  );
+  appendUniqueStrings(
+    record.imageGenerationProviderIds,
+    manifestRecord.contracts?.imageGenerationProviders ?? [],
+  );
+  appendUniqueStrings(
+    record.videoGenerationProviderIds,
+    manifestRecord.contracts?.videoGenerationProviders ?? [],
+  );
+  appendUniqueStrings(
+    record.musicGenerationProviderIds,
+    manifestRecord.contracts?.musicGenerationProviders ?? [],
+  );
+  appendUniqueStrings(
+    record.webFetchProviderIds,
+    manifestRecord.contracts?.webFetchProviders ?? [],
+  );
+  appendUniqueStrings(
+    record.webSearchProviderIds,
+    manifestRecord.contracts?.webSearchProviders ?? [],
+  );
+  appendUniqueStrings(record.toolNames, manifestRecord.contracts?.tools ?? []);
+}
+
+function readManifestJsonAsset(params: {
+  rootDir: string;
+  relativePath: string;
+  boundaryLabel: string;
+}): unknown {
+  const assetPath = path.resolve(params.rootDir, params.relativePath);
+  if (!isPathInside(params.rootDir, assetPath)) {
+    return undefined;
+  }
+  const opened = openBoundaryFileSync({
+    absolutePath: assetPath,
+    rootPath: params.rootDir,
+    boundaryLabel: params.boundaryLabel,
+    rejectHardlinks: true,
+  });
+  if (!opened.ok) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(opened.fd, "utf-8")) as unknown;
+  } catch {
+    return undefined;
+  } finally {
+    fs.closeSync(opened.fd);
+  }
+}
+
+function resolveManifestLocales(
+  rootDir: string,
+  locales: Record<string, string> | undefined,
+): Record<string, Record<string, unknown>> | undefined {
+  if (!locales) {
+    return undefined;
+  }
+  const bundle: Record<string, Record<string, unknown>> = {};
+  for (const [locale, relativePath] of Object.entries(locales)) {
+    const parsed = readManifestJsonAsset({
+      rootDir,
+      relativePath,
+      boundaryLabel: "plugin root",
+    });
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      bundle[locale] = parsed as Record<string, unknown>;
+    }
+  }
+  return Object.keys(bundle).length > 0 ? bundle : undefined;
+}
+
+function applyManifestDeckMetadata(params: {
+  record: PluginRecord;
+  rootDir: string;
+  deck: PluginManifestDeck | undefined;
+}) {
+  const { record, rootDir, deck } = params;
+  if (!deck) {
+    return;
+  }
+  if (deck.setupWizardSpec && !record.setupWizardSpec) {
+    const parsed = readManifestJsonAsset({
+      rootDir,
+      relativePath: deck.setupWizardSpec,
+      boundaryLabel: "plugin root",
+    });
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      record.setupWizardSpec = parsed as WizardSpec;
+    }
+  }
+  if (!record.locales) {
+    record.locales = resolveManifestLocales(rootDir, deck.locales);
+  }
+  if (deck.actionCapabilities) {
+    record.deckActionCapabilities = deck.actionCapabilities;
+  }
 }
 
 function markPluginActivationDisabled(record: PluginRecord, reason?: string): void {
@@ -1405,6 +1540,12 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
           configSchema: Boolean(manifestRecord.configSchema),
           contracts: manifestRecord.contracts,
         });
+        applyManifestCapabilityMetadata({ record, manifestRecord });
+        applyManifestDeckMetadata({
+          record,
+          rootDir: candidate.rootDir,
+          deck: manifestRecord.deck,
+        });
         record.status = "disabled";
         record.error = `overridden by ${existingOrigin} plugin`;
         markPluginActivationDisabled(record, record.error);
@@ -1441,6 +1582,12 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
       record.kind = manifestRecord.kind;
       record.configUiHints = manifestRecord.configUiHints;
       record.configJsonSchema = manifestRecord.configSchema;
+      applyManifestCapabilityMetadata({ record, manifestRecord });
+      applyManifestDeckMetadata({
+        record,
+        rootDir: candidate.rootDir,
+        deck: manifestRecord.deck,
+      });
       const pushPluginLoadError = (message: string) => {
         record.status = "error";
         record.error = message;
@@ -2029,6 +2176,12 @@ export async function loadOpenClawPluginCliRegistry(
         configSchema: Boolean(manifestRecord.configSchema),
         contracts: manifestRecord.contracts,
       });
+      applyManifestCapabilityMetadata({ record, manifestRecord });
+      applyManifestDeckMetadata({
+        record,
+        rootDir: candidate.rootDir,
+        deck: manifestRecord.deck,
+      });
       record.status = "disabled";
       record.error = `overridden by ${existingOrigin} plugin`;
       markPluginActivationDisabled(record, record.error);
@@ -2065,6 +2218,12 @@ export async function loadOpenClawPluginCliRegistry(
     record.kind = manifestRecord.kind;
     record.configUiHints = manifestRecord.configUiHints;
     record.configJsonSchema = manifestRecord.configSchema;
+    applyManifestCapabilityMetadata({ record, manifestRecord });
+    applyManifestDeckMetadata({
+      record,
+      rootDir: candidate.rootDir,
+      deck: manifestRecord.deck,
+    });
     const pushPluginLoadError = (message: string) => {
       record.status = "error";
       record.error = message;

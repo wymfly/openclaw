@@ -80,6 +80,22 @@ export type PluginManifestSetup = {
   requiresRuntime?: boolean;
 };
 
+export type PluginManifestDeckActionCapabilities = {
+  login?: boolean;
+  probe?: boolean;
+  testMessage?: boolean;
+  qrCodeAuth?: boolean;
+};
+
+export type PluginManifestDeck = {
+  /** Relative JSON asset path for a Deck wizard spec. */
+  setupWizardSpec?: string;
+  /** Relative locale asset paths keyed by locale, e.g. { en: "./locales/en.json" }. */
+  locales?: Record<string, string>;
+  /** Deck-facing action metadata. */
+  actionCapabilities?: PluginManifestDeckActionCapabilities;
+};
+
 export type PluginManifestQaRunner = {
   /** Subcommand mounted beneath `openclaw qa`, for example `matrix`. */
   commandName: string;
@@ -181,6 +197,8 @@ export type PluginManifest = {
   activation?: PluginManifestActivation;
   /** Cheap setup/onboarding metadata exposed before plugin runtime loads. */
   setup?: PluginManifestSetup;
+  /** Cheap Deck-facing metadata exposed before plugin runtime loads. */
+  deck?: PluginManifestDeck;
   /** Cheap QA runner metadata exposed before plugin runtime loads. */
   qaRunners?: PluginManifestQaRunner[];
   skills?: string[];
@@ -515,6 +533,41 @@ function normalizeManifestQaRunners(value: unknown): PluginManifestQaRunner[] | 
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function normalizeManifestDeckActionCapabilities(
+  value: unknown,
+): PluginManifestDeckActionCapabilities | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const capabilities = {
+    ...(typeof value.login === "boolean" ? { login: value.login } : {}),
+    ...(typeof value.probe === "boolean" ? { probe: value.probe } : {}),
+    ...(typeof value.testMessage === "boolean" ? { testMessage: value.testMessage } : {}),
+    ...(typeof value.qrCodeAuth === "boolean" ? { qrCodeAuth: value.qrCodeAuth } : {}),
+  } satisfies PluginManifestDeckActionCapabilities;
+
+  return Object.keys(capabilities).length > 0 ? capabilities : undefined;
+}
+
+function normalizeManifestDeck(value: unknown): PluginManifestDeck | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const setupWizardSpec = normalizeOptionalString(value.setupWizardSpec);
+  const locales = normalizeStringRecord(value.locales);
+  const actionCapabilities = normalizeManifestDeckActionCapabilities(value.actionCapabilities);
+
+  const deck = {
+    ...(setupWizardSpec ? { setupWizardSpec } : {}),
+    ...(locales ? { locales } : {}),
+    ...(actionCapabilities ? { actionCapabilities } : {}),
+  } satisfies PluginManifestDeck;
+
+  return Object.keys(deck).length > 0 ? deck : undefined;
+}
+
 function normalizeProviderAuthChoices(
   value: unknown,
 ): PluginManifestProviderAuthChoice[] | undefined {
@@ -704,6 +757,7 @@ export function loadPluginManifest(
   const providerAuthChoices = normalizeProviderAuthChoices(raw.providerAuthChoices);
   const activation = normalizeManifestActivation(raw.activation);
   const setup = normalizeManifestSetup(raw.setup);
+  const deck = normalizeManifestDeck(raw.deck);
   const qaRunners = normalizeManifestQaRunners(raw.qaRunners);
   const skills = normalizeTrimmedStringList(raw.skills);
   const contracts = normalizeManifestContracts(raw.contracts);
@@ -738,6 +792,7 @@ export function loadPluginManifest(
       providerAuthChoices,
       activation,
       setup,
+      deck,
       qaRunners,
       skills,
       name,

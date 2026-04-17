@@ -588,6 +588,18 @@ const DeckPluginInventoryEntrySchema = Type.Object({
   providerIds: Type.Array(Type.String()),
   toolNames: Type.Array(Type.String()),
   setupWizardSpec: Type.Optional(WizardSpecSchema),
+  locales: Type.Optional(Type.Record(Type.String(), Type.Record(Type.String(), Type.Unknown()))),
+  deckActionCapabilities: Type.Optional(
+    Type.Object(
+      {
+        login: Type.Optional(Type.Boolean()),
+        probe: Type.Optional(Type.Boolean()),
+        testMessage: Type.Optional(Type.Boolean()),
+        qrCodeAuth: Type.Optional(Type.Boolean()),
+      },
+      { additionalProperties: false },
+    ),
+  ),
   diagnostics: Type.Array(
     Type.Object(
       {

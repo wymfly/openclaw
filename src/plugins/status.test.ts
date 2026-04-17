@@ -581,6 +581,43 @@ describe("plugin status reports", () => {
     );
   });
 
+  it("preserves manifest-backed deck locales and action metadata on snapshot reports", () => {
+    setSinglePluginLoadResult(
+      createPluginRecord({
+        id: "feishu",
+        channelIds: ["feishu"],
+        locales: {
+          zh: {
+            step1Title: "选择连接方式",
+          },
+        },
+        deckActionCapabilities: {
+          login: true,
+          probe: true,
+        },
+      }),
+    );
+
+    const report = buildPluginSnapshotReport({ config: {} });
+
+    expect(report.plugins).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "feishu",
+          locales: {
+            zh: {
+              step1Title: "选择连接方式",
+            },
+          },
+          deckActionCapabilities: {
+            login: true,
+            probe: true,
+          },
+        }),
+      ]),
+    );
+  });
+
   it("marks errored plugin modules as imported when full diagnostics already evaluated them", () => {
     setPluginLoadResult({
       plugins: [createPluginRecord({ id: "broken-plugin", status: "error" })],

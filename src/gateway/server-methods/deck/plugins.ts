@@ -1,5 +1,5 @@
 import { loadConfig } from "../../../config/config.js";
-import { buildPluginDiagnosticsReport } from "../../../plugins/status.js";
+import { buildPluginSnapshotReport } from "../../../plugins/status.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import { ErrorCodes, errorShape, validateDeckPluginsListParams } from "../../protocol/index.js";
 import {
@@ -35,10 +35,7 @@ export const deckPluginsHandlers: GatewayRequestHandlers = {
 
     try {
       const scope = (params.capability as InventoryCapability | undefined) ?? "channel";
-      // setupWizardSpec currently lives on the plugin runtime contract rather than
-      // manifest metadata, so deck.plugins.list must inspect the loaded registry
-      // until Spec 3 moves the field onto the control-plane snapshot path.
-      const report = buildPluginDiagnosticsReport({ config: loadConfig() });
+      const report = buildPluginSnapshotReport({ config: loadConfig() });
 
       const plugins = report.plugins
         .filter((plugin) => (scope === "all" ? true : plugin.channelIds.length > 0))
@@ -62,6 +59,10 @@ export const deckPluginsHandlers: GatewayRequestHandlers = {
           providerIds: [...plugin.providerIds],
           toolNames: [...plugin.toolNames],
           ...(plugin.setupWizardSpec ? { setupWizardSpec: plugin.setupWizardSpec } : {}),
+          ...(plugin.locales ? { locales: plugin.locales } : {}),
+          ...(plugin.deckActionCapabilities
+            ? { deckActionCapabilities: plugin.deckActionCapabilities }
+            : {}),
           diagnostics: report.diagnostics
             .filter((diag) => diag.pluginId === plugin.id)
             .map((diag) => ({
