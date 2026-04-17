@@ -138,6 +138,33 @@ describe("feishuPlugin.status.probeAccount", () => {
   });
 });
 
+describe("feishuPlugin.setupWizardSpec", () => {
+  it("exposes the manifest-driven wizard contract for Deck", () => {
+    expect(feishuPlugin.setupWizardSpec).toMatchObject({
+      steps: [
+        {
+          id: "mode",
+          type: "radio",
+          title: "$t:wizard.feishu.step1Title",
+        },
+        {
+          id: "creds",
+          type: "form",
+          title: "$t:wizard.feishu.step2Title",
+        },
+        {
+          id: "probe",
+          type: "action",
+          action: "channel.feishu.probe",
+        },
+      ],
+      onComplete: {
+        action: "channel.feishu.saveConfig",
+      },
+    });
+  });
+});
+
 describe("feishuPlugin.pairing.notifyApproval", () => {
   beforeEach(() => {
     sendMessageFeishuMock.mockReset();

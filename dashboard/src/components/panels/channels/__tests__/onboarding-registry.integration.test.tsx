@@ -46,6 +46,35 @@ vi.mock("../ConfigWizard", () => ({
     ) : null,
 }));
 
+vi.mock("../wizard/WizardRunner", () => ({
+  WizardRunner: ({ open }: { open: boolean }) => (open ? <div>Feishu Wizard Runner</div> : null),
+}));
+
+vi.mock("@/stores/plugins", () => ({
+  usePluginsStore: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      loading: false,
+      plugins: [
+        {
+          id: "feishu",
+          channelIds: ["feishu"],
+          setupWizardSpec: {
+            steps: [
+              {
+                id: "mode",
+                type: "radio",
+                title: "$t:wizard.feishu.step1Title",
+                options: [{ value: "websocket", label: "$t:wizard.feishu.modeWebSocket" }],
+              },
+            ],
+            onComplete: { action: "channel.feishu.saveConfig" },
+          },
+        },
+      ],
+      fetchPlugins: vi.fn(async () => {}),
+    }),
+}));
+
 let getChannelOnboardingDescriptor: typeof import("../onboarding-registry").getChannelOnboardingDescriptor;
 let ChannelSettingsTab: typeof import("../ChannelSettingsTab").ChannelSettingsTab;
 let useChannelsStore: typeof import("@/stores/channels").useChannelsStore;
@@ -58,7 +87,7 @@ beforeEach(async () => {
 
   useChannelsStore.setState({
     channels: new Map(),
-    channelOrder: ["wecom", "openclaw-weixin"],
+    channelOrder: ["feishu", "wecom", "openclaw-weixin"],
     selectedId: "wecom",
     loading: false,
     error: null,
@@ -121,5 +150,19 @@ describe("channel onboarding integration", () => {
     expect(screen.getByText("copyCommand")).toBeTruthy();
     expect(screen.getByText("refreshStatus")).toBeTruthy();
     expect(screen.queryByText("fakeField")).toBeNull();
+  });
+
+  it("feishu descriptor injects the DSL runner path", () => {
+    const descriptor = getChannelOnboardingDescriptor("feishu");
+    expect(descriptor?.kind).toBe("adapter");
+
+    render(
+      descriptor?.renderDialog({
+        open: true,
+        onOpenChange: () => {},
+      }) as ReturnType<typeof createElement>,
+    );
+
+    expect(screen.getByText("Feishu Wizard Runner")).toBeTruthy();
   });
 });

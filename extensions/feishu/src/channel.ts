@@ -24,6 +24,7 @@ import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
 import { createRuntimeOutboundDelegates } from "openclaw/plugin-sdk/outbound-runtime";
 import { createComputedAccountStatusAdapter } from "openclaw/plugin-sdk/status-helpers";
 import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/text-runtime";
+import type { WizardSpec } from "openclaw/plugin-sdk/wizard-spec";
 import {
   inspectFeishuCredentials,
   listEnabledFeishuAccounts,
@@ -112,6 +113,70 @@ const meta: ChannelMeta = {
   blurb: "飞书/Lark enterprise messaging.",
   aliases: ["lark"],
   order: 70,
+};
+
+const feishuSetupWizardSpec: WizardSpec = {
+  steps: [
+    {
+      id: "mode",
+      type: "radio",
+      title: "$t:wizard.feishu.step1Title",
+      options: [
+        {
+          value: "websocket",
+          label: "$t:wizard.feishu.modeWebSocket",
+          description: "$t:wizard.feishu.modeWebSocketDesc",
+          badge: "$t:wizard.recommended",
+        },
+        {
+          value: "webhook",
+          label: "$t:wizard.feishu.modeWebhook",
+          description: "$t:wizard.feishu.modeWebhookDesc",
+        },
+      ],
+    },
+    {
+      id: "creds",
+      type: "form",
+      title: "$t:wizard.feishu.step2Title",
+      schema: {
+        type: "object",
+        required: ["appId", "appSecret"],
+        properties: {
+          appId: {
+            type: "string",
+            title: "$t:wizard.feishu.appId",
+            description: "$t:wizard.feishu.appIdHelp",
+            placeholder: "$t:wizard.feishu.appIdHint",
+          },
+          appSecret: {
+            type: "string",
+            format: "password",
+            title: "$t:wizard.feishu.appSecret",
+            description: "$t:wizard.feishu.appSecretHelp",
+            placeholder: "$t:wizard.feishu.appSecretHint",
+          },
+        },
+      },
+    },
+    {
+      id: "probe",
+      type: "action",
+      title: "$t:wizard.feishu.step3Title",
+      description: "$t:wizard.feishu.testDesc",
+      action: "channel.feishu.probe",
+      successMessage: "$t:wizard.feishu.probeSuccess",
+      failureMessage: "$t:wizard.feishu.probeFailed",
+    },
+  ],
+  onComplete: {
+    action: "channel.feishu.saveConfig",
+    params: {
+      connectionMode: { $ref: "$steps.mode.value" },
+      appId: { $ref: "$steps.creds.value.appId" },
+      appSecret: { $ref: "$steps.creds.value.appSecret" },
+    },
+  },
 };
 
 const loadFeishuChannelRuntime = createLazyRuntimeNamedExport(
@@ -545,6 +610,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
       meta: {
         ...meta,
       },
+      setupWizardSpec: feishuSetupWizardSpec,
       capabilities: {
         chatTypes: ["direct", "channel"],
         polls: false,

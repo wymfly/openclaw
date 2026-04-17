@@ -5,6 +5,7 @@ import { ChannelLegacySettingsPanel } from "./ChannelLegacySettingsPanel";
 import { OpenClawWeixinWizard } from "./OpenClawWeixinWizard";
 import { OpenClawWeixinStatusPanel } from "./OpenClawWeixinWizard";
 import { WeComWizard } from "./WeComWizard";
+import { ChannelWizardDialog } from "./wizard/wizard-spec-loader";
 
 export interface ChannelOnboardingRenderProps {
   open: boolean;
@@ -20,6 +21,15 @@ export interface ChannelOnboardingDescriptor {
 }
 
 const ONBOARDING_DESCRIPTORS: Record<string, ChannelOnboardingDescriptor> = {
+  feishu: {
+    channelId: "feishu",
+    kind: "adapter",
+    titleKey: "channels.settings.configureWizard",
+    renderPanel: () => <ChannelLegacySettingsPanel channelId="feishu" />,
+    renderDialog: ({ open, onOpenChange }) => (
+      <ChannelWizardDialog channelId="feishu" open={open} onOpenChange={onOpenChange} />
+    ),
+  },
   wecom: {
     channelId: "wecom",
     kind: "adapter",
