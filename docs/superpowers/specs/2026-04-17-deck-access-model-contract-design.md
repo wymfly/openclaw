@@ -1,6 +1,6 @@
 # Deck Access Model Contract — 设计规范
 
-> **状态**: Revised (2026-04-17 事实对齐) —— 待 G2 第二轮双审
+> **状态**: Approved (2026-04-17 G2 第二轮通过，7 项契约细化已落盘)
 > **日期**: 2026-04-17
 > **范围**: Dashboard (`dashboard/src/components/panels/channels/**` + `panels/plugins/PluginsPanel.tsx`) 内部重构，零 Gateway 改动
 > **分支**: `enhanced`
@@ -191,14 +191,15 @@ export interface AccessDescriptor<State = unknown> {
 
   /**
    * Load the current access state for this channel.
-   * Receives DI context with typed Gateway client, channel info, and config snapshot.
+   * Receives DI context with optional typed Gateway client, channel info, and config snapshot.
    * May return null if load is handled entirely inside render subtree (e.g. wecom).
    */
   load(context: AccessLoadContext): Promise<State | null>;
 
   /**
-   * Render the Access tab UI for this channel.
-   * Actions surface mutation handlers (save, reset, refresh) the descriptor can invoke.
+   * Render the Access tab UI for this channel. MUST return a real ReactNode
+   * (including the wecom case). Returning null is reserved for "descriptor
+   * unavailable" at the AccessPanel layer, not at descriptor implementations.
    */
   render(state: State | null, actions: AccessActions): ReactNode;
 
@@ -228,15 +229,37 @@ export interface AccessDescriptor<State = unknown> {
    * Default behavior (if absent): jump to Access tab without preselecting an account.
    * WeCom needs this to preserve selectedAccountId handoff per
    * `ChannelDetail.access-handoff.test.tsx`.
+   *
+   * Implementations MUST ensure actions.openAccessTab fully handles both
+   * selectedAccountId preselection AND the tab switch (see AccessActions.openAccessTab).
    */
   handleManageAccess?(accountId: string, actions: AccessActions): void;
+
+  /**
+   * Optional: whether this channel manages per-account configuration inside
+   * the Access tab (and thus should NOT render the fallback `AccountConfigDialog`).
+   *
+   * Replaces the former hard-coded `channelId !== "wecom"` gate on
+   * `ChannelDetail.tsx:910`. Undefined defaults to false (descriptor-less
+   * channels and descriptors that want the dialog both get the dialog).
+   */
+  readonly usesAccessTabForAccountConfig?: boolean;
 }
 
 /** DI context passed to descriptor.load(). */
 export interface AccessLoadContext {
   readonly channelId: string;
-  /** Typed Gateway client — mandatory per CLAUDE.md "禁止 gatewayRequest 字符串调用". */
-  readonly gw: GatewayClient;
+  /**
+   * Optional typed Gateway client.
+   *
+   * Target state: mandatory per CLAUDE.md "禁止 gatewayRequest 字符串调用".
+   * Current state: optional because Deck has no `useGatewayClient()` hook yet
+   * (grep confirmed zero callsites on 2026-04-17). WeCom descriptor's `load()`
+   * returns null and does not consume `gw`. The first descriptor that needs
+   * server-driven state will also introduce the `useGatewayClient()` infra
+   * and flip `gw` back to required in a follow-up spec.
+   */
+  readonly gw?: GatewayClient;
   /** ChannelInfo snapshot; null if the channel is schema-only (not yet configured). */
   readonly channel: ChannelInfo | null;
   /** Raw channel config (e.g. openclaw.json entry). null until fetchChannelConfig resolves. */
@@ -249,7 +272,17 @@ export interface AccessActions {
   readonly save: (patch: Record<string, unknown>) => Promise<boolean>;
   /** Re-fetch channel config / bindings / health. */
   readonly refresh: () => Promise<void>;
-  /** Navigate to the Access tab with optional accountId preselection. */
+  /**
+   * Navigate to the Access tab with optional accountId preselection.
+   *
+   * MUST perform BOTH operations atomically:
+   * 1. Preselect the account (`selectedAccountId` handoff) if `accountId` is provided
+   * 2. Activate the Access tab itself
+   *
+   * Replaces the former inline `setAccessAccountId(...); setActiveTab("access");`
+   * pair at `ChannelDetail.tsx:799-800`. Both must happen to keep
+   * `ChannelDetail.access-handoff.test.tsx` green.
+   */
   readonly openAccessTab: (accountId?: string) => void;
 }
 ```
@@ -259,9 +292,10 @@ export interface AccessActions {
 1. `State = unknown` 默认类型意味着 registry 对 state 完全不透明
 2. Descriptor 自行 narrow state 类型（利用 TypeScript 泛型）
 3. `normalize` 为可选，wecom 初次实现不提供（现有 `buildWecomAccessModel` 直接满足需求）
-4. `AccessLoadContext.gw` 使用 typed client **（CLAUDE.md 硬约束）**；但允许 descriptor 内部组件保留 Zustand store 直连（本 spec 不重写 wecom 数据流）
-5. `renderStatusSummary` / `settingsExcludePaths` / `handleManageAccess` 均可选——未来无 permission summary 的渠道（Discord allow-list 等）可不实现
-6. `load` 可返回 `null`——wecom descriptor 现阶段保留 store 直连，`load` 实现为 `return null`，真实数据在 render 子树内部订阅
+4. `AccessLoadContext.gw` 当前为可选（`gw?`），**过渡约定**见类型注释；新 descriptor 需要 server-driven state 时一并补 `useGatewayClient()` 基础设施并把 `gw` 收紧为必填
+5. `renderStatusSummary` / `settingsExcludePaths` / `handleManageAccess` / `usesAccessTabForAccountConfig` 均可选——未来无 permission summary 或无 account 层的渠道可不实现
+6. **`render` 必须返回真实 ReactNode**（null 仅为"AccessPanel 未找到 descriptor"的兜底情况，descriptor 实现不允许）；wecom descriptor 保留 Zustand store 直连时，`render` 返回 `<WecomAccessTabContent .../>`，store 订阅发生在子组件内部（与契约透明度无冲突）
+7. `load` 可返回 `null`——wecom descriptor 现阶段保留 store 直连，`load` 实现为 `return null`，真实数据在 render 子树内部订阅
 
 ### 3.4 Registry API
 
@@ -320,7 +354,11 @@ export function AccessPanel({
 }
 ```
 
-`ChannelDetail.tsx` 中**移除 wecom 分支**，Status tab 挂 `<AccessPanel slot="status-summary" .../>`，Access tab 挂 `<AccessPanel slot="access-tab" .../>`；"Manage Access" 按钮调 `descriptor.handleManageAccess?.(accountId, actions)` 保留 handoff 语义。
+`AccessPanel` 是**纯透传**组件——**不得**对任何 channelId 做特判，所有业务 UI 由 descriptor 的 `render` / `renderStatusSummary` 自行返回。
+
+`ChannelDetail.tsx` 中**移除 wecom 分支**，Status tab 挂 `<AccessPanel slot="status-summary" .../>`，Access tab 挂 `<AccessPanel slot="access-tab" .../>`；"Manage Access" 按钮调 `descriptor.handleManageAccess?.(accountId, actions)` 保留 handoff 语义（`actions.openAccessTab` 负责同时做 accountId 预选 + tab 切换）。
+
+`AccountConfigDialog` 的渲染条件从 `configAccount && channelId !== "wecom"` 改为 `configAccount && !descriptor?.usesAccessTabForAccountConfig`——以 descriptor 元数据显式表达意图，不依赖 `handleManageAccess` 的存在性推断。
 
 `ChannelAccessTab.tsx` 简化为外层调用（~40 行）：
 
@@ -577,3 +615,4 @@ PR #3 合入后：
 | 2026-04-17 | 初稿（基于 brainstorm Q1-Q6 共识）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | 2026-04-17 | Cross-spec consistency audit 整改（§2.1 / §7.1 wecom i18n Safety Fence 补齐）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | 2026-04-17 | **事实对齐修订（基于 ralplan G2 双审反馈）**：<br>- §1.2 目标新增"保留 `selectedAccountId` handoff 基线"<br>- §2.1 受影响文件表按代码事实重写（承认 `ChannelAccessTab.tsx:101-621` 的 520 行 WecomAccessTab 和 `ChannelDetail.tsx:514-657` 的 140 行 permission summary 需整体迁移；新增 `ChannelSettingsTab.tsx:41` 第三处 wecom 分支；新增 `PluginsPanel.tsx:15,42` 受影响项）<br>- §2.2 原"未知项"消解为"已验证代码事实"<br>- §3.3 契约扩展 3 个可选成员（`renderStatusSummary` / `settingsExcludePaths` / `handleManageAccess`）；`AccessLoadContext.gatewayRequest` 字符串调用 → `gw: GatewayClient` typed client（遵守 CLAUDE.md 硬约束）；`load` 允许返回 null<br>- §3.5 消费侧新增独立 `AccessPanel` 组件，Status / Access tab 共享消费路径<br>- §4.2 PR #2 规模 ~300 → ~900 行；文件名 `.ts` → `.tsx`；新增 side-effect import、`ChannelSettingsTab`/`PluginsPanel` 迁移、`handleManageAccess` 接线等明确动作项<br>- §5.2 结构断言正则补强覆盖 `channel.id === "..."` / `switch (channelId)`；扫描范围 +`ChannelSettingsTab.tsx`<br>- §6 风险表新增 3 条（handoff regression 高危、HMR 重复注册、side-effect import 缺失、load 竞态）；§6.1 discovery 标记为已执行 |
+| 2026-04-17 | **G2 第二轮反馈契约收紧**：<br>- §3.3 `AccessLoadContext.gw` 从必填改为可选（Deck 尚无 `useGatewayClient()` 基础设施；过渡约定写入类型注释，首个消费 gw 的 descriptor 时收紧为必填）<br>- §3.3 契约新增 `readonly usesAccessTabForAccountConfig?: boolean` 元数据，用显式开关替换 `ChannelDetail.tsx:910` 的 `channelId !== "wecom"` gate（避免与 `handleManageAccess` 存在性耦合产生歧义）<br>- §3.3 明确 `render` 必须返回真实 ReactNode（null 仅为 AccessPanel 未命中 descriptor 的兜底；descriptor 实现禁止返回 null）<br>- §3.3 `AccessActions.openAccessTab` 语义硬化：必须**同时**做 accountId 预选 + tab 切换（对应 `ChannelDetail.tsx:799-800` 原子动作）<br>- §3.5 AccessPanel 明确为"纯透传"，不得对 channelId 做特判                                                                                                                                                                                                                                                                                                                                                                                                                                            |
