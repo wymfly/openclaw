@@ -1,5 +1,6 @@
 import { getRequestConfig } from "next-intl/server";
 import { cookies } from "next/headers";
+import { mergePluginLocales, getPluginLocaleInventory } from "@/lib/plugin-locales";
 import { defaultLocale, type Locale, locales } from "./config";
 
 export default getRequestConfig(async ({ requestLocale }) => {
@@ -12,7 +13,9 @@ export default getRequestConfig(async ({ requestLocale }) => {
     (cookieLocale && locales.includes(cookieLocale as Locale) ? (cookieLocale as Locale) : null) ??
     defaultLocale;
 
-  const messages = (await import(`./${locale}.json`)).default as Record<string, unknown>;
+  const baseMessages = (await import(`./${locale}.json`)).default as Record<string, unknown>;
+  const plugins = await getPluginLocaleInventory();
+  const messages = mergePluginLocales(baseMessages, plugins, locale);
 
   return { locale, messages };
 });

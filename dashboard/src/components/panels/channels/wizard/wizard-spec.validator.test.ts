@@ -11,16 +11,16 @@ function buildValidSpec() {
       {
         id: "mode",
         type: "radio",
-        title: "$t:wizard.feishu.step1Title",
+        title: "$t:plugin.feishu.step1Title",
         options: [
-          { value: "websocket", label: "$t:wizard.feishu.modeWebSocket" },
-          { value: "webhook", label: "$t:wizard.feishu.modeWebhook" },
+          { value: "websocket", label: "$t:plugin.feishu.modeWebSocket" },
+          { value: "webhook", label: "$t:plugin.feishu.modeWebhook" },
         ],
       },
       {
         id: "creds",
         type: "form",
-        title: "$t:wizard.feishu.step2Title",
+        title: "$t:plugin.feishu.step2Title",
         schema: {
           type: "object",
           properties: {
@@ -31,7 +31,7 @@ function buildValidSpec() {
       {
         id: "probe",
         type: "action",
-        title: "$t:wizard.feishu.step3Title",
+        title: "$t:plugin.feishu.step3Title",
         action: "channel.feishu.probe",
         params: {
           connectionMode: { $ref: "$steps.mode.value" },

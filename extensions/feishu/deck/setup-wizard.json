@@ -3,41 +3,41 @@
     {
       "id": "mode",
       "type": "radio",
-      "title": "$t:wizard.feishu.step1Title",
+      "title": "$t:plugin.feishu.step1Title",
       "options": [
         {
           "value": "websocket",
-          "label": "$t:wizard.feishu.modeWebSocket",
-          "description": "$t:wizard.feishu.modeWebSocketDesc",
+          "label": "$t:plugin.feishu.modeWebSocket",
+          "description": "$t:plugin.feishu.modeWebSocketDesc",
           "badge": "$t:wizard.recommended"
         },
         {
           "value": "webhook",
-          "label": "$t:wizard.feishu.modeWebhook",
-          "description": "$t:wizard.feishu.modeWebhookDesc"
+          "label": "$t:plugin.feishu.modeWebhook",
+          "description": "$t:plugin.feishu.modeWebhookDesc"
         }
       ]
     },
     {
       "id": "creds",
       "type": "form",
-      "title": "$t:wizard.feishu.step2Title",
+      "title": "$t:plugin.feishu.step2Title",
       "schema": {
         "type": "object",
         "required": ["appId", "appSecret"],
         "properties": {
           "appId": {
             "type": "string",
-            "title": "$t:wizard.feishu.appId",
-            "description": "$t:wizard.feishu.appIdHelp",
-            "placeholder": "$t:wizard.feishu.appIdHint"
+            "title": "$t:plugin.feishu.appId",
+            "description": "$t:plugin.feishu.appIdHelp",
+            "placeholder": "$t:plugin.feishu.appIdHint"
           },
           "appSecret": {
             "type": "string",
             "format": "password",
-            "title": "$t:wizard.feishu.appSecret",
-            "description": "$t:wizard.feishu.appSecretHelp",
-            "placeholder": "$t:wizard.feishu.appSecretHint"
+            "title": "$t:plugin.feishu.appSecret",
+            "description": "$t:plugin.feishu.appSecretHelp",
+            "placeholder": "$t:plugin.feishu.appSecretHint"
           }
         }
       }
@@ -45,11 +45,11 @@
     {
       "id": "probe",
       "type": "action",
-      "title": "$t:wizard.feishu.step3Title",
-      "description": "$t:wizard.feishu.testDesc",
+      "title": "$t:plugin.feishu.step3Title",
+      "description": "$t:plugin.feishu.testDesc",
       "action": "channel.feishu.probe",
-      "successMessage": "$t:wizard.feishu.probeSuccess",
-      "failureMessage": "$t:wizard.feishu.probeFailed"
+      "successMessage": "$t:plugin.feishu.probeSuccess",
+      "failureMessage": "$t:plugin.feishu.probeFailed"
     }
   ],
   "onComplete": {

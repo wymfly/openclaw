@@ -20,18 +20,32 @@ type WizardRunnerProps = {
 type StepValues = Record<string, unknown>;
 type ActionStatus = "idle" | "running" | "success" | "error";
 
-function resolveText(value: string | undefined, t: (key: string) => string): string | undefined {
+function resolveIntlMessage(
+  key: string,
+  tWizard: (key: string) => string,
+  tPlugin: (key: string) => string,
+): string {
+  if (key.startsWith("plugin.")) {
+    return tPlugin(key.slice("plugin.".length));
+  }
+  if (key.startsWith("wizard.")) {
+    return tWizard(key.slice("wizard.".length));
+  }
+  return key;
+}
+
+function resolveText(
+  value: string | undefined,
+  tWizard: (key: string) => string,
+  tPlugin: (key: string) => string,
+): string | undefined {
   if (!value) {
     return value;
   }
   if (!value.startsWith("$t:")) {
     return value;
   }
-  const key = value.slice(3);
-  if (key.startsWith("wizard.")) {
-    return t(key.slice("wizard.".length));
-  }
-  return key;
+  return resolveIntlMessage(value.slice(3), tWizard, tPlugin);
 }
 
 function resolveRef(path: string, stepValues: StepValues): unknown {
@@ -125,12 +139,14 @@ function FormStep({
   schema,
   value,
   onChange,
-  t,
+  tWizard,
+  tPlugin,
 }: {
   schema: Record<string, unknown>;
   value: Record<string, unknown>;
   onChange: (value: Record<string, unknown>) => void;
-  t: (key: string) => string;
+  tWizard: (key: string) => string;
+  tPlugin: (key: string) => string;
 }) {
   const properties =
     typeof schema.properties === "object" && schema.properties !== null
@@ -142,14 +158,16 @@ function FormStep({
       {Object.entries(properties).map(([key, fieldSchema]) => {
         const inputId = `wizard-field-${key}`;
         const label =
-          typeof fieldSchema.title === "string" ? (resolveText(fieldSchema.title, t) ?? key) : key;
+          typeof fieldSchema.title === "string"
+            ? (resolveText(fieldSchema.title, tWizard, tPlugin) ?? key)
+            : key;
         const placeholder =
           typeof fieldSchema.placeholder === "string"
-            ? resolveText(fieldSchema.placeholder, t)
+            ? resolveText(fieldSchema.placeholder, tWizard, tPlugin)
             : undefined;
         const help =
           typeof fieldSchema.description === "string"
-            ? resolveText(fieldSchema.description, t)
+            ? resolveText(fieldSchema.description, tWizard, tPlugin)
             : undefined;
         const type = fieldSchema.format === "password" ? "password" : "text";
         return (
@@ -220,7 +238,8 @@ function ActionStep({
 }
 
 export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunnerProps) {
-  const t = useTranslations("wizard");
+  const tWizard = useTranslations("wizard");
+  const tPlugin = useTranslations("plugin");
   const channelOrder = useChannelsStore((state) => state.channelOrder);
   const updateChannelConfig = useChannelsStore((state) => state.updateChannelConfig);
   const [stepValues, setStepValues] = useState<StepValues>({});
@@ -288,21 +307,27 @@ export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunn
       switch (step.type) {
         case "radio":
           return {
-            title: resolveText(step.title, t) ?? step.title,
+            title: resolveText(step.title, tWizard, tPlugin) ?? step.title,
             content: (
               <div className="space-y-3">
                 {!pluginInstalled && step.id === "mode" && (
                   <div className="flex items-start gap-2 rounded-lg bg-[var(--warning-muted)] px-3 py-2 text-xs text-[var(--warning)]">
                     <Info size={14} className="mt-0.5 shrink-0" />
-                    <span>{t("feishu.pluginNotInstalled")}</span>
+                    <span>
+                      {resolveIntlMessage(
+                        `plugin.${channelId}.pluginNotInstalled`,
+                        tWizard,
+                        tPlugin,
+                      )}
+                    </span>
                   </div>
                 )}
                 <RadioStep
                   options={step.options.map((option) => ({
                     ...option,
-                    label: resolveText(option.label, t) ?? option.label,
-                    description: resolveText(option.description, t),
-                    badge: resolveText(option.badge, t),
+                    label: resolveText(option.label, tWizard, tPlugin) ?? option.label,
+                    description: resolveText(option.description, tWizard, tPlugin),
+                    badge: resolveText(option.badge, tWizard, tPlugin),
                   }))}
                   value={
                     typeof stepValues[step.id] === "string"
@@ -318,13 +343,14 @@ export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunn
           };
         case "form":
           return {
-            title: resolveText(step.title, t) ?? step.title,
+            title: resolveText(step.title, tWizard, tPlugin) ?? step.title,
             content: (
               <FormStep
                 schema={step.schema}
                 value={(stepValues[step.id] as Record<string, unknown> | undefined) ?? {}}
                 onChange={(value) => setStepValues((prev) => ({ ...prev, [step.id]: value }))}
-                t={t}
+                tWizard={tWizard}
+                tPlugin={tPlugin}
               />
             ),
             validate: () => {
@@ -342,21 +368,21 @@ export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunn
           };
         case "action":
           return {
-            title: resolveText(step.title, t) ?? step.title,
+            title: resolveText(step.title, tWizard, tPlugin) ?? step.title,
             content: (
               <ActionStep
-                description={resolveText(step.description, t)}
+                description={resolveText(step.description, tWizard, tPlugin)}
                 actionStatus={actionStatus[step.id] ?? "idle"}
                 actionMessage={actionMessages[step.id] ?? ""}
-                buttonLabel={t("testConnection")}
+                buttonLabel={tWizard("testConnection")}
                 onRun={() => {
                   const params = resolveParams(step.params, stepValues);
                   void runAction(
                     step.id,
                     step.action,
                     params,
-                    resolveText(step.successMessage, t),
-                    resolveText(step.failureMessage, t),
+                    resolveText(step.successMessage, tWizard, tPlugin),
+                    resolveText(step.failureMessage, tWizard, tPlugin),
                   );
                 }}
               />
@@ -364,14 +390,24 @@ export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunn
           };
         case "info":
           return {
-            title: resolveText(step.title, t) ?? step.title,
-            content: <InfoStep body={resolveText(step.body, t) ?? step.body} />,
+            title: resolveText(step.title, tWizard, tPlugin) ?? step.title,
+            content: <InfoStep body={resolveText(step.body, tWizard, tPlugin) ?? step.body} />,
           };
       }
       const unreachableStep: never = step;
       throw new Error(`Unsupported wizard step type: ${JSON.stringify(unreachableStep)}`);
     });
-  }, [actionMessages, actionStatus, pluginInstalled, runAction, spec.steps, stepValues, t]);
+  }, [
+    actionMessages,
+    actionStatus,
+    channelId,
+    pluginInstalled,
+    runAction,
+    spec.steps,
+    stepValues,
+    tPlugin,
+    tWizard,
+  ]);
 
   const handleComplete = useCallback(async () => {
     const params = resolveParams(spec.onComplete.params, stepValues);
@@ -401,7 +437,7 @@ export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunn
         }
         onOpenChange(nextOpen);
       }}
-      title={t("feishu.title")}
+      title={resolveIntlMessage(`plugin.${channelId}.title`, tWizard, tPlugin)}
       steps={steps}
       onComplete={() => void handleComplete()}
     />

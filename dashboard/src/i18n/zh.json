@@ -2053,28 +2053,6 @@
     "dmPolicy": {
       "description": "选择机器人处理用户私信的方式。"
     },
-    "feishu": {
-      "title": "配置飞书",
-      "step1Title": "选择连接方式",
-      "step2Title": "填写凭证",
-      "step3Title": "测试连接",
-      "modeWebSocket": "WebSocket 长连接",
-      "modeWebSocketDesc": "实时推送，配置最简单，推荐优先使用。",
-      "modeWebhook": "Webhook 回调",
-      "modeWebhookDesc": "通过公网回调接收事件，适合已有公网入口的部署。",
-      "pluginNotInstalled": "Feishu 插件未安装或未启用。请先确认插件可用后再继续。",
-      "appId": "App ID",
-      "appIdHint": "飞书开放平台中的应用 App ID",
-      "appIdHelp": "在飞书开放平台后台复制应用的 App ID。",
-      "appSecret": "App Secret",
-      "appSecretHint": "飞书开放平台中的应用 App Secret",
-      "appSecretHelp": "在飞书开放平台后台复制应用的 App Secret。",
-      "testDesc": "先保存配置，然后测试连接以验证凭证。",
-      "probeConfigNote": "请先点击“完成”保存配置，探针检查的是实时网关状态。",
-      "probeSuccess": "连接成功！",
-      "probeNoChannel": "网关中未找到 Feishu 渠道。请确认插件已加载。",
-      "probeFailed": "连接测试失败，请检查凭证后重试。"
-    },
     "wecom": {
       "title": "配置企业微信",
       "step1Title": "选择连接方式",

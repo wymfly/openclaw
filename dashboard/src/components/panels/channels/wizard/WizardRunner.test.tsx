@@ -16,6 +16,10 @@ vi.mock("next-intl", () => ({
         validating: "Validating",
         testing: "Testing",
         testConnection: "Test Connection",
+        recommended: "Recommended",
+        stepProgress: "Step progress",
+      },
+      plugin: {
         "feishu.title": "Configure Feishu",
         "feishu.step1Title": "Mode",
         "feishu.step2Title": "Credentials",
@@ -34,8 +38,6 @@ vi.mock("next-intl", () => ({
         "feishu.probeSuccess": "Probe success",
         "feishu.probeFailed": "Probe failed",
         "feishu.pluginNotInstalled": "Plugin missing",
-        recommended: "Recommended",
-        stepProgress: "Step progress",
       },
     };
     return table[ns]?.[key] ?? key;
@@ -73,24 +75,24 @@ describe("WizardRunner", () => {
             {
               id: "mode",
               type: "radio",
-              title: "$t:wizard.feishu.step1Title",
+              title: "$t:plugin.feishu.step1Title",
               options: [
-                { value: "websocket", label: "$t:wizard.feishu.modeWebSocket" },
-                { value: "webhook", label: "$t:wizard.feishu.modeWebhook" },
+                { value: "websocket", label: "$t:plugin.feishu.modeWebSocket" },
+                { value: "webhook", label: "$t:plugin.feishu.modeWebhook" },
               ],
             },
             {
               id: "creds",
               type: "form",
-              title: "$t:wizard.feishu.step2Title",
+              title: "$t:plugin.feishu.step2Title",
               schema: {
                 type: "object",
                 required: ["appId", "appSecret"],
                 properties: {
-                  appId: { type: "string", title: "$t:wizard.feishu.appId" },
+                  appId: { type: "string", title: "$t:plugin.feishu.appId" },
                   appSecret: {
                     type: "string",
-                    title: "$t:wizard.feishu.appSecret",
+                    title: "$t:plugin.feishu.appSecret",
                     format: "password",
                   },
                 },
@@ -99,10 +101,10 @@ describe("WizardRunner", () => {
             {
               id: "probe",
               type: "action",
-              title: "$t:wizard.feishu.step3Title",
+              title: "$t:plugin.feishu.step3Title",
               action: "channel.feishu.probe",
-              successMessage: "$t:wizard.feishu.probeSuccess",
-              failureMessage: "$t:wizard.feishu.probeFailed",
+              successMessage: "$t:plugin.feishu.probeSuccess",
+              failureMessage: "$t:plugin.feishu.probeFailed",
             },
           ],
           onComplete: {

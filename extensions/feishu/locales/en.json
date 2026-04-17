@@ -1,0 +1,22 @@
+{
+  "title": "Configure Feishu",
+  "step1Title": "Select Connection Mode",
+  "step2Title": "Enter Credentials",
+  "step3Title": "Test Connection",
+  "modeWebSocket": "WebSocket",
+  "modeWebSocketDesc": "Real-time push with the lightest setup. Recommended for most deployments.",
+  "modeWebhook": "Webhook",
+  "modeWebhookDesc": "Receive events through a public callback endpoint when you already have ingress.",
+  "pluginNotInstalled": "The Feishu plugin is missing or disabled. Confirm the plugin is available before continuing.",
+  "appId": "App ID",
+  "appIdHint": "App ID from the Feishu developer console",
+  "appIdHelp": "Copy the App ID from your Feishu developer console.",
+  "appSecret": "App Secret",
+  "appSecretHint": "App Secret from the Feishu developer console",
+  "appSecretHelp": "Copy the App Secret from your Feishu developer console.",
+  "testDesc": "Save the configuration first, then test the connection to verify your credentials.",
+  "probeConfigNote": "Click \"Complete\" to save before testing. The probe checks the live gateway state.",
+  "probeSuccess": "Connected successfully!",
+  "probeNoChannel": "Feishu is not visible in the gateway. Confirm the plugin loaded successfully.",
+  "probeFailed": "Connection test failed. Check your credentials and try again."
+}

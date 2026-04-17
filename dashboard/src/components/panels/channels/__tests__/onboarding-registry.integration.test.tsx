@@ -63,8 +63,8 @@ vi.mock("@/stores/plugins", () => ({
               {
                 id: "mode",
                 type: "radio",
-                title: "$t:wizard.feishu.step1Title",
-                options: [{ value: "websocket", label: "$t:wizard.feishu.modeWebSocket" }],
+                title: "$t:plugin.feishu.step1Title",
+                options: [{ value: "websocket", label: "$t:plugin.feishu.modeWebSocket" }],
               },
             ],
             onComplete: { action: "channel.feishu.saveConfig" },

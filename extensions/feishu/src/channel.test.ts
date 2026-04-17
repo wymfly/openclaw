@@ -145,12 +145,12 @@ describe("feishuPlugin.setupWizardSpec", () => {
         {
           id: "mode",
           type: "radio",
-          title: "$t:wizard.feishu.step1Title",
+          title: "$t:plugin.feishu.step1Title",
         },
         {
           id: "creds",
           type: "form",
-          title: "$t:wizard.feishu.step2Title",
+          title: "$t:plugin.feishu.step2Title",
         },
         {
           id: "probe",

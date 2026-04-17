@@ -11,6 +11,10 @@
   },
   "deck": {
     "setupWizardSpec": "./deck/setup-wizard.json",
+    "locales": {
+      "en": "./locales/en.json",
+      "zh": "./locales/zh.json"
+    },
     "actionCapabilities": {
       "login": true,
       "probe": true
