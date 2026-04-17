@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import "../channels/access-descriptors";
 import type { InventoryPluginEntry } from "@/stores/plugins";
 import {
@@ -182,7 +182,8 @@ export function PluginsPanel() {
   const t = useTranslations("pluginsInventory");
   const { loading, error, scope, plugins, selectedId, fetchPlugins, selectPlugin } =
     usePluginsStore();
-  const availableChannels = useChannelsStore((s) => new Set(s.channelOrder));
+  const channelOrder = useChannelsStore((s) => s.channelOrder);
+  const availableChannels = useMemo(() => new Set(channelOrder), [channelOrder]);
   const scopeLabel = scope === "channel" ? t("scopeChannel") : scope;
 
   useEffect(() => {
