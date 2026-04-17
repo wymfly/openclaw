@@ -16,7 +16,7 @@ interface ValidationStepProps {
 
 /**
  * Reusable wizard step that runs a connection probe and shows the result.
- * Extracted from WeComWizard/FeishuWizard shared probe patterns.
+ * Extracted from the shared WeCom/Feishu probe flow patterns.
  */
 export function ValidationStep({ channelId, onProbe }: ValidationStepProps) {
   const t = useTranslations("wizard");

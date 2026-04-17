@@ -221,10 +221,8 @@ function ActionStep({
 
 export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunnerProps) {
   const t = useTranslations("wizard");
-  const { channelOrder, updateChannelConfig } = useChannelsStore((state) => ({
-    channelOrder: state.channelOrder,
-    updateChannelConfig: state.updateChannelConfig,
-  }));
+  const channelOrder = useChannelsStore((state) => state.channelOrder);
+  const updateChannelConfig = useChannelsStore((state) => state.updateChannelConfig);
   const [stepValues, setStepValues] = useState<StepValues>({});
   const [actionStatus, setActionStatus] = useState<Record<string, ActionStatus>>({});
   const [actionMessages, setActionMessages] = useState<Record<string, string>>({});

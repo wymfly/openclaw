@@ -26,10 +26,10 @@ interface CredentialsStepProps {
 
 /**
  * Reusable wizard step for entering credentials with show/hide toggle
- * for secret fields. Extracted from WeComWizard/FeishuWizard credential forms.
+ * for secret fields. Extracted from shared channel credential forms.
  */
 export function CredentialsStep({ fields, values, onChange, description }: CredentialsStepProps) {
-  const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set());
+  const [visibleSecrets, setVisibleSecrets] = useState(new Set());
 
   const toggleSecret = useCallback((key: string) => {
     setVisibleSecrets((prev) => {

@@ -2,10 +2,37 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { usePluginsStore } from "@/stores/plugins";
-import { FeishuWizard } from "../FeishuWizard";
 import { assertValidWizardSpec } from "./wizard-spec.validator";
 import { WizardRunner } from "./WizardRunner";
+
+function WizardUnavailableDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const t = useTranslations("wizard");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("unavailableTitle")}</DialogTitle>
+          <DialogDescription>{t("unavailableDescription")}</DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function ChannelWizardDialog({
   channelId,
@@ -17,11 +44,9 @@ export function ChannelWizardDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const tc = useTranslations("common");
-  const { loading, plugins, fetchPlugins } = usePluginsStore((state) => ({
-    loading: state.loading,
-    plugins: state.plugins,
-    fetchPlugins: state.fetchPlugins,
-  }));
+  const loading = usePluginsStore((state) => state.loading);
+  const plugins = usePluginsStore((state) => state.plugins);
+  const fetchPlugins = usePluginsStore((state) => state.fetchPlugins);
 
   useEffect(() => {
     if (!open) {
@@ -52,7 +77,7 @@ export function ChannelWizardDialog({
   }
 
   if (!spec) {
-    return <FeishuWizard open={open} onOpenChange={onOpenChange} />;
+    return <WizardUnavailableDialog open={open} onOpenChange={onOpenChange} />;
   }
 
   try {
@@ -61,6 +86,6 @@ export function ChannelWizardDialog({
       <WizardRunner channelId={channelId} open={open} onOpenChange={onOpenChange} spec={spec} />
     );
   } catch {
-    return <FeishuWizard open={open} onOpenChange={onOpenChange} />;
+    return <WizardUnavailableDialog open={open} onOpenChange={onOpenChange} />;
   }
 }
