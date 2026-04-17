@@ -1218,6 +1218,11 @@
       "settingsPlaceholder": "设置功能即将推出",
       "analytics": "分析"
     },
+    "actionBar": {
+      "login": "登录",
+      "probe": "探测",
+      "probing": "探测中..."
+    },
     "settings": {
       "dmPolicy": {
         "title": "私信策略",

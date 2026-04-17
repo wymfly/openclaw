@@ -10,6 +10,7 @@ import { getAccessDescriptor } from "./access-descriptors/access-descriptor-regi
 import { AccessPanel } from "./access-descriptors/AccessPanel";
 import { AccountConfigDialog } from "./AccountConfigDialog";
 import { BindingsTab } from "./BindingsTab";
+import { CapabilityActionBar } from "./CapabilityActionBar";
 import {
   countChannelAlerts,
   getAccountHealthAlert,
@@ -349,6 +350,10 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
             </button>
           )}
         </div>
+        <CapabilityActionBar
+          channelId={channelId}
+          onActivateStatusTab={() => setActiveTab("status")}
+        />
       </div>
 
       {/* Tabbed content */}

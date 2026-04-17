@@ -1,6 +1,12 @@
 {
   "id": "wecom",
   "channels": ["wecom"],
+  "deck": {
+    "actionCapabilities": {
+      "login": true,
+      "probe": true
+    }
+  },
   "skills": ["./skills"],
   "configSchema": {
     "type": "object",

@@ -1221,6 +1221,11 @@
       "settingsPlaceholder": "Settings coming soon",
       "analytics": "Analytics"
     },
+    "actionBar": {
+      "login": "Login",
+      "probe": "Probe",
+      "probing": "Probing..."
+    },
     "settings": {
       "dmPolicy": {
         "title": "DM Policy",

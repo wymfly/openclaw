@@ -4,7 +4,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const GUARDED_FILES = ["ChannelDetail.tsx", "ChannelAccessTab.tsx", "ChannelSettingsTab.tsx"];
+const GUARDED_FILES = [
+  "ChannelDetail.tsx",
+  "ChannelAccessTab.tsx",
+  "ChannelSettingsTab.tsx",
+  "CapabilityActionBar.tsx",
+];
 
 const FORBIDDEN_PATTERNS = [
   /channelId\s*===\s*["'][\w-]+["']/,
