@@ -1,11 +1,11 @@
 # Deck Access Model Contract — 设计规范
 
-> **状态**: Approved (brainstorm)
+> **状态**: Revised (2026-04-17 事实对齐) —— 待 G2 第二轮双审
 > **日期**: 2026-04-17
-> **范围**: Dashboard (`dashboard/src/components/panels/channels/**`) 内部重构，零 Gateway 改动
+> **范围**: Dashboard (`dashboard/src/components/panels/channels/**` + `panels/plugins/PluginsPanel.tsx`) 内部重构，零 Gateway 改动
 > **分支**: `enhanced`
 > **前置讨论**: 用户选择路径 B（L2 成熟：AccessDescriptor + Wizard DSL）、3 spec 串行、本 spec 先行
-> **后续 spec**: `deck-manifest-driven-wizard`（P1）、第三 spec TBD
+> **后续 spec**: `deck-manifest-driven-wizard`（P1）、`deck-plugin-manifest-expansion`（P2，已就绪）
 
 ---
 
@@ -26,9 +26,10 @@ Deck Dashboard 在 WeCom 权限管理落地（`93584159ff` "Give Deck operators 
 
 用**最小契约 + 注册表**模式将权限管理能力从 Deck 主代码中解耦：
 
-- 定义 `AccessDescriptor` 契约（仅规定"怎么挂载"，不规定 state shape）
+- 定义 `AccessDescriptor` 契约（规定"怎么挂载 Access Tab + Status Summary + Settings 排除路径"，不规定 state shape）
 - 将 WeCom 现有权限工作区 1:1 包装为首个 descriptor
-- 消除 `ChannelDetail` / `ChannelAccessTab` 中所有渠道 id 字面量比较
+- 消除 `ChannelDetail` / `ChannelAccessTab` / `ChannelSettingsTab` 中所有渠道 id 字面量比较
+- 保留 `selectedAccountId` handoff 语义（`ChannelDetail.access-handoff.test.tsx` 回归基线不变）
 - 新增权限管理时只需"注册 descriptor"，不改 Deck 主代码
 
 ### 1.3 非目标
@@ -41,34 +42,92 @@ Deck Dashboard 在 WeCom 权限管理落地（`93584159ff` "Give Deck operators 
 
 ---
 
-## 2. 当前状态分析
+## 2. 当前状态分析（基于 2026-04-17 代码事实核对后的修订版本）
+
+> **修订说明**：2026-04-17 G2 审查揭示原 §2.1 低估了 wecom 代码在 Deck 侧的分布。下表是基于实际代码行号重盘点的结果。
 
 ### 2.1 受影响文件（按处置类别）
 
-| 文件                                                                                                            | 处置               | 理由                                                                             |
-| --------------------------------------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------- |
-| `wecom-access-model.ts`                                                                                         | **零改动**         | 业务逻辑纯函数，直接被 descriptor 引用                                           |
-| `AllowFromEditor.tsx`                                                                                           | **零改动**         | UI 组件，被 wecom descriptor 引用                                                |
-| `BindingsTab.tsx`                                                                                               | **零改动**         | UI 组件，被 wecom descriptor 引用                                                |
-| WeCom 在 `ChannelAccessTab.tsx` 中的渲染逻辑（`channel-access-registry.ts:accessKey === "wecom"` 所选中的子树） | **整体提取**       | 搬进 `wecom-access-descriptor.ts` 的 `render()` 实现；原位置被 registry 调用替代 |
-| `channel-access-registry.ts`                                                                                    | **退役**           | 功能被新 `access-descriptor-registry.ts` 取代                                    |
-| `ChannelDetail.tsx`                                                                                             | **重构**           | 移除所有 wecom 分支，新增 `<AccessPanel/>` 通用 slot                             |
-| `ChannelAccessTab.tsx`                                                                                          | **重构**           | 改为从 `access-descriptor-registry` 查询并渲染                                   |
-| `wecom-access-boundary.integration.test.tsx`                                                                    | **保留作回归基线** | 行为不变，仅 import 可能微调                                                     |
-| `ChannelDetail.permission-summary.test.tsx`                                                                     | **保留作回归基线** | 同上                                                                             |
-| `ChannelDetail.access-handoff.test.tsx`                                                                         | **保留作回归基线** | 同上                                                                             |
-| `BindingsTab.handoff.test.tsx` / `BindingsTab.test.tsx`                                                         | **保留作回归基线** | 同上                                                                             |
-| `AllowFromEditor.test.tsx`                                                                                      | **保留作回归基线** | 同上                                                                             |
-| `WeComWizard.access-guidance.test.tsx`                                                                          | **保留作回归基线** | 同上                                                                             |
-| `dashboard/src/i18n/en.json` / `zh.json` 中 `channels.wecom.*` / `wecomWizard.*` / `wecomAccess.*` section      | **禁止修改**       | Safety Fence 补齐：i18n 资产与 Spec 3 约定保持 1:1，本 spec 明确不触碰           |
+#### A. 零改动（业务逻辑，Safety Fence）
 
-### 2.2 未知项
+| 文件                                           | 规模     | 理由                                                                                   |
+| ---------------------------------------------- | -------- | -------------------------------------------------------------------------------------- |
+| `wecom-access-model.ts`                        | 131 行   | 业务逻辑纯函数；`buildWecomAccessModel(channel, channelConfig)` 被 descriptor 直接调用 |
+| `AllowFromEditor.tsx`                          | 现状不变 | 受控 list editor；props: `entries/onChange/formatHint/normalize/placeholder`           |
+| `BindingsTab.tsx`                              | 现状不变 | 与 access 无关；`channelId` prop 驱动内部 store 订阅                                   |
+| `DmPolicySelector.tsx`                         | 现状不变 | 受控选择器                                                                             |
+| `WeComWizard.tsx` / `OpenClawWeixinWizard.tsx` | 现状不变 | onboarding wizard，与 access descriptor 正交                                           |
 
-- `channel-access-registry.ts` 中 `getChannelAccessDescriptor(channelId)` 与 `ChannelAccessTab.tsx:84` 的 `descriptor.accessKey === "wecom"` 分支的职责边界：
-  - 前者判断"该渠道是否有访问控制 Tab"
-  - 后者决定"如何渲染访问控制 Tab"
-  - 新 `access-descriptor-registry` 要承担两个职责，还是保留"是否显示 Tab"作为 descriptor 元数据
-    → Discovery 阶段验证，见 §6
+#### B. 代码整体迁移（行级 1:1 保持，位置改变）
+
+| 文件 / 片段                       | 现位置                         | 新位置                                                                             | 规模    |
+| --------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------- | ------- |
+| `WecomAccessTab` 组件             | `ChannelAccessTab.tsx:101-621` | `access-descriptors/wecom-access-descriptor.tsx` 的 `renderAccessTab()` export     | ~520 行 |
+| WeCom permission summary UI       | `ChannelDetail.tsx:514-657`    | `access-descriptors/wecom-access-descriptor.tsx` 的 `renderStatusSummary()` export | ~140 行 |
+| `WECOM_ACCESS_EXCLUDE_PATHS` 常量 | `ChannelSettingsTab.tsx:15-22` | descriptor 的 `settingsExcludePaths: readonly string[]` 元数据                     | 8 行    |
+
+**原则**：代码**一行不改**，只是从原文件删除并在 descriptor 里以相同内容出现（仅 import 路径与 export 方式调整）。
+
+#### C. 重构（消除硬编码分支）
+
+| 文件                     | 变更点                                                                    | 减少的 wecom 分支                                                                          |
+| ------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `ChannelDetail.tsx`      | L218 / L221 / L285-302 / L304-321 / L353-409 / L514-657 / L796-811 / L910 | 7 处 `channelId === "wecom"` 字面量比较 + 两个 wecom-only `useEffect` + 140 行 summary UI  |
+| `ChannelAccessTab.tsx`   | L56-99 外层简化                                                           | `descriptor.accessKey === "wecom"` 分支消除                                                |
+| `ChannelSettingsTab.tsx` | L41                                                                       | 1 处 `channelId === "wecom"` 消除；`WECOM_ACCESS_EXCLUDE_PATHS` 通过 descriptor 元数据取得 |
+| `PluginsPanel.tsx`       | L15, L42                                                                  | `hasDedicatedAccessSurface` → `hasAccessDescriptor` 的 import 替换                         |
+
+#### D. 退役（PR #3）
+
+| 文件                              | 动作 | 理由                                              |
+| --------------------------------- | ---- | ------------------------------------------------- |
+| `channel-access-registry.ts`      | 删除 | 功能被新 `access-descriptor-registry.ts` 完全取代 |
+| `channel-access-registry.test.ts` | 删除 | 与源文件一并                                      |
+
+#### E. 新增（PR #1 / PR #2 / PR #3）
+
+| 文件                                                    | PR                    | 规模                                             |
+| ------------------------------------------------------- | --------------------- | ------------------------------------------------ |
+| `access-descriptors/access-descriptor.types.ts`         | PR #1                 | ~60 行                                           |
+| `access-descriptors/access-descriptor-registry.ts`      | PR #1                 | ~50 行                                           |
+| `access-descriptors/access-descriptor-registry.test.ts` | PR #1                 | ~80 行                                           |
+| `access-descriptors/AccessPanel.tsx`                    | PR #1 或 PR #2        | ~40 行                                           |
+| `access-descriptors/hooks.ts`                           | PR #2                 | ~60 行                                           |
+| `access-descriptors/index.ts`                           | PR #1 + PR #2（注册） | ~10 行                                           |
+| `access-descriptors/wecom-access-descriptor.tsx`        | PR #2                 | ~700 行（含整体迁移的 WecomAccessTab + summary） |
+| `access-descriptors/wecom-access-descriptor.test.tsx`   | PR #2                 | ~120 行                                          |
+| `channel-detail-no-hardcoded-ids.test.ts`               | PR #3                 | ~30 行                                           |
+| `docs/plugins/sdk-access-model.md`                      | PR #1                 | ~80 行                                           |
+
+#### F. 回归基线（保留且必须全绿）
+
+| 文件                                                    | 保护内容                                           |
+| ------------------------------------------------------- | -------------------------------------------------- |
+| `wecom-access-boundary.integration.test.tsx`            | 行为不变，import 可能微调                          |
+| `ChannelDetail.permission-summary.test.tsx`             | permission summary UI 文案与结构                   |
+| `ChannelDetail.access-handoff.test.tsx`                 | **selectedAccountId handoff（受控/非受控双模式）** |
+| `ChannelAccessTab.test.tsx`                             | access tab 外层行为                                |
+| `BindingsTab.handoff.test.tsx` / `BindingsTab.test.tsx` | bindings tab，与 access 正交                       |
+| `AllowFromEditor.test.tsx`                              | list editor，与 access descriptor 正交             |
+| `WeComWizard.access-guidance.test.tsx`                  | 引导文案                                           |
+
+#### G. 禁止修改（i18n Safety Fence）
+
+| 文件                         | 禁改范围                                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `dashboard/src/i18n/en.json` | `channels.wecom.*` / `channels.access.*` / `wecomWizard.*` / `wecomAccess.*` 相关 section |
+| `dashboard/src/i18n/zh.json` | 同上                                                                                      |
+
+### 2.2 已验证的代码事实（替代原"未知项"）
+
+原 §2.2 的 3 个未知项已通过 2026-04-17 代码审阅确认：
+
+1. **Tab 显隐职责**：`hasDedicatedAccessSurface(channelId)` 语义等价于"该 channelId 有 descriptor 注册"→ **不引入 `shouldShow` 元数据**，改用 `hasAccessDescriptor(channelId)` 统一判定
+2. **组件 store 依赖**：
+   - `AllowFromEditor` 完全由 props 驱动（无 store 引用）
+   - `BindingsTab` 依赖 `useDeckRoutingStore`，但与 access descriptor 正交（非 wecom access 组件）
+   - `WecomAccessTab` 依赖 `useChannelsStore` / `useDeckRoutingStore` —— descriptor 实现中**保留 store 直连**（不强制注入），理由：迁移目标是消除硬编码 channel id，不是重写 wecom 数据流
+3. **`selectedAccountId` handoff 语义**：由 `ChannelDetail.access-handoff.test.tsx:147, 156` 强制保护；descriptor 契约必须提供 `handleManageAccess?(accountId, actions)` 接口让 ChannelDetail Status tab 的 "Manage Access" 按钮能把 accountId 传入 Access tab（受控模式）
 
 ---
 
@@ -112,6 +171,9 @@ ChannelDetail.tsx                  ChannelAccessTab.tsx
 
 ```typescript
 // access-descriptor.types.ts
+import type { ReactNode } from "react";
+import type { GatewayClient } from "@/types/gateway-client.generated";
+import type { ChannelInfo } from "@/stores/channels";
 
 /**
  * Access control descriptor for a channel.
@@ -129,35 +191,66 @@ export interface AccessDescriptor<State = unknown> {
 
   /**
    * Load the current access state for this channel.
-   * Receives DI context with Gateway client, config store, etc.
+   * Receives DI context with typed Gateway client, channel info, and config snapshot.
+   * May return null if load is handled entirely inside render subtree (e.g. wecom).
    */
-  load(context: AccessLoadContext): Promise<State>;
+  load(context: AccessLoadContext): Promise<State | null>;
 
   /**
-   * Render the access UI for this channel.
-   * Actions surface mutation handlers (save, reset, etc.) that the
-   * descriptor's internal components can wire up.
+   * Render the Access tab UI for this channel.
+   * Actions surface mutation handlers (save, reset, refresh) the descriptor can invoke.
    */
-  render(state: State, actions: AccessActions): ReactNode;
+  render(state: State | null, actions: AccessActions): ReactNode;
 
   /**
    * Optional: normalize a raw config snapshot into the State shape.
    * Useful for channels that derive State from openclaw.json entries.
    */
   normalize?(raw: unknown): State;
+
+  /**
+   * Optional: render the permission summary section on the Status tab.
+   * Consumed by `ChannelDetail.tsx` to replace the current L514-657 wecom summary.
+   * Returning null hides the summary slot for this channel.
+   */
+  renderStatusSummary?(state: State | null, actions: AccessActions): ReactNode;
+
+  /**
+   * Optional: config field paths that the Settings tab should NOT render
+   * (because they are managed in the Access tab instead).
+   *
+   * Replaces the hard-coded `WECOM_ACCESS_EXCLUDE_PATHS` in ChannelSettingsTab.tsx:15-22.
+   */
+  readonly settingsExcludePaths?: readonly string[];
+
+  /**
+   * Optional: handle "Manage Access" button click from the Status tab.
+   * Default behavior (if absent): jump to Access tab without preselecting an account.
+   * WeCom needs this to preserve selectedAccountId handoff per
+   * `ChannelDetail.access-handoff.test.tsx`.
+   */
+  handleManageAccess?(accountId: string, actions: AccessActions): void;
 }
 
 /** DI context passed to descriptor.load(). */
 export interface AccessLoadContext {
   readonly channelId: string;
-  readonly gatewayRequest: (method: string, params: unknown) => Promise<unknown>;
-  readonly configSnapshot?: unknown;
+  /** Typed Gateway client — mandatory per CLAUDE.md "禁止 gatewayRequest 字符串调用". */
+  readonly gw: GatewayClient;
+  /** ChannelInfo snapshot; null if the channel is schema-only (not yet configured). */
+  readonly channel: ChannelInfo | null;
+  /** Raw channel config (e.g. openclaw.json entry). null until fetchChannelConfig resolves. */
+  readonly configSnapshot?: Record<string, unknown> | null;
 }
 
 /** Mutation handlers provided by Deck for the descriptor to invoke. */
 export interface AccessActions {
-  readonly save: (patch: unknown) => Promise<void>;
+  /** Save a config patch scoped to this channel. */
+  readonly save: (patch: Record<string, unknown>) => Promise<boolean>;
+  /** Re-fetch channel config / bindings / health. */
   readonly refresh: () => Promise<void>;
+  /** Navigate to the Access tab with optional accountId preselection. */
+  readonly openAccessTab: (accountId?: string) => void;
 }
 ```
 
@@ -165,8 +258,10 @@ export interface AccessActions {
 
 1. `State = unknown` 默认类型意味着 registry 对 state 完全不透明
 2. Descriptor 自行 narrow state 类型（利用 TypeScript 泛型）
-3. `normalize` 为可选，wecom 初次实现可不提供
-4. `AccessLoadContext` 使用 DI，**禁止** descriptor 直接 import global store — 方便未来测试与沙箱化
+3. `normalize` 为可选，wecom 初次实现不提供（现有 `buildWecomAccessModel` 直接满足需求）
+4. `AccessLoadContext.gw` 使用 typed client **（CLAUDE.md 硬约束）**；但允许 descriptor 内部组件保留 Zustand store 直连（本 spec 不重写 wecom 数据流）
+5. `renderStatusSummary` / `settingsExcludePaths` / `handleManageAccess` 均可选——未来无 permission summary 的渠道（Discord allow-list 等）可不实现
+6. `load` 可返回 `null`——wecom descriptor 现阶段保留 store 直连，`load` 实现为 `return null`，真实数据在 render 子树内部订阅
 
 ### 3.4 Registry API
 
@@ -198,24 +293,65 @@ export function __resetAccessDescriptorsForTesting(): void {
 
 ### 3.5 Deck 消费侧
 
-`ChannelDetail.tsx` 新增通用 slot：
+新建 `access-descriptors/AccessPanel.tsx`（独立组件，供 Status 和 Access tab 两处复用）：
 
 ```tsx
-function AccessPanel({ channelId }: { channelId: string }) {
+// access-descriptors/AccessPanel.tsx
+export function AccessPanel({
+  channelId,
+  slot,
+  selectedAccountId,
+  onSelectedAccountChange,
+}: {
+  channelId: string;
+  slot: "access-tab" | "status-summary";
+  selectedAccountId?: string;
+  onSelectedAccountChange?: (accountId: string) => void;
+}) {
   const descriptor = getAccessDescriptor(channelId);
-  if (!descriptor) return null;
-  // state 通过 useAccessDescriptorState(descriptor) 加载，略
-  return <>{descriptor.render(state, actions)}</>;
+  const { state, actions } = useAccessDescriptorState(descriptor, {
+    selectedAccountId,
+    onSelectedAccountChange,
+  });
+  if (!descriptor) return slot === "access-tab" ? <NoAccessControl /> : null;
+  return slot === "status-summary"
+    ? (descriptor.renderStatusSummary?.(state, actions) ?? null)
+    : descriptor.render(state, actions);
 }
 ```
 
-`ChannelAccessTab.tsx` 改为：
+`ChannelDetail.tsx` 中**移除 wecom 分支**，Status tab 挂 `<AccessPanel slot="status-summary" .../>`，Access tab 挂 `<AccessPanel slot="access-tab" .../>`；"Manage Access" 按钮调 `descriptor.handleManageAccess?.(accountId, actions)` 保留 handoff 语义。
+
+`ChannelAccessTab.tsx` 简化为外层调用（~40 行）：
+
+```tsx
+export function ChannelAccessTab({
+  channelId,
+  channel,
+  selectedAccountId,
+  onSelectedAccountChange,
+}) {
+  return (
+    <AccessPanel
+      channelId={channelId}
+      slot="access-tab"
+      selectedAccountId={selectedAccountId}
+      onSelectedAccountChange={onSelectedAccountChange}
+    />
+  );
+}
+```
+
+`ChannelSettingsTab.tsx` 中的 `WECOM_ACCESS_EXCLUDE_PATHS` 改为从 descriptor 取：
 
 ```tsx
 const descriptor = getAccessDescriptor(channelId);
-if (!descriptor) return <NoAccessControl />;
-return descriptor.render(state, actions);
+const excludePaths = descriptor?.settingsExcludePaths;
+// ...
+<ChannelSchemaSettings channelId={channelId} schemaInfo={schemaInfo} excludePaths={excludePaths} />;
 ```
+
+`PluginsPanel.tsx` 中 `hasDedicatedAccessSurface(channelId)` 替换为 `hasAccessDescriptor(channelId)`（import 路径改变，语义等价）。
 
 ---
 
@@ -245,23 +381,42 @@ return descriptor.render(state, actions);
 
 **变更**：
 
-- 新增 `wecom-access-descriptor.ts`：包装 `buildWecomAccessModel` 和 `AllowFromEditor` / `BindingsTab`
-- 新增 `wecom-access-descriptor.test.ts`：契约行为测试
-- 修改 `access-descriptors/index.ts`：注册 wecom descriptor
-- 修改 `ChannelDetail.tsx`：移除 wecom 分支 → `<AccessPanel/>` slot
-- 修改 `ChannelAccessTab.tsx`：删除 `getChannelAccessDescriptor` 调用、删除 `descriptor.accessKey === "wecom"` 分支及其 wecom 渲染子树；改为 `getAccessDescriptor(channelId)?.render(state, actions)`（单一调用，无条件分支）
-- `wecom-access-model.ts` / `AllowFromEditor.tsx` / `BindingsTab.tsx` 零改动
+- 新增 `wecom-access-descriptor.tsx`（注意 `.tsx` 扩展名，含 JSX）：
+  - 整体迁入 `ChannelAccessTab.tsx:101-621` 的 `WecomAccessTab` 作为 `renderAccessTab()` 的返回体（**代码 1:1 不改**）
+  - 整体迁入 `ChannelDetail.tsx:514-657` 的 permission summary UI + `wecomAccessModel` / `wecomPermissionAlerts` 构建逻辑（L353-409）作为 `renderStatusSummary()` 的返回体
+  - 声明 `settingsExcludePaths = WECOM_ACCESS_EXCLUDE_PATHS`（来自 `ChannelSettingsTab.tsx:15-22`）
+  - 实现 `handleManageAccess(accountId, actions) { actions.openAccessTab(accountId); }`
+  - `load()` 返回 `null`（保留 store 直连）
+- 新增 `wecom-access-descriptor.test.tsx`：contract 行为测试（render/handleManageAccess/settingsExcludePaths）
+- 新增 `access-descriptors/hooks.ts`：`useAccessDescriptorState` / `useAccessDescriptorActions`
+- 新增 `access-descriptors/AccessPanel.tsx`：如 §3.5 骨架
+- 修改 `access-descriptors/index.ts`：`import "./wecom-access-descriptor";` 注册副作用
+- **入口文件 side-effect import**：在 `dashboard/src/app/providers.tsx`（或等效顶层）加 `import "../components/panels/channels/access-descriptors";`，避免 dead-code 摇树
+- 修改 `ChannelDetail.tsx`：
+  - 删除 L218 / L221 的 wecom useState
+  - 删除 L285-302 / L304-321 的 wecom useEffect
+  - 删除 L353-409 的 wecomAccessModel / wecomPermissionAlerts 构建
+  - L514-657 permission summary UI 替换为 `<AccessPanel slot="status-summary" channelId={channelId} />`
+  - L796-811 "Manage Access" 按钮的 wecom 分支改为调 `descriptor.handleManageAccess?.(account.accountId, actions)`
+  - L910 `channelId !== "wecom"` 条件删除（`AccountConfigDialog` 独立渲染条件由 descriptor 决定，wecom descriptor 不用 dialog）
+- 修改 `ChannelAccessTab.tsx`：外层精简为 §3.5 骨架（~40 行）；WecomAccessTab 实现下移到 descriptor 文件
+- 修改 `ChannelSettingsTab.tsx`：L41 的 `channelId === "wecom" && hasFields` 改为 `descriptor?.settingsExcludePaths !== undefined && hasFields`；`excludePaths` 从 descriptor 取
+- **不改** `wecom-access-model.ts` / `AllowFromEditor.tsx` / `BindingsTab.tsx` / `DmPolicySelector.tsx` / `WeComWizard.tsx` / `OpenClawWeixinWizard.tsx`
 
-**规模**: ~300 行（多数是移动而非新增）
+**规模**: ~900 行（WecomAccessTab ~520 迁移 + permission summary ~140 迁移 + descriptor/hooks/AccessPanel 新增 ~200 + 消费侧精简 -100 / +40）
 
 **Landing gate**:
 
 - `pnpm check` + `pnpm test` + `pnpm build` 全绿
-- **所有 wecom 相关现有测试必须通过**（见 §5.1）
+- **所有 wecom 相关现有测试必须通过**（见 §5.1）—— 特别是 `ChannelDetail.access-handoff.test.tsx`（受控/非受控双模式）和 `ChannelDetail.permission-summary.test.tsx`
 - CCG 双审（Claude + Codex architect）通过
-- 手工在 Deck 里点一遍 wecom channel detail → 视觉无回归
+- 手工在 Deck 里点一遍 wecom channel detail → Status 页 permission summary、Access tab、"Manage Access" 按钮跳转 → 视觉与交互无回归
 
-**Review 焦点**: wecom 行为 1:1 对齐；状态流、错误处理、加载时序无回归
+**Review 焦点**:
+
+- wecom 行为 1:1 对齐；状态流、错误处理、加载时序无回归
+- `selectedAccountId` handoff（Status → Access tab）依然工作
+- `WECOM_ACCESS_EXCLUDE_PATHS` 在 Settings tab 的排除效果不变
 
 **回滚策略**: PR 级回滚；不引入 feature flag（非实验性变更）
 
@@ -305,24 +460,38 @@ return descriptor.render(state, actions);
 
 ### 5.2 结构保障（软性 lint 断言）
 
-新增测试（例如 `channel-detail-no-hardcoded-ids.test.ts`）：
+新增测试 `channel-detail-no-hardcoded-ids.test.ts`——断言 3 个文件**在重构后**不应再出现字面量渠道 id 比较：
 
 ```typescript
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, test } from "vitest";
 
-test("ChannelDetail.tsx has no hardcoded channel id comparisons", () => {
-  const source = readFileSync(join(__dirname, "ChannelDetail.tsx"), "utf8");
-  expect(source).not.toMatch(/channelId\s*===\s*["'][\w-]+["']/);
-  expect(source).not.toMatch(/channelId\s*!==\s*["'][\w-]+["']/);
-});
+const here = __dirname;
+const GUARDED_FILES = ["ChannelDetail.tsx", "ChannelAccessTab.tsx", "ChannelSettingsTab.tsx"];
 
-test("ChannelAccessTab.tsx has no hardcoded channel id comparisons", () => {
-  const source = readFileSync(join(__dirname, "ChannelAccessTab.tsx"), "utf8");
-  expect(source).not.toMatch(/channelId\s*===\s*["'][\w-]+["']/);
-  expect(source).not.toMatch(/channelId\s*!==\s*["'][\w-]+["']/);
+// 字面量 channel id 比较的 4 种变体（两审提醒的遗漏都已覆盖）
+const FORBIDDEN_PATTERNS = [
+  /channelId\s*===\s*["'][\w-]+["']/,
+  /channelId\s*!==\s*["'][\w-]+["']/,
+  /channel\.id\s*===\s*["'][\w-]+["']/,
+  /channel\.id\s*!==\s*["'][\w-]+["']/,
+  /switch\s*\(\s*channelId\s*\)/,
+];
+
+describe("channel-detail hardcoded channel id guard", () => {
+  for (const file of GUARDED_FILES) {
+    test(`${file} has no hardcoded channel id comparisons`, () => {
+      const source = readFileSync(join(here, file), "utf8");
+      for (const pattern of FORBIDDEN_PATTERNS) {
+        expect(source, `${file} violates ${pattern}`).not.toMatch(pattern);
+      }
+    });
+  }
 });
 ```
+
+> ⚠️ 合法用法规避：`accountId === "default"` 等非 channelId 的字面量比较不受影响；正则仅约束 `channelId` / `channel.id` 标识符。字符串文案中的 `"wecom"`（如 i18n key）也不匹配。
 
 ### 5.3 新增契约测试
 
@@ -352,25 +521,33 @@ test("ChannelAccessTab.tsx has no hardcoded channel id comparisons", () => {
 
 ## 6. 风险与缓解
 
-| 风险                                                                     | 严重度 | 缓解策略                                                                                |
-| ------------------------------------------------------------------------ | ------ | --------------------------------------------------------------------------------------- |
-| WeCom summary 从 inline 移到 slot 后布局错乱                             | 中     | PR #2 合并前手工视觉验收；必要时 Playwright 快照                                        |
-| `buildWecomAccessModel` 参数签名与 descriptor 不对齐                     | 低     | PR #2 第一个 commit 是纯包装，业务逻辑不动                                              |
-| 某些 wecom 测试隐式依赖 `channelId === "wecom"` 分支执行顺序             | 低-中  | PR #2 跑全量 wecom 测试，任何失败即 blocker                                             |
-| 软性 lint 断言误杀合法用法                                               | 低     | 正则只匹配字面量比较，不影响 `channelId === variable`                                   |
-| `channel-access-registry.ts` 的 Tab 显隐职责与新 registry 的渲染职责混淆 | 中     | Discovery 阶段 §6.1 验证；必要时 descriptor 增加 `shouldShow?(ctx): boolean` 可选元数据 |
+| 风险                                                                           | 严重度 | 缓解策略                                                                                                                                                            |
+| ------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WeCom summary 从 inline 移到 descriptor slot 后布局错乱                        | 中     | PR #2 合并前手工视觉验收；必要时 Playwright 快照                                                                                                                    |
+| 迁移过程中 `buildWecomAccessModel` 调用点遗漏                                  | 低     | PR #2 代码移动保持 1:1，不重写业务逻辑                                                                                                                              |
+| 某些 wecom 测试隐式依赖 `channelId === "wecom"` 分支执行顺序                   | 低-中  | PR #2 跑全量 wecom 测试（§5.1 七条），任何失败即 blocker                                                                                                            |
+| 软性 lint 断言误杀合法用法                                                     | 低     | 正则只匹配 `channelId`/`channel.id` 标识符的字面量比较，不影响 `channelId === variable`                                                                             |
+| **`selectedAccountId` handoff 语义 regression**                                | **高** | descriptor 必须实现 `handleManageAccess(accountId, actions)`；`ChannelDetail.access-handoff.test.tsx` 作 PR #2 landing gate                                         |
+| **HMR 下 `registerAccessDescriptor` 重复触发抛错**                             | **中** | registry 提供 `registerAccessDescriptor(desc, { allowReplace })` 重载；生产默认严格注册，开发模式 `import.meta.hot` 时 allowReplace=true                            |
+| **`access-descriptors/index.ts` 未被入口 side-effect import 导致 registry 空** | **高** | PR #2 在 `dashboard/src/app/providers.tsx` 或等效顶层文件添加 side-effect import；CI 新增冒烟测试 `registry-mounted.test.tsx` 断言 wecom descriptor 已注册          |
+| **`load` 与切渠道竞态**（快速切换时旧请求回写）                                | 低     | descriptor `load` 返回 null 的 wecom 实现不受此影响；未来其他 descriptor 需自行用 AbortController 或 cancelled flag（参考 `ChannelAccessTab.tsx:143-154` 现有实现） |
+| Permission summary slot 为 null 时 Status tab 布局错位                         | 低     | `<AccessPanel slot="status-summary"/>` 返回 null 时 ChannelDetail 不渲染外围 label；由 AccessPanel 自己处理边界                                                     |
 
-### 6.1 Discovery 任务（实施前先做）
+### 6.1 Discovery（PR #1 开工前已完成）
 
-在 PR #1 开工前：
+原 §6.1 的 3 个 discovery 任务已在 2026-04-17 通过代码审阅完成，结果写入 §2.2："已验证的代码事实"：
 
-1. 跑一次本地 Deck，验证 `channelSchemas.size` 和各渠道的 schema 覆盖度（确认 P0 schema-first 现状）
-2. 审视 `channel-access-registry.ts:getChannelAccessDescriptor` 的全部调用点，确定"是否显示 Tab"职责应该：
-   - (a) 并入 `AccessDescriptor`（通过可选 `shouldShow?(ctx)` 方法）
-   - (b) 保留独立的"Tab 显隐"开关，与新 descriptor 解耦
-3. 确认 `AllowFromEditor.tsx` / `BindingsTab.tsx` 对 Deck global store 的依赖深度，确保 descriptor 模式下能通过 context 注入
+1. ✅ `hasDedicatedAccessSurface` 语义 = `hasAccessDescriptor`（不需要 `shouldShow` 元数据）
+2. ✅ `AllowFromEditor` 无 store 依赖；`BindingsTab` 与 access descriptor 正交；`WecomAccessTab` 保留 store 直连
+3. ✅ `selectedAccountId` handoff 语义由 `handleManageAccess` 契约保护
 
-Discovery 产出：1 份 discovery 笔记 +（如需要）spec 的微调。
+实施前仅需一次**冒烟测试**：
+
+```bash
+# 确认本地 Deck 能正常起来、wecom 页面可访问
+scripts/dev/deck-dev.sh
+# → http://localhost:3000 → Channels → wecom → 各 tab 切换一遍
+```
 
 ---
 
@@ -395,6 +572,8 @@ PR #3 合入后：
 
 ## 9. 修订记录
 
-| 日期       | 变更                               |
-| ---------- | ---------------------------------- |
-| 2026-04-17 | 初稿（基于 brainstorm Q1-Q6 共识） |
+| 日期       | 变更                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-17 | 初稿（基于 brainstorm Q1-Q6 共识）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 2026-04-17 | Cross-spec consistency audit 整改（§2.1 / §7.1 wecom i18n Safety Fence 补齐）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 2026-04-17 | **事实对齐修订（基于 ralplan G2 双审反馈）**：<br>- §1.2 目标新增"保留 `selectedAccountId` handoff 基线"<br>- §2.1 受影响文件表按代码事实重写（承认 `ChannelAccessTab.tsx:101-621` 的 520 行 WecomAccessTab 和 `ChannelDetail.tsx:514-657` 的 140 行 permission summary 需整体迁移；新增 `ChannelSettingsTab.tsx:41` 第三处 wecom 分支；新增 `PluginsPanel.tsx:15,42` 受影响项）<br>- §2.2 原"未知项"消解为"已验证代码事实"<br>- §3.3 契约扩展 3 个可选成员（`renderStatusSummary` / `settingsExcludePaths` / `handleManageAccess`）；`AccessLoadContext.gatewayRequest` 字符串调用 → `gw: GatewayClient` typed client（遵守 CLAUDE.md 硬约束）；`load` 允许返回 null<br>- §3.5 消费侧新增独立 `AccessPanel` 组件，Status / Access tab 共享消费路径<br>- §4.2 PR #2 规模 ~300 → ~900 行；文件名 `.ts` → `.tsx`；新增 side-effect import、`ChannelSettingsTab`/`PluginsPanel` 迁移、`handleManageAccess` 接线等明确动作项<br>- §5.2 结构断言正则补强覆盖 `channel.id === "..."` / `switch (channelId)`；扫描范围 +`ChannelSettingsTab.tsx`<br>- §6 风险表新增 3 条（handoff regression 高危、HMR 重复注册、side-effect import 缺失、load 竞态）；§6.1 discovery 标记为已执行 |
