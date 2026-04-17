@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CapabilityActionBar } from "./CapabilityActionBar";
 
 const probeChannel = vi.fn(async () => {});
+const addToast = vi.fn();
+
+global.fetch = vi.fn() as unknown as typeof fetch;
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) =>
@@ -12,6 +15,10 @@ vi.mock("next-intl", () => ({
         login: "Login",
         probe: "Probe",
         probing: "Probing...",
+        testMessage: "Run Check",
+        testingMessage: "Checking...",
+        testMessageSuccess: "Check passed",
+        testMessageFailed: "Check failed",
       }) as Record<string, string>
     )[key] ?? key,
 }));
@@ -27,6 +34,7 @@ vi.mock("@/stores/plugins", () => ({
           deckActionCapabilities: {
             login: true,
             probe: true,
+            testMessage: true,
           },
         },
         {
@@ -37,6 +45,13 @@ vi.mock("@/stores/plugins", () => ({
           },
         },
       ],
+    }),
+}));
+
+vi.mock("@/stores/notifications", () => ({
+  useNotificationsStore: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      addToast,
     }),
 }));
 
@@ -62,6 +77,8 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   probeChannel.mockClear();
+  addToast.mockClear();
+  vi.mocked(global.fetch).mockReset();
 });
 
 describe("CapabilityActionBar", () => {
@@ -70,6 +87,7 @@ describe("CapabilityActionBar", () => {
 
     expect(screen.getByRole("button", { name: "Login" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Probe" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Run Check" })).toBeTruthy();
   });
 
   it("opens the onboarding dialog when login is clicked", () => {
@@ -89,5 +107,27 @@ describe("CapabilityActionBar", () => {
     expect(onActivateStatusTab).toHaveBeenCalledTimes(1);
     expect(probeChannel).toHaveBeenCalledWith("discord");
     expect(screen.queryByRole("button", { name: "Login" })).toBeNull();
+  });
+
+  it("reuses the generic channel test route when testMessage is clicked", async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+
+    render(<CapabilityActionBar channelId="feishu" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Run Check" }));
+
+    await Promise.resolve();
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/channels/feishu/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    await waitFor(() => {
+      expect(addToast).toHaveBeenCalledWith("success", "Check passed", 3000);
+    });
   });
 });

@@ -1221,7 +1221,11 @@
     "actionBar": {
       "login": "登录",
       "probe": "探测",
-      "probing": "探测中..."
+      "probing": "探测中...",
+      "testMessage": "执行检查",
+      "testingMessage": "检查中...",
+      "testMessageSuccess": "检查通过",
+      "testMessageFailed": "检查失败"
     },
     "settings": {
       "dmPolicy": {

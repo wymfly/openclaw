@@ -17,7 +17,8 @@
     },
     "actionCapabilities": {
       "login": true,
-      "probe": true
+      "probe": true,
+      "testMessage": true
     }
   },
   "skills": ["./skills"],

@@ -1224,7 +1224,11 @@
     "actionBar": {
       "login": "Login",
       "probe": "Probe",
-      "probing": "Probing..."
+      "probing": "Probing...",
+      "testMessage": "Run Check",
+      "testingMessage": "Checking...",
+      "testMessageSuccess": "Check passed",
+      "testMessageFailed": "Check failed"
     },
     "settings": {
       "dmPolicy": {
