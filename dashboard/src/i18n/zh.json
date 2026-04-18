@@ -1268,6 +1268,19 @@
       "stepLogin": "登录命令",
       "stepStatus": "状态确认"
     },
+    "wecomShell": {
+      "sectionLabel": "WeCom 页面",
+      "overview": "概览",
+      "onboarding": "接入",
+      "access": "访问控制",
+      "overviewTitle": "WeCom 概览",
+      "overviewDescription": "查看当前渠道的连接健康、账号状态和下一步操作。",
+      "onboardingTitle": "WeCom 接入",
+      "onboardingDescription": "在当前渠道页面内完成 WeCom 接入或重新连接。",
+      "onboardingConnected": "已检测到 {count} 个已连接账号。",
+      "onboardingNotConnected": "当前还没有已连接的 WeCom 账号。",
+      "openWizard": "打开接入向导"
+    },
     "schemaForm": {
       "noSchemaFields": "此渠道无可配置项。",
       "requiredFields": "以下必填字段未填写"
@@ -1298,6 +1311,7 @@
       "botAllowlistEmpty": "{account}：bot 已启用 allowlist，但 allowFrom 为空。",
       "agentAllowlistEmpty": "{account}：agent 已启用 allowlist，但 allowFrom 为空。",
       "dynamicAgentsMissingAdmins": "动态 Agent 已启用，但尚未配置管理员用户。",
+      "dynamicAgentsMissingRouting": "动态 Agent 已启用，但当前还没有对应的路由绑定。",
       "botPolicy": "Bot：{policy} · allowFrom {count}",
       "agentPolicy": "Agent：{policy} · allowFrom {count}",
       "allowFromPreview": "allowFrom：{preview}{extra}",

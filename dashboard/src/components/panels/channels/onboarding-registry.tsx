@@ -1,57 +1,15 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { ChannelLegacySettingsPanel } from "./ChannelLegacySettingsPanel";
-import { OpenClawWeixinWizard } from "./OpenClawWeixinWizard";
-import { OpenClawWeixinStatusPanel } from "./OpenClawWeixinWizard";
-import { WeComWizard } from "./WeComWizard";
-import { ChannelWizardDialog } from "./wizard/wizard-spec-loader";
+import {
+  type ChannelOnboardingDescriptor,
+  type ChannelOnboardingRenderProps,
+  getRegistryOnboardingDescriptor,
+} from "@/features/channels/registry/channel-onboarding-descriptors";
 
-export interface ChannelOnboardingRenderProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-export interface ChannelOnboardingDescriptor {
-  channelId: string;
-  kind: "adapter" | "login";
-  titleKey: string;
-  renderPanel: () => ReactNode;
-  renderDialog: (props: ChannelOnboardingRenderProps) => ReactNode;
-}
-
-const ONBOARDING_DESCRIPTORS: Record<string, ChannelOnboardingDescriptor> = {
-  feishu: {
-    channelId: "feishu",
-    kind: "adapter",
-    titleKey: "channels.settings.configureWizard",
-    renderPanel: () => <ChannelLegacySettingsPanel channelId="feishu" />,
-    renderDialog: ({ open, onOpenChange }) => (
-      <ChannelWizardDialog channelId="feishu" open={open} onOpenChange={onOpenChange} />
-    ),
-  },
-  wecom: {
-    channelId: "wecom",
-    kind: "adapter",
-    titleKey: "channels.settings.configureWizard",
-    renderPanel: () => <ChannelLegacySettingsPanel channelId="wecom" hideDmPolicy />,
-    renderDialog: ({ open, onOpenChange }) => (
-      <WeComWizard open={open} onOpenChange={onOpenChange} />
-    ),
-  },
-  "openclaw-weixin": {
-    channelId: "openclaw-weixin",
-    kind: "login",
-    titleKey: "channels.settings.configureWizard",
-    renderPanel: () => <OpenClawWeixinStatusPanel />,
-    renderDialog: ({ open, onOpenChange }) => (
-      <OpenClawWeixinWizard open={open} onOpenChange={onOpenChange} />
-    ),
-  },
-};
+export type { ChannelOnboardingDescriptor, ChannelOnboardingRenderProps };
 
 export function getChannelOnboardingDescriptor(
   channelId: string,
 ): ChannelOnboardingDescriptor | null {
-  return ONBOARDING_DESCRIPTORS[channelId] ?? null;
+  return getRegistryOnboardingDescriptor(channelId);
 }

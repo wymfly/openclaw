@@ -29,7 +29,7 @@ export interface AccessDescriptorHandoff {
  */
 export function useAccessDescriptorState<State>(
   _descriptor: AccessDescriptor<State> | null,
-  _handoff: AccessDescriptorHandoff,
+  handoff: AccessDescriptorHandoff,
 ): { state: State | null; actions: AccessActions } {
   return {
     state: null,
@@ -38,8 +38,11 @@ export function useAccessDescriptorState<State>(
       refresh: async () => {
         /* no-op stub */
       },
-      openAccessTab: () => {
-        /* no-op stub */
+      openAccessTab: (accountId) => {
+        if (accountId) {
+          handoff.onSelectedAccountChange?.(accountId);
+        }
+        handoff.onActivateAccessTab?.();
       },
     },
   };

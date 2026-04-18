@@ -3,10 +3,18 @@
 import { LogOut, Power, PowerOff, AlertCircle, Settings2, ExternalLink } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useCallback, useEffect, useMemo } from "react";
+import {
+  getEntryVisiblePages,
+  getHostTabForPage,
+  getLegacyTabForPage,
+  isLegacyTabEnabled,
+  resolveChannelUiDefinition,
+  usesSecondaryPageShell as shouldUseSecondaryPageShell,
+} from "@/features/channels/registry/channel-ui-authority";
+import type { ChannelUiPageKey } from "@/features/channels/registry/channel-ui-types";
 import { navigateToPlugin } from "../../../lib/panel-navigation";
 import { useChannelsStore, type ChannelAccount } from "../../../stores/channels";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../ui/tabs";
-import { getAccessDescriptor } from "./access-descriptors/access-descriptor-registry";
 import { AccessPanel } from "./access-descriptors/AccessPanel";
 import { AccountConfigDialog } from "./AccountConfigDialog";
 import { BindingsTab } from "./BindingsTab";
@@ -23,6 +31,10 @@ import { ChannelHealthBadge } from "./ChannelHealthBadge";
 import { ChannelProbeStatus } from "./ChannelProbeStatus";
 import { ChannelSettingsTab } from "./ChannelSettingsTab";
 import { ChannelTestTool } from "./ChannelTestTool";
+import { WecomAccessPage } from "./WecomAccessPage";
+import { WecomOnboardingPage } from "./WecomOnboardingPage";
+import { WecomOverviewPage } from "./WecomOverviewPage";
+import { WecomPageShellNav } from "./WecomPageShellNav";
 
 const DIAGNOSTIC_TONE_STYLES = {
   success: {
@@ -177,6 +189,7 @@ function AccountDiagnosticCard({
 export function ChannelDetail({ channelId }: { channelId: string }) {
   const t = useTranslations("channels");
   const tc = useTranslations("common");
+  const tWecom = useTranslations("channels.wecomShell");
   const {
     channels,
     logoutChannel,
@@ -194,6 +207,7 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
   const [toggling, setToggling] = useState(false);
   const [configAccount, setConfigAccount] = useState<ChannelAccount | null>(null);
   const [activeTab, setActiveTab] = useState("status");
+  const [activeSecondaryPage, setActiveSecondaryPage] = useState<ChannelUiPageKey>("overview");
   const [accessAccountId, setAccessAccountId] = useState<string | undefined>(undefined);
 
   const channel = channels.get(channelId);
@@ -227,9 +241,53 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
   );
 
   const schemaInfo = channelSchemas.get(channelId);
+  const uiDefinition = resolveChannelUiDefinition({
+    channelId,
+    channel,
+    channelSchema: schemaInfo,
+  });
+  const accessDescriptor = uiDefinition.accessDescriptor;
+  const statusTab = getLegacyTabForPage(uiDefinition, "overview") ?? "status";
+  const accessTab = getLegacyTabForPage(uiDefinition, "access") ?? "access";
+  const entryVisiblePages = useMemo(
+    () => getEntryVisiblePages(uiDefinition).map((page) => page.key),
+    [uiDefinition],
+  );
+  const usesSecondaryPageShell = shouldUseSecondaryPageShell(uiDefinition);
   const availableAccountIds = useMemo(
     () => new Set(channel?.accounts.map((account) => account.accountId) ?? []),
     [channel?.accounts],
+  );
+
+  const activateSecondaryPage = useCallback(
+    (page: ChannelUiPageKey, accountId?: string) => {
+      if (accountId) {
+        setAccessAccountId(accountId);
+      }
+      setActiveSecondaryPage(page);
+      const hostTab = getHostTabForPage(uiDefinition, page);
+      if (hostTab) {
+        setActiveTab(hostTab);
+      }
+    },
+    [uiDefinition],
+  );
+
+  const handlePrimaryTabChange = useCallback(
+    (nextTab: string) => {
+      setActiveTab(nextTab);
+      if (!usesSecondaryPageShell) {
+        return;
+      }
+      if (nextTab === statusTab) {
+        setActiveSecondaryPage("overview");
+        return;
+      }
+      if (nextTab === accessTab) {
+        setActiveSecondaryPage("access");
+      }
+    },
+    [accessTab, statusTab, usesSecondaryPageShell],
   );
 
   useEffect(() => {
@@ -247,16 +305,40 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
       return;
     }
     const fallbackAccountId = channel?.defaultAccountId ?? channel?.accounts[0]?.accountId;
-    setAccessAccountId(pendingAccessTarget.accountId ?? fallbackAccountId);
-    setActiveTab("access");
+    activateSecondaryPage("access", pendingAccessTarget.accountId ?? fallbackAccountId);
     setPendingAccessTarget(null);
   }, [
+    activateSecondaryPage,
     channel?.accounts,
     channel?.defaultAccountId,
     channelId,
     pendingAccessTarget,
     setPendingAccessTarget,
   ]);
+
+  useEffect(() => {
+    setActiveSecondaryPage("overview");
+  }, [channelId]);
+
+  const openAccessTabWithAccount = useCallback(
+    (accountId?: string) => {
+      activateSecondaryPage("access", accountId);
+    },
+    [activateSecondaryPage],
+  );
+
+  const secondaryPageTitle = useMemo(() => {
+    switch (activeSecondaryPage) {
+      case "overview":
+        return tWecom("overviewTitle");
+      case "onboarding":
+        return tWecom("onboardingTitle");
+      case "access":
+        return tWecom("access");
+      default:
+        return null;
+    }
+  }, [activeSecondaryPage, tWecom]);
 
   // Schema-only channel (discovered but not yet configured via channels.status)
   if (!channel && schemaInfo) {
@@ -283,21 +365,10 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
         className="flex items-center justify-center h-full"
         style={{ color: "var(--muted-foreground)" }}
       >
-        <p className="text-sm">{t("noChannels")}</p>
+        <p className="text-sm">{tc("loading")}</p>
       </div>
     );
   }
-
-  const accessDescriptor = getAccessDescriptor(channelId);
-  const openAccessTabWithAccount = useCallback(
-    (accountId?: string) => {
-      if (accountId) {
-        setAccessAccountId(accountId);
-      }
-      setActiveTab("access");
-    },
-    [setAccessAccountId, setActiveTab],
-  );
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -352,308 +423,357 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
         </div>
         <CapabilityActionBar
           channelId={channelId}
-          onActivateStatusTab={() => setActiveTab("status")}
+          onActivateStatusTab={() => activateSecondaryPage("overview")}
         />
       </div>
+
+      {usesSecondaryPageShell && (
+        <WecomPageShellNav
+          activePage={activeSecondaryPage}
+          pages={entryVisiblePages}
+          onSelect={activateSecondaryPage}
+        />
+      )}
 
       {/* Tabbed content */}
       <Tabs
         defaultValue="status"
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={handlePrimaryTabChange}
         className="flex flex-col flex-1 overflow-hidden"
       >
         <TabsList className="mx-4 mt-3 shrink-0">
-          <TabsTrigger value="status" aria-label={t("tabs.status")}>
-            {t("tabs.status")}
-          </TabsTrigger>
-          <TabsTrigger value="access" aria-label={t("tabs.access")}>
-            {t("tabs.access")}
-          </TabsTrigger>
-          <TabsTrigger value="bindings" aria-label={t("tabs.bindings")}>
-            {t("tabs.bindings")}
-          </TabsTrigger>
-          <TabsTrigger value="settings" aria-label={t("tabs.settings")}>
-            {t("tabs.settings")}
-          </TabsTrigger>
-          <TabsTrigger value="analytics" aria-label={t("tabs.analytics")}>
-            {t("tabs.analytics")}
-          </TabsTrigger>
+          {isLegacyTabEnabled(uiDefinition, "status") && (
+            <TabsTrigger value="status" aria-label={t("tabs.status")}>
+              {t("tabs.status")}
+            </TabsTrigger>
+          )}
+          {isLegacyTabEnabled(uiDefinition, "access") && (
+            <TabsTrigger value="access" aria-label={t("tabs.access")}>
+              {t("tabs.access")}
+            </TabsTrigger>
+          )}
+          {isLegacyTabEnabled(uiDefinition, "bindings") && (
+            <TabsTrigger value="bindings" aria-label={t("tabs.bindings")}>
+              {t("tabs.bindings")}
+            </TabsTrigger>
+          )}
+          {isLegacyTabEnabled(uiDefinition, "settings") && (
+            <TabsTrigger value="settings" aria-label={t("tabs.settings")}>
+              {t("tabs.settings")}
+            </TabsTrigger>
+          )}
+          {isLegacyTabEnabled(uiDefinition, "analytics") && (
+            <TabsTrigger value="analytics" aria-label={t("tabs.analytics")}>
+              {t("tabs.analytics")}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Status tab — probe + accounts + logout */}
         <TabsContent value="status" className="flex-1 overflow-y-auto">
-          <div className="px-4 py-3 space-y-4">
-            {/* Connection probe + test tool */}
-            <div className="pb-3 border-b" style={{ borderColor: "var(--border)" }}>
-              <label
-                className="block text-xs font-medium mb-2"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                {t("probe.title")}
-              </label>
-              <ChannelProbeStatus channelId={channelId} />
-              <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
+          {usesSecondaryPageShell && activeSecondaryPage === "onboarding" ? (
+            <div className="px-4 py-3">
+              <WecomOnboardingPage
+                channel={channel}
+                onboardingDescriptor={uiDefinition.onboardingDescriptor}
+              />
+            </div>
+          ) : (
+            <div className="px-4 py-3 space-y-4">
+              {usesSecondaryPageShell && (
+                <WecomOverviewPage
+                  channelId={channelId}
+                  accountId={accessAccountId ?? channel.defaultAccountId}
+                />
+              )}
+              {/* Connection probe + test tool */}
+              <div className="pb-3 border-b" style={{ borderColor: "var(--border)" }}>
                 <label
                   className="block text-xs font-medium mb-2"
                   style={{ color: "var(--muted-foreground)" }}
                 >
-                  {t("test.title")}
+                  {t("probe.title")}
                 </label>
-                <ChannelTestTool channelId={channelId} />
-              </div>
-            </div>
-
-            {/* Accounts section */}
-            <div>
-              <AccessPanel
-                channelId={channelId}
-                channel={channel}
-                slot="status-summary"
-                selectedAccountId={accessAccountId}
-                onSelectedAccountChange={setAccessAccountId}
-                onActivateAccessTab={() => setActiveTab("access")}
-              />
-
-              {(alertCount > 0 || hasProbeAlert) && (
-                <div
-                  className="mb-3 rounded-md border px-3 py-2"
-                  style={{
-                    borderColor: "var(--destructive)",
-                    backgroundColor: "var(--destructive-muted)",
-                    color: "var(--destructive)",
-                  }}
-                >
-                  <p className="text-xs font-semibold">{t("alerts.title")}</p>
-                  {alertCount > 0 && (
-                    <p className="mt-1 text-[11px]">{t("alerts.summary", { count: alertCount })}</p>
-                  )}
-                  {hasProbeAlert && <p className="mt-1 text-[11px]">{t("alerts.probeSummary")}</p>}
+                <ChannelProbeStatus channelId={channelId} />
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
+                  <label
+                    className="block text-xs font-medium mb-2"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    {t("test.title")}
+                  </label>
+                  <ChannelTestTool channelId={channelId} />
                 </div>
-              )}
-              <label
-                className="block text-xs font-medium mb-2"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                {t("diagnostics.title")}
-              </label>
-              <div
-                className="mb-3 rounded-md border px-3 py-2 text-[11px]"
-                style={{
-                  borderColor: "var(--border)",
-                  backgroundColor: "var(--muted)",
-                  color: "var(--muted-foreground)",
-                }}
-              >
-                {t("aggregateHealthNote")}
               </div>
-              <label
-                className="block text-xs font-medium mb-2"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                {t("accounts")} ({channel.accounts.length})
-              </label>
 
-              {channel.accounts.length === 0 && (
-                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                  {t("unconfigured")}
-                </p>
-              )}
+              {/* Accounts section */}
+              <div>
+                <AccessPanel
+                  channelId={channelId}
+                  channel={channel}
+                  slot="status-summary"
+                  selectedAccountId={accessAccountId}
+                  onSelectedAccountChange={setAccessAccountId}
+                  onActivateAccessTab={() => activateSecondaryPage("access")}
+                />
 
-              <div className="space-y-2">
-                {channel.accounts.map((account) => {
-                  const diagnostic = getAccountHealthDiagnostic(account);
-                  const alert = getAccountHealthAlert(account);
-
-                  return (
-                    <div
-                      key={account.accountId}
-                      className="rounded-lg px-3 py-2 border"
-                      style={{
-                        borderColor: "var(--border)",
-                        backgroundColor: "var(--card)",
-                      }}
-                    >
-                      {alert && (
-                        <AccountAlertCard
-                          severity={alert.severity}
-                          title={`${t("alerts.accountTitle")} · ${t(`diagnostics.${alert.titleKey}`)}`}
-                          description={t(`diagnostics.${alert.descriptionKey}`)}
-                        />
-                      )}
-
-                      <AccountDiagnosticCard
-                        tone={diagnostic.tone}
-                        title={t(`diagnostics.${diagnostic.titleKey}`)}
-                        description={t(`diagnostics.${diagnostic.descriptionKey}`)}
-                        nextStep={`${t("diagnostics.nextStep")} · ${t(`diagnostics.${diagnostic.nextStepKey}`)}`}
-                      />
-
-                      <div className="flex items-center justify-between mb-1">
-                        <span
-                          className="text-xs font-medium"
-                          style={{ color: "var(--foreground)" }}
-                        >
-                          {account.name ?? account.accountId}
-                        </span>
-                        <AccountStatusBadge account={account} />
-                      </div>
-
-                      {/* Account details */}
-                      <div
-                        className="flex items-center gap-3 text-[10px]"
-                        style={{ color: "var(--muted-foreground)" }}
-                      >
-                        <span>ID: {account.accountId}</span>
-                        {account.configured && <span>{t("configured")}</span>}
-                      </div>
-
-                      {/* Error message */}
-                      {account.lastError && (
-                        <div
-                          className="flex items-start gap-1.5 mt-1.5 text-[10px] rounded px-2 py-1"
-                          style={{
-                            backgroundColor:
-                              "color-mix(in srgb, var(--status-disconnected) 10%, transparent)",
-                            color: "var(--status-disconnected)",
-                          }}
-                        >
-                          <AlertCircle size={10} className="shrink-0 mt-0.5" />
-                          <span className="break-all">
-                            {t("diagnostics.lastError")}
-                            {": "}
-                            {account.lastError}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 mt-2">
-                        <button
-                          onClick={() => void handleToggleEnabled(account)}
-                          disabled={toggling}
-                          className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
-                          style={{
-                            border: "1px solid var(--border)",
-                            color: "var(--foreground)",
-                            backgroundColor: "var(--background)",
-                          }}
-                          aria-label={account.enabled ? t("disable") : t("enable")}
-                        >
-                          {account.enabled ? (
-                            <>
-                              <PowerOff size={10} />
-                              {t("disable")}
-                            </>
-                          ) : (
-                            <>
-                              <Power size={10} />
-                              {t("enable")}
-                            </>
-                          )}
-                        </button>
-                        {accessDescriptor?.handleManageAccess ? (
-                          <button
-                            onClick={() =>
-                              accessDescriptor.handleManageAccess?.(account.accountId, {
-                                save: async (patch) => saveChannelConfig(channelId, patch),
-                                refresh: async () => {
-                                  await fetchChannelConfig(channelId);
-                                },
-                                openAccessTab: (accountId) =>
-                                  openAccessTabWithAccount(accountId ?? account.accountId),
-                              })
-                            }
-                            className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
-                            style={{
-                              border: "1px solid var(--border)",
-                              color: "var(--foreground)",
-                              backgroundColor: "var(--background)",
-                            }}
-                          >
-                            <Settings2 size={10} />
-                            {t("access.manage")}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setConfigAccount(account)}
-                            className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
-                            style={{
-                              border: "1px solid var(--border)",
-                              color: "var(--foreground)",
-                              backgroundColor: "var(--background)",
-                            }}
-                          >
-                            <Settings2 size={10} />
-                            {t("accountConfig.configure")}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Logout section */}
-            <div className="pt-2 border-t" style={{ borderColor: "var(--border)" }}>
-              {!confirmLogout ? (
-                <button
-                  onClick={() => setConfirmLogout(true)}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded hover:opacity-80 transition-opacity"
-                  style={{
-                    border: "1px solid var(--status-disconnected)",
-                    color: "var(--status-disconnected)",
-                    backgroundColor: "transparent",
-                  }}
-                  aria-label={t("logout")}
-                >
-                  <LogOut size={12} />
-                  {t("logout")}
-                </button>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-xs" style={{ color: "var(--status-disconnected)" }}>
-                    {t("confirmLogout")}
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => void handleLogout()}
-                      disabled={loggingOut}
-                      className="text-xs px-3 py-1 rounded disabled:opacity-40"
-                      style={{
-                        backgroundColor: "var(--status-disconnected)",
-                        color: "var(--primary-foreground)",
-                      }}
-                    >
-                      {t("logout")}
-                    </button>
-                    <button
-                      onClick={() => setConfirmLogout(false)}
-                      className="text-xs px-3 py-1 rounded"
-                      style={{
-                        border: "1px solid var(--border)",
-                        color: "var(--muted-foreground)",
-                        backgroundColor: "var(--background)",
-                      }}
-                    >
-                      {tc("cancel")}
-                    </button>
+                {(alertCount > 0 || hasProbeAlert) && (
+                  <div
+                    className="mb-3 rounded-md border px-3 py-2"
+                    style={{
+                      borderColor: "var(--destructive)",
+                      backgroundColor: "var(--destructive-muted)",
+                      color: "var(--destructive)",
+                    }}
+                  >
+                    <p className="text-xs font-semibold">{t("alerts.title")}</p>
+                    {alertCount > 0 && (
+                      <p className="mt-1 text-[11px]">
+                        {t("alerts.summary", { count: alertCount })}
+                      </p>
+                    )}
+                    {hasProbeAlert && (
+                      <p className="mt-1 text-[11px]">{t("alerts.probeSummary")}</p>
+                    )}
                   </div>
+                )}
+                <label
+                  className="block text-xs font-medium mb-2"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  {t("diagnostics.title")}
+                </label>
+                <div
+                  className="mb-3 rounded-md border px-3 py-2 text-[11px]"
+                  style={{
+                    borderColor: "var(--border)",
+                    backgroundColor: "var(--muted)",
+                    color: "var(--muted-foreground)",
+                  }}
+                >
+                  {t("aggregateHealthNote")}
                 </div>
-              )}
+                <label
+                  className="block text-xs font-medium mb-2"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  {t("accounts")} ({channel.accounts.length})
+                </label>
+
+                {channel.accounts.length === 0 && (
+                  <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                    {t("unconfigured")}
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  {channel.accounts.map((account) => {
+                    const diagnostic = getAccountHealthDiagnostic(account);
+                    const alert = getAccountHealthAlert(account);
+
+                    return (
+                      <div
+                        key={account.accountId}
+                        className="rounded-lg px-3 py-2 border"
+                        style={{
+                          borderColor: "var(--border)",
+                          backgroundColor: "var(--card)",
+                        }}
+                      >
+                        {alert && (
+                          <AccountAlertCard
+                            severity={alert.severity}
+                            title={`${t("alerts.accountTitle")} · ${t(`diagnostics.${alert.titleKey}`)}`}
+                            description={t(`diagnostics.${alert.descriptionKey}`)}
+                          />
+                        )}
+
+                        <AccountDiagnosticCard
+                          tone={diagnostic.tone}
+                          title={t(`diagnostics.${diagnostic.titleKey}`)}
+                          description={t(`diagnostics.${diagnostic.descriptionKey}`)}
+                          nextStep={`${t("diagnostics.nextStep")} · ${t(`diagnostics.${diagnostic.nextStepKey}`)}`}
+                        />
+
+                        <div className="flex items-center justify-between mb-1">
+                          <span
+                            className="text-xs font-medium"
+                            style={{ color: "var(--foreground)" }}
+                          >
+                            {account.name ?? account.accountId}
+                          </span>
+                          <AccountStatusBadge account={account} />
+                        </div>
+
+                        {/* Account details */}
+                        <div
+                          className="flex items-center gap-3 text-[10px]"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          <span>ID: {account.accountId}</span>
+                          {account.configured && <span>{t("configured")}</span>}
+                        </div>
+
+                        {/* Error message */}
+                        {account.lastError && (
+                          <div
+                            className="flex items-start gap-1.5 mt-1.5 text-[10px] rounded px-2 py-1"
+                            style={{
+                              backgroundColor:
+                                "color-mix(in srgb, var(--status-disconnected) 10%, transparent)",
+                              color: "var(--status-disconnected)",
+                            }}
+                          >
+                            <AlertCircle size={10} className="shrink-0 mt-0.5" />
+                            <span className="break-all">
+                              {t("diagnostics.lastError")}
+                              {": "}
+                              {account.lastError}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            onClick={() => void handleToggleEnabled(account)}
+                            disabled={toggling}
+                            className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity disabled:opacity-40"
+                            style={{
+                              border: "1px solid var(--border)",
+                              color: "var(--foreground)",
+                              backgroundColor: "var(--background)",
+                            }}
+                            aria-label={account.enabled ? t("disable") : t("enable")}
+                          >
+                            {account.enabled ? (
+                              <>
+                                <PowerOff size={10} />
+                                {t("disable")}
+                              </>
+                            ) : (
+                              <>
+                                <Power size={10} />
+                                {t("enable")}
+                              </>
+                            )}
+                          </button>
+                          {accessDescriptor?.handleManageAccess ? (
+                            <button
+                              onClick={() =>
+                                accessDescriptor.handleManageAccess?.(account.accountId, {
+                                  save: async (patch) => saveChannelConfig(channelId, patch),
+                                  refresh: async () => {
+                                    await fetchChannelConfig(channelId);
+                                  },
+                                  openAccessTab: (accountId) =>
+                                    openAccessTabWithAccount(accountId ?? account.accountId),
+                                })
+                              }
+                              className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
+                              style={{
+                                border: "1px solid var(--border)",
+                                color: "var(--foreground)",
+                                backgroundColor: "var(--background)",
+                              }}
+                            >
+                              <Settings2 size={10} />
+                              {t("access.manage")}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setConfigAccount(account)}
+                              className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
+                              style={{
+                                border: "1px solid var(--border)",
+                                color: "var(--foreground)",
+                                backgroundColor: "var(--background)",
+                              }}
+                            >
+                              <Settings2 size={10} />
+                              {t("accountConfig.configure")}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Logout section */}
+              <div className="pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+                {!confirmLogout ? (
+                  <button
+                    onClick={() => setConfirmLogout(true)}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded hover:opacity-80 transition-opacity"
+                    style={{
+                      border: "1px solid var(--status-disconnected)",
+                      color: "var(--status-disconnected)",
+                      backgroundColor: "transparent",
+                    }}
+                    aria-label={t("logout")}
+                  >
+                    <LogOut size={12} />
+                    {t("logout")}
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs" style={{ color: "var(--status-disconnected)" }}>
+                      {t("confirmLogout")}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => void handleLogout()}
+                        disabled={loggingOut}
+                        className="text-xs px-3 py-1 rounded disabled:opacity-40"
+                        style={{
+                          backgroundColor: "var(--status-disconnected)",
+                          color: "var(--primary-foreground)",
+                        }}
+                      >
+                        {t("logout")}
+                      </button>
+                      <button
+                        onClick={() => setConfirmLogout(false)}
+                        className="text-xs px-3 py-1 rounded"
+                        style={{
+                          border: "1px solid var(--border)",
+                          color: "var(--muted-foreground)",
+                          backgroundColor: "var(--background)",
+                        }}
+                      >
+                        {tc("cancel")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </TabsContent>
 
         <TabsContent value="access" className="flex-1 overflow-y-auto">
-          <ChannelAccessTab
-            channelId={channelId}
-            channel={channel}
-            selectedAccountId={accessAccountId}
-            onSelectedAccountChange={setAccessAccountId}
-            onActivateAccessTab={() => setActiveTab("access")}
-          />
+          {usesSecondaryPageShell ? (
+            <div className="px-4 pt-3">
+              <WecomAccessPage
+                channelId={channelId}
+                channel={channel}
+                selectedAccountId={accessAccountId}
+                onSelectedAccountChange={setAccessAccountId}
+                onActivateAccessTab={() => activateSecondaryPage("access")}
+              />
+            </div>
+          ) : (
+            <ChannelAccessTab
+              channelId={channelId}
+              channel={channel}
+              selectedAccountId={accessAccountId}
+              onSelectedAccountChange={setAccessAccountId}
+              onActivateAccessTab={() => activateSecondaryPage("access")}
+            />
+          )}
         </TabsContent>
 
         {/* Bindings tab — filtered to this channel */}
@@ -671,6 +791,12 @@ export function ChannelDetail({ channelId }: { channelId: string }) {
           <ChannelAnalytics channelId={channelId} />
         </TabsContent>
       </Tabs>
+
+      {usesSecondaryPageShell && secondaryPageTitle && (
+        <div className="sr-only" aria-live="polite">
+          {secondaryPageTitle}
+        </div>
+      )}
 
       {/* Account config dialog */}
       {configAccount && !accessDescriptor?.usesAccessTabForAccountConfig && (

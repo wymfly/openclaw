@@ -9,6 +9,7 @@ const GUARDED_FILES = [
   "ChannelAccessTab.tsx",
   "ChannelSettingsTab.tsx",
   "CapabilityActionBar.tsx",
+  "onboarding-registry.tsx",
 ];
 
 const FORBIDDEN_PATTERNS = [

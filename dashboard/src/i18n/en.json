@@ -1271,6 +1271,19 @@
       "stepLogin": "Login Command",
       "stepStatus": "Status Confirmation"
     },
+    "wecomShell": {
+      "sectionLabel": "WeCom Pages",
+      "overview": "Overview",
+      "onboarding": "Onboarding",
+      "access": "Access",
+      "overviewTitle": "WeCom Overview",
+      "overviewDescription": "Connection health, account status, and next actions for this channel.",
+      "onboardingTitle": "WeCom Onboarding",
+      "onboardingDescription": "Use the guided flow to connect or reconnect WeCom without leaving the channel presenter.",
+      "onboardingConnected": "{count} connected account(s) detected.",
+      "onboardingNotConnected": "No connected WeCom accounts detected yet.",
+      "openWizard": "Open Setup Wizard"
+    },
     "schemaForm": {
       "noSchemaFields": "No configurable fields for this channel.",
       "requiredFields": "Required fields missing"

@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { resolveChannelUiDefinition } from "@/features/channels/registry/channel-ui-authority";
 import { usePluginsStore } from "@/stores/plugins";
 import { assertValidWizardSpec } from "./wizard-spec.validator";
 import { WizardRunner } from "./WizardRunner";
@@ -62,9 +63,13 @@ export function ChannelWizardDialog({
     () => plugins.find((entry) => entry.channelIds.includes(channelId)),
     [channelId, plugins],
   );
-  const spec = plugin?.setupWizardSpec;
+  const uiDefinition = resolveChannelUiDefinition({
+    channelId,
+    plugin,
+  });
+  const spec = uiDefinition.fallback.wizardSpec;
 
-  if (channelId !== "feishu") {
+  if (uiDefinition.onboarding.kind !== "wizard-spec") {
     return null;
   }
 

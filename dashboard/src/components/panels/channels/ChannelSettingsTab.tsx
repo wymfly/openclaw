@@ -3,12 +3,12 @@
 import { Settings2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { resolveChannelUiDefinition } from "@/features/channels/registry/channel-ui-authority";
 import { useChannelsStore } from "@/stores/channels";
 import "./access-descriptors";
-import { getAccessDescriptor } from "./access-descriptors/access-descriptor-registry";
 import { ChannelLegacySettingsPanel } from "./ChannelLegacySettingsPanel";
 import { ChannelSchemaSettings } from "./ChannelSchemaSettings";
-import { getChannelOnboardingDescriptor } from "./onboarding-registry";
+import { ChannelWizardDialog } from "./wizard/wizard-spec-loader";
 
 interface ChannelSettingsTabProps {
   channelId: string;
@@ -26,14 +26,19 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
   const { channelSchemas } = useChannelsStore();
   const [wizardOpen, setWizardOpen] = useState(false);
   const schemaInfo = channelSchemas.get(channelId);
-  const onboardingDescriptor = getChannelOnboardingDescriptor(channelId);
-  const accessDescriptor = getAccessDescriptor(channelId);
+  const uiDefinition = resolveChannelUiDefinition({
+    channelId,
+    channelSchema: schemaInfo,
+  });
+  const onboardingDescriptor = uiDefinition.onboardingDescriptor;
+  const accessDescriptor = uiDefinition.accessDescriptor;
   const excludePaths = accessDescriptor?.settingsExcludePaths;
 
-  if (onboardingDescriptor) {
+  if (uiDefinition.onboarding.kind !== "none") {
     const props = schemaInfo?.schema.properties;
     const hasFields = props && typeof props === "object" && Object.keys(props).length > 0;
-    const showSchemaPanel = Boolean(excludePaths && hasFields);
+    const showSchemaPanel =
+      uiDefinition.ownership.settings === "hybrid" && Boolean(excludePaths && hasFields);
 
     return (
       <>
@@ -60,11 +65,19 @@ export function ChannelSettingsTab({ channelId }: ChannelSettingsTabProps) {
                 excludePaths={excludePaths ? [...excludePaths] : undefined}
               />
             ) : (
-              onboardingDescriptor.renderPanel()
+              (onboardingDescriptor?.renderPanel() ?? (
+                <ChannelLegacySettingsPanel channelId={channelId} />
+              ))
             )}
           </div>
         </div>
-        {onboardingDescriptor.renderDialog({ open: wizardOpen, onOpenChange: setWizardOpen })}
+        {onboardingDescriptor?.renderDialog({ open: wizardOpen, onOpenChange: setWizardOpen }) ?? (
+          <ChannelWizardDialog
+            channelId={channelId}
+            open={wizardOpen}
+            onOpenChange={setWizardOpen}
+          />
+        )}
       </>
     );
   }

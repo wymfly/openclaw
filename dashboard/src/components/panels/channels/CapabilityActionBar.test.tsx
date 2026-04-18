@@ -31,6 +31,17 @@ vi.mock("@/stores/plugins", () => ({
         {
           id: "feishu",
           channelIds: ["feishu"],
+          setupWizardSpec: {
+            steps: [
+              {
+                id: "credentials",
+                type: "info",
+                title: "Credentials",
+                body: "Enter credentials",
+              },
+            ],
+            onComplete: { action: "channel.feishu.complete" },
+          },
           deckActionCapabilities: {
             login: true,
             probe: true,
@@ -63,14 +74,19 @@ vi.mock("@/stores/channels", () => ({
     }),
 }));
 
-vi.mock("./onboarding-registry", () => ({
-  getChannelOnboardingDescriptor: (channelId: string) =>
-    channelId === "feishu"
+vi.mock("@/features/channels/registry/channel-onboarding-descriptors", () => ({
+  getLocalOnboardingDescriptor: (channelId: string) =>
+    channelId === "wecom"
       ? {
           renderDialog: ({ open }: { open: boolean }) =>
-            open ? <div>Feishu Login Wizard</div> : null,
+            open ? <div>WeCom Login Wizard</div> : null,
         }
       : null,
+}));
+
+vi.mock("./wizard/wizard-spec-loader", () => ({
+  ChannelWizardDialog: ({ channelId, open }: { channelId: string; open: boolean }) =>
+    open ? <div>{`${channelId} Wizard Dialog`}</div> : null,
 }));
 
 afterEach(() => {
@@ -95,7 +111,13 @@ describe("CapabilityActionBar", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Login" }));
 
-    expect(screen.getByText("Feishu Login Wizard")).toBeTruthy();
+    expect(screen.getByText("feishu Wizard Dialog")).toBeTruthy();
+  });
+
+  it("shows the WeCom login button through the real local descriptor path", () => {
+    render(<CapabilityActionBar channelId="wecom" />);
+
+    expect(screen.getByRole("button", { name: "Login" })).toBeTruthy();
   });
 
   it("runs the generic probe surface and activates the status tab when probe is clicked", () => {

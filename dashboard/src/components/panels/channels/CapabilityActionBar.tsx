@@ -4,10 +4,11 @@ import { Loader2, LogIn, Wifi } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { resolveChannelUiDefinition } from "@/features/channels/registry/channel-ui-authority";
 import { useChannelsStore } from "@/stores/channels";
 import { useNotificationsStore } from "@/stores/notifications";
 import { usePluginsStore } from "@/stores/plugins";
-import { getChannelOnboardingDescriptor } from "./onboarding-registry";
+import { ChannelWizardDialog } from "./wizard/wizard-spec-loader";
 
 export function CapabilityActionBar({
   channelId,
@@ -36,12 +37,16 @@ export function CapabilityActionBar({
     () => plugins.find((entry) => entry.channelIds.includes(channelId)),
     [channelId, plugins],
   );
-  const caps = plugin?.deckActionCapabilities;
-  const onboardingDescriptor = getChannelOnboardingDescriptor(channelId);
-
-  const canLogin = Boolean(caps?.login && onboardingDescriptor);
-  const canProbe = Boolean(caps?.probe);
-  const canTestMessage = Boolean(caps?.testMessage);
+  const uiDefinition = resolveChannelUiDefinition({
+    channelId,
+    plugin,
+  });
+  const onboardingDescriptor = uiDefinition.onboardingDescriptor;
+  const canLogin = uiDefinition.actions.some((action) => action.key === "login" && action.enabled);
+  const canProbe = uiDefinition.actions.some((action) => action.key === "probe" && action.enabled);
+  const canTestMessage = uiDefinition.actions.some(
+    (action) => action.key === "testMessage" && action.enabled,
+  );
 
   if (!canLogin && !canProbe && !canTestMessage) {
     return null;
@@ -118,10 +123,17 @@ export function CapabilityActionBar({
         )}
       </div>
       {canLogin &&
-        onboardingDescriptor?.renderDialog({
+        (onboardingDescriptor?.renderDialog({
           open: loginOpen,
           onOpenChange: setLoginOpen,
-        })}
+        }) ??
+          (uiDefinition.onboarding.kind === "wizard-spec" ? (
+            <ChannelWizardDialog
+              channelId={channelId}
+              open={loginOpen}
+              onOpenChange={setLoginOpen}
+            />
+          ) : null))}
     </>
   );
 }
