@@ -79,6 +79,7 @@ function WecomAccessTabContent({
   onSelectedAccountChange?: (accountId: string) => void;
 }) {
   const t = useTranslations("channels.access");
+  const tSettings = useTranslations("channels.settings");
   const tc = useTranslations("common");
   const {
     channelConfig,
@@ -355,12 +356,12 @@ function WecomAccessTabContent({
                           </td>
                           <td className="py-2 pr-4" style={{ color: "var(--muted-foreground)" }}>
                             {accountState.botConfigured
-                              ? t(`dmPolicy.${accountState.bot.policy}`)
+                              ? tSettings(`dmPolicy.${accountState.bot.policy}`)
                               : t("table.notConfigured")}
                           </td>
                           <td className="py-2 pr-4" style={{ color: "var(--muted-foreground)" }}>
                             {accountState.agentConfigured
-                              ? t(`dmPolicy.${accountState.agent.policy}`)
+                              ? tSettings(`dmPolicy.${accountState.agent.policy}`)
                               : t("table.notConfigured")}
                           </td>
                           <td className="py-2" style={{ color: "var(--muted-foreground)" }}>

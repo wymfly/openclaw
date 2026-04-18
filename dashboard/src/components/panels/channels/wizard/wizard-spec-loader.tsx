@@ -68,6 +68,7 @@ export function ChannelWizardDialog({
     plugin,
   });
   const spec = uiDefinition.fallback.wizardSpec;
+  const title = plugin?.name ?? channelId;
 
   if (uiDefinition.onboarding.kind !== "wizard-spec") {
     return null;
@@ -88,7 +89,13 @@ export function ChannelWizardDialog({
   try {
     assertValidWizardSpec(spec, channelId);
     return (
-      <WizardRunner channelId={channelId} open={open} onOpenChange={onOpenChange} spec={spec} />
+      <WizardRunner
+        channelId={channelId}
+        open={open}
+        onOpenChange={onOpenChange}
+        spec={spec}
+        title={title}
+      />
     );
   } catch {
     return <WizardUnavailableDialog open={open} onOpenChange={onOpenChange} />;

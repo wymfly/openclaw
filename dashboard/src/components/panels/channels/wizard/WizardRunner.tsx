@@ -15,6 +15,7 @@ type WizardRunnerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   spec: WizardSpec;
+  title: string;
 };
 
 type StepValues = Record<string, unknown>;
@@ -237,7 +238,7 @@ function ActionStep({
   );
 }
 
-export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunnerProps) {
+export function WizardRunner({ channelId, open, onOpenChange, spec, title }: WizardRunnerProps) {
   const tWizard = useTranslations("wizard");
   const tPlugin = useTranslations("plugin");
   const channelOrder = useChannelsStore((state) => state.channelOrder);
@@ -437,7 +438,7 @@ export function WizardRunner({ channelId, open, onOpenChange, spec }: WizardRunn
         }
         onOpenChange(nextOpen);
       }}
-      title={resolveIntlMessage(`plugin.${channelId}.title`, tWizard, tPlugin)}
+      title={title}
       steps={steps}
       onComplete={() => void handleComplete()}
     />

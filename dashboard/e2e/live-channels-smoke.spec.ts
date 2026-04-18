@@ -9,13 +9,13 @@ import {
 
 const gatewayToken = resolveGatewayToken();
 
-test.describe("@live Deck live smoke", () => {
+test.describe("@live Deck channels smoke", () => {
   test.skip(
     !liveSmokeEnabled || !gatewayToken,
     "Set PLAYWRIGHT_LIVE_SMOKE=1 and provide a resolvable local gateway auth token before running this spec.",
   );
 
-  test("boots against the local Gateway and loads key Deck panels", async ({ page, request }) => {
+  test("loads Channels and Plugins panels against the local Gateway", async ({ page, request }) => {
     test.skip(
       !(await isDashboardServerReachable(request)),
       "Dashboard server is not reachable at the configured base URL.",
@@ -26,27 +26,25 @@ test.describe("@live Deck live smoke", () => {
     const bootstrap = await request.post("/api/onboarding/save-settings", {
       data: {
         gatewayUrl,
-        gatewayToken: gatewayToken,
+        gatewayToken,
       },
     });
     expect(bootstrap.ok()).toBeTruthy();
 
     await gotoDashboard(page);
 
-    await expect(page.locator("nav")).toBeVisible();
-    await expect(page.locator("[data-chat-input]")).toBeVisible();
+    await setActivePanel(page, "channels");
+    await expect(page.getByRole("heading", { name: "Channels" })).toBeVisible();
 
-    await setActivePanel(page, "agents");
-    await expect(page.getByRole("button", { name: /main/i }).first()).toBeVisible({
-      timeout: 15_000,
-    });
+    const channelButtons = page.locator("main [role='complementary'] button");
+    if ((await channelButtons.count()) > 0) {
+      await channelButtons.first().click();
+      await expect(page.locator("main h2").first()).toBeVisible();
+    } else {
+      await expect(page.getByText("No channels configured", { exact: true }).last()).toBeVisible();
+    }
 
-    await setActivePanel(page, "api-explorer");
-    await expect(page.getByPlaceholder("Search methods...")).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /agent\.|chat\.|sessions\./ }).first(),
-    ).toBeVisible({
-      timeout: 15_000,
-    });
+    await setActivePanel(page, "plugins");
+    await expect(page.getByRole("heading", { name: "Plugins" })).toBeVisible();
   });
 });

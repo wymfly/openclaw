@@ -1,4 +1,16 @@
 import type { Page, Route } from "@playwright/test";
+import {
+  buildChannelProbePayload,
+  buildChannelsStatusPayload,
+  buildConfigReadPayload,
+  buildConfigSchemaPayload,
+  buildPluginsInventoryPayload,
+  buildRoutingPayload,
+  deepMergeRecord,
+  type MockChannelDefinition,
+  type MockPluginInventoryEntry,
+  type MockRoutingBinding,
+} from "./channel-fixtures";
 
 const DASHBOARD_ORIGIN = "http://localhost:3000";
 
@@ -19,6 +31,44 @@ type ShellMockOptions = {
   settings?: Record<string, unknown>;
   streamStatus?: number;
   streamBody?: string;
+};
+
+type MockChannelWorkspaceOptions = ShellMockOptions & {
+  channels: MockChannelDefinition[];
+  plugins?: MockPluginInventoryEntry[];
+  bindings?: MockRoutingBinding[];
+  config?: Record<string, unknown>;
+  schemaOnlyChannelIds?: string[];
+  channelTestResults?: Record<
+    string,
+    {
+      ok?: boolean;
+      error?: string;
+      check?: string;
+    }
+  >;
+};
+
+type ConfigPatchRequest = {
+  patch?: Record<string, unknown>;
+  baseHash?: string | null;
+};
+
+type ChannelTestRequest = {
+  channelId: string;
+  body: unknown;
+};
+
+type ChannelUpdateRequest = {
+  channelId: string;
+  body: unknown;
+};
+
+export type MockChannelWorkspaceHarness = {
+  configPatchRequests: ConfigPatchRequest[];
+  channelTestRequests: ChannelTestRequest[];
+  channelUpdateRequests: ChannelUpdateRequest[];
+  getConfig: () => Record<string, unknown>;
 };
 
 function fulfillJson(route: Route, body: unknown, status = 200): Promise<void> {
@@ -85,6 +135,124 @@ export async function stubDashboardShell(
       },
     });
   });
+}
+
+function buildDefaultConfig(channels: MockChannelDefinition[]): Record<string, unknown> {
+  return {
+    channels: Object.fromEntries(channels.map((channel) => [channel.id, {}])),
+  };
+}
+
+function nextConfigHash(counter: number): string {
+  return `test-config-hash-${counter}`;
+}
+
+function extractChannelIdFromUrl(url: string): string {
+  const pathname = new URL(url).pathname;
+  const segments = pathname.split("/").filter(Boolean);
+  const channelIdIndex = segments.findIndex((segment) => segment === "channels") + 1;
+  return decodeURIComponent(segments[channelIdIndex] ?? "");
+}
+
+export async function stubChannelWorkspace(
+  page: Page,
+  options: MockChannelWorkspaceOptions,
+): Promise<MockChannelWorkspaceHarness> {
+  const {
+    channels,
+    plugins = [],
+    bindings = [],
+    schemaOnlyChannelIds = [],
+    channelTestResults = {},
+    ...shellOptions
+  } = options;
+  const configPatchRequests: ConfigPatchRequest[] = [];
+  const channelTestRequests: ChannelTestRequest[] = [];
+  const channelUpdateRequests: ChannelUpdateRequest[] = [];
+  let configHashVersion = 1;
+  let currentConfig = deepMergeRecord(buildDefaultConfig(channels), options.config ?? {});
+
+  await stubDashboardShell(page, shellOptions);
+
+  await page.route(/\/api\/config\/schema(?:\?.*)?$/, (route) =>
+    fulfillJson(
+      route,
+      buildConfigSchemaPayload([...channels.map((channel) => channel.id), ...schemaOnlyChannelIds]),
+    ),
+  );
+
+  await page.route(/\/api\/config(?:\?.*)?$/, (route) =>
+    fulfillJson(route, buildConfigReadPayload(currentConfig, nextConfigHash(configHashVersion))),
+  );
+
+  await page.route(/\/api\/config\/patch(?:\?.*)?$/, async (route) => {
+    const body = (route.request().postDataJSON() ?? {}) as {
+      patch?: Record<string, unknown>;
+      baseHash?: string | null;
+    };
+    configPatchRequests.push({
+      patch: body.patch,
+      baseHash: body.baseHash ?? null,
+    });
+    if (body.patch) {
+      currentConfig = deepMergeRecord(currentConfig, body.patch);
+    }
+    configHashVersion += 1;
+    await fulfillJson(route, {
+      ok: true,
+      baseHash: nextConfigHash(configHashVersion),
+    });
+  });
+
+  await page.route(/\/api\/channels\/probe(?:\?.*)?$/, (route) =>
+    fulfillJson(route, buildChannelProbePayload(channels)),
+  );
+
+  await page.route(/\/api\/channels(?:\?.*)?$/, (route) => {
+    const url = route.request().url();
+    if (url.includes("probe=true")) {
+      return fulfillJson(route, buildChannelsStatusPayload(channels));
+    }
+    return fulfillJson(route, buildChannelsStatusPayload(channels));
+  });
+
+  await page.route(/\/api\/channels\/[^/]+\/test(?:\?.*)?$/, async (route) => {
+    const channelId = extractChannelIdFromUrl(route.request().url());
+    channelTestRequests.push({
+      channelId,
+      body: route.request().postDataJSON() ?? null,
+    });
+    const result = channelTestResults[channelId] ?? { ok: true, check: "probe" };
+    await fulfillJson(route, result);
+  });
+
+  await page.route(/\/api\/channels\/[^/]+(?:\?.*)?$/, async (route) => {
+    if (route.request().method() !== "PATCH") {
+      return route.fallback();
+    }
+    const channelId = extractChannelIdFromUrl(route.request().url());
+    const body = route.request().postDataJSON() ?? {};
+    channelUpdateRequests.push({ channelId, body });
+    await fulfillJson(route, { ok: true });
+  });
+
+  await page.route(/\/api\/deck\/plugins(?:\?.*)?$/, (route) =>
+    fulfillJson(route, buildPluginsInventoryPayload(plugins)),
+  );
+
+  await page.route(/\/api\/deck\/routing(?:\?.*)?$/, (route) => {
+    if (route.request().method() === "GET") {
+      return fulfillJson(route, buildRoutingPayload(bindings));
+    }
+    return fulfillJson(route, { ok: true });
+  });
+
+  return {
+    configPatchRequests,
+    channelTestRequests,
+    channelUpdateRequests,
+    getConfig: () => currentConfig,
+  };
 }
 
 export async function gotoDashboard(page: Page): Promise<void> {
