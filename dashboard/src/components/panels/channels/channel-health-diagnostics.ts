@@ -28,6 +28,9 @@ export interface AccountHealthDiagnostic {
 }
 
 export function getAccountHealthDiagnostic(account: ChannelAccount): AccountHealthDiagnostic {
+  const connected = account.connected ?? account.running ?? false;
+  const linked = account.linked ?? connected;
+
   if (account.enabled === false) {
     return {
       tone: "neutral",
@@ -55,7 +58,7 @@ export function getAccountHealthDiagnostic(account: ChannelAccount): AccountHeal
     };
   }
 
-  if (account.linked && !account.connected) {
+  if (linked && !connected) {
     return {
       tone: "warning",
       titleKey: "linkedDisconnectedTitle",
@@ -64,7 +67,7 @@ export function getAccountHealthDiagnostic(account: ChannelAccount): AccountHeal
     };
   }
 
-  if (account.enabled && !account.linked) {
+  if (account.enabled && !linked) {
     return {
       tone: "warning",
       titleKey: "enabledNotLinkedTitle",

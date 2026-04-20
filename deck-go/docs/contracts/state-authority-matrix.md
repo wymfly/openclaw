@@ -1,24 +1,41 @@
 # State Authority Matrix
 
-This file is the working copy for state ownership during migration.
+This document defines ownership of state in the corrected `deck-go` architecture.
 
-| Surface                                  | Authority                        | Migration note                           |
-| ---------------------------------------- | -------------------------------- | ---------------------------------------- |
-| Gateway capabilities/method support      | Gateway                          | Imported, never invented                 |
-| Session runtime truth                    | Gateway                          | Backend may cache/project only           |
-| Session send/abort effects               | Gateway                          | Backend is façade only                   |
-| Chat transcript truth                    | Gateway                          | Canonical message/event truth            |
-| Chat transcript continuity/replay cursor | Go backend                       | Deck-facing continuity bookkeeping       |
-| Tool result rendering payloads           | Gateway -> Go backend projection | Normalize only                           |
-| Config truth backed by Gateway           | Gateway                          | Backend exposes editor DTOs              |
-| Durable local Deck preferences           | Go backend store                 | Theme/language/operator durable settings |
-| Ephemeral UI state                       | Browser only                     | Tabs, filters, unsaved view state        |
-| Inventory snapshots                      | Go backend cache/projection      | Derived from Gateway                     |
-| Health/connection UI status              | Go backend projection            | Combines local + Gateway reachability    |
-| Auth/session bootstrap for Deck app      | Go backend                       | Local app semantics                      |
-| Stream fanout/reconnect bookkeeping      | Go backend                       | Local control-plane responsibility       |
+## Matrix
 
-## Legacy evidence notes
+| Surface                                                      | Authority        | Deck-facing role                                      | Future platform relevance |
+| ------------------------------------------------------------ | ---------------- | ----------------------------------------------------- | ------------------------- |
+| Gateway capabilities/method support                          | OpenClaw runtime | imported into deck-go, never invented                 | medium                    |
+| Runtime execution truth                                      | OpenClaw runtime | not owned by deck-go                                  | low                       |
+| Session runtime truth                                        | OpenClaw runtime | backend may cache/project only                        | medium                    |
+| Session send/abort effects                                   | OpenClaw runtime | backend façade only                                   | low                       |
+| Chat transcript truth                                        | OpenClaw runtime | canonical message/event truth                         | medium                    |
+| Chat continuity / replay cursor                              | deck-go          | control-plane continuity bookkeeping                  | high                      |
+| Tool/result rendering payload normalization                  | deck-go          | projection/compatibility role                         | medium                    |
+| Config truth backed by Gateway                               | OpenClaw runtime | backend exposes editor-friendly DTOs                  | medium                    |
+| Gateway lifecycle ownership (start/stop/restart/supervision) | deck-go          | bounded control-plane supervision above runtime truth | high                      |
+| Durable local Deck preferences                               | deck-go          | local control-plane persistence                       | medium                    |
+| Inventory snapshots                                          | deck-go          | cache/projection layer                                | high                      |
+| Health/connection status shown in UI                         | deck-go          | aggregated control-plane view                         | high                      |
+| Operator auth/session bootstrap                              | deck-go          | control-plane responsibility                          | high                      |
+| Stream fanout/reconnect bookkeeping                          | deck-go          | control-plane responsibility                          | high                      |
+| Browser tabs/filters/unsaved local state                     | React frontend   | transient UI only                                     | low                       |
+
+## Promotion Beyond Deck
+
+Surfaces with likely future service relevance:
+
+- capability inventory
+- operator/session bootstrap
+- projection/cache ownership
+- event fanout/reconnect continuity
+- health/status aggregation
+- lifecycle supervision
+
+These are **architecturally promotable**, but not current scope.
+
+## Legacy Evidence
 
 - local durable settings currently live in `dashboard/server/deck-settings.ts` backed by `dashboard/server/json-store.ts`
 - request auth currently runs through `dashboard/server/access-gate.ts`
@@ -26,14 +43,19 @@ This file is the working copy for state ownership during migration.
 - browser stream client behavior currently lives in `dashboard/src/lib/deck-client.ts`
 - chat SSE dispatch and projection-gap recovery currently live in `dashboard/src/components/panels/chat/useChatSSE.ts`
 
-## Immediate migration implications
+## Immediate Migration Implications
 
-- `access_token`, `gateway_url`, `gateway_token`, and similar durable Deck settings should move to Go-owned local persistence
-- `Last-Event-ID` handling and `projection.gap` behavior become Go backend compatibility obligations
-- browser-only state must stay out of the Go service even if legacy code currently mixes concerns nearby
+- `access_token`, `gateway_url`, `gateway_token`, and similar durable Deck settings belong in Go-owned persistence
+- `Last-Event-ID` handling and `projection.gap` are deck-go compatibility obligations
+- runtime truth must remain explicitly outside deck-go even when deck-go owns lifecycle supervision
+- browser-only state must stay out of Go service logic
 
-## Phase 1 Tasks
+## Guardrail
 
-- validate each row against current legacy implementation
-- identify unresolved authority conflicts
-- add per-surface migration owner
+If a new piece of state cannot be clearly assigned to one of:
+
+- OpenClaw runtime
+- deck-go
+- React frontend
+
+then implementation should pause and the placement should be reviewed before code continues.

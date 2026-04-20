@@ -1,11 +1,8 @@
 # Target Architecture
 
-> Draft status:
-> This file is a **starter draft for reference only**.
-> It is intended to accelerate the active `deck-go` migration session, not to
-> bypass its judgment.
-> The implementing session owns the final wording, structure, and refinements,
-> as long as the architectural intent below is preserved.
+This document is the current north-star boundary reference for the `deck-go` migration.
+
+It is no longer just a starter note; downstream PRD and contract docs should align with it unless a newer planning review explicitly revises the architecture.
 
 ## Purpose
 

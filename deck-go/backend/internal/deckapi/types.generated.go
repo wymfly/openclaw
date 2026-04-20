@@ -3,10 +3,21 @@
 
 package deckapi
 
+type DeckGoManagedGatewaySettings struct {
+	Mode string `json:"mode,omitempty"`
+	Command string `json:"command,omitempty"`
+	Args []string `json:"args,omitempty"`
+	WorkingDir string `json:"workingDir,omitempty"`
+	BindHost string `json:"bindHost,omitempty"`
+	BindPort float64 `json:"bindPort,omitempty"`
+	GatewayToken string `json:"gatewayToken,omitempty"`
+	AutoStart bool `json:"autoStart,omitempty"`
+	Env map[string]string `json:"env,omitempty"`
+}
+
 type DeckGoSettings struct {
 	AccessToken string `json:"accessToken,omitempty"`
-	GatewayUrl string `json:"gatewayUrl,omitempty"`
-	GatewayToken string `json:"gatewayToken,omitempty"`
+	ManagedGateway DeckGoManagedGatewaySettings `json:"managedGateway,omitempty"`
 }
 
 type DeckGoSettingsResponse struct {
@@ -23,20 +34,46 @@ type DeckGoSettingsSaveResponse struct {
 type DeckGoBootstrapSettingsStatus struct {
 	Path string `json:"path"`
 	AccessTokenConfigured bool `json:"accessTokenConfigured"`
-	GatewayUrlConfigured bool `json:"gatewayUrlConfigured"`
+	ManagedGatewayConfigured bool `json:"managedGatewayConfigured"`
+	CommandConfigured bool `json:"commandConfigured"`
 	GatewayTokenConfigured bool `json:"gatewayTokenConfigured"`
+	AutoStart bool `json:"autoStart"`
+}
+
+type DeckGoRuntimeGatewayStatus struct {
+	Managed bool `json:"managed"`
+	Configured bool `json:"configured,omitempty"`
+	Status string `json:"status,omitempty"`
+	FailurePhase string `json:"failurePhase,omitempty"`
+	Pid float64 `json:"pid,omitempty"`
+	StartedAt string `json:"startedAt,omitempty"`
+	LastExitAt string `json:"lastExitAt,omitempty"`
+	LastExitCode float64 `json:"lastExitCode,omitempty"`
+	Health string `json:"health,omitempty"`
+	GatewayUrl string `json:"gatewayUrl,omitempty"`
+	LastError string `json:"lastError,omitempty"`
+	AutoStart bool `json:"autoStart,omitempty"`
 }
 
 type DeckGoBootstrapGatewayStatus struct {
 	Connected bool `json:"connected"`
 	Error string `json:"error,omitempty"`
-	Describe any `json:"describe,omitempty"`
+	CapabilitySnapshotAvailable bool `json:"capabilitySnapshotAvailable,omitempty"`
+	MethodCount float64 `json:"methodCount,omitempty"`
+	EventCount float64 `json:"eventCount,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
 }
 
 type DeckGoBootstrapStatusResponse struct {
 	Ok bool `json:"ok"`
 	Settings DeckGoBootstrapSettingsStatus `json:"settings"`
+	Runtime DeckGoRuntimeGatewayStatus `json:"runtime"`
 	Gateway DeckGoBootstrapGatewayStatus `json:"gateway"`
+}
+
+type DeckGoRuntimeGatewayActionResponse struct {
+	Ok bool `json:"ok"`
+	Runtime DeckGoRuntimeGatewayStatus `json:"runtime"`
 }
 
 type DeckGoConfigSchemaLookupRequest struct {
@@ -64,20 +101,156 @@ type DeckGoChatAbortRequest struct {
 	RunId string `json:"runId,omitempty"`
 }
 
+type DeckGoSessionCreateResponse struct {
+	Ok bool `json:"ok,omitempty"`
+	Key string `json:"key,omitempty"`
+	SessionId string `json:"sessionId,omitempty"`
+	RunId string `json:"runId,omitempty"`
+	Status string `json:"status,omitempty"`
+	MessageSeq float64 `json:"messageSeq,omitempty"`
+	InterruptedActiveRun bool `json:"interruptedActiveRun,omitempty"`
+	RunStarted bool `json:"runStarted,omitempty"`
+	RunError any `json:"runError,omitempty"`
+	Entry map[string]any `json:"entry,omitempty"`
+}
+
+type DeckGoSessionSendResponse struct {
+	RunId string `json:"runId,omitempty"`
+	Status string `json:"status,omitempty"`
+	MessageSeq float64 `json:"messageSeq,omitempty"`
+	InterruptedActiveRun bool `json:"interruptedActiveRun,omitempty"`
+}
+
+type DeckGoSessionAbortResponse struct {
+	Ok bool `json:"ok,omitempty"`
+	AbortedRunId string `json:"abortedRunId,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type DeckGoSessionMutationResponse struct {
+	Ok bool `json:"ok,omitempty"`
+	Key string `json:"key,omitempty"`
+	Entry map[string]any `json:"entry,omitempty"`
+}
+
+type DeckGoSessionMeta struct {
+	Key string `json:"key"`
+	AgentId string `json:"agentId,omitempty"`
+	Title string `json:"title,omitempty"`
+	UpdatedAt float64 `json:"updatedAt,omitempty"`
+	LastMessagePreview string `json:"lastMessagePreview,omitempty"`
+	Status string `json:"status,omitempty"`
+	StartedAt float64 `json:"startedAt,omitempty"`
+	EndedAt float64 `json:"endedAt,omitempty"`
+	RuntimeMs float64 `json:"runtimeMs,omitempty"`
+	Model string `json:"model,omitempty"`
+	ModelProvider string `json:"modelProvider,omitempty"`
+}
+
+type DeckGoSessionPreviewOverlay struct {
+	Role string `json:"role"`
+	Text string `json:"text"`
+}
+
+type DeckGoSessionPreviewEntry struct {
+	Key string `json:"key"`
+	Status string `json:"status,omitempty"`
+	Items []DeckGoSessionPreviewOverlay `json:"items,omitempty"`
+}
+
+type DeckGoTranscriptBlock struct {
+	Type string `json:"type"`
+	Text string `json:"text,omitempty"`
+	Id string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Input map[string]any `json:"input,omitempty"`
+	ToolUseId string `json:"toolUseId,omitempty"`
+	Content any `json:"content,omitempty"`
+	IsError bool `json:"isError,omitempty"`
+	Data string `json:"data,omitempty"`
+	MimeType string `json:"mimeType,omitempty"`
+	FileName string `json:"fileName,omitempty"`
+	Size float64 `json:"size,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Surface string `json:"surface,omitempty"`
+	Render string `json:"render,omitempty"`
+	Url string `json:"url,omitempty"`
+	Title string `json:"title,omitempty"`
+	PreferredHeight float64 `json:"preferredHeight,omitempty"`
+	Summary map[string]any `json:"summary,omitempty"`
+}
+
+type DeckGoTranscriptMessage struct {
+	Id string `json:"id"`
+	Role string `json:"role"`
+	Content []DeckGoTranscriptBlock `json:"content"`
+	Timestamp float64 `json:"timestamp,omitempty"`
+	Streaming bool `json:"streaming,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
+type DeckGoSessionDetailResponse struct {
+	Session DeckGoSessionMeta `json:"session,omitempty"`
+	Messages []DeckGoTranscriptMessage `json:"messages,omitempty"`
+	ActiveApproval map[string]any `json:"activeApproval,omitempty"`
+	A2uiState any `json:"a2uiState,omitempty"`
+}
+
+type DeckGoSessionMessageStreamEvent struct {
+	SessionKey string `json:"sessionKey"`
+	Message DeckGoTranscriptMessage `json:"message,omitempty"`
+	MessageId string `json:"messageId,omitempty"`
+	MessageSeq float64 `json:"messageSeq,omitempty"`
+	UpdatedAt float64 `json:"updatedAt,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type DeckGoSessionToolStreamEvent struct {
+	RunId string `json:"runId"`
+	Seq float64 `json:"seq"`
+	Stream string `json:"stream"`
+	Ts float64 `json:"ts"`
+	SessionKey string `json:"sessionKey"`
+	Data map[string]any `json:"data"`
+}
+
+type DeckGoSessionsChangedStreamEvent struct {
+	SessionKey string `json:"sessionKey"`
+	Phase string `json:"phase,omitempty"`
+	Ts float64 `json:"ts"`
+	RunId string `json:"runId,omitempty"`
+	MessageId string `json:"messageId,omitempty"`
+	MessageSeq float64 `json:"messageSeq,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	Label string `json:"label,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	UpdatedAt float64 `json:"updatedAt,omitempty"`
+	Status string `json:"status,omitempty"`
+	StartedAt float64 `json:"startedAt,omitempty"`
+	EndedAt float64 `json:"endedAt,omitempty"`
+	RuntimeMs float64 `json:"runtimeMs,omitempty"`
+}
+
 type DeckGoSessionEventsRequest struct {
 	SessionKey string `json:"sessionKey"`
 	Action string `json:"action"`
 }
 
+type DeckGoSessionEventsResponse struct {
+	Ok bool `json:"ok"`
+	SessionKey string `json:"sessionKey"`
+	Action string `json:"action"`
+}
+
 type DeckGoChatSnapshotResponse struct {
-	Messages []map[string]any `json:"messages"`
-	Meta map[string]any `json:"meta"`
+	Session DeckGoSessionMeta `json:"session,omitempty"`
+	Messages []DeckGoTranscriptMessage `json:"messages"`
 	ActiveApproval map[string]any `json:"activeApproval"`
 	A2uiState any `json:"a2uiState"`
 }
 
 type DeckGoChatHistoryResponse struct {
-	Messages []map[string]any `json:"messages"`
+	Messages []DeckGoTranscriptMessage `json:"messages"`
 }
 
 type DeckGoChannelsStatusResponse struct {
@@ -103,22 +276,28 @@ type DeckGoPluginsListResponse struct {
 }
 
 type DeckGoSessionsListResponse struct {
-	Sessions []map[string]any `json:"sessions,omitempty"`
+	Sessions []DeckGoSessionMeta `json:"sessions,omitempty"`
 }
 
 type DeckGoServerEvent struct {
 	Id string `json:"id,omitempty"`
 	Event string `json:"event,omitempty"`
 	Data string `json:"data,omitempty"`
+	Json any `json:"json,omitempty"`
+}
+
+type DeckGoProjectionGapEvent struct {
+	Reason string `json:"reason"`
 }
 
 type DeckGoLogStreamEvent struct {
 	Id string `json:"id,omitempty"`
 	Event string `json:"event,omitempty"`
 	Data string `json:"data,omitempty"`
+	Json any `json:"json,omitempty"`
 }
 
 type DeckGoSessionsPreviewResponse struct {
 	Ts float64 `json:"ts,omitempty"`
-	Previews []map[string]any `json:"previews,omitempty"`
+	Previews []DeckGoSessionPreviewEntry `json:"previews,omitempty"`
 }

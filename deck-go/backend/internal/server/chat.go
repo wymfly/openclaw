@@ -1,14 +1,18 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
 )
 
-func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFunc) }, client *gateway.Client) {
+func registerChatRoutes(mux interface {
+	MethodFunc(string, string, http.HandlerFunc)
+}, client *gateway.Client) {
 	mux.MethodFunc("GET", "/chat/history", func(w http.ResponseWriter, r *http.Request) {
 		sessionKey := r.URL.Query().Get("sessionKey")
 		if sessionKey == "" {
@@ -21,7 +25,16 @@ func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFu
 				params["limit"] = limit
 			}
 		}
-		callGateway(w, r, client, "chat.history", params)
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := client.Request(ctx, "chat.history", params)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"messages": normalizeTranscriptMessages(payload),
+		})
 	})
 
 	mux.MethodFunc("POST", "/chat/sessions/preview", func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +49,14 @@ func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFu
 			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "keys[] is required"})
 			return
 		}
-		callGateway(w, r, client, "sessions.preview", map[string]any{"keys": body.Keys})
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := client.Request(ctx, "sessions.preview", map[string]any{"keys": body.Keys})
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, normalizeSessionPreviews(payload))
 	})
 
 	mux.MethodFunc("POST", "/chat/sessions/reset", func(w http.ResponseWriter, r *http.Request) {
@@ -56,10 +76,17 @@ func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFu
 		if reason == "" {
 			reason = "reset"
 		}
-		callGateway(w, r, client, "sessions.reset", map[string]any{
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := client.Request(ctx, "sessions.reset", map[string]any{
 			"key":    body.SessionKey,
 			"reason": reason,
 		})
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, normalizeSessionMutationResponse(payload, body.SessionKey))
 	})
 
 	mux.MethodFunc("POST", "/chat/sessions/clear", func(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +101,14 @@ func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFu
 			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "sessionKey is required"})
 			return
 		}
-		callGateway(w, r, client, "sessions.clear", map[string]any{"key": body.SessionKey})
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := client.Request(ctx, "sessions.clear", map[string]any{"key": body.SessionKey})
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, normalizeSessionMutationResponse(payload, body.SessionKey))
 	})
 
 	mux.MethodFunc("POST", "/chat/sessions/patch", func(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +124,14 @@ func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFu
 		}
 		delete(body, "sessionKey")
 		body["key"] = sessionKey
-		callGateway(w, r, client, "sessions.patch", body)
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := client.Request(ctx, "sessions.patch", body)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, normalizeSessionMutationResponse(payload, sessionKey))
 	})
 
 	mux.MethodFunc("POST", "/chat/sessions/create", func(w http.ResponseWriter, r *http.Request) {
@@ -121,15 +162,22 @@ func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFu
 		if body.ParentSessionKey != "" {
 			params["parentSessionKey"] = body.ParentSessionKey
 		}
-		callGateway(w, r, client, "sessions.create", params)
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := client.Request(ctx, "sessions.create", params)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, normalizeSessionCreateResponse(payload))
 	})
 
 	mux.MethodFunc("POST", "/chat/send", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Message        string         `json:"message"`
-			SessionKey     string         `json:"sessionKey"`
-			Thinking       string         `json:"thinking"`
-			IdempotencyKey string         `json:"idempotencyKey"`
+			Message        string           `json:"message"`
+			SessionKey     string           `json:"sessionKey"`
+			Thinking       string           `json:"thinking"`
+			IdempotencyKey string           `json:"idempotencyKey"`
 			Attachments    []map[string]any `json:"attachments"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -157,7 +205,14 @@ func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFu
 		if len(body.Attachments) > 0 {
 			params["attachments"] = body.Attachments
 		}
-		callGateway(w, r, client, "sessions.send", params)
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := client.Request(ctx, "sessions.send", params)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, normalizeSessionSendResponse(payload))
 	})
 
 	mux.MethodFunc("POST", "/chat/abort", func(w http.ResponseWriter, r *http.Request) {
@@ -177,6 +232,13 @@ func registerChatRoutes(mux interface{ MethodFunc(string, string, http.HandlerFu
 		if body.RunID != "" {
 			params["runId"] = body.RunID
 		}
-		callGateway(w, r, client, "sessions.abort", params)
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := client.Request(ctx, "sessions.abort", params)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, normalizeSessionAbortResponse(payload))
 	})
 }

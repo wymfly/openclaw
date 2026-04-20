@@ -1,15 +1,22 @@
 import type {
   DeckGoBootstrapStatusResponse,
   DeckGoChatAbortRequest,
-  DeckGoSessionEventsRequest,
-  DeckGoChatHistoryResponse,
-  DeckGoChatSessionCreateRequest,
   DeckGoChatSnapshotResponse,
+  DeckGoSessionAbortResponse,
+  DeckGoSessionEventsRequest,
+  DeckGoSessionEventsResponse,
+  DeckGoChatHistoryResponse,
+  DeckGoSessionDetailResponse,
+  DeckGoChatSessionCreateRequest,
+  DeckGoSessionCreateResponse,
+  DeckGoSessionMutationResponse,
+  DeckGoSessionSendResponse,
   DeckGoChatSendRequest,
   DeckGoChannelsStatusResponse,
   DeckGoConfigSchemaLookupRequest,
   DeckGoLogStreamEvent,
   DeckGoPluginsListResponse,
+  DeckGoRuntimeGatewayActionResponse,
   DeckGoServerEvent,
   DeckGoSettings,
   DeckGoSettingsResponse,
@@ -19,6 +26,15 @@ import type {
 } from "../../contracts/generated/ts/deck-api.generated";
 
 const API_BASE = import.meta.env.VITE_API_BASE?.trim() || "http://127.0.0.1:19528/api";
+
+async function readErrorMessage(res: Response, fallback: string) {
+  try {
+    const payload = (await res.json()) as { error?: string };
+    return payload.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function getHeaders(): HeadersInit {
   const token = window.localStorage.getItem("deckGoAccessToken")?.trim();
@@ -31,7 +47,7 @@ function getHeaders(): HeadersInit {
 export async function fetchSettings() {
   const res = await fetch(`${API_BASE}/settings`, { headers: getHeaders() });
   if (!res.ok) {
-    throw new Error(`settings fetch failed: ${res.status}`);
+    throw new Error(await readErrorMessage(res, `settings fetch failed: ${res.status}`));
   }
   return (await res.json()) as DeckGoSettingsResponse;
 }
@@ -54,6 +70,47 @@ export async function fetchBootstrapStatus() {
     throw new Error(`bootstrap fetch failed: ${res.status}`);
   }
   return (await res.json()) as DeckGoBootstrapStatusResponse;
+}
+
+export async function fetchRuntimeGatewayStatus() {
+  const res = await fetch(`${API_BASE}/runtime/gateway`, { headers: getHeaders() });
+  if (!res.ok) {
+    throw new Error(`runtime gateway fetch failed: ${res.status}`);
+  }
+  return (await res.json()) as DeckGoRuntimeGatewayActionResponse;
+}
+
+export async function startRuntimeGateway() {
+  const res = await fetch(`${API_BASE}/runtime/gateway/start`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`runtime gateway start failed: ${res.status}`);
+  }
+  return (await res.json()) as DeckGoRuntimeGatewayActionResponse;
+}
+
+export async function stopRuntimeGateway() {
+  const res = await fetch(`${API_BASE}/runtime/gateway/stop`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`runtime gateway stop failed: ${res.status}`);
+  }
+  return (await res.json()) as DeckGoRuntimeGatewayActionResponse;
+}
+
+export async function restartRuntimeGateway() {
+  const res = await fetch(`${API_BASE}/runtime/gateway/restart`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`runtime gateway restart failed: ${res.status}`);
+  }
+  return (await res.json()) as DeckGoRuntimeGatewayActionResponse;
 }
 
 export async function postConfigSchemaLookup(body: DeckGoConfigSchemaLookupRequest) {
@@ -95,6 +152,35 @@ export async function fetchPlugins() {
   return (await res.json()) as DeckGoPluginsListResponse;
 }
 
+export type DeckGoLogsTailResponse = {
+  cursor?: number;
+  lines?: unknown[];
+  reset?: boolean;
+};
+
+export async function fetchLogsTail(params?: {
+  cursor?: number;
+  limit?: number;
+  maxBytes?: number;
+}) {
+  const query = new URLSearchParams();
+  if (typeof params?.cursor === "number") {
+    query.set("cursor", String(params.cursor));
+  }
+  if (typeof params?.limit === "number") {
+    query.set("limit", String(params.limit));
+  }
+  if (typeof params?.maxBytes === "number") {
+    query.set("maxBytes", String(params.maxBytes));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const res = await fetch(`${API_BASE}/logs${suffix}`, { headers: getHeaders() });
+  if (!res.ok) {
+    throw new Error(`logs tail failed: ${res.status}`);
+  }
+  return (await res.json()) as DeckGoLogsTailResponse;
+}
+
 export async function fetchSessions() {
   const res = await fetch(`${API_BASE}/sessions`, { headers: getHeaders() });
   if (!res.ok) {
@@ -115,19 +201,49 @@ export async function fetchSessionPreviews(keys: string[]) {
   return (await res.json()) as DeckGoSessionsPreviewResponse;
 }
 
-export async function fetchChatSnapshot(params: {
-  sessionKey: string;
-  agentId?: string;
-  limit?: number;
-}) {
-  const search = new URLSearchParams({ sessionKey: params.sessionKey });
+function buildSessionQuery(params: { sessionKey: string; agentId?: string; limit?: number }) {
+  const search = new URLSearchParams();
   if (params.agentId) {
     search.set("agentId", params.agentId);
   }
   if (typeof params.limit === "number") {
     search.set("limit", String(params.limit));
   }
-  const res = await fetch(`${API_BASE}/chat/snapshot?${search.toString()}`, {
+  return search.toString();
+}
+
+export async function fetchSessionDetail(params: {
+  sessionKey: string;
+  agentId?: string;
+  limit?: number;
+}) {
+  const query = buildSessionQuery(params);
+  const suffix = query ? `?${query}` : "";
+  const res = await fetch(
+    `${API_BASE}/sessions/${encodeURIComponent(params.sessionKey)}${suffix}`,
+    {
+      headers: getHeaders(),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`session detail failed: ${res.status}`);
+  }
+  return (await res.json()) as DeckGoSessionDetailResponse;
+}
+
+export async function fetchChatSnapshot(params: {
+  sessionKey: string;
+  agentId?: string;
+  limit?: number;
+}) {
+  const query = new URLSearchParams({ sessionKey: params.sessionKey });
+  const detailQuery = buildSessionQuery(params);
+  if (detailQuery) {
+    for (const [key, value] of new URLSearchParams(detailQuery).entries()) {
+      query.set(key, value);
+    }
+  }
+  const res = await fetch(`${API_BASE}/chat/snapshot?${query.toString()}`, {
     headers: getHeaders(),
   });
   if (!res.ok) {
@@ -137,11 +253,11 @@ export async function fetchChatSnapshot(params: {
 }
 
 export async function fetchChatHistory(params: { sessionKey: string; limit?: number }) {
-  const search = new URLSearchParams({ sessionKey: params.sessionKey });
+  const query = new URLSearchParams({ sessionKey: params.sessionKey });
   if (typeof params.limit === "number") {
-    search.set("limit", String(params.limit));
+    query.set("limit", String(params.limit));
   }
-  const res = await fetch(`${API_BASE}/chat/history?${search.toString()}`, {
+  const res = await fetch(`${API_BASE}/chat/history?${query.toString()}`, {
     headers: getHeaders(),
   });
   if (!res.ok) {
@@ -159,7 +275,7 @@ export async function createChatSession(body: DeckGoChatSessionCreateRequest) {
   if (!res.ok) {
     throw new Error(`chat session create failed: ${res.status}`);
   }
-  return (await res.json()) as Record<string, unknown>;
+  return (await res.json()) as DeckGoSessionCreateResponse;
 }
 
 export async function sendChatMessage(body: DeckGoChatSendRequest) {
@@ -171,7 +287,7 @@ export async function sendChatMessage(body: DeckGoChatSendRequest) {
   if (!res.ok) {
     throw new Error(`chat send failed: ${res.status}`);
   }
-  return (await res.json()) as Record<string, unknown>;
+  return (await res.json()) as DeckGoSessionSendResponse;
 }
 
 export async function abortChatRun(body: DeckGoChatAbortRequest) {
@@ -183,7 +299,7 @@ export async function abortChatRun(body: DeckGoChatAbortRequest) {
   if (!res.ok) {
     throw new Error(`chat abort failed: ${res.status}`);
   }
-  return (await res.json()) as Record<string, unknown>;
+  return (await res.json()) as DeckGoSessionAbortResponse;
 }
 
 export async function resetSession(body: { sessionKey: string; reason?: "new" | "reset" }) {
@@ -195,7 +311,7 @@ export async function resetSession(body: { sessionKey: string; reason?: "new" | 
   if (!res.ok) {
     throw new Error(`session reset failed: ${res.status}`);
   }
-  return (await res.json()) as Record<string, unknown>;
+  return (await res.json()) as DeckGoSessionMutationResponse;
 }
 
 export async function clearSession(body: { sessionKey: string }) {
@@ -207,7 +323,7 @@ export async function clearSession(body: { sessionKey: string }) {
   if (!res.ok) {
     throw new Error(`session clear failed: ${res.status}`);
   }
-  return (await res.json()) as Record<string, unknown>;
+  return (await res.json()) as DeckGoSessionMutationResponse;
 }
 
 export async function patchSession(body: Record<string, unknown>) {
@@ -219,7 +335,7 @@ export async function patchSession(body: Record<string, unknown>) {
   if (!res.ok) {
     throw new Error(`session patch failed: ${res.status}`);
   }
-  return (await res.json()) as Record<string, unknown>;
+  return (await res.json()) as DeckGoSessionMutationResponse;
 }
 
 export async function setSessionEventsSubscription(body: DeckGoSessionEventsRequest) {
@@ -231,7 +347,7 @@ export async function setSessionEventsSubscription(body: DeckGoSessionEventsRequ
   if (!res.ok) {
     throw new Error(`session events request failed: ${res.status}`);
   }
-  return (await res.json()) as Record<string, unknown>;
+  return (await res.json()) as DeckGoSessionEventsResponse;
 }
 
 export function persistAccessToken(token: string) {
@@ -256,6 +372,13 @@ function parseSSEChunk(chunk: string, onEvent: (event: DeckGoServerEvent) => voi
         event.data = event.data ? `${event.data}\n${part}` : part;
       }
     }
+    if (event.data) {
+      try {
+        event.json = JSON.parse(event.data);
+      } catch {
+        // keep raw string payload when data is not JSON
+      }
+    }
     if (event.id || event.event || event.data) {
       onEvent(event);
     }
@@ -266,6 +389,8 @@ type StreamParams<TEvent extends DeckGoServerEvent> = {
   signal: AbortSignal;
   onEvent: (event: TEvent) => void;
   retryDelayMs?: number;
+  onStatusChange?: (status: "connecting" | "connected" | "reconnecting" | "error") => void;
+  initialLastEventId?: string;
 };
 
 function wait(delayMs: number, signal: AbortSignal): Promise<void> {
@@ -290,9 +415,11 @@ async function streamSSE<TEvent extends DeckGoServerEvent>(
   url: string,
   params: StreamParams<TEvent>,
 ): Promise<void> {
-  let lastEventId: string | undefined;
+  let lastEventId: string | undefined = params.initialLastEventId?.trim() || undefined;
+  let firstConnection = true;
 
   while (!params.signal.aborted) {
+    params.onStatusChange?.(firstConnection ? "connecting" : "reconnecting");
     const headers: Record<string, string> = {
       ...(getHeaders() as Record<string, string>),
     };
@@ -305,8 +432,11 @@ async function streamSSE<TEvent extends DeckGoServerEvent>(
       signal: params.signal,
     });
     if (!res.ok || !res.body) {
+      params.onStatusChange?.("error");
       throw new Error(`stream failed: ${res.status}`);
     }
+    params.onStatusChange?.("connected");
+    firstConnection = false;
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();

@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -48,6 +49,12 @@ func TestClientRequest_CompletesChallengeConnectAndRequest(t *testing.T) {
 			t.Errorf("expected connect method, got %#v", connectFrame["method"])
 			return
 		}
+		params, _ := connectFrame["params"].(map[string]any)
+		device, _ := params["device"].(map[string]any)
+		if strings.TrimSpace(fmt.Sprint(device["id"])) == "" {
+			t.Errorf("expected signed device identity on connect frame, got %#v", params["device"])
+			return
+		}
 		if err := conn.WriteJSON(map[string]any{
 			"type": "res",
 			"id":   connectFrame["id"],
@@ -88,15 +95,17 @@ func TestClientRequest_CompletesChallengeConnectAndRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	store, err := config.NewStore()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := store.Update(config.Settings{
-		GatewayURL:   wsURL,
-		GatewayToken: "test-token",
+		ManagedGateway: config.ManagedGatewaySettings{
+			BindHost:     "127.0.0.1",
+			BindPort:     mustPort(t, server.URL),
+			GatewayToken: "test-token",
+		},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -121,3 +130,26 @@ func TestClientRequest_CompletesChallengeConnectAndRequest(t *testing.T) {
 	}
 }
 
+func TestRequestDirect_RejectsMissingManagedConnection(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := New(store)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if _, err := client.Request(ctx, "health", map[string]any{}); err == nil {
+		t.Fatal("expected managed connection error")
+	}
+}
+
+func mustPort(t *testing.T, serverURL string) int {
+	t.Helper()
+	value := strings.TrimPrefix(serverURL, "http://127.0.0.1:")
+	var port int
+	if _, err := fmt.Sscanf(value, "%d", &port); err != nil {
+		t.Fatalf("failed to parse port from %q: %v", serverURL, err)
+	}
+	return port
+}

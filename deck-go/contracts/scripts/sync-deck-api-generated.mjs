@@ -34,6 +34,9 @@ function toGoType(type) {
       return "string";
     }
   }
+  if (/^".+"$/.test(normalized)) {
+    return "string";
+  }
   if (normalized === "string") {
     return "string";
   }

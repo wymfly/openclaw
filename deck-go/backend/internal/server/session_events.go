@@ -40,6 +40,10 @@ func registerSessionEventRoute(mux interface{ MethodFunc(string, string, http.Ha
 			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "action must be subscribe or unsubscribe"})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"ok":         true,
+			"sessionKey": body.SessionKey,
+			"action":     body.Action,
+		})
 	})
 }

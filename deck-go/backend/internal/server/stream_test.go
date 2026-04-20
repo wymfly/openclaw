@@ -27,23 +27,39 @@ func TestServeEventStream_ReplaysGapAndEvent(t *testing.T) {
 	}
 }
 
-func TestResolveMessagesAndMeta(t *testing.T) {
-	messages := resolveMessages(map[string]any{
+func TestServeEventStream_EmitsProjectionGapEvent(t *testing.T) {
+	bus := events.NewBus(2)
+	bus.Publish("a", []byte(`{}`))
+	bus.Publish("b", []byte(`{}`))
+	bus.Publish("c", []byte(`{}`))
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req := httptest.NewRequest(http.MethodGet, "/api/stream", nil).WithContext(ctx)
+	req.Header.Set("Last-Event-ID", "1")
+	rec := httptest.NewRecorder()
+
+	serveEventStream(rec, req, bus)
+	body := rec.Body.String()
+	if !strings.Contains(body, "event: projection.gap") || !strings.Contains(body, "\"reason\":\"events_pruned\"") {
+		t.Fatalf("unexpected gap body: %s", body)
+	}
+}
+
+func TestNormalizeMessagesAndMeta(t *testing.T) {
+	messages := normalizeTranscriptMessages(map[string]any{
 		"messages": []any{map[string]any{"id": "m1"}},
 	})
-	items, ok := messages.([]any)
-	if !ok || len(items) != 1 {
+	if len(messages) != 1 || messages[0].Id != "m1" {
 		t.Fatalf("unexpected messages payload: %#v", messages)
 	}
 
-	meta := resolveSessionMeta("session-1", map[string]any{
+	metas := normalizeSessionMetas(map[string]any{
 		"sessions": []any{
-			map[string]any{"key": "session-1"},
+			map[string]any{"key": "session-1", "agentId": "main"},
 		},
-	})
-	record, ok := meta.(map[string]any)
-	if !ok || record["key"] != "session-1" {
-		t.Fatalf("unexpected meta payload: %#v", meta)
+	}, "")
+	if len(metas) != 1 || metas[0].Key != "session-1" {
+		t.Fatalf("unexpected meta payload: %#v", metas)
 	}
 }
 

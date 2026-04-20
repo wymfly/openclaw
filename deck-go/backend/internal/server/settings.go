@@ -9,17 +9,15 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 )
 
-func registerSettingsRoutes(mux interface{ MethodFunc(string, string, http.HandlerFunc) }, store *config.Store, bus *events.Bus) {
+func registerSettingsRoutes(mux interface {
+	MethodFunc(string, string, http.HandlerFunc)
+}, store *config.Store, bus *events.Bus) {
 	mux.MethodFunc("GET", "/settings", func(w http.ResponseWriter, _ *http.Request) {
 		current := store.Get()
 		writeJSON(w, http.StatusOK, deckapi.DeckGoSettingsResponse{
-			Ok: true,
-			Settings: deckapi.DeckGoSettings{
-				AccessToken:  current.AccessToken,
-				GatewayUrl:   current.GatewayURL,
-				GatewayToken: current.GatewayToken,
-			},
-			Path: store.Path(),
+			Ok:       true,
+			Settings: toDeckSettings(current),
+			Path:     store.Path(),
 		})
 	})
 
@@ -46,12 +44,25 @@ func registerSettingsRoutes(mux interface{ MethodFunc(string, string, http.Handl
 		})
 		bus.Publish("runtime.status", eventPayload)
 		writeJSON(w, http.StatusOK, deckapi.DeckGoSettingsSaveResponse{
-			Ok: true,
-			Settings: deckapi.DeckGoSettings{
-				AccessToken:  current.AccessToken,
-				GatewayUrl:   current.GatewayURL,
-				GatewayToken: current.GatewayToken,
-			},
+			Ok:       true,
+			Settings: toDeckSettings(current),
 		})
 	})
+}
+
+func toDeckSettings(current config.Settings) deckapi.DeckGoSettings {
+	return deckapi.DeckGoSettings{
+		AccessToken: current.AccessToken,
+		ManagedGateway: deckapi.DeckGoManagedGatewaySettings{
+			Mode:         current.ManagedGateway.Mode,
+			Command:      current.ManagedGateway.Command,
+			Args:         current.ManagedGateway.Args,
+			WorkingDir:   current.ManagedGateway.WorkingDir,
+			BindHost:     current.ManagedGateway.BindHost,
+			BindPort:     float64(current.ManagedGateway.BindPort),
+			GatewayToken: current.ManagedGateway.GatewayToken,
+			AutoStart:    current.ManagedGateway.AutoStart,
+			Env:          current.ManagedGateway.Env,
+		},
+	}
 }

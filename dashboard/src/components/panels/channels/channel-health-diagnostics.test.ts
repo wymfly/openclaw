@@ -34,4 +34,9 @@ describe("getAccountHealthDiagnostic", () => {
     const result = getAccountHealthDiagnostic(makeAccount({ linked: true, connected: true }));
     expect(result.titleKey).toBe("healthyTitle");
   });
+
+  it("treats connected accounts without an explicit linked flag as healthy", () => {
+    const result = getAccountHealthDiagnostic(makeAccount({ linked: undefined, connected: true }));
+    expect(result.titleKey).toBe("healthyTitle");
+  });
 });

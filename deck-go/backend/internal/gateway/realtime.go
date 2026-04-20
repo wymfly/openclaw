@@ -11,13 +11,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 )
 
 type Realtime struct {
-	store *config.Store
-	bus   *events.Bus
+	provider ConnectionProvider
+	bus      *events.Bus
 
 	mu                  sync.Mutex
 	writeMu             sync.Mutex
@@ -32,11 +31,11 @@ type responseResult struct {
 	err     error
 }
 
-func NewRealtime(store *config.Store, bus *events.Bus) *Realtime {
+func NewRealtime(provider ConnectionProvider, bus *events.Bus) *Realtime {
 	return &Realtime{
-		store:      store,
-		bus:        bus,
-		pending:    map[string]chan responseResult{},
+		provider:    provider,
+		bus:         bus,
+		pending:     map[string]chan responseResult{},
 		sessionSubs: map[string]struct{}{},
 	}
 }
@@ -105,21 +104,18 @@ func (r *Realtime) ensureConnected(ctx context.Context) error {
 	}
 	r.mu.Unlock()
 
-	settings := r.store.Effective()
-	if strings.TrimSpace(settings.GatewayURL) == "" {
-		return errors.New("gateway url is not configured")
-	}
-	if strings.TrimSpace(settings.GatewayToken) == "" {
-		return errors.New("gateway token is not configured")
+	upstreamURL, token, ok := r.provider.GatewayConnection()
+	if !ok {
+		return errors.New("managed gateway connection is not configured")
 	}
 
 	dialer := websocket.Dialer{HandshakeTimeout: 8 * time.Second}
-	conn, _, err := dialer.DialContext(ctx, settings.GatewayURL, http.Header{})
+	conn, _, err := dialer.DialContext(ctx, upstreamURL, http.Header{})
 	if err != nil {
 		return err
 	}
 
-	if err := r.completeConnect(ctx, conn, settings.GatewayToken); err != nil {
+	if err := completeConnect(ctx, conn, token, "deck-go-realtime"); err != nil {
 		conn.Close()
 		return err
 	}
@@ -131,79 +127,6 @@ func (r *Realtime) ensureConnected(ctx context.Context) error {
 
 	go r.readLoop(conn)
 	return nil
-}
-
-func (r *Realtime) completeConnect(ctx context.Context, conn *websocket.Conn, token string) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-		_, raw, err := conn.ReadMessage()
-		if err != nil {
-			return err
-		}
-		var fr frame
-		if err := json.Unmarshal(raw, &fr); err != nil {
-			continue
-		}
-		if fr.Type == "event" && fr.Event == "connect.challenge" {
-			connectID := nextID()
-			if err := conn.WriteJSON(frame{
-				Type:   "req",
-				ID:     connectID,
-				Method: "connect",
-				Params: map[string]any{
-					"minProtocol": protocolVersion,
-					"maxProtocol": protocolVersion,
-					"client": map[string]any{
-						"id":       "deck-go-backend",
-						"version":  "dev",
-						"platform": "node",
-						"mode":     "backend",
-					},
-					"role": "operator",
-					"scopes": []string{
-						"operator.admin",
-						"operator.read",
-						"operator.write",
-						"operator.approvals",
-						"operator.pairing",
-					},
-					"caps": []string{"tool-events"},
-					"auth": map[string]any{
-						"token": token,
-					},
-				},
-			}); err != nil {
-				return err
-			}
-
-			for {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				default:
-				}
-				_, connectRaw, err := conn.ReadMessage()
-				if err != nil {
-					return err
-				}
-				var connectResp frame
-				if err := json.Unmarshal(connectRaw, &connectResp); err != nil {
-					continue
-				}
-				if connectResp.Type != "res" || connectResp.ID != connectID {
-					continue
-				}
-				if connectResp.Error != nil {
-					return fmt.Errorf("%s: %s", connectResp.Error.Code, connectResp.Error.Message)
-				}
-				return nil
-			}
-		}
-	}
 }
 
 func (r *Realtime) request(ctx context.Context, method string, params map[string]any) (any, error) {
@@ -295,4 +218,3 @@ func (r *Realtime) closeConnection(conn *websocket.Conn, err error) {
 	r.mu.Unlock()
 	_ = conn.Close()
 }
-

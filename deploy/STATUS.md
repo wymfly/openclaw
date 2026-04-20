@@ -7,9 +7,9 @@ This file is the current deployment source of truth for the Windows release host
 
 ## Last updated
 
-- Date: `2026-04-16`
+- Date: `2026-04-19`
 - Scope: Windows release host `60.204.148.217`
-- Updated during: live-service upgrade from latest local source build
+- Updated during: live-service deploy recovery + real Playwright validation
 
 ## Current live deployment
 
@@ -36,19 +36,40 @@ This file is the current deployment source of truth for the Windows release host
 
 ### Verification result for the current live app
 
-Verified from outside the server on `2026-04-16`:
+Verified from outside the server on `2026-04-19`:
 
 - `GET /` → `200`
 - `GET /api/gateway/health` → `200`
 - `GET /api/gateway/status` → `200`
-- `GET /api/stream` returns SSE events
+- `GET /api/stream` not re-verified in this pass
 - `GET http://60.204.148.217:8088/final-taskfix3/install.ps1` → `200`
 - `GET http://60.204.148.217:8088/final-taskfix3/windows-latest.json` → `200`
+
+Additional `2026-04-19` live validation notes:
+
+- `openclaw.json` SHA-256 after deploy recovery still matches the pre-deploy value:
+  - `ED86321AD4BB54152F965C0EB3B94CEA4D8D904A9E956C275F1EC994236728BD`
+- Remote Gateway local probe:
+  - `GET http://localhost:19040/healthz` → `200`
+- Browser-level Playwright validation against the deployed service:
+  - page shell loads
+  - `Channels` panel loads
+  - WeCom row becomes visible in the live `Channels` panel
+  - WeCom detail now renders the WeCom-specific shell and pages:
+    - `Overview`
+    - `Onboarding`
+    - `Access`
+  - WeCom diagnostics now report:
+    - `Healthy`
+    - `This account is linked and connected.`
+- Current committed `dashboard` live specs are not a reliable production acceptance gate yet because they wait on the dev-only `window.__TEST_UI_STORE__` hook exposed only when `NODE_ENV === "development"`.
 
 ### Config and backup
 
 - Backup created before the latest live upgrade:
   - `D:\openclaw\backups\upgrade-current-20260416-004235`
+- Backup used during the `2026-04-19` deploy recovery:
+  - `D:\openclaw\backups\live-manual-upgrade-20260419-0105`
 - `openclaw.json` SHA-256 before and after upgrade:
   - `ED86321AD4BB54152F965C0EB3B94CEA4D8D904A9E956C275F1EC994236728BD`
 
@@ -72,6 +93,26 @@ Verified from outside the server on `2026-04-16`:
   - Deck starts only after Gateway health becomes ready
 - Restarted and revalidated the independent release HTTP service on `8088`
 - Corrected the bootstrap and manifest URLs in the current publish directory so they include `:8088`
+- `2026-04-19` deploy recovery specifics:
+  - packaged latest local source revision into `openclaw-deploy-20260419-005535.tar.gz`
+  - uploaded publish metadata into:
+    - `D:\openclaw\publish\final-20260419-deck-e2e`
+  - remote Windows host still lacks a usable native `tar`, so the built-in package upgrade flow could not run unchanged
+  - a temporary Node-backed `tar` shim was used to recover the live service path
+  - the automatic package-upgrade backup tarball step proved too heavy for that shim, so the live root was promoted manually while preserving:
+    - `data`
+    - `source\deploy\.env`
+    - `source\node_modules`
+  - Deck runtime settings then had to be re-seeded via `POST /api/onboarding/save-settings` to restore `GET /api/gateway/health` to `200`
+  - a follow-up Deck-only hot update replaced:
+    - `source\dashboard\.next\standalone`
+    - `source\dashboard\.next\static`
+  - `source\dashboard\.next\standalone\dashboard\standalone-entry.mjs` had to be copied explicitly because the supervisor launch path depends on it
+  - `source\dashboard\.next\static` also had to be copied into:
+    - `source\dashboard\.next\standalone\dashboard\.next\static`
+      so production `_next/static/*` assets would stop returning `404`
+  - after the Deck-only restart, `POST /api/onboarding/save-settings` had to be replayed again to reattach the Deck server runtime to the local Gateway
+  - the dashboard diagnostics fix is intended to stop treating a connected WeCom account as `Enabled but not linked` when the backend omits the optional `linked` field
 
 ## Current release/install status
 
@@ -83,8 +124,10 @@ Verified from outside the server on `2026-04-16`:
   - `D:\openclaw\publish`
 - Current published release directory:
   - `D:\openclaw\publish\final-taskfix3`
+- New staged-but-not-finalized release directory from this pass:
+  - `D:\openclaw\publish\final-20260419-deck-e2e`
 
-### Important current gap
+### Important current gaps
 
 The **live service** is already upgraded to the latest local source build, but the **user-facing Windows self-contained package has not yet been regenerated from that latest source build**.
 
@@ -99,6 +142,13 @@ That means:
 - current live server runtime is newer than the published install/update package
 - the install bootstrap is reachable and corrected to `:8088`
 - but the next deployment pass still needs to publish a fresh self-contained package before declaring the public install/update artifact fully current
+- remote Windows host still needs a supported `tar` toolchain (or an officially supported alternative) before the validated self-contained package flow can be re-run end-to-end
+- live WeCom browser validation is only partially healthy:
+  - channel entry is present
+  - server health endpoints are healthy
+  - the backend `api/channels` payload reports `connected=true`, `running=true`, and `health=healthy` for `wecom/default`
+  - browser-side WeCom detail now also reports `Healthy`
+  - remaining gap is package/release tooling, not the current live WeCom diagnostics path
 
 ## Operational notes to preserve
 

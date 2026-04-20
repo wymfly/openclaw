@@ -9,7 +9,9 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
 )
 
-func registerInventoryRoutes(mux interface{ MethodFunc(string, string, http.HandlerFunc) }, client *gateway.Client) {
+func registerInventoryRoutes(mux interface {
+	MethodFunc(string, string, http.HandlerFunc)
+}, client *gateway.Client) {
 	mux.MethodFunc("GET", "/channels", func(w http.ResponseWriter, r *http.Request) {
 		params := map[string]any{}
 		if probe := r.URL.Query().Get("probe"); probe == "1" || probe == "true" {
@@ -79,6 +81,10 @@ func registerInventoryRoutes(mux interface{ MethodFunc(string, string, http.Hand
 	mux.MethodFunc("GET", "/sessions", func(w http.ResponseWriter, r *http.Request) {
 		params := map[string]any{}
 		query := r.URL.Query()
+		agentID := query.Get("agentId")
+		if agentID != "" {
+			params["agentId"] = agentID
+		}
 		if search := query.Get("search"); search != "" {
 			params["search"] = search
 		}
@@ -92,7 +98,43 @@ func registerInventoryRoutes(mux interface{ MethodFunc(string, string, http.Hand
 				params["activeMinutes"] = activeMinutes
 			}
 		}
-		callGateway(w, r, client, "sessions.list", params)
+		ctx := r.Context()
+		payload, err := client.Request(ctx, "sessions.list", params)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{
+				"ok":    false,
+				"error": err.Error(),
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"sessions": normalizeSessionMetas(payload, agentID),
+		})
+	})
+
+	mux.MethodFunc("GET", "/sessions/{sessionKey}", func(w http.ResponseWriter, r *http.Request) {
+		sessionKey := chi.URLParam(r, "sessionKey")
+		if sessionKey == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "sessionKey is required"})
+			return
+		}
+
+		query := r.URL.Query()
+		agentID := query.Get("agentId")
+		var limit int
+		if limitRaw := query.Get("limit"); limitRaw != "" {
+			if parsed, err := strconv.Atoi(limitRaw); err == nil && parsed > 0 {
+				limit = parsed
+			}
+		}
+
+		ctx := r.Context()
+		detail, err := fetchSessionDetailPayload(ctx, client, sessionKey, agentID, limit)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, detail)
 	})
 
 	mux.MethodFunc("GET", "/deck/plugins", func(w http.ResponseWriter, r *http.Request) {

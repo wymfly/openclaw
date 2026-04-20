@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 )
 
 const (
@@ -21,48 +21,62 @@ const (
 
 var requestCounter uint64
 
+type ConnectionProvider interface {
+	GatewayConnection() (string, string, bool)
+}
+
 type responseError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
 type frame struct {
-	Type   string         `json:"type"`
-	ID     string         `json:"id,omitempty"`
-	Event  string         `json:"event,omitempty"`
-	Method string         `json:"method,omitempty"`
-	Params map[string]any `json:"params,omitempty"`
-	Payload any           `json:"payload,omitempty"`
-	Error  *responseError `json:"error,omitempty"`
+	Type    string         `json:"type"`
+	ID      string         `json:"id,omitempty"`
+	Event   string         `json:"event,omitempty"`
+	Method  string         `json:"method,omitempty"`
+	Params  map[string]any `json:"params,omitempty"`
+	Payload any            `json:"payload,omitempty"`
+	Error   *responseError `json:"error,omitempty"`
 }
 
 type Client struct {
-	store *config.Store
+	provider ConnectionProvider
 }
 
-func New(store *config.Store) *Client {
-	return &Client{store: store}
+func New(provider ConnectionProvider) *Client {
+	return &Client{provider: provider}
 }
 
 func (c *Client) Request(ctx context.Context, method string, params map[string]any) (any, error) {
-	settings := c.store.Effective()
-	if strings.TrimSpace(settings.GatewayURL) == "" {
+	if c.provider == nil {
+		return nil, errors.New("gateway connection provider is not configured")
+	}
+	url, token, ok := c.provider.GatewayConnection()
+	if !ok {
+		return nil, errors.New("managed gateway connection is not configured")
+	}
+	return RequestDirect(ctx, url, token, method, params)
+}
+
+func RequestDirect(ctx context.Context, upstreamURL string, token string, method string, params map[string]any) (any, error) {
+	if strings.TrimSpace(upstreamURL) == "" {
 		return nil, errors.New("gateway url is not configured")
 	}
-	if strings.TrimSpace(settings.GatewayToken) == "" {
+	if strings.TrimSpace(token) == "" {
 		return nil, errors.New("gateway token is not configured")
 	}
 
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 8 * time.Second,
 	}
-	conn, _, err := dialer.DialContext(ctx, settings.GatewayURL, http.Header{})
+	conn, _, err := dialer.DialContext(ctx, upstreamURL, http.Header{})
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close()
 
-	if err := c.completeConnect(ctx, conn, settings.GatewayToken); err != nil {
+	if err := completeConnect(ctx, conn, token, "gateway-client"); err != nil {
 		return nil, err
 	}
 
@@ -100,9 +114,12 @@ func (c *Client) Request(ctx context.Context, method string, params map[string]a
 	}
 }
 
-func (c *Client) completeConnect(ctx context.Context, conn *websocket.Conn, token string) error {
-	challengeID := nextID()
-	_ = challengeID
+func ProbeHealth(ctx context.Context, upstreamURL string, token string) error {
+	_, err := RequestDirect(ctx, upstreamURL, token, "health", map[string]any{})
+	return err
+}
+
+func completeConnect(ctx context.Context, conn *websocket.Conn, token string, clientID string) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -118,33 +135,72 @@ func (c *Client) completeConnect(ctx context.Context, conn *websocket.Conn, toke
 			continue
 		}
 		if fr.Type == "event" && fr.Event == "connect.challenge" {
+			scopes := []string{
+				"operator.admin",
+				"operator.read",
+				"operator.write",
+				"operator.approvals",
+				"operator.pairing",
+			}
+			params := map[string]any{
+				"minProtocol": protocolVersion,
+				"maxProtocol": protocolVersion,
+				"client": map[string]any{
+					"id":       clientID,
+					"version":  "deck-go-dev",
+					"platform": runtime.GOOS,
+					"mode":     "backend",
+				},
+				"role":   "operator",
+				"scopes": scopes,
+				"caps":   []string{"tool-events"},
+				"auth": map[string]any{
+					"token": token,
+				},
+			}
+			payloadMap, _ := fr.Payload.(map[string]any)
+			nonce, _ := payloadMap["nonce"].(string)
+			if trimmedNonce := strings.TrimSpace(nonce); trimmedNonce != "" {
+				if identity, err := loadOrCreateDeviceIdentity(); err == nil {
+					signedAtMS := time.Now().UnixMilli()
+					payload := buildDeviceAuthPayloadV3(struct {
+						deviceID   string
+						clientID   string
+						clientMode string
+						role       string
+						scopes     []string
+						signedAtMS int64
+						token      string
+						nonce      string
+					}{
+						deviceID:   identity.deviceID,
+						clientID:   clientID,
+						clientMode: "backend",
+						role:       "operator",
+						scopes:     scopes,
+						signedAtMS: signedAtMS,
+						token:      token,
+						nonce:      trimmedNonce,
+					})
+					signature, signErr := signDevicePayload(identity.privateKeyPEM, payload)
+					publicKey, keyErr := publicKeyRawBase64URLFromPEM(identity.publicKeyPEM)
+					if signErr == nil && keyErr == nil {
+						params["device"] = map[string]any{
+							"id":        identity.deviceID,
+							"publicKey": publicKey,
+							"signature": signature,
+							"signedAt":  signedAtMS,
+							"nonce":     trimmedNonce,
+						}
+					}
+				}
+			}
 			connectID := nextID()
 			if err := conn.WriteJSON(frame{
 				Type:   "req",
 				ID:     connectID,
 				Method: "connect",
-				Params: map[string]any{
-					"minProtocol": protocolVersion,
-					"maxProtocol": protocolVersion,
-					"client": map[string]any{
-						"id":       "gateway-client",
-						"version":  "deck-go-dev",
-						"platform": "node",
-						"mode":     "backend",
-					},
-					"role": "operator",
-					"scopes": []string{
-						"operator.admin",
-						"operator.read",
-						"operator.write",
-						"operator.approvals",
-						"operator.pairing",
-					},
-					"caps": []string{"tool-events"},
-					"auth": map[string]any{
-						"token": token,
-					},
-				},
+				Params: params,
 			}); err != nil {
 				return err
 			}
@@ -192,4 +248,3 @@ func ResolveOrigin(upstreamURL string) string {
 	}
 	return u.String()
 }
-

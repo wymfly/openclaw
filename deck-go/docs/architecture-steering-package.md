@@ -68,18 +68,23 @@ The active migration should continue, but the document set must now enforce thes
 4. `deck-go` must not become a private API shim only for the current React app
 5. future enterprise-platform alignment is out of phase-1 scope, but must remain architecturally open
 
+## Branch / Worktree Execution Rule
+
+- Continue implementation on the current branch after the document package is aligned.
+- Treat `enhanced-freeze` as a fallback backup only.
+- Do not redirect the main migration into the backup worktree unless a later planning decision explicitly says so.
+
 ## Minimum Document Package
 
 To steer the active migration session without restarting it, use:
 
-### 1. Add one new north-star document
+### 1. Confirm the north-star document
 
-Add:
+Use:
 
 - `deck-go/docs/target-architecture.md`
 
-This new file is mandatory because no current doc fully states the final
-architecture in one place.
+This file now serves as the current north-star boundary document and should be treated as binding planning context unless a later planning review revises it.
 
 ### 2. Update four existing documents
 

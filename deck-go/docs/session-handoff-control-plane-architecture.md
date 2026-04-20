@@ -54,6 +54,13 @@ Do:
 - add the architecture steering and contract framing documents
 - then continue implementation under the corrected architecture
 
+## Branch / Worktree Execution Rule
+
+- Current branch remains the main implementation line.
+- `enhanced-freeze` is a backup worktree only.
+- The backup worktree exists to preserve a runnable version while current-branch architecture correction and implementation continue.
+- It must not become the default implementation lane unless a later planning decision explicitly changes that.
+
 This is the lowest-cost path.
 
 ## Why Soft Interruption Is Recommended
@@ -93,19 +100,13 @@ The active session should stop adding new broad implementation work for a moment
 
 ### Required actions
 
-1. Add `deck-go/docs/target-architecture.md`
+1. Confirm `deck-go/docs/target-architecture.md` as the north-star reference
 2. Update `.omx/plans/prd-deck-go-parallel-migration.md`
 3. Update `deck-go/docs/contracts/deck-backend-surface.md`
 4. Update `deck-go/docs/contracts/state-authority-matrix.md`
 5. Update `deck-go/docs/contracts/gateway-contract-inventory.md`
 
 After these document changes land, implementation should continue.
-
-Note:
-
-- a starter draft for `deck-go/docs/target-architecture.md` may be provided by a separate session
-- if present, treat it as **reference only**
-- the active implementation session owns the final wording and structure
 
 ## Final Target Architecture
 
@@ -179,8 +180,7 @@ These are the documents the session should use.
   Why: this is the steering document that explains exactly how to correct the framing without restarting the work
 
 - `deck-go/docs/target-architecture.md`
-  Why: this should become the north-star architecture document once created
-  Note: if a starter draft already exists, use it as reference rather than binding text
+  Why: this is the active north-star architecture document and should now be treated as binding planning context
 
 ### Second priority
 

@@ -1,24 +1,31 @@
 # Gateway Contract Inventory
 
-This document tracks the Gateway-facing contract surfaces that `deck-go/` depends on.
+This document separates:
+
+- **runtime-facing contracts**: how `deck-go` consumes `OpenClaw runtime`
+- **deck-facing contracts**: how the React frontend consumes `deck-go`
+
+This split is mandatory. Without it, the migration risks collapsing into a route-level port of the legacy Next handlers.
 
 ## Authority
 
-Gateway remains the only runtime/protocol authority.
+OpenClaw runtime remains the only runtime/protocol authority.
 
-Primary sources:
+Primary runtime-facing authority sources:
 
 - `src/gateway/method-registry.ts`
 - `src/gateway/server-methods.ts`
 - `src/gateway/protocol/schema.ts`
 - generated TS protocol artifacts currently used by legacy Deck
 
-## Inventory Categories
+## Runtime-Facing Contracts
+
+These are contracts where `deck-go` is the consumer.
 
 ### Capability bootstrap
 
 - `gateway.describe`
-- capability/status compatibility checks
+- runtime health / status capability checks
 
 ### Session runtime
 
@@ -27,19 +34,80 @@ Primary sources:
 - `sessions.abort`
 - `sessions.subscribe`
 - `sessions.messages.subscribe`
+- `sessions.messages.unsubscribe`
+- `sessions.preview`
+- `sessions.reset`
+- `sessions.clear`
+- `sessions.patch`
 
-### Config
+### Transcript seam
 
+- `chat.history`
+
+This is still an explicit transcript-read compatibility seam until a native `sessions.*` replacement with equivalent semantics exists.
+
+### Config authority
+
+- `config.get`
+- `config.patch`
+- `config.apply`
 - `config.schema.lookup`
-- config read / patch / apply methods to be enumerated in execution phase
 
 ### Inventory / control
 
-- channels, plugins, models, skills, logs, usage, and other operator-facing method families
+- channels
+- deck plugin inventory
+- models
+- logs
 
-## Legacy evidence snapshot
+## Deck-Facing Contracts
 
-Current hard dependencies already visible in legacy Deck:
+These are contracts where React is the consumer and `deck-go` is the owner.
+
+Examples:
+
+- backend bootstrap payload
+- deck-facing REST endpoints
+- deck-facing SSE event taxonomy
+- deck-owned projection/cache DTOs
+- compatibility façades for chat/session/config/inventory surfaces
+
+These contracts may normalize and aggregate runtime data, but must not redefine runtime truth.
+
+## Contract Governance
+
+### Runtime-facing governance
+
+- prefer generated or authority-derived bindings
+- keep runtime-facing consumption narrow
+- do not hand-redefine runtime semantics unless there is no upstream authority surface
+
+### Deck-facing governance
+
+- deck-go owns versioning and stability for frontend-facing APIs/SSE
+- deck-facing contracts must not be shaped purely by current page structure
+- contracts should remain reusable by future adjacent Go services where appropriate
+
+### Isomorphic vs normalized rule
+
+Must remain Gateway-isomorphic:
+
+- bootstrap capability discovery semantics
+- raw runtime truth boundaries
+- session side effects
+- config truth
+
+May be Deck-normalized:
+
+- operator auth/bootstrap views
+- inventory aggregation
+- transcript/UI projection
+- event fanout and replay continuity
+- health/status aggregation
+
+## Legacy Evidence Snapshot
+
+Current hard runtime-facing dependencies already visible in legacy Deck:
 
 - `dashboard/server/runtime.ts`
   - requires `gateway.describe`
@@ -53,77 +121,20 @@ Current hard dependencies already visible in legacy Deck:
   - proxies `sessions.send`
 - `dashboard/src/app/api/chat/abort/route.ts`
   - proxies `sessions.abort`
+- `dashboard/src/app/api/chat/history/route.ts`
+  - proxies `chat.history`
 - `dashboard/src/app/api/config/schema-lookup/route.ts`
   - proxies `config.schema.lookup`
 - `dashboard/src/app/api/gateway/describe/route.ts`
   - exposes `gateway.describe` to the frontend
 
-## Legacy API route footprint
+## Migration Rule
 
-Top-level route groups currently present under `dashboard/src/app/api/`:
+When a new Deck need appears, choose in this order:
 
-| Group        | Route files |
-| ------------ | ----------: |
-| `chat`       |          15 |
-| `deck`       |           9 |
-| `models`     |           8 |
-| `usage`      |           8 |
-| `devices`    |           7 |
-| `channels`   |           6 |
-| `agents`     |           5 |
-| `config`     |           5 |
-| `cron`       |           5 |
-| `skills`     |           5 |
-| `approvals`  |           4 |
-| `memory`     |           4 |
-| `webhooks`   |           4 |
-| `docs`       |           3 |
-| `gateway`    |           3 |
-| `monitor`    |           3 |
-| `onboarding` |           3 |
-| others       |   remaining |
+1. upstream/runtime-facing generic capability if it belongs in core
+2. plugin if it is modular and deck-specific
+3. deck-go if it is control-plane, projection, aggregation, or compatibility logic
+4. frontend only if it is purely presentational/transient
 
-Observations:
-
-- the legacy app has `170` route files under `dashboard/src/app/api/`
-- the route layer is already acting as a backend façade, not just a thin SSR convenience layer
-- `chat`, `deck`, `models`, `usage`, `channels`, and `config` are the densest migration surfaces
-
-## Initial method family classification
-
-### Phase 1 cutover-critical Gateway families
-
-- capability bootstrap
-  - `gateway.describe`
-- session runtime
-  - `sessions.create`
-  - `sessions.send`
-  - `sessions.abort`
-  - session subscription families referenced by runtime/chat SSE
-- config authority
-  - `config.schema.lookup`
-  - critical config read/write families to be enumerated from route inventory
-- inventory/control
-  - channels
-  - plugins / deck plugin inventory
-  - models
-  - logs
-
-### Phase 1 contract work required
-
-- enumerate exact method names consumed by each cutover-critical workflow
-- separate:
-  - direct Gateway passthrough
-  - normalized/backend-owned Deck API
-  - local-only Deck state
-- lock the first export bundle for:
-  - bootstrap
-  - chat send/abort/create
-  - config schema lookup
-  - channels/plugins/models inventory
-
-## Phase 1 Tasks
-
-- enumerate exact method families consumed by legacy Deck
-- map each family to generated TS authority and future Go binding target
-- mark each family as `required for cutover`, `required for parity`, or `deferred`
+Do not default to new shared core divergence.

@@ -4,11 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
+	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
 )
 
 func TestGatewayFacade_ConfigSchemaLookup(t *testing.T) {
@@ -67,7 +72,9 @@ func TestGatewayFacade_ChatSend(t *testing.T) {
 			"id":   params["_requestID"],
 			"ok":   true,
 			"payload": map[string]any{
-				"ok": true,
+				"runId":      "run-1",
+				"status":     "started",
+				"messageSeq": 1,
 			},
 		})
 	})
@@ -92,8 +99,54 @@ func TestGatewayFacade_ChatSend(t *testing.T) {
 	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload["ok"] != true {
+	if payload["runId"] != "run-1" || payload["status"] != "started" {
 		t.Fatalf("unexpected payload: %#v", payload)
+	}
+}
+
+func TestGatewayFacade_ChatSessionCreate(t *testing.T) {
+	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
+		if method != "sessions.create" {
+			t.Fatalf("unexpected method: %s", method)
+		}
+		if params["agentId"] != "main" || params["message"] != "hello" {
+			t.Fatalf("unexpected params: %#v", params)
+		}
+		_ = conn.WriteJSON(map[string]any{
+			"type": "res",
+			"id":   params["_requestID"],
+			"ok":   true,
+			"payload": map[string]any{
+				"key":        "session-1",
+				"sessionId":  "session-1",
+				"runStarted": true,
+				"runId":      "run-1",
+				"status":     "started",
+			},
+		})
+	})
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/chat/sessions/create", strings.NewReader(`{"agentId":"main","message":"hello"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["key"] != "session-1" || payload["runId"] != "run-1" || payload["status"] != "started" {
+		t.Fatalf("unexpected create payload: %#v", payload)
 	}
 }
 
@@ -107,7 +160,13 @@ func TestGatewayFacade_SessionsList(t *testing.T) {
 			"id":   params["_requestID"],
 			"ok":   true,
 			"payload": map[string]any{
-				"sessions": []map[string]any{{"key": "session-1"}},
+				"sessions": []map[string]any{{
+					"key":                "session-1",
+					"agentId":            "main",
+					"title":              "Test Session",
+					"lastMessagePreview": "hello",
+					"status":             "running",
+				}},
 			},
 		})
 	})
@@ -133,6 +192,10 @@ func TestGatewayFacade_SessionsList(t *testing.T) {
 	sessions, ok := payload["sessions"].([]any)
 	if !ok || len(sessions) != 1 {
 		t.Fatalf("unexpected payload: %#v", payload)
+	}
+	session, ok := sessions[0].(map[string]any)
+	if !ok || session["key"] != "session-1" || session["title"] != "Test Session" {
+		t.Fatalf("unexpected normalized session payload: %#v", payload)
 	}
 }
 
@@ -318,7 +381,7 @@ func TestGatewayFacade_ChannelPatchUsesConfigGetThenConfigPatch(t *testing.T) {
 }
 
 func TestGatewayFacade_ChatSnapshot(t *testing.T) {
-	expectedCalls := []string{"chat.history", "sessions.list"}
+	expectedCalls := []string{"sessions.get", "sessions.list"}
 	callIndex := 0
 
 	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
@@ -326,8 +389,8 @@ func TestGatewayFacade_ChatSnapshot(t *testing.T) {
 			t.Fatalf("unexpected method at index %d: %s", callIndex, method)
 		}
 		switch method {
-		case "chat.history":
-			if params["sessionKey"] != "session-1" {
+		case "sessions.get":
+			if params["key"] != "session-1" {
 				t.Fatalf("unexpected params: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
@@ -335,10 +398,20 @@ func TestGatewayFacade_ChatSnapshot(t *testing.T) {
 				"id":   params["_requestID"],
 				"ok":   true,
 				"payload": map[string]any{
-					"messages": []map[string]any{{"id": "msg-1"}},
+					"messages": []map[string]any{{
+						"id":   "msg-1",
+						"role": "assistant",
+						"content": []map[string]any{{
+							"type": "text",
+							"text": "hello",
+						}},
+					}},
 				},
 			})
 		case "sessions.list":
+			if params["search"] != "session-1" || params["limit"] != float64(1) {
+				t.Fatalf("unexpected sessions.list params: %#v", params)
+			}
 			_ = conn.WriteJSON(map[string]any{
 				"type": "res",
 				"id":   params["_requestID"],
@@ -373,9 +446,90 @@ func TestGatewayFacade_ChatSnapshot(t *testing.T) {
 	if !ok || len(messages) != 1 {
 		t.Fatalf("unexpected payload messages: %#v", payload)
 	}
-	meta, ok := payload["meta"].(map[string]any)
-	if !ok || meta["key"] != "session-1" {
-		t.Fatalf("unexpected payload meta: %#v", payload)
+	message, ok := messages[0].(map[string]any)
+	if !ok || message["id"] != "msg-1" || message["role"] != "assistant" {
+		t.Fatalf("unexpected normalized message payload: %#v", payload)
+	}
+	session, ok := payload["session"].(map[string]any)
+	if !ok || session["key"] != "session-1" {
+		t.Fatalf("unexpected payload session: %#v", payload)
+	}
+}
+
+func TestGatewayFacade_SessionDetail(t *testing.T) {
+	expectedCalls := []string{"sessions.get", "sessions.list"}
+	callIndex := 0
+
+	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
+		if method != expectedCalls[callIndex] {
+			t.Fatalf("unexpected method at index %d: %s", callIndex, method)
+		}
+		switch method {
+		case "sessions.get":
+			if params["key"] != "session-1" {
+				t.Fatalf("unexpected params: %#v", params)
+			}
+			_ = conn.WriteJSON(map[string]any{
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"messages": []map[string]any{{
+						"id":   "msg-1",
+						"role": "assistant",
+						"content": []map[string]any{{
+							"type": "text",
+							"text": "hello",
+						}},
+					}},
+				},
+			})
+		case "sessions.list":
+			if params["search"] != "session-1" || params["limit"] != float64(1) {
+				t.Fatalf("unexpected sessions.list params: %#v", params)
+			}
+			_ = conn.WriteJSON(map[string]any{
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"sessions": []map[string]any{{
+						"key":                "session-1",
+						"agentId":            "main",
+						"title":              "Test Session",
+						"lastMessagePreview": "hello",
+					}},
+				},
+			})
+		}
+		callIndex++
+	})
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/sessions/session-1?agentId=main&limit=10", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	session, ok := payload["session"].(map[string]any)
+	if !ok || session["key"] != "session-1" || session["agentId"] != "main" {
+		t.Fatalf("unexpected session detail payload: %#v", payload)
+	}
+	messages, ok := payload["messages"].([]any)
+	if !ok || len(messages) != 1 {
+		t.Fatalf("unexpected session detail messages: %#v", payload)
 	}
 }
 
@@ -392,7 +546,14 @@ func TestGatewayFacade_ChatHistory(t *testing.T) {
 			"id":   params["_requestID"],
 			"ok":   true,
 			"payload": map[string]any{
-				"messages": []map[string]any{{"id": "msg-1"}},
+				"messages": []map[string]any{{
+					"id":   "msg-1",
+					"role": "assistant",
+					"content": []map[string]any{{
+						"type": "text",
+						"text": "hello",
+					}},
+				}},
 			},
 		})
 	})
@@ -419,6 +580,54 @@ func TestGatewayFacade_ChatHistory(t *testing.T) {
 	if !ok || len(messages) != 1 {
 		t.Fatalf("unexpected payload: %#v", payload)
 	}
+	message, ok := messages[0].(map[string]any)
+	if !ok || message["role"] != "assistant" {
+		t.Fatalf("unexpected normalized history payload: %#v", payload)
+	}
+}
+
+func TestGatewayFacade_ChatAbort(t *testing.T) {
+	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
+		if method != "sessions.abort" {
+			t.Fatalf("unexpected method: %s", method)
+		}
+		if params["key"] != "session-1" || params["runId"] != "run-1" {
+			t.Fatalf("unexpected params: %#v", params)
+		}
+		_ = conn.WriteJSON(map[string]any{
+			"type": "res",
+			"id":   params["_requestID"],
+			"ok":   true,
+			"payload": map[string]any{
+				"ok":           true,
+				"abortedRunId": "run-1",
+				"status":       "aborted",
+			},
+		})
+	})
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/chat/abort", strings.NewReader(`{"sessionKey":"session-1","runId":"run-1"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["abortedRunId"] != "run-1" || payload["status"] != "aborted" {
+		t.Fatalf("unexpected abort payload: %#v", payload)
+	}
 }
 
 func TestGatewayFacade_SessionPreviewResetClearAndPatch(t *testing.T) {
@@ -435,7 +644,22 @@ func TestGatewayFacade_SessionPreviewResetClearAndPatch(t *testing.T) {
 			if !ok || len(keys) != 1 || keys[0] != "session-1" {
 				t.Fatalf("unexpected preview params: %#v", params)
 			}
-			_ = conn.WriteJSON(map[string]any{"type": "res", "id": params["_requestID"], "ok": true, "payload": map[string]any{"previews": []any{}}})
+			_ = conn.WriteJSON(map[string]any{
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"ts": 100,
+					"previews": []map[string]any{{
+						"key":    "session-1",
+						"status": "ok",
+						"items": []map[string]any{{
+							"role": "assistant",
+							"text": "preview text",
+						}},
+					}},
+				},
+			})
 		case "sessions.reset":
 			if params["key"] != "session-1" || params["reason"] != "reset" {
 				t.Fatalf("unexpected reset params: %#v", params)
@@ -480,10 +704,41 @@ func TestGatewayFacade_SessionPreviewResetClearAndPatch(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res.Body.Close()
 		if res.StatusCode != http.StatusOK {
+			res.Body.Close()
 			t.Fatalf("unexpected status for %s: %d", tc.path, res.StatusCode)
 		}
+		if tc.path == "/api/chat/sessions/preview" {
+			var payload map[string]any
+			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			previews, ok := payload["previews"].([]any)
+			if !ok || len(previews) != 1 {
+				t.Fatalf("unexpected preview payload: %#v", payload)
+			}
+			preview, ok := previews[0].(map[string]any)
+			if !ok || preview["key"] != "session-1" || preview["status"] != "ok" {
+				t.Fatalf("unexpected normalized preview payload: %#v", payload)
+			}
+			items, ok := preview["items"].([]any)
+			if !ok || len(items) != 1 {
+				t.Fatalf("unexpected normalized preview items: %#v", payload)
+			}
+			item, ok := items[0].(map[string]any)
+			if !ok || item["role"] != "assistant" || item["text"] != "preview text" {
+				t.Fatalf("unexpected normalized preview payload: %#v", payload)
+			}
+		} else {
+			var payload map[string]any
+			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload["key"] != "session-1" {
+				t.Fatalf("expected mutation payload to carry session key: %#v", payload)
+			}
+		}
+		res.Body.Close()
 	}
 }
 
@@ -500,8 +755,8 @@ func TestGatewayFacade_SessionEventsSubscribeAndUnsubscribe(t *testing.T) {
 		defer conn.Close()
 
 		_ = conn.WriteJSON(map[string]any{
-			"type":  "event",
-			"event": "connect.challenge",
+			"type":    "event",
+			"event":   "connect.challenge",
 			"payload": map[string]any{"nonce": "nonce-1"},
 		})
 
@@ -549,10 +804,27 @@ func TestGatewayFacade_SessionEventsSubscribeAndUnsubscribe(t *testing.T) {
 
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
-	t.Setenv("DECK_GO_GATEWAY_URL", "ws"+strings.TrimPrefix(wsServer.URL, "http"))
+	t.Setenv("DECK_GO_GATEWAY_BIND_PORT", strconv.Itoa(mustPort(t, wsServer.URL)))
 	t.Setenv("DECK_GO_GATEWAY_TOKEN", "gateway-token")
 
-	srv := httptest.NewServer(New())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bus := events.NewBus(8)
+	supervisor := &testSupervisor{
+		snapshot: runtimecontrol.Snapshot{
+			Managed:    true,
+			Configured: true,
+			Status:     runtimecontrol.StatusRunning,
+			Health:     runtimecontrol.HealthHealthy,
+			GatewayURL: config.ManagedGatewayURL(store.Effective().ManagedGateway),
+			AutoStart:  false,
+		},
+	}
+	client := gateway.New(supervisor)
+	realtime := gateway.NewRealtime(supervisor, bus)
+	srv := httptest.NewServer(newRouter(store, client, realtime, supervisor, bus))
 	defer srv.Close()
 
 	subscribeReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/chat/session-events", strings.NewReader(`{"action":"subscribe","sessionKey":"session-1"}`))
@@ -565,9 +837,17 @@ func TestGatewayFacade_SessionEventsSubscribeAndUnsubscribe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	subscribeRes.Body.Close()
 	if subscribeRes.StatusCode != http.StatusOK {
+		subscribeRes.Body.Close()
 		t.Fatalf("unexpected subscribe status: %d", subscribeRes.StatusCode)
+	}
+	var subscribePayload map[string]any
+	if err := json.NewDecoder(subscribeRes.Body).Decode(&subscribePayload); err != nil {
+		t.Fatal(err)
+	}
+	subscribeRes.Body.Close()
+	if subscribePayload["sessionKey"] != "session-1" || subscribePayload["action"] != "subscribe" {
+		t.Fatalf("unexpected subscribe payload: %#v", subscribePayload)
 	}
 
 	unsubscribeReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/chat/session-events", strings.NewReader(`{"action":"unsubscribe","sessionKey":"session-1"}`))
@@ -580,9 +860,17 @@ func TestGatewayFacade_SessionEventsSubscribeAndUnsubscribe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	unsubscribeRes.Body.Close()
 	if unsubscribeRes.StatusCode != http.StatusOK {
+		unsubscribeRes.Body.Close()
 		t.Fatalf("unexpected unsubscribe status: %d", unsubscribeRes.StatusCode)
+	}
+	var unsubscribePayload map[string]any
+	if err := json.NewDecoder(unsubscribeRes.Body).Decode(&unsubscribePayload); err != nil {
+		t.Fatal(err)
+	}
+	unsubscribeRes.Body.Close()
+	if unsubscribePayload["sessionKey"] != "session-1" || unsubscribePayload["action"] != "unsubscribe" {
+		t.Fatalf("unexpected unsubscribe payload: %#v", unsubscribePayload)
 	}
 }
 
@@ -674,10 +962,28 @@ func newGatewayBackedServer(t *testing.T, handleMethod func(conn *websocket.Conn
 
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
-	t.Setenv("DECK_GO_GATEWAY_URL", "ws"+strings.TrimPrefix(wsServer.URL, "http"))
+	t.Setenv("DECK_GO_GATEWAY_BIND_PORT", strconv.Itoa(mustPort(t, wsServer.URL)))
 	t.Setenv("DECK_GO_GATEWAY_TOKEN", "gateway-token")
 
-	server := httptest.NewServer(New())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bus := events.NewBus(8)
+	supervisor := &testSupervisor{
+		snapshot: runtimecontrol.Snapshot{
+			Managed:    true,
+			Configured: true,
+			Status:     runtimecontrol.StatusRunning,
+			Health:     runtimecontrol.HealthHealthy,
+			GatewayURL: config.ManagedGatewayURL(store.Effective().ManagedGateway),
+			AutoStart:  false,
+		},
+	}
+	client := gateway.New(supervisor)
+	realtime := gateway.NewRealtime(supervisor, bus)
+
+	server := httptest.NewServer(newRouter(store, client, realtime, supervisor, bus))
 	t.Cleanup(server.Close)
 	return server
 }
