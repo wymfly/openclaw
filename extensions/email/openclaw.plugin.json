@@ -1,0 +1,87 @@
+{
+  "id": "email",
+  "name": "Email",
+  "description": "Bundled IMAP email tools for listing messages and downloading attachments.",
+  "contracts": {
+    "tools": ["email_list", "email_read", "email_download_attachments"]
+  },
+  "uiHints": {
+    "defaultAccountId": {
+      "label": "Default Account ID",
+      "help": "Account id used when a tool call omits accountId."
+    },
+    "accounts.password": {
+      "label": "IMAP Password",
+      "help": "Password or SecretRef used for IMAP LOGIN.",
+      "sensitive": true
+    },
+    "downloadPolicy.allowedWriteRoots": {
+      "label": "Allowed Attachment Output Roots",
+      "help": "Absolute paths attachments may be written to. Defaults to the current workspace root."
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "defaultAccountId": {
+        "type": "string"
+      },
+      "accounts": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "host", "user"],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string"
+            },
+            "port": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "secure": {
+              "type": "boolean"
+            },
+            "user": {
+              "type": "string"
+            },
+            "password": {
+              "type": ["string", "object"]
+            },
+            "mailbox": {
+              "type": "string"
+            },
+            "tls": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "rejectUnauthorized": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      },
+      "downloadPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allowedWriteRoots": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -254,6 +254,10 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/device-pair/**"
+"extensions: email":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/email/**"
 "extensions: duckduckgo":
   - changed-files:
       - any-glob-to-any-file:
