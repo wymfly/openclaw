@@ -1,22 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const getBudgetRuleStore = vi.fn();
-
-vi.mock("@server/budget-alert-stores", () => ({
-  getBudgetRuleStore,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest, ctx: unknown) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/usage/budget/[ruleId]", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    getBudgetRuleStore.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
@@ -62,15 +51,8 @@ describe("/api/usage/budget/[ruleId]", () => {
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local store handlers when no deck-go base is configured", async () => {
+  it("returns 503 when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    const updateItem = vi.fn();
-    const removeWhere = vi.fn().mockReturnValue(1);
-    getBudgetRuleStore.mockReturnValue({
-      find: vi.fn().mockReturnValue({ id: "r1", name: "Budget" }),
-      updateItem,
-      removeWhere,
-    });
     const { PATCH, DELETE } = await import("./route.js");
     const patchResponse = await PATCH(
       new NextRequest("http://localhost/api/usage/budget/r1", {
@@ -84,9 +66,13 @@ describe("/api/usage/budget/[ruleId]", () => {
       new NextRequest("http://localhost/api/usage/budget/r1", { method: "DELETE" }),
       { params: Promise.resolve({ ruleId: "r1" }) },
     );
-    expect(patchResponse.status).toBe(200);
-    expect(deleteResponse.status).toBe(200);
-    expect(updateItem).toHaveBeenCalledTimes(1);
-    expect(removeWhere).toHaveBeenCalledTimes(1);
+    expect(patchResponse.status).toBe(503);
+    expect(await patchResponse.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
+    expect(deleteResponse.status).toBe(503);
+    expect(await deleteResponse.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });

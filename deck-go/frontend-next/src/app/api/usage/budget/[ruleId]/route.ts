@@ -1,99 +1,28 @@
-import { getBudgetRuleStore } from "@server/budget-alert-stores";
-import { NextRequest, NextResponse } from "next/server";
-import { maybeProxyToDeckGo } from "@/app/api/_deck-go-proxy";
-/**
- * PATCH /api/usage/budget/:ruleId — Update a budget rule.
- * DELETE /api/usage/budget/:ruleId — Delete a budget rule.
- *
- * JSON file storage via JsonStore.
- */
-import { withAuth } from "@/lib/with-auth";
-
-const VALID_DIMENSIONS = new Set(["tokensIn", "tokensOut", "totalTokens", "cost"]);
-const VALID_PERIODS = new Set(["daily", "weekly", "monthly"]);
+import { NextRequest } from "next/server";
+import { deckGoUnavailableResponse, maybeProxyToDeckGo } from "@/app/api/_deck-go-proxy";
 
 type RouteContext = { params: Promise<{ ruleId: string }> };
 
-async function localBudgetPatchHandler(req: NextRequest, ctx: unknown) {
-  const { ruleId } = await (ctx as RouteContext).params;
-  const store = getBudgetRuleStore();
-
-  const existing = store.find((r) => r.id === ruleId);
-  if (!existing) {
-    return NextResponse.json({ error: "Rule not found" }, { status: 404 });
-  }
-
-  const body = (await req.json()) as {
-    name?: string;
-    scope?: string;
-    agentId?: string | null;
-    taskId?: string | null;
-    dimension?: string;
-    warnThreshold?: number | null;
-    overThreshold?: number | null;
-    period?: string;
-    enabled?: boolean;
-  };
-
-  if (body.dimension !== undefined && !VALID_DIMENSIONS.has(body.dimension)) {
-    return NextResponse.json({ error: "Invalid dimension" }, { status: 400 });
-  }
-  if (body.period !== undefined && !VALID_PERIODS.has(body.period)) {
-    return NextResponse.json({ error: "Invalid period" }, { status: 400 });
-  }
-
-  const hasUpdate = Object.keys(body).length > 0;
-  if (!hasUpdate) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
-  }
-
-  store.updateItem(
-    (r) => r.id === ruleId,
-    (r) => ({
-      ...r,
-      ...(body.name !== undefined && { name: body.name }),
-      ...(body.scope !== undefined && { scope: body.scope }),
-      ...(body.agentId !== undefined && { agentId: body.agentId }),
-      ...(body.taskId !== undefined && { taskId: body.taskId }),
-      ...(body.dimension !== undefined && { dimension: body.dimension }),
-      ...(body.warnThreshold !== undefined && { warnThreshold: body.warnThreshold }),
-      ...(body.overThreshold !== undefined && { overThreshold: body.overThreshold }),
-      ...(body.period !== undefined && { period: body.period }),
-      ...(body.enabled !== undefined && { enabled: body.enabled }),
-      updatedAt: new Date().toISOString(),
-    }),
-  );
-
-  const updated = store.find((r) => r.id === ruleId);
-  return NextResponse.json(updated);
-}
-
-async function localBudgetDeleteHandler(_req: NextRequest, ctx: unknown) {
-  const { ruleId } = await (ctx as RouteContext).params;
-  const removed = getBudgetRuleStore().removeWhere((r) => r.id === ruleId);
-  if (removed === 0) {
-    return NextResponse.json({ error: "Rule not found" }, { status: 404 });
-  }
-  return NextResponse.json({ deleted: true });
-}
-
-const guardedLocalBudgetPatchHandler = withAuth(localBudgetPatchHandler);
-const guardedLocalBudgetDeleteHandler = withAuth(localBudgetDeleteHandler);
-
 export async function PATCH(request: NextRequest, ctx: unknown) {
   const { ruleId } = await (ctx as RouteContext).params;
-  const proxied = await maybeProxyToDeckGo(request, `/api/v1/usage/budget/${encodeURIComponent(ruleId)}`);
+  const proxied = await maybeProxyToDeckGo(
+    request,
+    `/api/v1/usage/budget/${encodeURIComponent(ruleId)}`,
+  );
   if (proxied) {
     return proxied;
   }
-  return guardedLocalBudgetPatchHandler(request, ctx);
+  return deckGoUnavailableResponse();
 }
 
 export async function DELETE(request: NextRequest, ctx: unknown) {
   const { ruleId } = await (ctx as RouteContext).params;
-  const proxied = await maybeProxyToDeckGo(request, `/api/v1/usage/budget/${encodeURIComponent(ruleId)}`);
+  const proxied = await maybeProxyToDeckGo(
+    request,
+    `/api/v1/usage/budget/${encodeURIComponent(ruleId)}`,
+  );
   if (proxied) {
     return proxied;
   }
-  return guardedLocalBudgetDeleteHandler(request, ctx);
+  return deckGoUnavailableResponse();
 }
