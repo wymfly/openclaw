@@ -697,6 +697,51 @@ export type DeckGoConfigLookupResponse = {
   children: DeckGoConfigLookupChild[];
 };
 
+export type DeckGoAgentSummary = {
+  id: string;
+  name?: string;
+  emoji?: string;
+  avatar?: string;
+  workspace?: string;
+  model?: string;
+  [key: string]: unknown;
+};
+
+export type DeckGoAgentsListResponse = {
+  agents: DeckGoAgentSummary[];
+  defaultId?: string;
+};
+
+export type DeckGoAgentDetailResponse = {
+  id: string;
+  name?: string;
+  workspace: string;
+  model?: string;
+  reasoningDefault?: "on" | "off" | "stream";
+  fastModeDefault?: boolean;
+  isDefault: boolean;
+  bindingCount: number;
+  sessionCount: number;
+  activeSubagentCount: number;
+  skillMode: string;
+  effectiveSkills: string[];
+  totalAvailableSkills: number;
+  subagents: {
+    allowAgents: string[];
+    model?: string;
+    effectiveMaxSpawnDepth: number;
+    effectiveMaxChildrenPerAgent: number;
+  };
+  sandbox?: unknown;
+  identityExists: boolean;
+  fallbackModels?: string[];
+};
+
+export type DeckGoAgentMutationResponse = {
+  ok?: boolean;
+  id?: string;
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -1332,6 +1377,58 @@ export async function lookupConfigPath(path: string) {
       body: JSON.stringify({ path }),
     },
     "config schema lookup failed",
+  );
+}
+
+export async function fetchAgentsList() {
+  return fetchDeckJson<DeckGoAgentsListResponse>("/agents", undefined, "agents fetch failed");
+}
+
+export async function fetchAgentDetail(agentId: string) {
+  return fetchDeckJson<DeckGoAgentDetailResponse>(
+    `/deck/agents?agentId=${encodeURIComponent(agentId)}`,
+    undefined,
+    "agent detail fetch failed",
+  );
+}
+
+export async function createAgent(params: {
+  name: string;
+  workspace?: string;
+  emoji?: string;
+  avatar?: string;
+}) {
+  return fetchDeckJson<DeckGoAgentMutationResponse>(
+    "/agents",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    },
+    "agent create failed",
+  );
+}
+
+export async function updateAgent(
+  agentId: string,
+  params: { name?: string; workspace?: string; emoji?: string; avatar?: string },
+) {
+  return fetchDeckJson<DeckGoAgentMutationResponse>(
+    `/agents/${encodeURIComponent(agentId)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    },
+    "agent update failed",
+  );
+}
+
+export async function deleteAgent(agentId: string) {
+  return fetchDeckJson<DeckGoAgentMutationResponse>(
+    `/agents?agentId=${encodeURIComponent(agentId)}`,
+    { method: "DELETE" },
+    "agent delete failed",
   );
 }
 

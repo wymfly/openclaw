@@ -9,6 +9,7 @@ import {
 } from "./panel-navigation";
 import { findRestoredPanel, panelPlaceholderDescription } from "./panel-registry";
 import { RestoredActivityPanel } from "./panels/RestoredActivityPanel";
+import { RestoredAgentsPanel } from "./panels/RestoredAgentsPanel";
 import { RestoredAlertsPanel } from "./panels/RestoredAlertsPanel";
 import { RestoredApiExplorerPanel } from "./panels/RestoredApiExplorerPanel";
 import { RestoredApprovalsPanel } from "./panels/RestoredApprovalsPanel";
@@ -56,6 +57,10 @@ export function ActivePanelHost() {
 
   if (entry.id === "chat") {
     return <RestoredChatPanel />;
+  }
+
+  if (entry.id === "agents") {
+    return <RestoredAgentsPanel />;
   }
 
   if (entry.id === "gateway") {

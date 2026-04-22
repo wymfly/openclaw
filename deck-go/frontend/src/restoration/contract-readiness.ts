@@ -14,9 +14,9 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
       "Current deck-go chat/session APIs and stream seams exist, but the legacy chat panel composition still needs a panel-grade adapter.",
   },
   agents: {
-    status: "frontend-blocked",
+    status: "ready-with-adapter",
     evidence:
-      "Legacy agent detail/list workflow is not yet restored against deck-go-owned frontend structure.",
+      "deck-go agent list/detail/create/update/delete seams now back a restored Vite panel, while the deeper agent tabs remain future adapter work.",
   },
   gateway: {
     status: "ready-with-adapter",
