@@ -6,7 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -239,6 +241,149 @@ func TestExternalPackages_DoNotCallRawManagedRuntimeSupervisorMethods(t *testing
 					t.Fatalf("unexpected raw ManagedRuntimeSurface supervisor dependency %q in %s", pattern, file)
 				}
 			}
+		}
+	}
+}
+
+func TestExternalPackages_UseOnlyDedicatedManagedRuntimeSurfaceMethods(t *testing.T) {
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("failed to resolve current test file")
+	}
+
+	root := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
+	targetDirs := []string{
+		filepath.Join(root, "server"),
+		filepath.Join(root, "controld"),
+	}
+	allowedMethods := map[string]struct{}{
+		"BootstrapStatus":             {},
+		"Describe":                    {},
+		"EnsureAutoStart":             {},
+		"EventBus":                    {},
+		"EventsSince":                 {},
+		"GatewayQueries":              {},
+		"GetApprovals":                {},
+		"GetChannels":                 {},
+		"GetConfig":                   {},
+		"GetConfigSchema":             {},
+		"GetCurrentDeviceID":          {},
+		"GetDeckAgentDetail":          {},
+		"GetDeckSubagentLineage":      {},
+		"GetDoc":                      {},
+		"GetGatewayDescribe":          {},
+		"GetGatewayHealth":            {},
+		"GetGatewayStatus":            {},
+		"GetMedia":                    {},
+		"GetMemoryHealth":             {},
+		"GetModelAuthOverview":        {},
+		"GetModelUsageCost":           {},
+		"GetModelUsageProviders":      {},
+		"GetModelsConfig":             {},
+		"GetOnboardingStatus":         {},
+		"GetStats":                    {},
+		"GetTimelineWithParams":       {},
+		"GetUsage":                    {},
+		"GetUsageCost":                {},
+		"GetUsageSessionLogs":         {},
+		"GetUsageSessions":            {},
+		"GetUsageTimeseries":          {},
+		"GetVersion":                  {},
+		"HandleDeckCanvas":            {},
+		"Health":                      {},
+		"InstallSkill":                {},
+		"ListActivity":                {},
+		"ListAgentFiles":              {},
+		"ListAgents":                  {},
+		"ListBudgetRules":             {},
+		"ListChannels":                {},
+		"ListCommands":                {},
+		"ListConfiguredModels":        {},
+		"ListCronJobs":                {},
+		"ListCronRuns":                {},
+		"ListDeckIdentity":            {},
+		"ListDeckPlugins":             {},
+		"ListDeckRouting":             {},
+		"ListDeckSubagents":           {},
+		"ListDeckThreads":             {},
+		"ListDevices":                 {},
+		"ListDocs":                    {},
+		"ListModels":                  {},
+		"ListNodes":                   {},
+		"ListNodePairing":             {},
+		"ListPendingApprovals":        {},
+		"ListPluginApprovals":         {},
+		"ListRuns":                    {},
+		"ListSessionsWithParams":      {},
+		"ListSkills":                  {},
+		"LoadGatewayStatus":           {},
+		"LogsTail":                    {},
+		"Patch":                       {},
+		"PatchChannel":                {},
+		"PatchConfig":                 {},
+		"PatchModelsConfig":           {},
+		"ProbeModelAuth":              {},
+		"ResolveApproval":             {},
+		"ResolvePluginApproval":       {},
+		"RunCompactionAction":         {},
+		"RunDeckAgentAction":          {},
+		"RunMemoryDreamAction":        {},
+		"RunNodeAction":               {},
+		"RunNodePairAction":           {},
+		"RunSkillsHubAction":          {},
+		"RuntimeGatewayStatusResponse": {},
+		"RuntimeRegistry":             {},
+		"SearchMemory":                {},
+		"SessionCommands":             {},
+		"SessionQueries":              {},
+		"SessionSubscriptions":        {},
+		"StartRuntimeGateway":         {},
+		"Status":                      {},
+		"StopRuntimeGateway":          {},
+		"SubscribeStream":             {},
+		"TestChannel":                 {},
+		"TestConnection":              {},
+		"TestLegacySettingsConnection": {},
+		"TestOnboardingConnection":    {},
+		"ToolsCatalog":                {},
+		"UpdateSettings":              {},
+		"UpdateSettingsFromConfig":    {},
+	}
+	pattern := regexp.MustCompile(`managed\.([A-Za-z_][A-Za-z0-9_]*)\(|deps\.Runtime\.([A-Za-z_][A-Za-z0-9_]*)\(`)
+
+	for _, dir := range targetDirs {
+		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+		if err != nil {
+			t.Fatalf("failed to glob %s: %v", dir, err)
+		}
+		for _, file := range files {
+			if strings.HasSuffix(file, "_test.go") {
+				continue
+			}
+			content, err := os.ReadFile(file)
+			if err != nil {
+				t.Fatalf("failed to read %s: %v", file, err)
+			}
+			matches := pattern.FindAllStringSubmatch(string(content), -1)
+			var methods []string
+			for _, match := range matches {
+				method := match[1]
+				if method == "" {
+					method = match[2]
+				}
+				if method == "" {
+					continue
+				}
+				methods = append(methods, method)
+				if _, ok := allowedMethods[method]; !ok {
+					t.Fatalf("unexpected ManagedRuntimeSurface dependency %q in %s", method, file)
+				}
+			}
+			if len(methods) == 0 {
+				continue
+			}
+			sort.Strings(methods)
+			t.Logf("%s uses ManagedRuntimeSurface methods: %s", file, strings.Join(methods, ", "))
 		}
 	}
 }
