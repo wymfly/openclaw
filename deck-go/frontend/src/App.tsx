@@ -119,7 +119,12 @@ function upsertTranscriptMessage(
     copy[index] = nextMessage;
     return copy;
   }
-  return [...current, nextMessage].slice().toSorted((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+  return [...current, nextMessage]
+    .slice()
+    .toSorted(
+      (a: DeckGoTranscriptMessage, b: DeckGoTranscriptMessage) =>
+        (a.timestamp ?? 0) - (b.timestamp ?? 0),
+    );
 }
 
 function firstTextContent(message: DeckGoTranscriptMessage | undefined) {
@@ -215,9 +220,15 @@ function upsertToolProgressEntry(
   if (index >= 0) {
     const copy = entries.slice();
     copy[index] = next;
-    return copy.slice().toSorted((a, b) => b.ts - a.ts).slice(0, 8);
+    return copy
+      .slice()
+      .toSorted((a: ToolProgressEntry, b: ToolProgressEntry) => b.ts - a.ts)
+      .slice(0, 8);
   }
-  return [next, ...entries].slice().toSorted((a, b) => b.ts - a.ts).slice(0, 8);
+  return [next, ...entries]
+    .slice()
+    .toSorted((a: ToolProgressEntry, b: ToolProgressEntry) => b.ts - a.ts)
+    .slice(0, 8);
 }
 
 export function App() {

@@ -82,7 +82,7 @@ func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurfac
 		registerSessionEventRoute(api, managed)
 		registerChatSnapshotRoute(api, managed)
 		registerEventStreamRoutes(api, managed)
-		registerRuntimeRoutes(api, managed.RuntimeSupervisor())
+		registerRuntimeRoutes(api, managed)
 	})
 
 	registerStaticRoutes(r)
