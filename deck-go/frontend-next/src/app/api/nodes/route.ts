@@ -1,44 +1,28 @@
 /**
  * /api/nodes — Node list, describe, and rename.
  *
- * GET  — List all nodes (node.list)
+ * GET  — List all nodes
  * POST — Dispatch describe/rename by action field
  */
-import { type NextRequest } from "next/server";
-import { NextResponse } from "next/server";
-import { fetchDeckGo } from "@/app/api/_deck-go-proxy";
-import { gwRequest } from "@/lib/api-helpers";
-import { withAuth } from "@/lib/with-auth";
+import { NextResponse, type NextRequest } from "next/server";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 const DEFAULT_RUNTIME_ID = "rt_local";
 
-async function localNodesGetHandler(_request: NextRequest) {
-  return gwRequest("node.list", {});
-}
-
 type NodeAction = "describe" | "rename";
-
-async function localNodesPostHandler(request: NextRequest) {
+async function validateNodesPost(request: NextRequest) {
   const body = (await request.json()) as {
     action?: NodeAction;
     [key: string]: unknown;
   };
-
-  const { action, ...params } = body;
-  const p = params as never;
-
-  switch (action) {
+  switch (body.action) {
     case "describe":
-      return gwRequest("node.describe", p);
     case "rename":
-      return gwRequest("node.rename", p);
+      return null;
     default:
-      return Response.json({ error: "Invalid action" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 }
-
-const guardedLocalNodesGetHandler = withAuth(localNodesGetHandler);
-const guardedLocalNodesPostHandler = withAuth(localNodesPostHandler);
 
 export async function GET(request: NextRequest) {
   const proxied = await fetchDeckGo(
@@ -52,10 +36,14 @@ export async function GET(request: NextRequest) {
     const payload = (await proxied.json()) as { payload?: unknown };
     return NextResponse.json(payload.payload ?? {});
   }
-  return guardedLocalNodesGetHandler(request);
+  return deckGoUnavailableResponse();
 }
 
 export async function POST(request: NextRequest) {
+  const invalid = await validateNodesPost(request.clone());
+  if (invalid) {
+    return invalid;
+  }
   const proxied = await fetchDeckGo(
     request,
     `/api/v1/runtimes/${encodeURIComponent(DEFAULT_RUNTIME_ID)}/nodes`,
@@ -63,5 +51,5 @@ export async function POST(request: NextRequest) {
   if (proxied) {
     return proxied;
   }
-  return guardedLocalNodesPostHandler(request);
+  return deckGoUnavailableResponse();
 }

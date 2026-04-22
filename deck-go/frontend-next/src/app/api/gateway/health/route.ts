@@ -1,20 +1,10 @@
 /**
  * GET /api/gateway/health — Gateway health check.
- *
- * Calls `health` RPC to retrieve health details (sessions, channels, auth).
  */
 import { type NextRequest, NextResponse } from "next/server";
-import { gatewayRequest } from "@/lib/api-helpers";
-import { fetchDeckGo } from "@/app/api/_deck-go-proxy";
-import { withAuth } from "@/lib/with-auth";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 const DEFAULT_RUNTIME_ID = "rt_local";
-
-async function localHealthHandler(_request: NextRequest) {
-  return gatewayRequest("health", {});
-}
-
-const guardedLocalHealthHandler = withAuth(localHealthHandler);
 
 export async function GET(request: NextRequest) {
   const proxied = await fetchDeckGo(
@@ -28,5 +18,5 @@ export async function GET(request: NextRequest) {
     const payload = (await proxied.json()) as { health?: unknown };
     return NextResponse.json(payload.health ?? {});
   }
-  return guardedLocalHealthHandler(request);
+  return deckGoUnavailableResponse();
 }
