@@ -47,6 +47,11 @@ collapse together:
     route cutover; treat `openclaw.ManagedRuntime` as the lifecycle response
     authority even when `internal/server/runtime.go` still contains thin HTTP
     translation helpers
+  - is also the external-consumption seam for lifecycle route/status behavior:
+    downstream packages should use `ManagedRuntime` route/status helpers such as
+    `RuntimeGatewayStatusResponse`, `StartRuntimeGateway`, `StopRuntimeGateway`,
+    and `RestartRuntimeGateway` instead of reaching for raw supervisor lifecycle
+    methods directly
 - `internal/runtime/registry`
   - owns read-only runtime inventory summaries plus replay/subscribe feed
   - consumes supervisor snapshots and capability summaries
@@ -58,5 +63,7 @@ This split preserves the intended authority model:
 - `deck-go` owns bounded lifecycle supervision above that truth
 - legacy runtime-gateway route ownership now flows through
   `openclaw.ManagedRuntime`, not `internal/server`
+- external packages should depend on `ManagedRuntime` lifecycle route/status
+  helpers, not raw supervisor lifecycle methods
 - registry surfaces stay descriptive/read-only even when they are fed by
   supervisor lifecycle events
