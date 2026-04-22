@@ -391,7 +391,7 @@ export const useSessionsStore = create<SessionsState>((set, get) => ({
 
   compactSession: async (key) => {
     try {
-      const res = await fetch("/api/chat/compact", {
+      const res = await deckFetch("/api/chat/compact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionKey: key }),

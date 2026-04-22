@@ -1,3 +1,5 @@
+import { deckFetch } from "@/lib/deck-client";
+
 export enum GatewayErrorCode {
   GATEWAY_ERROR = "GATEWAY_ERROR",
   UNAUTHORIZED = "UNAUTHORIZED",
@@ -64,7 +66,7 @@ export async function fetchApi<T>(url: RequestInfo | URL, init?: RequestInit): P
   let response: Response;
 
   try {
-    response = init ? await fetch(url, init) : await fetch(url);
+    response = init ? await deckFetch(url, init) : await deckFetch(url);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Network request failed";
     throw new DeckApiError(GatewayErrorCode.INTERNAL, 0, { error: message });

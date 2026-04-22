@@ -143,11 +143,14 @@ describe("CapabilityActionBar", () => {
 
     await Promise.resolve();
 
-    expect(global.fetch).toHaveBeenCalledWith("/api/channels/feishu/test", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/channels/feishu/test",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.any(Headers),
+        body: JSON.stringify({}),
+      }),
+    );
     await waitFor(() => {
       expect(addToast).toHaveBeenCalledWith("success", "Check passed", 3000);
     });

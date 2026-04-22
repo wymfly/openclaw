@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { resolveChannelUiDefinition } from "@/features/channels/registry/channel-ui-authority";
+import { deckFetch } from "@/lib/deck-client";
 import { useChannelsStore } from "@/stores/channels";
 import { useNotificationsStore } from "@/stores/notifications";
 import { usePluginsStore } from "@/stores/plugins";
@@ -84,7 +85,7 @@ export function CapabilityActionBar({
             onClick={async () => {
               setTestingChannel(channelId);
               try {
-                const response = await fetch(
+                const response = await deckFetch(
                   `/api/channels/${encodeURIComponent(channelId)}/test`,
                   {
                     method: "POST",

@@ -45,7 +45,12 @@ describe("plugins inventory store", () => {
 
     await usePluginsStore.getState().fetchPlugins();
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/deck/plugins");
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/deck/plugins",
+      expect.objectContaining({
+        headers: expect.any(Headers),
+      }),
+    );
     expect(usePluginsStore.getState().scope).toBe("channel");
     expect(usePluginsStore.getState().plugins[0]).toMatchObject({
       id: "wecom",

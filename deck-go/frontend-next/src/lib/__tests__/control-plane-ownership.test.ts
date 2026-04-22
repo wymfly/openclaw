@@ -249,6 +249,24 @@ describe("frontend-next control-plane ownership", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps production src code off raw same-origin /api fetch calls", () => {
+    const sourceFiles = collectFiles(
+      srcRoot,
+      (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
+    );
+    const offenders: string[] = [];
+
+    for (const file of sourceFiles) {
+      const source = readFileSync(file, "utf8");
+      if (!/\bfetch\(\s*["'`]\/api\//.test(source)) {
+        continue;
+      }
+      offenders.push(relative(srcRoot, file));
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it("does not reference the removed deck subagent lineage pseudo-route", () => {
     const sourceFiles = collectFiles(srcRoot, (file) => {
       if (!/\.(ts|tsx)$/.test(file)) {

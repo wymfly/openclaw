@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { fetchApi } from "@/lib/errors";
 
 const FETCH_PLUGINS_ERROR = "Failed to fetch plugins";
 const DEFAULT_SCOPE = "channel";
@@ -74,15 +75,9 @@ export const usePluginsStore = create<PluginsInventoryState>((set) => ({
   fetchPlugins: async (options) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(getPluginsInventoryUrl(options?.capability));
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({ error: FETCH_PLUGINS_ERROR }))) as {
-          error?: string;
-        };
-        set({ error: body.error ?? FETCH_PLUGINS_ERROR });
-        return;
-      }
-      const data = (await res.json()) as PluginsInventoryResponse;
+      const data = await fetchApi<PluginsInventoryResponse>(
+        getPluginsInventoryUrl(options?.capability),
+      );
       set({
         scope: data.scope ?? DEFAULT_SCOPE,
         plugins: Array.isArray(data.plugins) ? data.plugins : [],
