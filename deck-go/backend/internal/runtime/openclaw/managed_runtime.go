@@ -1244,6 +1244,13 @@ func (m *ManagedRuntime) GetModelUsageCost(ctx context.Context, days int) (any, 
 	return m.UsageCost(ctx, map[string]any{"days": days})
 }
 
+func (m *ManagedRuntime) RuntimeSupervisor() ManagedRuntimeSupervisor {
+	if m == nil {
+		return nil
+	}
+	return m.supervisor
+}
+
 func (m *ManagedRuntime) Snapshot() runtimecontrol.Snapshot {
 	if m == nil || m.supervisor == nil {
 		return runtimecontrol.Snapshot{}
