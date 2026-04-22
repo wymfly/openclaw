@@ -55,12 +55,9 @@ pnpm start
 `frontend-next` is now a transitional host shell, not a second runtime owner. The
 remaining host-specific surfaces are intentionally narrow:
 
-- `src/lib/deck-go-base.ts`
-  - the only place that resolves `DECK_GO_API_BASE` /
-    `NEXT_PUBLIC_DECK_GO_API_BASE`
-  - shared by the retained host shells so base/env transport rules stay single-sourced
 - `src/lib/deck-client.ts`
-  - browser-side transport shell for direct `deck-go` calls, including access
+  - the remaining host transport seam for direct `deck-go` calls
+  - owns `NEXT_PUBLIC_DECK_GO_API_BASE` routing plus access
     token prompting, `x-deck-token` forwarding, and `Last-Event-ID` SSE replay
 
 The old `frontend-next/server` local runtime cluster has been retired. This host

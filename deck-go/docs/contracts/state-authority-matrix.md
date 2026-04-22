@@ -58,12 +58,9 @@ host shell above `deck-go`, not as a second control-plane owner.
 
 Retained host-specific shells:
 
-- `frontend-next/src/lib/deck-go-base.ts`
-  - sole control-plane base resolution seam for the transitional host
-  - keeps `DECK_GO_API_BASE` / `NEXT_PUBLIC_DECK_GO_API_BASE` parsing single-sourced
 - `frontend-next/src/lib/deck-client.ts`
-  - browser transport/auth/reconnect shell
-  - owns direct base-URL routing, `x-deck-token`, and `Last-Event-ID` replay headers
+  - remaining browser transport/auth/reconnect shell for the transitional host
+  - owns `NEXT_PUBLIC_DECK_GO_API_BASE` routing plus `x-deck-token` and `Last-Event-ID` headers
 
 Retired from the host:
 
@@ -71,6 +68,7 @@ Retired from the host:
 - the old `frontend-next/server` local runtime cluster
 - the old `frontend-next/src/middleware.ts` webhook ingress rewrite seam
 - the old `frontend-next/src/i18n/request.ts` plugin locale bridge
+- the old `frontend-next/src/lib/deck-go-base.ts` shared base resolver seam
 - host-local event bus / gateway adapter / approval bridge / alert engine seams
 - host-local durable webhook/runtime helper stores that only existed to support that cluster
 

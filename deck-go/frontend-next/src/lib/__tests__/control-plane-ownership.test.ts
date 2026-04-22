@@ -25,11 +25,9 @@ const retiredServerRuntimeCluster = [
   "server/runtime.ts",
 ] as const;
 
-const allowedControlPlaneBaseReaders = new Set(["lib/deck-go-base.ts"]);
+const allowedControlPlaneBaseReaders = new Set(["lib/deck-client.ts"]);
 
 const allowedDeckHeaderShells = new Set(["lib/deck-client.ts"]);
-
-const allowedControlPlaneBaseImporters = new Set(["lib/deck-client.ts"]);
 
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
   const entries = readdirSync(root, { withFileTypes: true });
@@ -53,6 +51,7 @@ describe("frontend-next control-plane ownership", () => {
       join(srcRoot, "middleware.ts"),
       join(srcRoot, "app", "api", "_deck-go-proxy.ts"),
       join(srcRoot, "lib", "api-helpers.ts"),
+      join(srcRoot, "lib", "deck-go-base.ts"),
       join(srcRoot, "lib", "with-auth.ts"),
       join(srcRoot, "lib", "transcript-history.ts"),
       join(srcRoot, "lib", "gateway-http.ts"),
@@ -108,32 +107,6 @@ describe("frontend-next control-plane ownership", () => {
     expect(unexpectedControlPlaneBaseReaders).toEqual([]);
     expect(unexpectedDeckHeaderShells).toEqual([]);
     expect(unexpectedGatewayLoopbackShells).toEqual([]);
-  });
-
-  it("keeps the shared Deck Go base helper scoped to the retained host shells", () => {
-    const sourceFiles = collectFiles(
-      srcRoot,
-      (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
-    );
-    const invalidImporters: string[] = [];
-
-    for (const file of sourceFiles) {
-      const rel = relative(srcRoot, file);
-      if (rel === "lib/deck-go-base.ts") {
-        continue;
-      }
-
-      const source = readFileSync(file, "utf8");
-      if (!/from ["']@\/lib\/deck-go-base["']/.test(source)) {
-        continue;
-      }
-
-      if (!allowedControlPlaneBaseImporters.has(rel)) {
-        invalidImporters.push(rel);
-      }
-    }
-
-    expect(invalidImporters).toEqual([]);
   });
 
   it("does not reintroduce removed local Gateway loopback helpers", () => {
