@@ -30,8 +30,7 @@ const allowedControlPlaneBaseReaders = new Set([
 
 const allowedDeckHeaderShells = new Set(["app/api/_deck-go-proxy.ts", "lib/deck-client.ts"]);
 
-const allowedGatewayLoopbackShells = new Set(["lib/gateway-http.ts", "middleware.ts"]);
-const allowedGatewayLoopbackImporters = new Set(["app/api/canvas/[...path]/route.ts"]);
+const allowedGatewayLoopbackShells = new Set(["middleware.ts"]);
 
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
   const entries = readdirSync(root, { withFileTypes: true });
@@ -88,6 +87,7 @@ describe("frontend-next control-plane ownership", () => {
       join(srcRoot, "lib", "api-helpers.ts"),
       join(srcRoot, "lib", "with-auth.ts"),
       join(srcRoot, "lib", "transcript-history.ts"),
+      join(srcRoot, "lib", "gateway-http.ts"),
     ];
 
     const stillPresent = deletedHelpers
@@ -109,6 +109,10 @@ describe("frontend-next control-plane ownership", () => {
     for (const file of sourceFiles) {
       const rel = relative(srcRoot, file);
       const source = readFileSync(file, "utf8");
+      const hasDeckHeaderWiring =
+        /\[\s*"authorization",\s*"x-deck-token",\s*"last-event-id"/.test(source) ||
+        /\.set\("x-deck-token"/.test(source) ||
+        /\.set\("Last-Event-ID"/.test(source);
 
       if (
         /process\.env\.(?:DECK_GO_API_BASE|NEXT_PUBLIC_DECK_GO_API_BASE)\b/.test(source) &&
@@ -117,12 +121,7 @@ describe("frontend-next control-plane ownership", () => {
         unexpectedControlPlaneBaseReaders.push(rel);
       }
 
-      if (
-        (/\[\s*"authorization",\s*"x-deck-token",\s*"last-event-id"/.test(source) ||
-          /\.set\("x-deck-token"/.test(source) ||
-          /\.set\("Last-Event-ID"/.test(source)) &&
-        !allowedDeckHeaderShells.has(rel)
-      ) {
+      if (hasDeckHeaderWiring && !allowedDeckHeaderShells.has(rel)) {
         unexpectedDeckHeaderShells.push(rel);
       }
 
@@ -166,30 +165,22 @@ describe("frontend-next control-plane ownership", () => {
     expect(invalidImporters).toEqual([]);
   });
 
-  it("keeps the local Gateway loopback bridge scoped to canvas hosting", () => {
+  it("does not reintroduce the removed local Gateway loopback helper", () => {
     const sourceFiles = collectFiles(
       srcRoot,
       (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
     );
-    const invalidImporters: string[] = [];
+    const offenders: string[] = [];
 
     for (const file of sourceFiles) {
-      const rel = relative(srcRoot, file);
-      if (rel === "lib/gateway-http.ts") {
-        continue;
-      }
-
       const source = readFileSync(file, "utf8");
       if (!/from ["']@\/lib\/gateway-http["']/.test(source)) {
         continue;
       }
-
-      if (!allowedGatewayLoopbackImporters.has(rel)) {
-        invalidImporters.push(rel);
-      }
+      offenders.push(relative(srcRoot, file));
     }
 
-    expect(invalidImporters).toEqual([]);
+    expect(offenders).toEqual([]);
   });
 
   it("does not reference the removed deck subagent lineage pseudo-route", () => {

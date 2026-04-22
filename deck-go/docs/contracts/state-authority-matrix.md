@@ -65,9 +65,6 @@ Retained host-specific shells:
   - owns direct base-URL routing, `x-deck-token`, and `Last-Event-ID` replay headers
 - `frontend-next/src/lib/plugin-locales.ts`
   - server-side locale inventory bootstrap bridge for render-time plugin locale loading
-- `frontend-next/src/app/api/canvas/[...path]/route.ts` and `frontend-next/src/lib/gateway-http.ts`
-  - the only remaining local Gateway loopback bridge
-  - retained for A2UI canvas asset hosting while `frontend-next` still acts as the transitional host
 - `frontend-next/src/middleware.ts`
   - public-ingress reverse proxy for plugin webhook callbacks into loopback Gateway
 
@@ -76,7 +73,7 @@ Must not grow back inside `frontend-next`:
 - local runtime fallback handlers
 - route-owned business or config truth
 - durable control-plane persistence
-- direct filesystem or loopback-Gateway work outside the retained shell modules
+- direct filesystem or loopback-Gateway work outside `frontend-next/src/middleware.ts`
 
 ## Promotion Beyond Deck
 

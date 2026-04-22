@@ -63,9 +63,6 @@ remaining host-specific surfaces are intentionally narrow:
 - `src/lib/plugin-locales.ts`
   - server-side locale bootstrap bridge that reads plugin locale inventory from
     the Stage 2 control-plane during render-time execution
-- `src/app/api/canvas/[...path]/route.ts` plus `src/lib/gateway-http.ts`
-  - the only remaining local Gateway loopback bridge, retained for A2UI canvas
-    asset hosting when the transitional host still needs to proxy canvas content
 - `src/middleware.ts`
   - ingress reverse-proxy shell for plugin webhook callbacks that must enter
     through the public `frontend-next` port and hop to loopback Gateway
@@ -76,4 +73,4 @@ consumer:
 - no local runtime fallback
 - no route-owned business truth
 - no durable control-plane persistence
-- no direct filesystem or Gateway loopback logic outside the retained shells
+- no direct filesystem or Gateway loopback logic outside `src/middleware.ts`
