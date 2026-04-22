@@ -15,7 +15,7 @@ export interface AccessLoadContext {
    * Typed Gateway client.
    *
    * **Target state:** mandatory per project-wide rule "Deck 必须通过 typed client
-   * (`gw.*`) 调用 Gateway，禁止 `gatewayRequest()` 字符串调用" (see root
+   * (`gw.*`) 调用 Gateway，禁止字符串形式的 Gateway 调用" (see root
    * `CLAUDE.md`).
    *
    * **Current state:** optional, because Deck has no `useGatewayClient()`

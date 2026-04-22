@@ -1,10 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest, ctx: unknown) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/canvas/[...path]", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
@@ -23,10 +19,9 @@ describe("/api/canvas/[...path]", () => {
     globalThis.fetch = fetchMock;
     const { GET } = await import("./route.js");
 
-    const response = await GET(
-      new NextRequest("http://localhost/api/canvas/index.html"),
-      { params: Promise.resolve({ path: ["index.html"] }) },
-    );
+    const response = await GET(new NextRequest("http://localhost/api/canvas/index.html"), {
+      params: Promise.resolve({ path: ["index.html"] }),
+    });
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:19528/api/v1/canvas/index.html",
