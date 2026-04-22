@@ -1,22 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const getRuntime = vi.fn();
-
-vi.mock("@server/runtime", () => ({
-  getRuntime,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/deck/canvas", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    getRuntime.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
@@ -45,17 +34,8 @@ describe("/api/deck/canvas", () => {
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local runtime when no deck-go base is configured", async () => {
+  it("returns 503 when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    getRuntime.mockReturnValue({
-      adapter: {
-        getNodeConnection: () => ({
-          markCanvasSessionReady: vi.fn(),
-          markCanvasSessionUnready: vi.fn(),
-          resolveEval: vi.fn().mockReturnValue(true),
-        }),
-      },
-    });
     const { POST } = await import("./route.js");
 
     const response = await POST(
@@ -66,6 +46,9 @@ describe("/api/deck/canvas", () => {
       }),
     );
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });

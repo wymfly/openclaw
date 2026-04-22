@@ -1,31 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const setSetting = vi.fn();
-const shutdownRuntime = vi.fn();
-const initRuntime = vi.fn();
-
-vi.mock("@server/deck-settings", () => ({
-  setSetting,
-}));
-
-vi.mock("@server/runtime", () => ({
-  shutdownRuntime,
-  initRuntime,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/onboarding/save-settings", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    setSetting.mockReset();
-    shutdownRuntime.mockReset();
-    initRuntime.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
@@ -54,10 +34,8 @@ describe("/api/onboarding/save-settings", () => {
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local save when no deck-go base is configured", async () => {
+  it("returns 503 when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    shutdownRuntime.mockResolvedValueOnce(undefined);
-    initRuntime.mockReturnValueOnce({});
     const { POST } = await import("./route.js");
 
     const response = await POST(
@@ -68,7 +46,9 @@ describe("/api/onboarding/save-settings", () => {
       }),
     );
 
-    expect(response.status).toBe(200);
-    expect(setSetting).toHaveBeenCalled();
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });

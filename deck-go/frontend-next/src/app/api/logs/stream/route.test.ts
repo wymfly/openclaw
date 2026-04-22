@@ -35,4 +35,16 @@ describe("/api/logs/stream", () => {
     );
     expect(response.status).toBe(200);
   });
+
+  it("returns 503 when no deck-go base is configured", async () => {
+    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+
+    const { GET } = await import("./route.js");
+    const response = await GET(new Request("http://localhost/api/logs/stream"));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
+  });
 });
