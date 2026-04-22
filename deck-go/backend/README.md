@@ -52,6 +52,11 @@ collapse together:
     `RuntimeGatewayStatusResponse`, `StartRuntimeGateway`, `StopRuntimeGateway`,
     and `RestartRuntimeGateway` instead of reaching for raw supervisor lifecycle
     methods directly
+  - is likewise the external-consumption seam for runtime inventory/replay
+    views: downstream packages should depend on `ManagedRuntime` registry
+    surfaces such as `ListRuntimes`, `GetRuntime`, `Replay`, `SupportsRuntime`,
+    and `Subscribe` instead of depending on `RuntimeSupervisor()` or other raw
+    supervisor accessors
 - `internal/runtime/registry`
   - owns read-only runtime inventory summaries plus replay/subscribe feed
   - consumes supervisor snapshots and capability summaries
@@ -65,5 +70,7 @@ This split preserves the intended authority model:
   `openclaw.ManagedRuntime`, not `internal/server`
 - external packages should depend on `ManagedRuntime` lifecycle route/status
   helpers, not raw supervisor lifecycle methods
+- external packages should depend on `ManagedRuntime` registry/replay surfaces,
+  not `RuntimeSupervisor()` or other raw supervisor accessors
 - registry surfaces stay descriptive/read-only even when they are fed by
   supervisor lifecycle events

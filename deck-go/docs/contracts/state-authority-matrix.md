@@ -30,7 +30,7 @@ three packages. Keep the seam explicit:
 | Package                                  | Owns                                                                 | Must not own                                                                    |
 | ---------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `backend/internal/runtime/supervisor`    | managed process lifecycle, probe state, exit bookkeeping, snapshots  | deck-facing DTOs, runtime inventory summaries, frontend contracts               |
-| `backend/internal/runtime/openclaw`      | Deck control-plane facade, transport binding, lifecycle route wiring, legacy `/api/runtime/gateway*` contract ownership, external route/status helper surface | generic process supervision internals, standalone runtime truth, inventory-only concerns |
+| `backend/internal/runtime/openclaw`      | Deck control-plane facade, transport binding, lifecycle route wiring, legacy `/api/runtime/gateway*` contract ownership, external route/status + registry helper surface | generic process supervision internals, standalone runtime truth, inventory-only concerns |
 | `backend/internal/runtime/registry`      | read-only runtime inventory, summary projection, replay/subscription feed | start/stop/restart control, config mutation, supervisor policy                  |
 
 Practical rule:
@@ -44,6 +44,10 @@ Practical rule:
   (`RuntimeGatewayStatusResponse`, `StartRuntimeGateway`, `StopRuntimeGateway`,
   `RestartRuntimeGateway`) instead of binding themselves to raw supervisor
   lifecycle methods
+- external packages should also consume `ManagedRuntime` registry/replay
+  surfaces (`ListRuntimes`, `GetRuntime`, `Replay`, `SupportsRuntime`,
+  `Subscribe`) instead of binding themselves to `RuntimeSupervisor()` or other
+  raw supervisor accessors
 - frontend/API routes consume the `openclaw.ManagedRuntime` facade instead of
   stitching supervisor and registry together ad hoc
 
