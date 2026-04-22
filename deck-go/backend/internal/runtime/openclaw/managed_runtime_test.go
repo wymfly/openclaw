@@ -89,7 +89,7 @@ func TestNewManagedRuntime_ComposesSupervisorAdapterAndRegistry(t *testing.T) {
 	if managed == nil {
 		t.Fatal("expected managed runtime bundle")
 	}
-	if managed.RuntimeSupervisor() == nil {
+	if managed.supervisor == nil {
 		t.Fatal("expected supervisor in managed runtime bundle")
 	}
 	if managed.RuntimeAdapter() == nil {
