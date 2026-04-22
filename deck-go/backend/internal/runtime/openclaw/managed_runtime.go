@@ -37,7 +37,6 @@ type ManagedRuntimeRegistrySurface interface {
 
 type ManagedRuntimeSurface interface {
 	RuntimeSurface
-	ManagedRuntimeSupervisor
 	ManagedRuntimeRegistrySurface
 	GetSettings(context.Context) (deckapi.DeckGoSettingsResponse, error)
 	UpdateSettingsFromConfig(context.Context, config.Settings) (deckapi.DeckGoSettingsSaveResponse, error)
@@ -208,7 +207,6 @@ type ManagedRuntimeSurface interface {
 	GetTimelineWithParams(context.Context, string, string, int) (deckapi.DeckGoSessionDetailResponse, error)
 	LogsTail(context.Context, map[string]any) (any, error)
 	RuntimeAdapter() RuntimeSurface
-	RuntimeSupervisor() ManagedRuntimeSupervisor
 	RuntimeRegistry() *runtimeregistry.Registry
 	EventBus() *events.Bus
 	EnsureAutoStart()
@@ -1246,51 +1244,39 @@ func (m *ManagedRuntime) GetModelUsageCost(ctx context.Context, days int) (any, 
 	return m.UsageCost(ctx, map[string]any{"days": days})
 }
 
-func (m *ManagedRuntime) RuntimeSupervisor() ManagedRuntimeSupervisor {
-	if m == nil {
-		return nil
-	}
-	return m.supervisor
-}
-
 func (m *ManagedRuntime) Snapshot() runtimecontrol.Snapshot {
-	supervisor := m.RuntimeSupervisor()
-	if supervisor == nil {
+	if m == nil || m.supervisor == nil {
 		return runtimecontrol.Snapshot{}
 	}
-	return supervisor.Snapshot()
+	return m.supervisor.Snapshot()
 }
 
 func (m *ManagedRuntime) Start(ctx context.Context) (runtimecontrol.Snapshot, error) {
-	supervisor := m.RuntimeSupervisor()
-	if supervisor == nil {
+	if m == nil || m.supervisor == nil {
 		return runtimecontrol.Snapshot{}, nil
 	}
-	return supervisor.Start(ctx)
+	return m.supervisor.Start(ctx)
 }
 
 func (m *ManagedRuntime) Stop(ctx context.Context) (runtimecontrol.Snapshot, error) {
-	supervisor := m.RuntimeSupervisor()
-	if supervisor == nil {
+	if m == nil || m.supervisor == nil {
 		return runtimecontrol.Snapshot{}, nil
 	}
-	return supervisor.Stop(ctx)
+	return m.supervisor.Stop(ctx)
 }
 
 func (m *ManagedRuntime) Restart(ctx context.Context) (runtimecontrol.Snapshot, error) {
-	supervisor := m.RuntimeSupervisor()
-	if supervisor == nil {
+	if m == nil || m.supervisor == nil {
 		return runtimecontrol.Snapshot{}, nil
 	}
-	return supervisor.Restart(ctx)
+	return m.supervisor.Restart(ctx)
 }
 
 func (m *ManagedRuntime) GatewayConnection() (string, string, bool) {
-	supervisor := m.RuntimeSupervisor()
-	if supervisor == nil {
+	if m == nil || m.supervisor == nil {
 		return "", "", false
 	}
-	return supervisor.GatewayConnection()
+	return m.supervisor.GatewayConnection()
 }
 
 func (m *ManagedRuntime) RuntimeRegistry() *runtimeregistry.Registry {
@@ -1420,11 +1406,10 @@ func buildMergePatch(path []string, value any) map[string]any {
 }
 
 func (m *ManagedRuntime) EnsureAutoStart() {
-	supervisor := m.RuntimeSupervisor()
-	if supervisor == nil {
+	if m == nil || m.supervisor == nil {
 		return
 	}
-	if starter, ok := supervisor.(interface{ EnsureAutoStart() }); ok {
+	if starter, ok := m.supervisor.(interface{ EnsureAutoStart() }); ok {
 		starter.EnsureAutoStart()
 	}
 }
