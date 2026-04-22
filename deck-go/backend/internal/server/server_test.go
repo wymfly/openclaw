@@ -22,7 +22,10 @@ import (
 )
 
 type testSupervisor struct {
-	snapshot openclawrt.ManagedSnapshot
+	snapshot     openclawrt.ManagedSnapshot
+	startCalls   int
+	stopCalls    int
+	restartCalls int
 }
 
 func (s *testSupervisor) Snapshot() openclawrt.ManagedSnapshot {
@@ -30,18 +33,21 @@ func (s *testSupervisor) Snapshot() openclawrt.ManagedSnapshot {
 }
 
 func (s *testSupervisor) Start(context.Context) (openclawrt.ManagedSnapshot, error) {
+	s.startCalls++
 	s.snapshot.Status = openclawrt.ManagedStatusRunning
 	s.snapshot.Health = openclawrt.ManagedHealthHealthy
 	return s.snapshot, nil
 }
 
 func (s *testSupervisor) Stop(context.Context) (openclawrt.ManagedSnapshot, error) {
+	s.stopCalls++
 	s.snapshot.Status = openclawrt.ManagedStatusStopped
 	s.snapshot.Health = openclawrt.ManagedHealthUnknown
 	return s.snapshot, nil
 }
 
 func (s *testSupervisor) Restart(context.Context) (openclawrt.ManagedSnapshot, error) {
+	s.restartCalls++
 	s.snapshot.Status = openclawrt.ManagedStatusRunning
 	s.snapshot.Health = openclawrt.ManagedHealthHealthy
 	return s.snapshot, nil
@@ -1352,6 +1358,85 @@ func TestRuntimeGatewayRoutes_UseSupervisorStateMachine(t *testing.T) {
 	runtimePayload, ok := payload["runtime"].(map[string]any)
 	if !ok || runtimePayload["status"] != "running" {
 		t.Fatalf("unexpected runtime payload: %#v", payload)
+	}
+	if supervisor.startCalls != 1 || supervisor.restartCalls != 0 || supervisor.stopCalls != 0 {
+		t.Fatalf("expected only start to hit lifecycle state machine, got start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
+	}
+
+	getReqAfterStart, err := http.NewRequest(http.MethodGet, srv.URL+"/api/runtime/gateway", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	getReqAfterStart.Header.Set("Authorization", "Bearer admin-token")
+	getResAfterStart, err := http.DefaultClient.Do(getReqAfterStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer getResAfterStart.Body.Close()
+	if getResAfterStart.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected get-after-start status: %d", getResAfterStart.StatusCode)
+	}
+	if err := json.NewDecoder(getResAfterStart.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	runtimePayload, ok = payload["runtime"].(map[string]any)
+	if !ok || runtimePayload["status"] != "running" || runtimePayload["health"] != "healthy" {
+		t.Fatalf("expected runtime GET to reflect supervisor snapshot after start, got %#v", payload)
+	}
+
+	restartReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/restart", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restartReq.Header.Set("Authorization", "Bearer admin-token")
+	restartRes, err := http.DefaultClient.Do(restartReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restartRes.Body.Close()
+	if restartRes.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected restart status: %d", restartRes.StatusCode)
+	}
+	if supervisor.startCalls != 1 || supervisor.restartCalls != 1 || supervisor.stopCalls != 0 {
+		t.Fatalf("expected restart to hit lifecycle state machine, got start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
+	}
+
+	stopReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/stop", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stopReq.Header.Set("Authorization", "Bearer admin-token")
+	stopRes, err := http.DefaultClient.Do(stopReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stopRes.Body.Close()
+	if stopRes.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected stop status: %d", stopRes.StatusCode)
+	}
+	if supervisor.startCalls != 1 || supervisor.restartCalls != 1 || supervisor.stopCalls != 1 {
+		t.Fatalf("expected stop to hit lifecycle state machine, got start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
+	}
+
+	getReqAfterStop, err := http.NewRequest(http.MethodGet, srv.URL+"/api/runtime/gateway", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	getReqAfterStop.Header.Set("Authorization", "Bearer admin-token")
+	getResAfterStop, err := http.DefaultClient.Do(getReqAfterStop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer getResAfterStop.Body.Close()
+	if getResAfterStop.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected get-after-stop status: %d", getResAfterStop.StatusCode)
+	}
+	if err := json.NewDecoder(getResAfterStop.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	runtimePayload, ok = payload["runtime"].(map[string]any)
+	if !ok || runtimePayload["status"] != "stopped" || runtimePayload["health"] != "unknown" {
+		t.Fatalf("expected runtime GET to reflect supervisor snapshot after stop, got %#v", payload)
 	}
 }
 
