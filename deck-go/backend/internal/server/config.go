@@ -1,15 +1,26 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
-	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
+	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
-func registerConfigRoutes(mux interface{ MethodFunc(string, string, http.HandlerFunc) }, client *gateway.Client) {
+func registerConfigRoutes(mux interface {
+	MethodFunc(string, string, http.HandlerFunc)
+}, managed openclawrt.ManagedRuntimeSurface) {
 	mux.MethodFunc("GET", "/config", func(w http.ResponseWriter, r *http.Request) {
-		callGateway(w, r, client, "config.get", map[string]any{})
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := managed.ConfigGet(ctx)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "config.get", "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
 	})
 
 	mux.MethodFunc("POST", "/config/patch", func(w http.ResponseWriter, r *http.Request) {
@@ -26,10 +37,14 @@ func registerConfigRoutes(mux interface{ MethodFunc(string, string, http.Handler
 			return
 		}
 		params := map[string]any{"raw": mustJSONString(body.Patch)}
-		if body.BaseHash != "" {
-			params["baseHash"] = body.BaseHash
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := managed.ConfigPatch(ctx, params["raw"].(string), body.BaseHash, "")
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "config.patch", "error": err.Error()})
+			return
 		}
-		callGateway(w, r, client, "config.patch", params)
+		writeJSON(w, http.StatusOK, payload)
 	})
 
 	mux.MethodFunc("POST", "/config/apply", func(w http.ResponseWriter, r *http.Request) {
@@ -45,11 +60,14 @@ func registerConfigRoutes(mux interface{ MethodFunc(string, string, http.Handler
 			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "raw config is required"})
 			return
 		}
-		params := map[string]any{"raw": body.Raw}
-		if body.BaseHash != "" {
-			params["baseHash"] = body.BaseHash
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := managed.ConfigApply(ctx, body.Raw, body.BaseHash)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "config.apply", "error": err.Error()})
+			return
 		}
-		callGateway(w, r, client, "config.apply", params)
+		writeJSON(w, http.StatusOK, payload)
 	})
 }
 

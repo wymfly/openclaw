@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 
@@ -9,8 +8,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/access"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
 func New() http.Handler {
@@ -19,27 +17,20 @@ func New() http.Handler {
 		panic(err)
 	}
 	bus := events.NewBus(2000)
-	supervisor := runtimecontrol.NewSupervisor(store, bus)
-	gatewayClient := gateway.New(supervisor)
-	realtime := gateway.NewRealtime(supervisor, bus)
-	supervisor.EnsureAutoStart()
-	return newRouter(store, gatewayClient, realtime, supervisor, bus)
+	managed := openclawrt.NewManagedRuntime(store, bus)
+	managed.EnsureAutoStart()
+	return NewRootHandler(store, managed)
 }
 
-type gatewaySupervisor interface {
-	Snapshot() runtimecontrol.Snapshot
-	Start(context.Context) (runtimecontrol.Snapshot, error)
-	Stop(context.Context) (runtimecontrol.Snapshot, error)
-	Restart(context.Context) (runtimecontrol.Snapshot, error)
-}
+func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurface) http.Handler {
+	if managed == nil {
+		panic("managed runtime is required")
+	}
+	bus := managed.EventBus()
+	if bus == nil {
+		panic("managed runtime event bus is required")
+	}
 
-func newRouter(
-	store *config.Store,
-	gatewayClient *gateway.Client,
-	realtime *gateway.Realtime,
-	supervisor gatewaySupervisor,
-	bus *events.Bus,
-) http.Handler {
 	r := chi.NewRouter()
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -75,22 +66,29 @@ func newRouter(
 	})
 
 	r.Route("/api", func(api chi.Router) {
-		registerSettingsRoutes(api, store, bus)
-		registerGatewayRoutes(api, gatewayClient, store, supervisor)
-		registerConfigRoutes(api, gatewayClient)
-		registerInventoryRoutes(api, gatewayClient)
-		registerChatRoutes(api, gatewayClient)
-		registerSessionEventRoute(api, realtime)
-		registerChatSnapshotRoute(api, gatewayClient)
-		registerEventStreamRoutes(api, bus, gatewayClient)
-		registerRuntimeRoutes(api, supervisor)
+		registerOnboardingRoutes(api, managed)
+		registerSettingsRoutes(api, managed)
+		registerGatewayRoutes(api, managed)
+		registerConfigRoutes(api, managed)
+		registerInventoryRoutes(api, openclawrt.NewLegacyInventorySurface(managed))
+		registerAlertsRoutes(api)
+		registerBudgetRoutes(api, managed, bus)
+		registerWebhookRoutes(api)
+		registerDocsRoutes(api, managed)
+		registerActivityMonitorRoutes(api, bus)
+		registerMemoryRoutes(api, managed)
+		registerAssetRoutes(api, store)
+		registerChatRoutes(api, managed)
+		registerSessionEventRoute(api, managed)
+		registerChatSnapshotRoute(api, managed)
+		registerEventStreamRoutes(api, managed)
+		registerRuntimeRoutes(api, managed)
 	})
 
 	registerStaticRoutes(r)
 
 	return r
 }
-
 func notImplemented(surface string) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusNotImplemented, map[string]any{

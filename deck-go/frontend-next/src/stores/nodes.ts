@@ -1,0 +1,189 @@
+import { create } from "zustand";
+import { deckFetch } from "@/lib/deck-client";
+
+// ---------------------------------------------------------------------------
+// Types — from gateway-protocol.generated.ts node.* result shapes
+// ---------------------------------------------------------------------------
+
+export interface NodeSummary {
+  nodeId: string;
+  displayName?: string;
+  platform?: string;
+  version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
+  deviceFamily?: string;
+  modelIdentifier?: string;
+  remoteIp?: string;
+  caps: string[];
+  commands: string[];
+  pathEnv?: string;
+  permissions?: Record<string, boolean>;
+  connectedAtMs?: number;
+  paired: boolean;
+  connected: boolean;
+}
+
+export interface PairingRequest {
+  requestId: string;
+  nodeId: string;
+  displayName?: string;
+  platform?: string;
+  silent?: boolean;
+  isRepair?: boolean;
+  ts: number;
+}
+
+interface NodesState {
+  nodes: NodeSummary[];
+  nodeDetails: Record<string, NodeSummary>;
+  pairingRequests: PairingRequest[];
+  selectedNodeId: string | null;
+  describingNodeId: string | null;
+  loading: boolean;
+  error: string | null;
+}
+
+interface NodesActions {
+  fetchNodes: () => Promise<void>;
+  fetchPairing: () => Promise<void>;
+  selectNode: (id: string | null) => void;
+  describeNode: (nodeId: string) => Promise<NodeSummary | null>;
+  renameNode: (nodeId: string, displayName: string) => Promise<boolean>;
+  approvePairing: (requestId: string) => Promise<boolean>;
+  rejectPairing: (requestId: string) => Promise<boolean>;
+}
+
+export const useNodesStore = create<NodesState & NodesActions>((set, get) => ({
+  nodes: [],
+  nodeDetails: {},
+  pairingRequests: [],
+  selectedNodeId: null,
+  describingNodeId: null,
+  loading: false,
+  error: null,
+
+  fetchNodes: async () => {
+    set({ loading: true, error: null });
+    try {
+      const res = await deckFetch("/api/nodes");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Request failed" }));
+        set({ loading: false, error: (body as { error?: string }).error ?? "Request failed" });
+        return;
+      }
+      const data = (await res.json()) as { nodes?: NodeSummary[] };
+      const nodes = data.nodes ?? [];
+      set((state) => {
+        const selectedStillExists = nodes.some((node) => node.nodeId === state.selectedNodeId);
+        return {
+          nodes,
+          selectedNodeId: selectedStillExists ? state.selectedNodeId : (nodes[0]?.nodeId ?? null),
+          loading: false,
+        };
+      });
+    } catch (err) {
+      set({ loading: false, error: err instanceof Error ? err.message : "Unknown error" });
+    }
+  },
+
+  fetchPairing: async () => {
+    try {
+      const res = await deckFetch("/api/nodes/pair");
+      if (!res.ok) {
+        return;
+      }
+      const data = (await res.json()) as { pending?: PairingRequest[] };
+      set({ pairingRequests: data.pending ?? [] });
+    } catch {
+      // Non-critical — silently ignore
+    }
+  },
+
+  selectNode: (id) => set({ selectedNodeId: id }),
+
+  describeNode: async (nodeId) => {
+    set({ describingNodeId: nodeId });
+    try {
+      const res = await deckFetch("/api/nodes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "describe", nodeId }),
+      });
+      if (!res.ok) {
+        return null;
+      }
+      const detail = (await res.json()) as NodeSummary;
+      set((state) => ({
+        nodeDetails: { ...state.nodeDetails, [nodeId]: detail },
+      }));
+      return detail;
+    } catch {
+      return null;
+    } finally {
+      set((state) => ({
+        describingNodeId: state.describingNodeId === nodeId ? null : state.describingNodeId,
+      }));
+    }
+  },
+
+  renameNode: async (nodeId, displayName) => {
+    try {
+      const res = await deckFetch("/api/nodes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "rename", nodeId, displayName }),
+      });
+      if (res.ok) {
+        await get().fetchNodes();
+        if (get().selectedNodeId === nodeId) {
+          await get().describeNode(nodeId);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+
+  approvePairing: async (requestId) => {
+    try {
+      const res = await deckFetch("/api/nodes/pair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve", requestId }),
+      });
+      if (res.ok) {
+        await Promise.all([get().fetchNodes(), get().fetchPairing()]);
+        if (get().selectedNodeId) {
+          await get().describeNode(get().selectedNodeId!);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+
+  rejectPairing: async (requestId) => {
+    try {
+      const res = await deckFetch("/api/nodes/pair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", requestId }),
+      });
+      if (res.ok) {
+        await get().fetchPairing();
+        if (get().selectedNodeId) {
+          await get().describeNode(get().selectedNodeId!);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+}));

@@ -5,20 +5,19 @@ import (
 	"net/http"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
 func registerSettingsRoutes(mux interface {
 	MethodFunc(string, string, http.HandlerFunc)
-}, store *config.Store, bus *events.Bus) {
-	mux.MethodFunc("GET", "/settings", func(w http.ResponseWriter, _ *http.Request) {
-		current := store.Get()
-		writeJSON(w, http.StatusOK, deckapi.DeckGoSettingsResponse{
-			Ok:       true,
-			Settings: toDeckSettings(current),
-			Path:     store.Path(),
-		})
+}, managed openclawrt.ManagedRuntimeSurface) {
+	mux.MethodFunc("GET", "/settings", func(w http.ResponseWriter, r *http.Request) {
+		payload, err := managed.GetSettings(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
 	})
 
 	mux.MethodFunc("PUT", "/settings", func(w http.ResponseWriter, r *http.Request) {
@@ -30,39 +29,46 @@ func registerSettingsRoutes(mux interface {
 			})
 			return
 		}
-		if err := store.Update(body); err != nil {
+		payload, err := managed.UpdateSettingsFromConfig(r.Context(), body)
+		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]any{
 				"ok":    false,
 				"error": err.Error(),
 			})
 			return
 		}
-		current := store.Get()
-		eventPayload, _ := json.Marshal(map[string]any{
-			"type": "settings.saved",
-			"path": store.Path(),
-		})
-		bus.Publish("runtime.status", eventPayload)
-		writeJSON(w, http.StatusOK, deckapi.DeckGoSettingsSaveResponse{
-			Ok:       true,
-			Settings: toDeckSettings(current),
-		})
+		writeJSON(w, http.StatusOK, payload)
 	})
-}
 
-func toDeckSettings(current config.Settings) deckapi.DeckGoSettings {
-	return deckapi.DeckGoSettings{
-		AccessToken: current.AccessToken,
-		ManagedGateway: deckapi.DeckGoManagedGatewaySettings{
-			Mode:         current.ManagedGateway.Mode,
-			Command:      current.ManagedGateway.Command,
-			Args:         current.ManagedGateway.Args,
-			WorkingDir:   current.ManagedGateway.WorkingDir,
-			BindHost:     current.ManagedGateway.BindHost,
-			BindPort:     float64(current.ManagedGateway.BindPort),
-			GatewayToken: current.ManagedGateway.GatewayToken,
-			AutoStart:    current.ManagedGateway.AutoStart,
-			Env:          current.ManagedGateway.Env,
-		},
-	}
+	mux.MethodFunc("POST", "/settings/test-connection", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			URL   string `json:"url"`
+			Token string `json:"token"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"ok":    false,
+				"error": "invalid json body",
+			})
+			return
+		}
+		payload, err := managed.TestLegacySettingsConnection(r.Context(), body.URL, body.Token)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{
+				"ok":    false,
+				"error": err.Error(),
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	mux.MethodFunc("GET", "/settings/version", func(w http.ResponseWriter, r *http.Request) {
+		payload, err := managed.GetVersion(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
 }

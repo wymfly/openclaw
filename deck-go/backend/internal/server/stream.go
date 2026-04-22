@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
+	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
 const (
@@ -18,20 +18,21 @@ const (
 )
 
 func registerEventStreamRoutes(
-	mux interface{ MethodFunc(string, string, http.HandlerFunc) },
-	bus *events.Bus,
-	client *gateway.Client,
+	mux interface {
+		MethodFunc(string, string, http.HandlerFunc)
+	},
+	managed openclawrt.ManagedRuntimeSurface,
 ) {
 	mux.MethodFunc("GET", "/stream", func(w http.ResponseWriter, r *http.Request) {
-		serveEventStream(w, r, bus)
+		serveEventStream(w, r, managed)
 	})
 
 	mux.MethodFunc("GET", "/logs/stream", func(w http.ResponseWriter, r *http.Request) {
-		serveLogsStream(w, r, client)
+		serveLogsStream(w, r, managed)
 	})
 }
 
-func serveEventStream(w http.ResponseWriter, r *http.Request, bus *events.Bus) {
+func serveEventStream(w http.ResponseWriter, r *http.Request, managed openclawrt.ManagedRuntimeSurface) {
 	lastID, _ := strconv.ParseInt(r.Header.Get("Last-Event-ID"), 10, 64)
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
@@ -45,7 +46,7 @@ func serveEventStream(w http.ResponseWriter, r *http.Request, bus *events.Bus) {
 	}
 
 	for _, event := range func() []events.Event {
-		items, gap := bus.EventsSince(lastID)
+		items, gap := managed.EventsSince(lastID)
 		if gap {
 			_, _ = fmt.Fprintf(w, "event: projection.gap\ndata: {\"reason\":\"events_pruned\"}\n\n")
 			flusher.Flush()
@@ -56,8 +57,8 @@ func serveEventStream(w http.ResponseWriter, r *http.Request, bus *events.Bus) {
 		flusher.Flush()
 	}
 
-	sub := bus.Subscribe()
-	defer bus.Unsubscribe(sub)
+	sub, unsubscribe := managed.SubscribeStream()
+	defer unsubscribe()
 
 	ticker := time.NewTicker(streamHeartbeatInterval)
 	defer ticker.Stop()
@@ -77,7 +78,7 @@ func serveEventStream(w http.ResponseWriter, r *http.Request, bus *events.Bus) {
 	}
 }
 
-func serveLogsStream(w http.ResponseWriter, r *http.Request, client *gateway.Client) {
+func serveLogsStream(w http.ResponseWriter, r *http.Request, managed openclawrt.ManagedRuntimeSurface) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
@@ -108,7 +109,7 @@ func serveLogsStream(w http.ResponseWriter, r *http.Request, client *gateway.Cli
 		if cursor > 0 {
 			params["cursor"] = cursor
 		}
-		payload, err := client.Request(pollCtx, "logs.tail", params)
+		payload, err := managed.LogsTail(pollCtx, params)
 		if err != nil {
 			return err
 		}
@@ -158,4 +159,3 @@ func serveLogsStream(w http.ResponseWriter, r *http.Request, client *gateway.Cli
 func writeSSEEvent(w http.ResponseWriter, id int64, eventType string, data []byte) {
 	_, _ = fmt.Fprintf(w, "id: %d\nevent: %s\ndata: %s\n\n", id, eventType, data)
 }
-

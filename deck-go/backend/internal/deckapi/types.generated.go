@@ -139,6 +139,7 @@ type DeckGoSessionMeta struct {
 	Title string `json:"title,omitempty"`
 	UpdatedAt float64 `json:"updatedAt,omitempty"`
 	LastMessagePreview string `json:"lastMessagePreview,omitempty"`
+	CompactionCount float64 `json:"compactionCount,omitempty"`
 	Status string `json:"status,omitempty"`
 	StartedAt float64 `json:"startedAt,omitempty"`
 	EndedAt float64 `json:"endedAt,omitempty"`

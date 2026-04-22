@@ -115,7 +115,7 @@ func (r *Realtime) ensureConnected(ctx context.Context) error {
 		return err
 	}
 
-	if err := completeConnect(ctx, conn, token, "deck-go-realtime"); err != nil {
+	if err := completeConnect(ctx, conn, token, "gateway-client"); err != nil {
 		conn.Close()
 		return err
 	}

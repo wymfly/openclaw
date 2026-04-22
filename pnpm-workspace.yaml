@@ -4,6 +4,7 @@ packages:
   - packages/*
   - extensions/*
   - dashboard
+  - deck-go/frontend-next
 
 minimumReleaseAge: 2880
 

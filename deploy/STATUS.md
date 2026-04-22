@@ -7,9 +7,9 @@ This file is the current deployment source of truth for the Windows release host
 
 ## Last updated
 
-- Date: `2026-04-19`
+- Date: `2026-04-20`
 - Scope: Windows release host `60.204.148.217`
-- Updated during: live-service deploy recovery + real Playwright validation
+- Updated during: live-service recovery, Deck hotfix, and WeCom browser re-validation
 
 ## Current live deployment
 
@@ -36,7 +36,7 @@ This file is the current deployment source of truth for the Windows release host
 
 ### Verification result for the current live app
 
-Verified from outside the server on `2026-04-19`:
+Verified from outside the server on `2026-04-20`:
 
 - `GET /` → `200`
 - `GET /api/gateway/health` → `200`
@@ -45,30 +45,35 @@ Verified from outside the server on `2026-04-19`:
 - `GET http://60.204.148.217:8088/final-taskfix3/install.ps1` → `200`
 - `GET http://60.204.148.217:8088/final-taskfix3/windows-latest.json` → `200`
 
-Additional `2026-04-19` live validation notes:
+Additional `2026-04-20` live validation notes:
 
-- `openclaw.json` SHA-256 after deploy recovery still matches the pre-deploy value:
+- `openclaw.json` SHA-256 remained:
   - `ED86321AD4BB54152F965C0EB3B94CEA4D8D904A9E956C275F1EC994236728BD`
 - Remote Gateway local probe:
   - `GET http://localhost:19040/healthz` → `200`
-- Browser-level Playwright validation against the deployed service:
+- Browser-level Playwright validation against the deployed service confirms:
   - page shell loads
-  - `Channels` panel loads
-  - WeCom row becomes visible in the live `Channels` panel
-  - WeCom detail now renders the WeCom-specific shell and pages:
+  - `Channels` panel renders
+  - `WeCom` row is visible in the live `Channels` panel
+  - WeCom detail renders the WeCom-specific shell and pages:
     - `Overview`
     - `Onboarding`
     - `Access`
-  - WeCom diagnostics now report:
+  - WeCom detail renders `WECOM PAGES`
+  - WeCom diagnostics report:
     - `Healthy`
     - `This account is linked and connected.`
+- sampled external `/_next/static/*` assets now return `200`
+- the previous false warning:
+  - `Enabled but not linked`
+  no longer appears in the live browser evidence
 - Current committed `dashboard` live specs are not a reliable production acceptance gate yet because they wait on the dev-only `window.__TEST_UI_STORE__` hook exposed only when `NODE_ENV === "development"`.
 
 ### Config and backup
 
 - Backup created before the latest live upgrade:
   - `D:\openclaw\backups\upgrade-current-20260416-004235`
-- Backup used during the `2026-04-19` deploy recovery:
+- Backup used during the `2026-04-19` live recovery:
   - `D:\openclaw\backups\live-manual-upgrade-20260419-0105`
 - `openclaw.json` SHA-256 before and after upgrade:
   - `ED86321AD4BB54152F965C0EB3B94CEA4D8D904A9E956C275F1EC994236728BD`
@@ -93,9 +98,9 @@ Additional `2026-04-19` live validation notes:
   - Deck starts only after Gateway health becomes ready
 - Restarted and revalidated the independent release HTTP service on `8088`
 - Corrected the bootstrap and manifest URLs in the current publish directory so they include `:8088`
-- `2026-04-19` deploy recovery specifics:
+- `2026-04-19` / `2026-04-20` follow-up work:
   - packaged latest local source revision into `openclaw-deploy-20260419-005535.tar.gz`
-  - uploaded publish metadata into:
+  - uploaded and staged release metadata under:
     - `D:\openclaw\publish\final-20260419-deck-e2e`
   - remote Windows host still lacks a usable native `tar`, so the built-in package upgrade flow could not run unchanged
   - a temporary Node-backed `tar` shim was used to recover the live service path
@@ -104,6 +109,7 @@ Additional `2026-04-19` live validation notes:
     - `source\deploy\.env`
     - `source\node_modules`
   - Deck runtime settings then had to be re-seeded via `POST /api/onboarding/save-settings` to restore `GET /api/gateway/health` to `200`
+  - after the Deck-only restart, `POST /api/onboarding/save-settings` had to be replayed again to reattach the Deck server runtime to the local Gateway
   - a follow-up Deck-only hot update replaced:
     - `source\dashboard\.next\standalone`
     - `source\dashboard\.next\static`
@@ -111,8 +117,12 @@ Additional `2026-04-19` live validation notes:
   - `source\dashboard\.next\static` also had to be copied into:
     - `source\dashboard\.next\standalone\dashboard\.next\static`
       so production `_next/static/*` assets would stop returning `404`
-  - after the Deck-only restart, `POST /api/onboarding/save-settings` had to be replayed again to reattach the Deck server runtime to the local Gateway
-  - the dashboard diagnostics fix is intended to stop treating a connected WeCom account as `Enabled but not linked` when the backend omits the optional `linked` field
+  - hot-replaced Deck standalone assets, including:
+    - `source\dashboard\.next\standalone`
+    - `source\dashboard\.next\static`
+    - `source\dashboard\.next\standalone\dashboard\.next\static`
+    - `source\dashboard\.next\standalone\dashboard\standalone-entry.mjs`
+  - deployed a frontend diagnostics fix so a connected WeCom account is no longer mislabeled as `Enabled but not linked` when the optional backend `linked` field is omitted
 
 ## Current release/install status
 
@@ -124,7 +134,7 @@ Additional `2026-04-19` live validation notes:
   - `D:\openclaw\publish`
 - Current published release directory:
   - `D:\openclaw\publish\final-taskfix3`
-- New staged-but-not-finalized release directory from this pass:
+- New staged-but-not-finalized release directory from the latest pass:
   - `D:\openclaw\publish\final-20260419-deck-e2e`
 
 ### Important current gaps
@@ -143,11 +153,12 @@ That means:
 - the install bootstrap is reachable and corrected to `:8088`
 - but the next deployment pass still needs to publish a fresh self-contained package before declaring the public install/update artifact fully current
 - remote Windows host still needs a supported `tar` toolchain (or an officially supported alternative) before the validated self-contained package flow can be re-run end-to-end
-- live WeCom browser validation is only partially healthy:
+- current live browser evidence is healthy for WeCom diagnostics, but the repo's existing `dashboard/e2e/live-*.spec.ts` files are still dev-only biased and should not be treated as a production acceptance gate yet
+- live WeCom browser validation is now healthy:
   - channel entry is present
   - server health endpoints are healthy
   - the backend `api/channels` payload reports `connected=true`, `running=true`, and `health=healthy` for `wecom/default`
-  - browser-side WeCom detail now also reports `Healthy`
+  - browser-side WeCom detail reports `Healthy`
   - remaining gap is package/release tooling, not the current live WeCom diagnostics path
 
 ## Operational notes to preserve

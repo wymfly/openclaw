@@ -134,6 +134,7 @@ export interface DeckGoSessionMeta {
   title?: string;
   updatedAt?: number;
   lastMessagePreview?: string;
+  compactionCount?: number;
   status?: string;
   startedAt?: number;
   endedAt?: number;

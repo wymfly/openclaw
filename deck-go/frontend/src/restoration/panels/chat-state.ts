@@ -19,9 +19,9 @@ export function upsertTranscriptMessage(
     copy[index] = nextMessage;
     return copy;
   }
-  return [...current, nextMessage].toSorted(
-    (left, right) => (left.timestamp ?? 0) - (right.timestamp ?? 0),
-  );
+  return [...current, nextMessage]
+    .slice()
+    .toSorted((left, right) => (left.timestamp ?? 0) - (right.timestamp ?? 0));
 }
 
 export function firstTextContent(message: DeckGoTranscriptMessage | undefined) {

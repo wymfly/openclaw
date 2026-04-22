@@ -1,0 +1,273 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import { useDeckAgentsStore } from "@/stores/deck-agents";
+import type { BootstrapFileEntry } from "@/stores/deck-agents";
+import { PromptPreview } from "./PromptPreview";
+import { PromptVariableInserter } from "./PromptVariableInserter";
+
+interface BootstrapFileEditorProps {
+  agentId: string;
+  files: BootstrapFileEntry[];
+  selectedFileName?: string | null;
+}
+
+interface FileEditorState {
+  // Which file row is open for editing
+  activeName: string | null;
+  // Draft content being edited
+  draftContent: string;
+  // Loading state per file
+  loadingName: string | null;
+  // Feedback per file: "saved" | "failed" | undefined
+  feedback: Record<string, "saved" | "failed" | undefined>;
+  // Whether the editor textarea is shown (after fetch)
+  editorReady: boolean;
+}
+
+export function BootstrapFileEditor({
+  agentId,
+  files,
+  selectedFileName = null,
+}: BootstrapFileEditorProps) {
+  const t = useTranslations("context");
+  const { fetchBootstrapFile, saveBootstrapFile, fetchSystemPromptPreview, currentDetail } =
+    useDeckAgentsStore();
+  const detail = currentDetail?.id === agentId ? currentDetail : null;
+
+  const [state, setState] = useState<FileEditorState>({
+    activeName: null,
+    draftContent: "",
+    loadingName: null,
+    feedback: {},
+    editorReady: false,
+  });
+
+  const activeNameRef = useRef(state.activeName);
+  const editorReadyRef = useRef(state.editorReady);
+  activeNameRef.current = state.activeName;
+  editorReadyRef.current = state.editorReady;
+
+  const openFile = useCallback(
+    async (name: string, exists: boolean, allowToggle = true) => {
+      if (allowToggle && activeNameRef.current === name) {
+        setState((s) => ({ ...s, activeName: null, editorReady: false }));
+        return;
+      }
+      if (!allowToggle && activeNameRef.current === name && editorReadyRef.current) {
+        return;
+      }
+
+      setState((s) => ({ ...s, loadingName: name, activeName: name, editorReady: false }));
+
+      if (exists) {
+        const cachedDetail = useDeckAgentsStore.getState().bootstrapFileDetail;
+        if (cachedDetail?.name === name && typeof cachedDetail.content === "string") {
+          const cachedContent = cachedDetail.content ?? "";
+          setState((s) => ({
+            ...s,
+            loadingName: null,
+            draftContent: cachedContent,
+            editorReady: true,
+          }));
+          return;
+        }
+
+        await fetchBootstrapFile(agentId, name);
+        const detail = useDeckAgentsStore.getState().bootstrapFileDetail;
+        const content = detail?.name === name ? (detail.content ?? "") : "";
+        setState((s) => ({
+          ...s,
+          loadingName: null,
+          draftContent: content,
+          editorReady: true,
+        }));
+        return;
+      }
+
+      setState((s) => ({
+        ...s,
+        loadingName: null,
+        draftContent: "",
+        editorReady: true,
+      }));
+    },
+    [agentId, fetchBootstrapFile],
+  );
+
+  useEffect(() => {
+    if (!selectedFileName) {
+      return;
+    }
+    const selectedFile = files.find((file) => file.name === selectedFileName);
+    if (!selectedFile) {
+      return;
+    }
+    void openFile(selectedFile.name, selectedFile.exists, false);
+  }, [files, openFile, selectedFileName]);
+
+  const handleOpenFile = async (name: string, exists: boolean) => {
+    await openFile(name, exists, true);
+  };
+
+  const handleCancel = () => {
+    setState((s) => ({ ...s, activeName: null, editorReady: false, draftContent: "" }));
+  };
+
+  const handleSave = async (name: string) => {
+    setState((s) => ({ ...s, loadingName: name }));
+    const ok = await saveBootstrapFile(agentId, name, state.draftContent);
+    setState((s) => ({
+      ...s,
+      loadingName: null,
+      feedback: { ...s.feedback, [name]: ok ? "saved" : "failed" },
+    }));
+
+    if (ok) {
+      // Refresh prompt preview so char counts update
+      void fetchSystemPromptPreview(agentId);
+      // Close editor after successful save
+      setTimeout(() => {
+        setState((s) => ({
+          ...s,
+          activeName: null,
+          editorReady: false,
+          draftContent: "",
+          feedback: { ...s.feedback, [name]: undefined },
+        }));
+      }, 1200);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      {files.map((file) => {
+        const isActive = state.activeName === file.name;
+        const isLoading = state.loadingName === file.name;
+        const feedback = state.feedback[file.name];
+
+        return (
+          <div
+            key={file.name}
+            className="border border-[var(--border-subtle)] rounded-md overflow-hidden"
+          >
+            {/* File row header */}
+            <div className="flex items-center justify-between gap-2 px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full shrink-0",
+                    file.exists ? "bg-[var(--success)]" : "bg-[var(--muted-foreground)] opacity-40",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-xs font-mono truncate",
+                    file.exists ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]",
+                  )}
+                >
+                  {file.name}
+                </span>
+                {file.exists && (
+                  <span className="text-[10px] text-[var(--muted-foreground)] font-mono shrink-0">
+                    {file.charCount.toLocaleString()} ch
+                  </span>
+                )}
+              </div>
+
+              {/* Action button — click/edit or create */}
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => void handleOpenFile(file.name, file.exists)}
+                className={cn(
+                  "text-[10px] px-2 py-0.5 rounded border shrink-0 cursor-pointer transition-colors",
+                  "border-[var(--border)] text-[var(--muted-foreground)]",
+                  "hover:border-[var(--primary)] hover:text-[var(--primary)]",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  isActive && "border-[var(--primary)] text-[var(--primary)]",
+                )}
+              >
+                {isLoading ? "..." : isActive ? t("cancel") : file.exists ? t("edit") : t("create")}
+              </button>
+            </div>
+
+            {/* Inline editor */}
+            {isActive && state.editorReady && (
+              <div className="border-t border-[var(--border-subtle)] px-3 py-2 space-y-2">
+                {/* Variable inserter toolbar */}
+                <div className="flex items-center justify-end">
+                  <PromptVariableInserter
+                    onInsert={(variable) => {
+                      setState((s) => ({
+                        ...s,
+                        draftContent: s.draftContent + variable,
+                      }));
+                    }}
+                  />
+                </div>
+
+                <textarea
+                  value={state.draftContent}
+                  onChange={(e) => setState((s) => ({ ...s, draftContent: e.target.value }))}
+                  placeholder={t("editorPlaceholder")}
+                  rows={8}
+                  className={cn(
+                    "w-full text-xs font-mono resize-y leading-relaxed",
+                    "bg-[var(--card)] text-[var(--foreground)]",
+                    "border border-[var(--border)] rounded px-2 py-1.5",
+                    "focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]",
+                    "placeholder:text-[var(--muted-foreground)]",
+                  )}
+                />
+
+                {/* Prompt preview */}
+                {state.draftContent && detail && (
+                  <PromptPreview content={state.draftContent} detail={detail} />
+                )}
+
+                {/* Feedback */}
+                {feedback === "saved" && (
+                  <p className="text-[10px] text-[var(--success)]">{t("saved")}</p>
+                )}
+                {feedback === "failed" && (
+                  <p className="text-[10px] text-[var(--destructive)]">{t("saveFailed")}</p>
+                )}
+
+                {/* Save / Cancel */}
+                <div className="flex items-center gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className={cn(
+                      "text-xs px-3 py-1 rounded border cursor-pointer transition-colors",
+                      "border-[var(--border)] text-[var(--muted-foreground)]",
+                      "hover:text-[var(--foreground)]",
+                    )}
+                  >
+                    {t("cancel")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => void handleSave(file.name)}
+                    className={cn(
+                      "text-xs px-3 py-1 rounded border cursor-pointer transition-colors",
+                      "bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)]",
+                      "hover:opacity-90",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                    )}
+                  >
+                    {isLoading ? "..." : t("save")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

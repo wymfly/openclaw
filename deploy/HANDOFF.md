@@ -12,6 +12,7 @@ This file is the quickest starting point for the next agent/operator who needs t
 > 2. `.agents/skills/openclaw-deploy-release/SKILL.md` — release workflow
 > 3. `.agents/skills/openclaw-deploy-release/references/validated-release-flow.md` — commands and checklists
 > 4. `deploy/CLAUDE.md` — file index and evolution contracts
+> 5. `deploy/docs/WINDOWS-LIVE-DEPLOY-NOTES.md` — live host pitfalls and hotfix rules
 
 ## Current validated state
 
@@ -84,12 +85,28 @@ If you need to refresh Deck runtime files on the live server:
 3. replace:
    - `source/dashboard/.next/standalone`
    - `source/dashboard/.next/static`
+   - `source/dashboard/.next/standalone/dashboard/.next/static`
    - `source/dashboard/.next/standalone/dashboard/standalone-entry.mjs`
 4. start the Windows task again
 
 Trying to overwrite these while Deck is running caused `EBUSY` and stale-bundle issues.
 
-### 3. Browser hard refresh matters
+### 3. Re-seed Deck runtime if root is `200` but gateway endpoints are `502`
+
+Observed recovery pattern:
+
+- `GET /` is `200`
+- `GET /api/gateway/health` is `502`
+- `GET /api/gateway/status` is `502`
+
+In that state, replay `POST /api/onboarding/save-settings` with the current live:
+
+- `gatewayUrl`
+- `gatewayToken`
+
+This reattaches Deck server runtime to the local Gateway.
+
+### 4. Browser hard refresh matters
 
 After Deck frontend fixes, ask the user to:
 
@@ -97,6 +114,12 @@ After Deck frontend fixes, ask the user to:
 - or reopen the page in a fresh/private window
 
 Otherwise old browser bundles can make a fixed server still look broken.
+
+### 5. Current live Playwright specs are dev-only biased
+
+The existing `dashboard/e2e/live-*.spec.ts` files currently rely on `window.__TEST_UI_STORE__`.
+
+That hook is exposed only when `NODE_ENV === "development"`, so those specs are not a trustworthy production standalone acceptance gate yet.
 
 ## Where the next agent should start
 
@@ -111,6 +134,7 @@ Start here, in order:
 5. local skill:
    - `~/.codex/skills/openclaw-deploy-release/SKILL.md`
    - `~/.codex/skills/openclaw-deploy-release/references/validated-release-flow.md`
+6. `deploy/docs/WINDOWS-LIVE-DEPLOY-NOTES.md`
 
 ### If the task is “continue fixing chat disconnect warnings”
 

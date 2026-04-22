@@ -14,7 +14,7 @@ import (
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
+	runtimetransport "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/transport"
 )
 
 type Status string
@@ -54,14 +54,35 @@ type Snapshot struct {
 type launcher func(config.ManagedGatewaySettings) (*exec.Cmd, error)
 type probeFunc func(context.Context, config.ManagedGatewaySettings) error
 type Option func(*Supervisor)
+type LifecycleNotifier interface {
+	PublishStatus(Snapshot)
+	PublishHealth(Snapshot)
+	PublishExit(Snapshot)
+}
+type ProbeTransitionContext struct {
+	Err            error
+	HealthyOnce    bool
+	StartedAt      time.Time
+	StartupTimeout time.Duration
+	Now            time.Time
+}
+type ProbeTransitionDecision struct {
+	Status       Status
+	Health       Health
+	LastError    string
+	FailurePhase string
+	HealthyOnce  bool
+}
+type ProbeTransitionPolicy func(ProbeTransitionContext) ProbeTransitionDecision
 
 type Supervisor struct {
 	store *config.Store
-	bus   *events.Bus
 
+	notifier       LifecycleNotifier
 	launch         launcher
 	prepare        preflightFunc
 	probe          probeFunc
+	probePolicy    ProbeTransitionPolicy
 	probeInterval  time.Duration
 	stopTimeout    time.Duration
 	startupTimeout time.Duration
@@ -88,15 +109,18 @@ func NewSupervisor(store *config.Store, bus *events.Bus) *Supervisor {
 func NewSupervisorWithOptions(store *config.Store, bus *events.Bus, options ...Option) *Supervisor {
 	supervisor := &Supervisor{
 		store:          store,
-		bus:            bus,
 		launch:         defaultLauncher,
 		prepare:        defaultPreflight,
 		probe:          defaultProbe,
+		probePolicy:    defaultProbeTransitionPolicy,
 		probeInterval:  time.Second,
 		stopTimeout:    5 * time.Second,
 		startupTimeout: 60 * time.Second,
 		status:         StatusStopped,
 		health:         HealthUnknown,
+	}
+	if bus != nil {
+		supervisor.notifier = &busLifecycleNotifier{bus: bus}
 	}
 	for _, option := range options {
 		option(supervisor)
@@ -131,6 +155,20 @@ func WithProbeInterval(interval time.Duration) Option {
 func WithStartupTimeout(timeout time.Duration) Option {
 	return func(supervisor *Supervisor) {
 		supervisor.startupTimeout = timeout
+	}
+}
+
+func WithLifecycleNotifier(notifier LifecycleNotifier) Option {
+	return func(supervisor *Supervisor) {
+		supervisor.notifier = notifier
+	}
+}
+
+func WithProbeTransitionPolicy(policy ProbeTransitionPolicy) Option {
+	return func(supervisor *Supervisor) {
+		if policy != nil {
+			supervisor.probePolicy = policy
+		}
 	}
 }
 
@@ -358,31 +396,18 @@ func (s *Supervisor) runHealthProbe(cmd *exec.Cmd, cfg config.ManagedGatewaySett
 		s.mu.Unlock()
 		return
 	}
-	switch {
-	case err == nil:
-		s.health = HealthHealthy
-		s.lastError = ""
-		s.failurePhase = ""
-		if !s.healthyOnce {
-			s.healthyOnce = true
-		}
-		s.status = StatusRunning
-	case s.healthyOnce:
-		s.health = HealthUnhealthy
-		s.status = StatusDegraded
-		s.lastError = err.Error()
-		s.failurePhase = "runtime"
-	case !s.startedAt.IsZero() && time.Since(s.startedAt) >= s.startupTimeout:
-		s.health = HealthUnhealthy
-		s.status = StatusFailed
-		s.lastError = err.Error()
-		s.failurePhase = "runtime"
-	default:
-		s.health = HealthUnhealthy
-		s.status = StatusStarting
-		s.lastError = err.Error()
-		s.failurePhase = "runtime"
-	}
+	decision := s.probePolicy(ProbeTransitionContext{
+		Err:            err,
+		HealthyOnce:    s.healthyOnce,
+		StartedAt:      s.startedAt,
+		StartupTimeout: s.startupTimeout,
+		Now:            time.Now(),
+	})
+	s.health = decision.Health
+	s.status = decision.Status
+	s.lastError = decision.LastError
+	s.failurePhase = decision.FailurePhase
+	s.healthyOnce = decision.HealthyOnce
 	snapshot := s.snapshotLocked()
 	s.mu.Unlock()
 
@@ -429,23 +454,85 @@ func (s *Supervisor) currentConfigLocked() config.ManagedGatewaySettings {
 }
 
 func (s *Supervisor) publishStatus(snapshot Snapshot) {
-	s.publish("runtime.gateway.status", snapshot)
+	if s.notifier == nil {
+		return
+	}
+	s.notifier.PublishStatus(snapshot)
 }
 
 func (s *Supervisor) publishHealth(snapshot Snapshot) {
-	s.publish("runtime.gateway.health", snapshot)
+	if s.notifier == nil {
+		return
+	}
+	s.notifier.PublishHealth(snapshot)
 }
 
 func (s *Supervisor) publishExit(snapshot Snapshot) {
-	s.publish("runtime.gateway.exit", snapshot)
+	if s.notifier == nil {
+		return
+	}
+	s.notifier.PublishExit(snapshot)
 }
 
-func (s *Supervisor) publish(eventType string, payload any) {
-	if s.bus == nil {
+type busLifecycleNotifier struct {
+	bus *events.Bus
+}
+
+func (n *busLifecycleNotifier) PublishStatus(snapshot Snapshot) {
+	n.publish("runtime.gateway.status", snapshot)
+}
+
+func (n *busLifecycleNotifier) PublishHealth(snapshot Snapshot) {
+	n.publish("runtime.gateway.health", snapshot)
+}
+
+func (n *busLifecycleNotifier) PublishExit(snapshot Snapshot) {
+	n.publish("runtime.gateway.exit", snapshot)
+}
+
+func (n *busLifecycleNotifier) publish(eventType string, payload any) {
+	if n == nil || n.bus == nil {
 		return
 	}
 	raw, _ := json.Marshal(payload)
-	s.bus.Publish(eventType, raw)
+	n.bus.Publish(eventType, raw)
+}
+
+func defaultProbeTransitionPolicy(input ProbeTransitionContext) ProbeTransitionDecision {
+	switch {
+	case input.Err == nil:
+		return ProbeTransitionDecision{
+			Status:       StatusRunning,
+			Health:       HealthHealthy,
+			LastError:    "",
+			FailurePhase: "",
+			HealthyOnce:  true,
+		}
+	case input.HealthyOnce:
+		return ProbeTransitionDecision{
+			Status:       StatusDegraded,
+			Health:       HealthUnhealthy,
+			LastError:    input.Err.Error(),
+			FailurePhase: "runtime",
+			HealthyOnce:  true,
+		}
+	case !input.StartedAt.IsZero() && input.Now.Sub(input.StartedAt) >= input.StartupTimeout:
+		return ProbeTransitionDecision{
+			Status:       StatusFailed,
+			Health:       HealthUnhealthy,
+			LastError:    input.Err.Error(),
+			FailurePhase: "runtime",
+			HealthyOnce:  false,
+		}
+	default:
+		return ProbeTransitionDecision{
+			Status:       StatusStarting,
+			Health:       HealthUnhealthy,
+			LastError:    input.Err.Error(),
+			FailurePhase: "runtime",
+			HealthyOnce:  false,
+		}
+	}
 }
 
 func validateManagedConfig(cfg config.ManagedGatewaySettings) error {
@@ -476,7 +563,7 @@ func defaultLauncher(cfg config.ManagedGatewaySettings) (*exec.Cmd, error) {
 }
 
 func defaultProbe(ctx context.Context, cfg config.ManagedGatewaySettings) error {
-	return gateway.ProbeHealth(ctx, config.ManagedGatewayURL(cfg), cfg.GatewayToken)
+	return runtimetransport.ProbeManagedHealth(ctx, cfg)
 }
 
 func managedEnv(cfg config.ManagedGatewaySettings) []string {

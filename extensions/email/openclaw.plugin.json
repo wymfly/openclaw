@@ -1,9 +1,9 @@
 {
   "id": "email",
   "name": "Email",
-  "description": "Bundled IMAP email tools for listing messages and downloading attachments.",
+  "description": "Bundled IMAP/SMTP email tools for reading messages, downloading attachments, and sending mail.",
   "contracts": {
-    "tools": ["email_list", "email_read", "email_download_attachments"]
+    "tools": ["email_list", "email_read", "email_download_attachments", "email_send"]
   },
   "uiHints": {
     "defaultAccountId": {
@@ -14,6 +14,19 @@
       "label": "IMAP Password",
       "help": "Password or SecretRef used for IMAP LOGIN.",
       "sensitive": true
+    },
+    "accounts.smtp.password": {
+      "label": "SMTP Password",
+      "help": "Password or SecretRef used for SMTP AUTH. Falls back to the IMAP password when omitted.",
+      "sensitive": true
+    },
+    "accounts.smtp.from": {
+      "label": "Default From Address",
+      "help": "Envelope/header sender address used by email_send when the tool call omits from."
+    },
+    "sendPolicy.allowedReadRoots": {
+      "label": "Allowed Attachment Read Roots",
+      "help": "Absolute paths email_send attachments may be read from. Defaults to the current workspace root."
     },
     "downloadPolicy.allowedWriteRoots": {
       "label": "Allowed Attachment Output Roots",
@@ -58,6 +71,48 @@
             "mailbox": {
               "type": "string"
             },
+            "smtp": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "host": {
+                  "type": "string"
+                },
+                "port": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 65535
+                },
+                "secure": {
+                  "type": "boolean"
+                },
+                "startTls": {
+                  "type": "boolean"
+                },
+                "user": {
+                  "type": "string"
+                },
+                "password": {
+                  "type": ["string", "object"]
+                },
+                "from": {
+                  "type": "string"
+                },
+                "authMethod": {
+                  "type": "string",
+                  "enum": ["login", "plain"]
+                },
+                "tls": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "rejectUnauthorized": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
             "tls": {
               "type": "object",
               "additionalProperties": false,
@@ -66,6 +121,18 @@
                   "type": "boolean"
                 }
               }
+            }
+          }
+        }
+      },
+      "sendPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allowedReadRoots": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         }

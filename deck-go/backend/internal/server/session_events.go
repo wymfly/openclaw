@@ -1,17 +1,15 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
+
+	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
-type sessionRealtime interface {
-	SubscribeSession(ctx context.Context, key string) error
-	UnsubscribeSession(ctx context.Context, key string) error
-}
-
-func registerSessionEventRoute(mux interface{ MethodFunc(string, string, http.HandlerFunc) }, realtime sessionRealtime) {
+func registerSessionEventRoute(mux interface {
+	MethodFunc(string, string, http.HandlerFunc)
+}, managed openclawrt.ManagedRuntimeSurface) {
 	mux.MethodFunc("POST", "/chat/session-events", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Action     string `json:"action"`
@@ -27,12 +25,12 @@ func registerSessionEventRoute(mux interface{ MethodFunc(string, string, http.Ha
 		}
 		switch body.Action {
 		case "subscribe":
-			if err := realtime.SubscribeSession(r.Context(), body.SessionKey); err != nil {
+			if err := managed.SubscribeSession(r.Context(), body.SessionKey); err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
 				return
 			}
 		case "unsubscribe":
-			if err := realtime.UnsubscribeSession(r.Context(), body.SessionKey); err != nil {
+			if err := managed.UnsubscribeSession(r.Context(), body.SessionKey); err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
 				return
 			}

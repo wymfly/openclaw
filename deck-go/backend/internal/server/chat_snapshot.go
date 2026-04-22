@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
+	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
 func registerChatSnapshotRoute(mux interface {
 	MethodFunc(string, string, http.HandlerFunc)
-}, client *gateway.Client) {
+}, managed openclawrt.ManagedRuntimeSurface) {
 	mux.MethodFunc("GET", "/chat/snapshot", func(w http.ResponseWriter, r *http.Request) {
 		sessionKey := r.URL.Query().Get("sessionKey")
 		if sessionKey == "" {
@@ -31,7 +31,7 @@ func registerChatSnapshotRoute(mux interface {
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
 
-		detail, err := fetchSessionDetailPayload(ctx, client, sessionKey, agentID, limit)
+		detail, err := managed.GetTimelineWithParams(ctx, sessionKey, agentID, limit)
 		if err != nil {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
 			return

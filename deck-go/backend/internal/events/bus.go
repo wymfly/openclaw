@@ -1,11 +1,15 @@
 package events
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type Event struct {
-	ID   int64
-	Type string
-	Data []byte
+	ID        int64
+	Type      string
+	Data      []byte
+	Timestamp int64
 }
 
 type Bus struct {
@@ -31,9 +35,10 @@ func (b *Bus) Publish(eventType string, data []byte) Event {
 	defer b.mu.Unlock()
 	b.nextID++
 	event := Event{
-		ID:   b.nextID,
-		Type: eventType,
-		Data: append([]byte(nil), data...),
+		ID:        b.nextID,
+		Type:      eventType,
+		Data:      append([]byte(nil), data...),
+		Timestamp: time.Now().UnixMilli(),
 	}
 	b.buffer = append(b.buffer, event)
 	if len(b.buffer) > b.bufferSize {
@@ -83,4 +88,3 @@ func (b *Bus) EventsSince(lastID int64) (events []Event, gapDetected bool) {
 	}
 	return events, gapDetected
 }
-

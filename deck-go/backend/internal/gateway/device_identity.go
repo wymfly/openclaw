@@ -32,6 +32,14 @@ type deviceIdentity struct {
 	privateKeyPEM string
 }
 
+func CurrentDeviceID() (string, error) {
+	identity, err := loadOrCreateDeviceIdentity()
+	if err != nil {
+		return "", err
+	}
+	return identity.deviceID, nil
+}
+
 func loadOrCreateDeviceIdentity() (*deviceIdentity, error) {
 	path, err := resolveDeviceIdentityPath()
 	if err != nil {

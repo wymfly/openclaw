@@ -1,0 +1,161 @@
+asyncapi: 3.0.0
+info:
+  title: OpenClaw Deck Control Plane Realtime Contract
+  version: 0.1.0-stage2
+  summary: Stage 2 canonical realtime envelope for the control plane
+servers:
+  local:
+    host: localhost
+    pathname: /api/v1/ws
+    protocol: ws
+channels:
+  runtimeEvents:
+    address: runtimes/{runtimeId}/events
+    parameters:
+      runtimeId:
+        description: Stable runtime identifier
+    messages:
+      connectionEvent:
+        $ref: "#/components/messages/ConnectionEvent"
+      runtimeEvent:
+        $ref: "#/components/messages/RuntimeEvent"
+      sessionEvent:
+        $ref: "#/components/messages/SessionEvent"
+      chatEvent:
+        $ref: "#/components/messages/ChatEvent"
+      runEvent:
+        $ref: "#/components/messages/RunEvent"
+      toolEvent:
+        $ref: "#/components/messages/ToolEvent"
+      canvasEvent:
+        $ref: "#/components/messages/CanvasEvent"
+operations:
+  receiveRuntimeEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/runtimeEvents"
+components:
+  messages:
+    ConnectionEvent:
+      payload:
+        $ref: "#/components/schemas/CanonicalEventEnvelope"
+    RuntimeEvent:
+      payload:
+        $ref: "#/components/schemas/CanonicalEventEnvelope"
+    SessionEvent:
+      payload:
+        $ref: "#/components/schemas/CanonicalEventEnvelope"
+    ChatEvent:
+      payload:
+        $ref: "#/components/schemas/CanonicalEventEnvelope"
+    RunEvent:
+      payload:
+        $ref: "#/components/schemas/CanonicalEventEnvelope"
+    ToolEvent:
+      payload:
+        $ref: "#/components/schemas/CanonicalEventEnvelope"
+    CanvasEvent:
+      payload:
+        $ref: "#/components/schemas/CanonicalEventEnvelope"
+  schemas:
+    CanonicalEventEnvelope:
+      type: object
+      properties:
+        schemaVersion:
+          type: string
+        eventId:
+          type: string
+        seq:
+          type: integer
+          nullable: true
+        type:
+          type: string
+        runtimeId:
+          type: string
+        sessionId:
+          type: string
+          nullable: true
+        occurredAt:
+          type: string
+          format: date-time
+        connectionEpoch:
+          type: string
+        payload:
+          oneOf:
+            - $ref: "#/components/schemas/ConnectionPayload"
+            - $ref: "#/components/schemas/RuntimePayload"
+            - $ref: "#/components/schemas/SessionPayload"
+            - $ref: "#/components/schemas/ChatPayload"
+            - $ref: "#/components/schemas/RunPayload"
+            - $ref: "#/components/schemas/ToolPayload"
+            - $ref: "#/components/schemas/CanvasPayload"
+      required:
+        - schemaVersion
+        - eventId
+        - type
+        - runtimeId
+        - occurredAt
+        - connectionEpoch
+        - payload
+    ConnectionPayload:
+      type: object
+      properties:
+        state:
+          type: string
+      required: [state]
+    RuntimePayload:
+      type: object
+      properties:
+        health:
+          type: string
+        capabilityVersion:
+          type: string
+          nullable: true
+    SessionPayload:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        action:
+          type: string
+      required: [sessionId, action]
+    ChatPayload:
+      type: object
+      properties:
+        messageId:
+          type: string
+        delta:
+          type: string
+          nullable: true
+      required: [messageId]
+    RunPayload:
+      type: object
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+      required: [runId, status]
+    ToolPayload:
+      type: object
+      properties:
+        runId:
+          type: string
+        toolName:
+          type: string
+        status:
+          type: string
+      required: [runId, toolName, status]
+    CanvasPayload:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        surfaceId:
+          type: string
+          nullable: true
+        patch:
+          type: object
+          additionalProperties: true
+          nullable: true
+      required: [sessionId]

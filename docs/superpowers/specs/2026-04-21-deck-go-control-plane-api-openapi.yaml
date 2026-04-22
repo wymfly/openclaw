@@ -1,0 +1,3118 @@
+openapi: 3.1.0
+info:
+  title: OpenClaw Deck Control Plane API
+  version: 0.1.0-stage2
+  summary: Stage 2 target query/command HTTP contract for the control plane
+servers:
+  - url: /api/v1
+paths:
+  /settings:
+    get:
+      summary: Fetch deck-go settings snapshot
+      operationId: getDeckGoSettings
+      responses:
+        "200":
+          description: Deck-go settings payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    put:
+      summary: Update deck-go settings snapshot
+      operationId: updateDeckGoSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Deck-go settings update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /settings/test-connection:
+    post:
+      summary: Test deck-go gateway connection settings
+      operationId: testDeckGoSettingsConnection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                token:
+                  type: string
+              required: [url]
+      responses:
+        "200":
+          description: Settings connection test payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /settings/version:
+    get:
+      summary: Fetch deck-go version snapshot
+      operationId: getDeckGoSettingsVersion
+      responses:
+        "200":
+          description: Deck-go version payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /alerts:
+    get:
+      summary: Fetch alert rules
+      operationId: listAlertRules
+      responses:
+        "200":
+          description: Alert rule list payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Create an alert rule
+      operationId: createAlertRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "201":
+          description: Alert rule create payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /alerts/{ruleId}:
+    patch:
+      summary: Update an alert rule
+      operationId: updateAlertRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Alert rule update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    delete:
+      summary: Delete an alert rule
+      operationId: deleteAlertRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Alert rule delete payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /webhooks:
+    get:
+      summary: Fetch webhook inventory
+      operationId: listWebhooks
+      responses:
+        "200":
+          description: Webhook collection payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Create a webhook
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "201":
+          description: Webhook create payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /webhooks/{webhookId}:
+    patch:
+      summary: Update a webhook
+      operationId: updateWebhook
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Webhook update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    delete:
+      summary: Delete a webhook
+      operationId: deleteWebhook
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Webhook delete payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /webhooks/{webhookId}/deliveries:
+    get:
+      summary: Fetch webhook delivery history
+      operationId: listWebhookDeliveries
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Webhook delivery history payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /webhooks/{webhookId}/test:
+    post:
+      summary: Trigger a webhook test delivery
+      operationId: testWebhook
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Webhook test payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /logs:
+    get:
+      summary: Tail gateway logs
+      operationId: getLogs
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: maxBytes
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Logs tail payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /logs/stream:
+    get:
+      summary: Stream gateway logs over SSE
+      operationId: streamLogs
+      responses:
+        "200":
+          description: SSE log stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /onboarding/status:
+    get:
+      summary: Fetch onboarding status
+      operationId: getOnboardingStatus
+      responses:
+        "200":
+          description: Onboarding status payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /onboarding/test-connection:
+    post:
+      summary: Test onboarding gateway connection
+      operationId: testOnboardingConnection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Onboarding connection test payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /onboarding/save-settings:
+    post:
+      summary: Save onboarding settings
+      operationId: saveOnboardingSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Onboarding save payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /docs:
+    get:
+      summary: Fetch extracted docs
+      operationId: listDocs
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Docs collection payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /docs/{docId}:
+    get:
+      summary: Fetch one extracted doc
+      operationId: getDoc
+      parameters:
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Doc payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    delete:
+      summary: Delete one extracted doc
+      operationId: deleteDoc
+      parameters:
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Doc delete payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /docs/extract:
+    post:
+      summary: Extract docs from a session transcript
+      operationId: extractDocs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionKey:
+                  type: string
+              required: [sessionKey]
+      responses:
+        "200":
+          description: Docs extract payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /memory/browse:
+    get:
+      summary: Browse agent memory files
+      operationId: browseMemory
+      parameters:
+        - name: agentId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: read
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Memory browse payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /memory/search:
+    get:
+      summary: Search memory
+      operationId: searchMemory
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: agentId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Memory search payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /stream:
+    get:
+      summary: Stream control-plane events over SSE
+      operationId: streamControlPlaneEvents
+      responses:
+        "200":
+          description: SSE control-plane event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /chat/session-events:
+    post:
+      summary: Subscribe or unsubscribe from chat session events
+      operationId: updateChatSessionEventSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Session event subscription payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /chat/projection:
+    post:
+      summary: Persist chat projection compatibility payload
+      operationId: persistChatProjection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Chat projection payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /chat/compaction:
+    post:
+      summary: Run chat compaction checkpoint actions
+      operationId: runChatCompactionAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Chat compaction payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /chat/steer:
+    post:
+      summary: Steer a running chat session
+      operationId: steerChatSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Chat steer payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /usage/budget:
+    get:
+      summary: Fetch budget rules
+      operationId: listBudgetRules
+      responses:
+        "200":
+          description: Budget rule collection payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Create a budget rule
+      operationId: createBudgetRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "201":
+          description: Budget rule create payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /usage/budget/{ruleId}:
+    patch:
+      summary: Update a budget rule
+      operationId: updateBudgetRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Budget rule update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    delete:
+      summary: Delete a budget rule
+      operationId: deleteBudgetRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Budget rule delete payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /usage/budget/evaluate:
+    get:
+      summary: Evaluate budget rules
+      operationId: evaluateBudgetRules
+      responses:
+        "200":
+          description: Budget evaluation payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /usage/cost:
+    get:
+      summary: Fetch usage cost breakdown
+      operationId: getUsageCost
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Usage cost payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /usage/sessions:
+    get:
+      summary: Fetch session usage summaries
+      operationId: getUsageSessions
+      parameters:
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: key
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: includeContextWeight
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Session usage payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /usage/sessions/logs:
+    get:
+      summary: Fetch session usage logs
+      operationId: getUsageSessionLogs
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Session usage logs payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /usage/timeseries:
+    get:
+      summary: Fetch usage timeseries data
+      operationId: getUsageTimeseries
+      parameters:
+        - name: key
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: mode
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: utcOffset
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Usage timeseries payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /models/config:
+    get:
+      summary: Fetch model configuration
+      operationId: getModelsConfig
+      responses:
+        "200":
+          description: Model config payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    patch:
+      summary: Patch model configuration
+      operationId: patchModelsConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Model config patch payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /models/usage/providers:
+    get:
+      summary: Fetch model usage providers
+      operationId: getModelUsageProviders
+      responses:
+        "200":
+          description: Model usage providers payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /models/usage/cost:
+    get:
+      summary: Fetch model usage cost
+      operationId: getModelUsageCost
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Model usage cost payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /media:
+    get:
+      summary: Fetch a media asset
+      operationId: getMediaAsset
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: dl
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Media asset response
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /canvas/{assetPath}:
+    get:
+      summary: Fetch a canvas host asset
+      operationId: getCanvasAsset
+      parameters:
+        - name: assetPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Canvas asset response
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/html:
+              schema:
+                type: string
+  /deck/canvas:
+    post:
+      summary: Update deck canvas ready/eval state
+      operationId: updateDeckCanvasState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Deck canvas payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes:
+    get:
+      summary: List registered runtimes
+      operationId: listRuntimes
+      responses:
+        "200":
+          description: Runtime collection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runtimes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RuntimeSummary"
+                  requestId:
+                    type: string
+                required: [runtimes, requestId]
+  /runtimes/{runtimeId}:
+    get:
+      summary: Fetch one runtime summary
+      operationId: getRuntime
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runtime:
+                    $ref: "#/components/schemas/RuntimeSummary"
+                  requestId:
+                    type: string
+                required: [runtime, requestId]
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/sessions:
+    get:
+      summary: List sessions for a runtime
+      operationId: listSessions
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Session collection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runtimeId:
+                    type: string
+                  sessions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SessionSummary"
+                  requestId:
+                    type: string
+                required: [runtimeId, sessions, requestId]
+  /runtimes/{runtimeId}/sessions/{sessionId}/timeline:
+    get:
+      summary: Fetch the projected timeline snapshot for one session
+      operationId: getSessionTimeline
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Timeline snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineSnapshotEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/runs:
+    get:
+      summary: List projected runs for a runtime
+      operationId: listRuns
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Run collection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runtimeId:
+                    type: string
+                  runs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RunSummary"
+                  requestId:
+                    type: string
+                required: [runtimeId, runs, requestId]
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/activity:
+    get:
+      summary: List projected activity entries for a runtime
+      operationId: listActivity
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Activity collection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runtimeId:
+                    type: string
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ActivityEvent"
+                  requestId:
+                    type: string
+                required: [runtimeId, events, requestId]
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/runs/{runId}:
+    get:
+      summary: Fetch one projected run detail
+      operationId: getRun
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: Run detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunDetailEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/stats:
+    get:
+      summary: Fetch projected monitor statistics for a runtime
+      operationId: getRuntimeStats
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime monitor stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorStatsEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/gateway/health:
+    get:
+      summary: Fetch gateway health diagnostics for a runtime
+      operationId: getRuntimeGatewayHealth
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime gateway health payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayHealthEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/gateway/describe:
+    get:
+      summary: Fetch gateway capability description for a runtime
+      operationId: getRuntimeGatewayDescribe
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: includeSchemas
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Runtime gateway description payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayDescribeEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/gateway/status:
+    get:
+      summary: Fetch gateway status diagnostics for a runtime
+      operationId: getRuntimeGatewayStatus
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime gateway status payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayStatusEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/devices:
+    get:
+      summary: Fetch device inventory for a runtime
+      operationId: listRuntimeDevices
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime device inventory payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DevicesEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/devices/self:
+    get:
+      summary: Fetch the local device identity for a runtime
+      operationId: getRuntimeDeviceSelf
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime device identity payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceSelfEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/devices/approve:
+    post:
+      summary: Approve a pending device request
+      operationId: approveRuntimeDeviceRequest
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+              required: [requestId]
+      responses:
+        "200":
+          description: Device request approved
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/devices/reject:
+    post:
+      summary: Reject a pending device request
+      operationId: rejectRuntimeDeviceRequest
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+              required: [requestId]
+      responses:
+        "200":
+          description: Device request rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/devices/remove:
+    post:
+      summary: Remove a paired device
+      operationId: removeRuntimeDevice
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deviceId:
+                  type: string
+              required: [deviceId]
+      responses:
+        "200":
+          description: Device removed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/devices/token/rotate:
+    post:
+      summary: Rotate a device token
+      operationId: rotateRuntimeDeviceToken
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deviceId:
+                  type: string
+                role:
+                  type: string
+              required: [deviceId, role]
+      responses:
+        "200":
+          description: Device token rotated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/devices/token/revoke:
+    post:
+      summary: Revoke a device token
+      operationId: revokeRuntimeDeviceToken
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deviceId:
+                  type: string
+                role:
+                  type: string
+              required: [deviceId, role]
+      responses:
+        "200":
+          description: Device token revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/config:
+    get:
+      summary: Fetch runtime configuration payload
+      operationId: getRuntimeConfig
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime configuration payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/config:patch:
+    post:
+      summary: Patch runtime configuration with a merge patch object
+      operationId: patchRuntimeConfig
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                patch:
+                  type: object
+                  additionalProperties: true
+                baseHash:
+                  type: string
+              required: [patch]
+      responses:
+        "200":
+          description: Runtime configuration patch result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/config:apply:
+    post:
+      summary: Apply runtime configuration
+      operationId: applyRuntimeConfig
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                raw:
+                  type: string
+                baseHash:
+                  type: string
+              required: [raw]
+      responses:
+        "200":
+          description: Runtime configuration apply result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/config/schema:
+    get:
+      summary: Fetch runtime configuration schema
+      operationId: getRuntimeConfigSchema
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime configuration schema
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigSchemaEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/config/schema-lookup:
+    post:
+      summary: Look up a runtime configuration schema branch
+      operationId: lookupRuntimeConfigSchema
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+              required: [path]
+      responses:
+        "200":
+          description: Runtime configuration schema lookup payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/agents:
+    get:
+      summary: Fetch runtime agent inventory
+      operationId: listRuntimeAgents
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime agent inventory payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Create a runtime agent
+      operationId: createRuntimeAgent
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime agent create payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/agents/{agentId}:
+    get:
+      summary: Fetch one runtime agent record
+      operationId: getRuntimeAgent
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Runtime agent payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentPayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+    patch:
+      summary: Update a runtime agent
+      operationId: updateRuntimeAgent
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime agent update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    delete:
+      summary: Delete a runtime agent
+      operationId: deleteRuntimeAgent
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Runtime agent delete payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/agents/{agentId}/identity:
+    get:
+      summary: Fetch runtime agent identity
+      operationId: getRuntimeAgentIdentity
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Runtime agent identity payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentPayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/agents/{agentId}/files:
+    get:
+      summary: Fetch runtime agent file inventory
+      operationId: listRuntimeAgentFiles
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Runtime agent files payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentPayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Write a runtime agent file
+      operationId: writeRuntimeAgentFile
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime agent file write payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/agents/{agentId}/files/{filePath}:
+    get:
+      summary: Fetch one runtime agent file
+      operationId: getRuntimeAgentFile
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/AgentId"
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime agent file payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentFilePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/commands:
+    get:
+      summary: Fetch command catalog for a runtime
+      operationId: listRuntimeCommands
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime command catalog payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/tools/catalog:
+    post:
+      summary: Fetch tools catalog for a runtime
+      operationId: getRuntimeToolsCatalog
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime tools catalog payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/usage:
+    get:
+      summary: Fetch usage summary for a runtime
+      operationId: getRuntimeUsage
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime usage payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/cron:
+    get:
+      summary: Fetch cron jobs for a runtime
+      operationId: listRuntimeCronJobs
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: enabled
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sortDir
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: includeDisabled
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Runtime cron jobs payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+    post:
+      summary: Create a cron job for a runtime
+      operationId: createRuntimeCronJob
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime cron create payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/cron/{jobId}:
+    patch:
+      summary: Update a cron job for a runtime
+      operationId: updateRuntimeCronJob
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime cron update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    delete:
+      summary: Delete a cron job for a runtime
+      operationId: deleteRuntimeCronJob
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime cron delete payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/cron/{jobId}/run:
+    post:
+      summary: Run a cron job for a runtime
+      operationId: runRuntimeCronJob
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime cron run payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/cron/{jobId}/runs:
+    get:
+      summary: Fetch cron run history for a runtime job
+      operationId: listRuntimeCronRuns
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: sortDir
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: statuses
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime cron runs payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/cron/status:
+    get:
+      summary: Fetch cron service status for a runtime
+      operationId: getRuntimeCronStatus
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime cron status payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/deck/commands/discover:
+    post:
+      summary: Discover deck commands for a runtime
+      operationId: discoverRuntimeDeckCommands
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime deck command discovery payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/deck/tools-effective:
+    post:
+      summary: Fetch effective tool policy result for a runtime
+      operationId: getRuntimeDeckToolsEffective
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime effective tools payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/deck/plugins:
+    get:
+      summary: Fetch deck plugin inventory for a runtime
+      operationId: listRuntimeDeckPlugins
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: capability
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime deck plugin inventory payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/deck/agents:
+    get:
+      summary: Fetch deck agent helper detail for a runtime
+      operationId: getRuntimeDeckAgentDetail
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: agentId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime deck agent helper payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Run a deck agent helper action for a runtime
+      operationId: runRuntimeDeckAgentAction
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime deck agent helper action payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/deck/identity:
+    get:
+      summary: Fetch deck identity bindings for a runtime
+      operationId: listRuntimeDeckIdentity
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime deck identity payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+    post:
+      summary: Run a deck identity action for a runtime
+      operationId: runRuntimeDeckIdentityAction
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime deck identity action payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/deck/routing:
+    get:
+      summary: Fetch deck routing bindings for a runtime
+      operationId: listRuntimeDeckRouting
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: agentId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: channel
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime deck routing payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+    post:
+      summary: Run a deck routing action for a runtime
+      operationId: runRuntimeDeckRoutingAction
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime deck routing action payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/deck/subagents:
+    get:
+      summary: Fetch deck subagent runs for a runtime
+      operationId: listRuntimeDeckSubagents
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: agentId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: requesterAgentId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Runtime deck subagent payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+    post:
+      summary: Run a deck subagent action for a runtime
+      operationId: runRuntimeDeckSubagentAction
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime deck subagent action payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/deck/threads:
+    get:
+      summary: Fetch deck thread inventory for a runtime
+      operationId: listRuntimeDeckThreads
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: agentId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: channel
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime deck thread payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/approvals:
+    get:
+      summary: Fetch execution approvals snapshot for a runtime
+      operationId: getRuntimeApprovals
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime approvals payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/approvals/resolve:
+    post:
+      summary: Resolve an execution approval for a runtime
+      operationId: resolveRuntimeApproval
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Approval resolve payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/approvals/pending:
+    get:
+      summary: Fetch pending execution approvals for a runtime
+      operationId: listRuntimePendingApprovals
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Pending approvals payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/approvals/policy:
+    get:
+      summary: Fetch approval policy snapshot for a runtime
+      operationId: getRuntimeApprovalPolicy
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Approval policy payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      summary: Update approval policy for a runtime
+      operationId: setRuntimeApprovalPolicy
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Approval policy update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/approvals/plugins:
+    get:
+      summary: Fetch plugin approvals for a runtime
+      operationId: listRuntimePluginApprovals
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Plugin approvals payload
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+  /runtimes/{runtimeId}/approvals/plugins/resolve:
+    post:
+      summary: Resolve a plugin approval for a runtime
+      operationId: resolveRuntimePluginApproval
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Plugin approval resolve payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/memory/health:
+    get:
+      summary: Fetch memory health diagnostics for a runtime
+      operationId: getRuntimeMemoryHealth
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Memory health payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/memory/dreams:
+    post:
+      summary: Run a memory dream maintenance action for a runtime
+      operationId: runRuntimeMemoryDreamAction
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+              required: [action]
+      responses:
+        "200":
+          description: Memory dream action payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/nodes:
+    get:
+      summary: Fetch node inventory for a runtime
+      operationId: listRuntimeNodes
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime node inventory payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Run a node action for a runtime
+      operationId: runRuntimeNodeAction
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime node action payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/nodes/pair:
+    get:
+      summary: Fetch node pairing state for a runtime
+      operationId: listRuntimeNodePairs
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime node pairing payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Run a node pairing action for a runtime
+      operationId: runRuntimeNodePairAction
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime node pairing action payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/skills:
+    get:
+      summary: Fetch skill status for a runtime
+      operationId: listRuntimeSkills
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: agentId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime skill status payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/skills/{skillKey}:
+    patch:
+      summary: Update a runtime skill configuration
+      operationId: updateRuntimeSkill
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: skillKey
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime skill update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/skills/install:
+    post:
+      summary: Install a runtime skill
+      operationId: installRuntimeSkill
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime skill install payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/skills/hub:
+    post:
+      summary: Run a skills hub action for a runtime
+      operationId: runRuntimeSkillsHubAction
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime skills hub payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/skills/update-clawhub:
+    post:
+      summary: Update clawhub skills for a runtime
+      operationId: updateRuntimeClawhubSkills
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime clawhub skill update payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/models:
+    get:
+      summary: Fetch model catalog for a runtime
+      operationId: listRuntimeModels
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime model catalog payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/models/auth:
+    get:
+      summary: Fetch model auth overview for a runtime
+      operationId: getRuntimeModelAuth
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime model auth payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/models/catalog-providers:
+    get:
+      summary: Fetch model catalog providers for a runtime
+      operationId: listRuntimeModelCatalogProviders
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime model catalog providers payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/models/configured:
+    get:
+      summary: Fetch configured runtime models
+      operationId: listRuntimeConfiguredModels
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      responses:
+        "200":
+          description: Runtime configured models payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/models/probe:
+    post:
+      summary: Probe runtime model auth
+      operationId: probeRuntimeModelAuth
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime model auth probe payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/channels:
+    get:
+      summary: Fetch channel status for a runtime
+      operationId: getRuntimeChannels
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: probe
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: timeoutMs
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Runtime channel status payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpaquePayloadEnvelope"
+  /runtimes/{runtimeId}/channels/{channelId}:
+    patch:
+      summary: Patch a runtime channel configuration
+      operationId: patchRuntimeChannel
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Runtime channel patch payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/channels/{channelId}/logout:
+    post:
+      summary: Logout a runtime channel
+      operationId: logoutRuntimeChannel
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime channel logout payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/channels/{channelId}/test:
+    post:
+      summary: Probe a runtime channel
+      operationId: testRuntimeChannel
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime channel test payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /runtimes/{runtimeId}/channels/{channelId}/throughput:
+    get:
+      summary: Fetch runtime channel throughput summary
+      operationId: getRuntimeChannelThroughput
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Runtime channel throughput payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelThroughputEnvelope"
+  /runtimes/{runtimeId}/sessions:create:
+    post:
+      summary: Create a session and return the new session identity
+      operationId: createSession
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                agentId:
+                  type: string
+                message:
+                  type: string
+                model:
+                  type: string
+                label:
+                  type: string
+                parentSessionKey:
+                  type: string
+      responses:
+        "200":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionCreateResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/sessions/{sessionId}/messages:send:
+    post:
+      summary: Submit a chat send command
+      operationId: sendMessage
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+              required: [text]
+      responses:
+        "202":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAcceptedEnvelope"
+        "400":
+          $ref: "#/components/responses/Error"
+  /runtimes/{runtimeId}/runs/{runId}:abort:
+    post:
+      summary: Submit an abort command for an active run
+      operationId: abortRun
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/RunId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAcceptedEnvelope"
+  /runtimes/{runtimeId}/sessions/{sessionId}:compact:
+    post:
+      summary: Submit a compaction command for a session
+      operationId: compactSession
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAcceptedEnvelope"
+  /runtimes/{runtimeId}/sessions/{sessionId}:
+    delete:
+      summary: Submit a delete command for a session
+      operationId: deleteSession
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAcceptedEnvelope"
+  /runtimes/{runtimeId}/sessions/{sessionId}:reset:
+    post:
+      summary: Submit a reset command for a session
+      operationId: resetSession
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        "202":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAcceptedEnvelope"
+  /runtimes/{runtimeId}/sessions/{sessionId}:clear:
+    post:
+      summary: Submit a clear command for a session
+      operationId: clearSession
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAcceptedEnvelope"
+  /runtimes/{runtimeId}/sessions/{sessionId}:patch:
+    post:
+      summary: Submit a patch command for a session
+      operationId: patchSession
+      parameters:
+        - $ref: "#/components/parameters/RuntimeId"
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "202":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAcceptedEnvelope"
+components:
+  parameters:
+    RuntimeId:
+      name: runtimeId
+      in: path
+      required: true
+      schema:
+        type: string
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+    RunId:
+      name: runId
+      in: path
+      required: true
+      schema:
+        type: string
+    IdempotencyKey:
+      name: idempotencyKey
+      in: header
+      required: false
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Standard control-plane error envelope
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+  schemas:
+    RuntimeSummary:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        managed:
+          type: boolean
+        configured:
+          type: boolean
+        status:
+          type: string
+        health:
+          type: string
+        capabilityVersion:
+          type: string
+          nullable: true
+        methodCount:
+          type: integer
+          nullable: true
+        eventCount:
+          type: integer
+          nullable: true
+        gatewayUrl:
+          type: string
+          nullable: true
+        lastError:
+          type: string
+          nullable: true
+        autoStart:
+          type: boolean
+        occurredAt:
+          type: string
+          format: date-time
+      required: [runtimeId, status, health, occurredAt]
+    SessionSummary:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        sessionId:
+          type: string
+        title:
+          type: string
+          nullable: true
+        status:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required: [runtimeId, sessionId, status, updatedAt]
+    TimelineSnapshotEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        sessionId:
+          type: string
+        timeline:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        activeRun:
+          type: object
+          additionalProperties: true
+          nullable: true
+        requestId:
+          type: string
+      required: [runtimeId, sessionId, timeline, requestId]
+    RunSummary:
+      type: object
+      properties:
+        runId:
+          type: string
+        agentId:
+          type: string
+          nullable: true
+        sessionKey:
+          type: string
+          nullable: true
+        status:
+          type: string
+        firstEventAt:
+          type: string
+        lastEventAt:
+          type: string
+        eventCount:
+          type: integer
+        toolCalls:
+          type: integer
+        modelCalls:
+          type: integer
+        fileOps:
+          type: integer
+        subagentSpawns:
+          type: integer
+        totalTokens:
+          type: integer
+        compacted:
+          type: boolean
+      required: [runId, status, firstEventAt, lastEventAt, eventCount]
+    ActivityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: integer
+        type:
+          type: string
+        agentId:
+          type: string
+          nullable: true
+        agentName:
+          type: string
+          nullable: true
+        description:
+          type: string
+        details:
+          type: string
+          nullable: true
+      required: [id, timestamp, type, description]
+    RunEventRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        run_id:
+          type: string
+        seq:
+          type: integer
+        stream:
+          type: string
+        data:
+          type: string
+        agent_id:
+          type: string
+          nullable: true
+        session_key:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+      required: [id, run_id, seq, stream, data, created_at]
+    RunDetailEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        runId:
+          type: string
+        run:
+          $ref: "#/components/schemas/RunSummary"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/RunEventRow"
+        requestId:
+          type: string
+      required: [runtimeId, runId, run, events, requestId]
+    MonitorStats:
+      type: object
+      properties:
+        totalRuns:
+          type: integer
+        todayRuns:
+          type: integer
+        avgDurationMs:
+          type: integer
+        topAgents:
+          type: array
+          items:
+            type: object
+            properties:
+              agentId:
+                type: string
+              runCount:
+                type: integer
+            required: [agentId, runCount]
+      required: [totalRuns, todayRuns, avgDurationMs, topAgents]
+    MonitorStatsEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        stats:
+          $ref: "#/components/schemas/MonitorStats"
+        requestId:
+          type: string
+      required: [runtimeId, stats, requestId]
+    GatewayHealthEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        health:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, health, requestId]
+    GatewayDescribeEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        describe:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, describe, requestId]
+    GatewayStatusEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        status:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, status, requestId]
+    DevicesEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        devices:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, devices, requestId]
+    DeviceSelfEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        deviceId:
+          type: string
+          nullable: true
+        requestId:
+          type: string
+      required: [runtimeId, deviceId, requestId]
+    OpaquePayloadEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, payload, requestId]
+    ConfigEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        config:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, config, requestId]
+    ConfigSchemaEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        schema:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, schema, requestId]
+    AgentPayloadEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        agentId:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, agentId, payload, requestId]
+    AgentFilePayloadEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        agentId:
+          type: string
+        name:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, agentId, name, payload, requestId]
+    ChannelThroughputEnvelope:
+      type: object
+      properties:
+        runtimeId:
+          type: string
+        channelId:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+      required: [runtimeId, channelId, payload, requestId]
+    SessionCreateResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        key:
+          type: string
+        sessionId:
+          type: string
+        runId:
+          type: string
+        status:
+          type: string
+        messageSeq:
+          type: number
+        interruptedActiveRun:
+          type: boolean
+        runStarted:
+          type: boolean
+        runError:
+          nullable: true
+        entry:
+          type: object
+          additionalProperties: true
+      required: [ok, key, sessionId, entry, runStarted]
+    CommandAcceptedEnvelope:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+        requestId:
+          type: string
+        commandId:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+      required: [accepted, requestId, commandId, submittedAt]
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              nullable: true
+          required: [code, message, details]
+        requestId:
+          type: string
+      required: [error, requestId]

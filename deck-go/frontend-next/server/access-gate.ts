@@ -1,0 +1,104 @@
+/**
+ * Access Gate — cookie-free token authentication for openclaw-deck.
+ *
+ * Supports two header formats:
+ *   1. `Authorization: Bearer <token>`
+ *   2. `x-deck-token: <token>`
+ *
+ * Token source priority: env `DECK_ACCESS_TOKEN` > JSON settings store.
+ * When no token is configured, authentication is skipped (local dev mode).
+ */
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { getSetting } from "./deck-settings";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type AccessGateResult = { valid: boolean; error?: string };
+
+// ---------------------------------------------------------------------------
+// Token resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve the configured access token.
+ * Returns `null` when no token is configured (local dev mode).
+ */
+export function resolveToken(): string | null {
+  const envToken = process.env.DECK_ACCESS_TOKEN;
+  if (envToken) {
+    return envToken;
+  }
+
+  return getSetting("access_token") ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Public-bind safety check
+// ---------------------------------------------------------------------------
+
+/** Returns an error string if public binding is detected without a token. */
+export function checkPublicBind(bindAddress: string, token: string | null): string | null {
+  if (token) {
+    return null;
+  }
+  // Note: 0.0.0.0 is NOT loopback — it means "all interfaces" and would
+  // expose the service to the network. Only true loopback addresses here.
+  const loopback = ["127.0.0.1", "::1", "localhost"];
+  if (loopback.includes(bindAddress)) {
+    return null;
+  }
+  return `Refusing to start: bind address "${bindAddress}" is not loopback and no access token is configured. Set DECK_ACCESS_TOKEN or add "access_token" to the settings table.`;
+}
+
+// ---------------------------------------------------------------------------
+// Timing-safe comparison
+// ---------------------------------------------------------------------------
+
+/**
+ * Timing-safe string comparison that does not leak length information.
+ * Both strings are HMAC'd to a fixed-length digest before comparison,
+ * so the comparison time is constant regardless of input lengths.
+ */
+function safeEqual(a: string, b: string): boolean {
+  const key = "deck-compare-key";
+  const ha = createHmac("sha256", key).update(a).digest();
+  const hb = createHmac("sha256", key).update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
+// ---------------------------------------------------------------------------
+// Header extraction
+// ---------------------------------------------------------------------------
+
+function extractToken(headers: Record<string, string | undefined>): string | null {
+  const bearer = headers["authorization"];
+  if (bearer?.startsWith("Bearer ")) {
+    return bearer.slice(7);
+  }
+  return headers["x-deck-token"] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Main validator
+// ---------------------------------------------------------------------------
+
+export function validateRequest(headers: Record<string, string | undefined>): AccessGateResult {
+  const expected = resolveToken();
+
+  // No token configured → local dev mode, allow all.
+  if (!expected) {
+    return { valid: true };
+  }
+
+  const provided = extractToken(headers);
+  if (!provided) {
+    return { valid: false, error: "Missing authentication token." };
+  }
+  if (!safeEqual(provided, expected)) {
+    return { valid: false, error: "Invalid authentication token." };
+  }
+
+  return { valid: true };
+}

@@ -8,13 +8,16 @@ import {
   normalizeOptionalString,
 } from "openclaw/plugin-sdk/text-runtime";
 import {
+  assertInputFileAllowed,
   assertOutputDirAllowed,
   resolveEmailPluginConfig,
   resolveEmailAccountRuntimeConfig,
+  resolveEmailSmtpRuntimeConfig,
   sanitizeAttachmentFilename,
 } from "./config.js";
 import { ImapClient } from "./imap-client.js";
 import { parseMimeMessage } from "./mime.js";
+import { SmtpClient } from "./smtp-client.js";
 
 type JsonToolResult = AgentToolResult<unknown>;
 
@@ -36,6 +39,19 @@ type EmailReadParams = {
 type EmailDownloadAttachmentsParams = EmailReadParams & {
   outputDir?: unknown;
   filename?: unknown;
+};
+
+type EmailSendParams = {
+  accountId?: unknown;
+  from?: unknown;
+  to?: unknown;
+  cc?: unknown;
+  bcc?: unknown;
+  replyTo?: unknown;
+  subject?: unknown;
+  text?: unknown;
+  html?: unknown;
+  attachments?: unknown;
 };
 
 export function createEmailListTool(api: OpenClawPluginApi) {
@@ -228,6 +244,113 @@ export function createEmailDownloadAttachmentsTool(api: OpenClawPluginApi) {
   };
 }
 
+export function createEmailSendTool(api: OpenClawPluginApi) {
+  return {
+    name: "email_send",
+    label: "Email Send",
+    description: "Send an email over the configured SMTP account.",
+    parameters: Type.Object({
+      accountId: Type.Optional(Type.String({ description: "Configured account id override." })),
+      from: Type.Optional(Type.String({ description: "Optional envelope/header sender override." })),
+      to: Type.Array(Type.String({ description: "Primary recipient email address." }), {
+        minItems: 1,
+        description: "Primary recipients.",
+      }),
+      cc: Type.Optional(Type.Array(Type.String({ description: "CC recipient email address." }))),
+      bcc: Type.Optional(Type.Array(Type.String({ description: "BCC recipient email address." }))),
+      replyTo: Type.Optional(Type.String({ description: "Optional Reply-To address." })),
+      subject: Type.String({ description: "Email subject line." }),
+      text: Type.Optional(Type.String({ description: "Plain-text email body." })),
+      html: Type.Optional(Type.String({ description: "HTML email body." })),
+      attachments: Type.Optional(
+        Type.Array(
+          Type.Object({
+            path: Type.String({ description: "Local file path for the attachment." }),
+            filename: Type.Optional(
+              Type.String({ description: "Optional filename override exposed in the message." }),
+            ),
+            contentType: Type.Optional(
+              Type.String({ description: "Optional MIME type override." }),
+            ),
+            inline: Type.Optional(Type.Boolean({ description: "Mark the attachment as inline." })),
+            contentId: Type.Optional(
+              Type.String({ description: "Optional Content-ID for inline HTML usage." }),
+            ),
+          }),
+        ),
+      ),
+    }),
+    async execute(_id: string, params: EmailSendParams) {
+      const pluginConfig = resolveEmailPluginConfig(api.pluginConfig, api.config);
+      const smtp = await resolveEmailSmtpRuntimeConfig({
+        config: api.config,
+        pluginConfig,
+        accountId: normalizeOptionalString(params.accountId),
+      });
+      const from = normalizeOptionalString(params.from) ?? smtp.from;
+      if (!from) {
+        throw new Error("SMTP send requires a from address");
+      }
+      const to = normalizeEmailList(params.to, "to");
+      const cc = normalizeEmailList(params.cc, "cc", true);
+      const bcc = normalizeEmailList(params.bcc, "bcc", true);
+      const subject = normalizeOptionalString(params.subject);
+      if (!subject) {
+        throw new Error("subject is required");
+      }
+      const text = normalizeOptionalString(params.text);
+      const html = normalizeOptionalString(params.html);
+      if (!text && !html) {
+        throw new Error("email_send requires text, html, or both");
+      }
+      const attachments = await normalizeAttachmentInputs(
+        params.attachments,
+        pluginConfig.sendPolicy.allowedReadRoots,
+      );
+
+      const client = await SmtpClient.connect(smtp, api.logger);
+      try {
+        await client.sendMail({
+          from,
+          to,
+          cc,
+          bcc,
+          replyTo: normalizeOptionalString(params.replyTo),
+          subject,
+          text,
+          html,
+          attachments,
+        });
+        return jsonResult({
+          accountId: normalizeOptionalString(params.accountId) ?? pluginConfig.defaultAccountId,
+          from,
+          to,
+          cc,
+          bcc,
+          subject,
+          attachments: attachments.map((attachment) => ({
+            filename: attachment.filename,
+            contentType: attachment.contentType,
+            inline: attachment.inline === true,
+            contentId: attachment.contentId,
+            size: attachment.content.length,
+          })),
+          transport: {
+            host: smtp.host,
+            port: smtp.port,
+            secure: smtp.secure,
+            startTls: smtp.startTls,
+            authMethod: smtp.authMethod,
+          },
+          status: "sent",
+        });
+      } finally {
+        await client.close();
+      }
+    },
+  };
+}
+
 async function resolveMessageUid(
   client: ImapClient,
   mailbox: string,
@@ -288,4 +411,111 @@ function jsonResult(payload: unknown): JsonToolResult {
     content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
     details: undefined,
   };
+}
+
+function normalizeEmailList(value: unknown, field: string, optional = false): string[] {
+  if (value === undefined || value === null) {
+    if (optional) {
+      return [];
+    }
+    throw new Error(`${field} is required`);
+  }
+  if (!Array.isArray(value)) {
+    throw new Error(`${field} must be an array of email addresses`);
+  }
+  const normalized = value
+    .map((entry) => normalizeOptionalString(typeof entry === "string" ? entry : undefined))
+    .filter((entry): entry is string => Boolean(entry));
+  if (!optional && normalized.length === 0) {
+    throw new Error(`${field} must include at least one email address`);
+  }
+  return normalized;
+}
+
+async function normalizeAttachmentInputs(
+  value: unknown,
+  allowedReadRoots: string[],
+): Promise<
+  Array<{
+    filename: string;
+    contentType: string;
+    content: Buffer;
+    inline?: boolean;
+    contentId?: string;
+  }>
+> {
+  if (!Array.isArray(value) || value.length === 0) {
+    return [];
+  }
+
+  const attachments = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error("attachments entries must be objects");
+    }
+    const rawPath = normalizeOptionalString("path" in entry ? (entry.path as string | undefined) : undefined);
+    if (!rawPath) {
+      throw new Error("attachments entries require a path");
+    }
+    const resolvedPath = assertInputFileAllowed(rawPath, allowedReadRoots);
+    const stat = await fs.stat(resolvedPath);
+    if (!stat.isFile()) {
+      throw new Error(`attachment path "${resolvedPath}" is not a file`);
+    }
+    const filenameOverride = normalizeOptionalString(
+      "filename" in entry ? (entry.filename as string | undefined) : undefined,
+    );
+    const filename = sanitizeAttachmentFilename(
+      filenameOverride ?? path.basename(resolvedPath),
+      path.basename(resolvedPath) || "attachment.bin",
+    );
+    const contentTypeOverride = normalizeOptionalString(
+      "contentType" in entry ? (entry.contentType as string | undefined) : undefined,
+    );
+    const inline = "inline" in entry ? entry.inline === true : false;
+    const contentId = normalizeOptionalString(
+      "contentId" in entry ? (entry.contentId as string | undefined) : undefined,
+    );
+    attachments.push({
+      filename,
+      contentType: contentTypeOverride ?? guessAttachmentContentType(filename),
+      content: await fs.readFile(resolvedPath),
+      ...(inline ? { inline: true } : {}),
+      ...(contentId ? { contentId } : {}),
+    });
+  }
+  return attachments;
+}
+
+function guessAttachmentContentType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  switch (ext) {
+    case ".txt":
+    case ".log":
+      return "text/plain";
+    case ".html":
+    case ".htm":
+      return "text/html";
+    case ".csv":
+      return "text/csv";
+    case ".json":
+      return "application/json";
+    case ".pdf":
+      return "application/pdf";
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".gif":
+      return "image/gif";
+    case ".webp":
+      return "image/webp";
+    case ".svg":
+      return "image/svg+xml";
+    case ".zip":
+      return "application/zip";
+    default:
+      return "application/octet-stream";
+  }
 }

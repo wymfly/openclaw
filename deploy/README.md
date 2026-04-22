@@ -53,6 +53,7 @@ iwr -useb http://<your-host>:8088/<release-label>/install.ps1 | iex
 ```text
 deploy/STATUS.md
 deploy/HANDOFF.md
+deploy/docs/WINDOWS-LIVE-DEPLOY-NOTES.md
 ```
 
 ### Windows 用户速查
