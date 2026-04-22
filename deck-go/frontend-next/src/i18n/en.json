@@ -2157,7 +2157,7 @@
       "agentSecret": "Agent Secret",
       "agentSecretHint": "Application secret key (corpSecret)",
       "callbackUrlDesc": "Copy this URL and paste it into the WeCom admin console as the callback URL:",
-      "callbackUrlNote": "Replace '{DECK_GO_API_BASE}' with your actual control-plane address (e.g. https://your-domain.com)",
+      "callbackUrlNote": "Replace '{CONTROL_PLANE_BASE_URL}' with your actual control-plane address (e.g. https://your-domain.com)",
       "noCallbackNeeded": "Bot WebSocket mode does not require a callback URL.",
       "dualModeCallbackNote": "Agent callback URL (Bot WS does not need a callback):",
       "testDesc": "Save the configuration first, then test the connection to verify credentials.",

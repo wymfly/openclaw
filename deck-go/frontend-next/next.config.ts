@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 function resolveConnectSrc(): string {
   const sources = new Set(["'self'", "ws:", "wss:"]);
-  for (const raw of [process.env.NEXT_PUBLIC_DECK_GO_API_BASE, process.env.DECK_GO_API_BASE]) {
+  for (const raw of [process.env.NEXT_PUBLIC_DECK_GO_API_BASE]) {
     if (!raw?.trim()) {
       continue;
     }

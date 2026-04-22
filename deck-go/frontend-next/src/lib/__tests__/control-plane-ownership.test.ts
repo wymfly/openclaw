@@ -109,6 +109,40 @@ describe("frontend-next control-plane ownership", () => {
     expect(unexpectedGatewayLoopbackShells).toEqual([]);
   });
 
+  it("keeps NEXT_PUBLIC_DECK_GO_API_BASE as the only frontend-next control-plane base env", () => {
+    const nextConfig = readFileSync(join(frontendRoot, "next.config.ts"), "utf8");
+
+    expect(nextConfig).toContain("process.env.NEXT_PUBLIC_DECK_GO_API_BASE");
+    expect(nextConfig).not.toContain("process.env.DECK_GO_API_BASE");
+  });
+
+  it("does not reintroduce the retired DECK_GO_API_BASE host contract", () => {
+    const productionFiles = [
+      ...collectFiles(
+        srcRoot,
+        (file) => /\.(ts|tsx|json)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
+      ),
+      join(frontendRoot, "next.config.ts"),
+    ];
+    const offenders: string[] = [];
+
+    for (const file of productionFiles) {
+      const source = readFileSync(file, "utf8");
+      if (!source.includes("DECK_GO_API_BASE")) {
+        continue;
+      }
+      if (source.includes("NEXT_PUBLIC_DECK_GO_API_BASE")) {
+        const stripped = source.replaceAll("NEXT_PUBLIC_DECK_GO_API_BASE", "");
+        if (!stripped.includes("DECK_GO_API_BASE")) {
+          continue;
+        }
+      }
+      offenders.push(relative(frontendRoot, file));
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it("does not reintroduce removed local Gateway loopback helpers", () => {
     const sourceFiles = collectFiles(
       srcRoot,

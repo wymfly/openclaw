@@ -61,6 +61,9 @@ Retained host-specific shells:
 - `frontend-next/src/lib/deck-client.ts`
   - remaining browser transport/auth/reconnect shell for the transitional host
   - owns `NEXT_PUBLIC_DECK_GO_API_BASE` routing plus `x-deck-token` and `Last-Event-ID` headers
+- the transitional host now converges on that same public base contract end to
+  end; private `DECK_GO_API_BASE` fallback is no longer part of the
+  `frontend-next` boundary
 
 Retired from the host:
 

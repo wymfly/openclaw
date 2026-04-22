@@ -41,7 +41,8 @@ pnpm start
 ## Key environment
 
 - `NEXT_PUBLIC_DECK_GO_API_BASE`
-  - when set, `src/lib/deck-client.ts` prefixes relative `/api/*` requests and stream endpoints so the copied frontend can talk directly to the `deck-go` Go backend
+  - the only control-plane base env still recognized by `frontend-next`
+  - drives both `src/lib/deck-client.ts` direct `/api/*` routing and the CSP `connect-src` allowlist in `next.config.ts`
 
 ## Current migration posture
 
@@ -59,6 +60,9 @@ remaining host-specific surfaces are intentionally narrow:
   - the remaining host transport seam for direct `deck-go` calls
   - owns `NEXT_PUBLIC_DECK_GO_API_BASE` routing plus access
     token prompting, `x-deck-token` forwarding, and `Last-Event-ID` SSE replay
+
+No private `DECK_GO_API_BASE` fallback remains inside `frontend-next`; the host
+now converges on the same public base contract that the browser bundle uses.
 
 The old `frontend-next/server` local runtime cluster has been retired. This host
 no longer carries a second local Gateway runtime, event bus, approval bridge,
