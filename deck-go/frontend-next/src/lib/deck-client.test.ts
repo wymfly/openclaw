@@ -85,6 +85,43 @@ describe("deckFetch", () => {
     const retryHeaders = new Headers(retryInit?.headers);
     expect(retryHeaders.get("x-deck-token")).toBe("prompted-secret");
   });
+
+  it("shares one prompted token across concurrent 401 fetch retries", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("unauthorized", { status: 401 }))
+      .mockResolvedValueOnce(new Response("unauthorized", { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response('{"ok":true}', {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('{"ok":true}', {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    globalThis.fetch = fetchMock;
+    globalThis.prompt = vi.fn(() => "shared-secret");
+
+    const { deckFetch } = await import("./deck-client.js");
+
+    const [left, right] = await Promise.all([
+      deckFetch("/api/activity"),
+      deckFetch("/api/activity"),
+    ]);
+
+    expect(left.status).toBe(200);
+    expect(right.status).toBe(200);
+    expect(globalThis.prompt).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const [, leftRetryInit] = fetchMock.mock.calls[2];
+    const [, rightRetryInit] = fetchMock.mock.calls[3];
+    expect(new Headers(leftRetryInit?.headers).get("x-deck-token")).toBe("shared-secret");
+    expect(new Headers(rightRetryInit?.headers).get("x-deck-token")).toBe("shared-secret");
+  });
 });
 
 describe("deckStream", () => {

@@ -17,8 +17,10 @@ type DeckStreamOptions = {
   onEvent?: (event: DeckEvent) => void;
 };
 
-let deckAccessToken: string | null = null;
-let pendingTokenPrompt: Promise<string | null> | null = null;
+const deckAuthState = {
+  token: null as string | null,
+  pendingPrompt: null as Promise<string | null> | null,
+};
 const DEFAULT_STREAM_RETRY_MS = 1_000;
 
 function normalizeDeckGoApiBase(raw: string | null | undefined): string {
@@ -45,15 +47,15 @@ function resolveDeckInput(input: RequestInfo | URL): RequestInfo | URL {
 }
 
 function setDeckAccessToken(token: string | null): string | null {
-  deckAccessToken = token?.trim() ? token.trim() : null;
-  return deckAccessToken;
+  deckAuthState.token = token?.trim() ? token.trim() : null;
+  return deckAuthState.token;
 }
 
 async function promptForDeckAccessToken(): Promise<string | null> {
-  if (pendingTokenPrompt) {
-    return await pendingTokenPrompt;
+  if (deckAuthState.pendingPrompt) {
+    return await deckAuthState.pendingPrompt;
   }
-  pendingTokenPrompt = Promise.resolve().then(() => {
+  deckAuthState.pendingPrompt = Promise.resolve().then(() => {
     if (typeof globalThis.prompt !== "function") {
       return null;
     }
@@ -61,9 +63,9 @@ async function promptForDeckAccessToken(): Promise<string | null> {
     return setDeckAccessToken(token);
   });
   try {
-    return await pendingTokenPrompt;
+    return await deckAuthState.pendingPrompt;
   } finally {
-    pendingTokenPrompt = null;
+    deckAuthState.pendingPrompt = null;
   }
 }
 
@@ -73,7 +75,7 @@ function withDeckAuthHeaders(
   lastEventId?: number | string | null,
 ): Headers {
   const next = new Headers(headers);
-  const authToken = token ?? deckAccessToken;
+  const authToken = token ?? deckAuthState.token;
   if (authToken) {
     next.set("x-deck-token", authToken);
   }
@@ -178,7 +180,7 @@ export async function deckStream(
   input: RequestInfo | URL,
   options: DeckStreamOptions = {},
 ): Promise<Response> {
-  let token = options.token ?? deckAccessToken;
+  let token = options.token ?? deckAuthState.token;
   let lastEventId = options.lastEventId;
   let lastResponse: Response | null = null;
   let prompted = false;
