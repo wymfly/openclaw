@@ -8,11 +8,20 @@ import {
   navigateToSubagents,
 } from "./panel-navigation";
 import { findRestoredPanel, panelPlaceholderDescription } from "./panel-registry";
+import { RestoredAlertsPanel } from "./panels/RestoredAlertsPanel";
+import { RestoredApiExplorerPanel } from "./panels/RestoredApiExplorerPanel";
+import { RestoredApprovalsPanel } from "./panels/RestoredApprovalsPanel";
+import { RestoredChannelsPanel } from "./panels/RestoredChannelsPanel";
 import { RestoredChatPanel } from "./panels/RestoredChatPanel";
+import { RestoredCronPanel } from "./panels/RestoredCronPanel";
+import { RestoredDocsPanel } from "./panels/RestoredDocsPanel";
 import { RestoredGatewayPanel } from "./panels/RestoredGatewayPanel";
 import { RestoredLogsPanel } from "./panels/RestoredLogsPanel";
+import { RestoredPluginsPanel } from "./panels/RestoredPluginsPanel";
 import { RestoredSessionsPanel } from "./panels/RestoredSessionsPanel";
 import { RestoredSettingsPanel } from "./panels/RestoredSettingsPanel";
+import { RestoredSkillsPanel } from "./panels/RestoredSkillsPanel";
+import { RestoredWebhooksPanel } from "./panels/RestoredWebhooksPanel";
 import { useRestorationUI } from "./ui-store";
 
 export function ActivePanelHost() {
@@ -52,6 +61,42 @@ export function ActivePanelHost() {
 
   if (entry.id === "settings") {
     return <RestoredSettingsPanel />;
+  }
+
+  if (entry.id === "plugins") {
+    return <RestoredPluginsPanel />;
+  }
+
+  if (entry.id === "channels") {
+    return <RestoredChannelsPanel />;
+  }
+
+  if (entry.id === "api-explorer") {
+    return <RestoredApiExplorerPanel />;
+  }
+
+  if (entry.id === "approvals") {
+    return <RestoredApprovalsPanel />;
+  }
+
+  if (entry.id === "skills") {
+    return <RestoredSkillsPanel />;
+  }
+
+  if (entry.id === "cron") {
+    return <RestoredCronPanel />;
+  }
+
+  if (entry.id === "docs") {
+    return <RestoredDocsPanel />;
+  }
+
+  if (entry.id === "alerts") {
+    return <RestoredAlertsPanel />;
+  }
+
+  if (entry.id === "webhooks") {
+    return <RestoredWebhooksPanel />;
   }
 
   return (

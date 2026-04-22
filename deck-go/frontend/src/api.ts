@@ -1,31 +1,40 @@
 import type {
   DeckGoBootstrapStatusResponse,
-  DeckGoChatAbortRequest,
-  DeckGoChatSnapshotResponse,
-  DeckGoSessionAbortResponse,
-  DeckGoSessionEventsRequest,
-  DeckGoSessionEventsResponse,
-  DeckGoChatHistoryResponse,
-  DeckGoSessionDetailResponse,
-  DeckGoChatSessionCreateRequest,
-  DeckGoSessionCreateResponse,
-  DeckGoSessionMutationResponse,
-  DeckGoSessionSendResponse,
-  DeckGoChatSendRequest,
   DeckGoChannelsStatusResponse,
+  DeckGoChatAbortRequest,
+  DeckGoChatHistoryResponse,
+  DeckGoChatSendRequest,
+  DeckGoChatSessionCreateRequest,
+  DeckGoChatSnapshotResponse,
   DeckGoConfigSchemaLookupRequest,
   DeckGoLogStreamEvent,
   DeckGoPluginsListResponse,
   DeckGoRuntimeGatewayActionResponse,
   DeckGoServerEvent,
+  DeckGoSessionAbortResponse,
+  DeckGoSessionCreateResponse,
+  DeckGoSessionDetailResponse,
+  DeckGoSessionEventsRequest,
+  DeckGoSessionEventsResponse,
+  DeckGoSessionMutationResponse,
+  DeckGoSessionSendResponse,
+  DeckGoSessionsListResponse,
+  DeckGoSessionsPreviewResponse,
   DeckGoSettings,
   DeckGoSettingsResponse,
   DeckGoSettingsSaveResponse,
-  DeckGoSessionsListResponse,
-  DeckGoSessionsPreviewResponse,
 } from "../../contracts/generated/ts/deck-api.generated";
+import { deckFetch, deckStream, persistDeckAccessToken, type DeckEvent } from "./lib/deck-client";
 
-const API_BASE = import.meta.env.VITE_API_BASE?.trim() || "http://127.0.0.1:19528/api";
+function buildApiPath(path: string) {
+  if (path.startsWith("/api/")) {
+    return path;
+  }
+  if (path.startsWith("/")) {
+    return `/api${path}`;
+  }
+  return `/api/${path}`;
+}
 
 async function readErrorMessage(res: Response, fallback: string) {
   try {
@@ -36,126 +45,338 @@ async function readErrorMessage(res: Response, fallback: string) {
   }
 }
 
-function getHeaders(): HeadersInit {
-  const token = window.localStorage.getItem("deckGoAccessToken")?.trim();
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { "x-deck-token": token } : {}),
-  };
+async function fetchDeckJson<T>(path: string, init: RequestInit | undefined, fallback: string) {
+  const res = await deckFetch(buildApiPath(path), init);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, fallback));
+  }
+  return (await res.json()) as T;
 }
 
 export async function fetchSettings() {
-  const res = await fetch(`${API_BASE}/settings`, { headers: getHeaders() });
-  if (!res.ok) {
-    throw new Error(await readErrorMessage(res, `settings fetch failed: ${res.status}`));
-  }
-  return (await res.json()) as DeckGoSettingsResponse;
+  return fetchDeckJson<DeckGoSettingsResponse>("/settings", undefined, "settings fetch failed");
 }
 
 export async function saveSettings(settings: DeckGoSettings) {
-  const res = await fetch(`${API_BASE}/settings`, {
-    method: "PUT",
-    headers: getHeaders(),
-    body: JSON.stringify(settings),
-  });
-  if (!res.ok) {
-    throw new Error(`settings save failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSettingsSaveResponse;
+  return fetchDeckJson<DeckGoSettingsSaveResponse>(
+    "/settings",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    },
+    "settings save failed",
+  );
 }
 
 export async function fetchBootstrapStatus() {
-  const res = await fetch(`${API_BASE}/bootstrap/status`, { headers: getHeaders() });
-  if (!res.ok) {
-    throw new Error(`bootstrap fetch failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoBootstrapStatusResponse;
+  return fetchDeckJson<DeckGoBootstrapStatusResponse>(
+    "/bootstrap/status",
+    undefined,
+    "bootstrap fetch failed",
+  );
 }
 
 export async function fetchRuntimeGatewayStatus() {
-  const res = await fetch(`${API_BASE}/runtime/gateway`, { headers: getHeaders() });
-  if (!res.ok) {
-    throw new Error(`runtime gateway fetch failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoRuntimeGatewayActionResponse;
+  return fetchDeckJson<DeckGoRuntimeGatewayActionResponse>(
+    "/runtime/gateway",
+    undefined,
+    "runtime gateway fetch failed",
+  );
 }
 
 export async function startRuntimeGateway() {
-  const res = await fetch(`${API_BASE}/runtime/gateway/start`, {
-    method: "POST",
-    headers: getHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(`runtime gateway start failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoRuntimeGatewayActionResponse;
+  return fetchDeckJson<DeckGoRuntimeGatewayActionResponse>(
+    "/runtime/gateway/start",
+    { method: "POST" },
+    "runtime gateway start failed",
+  );
 }
 
 export async function stopRuntimeGateway() {
-  const res = await fetch(`${API_BASE}/runtime/gateway/stop`, {
-    method: "POST",
-    headers: getHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(`runtime gateway stop failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoRuntimeGatewayActionResponse;
+  return fetchDeckJson<DeckGoRuntimeGatewayActionResponse>(
+    "/runtime/gateway/stop",
+    { method: "POST" },
+    "runtime gateway stop failed",
+  );
 }
 
 export async function restartRuntimeGateway() {
-  const res = await fetch(`${API_BASE}/runtime/gateway/restart`, {
-    method: "POST",
-    headers: getHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(`runtime gateway restart failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoRuntimeGatewayActionResponse;
+  return fetchDeckJson<DeckGoRuntimeGatewayActionResponse>(
+    "/runtime/gateway/restart",
+    { method: "POST" },
+    "runtime gateway restart failed",
+  );
 }
 
 export async function postConfigSchemaLookup(body: DeckGoConfigSchemaLookupRequest) {
-  const res = await fetch(`${API_BASE}/config/schema-lookup`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`config schema lookup failed: ${res.status}`);
-  }
-  return (await res.json()) as Record<string, unknown>;
+  return fetchDeckJson<Record<string, unknown>>(
+    "/config/schema-lookup",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    "config schema lookup failed",
+  );
 }
 
 export async function logoutChannel(channelId: string) {
-  const res = await fetch(`${API_BASE}/channels/${encodeURIComponent(channelId)}/logout`, {
-    method: "POST",
-    headers: getHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(`channel logout failed: ${res.status}`);
-  }
-  return (await res.json()) as Record<string, unknown>;
+  return fetchDeckJson<Record<string, unknown>>(
+    `/channels/${encodeURIComponent(channelId)}/logout`,
+    { method: "POST" },
+    "channel logout failed",
+  );
 }
 
 export async function fetchChannels() {
-  const res = await fetch(`${API_BASE}/channels`, { headers: getHeaders() });
-  if (!res.ok) {
-    throw new Error(`channels fetch failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoChannelsStatusResponse;
+  return fetchDeckJson<DeckGoChannelsStatusResponse>(
+    "/channels",
+    undefined,
+    "channels fetch failed",
+  );
 }
 
 export async function fetchPlugins() {
-  const res = await fetch(`${API_BASE}/deck/plugins`, { headers: getHeaders() });
-  if (!res.ok) {
-    throw new Error(`plugins fetch failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoPluginsListResponse;
+  return fetchDeckJson<DeckGoPluginsListResponse>(
+    "/deck/plugins",
+    undefined,
+    "plugins fetch failed",
+  );
 }
 
 export type DeckGoLogsTailResponse = {
   cursor?: number;
   lines?: unknown[];
   reset?: boolean;
+};
+
+export type DeckGoGatewayDescribeMethod = {
+  scope?: string;
+  params?: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  since?: number;
+};
+
+export type DeckGoGatewayDescribeEvent = {
+  payload?: Record<string, unknown>;
+  since?: number;
+};
+
+export type DeckGoGatewayDescribeResponse = {
+  methods?: Record<string, DeckGoGatewayDescribeMethod>;
+  events?: Record<string, DeckGoGatewayDescribeEvent>;
+  untyped?: string[];
+};
+
+export type DeckGoPendingApproval = {
+  id: string;
+  command: string;
+  commandArgv?: string[];
+  agentId?: string;
+  sessionKey?: string;
+  runId?: string;
+  cwd?: string;
+  createdAtMs: number;
+  expiresAtMs: number;
+};
+
+export type DeckGoApprovalPolicyDefaults = {
+  security?: "deny" | "allowlist" | "full";
+  ask?: "off" | "on-miss" | "always";
+  askFallback?: "deny" | "allowlist" | "full";
+  autoAllowSkills?: boolean;
+};
+
+export type DeckGoApprovalPolicy = {
+  defaults: DeckGoApprovalPolicyDefaults;
+  agents: Record<string, DeckGoApprovalPolicyDefaults>;
+  allowlist: string[];
+};
+
+export type DeckGoApprovalPolicyResponse = {
+  hash?: string;
+  file?: {
+    defaults?: DeckGoApprovalPolicyDefaults;
+    agents?: Record<string, DeckGoApprovalPolicyDefaults>;
+    allowlist?: string[];
+  };
+};
+
+export type DeckGoPendingApprovalsResponse = {
+  pending?: DeckGoPendingApproval[];
+};
+
+export type DeckGoSkillStatus = "ready" | "needs-setup" | "disabled";
+
+export type DeckGoSkillInstallOption = {
+  id: string;
+  label: string;
+  bins: string[];
+};
+
+export type DeckGoSkillEntry = {
+  key: string;
+  name: string;
+  status: DeckGoSkillStatus;
+  source: "bundled" | "managed" | "plugin";
+  enabled: boolean;
+  missingRequirements?: string[];
+  config?: Record<string, unknown>;
+  description?: string;
+  emoji?: string;
+  homepage?: string;
+  installOptions?: DeckGoSkillInstallOption[];
+  primaryEnv?: string;
+};
+
+export type DeckGoSkillsResponse = {
+  skills?: Record<string, unknown>[];
+};
+
+export type DeckGoSkillUpdateResponse = {
+  ok?: boolean;
+  config?: Record<string, unknown>;
+};
+
+export type DeckGoCronSchedule = {
+  kind: "at" | "every" | "cron";
+  at?: string;
+  everyMs?: number;
+  anchorMs?: number;
+  expr?: string;
+  tz?: string;
+  staggerMs?: number;
+};
+
+export type DeckGoCronJob = {
+  id: string;
+  name: string;
+  schedule: DeckGoCronSchedule;
+  sessionTarget?: string;
+  wakeMode?: string;
+  payload: { kind: "systemEvent" | "agentTurn"; [key: string]: unknown };
+  delivery?: unknown;
+  failureAlert?: boolean;
+  agentId?: string;
+  description?: string;
+  enabled: boolean;
+  deleteAfterRun?: boolean;
+  nextRunAtMs?: number;
+  updatedAtMs?: number;
+  createdAtMs?: number;
+};
+
+export type DeckGoCronRunEntry = {
+  id: string;
+  jobId: string;
+  status: "ok" | "error" | "skipped";
+  ts: number;
+  runAtMs?: number;
+  durationMs?: number;
+  delivery?: unknown;
+  error?: string;
+};
+
+export type DeckGoCronStatus = {
+  running: boolean;
+  jobCount?: number;
+  nextRunAtMs?: number;
+};
+
+export type DeckGoCronJobsResponse = {
+  jobs?: DeckGoCronJob[];
+};
+
+export type DeckGoCronRunsResponse = {
+  entries?: DeckGoCronRunEntry[];
+};
+
+export type DeckGoDocCategory = "summary" | "plan" | "spec" | "manual" | "draft";
+
+export type DeckGoDoc = {
+  id: string;
+  title: string;
+  category: DeckGoDocCategory;
+  content: string;
+  sourceSession: string | null;
+  sourceAgent: string | null;
+  keywords: string[];
+  language: string;
+  extractedAt: string;
+  updatedAt: string;
+};
+
+export type DeckGoDocsResponse = {
+  docs?: DeckGoDoc[];
+};
+
+export type DeckGoDocsExtractResponse = {
+  extracted?: number;
+  docs?: DeckGoDoc[];
+};
+
+export type DeckGoAlertAction = "toast" | "activity" | "webhook";
+
+export type DeckGoAlertRule = {
+  id: string;
+  name: string;
+  entityType: string;
+  condition: string;
+  threshold: number;
+  action: DeckGoAlertAction;
+  cooldownMs: number;
+  lastFiredAt: string | null;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DeckGoAlertsResponse = {
+  rules: DeckGoAlertRule[];
+};
+
+export type DeckGoAlertRuleResponse = {
+  rule: DeckGoAlertRule;
+};
+
+export type DeckGoWebhook = {
+  id: string;
+  name: string;
+  url: string;
+  secret: string | null;
+  events: string[];
+  enabled: boolean;
+  consecutiveFailures: number;
+  lastFiredAt: string | null;
+  lastStatus: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DeckGoWebhookDelivery = {
+  id: string;
+  webhookId: string;
+  eventType: string;
+  payload: string;
+  statusCode: number | null;
+  responseBody?: string | null;
+  error: string | null;
+  durationMs: number | null;
+  attempt?: number | null;
+  isRetry: boolean;
+  parentDeliveryId?: string | null;
+  success: boolean;
+  nextRetryAt?: number | null;
+  createdAt: string;
+};
+
+export type DeckGoWebhooksResponse = {
+  webhooks: DeckGoWebhook[];
+};
+
+export type DeckGoWebhookDeliveriesResponse = {
+  deliveries: DeckGoWebhookDelivery[];
 };
 
 export async function fetchLogsTail(params?: {
@@ -174,31 +395,251 @@ export async function fetchLogsTail(params?: {
     query.set("maxBytes", String(params.maxBytes));
   }
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const res = await fetch(`${API_BASE}/logs${suffix}`, { headers: getHeaders() });
-  if (!res.ok) {
-    throw new Error(`logs tail failed: ${res.status}`);
+  return fetchDeckJson<DeckGoLogsTailResponse>(`/logs${suffix}`, undefined, "logs tail failed");
+}
+
+export async function fetchGatewayDescribe() {
+  return fetchDeckJson<DeckGoGatewayDescribeResponse>(
+    "/gateway/describe",
+    undefined,
+    "gateway describe failed",
+  );
+}
+
+export async function fetchApprovalsPolicy() {
+  return fetchDeckJson<DeckGoApprovalPolicyResponse>(
+    "/approvals/policy",
+    undefined,
+    "approvals policy fetch failed",
+  );
+}
+
+export async function fetchPendingApprovals() {
+  return fetchDeckJson<DeckGoPendingApprovalsResponse>(
+    "/approvals/pending",
+    undefined,
+    "pending approvals fetch failed",
+  );
+}
+
+export async function resolveApproval(
+  id: string,
+  decision: "allow-once" | "allow-always" | "deny",
+) {
+  return fetchDeckJson<Record<string, unknown>>(
+    "/approvals",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, decision }),
+    },
+    "approval resolution failed",
+  );
+}
+
+export async function fetchSkills(agentId?: string) {
+  const query = agentId ? `?agentId=${encodeURIComponent(agentId)}` : "";
+  return fetchDeckJson<DeckGoSkillsResponse>(`/skills${query}`, undefined, "skills fetch failed");
+}
+
+export async function updateSkill(
+  skillKey: string,
+  patch: { enabled?: boolean; apiKey?: string; env?: Record<string, string> },
+) {
+  return fetchDeckJson<DeckGoSkillUpdateResponse>(
+    `/skills/${encodeURIComponent(skillKey)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+    "skill update failed",
+  );
+}
+
+export async function fetchCronJobs() {
+  return fetchDeckJson<DeckGoCronJobsResponse>("/cron", undefined, "cron jobs fetch failed");
+}
+
+export async function fetchCronStatus() {
+  return fetchDeckJson<DeckGoCronStatus>("/cron/status", undefined, "cron status fetch failed");
+}
+
+export async function fetchCronRuns(jobId: string) {
+  return fetchDeckJson<DeckGoCronRunsResponse>(
+    `/cron/${encodeURIComponent(jobId)}/runs`,
+    undefined,
+    "cron runs fetch failed",
+  );
+}
+
+export async function runCronJob(jobId: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    `/cron/${encodeURIComponent(jobId)}/run`,
+    { method: "POST" },
+    "cron run failed",
+  );
+}
+
+export async function deleteCronJob(jobId: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    `/cron/${encodeURIComponent(jobId)}`,
+    { method: "DELETE" },
+    "cron delete failed",
+  );
+}
+
+export async function fetchDocs(params?: { category?: DeckGoDocCategory | null; query?: string }) {
+  const search = new URLSearchParams();
+  if (params?.category) {
+    search.set("category", params.category);
   }
-  return (await res.json()) as DeckGoLogsTailResponse;
+  if (params?.query?.trim()) {
+    search.set("q", params.query.trim());
+  }
+  const suffix = search.toString() ? `?${search.toString()}` : "";
+  return fetchDeckJson<DeckGoDocsResponse>(`/docs${suffix}`, undefined, "docs fetch failed");
+}
+
+export async function extractDocs(sessionKey?: string) {
+  return fetchDeckJson<DeckGoDocsExtractResponse>(
+    "/docs/extract",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey }),
+    },
+    "docs extract failed",
+  );
+}
+
+export async function deleteDoc(docId: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    `/docs/${encodeURIComponent(docId)}`,
+    { method: "DELETE" },
+    "doc delete failed",
+  );
+}
+
+export async function fetchAlertRules() {
+  return fetchDeckJson<DeckGoAlertsResponse>("/alerts", undefined, "alert rules fetch failed");
+}
+
+export async function createAlertRule(
+  rule: Omit<DeckGoAlertRule, "id" | "lastFiredAt" | "createdAt" | "updatedAt">,
+) {
+  return fetchDeckJson<DeckGoAlertRuleResponse>(
+    "/alerts",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rule),
+    },
+    "alert rule create failed",
+  );
+}
+
+export async function updateAlertRule(id: string, patch: Partial<DeckGoAlertRule>) {
+  return fetchDeckJson<DeckGoAlertRuleResponse>(
+    `/alerts/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+    "alert rule update failed",
+  );
+}
+
+export async function deleteAlertRule(id: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    `/alerts/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+    "alert rule delete failed",
+  );
+}
+
+export async function fetchWebhooks() {
+  return fetchDeckJson<DeckGoWebhooksResponse>("/webhooks", undefined, "webhooks fetch failed");
+}
+
+export async function createWebhook(input: {
+  name: string;
+  url: string;
+  secret?: string;
+  events: string[];
+  enabled?: boolean;
+}) {
+  return fetchDeckJson<DeckGoWebhook>(
+    "/webhooks",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "webhook create failed",
+  );
+}
+
+export async function updateWebhook(
+  id: string,
+  input: Partial<{
+    name: string;
+    url: string;
+    secret?: string;
+    events: string[];
+    enabled?: boolean;
+  }>,
+) {
+  return fetchDeckJson<DeckGoWebhook>(
+    `/webhooks/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "webhook update failed",
+  );
+}
+
+export async function deleteWebhook(id: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    `/webhooks/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+    "webhook delete failed",
+  );
+}
+
+export async function fetchWebhookDeliveries(id: string) {
+  return fetchDeckJson<DeckGoWebhookDeliveriesResponse>(
+    `/webhooks/${encodeURIComponent(id)}/deliveries`,
+    undefined,
+    "webhook deliveries fetch failed",
+  );
+}
+
+export async function testWebhook(id: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    `/webhooks/${encodeURIComponent(id)}/test`,
+    { method: "POST" },
+    "webhook test failed",
+  );
 }
 
 export async function fetchSessions() {
-  const res = await fetch(`${API_BASE}/sessions`, { headers: getHeaders() });
-  if (!res.ok) {
-    throw new Error(`sessions fetch failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionsListResponse;
+  return fetchDeckJson<DeckGoSessionsListResponse>("/sessions", undefined, "sessions fetch failed");
 }
 
 export async function fetchSessionPreviews(keys: string[]) {
-  const res = await fetch(`${API_BASE}/chat/sessions/preview`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ keys }),
-  });
-  if (!res.ok) {
-    throw new Error(`session preview failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionsPreviewResponse;
+  return fetchDeckJson<DeckGoSessionsPreviewResponse>(
+    "/chat/sessions/preview",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keys }),
+    },
+    "session preview failed",
+  );
 }
 
 function buildSessionQuery(params: { sessionKey: string; agentId?: string; limit?: number }) {
@@ -219,16 +660,11 @@ export async function fetchSessionDetail(params: {
 }) {
   const query = buildSessionQuery(params);
   const suffix = query ? `?${query}` : "";
-  const res = await fetch(
-    `${API_BASE}/sessions/${encodeURIComponent(params.sessionKey)}${suffix}`,
-    {
-      headers: getHeaders(),
-    },
+  return fetchDeckJson<DeckGoSessionDetailResponse>(
+    `/sessions/${encodeURIComponent(params.sessionKey)}${suffix}`,
+    undefined,
+    "session detail failed",
   );
-  if (!res.ok) {
-    throw new Error(`session detail failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionDetailResponse;
 }
 
 export async function fetchChatSnapshot(params: {
@@ -243,13 +679,11 @@ export async function fetchChatSnapshot(params: {
       query.set(key, value);
     }
   }
-  const res = await fetch(`${API_BASE}/chat/snapshot?${query.toString()}`, {
-    headers: getHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(`chat snapshot failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoChatSnapshotResponse;
+  return fetchDeckJson<DeckGoChatSnapshotResponse>(
+    `/chat/snapshot?${query.toString()}`,
+    undefined,
+    "chat snapshot failed",
+  );
 }
 
 export async function fetchChatHistory(params: { sessionKey: string; limit?: number }) {
@@ -257,132 +691,115 @@ export async function fetchChatHistory(params: { sessionKey: string; limit?: num
   if (typeof params.limit === "number") {
     query.set("limit", String(params.limit));
   }
-  const res = await fetch(`${API_BASE}/chat/history?${query.toString()}`, {
-    headers: getHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(`chat history failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoChatHistoryResponse;
+  return fetchDeckJson<DeckGoChatHistoryResponse>(
+    `/chat/history?${query.toString()}`,
+    undefined,
+    "chat history failed",
+  );
 }
 
 export async function createChatSession(body: DeckGoChatSessionCreateRequest) {
-  const res = await fetch(`${API_BASE}/chat/sessions/create`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`chat session create failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionCreateResponse;
+  return fetchDeckJson<DeckGoSessionCreateResponse>(
+    "/chat/sessions/create",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    "chat session create failed",
+  );
 }
 
 export async function sendChatMessage(body: DeckGoChatSendRequest) {
-  const res = await fetch(`${API_BASE}/chat/send`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`chat send failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionSendResponse;
+  return fetchDeckJson<DeckGoSessionSendResponse>(
+    "/chat/send",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    "chat send failed",
+  );
 }
 
 export async function abortChatRun(body: DeckGoChatAbortRequest) {
-  const res = await fetch(`${API_BASE}/chat/abort`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`chat abort failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionAbortResponse;
+  return fetchDeckJson<DeckGoSessionAbortResponse>(
+    "/chat/abort",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    "chat abort failed",
+  );
 }
 
 export async function resetSession(body: { sessionKey: string; reason?: "new" | "reset" }) {
-  const res = await fetch(`${API_BASE}/chat/sessions/reset`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`session reset failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionMutationResponse;
+  return fetchDeckJson<DeckGoSessionMutationResponse>(
+    "/chat/sessions/reset",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    "session reset failed",
+  );
 }
 
 export async function clearSession(body: { sessionKey: string }) {
-  const res = await fetch(`${API_BASE}/chat/sessions/clear`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`session clear failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionMutationResponse;
+  return fetchDeckJson<DeckGoSessionMutationResponse>(
+    "/chat/sessions/clear",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    "session clear failed",
+  );
 }
 
 export async function patchSession(body: Record<string, unknown>) {
-  const res = await fetch(`${API_BASE}/chat/sessions/patch`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`session patch failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionMutationResponse;
+  return fetchDeckJson<DeckGoSessionMutationResponse>(
+    "/chat/sessions/patch",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    "session patch failed",
+  );
 }
 
 export async function setSessionEventsSubscription(body: DeckGoSessionEventsRequest) {
-  const res = await fetch(`${API_BASE}/chat/session-events`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`session events request failed: ${res.status}`);
-  }
-  return (await res.json()) as DeckGoSessionEventsResponse;
+  return fetchDeckJson<DeckGoSessionEventsResponse>(
+    "/chat/session-events",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    "session events request failed",
+  );
 }
 
 export function persistAccessToken(token: string) {
-  window.localStorage.setItem("deckGoAccessToken", token);
+  persistDeckAccessToken(token);
 }
 
-function parseSSEChunk(chunk: string, onEvent: (event: DeckGoServerEvent) => void) {
-  const frames = chunk.split("\n\n");
-  for (const frame of frames) {
-    const trimmed = frame.trim();
-    if (!trimmed || trimmed.startsWith(":")) {
-      continue;
-    }
-    const event: DeckGoServerEvent = {};
-    for (const line of trimmed.split("\n")) {
-      if (line.startsWith("id:")) {
-        event.id = line.slice(3).trim();
-      } else if (line.startsWith("event:")) {
-        event.event = line.slice(6).trim();
-      } else if (line.startsWith("data:")) {
-        const part = line.slice(5).trim();
-        event.data = event.data ? `${event.data}\n${part}` : part;
-      }
-    }
-    if (event.data) {
-      try {
-        event.json = JSON.parse(event.data);
-      } catch {
-        // keep raw string payload when data is not JSON
-      }
-    }
-    if (event.id || event.event || event.data) {
-      onEvent(event);
+function toDeckServerEvent<TEvent extends DeckGoServerEvent>(event: DeckEvent): TEvent {
+  const next: DeckGoServerEvent = {
+    id: event.id,
+    event: event.event,
+    data: event.data,
+  };
+  if (event.data) {
+    try {
+      next.json = JSON.parse(event.data);
+    } catch {
+      // keep raw string payload when data is not JSON
     }
   }
+  return next as TEvent;
 }
 
 type StreamParams<TEvent extends DeckGoServerEvent> = {
@@ -393,95 +810,33 @@ type StreamParams<TEvent extends DeckGoServerEvent> = {
   initialLastEventId?: string;
 };
 
-function wait(delayMs: number, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve) => {
-    const timer = window.setTimeout(() => {
-      signal.removeEventListener("abort", onAbort);
-      resolve();
-    }, delayMs);
-    const onAbort = () => {
-      window.clearTimeout(timer);
-      signal.removeEventListener("abort", onAbort);
-      resolve();
-    };
-    signal.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
 async function streamSSE<TEvent extends DeckGoServerEvent>(
-  url: string,
+  path: string,
   params: StreamParams<TEvent>,
 ): Promise<void> {
-  let lastEventId: string | undefined = params.initialLastEventId?.trim() || undefined;
-  let firstConnection = true;
-
-  while (!params.signal.aborted) {
-    params.onStatusChange?.(firstConnection ? "connecting" : "reconnecting");
-    const headers: Record<string, string> = {
-      ...(getHeaders() as Record<string, string>),
-    };
-    if (lastEventId) {
-      headers["Last-Event-ID"] = lastEventId;
-    }
-    const res = await fetch(url, {
-      method: "GET",
-      headers,
-      signal: params.signal,
-    });
-    if (!res.ok || !res.body) {
-      params.onStatusChange?.("error");
-      throw new Error(`stream failed: ${res.status}`);
-    }
-    params.onStatusChange?.("connected");
-    firstConnection = false;
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (!params.signal.aborted) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      buffer += decoder.decode(value, { stream: true });
-      const boundary = buffer.lastIndexOf("\n\n");
-      if (boundary >= 0) {
-        const chunk = buffer.slice(0, boundary + 2);
-        parseSSEChunk(chunk, (event) => {
-          if (event.id) {
-            lastEventId = event.id;
-          }
-          params.onEvent(event as TEvent);
-        });
-        buffer = buffer.slice(boundary + 2);
-      }
-    }
-
-    buffer += decoder.decode();
-    if (buffer.trim()) {
-      parseSSEChunk(buffer, (event) => {
-        if (event.id) {
-          lastEventId = event.id;
-        }
-        params.onEvent(event as TEvent);
-      });
-    }
-
-    if (params.signal.aborted) {
-      return;
-    }
-    await wait(params.retryDelayMs ?? 1000, params.signal);
+  params.onStatusChange?.("connecting");
+  const response = await deckStream(buildApiPath(path), {
+    signal: params.signal,
+    reconnect: true,
+    retryDelayMs: params.retryDelayMs,
+    lastEventId: params.initialLastEventId,
+    onOpen: () => params.onStatusChange?.("connected"),
+    onRetry: () => params.onStatusChange?.("reconnecting"),
+    onEvent: (event) => params.onEvent(toDeckServerEvent<TEvent>(event)),
+  });
+  if (params.signal.aborted || response.status === 499) {
+    return;
+  }
+  if (!response.ok) {
+    params.onStatusChange?.("error");
+    throw new Error(`stream failed: ${response.status}`);
   }
 }
 
 export async function streamEvents(params: StreamParams<DeckGoServerEvent>): Promise<void> {
-  return streamSSE(`${API_BASE}/stream`, params);
+  return streamSSE("/stream", params);
 }
 
 export async function streamLogEvents(params: StreamParams<DeckGoLogStreamEvent>): Promise<void> {
-  return streamSSE(`${API_BASE}/logs/stream`, params);
+  return streamSSE("/logs/stream", params);
 }

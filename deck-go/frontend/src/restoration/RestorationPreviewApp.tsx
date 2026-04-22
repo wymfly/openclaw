@@ -11,12 +11,11 @@ function RestorationPreviewFrame() {
     <RestoredShell>
       <section className="deckgo-status-band">
         <div className="deckgo-status-copy">
-          <p className="deckgo-kicker">Tranche 1 shell runtime</p>
-          <h1 className="deckgo-title">Legacy shell restoration</h1>
+          <p className="deckgo-kicker">Stage 3 active host</p>
+          <h1 className="deckgo-title">Deck Go operator shell</h1>
           <p className="deckgo-subtitle">
-            The default frontend surface now anchors to the legacy shell, nav rail, and panel
-            registry runtime. The previous monolithic workbench remains available only as an
-            explicit fallback surface.
+            The default frontend surface now runs directly through the restored shell, nav rail, and
+            panel registry runtime. This is the active Vite host path for Stage 3 migration.
           </p>
         </div>
       </section>
