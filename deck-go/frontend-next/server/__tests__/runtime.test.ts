@@ -69,11 +69,7 @@ vi.mock("../rate-limit.js", () => ({
   createRateLimiter: vi.fn(() => ({ checkLimit: mockCheckLimit, dispose: mockDispose })),
 }));
 
-const { mockRunAggregatorCleanup } = vi.hoisted(() => ({
-  mockRunAggregatorCleanup: vi.fn(),
-}));
 vi.mock("../run-aggregator.js", () => ({
-  initRunAggregator: vi.fn(() => mockRunAggregatorCleanup),
   getRunAggregator: vi.fn(() => ({ handleEvent: vi.fn() })),
 }));
 
@@ -117,7 +113,6 @@ describe("Server Runtime Singleton", () => {
       events: {},
       schemaVersion: "3.test",
     });
-    mockRunAggregatorCleanup.mockClear();
     // Clear env vars
     delete process.env.DECK_GATEWAY_URL;
     delete process.env.DECK_GATEWAY_TOKEN;
@@ -429,8 +424,6 @@ describe("Server Runtime Singleton", () => {
 
     expect(mockAdapterStop).toHaveBeenCalledOnce();
     expect(mockDispose).toHaveBeenCalledOnce();
-    expect(mockRunAggregatorCleanup).toHaveBeenCalledOnce();
-
     // Singleton should be cleared
     const g = globalThis as unknown as Record<string, unknown>;
     expect(g[GLOBAL_KEY]).toBeUndefined();

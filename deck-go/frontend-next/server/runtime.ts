@@ -15,7 +15,6 @@ import type { DeckEventType } from "./event-bus";
 import { OpenClawGatewayAdapter } from "./gateway-adapter";
 import { initHealthPoller } from "./health-poller";
 import { createRateLimiter } from "./rate-limit";
-import { initRunAggregator } from "./run-aggregator";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -470,8 +469,6 @@ export function initRuntime(settings?: InitRuntimeSettings): DeckRuntime | null 
   const gCleanup = globalThis as Record<string, unknown>;
   gCleanup.__deckCleanupApproval = initApprovalBridge(runtime);
   gCleanup.__deckCleanupAlerts = initAlertEngine(runtime);
-  gCleanup.__deckCleanupRunAggregator = initRunAggregator(eventBus);
-
   // Phase 2: start health polling only after a successful capability bootstrap.
   gCleanup.__deckCleanupHealthPoller = () => healthPoller.stop();
 
@@ -532,12 +529,10 @@ export async function shutdownRuntime(): Promise<void> {
   const gCleanup = globalThis as Record<string, unknown>;
   (gCleanup.__deckCleanupApproval as (() => void) | undefined)?.();
   (gCleanup.__deckCleanupAlerts as (() => void) | undefined)?.();
-  (gCleanup.__deckCleanupRunAggregator as (() => void) | undefined)?.();
   (gCleanup.__deckCleanupHealthPoller as (() => void) | undefined)?.();
   clearInterval(gCleanup.__deckRetryTimer as ReturnType<typeof setInterval>);
   gCleanup.__deckCleanupApproval = undefined;
   gCleanup.__deckCleanupAlerts = undefined;
-  gCleanup.__deckCleanupRunAggregator = undefined;
   gCleanup.__deckCleanupHealthPoller = undefined;
   gCleanup.__deckRetryTimer = undefined;
   await runtime.adapter.stop();

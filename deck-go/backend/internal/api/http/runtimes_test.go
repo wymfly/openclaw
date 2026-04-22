@@ -998,6 +998,34 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		}
 	})
 
+	t.Run("filters and paginates runs for a runtime", func(t *testing.T) {
+		monitor.runs = []runtimeprojection.RunRecord{
+			{RunID: "run-3", AgentID: "main", SessionKey: "session-1", FirstEventAt: "2026-04-21T00:03:00Z", LastEventAt: "2026-04-21T00:05:00Z", Status: "completed"},
+			{RunID: "run-2", AgentID: "main", SessionKey: "session-1", FirstEventAt: "2026-04-21T00:02:00Z", LastEventAt: "2026-04-21T00:04:00Z", Status: "completed"},
+			{RunID: "run-1", AgentID: "other", SessionKey: "session-2", FirstEventAt: "2026-04-21T00:01:00Z", LastEventAt: "2026-04-21T00:03:00Z", Status: "error"},
+		}
+		res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + "/runs?agentId=main&status=completed&limit=1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status: %d", res.StatusCode)
+		}
+
+		var payload struct {
+			RuntimeID  string                        `json:"runtimeId"`
+			Runs       []runtimeprojection.RunRecord `json:"runs"`
+			NextCursor string                        `json:"nextCursor"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload.RuntimeID != DefaultRuntimeID || len(payload.Runs) != 1 || payload.Runs[0].RunID != "run-3" || payload.NextCursor != "run-3" {
+			t.Fatalf("unexpected filtered runs payload: %#v", payload)
+		}
+	})
+
 	t.Run("lists activity for a runtime", func(t *testing.T) {
 		res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + "/activity?limit=25")
 		if err != nil {

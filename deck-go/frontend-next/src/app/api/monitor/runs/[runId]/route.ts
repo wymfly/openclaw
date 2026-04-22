@@ -1,4 +1,3 @@
-import { getRunAggregator } from "@server/run-aggregator";
 /**
  * GET /api/monitor/runs/:runId — Single run detail: summary stats.
  *
@@ -6,8 +5,7 @@ import { getRunAggregator } from "@server/run-aggregator";
  * Returns 404 if the run is not tracked.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { fetchDeckGo } from "@/app/api/_deck-go-proxy";
-import { withAuth } from "@/lib/with-auth";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 type RouteContext = { params: Promise<{ runId: string }> };
 const DEFAULT_RUNTIME_ID = "rt_local";
@@ -53,22 +51,6 @@ function toLegacySummary(run: Stage2RunRecord) {
   };
 }
 
-async function localMonitorRunGetHandler(_request: NextRequest, ...args: unknown[]) {
-  const ctx = args[0] as RouteContext;
-  const { runId } = await ctx.params;
-
-  const aggregator = getRunAggregator();
-  const summary = aggregator.getRunSummary(runId);
-
-  if (!summary) {
-    return NextResponse.json({ error: "Run not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ summary });
-}
-
-const guardedLocalMonitorRunGetHandler = withAuth(localMonitorRunGetHandler);
-
 export async function GET(request: NextRequest, ...args: unknown[]) {
   const ctx = args[0] as RouteContext;
   const { runId } = await ctx.params;
@@ -76,15 +58,15 @@ export async function GET(request: NextRequest, ...args: unknown[]) {
     request,
     `/api/v1/runtimes/${encodeURIComponent(DEFAULT_RUNTIME_ID)}/runs/${encodeURIComponent(runId)}`,
   );
-  if (proxied) {
-    if (!proxied.ok) {
-      return proxied;
-    }
-    const payload = (await proxied.json()) as { run?: Stage2RunRecord; events?: Stage2RunEventRow[] };
-    return NextResponse.json({
-      summary: payload.run ? toLegacySummary(payload.run) : null,
-      events: payload.events ?? [],
-    });
+  if (!proxied) {
+    return deckGoUnavailableResponse();
   }
-  return guardedLocalMonitorRunGetHandler(request, ...args);
+  if (!proxied.ok) {
+    return proxied;
+  }
+  const payload = (await proxied.json()) as { run?: Stage2RunRecord; events?: Stage2RunEventRow[] };
+  return NextResponse.json({
+    summary: payload.run ? toLegacySummary(payload.run) : null,
+    events: payload.events ?? [],
+  });
 }

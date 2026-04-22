@@ -22,10 +22,7 @@ function copyResponseHeaders(source: Headers): Headers {
   return headers;
 }
 
-export async function fetchDeckGo(
-  request: Request,
-  path: string,
-): Promise<Response | null> {
+export async function fetchDeckGo(request: Request, path: string): Promise<Response | null> {
   const apiBase = getDeckGoApiBase();
   if (!apiBase) {
     return null;
@@ -33,8 +30,7 @@ export async function fetchDeckGo(
 
   const target = `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
   const method = request.method.toUpperCase();
-  const body =
-    method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer();
+  const body = method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer();
 
   const response = await fetch(target, {
     method,
@@ -48,9 +44,12 @@ export async function fetchDeckGo(
   });
 }
 
-export async function maybeProxyToDeckGo(
-  request: Request,
-  path: string,
-): Promise<Response | null> {
+export async function maybeProxyToDeckGo(request: Request, path: string): Promise<Response | null> {
   return fetchDeckGo(request, path);
+}
+
+export function deckGoUnavailableResponse(
+  message = "Deck Go control-plane API base not configured",
+): Response {
+  return Response.json({ error: message }, { status: 503 });
 }

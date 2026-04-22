@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -314,9 +315,11 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				})
 				return
 			}
+			page, nextCursor := filterMonitorRuns(items, r.URL.Query())
 			writeJSON(w, http.StatusOK, map[string]any{
 				"runtimeId": runtimeID,
-				"runs":      items,
+				"runs":      page,
+				"nextCursor": nextCursor,
 				"requestId": requestID,
 			})
 		})
@@ -2370,6 +2373,71 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		}
 		writeJSON(w, http.StatusAccepted, commandAcceptedEnvelope(requestID))
 	})
+}
+
+func filterMonitorRuns(items []runtimeprojection.RunRecord, query map[string][]string) ([]runtimeprojection.RunRecord, string) {
+	value := func(key string) string {
+		if query == nil {
+			return ""
+		}
+		values := query[key]
+		if len(values) == 0 {
+			return ""
+		}
+		return values[0]
+	}
+
+	filtered := make([]runtimeprojection.RunRecord, 0, len(items))
+	agentID := value("agentId")
+	sessionKey := value("sessionKey")
+	status := value("status")
+	since := value("since")
+	until := value("until")
+	for _, run := range items {
+		if agentID != "" && run.AgentID != agentID {
+			continue
+		}
+		if sessionKey != "" && run.SessionKey != sessionKey {
+			continue
+		}
+		if status != "" && run.Status != status {
+			continue
+		}
+		if since != "" && run.FirstEventAt < since {
+			continue
+		}
+		if until != "" && run.FirstEventAt > until {
+			continue
+		}
+		filtered = append(filtered, run)
+	}
+	sort.Slice(filtered, func(i, j int) bool { return filtered[i].LastEventAt > filtered[j].LastEventAt })
+
+	limit := 20
+	if raw := value("limit"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	startIdx := 0
+	if cursor := value("cursor"); cursor != "" {
+		for idx, run := range filtered {
+			if run.RunID == cursor {
+				startIdx = idx + 1
+				break
+			}
+		}
+	}
+	pageEnd := startIdx + limit
+	if pageEnd > len(filtered) {
+		pageEnd = len(filtered)
+	}
+	page := filtered[startIdx:pageEnd]
+	nextCursor := ""
+	if pageEnd < len(filtered) && len(page) > 0 {
+		nextCursor = page[len(page)-1].RunID
+	}
+	return page, nextCursor
 }
 
 func nextRequestID() string {
