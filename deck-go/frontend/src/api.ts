@@ -379,6 +379,43 @@ export type DeckGoWebhookDeliveriesResponse = {
   deliveries: DeckGoWebhookDelivery[];
 };
 
+export type DeckGoNodeSummary = {
+  nodeId: string;
+  displayName?: string;
+  platform?: string;
+  version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
+  deviceFamily?: string;
+  modelIdentifier?: string;
+  remoteIp?: string;
+  caps: string[];
+  commands: string[];
+  pathEnv?: string;
+  permissions?: Record<string, boolean>;
+  connectedAtMs?: number;
+  paired: boolean;
+  connected: boolean;
+};
+
+export type DeckGoPairingRequest = {
+  requestId: string;
+  nodeId: string;
+  displayName?: string;
+  platform?: string;
+  silent?: boolean;
+  isRepair?: boolean;
+  ts: number;
+};
+
+export type DeckGoNodesResponse = {
+  nodes?: DeckGoNodeSummary[];
+};
+
+export type DeckGoNodePairingResponse = {
+  pending?: DeckGoPairingRequest[];
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -623,6 +660,66 @@ export async function testWebhook(id: string) {
     `/webhooks/${encodeURIComponent(id)}/test`,
     { method: "POST" },
     "webhook test failed",
+  );
+}
+
+export async function fetchNodes() {
+  return fetchDeckJson<DeckGoNodesResponse>("/nodes", undefined, "nodes fetch failed");
+}
+
+export async function fetchNodePairing() {
+  return fetchDeckJson<DeckGoNodePairingResponse>(
+    "/nodes/pair",
+    undefined,
+    "node pairing fetch failed",
+  );
+}
+
+export async function describeNode(nodeId: string) {
+  return fetchDeckJson<DeckGoNodeSummary>(
+    "/nodes",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "describe", nodeId }),
+    },
+    "node describe failed",
+  );
+}
+
+export async function renameNode(nodeId: string, name: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    "/nodes",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "rename", nodeId, name }),
+    },
+    "node rename failed",
+  );
+}
+
+export async function approveNodePairing(pairingCode: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    "/nodes/pair",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "approve", pairingCode }),
+    },
+    "node pairing approve failed",
+  );
+}
+
+export async function rejectNodePairing(pairingCode: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    "/nodes/pair",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reject", pairingCode }),
+    },
+    "node pairing reject failed",
   );
 }
 

@@ -17,6 +17,7 @@ import { RestoredCronPanel } from "./panels/RestoredCronPanel";
 import { RestoredDocsPanel } from "./panels/RestoredDocsPanel";
 import { RestoredGatewayPanel } from "./panels/RestoredGatewayPanel";
 import { RestoredLogsPanel } from "./panels/RestoredLogsPanel";
+import { RestoredNodesPanel } from "./panels/RestoredNodesPanel";
 import { RestoredPluginsPanel } from "./panels/RestoredPluginsPanel";
 import { RestoredSessionsPanel } from "./panels/RestoredSessionsPanel";
 import { RestoredSettingsPanel } from "./panels/RestoredSettingsPanel";
@@ -97,6 +98,10 @@ export function ActivePanelHost() {
 
   if (entry.id === "webhooks") {
     return <RestoredWebhooksPanel />;
+  }
+
+  if (entry.id === "nodes") {
+    return <RestoredNodesPanel />;
   }
 
   return (
