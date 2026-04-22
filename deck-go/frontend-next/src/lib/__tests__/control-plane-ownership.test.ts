@@ -22,15 +22,16 @@ const forbiddenRouteImports = [
   /from "node:(fs|path|os)"/,
 ];
 
-const allowedControlPlaneBaseReaders = new Set([
-  "app/api/_deck-go-proxy.ts",
-  "lib/deck-client.ts",
-  "lib/plugin-locales.ts",
-]);
+const allowedControlPlaneBaseReaders = new Set(["lib/deck-go-base.ts"]);
 
 const allowedDeckHeaderShells = new Set(["app/api/_deck-go-proxy.ts", "lib/deck-client.ts"]);
 
 const allowedGatewayLoopbackShells = new Set(["middleware.ts"]);
+const allowedControlPlaneBaseImporters = new Set([
+  "app/api/_deck-go-proxy.ts",
+  "lib/deck-client.ts",
+  "lib/plugin-locales.ts",
+]);
 
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
   const entries = readdirSync(root, { withFileTypes: true });
@@ -158,6 +159,32 @@ describe("frontend-next control-plane ownership", () => {
       }
 
       if (!/^app\/api(?:\/.+)?\/route\.ts$/.test(rel)) {
+        invalidImporters.push(rel);
+      }
+    }
+
+    expect(invalidImporters).toEqual([]);
+  });
+
+  it("keeps the shared Deck Go base helper scoped to the retained host shells", () => {
+    const sourceFiles = collectFiles(
+      srcRoot,
+      (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
+    );
+    const invalidImporters: string[] = [];
+
+    for (const file of sourceFiles) {
+      const rel = relative(srcRoot, file);
+      if (rel === "lib/deck-go-base.ts") {
+        continue;
+      }
+
+      const source = readFileSync(file, "utf8");
+      if (!/from ["']@\/lib\/deck-go-base["']/.test(source)) {
+        continue;
+      }
+
+      if (!allowedControlPlaneBaseImporters.has(rel)) {
         invalidImporters.push(rel);
       }
     }

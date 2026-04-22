@@ -58,6 +58,9 @@ host shell above `deck-go`, not as a second control-plane owner.
 
 Retained host-specific shells:
 
+- `frontend-next/src/lib/deck-go-base.ts`
+  - sole control-plane base resolution seam for the transitional host
+  - keeps `DECK_GO_API_BASE` / `NEXT_PUBLIC_DECK_GO_API_BASE` parsing single-sourced
 - `frontend-next/src/app/api/**/route.ts` and `frontend-next/src/app/api/_deck-go-proxy.ts`
   - same-origin proxy and thin compatibility shaping for browser callers
 - `frontend-next/src/lib/deck-client.ts`

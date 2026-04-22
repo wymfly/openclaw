@@ -1,5 +1,6 @@
 import { cache } from "react";
 import type { Locale } from "@/i18n/config";
+import { resolveDeckGoApiPath } from "@/lib/deck-go-base";
 import type { DeckPluginsListResult } from "@/types/gateway-protocol.generated";
 
 type PluginLocaleInventoryEntry = Pick<DeckPluginsListResult["plugins"][number], "id" | "locales">;
@@ -7,12 +8,6 @@ const DEFAULT_RUNTIME_ID = "rt_local";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function getDeckGoApiBase(): string {
-  const raw =
-    process.env.DECK_GO_API_BASE?.trim() ?? process.env.NEXT_PUBLIC_DECK_GO_API_BASE?.trim() ?? "";
-  return raw.replace(/\/+$/, "");
 }
 
 export function mergePluginLocales(
@@ -40,17 +35,14 @@ export function mergePluginLocales(
 
 export const getPluginLocaleInventory = cache(async (): Promise<PluginLocaleInventoryEntry[]> => {
   try {
-    const apiBase = getDeckGoApiBase();
-    if (!apiBase) {
+    const target = resolveDeckGoApiPath(
+      `/api/v1/runtimes/${encodeURIComponent(DEFAULT_RUNTIME_ID)}/deck/plugins?capability=all`,
+    );
+    if (!target) {
       return [];
     }
 
-    const response = await fetch(
-      `${apiBase}/api/v1/runtimes/${encodeURIComponent(DEFAULT_RUNTIME_ID)}/deck/plugins?capability=all`,
-      {
-        method: "GET",
-      },
-    );
+    const response = await fetch(target, { method: "GET" });
     if (!response.ok) {
       return [];
     }

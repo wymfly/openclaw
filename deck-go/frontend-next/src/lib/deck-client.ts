@@ -1,3 +1,5 @@
+import { getDeckGoApiBase } from "@/lib/deck-go-base";
+
 type DeckEvent = {
   id?: string;
   event?: string;
@@ -21,13 +23,8 @@ let deckAccessToken: string | null = null;
 let pendingTokenPrompt: Promise<string | null> | null = null;
 const DEFAULT_STREAM_RETRY_MS = 1_000;
 
-function getDeckApiBase(): string {
-  const raw = process.env.NEXT_PUBLIC_DECK_GO_API_BASE?.trim() ?? "";
-  return raw.replace(/\/+$/, "");
-}
-
 function resolveDeckInput(input: RequestInfo | URL): RequestInfo | URL {
-  const apiBase = getDeckApiBase();
+  const apiBase = getDeckGoApiBase("browser");
   if (!apiBase) {
     return input;
   }

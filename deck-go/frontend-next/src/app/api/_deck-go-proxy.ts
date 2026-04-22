@@ -1,14 +1,10 @@
+import { resolveDeckGoApiPath } from "@/lib/deck-go-base";
+
 type DeckGoProxyOptions = {
   method?: string;
   body?: BodyInit | null;
   headers?: HeadersInit;
 };
-
-function getDeckGoApiBase(): string {
-  const raw =
-    process.env.DECK_GO_API_BASE?.trim() ?? process.env.NEXT_PUBLIC_DECK_GO_API_BASE?.trim() ?? "";
-  return raw.replace(/\/+$/, "");
-}
 
 function copyRequestHeaders(request: Request, extra?: HeadersInit): Headers {
   const headers = new Headers(extra);
@@ -33,12 +29,11 @@ export async function fetchDeckGo(
   path: string,
   options: DeckGoProxyOptions = {},
 ): Promise<Response | null> {
-  const apiBase = getDeckGoApiBase();
-  if (!apiBase) {
+  const target = resolveDeckGoApiPath(path);
+  if (!target) {
     return null;
   }
 
-  const target = `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
   const method = (options.method ?? request.method).toUpperCase();
   const body =
     options.body !== undefined

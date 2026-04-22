@@ -54,6 +54,10 @@ pnpm start
 `frontend-next` is now a transitional host shell, not a second runtime owner. The
 remaining host-specific surfaces are intentionally narrow:
 
+- `src/lib/deck-go-base.ts`
+  - the only place that resolves `DECK_GO_API_BASE` /
+    `NEXT_PUBLIC_DECK_GO_API_BASE`
+  - shared by the retained host shells so base/env transport rules stay single-sourced
 - `src/app/api/**/route.ts` plus `src/app/api/_deck-go-proxy.ts`
   - same-origin proxy and thin response-shaping shell for browser callers that
     still talk to `Next` route handlers
