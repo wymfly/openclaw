@@ -496,6 +496,23 @@ export type DeckGoIdentityLinksResponse = {
   configHash?: string;
 };
 
+export type DeckGoThreadEntry = {
+  threadId: string;
+  channelId: string;
+  agentId: string;
+  targetSessionKey: string;
+  targetKind: string;
+  boundAt: number;
+  lastActivityAt: number;
+  accountId: string;
+  boundBy: string;
+  label?: string;
+};
+
+export type DeckGoThreadsResponse = {
+  threads?: DeckGoThreadEntry[];
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -935,6 +952,29 @@ export async function unlinkIdentityPeer(
       body: JSON.stringify({ action: "unlink", canonical, channel, peerId, baseHash }),
     },
     "identity unlink failed",
+  );
+}
+
+export async function fetchThreads(params?: {
+  agentId?: string;
+  channel?: string;
+  status?: "active" | "all";
+}) {
+  const search = new URLSearchParams();
+  if (params?.agentId?.trim()) {
+    search.set("agentId", params.agentId.trim());
+  }
+  if (params?.channel?.trim()) {
+    search.set("channel", params.channel.trim());
+  }
+  if (params?.status) {
+    search.set("status", params.status);
+  }
+  const suffix = search.toString() ? `?${search.toString()}` : "";
+  return fetchDeckJson<DeckGoThreadsResponse>(
+    `/deck/threads${suffix}`,
+    undefined,
+    "threads fetch failed",
   );
 }
 

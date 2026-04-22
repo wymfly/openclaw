@@ -25,6 +25,7 @@ import { RestoredPluginsPanel } from "./panels/RestoredPluginsPanel";
 import { RestoredSessionsPanel } from "./panels/RestoredSessionsPanel";
 import { RestoredSettingsPanel } from "./panels/RestoredSettingsPanel";
 import { RestoredSkillsPanel } from "./panels/RestoredSkillsPanel";
+import { RestoredThreadsPanel } from "./panels/RestoredThreadsPanel";
 import { RestoredWebhooksPanel } from "./panels/RestoredWebhooksPanel";
 import { useRestorationUI } from "./ui-store";
 
@@ -117,6 +118,10 @@ export function ActivePanelHost() {
 
   if (entry.id === "identity") {
     return <RestoredIdentityPanel />;
+  }
+
+  if (entry.id === "threads") {
+    return <RestoredThreadsPanel />;
   }
 
   return (

@@ -27,9 +27,9 @@ function groupMethodsByDomain(methods: MethodInfo[]) {
     const domain = dot > 0 ? method.name.slice(0, dot) : "other";
     (groups[domain] ??= []).push(method);
   }
-  const sortedEntries = Object.entries(groups).toSorted(([left], [right]) =>
-    left.localeCompare(right),
-  );
+  const sortedEntries = Object.entries(groups)
+    .slice()
+    .toSorted(([left], [right]) => left.localeCompare(right));
   return Object.fromEntries(
     sortedEntries.map(([domain, items]) => [
       domain,
@@ -58,8 +58,9 @@ export function RestoredApiExplorerPanel() {
         setLoadState("ready");
         setError("");
         const firstMethod =
-          Object.keys(next.methods ?? {}).toSorted((left, right) => left.localeCompare(right))[0] ??
-          "";
+          Object.keys(next.methods ?? {})
+            .slice()
+            .toSorted((left, right) => left.localeCompare(right))[0] ?? "";
         setSelectedMethodName((current) =>
           current && next.methods && current in next.methods ? current : firstMethod,
         );
