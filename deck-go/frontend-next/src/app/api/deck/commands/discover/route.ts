@@ -1,17 +1,8 @@
 import { type NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { fetchDeckGo } from "@/app/api/_deck-go-proxy";
-import { gwRequest } from "@/lib/api-helpers";
-import { withAuth } from "@/lib/with-auth";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 const DEFAULT_RUNTIME_ID = "rt_local";
-
-async function localDeckCommandsDiscoverHandler(request: NextRequest) {
-  const body = await request.json();
-  return gwRequest("deck.commands.discover", body);
-}
-
-const guardedLocalDeckCommandsDiscoverHandler = withAuth(localDeckCommandsDiscoverHandler);
 
 export async function POST(request: NextRequest) {
   const proxied = await fetchDeckGo(
@@ -25,5 +16,5 @@ export async function POST(request: NextRequest) {
     const payload = (await proxied.json()) as { payload?: unknown };
     return NextResponse.json(payload.payload ?? {});
   }
-  return guardedLocalDeckCommandsDiscoverHandler(request);
+  return deckGoUnavailableResponse();
 }

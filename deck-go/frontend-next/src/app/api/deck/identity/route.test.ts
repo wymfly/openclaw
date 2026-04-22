@@ -1,25 +1,18 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwRequest = vi.fn();
-
-vi.mock("@/lib/api-helpers", () => ({
-  gwRequest,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/deck/identity", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    gwRequest.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
-    process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    if (originalApiBase === undefined) {
+      delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    } else {
+      process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    }
   });
 
   it("proxies to deck-go when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
@@ -28,7 +21,10 @@ describe("/api/deck/identity", () => {
       .fn<typeof fetch>()
       .mockResolvedValue(
         new Response(
-          JSON.stringify({ runtimeId: "rt_local", payload: { identities: [{ canonical: "user:1" }] } }),
+          JSON.stringify({
+            runtimeId: "rt_local",
+            payload: { identities: [{ canonical: "user:1" }] },
+          }),
           { status: 200 },
         ),
       );
@@ -41,7 +37,6 @@ describe("/api/deck/identity", () => {
       "http://127.0.0.1:19528/api/v1/runtimes/rt_local/deck/identity",
       expect.objectContaining({ method: "GET" }),
     );
-    expect(gwRequest).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ identities: [{ canonical: "user:1" }] });
   });
@@ -57,7 +52,12 @@ describe("/api/deck/identity", () => {
     const response = await POST(
       new NextRequest("http://localhost/api/deck/identity", {
         method: "POST",
-        body: JSON.stringify({ action: "link", canonical: "user:1", channel: "telegram", peerId: "42" }),
+        body: JSON.stringify({
+          action: "link",
+          canonical: "user:1",
+          channel: "telegram",
+          peerId: "42",
+        }),
         headers: { "Content-Type": "application/json" },
       }),
     );
@@ -66,31 +66,50 @@ describe("/api/deck/identity", () => {
       "http://127.0.0.1:19528/api/v1/runtimes/rt_local/deck/identity",
       expect.objectContaining({ method: "POST" }),
     );
-    expect(gwRequest).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local gwRequest handlers when no deck-go base is configured", async () => {
+  it("returns 503 for valid requests when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    gwRequest
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
     const { GET, POST } = await import("./route.js");
 
-    await GET(new NextRequest("http://localhost/api/deck/identity"));
-    await POST(
+    const getResponse = await GET(new NextRequest("http://localhost/api/deck/identity"));
+    const postResponse = await POST(
       new NextRequest("http://localhost/api/deck/identity", {
         method: "POST",
-        body: JSON.stringify({ action: "link", canonical: "user:1", channel: "telegram", peerId: "42" }),
+        body: JSON.stringify({
+          action: "link",
+          canonical: "user:1",
+          channel: "telegram",
+          peerId: "42",
+        }),
         headers: { "Content-Type": "application/json" },
       }),
     );
 
-    expect(gwRequest).toHaveBeenNthCalledWith(1, "deck.identity.list", {});
-    expect(gwRequest).toHaveBeenNthCalledWith(2, "deck.identity.link", {
-      canonical: "user:1",
-      channel: "telegram",
-      peerId: "42",
+    expect(getResponse.status).toBe(503);
+    expect(await getResponse.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
     });
+    expect(postResponse.status).toBe(503);
+    expect(await postResponse.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
+  });
+
+  it("keeps thin validation for invalid identity actions", async () => {
+    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    const { POST } = await import("./route.js");
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/deck/identity", {
+        method: "POST",
+        body: JSON.stringify({ action: "bogus" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Invalid action" });
   });
 });
