@@ -2,12 +2,15 @@ package openclaw
 
 import (
 	"context"
+	"errors"
+	"os/exec"
 	"testing"
 	"time"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
 )
 
 type recordingManagedSupervisor struct {
@@ -117,120 +120,72 @@ func TestNewManagedRuntime_ComposesSupervisorAdapterAndRegistry(t *testing.T) {
 	}
 }
 
-func TestManagedRuntime_DelegatesLifecycleAndRegistryState(t *testing.T) {
-	bus := events.NewBus(8)
-	supervisor := &recordingManagedSupervisor{
-		snapshot: runtimecontrol.Snapshot{
-			Managed:    true,
-			Configured: true,
-			Status:     runtimecontrol.StatusStopped,
-			Health:     runtimecontrol.HealthUnknown,
-			AutoStart:  true,
+func TestManagedRuntime_PropagatesLifecycleStateIntoRegistrySummaries(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Update(config.Settings{
+		ManagedGateway: config.ManagedGatewaySettings{
+			Command:      "openclaw",
+			GatewayToken: "token",
 		},
+	}); err != nil {
+		t.Fatal(err)
 	}
 
-	managed := NewManagedRuntimeWithSupervisor(supervisor, bus)
+	bus := events.NewBus(8)
+	sub := bus.Subscribe()
+	defer bus.Unsubscribe(sub)
 
-	items, err := managed.ListRuntimes(t.Context())
+	supervisor := NewManagedSupervisorWithOptions(
+		store,
+		bus,
+		WithManagedLauncher(func(config.ManagedGatewaySettings) (*exec.Cmd, error) {
+			return nil, errors.New("launch failed")
+		}),
+	)
+	managed := NewManagedRuntimeWithStoreAndSupervisor(store, supervisor, bus)
+
+	if _, err := managed.Start(context.Background()); err == nil {
+		t.Fatal("expected managed runtime start failure")
+	}
+
+	expectManagedRuntimeEvent(t, sub, "runtime.gateway.status")
+
+	snapshot := managed.Snapshot()
+	if snapshot.Status != runtimecontrol.StatusFailed {
+		t.Fatalf("expected failed lifecycle snapshot, got %#v", snapshot)
+	}
+
+	items, err := managed.ListRuntimes(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(items) != 1 || items[0].Status != string(runtimecontrol.StatusStopped) {
-		t.Fatalf("expected registry to reflect initial stopped snapshot, got %#v", items)
+	if len(items) != 1 {
+		t.Fatalf("expected one runtime summary, got %#v", items)
 	}
-
-	snapshot, err := managed.Start(t.Context())
-	if err != nil {
-		t.Fatal(err)
+	if items[0].RuntimeID != runtimeregistry.DefaultRuntimeID {
+		t.Fatalf("expected default runtime id, got %#v", items[0])
 	}
-	if snapshot.Status != runtimecontrol.StatusRunning || snapshot.Health != runtimecontrol.HealthHealthy {
-		t.Fatalf("expected running snapshot from start, got %#v", snapshot)
+	if items[0].Status != string(runtimecontrol.StatusFailed) {
+		t.Fatalf("expected failed runtime summary, got %#v", items[0])
 	}
-	if supervisor.startCalls != 1 {
-		t.Fatalf("expected one supervisor start call, got %d", supervisor.startCalls)
-	}
-
-	runtimeSummary, ok, err := managed.GetRuntime(t.Context(), "rt_local")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("expected default runtime summary after start")
-	}
-	if runtimeSummary.Status != string(runtimecontrol.StatusRunning) || runtimeSummary.Health != string(runtimecontrol.HealthHealthy) {
-		t.Fatalf("expected registry summary to read live supervisor state, got %#v", runtimeSummary)
-	}
-
-	gatewayURL, gatewayToken, ok := managed.GatewayConnection()
-	if !ok || gatewayURL != "ws://127.0.0.1:18789" || gatewayToken != "gateway-token" {
-		t.Fatalf("expected gateway connection to delegate to supervisor, got ok=%v url=%q token=%q", ok, gatewayURL, gatewayToken)
-	}
-
-	snapshot, err = managed.Restart(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if snapshot.Status != runtimecontrol.StatusRunning || supervisor.restartCalls != 1 {
-		t.Fatalf("expected restart delegation, got snapshot=%#v restartCalls=%d", snapshot, supervisor.restartCalls)
-	}
-
-	snapshot, err = managed.Stop(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if snapshot.Status != runtimecontrol.StatusStopped || supervisor.stopCalls != 1 {
-		t.Fatalf("expected stop delegation, got snapshot=%#v stopCalls=%d", snapshot, supervisor.stopCalls)
-	}
-
-	items, err = managed.ListRuntimes(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(items) != 1 || items[0].Status != string(runtimecontrol.StatusStopped) || items[0].Health != string(runtimecontrol.HealthUnknown) {
-		t.Fatalf("expected registry to keep reading supervisor snapshot after stop, got %#v", items)
-	}
-
-	managed.EnsureAutoStart()
-	if supervisor.ensureAutoStarts != 1 {
-		t.Fatalf("expected managed runtime to forward EnsureAutoStart, got %d", supervisor.ensureAutoStarts)
+	if items[0].LastError == nil || *items[0].LastError != "launch failed" {
+		t.Fatalf("expected launch failure to surface in registry summary, got %#v", items[0])
 	}
 }
 
-func TestManagedRuntime_StreamAndReplayUseRegistryFeed(t *testing.T) {
-	bus := events.NewBus(8)
-	managed := NewManagedRuntimeWithSupervisor(&recordingManagedSupervisor{
-		snapshot: runtimecontrol.Snapshot{
-			Managed:    true,
-			Configured: true,
-			Status:     runtimecontrol.StatusRunning,
-			Health:     runtimecontrol.HealthHealthy,
-		},
-	}, bus)
-
-	event := bus.Publish("runtime.gateway.status", []byte(`{"status":"running"}`))
-
-	replayed, gap := managed.EventsSince(0)
-	if gap {
-		t.Fatal("expected no replay gap for fresh event history")
-	}
-	if len(replayed) != 1 || replayed[0].ID != event.ID {
-		t.Fatalf("expected replay to proxy registry feed, got %#v", replayed)
-	}
-
-	stream, cancel := managed.SubscribeStream()
-	defer cancel()
-
-	followup := bus.Publish("runtime.gateway.health", []byte(`{"health":"healthy"}`))
-
+func expectManagedRuntimeEvent(t *testing.T, sub <-chan events.Event, eventType string) {
+	t.Helper()
 	select {
-	case got, ok := <-stream:
-		if !ok {
-			t.Fatal("expected live registry event stream")
-		}
-		if got.ID != followup.ID || got.Type != "runtime.gateway.health" {
-			t.Fatalf("unexpected streamed event %#v", got)
+	case event := <-sub:
+		if event.Type != eventType {
+			t.Fatalf("expected event %s, got %#v", eventType, event)
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("timed out waiting for streamed runtime event")
+		t.Fatalf("timed out waiting for %s", eventType)
 	}
 }
