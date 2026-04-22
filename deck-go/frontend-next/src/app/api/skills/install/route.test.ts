@@ -1,25 +1,18 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwRequest = vi.fn();
-
-vi.mock("@/lib/api-helpers", () => ({
-  gwRequest,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/skills/install", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    gwRequest.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
-    process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    if (originalApiBase === undefined) {
+      delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    } else {
+      process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    }
   });
 
   it("proxies POST to deck-go when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
@@ -41,25 +34,23 @@ describe("/api/skills/install", () => {
       "http://127.0.0.1:19528/api/v1/runtimes/rt_local/skills/install",
       expect.objectContaining({ method: "POST" }),
     );
-    expect(gwRequest).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local gwRequest when no deck-go base is configured", async () => {
+  it("returns 503 when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    gwRequest.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const { POST } = await import("./route.js");
 
-    await POST(
+    const response = await POST(
       new NextRequest("http://localhost/api/skills/install", {
         method: "POST",
         body: JSON.stringify({ name: "foo", installId: "bar" }),
       }),
     );
 
-    expect(gwRequest).toHaveBeenCalledWith("skills.install", {
-      name: "foo",
-      installId: "bar",
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
     });
   });
 });
