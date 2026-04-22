@@ -1,13 +1,5 @@
-/**
- * POST /api/chat/abort — Abort an in-progress run via sessions.abort.
- *
- * Gateway contract (`SessionsAbortParamsSchema`):
- *   { key, runId? }
- */
 import { NextRequest, NextResponse } from "next/server";
-import { fetchDeckGo } from "@/app/api/_deck-go-proxy";
-import { gwRequest } from "@/lib/api-helpers";
-import { withAuth } from "@/lib/with-auth";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 const DEFAULT_RUNTIME_ID = "rt_local";
 
@@ -17,24 +9,6 @@ type Stage2RunRecord = {
   status?: string | null;
   lastEventAt?: string | null;
 };
-
-async function localChatAbortPostHandler(request: NextRequest) {
-  const body = (await request.json()) as {
-    sessionKey?: string;
-    runId?: string;
-  };
-
-  if (!body.sessionKey?.trim()) {
-    return Response.json({ error: "sessionKey is required" }, { status: 400 });
-  }
-
-  return gwRequest("sessions.abort", {
-    key: body.sessionKey,
-    runId: body.runId ?? undefined,
-  });
-}
-
-const guardedLocalChatAbortPostHandler = withAuth(localChatAbortPostHandler);
 
 function selectActiveRunID(runs: Stage2RunRecord[], sessionKey: string): string | null {
   const activeRuns = runs
@@ -102,5 +76,5 @@ export async function POST(request: NextRequest) {
       status: "aborted",
     });
   }
-  return guardedLocalChatAbortPostHandler(request);
+  return deckGoUnavailableResponse();
 }

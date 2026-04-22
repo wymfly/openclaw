@@ -1,19 +1,5 @@
-/**
- * /api/chat/sessions/preview — Lightweight session previews for sidebar.
- *
- * POST — Fetch preview summaries for a batch of session keys.
- *
- * Gateway contract:
- *   sessions.preview: { keys: string[] } → { ts, previews: [{ key, status, items }] }
- *
- * This is a lighter alternative to sessions.list for refreshing sidebar previews
- * without re-fetching full session metadata. See transcript-history.ts for the
- * full transcript seam (chat.history) — do not conflate the two.
- */
-import { type NextRequest, NextResponse } from "next/server";
-import { fetchDeckGo } from "@/app/api/_deck-go-proxy";
-import { gwRequest } from "@/lib/api-helpers";
-import { withAuth } from "@/lib/with-auth";
+import { NextRequest, NextResponse } from "next/server";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 const DEFAULT_RUNTIME_ID = "rt_local";
 
@@ -23,18 +9,6 @@ type Stage2SessionRecord = {
   lastMessagePreview?: string;
 };
 
-async function localChatSessionsPreviewPostHandler(request: NextRequest) {
-  const body = (await request.json()) as { keys?: string[] };
-
-  if (!Array.isArray(body.keys) || body.keys.length === 0) {
-    return Response.json({ error: "keys[] is required" }, { status: 400 });
-  }
-
-  return gwRequest("sessions.preview", { keys: body.keys });
-}
-
-const guardedLocalChatSessionsPreviewPostHandler = withAuth(localChatSessionsPreviewPostHandler);
-
 export async function POST(request: NextRequest) {
   const body = (await request.clone().json()) as { keys?: string[] };
 
@@ -43,7 +17,10 @@ export async function POST(request: NextRequest) {
   }
 
   const proxied = await fetchDeckGo(
-    request,
+    new NextRequest(request.url, {
+      method: "GET",
+      headers: request.headers,
+    }),
     `/api/v1/runtimes/${encodeURIComponent(DEFAULT_RUNTIME_ID)}/sessions`,
   );
   if (proxied) {
@@ -54,10 +31,10 @@ export async function POST(request: NextRequest) {
     const sessions = Array.isArray(payload.sessions) ? payload.sessions : [];
     const keySet = new Set(body.keys);
     const previews = sessions
-      .filter((session) => keySet.has(String(session.key ?? session.sessionKey ?? "")))
+      .filter((session) => keySet.has(session.key ?? session.sessionKey ?? ""))
       .map((session) => {
-        const key = String(session.key ?? session.sessionKey ?? "");
-        const text = String(session.lastMessagePreview ?? "").trim();
+        const key = session.key ?? session.sessionKey ?? "";
+        const text = (session.lastMessagePreview ?? "").trim();
         return {
           key,
           status: text ? "ok" : "empty",
@@ -69,5 +46,5 @@ export async function POST(request: NextRequest) {
       previews,
     });
   }
-  return guardedLocalChatSessionsPreviewPostHandler(request);
+  return deckGoUnavailableResponse();
 }

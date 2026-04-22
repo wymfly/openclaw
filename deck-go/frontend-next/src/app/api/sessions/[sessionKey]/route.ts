@@ -1,26 +1,9 @@
-/**
- * /api/sessions/[sessionKey] — Single session operations.
- *
- * DELETE — Delete a session.
- *
- * Gateway contracts:
- *   sessions.delete:  { key }
- */
 import { NextRequest, NextResponse } from "next/server";
-import { fetchDeckGo } from "@/app/api/_deck-go-proxy";
-import { gwRequest } from "@/lib/api-helpers";
-import { withAuth } from "@/lib/with-auth";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 const DEFAULT_RUNTIME_ID = "rt_local";
 
 type RouteContext = { params: Promise<{ sessionKey: string }> };
-
-async function localSessionDeleteHandler(_request: NextRequest, ctx: unknown) {
-  const { sessionKey } = await (ctx as RouteContext).params;
-  return gwRequest("sessions.delete", { key: sessionKey });
-}
-
-const guardedLocalSessionDeleteHandler = withAuth(localSessionDeleteHandler);
 
 export async function DELETE(request: NextRequest, ctx: unknown) {
   const { sessionKey } = await (ctx as RouteContext).params;
@@ -39,5 +22,5 @@ export async function DELETE(request: NextRequest, ctx: unknown) {
     }
     return NextResponse.json({ ok: true, key: sessionKey });
   }
-  return guardedLocalSessionDeleteHandler(request, ctx);
+  return deckGoUnavailableResponse();
 }

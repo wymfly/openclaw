@@ -1,14 +1,6 @@
-/**
- * GET /api/sessions — List all sessions.
- *
- * Gateway contract (`sessions.list`):
- *   Params: { search?, limit?, activeMinutes?, includeGlobal?, agentId? }
- */
 import { type NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { fetchDeckGo } from "@/app/api/_deck-go-proxy";
-import { gwRequest } from "@/lib/api-helpers";
-import { withAuth } from "@/lib/with-auth";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 const DEFAULT_RUNTIME_ID = "rt_local";
 
@@ -30,9 +22,9 @@ function filterStage2Sessions(items: Stage2SessionRecord[], request: NextRequest
 
   if (search) {
     filtered = filtered.filter((session) => {
-      const key = String(session.key ?? session.sessionKey ?? "").toLowerCase();
-      const title = String(session.title ?? "").toLowerCase();
-      const preview = String(session.lastMessagePreview ?? "").toLowerCase();
+      const key = (session.key ?? session.sessionKey ?? "").toLowerCase();
+      const title = (session.title ?? "").toLowerCase();
+      const preview = (session.lastMessagePreview ?? "").toLowerCase();
       return key.includes(search) || title.includes(search) || preview.includes(search);
     });
   }
@@ -41,11 +33,11 @@ function filterStage2Sessions(items: Stage2SessionRecord[], request: NextRequest
     const activeMinutes = parseInt(activeMinutesParam, 10);
     if (Number.isFinite(activeMinutes) && activeMinutes > 0) {
       const cutoff = Date.now() - activeMinutes * 60 * 1000;
-      filtered = filtered.filter((session) => Number(session.updatedAt ?? 0) >= cutoff);
+      filtered = filtered.filter((session) => (session.updatedAt ?? 0) >= cutoff);
     }
   }
 
-  filtered.sort((a, b) => Number(b.updatedAt ?? 0) - Number(a.updatedAt ?? 0));
+  filtered.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
   if (limitParam) {
     const limit = parseInt(limitParam, 10);
@@ -56,20 +48,6 @@ function filterStage2Sessions(items: Stage2SessionRecord[], request: NextRequest
 
   return { sessions: filtered };
 }
-
-async function localSessionsListHandler(request: NextRequest) {
-  const search = request.nextUrl.searchParams.get("search");
-  const limit = request.nextUrl.searchParams.get("limit");
-  const activeMinutes = request.nextUrl.searchParams.get("activeMinutes");
-
-  return gwRequest("sessions.list", {
-    ...(search ? { search } : {}),
-    ...(limit ? { limit: parseInt(limit, 10) } : {}),
-    ...(activeMinutes ? { activeMinutes: parseInt(activeMinutes, 10) } : {}),
-  });
-}
-
-const guardedLocalSessionsListHandler = withAuth(localSessionsListHandler);
 
 export async function GET(request: NextRequest) {
   const proxied = await fetchDeckGo(
@@ -83,5 +61,5 @@ export async function GET(request: NextRequest) {
     const payload = (await proxied.json()) as { sessions?: Stage2SessionRecord[] };
     return NextResponse.json(filterStage2Sessions(payload.sessions ?? [], request));
   }
-  return guardedLocalSessionsListHandler(request);
+  return deckGoUnavailableResponse();
 }

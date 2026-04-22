@@ -1,10 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/chat/projection", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
@@ -12,7 +8,11 @@ describe("/api/chat/projection", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
-    process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    if (originalApiBase === undefined) {
+      delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    } else {
+      process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    }
   });
 
   it("proxies POST to deck-go when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
@@ -36,7 +36,7 @@ describe("/api/chat/projection", () => {
     expect(res.status).toBe(200);
   });
 
-  it("falls back to local no-op when no deck-go base is configured", async () => {
+  it("returns 503 when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
     const { POST } = await import("./route.js");
     const res = await POST(
@@ -46,7 +46,9 @@ describe("/api/chat/projection", () => {
         headers: { "Content-Type": "application/json" },
       }),
     );
-    const payload = await res.json();
-    expect(payload.ok).toBe(true);
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });

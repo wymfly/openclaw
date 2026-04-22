@@ -1,18 +1,6 @@
-/**
- * /api/chat/sessions — Manage chat sessions.
- *
- * GET    — List all sessions
- * DELETE — Delete a session by key
- *
- * Gateway contracts:
- *   sessions.list:   { limit?, activeMinutes?, includeGlobal?, agentId?, ... }
- *   sessions.delete: { key, deleteTranscript? }
- */
-import { type NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { fetchDeckGo, maybeProxyToDeckGo } from "@/app/api/_deck-go-proxy";
-import { gwRequest } from "@/lib/api-helpers";
-import { withAuth } from "@/lib/with-auth";
+import { deckGoUnavailableResponse, fetchDeckGo } from "@/app/api/_deck-go-proxy";
 
 const DEFAULT_RUNTIME_ID = "rt_local";
 
@@ -32,38 +20,9 @@ function filterChatSessions(items: Stage2SessionRecord[], request: NextRequest) 
   if (agentId) {
     filtered = filtered.filter((session) => session.agentId === agentId);
   }
-  filtered.sort((a, b) => Number(b.updatedAt ?? 0) - Number(a.updatedAt ?? 0));
+  filtered.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
   return { sessions: filtered.slice(0, 50) };
 }
-
-async function localChatSessionsGetHandler(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-  const agentId = searchParams.get("agentId");
-
-  return gwRequest("sessions.list", {
-    ...(agentId ? { agentId } : {}),
-    includeDerivedTitles: true,
-    includeLastMessage: true,
-    limit: 50,
-  });
-}
-
-async function localChatSessionsDeleteHandler(request: NextRequest) {
-  const body = (await request.json()) as {
-    sessionKey?: string;
-  };
-
-  if (!body.sessionKey) {
-    return Response.json({ error: "sessionKey is required" }, { status: 400 });
-  }
-
-  return gwRequest("sessions.delete", {
-    key: body.sessionKey,
-  });
-}
-
-const guardedLocalChatSessionsGetHandler = withAuth(localChatSessionsGetHandler);
-const guardedLocalChatSessionsDeleteHandler = withAuth(localChatSessionsDeleteHandler);
 
 export async function GET(request: NextRequest) {
   const proxied = await fetchDeckGo(
@@ -77,9 +36,30 @@ export async function GET(request: NextRequest) {
     const payload = (await proxied.json()) as { sessions?: Stage2SessionRecord[] };
     return NextResponse.json(filterChatSessions(payload.sessions ?? [], request));
   }
-  return guardedLocalChatSessionsGetHandler(request);
+  return deckGoUnavailableResponse();
 }
 
 export async function DELETE(request: NextRequest) {
-  return guardedLocalChatSessionsDeleteHandler(request);
+  const body = (await request.clone().json()) as { sessionKey?: string };
+
+  if (!body.sessionKey?.trim()) {
+    return Response.json({ error: "sessionKey is required" }, { status: 400 });
+  }
+
+  const proxied = await fetchDeckGo(
+    new NextRequest(request.url, {
+      method: "DELETE",
+      headers: request.headers,
+    }),
+    `/api/v1/runtimes/${encodeURIComponent(DEFAULT_RUNTIME_ID)}/sessions/${encodeURIComponent(
+      body.sessionKey,
+    )}`,
+  );
+  if (proxied) {
+    if (!proxied.ok) {
+      return proxied;
+    }
+    return NextResponse.json({ ok: true, key: body.sessionKey });
+  }
+  return deckGoUnavailableResponse();
 }
