@@ -22,9 +22,11 @@ import { RestoredLogsPanel } from "./panels/RestoredLogsPanel";
 import { RestoredMemoryPanel } from "./panels/RestoredMemoryPanel";
 import { RestoredNodesPanel } from "./panels/RestoredNodesPanel";
 import { RestoredPluginsPanel } from "./panels/RestoredPluginsPanel";
+import { RestoredRoutingPanel } from "./panels/RestoredRoutingPanel";
 import { RestoredSessionsPanel } from "./panels/RestoredSessionsPanel";
 import { RestoredSettingsPanel } from "./panels/RestoredSettingsPanel";
 import { RestoredSkillsPanel } from "./panels/RestoredSkillsPanel";
+import { RestoredSubagentsPanel } from "./panels/RestoredSubagentsPanel";
 import { RestoredThreadsPanel } from "./panels/RestoredThreadsPanel";
 import { RestoredWebhooksPanel } from "./panels/RestoredWebhooksPanel";
 import { useRestorationUI } from "./ui-store";
@@ -122,6 +124,14 @@ export function ActivePanelHost() {
 
   if (entry.id === "threads") {
     return <RestoredThreadsPanel />;
+  }
+
+  if (entry.id === "routing") {
+    return <RestoredRoutingPanel />;
+  }
+
+  if (entry.id === "subagents") {
+    return <RestoredSubagentsPanel />;
   }
 
   return (

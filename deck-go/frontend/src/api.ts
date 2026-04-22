@@ -513,6 +513,110 @@ export type DeckGoThreadsResponse = {
   threads?: DeckGoThreadEntry[];
 };
 
+export type DeckGoRoutingPeer = {
+  kind: "direct" | "group" | "channel";
+  id: string;
+};
+
+export type DeckGoRoutingMatch = {
+  channel: string;
+  accountId?: string;
+  peer?: DeckGoRoutingPeer;
+  guildId?: string;
+  roles?: string[];
+  teamId?: string;
+};
+
+export type DeckGoRoutingBinding = {
+  id: string;
+  agentId: string;
+  tier: string;
+  match: DeckGoRoutingMatch;
+  comment?: string;
+};
+
+export type DeckGoRoutingListResponse = {
+  bindings: DeckGoRoutingBinding[];
+  defaultAgentId: string;
+  dmScope: string;
+  configHash: string;
+};
+
+export type DeckGoRoutingSimulationTier = {
+  tier: string;
+  matched: boolean;
+  checked: boolean;
+};
+
+export type DeckGoRoutingSimulateResponse = {
+  agentId: string;
+  matchedBy: string;
+  sessionKey: string;
+  tiers: DeckGoRoutingSimulationTier[];
+};
+
+export type DeckGoSubagentRun = {
+  runId: string;
+  childSessionKey: string;
+  childAgentId: string;
+  childAgentName?: string;
+  requesterSessionKey: string;
+  requesterAgentId: string;
+  requesterAgentName?: string;
+  task?: string;
+  label?: string;
+  model?: string;
+  spawnMode: string;
+  depth: number;
+  createdAt: number;
+  startedAt?: number;
+  endedAt?: number;
+  durationMs?: number;
+  status: string;
+  outcome?: unknown;
+};
+
+export type DeckGoSubagentsListResponse = {
+  runs: DeckGoSubagentRun[];
+  total: number;
+};
+
+export type DeckGoSubagentLineageRoot = {
+  sessionKey: string;
+  agentId: string;
+  agentName?: string;
+};
+
+export type DeckGoSubagentLineageNode = {
+  runId: string;
+  sessionKey: string;
+  agentId: string;
+  agentName?: string;
+  task?: string;
+  depth: number;
+  parentRunId: string;
+  status: string;
+  durationMs?: number;
+};
+
+export type DeckGoSubagentsLineageResponse = {
+  root: DeckGoSubagentLineageRoot;
+  nodes: DeckGoSubagentLineageNode[];
+};
+
+export type DeckGoSubagentKillResponse = {
+  ok: boolean;
+  runId: string;
+  childSessionKey: string;
+};
+
+export type DeckGoSubagentSteerResponse = {
+  success: boolean;
+  dedupKey?: string;
+  deduped?: boolean;
+  newRunId?: string;
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -975,6 +1079,100 @@ export async function fetchThreads(params?: {
     `/deck/threads${suffix}`,
     undefined,
     "threads fetch failed",
+  );
+}
+
+export async function fetchRoutingBindings(params?: {
+  agentId?: string;
+  channel?: string;
+  accountId?: string;
+}) {
+  const search = new URLSearchParams();
+  if (params?.agentId?.trim()) {
+    search.set("agentId", params.agentId.trim());
+  }
+  if (params?.channel?.trim()) {
+    search.set("channel", params.channel.trim());
+  }
+  if (params?.accountId?.trim()) {
+    search.set("accountId", params.accountId.trim());
+  }
+  const suffix = search.toString() ? `?${search.toString()}` : "";
+  return fetchDeckJson<DeckGoRoutingListResponse>(
+    `/deck/routing${suffix}`,
+    undefined,
+    "routing fetch failed",
+  );
+}
+
+export async function simulateRouting(params: {
+  channel: string;
+  accountId?: string;
+  guildId?: string;
+  teamId?: string;
+  memberRoleIds?: string[];
+  peer?: DeckGoRoutingPeer;
+}) {
+  return fetchDeckJson<DeckGoRoutingSimulateResponse>(
+    "/deck/routing",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "simulate", ...params }),
+    },
+    "routing simulate failed",
+  );
+}
+
+export async function fetchSubagentRuns(params?: { status?: string; requesterAgentId?: string }) {
+  const search = new URLSearchParams();
+  if (params?.status?.trim()) {
+    search.set("status", params.status.trim());
+  }
+  if (params?.requesterAgentId?.trim()) {
+    search.set("requesterAgentId", params.requesterAgentId.trim());
+  }
+  const suffix = search.toString() ? `?${search.toString()}` : "";
+  return fetchDeckJson<DeckGoSubagentsListResponse>(
+    `/deck/subagents${suffix}`,
+    undefined,
+    "subagent runs fetch failed",
+  );
+}
+
+export async function fetchSubagentLineage(params: { runId?: string; sessionKey?: string }) {
+  return fetchDeckJson<DeckGoSubagentsLineageResponse>(
+    "/deck/subagents",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "lineage", ...params }),
+    },
+    "subagent lineage fetch failed",
+  );
+}
+
+export async function killSubagentRun(runId: string) {
+  return fetchDeckJson<DeckGoSubagentKillResponse>(
+    "/deck/subagents",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "kill", runId }),
+    },
+    "subagent kill failed",
+  );
+}
+
+export async function steerSubagentRun(runId: string, instruction: string) {
+  return fetchDeckJson<DeckGoSubagentSteerResponse>(
+    "/deck/subagents",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "steer", runId, instruction }),
+    },
+    "subagent steer failed",
   );
 }
 

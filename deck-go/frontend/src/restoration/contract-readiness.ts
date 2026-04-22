@@ -103,12 +103,14 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
       "deck.plugins.list exists, but the legacy plugins panel behavior needs more than inventory listing.",
   },
   routing: {
-    status: "frontend-blocked",
-    evidence: "No restored routing façade or simulator-specific deck-go surface is present yet.",
+    status: "ready-with-adapter",
+    evidence:
+      "deck-go routing list and simulate seams now back a restored Vite panel, but full binding-edit parity remains follow-on adapter work.",
   },
   subagents: {
-    status: "frontend-blocked",
-    evidence: "No dedicated subagent contract or façade is restored yet.",
+    status: "ready-with-adapter",
+    evidence:
+      "Subagent run, lineage, kill, and steer seams now have a restored Vite panel, while the deeper historical/config shell remains deferred.",
   },
   identity: {
     status: "ready-with-adapter",
