@@ -58,6 +58,14 @@ cd deck-go
 make verify
 ```
 
+For a local backend + Vite preview smoke that boots both processes and curls the
+canonical endpoints:
+
+```bash
+cd deck-go
+make smoke-stage3-host
+```
+
 The frontend build now includes a structural guard that fails if:
 
 - any panel id in `frontend/src/restoration/panel-registry.tsx` is no longer implemented in `ActivePanelHost`

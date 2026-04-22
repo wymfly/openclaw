@@ -20,6 +20,13 @@ VITE_DECK_GO_API_BASE=http://127.0.0.1:19566 \
 npm run preview -- --host 127.0.0.1
 ```
 
+Canonical local smoke:
+
+```bash
+cd deck-go
+make smoke-stage3-host
+```
+
 Host guardrails:
 
 - all panel ids from `src/restoration/panel-registry.tsx` must stay implemented in `src/restoration/ActivePanelHost.tsx`
