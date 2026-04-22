@@ -74,18 +74,85 @@ type ProbeTransitionDecision struct {
 	HealthyOnce  bool
 }
 type ProbeTransitionPolicy func(ProbeTransitionContext) ProbeTransitionDecision
+type StartFailureContext struct {
+	Stage string
+	Err   error
+}
+type StartFailureDecision struct {
+	Status       Status
+	Health       Health
+	LastError    string
+	FailurePhase string
+}
+type StartFailurePolicy func(StartFailureContext) StartFailureDecision
+type StopSignalFailureContext struct {
+	Err error
+}
+type StopSignalFailureDecision struct {
+	Status       Status
+	Health       Health
+	LastError    string
+	FailurePhase string
+}
+type StopSignalFailurePolicy func(StopSignalFailureContext) StopSignalFailureDecision
+type StopNoProcessContext struct {
+	HasCommand bool
+	HasProcess bool
+}
+type StopNoProcessDecision struct {
+	Status            Status
+	Health            Health
+	LastError         string
+	FailurePhase      string
+	ClearActiveConfig bool
+}
+type StopNoProcessPolicy func(StopNoProcessContext) StopNoProcessDecision
+type StopWaitFailureContext struct {
+	Stage    string
+	TimedOut bool
+	Err      error
+}
+type StopWaitFailureDecision struct {
+	Status       Status
+	Health       Health
+	LastError    string
+	FailurePhase string
+}
+type StopWaitFailurePolicy func(StopWaitFailureContext) StopWaitFailureDecision
+type ExitTransitionContext struct {
+	StopRequested bool
+	StopTimedOut  bool
+	Err           error
+	ExitCode      int
+}
+type ExitTransitionDecision struct {
+	Status            Status
+	Health            Health
+	LastError         string
+	FailurePhase      string
+	ClearActiveConfig bool
+}
+type ExitTransitionPolicy func(ExitTransitionContext) ExitTransitionDecision
+type processTerminator func(*exec.Cmd) error
 
 type Supervisor struct {
 	store *config.Store
 
-	notifier       LifecycleNotifier
-	launch         launcher
-	prepare        preflightFunc
-	probe          probeFunc
-	probePolicy    ProbeTransitionPolicy
-	probeInterval  time.Duration
-	stopTimeout    time.Duration
-	startupTimeout time.Duration
+	notifier           LifecycleNotifier
+	launch             launcher
+	prepare            preflightFunc
+	probe              probeFunc
+	terminate          processTerminator
+	forceKill          processTerminator
+	probePolicy        ProbeTransitionPolicy
+	startFailPolicy    StartFailurePolicy
+	stopFailPolicy     StopSignalFailurePolicy
+	stopNoProcPolicy   StopNoProcessPolicy
+	stopWaitFailPolicy StopWaitFailurePolicy
+	exitPolicy         ExitTransitionPolicy
+	probeInterval      time.Duration
+	stopTimeout        time.Duration
+	startupTimeout     time.Duration
 
 	mu            sync.RWMutex
 	cmd           *exec.Cmd
@@ -99,6 +166,7 @@ type Supervisor struct {
 	lastExitAt    time.Time
 	lastExitCode  int
 	stopRequested bool
+	stopTimedOut  bool
 	healthyOnce   bool
 }
 
@@ -108,16 +176,23 @@ func NewSupervisor(store *config.Store, bus *events.Bus) *Supervisor {
 
 func NewSupervisorWithOptions(store *config.Store, bus *events.Bus, options ...Option) *Supervisor {
 	supervisor := &Supervisor{
-		store:          store,
-		launch:         defaultLauncher,
-		prepare:        defaultPreflight,
-		probe:          defaultProbe,
-		probePolicy:    defaultProbeTransitionPolicy,
-		probeInterval:  time.Second,
-		stopTimeout:    5 * time.Second,
-		startupTimeout: 60 * time.Second,
-		status:         StatusStopped,
-		health:         HealthUnknown,
+		store:              store,
+		launch:             defaultLauncher,
+		prepare:            defaultPreflight,
+		probe:              defaultProbe,
+		terminate:          terminateProcess,
+		forceKill:          killProcess,
+		probePolicy:        defaultProbeTransitionPolicy,
+		startFailPolicy:    defaultStartFailurePolicy,
+		stopFailPolicy:     defaultStopSignalFailurePolicy,
+		stopNoProcPolicy:   defaultStopNoProcessPolicy,
+		stopWaitFailPolicy: defaultStopWaitFailurePolicy,
+		exitPolicy:         defaultExitTransitionPolicy,
+		probeInterval:      time.Second,
+		stopTimeout:        5 * time.Second,
+		startupTimeout:     60 * time.Second,
+		status:             StatusStopped,
+		health:             HealthUnknown,
 	}
 	if bus != nil {
 		supervisor.notifier = &busLifecycleNotifier{bus: bus}
@@ -140,6 +215,22 @@ func WithProbe(fn func(context.Context, config.ManagedGatewaySettings) error) Op
 	}
 }
 
+func WithProcessTerminator(fn func(*exec.Cmd) error) Option {
+	return func(supervisor *Supervisor) {
+		if fn != nil {
+			supervisor.terminate = fn
+		}
+	}
+}
+
+func WithForceKillProcess(fn func(*exec.Cmd) error) Option {
+	return func(supervisor *Supervisor) {
+		if fn != nil {
+			supervisor.forceKill = fn
+		}
+	}
+}
+
 func WithPreflight(fn preflightFunc) Option {
 	return func(supervisor *Supervisor) {
 		supervisor.prepare = fn
@@ -158,6 +249,12 @@ func WithStartupTimeout(timeout time.Duration) Option {
 	}
 }
 
+func WithStopTimeout(timeout time.Duration) Option {
+	return func(supervisor *Supervisor) {
+		supervisor.stopTimeout = timeout
+	}
+}
+
 func WithLifecycleNotifier(notifier LifecycleNotifier) Option {
 	return func(supervisor *Supervisor) {
 		supervisor.notifier = notifier
@@ -168,6 +265,46 @@ func WithProbeTransitionPolicy(policy ProbeTransitionPolicy) Option {
 	return func(supervisor *Supervisor) {
 		if policy != nil {
 			supervisor.probePolicy = policy
+		}
+	}
+}
+
+func WithStartFailurePolicy(policy StartFailurePolicy) Option {
+	return func(supervisor *Supervisor) {
+		if policy != nil {
+			supervisor.startFailPolicy = policy
+		}
+	}
+}
+
+func WithStopSignalFailurePolicy(policy StopSignalFailurePolicy) Option {
+	return func(supervisor *Supervisor) {
+		if policy != nil {
+			supervisor.stopFailPolicy = policy
+		}
+	}
+}
+
+func WithStopNoProcessPolicy(policy StopNoProcessPolicy) Option {
+	return func(supervisor *Supervisor) {
+		if policy != nil {
+			supervisor.stopNoProcPolicy = policy
+		}
+	}
+}
+
+func WithStopWaitFailurePolicy(policy StopWaitFailurePolicy) Option {
+	return func(supervisor *Supervisor) {
+		if policy != nil {
+			supervisor.stopWaitFailPolicy = policy
+		}
+	}
+}
+
+func WithExitTransitionPolicy(policy ExitTransitionPolicy) Option {
+	return func(supervisor *Supervisor) {
+		if policy != nil {
+			supervisor.exitPolicy = policy
 		}
 	}
 }
@@ -213,32 +350,20 @@ func (s *Supervisor) Start(ctx context.Context) (Snapshot, error) {
 	cfg = withManagedStateDir(cfg, s.store.Path())
 	s.activeConfig = cfg
 	if err := syncManagedGatewayProviderConfig(s.store.Path()); err != nil {
-		s.status = StatusFailed
-		s.health = HealthUnknown
-		s.lastError = err.Error()
-		s.failurePhase = "preflight"
-		snapshot := s.snapshotLocked()
+		snapshot := s.applyStartFailureLocked("preflight", err)
 		s.mu.Unlock()
 		s.publishStatus(snapshot)
 		return snapshot, err
 	}
 	if err := validateManagedConfig(cfg); err != nil {
-		s.status = StatusFailed
-		s.health = HealthUnknown
-		s.lastError = err.Error()
-		s.failurePhase = "preflight"
-		snapshot := s.snapshotLocked()
+		snapshot := s.applyStartFailureLocked("preflight", err)
 		s.mu.Unlock()
 		s.publishStatus(snapshot)
 		return snapshot, err
 	}
 	if s.prepare != nil {
 		if err := s.prepare(ctx, cfg); err != nil {
-			s.status = StatusFailed
-			s.health = HealthUnknown
-			s.lastError = err.Error()
-			s.failurePhase = "preflight"
-			snapshot := s.snapshotLocked()
+			snapshot := s.applyStartFailureLocked("preflight", err)
 			s.mu.Unlock()
 			s.publishStatus(snapshot)
 			return snapshot, err
@@ -247,37 +372,19 @@ func (s *Supervisor) Start(ctx context.Context) (Snapshot, error) {
 
 	cmd, err := s.launch(cfg)
 	if err != nil {
-		s.status = StatusFailed
-		s.health = HealthUnknown
-		s.lastError = err.Error()
-		s.failurePhase = "launch"
-		snapshot := s.snapshotLocked()
+		snapshot := s.applyStartFailureLocked("launch", err)
 		s.mu.Unlock()
 		s.publishStatus(snapshot)
 		return snapshot, err
 	}
 	if err := cmd.Start(); err != nil {
-		s.status = StatusFailed
-		s.health = HealthUnknown
-		s.lastError = err.Error()
-		s.failurePhase = "launch"
-		snapshot := s.snapshotLocked()
+		snapshot := s.applyStartFailureLocked("launch", err)
 		s.mu.Unlock()
 		s.publishStatus(snapshot)
 		return snapshot, err
 	}
 
-	now := time.Now().UTC()
-	s.cmd = cmd
-	s.waitDone = make(chan struct{})
-	s.status = StatusStarting
-	s.health = HealthUnknown
-	s.lastError = ""
-	s.failurePhase = ""
-	s.startedAt = now
-	s.stopRequested = false
-	s.healthyOnce = false
-	snapshot := s.snapshotLocked()
+	snapshot := s.beginStartLocked(cmd, time.Now().UTC())
 	s.mu.Unlock()
 
 	s.publishStatus(snapshot)
@@ -290,36 +397,63 @@ func (s *Supervisor) Stop(ctx context.Context) (Snapshot, error) {
 	s.mu.Lock()
 	cmd := s.cmd
 	waitDone := s.waitDone
-	if cmd == nil {
-		s.status = StatusStopped
-		s.health = HealthUnknown
-		snapshot := s.snapshotLocked()
+	if cmd == nil || cmd.Process == nil {
+		if cmd != nil && waitDone != nil {
+			close(waitDone)
+			s.waitDone = nil
+		}
+		s.cmd = nil
+		snapshot := s.applyStopNoProcessLocked(cmd != nil, cmd != nil && cmd.Process != nil)
 		s.mu.Unlock()
 		return snapshot, nil
 	}
 	s.stopRequested = true
+	s.stopTimedOut = false
 	s.status = StatusStopping
 	s.health = HealthUnknown
 	snapshot := s.snapshotLocked()
 	s.mu.Unlock()
 	s.publishStatus(snapshot)
 
-	if err := terminateProcess(cmd); err != nil {
-		return s.Snapshot(), err
+	if err := s.terminate(cmd); err != nil {
+		s.mu.Lock()
+		snapshot = s.applyStopSignalFailureLocked(err)
+		s.mu.Unlock()
+		s.publishStatus(snapshot)
+		return snapshot, err
 	}
 
 	select {
 	case <-ctx.Done():
-		return s.Snapshot(), ctx.Err()
+		s.mu.Lock()
+		snapshot = s.applyStopWaitFailureLocked("ctx-cancelled", false, ctx.Err())
+		s.mu.Unlock()
+		s.publishStatus(snapshot)
+		return snapshot, ctx.Err()
 	case <-waitDone:
 		return s.Snapshot(), nil
 	case <-time.After(s.stopTimeout):
-		_ = cmd.Process.Kill()
+		s.mu.Lock()
+		if s.cmd == cmd {
+			s.stopTimedOut = true
+		}
+		s.mu.Unlock()
+		if err := s.forceKill(cmd); err != nil {
+			s.mu.Lock()
+			snapshot = s.applyStopWaitFailureLocked("force-kill", true, err)
+			s.mu.Unlock()
+			s.publishStatus(snapshot)
+			return snapshot, err
+		}
 		select {
 		case <-waitDone:
 			return s.Snapshot(), nil
 		case <-ctx.Done():
-			return s.Snapshot(), ctx.Err()
+			s.mu.Lock()
+			snapshot = s.applyStopWaitFailureLocked("ctx-cancelled", true, ctx.Err())
+			s.mu.Unlock()
+			s.publishStatus(snapshot)
+			return snapshot, ctx.Err()
 		}
 	}
 }
@@ -348,19 +482,8 @@ func (s *Supervisor) waitLoop(cmd *exec.Cmd) {
 	}
 	s.lastExitAt = exitAt
 	s.lastExitCode = exitCode
-	if s.stopRequested {
-		s.status = StatusStopped
-		s.lastError = ""
-		s.failurePhase = ""
-		s.activeConfig = config.ManagedGatewaySettings{}
-	} else {
-		s.status = StatusFailed
-		if err != nil {
-			s.lastError = err.Error()
-		}
-		s.failurePhase = "runtime"
-	}
-	s.health = HealthUnknown
+	s.applyExitTransitionLocked(s.stopRequested, s.stopTimedOut, err, exitCode)
+	s.stopTimedOut = false
 	s.healthyOnce = false
 	snapshot := s.snapshotLocked()
 	s.mu.Unlock()
@@ -403,16 +526,82 @@ func (s *Supervisor) runHealthProbe(cmd *exec.Cmd, cfg config.ManagedGatewaySett
 		StartupTimeout: s.startupTimeout,
 		Now:            time.Now(),
 	})
-	s.health = decision.Health
-	s.status = decision.Status
-	s.lastError = decision.LastError
-	s.failurePhase = decision.FailurePhase
+	s.applyLifecycleFieldsLocked(decision.Status, decision.Health, decision.LastError, decision.FailurePhase)
 	s.healthyOnce = decision.HealthyOnce
 	snapshot := s.snapshotLocked()
 	s.mu.Unlock()
 
 	s.publishHealth(snapshot)
 	s.publishStatus(snapshot)
+}
+
+func (s *Supervisor) applyStartFailureLocked(stage string, err error) Snapshot {
+	decision := s.startFailPolicy(StartFailureContext{
+		Stage: stage,
+		Err:   err,
+	})
+	s.applyLifecycleFieldsLocked(decision.Status, decision.Health, decision.LastError, decision.FailurePhase)
+	return s.snapshotLocked()
+}
+
+func (s *Supervisor) applyStopSignalFailureLocked(err error) Snapshot {
+	decision := s.stopFailPolicy(StopSignalFailureContext{Err: err})
+	s.applyLifecycleFieldsLocked(decision.Status, decision.Health, decision.LastError, decision.FailurePhase)
+	return s.snapshotLocked()
+}
+
+func (s *Supervisor) applyStopNoProcessLocked(hasCommand bool, hasProcess bool) Snapshot {
+	decision := s.stopNoProcPolicy(StopNoProcessContext{
+		HasCommand: hasCommand,
+		HasProcess: hasProcess,
+	})
+	s.applyLifecycleFieldsLocked(decision.Status, decision.Health, decision.LastError, decision.FailurePhase)
+	if decision.ClearActiveConfig {
+		s.activeConfig = config.ManagedGatewaySettings{}
+	}
+	return s.snapshotLocked()
+}
+
+func (s *Supervisor) applyStopWaitFailureLocked(stage string, timedOut bool, err error) Snapshot {
+	decision := s.stopWaitFailPolicy(StopWaitFailureContext{
+		Stage:    stage,
+		TimedOut: timedOut,
+		Err:      err,
+	})
+	s.applyLifecycleFieldsLocked(decision.Status, decision.Health, decision.LastError, decision.FailurePhase)
+	return s.snapshotLocked()
+}
+
+func (s *Supervisor) applyExitTransitionLocked(stopRequested bool, stopTimedOut bool, err error, exitCode int) Snapshot {
+	decision := s.exitPolicy(ExitTransitionContext{
+		StopRequested: stopRequested,
+		StopTimedOut:  stopTimedOut,
+		Err:           err,
+		ExitCode:      exitCode,
+	})
+	s.applyLifecycleFieldsLocked(decision.Status, decision.Health, decision.LastError, decision.FailurePhase)
+	if decision.ClearActiveConfig {
+		s.activeConfig = config.ManagedGatewaySettings{}
+	}
+	return s.snapshotLocked()
+}
+
+func (s *Supervisor) beginStartLocked(cmd *exec.Cmd, startedAt time.Time) Snapshot {
+	s.cmd = cmd
+	s.waitDone = make(chan struct{})
+	s.applyLifecycleFieldsLocked(StatusStarting, HealthUnknown, "", "")
+	s.startedAt = startedAt
+	s.stopRequested = false
+	s.stopTimedOut = false
+	s.healthyOnce = false
+	return s.snapshotLocked()
+}
+
+func (s *Supervisor) applyLifecycleFieldsLocked(status Status, health Health, lastError string, failurePhase string) {
+	s.status = status
+	s.health = health
+	s.lastError = lastError
+	s.failurePhase = failurePhase
 }
 
 func (s *Supervisor) snapshotLocked() Snapshot {
@@ -437,13 +626,7 @@ func (s *Supervisor) snapshotLocked() Snapshot {
 		snapshot.LastExitAt = s.lastExitAt.Format(time.RFC3339)
 		snapshot.LastExitCode = s.lastExitCode
 	}
-	if snapshot.Status == "" {
-		snapshot.Status = StatusStopped
-	}
-	if snapshot.Health == "" {
-		snapshot.Health = HealthUnknown
-	}
-	return snapshot
+	return normalizeSnapshot(snapshot)
 }
 
 func (s *Supervisor) currentConfigLocked() config.ManagedGatewaySettings {
@@ -533,6 +716,80 @@ func defaultProbeTransitionPolicy(input ProbeTransitionContext) ProbeTransitionD
 			HealthyOnce:  false,
 		}
 	}
+}
+
+func defaultStartFailurePolicy(input StartFailureContext) StartFailureDecision {
+	lastError := ""
+	if input.Err != nil {
+		lastError = input.Err.Error()
+	}
+	return StartFailureDecision{
+		Status:       StatusFailed,
+		Health:       HealthUnknown,
+		LastError:    lastError,
+		FailurePhase: input.Stage,
+	}
+}
+
+func defaultStopSignalFailurePolicy(StopSignalFailureContext) StopSignalFailureDecision {
+	return StopSignalFailureDecision{
+		Status:       StatusStopping,
+		Health:       HealthUnknown,
+		LastError:    "",
+		FailurePhase: "",
+	}
+}
+
+func defaultStopNoProcessPolicy(StopNoProcessContext) StopNoProcessDecision {
+	return StopNoProcessDecision{
+		Status:            StatusStopped,
+		Health:            HealthUnknown,
+		LastError:         "",
+		FailurePhase:      "",
+		ClearActiveConfig: false,
+	}
+}
+
+func defaultStopWaitFailurePolicy(StopWaitFailureContext) StopWaitFailureDecision {
+	return StopWaitFailureDecision{
+		Status:       StatusStopping,
+		Health:       HealthUnknown,
+		LastError:    "",
+		FailurePhase: "",
+	}
+}
+
+func defaultExitTransitionPolicy(input ExitTransitionContext) ExitTransitionDecision {
+	lastError := ""
+	if input.Err != nil {
+		lastError = input.Err.Error()
+	}
+	if input.StopRequested {
+		return ExitTransitionDecision{
+			Status:            StatusStopped,
+			Health:            HealthUnknown,
+			LastError:         "",
+			FailurePhase:      "",
+			ClearActiveConfig: true,
+		}
+	}
+	return ExitTransitionDecision{
+		Status:            StatusFailed,
+		Health:            HealthUnknown,
+		LastError:         lastError,
+		FailurePhase:      "runtime",
+		ClearActiveConfig: false,
+	}
+}
+
+func normalizeSnapshot(snapshot Snapshot) Snapshot {
+	if snapshot.Status == "" {
+		snapshot.Status = StatusStopped
+	}
+	if snapshot.Health == "" {
+		snapshot.Health = HealthUnknown
+	}
+	return snapshot
 }
 
 func validateManagedConfig(cfg config.ManagedGatewaySettings) error {
@@ -629,4 +886,11 @@ func terminateProcess(cmd *exec.Cmd) error {
 		return cmd.Process.Kill()
 	}
 	return nil
+}
+
+func killProcess(cmd *exec.Cmd) error {
+	if cmd == nil || cmd.Process == nil {
+		return nil
+	}
+	return cmd.Process.Kill()
 }
