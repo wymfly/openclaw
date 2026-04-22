@@ -1,22 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwRequest = vi.fn();
-
-vi.mock("@/lib/api-helpers", () => ({
-  gwRequest,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/approvals", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    gwRequest.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
     if (originalApiBase === undefined) {
@@ -67,22 +56,25 @@ describe("/api/approvals", () => {
     expect(postResponse.status).toBe(200);
   });
 
-  it("uses typed gwRequest for approvals snapshot and resolve", async () => {
-    gwRequest.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+  it("returns 503 when no deck-go base is configured", async () => {
+    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
     const { GET, POST } = await import("./route.js");
 
-    await GET(new NextRequest("http://localhost"));
-    await POST(
+    const getResponse = await GET(new NextRequest("http://localhost"));
+    const postResponse = await POST(
       new NextRequest("http://localhost/api/approvals", {
         method: "POST",
         body: JSON.stringify({ id: "ap-1", decision: "approve" }),
       }),
     );
 
-    expect(gwRequest).toHaveBeenNthCalledWith(1, "exec.approvals.get", {});
-    expect(gwRequest).toHaveBeenNthCalledWith(2, "exec.approval.resolve", {
-      id: "ap-1",
-      decision: "approve",
+    expect(getResponse.status).toBe(503);
+    expect(await getResponse.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
+    expect(postResponse.status).toBe(503);
+    expect(await postResponse.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
     });
   });
 });
