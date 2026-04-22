@@ -1,22 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const getAlertRuleStore = vi.fn();
-
-vi.mock("@server/budget-alert-stores", () => ({
-  getAlertRuleStore,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/alerts", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    getAlertRuleStore.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
@@ -36,36 +25,7 @@ describe("/api/alerts", () => {
       "http://127.0.0.1:19528/api/v1/alerts",
       expect.objectContaining({ method: "GET" }),
     );
-    expect(getAlertRuleStore).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
-  });
-
-  it("falls back to local store handlers when no deck-go base is configured", async () => {
-    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    const append = vi.fn();
-    getAlertRuleStore.mockReturnValue({
-      get: () => [],
-      append,
-    });
-    const { GET, POST } = await import("./route.js");
-
-    const getResponse = await GET(new Request("http://localhost/api/alerts"));
-    const postResponse = await POST(
-      new NextRequest("http://localhost/api/alerts", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "High Usage",
-          entityType: "usage",
-          condition: ">=",
-          threshold: 80,
-        }),
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-
-    expect(getResponse.status).toBe(200);
-    expect(postResponse.status).toBe(201);
-    expect(append).toHaveBeenCalledTimes(1);
   });
 
   it("proxies POST to Stage 2 alerts when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
@@ -94,5 +54,32 @@ describe("/api/alerts", () => {
       expect.objectContaining({ method: "POST" }),
     );
     expect(response.status).toBe(201);
+  });
+
+  it("returns 503 when no deck-go base is configured", async () => {
+    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    const { GET, POST } = await import("./route.js");
+
+    const getResponse = await GET(new Request("http://localhost/api/alerts"));
+    const postResponse = await POST(
+      new NextRequest("http://localhost/api/alerts", {
+        method: "POST",
+        body: JSON.stringify({
+          name: "High Usage",
+          entityType: "usage",
+          condition: ">=",
+          threshold: 80,
+        }),
+      }),
+    );
+
+    expect(getResponse.status).toBe(503);
+    expect(await getResponse.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
+    expect(postResponse.status).toBe(503);
+    expect(await postResponse.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });
