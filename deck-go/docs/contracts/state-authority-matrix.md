@@ -66,7 +66,7 @@ Retained host-specific shells:
 - `frontend-next/src/lib/deck-client.ts`
   - browser transport/auth/reconnect shell
   - owns direct base-URL routing, `x-deck-token`, and `Last-Event-ID` replay headers
-- `frontend-next/src/lib/plugin-locales.ts`
+- `frontend-next/src/i18n/request.ts`
   - server-side locale inventory bootstrap bridge for render-time plugin locale loading
 - `frontend-next/src/middleware.ts`
   - last remaining host-only ingress seam

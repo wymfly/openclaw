@@ -47,7 +47,7 @@ const allowedGatewayLoopbackShells = new Set(["middleware.ts"]);
 const allowedControlPlaneBaseImporters = new Set([
   "app/api/_deck-go-proxy.ts",
   "lib/deck-client.ts",
-  "lib/plugin-locales.ts",
+  "i18n/request.ts",
 ]);
 
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
@@ -107,6 +107,7 @@ describe("frontend-next control-plane ownership", () => {
       join(srcRoot, "lib", "transcript-history.ts"),
       join(srcRoot, "lib", "gateway-http.ts"),
       join(srcRoot, "lib", "json-store.ts"),
+      join(srcRoot, "lib", "plugin-locales.ts"),
       join(srcRoot, "lib", "subscription-manager.ts"),
       join(srcRoot, "lib", "webhooks.ts"),
     ];

@@ -64,7 +64,7 @@ remaining host-specific surfaces are intentionally narrow:
 - `src/lib/deck-client.ts`
   - browser-side transport shell for direct `deck-go` calls, including access
     token prompting, `x-deck-token` forwarding, and `Last-Event-ID` SSE replay
-- `src/lib/plugin-locales.ts`
+- `src/i18n/request.ts`
   - server-side locale bootstrap bridge that reads plugin locale inventory from
     the Stage 2 control-plane during render-time execution
 - `src/middleware.ts`
