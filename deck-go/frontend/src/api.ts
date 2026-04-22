@@ -481,6 +481,21 @@ export type DeckGoBudgetEvaluationsResponse = {
   evaluations: DeckGoBudgetEvaluation[];
 };
 
+export type DeckGoIdentityPeer = {
+  channel: string;
+  peerId: string;
+};
+
+export type DeckGoIdentityLink = {
+  canonical: string;
+  peers: DeckGoIdentityPeer[];
+};
+
+export type DeckGoIdentityLinksResponse = {
+  links: DeckGoIdentityLink[];
+  configHash?: string;
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -878,6 +893,48 @@ export async function evaluateBudgetRules() {
     "/usage/budget/evaluate",
     undefined,
     "budget evaluation failed",
+  );
+}
+
+export async function fetchIdentityLinks() {
+  return fetchDeckJson<DeckGoIdentityLinksResponse>(
+    "/deck/identity",
+    undefined,
+    "identity links fetch failed",
+  );
+}
+
+export async function linkIdentityPeer(
+  canonical: string,
+  channel: string,
+  peerId: string,
+  baseHash?: string,
+) {
+  return fetchDeckJson<Record<string, unknown>>(
+    "/deck/identity",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "link", canonical, channel, peerId, baseHash }),
+    },
+    "identity link failed",
+  );
+}
+
+export async function unlinkIdentityPeer(
+  canonical: string,
+  channel: string,
+  peerId: string,
+  baseHash?: string,
+) {
+  return fetchDeckJson<Record<string, unknown>>(
+    "/deck/identity",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "unlink", canonical, channel, peerId, baseHash }),
+    },
+    "identity unlink failed",
   );
 }
 

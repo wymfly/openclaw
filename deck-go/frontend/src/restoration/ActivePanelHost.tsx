@@ -17,6 +17,7 @@ import { RestoredChatPanel } from "./panels/RestoredChatPanel";
 import { RestoredCronPanel } from "./panels/RestoredCronPanel";
 import { RestoredDocsPanel } from "./panels/RestoredDocsPanel";
 import { RestoredGatewayPanel } from "./panels/RestoredGatewayPanel";
+import { RestoredIdentityPanel } from "./panels/RestoredIdentityPanel";
 import { RestoredLogsPanel } from "./panels/RestoredLogsPanel";
 import { RestoredMemoryPanel } from "./panels/RestoredMemoryPanel";
 import { RestoredNodesPanel } from "./panels/RestoredNodesPanel";
@@ -112,6 +113,10 @@ export function ActivePanelHost() {
 
   if (entry.id === "memory") {
     return <RestoredMemoryPanel />;
+  }
+
+  if (entry.id === "identity") {
+    return <RestoredIdentityPanel />;
   }
 
   return (
