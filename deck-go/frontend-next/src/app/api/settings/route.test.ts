@@ -28,6 +28,18 @@ describe("/api/settings", () => {
     expect(response.status).toBe(200);
   });
 
+  it("returns 503 for GET when no deck-go base is configured", async () => {
+    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    const { GET } = await import("./route.js");
+
+    const response = await GET(new NextRequest("http://localhost/api/settings"));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
+  });
+
   it("proxies PATCH as PUT to deck-go when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = "http://127.0.0.1:19528";
     const fetchMock = vi
@@ -52,5 +64,23 @@ describe("/api/settings", () => {
       expect.objectContaining({ method: "PUT" }),
     );
     expect(response.status).toBe(200);
+  });
+
+  it("returns 503 for PATCH when no deck-go base is configured", async () => {
+    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    const { PATCH } = await import("./route.js");
+
+    const response = await PATCH(
+      new NextRequest("http://localhost/api/settings", {
+        method: "PATCH",
+        body: JSON.stringify({ gatewayUrl: "ws://localhost:18789" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });

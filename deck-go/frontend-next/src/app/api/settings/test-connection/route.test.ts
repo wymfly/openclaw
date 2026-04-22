@@ -32,4 +32,22 @@ describe("/api/settings/test-connection", () => {
     );
     expect(response.status).toBe(200);
   });
+
+  it("returns 503 when no deck-go base is configured", async () => {
+    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    const { POST } = await import("./route.js");
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/settings/test-connection", {
+        method: "POST",
+        body: JSON.stringify({ url: "ws://localhost:18789", token: "secret" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
+  });
 });

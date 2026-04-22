@@ -33,19 +33,21 @@ describe("/api/onboarding/test-connection", () => {
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local validation when no deck-go base is configured", async () => {
+  it("returns 503 when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
     const { POST } = await import("./route.js");
 
     const response = await POST(
       new Request("http://localhost/api/onboarding/test-connection", {
         method: "POST",
-        body: JSON.stringify({ url: "http://localhost:18789", token: "token-1" }),
+        body: JSON.stringify({ url: "ws://localhost:18789", token: "token-1" }),
         headers: { "Content-Type": "application/json" },
       }),
     );
-    const payload = await response.json();
 
-    expect(payload.success).toBe(false);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });
