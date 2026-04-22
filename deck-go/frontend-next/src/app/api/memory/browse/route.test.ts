@@ -1,25 +1,18 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwCall = vi.fn();
-
-vi.mock("@/lib/api-helpers", () => ({
-  gwCall,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/memory/browse", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    gwCall.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
-    process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    if (originalApiBase === undefined) {
+      delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    } else {
+      process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    }
   });
 
   it("proxies GET to deck-go when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
@@ -41,11 +34,16 @@ describe("/api/memory/browse", () => {
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local handler validation when no deck-go base is configured", async () => {
+  it("returns 503 when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
     const { GET } = await import("./route.js");
 
-    const response = await GET(new NextRequest("http://localhost/api/memory/browse?agentId=bad/../id"));
-    expect(response.status).toBe(400);
+    const response = await GET(
+      new NextRequest("http://localhost/api/memory/browse?agentId=bad/../id"),
+    );
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });
