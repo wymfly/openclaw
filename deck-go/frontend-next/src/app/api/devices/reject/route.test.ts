@@ -1,22 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwCall = vi.fn();
-
-vi.mock("@/lib/api-helpers", () => ({
-  gwCall,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/devices/reject", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    gwCall.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
@@ -41,22 +30,23 @@ describe("/api/devices/reject", () => {
       "http://127.0.0.1:19528/api/v1/runtimes/rt_local/devices/reject",
       expect.objectContaining({ method: "POST" }),
     );
-    expect(gwCall).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local gwCall when no deck-go base is configured", async () => {
+  it("returns 503 when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    gwCall.mockResolvedValueOnce({ ok: true });
     const { POST } = await import("./route.js");
 
-    await POST(
+    const response = await POST(
       new NextRequest("http://localhost/api/devices/reject", {
         method: "POST",
         body: JSON.stringify({ requestId: "req-1" }),
       }),
     );
 
-    expect(gwCall).toHaveBeenCalledWith("device.pair.reject", { requestId: "req-1" });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 });
