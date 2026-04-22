@@ -9,7 +9,7 @@ function summarizeTopLevelKeys(rawConfig: string) {
   try {
     const parsed = JSON.parse(rawConfig) as unknown;
     if (parsed && typeof parsed === "object") {
-      return Object.keys(parsed as Record<string, unknown>).toSorted((left, right) =>
+      return Object.keys(parsed as Record<string, unknown>).sort((left, right) =>
         left.localeCompare(right),
       );
     }

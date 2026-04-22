@@ -113,9 +113,8 @@ export function RestoredRoutingPanel() {
 
   const tiers = useMemo(
     () =>
-      simulationResult?.tiers
-        ?.slice()
-        .toSorted((left, right) => left.tier.localeCompare(right.tier)) ?? [],
+      simulationResult?.tiers?.slice().sort((left, right) => left.tier.localeCompare(right.tier)) ??
+      [],
     [simulationResult],
   );
 

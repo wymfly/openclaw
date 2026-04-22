@@ -57,7 +57,7 @@ export function RestoredAgentsPanel() {
       const next = await fetchAgentsList();
       const nextAgents = (next.agents ?? [])
         .slice()
-        .toSorted((left, right) => left.id.localeCompare(right.id));
+        .sort((left, right) => left.id.localeCompare(right.id));
       setAgents(nextAgents);
       setDefaultAgentId(next.defaultId ?? "");
       setLoadState("ready");

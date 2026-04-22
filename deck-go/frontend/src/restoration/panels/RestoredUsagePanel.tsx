@@ -45,7 +45,7 @@ export function RestoredUsagePanel() {
       ]);
       const nextCosts = (costResponse.daily ?? [])
         .slice()
-        .toSorted((left, right) => left.date.localeCompare(right.date));
+        .sort((left, right) => left.date.localeCompare(right.date));
       const nextProviders = providersResponse.providers ?? [];
       setCostEntries(nextCosts);
       setProviders(nextProviders);
@@ -83,8 +83,7 @@ export function RestoredUsagePanel() {
       provider.windows.map((window) => ({ provider: provider.provider, window })),
     );
     return (
-      windows.toSorted((left, right) => right.window.usedPercent - left.window.usedPercent)[0] ??
-      null
+      windows.sort((left, right) => right.window.usedPercent - left.window.usedPercent)[0] ?? null
     );
   }, [providers]);
 

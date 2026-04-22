@@ -29,13 +29,13 @@ function groupMethodsByDomain(methods: MethodInfo[]) {
     const domain = dot > 0 ? method.name.slice(0, dot) : "other";
     (groups[domain] ??= []).push(method);
   }
-  const sortedEntries = Object.entries(groups).toSorted(([left], [right]) =>
+  const sortedEntries = Object.entries(groups).sort(([left], [right]) =>
     left.localeCompare(right),
   ) as MethodDomainEntry[];
   return Object.fromEntries(
     sortedEntries.map(([domain, items]) => [
       domain,
-      items.slice().toSorted((left, right) => left.name.localeCompare(right.name)),
+      items.slice().sort((left, right) => left.name.localeCompare(right.name)),
     ]),
   ) as Record<string, MethodInfo[]>;
 }
@@ -62,7 +62,7 @@ export function RestoredApiExplorerPanel() {
         const firstMethod =
           Object.keys(next.methods ?? {})
             .slice()
-            .toSorted((left, right) => left.localeCompare(right))[0] ?? "";
+            .sort((left, right) => left.localeCompare(right))[0] ?? "";
         setSelectedMethodName((current) =>
           current && next.methods && current in next.methods ? current : firstMethod,
         );

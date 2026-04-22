@@ -62,6 +62,15 @@
         "typescript/unbound-method": "off",
         "eslint/no-unsafe-optional-chaining": "off"
       }
+    },
+    {
+      "files": [
+        "deck-go/frontend/src/restoration/panels/**/*.ts",
+        "deck-go/frontend/src/restoration/panels/**/*.tsx"
+      ],
+      "rules": {
+        "eslint-plugin-unicorn/no-array-sort": "off"
+      }
     }
   ]
 }

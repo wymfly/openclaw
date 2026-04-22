@@ -47,7 +47,7 @@ function buildLineageTree(nodes: DeckGoSubagentLineageNode[]) {
   function build(parentRunId: string): LineageTreeNode[] {
     const children = (childrenByParent.get(parentRunId) ?? [])
       .slice()
-      .toSorted((left, right) =>
+      .sort((left, right) =>
         left.depth === right.depth
           ? left.runId.localeCompare(right.runId)
           : left.depth - right.depth,
@@ -61,7 +61,7 @@ function buildLineageTree(nodes: DeckGoSubagentLineageNode[]) {
   const roots = nodes
     .filter((node) => !node.parentRunId)
     .slice()
-    .toSorted((left, right) => left.runId.localeCompare(right.runId));
+    .sort((left, right) => left.runId.localeCompare(right.runId));
   return roots.map((node) => ({
     node,
     children: build(node.runId),

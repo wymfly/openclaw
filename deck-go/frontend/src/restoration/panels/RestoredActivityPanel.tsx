@@ -41,7 +41,7 @@ export function RestoredActivityPanel() {
       const next = await fetchActivityEvents(100);
       const nextEvents = (next.events ?? [])
         .slice()
-        .toSorted((left, right) => right.timestamp - left.timestamp);
+        .sort((left, right) => right.timestamp - left.timestamp);
       setEvents(nextEvents);
       setLoadState("ready");
       setError("");

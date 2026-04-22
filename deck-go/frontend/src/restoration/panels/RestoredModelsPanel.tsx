@@ -49,7 +49,7 @@ export function RestoredModelsPanel() {
   const parsedConfig = useMemo(() => parseJsonRecord(rawConfig), [rawConfig]);
   const modelsSection = (parsedConfig?.models as Record<string, unknown> | undefined) ?? {};
   const providers = (modelsSection.providers as Record<string, unknown> | undefined) ?? {};
-  const providerEntries = Object.entries(providers).toSorted(([left], [right]) =>
+  const providerEntries = Object.entries(providers).sort(([left], [right]) =>
     left.localeCompare(right),
   );
 
