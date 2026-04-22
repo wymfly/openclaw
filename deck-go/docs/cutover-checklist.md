@@ -2,6 +2,15 @@
 
 Do not switch the default Deck implementation until every item below is satisfied.
 
+## Current Stage 3 host prerequisites already satisfied
+
+- [x] `deck-go/frontend` is the active host path
+- [x] every panel id in `frontend/src/restoration/panel-registry.tsx` has a concrete `ActivePanelHost` implementation
+- [x] `frontend/src/restoration/contract-readiness.ts` contains `0` `frontend-blocked` families
+- [x] default frontend build enforces restored-host structural guards
+- [x] default repo verify enforces active-host retirement away from `frontend-next`
+- [x] local executable host smoke exists at `make smoke-stage3-host`
+
 ## Mandatory gates
 
 - [ ] Zero unresolved `must-match` parity failures on cutover-critical workflows
@@ -13,8 +22,10 @@ Do not switch the default Deck implementation until every item below is satisfie
 
 ## Evidence links
 
-- PRD: `.omx/plans/prd-deck-go-parallel-migration.md`
-- Test Spec: `.omx/plans/test-spec-deck-go-parallel-migration.md`
+- PRD: `.omx/plans/prd-deck-go-stage3-vite-host-migration.md`
+- Test Spec: `.omx/plans/test-spec-deck-go-stage3-vite-host-migration.md`
 - Parity Matrix: `deck-go/docs/parity-matrix.md`
 - Rollback Runbook: `deck-go/docs/rollback-runbook.md`
 - Deployment Baseline: `deck-go/docs/deployment-baseline.md`
+- Default repo gate: `cd deck-go && make verify`
+- Local host smoke: `cd deck-go && make smoke-stage3-host`
