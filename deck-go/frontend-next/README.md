@@ -47,7 +47,8 @@ pnpm start
 
 - `deckFetch` / `deckStream` support direct base-URL routing to Go
 - session store calls that previously bypassed `deck-client` now use the shared transport seam
-- Next route handlers still exist and may remain temporarily where a thin compatibility proxy is still needed
+- the old local `src/app/api/**` compatibility layer has been retired
+- browser/runtime flows now depend on direct base-aware transport to `deck-go`
 
 ## Retained host shells
 
@@ -58,9 +59,6 @@ remaining host-specific surfaces are intentionally narrow:
   - the only place that resolves `DECK_GO_API_BASE` /
     `NEXT_PUBLIC_DECK_GO_API_BASE`
   - shared by the retained host shells so base/env transport rules stay single-sourced
-- `src/app/api/**/route.ts` plus `src/app/api/_deck-go-proxy.ts`
-  - same-origin proxy and thin response-shaping shell for browser callers that
-    still talk to `Next` route handlers
 - `src/lib/deck-client.ts`
   - browser-side transport shell for direct `deck-go` calls, including access
     token prompting, `x-deck-token` forwarding, and `Last-Event-ID` SSE replay
@@ -75,6 +73,10 @@ remaining host-specific surfaces are intentionally narrow:
 The old `frontend-next/server` local runtime cluster has been retired. This host
 no longer carries a second local Gateway runtime, event bus, approval bridge,
 or alert engine alongside the Stage 2 control-plane.
+
+The old `frontend-next/src/app/api/**` compatibility layer has also been
+retired. The standalone Next host no longer serves local `/api/*` Deck
+endpoints in Stage 1 external-backend mode.
 
 Everything else in `frontend-next` should behave like a normal frontend
 consumer:

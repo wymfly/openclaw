@@ -47,8 +47,8 @@ pnpm start
 Expected checks:
 
 ```bash
-curl -sf http://127.0.0.1:3011/api/onboarding/status
 curl -si http://127.0.0.1:3011/ | head -20
+curl -sf http://127.0.0.1:19566/api/v1/onboarding/status
 ```
 
 The page CSP should include the external backend origin in `connect-src`.
@@ -95,4 +95,4 @@ Current canonical live suite covers 14 browser proofs:
 ## 6. Known constraints
 
 - rebuilding `frontend-next` invalidates the active standalone server's `.next` chunks; restart the frontend after every build
-- if `NEXT_PUBLIC_DECK_GO_API_BASE` is omitted during build, browser lifecycle calls will fall back to local `/api/*` paths and `runtime/gateway` will fail in external-backend mode
+- if `NEXT_PUBLIC_DECK_GO_API_BASE` is omitted during build, browser lifecycle calls will fail because the local `/api/*` compatibility layer has been retired

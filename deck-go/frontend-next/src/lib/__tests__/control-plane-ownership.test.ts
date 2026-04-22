@@ -25,30 +25,12 @@ const retiredServerRuntimeCluster = [
   "server/runtime.ts",
 ] as const;
 
-const forbiddenRoutePatterns = [
-  /\bgwRequest\(/,
-  /\bgatewayRequest\(/,
-  /\bgwCall\(/,
-  /\bwithAuth\(/,
-];
-
-const forbiddenRouteImports = [
-  /from "@server\/runtime"/,
-  /from "@server\/access-gate"/,
-  /from "@server\/gateway-adapter"/,
-  /from "node:(fs|path|os)"/,
-];
-
 const allowedControlPlaneBaseReaders = new Set(["lib/deck-go-base.ts"]);
 
-const allowedDeckHeaderShells = new Set(["app/api/_deck-go-proxy.ts", "lib/deck-client.ts"]);
+const allowedDeckHeaderShells = new Set(["lib/deck-client.ts"]);
 
 const allowedGatewayLoopbackShells = new Set(["middleware.ts"]);
-const allowedControlPlaneBaseImporters = new Set([
-  "app/api/_deck-go-proxy.ts",
-  "lib/deck-client.ts",
-  "i18n/request.ts",
-]);
+const allowedControlPlaneBaseImporters = new Set(["lib/deck-client.ts", "i18n/request.ts"]);
 
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
   const entries = readdirSync(root, { withFileTypes: true });
@@ -67,41 +49,9 @@ function collectFiles(root: string, predicate: (file: string) => boolean): strin
 }
 
 describe("frontend-next control-plane ownership", () => {
-  it("keeps app/api route handlers free of local runtime fallback helpers", () => {
-    const routeFiles = collectFiles(appApiRoot, (file) => file.endsWith("route.ts"));
-    const offenders: string[] = [];
-
-    for (const file of routeFiles) {
-      const source = readFileSync(file, "utf8");
-      if (forbiddenRoutePatterns.some((pattern) => pattern.test(source))) {
-        offenders.push(relative(srcRoot, file));
-      }
-    }
-
-    expect(offenders).toEqual([]);
-  });
-
-  it("keeps app/api route handlers on the control-plane proxy path", () => {
-    const routeFiles = collectFiles(appApiRoot, (file) => file.endsWith("route.ts"));
-    const missingProxyHelper: string[] = [];
-    const forbiddenImports: string[] = [];
-
-    for (const file of routeFiles) {
-      const source = readFileSync(file, "utf8");
-      if (!source.includes("fetchDeckGo(") && !source.includes("maybeProxyToDeckGo(")) {
-        missingProxyHelper.push(relative(srcRoot, file));
-      }
-      if (forbiddenRouteImports.some((pattern) => pattern.test(source))) {
-        forbiddenImports.push(relative(srcRoot, file));
-      }
-    }
-
-    expect(missingProxyHelper).toEqual([]);
-    expect(forbiddenImports).toEqual([]);
-  });
-
   it("keeps deleted route-era helper shells removed", () => {
     const deletedHelpers = [
+      join(srcRoot, "app", "api", "_deck-go-proxy.ts"),
       join(srcRoot, "lib", "api-helpers.ts"),
       join(srcRoot, "lib", "with-auth.ts"),
       join(srcRoot, "lib", "transcript-history.ts"),
@@ -159,32 +109,6 @@ describe("frontend-next control-plane ownership", () => {
     expect(unexpectedControlPlaneBaseReaders).toEqual([]);
     expect(unexpectedDeckHeaderShells).toEqual([]);
     expect(unexpectedGatewayLoopbackShells).toEqual([]);
-  });
-
-  it("keeps the proxy helper scoped to app/api route handlers", () => {
-    const sourceFiles = collectFiles(
-      srcRoot,
-      (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
-    );
-    const invalidImporters: string[] = [];
-
-    for (const file of sourceFiles) {
-      const rel = relative(srcRoot, file);
-      if (rel === "app/api/_deck-go-proxy.ts") {
-        continue;
-      }
-
-      const source = readFileSync(file, "utf8");
-      if (!source.includes("_deck-go-proxy")) {
-        continue;
-      }
-
-      if (!/^app\/api(?:\/.+)?\/route\.ts$/.test(rel)) {
-        invalidImporters.push(rel);
-      }
-    }
-
-    expect(invalidImporters).toEqual([]);
   });
 
   it("keeps the shared Deck Go base helper scoped to the retained host shells", () => {
@@ -288,6 +212,11 @@ describe("frontend-next control-plane ownership", () => {
     }
 
     expect(offenders).toEqual([]);
+  });
+
+  it("does not restore the retired app/api compatibility layer", () => {
+    expect(existsSync(appApiRoot)).toBe(false);
+    expect(existsSync(join(srcRoot, "app", "api", "_deck-go-proxy.ts"))).toBe(false);
   });
 
   it("does not restore the retired @server alias surface", () => {

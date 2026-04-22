@@ -61,8 +61,6 @@ Retained host-specific shells:
 - `frontend-next/src/lib/deck-go-base.ts`
   - sole control-plane base resolution seam for the transitional host
   - keeps `DECK_GO_API_BASE` / `NEXT_PUBLIC_DECK_GO_API_BASE` parsing single-sourced
-- `frontend-next/src/app/api/**/route.ts` and `frontend-next/src/app/api/_deck-go-proxy.ts`
-  - same-origin proxy and thin compatibility shaping for browser callers
 - `frontend-next/src/lib/deck-client.ts`
   - browser transport/auth/reconnect shell
   - owns direct base-URL routing, `x-deck-token`, and `Last-Event-ID` replay headers
@@ -74,6 +72,7 @@ Retained host-specific shells:
 
 Retired from the host:
 
+- the old `frontend-next/src/app/api/**` compatibility layer
 - the old `frontend-next/server` local runtime cluster
 - host-local event bus / gateway adapter / approval bridge / alert engine seams
 - host-local durable webhook/runtime helper stores that only existed to support that cluster
