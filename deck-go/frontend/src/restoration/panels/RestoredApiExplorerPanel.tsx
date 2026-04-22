@@ -27,17 +27,15 @@ function groupMethodsByDomain(methods: MethodInfo[]) {
     const domain = dot > 0 ? method.name.slice(0, dot) : "other";
     (groups[domain] ??= []).push(method);
   }
-  const sortedEntries = Object.entries(groups)
-    .slice()
-    .toSorted(([left], [right]: [string, MethodInfo[]]) => left.localeCompare(right));
+  const sortedEntries = Object.entries(groups).toSorted(([left], [right]) =>
+    left.localeCompare(right),
+  );
   return Object.fromEntries(
     sortedEntries.map(([domain, items]) => [
       domain,
-      items
-        .slice()
-        .toSorted((left: MethodInfo, right: MethodInfo) => left.name.localeCompare(right.name)),
+      items.slice().toSorted((left, right) => left.name.localeCompare(right.name)),
     ]),
-  );
+  ) as Record<string, MethodInfo[]>;
 }
 
 export function RestoredApiExplorerPanel() {
@@ -60,9 +58,8 @@ export function RestoredApiExplorerPanel() {
         setLoadState("ready");
         setError("");
         const firstMethod =
-          Object.keys(next.methods ?? {})
-            .slice()
-            .toSorted((left: string, right: string) => left.localeCompare(right))[0] ?? "";
+          Object.keys(next.methods ?? {}).toSorted((left, right) => left.localeCompare(right))[0] ??
+          "";
         setSelectedMethodName((current) =>
           current && next.methods && current in next.methods ? current : firstMethod,
         );
@@ -94,6 +91,7 @@ export function RestoredApiExplorerPanel() {
         .sort((left, right) => left.name.localeCompare(right.name)),
     [payload],
   );
+
   const events = useMemo<EventInfo[]>(
     () =>
       Object.entries(payload?.events ?? {})
@@ -105,6 +103,7 @@ export function RestoredApiExplorerPanel() {
         .sort((left, right) => left.name.localeCompare(right.name)),
     [payload],
   );
+
   const filteredMethods = useMemo(() => {
     if (!search.trim()) {
       return methods;
@@ -115,6 +114,7 @@ export function RestoredApiExplorerPanel() {
         method.name.toLowerCase().includes(query) || method.scope.toLowerCase().includes(query),
     );
   }, [methods, search]);
+
   const groupedMethods = useMemo(() => groupMethodsByDomain(filteredMethods), [filteredMethods]);
   const selectedMethod =
     methods.find((method) => method.name === selectedMethodName) ?? methods[0] ?? null;
@@ -183,7 +183,7 @@ export function RestoredApiExplorerPanel() {
                           {domain} ({items.length})
                         </p>
                         <ul className="deckgo-shell-list">
-                          {items.map((method: MethodInfo) => (
+                          {items.map((method) => (
                             <li key={method.name}>
                               <button
                                 type="button"
