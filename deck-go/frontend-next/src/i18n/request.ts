@@ -4,6 +4,8 @@ import { cache } from "react";
 import { resolveDeckGoApiPath } from "@/lib/deck-go-base";
 import type { DeckPluginsListResult } from "@/types/gateway-protocol.generated";
 import { defaultLocale, type Locale, locales } from "./config";
+import enMessages from "./en.json";
+import zhMessages from "./zh.json";
 
 export type PluginLocaleInventoryEntry = Pick<
   DeckPluginsListResult["plugins"][number],
@@ -11,6 +13,10 @@ export type PluginLocaleInventoryEntry = Pick<
 >;
 
 const DEFAULT_RUNTIME_ID = "rt_local";
+const localeMessages = {
+  en: enMessages,
+  zh: zhMessages,
+} as const satisfies Record<Locale, Record<string, unknown>>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -74,7 +80,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
     (cookieLocale && locales.includes(cookieLocale as Locale) ? (cookieLocale as Locale) : null) ??
     defaultLocale;
 
-  const baseMessages = (await import(`./${locale}.json`)).default as Record<string, unknown>;
+  const baseMessages = localeMessages[locale];
   const plugins = await getPluginLocaleInventory();
   const messages = mergePluginLocales(baseMessages, plugins, locale);
 
