@@ -617,6 +617,51 @@ export type DeckGoSubagentSteerResponse = {
   newRunId?: string;
 };
 
+export type DeckGoActivityEvent = {
+  id: string;
+  timestamp: number;
+  type: string;
+  agentId?: string;
+  agentName?: string;
+  description: string;
+  details?: string;
+};
+
+export type DeckGoActivityResponse = {
+  events: DeckGoActivityEvent[];
+};
+
+export type DeckGoUsageCostEntry = {
+  date: string;
+  totalCost?: number;
+  cost?: number;
+};
+
+export type DeckGoUsageCostResponse = {
+  updatedAt?: number;
+  days?: number;
+  daily: DeckGoUsageCostEntry[];
+};
+
+export type DeckGoUsageProviderWindow = {
+  label: string;
+  usedPercent: number;
+  resetAt?: number;
+};
+
+export type DeckGoUsageProviderStatus = {
+  provider: string;
+  displayName: string;
+  plan?: string;
+  error?: string;
+  windows: DeckGoUsageProviderWindow[];
+};
+
+export type DeckGoUsageProvidersResponse = {
+  updatedAt?: number;
+  providers: DeckGoUsageProviderStatus[];
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -1173,6 +1218,37 @@ export async function steerSubagentRun(runId: string, instruction: string) {
       body: JSON.stringify({ action: "steer", runId, instruction }),
     },
     "subagent steer failed",
+  );
+}
+
+export async function fetchActivityEvents(limit = 100) {
+  const search = new URLSearchParams();
+  search.set("limit", String(limit));
+  return fetchDeckJson<DeckGoActivityResponse>(
+    `/activity?${search.toString()}`,
+    undefined,
+    "activity fetch failed",
+  );
+}
+
+export async function fetchModelUsageCost(days?: number) {
+  const search = new URLSearchParams();
+  if (typeof days === "number") {
+    search.set("days", String(days));
+  }
+  const suffix = search.toString() ? `?${search.toString()}` : "";
+  return fetchDeckJson<DeckGoUsageCostResponse>(
+    `/models/usage/cost${suffix}`,
+    undefined,
+    "usage cost fetch failed",
+  );
+}
+
+export async function fetchModelUsageProviders() {
+  return fetchDeckJson<DeckGoUsageProvidersResponse>(
+    "/models/usage/providers",
+    undefined,
+    "usage providers fetch failed",
   );
 }
 

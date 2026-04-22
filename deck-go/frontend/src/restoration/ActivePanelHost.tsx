@@ -8,6 +8,7 @@ import {
   navigateToSubagents,
 } from "./panel-navigation";
 import { findRestoredPanel, panelPlaceholderDescription } from "./panel-registry";
+import { RestoredActivityPanel } from "./panels/RestoredActivityPanel";
 import { RestoredAlertsPanel } from "./panels/RestoredAlertsPanel";
 import { RestoredApiExplorerPanel } from "./panels/RestoredApiExplorerPanel";
 import { RestoredApprovalsPanel } from "./panels/RestoredApprovalsPanel";
@@ -28,6 +29,7 @@ import { RestoredSettingsPanel } from "./panels/RestoredSettingsPanel";
 import { RestoredSkillsPanel } from "./panels/RestoredSkillsPanel";
 import { RestoredSubagentsPanel } from "./panels/RestoredSubagentsPanel";
 import { RestoredThreadsPanel } from "./panels/RestoredThreadsPanel";
+import { RestoredUsagePanel } from "./panels/RestoredUsagePanel";
 import { RestoredWebhooksPanel } from "./panels/RestoredWebhooksPanel";
 import { useRestorationUI } from "./ui-store";
 
@@ -60,6 +62,10 @@ export function ActivePanelHost() {
 
   if (entry.id === "logs") {
     return <RestoredLogsPanel />;
+  }
+
+  if (entry.id === "activity") {
+    return <RestoredActivityPanel />;
   }
 
   if (entry.id === "sessions") {
@@ -124,6 +130,10 @@ export function ActivePanelHost() {
 
   if (entry.id === "threads") {
     return <RestoredThreadsPanel />;
+  }
+
+  if (entry.id === "usage") {
+    return <RestoredUsagePanel />;
   }
 
   if (entry.id === "routing") {

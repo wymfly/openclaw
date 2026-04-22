@@ -29,9 +29,9 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
       "Current deck-go surface does not yet expose a restored models panel contract comparable to legacy ModelsPanel expectations.",
   },
   usage: {
-    status: "frontend-blocked",
+    status: "ready-with-adapter",
     evidence:
-      "No usage panel family restoration contract is visible in the current deck-go frontend/backend surface.",
+      "deck-go model usage cost/provider seams now back a restored Vite panel, while deeper session-level analytics remain future adapter work.",
   },
   sessions: {
     status: "ready-with-adapter",
@@ -49,8 +49,9 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
       "/logs and /logs/stream already exist and the current shell consumes log streams, but the legacy logs panel still needs restoration.",
   },
   activity: {
-    status: "frontend-blocked",
-    evidence: "No restored activity timeline surface exists yet.",
+    status: "ready-with-adapter",
+    evidence:
+      "The synthesized activity feed now has a restored Vite panel, though the richer live SSE/timeline shell is still deferred.",
   },
   threads: {
     status: "ready-with-adapter",
