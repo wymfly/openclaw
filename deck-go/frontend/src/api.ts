@@ -416,6 +416,35 @@ export type DeckGoNodePairingResponse = {
   pending?: DeckGoPairingRequest[];
 };
 
+export type DeckGoMemoryFileNode = {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  size?: number;
+};
+
+export type DeckGoMemoryHealthEntry = {
+  agentId: string;
+  provider: string;
+  embeddingStatus: "ok" | "error" | "unknown";
+  error?: string;
+};
+
+export type DeckGoMemoryBrowseResponse = {
+  files?: DeckGoMemoryFileNode[];
+  content?: string;
+  path?: string;
+};
+
+export type DeckGoMemoryHealthResponse = {
+  entries?: DeckGoMemoryHealthEntry[];
+  lanceDbEnabled?: boolean;
+  agentId?: string;
+  provider?: string;
+  embedding?: { ok?: boolean; error?: string };
+  error?: string;
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -720,6 +749,49 @@ export async function rejectNodePairing(pairingCode: string) {
       body: JSON.stringify({ action: "reject", pairingCode }),
     },
     "node pairing reject failed",
+  );
+}
+
+export async function browseMemory(agentId: string, path?: string) {
+  const search = new URLSearchParams({ agentId });
+  if (path) {
+    search.set("path", path);
+  }
+  return fetchDeckJson<DeckGoMemoryBrowseResponse>(
+    `/memory/browse?${search.toString()}`,
+    undefined,
+    "memory browse failed",
+  );
+}
+
+export async function readMemoryFile(agentId: string, path: string) {
+  const search = new URLSearchParams({ agentId, path, read: "1" });
+  return fetchDeckJson<DeckGoMemoryBrowseResponse>(
+    `/memory/browse?${search.toString()}`,
+    undefined,
+    "memory read failed",
+  );
+}
+
+export async function fetchMemoryHealth() {
+  return fetchDeckJson<DeckGoMemoryHealthResponse>(
+    "/memory/health",
+    undefined,
+    "memory health fetch failed",
+  );
+}
+
+export async function runMemoryDreams(
+  action: "read" | "backfill" | "reset" | "resetShortTerm" | "repair" | "dedupe",
+) {
+  return fetchDeckJson<Record<string, unknown>>(
+    "/memory/dreams",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    },
+    "memory dreams action failed",
   );
 }
 
