@@ -109,6 +109,15 @@ describe("frontend-next control-plane ownership", () => {
     expect(unexpectedGatewayLoopbackShells).toEqual([]);
   });
 
+  it("keeps deck-client scoped to public transport calls rather than token-state accessors", () => {
+    const deckClient = readFileSync(join(srcRoot, "lib", "deck-client.ts"), "utf8");
+
+    expect(deckClient).toContain("export async function deckFetch");
+    expect(deckClient).toContain("export async function deckStream");
+    expect(deckClient).not.toContain("export function getDeckAccessToken");
+    expect(deckClient).not.toContain("export function setDeckAccessToken");
+  });
+
   it("keeps NEXT_PUBLIC_DECK_GO_API_BASE as the only frontend-next control-plane base env", () => {
     const nextConfig = readFileSync(join(frontendRoot, "next.config.ts"), "utf8");
 

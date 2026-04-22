@@ -6,6 +6,7 @@ const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.resetModules();
   globalThis.fetch = originalFetch;
   globalThis.prompt = originalPrompt;
   process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
@@ -29,22 +30,33 @@ describe("deckFetch", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://127.0.0.1:19528/api/activity");
   });
 
-  it("reuses the stored deck access token for fetch requests", async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response('{"ok":true}', {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+  it("reuses the stored deck access token for later fetch requests", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("unauthorized", { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response('{"ok":true}', {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('{"ok":true}', {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
     globalThis.fetch = fetchMock;
+    globalThis.prompt = vi.fn(() => "stored-secret");
 
-    const { deckFetch, setDeckAccessToken } = await import("./deck-client.js");
-    setDeckAccessToken("stored-secret");
+    const { deckFetch } = await import("./deck-client.js");
 
     await deckFetch("/api/activity");
+    await deckFetch("/api/activity");
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [, init] = fetchMock.mock.calls[0];
+    expect(globalThis.prompt).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const [, init] = fetchMock.mock.calls[2];
     const headers = new Headers(init?.headers);
     expect(headers.get("x-deck-token")).toBe("stored-secret");
   });
@@ -62,8 +74,7 @@ describe("deckFetch", () => {
     globalThis.fetch = fetchMock;
     globalThis.prompt = vi.fn(() => "prompted-secret");
 
-    const { deckFetch, setDeckAccessToken } = await import("./deck-client.js");
-    setDeckAccessToken(null);
+    const { deckFetch } = await import("./deck-client.js");
 
     const response = await deckFetch("/api/activity");
 
@@ -132,8 +143,7 @@ describe("deckStream", () => {
     globalThis.fetch = fetchMock;
     globalThis.prompt = vi.fn(() => "prompted-secret");
 
-    const { deckStream, setDeckAccessToken } = await import("./deck-client.js");
-    setDeckAccessToken(null);
+    const { deckStream } = await import("./deck-client.js");
 
     await deckStream("/api/stream", {
       onEvent() {},
@@ -167,8 +177,7 @@ describe("deckStream", () => {
       );
     globalThis.fetch = fetchMock;
 
-    const { deckStream, setDeckAccessToken } = await import("./deck-client.js");
-    setDeckAccessToken(null);
+    const { deckStream } = await import("./deck-client.js");
     const events: string[] = [];
     const controller = new AbortController();
 
@@ -210,8 +219,7 @@ describe("deckStream", () => {
       );
     globalThis.fetch = fetchMock;
 
-    const { deckStream, setDeckAccessToken } = await import("./deck-client.js");
-    setDeckAccessToken(null);
+    const { deckStream } = await import("./deck-client.js");
     const events: string[] = [];
     const retries: string[] = [];
     const controller = new AbortController();

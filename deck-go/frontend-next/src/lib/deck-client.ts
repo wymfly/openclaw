@@ -44,12 +44,9 @@ function resolveDeckInput(input: RequestInfo | URL): RequestInfo | URL {
   return input;
 }
 
-export function getDeckAccessToken(): string | null {
-  return deckAccessToken;
-}
-
-export function setDeckAccessToken(token: string | null): void {
+function setDeckAccessToken(token: string | null): string | null {
   deckAccessToken = token?.trim() ? token.trim() : null;
+  return deckAccessToken;
 }
 
 async function promptForDeckAccessToken(): Promise<string | null> {
@@ -61,8 +58,7 @@ async function promptForDeckAccessToken(): Promise<string | null> {
       return null;
     }
     const token = globalThis.prompt("Enter Deck access token");
-    setDeckAccessToken(token);
-    return getDeckAccessToken();
+    return setDeckAccessToken(token);
   });
   try {
     return await pendingTokenPrompt;
