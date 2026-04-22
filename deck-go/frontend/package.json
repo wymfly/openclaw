@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b && vite build",
+    "build": "npm run check:restored-host && tsc -b && vite build",
+    "check:restored-host": "node scripts/check-restored-host.mjs",
     "dev": "vite --port 5174",
     "preview": "vite preview --port 4174"
   },
