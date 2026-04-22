@@ -72,6 +72,10 @@ remaining host-specific surfaces are intentionally narrow:
   - ingress reverse-proxy shell for plugin webhook callbacks that must enter
     through the public `frontend-next` port and hop to loopback Gateway
 
+The old `frontend-next/server` local runtime cluster has been retired. This host
+no longer carries a second local Gateway runtime, event bus, approval bridge,
+or alert engine alongside the Stage 2 control-plane.
+
 Everything else in `frontend-next` should behave like a normal frontend
 consumer:
 

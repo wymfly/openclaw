@@ -72,6 +72,12 @@ Retained host-specific shells:
   - last remaining host-only ingress seam
   - public-ingress reverse proxy for plugin webhook callbacks into loopback Gateway
 
+Retired from the host:
+
+- the old `frontend-next/server` local runtime cluster
+- host-local event bus / gateway adapter / approval bridge / alert engine seams
+- host-local durable webhook/runtime helper stores that only existed to support that cluster
+
 Must not grow back inside `frontend-next`:
 
 - local runtime fallback handlers

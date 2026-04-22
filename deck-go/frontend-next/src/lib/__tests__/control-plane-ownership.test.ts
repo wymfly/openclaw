@@ -8,6 +8,22 @@ const currentFile = fileURLToPath(import.meta.url);
 const srcRoot = join(here, "..", "..");
 const appApiRoot = join(srcRoot, "app", "api");
 const frontendRoot = join(srcRoot, "..");
+const retiredServerRuntimeCluster = [
+  "server/alert-engine.ts",
+  "server/approval-bridge.ts",
+  "server/budget-alert-stores.ts",
+  "server/contracts.ts",
+  "server/deck-settings.ts",
+  "server/device-identity.ts",
+  "server/event-bus.ts",
+  "server/gateway-adapter.ts",
+  "server/gateway-allowlist.ts",
+  "server/gateway-errors.ts",
+  "server/health-poller.ts",
+  "server/node-connection.ts",
+  "server/rate-limit.ts",
+  "server/runtime.ts",
+] as const;
 
 const forbiddenRoutePatterns = [
   /\bgwRequest\(/,
@@ -90,6 +106,9 @@ describe("frontend-next control-plane ownership", () => {
       join(srcRoot, "lib", "with-auth.ts"),
       join(srcRoot, "lib", "transcript-history.ts"),
       join(srcRoot, "lib", "gateway-http.ts"),
+      join(srcRoot, "lib", "json-store.ts"),
+      join(srcRoot, "lib", "subscription-manager.ts"),
+      join(srcRoot, "lib", "webhooks.ts"),
     ];
 
     const stillPresent = deletedHelpers
@@ -264,5 +283,8 @@ describe("frontend-next control-plane ownership", () => {
   it("does not restore retired orphan server seams", () => {
     expect(existsSync(join(frontendRoot, "server", "access-gate.ts"))).toBe(false);
     expect(existsSync(join(frontendRoot, "server", "run-aggregator.ts"))).toBe(false);
+    for (const rel of retiredServerRuntimeCluster) {
+      expect(existsSync(join(frontendRoot, rel))).toBe(false);
+    }
   });
 });
