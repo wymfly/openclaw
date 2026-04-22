@@ -21,6 +21,7 @@ type runtimeGatewayRouteSurface interface {
 var _ httpapi.LogProvider = (*openclawrt.ManagedRuntime)(nil)
 var _ httpapi.SettingsProvider = (*openclawrt.ManagedRuntime)(nil)
 var _ httpapi.SessionEventProvider = (*openclawrt.ManagedRuntime)(nil)
+var _ httpapi.ChatSnapshotProvider = (*openclawrt.ManagedRuntime)(nil)
 var _ httpapi.ChatCompatProvider = (*openclawrt.ManagedRuntime)(nil)
 var _ httpapi.UsageProvider = (*openclawrt.ManagedRuntime)(nil)
 var _ httpapi.ModelAdminProvider = (*openclawrt.ManagedRuntime)(nil)

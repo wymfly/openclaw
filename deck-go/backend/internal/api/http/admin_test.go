@@ -217,6 +217,16 @@ func (s *stubSessionEventProvider) UnsubscribeSession(_ context.Context, session
 	return nil
 }
 
+type stubChatSnapshotProvider struct {
+	detail  deckapi.DeckGoSessionDetailResponse
+	lastKey string
+}
+
+func (s *stubChatSnapshotProvider) GetTimelineWithParams(_ context.Context, sessionKey string, agentID string, limit int) (deckapi.DeckGoSessionDetailResponse, error) {
+	s.lastKey = sessionKey + ":" + agentID + ":" + strconv.Itoa(limit)
+	return s.detail, nil
+}
+
 type stubAssetProvider struct {
 	media   AssetResponse
 	canvas  AssetResponse
@@ -407,6 +417,15 @@ func TestMountAdminRoutes(t *testing.T) {
 		gap:    true,
 	}
 	sessionEvents := &stubSessionEventProvider{}
+	snapshots := &stubChatSnapshotProvider{
+		detail: deckapi.DeckGoSessionDetailResponse{
+			Session: deckapi.DeckGoSessionMeta{Key: "session-1", AgentId: "main", Status: "running"},
+			Messages: []deckapi.DeckGoTranscriptMessage{
+				{Id: "msg-1", Role: "assistant", Content: []deckapi.DeckGoTranscriptBlock{{Type: "text", Text: "hi"}}},
+			},
+			ActiveApproval: map[string]any{"id": "approval-1"},
+		},
+	}
 	assets := &stubAssetProvider{
 		media: AssetResponse{
 			Status:  http.StatusOK,
@@ -444,7 +463,7 @@ func TestMountAdminRoutes(t *testing.T) {
 		usagePayload:  map[string]any{"providers": []map[string]any{{"provider": "openai"}}},
 		costPayload:   map[string]any{"totals": map[string]any{"totalCost": 12}},
 	}
-	MountAdminRoutes(router, settings, alerts, webhooks, logs, onboarding, docs, memory, stream, sessionEvents, assets, chat, budget, usage, models)
+	MountAdminRoutes(router, settings, alerts, webhooks, logs, onboarding, docs, memory, stream, sessionEvents, snapshots, assets, chat, budget, usage, models)
 
 	server := httptest.NewServer(router)
 	defer server.Close()
@@ -1093,6 +1112,33 @@ func TestMountAdminRoutes(t *testing.T) {
 		}
 		if budget.lastKey != "budget:evaluate" {
 			t.Fatalf("unexpected budget evaluate invocation: %q", budget.lastKey)
+		}
+	})
+
+	t.Run("returns chat snapshot payload", func(t *testing.T) {
+		res, err := http.Get(server.URL + "/chat/snapshot?sessionKey=session-1&agentId=main&limit=25")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status: %d", res.StatusCode)
+		}
+		if snapshots.lastKey != "session-1:main:25" {
+			t.Fatalf("unexpected chat snapshot invocation: %q", snapshots.lastKey)
+		}
+		var payload struct {
+			Messages []map[string]any `json:"messages"`
+			Meta     map[string]any   `json:"meta"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if len(payload.Messages) != 1 {
+			t.Fatalf("unexpected messages payload: %#v", payload)
+		}
+		if payload.Meta["key"] != "session-1" {
+			t.Fatalf("unexpected meta payload: %#v", payload)
 		}
 	})
 

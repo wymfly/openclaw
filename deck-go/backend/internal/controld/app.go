@@ -114,6 +114,7 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 			managed,
 			managed,
 			managed,
+			managed,
 		)
 		httpapi.MountRoutes(
 			api,

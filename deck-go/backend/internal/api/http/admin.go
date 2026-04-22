@@ -107,6 +107,10 @@ type SessionEventProvider interface {
 	UnsubscribeSession(ctx context.Context, sessionKey string) error
 }
 
+type ChatSnapshotProvider interface {
+	GetTimelineWithParams(ctx context.Context, sessionKey string, agentID string, limit int) (deckapi.DeckGoSessionDetailResponse, error)
+}
+
 type AssetResponse = openclawrt.AssetResponse
 
 type AssetProvider interface {
@@ -151,7 +155,7 @@ const (
 	adminStreamHeartbeatInterval = 15 * time.Second
 )
 
-func MountAdminRoutes(r chi.Router, settings SettingsProvider, alerts AlertProvider, webhooks WebhookProvider, logs LogProvider, onboarding OnboardingProvider, docs DocsProvider, memory MemoryBrowseProvider, stream EventStreamProvider, sessionEvents SessionEventProvider, assets AssetProvider, chat ChatCompatProvider, budget BudgetProvider, usage UsageProvider, models ModelAdminProvider) {
+func MountAdminRoutes(r chi.Router, settings SettingsProvider, alerts AlertProvider, webhooks WebhookProvider, logs LogProvider, onboarding OnboardingProvider, docs DocsProvider, memory MemoryBrowseProvider, stream EventStreamProvider, sessionEvents SessionEventProvider, snapshots ChatSnapshotProvider, assets AssetProvider, chat ChatCompatProvider, budget BudgetProvider, usage UsageProvider, models ModelAdminProvider) {
 	if settings != nil {
 		r.Get("/settings", func(w http.ResponseWriter, req *http.Request) {
 			payload, err := settings.GetSettings(req.Context())
@@ -690,6 +694,37 @@ func MountAdminRoutes(r chi.Router, settings SettingsProvider, alerts AlertProvi
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+		})
+	}
+
+	if snapshots != nil {
+		r.Get("/chat/snapshot", func(w http.ResponseWriter, req *http.Request) {
+			sessionKey := req.URL.Query().Get("sessionKey")
+			if strings.TrimSpace(sessionKey) == "" {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "sessionKey is required"})
+				return
+			}
+			agentID := req.URL.Query().Get("agentId")
+			limit := 0
+			if raw := req.URL.Query().Get("limit"); raw != "" {
+				parsed, err := strconv.Atoi(raw)
+				if err != nil || parsed <= 0 {
+					writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid limit"})
+					return
+				}
+				limit = parsed
+			}
+			detail, err := snapshots.GetTimelineWithParams(req.Context(), sessionKey, agentID, limit)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{
+				"messages":       detail.Messages,
+				"meta":           detail.Session,
+				"activeApproval": detail.ActiveApproval,
+				"a2uiState":      detail.A2uiState,
+			})
 		})
 	}
 
