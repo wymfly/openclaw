@@ -69,10 +69,6 @@ vi.mock("../rate-limit.js", () => ({
   createRateLimiter: vi.fn(() => ({ checkLimit: mockCheckLimit, dispose: mockDispose })),
 }));
 
-vi.mock("../run-aggregator.js", () => ({
-  getRunAggregator: vi.fn(() => ({ handleEvent: vi.fn() })),
-}));
-
 // ---------------------------------------------------------------------------
 // Import runtime (after mocks are set up)
 // ---------------------------------------------------------------------------

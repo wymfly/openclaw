@@ -260,4 +260,9 @@ describe("frontend-next control-plane ownership", () => {
     expect(vitestConfig).not.toContain('"@server/"');
     expect(existsSync(join(frontendRoot, "server", "index.ts"))).toBe(false);
   });
+
+  it("does not restore retired orphan server seams", () => {
+    expect(existsSync(join(frontendRoot, "server", "access-gate.ts"))).toBe(false);
+    expect(existsSync(join(frontendRoot, "server", "run-aggregator.ts"))).toBe(false);
+  });
 });
