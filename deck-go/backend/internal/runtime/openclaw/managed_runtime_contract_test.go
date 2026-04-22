@@ -2,7 +2,9 @@ package openclaw_test
 
 import (
 	httpapi "github.com/openclaw/openclaw/deck-go/backend/internal/api/http"
+	wsapi "github.com/openclaw/openclaw/deck-go/backend/internal/api/ws"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
+	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
 )
 
 var _ httpapi.LogProvider = (*openclawrt.ManagedRuntime)(nil)
@@ -17,3 +19,5 @@ var _ httpapi.DocsProvider = (*openclawrt.ManagedRuntime)(nil)
 var _ httpapi.MemoryBrowseProvider = (*openclawrt.ManagedRuntime)(nil)
 var _ httpapi.BudgetProvider = (*openclawrt.ManagedRuntime)(nil)
 var _ httpapi.OnboardingProvider = (*openclawrt.ManagedRuntime)(nil)
+var _ httpapi.RuntimeQueryProvider = (*runtimeregistry.Registry)(nil)
+var _ wsapi.RuntimeEventFeed = (*runtimeregistry.Registry)(nil)
