@@ -24,9 +24,9 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
       "Bootstrap and /runtime/gateway already expose runtime truth, but the legacy monitor panel still needs frontend remapping.",
   },
   models: {
-    status: "frontend-blocked",
+    status: "ready-with-adapter",
     evidence:
-      "Current deck-go surface does not yet expose a restored models panel contract comparable to legacy ModelsPanel expectations.",
+      "deck-go models config and usage seams now back a restored Vite models panel, though the richer provider/catalog wizard remains a later adapter tranche.",
   },
   usage: {
     status: "ready-with-adapter",
@@ -121,7 +121,7 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
   config: {
     status: "ready-with-adapter",
     evidence:
-      "config.get, config.patch, config.apply, and config.schema.lookup exist, but the legacy config-editor workflow is deeper than the current frontend.",
+      "config.get, config.apply, and config.schema.lookup now back a restored Vite config panel, but the legacy structured config editor depth remains deferred.",
   },
   nodes: {
     status: "ready-with-adapter",

@@ -662,6 +662,41 @@ export type DeckGoUsageProvidersResponse = {
   providers: DeckGoUsageProviderStatus[];
 };
 
+export type DeckGoConfigSnapshotResponse = {
+  path?: string;
+  exists?: boolean;
+  valid?: boolean;
+  raw?: string | null;
+  config?: unknown;
+  hash?: string;
+};
+
+export type DeckGoConfigApplyResponse = {
+  ok?: boolean;
+  baseHash?: string;
+  hash?: string;
+};
+
+export type DeckGoModelsConfigResponse = {
+  raw?: string | null;
+  hash?: string;
+};
+
+export type DeckGoConfigLookupChild = {
+  key: string;
+  path: string;
+  required: boolean;
+  hasChildren: boolean;
+  hint?: Record<string, unknown>;
+};
+
+export type DeckGoConfigLookupResponse = {
+  path: string;
+  schema?: Record<string, unknown>;
+  hint?: Record<string, unknown>;
+  children: DeckGoConfigLookupChild[];
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -1249,6 +1284,54 @@ export async function fetchModelUsageProviders() {
     "/models/usage/providers",
     undefined,
     "usage providers fetch failed",
+  );
+}
+
+export async function fetchDeckConfig() {
+  return fetchDeckJson<DeckGoConfigSnapshotResponse>("/config", undefined, "config fetch failed");
+}
+
+export async function applyDeckConfig(raw: string, baseHash?: string) {
+  return fetchDeckJson<DeckGoConfigApplyResponse>(
+    "/config/apply",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ raw, baseHash }),
+    },
+    "config apply failed",
+  );
+}
+
+export async function fetchModelsConfig() {
+  return fetchDeckJson<DeckGoModelsConfigResponse>(
+    "/models/config",
+    undefined,
+    "models config fetch failed",
+  );
+}
+
+export async function saveModelsConfig(raw: string, baseHash?: string) {
+  return fetchDeckJson<DeckGoConfigApplyResponse>(
+    "/models/config",
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ raw, baseHash }),
+    },
+    "models config save failed",
+  );
+}
+
+export async function lookupConfigPath(path: string) {
+  return fetchDeckJson<DeckGoConfigLookupResponse>(
+    "/config/schema-lookup",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    },
+    "config schema lookup failed",
   );
 }
 

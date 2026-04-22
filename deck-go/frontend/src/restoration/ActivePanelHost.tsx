@@ -15,12 +15,14 @@ import { RestoredApprovalsPanel } from "./panels/RestoredApprovalsPanel";
 import { RestoredBudgetPanel } from "./panels/RestoredBudgetPanel";
 import { RestoredChannelsPanel } from "./panels/RestoredChannelsPanel";
 import { RestoredChatPanel } from "./panels/RestoredChatPanel";
+import { RestoredConfigPanel } from "./panels/RestoredConfigPanel";
 import { RestoredCronPanel } from "./panels/RestoredCronPanel";
 import { RestoredDocsPanel } from "./panels/RestoredDocsPanel";
 import { RestoredGatewayPanel } from "./panels/RestoredGatewayPanel";
 import { RestoredIdentityPanel } from "./panels/RestoredIdentityPanel";
 import { RestoredLogsPanel } from "./panels/RestoredLogsPanel";
 import { RestoredMemoryPanel } from "./panels/RestoredMemoryPanel";
+import { RestoredModelsPanel } from "./panels/RestoredModelsPanel";
 import { RestoredNodesPanel } from "./panels/RestoredNodesPanel";
 import { RestoredPluginsPanel } from "./panels/RestoredPluginsPanel";
 import { RestoredRoutingPanel } from "./panels/RestoredRoutingPanel";
@@ -60,6 +62,10 @@ export function ActivePanelHost() {
     return <RestoredGatewayPanel />;
   }
 
+  if (entry.id === "models") {
+    return <RestoredModelsPanel />;
+  }
+
   if (entry.id === "logs") {
     return <RestoredLogsPanel />;
   }
@@ -94,6 +100,10 @@ export function ActivePanelHost() {
 
   if (entry.id === "skills") {
     return <RestoredSkillsPanel />;
+  }
+
+  if (entry.id === "config") {
+    return <RestoredConfigPanel />;
   }
 
   if (entry.id === "cron") {
