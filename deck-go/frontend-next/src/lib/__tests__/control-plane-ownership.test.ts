@@ -15,6 +15,13 @@ const forbiddenRoutePatterns = [
   /\bwithAuth\(/,
 ];
 
+const forbiddenRouteImports = [
+  /from "@server\/runtime"/,
+  /from "@server\/access-gate"/,
+  /from "@server\/gateway-adapter"/,
+  /from "node:(fs|path|os)"/,
+];
+
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
   const entries = readdirSync(root, { withFileTypes: true });
   const files: string[] = [];
@@ -44,6 +51,25 @@ describe("frontend-next control-plane ownership", () => {
     }
 
     expect(offenders).toEqual([]);
+  });
+
+  it("keeps app/api route handlers on the control-plane proxy path", () => {
+    const routeFiles = collectFiles(appApiRoot, (file) => file.endsWith("route.ts"));
+    const missingProxyHelper: string[] = [];
+    const forbiddenImports: string[] = [];
+
+    for (const file of routeFiles) {
+      const source = readFileSync(file, "utf8");
+      if (!source.includes("fetchDeckGo(") && !source.includes("maybeProxyToDeckGo(")) {
+        missingProxyHelper.push(relative(srcRoot, file));
+      }
+      if (forbiddenRouteImports.some((pattern) => pattern.test(source))) {
+        forbiddenImports.push(relative(srcRoot, file));
+      }
+    }
+
+    expect(missingProxyHelper).toEqual([]);
+    expect(forbiddenImports).toEqual([]);
   });
 
   it("keeps deleted route-era helper shells removed", () => {
