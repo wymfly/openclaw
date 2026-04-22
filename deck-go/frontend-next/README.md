@@ -68,6 +68,7 @@ remaining host-specific surfaces are intentionally narrow:
   - server-side locale bootstrap bridge that reads plugin locale inventory from
     the Stage 2 control-plane during render-time execution
 - `src/middleware.ts`
+  - the last remaining host-only ingress seam
   - ingress reverse-proxy shell for plugin webhook callbacks that must enter
     through the public `frontend-next` port and hop to loopback Gateway
 

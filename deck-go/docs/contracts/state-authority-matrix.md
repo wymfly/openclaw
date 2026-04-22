@@ -69,6 +69,7 @@ Retained host-specific shells:
 - `frontend-next/src/lib/plugin-locales.ts`
   - server-side locale inventory bootstrap bridge for render-time plugin locale loading
 - `frontend-next/src/middleware.ts`
+  - last remaining host-only ingress seam
   - public-ingress reverse proxy for plugin webhook callbacks into loopback Gateway
 
 Must not grow back inside `frontend-next`:
