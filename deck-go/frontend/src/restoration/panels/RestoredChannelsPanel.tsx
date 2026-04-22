@@ -59,7 +59,7 @@ export function RestoredChannelsPanel() {
   const selectedAccounts = asRecord(rawChannelAccounts[selectedChannelId]);
   const accountEntries = Object.entries(selectedAccounts);
   const selectedDefaultAccountId = payload?.channelDefaultAccountId?.[selectedChannelId] || "";
-  const totalAccounts = Object.values(rawChannelAccounts).reduce((sum, value) => {
+  const totalAccounts = Object.values(rawChannelAccounts).reduce((sum: number, value) => {
     return sum + Object.keys(asRecord(value)).length;
   }, 0);
 
