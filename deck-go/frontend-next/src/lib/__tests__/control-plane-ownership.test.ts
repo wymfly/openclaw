@@ -7,6 +7,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const currentFile = fileURLToPath(import.meta.url);
 const srcRoot = join(here, "..", "..");
 const appApiRoot = join(srcRoot, "app", "api");
+const frontendRoot = join(srcRoot, "..");
 
 const forbiddenRoutePatterns = [
   /\bgwRequest\(/,
@@ -249,5 +250,14 @@ describe("frontend-next control-plane ownership", () => {
     }
 
     expect(offenders).toEqual([]);
+  });
+
+  it("does not restore the retired @server alias surface", () => {
+    const tsconfig = readFileSync(join(frontendRoot, "tsconfig.json"), "utf8");
+    const vitestConfig = readFileSync(join(frontendRoot, "vitest.config.ts"), "utf8");
+
+    expect(tsconfig).not.toContain('"@server/*"');
+    expect(vitestConfig).not.toContain('"@server/"');
+    expect(existsSync(join(frontendRoot, "server", "index.ts"))).toBe(false);
   });
 });
