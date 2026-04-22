@@ -51,36 +51,38 @@ Practical rule:
 - frontend/API routes consume the `openclaw.ManagedRuntime` facade instead of
   stitching supervisor and registry together ad hoc
 
-## Stage 1 frontend-next host shell boundary
+## Stage 3 frontend host boundary
 
-After the Stage 2 cutover, `frontend-next` should be treated as a transitional
-host shell above `deck-go`, not as a second control-plane owner.
+The active browser host is now `frontend`, not `frontend-next`.
 
-Retained host-specific shells:
+Active host-specific shell:
 
-- `frontend-next/src/lib/deck-client.ts`
-  - remaining browser transport/auth/reconnect shell for the transitional host
-  - owns `NEXT_PUBLIC_DECK_GO_API_BASE` routing plus `x-deck-token` and `Last-Event-ID` headers
-- the transitional host now converges on that same public base contract end to
-  end; private `DECK_GO_API_BASE` fallback is no longer part of the
-  `frontend-next` boundary
+- `frontend/src/lib/deck-client.ts`
+  - owns browser transport/auth/reconnect behavior for the active Vite host
+  - reads `VITE_DECK_GO_API_BASE` / `VITE_API_BASE`
+  - owns `x-deck-token` and `Last-Event-ID` browser headers
 
-Retired from the host:
+Active host invariants:
 
-- the old `frontend-next/src/app/api/**` compatibility layer
-- the old `frontend-next/server` local runtime cluster
-- the old `frontend-next/src/middleware.ts` webhook ingress rewrite seam
-- the old `frontend-next/src/i18n/request.ts` plugin locale bridge
-- the old `frontend-next/src/lib/deck-go-base.ts` shared base resolver seam
-- host-local event bus / gateway adapter / approval bridge / alert engine seams
-- host-local durable webhook/runtime helper stores that only existed to support that cluster
+- every panel id in `frontend/src/restoration/panel-registry.tsx` must have a concrete
+  `ActivePanelHost` implementation
+- `frontend/src/restoration/contract-readiness.ts` must not regress any panel to
+  `frontend-blocked`
+- restored panels must stay within the current frontend TypeScript/lib target;
+  compile-target-incompatible helper patterns are guarded by the frontend build
 
-Must not grow back inside `frontend-next`:
+Archive/reference-only host:
+
+- `frontend-next/`
+  - may remain in-repo for comparison or historical evidence
+  - must not be treated as the default build/run/verify host path
+
+Must not grow back inside the active Vite host:
 
 - local runtime fallback handlers
 - route-owned business or config truth
-- durable control-plane persistence
-- direct filesystem or loopback-Gateway work
+- durable control-plane persistence outside `deck-go`
+- host-local loopback Gateway ownership seams
 
 ## Promotion Beyond Deck
 

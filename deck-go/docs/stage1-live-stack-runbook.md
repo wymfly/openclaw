@@ -1,10 +1,10 @@
-# Stage 1 Live Stack Runbook
+# Stage 3 Live Stack Runbook
 
-This runbook is the canonical operator path for the Stage 1 stack:
+This runbook is the canonical operator path for the current live stack:
 
 - `deck-go` backend as control-plane truth
-- `frontend-next` as the Stage 1 `Next + React + Node` host
-- managed Gateway lifecycle controlled from the frontend
+- `frontend` as the active Vite host
+- managed Gateway lifecycle controlled through the restored Vite shell
 
 ## 1. Start `deck-go`
 
@@ -22,78 +22,59 @@ curl -sf http://127.0.0.1:19566/api/runtime/gateway
 curl -sf http://127.0.0.1:19566/api/bootstrap/status
 ```
 
-## 2. Build `frontend-next` against the external backend
+## 2. Build `frontend` against the external backend
 
-`NEXT_PUBLIC_DECK_GO_API_BASE` must be present at build time so the browser bundle and CSP both allow direct calls to the external backend.
+`VITE_DECK_GO_API_BASE` should be present at build time so the browser bundle targets the external backend.
 
 ```bash
-cd deck-go/frontend-next
-NEXT_PUBLIC_DECK_GO_API_BASE=http://127.0.0.1:19566 \
-pnpm build
+cd deck-go/frontend
+VITE_DECK_GO_API_BASE=http://127.0.0.1:19566 \
+npm run build
 ```
 
 ## 3. Start the production-like frontend host
 
-Use the standalone server, not `next start`.
+Use Vite preview for a production-like host.
 
 ```bash
-cd deck-go/frontend-next
-HOSTNAME=127.0.0.1 \
-PORT=3011 \
-NEXT_PUBLIC_DECK_GO_API_BASE=http://127.0.0.1:19566 \
-pnpm start
+cd deck-go/frontend
+VITE_DECK_GO_API_BASE=http://127.0.0.1:19566 \
+npm run preview -- --host 127.0.0.1 --port 4174
 ```
 
 Expected checks:
 
 ```bash
-curl -si http://127.0.0.1:3011/ | head -20
+curl -si http://127.0.0.1:4174/ | head -20
 curl -sf http://127.0.0.1:19566/api/v1/onboarding/status
 ```
 
-The page CSP should include the external backend origin in `connect-src`.
-
 ## 4. Live browser verification
 
-Provide a resolvable Gateway token and run the live Playwright suite against the external host:
+Stage 3 host cutover is now validated primarily through the default build/verify lane:
 
 ```bash
-cd deck-go/frontend-next
-PLAYWRIGHT_BASE_URL=http://127.0.0.1:3011 \
-PLAYWRIGHT_DECK_GO_API_BASE=http://127.0.0.1:19566 \
-PLAYWRIGHT_GATEWAY_URL=ws://127.0.0.1:18789 \
-OPENCLAW_GATEWAY_TOKEN=<gateway-token> \
-pnpm test:e2e:live
+cd deck-go
+make verify
 ```
 
-Current canonical live suite covers 14 browser proofs:
+The frontend build now includes a structural guard that fails if:
 
-- smoke
-- channels
-- gateway lifecycle
-- approvals resolve
-- approvals refresh recovery
-- docs extraction + reload rehydrate
-- chat send / steer / abort
-- compaction history visibility
-- webhooks failed delivery visibility
-- webhooks history accumulation + reload rehydrate
-- monitor/activity fidelity
-- memory browse/health + reload stability + degraded search notice
-- canvas empty-state bridge surface
-- media inline read + download headers
+- any panel id in `frontend/src/restoration/panel-registry.tsx` is no longer implemented in `ActivePanelHost`
+- any readiness entry regresses to `frontend-blocked`
+- restored panels reintroduce compile-target-incompatible helper patterns
 
 ## 5. What this proves
 
 - onboarding/bootstrap works against the external backend
-- core panel loading works through the Stage 1 host
+- core panel loading works through the restored Vite host
 - gateway lifecycle controls are reachable from the UI
 - browser-initiated lifecycle actions hit `deck-go` directly
-- webhook callback ingress is owned by the backend host, not the Next host
-- advanced Stage 1 surfaces have live proof for approvals/docs/webhooks/history reload behavior
-- canvas/media normal-usage paths are covered by the canonical live suite
+- `frontend-next` is no longer required in the default build/run path
+- the restored panel registry is structurally complete from the Vite host’s point of view
 
 ## 6. Known constraints
 
-- rebuilding `frontend-next` invalidates the active standalone server's `.next` chunks; restart the frontend after every build
-- if `NEXT_PUBLIC_DECK_GO_API_BASE` is omitted during build, browser lifecycle calls will fail because the local `/api/*` compatibility layer has been retired
+- live browser smoke against the Stage 3 host is still a separate follow-up tranche; `make verify` is the current canonical gate
+- if `VITE_DECK_GO_API_BASE` is omitted, `deck-client.ts` will fall back to `VITE_API_BASE` and then the local default API origin
+- `frontend-next` may still be retained in-repo for archive/reference-only comparison, but it is not part of the default host path
