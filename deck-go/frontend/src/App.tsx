@@ -121,7 +121,7 @@ function upsertTranscriptMessage(
   }
   return [...current, nextMessage]
     .slice()
-    .toSorted(
+    .sort(
       (a: DeckGoTranscriptMessage, b: DeckGoTranscriptMessage) =>
         (a.timestamp ?? 0) - (b.timestamp ?? 0),
     );
@@ -222,12 +222,12 @@ function upsertToolProgressEntry(
     copy[index] = next;
     return copy
       .slice()
-      .toSorted((a: ToolProgressEntry, b: ToolProgressEntry) => b.ts - a.ts)
+      .sort((a: ToolProgressEntry, b: ToolProgressEntry) => b.ts - a.ts)
       .slice(0, 8);
   }
   return [next, ...entries]
     .slice()
-    .toSorted((a: ToolProgressEntry, b: ToolProgressEntry) => b.ts - a.ts)
+    .sort((a: ToolProgressEntry, b: ToolProgressEntry) => b.ts - a.ts)
     .slice(0, 8);
 }
 

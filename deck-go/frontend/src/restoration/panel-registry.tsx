@@ -266,7 +266,7 @@ export function getRestoredBottomPanels() {
 export function getRestoredShortcutPanels() {
   return RESTORED_PANELS.filter((panel) => panel.shortcutIndex != null)
     .slice()
-    .toSorted(
+    .sort(
       (left: RestoredPanelEntry, right: RestoredPanelEntry) =>
         (left.shortcutIndex ?? 0) - (right.shortcutIndex ?? 0),
     );

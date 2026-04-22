@@ -21,7 +21,7 @@ export function upsertTranscriptMessage(
   }
   return [...current, nextMessage]
     .slice()
-    .toSorted(
+    .sort(
       (left: DeckGoTranscriptMessage, right: DeckGoTranscriptMessage) =>
         (left.timestamp ?? 0) - (right.timestamp ?? 0),
     );
