@@ -39,8 +39,9 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
       "Deck-go already exposes /sessions plus session detail/history seams; the missing work is panel-grade restoration, not backend truth.",
   },
   memory: {
-    status: "frontend-blocked",
-    evidence: "No memory panel family surface is restored in deck-go yet.",
+    status: "ready-with-adapter",
+    evidence:
+      "deck-go now exposes read-first browse/search/dreams seams and the restored memory panel consumes them, but deeper authoring flows still need adapter work.",
   },
   logs: {
     status: "ready-with-adapter",
@@ -52,8 +53,9 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
     evidence: "No restored activity timeline surface exists yet.",
   },
   threads: {
-    status: "frontend-blocked",
-    evidence: "No thread panel contract or façade is visible in the current deck-go surface.",
+    status: "ready-with-adapter",
+    evidence:
+      "deck.threads list truth is now surfaced through a restored Vite panel, but richer thread relation tooling still needs panel-grade adapters.",
   },
   "api-explorer": {
     status: "ready-with-adapter",
@@ -61,29 +63,34 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
       "gateway.describe and related gateway APIs exist, but no restored explorer-specific frontend composition exists yet.",
   },
   cron: {
-    status: "frontend-blocked",
-    evidence: "No cron or scheduler panel contract is currently surfaced in deck-go.",
+    status: "ready-with-adapter",
+    evidence:
+      "The restored cron panel now consumes deck-go scheduler routes, but the legacy editor depth still exceeds the current Vite surface.",
   },
   webhooks: {
-    status: "frontend-blocked",
-    evidence: "No webhooks panel contract is currently surfaced in deck-go.",
+    status: "ready-with-adapter",
+    evidence:
+      "deck-go-backed webhook inventory and delivery seams are restored into Vite, though the richer operator workflow still needs follow-on adapter work.",
   },
   approvals: {
-    status: "frontend-blocked",
+    status: "ready-with-adapter",
     evidence:
-      "Approval still exists mainly as a shell slot; no dedicated deck-go approvals façade is restored yet.",
+      "The approvals panel now runs against deck-go pending/policy routes, but the full approval workflow still needs a richer panel adapter.",
   },
   skills: {
-    status: "frontend-blocked",
-    evidence: "No skills panel contract is currently surfaced in deck-go.",
+    status: "ready-with-adapter",
+    evidence:
+      "The restored skills panel is backed by deck-go skill inventory routes, but install/update ergonomics remain thinner than the legacy surface.",
   },
   budget: {
-    status: "frontend-blocked",
-    evidence: "No budget panel contract is currently surfaced in deck-go.",
+    status: "ready-with-adapter",
+    evidence:
+      "Budget rules and evaluation routes now have a Vite-facing panel, but broader policy tooling still needs follow-on work.",
   },
   alerts: {
-    status: "frontend-blocked",
-    evidence: "No alerts panel contract is currently surfaced in deck-go.",
+    status: "ready-with-adapter",
+    evidence:
+      "Alerts inventory is now restored into the Vite host, but alert editing and response flows still need deeper adapter work.",
   },
   channels: {
     status: "ready-with-adapter",
@@ -104,8 +111,9 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
     evidence: "No dedicated subagent contract or façade is restored yet.",
   },
   identity: {
-    status: "frontend-blocked",
-    evidence: "No identity panel-facing deck-go contract is currently surfaced.",
+    status: "ready-with-adapter",
+    evidence:
+      "deck-go identity link/unlink truth is now exposed through a restored Vite panel, but higher-order identity workflows still need adapter depth.",
   },
   config: {
     status: "ready-with-adapter",
@@ -113,12 +121,14 @@ const READINESS_BY_PANEL: Record<RestoredPanelId, RestorationReadinessEntry> = {
       "config.get, config.patch, config.apply, and config.schema.lookup exist, but the legacy config-editor workflow is deeper than the current frontend.",
   },
   nodes: {
-    status: "frontend-blocked",
-    evidence: "No node-management-specific deck-go frontend contract is restored yet.",
+    status: "ready-with-adapter",
+    evidence:
+      "Node inventory and pair flows now have a restored Vite panel, but the fuller node-management workflow still needs additional UI depth.",
   },
   docs: {
-    status: "frontend-blocked",
-    evidence: "No docs hub contract is currently surfaced in deck-go.",
+    status: "ready-with-adapter",
+    evidence:
+      "The docs hub now has a restored Vite panel over deck-go docs routes, though richer curation/editing flows remain future adapter work.",
   },
   settings: {
     status: "ready-with-adapter",

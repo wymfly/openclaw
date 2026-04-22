@@ -20,6 +20,8 @@ type EventInfo = {
   since?: number;
 };
 
+type MethodDomainEntry = [domain: string, items: MethodInfo[]];
+
 function groupMethodsByDomain(methods: MethodInfo[]) {
   const groups: Record<string, MethodInfo[]> = {};
   for (const method of methods) {
@@ -27,9 +29,9 @@ function groupMethodsByDomain(methods: MethodInfo[]) {
     const domain = dot > 0 ? method.name.slice(0, dot) : "other";
     (groups[domain] ??= []).push(method);
   }
-  const sortedEntries = Object.entries(groups)
-    .slice()
-    .toSorted(([left], [right]) => left.localeCompare(right));
+  const sortedEntries = Object.entries(groups).toSorted(([left], [right]) =>
+    left.localeCompare(right),
+  ) as MethodDomainEntry[];
   return Object.fromEntries(
     sortedEntries.map(([domain, items]) => [
       domain,
