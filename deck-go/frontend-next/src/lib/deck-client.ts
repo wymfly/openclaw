@@ -87,23 +87,50 @@ function withDeckAuthHeaders(
   return next;
 }
 
-export async function deckFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+type DeckRequestOptions = {
+  init?: RequestInit;
+  token?: string | null;
+  lastEventId?: number | string | null;
+  allowPrompt?: boolean;
+};
+
+type DeckRequestResult = {
+  response: Response;
+  token?: string | null;
+  prompted: boolean;
+};
+
+async function requestDeckResponse(
+  input: RequestInfo | URL,
+  options: DeckRequestOptions = {},
+): Promise<DeckRequestResult> {
   const target = resolveDeckInput(input);
-  const headers = withDeckAuthHeaders(init?.headers);
-  const response = await fetch(target, { ...init, headers });
-  if (response.status !== 401) {
-    return response;
+  const response = await fetch(target, {
+    ...options.init,
+    headers: withDeckAuthHeaders(options.init?.headers, options.token, options.lastEventId),
+  });
+  if (response.status !== 401 || options.allowPrompt === false) {
+    return { response, token: options.token, prompted: false };
   }
 
   const promptedToken = await promptForDeckAccessToken();
   if (!promptedToken) {
-    return response;
+    return { response, token: options.token, prompted: true };
   }
 
-  return await fetch(target, {
-    ...init,
-    headers: withDeckAuthHeaders(init?.headers, promptedToken),
-  });
+  return {
+    response: await fetch(target, {
+      ...options.init,
+      headers: withDeckAuthHeaders(options.init?.headers, promptedToken, options.lastEventId),
+    }),
+    token: promptedToken,
+    prompted: true,
+  };
+}
+
+export async function deckFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const { response } = await requestDeckResponse(input, { init });
+  return response;
 }
 
 function parseSSEChunk(chunk: string, onEvent?: (event: DeckEvent) => void): void {
@@ -155,7 +182,6 @@ export async function deckStream(
   input: RequestInfo | URL,
   options: DeckStreamOptions = {},
 ): Promise<Response> {
-  const target = resolveDeckInput(input);
   let token = options.token ?? deckAccessToken;
   let lastEventId = options.lastEventId;
   let lastResponse: Response | null = null;
@@ -163,21 +189,24 @@ export async function deckStream(
 
   while (!options.signal?.aborted) {
     try {
-      const headers = withDeckAuthHeaders(undefined, token, lastEventId);
-      const response = await fetch(target, {
-        method: "GET",
-        headers,
-        signal: options.signal,
+      const {
+        response,
+        token: nextToken,
+        prompted: promptedNow,
+      } = await requestDeckResponse(input, {
+        init: {
+          method: "GET",
+          signal: options.signal,
+        },
+        token,
+        lastEventId,
+        allowPrompt: !prompted,
       });
-      lastResponse = response;
-
-      if (response.status === 401 && !prompted) {
-        prompted = true;
-        token = await promptForDeckAccessToken();
-        if (token) {
-          continue;
-        }
+      prompted ||= promptedNow;
+      if (nextToken !== undefined) {
+        token = nextToken;
       }
+      lastResponse = response;
 
       if (!response.ok || !response.body) {
         if (!options.reconnect || response.status === 401) {
