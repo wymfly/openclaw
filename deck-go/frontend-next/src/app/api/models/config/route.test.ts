@@ -1,21 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwRequest = vi.fn();
-
-vi.mock("@/lib/api-helpers", () => ({
-  gwRequest,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: () => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/models/config", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    gwRequest.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
@@ -23,18 +12,16 @@ describe("/api/models/config", () => {
 
   it("proxies GET to deck-go when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = "http://127.0.0.1:19528";
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            runtimeId: "rt_local",
-            payload: { raw: '{"models":{"providers":{}}}', hash: "h1" },
-            requestId: "req-1",
-          }),
-          { status: 200 },
-        ),
-      );
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          runtimeId: "rt_local",
+          payload: { raw: '{"models":{"providers":{}}}', hash: "h1" },
+          requestId: "req-1",
+        }),
+        { status: 200 },
+      ),
+    );
     globalThis.fetch = fetchMock;
     const { GET } = await import("./route.js");
 
@@ -44,20 +31,20 @@ describe("/api/models/config", () => {
       "http://127.0.0.1:19528/api/v1/models/config",
       expect.objectContaining({ method: "GET" }),
     );
-    expect(gwRequest).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ raw: '{"models":{"providers":{}}}', hash: "h1" });
   });
 
-  it("falls back to local gwRequest for config.get", async () => {
+  it("returns 503 for GET when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    gwRequest.mockResolvedValueOnce(
-      new Response(JSON.stringify({ raw: '{"models":{"providers":{}}}', hash: "h1" })),
-    );
     const { GET } = await import("./route.js");
 
-    await GET(new Request("http://localhost/api/models/config") as never);
+    const response = await GET(new Request("http://localhost/api/models/config") as never);
 
-    expect(gwRequest).toHaveBeenCalledWith("config.get", {});
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 
   it("proxies PATCH to deck-go when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
@@ -80,16 +67,14 @@ describe("/api/models/config", () => {
       "http://127.0.0.1:19528/api/v1/models/config",
       expect.objectContaining({ method: "PATCH" }),
     );
-    expect(gwRequest).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
   });
 
-  it("falls back to local gwRequest for config.patch", async () => {
+  it("returns 503 for PATCH when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    gwRequest.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
     const { PATCH } = await import("./route.js");
 
-    await PATCH(
+    const response = await PATCH(
       new Request("http://localhost/api/models/config", {
         method: "PATCH",
         body: JSON.stringify({ raw: '{"models":{"providers":{"openai":{}}}}', baseHash: "h1" }),
@@ -97,9 +82,9 @@ describe("/api/models/config", () => {
       }) as never,
     );
 
-    expect(gwRequest).toHaveBeenCalledWith("config.patch", {
-      raw: '{"models":{"providers":{"openai":{}}}}',
-      baseHash: "h1",
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
     });
   });
 });
