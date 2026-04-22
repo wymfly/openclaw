@@ -1,32 +1,32 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const gwRequest = vi.fn();
-
-vi.mock("@/lib/api-helpers", () => ({
-  gwRequest,
-}));
-
-vi.mock("@/lib/with-auth", () => ({
-  withAuth: (handler: (req: NextRequest) => Promise<Response> | Response) => handler,
-}));
-
 describe("/api/cron", () => {
   const originalFetch = globalThis.fetch;
   const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 
   afterEach(() => {
-    gwRequest.mockReset();
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
-    process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    if (originalApiBase === undefined) {
+      delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+    } else {
+      process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+    }
   });
 
   it("proxies GET to deck-go when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
     process.env.NEXT_PUBLIC_DECK_GO_API_BASE = "http://127.0.0.1:19528";
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          runtimeId: "rt_local",
+          payload: { items: [{ id: "job-1" }] },
+          requestId: "req-1",
+        }),
+        { status: 200 },
+      ),
+    );
     globalThis.fetch = fetchMock;
     const { GET } = await import("./route.js");
 
@@ -40,45 +40,41 @@ describe("/api/cron", () => {
       "http://127.0.0.1:19528/api/v1/runtimes/rt_local/cron?limit=10&offset=5&query=nightly&enabled=true&sortBy=name&sortDir=asc&includeDisabled=true",
       expect.objectContaining({ method: "GET" }),
     );
-    expect(gwRequest).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [{ id: "job-1" }] });
   });
 
-  it("falls back to local gwRequest for cron.list", async () => {
+  it("returns 503 for GET when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    gwRequest.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const { GET } = await import("./route.js");
 
-    await GET(
+    const response = await GET(
       new NextRequest(
         "http://localhost/api/cron?limit=10&offset=5&query=nightly&enabled=true&sortBy=name&sortDir=asc&includeDisabled=true",
       ),
     );
 
-    expect(gwRequest).toHaveBeenCalledWith("cron.list", {
-      limit: 10,
-      offset: 5,
-      query: "nightly",
-      enabled: "true",
-      sortBy: "name",
-      sortDir: "asc",
-      includeDisabled: true,
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
     });
   });
 
-  it("falls back to local gwRequest for cron.add", async () => {
+  it("returns 503 for POST when no deck-go base is configured", async () => {
     delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
-    gwRequest.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const { POST } = await import("./route.js");
 
-    await POST(
+    const response = await POST(
       new NextRequest("http://localhost/api/cron", {
         method: "POST",
         body: JSON.stringify({ name: "Nightly", enabled: true }),
       }),
     );
 
-    expect(gwRequest).toHaveBeenCalledWith("cron.add", { name: "Nightly", enabled: true });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Deck Go control-plane API base not configured",
+    });
   });
 
   it("proxies POST to Stage 2 cron when NEXT_PUBLIC_DECK_GO_API_BASE is set", async () => {
