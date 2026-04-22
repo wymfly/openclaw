@@ -89,6 +89,7 @@ Current canonical live suite covers 14 browser proofs:
 - core panel loading works through the Stage 1 host
 - gateway lifecycle controls are reachable from the UI
 - browser-initiated lifecycle actions hit `deck-go` directly
+- webhook callback ingress is owned by the backend host, not the Next host
 - advanced Stage 1 surfaces have live proof for approvals/docs/webhooks/history reload behavior
 - canvas/media normal-usage paths are covered by the canonical live suite
 

@@ -154,10 +154,10 @@ export function WeComWizard({
 
   const callbackUrl = useMemo(() => {
     if (form.transport === "bot-webhook") {
-      return `{GATEWAY_URL}/wecom/bot/callback`;
+      return `{DECK_GO_API_BASE}/wecom/bot/callback`;
     }
     if (form.transport === "agent-callback" || form.transport === "dual") {
-      return `{GATEWAY_URL}/wecom/agent/callback`;
+      return `{DECK_GO_API_BASE}/wecom/agent/callback`;
     }
     return null;
   }, [form.transport]);

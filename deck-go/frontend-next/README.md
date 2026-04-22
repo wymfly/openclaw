@@ -65,10 +65,6 @@ remaining host-specific surfaces are intentionally narrow:
 - `src/i18n/request.ts`
   - server-side locale bootstrap bridge that reads plugin locale inventory from
     the Stage 2 control-plane during render-time execution
-- `src/middleware.ts`
-  - the last remaining host-only ingress seam
-  - ingress reverse-proxy shell for plugin webhook callbacks that must enter
-    through the public `frontend-next` port and hop to loopback Gateway
 
 The old `frontend-next/server` local runtime cluster has been retired. This host
 no longer carries a second local Gateway runtime, event bus, approval bridge,
@@ -78,10 +74,13 @@ The old `frontend-next/src/app/api/**` compatibility layer has also been
 retired. The standalone Next host no longer serves local `/api/*` Deck
 endpoints in Stage 1 external-backend mode.
 
+Webhook callback ingress now belongs to the `deck-go` backend itself. The Next
+host no longer carries a special callback rewrite layer.
+
 Everything else in `frontend-next` should behave like a normal frontend
 consumer:
 
 - no local runtime fallback
 - no route-owned business truth
 - no durable control-plane persistence
-- no direct filesystem or Gateway loopback logic outside `src/middleware.ts`
+- no direct filesystem or Gateway loopback logic

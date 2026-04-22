@@ -33,9 +33,6 @@ const nextConfig: NextConfig = {
   // Support standalone output for Docker deployment
   output: "standalone",
 
-  // Plugin webhook proxy (e.g. WeCom callback) is handled by
-  // src/middleware.ts at runtime — no build-time rewrites needed.
-
   // Security headers
   async headers() {
     return [

@@ -88,4 +88,24 @@ func TestShouldBypassAuth_AllowsStaticShellButNotAPI(t *testing.T) {
 			t.Fatal("expected API request to remain protected")
 		}
 	})
+
+	t.Run("wecom callback bypasses auth on post", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, "http://example.com/wecom/agent/callback?msg=1", http.NoBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ShouldBypassAuth(req) {
+			t.Fatal("expected wecom callback to bypass auth")
+		}
+	})
+
+	t.Run("plugin callback bypasses auth on get", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, "http://example.com/plugins/wecom/callback", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ShouldBypassAuth(req) {
+			t.Fatal("expected plugin callback to bypass auth")
+		}
+	})
 }

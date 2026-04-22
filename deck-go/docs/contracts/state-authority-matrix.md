@@ -66,14 +66,12 @@ Retained host-specific shells:
   - owns direct base-URL routing, `x-deck-token`, and `Last-Event-ID` replay headers
 - `frontend-next/src/i18n/request.ts`
   - server-side locale inventory bootstrap bridge for render-time plugin locale loading
-- `frontend-next/src/middleware.ts`
-  - last remaining host-only ingress seam
-  - public-ingress reverse proxy for plugin webhook callbacks into loopback Gateway
 
 Retired from the host:
 
 - the old `frontend-next/src/app/api/**` compatibility layer
 - the old `frontend-next/server` local runtime cluster
+- the old `frontend-next/src/middleware.ts` webhook ingress rewrite seam
 - host-local event bus / gateway adapter / approval bridge / alert engine seams
 - host-local durable webhook/runtime helper stores that only existed to support that cluster
 
@@ -82,7 +80,7 @@ Must not grow back inside `frontend-next`:
 - local runtime fallback handlers
 - route-owned business or config truth
 - durable control-plane persistence
-- direct filesystem or loopback-Gateway work outside `frontend-next/src/middleware.ts`
+- direct filesystem or loopback-Gateway work
 
 ## Promotion Beyond Deck
 

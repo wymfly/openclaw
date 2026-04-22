@@ -2153,7 +2153,7 @@
       "agentSecret": "应用密钥",
       "agentSecretHint": "应用密钥（corpSecret）",
       "callbackUrlDesc": "复制此 URL 并粘贴到企微管理后台作为回调地址：",
-      "callbackUrlNote": "将 '{GATEWAY_URL}' 替换为实际的网关地址（如 https://your-domain.com）",
+      "callbackUrlNote": "将 '{DECK_GO_API_BASE}' 替换为实际的控制平面地址（如 https://your-domain.com）",
       "noCallbackNeeded": "Bot WebSocket 模式不需要回调 URL。",
       "dualModeCallbackNote": "Agent 回调 URL（Bot WS 不需要回调）：",
       "testDesc": "先保存配置，然后测试连接以验证凭证。",

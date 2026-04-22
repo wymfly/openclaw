@@ -29,7 +29,6 @@ const allowedControlPlaneBaseReaders = new Set(["lib/deck-go-base.ts"]);
 
 const allowedDeckHeaderShells = new Set(["lib/deck-client.ts"]);
 
-const allowedGatewayLoopbackShells = new Set(["middleware.ts"]);
 const allowedControlPlaneBaseImporters = new Set(["lib/deck-client.ts", "i18n/request.ts"]);
 
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
@@ -51,6 +50,7 @@ function collectFiles(root: string, predicate: (file: string) => boolean): strin
 describe("frontend-next control-plane ownership", () => {
   it("keeps deleted route-era helper shells removed", () => {
     const deletedHelpers = [
+      join(srcRoot, "middleware.ts"),
       join(srcRoot, "app", "api", "_deck-go-proxy.ts"),
       join(srcRoot, "lib", "api-helpers.ts"),
       join(srcRoot, "lib", "with-auth.ts"),
@@ -98,9 +98,8 @@ describe("frontend-next control-plane ownership", () => {
       }
 
       if (
-        (/process\.env\.DECK_GATEWAY_(?:URL|TOKEN)\b/.test(source) ||
-          /NextResponse\.rewrite\(/.test(source)) &&
-        !allowedGatewayLoopbackShells.has(rel)
+        /process\.env\.DECK_GATEWAY_(?:URL|TOKEN)\b/.test(source) ||
+        /NextResponse\.rewrite\(/.test(source)
       ) {
         unexpectedGatewayLoopbackShells.push(rel);
       }
@@ -137,7 +136,7 @@ describe("frontend-next control-plane ownership", () => {
     expect(invalidImporters).toEqual([]);
   });
 
-  it("does not reintroduce the removed local Gateway loopback helper", () => {
+  it("does not reintroduce removed local Gateway loopback helpers", () => {
     const sourceFiles = collectFiles(
       srcRoot,
       (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
@@ -146,7 +145,11 @@ describe("frontend-next control-plane ownership", () => {
 
     for (const file of sourceFiles) {
       const source = readFileSync(file, "utf8");
-      if (!/from ["']@\/lib\/gateway-http["']/.test(source)) {
+      if (
+        !/from ["']@\/lib\/gateway-http["']/.test(source) &&
+        !/NextResponse\.rewrite\(/.test(source) &&
+        !/process\.env\.DECK_GATEWAY_(?:URL|TOKEN)\b/.test(source)
+      ) {
         continue;
       }
       offenders.push(relative(srcRoot, file));

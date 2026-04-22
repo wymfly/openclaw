@@ -85,6 +85,7 @@ func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurfac
 		registerRuntimeRoutes(api, managed)
 	})
 
+	registerGatewayCallbackProxyRoutes(r, store)
 	registerStaticRoutes(r)
 
 	return r

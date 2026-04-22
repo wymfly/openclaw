@@ -947,6 +947,82 @@ func TestAssetRoutes_MediaCanvasAndDeckCanvas(t *testing.T) {
 	}
 }
 
+func TestGatewayCallbackProxyRoutes_BypassAuthAndForwardToGateway(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+
+	var seenAuth string
+	var seenMethod string
+	var seenPath string
+	var seenQuery string
+	var seenBody string
+	gatewayServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenAuth = r.Header.Get("Authorization")
+		seenMethod = r.Method
+		seenPath = r.URL.Path
+		seenQuery = r.URL.RawQuery
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		seenBody = string(body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer gatewayServer.Close()
+
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Update(config.Settings{
+		AccessToken: "admin-token",
+		ManagedGateway: config.ManagedGatewaySettings{
+			BindHost:  "127.0.0.1",
+			BindPort:  mustPort(t, gatewayServer.URL),
+			AutoStart: false,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	bus := events.NewBus(16)
+	srv := httptest.NewServer(newManagedTestRouter(store, &testSupervisor{}, bus))
+	defer srv.Close()
+
+	req, err := http.NewRequest(
+		http.MethodPost,
+		srv.URL+"/wecom/agent/callback?msg_signature=abc&timestamp=123",
+		strings.NewReader(`{"event":"message"}`),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected callback proxy status: %d", res.StatusCode)
+	}
+	if seenAuth != "" {
+		t.Fatalf("expected callback proxy to forward without deck auth header, got %q", seenAuth)
+	}
+	if seenMethod != http.MethodPost {
+		t.Fatalf("unexpected proxied method: %s", seenMethod)
+	}
+	if seenPath != "/wecom/agent/callback" {
+		t.Fatalf("unexpected proxied path: %s", seenPath)
+	}
+	if seenQuery != "msg_signature=abc&timestamp=123" {
+		t.Fatalf("unexpected proxied query: %s", seenQuery)
+	}
+	if seenBody != `{"event":"message"}` {
+		t.Fatalf("unexpected proxied body: %s", seenBody)
+	}
+}
+
 func TestBudgetRoutes_CRUDAndEvaluate(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")

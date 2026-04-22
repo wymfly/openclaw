@@ -41,10 +41,17 @@ func ShouldBypassAuth(r *http.Request) bool {
 	if r == nil {
 		return false
 	}
+	if isGatewayCallbackPath(r.URL.Path) {
+		return true
+	}
 	if strings.HasPrefix(r.URL.Path, "/api/") {
 		return false
 	}
 	return r.Method == http.MethodGet || r.Method == http.MethodHead
+}
+
+func isGatewayCallbackPath(path string) bool {
+	return strings.HasPrefix(path, "/plugins/") || strings.HasPrefix(path, "/wecom/")
 }
 
 func safeEqual(left, right string) bool {
