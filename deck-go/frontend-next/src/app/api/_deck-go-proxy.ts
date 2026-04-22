@@ -1,3 +1,9 @@
+type DeckGoProxyOptions = {
+  method?: string;
+  body?: BodyInit | null;
+  headers?: HeadersInit;
+};
+
 function getDeckGoApiBase(): string {
   const raw =
     process.env.DECK_GO_API_BASE?.trim() ?? process.env.NEXT_PUBLIC_DECK_GO_API_BASE?.trim() ?? "";
@@ -22,19 +28,28 @@ function copyResponseHeaders(source: Headers): Headers {
   return headers;
 }
 
-export async function fetchDeckGo(request: Request, path: string): Promise<Response | null> {
+export async function fetchDeckGo(
+  request: Request,
+  path: string,
+  options: DeckGoProxyOptions = {},
+): Promise<Response | null> {
   const apiBase = getDeckGoApiBase();
   if (!apiBase) {
     return null;
   }
 
   const target = `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
-  const method = request.method.toUpperCase();
-  const body = method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer();
+  const method = (options.method ?? request.method).toUpperCase();
+  const body =
+    options.body !== undefined
+      ? options.body
+      : method === "GET" || method === "HEAD"
+        ? undefined
+        : await request.arrayBuffer();
 
   const response = await fetch(target, {
     method,
-    headers: copyRequestHeaders(request),
+    headers: copyRequestHeaders(request, options.headers),
     body,
   });
 

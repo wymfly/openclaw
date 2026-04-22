@@ -48,3 +48,32 @@ pnpm start
 - `deckFetch` / `deckStream` support direct base-URL routing to Go
 - session store calls that previously bypassed `deck-client` now use the shared transport seam
 - Next route handlers still exist and may remain temporarily where a thin compatibility proxy is still needed
+
+## Retained host shells
+
+`frontend-next` is now a transitional host shell, not a second runtime owner. The
+remaining host-specific surfaces are intentionally narrow:
+
+- `src/app/api/**/route.ts` plus `src/app/api/_deck-go-proxy.ts`
+  - same-origin proxy and thin response-shaping shell for browser callers that
+    still talk to `Next` route handlers
+- `src/lib/deck-client.ts`
+  - browser-side transport shell for direct `deck-go` calls, including access
+    token prompting, `x-deck-token` forwarding, and `Last-Event-ID` SSE replay
+- `src/lib/plugin-locales.ts`
+  - server-side locale bootstrap bridge that reads plugin locale inventory from
+    the Stage 2 control-plane during render-time execution
+- `src/app/api/canvas/[...path]/route.ts` plus `src/lib/gateway-http.ts`
+  - the only remaining local Gateway loopback bridge, retained for A2UI canvas
+    asset hosting when the transitional host still needs to proxy canvas content
+- `src/middleware.ts`
+  - ingress reverse-proxy shell for plugin webhook callbacks that must enter
+    through the public `frontend-next` port and hop to loopback Gateway
+
+Everything else in `frontend-next` should behave like a normal frontend
+consumer:
+
+- no local runtime fallback
+- no route-owned business truth
+- no durable control-plane persistence
+- no direct filesystem or Gateway loopback logic outside the retained shells

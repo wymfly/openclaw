@@ -22,6 +22,17 @@ const forbiddenRouteImports = [
   /from "node:(fs|path|os)"/,
 ];
 
+const allowedControlPlaneBaseReaders = new Set([
+  "app/api/_deck-go-proxy.ts",
+  "lib/deck-client.ts",
+  "lib/plugin-locales.ts",
+]);
+
+const allowedDeckHeaderShells = new Set(["app/api/_deck-go-proxy.ts", "lib/deck-client.ts"]);
+
+const allowedGatewayLoopbackShells = new Set(["lib/gateway-http.ts", "middleware.ts"]);
+const allowedGatewayLoopbackImporters = new Set(["app/api/canvas/[...path]/route.ts"]);
+
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
   const entries = readdirSync(root, { withFileTypes: true });
   const files: string[] = [];
@@ -84,6 +95,101 @@ describe("frontend-next control-plane ownership", () => {
       .map((file) => relative(srcRoot, file));
 
     expect(stillPresent).toEqual([]);
+  });
+
+  it("keeps the retained host-shell allowlist explicit", () => {
+    const sourceFiles = collectFiles(
+      srcRoot,
+      (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
+    );
+    const unexpectedControlPlaneBaseReaders: string[] = [];
+    const unexpectedDeckHeaderShells: string[] = [];
+    const unexpectedGatewayLoopbackShells: string[] = [];
+
+    for (const file of sourceFiles) {
+      const rel = relative(srcRoot, file);
+      const source = readFileSync(file, "utf8");
+
+      if (
+        /process\.env\.(?:DECK_GO_API_BASE|NEXT_PUBLIC_DECK_GO_API_BASE)\b/.test(source) &&
+        !allowedControlPlaneBaseReaders.has(rel)
+      ) {
+        unexpectedControlPlaneBaseReaders.push(rel);
+      }
+
+      if (
+        (/\[\s*"authorization",\s*"x-deck-token",\s*"last-event-id"/.test(source) ||
+          /\.set\("x-deck-token"/.test(source) ||
+          /\.set\("Last-Event-ID"/.test(source)) &&
+        !allowedDeckHeaderShells.has(rel)
+      ) {
+        unexpectedDeckHeaderShells.push(rel);
+      }
+
+      if (
+        (/process\.env\.DECK_GATEWAY_(?:URL|TOKEN)\b/.test(source) ||
+          /NextResponse\.rewrite\(/.test(source)) &&
+        !allowedGatewayLoopbackShells.has(rel)
+      ) {
+        unexpectedGatewayLoopbackShells.push(rel);
+      }
+    }
+
+    expect(unexpectedControlPlaneBaseReaders).toEqual([]);
+    expect(unexpectedDeckHeaderShells).toEqual([]);
+    expect(unexpectedGatewayLoopbackShells).toEqual([]);
+  });
+
+  it("keeps the proxy helper scoped to app/api route handlers", () => {
+    const sourceFiles = collectFiles(
+      srcRoot,
+      (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
+    );
+    const invalidImporters: string[] = [];
+
+    for (const file of sourceFiles) {
+      const rel = relative(srcRoot, file);
+      if (rel === "app/api/_deck-go-proxy.ts") {
+        continue;
+      }
+
+      const source = readFileSync(file, "utf8");
+      if (!source.includes("_deck-go-proxy")) {
+        continue;
+      }
+
+      if (!/^app\/api(?:\/.+)?\/route\.ts$/.test(rel)) {
+        invalidImporters.push(rel);
+      }
+    }
+
+    expect(invalidImporters).toEqual([]);
+  });
+
+  it("keeps the local Gateway loopback bridge scoped to canvas hosting", () => {
+    const sourceFiles = collectFiles(
+      srcRoot,
+      (file) => /\.(ts|tsx)$/.test(file) && !/\.test\.(ts|tsx)$/.test(file),
+    );
+    const invalidImporters: string[] = [];
+
+    for (const file of sourceFiles) {
+      const rel = relative(srcRoot, file);
+      if (rel === "lib/gateway-http.ts") {
+        continue;
+      }
+
+      const source = readFileSync(file, "utf8");
+      if (!/from ["']@\/lib\/gateway-http["']/.test(source)) {
+        continue;
+      }
+
+      if (!allowedGatewayLoopbackImporters.has(rel)) {
+        invalidImporters.push(rel);
+      }
+    }
+
+    expect(invalidImporters).toEqual([]);
   });
 
   it("does not reference the removed deck subagent lineage pseudo-route", () => {

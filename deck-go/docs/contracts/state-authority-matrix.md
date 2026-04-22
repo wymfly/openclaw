@@ -27,11 +27,11 @@ This document defines ownership of state in the corrected `deck-go` architecture
 The Stage 2 backend currently splits lifecycle and inventory ownership across
 three packages. Keep the seam explicit:
 
-| Package                                  | Owns                                                                 | Must not own                                                                    |
-| ---------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `backend/internal/runtime/supervisor`    | managed process lifecycle, probe state, exit bookkeeping, snapshots  | deck-facing DTOs, runtime inventory summaries, frontend contracts               |
-| `backend/internal/runtime/openclaw`      | Deck control-plane facade, transport binding, lifecycle route wiring, legacy `/api/runtime/gateway*` contract ownership, external route/status + registry helper surface | generic process supervision internals, standalone runtime truth, inventory-only concerns |
-| `backend/internal/runtime/registry`      | read-only runtime inventory, summary projection, replay/subscription feed | start/stop/restart control, config mutation, supervisor policy                  |
+| Package                               | Owns                                                                                                                                                                     | Must not own                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `backend/internal/runtime/supervisor` | managed process lifecycle, probe state, exit bookkeeping, snapshots                                                                                                      | deck-facing DTOs, runtime inventory summaries, frontend contracts                        |
+| `backend/internal/runtime/openclaw`   | Deck control-plane facade, transport binding, lifecycle route wiring, legacy `/api/runtime/gateway*` contract ownership, external route/status + registry helper surface | generic process supervision internals, standalone runtime truth, inventory-only concerns |
+| `backend/internal/runtime/registry`   | read-only runtime inventory, summary projection, replay/subscription feed                                                                                                | start/stop/restart control, config mutation, supervisor policy                           |
 
 Practical rule:
 
@@ -50,6 +50,33 @@ Practical rule:
   raw supervisor accessors
 - frontend/API routes consume the `openclaw.ManagedRuntime` facade instead of
   stitching supervisor and registry together ad hoc
+
+## Stage 1 frontend-next host shell boundary
+
+After the Stage 2 cutover, `frontend-next` should be treated as a transitional
+host shell above `deck-go`, not as a second control-plane owner.
+
+Retained host-specific shells:
+
+- `frontend-next/src/app/api/**/route.ts` and `frontend-next/src/app/api/_deck-go-proxy.ts`
+  - same-origin proxy and thin compatibility shaping for browser callers
+- `frontend-next/src/lib/deck-client.ts`
+  - browser transport/auth/reconnect shell
+  - owns direct base-URL routing, `x-deck-token`, and `Last-Event-ID` replay headers
+- `frontend-next/src/lib/plugin-locales.ts`
+  - server-side locale inventory bootstrap bridge for render-time plugin locale loading
+- `frontend-next/src/app/api/canvas/[...path]/route.ts` and `frontend-next/src/lib/gateway-http.ts`
+  - the only remaining local Gateway loopback bridge
+  - retained for A2UI canvas asset hosting while `frontend-next` still acts as the transitional host
+- `frontend-next/src/middleware.ts`
+  - public-ingress reverse proxy for plugin webhook callbacks into loopback Gateway
+
+Must not grow back inside `frontend-next`:
+
+- local runtime fallback handlers
+- route-owned business or config truth
+- durable control-plane persistence
+- direct filesystem or loopback-Gateway work outside the retained shell modules
 
 ## Promotion Beyond Deck
 
