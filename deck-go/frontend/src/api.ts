@@ -445,6 +445,42 @@ export type DeckGoMemoryHealthResponse = {
   error?: string;
 };
 
+export type DeckGoBudgetDimension = "tokensIn" | "tokensOut" | "totalTokens" | "cost";
+export type DeckGoBudgetStatus = "ok" | "warn" | "over";
+
+export type DeckGoBudgetRule = {
+  id: string;
+  name: string;
+  scope: string;
+  agentId: string | null;
+  taskId: string | null;
+  dimension: DeckGoBudgetDimension;
+  warnThreshold: number | null;
+  overThreshold: number | null;
+  period: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DeckGoBudgetEvaluation = {
+  ruleId: string;
+  ruleName: string;
+  status: DeckGoBudgetStatus;
+  current: number;
+  warnThreshold: number | null;
+  overThreshold: number | null;
+  dimension: DeckGoBudgetDimension;
+};
+
+export type DeckGoBudgetRulesResponse = {
+  rules: DeckGoBudgetRule[];
+};
+
+export type DeckGoBudgetEvaluationsResponse = {
+  evaluations: DeckGoBudgetEvaluation[];
+};
+
 export async function fetchLogsTail(params?: {
   cursor?: number;
   limit?: number;
@@ -792,6 +828,56 @@ export async function runMemoryDreams(
       body: JSON.stringify({ action }),
     },
     "memory dreams action failed",
+  );
+}
+
+export async function fetchBudgetRules() {
+  return fetchDeckJson<DeckGoBudgetRulesResponse>(
+    "/usage/budget",
+    undefined,
+    "budget rules fetch failed",
+  );
+}
+
+export async function createBudgetRule(
+  input: Omit<DeckGoBudgetRule, "id" | "createdAt" | "updatedAt">,
+) {
+  return fetchDeckJson<DeckGoBudgetRule>(
+    "/usage/budget",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "budget rule create failed",
+  );
+}
+
+export async function updateBudgetRule(id: string, input: Partial<DeckGoBudgetRule>) {
+  return fetchDeckJson<DeckGoBudgetRule>(
+    `/usage/budget/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "budget rule update failed",
+  );
+}
+
+export async function deleteBudgetRule(id: string) {
+  return fetchDeckJson<Record<string, unknown>>(
+    `/usage/budget/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+    "budget rule delete failed",
+  );
+}
+
+export async function evaluateBudgetRules() {
+  return fetchDeckJson<DeckGoBudgetEvaluationsResponse>(
+    "/usage/budget/evaluate",
+    undefined,
+    "budget evaluation failed",
   );
 }
 

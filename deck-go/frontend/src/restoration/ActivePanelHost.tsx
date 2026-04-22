@@ -11,6 +11,7 @@ import { findRestoredPanel, panelPlaceholderDescription } from "./panel-registry
 import { RestoredAlertsPanel } from "./panels/RestoredAlertsPanel";
 import { RestoredApiExplorerPanel } from "./panels/RestoredApiExplorerPanel";
 import { RestoredApprovalsPanel } from "./panels/RestoredApprovalsPanel";
+import { RestoredBudgetPanel } from "./panels/RestoredBudgetPanel";
 import { RestoredChannelsPanel } from "./panels/RestoredChannelsPanel";
 import { RestoredChatPanel } from "./panels/RestoredChatPanel";
 import { RestoredCronPanel } from "./panels/RestoredCronPanel";
@@ -95,6 +96,10 @@ export function ActivePanelHost() {
 
   if (entry.id === "alerts") {
     return <RestoredAlertsPanel />;
+  }
+
+  if (entry.id === "budget") {
+    return <RestoredBudgetPanel />;
   }
 
   if (entry.id === "webhooks") {
