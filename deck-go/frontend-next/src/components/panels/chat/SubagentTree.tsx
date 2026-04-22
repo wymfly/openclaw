@@ -10,7 +10,7 @@ interface SubagentNode {
   sessionKey: string;
   agentId: string;
   label?: string;
-  status: "running" | "done" | "failed" | "killed" | "idle" | string;
+  status: string;
   startedAt?: number;
   endedAt?: number;
   children: SubagentNode[];
@@ -29,16 +29,20 @@ export function SubagentTree() {
   useEffect(() => {
     if (!activeSessionKey) {
       setTree([]);
-      return;
+      return undefined;
     }
     let cancelled = false;
     const fetchTree = async () => {
       setLoading(true);
       try {
-        // TODO: Wire to actual API route — /api/deck/subagents/lineage does not exist yet.
-        // Integration step: create route calling gwRequest("deck.subagents.lineage", { sessionKey })
-        // or build tree from store's childSessions data instead of fetching.
-        const res = await deckFetch(`/api/deck/subagents/lineage?sessionKey=${activeSessionKey}`);
+        const res = await deckFetch("/api/deck/subagents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "lineage", sessionKey: activeSessionKey }),
+        });
+        if (!res.ok) {
+          return;
+        }
         const data = (await res.json()) as { nodes?: SubagentNode[] };
         if (!cancelled && Array.isArray(data.nodes)) {
           setTree(data.nodes);
@@ -46,7 +50,9 @@ export function SubagentTree() {
       } catch {
         // Non-critical — tree is supplementary
       } finally {
-        if (!cancelled) {setLoading(false);}
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
     void fetchTree();
@@ -55,7 +61,9 @@ export function SubagentTree() {
     };
   }, [activeSessionKey]);
 
-  if (tree.length === 0 && !loading) {return null;}
+  if (tree.length === 0 && !loading) {
+    return null;
+  }
 
   return (
     <div
