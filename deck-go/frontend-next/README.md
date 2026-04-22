@@ -62,9 +62,6 @@ remaining host-specific surfaces are intentionally narrow:
 - `src/lib/deck-client.ts`
   - browser-side transport shell for direct `deck-go` calls, including access
     token prompting, `x-deck-token` forwarding, and `Last-Event-ID` SSE replay
-- `src/i18n/request.ts`
-  - server-side locale bootstrap bridge that reads plugin locale inventory from
-    the Stage 2 control-plane during render-time execution
 
 The old `frontend-next/server` local runtime cluster has been retired. This host
 no longer carries a second local Gateway runtime, event bus, approval bridge,
@@ -76,6 +73,10 @@ endpoints in Stage 1 external-backend mode.
 
 Webhook callback ingress now belongs to the `deck-go` backend itself. The Next
 host no longer carries a special callback rewrite layer.
+
+Plugin locale bootstrap no longer bridges through the server request layer.
+Dynamic plugin wizard text now resolves from plugin inventory already loaded on
+the client path.
 
 Everything else in `frontend-next` should behave like a normal frontend
 consumer:

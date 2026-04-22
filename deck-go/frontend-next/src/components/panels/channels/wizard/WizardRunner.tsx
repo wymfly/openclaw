@@ -1,13 +1,14 @@
 "use client";
 
 import { CheckCircle2, Info, XCircle } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { deckFetch } from "@/lib/deck-client";
 import { useChannelsStore } from "@/stores/channels";
+import type { InventoryPluginLocaleBundle } from "@/stores/plugins";
 import { ConfigWizard, type WizardStep as ShellWizardStep } from "../ConfigWizard";
 import type { WizardSpec } from "./wizard-spec.types";
 
@@ -17,17 +18,40 @@ type WizardRunnerProps = {
   onOpenChange: (open: boolean) => void;
   spec: WizardSpec;
   title: string;
+  pluginLocales?: InventoryPluginLocaleBundle;
 };
 
 type StepValues = Record<string, unknown>;
 type ActionStatus = "idle" | "running" | "success" | "error";
 
+function readBundleString(bundle: unknown, path: string[]): string | undefined {
+  let current = bundle;
+  for (const segment of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return typeof current === "string" ? current : undefined;
+}
+
 function resolveIntlMessage(
   key: string,
   tWizard: (key: string) => string,
   tPlugin: (key: string) => string,
+  locale: string,
+  pluginId: string,
+  pluginLocales?: InventoryPluginLocaleBundle,
 ): string {
   if (key.startsWith("plugin.")) {
+    const pluginPrefix = `plugin.${pluginId}.`;
+    if (pluginLocales && key.startsWith(pluginPrefix)) {
+      const bundle = pluginLocales[locale] ?? pluginLocales.en;
+      const resolved = readBundleString(bundle, key.slice(pluginPrefix.length).split("."));
+      if (resolved) {
+        return resolved;
+      }
+    }
     return tPlugin(key.slice("plugin.".length));
   }
   if (key.startsWith("wizard.")) {
@@ -40,6 +64,9 @@ function resolveText(
   value: string | undefined,
   tWizard: (key: string) => string,
   tPlugin: (key: string) => string,
+  locale: string,
+  pluginId: string,
+  pluginLocales?: InventoryPluginLocaleBundle,
 ): string | undefined {
   if (!value) {
     return value;
@@ -47,7 +74,7 @@ function resolveText(
   if (!value.startsWith("$t:")) {
     return value;
   }
-  return resolveIntlMessage(value.slice(3), tWizard, tPlugin);
+  return resolveIntlMessage(value.slice(3), tWizard, tPlugin, locale, pluginId, pluginLocales);
 }
 
 function resolveRef(path: string, stepValues: StepValues): unknown {
@@ -143,12 +170,18 @@ function FormStep({
   onChange,
   tWizard,
   tPlugin,
+  locale,
+  pluginId,
+  pluginLocales,
 }: {
   schema: Record<string, unknown>;
   value: Record<string, unknown>;
   onChange: (value: Record<string, unknown>) => void;
   tWizard: (key: string) => string;
   tPlugin: (key: string) => string;
+  locale: string;
+  pluginId: string;
+  pluginLocales?: InventoryPluginLocaleBundle;
 }) {
   const properties =
     typeof schema.properties === "object" && schema.properties !== null
@@ -161,15 +194,30 @@ function FormStep({
         const inputId = `wizard-field-${key}`;
         const label =
           typeof fieldSchema.title === "string"
-            ? (resolveText(fieldSchema.title, tWizard, tPlugin) ?? key)
+            ? (resolveText(fieldSchema.title, tWizard, tPlugin, locale, pluginId, pluginLocales) ??
+              key)
             : key;
         const placeholder =
           typeof fieldSchema.placeholder === "string"
-            ? resolveText(fieldSchema.placeholder, tWizard, tPlugin)
+            ? resolveText(
+                fieldSchema.placeholder,
+                tWizard,
+                tPlugin,
+                locale,
+                pluginId,
+                pluginLocales,
+              )
             : undefined;
         const help =
           typeof fieldSchema.description === "string"
-            ? resolveText(fieldSchema.description, tWizard, tPlugin)
+            ? resolveText(
+                fieldSchema.description,
+                tWizard,
+                tPlugin,
+                locale,
+                pluginId,
+                pluginLocales,
+              )
             : undefined;
         const type = fieldSchema.format === "password" ? "password" : "text";
         return (
@@ -239,9 +287,17 @@ function ActionStep({
   );
 }
 
-export function WizardRunner({ channelId, open, onOpenChange, spec, title }: WizardRunnerProps) {
+export function WizardRunner({
+  channelId,
+  open,
+  onOpenChange,
+  spec,
+  title,
+  pluginLocales,
+}: WizardRunnerProps) {
   const tWizard = useTranslations("wizard");
   const tPlugin = useTranslations("plugin");
+  const locale = useLocale();
   const channelOrder = useChannelsStore((state) => state.channelOrder);
   const updateChannelConfig = useChannelsStore((state) => state.updateChannelConfig);
   const [stepValues, setStepValues] = useState<StepValues>({});
@@ -309,7 +365,9 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
       switch (step.type) {
         case "radio":
           return {
-            title: resolveText(step.title, tWizard, tPlugin) ?? step.title,
+            title:
+              resolveText(step.title, tWizard, tPlugin, locale, channelId, pluginLocales) ??
+              step.title,
             content: (
               <div className="space-y-3">
                 {!pluginInstalled && step.id === "mode" && (
@@ -320,6 +378,9 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
                         `plugin.${channelId}.pluginNotInstalled`,
                         tWizard,
                         tPlugin,
+                        locale,
+                        channelId,
+                        pluginLocales,
                       )}
                     </span>
                   </div>
@@ -327,9 +388,31 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
                 <RadioStep
                   options={step.options.map((option) => ({
                     ...option,
-                    label: resolveText(option.label, tWizard, tPlugin) ?? option.label,
-                    description: resolveText(option.description, tWizard, tPlugin),
-                    badge: resolveText(option.badge, tWizard, tPlugin),
+                    label:
+                      resolveText(
+                        option.label,
+                        tWizard,
+                        tPlugin,
+                        locale,
+                        channelId,
+                        pluginLocales,
+                      ) ?? option.label,
+                    description: resolveText(
+                      option.description,
+                      tWizard,
+                      tPlugin,
+                      locale,
+                      channelId,
+                      pluginLocales,
+                    ),
+                    badge: resolveText(
+                      option.badge,
+                      tWizard,
+                      tPlugin,
+                      locale,
+                      channelId,
+                      pluginLocales,
+                    ),
                   }))}
                   value={
                     typeof stepValues[step.id] === "string"
@@ -345,7 +428,9 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
           };
         case "form":
           return {
-            title: resolveText(step.title, tWizard, tPlugin) ?? step.title,
+            title:
+              resolveText(step.title, tWizard, tPlugin, locale, channelId, pluginLocales) ??
+              step.title,
             content: (
               <FormStep
                 schema={step.schema}
@@ -353,6 +438,9 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
                 onChange={(value) => setStepValues((prev) => ({ ...prev, [step.id]: value }))}
                 tWizard={tWizard}
                 tPlugin={tPlugin}
+                locale={locale}
+                pluginId={channelId}
+                pluginLocales={pluginLocales}
               />
             ),
             validate: () => {
@@ -370,10 +458,19 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
           };
         case "action":
           return {
-            title: resolveText(step.title, tWizard, tPlugin) ?? step.title,
+            title:
+              resolveText(step.title, tWizard, tPlugin, locale, channelId, pluginLocales) ??
+              step.title,
             content: (
               <ActionStep
-                description={resolveText(step.description, tWizard, tPlugin)}
+                description={resolveText(
+                  step.description,
+                  tWizard,
+                  tPlugin,
+                  locale,
+                  channelId,
+                  pluginLocales,
+                )}
                 actionStatus={actionStatus[step.id] ?? "idle"}
                 actionMessage={actionMessages[step.id] ?? ""}
                 buttonLabel={tWizard("testConnection")}
@@ -383,8 +480,22 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
                     step.id,
                     step.action,
                     params,
-                    resolveText(step.successMessage, tWizard, tPlugin),
-                    resolveText(step.failureMessage, tWizard, tPlugin),
+                    resolveText(
+                      step.successMessage,
+                      tWizard,
+                      tPlugin,
+                      locale,
+                      channelId,
+                      pluginLocales,
+                    ),
+                    resolveText(
+                      step.failureMessage,
+                      tWizard,
+                      tPlugin,
+                      locale,
+                      channelId,
+                      pluginLocales,
+                    ),
                   );
                 }}
               />
@@ -392,8 +503,17 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
           };
         case "info":
           return {
-            title: resolveText(step.title, tWizard, tPlugin) ?? step.title,
-            content: <InfoStep body={resolveText(step.body, tWizard, tPlugin) ?? step.body} />,
+            title:
+              resolveText(step.title, tWizard, tPlugin, locale, channelId, pluginLocales) ??
+              step.title,
+            content: (
+              <InfoStep
+                body={
+                  resolveText(step.body, tWizard, tPlugin, locale, channelId, pluginLocales) ??
+                  step.body
+                }
+              />
+            ),
           };
       }
       const unreachableStep: never = step;
@@ -407,6 +527,8 @@ export function WizardRunner({ channelId, open, onOpenChange, spec, title }: Wiz
     runAction,
     spec.steps,
     stepValues,
+    locale,
+    pluginLocales,
     tPlugin,
     tWizard,
   ]);

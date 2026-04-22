@@ -95,6 +95,7 @@ export function ChannelWizardDialog({
         onOpenChange={onOpenChange}
         spec={spec}
         title={title}
+        pluginLocales={uiDefinition.fallback.locales}
       />
     );
   } catch {

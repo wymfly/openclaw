@@ -6,6 +6,7 @@ import { WizardRunner } from "./WizardRunner";
 const updateChannelConfig = vi.fn(async () => true);
 
 vi.mock("next-intl", () => ({
+  useLocale: () => "en",
   useTranslations: (ns: string) => (key: string) => {
     const table: Record<string, Record<string, string>> = {
       common: { cancel: "Cancel" },
@@ -19,26 +20,7 @@ vi.mock("next-intl", () => ({
         recommended: "Recommended",
         stepProgress: "Step progress",
       },
-      plugin: {
-        "feishu.title": "Configure Feishu",
-        "feishu.step1Title": "Mode",
-        "feishu.step2Title": "Credentials",
-        "feishu.step3Title": "Validation",
-        "feishu.modeWebSocket": "WebSocket",
-        "feishu.modeWebSocketDesc": "WS Desc",
-        "feishu.modeWebhook": "Webhook",
-        "feishu.modeWebhookDesc": "Webhook Desc",
-        "feishu.appId": "App ID",
-        "feishu.appIdHint": "app-id",
-        "feishu.appIdHelp": "App ID help",
-        "feishu.appSecret": "App Secret",
-        "feishu.appSecretHint": "app-secret",
-        "feishu.appSecretHelp": "App Secret help",
-        "feishu.testDesc": "Run probe",
-        "feishu.probeSuccess": "Probe success",
-        "feishu.probeFailed": "Probe failed",
-        "feishu.pluginNotInstalled": "Plugin missing",
-      },
+      plugin: {},
     };
     return table[ns]?.[key] ?? key;
   },
@@ -114,6 +96,19 @@ describe("WizardRunner", () => {
               appId: { $ref: "$steps.creds.value.appId" },
               appSecret: { $ref: "$steps.creds.value.appSecret" },
             },
+          },
+        }}
+        pluginLocales={{
+          en: {
+            step1Title: "Mode",
+            step2Title: "Credentials",
+            step3Title: "Validation",
+            modeWebSocket: "WebSocket",
+            modeWebhook: "Webhook",
+            appId: "App ID",
+            appSecret: "App Secret",
+            probeSuccess: "Probe success",
+            probeFailed: "Probe failed",
           },
         }}
       />,

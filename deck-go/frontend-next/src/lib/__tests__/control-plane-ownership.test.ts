@@ -29,7 +29,7 @@ const allowedControlPlaneBaseReaders = new Set(["lib/deck-go-base.ts"]);
 
 const allowedDeckHeaderShells = new Set(["lib/deck-client.ts"]);
 
-const allowedControlPlaneBaseImporters = new Set(["lib/deck-client.ts", "i18n/request.ts"]);
+const allowedControlPlaneBaseImporters = new Set(["lib/deck-client.ts"]);
 
 function collectFiles(root: string, predicate: (file: string) => boolean): string[] {
   const entries = readdirSync(root, { withFileTypes: true });
