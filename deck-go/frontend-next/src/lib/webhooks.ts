@@ -8,7 +8,7 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { getJsonStore } from "@server/json-store";
+import { getJsonStore } from "./json-store";
 
 // ---------------------------------------------------------------------------
 // Types

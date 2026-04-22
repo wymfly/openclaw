@@ -6,7 +6,7 @@
  *
  * Uses globalThis singleton (HMR-safe) via `getJsonStore`.
  */
-import { getJsonStore, type JsonStore } from "./json-store";
+import { getJsonStore, type JsonStore } from "../src/lib/json-store";
 
 // ---------------------------------------------------------------------------
 // Store accessor

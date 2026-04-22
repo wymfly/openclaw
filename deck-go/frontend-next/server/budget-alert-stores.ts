@@ -3,7 +3,7 @@
  *
  * Replaces SQLite budget_rules and alert_rules tables.
  */
-import { getJsonStore, type JsonStore } from "./json-store";
+import { getJsonStore, type JsonStore } from "../src/lib/json-store";
 
 // ---------------------------------------------------------------------------
 // Budget Rule

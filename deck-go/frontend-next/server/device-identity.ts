@@ -6,7 +6,7 @@
  * All crypto uses Node.js built-in `crypto` — no external deps.
  */
 import crypto from "node:crypto";
-import { getJsonStore } from "./json-store";
+import { getJsonStore } from "../src/lib/json-store";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,8 +91,8 @@ export function deriveDeviceId(publicKeyPem: string): string {
 export function generateDeviceIdentity(): DeviceIdentity {
   const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
 
-  const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
-  const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+  const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+  const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" });
 
   return {
     deviceId: deriveDeviceId(publicKeyPem),
