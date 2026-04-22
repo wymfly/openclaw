@@ -43,6 +43,10 @@ collapse together:
     defaults; new managed supervisors should be created through
     `NewManagedSupervisorWithOptions(...)` rather than reaching into the generic
     supervisor package directly
+  - owns the legacy `/api/runtime/gateway*` route contract after the runtime
+    route cutover; treat `openclaw.ManagedRuntime` as the lifecycle response
+    authority even when `internal/server/runtime.go` still contains thin HTTP
+    translation helpers
 - `internal/runtime/registry`
   - owns read-only runtime inventory summaries plus replay/subscribe feed
   - consumes supervisor snapshots and capability summaries
@@ -52,5 +56,7 @@ This split preserves the intended authority model:
 
 - OpenClaw runtime remains runtime truth
 - `deck-go` owns bounded lifecycle supervision above that truth
+- legacy runtime-gateway route ownership now flows through
+  `openclaw.ManagedRuntime`, not `internal/server`
 - registry surfaces stay descriptive/read-only even when they are fed by
   supervisor lifecycle events

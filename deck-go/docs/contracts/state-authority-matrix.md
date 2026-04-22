@@ -30,13 +30,16 @@ three packages. Keep the seam explicit:
 | Package                                  | Owns                                                                 | Must not own                                                                    |
 | ---------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `backend/internal/runtime/supervisor`    | managed process lifecycle, probe state, exit bookkeeping, snapshots  | deck-facing DTOs, runtime inventory summaries, frontend contracts               |
-| `backend/internal/runtime/openclaw`      | Deck control-plane facade, transport binding, lifecycle route wiring | generic process supervision internals, standalone runtime truth, inventory-only concerns |
+| `backend/internal/runtime/openclaw`      | Deck control-plane facade, transport binding, lifecycle route wiring, legacy `/api/runtime/gateway*` contract ownership | generic process supervision internals, standalone runtime truth, inventory-only concerns |
 | `backend/internal/runtime/registry`      | read-only runtime inventory, summary projection, replay/subscription feed | start/stop/restart control, config mutation, supervisor policy                  |
 
 Practical rule:
 
 - lifecycle **control** flows through `openclaw -> supervisor`
 - lifecycle **observation** flows through `supervisor -> registry`
+- runtime-gateway route **ownership** flows through `openclaw.ManagedRuntime`;
+  `backend/internal/server/runtime.go` should be treated as thin HTTP wiring,
+  not the long-term owner of lifecycle response shaping
 - frontend/API routes consume the `openclaw.ManagedRuntime` facade instead of
   stitching supervisor and registry together ad hoc
 
