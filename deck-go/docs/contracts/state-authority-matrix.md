@@ -22,6 +22,24 @@ This document defines ownership of state in the corrected `deck-go` architecture
 | Stream fanout/reconnect bookkeeping                          | deck-go          | control-plane responsibility                          | high                      |
 | Browser tabs/filters/unsaved local state                     | React frontend   | transient UI only                                     | low                       |
 
+## Current package seams for lifecycle/state ownership
+
+The Stage 2 backend currently splits lifecycle and inventory ownership across
+three packages. Keep the seam explicit:
+
+| Package                                  | Owns                                                                 | Must not own                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `backend/internal/runtime/supervisor`    | managed process lifecycle, probe state, exit bookkeeping, snapshots  | deck-facing DTOs, runtime inventory summaries, frontend contracts               |
+| `backend/internal/runtime/openclaw`      | Deck control-plane facade, transport binding, lifecycle route wiring | generic process supervision internals, standalone runtime truth, inventory-only concerns |
+| `backend/internal/runtime/registry`      | read-only runtime inventory, summary projection, replay/subscription feed | start/stop/restart control, config mutation, supervisor policy                  |
+
+Practical rule:
+
+- lifecycle **control** flows through `openclaw -> supervisor`
+- lifecycle **observation** flows through `supervisor -> registry`
+- frontend/API routes consume the `openclaw.ManagedRuntime` facade instead of
+  stitching supervisor and registry together ad hoc
+
 ## Promotion Beyond Deck
 
 Surfaces with likely future service relevance:

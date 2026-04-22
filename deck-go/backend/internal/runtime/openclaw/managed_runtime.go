@@ -227,7 +227,7 @@ var _ ManagedRuntimeSurface = (*ManagedRuntime)(nil)
 var _ ManagedRuntimeSupervisor = (*runtimecontrol.Supervisor)(nil)
 
 func NewManagedRuntime(store *config.Store, bus *events.Bus) *ManagedRuntime {
-	supervisor := runtimecontrol.NewSupervisor(store, bus)
+	supervisor := NewManagedSupervisorWithOptions(store, bus)
 	return NewManagedRuntimeWithStoreAndSupervisor(store, supervisor, bus)
 }
 

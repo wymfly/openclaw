@@ -22,3 +22,35 @@ Entrypoints:
 - `cmd/deck-go/` — Stage 1 canonical backend entrypoint
 - `cmd/controld/` — Stage 2 successor entrypoint alias using the same backend
   handler while the `controld` boundary is being introduced
+
+## Runtime lifecycle ownership seams
+
+The current Stage 2 runtime stack is intentionally split across three backend
+packages so lifecycle truth, runtime adaptation, and inventory surfaces do not
+collapse together:
+
+- `internal/runtime/supervisor`
+  - owns the managed child-process lifecycle snapshot
+  - owns start/stop/restart, probe state, exit bookkeeping, and lifecycle event
+    emission
+  - does **not** own deck-facing DTOs, runtime inventory summaries, or frontend
+    contracts
+- `internal/runtime/openclaw`
+  - owns the Deck control-plane seam above the generic supervisor
+  - binds supervisor + transport requester + session subscriptions + projection
+    queries into the `ManagedRuntime` facade consumed by HTTP/SSE routes
+  - is the correct home for Deck-specific lifecycle wiring and constructor
+    defaults; new managed supervisors should be created through
+    `NewManagedSupervisorWithOptions(...)` rather than reaching into the generic
+    supervisor package directly
+- `internal/runtime/registry`
+  - owns read-only runtime inventory summaries plus replay/subscribe feed
+  - consumes supervisor snapshots and capability summaries
+  - must never gain process-control responsibilities
+
+This split preserves the intended authority model:
+
+- OpenClaw runtime remains runtime truth
+- `deck-go` owns bounded lifecycle supervision above that truth
+- registry surfaces stay descriptive/read-only even when they are fed by
+  supervisor lifecycle events
