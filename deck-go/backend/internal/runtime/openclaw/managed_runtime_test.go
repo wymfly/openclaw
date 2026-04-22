@@ -3,7 +3,11 @@ package openclaw
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -187,5 +191,54 @@ func expectManagedRuntimeEvent(t *testing.T, sub <-chan events.Event, eventType 
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatalf("timed out waiting for %s", eventType)
+	}
+}
+
+func TestExternalPackages_DoNotCallRawManagedRuntimeSupervisorMethods(t *testing.T) {
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("failed to resolve current test file")
+	}
+
+	root := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
+	targetDirs := []string{
+		filepath.Join(root, "server"),
+		filepath.Join(root, "controld"),
+	}
+	forbiddenPatterns := []string{
+		"managed.Start(",
+		"managed.Stop(",
+		"managed.Restart(",
+		"managed.Snapshot(",
+		"managed.GatewayConnection(",
+		"managed.RuntimeSupervisor(",
+		"deps.Runtime.Start(",
+		"deps.Runtime.Stop(",
+		"deps.Runtime.Restart(",
+		"deps.Runtime.Snapshot(",
+		"deps.Runtime.GatewayConnection(",
+		"deps.Runtime.RuntimeSupervisor(",
+	}
+
+	for _, dir := range targetDirs {
+		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+		if err != nil {
+			t.Fatalf("failed to glob %s: %v", dir, err)
+		}
+		for _, file := range files {
+			if strings.HasSuffix(file, "_test.go") {
+				continue
+			}
+			content, err := os.ReadFile(file)
+			if err != nil {
+				t.Fatalf("failed to read %s: %v", file, err)
+			}
+			source := string(content)
+			for _, pattern := range forbiddenPatterns {
+				if strings.Contains(source, pattern) {
+					t.Fatalf("unexpected raw ManagedRuntimeSurface supervisor dependency %q in %s", pattern, file)
+				}
+			}
+		}
 	}
 }
