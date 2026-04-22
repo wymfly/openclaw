@@ -3,11 +3,6 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BACKEND_ADDR="${DECK_GO_SMOKE_BACKEND_ADDR:-127.0.0.1:19566}"
-FRONTEND_HOST="${DECK_GO_SMOKE_FRONTEND_HOST:-127.0.0.1}"
-FRONTEND_PORT="${DECK_GO_SMOKE_FRONTEND_PORT:-4174}"
-BACKEND_BASE="http://${BACKEND_ADDR}"
-FRONTEND_BASE="http://${FRONTEND_HOST}:${FRONTEND_PORT}"
 DATA_DIR="${DECK_GO_SMOKE_DATA_DIR:-$(mktemp -d /tmp/deck-go-stage3-smoke.XXXXXX)}"
 KEEP_DATA_DIR="${DECK_GO_SMOKE_KEEP_DATA_DIR:-0}"
 BACKEND_LOG="$(mktemp /tmp/deck-go-stage3-backend.XXXXXX.log)"
@@ -15,6 +10,25 @@ FRONTEND_LOG="$(mktemp /tmp/deck-go-stage3-frontend.XXXXXX.log)"
 
 backend_pid=""
 frontend_pid=""
+
+pick_port() {
+  python3 - <<'PY'
+import socket
+
+sock = socket.socket()
+sock.bind(("127.0.0.1", 0))
+print(sock.getsockname()[1])
+sock.close()
+PY
+}
+
+BACKEND_HOST="${DECK_GO_SMOKE_BACKEND_HOST:-127.0.0.1}"
+BACKEND_PORT="${DECK_GO_SMOKE_BACKEND_PORT:-$(pick_port)}"
+BACKEND_ADDR="${DECK_GO_SMOKE_BACKEND_ADDR:-${BACKEND_HOST}:${BACKEND_PORT}}"
+BACKEND_BASE="http://${BACKEND_ADDR}"
+FRONTEND_HOST="${DECK_GO_SMOKE_FRONTEND_HOST:-127.0.0.1}"
+FRONTEND_PORT="${DECK_GO_SMOKE_FRONTEND_PORT:-$(pick_port)}"
+FRONTEND_BASE="http://${FRONTEND_HOST}:${FRONTEND_PORT}"
 
 cleanup() {
   local exit_code=$?
@@ -61,6 +75,31 @@ wait_for_url() {
   done
 }
 
+assert_status() {
+  local url="$1"
+  local label="$2"
+  shift 2
+  local expected_statuses=("$@")
+  local body_file
+  body_file="$(mktemp /tmp/deck-go-stage3-smoke-body.XXXXXX)"
+
+  local status
+  status="$(curl -s -o "${body_file}" -w "%{http_code}" "${url}")"
+
+  for expected in "${expected_statuses[@]}"; do
+    if [[ "${status}" == "${expected}" ]]; then
+      rm -f "${body_file}"
+      echo "[stage3-smoke] ${label}: ${status}"
+      return 0
+    fi
+  done
+
+  echo "[stage3-smoke] unexpected status for ${label}: ${status}" >&2
+  cat "${body_file}" >&2 || true
+  rm -f "${body_file}"
+  return 1
+}
+
 echo "[stage3-smoke] building Vite host"
 (cd "${ROOT_DIR}/frontend" && VITE_DECK_GO_API_BASE="${BACKEND_BASE}" npm run build) >/dev/null
 
@@ -98,6 +137,17 @@ echo
 echo "[stage3-smoke] bootstrap status"
 curl -sf "${BACKEND_BASE}/api/bootstrap/status"
 echo
+echo
+
+assert_status "${BACKEND_BASE}/api/logs?limit=1" "logs" 200 502
+assert_status "${BACKEND_BASE}/api/models/config" "models config" 200 502
+assert_status "${BACKEND_BASE}/api/config" "config" 200 502
+assert_status "${BACKEND_BASE}/api/channels" "channels inventory" 200 502
+assert_status "${BACKEND_BASE}/api/deck/plugins" "plugins inventory" 200 502
+assert_status "${BACKEND_BASE}/api/sessions" "sessions inventory" 200 502
+
+echo
+echo "[stage3-smoke] verified stable local surfaces plus runtime-backed inventory route wiring"
 echo
 
 echo "[stage3-smoke] Stage 3 host smoke passed"
