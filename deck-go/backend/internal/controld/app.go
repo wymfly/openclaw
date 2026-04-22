@@ -68,7 +68,8 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 	}
 	managed := deps.Runtime
 	bus := managed.EventBus()
-	if managed.GatewayQueries() == nil || managed.SessionCommands() == nil || managed.SessionQueries() == nil || managed.SessionSubscriptions() == nil || bus == nil {
+	registry := managed.RuntimeRegistry()
+	if managed.GatewayQueries() == nil || managed.SessionCommands() == nil || managed.SessionQueries() == nil || managed.SessionSubscriptions() == nil || bus == nil || registry == nil {
 		panic("controld managed runtime is incomplete")
 	}
 
@@ -116,7 +117,7 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 		)
 		httpapi.MountRoutes(
 			api,
-			managed,
+			registry,
 			managed.SessionQueries(),
 			managed,
 			managed,
@@ -133,7 +134,7 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 			managed,
 			managed,
 		)
-		wsapi.MountRoutes(api, managed)
+		wsapi.MountRoutes(api, registry)
 	})
 
 	root.Mount("/", server.NewRootHandler(deps.Store, managed))
