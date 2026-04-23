@@ -17,7 +17,6 @@ export type DeckStreamOptions = {
 
 type DeckTransportOptions = {
   readControlPlaneBase?: () => string | null | undefined;
-  readApiBase?: () => string | null | undefined;
   readStoredToken?: () => string | null | undefined;
   writeStoredToken?: (token: string | null) => void;
   promptMessage?: string;
@@ -232,16 +231,12 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
 
   function resolveDeckInput(input: RequestInfo | URL): RequestInfo | URL {
     const controlPlaneBase = normalizeBase(options.readControlPlaneBase?.());
-    const apiBase = normalizeBase(options.readApiBase?.());
     const resolveString = (value: string) => {
       if (!value.startsWith("/api/")) {
         return value;
       }
       if (controlPlaneBase) {
         return `${controlPlaneBase}${value}`;
-      }
-      if (apiBase) {
-        return `${apiBase}${value.slice(4)}`;
       }
       return value;
     };

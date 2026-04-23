@@ -26,6 +26,7 @@ const forbiddenPatterns = [
   { label: "next build reference", regex: /\bnext build\b/ },
   { label: "next dev reference", regex: /\bnext dev\b/ },
   { label: "next start reference", regex: /\bnext start\b/ },
+  { label: "legacy VITE_API_BASE contract", regex: /\bVITE_API_BASE\b/ },
 ];
 
 const hits = [];

@@ -109,5 +109,5 @@ The frontend build now includes a structural guard that fails if:
 ## 6. Known constraints
 
 - live browser smoke against the Stage 3 host is still a separate follow-up tranche; `make verify` is the current canonical gate
-- if `VITE_DECK_GO_API_BASE` is omitted, `deck-client.ts` will fall back to `VITE_API_BASE` and then the local default API origin
+- if `VITE_DECK_GO_API_BASE` is omitted, `deck-client.ts` stays on relative `/api/*` paths and therefore requires the current host origin to be the backend
 - `frontend-next` may still be retained in-repo for archive/reference-only comparison, but it is not part of the default host path

@@ -6,6 +6,7 @@ Current facts:
 
 - `src/main.tsx` boots the restored Vite host by default
 - browser transport goes through `src/lib/deck-client.ts`
+- browser transport now recognizes only `VITE_DECK_GO_API_BASE`; otherwise it stays on the current host origin
 - the build now runs `scripts/check-restored-host.mjs` before TypeScript/Vite
 - `frontend-next/` is archive/reference-only and is no longer the active host path
 

@@ -33,10 +33,6 @@ function writeStoredToken(token: string | null) {
 const transport = createDeckTransport({
   readControlPlaneBase: () =>
     readImportMetaEnv("VITE_DECK_GO_API_BASE") ?? readProcessEnv("VITE_DECK_GO_API_BASE"),
-  readApiBase: () =>
-    readImportMetaEnv("VITE_API_BASE") ??
-    readProcessEnv("VITE_API_BASE") ??
-    "http://127.0.0.1:19528/api",
   readStoredToken,
   writeStoredToken,
 });

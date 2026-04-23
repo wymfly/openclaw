@@ -59,7 +59,7 @@ Active host-specific shell:
 
 - `frontend/src/lib/deck-client.ts`
   - owns browser transport/auth/reconnect behavior for the active Vite host
-  - reads `VITE_DECK_GO_API_BASE` / `VITE_API_BASE`
+  - reads `VITE_DECK_GO_API_BASE`, otherwise keeps browser requests on the current host origin
   - owns `x-deck-token` and `Last-Event-ID` browser headers
 
 Active host invariants:
