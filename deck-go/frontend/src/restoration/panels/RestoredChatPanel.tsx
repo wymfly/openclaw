@@ -343,12 +343,19 @@ export function RestoredChatPanel() {
         }
 
         if (
+          parsed.kind === "session.message" ||
+          parsed.kind === "session.tool" ||
+          parsed.kind === "sessions.changed"
+        ) {
+          setLiveTimeline((current) => [summarizeServerEvent(event), ...current].slice(0, 8));
+        }
+
+        if (
           (parsed.kind === "session.message" ||
             parsed.kind === "session.tool" ||
             parsed.kind === "sessions.changed") &&
           parsed.payload.sessionKey === sessionKey
         ) {
-          setLiveTimeline((current) => [summarizeServerEvent(event), ...current].slice(0, 8));
           if (parsed.kind === "session.message") {
             applyLiveMessage(parsed.payload);
           } else if (parsed.kind === "session.tool") {
