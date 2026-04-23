@@ -68,8 +68,9 @@ make smoke-stage3-host
 
 That smoke now includes a headless browser probe over the live Vite preview and
 waits for restored host content to hydrate, instead of stopping at static HTML.
-It also runs through the active host's in-shell access-token unlock path by
-default instead of pre-seeding browser storage.
+It also runs through the active host's real in-shell access-token unlock path
+by default instead of pre-seeding browser storage, including one invalid-token
+retry before the smoke unlocks with the correct token.
 Under the default local smoke setup, it additionally checks that
 `POST /api/runtime/gateway/start` reaches the managed-runtime preflight and
 returns the expected `managed gateway token is required` error.
@@ -86,7 +87,10 @@ make smoke-stage3-host
 In that richer mode the smoke expects lifecycle start acceptance and upgrades
 the managed runtime all the way to `running/healthy`, then upgrades several
 runtime-backed inventory/config routes from `502` wiring proof to `200` data
-proof. It also proves a minimal chat control flow by creating a session,
+proof. That richer lane now keeps its focus on managed-runtime/browser workflow
+proof instead of re-running the default auth-retry proof; it seeds the known
+smoke access token before browser hydration, then proves a minimal chat control
+flow by creating a session,
 sending a message, waiting for user+assistant history to appear, surfacing the
 user message in visible transcript content, surviving a page reload, aborting
 the started run, and completing a managed runtime stop/start cycle back to

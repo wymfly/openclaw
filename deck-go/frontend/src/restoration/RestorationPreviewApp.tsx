@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import type { FormEvent } from "react";
 import { useThemeMode } from "../theme";
 import { ActivePanelHost } from "./ActivePanelHost";
 import { RestoredShell } from "./layout/Shell";
@@ -15,8 +15,14 @@ function RestorationPreviewFrame() {
     setAuthTokenInput,
     unlockControlPlane,
   } = useRestorationUI();
-  const authInputRef = useRef<HTMLInputElement | null>(null);
   useRestorationShortcuts();
+
+  const handleUnlockSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formValue = new FormData(event.currentTarget).get("deckAccessToken");
+    const nextToken = typeof formValue === "string" ? formValue : authTokenInput;
+    void unlockControlPlane(nextToken);
+  };
 
   if (!summaryReady) {
     return (
@@ -57,12 +63,12 @@ function RestorationPreviewFrame() {
                 <h2 className="deckgo-card-title">Authentication required</h2>
               </div>
               <p className="deckgo-card-subtitle">{authMessage}</p>
-              <div className="deckgo-card-body deckgo-form-grid">
+              <form className="deckgo-card-body deckgo-form-grid" onSubmit={handleUnlockSubmit}>
                 <label className="deckgo-label">
                   <span>Deck access token</span>
                   <input
-                    ref={authInputRef}
                     className="deckgo-input"
+                    name="deckAccessToken"
                     type="password"
                     value={authTokenInput}
                     onChange={(event) => setAuthTokenInput(event.target.value)}
@@ -72,16 +78,13 @@ function RestorationPreviewFrame() {
                 <div className="deckgo-actions">
                   <button
                     className="deckgo-button is-primary"
-                    type="button"
-                    onClick={() =>
-                      void unlockControlPlane(authInputRef.current?.value ?? authTokenInput)
-                    }
+                    type="submit"
                     disabled={refreshingSummary}
                   >
                     {refreshingSummary ? "Unlocking..." : "Unlock control plane"}
                   </button>
                 </div>
-              </div>
+              </form>
             </section>
           </section>
           <div className="deckgo-column" />

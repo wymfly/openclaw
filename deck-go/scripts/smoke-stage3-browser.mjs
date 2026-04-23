@@ -35,6 +35,11 @@ function formatSmokeDiagnostics(details) {
       `Recent stream trace:\n${details.streamTrace.map((entry) => JSON.stringify(entry)).join("\n")}`,
     );
   }
+  if (details.authTrace?.length) {
+    parts.push(
+      `Recent auth trace:\n${details.authTrace.map((entry) => JSON.stringify(entry)).join("\n")}`,
+    );
+  }
   if (details.dialogTrace?.length) {
     parts.push(
       `Dialog trace:\n${details.dialogTrace.map((entry) => JSON.stringify(entry)).join("\n")}`,
@@ -64,9 +69,11 @@ const navigationOptions = { waitUntil: "commit", timeout: 15_000 };
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
   const streamTrace = [];
+  const authTrace = [];
   const dialogTrace = [];
   let promptCount = 0;
   let unlockCount = 0;
+  let authRetryCount = 0;
   const pushTrace = (...entry) => {
     streamTrace.push(entry);
     if (streamTrace.length > 40) {
@@ -79,6 +86,12 @@ try {
       dialogTrace.shift();
     }
   };
+  const pushAuthTrace = (...entry) => {
+    authTrace.push(entry);
+    if (authTrace.length > 20) {
+      authTrace.shift();
+    }
+  };
   page.on("console", (message) => {
     const text = message.text();
     if (text.includes("__stream_") || text.includes("__replace_")) {
@@ -88,6 +101,13 @@ try {
   page.on("request", (request) => {
     if (request.url().includes("/api/stream")) {
       pushTrace(["request", request.method(), request.url()]);
+    }
+    if (
+      request.url().includes("/api/bootstrap/status") ||
+      request.url().includes("/api/runtime/gateway")
+    ) {
+      const headers = request.headers();
+      pushAuthTrace(["request", request.method(), request.url(), headers["x-deck-token"] || ""]);
     }
   });
   page.on("requestfailed", (request) => {
@@ -109,49 +129,55 @@ try {
     }
     await dialog.dismiss();
   });
-  await page.addInitScript(() => {
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = async (...args) => {
-      const input = args[0];
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input instanceof Request
-              ? input.url
-              : JSON.stringify(input);
-      if (url.includes("/api/stream")) {
-        console.log("__stream_fetch__", url);
+  await page.addInitScript(
+    ({ richMode, seedToken }) => {
+      if (richMode && typeof window !== "undefined" && seedToken?.trim()) {
+        window.localStorage.setItem("deckGoAccessToken", seedToken);
       }
-      try {
-        const response = await originalFetch(...args);
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (...args) => {
+        const input = args[0];
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input instanceof Request
+                ? input.url
+                : JSON.stringify(input);
         if (url.includes("/api/stream")) {
-          console.log("__stream_response__", url, response.status);
+          console.log("__stream_fetch__", url);
         }
-        return response;
-      } catch (error) {
-        if (url.includes("/api/stream")) {
-          console.log(
-            "__stream_error__",
-            url,
-            error?.name || "Error",
-            error?.message || String(error),
-          );
+        try {
+          const response = await originalFetch(...args);
+          if (url.includes("/api/stream")) {
+            console.log("__stream_response__", url, response.status);
+          }
+          return response;
+        } catch (error) {
+          if (url.includes("/api/stream")) {
+            console.log(
+              "__stream_error__",
+              url,
+              error?.name || "Error",
+              error?.message || String(error),
+            );
+          }
+          throw error;
         }
-        throw error;
-      }
-    };
+      };
 
-    const originalReplace = Location.prototype.replace.bind(window.location);
-    Object.defineProperty(Location.prototype, "replace", {
-      configurable: true,
-      value: function (...replaceArgs) {
-        console.log("__replace_called__", String(replaceArgs[0] ?? ""));
-        return originalReplace(...replaceArgs);
-      },
-    });
-  });
+      const originalReplace = Location.prototype.replace.bind(window.location);
+      Object.defineProperty(Location.prototype, "replace", {
+        configurable: true,
+        value: function (...replaceArgs) {
+          console.log("__replace_called__", String(replaceArgs[0] ?? ""));
+          return originalReplace(...replaceArgs);
+        },
+      });
+    },
+    { richMode: mode === "rich", seedToken: authToken },
+  );
 
   const collectDiagnostics = async () => ({
     storage: await page.evaluate(() => ({
@@ -161,32 +187,97 @@ try {
       href: window.location.href,
     })),
     streamTrace,
+    authTrace,
     dialogTrace,
   });
 
   await page.goto(baseUrl, navigationOptions);
 
-  if (authToken.trim()) {
+  if (authToken.trim() && mode === "basic") {
     const unlockHeading = page.getByText("Unlock control plane", { exact: false }).first();
     const shellHeading = page.getByText("Deck Go operator shell", { exact: false }).first();
+    const tokenInput = page.getByPlaceholder("Enter deck-go access token");
     const authDeadline = Date.now() + 15_000;
     while (Date.now() < authDeadline) {
       if (await shellHeading.isVisible().catch(() => false)) {
         break;
       }
       if (await unlockHeading.isVisible().catch(() => false)) {
-        const tokenInput = page.getByPlaceholder("Enter deck-go access token");
-        await tokenInput.fill(authToken);
-        await page.waitForFunction(
-          (value) => {
-            const input = document.querySelector('input[placeholder="Enter deck-go access token"]');
-            return input?.value === value;
-          },
-          authToken,
-          { timeout: 5_000 },
+        await page.waitForFunction(() => {
+          const button = document.querySelector(".deckgo-actions button");
+          return Boolean(button) && !button.disabled;
+        });
+        const invalidToken = `invalid-${authToken}`;
+        await page.evaluate((value) => {
+          const input = document.querySelector('input[placeholder="Enter deck-go access token"]');
+          if (!(input instanceof HTMLInputElement)) {
+            throw new Error("auth token input not found");
+          }
+          const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+          if (!descriptor?.set) {
+            throw new Error("auth token setter not found");
+          }
+          const applyValue = (target, next) => descriptor.set.call(target, next);
+          applyValue(input, value);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        }, invalidToken);
+        if ((await tokenInput.inputValue()) !== invalidToken) {
+          throw new Error("invalid auth token never reached the auth input");
+        }
+        await page.evaluate(() => {
+          const form = document.querySelector("form.deckgo-form-grid");
+          if (!(form instanceof HTMLFormElement)) {
+            throw new Error("auth form not found");
+          }
+          form.requestSubmit();
+        });
+        authRetryCount += 1;
+        await waitForMainText(
+          page,
+          (text) =>
+            text.includes("Unlock control plane") &&
+            /authentication token|unauthorized/i.test(text),
+          15_000,
+          "active host auth gate never surfaced invalid-token recovery",
+          collectDiagnostics,
         );
-        await page.waitForTimeout(150);
-        await page.getByRole("button", { name: "Unlock control plane" }).click();
+        const invalidStorageToken = await page.evaluate(() =>
+          window.localStorage.getItem("deckGoAccessToken"),
+        );
+        if (invalidStorageToken) {
+          throw new Error(
+            `invalid token remained persisted after failed unlock: ${invalidStorageToken}`,
+          );
+        }
+        await page.waitForFunction(() => {
+          const button = document.querySelector(".deckgo-actions button");
+          return Boolean(button) && !button.disabled;
+        });
+        await page.evaluate((value) => {
+          const input = document.querySelector('input[placeholder="Enter deck-go access token"]');
+          if (!(input instanceof HTMLInputElement)) {
+            throw new Error("auth token input not found");
+          }
+          const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+          if (!descriptor?.set) {
+            throw new Error("auth token setter not found");
+          }
+          const applyValue = (target, next) => descriptor.set.call(target, next);
+          applyValue(input, value);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        }, authToken);
+        if ((await tokenInput.inputValue()) !== authToken) {
+          throw new Error("valid auth token never reached the auth input");
+        }
+        await page.evaluate(() => {
+          const form = document.querySelector("form.deckgo-form-grid");
+          if (!(form instanceof HTMLFormElement)) {
+            throw new Error("auth form not found");
+          }
+          form.requestSubmit();
+        });
         unlockCount += 1;
         break;
       }
@@ -318,7 +409,7 @@ try {
   }
 
   console.log(
-    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}; mode ${mode}; auth unlocks ${unlockCount}; auth prompts ${promptCount}`,
+    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}; mode ${mode}; auth unlocks ${unlockCount}; auth retries ${authRetryCount}; auth prompts ${promptCount}`,
   );
 } finally {
   await browser.close();

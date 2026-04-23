@@ -59,13 +59,15 @@ function readResolvedToken(
   if (explicit) {
     return explicit;
   }
-  if (authState.token) {
-    return authState.token;
-  }
-  const stored = normalizeTrimmed(options.readStoredToken?.());
-  if (stored) {
+
+  if (typeof options.readStoredToken === "function") {
+    const stored = normalizeTrimmed(options.readStoredToken());
     authState.token = stored;
     return stored;
+  }
+
+  if (authState.token) {
+    return authState.token;
   }
   return null;
 }

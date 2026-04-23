@@ -6,6 +6,27 @@ const originalApiBase = process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
 const originalNavigator = globalThis.navigator;
 const originalWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
 
+function installWindowLocalStorage(seed: Record<string, string> = {}) {
+  const store = new Map(Object.entries(seed));
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem(key: string) {
+          return store.has(key) ? store.get(key)! : null;
+        },
+        setItem(key: string, value: string) {
+          store.set(key, value);
+        },
+        removeItem(key: string) {
+          store.delete(key);
+        },
+      },
+    },
+  });
+  return store;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
@@ -50,6 +71,7 @@ describe("deckFetch", () => {
   });
 
   it("reuses the stored deck access token for later fetch requests", async () => {
+    installWindowLocalStorage();
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response("unauthorized", { status: 401 }))
@@ -78,6 +100,36 @@ describe("deckFetch", () => {
     const [, init] = fetchMock.mock.calls[2];
     const headers = new Headers(init?.headers);
     expect(headers.get("x-deck-token")).toBe("stored-secret");
+  });
+
+  it("prefers the latest stored token over a stale cached token", async () => {
+    const storage = installWindowLocalStorage({
+      deckGoAccessToken: "stale-secret",
+    });
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("unauthorized", { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response('{"ok":true}', {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    globalThis.fetch = fetchMock;
+
+    const { deckFetch } = await import("./deck-client.js");
+
+    await deckFetch("/api/activity", undefined, { allowPrompt: false });
+    storage.set("deckGoAccessToken", "fresh-secret");
+    await deckFetch("/api/activity", undefined, { allowPrompt: false });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("x-deck-token")).toBe(
+      "stale-secret",
+    );
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get("x-deck-token")).toBe(
+      "fresh-secret",
+    );
   });
 
   it("retries once with prompted token after a 401 response", async () => {
