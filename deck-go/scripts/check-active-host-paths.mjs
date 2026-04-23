@@ -68,6 +68,10 @@ function walk(currentPath) {
     if (relativePath === "scripts/check-active-host-paths.mjs") {
       continue;
     }
+    if (relativePath === "frontend/src/App.tsx") {
+      hits.push(`${relativePath}: retired monolithic host shell`);
+      continue;
+    }
     const source = readFileSync(nextPath, "utf8");
 
     for (const pattern of forbiddenPatterns) {

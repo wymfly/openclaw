@@ -34,6 +34,11 @@ function formatSmokeDiagnostics(details) {
       `Recent stream trace:\n${details.streamTrace.map((entry) => JSON.stringify(entry)).join("\n")}`,
     );
   }
+  if (details.dialogTrace?.length) {
+    parts.push(
+      `Dialog trace:\n${details.dialogTrace.map((entry) => JSON.stringify(entry)).join("\n")}`,
+    );
+  }
   return parts.join("\n\n");
 }
 
@@ -58,10 +63,18 @@ const navigationOptions = { waitUntil: "commit", timeout: 15_000 };
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
   const streamTrace = [];
+  const dialogTrace = [];
+  let promptCount = 0;
   const pushTrace = (...entry) => {
     streamTrace.push(entry);
     if (streamTrace.length > 40) {
       streamTrace.shift();
+    }
+  };
+  const pushDialogTrace = (...entry) => {
+    dialogTrace.push(entry);
+    if (dialogTrace.length > 20) {
+      dialogTrace.shift();
     }
   };
   page.on("console", (message) => {
@@ -90,6 +103,15 @@ try {
       window.localStorage.setItem("deckGoAccessToken", token);
     }, authToken);
   }
+  page.on("dialog", async (dialog) => {
+    pushDialogTrace(["dialog", dialog.type(), dialog.message()]);
+    if (dialog.type() === "prompt" && authToken.trim()) {
+      promptCount += 1;
+      await dialog.accept(authToken);
+      return;
+    }
+    await dialog.dismiss();
+  });
   await page.addInitScript(() => {
     const originalFetch = window.fetch.bind(window);
     window.fetch = async (...args) => {
@@ -137,10 +159,12 @@ try {
   const collectDiagnostics = async () => ({
     storage: await page.evaluate(() => ({
       lastEventId: window.localStorage.getItem("deckGoLastEventId"),
+      accessToken: window.localStorage.getItem("deckGoAccessToken"),
       reloadAt: window.sessionStorage.getItem("deckGoStreamRecoveryReloadAt"),
       href: window.location.href,
     })),
     streamTrace,
+    dialogTrace,
   });
 
   await page.goto(baseUrl, navigationOptions);
@@ -220,7 +244,7 @@ try {
   }
 
   console.log(
-    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}; mode ${mode}`,
+    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}; mode ${mode}; auth prompts ${promptCount}`,
   );
 } finally {
   await browser.close();
