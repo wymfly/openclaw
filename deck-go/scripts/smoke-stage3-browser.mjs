@@ -307,6 +307,13 @@ try {
       "assistant reply never appeared in visible transcript content",
       collectDiagnostics,
     );
+    await page.waitForFunction(
+      () => Boolean(window.localStorage.getItem("deckGoLastEventId")?.trim()),
+      { timeout: 15_000 },
+    );
+    const replayCursorBeforeReconnect = await page.evaluate(
+      () => window.localStorage.getItem("deckGoLastEventId") ?? "",
+    );
 
     await page.context().setOffline(true);
     try {
@@ -330,6 +337,14 @@ try {
       "assistant transcript or reconnect evidence did not recover after browser network restore",
       collectDiagnostics,
     );
+    await page.waitForFunction(
+      (previousCursor) => {
+        const current = window.localStorage.getItem("deckGoLastEventId")?.trim() ?? "";
+        return Boolean(current) && current.length >= previousCursor.length;
+      },
+      replayCursorBeforeReconnect,
+      { timeout: 15_000 },
+    );
 
     await page.reload(navigationOptions);
     await waitForMainText(
@@ -338,6 +353,14 @@ try {
       45_000,
       "assistant reply did not survive page reload",
       collectDiagnostics,
+    );
+    await page.waitForFunction(
+      (previousCursor) => {
+        const current = window.localStorage.getItem("deckGoLastEventId")?.trim() ?? "";
+        return Boolean(current) && current.length >= previousCursor.length;
+      },
+      replayCursorBeforeReconnect,
+      { timeout: 15_000 },
     );
 
     await page
