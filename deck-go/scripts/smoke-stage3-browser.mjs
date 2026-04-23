@@ -11,7 +11,9 @@ if (!baseUrl) {
 const requiredTexts = ["Deck Go operator shell", "Gateway", "Runtime", "Chat"];
 const panelChecks = [
   { navLabel: "Agents", panelTitles: ["Agents", "Agent detail"] },
+  { navLabel: "Gateway", panelTitles: ["Gateway runtime", "Managed gateway settings"] },
   { navLabel: "Channels", panelTitles: ["Channel inventory"] },
+  { navLabel: "Logs", panelTitles: ["Logs tail", "Live event tape"] },
   { navLabel: "Models", panelTitles: ["Models", "Models detail"] },
   { navLabel: "Config", panelTitles: ["Config", "Config detail"] },
   { navLabel: "Sessions", panelTitles: ["Session inventory", "Session detail"] },
