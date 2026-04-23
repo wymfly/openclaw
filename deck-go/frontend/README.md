@@ -13,6 +13,8 @@ Build / preview:
 
 ```bash
 cd deck-go/frontend
+npm run test:restored-host
+
 VITE_DECK_GO_API_BASE=http://127.0.0.1:19566 \
 npm run build
 
@@ -38,9 +40,10 @@ make smoke-stage3-host
 That richer lane waits for managed runtime `running/healthy` and upgrades key
 runtime-backed routes such as `logs`, `models config`, `config`, `channels`,
 `plugins`, and `sessions` to `200` proofs. It also proves a minimal chat control
-flow by creating a session, sending a message, waiting for user+assistant
-history messages to appear, surfacing the user message in visible transcript
-content, surviving a page reload, aborting the started run, and completing a
+flow by creating a session, sending a message, waiting for the expected
+assistant reply `314159` to land in history, surfacing that same assistant reply
+in visible transcript content, surviving a page reload, aborting the active or
+already-finished run, and completing a
 managed runtime stop/start cycle back to `running/healthy`.
 
 That smoke now proves three layers together:
@@ -58,3 +61,4 @@ Host guardrails:
 - all panel ids from `src/restoration/panel-registry.tsx` must stay implemented in `src/restoration/ActivePanelHost.tsx`
 - `src/restoration/contract-readiness.ts` must not regress any panel back to `frontend-blocked`
 - restored panels must stay compatible with the current frontend TypeScript/lib target
+- `src/shell-components.test.tsx` now locks readable transcript rendering for `text`, `tool_use`, and `tool_result` blocks

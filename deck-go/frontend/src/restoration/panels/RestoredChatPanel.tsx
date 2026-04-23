@@ -9,6 +9,7 @@ import type {
   DeckGoSessionPreviewEntry,
   DeckGoSessionsListResponse,
   DeckGoSessionsPreviewResponse,
+  DeckGoSessionToolStreamEvent,
 } from "../../../../contracts/generated/ts/deck-api.generated";
 import {
   abortChatRun,
@@ -45,9 +46,56 @@ type StreamState = "idle" | "connecting" | "connected" | "reconnecting" | "error
 
 const PREVIEW_LIMIT = 8;
 const LAST_EVENT_ID_KEY = "deckGoLastEventId";
+type ToolProgressEntry = {
+  runId: string;
+  sessionKey: string;
+  phase: string;
+  label: string;
+  ts: number;
+};
 
 function firstSessionKey(payload: DeckGoSessionsListResponse | null) {
   return payload?.sessions?.[0]?.key ?? "";
+}
+
+function summarizeToolProgressEntry(payload: DeckGoSessionToolStreamEvent): ToolProgressEntry {
+  const data = payload.data ?? {};
+  const phase = typeof data.phase === "string" && data.phase.trim() ? data.phase.trim() : "unknown";
+  const label =
+    (typeof data.name === "string" && data.name.trim()) ||
+    (typeof data.tool === "string" && data.tool.trim()) ||
+    (typeof data.title === "string" && data.title.trim()) ||
+    (typeof data.kind === "string" && data.kind.trim()) ||
+    "tool event";
+  return {
+    runId: payload.runId,
+    sessionKey: payload.sessionKey,
+    phase,
+    label,
+    ts: payload.ts ?? Date.now(),
+  };
+}
+
+function upsertToolProgressEntry(
+  entries: ToolProgressEntry[],
+  payload: DeckGoSessionToolStreamEvent,
+) {
+  const next = summarizeToolProgressEntry(payload);
+  const index = entries.findIndex(
+    (entry) => entry.runId === next.runId && entry.label === next.label,
+  );
+  if (index >= 0) {
+    const copy = entries.slice();
+    copy[index] = next;
+    return copy
+      .slice()
+      .sort((left: ToolProgressEntry, right: ToolProgressEntry) => right.ts - left.ts)
+      .slice(0, 8);
+  }
+  return [next, ...entries]
+    .slice()
+    .sort((left: ToolProgressEntry, right: ToolProgressEntry) => right.ts - left.ts)
+    .slice(0, 8);
 }
 
 export function RestoredChatPanel() {
@@ -70,6 +118,7 @@ export function RestoredChatPanel() {
   const [actionResult, setActionResult] = useState<unknown>(null);
   const [serverStreamState, setServerStreamState] = useState<StreamState>("idle");
   const [liveTimeline, setLiveTimeline] = useState<string[]>([]);
+  const [toolProgressEntries, setToolProgressEntries] = useState<ToolProgressEntry[]>([]);
   const [projectionGapReason, setProjectionGapReason] = useState("");
   const lastEventIdRef = useRef(
     typeof window === "undefined"
@@ -303,6 +352,7 @@ export function RestoredChatPanel() {
           if (parsed.kind === "session.message") {
             applyLiveMessage(parsed.payload);
           } else if (parsed.kind === "session.tool") {
+            setToolProgressEntries((current) => upsertToolProgressEntry(current, parsed.payload));
             void hydrateSessionRead(sessionKey, agentId);
           } else if (parsed.kind === "sessions.changed") {
             applySessionChange(parsed.payload);
@@ -352,6 +402,7 @@ export function RestoredChatPanel() {
     setActionResult(null);
     setProjectionGapReason("");
     setLiveTimeline([]);
+    setToolProgressEntries([]);
   };
 
   const onSelectPreview = (preview: DeckGoSessionPreviewEntry) => {
@@ -559,6 +610,33 @@ export function RestoredChatPanel() {
                 </p>
               </div>
             ) : null}
+            <div className="deckgo-surface-tile">
+              <p className="deckgo-surface-label">Tool progress / run status</p>
+              <strong>
+                {toolProgressEntries.length > 0
+                  ? `${toolProgressEntries[0].label} · ${toolProgressEntries[0].phase}`
+                  : runId
+                    ? `Run ${runId.slice(0, 8)} · ${chatActionState}`
+                    : "No recent tool event"}
+              </strong>
+              {toolProgressEntries.length > 0 ? (
+                <ul className="deckgo-shell-list" style={{ marginTop: 12 }}>
+                  {toolProgressEntries.map((entry) => (
+                    <li key={`${entry.runId}-${entry.label}`}>
+                      <strong>{entry.label}</strong>
+                      <div className="deckgo-meta">
+                        phase: {entry.phase} | run: {entry.runId.slice(0, 8)} | ts: {entry.ts}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="deckgo-note">
+                  Session tool events land here so the restored chat panel keeps run progress
+                  discoverable without falling back to the retired legacy shell.
+                </p>
+              )}
+            </div>
             <div className="deckgo-surface-tile">
               <p className="deckgo-surface-label">Live event tape</p>
               {liveTimeline.length === 0 ? (

@@ -26,19 +26,117 @@ export function ShellStat(props: { label: string; value: string | number }) {
   );
 }
 
+function stringifyBlockValue(value: unknown) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value == null) {
+    return "";
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return "[unserializable payload]";
+  }
+}
+
+function summarizeTranscriptBlock(block: DeckGoTranscriptMessage["content"][number]) {
+  switch (block.type) {
+    case "text":
+      return {
+        label: "Text",
+        title: "Transcript text",
+        preview: block.text?.trim() || "(empty text block)",
+      };
+    case "tool_use":
+      return {
+        label: "Tool use",
+        title: block.name?.trim() || block.id?.trim() || "Unnamed tool",
+        preview:
+          (typeof block.input?.command === "string" && block.input.command.trim()) ||
+          stringifyBlockValue(block.input) ||
+          "No structured input",
+      };
+    case "tool_result":
+      return {
+        label: block.isError ? "Tool result error" : "Tool result",
+        title: block.toolUseId?.trim() || "Tool output",
+        preview: stringifyBlockValue(block.content) || "(empty result block)",
+      };
+    default:
+      return {
+        label: block.type?.trim() || "Block",
+        title: block.name?.trim() || block.title?.trim() || "Transcript payload",
+        preview:
+          block.text?.trim() ||
+          stringifyBlockValue({
+            input: block.input,
+            content: block.content,
+            summary: block.summary,
+            data: block.data,
+            url: block.url,
+          }) ||
+          "(empty block)",
+      };
+  }
+}
+
+function TranscriptBlockCard(props: {
+  block: DeckGoTranscriptMessage["content"][number];
+  messageId: string;
+  index: number;
+}) {
+  const summary = summarizeTranscriptBlock(props.block);
+  const rawPayload = {
+    ...props.block,
+    ...(props.block.text?.trim() ? {} : { text: undefined }),
+  };
+
+  return (
+    <article
+      className={`deckgo-transcript-block deckgo-transcript-block-${props.block.type || "other"}`}
+    >
+      <p className="deckgo-transcript-block-label">{summary.label}</p>
+      <strong>{summary.title}</strong>
+      <pre className="deckgo-code deckgo-transcript-block-preview">{summary.preview}</pre>
+      <details>
+        <summary>
+          Raw payload · {props.messageId || "message"} · block {props.index + 1}
+        </summary>
+        <pre className="deckgo-code">{JSON.stringify(rawPayload, null, 2)}</pre>
+      </details>
+    </article>
+  );
+}
+
 export function TranscriptList(props: { messages: DeckGoTranscriptMessage[] }) {
   if (props.messages.length === 0) {
     return <p className="deckgo-note">No transcript messages.</p>;
   }
 
   return (
-    <ol className="deckgo-shell-list">
+    <ol className="deckgo-shell-list deckgo-transcript-list">
       {props.messages.map((message) => (
         <li key={message.id}>
-          <strong>
-            {message.role} · {message.id}
-          </strong>
-          <pre className="deckgo-code">{JSON.stringify(message.content, null, 2)}</pre>
+          <article className="deckgo-transcript-message">
+            <div className="deckgo-transcript-message-header">
+              <strong>
+                {message.role} · {message.id || "pending"}
+              </strong>
+              {message.streaming ? <span className="deckgo-pill is-primary">streaming</span> : null}
+              {message.error ? <span className="deckgo-pill is-danger">error</span> : null}
+            </div>
+            <div className="deckgo-transcript-blocks">
+              {(message.content ?? []).map((block, index) => (
+                <TranscriptBlockCard
+                  key={`${message.id || "pending"}-${block.type || "block"}-${index}`}
+                  block={block}
+                  messageId={message.id}
+                  index={index}
+                />
+              ))}
+            </div>
+          </article>
         </li>
       ))}
     </ol>

@@ -779,6 +779,56 @@ textarea {
   gap: 14px;
 }
 
+.deckgo-transcript-list {
+  gap: 16px;
+}
+
+.deckgo-transcript-message {
+  display: grid;
+  gap: 12px;
+}
+
+.deckgo-transcript-message-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.deckgo-transcript-blocks {
+  display: grid;
+  gap: 12px;
+}
+
+.deckgo-transcript-block {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.deckgo-transcript-block-label {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.deckgo-transcript-block-preview {
+  padding: 12px 14px;
+}
+
+.deckgo-transcript-block-tool_use {
+  border-left: 3px solid color-mix(in srgb, var(--accent) 72%, transparent);
+}
+
+.deckgo-transcript-block-tool_result {
+  border-left: 3px solid color-mix(in srgb, var(--success) 72%, transparent);
+}
+
 details {
   border-radius: var(--radius-inner);
   background: color-mix(in srgb, var(--panel-strong) 78%, transparent);

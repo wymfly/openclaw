@@ -38,7 +38,8 @@ try {
   }
 
   if (mode === "rich") {
-    const chatMessage = "hello from stage3 browser smoke";
+    const chatMessage = "What number comes immediately after 314158? Reply with digits only.";
+    const expectedAssistantReply = "314159";
     const messageBox = page.getByPlaceholder("Send a message through the restored chat panel");
     await messageBox.fill(chatMessage);
     await page.getByRole("button", { name: "Send message" }).click();
@@ -47,14 +48,14 @@ try {
     let visibleText = "";
     while (Date.now() < deadline) {
       visibleText = await page.locator("main").evaluate((node) => node.innerText);
-      if (visibleText.includes(chatMessage)) {
+      if (visibleText.includes(expectedAssistantReply)) {
         break;
       }
       await page.waitForTimeout(1_000);
     }
 
-    if (!visibleText.includes(chatMessage)) {
-      throw new Error("chat message never appeared in visible transcript content");
+    if (!visibleText.includes(expectedAssistantReply)) {
+      throw new Error("assistant reply never appeared in visible transcript content");
     }
 
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -62,15 +63,21 @@ try {
     let reloadedText = "";
     while (Date.now() < reloadDeadline) {
       reloadedText = await page.locator("main").evaluate((node) => node.innerText);
-      if (reloadedText.includes(chatMessage)) {
+      if (reloadedText.includes(expectedAssistantReply)) {
         break;
       }
       await page.waitForTimeout(1_000);
     }
 
-    if (!reloadedText.includes(chatMessage)) {
-      throw new Error("chat message did not survive page reload");
+    if (!reloadedText.includes(expectedAssistantReply)) {
+      throw new Error("assistant reply did not survive page reload");
     }
+
+    await page
+      .locator(".deckgo-surface-label")
+      .filter({ hasText: "Tool progress / run status" })
+      .first()
+      .waitFor({ state: "visible", timeout: 15_000 });
   }
 
   for (const panel of panelChecks) {

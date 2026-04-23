@@ -311,27 +311,43 @@ session_key = created.get("key")
 if not session_key:
     raise SystemExit("[stage3-smoke] chat create response missing session key")
 
-sent = request("/api/chat/send", {"sessionKey": session_key, "message": "hello from stage3 smoke"})
+sent = request(
+    "/api/chat/send",
+    {
+        "sessionKey": session_key,
+        "message": "What number comes immediately after 314158? Reply with digits only.",
+    },
+)
 run_id = sent.get("runId")
-if not run_id or sent.get("status") != "started":
-    raise SystemExit("[stage3-smoke] chat send response missing started run")
+if not run_id or sent.get("status") not in {"started", "in_flight"}:
+    raise SystemExit("[stage3-smoke] chat send response missing active run status")
 
 history = None
+assistant_text = ""
 for _ in range(20):
     history = request(f"/api/chat/history?sessionKey={session_key}&limit=20")
     messages = history.get("messages") or []
     roles = {message.get("role") for message in messages}
-    if "user" in roles and "assistant" in roles:
+    assistant_texts = []
+    for message in messages:
+        if message.get("role") != "assistant":
+            continue
+        for block in message.get("content") or []:
+            if isinstance(block, dict) and isinstance(block.get("text"), str):
+                assistant_texts.append(block["text"])
+    assistant_text = " ".join(assistant_texts)
+    if "user" in roles and "assistant" in roles and "314159" in assistant_text:
         break
     time.sleep(1)
 else:
-    raise SystemExit("[stage3-smoke] chat history never exposed both user and assistant messages")
+    raise SystemExit("[stage3-smoke] chat history never exposed the expected assistant response")
 
 aborted = request("/api/chat/abort", {"sessionKey": session_key, "runId": run_id})
-if aborted.get("status") != "aborted":
-    raise SystemExit("[stage3-smoke] chat abort response missing aborted status")
+abort_status = aborted.get("status")
+if abort_status not in {"aborted", "no-active-run"}:
+    raise SystemExit("[stage3-smoke] chat abort response missing known terminal status")
 
-print("[stage3-smoke] chat create/send/history/abort flow proved")
+print(f"[stage3-smoke] chat create/send/history/abort flow proved ({abort_status}; assistant={assistant_text})")
 PY
 }
 

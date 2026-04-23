@@ -7,7 +7,8 @@
     "build": "npm run check:restored-host && tsc -b && vite build",
     "check:restored-host": "node scripts/check-restored-host.mjs",
     "dev": "vite --port 5174",
-    "preview": "vite preview --port 4174"
+    "preview": "vite preview --port 4174",
+    "test:restored-host": "node ../../scripts/run-vitest.mjs run --config vitest.config.ts src/shell-components.test.tsx"
   },
   "dependencies": {
     "react": "^19.2.0",
