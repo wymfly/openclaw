@@ -162,7 +162,7 @@ export function RestorationUIProvider(
       void refreshRuntimeSummary();
     }, SUMMARY_REFRESH_MS);
     return () => window.clearInterval(interval);
-  }, [refreshRuntimeSummary]);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {

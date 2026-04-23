@@ -277,6 +277,15 @@ describe("RestoredChatPanel", () => {
 
       const activeStream = streamInvocations.at(-1)!;
       act(() => {
+        activeStream.onStatusChange?.("connected");
+      });
+
+      await waitForText(
+        (text) => text.includes("Stream connected"),
+        "stream never reached connected before fallback reload test",
+      );
+
+      act(() => {
         activeStream.onStatusChange?.("reconnecting");
       });
 

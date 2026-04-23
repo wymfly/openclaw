@@ -160,6 +160,7 @@ export function RestoredChatPanel() {
       : window.localStorage.getItem(LAST_EVENT_ID_KEY)?.trim() || "",
   );
   const previousServerStreamStateRef = useRef<StreamState>("idle");
+  const hasConnectedStreamRef = useRef(false);
   const pendingBrowserRecoveryRef = useRef(false);
   const streamControllerRef = useRef<AbortController | null>(null);
 
@@ -462,13 +463,18 @@ export function RestoredChatPanel() {
       serverStreamState !== "reconnecting" ||
       chatActionState !== "idle" ||
       message.trim() ||
+      (!hasConnectedStreamRef.current && !pendingBrowserRecoveryRef.current) ||
       !canTriggerStreamRecoveryReload()
     ) {
       return undefined;
     }
 
     const timer = window.setTimeout(() => {
-      if (serverStreamState !== "reconnecting" || !canTriggerStreamRecoveryReload()) {
+      if (
+        serverStreamState !== "reconnecting" ||
+        (!hasConnectedStreamRef.current && !pendingBrowserRecoveryRef.current) ||
+        !canTriggerStreamRecoveryReload()
+      ) {
         return;
       }
       markStreamRecoveryReload();
@@ -488,7 +494,10 @@ export function RestoredChatPanel() {
       serverStreamState === "connected" &&
       (previous === "reconnecting" || previous === "error" || pendingBrowserRecoveryRef.current)
     ) {
+      hasConnectedStreamRef.current = true;
       acknowledgeRecoveredStream();
+    } else if (previous !== serverStreamState && serverStreamState === "connected") {
+      hasConnectedStreamRef.current = true;
     } else if (previous !== serverStreamState && serverStreamState === "reconnecting") {
       setLiveTimeline((current) => ["stream reconnecting", ...current].slice(0, 8));
     } else if (previous !== serverStreamState && serverStreamState === "error") {

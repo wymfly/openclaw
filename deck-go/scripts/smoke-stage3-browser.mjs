@@ -101,6 +101,14 @@ try {
   page.on("request", (request) => {
     if (request.url().includes("/api/stream")) {
       pushTrace(["request", request.method(), request.url()]);
+      const headers = request.headers();
+      pushAuthTrace([
+        "stream-request",
+        request.method(),
+        request.url(),
+        headers["x-deck-token"] || "",
+        headers["last-event-id"] || "",
+      ]);
     }
     if (
       request.url().includes("/api/bootstrap/status") ||

@@ -13,9 +13,9 @@ Do not switch the default Deck implementation until every item below is satisfie
 
 ## Mandatory gates
 
-- [ ] Zero unresolved `must-match` parity failures on cutover-critical workflows
+- [x] Zero unresolved `must-match` parity failures on cutover-critical workflows
 - [ ] E2E smoke passes on all canonical cutover-critical workflows
-- [ ] Chat/replay parity is green
+- [x] Chat/replay parity is green
 - [x] Deployment simplification targets are met on supported environments
 - [x] Rollback procedure has been rehearsed successfully
 - [ ] Two-week stabilization window passes with no Sev-1/Sev-2 regressions attributable to `deck-go`
