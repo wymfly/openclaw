@@ -59,6 +59,13 @@ managed runtime stop/start cycle back to `running/healthy`.
 - the default/basic auth + bootstrap smoke
 - the richer managed-runtime/browser workflow smoke
 
+The remaining closure gate after those host proofs is the stabilization window:
+
+```bash
+cd deck-go
+make check-stage3-stabilization
+```
+
 That smoke now proves three layers together:
 
 - backend is reachable through a configured Deck access-token path

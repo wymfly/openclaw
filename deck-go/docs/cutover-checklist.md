@@ -27,9 +27,13 @@ Do not switch the default Deck implementation until every item below is satisfie
 - Parity Matrix: `deck-go/docs/parity-matrix.md`
 - Rollback Runbook: `deck-go/docs/rollback-runbook.md`
 - Deployment Baseline: `deck-go/docs/deployment-baseline.md`
+- Stabilization Window: `deck-go/docs/stage3-stabilization-window.md`
+- Stabilization Ledger: `deck-go/docs/stage3-stabilization-window.json`
 - Repo-root local/private wrapper: `make deck-go-stage3-host`
 - Repo-root canonical E2E wrapper: `make deck-go-stage3-e2e`
+- Repo-root stabilization status wrapper: `make deck-go-stage3-stabilization`
 - Default repo gate: `cd deck-go && make verify`
 - Local host smoke: `cd deck-go && make smoke-stage3-host`
 - Canonical host E2E smoke: `cd deck-go && make smoke-stage3-e2e`
 - Rollback rehearsal smoke: `cd deck-go && make smoke-stage3-rollback`
+- Stabilization status check: `cd deck-go && make check-stage3-stabilization`

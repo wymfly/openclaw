@@ -85,3 +85,13 @@ The current automated rehearsal covers this through:
 - `dashboard/e2e/live-channels-smoke.spec.ts`
 
 Both are executed by `make smoke-stage3-rollback`.
+
+## Stabilization-window note
+
+The remaining open rollback-facing closure condition is tracked separately under:
+
+- `deck-go/docs/stage3-stabilization-window.md`
+- `deck-go/docs/stage3-stabilization-window.json`
+
+That ledger is where any Sev-1/Sev-2 regression attributable to `deck-go`
+during the two-week window must be recorded.

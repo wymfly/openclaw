@@ -1,0 +1,15 @@
+{
+  "program": "deck-go Stage 3 Vite Host Migration",
+  "windowStart": "2026-04-23",
+  "windowDays": 14,
+  "supportedEnvironments": ["Linux local/private deployment", "macOS local/private deployment"],
+  "openedBy": {
+    "commit": "190f827c47",
+    "evidence": [
+      "cd deck-go && make verify",
+      "cd deck-go && make smoke-stage3-e2e",
+      "cd deck-go && make smoke-stage3-rollback"
+    ]
+  },
+  "incidents": []
+}

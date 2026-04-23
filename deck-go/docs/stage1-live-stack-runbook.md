@@ -115,6 +115,14 @@ into one canonical closure target:
 - the default/basic auth + bootstrap lane
 - the richer managed-runtime/browser workflow lane
 
+The only remaining Stage 3 closure condition after those gates are green is the
+two-week stabilization window, tracked through:
+
+```bash
+cd deck-go
+make check-stage3-stabilization
+```
+
 The frontend build now includes a structural guard that fails if:
 
 - any panel id in `frontend/src/restoration/panel-registry.tsx` is no longer implemented in `ActivePanelHost`
