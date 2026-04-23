@@ -21,7 +21,23 @@ const panelChecks = [
   { navLabel: "Plugins", panelTitles: ["Plugin inventory"] },
 ];
 
-async function waitForMainText(page, predicate, timeoutMs, errorMessage) {
+function formatSmokeDiagnostics(details) {
+  const parts = [];
+  if (details.visibleText) {
+    parts.push(`Last visible text:\n${details.visibleText}`);
+  }
+  if (details.storage) {
+    parts.push(`Browser storage:\n${JSON.stringify(details.storage, null, 2)}`);
+  }
+  if (details.streamTrace?.length) {
+    parts.push(
+      `Recent stream trace:\n${details.streamTrace.map((entry) => JSON.stringify(entry)).join("\n")}`,
+    );
+  }
+  return parts.join("\n\n");
+}
+
+async function waitForMainText(page, predicate, timeoutMs, errorMessage, detailsProvider) {
   const deadline = Date.now() + timeoutMs;
   let visibleText = "";
   while (Date.now() < deadline) {
@@ -32,7 +48,8 @@ async function waitForMainText(page, predicate, timeoutMs, errorMessage) {
     await page.waitForTimeout(1_000);
   }
 
-  throw new Error(`${errorMessage}\n\nLast visible text:\n${visibleText}`);
+  const extraDetails = (await detailsProvider?.()) ?? {};
+  throw new Error(`${errorMessage}\n\n${formatSmokeDiagnostics({ visibleText, ...extraDetails })}`);
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -40,11 +57,92 @@ const navigationOptions = { waitUntil: "commit", timeout: 15_000 };
 
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
+  const streamTrace = [];
+  const pushTrace = (...entry) => {
+    streamTrace.push(entry);
+    if (streamTrace.length > 40) {
+      streamTrace.shift();
+    }
+  };
+  page.on("console", (message) => {
+    const text = message.text();
+    if (text.includes("__stream_") || text.includes("__replace_")) {
+      pushTrace(["console", message.type(), text]);
+    }
+  });
+  page.on("request", (request) => {
+    if (request.url().includes("/api/stream")) {
+      pushTrace(["request", request.method(), request.url()]);
+    }
+  });
+  page.on("requestfailed", (request) => {
+    if (request.url().includes("/api/stream")) {
+      pushTrace(["failed", request.url(), request.failure()?.errorText || "unknown"]);
+    }
+  });
+  page.on("requestfinished", (request) => {
+    if (request.url().includes("/api/stream")) {
+      pushTrace(["finished", request.url()]);
+    }
+  });
   if (authToken.trim()) {
     await page.addInitScript((token) => {
       window.localStorage.setItem("deckGoAccessToken", token);
     }, authToken);
   }
+  await page.addInitScript(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const input = args[0];
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input instanceof Request
+              ? input.url
+              : JSON.stringify(input);
+      if (url.includes("/api/stream")) {
+        console.log("__stream_fetch__", url);
+      }
+      try {
+        const response = await originalFetch(...args);
+        if (url.includes("/api/stream")) {
+          console.log("__stream_response__", url, response.status);
+        }
+        return response;
+      } catch (error) {
+        if (url.includes("/api/stream")) {
+          console.log(
+            "__stream_error__",
+            url,
+            error?.name || "Error",
+            error?.message || String(error),
+          );
+        }
+        throw error;
+      }
+    };
+
+    const originalReplace = Location.prototype.replace.bind(window.location);
+    Object.defineProperty(Location.prototype, "replace", {
+      configurable: true,
+      value: function (...replaceArgs) {
+        console.log("__replace_called__", String(replaceArgs[0] ?? ""));
+        return originalReplace(...replaceArgs);
+      },
+    });
+  });
+
+  const collectDiagnostics = async () => ({
+    storage: await page.evaluate(() => ({
+      lastEventId: window.localStorage.getItem("deckGoLastEventId"),
+      reloadAt: window.sessionStorage.getItem("deckGoStreamRecoveryReloadAt"),
+      href: window.location.href,
+    })),
+    streamTrace,
+  });
+
   await page.goto(baseUrl, navigationOptions);
 
   for (const text of requiredTexts) {
@@ -64,6 +162,7 @@ try {
       (text) => text.includes(expectedAssistantReply),
       45_000,
       "assistant reply never appeared in visible transcript content",
+      collectDiagnostics,
     );
 
     await page.context().setOffline(true);
@@ -73,6 +172,7 @@ try {
         (text) => text.includes("Stream reconnecting"),
         20_000,
         "chat panel never exposed stream reconnecting after browser offline",
+        collectDiagnostics,
       );
     } finally {
       await page.context().setOffline(false);
@@ -85,6 +185,7 @@ try {
         (text.includes("stream reconnected") || text.includes("Stream connected")),
       30_000,
       "assistant transcript or reconnect evidence did not recover after browser network restore",
+      collectDiagnostics,
     );
 
     await page.reload(navigationOptions);
@@ -93,6 +194,7 @@ try {
       (text) => text.includes(expectedAssistantReply),
       45_000,
       "assistant reply did not survive page reload",
+      collectDiagnostics,
     );
 
     await page
