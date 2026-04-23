@@ -8,6 +8,12 @@ if (!baseUrl) {
 }
 
 const requiredTexts = ["Deck Go operator shell", "Gateway", "Runtime", "Chat"];
+const panelChecks = [
+  { navLabel: "Agents", panelTitle: "Agents" },
+  { navLabel: "Models", panelTitle: "Models" },
+  { navLabel: "Sessions", panelTitle: "Session inventory" },
+  { navLabel: "Plugins", panelTitle: "Plugin inventory" },
+];
 
 const browser = await chromium.launch({ headless: true });
 
@@ -20,8 +26,21 @@ try {
     await locator.waitFor({ state: "visible", timeout: 15_000 });
   }
 
+  for (const panel of panelChecks) {
+    await page
+      .locator(".deckgo-restored-nav-item")
+      .filter({ hasText: panel.navLabel })
+      .first()
+      .click();
+    await page
+      .locator("h2.deckgo-card-title")
+      .filter({ hasText: panel.panelTitle })
+      .first()
+      .waitFor({ state: "visible", timeout: 15_000 });
+  }
+
   console.log(
-    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}`,
+    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}`,
   );
 } finally {
   await browser.close();
