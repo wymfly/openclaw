@@ -123,6 +123,12 @@ cd deck-go
 make check-stage3-stabilization
 ```
 
+The machine-enforced closeout gate is:
+
+```bash
+make deck-go-stage3-stabilization-enforce
+```
+
 The frontend build now includes a structural guard that fails if:
 
 - any panel id in `frontend/src/restoration/panel-registry.tsx` is no longer implemented in `ActivePanelHost`

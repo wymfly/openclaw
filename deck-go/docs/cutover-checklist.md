@@ -32,8 +32,10 @@ Do not switch the default Deck implementation until every item below is satisfie
 - Repo-root local/private wrapper: `make deck-go-stage3-host`
 - Repo-root canonical E2E wrapper: `make deck-go-stage3-e2e`
 - Repo-root stabilization status wrapper: `make deck-go-stage3-stabilization`
+- Repo-root stabilization enforcement wrapper: `make deck-go-stage3-stabilization-enforce`
 - Default repo gate: `cd deck-go && make verify`
 - Local host smoke: `cd deck-go && make smoke-stage3-host`
 - Canonical host E2E smoke: `cd deck-go && make smoke-stage3-e2e`
 - Rollback rehearsal smoke: `cd deck-go && make smoke-stage3-rollback`
 - Stabilization status check: `cd deck-go && make check-stage3-stabilization`
+- Stabilization enforcement check: `cd deck-go && make enforce-stage3-stabilization`

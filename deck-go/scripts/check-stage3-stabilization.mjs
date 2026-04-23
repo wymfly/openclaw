@@ -41,6 +41,10 @@ if (!passedByTime) {
   summaryLines.push("[stage3-stabilization] status: passed");
 }
 
+if (enforce) {
+  summaryLines.push(`[stage3-stabilization] enforce: ${passes ? "pass" : "fail"}`);
+}
+
 console.log(summaryLines.join("\n"));
 
 if (blockingIncidents.length > 0) {
@@ -53,5 +57,14 @@ if (blockingIncidents.length > 0) {
 }
 
 if (enforce && !passes) {
+  if (!passedByTime) {
+    console.error(
+      `[stage3-stabilization] enforce failed: stabilization window has not elapsed; earliest pass date is ${passAt.toISOString().slice(0, 10)}`,
+    );
+  } else if (blockingIncidents.length > 0) {
+    console.error(
+      "[stage3-stabilization] enforce failed: Sev-1/Sev-2 regression recorded in ledger",
+    );
+  }
   process.exit(1);
 }

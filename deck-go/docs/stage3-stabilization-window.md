@@ -81,4 +81,11 @@ cd deck-go
 make check-stage3-stabilization
 
 make deck-go-stage3-stabilization
+
+make deck-go-stage3-stabilization-enforce
 ```
+
+`--enforce` is expected to fail until both conditions are true:
+
+- the current date is on or after `2026-05-07`
+- no Sev-1/Sev-2 incidents attributable to `deck-go` are recorded in the ledger
