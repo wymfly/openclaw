@@ -37,7 +37,8 @@ make smoke-stage3-host
 
 That richer lane waits for managed runtime `running/healthy` and upgrades key
 runtime-backed routes such as `logs`, `models config`, `config`, `channels`,
-`plugins`, and `sessions` to `200` proofs.
+`plugins`, and `sessions` to `200` proofs. It also proves a minimal chat control
+flow by creating a session, sending a message, and aborting the started run.
 
 That smoke now proves three layers together:
 

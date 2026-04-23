@@ -85,7 +85,8 @@ make smoke-stage3-host
 In that richer mode the smoke expects lifecycle start acceptance and upgrades
 the managed runtime all the way to `running/healthy`, then upgrades several
 runtime-backed inventory/config routes from `502` wiring proof to `200` data
-proof.
+proof. It also proves a minimal chat control flow by creating a session,
+sending a message, and aborting the started run.
 
 The frontend build now includes a structural guard that fails if:
 
