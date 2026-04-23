@@ -358,7 +358,6 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
             cache: "no-store",
             headers: {
               Accept: "text/event-stream",
-              "Cache-Control": "no-store",
             },
           },
           token,

@@ -44,10 +44,12 @@ type StreamState = "idle" | "connecting" | "connected" | "reconnecting" | "error
 
 const PREVIEW_LIMIT = 8;
 const LAST_EVENT_ID_KEY = "deckGoLastEventId";
+const BROWSER_OFFLINE_LABEL = "browser network offline";
 const BROWSER_ONLINE_RECOVERY_LABEL = "browser network restored";
 const BROWSER_ONLINE_RECOVERY_RELOAD_LABEL = "browser recovery fallback reload";
 const BROWSER_ONLINE_RECOVERY_RELOAD_DELAY_MS = 8_000;
 const STREAM_RECOVERY_RELOAD_COOLDOWN_MS = 60_000;
+const STREAM_RECOVERY_QUERY_PARAM = "__deck_recover";
 const STREAM_RECOVERY_RELOAD_AT_KEY = "deckGoStreamRecoveryReloadAt";
 type ToolProgressEntry = {
   runId: string;
@@ -124,7 +126,9 @@ function triggerStreamRecoveryNavigation() {
   if (typeof window === "undefined") {
     return;
   }
-  window.location.replace(window.location.href);
+  const next = new URL(window.location.href);
+  next.searchParams.set(STREAM_RECOVERY_QUERY_PARAM, `${Date.now()}`);
+  window.location.replace(next.toString());
 }
 
 export function RestoredChatPanel() {
@@ -157,6 +161,7 @@ export function RestoredChatPanel() {
   );
   const previousServerStreamStateRef = useRef<StreamState>("idle");
   const pendingBrowserRecoveryRef = useRef(false);
+  const streamControllerRef = useRef<AbortController | null>(null);
 
   const selectedSessionMeta =
     sessions?.sessions?.find((session) => session.key === sessionKey) ??
@@ -323,6 +328,20 @@ export function RestoredChatPanel() {
     },
   );
 
+  const acknowledgeRecoveredStream = useEffectEvent(() => {
+    if (!pendingBrowserRecoveryRef.current) {
+      return;
+    }
+    pendingBrowserRecoveryRef.current = false;
+    setLiveTimeline((current) => ["stream reconnected", ...current].slice(0, 8));
+    if (sessionKey.trim()) {
+      void hydrateSessionRead(sessionKey, agentId);
+      void refreshSessionsInventory({ preferredSessionKey: sessionKey, preserveSelection: true });
+    } else {
+      void refreshSessionsInventory();
+    }
+  });
+
   const scheduleTranscriptRefresh = useEffectEvent(
     (targetSessionKey: string, targetAgentId: string) => {
       const trimmedSessionKey = targetSessionKey.trim();
@@ -348,20 +367,28 @@ export function RestoredChatPanel() {
   }, [agentId, sessionKey]);
 
   useEffect(() => {
+    const onOffline = () => {
+      streamControllerRef.current?.abort();
+      setLiveTimeline((current) => [BROWSER_OFFLINE_LABEL, ...current].slice(0, 8));
+    };
+
     const onOnline = () => {
       pendingBrowserRecoveryRef.current = true;
       setLiveTimeline((current) => [BROWSER_ONLINE_RECOVERY_LABEL, ...current].slice(0, 8));
       setStreamRestartNonce((current) => current + 1);
     };
 
+    window.addEventListener("offline", onOffline);
     window.addEventListener("online", onOnline);
     return () => {
+      window.removeEventListener("offline", onOffline);
       window.removeEventListener("online", onOnline);
     };
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
+    streamControllerRef.current = controller;
     void streamEvents({
       signal: controller.signal,
       initialLastEventId: lastEventIdRef.current,
@@ -372,6 +399,9 @@ export function RestoredChatPanel() {
         if (event.id) {
           lastEventIdRef.current = event.id;
           window.localStorage.setItem(LAST_EVENT_ID_KEY, event.id);
+        }
+        if (pendingBrowserRecoveryRef.current && (event.id || event.event)) {
+          acknowledgeRecoveredStream();
         }
         const parsed = parseServerEvent(event);
         if (parsed.kind === "projection.gap") {
@@ -420,6 +450,9 @@ export function RestoredChatPanel() {
     });
 
     return () => {
+      if (streamControllerRef.current === controller) {
+        streamControllerRef.current = null;
+      }
       controller.abort();
     };
   }, [agentId, sessionKey, streamRestartNonce]);
@@ -455,14 +488,7 @@ export function RestoredChatPanel() {
       serverStreamState === "connected" &&
       (previous === "reconnecting" || previous === "error" || pendingBrowserRecoveryRef.current)
     ) {
-      setLiveTimeline((current) => ["stream reconnected", ...current].slice(0, 8));
-      pendingBrowserRecoveryRef.current = false;
-      if (sessionKey.trim()) {
-        void hydrateSessionRead(sessionKey, agentId);
-        void refreshSessionsInventory({ preferredSessionKey: sessionKey, preserveSelection: true });
-      } else {
-        void refreshSessionsInventory();
-      }
+      acknowledgeRecoveredStream();
     } else if (previous !== serverStreamState && serverStreamState === "reconnecting") {
       setLiveTimeline((current) => ["stream reconnecting", ...current].slice(0, 8));
     } else if (previous !== serverStreamState && serverStreamState === "error") {

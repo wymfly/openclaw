@@ -182,6 +182,70 @@ describe("RestoredChatPanel", () => {
     expect(fetchSessionDetailMock).toHaveBeenCalledTimes(2);
   });
 
+  it("acknowledges browser recovery when the stream delivers an event before a connected status tick", async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<RestoredChatPanel />);
+    });
+
+    await waitForText(
+      (text) => text.includes("Inventory ready") && text.includes("Transcript ready"),
+      "restored chat panel never hydrated before recovery event test",
+    );
+    const initialInvocationCount = streamInvocations.length;
+    const activeStream = streamInvocations.at(-1)!;
+
+    act(() => {
+      activeStream.onStatusChange?.("reconnecting");
+      window.dispatchEvent(new Event("online"));
+    });
+
+    await waitForText(
+      (text) => text.includes("browser network restored"),
+      "browser online recovery notice never appeared before recovery event test",
+    );
+    expect(streamInvocations).toHaveLength(initialInvocationCount + 1);
+
+    act(() => {
+      streamInvocations.at(-1)?.onEvent({
+        id: "48",
+        event: "sessions.changed",
+        data: '{"sessionKey":"session-1","status":"ready"}',
+      });
+    });
+
+    await waitForText(
+      (text) => text.includes("stream reconnected"),
+      "chat panel did not acknowledge recovery when the stream delivered an event",
+    );
+    expect(fetchSessionsMock).toHaveBeenCalledTimes(2);
+    expect(fetchSessionDetailMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("aborts the active stream immediately when the browser goes offline", async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<RestoredChatPanel />);
+    });
+
+    await waitForText(
+      (text) => text.includes("Inventory ready") && text.includes("Transcript ready"),
+      "restored chat panel never hydrated before offline abort test",
+    );
+    const activeStream = streamInvocations.at(-1)!;
+    const activeSignal = activeStream.signal;
+
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    expect(activeSignal.aborted).toBe(true);
+    await waitForText(
+      (text) => text.includes("browser network offline"),
+      "offline signal did not surface in the live event tape",
+    );
+  });
+
   it("falls back to a controlled reload when reconnecting stays stuck", async () => {
     vi.useFakeTimers();
     const replaceMock = vi.fn();
@@ -226,7 +290,11 @@ describe("RestoredChatPanel", () => {
       });
 
       expect(replaceMock).toHaveBeenCalledTimes(1);
-      expect(replaceMock).toHaveBeenCalledWith(originalLocation.href);
+      const redirectedUrl = new URL(String(replaceMock.mock.calls[0]?.[0]));
+      expect(redirectedUrl.origin + redirectedUrl.pathname).toBe(
+        `${new URL(originalLocation.href).origin}${new URL(originalLocation.href).pathname}`,
+      );
+      expect(redirectedUrl.searchParams.get("__deck_recover")).toMatch(/^\d+$/);
     } finally {
       Object.defineProperty(window, "location", {
         configurable: true,

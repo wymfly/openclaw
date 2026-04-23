@@ -176,7 +176,6 @@ describe("deckStream", () => {
     expect(headers.get("x-deck-token")).toBe("stream-secret");
     expect(headers.get("Last-Event-ID")).toBe("42");
     expect(headers.get("Accept")).toBe("text/event-stream");
-    expect(headers.get("Cache-Control")).toBe("no-store");
     expect(init?.cache).toBe("no-store");
   });
 
