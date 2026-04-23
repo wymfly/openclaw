@@ -35,6 +35,10 @@ DECK_GO_SMOKE_GATEWAY_TOKEN=<gateway-token> \
 make smoke-stage3-host
 ```
 
+That richer lane waits for managed runtime `running/healthy` and upgrades key
+runtime-backed routes such as `logs`, `models config`, `config`, `channels`,
+`plugins`, and `sessions` to `200` proofs.
+
 That smoke now proves three layers together:
 
 - backend is reachable through a configured Deck access-token path
