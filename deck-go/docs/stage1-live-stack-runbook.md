@@ -66,6 +66,13 @@ cd deck-go
 make smoke-stage3-host
 ```
 
+From the repo root, the same supported local/private path is now available as a
+single wrapper step:
+
+```bash
+make deck-go-stage3-host
+```
+
 That smoke now includes a headless browser probe over the live Vite preview and
 waits for restored host content to hydrate, instead of stopping at static HTML.
 It also runs through the active host's real in-shell access-token unlock path
