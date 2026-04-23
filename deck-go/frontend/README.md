@@ -27,6 +27,14 @@ cd deck-go
 make smoke-stage3-host
 ```
 
+Richer local smoke, if you also have a managed Gateway token available:
+
+```bash
+cd deck-go
+DECK_GO_SMOKE_GATEWAY_TOKEN=<gateway-token> \
+make smoke-stage3-host
+```
+
 That smoke now proves three layers together:
 
 - backend is reachable through a configured Deck access-token path

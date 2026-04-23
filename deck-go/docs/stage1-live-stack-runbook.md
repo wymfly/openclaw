@@ -73,6 +73,19 @@ Under the default local smoke setup, it additionally checks that
 `POST /api/runtime/gateway/start` reaches the managed-runtime preflight and
 returns the expected `managed gateway token is required` error.
 
+If you have a real managed Gateway token available, you can upgrade the same
+smoke lane:
+
+```bash
+cd deck-go
+DECK_GO_SMOKE_GATEWAY_TOKEN=<gateway-token> \
+make smoke-stage3-host
+```
+
+In that richer mode the smoke expects lifecycle start acceptance and upgrades
+several runtime-backed inventory/config routes from `502` wiring proof to `200`
+data proof.
+
 The frontend build now includes a structural guard that fails if:
 
 - any panel id in `frontend/src/restoration/panel-registry.tsx` is no longer implemented in `ActivePanelHost`
