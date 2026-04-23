@@ -18,5 +18,16 @@ Directory map:
 - `docs/` — parity, cutover, governance, and deployment evidence
 - `dev/` — local side-by-side development helpers
 
-This directory is intentionally bootstrap-only at phase 0. Feature work starts after the
-contract inventory and backbone extraction phases.
+Local Stage 3 operator stack:
+
+- copy `deck-go/.env.example` to `deck-go/.env`
+- `cd deck-go && make stack-start`
+- `cd deck-go && make stack-chat-smoke`
+
+That stack uses:
+
+- `backend/` as the control-plane truth
+- `frontend/` as the active Vite host
+- `deck-go` backend managed runtime APIs to own the local Gateway lifecycle
+- `stack-chat-smoke` as the focused browser proof that the live frontend can unlock,
+  send a chat message, and render the assistant reply through the active host

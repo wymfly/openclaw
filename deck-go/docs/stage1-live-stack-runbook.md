@@ -6,6 +6,21 @@ This runbook is the canonical operator path for the current live stack:
 - `frontend` as the active Vite host
 - managed Gateway lifecycle controlled through the restored Vite shell
 
+## 0. Preferred local operator wrapper
+
+For day-to-day local bring-up, prefer the checked-in wrapper instead of manually
+retyping env vars:
+
+```bash
+cd deck-go
+cp .env.example .env
+make stack-start
+make stack-chat-smoke
+```
+
+That path keeps backend/frontend/runtime settings in one `deck-go/.env` file and
+lets `deck-go` own local Gateway lifecycle through its own runtime APIs.
+
 ## 1. Start `deck-go`
 
 ```bash

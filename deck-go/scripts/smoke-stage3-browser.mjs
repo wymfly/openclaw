@@ -10,6 +10,8 @@ if (!baseUrl) {
 }
 
 const requiredTexts = ["Deck Go operator shell"];
+const exerciseChatLane = mode === "rich" || mode === "chat";
+const exerciseContinuityLane = mode === "rich";
 const panelChecks = [
   { navLabel: "Agents", panelTitles: ["Agents", "Agent detail"] },
   { navLabel: "Gateway", panelTitles: ["Gateway runtime", "Managed gateway settings"] },
@@ -201,7 +203,7 @@ try {
 
   await page.goto(baseUrl, navigationOptions);
 
-  if (authToken.trim() && mode === "basic") {
+  if (authToken.trim() && mode !== "rich") {
     const unlockHeading = page.getByText("Unlock control plane", { exact: false }).first();
     const shellHeading = page.getByText("Deck Go operator shell", { exact: false }).first();
     const tokenInput = page.getByPlaceholder("Enter deck-go access token");
@@ -301,7 +303,7 @@ try {
     collectDiagnostics,
   );
 
-  if (mode === "rich") {
+  if (exerciseChatLane) {
     const chatMessage = "What number comes immediately after 314158? Reply with digits only.";
     const expectedAssistantReply = "314159";
     const messageBox = page.getByPlaceholder("Send a message through the restored chat panel");
@@ -323,105 +325,111 @@ try {
       () => window.localStorage.getItem("deckGoLastEventId") ?? "",
     );
 
-    await page.context().setOffline(true);
-    try {
+    if (exerciseContinuityLane) {
+      await page.context().setOffline(true);
+      try {
+        await waitForMainText(
+          page,
+          (text) => text.includes("Stream reconnecting"),
+          20_000,
+          "chat panel never exposed stream reconnecting after browser offline",
+          collectDiagnostics,
+        );
+      } finally {
+        await page.context().setOffline(false);
+      }
+
       await waitForMainText(
         page,
-        (text) => text.includes("Stream reconnecting"),
-        20_000,
-        "chat panel never exposed stream reconnecting after browser offline",
+        (text) =>
+          text.includes(expectedAssistantReply) &&
+          (text.includes("stream reconnected") || text.includes("Stream connected")),
+        30_000,
+        "assistant transcript or reconnect evidence did not recover after browser network restore",
         collectDiagnostics,
       );
-    } finally {
-      await page.context().setOffline(false);
+      await page.waitForFunction(
+        (previousCursor) => {
+          const current = window.localStorage.getItem("deckGoLastEventId")?.trim() ?? "";
+          return Boolean(current) && current.length >= previousCursor.length;
+        },
+        replayCursorBeforeReconnect,
+        { timeout: 15_000 },
+      );
+
+      await page.reload(navigationOptions);
+      await waitForMainText(
+        page,
+        (text) => text.includes(expectedAssistantReply),
+        45_000,
+        "assistant reply did not survive page reload",
+        collectDiagnostics,
+      );
+      await page.waitForFunction(
+        (previousCursor) => {
+          const current = window.localStorage.getItem("deckGoLastEventId")?.trim() ?? "";
+          return Boolean(current) && current.length >= previousCursor.length;
+        },
+        replayCursorBeforeReconnect,
+        { timeout: 15_000 },
+      );
+
+      await page
+        .locator(".deckgo-surface-label")
+        .filter({ hasText: "Tool progress / run status" })
+        .first()
+        .waitFor({ state: "visible", timeout: 15_000 });
+
+      await page
+        .locator(".deckgo-restored-nav-item")
+        .filter({ hasText: "Settings" })
+        .first()
+        .click();
+      await page
+        .locator("h2.deckgo-card-title")
+        .filter({ hasText: "Deck-go local settings" })
+        .first()
+        .waitFor({ state: "visible", timeout: 15_000 });
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/api/settings") &&
+            response.request().method() === "PUT" &&
+            response.status() === 200,
+          { timeout: 15_000 },
+        ),
+        page.getByRole("button", { name: "Save settings" }).click(),
+      ]);
+      await page
+        .locator("h2.deckgo-card-title")
+        .filter({ hasText: "Last save result" })
+        .first()
+        .waitFor({ state: "visible", timeout: 15_000 });
+
+      await page.locator(".deckgo-restored-nav-item").filter({ hasText: "Config" }).first().click();
+      await page
+        .locator("h2.deckgo-card-title")
+        .filter({ hasText: "Config" })
+        .first()
+        .waitFor({ state: "visible", timeout: 15_000 });
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/api/config/apply") &&
+            response.request().method() === "POST" &&
+            response.status() === 200,
+          { timeout: 15_000 },
+        ),
+        page.getByRole("button", { name: "Apply config" }).click(),
+      ]);
+      await waitForMainText(
+        page,
+        (text) => text.includes("Deck Go operator shell") && text.includes("Config detail"),
+        20_000,
+        "active host did not remain visible after config apply",
+        collectDiagnostics,
+      );
     }
-
-    await waitForMainText(
-      page,
-      (text) =>
-        text.includes(expectedAssistantReply) &&
-        (text.includes("stream reconnected") || text.includes("Stream connected")),
-      30_000,
-      "assistant transcript or reconnect evidence did not recover after browser network restore",
-      collectDiagnostics,
-    );
-    await page.waitForFunction(
-      (previousCursor) => {
-        const current = window.localStorage.getItem("deckGoLastEventId")?.trim() ?? "";
-        return Boolean(current) && current.length >= previousCursor.length;
-      },
-      replayCursorBeforeReconnect,
-      { timeout: 15_000 },
-    );
-
-    await page.reload(navigationOptions);
-    await waitForMainText(
-      page,
-      (text) => text.includes(expectedAssistantReply),
-      45_000,
-      "assistant reply did not survive page reload",
-      collectDiagnostics,
-    );
-    await page.waitForFunction(
-      (previousCursor) => {
-        const current = window.localStorage.getItem("deckGoLastEventId")?.trim() ?? "";
-        return Boolean(current) && current.length >= previousCursor.length;
-      },
-      replayCursorBeforeReconnect,
-      { timeout: 15_000 },
-    );
-
-    await page
-      .locator(".deckgo-surface-label")
-      .filter({ hasText: "Tool progress / run status" })
-      .first()
-      .waitFor({ state: "visible", timeout: 15_000 });
-
-    await page.locator(".deckgo-restored-nav-item").filter({ hasText: "Settings" }).first().click();
-    await page
-      .locator("h2.deckgo-card-title")
-      .filter({ hasText: "Deck-go local settings" })
-      .first()
-      .waitFor({ state: "visible", timeout: 15_000 });
-    await Promise.all([
-      page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/settings") &&
-          response.request().method() === "PUT" &&
-          response.status() === 200,
-        { timeout: 15_000 },
-      ),
-      page.getByRole("button", { name: "Save settings" }).click(),
-    ]);
-    await page
-      .locator("h2.deckgo-card-title")
-      .filter({ hasText: "Last save result" })
-      .first()
-      .waitFor({ state: "visible", timeout: 15_000 });
-
-    await page.locator(".deckgo-restored-nav-item").filter({ hasText: "Config" }).first().click();
-    await page
-      .locator("h2.deckgo-card-title")
-      .filter({ hasText: "Config" })
-      .first()
-      .waitFor({ state: "visible", timeout: 15_000 });
-    await Promise.all([
-      page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/config/apply") &&
-          response.request().method() === "POST" &&
-          response.status() === 200,
-        { timeout: 15_000 },
-      ),
-      page.getByRole("button", { name: "Apply config" }).click(),
-    ]);
-    await waitForMainText(
-      page,
-      (text) => text.includes("Deck Go operator shell") && text.includes("Config detail"),
-      20_000,
-      "active host did not remain visible after config apply",
-      collectDiagnostics,
-    );
   }
 
   for (const panel of panelChecks) {

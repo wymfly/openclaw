@@ -23,6 +23,26 @@ VITE_DECK_GO_API_BASE=http://127.0.0.1:19566 \
 npm run preview -- --host 127.0.0.1
 ```
 
+Local operator stack wrapper:
+
+```bash
+cd deck-go
+cp .env.example .env
+make stack-start
+make stack-chat-smoke
+```
+
+That wrapper keeps one shared `deck-go/.env` as the source of truth for:
+
+- backend address and data dir
+- deck access token
+- managed gateway token
+- active Vite host base URL
+
+`make stack-chat-smoke` is the focused local browser proof for the active host's
+chat path. It validates unlock + send + assistant reply visibility without
+re-running the heavier reconnect continuity lane from Stage 3 closure smoke.
+
 Canonical local smoke:
 
 ```bash
