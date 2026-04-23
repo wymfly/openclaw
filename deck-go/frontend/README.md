@@ -31,6 +31,8 @@ That smoke now proves three layers together:
 
 - backend is reachable through a configured Deck access-token path
 - backend bootstrap/runtime endpoints respond
+- runtime gateway start preflight returns the expected operator-visible error when
+  the local smoke environment lacks a managed gateway token
 - Vite preview serves the active host bundle
 - a headless browser can hydrate the page and find the restored shell text
   (`Deck Go operator shell`, `Gateway`, `Runtime`, `Chat`)

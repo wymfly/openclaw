@@ -124,6 +124,30 @@ assert_status() {
   return 1
 }
 
+assert_runtime_start_preflight() {
+  local body_file
+  body_file="$(mktemp /tmp/deck-go-stage3-smoke-start-body.XXXXXX)"
+  local status
+  status="$(curl -s -o "${body_file}" -w "%{http_code}" -X POST "${curl_auth_args[@]}" "${BACKEND_BASE}/api/runtime/gateway/start")"
+
+  if [[ "${status}" != "400" ]]; then
+    echo "[stage3-smoke] unexpected start preflight status: ${status}" >&2
+    cat "${body_file}" >&2 || true
+    rm -f "${body_file}"
+    return 1
+  fi
+
+  if ! grep -q "managed gateway token is required" "${body_file}"; then
+    echo "[stage3-smoke] runtime start preflight response missing expected error" >&2
+    cat "${body_file}" >&2 || true
+    rm -f "${body_file}"
+    return 1
+  fi
+
+  echo "[stage3-smoke] runtime start preflight: 400 managed gateway token is required"
+  rm -f "${body_file}"
+}
+
 echo "[stage3-smoke] building Vite host"
 (cd "${ROOT_DIR}/frontend" && VITE_DECK_GO_API_BASE="${BACKEND_BASE}" npm run build) >/dev/null
 
@@ -162,6 +186,9 @@ echo
 echo "[stage3-smoke] bootstrap status"
 curl -sf "${curl_auth_args[@]}" "${BACKEND_BASE}/api/bootstrap/status"
 echo
+echo
+
+assert_runtime_start_preflight
 echo
 
 assert_status "${BACKEND_BASE}/api/logs?limit=1" "logs" 200 502 -- "${curl_auth_args[@]}"
