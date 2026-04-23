@@ -31,6 +31,10 @@ const forbiddenPatterns = [
 
 const frontendSrcForbiddenPatterns = [
   { label: "node-style VITE env access in active host", regex: /\bprocess\.env\.VITE_/ },
+  {
+    label: "deck-client token persistence export",
+    regex: /\bexport\s+const\s+persistDeckAccessToken\b/,
+  },
 ];
 
 const hits = [];
