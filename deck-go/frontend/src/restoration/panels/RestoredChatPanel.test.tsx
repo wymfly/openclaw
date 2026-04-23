@@ -116,6 +116,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   if (root) {
     act(() => {
       root?.unmount();
@@ -179,5 +180,51 @@ describe("RestoredChatPanel", () => {
     );
     expect(fetchSessionsMock).toHaveBeenCalledTimes(2);
     expect(fetchSessionDetailMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to a controlled reload when reconnecting stays stuck", async () => {
+    vi.useFakeTimers();
+    const reloadMock = vi.fn();
+    const originalLocation = window.location;
+    const replacementLocation = Object.create(originalLocation) as Location;
+    Object.defineProperty(replacementLocation, "reload", {
+      configurable: true,
+      value: reloadMock,
+    });
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: replacementLocation,
+    });
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<RestoredChatPanel />);
+      });
+
+      await waitForText(
+        (text) => text.includes("Inventory ready") && text.includes("Transcript ready"),
+        "restored chat panel never hydrated before recovery fallback test",
+      );
+
+      const activeStream = streamInvocations.at(-1)!;
+      act(() => {
+        activeStream.onStatusChange?.("reconnecting");
+      });
+
+      await waitForText(
+        (text) => text.includes("Stream reconnecting"),
+        "stream never moved into reconnecting before fallback reload",
+      );
+
+      await vi.advanceTimersByTimeAsync(8_500);
+
+      expect(reloadMock).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
   });
 });

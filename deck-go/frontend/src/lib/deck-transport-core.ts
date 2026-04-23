@@ -39,6 +39,7 @@ type DeckRequestResult = {
 const DEFAULT_STREAM_RETRY_MS = 1_000;
 const DEFAULT_PROMPT_MESSAGE = "Enter Deck access token";
 const STREAM_RETRY_QUERY_PARAM = "__deck_stream_attempt";
+const DEFAULT_STREAM_CONNECT_TIMEOUT_MS = 5_000;
 
 function normalizeTrimmed(raw: string | null | undefined): string | null {
   const next = (raw ?? "").trim();
@@ -112,6 +113,45 @@ function waitForReconnect(delayMs: number, signal?: AbortSignal): Promise<void> 
     };
     signal?.addEventListener("abort", onAbort, { once: true });
   });
+}
+
+function withDeckStreamSignal(
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): { signal: AbortSignal; cleanup: () => void } {
+  const controller = new AbortController();
+  const cleanups: Array<() => void> = [];
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+    } else {
+      const onAbort = () => {
+        controller.abort(signal.reason);
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      cleanups.push(() => signal.removeEventListener("abort", onAbort));
+    }
+  }
+
+  const timeout = globalThis.setTimeout(
+    () => {
+      if (!controller.signal.aborted) {
+        controller.abort(new DOMException("Stream connect timeout", "TimeoutError"));
+      }
+    },
+    Math.max(0, timeoutMs),
+  );
+  cleanups.push(() => globalThis.clearTimeout(timeout));
+
+  return {
+    signal: controller.signal,
+    cleanup() {
+      for (const cleanup of cleanups) {
+        cleanup();
+      }
+    },
+  };
 }
 
 function withDeckStreamAttempt(
@@ -258,6 +298,10 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
 
     while (!streamOptions.signal?.aborted) {
       try {
+        const requestSignal = withDeckStreamSignal(
+          streamOptions.signal,
+          DEFAULT_STREAM_CONNECT_TIMEOUT_MS,
+        );
         const {
           response,
           token: nextToken,
@@ -265,7 +309,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
         } = await requestDeckResponse(withDeckStreamAttempt(input, reconnectAttempt), {
           init: {
             method: "GET",
-            signal: streamOptions.signal,
+            signal: requestSignal.signal,
             cache: "no-store",
             headers: {
               Accept: "text/event-stream",
@@ -275,6 +319,8 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
           token,
           lastEventId,
           allowPrompt: !prompted,
+        }).finally(() => {
+          requestSignal.cleanup();
         });
         prompted ||= promptedNow;
         if (nextToken !== undefined) {

@@ -45,6 +45,10 @@ type StreamState = "idle" | "connecting" | "connected" | "reconnecting" | "error
 const PREVIEW_LIMIT = 8;
 const LAST_EVENT_ID_KEY = "deckGoLastEventId";
 const BROWSER_ONLINE_RECOVERY_LABEL = "browser network restored";
+const BROWSER_ONLINE_RECOVERY_RELOAD_LABEL = "browser recovery fallback reload";
+const BROWSER_ONLINE_RECOVERY_RELOAD_DELAY_MS = 8_000;
+const STREAM_RECOVERY_RELOAD_COOLDOWN_MS = 60_000;
+const STREAM_RECOVERY_RELOAD_AT_KEY = "deckGoStreamRecoveryReloadAt";
 type ToolProgressEntry = {
   runId: string;
   sessionKey: string;
@@ -95,6 +99,25 @@ function upsertToolProgressEntry(
     .slice()
     .sort((left: ToolProgressEntry, right: ToolProgressEntry) => right.ts - left.ts)
     .slice(0, 8);
+}
+
+function canTriggerStreamRecoveryReload() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  const raw = window.sessionStorage.getItem(STREAM_RECOVERY_RELOAD_AT_KEY)?.trim() || "0";
+  const lastReloadAt = Number(raw);
+  if (!Number.isFinite(lastReloadAt) || lastReloadAt <= 0) {
+    return true;
+  }
+  return Date.now() - lastReloadAt > STREAM_RECOVERY_RELOAD_COOLDOWN_MS;
+}
+
+function markStreamRecoveryReload() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.sessionStorage.setItem(STREAM_RECOVERY_RELOAD_AT_KEY, `${Date.now()}`);
 }
 
 export function RestoredChatPanel() {
@@ -393,6 +416,30 @@ export function RestoredChatPanel() {
       controller.abort();
     };
   }, [agentId, sessionKey, streamRestartNonce]);
+
+  useEffect(() => {
+    if (
+      serverStreamState !== "reconnecting" ||
+      chatActionState !== "idle" ||
+      message.trim() ||
+      !canTriggerStreamRecoveryReload()
+    ) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (serverStreamState !== "reconnecting" || !canTriggerStreamRecoveryReload()) {
+        return;
+      }
+      markStreamRecoveryReload();
+      setLiveTimeline((current) => [BROWSER_ONLINE_RECOVERY_RELOAD_LABEL, ...current].slice(0, 8));
+      window.location.reload();
+    }, BROWSER_ONLINE_RECOVERY_RELOAD_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [chatActionState, message, serverStreamState]);
 
   useEffect(() => {
     const previous = previousServerStreamStateRef.current;

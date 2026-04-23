@@ -28,6 +28,7 @@ function setProcessEnv(name: string, value: string | undefined) {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
   vi.resetModules();
   globalThis.fetch = originalFetch;
   globalThis.prompt = originalPrompt;
@@ -175,6 +176,69 @@ describe("deck-go/frontend transport parity", () => {
       "text/event-stream",
     );
     expect(fetchMock.mock.calls[0]?.[1]?.cache).toBe("no-store");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "http://127.0.0.1:19528/api/stream?__deck_stream_attempt=1",
+    );
+  });
+
+  it("retries a hanging Vite SSE connect after the transport timeout", async () => {
+    vi.useFakeTimers();
+    const encoder = new TextEncoder();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(
+        async (_input, init) =>
+          await new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              "abort",
+              () => {
+                reject(init.signal?.reason ?? new Error("aborted"));
+              },
+              { once: true },
+            );
+          }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(encoder.encode('id: 14\nevent: ready\ndata: {"ok":true}\n\n'));
+              controller.close();
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          },
+        ),
+      );
+    globalThis.fetch = fetchMock;
+    setProcessEnv("VITE_DECK_GO_API_BASE", "http://127.0.0.1:19528");
+
+    const { deckStream } = await import("../../../frontend/src/lib/deck-client.js");
+    const controller = new AbortController();
+    const retries: string[] = [];
+
+    const responsePromise = deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      retryDelayMs: 0,
+      onRetry() {
+        retries.push("retry");
+      },
+      onEvent(event) {
+        if (event.event === "ready") {
+          controller.abort();
+        }
+      },
+    });
+
+    await vi.advanceTimersByTimeAsync(6_000);
+    const response = await responsePromise;
+
+    expect(response.status).toBe(200);
+    expect(retries).toEqual(["retry"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[1]?.[0]).toBe(
       "http://127.0.0.1:19528/api/stream?__deck_stream_attempt=1",
     );
