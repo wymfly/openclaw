@@ -87,7 +87,8 @@ the managed runtime all the way to `running/healthy`, then upgrades several
 runtime-backed inventory/config routes from `502` wiring proof to `200` data
 proof. It also proves a minimal chat control flow by creating a session,
 sending a message, waiting for user+assistant history to appear, surfacing the
-user message in visible transcript content, and aborting the started run.
+user message in visible transcript content, surviving a page reload, and
+aborting the started run.
 
 The frontend build now includes a structural guard that fails if:
 
