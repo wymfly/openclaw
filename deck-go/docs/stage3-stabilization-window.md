@@ -35,6 +35,14 @@ The window fails immediately if a Sev-1 or Sev-2 regression attributable to
 Lower-severity issues may still be logged, but they do not block closure unless
 they are later reclassified to Sev-1 or Sev-2.
 
+Allowed severities are:
+
+- `sev1`
+- `sev2`
+- `sev3`
+- `sev4`
+- `info`
+
 ## How to update the ledger
 
 Edit `deck-go/docs/stage3-stabilization-window.json` and append incidents to the
@@ -58,6 +66,18 @@ Example:
 }
 ```
 
+Supported wrapper:
+
+```bash
+cd deck-go
+make record-stage3-stabilization-incident \
+  DATE=2026-04-25 \
+  SEVERITY=sev3 \
+  SUMMARY="Intermittent visual flicker in the Sessions panel after reload." \
+  ATTRIBUTION="deck-go/frontend" \
+  STATUS=monitoring
+```
+
 ## How to check status
 
 Human-readable status:
@@ -65,6 +85,13 @@ Human-readable status:
 ```bash
 cd deck-go
 node scripts/check-stage3-stabilization.mjs
+```
+
+Alternate ledger validation:
+
+```bash
+cd deck-go
+node scripts/check-stage3-stabilization.mjs --file /tmp/stage3-ledger.json
 ```
 
 Enforced gate:
