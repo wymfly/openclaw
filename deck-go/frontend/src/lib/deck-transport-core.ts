@@ -40,6 +40,7 @@ const DEFAULT_STREAM_RETRY_MS = 1_000;
 const DEFAULT_PROMPT_MESSAGE = "Enter Deck access token";
 const STREAM_RETRY_QUERY_PARAM = "__deck_stream_attempt";
 const DEFAULT_STREAM_CONNECT_TIMEOUT_MS = 5_000;
+const BROWSER_ONLINE_SETTLE_MS = 250;
 
 function normalizeTrimmed(raw: string | null | undefined): string | null {
   const next = (raw ?? "").trim();
@@ -113,6 +114,50 @@ function waitForReconnect(delayMs: number, signal?: AbortSignal): Promise<void> 
     };
     signal?.addEventListener("abort", onAbort, { once: true });
   });
+}
+
+function isBrowserOffline() {
+  return typeof navigator !== "undefined" && "onLine" in navigator && !navigator.onLine;
+}
+
+function waitForBrowserOnline(signal?: AbortSignal): Promise<void> {
+  if (
+    signal?.aborted ||
+    typeof window === "undefined" ||
+    typeof window.addEventListener !== "function"
+  ) {
+    return Promise.resolve();
+  }
+  if (!isBrowserOffline()) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const onOnline = () => {
+      cleanup();
+      resolve();
+    };
+    const onAbort = () => {
+      cleanup();
+      resolve();
+    };
+    const cleanup = () => {
+      window.removeEventListener("online", onOnline);
+      signal?.removeEventListener("abort", onAbort);
+    };
+
+    window.addEventListener("online", onOnline, { once: true });
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function waitForNextStreamAttempt(delayMs: number, signal?: AbortSignal): Promise<void> {
+  if (isBrowserOffline()) {
+    await waitForBrowserOnline(signal);
+    if (!signal?.aborted) {
+      await waitForReconnect(BROWSER_ONLINE_SETTLE_MS, signal);
+    }
+  }
+  await waitForReconnect(delayMs, signal);
 }
 
 function withDeckStreamSignal(
@@ -334,7 +379,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
           }
           streamOptions.onRetry?.();
           reconnectAttempt += 1;
-          await waitForReconnect(
+          await waitForNextStreamAttempt(
             streamOptions.retryDelayMs ?? DEFAULT_STREAM_RETRY_MS,
             streamOptions.signal,
           );
@@ -399,7 +444,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
 
       streamOptions.onRetry?.();
       reconnectAttempt += 1;
-      await waitForReconnect(
+      await waitForNextStreamAttempt(
         streamOptions.retryDelayMs ?? DEFAULT_STREAM_RETRY_MS,
         streamOptions.signal,
       );

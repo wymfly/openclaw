@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const originalFetch = globalThis.fetch;
 const originalPrompt = globalThis.prompt;
+const originalNavigator = globalThis.navigator;
+const originalWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
 const originalViteApiBase = (
   globalThis as typeof globalThis & {
     process?: { env?: Record<string, string | undefined> };
@@ -32,6 +34,18 @@ afterEach(() => {
   vi.resetModules();
   globalThis.fetch = originalFetch;
   globalThis.prompt = originalPrompt;
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: originalNavigator,
+  });
+  if (originalWindow === undefined) {
+    delete (globalThis as typeof globalThis & { window?: unknown }).window;
+  } else {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: originalWindow,
+    });
+  }
   setProcessEnv("VITE_API_BASE", originalViteApiBase);
   setProcessEnv("VITE_DECK_GO_API_BASE", originalViteDeckBase);
 });
@@ -238,6 +252,77 @@ describe("deck-go/frontend transport parity", () => {
 
     expect(response.status).toBe(200);
     expect(retries).toEqual(["retry"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "http://127.0.0.1:19528/api/stream?__deck_stream_attempt=1",
+    );
+  });
+
+  it("waits for browser online before retrying the Vite stream", async () => {
+    vi.useFakeTimers();
+    const eventTarget = new EventTarget();
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: { onLine: false },
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        addEventListener: eventTarget.addEventListener.bind(eventTarget),
+        removeEventListener: eventTarget.removeEventListener.bind(eventTarget),
+        dispatchEvent: eventTarget.dispatchEvent.bind(eventTarget),
+        localStorage: {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        },
+      },
+    });
+
+    const encoder = new TextEncoder();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new TypeError("offline"))
+      .mockResolvedValueOnce(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(encoder.encode('id: 16\nevent: ready\ndata: {"ok":true}\n\n'));
+              controller.close();
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          },
+        ),
+      );
+    globalThis.fetch = fetchMock;
+    setProcessEnv("VITE_DECK_GO_API_BASE", "http://127.0.0.1:19528");
+
+    const { deckStream } = await import("../../../frontend/src/lib/deck-client.js");
+    const controller = new AbortController();
+
+    const responsePromise = deckStream("/api/stream", {
+      signal: controller.signal,
+      reconnect: true,
+      retryDelayMs: 0,
+      onEvent(event) {
+        if (event.event === "ready") {
+          controller.abort();
+        }
+      },
+    });
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    (globalThis.navigator as { onLine: boolean }).onLine = true;
+    (globalThis.window as EventTarget).dispatchEvent(new Event("online"));
+    await vi.advanceTimersByTimeAsync(500);
+
+    const response = await responsePromise;
+    expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[1]?.[0]).toBe(
       "http://127.0.0.1:19528/api/stream?__deck_stream_attempt=1",

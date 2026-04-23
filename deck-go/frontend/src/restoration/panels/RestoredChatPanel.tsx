@@ -120,6 +120,13 @@ function markStreamRecoveryReload() {
   window.sessionStorage.setItem(STREAM_RECOVERY_RELOAD_AT_KEY, `${Date.now()}`);
 }
 
+function triggerStreamRecoveryNavigation() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.location.replace(window.location.href);
+}
+
 export function RestoredChatPanel() {
   const [sessions, setSessions] = useState<DeckGoSessionsListResponse | null>(null);
   const [sessionPreviews, setSessionPreviews] = useState<DeckGoSessionsPreviewResponse | null>(
@@ -433,7 +440,7 @@ export function RestoredChatPanel() {
       }
       markStreamRecoveryReload();
       setLiveTimeline((current) => [BROWSER_ONLINE_RECOVERY_RELOAD_LABEL, ...current].slice(0, 8));
-      window.location.reload();
+      triggerStreamRecoveryNavigation();
     }, BROWSER_ONLINE_RECOVERY_RELOAD_DELAY_MS);
 
     return () => {

@@ -184,12 +184,16 @@ describe("RestoredChatPanel", () => {
 
   it("falls back to a controlled reload when reconnecting stays stuck", async () => {
     vi.useFakeTimers();
-    const reloadMock = vi.fn();
+    const replaceMock = vi.fn();
     const originalLocation = window.location;
     const replacementLocation = Object.create(originalLocation) as Location;
-    Object.defineProperty(replacementLocation, "reload", {
+    Object.defineProperty(replacementLocation, "href", {
       configurable: true,
-      value: reloadMock,
+      value: originalLocation.href,
+    });
+    Object.defineProperty(replacementLocation, "replace", {
+      configurable: true,
+      value: replaceMock,
     });
     Object.defineProperty(window, "location", {
       configurable: true,
@@ -217,9 +221,12 @@ describe("RestoredChatPanel", () => {
         "stream never moved into reconnecting before fallback reload",
       );
 
-      await vi.advanceTimersByTimeAsync(8_500);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(8_500);
+      });
 
-      expect(reloadMock).toHaveBeenCalledTimes(1);
+      expect(replaceMock).toHaveBeenCalledTimes(1);
+      expect(replaceMock).toHaveBeenCalledWith(originalLocation.href);
     } finally {
       Object.defineProperty(window, "location", {
         configurable: true,
