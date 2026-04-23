@@ -17,6 +17,7 @@ const panelChecks = [
   { navLabel: "Logs", panelTitles: ["Logs tail", "Live event tape"] },
   { navLabel: "Models", panelTitles: ["Models", "Models detail"] },
   { navLabel: "Config", panelTitles: ["Config", "Config detail"] },
+  { navLabel: "Settings", panelTitles: ["Deck-go local settings", "Settings summary"] },
   { navLabel: "Sessions", panelTitles: ["Session inventory", "Session detail"] },
   { navLabel: "Plugins", panelTitles: ["Plugin inventory"] },
 ];
@@ -226,6 +227,52 @@ try {
       .filter({ hasText: "Tool progress / run status" })
       .first()
       .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.locator(".deckgo-restored-nav-item").filter({ hasText: "Settings" }).first().click();
+    await page
+      .locator("h2.deckgo-card-title")
+      .filter({ hasText: "Deck-go local settings" })
+      .first()
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/settings") &&
+          response.request().method() === "PUT" &&
+          response.status() === 200,
+        { timeout: 15_000 },
+      ),
+      page.getByRole("button", { name: "Save settings" }).click(),
+    ]);
+    await page
+      .locator("h2.deckgo-card-title")
+      .filter({ hasText: "Last save result" })
+      .first()
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.locator(".deckgo-restored-nav-item").filter({ hasText: "Config" }).first().click();
+    await page
+      .locator("h2.deckgo-card-title")
+      .filter({ hasText: "Config" })
+      .first()
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/config/apply") &&
+          response.request().method() === "POST" &&
+          response.status() === 200,
+        { timeout: 15_000 },
+      ),
+      page.getByRole("button", { name: "Apply config" }).click(),
+    ]);
+    await waitForMainText(
+      page,
+      (text) => text.includes("Deck Go operator shell") && text.includes("Config detail"),
+      20_000,
+      "active host did not remain visible after config apply",
+      collectDiagnostics,
+    );
   }
 
   for (const panel of panelChecks) {
