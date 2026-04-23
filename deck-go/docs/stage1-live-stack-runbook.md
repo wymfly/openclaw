@@ -68,6 +68,7 @@ make smoke-stage3-host
 
 That smoke now includes a headless browser probe over the live Vite preview and
 waits for restored host content to hydrate, instead of stopping at static HTML.
+It also runs through a configured Deck access-token path by default.
 
 The frontend build now includes a structural guard that fails if:
 

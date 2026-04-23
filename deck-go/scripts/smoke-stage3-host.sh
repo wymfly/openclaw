@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATA_DIR="${DECK_GO_SMOKE_DATA_DIR:-$(mktemp -d /tmp/deck-go-stage3-smoke.XXXXXX)}"
 KEEP_DATA_DIR="${DECK_GO_SMOKE_KEEP_DATA_DIR:-0}"
+ACCESS_TOKEN="${DECK_GO_SMOKE_ACCESS_TOKEN:-stage3-smoke-token}"
 BACKEND_LOG="$(mktemp /tmp/deck-go-stage3-backend.XXXXXX.log)"
 FRONTEND_LOG="$(mktemp /tmp/deck-go-stage3-frontend.XXXXXX.log)"
 
@@ -29,6 +30,10 @@ BACKEND_BASE="http://${BACKEND_ADDR}"
 FRONTEND_HOST="${DECK_GO_SMOKE_FRONTEND_HOST:-127.0.0.1}"
 FRONTEND_PORT="${DECK_GO_SMOKE_FRONTEND_PORT:-$(pick_port)}"
 FRONTEND_BASE="http://${FRONTEND_HOST}:${FRONTEND_PORT}"
+curl_auth_args=()
+if [[ -n "${ACCESS_TOKEN}" ]]; then
+  curl_auth_args=(-H "x-deck-token: ${ACCESS_TOKEN}")
+fi
 
 cleanup() {
   local exit_code=$?
@@ -63,9 +68,16 @@ trap cleanup EXIT
 wait_for_url() {
   local url="$1"
   local label="$2"
+  shift 2
   local attempt=0
 
-  until curl -sf "${url}" >/dev/null 2>&1; do
+  until {
+    if [[ $# -gt 0 ]]; then
+      curl -sf "$@" "${url}" >/dev/null 2>&1
+    else
+      curl -sf "${url}" >/dev/null 2>&1
+    fi
+  }; do
     attempt=$((attempt + 1))
     if [[ ${attempt} -ge 40 ]]; then
       echo "[stage3-smoke] timed out waiting for ${label}: ${url}" >&2
@@ -79,12 +91,24 @@ assert_status() {
   local url="$1"
   local label="$2"
   shift 2
-  local expected_statuses=("$@")
+  local expected_statuses=()
+  while [[ $# -gt 0 ]]; do
+    if [[ "$1" == "--" ]]; then
+      shift
+      break
+    fi
+    expected_statuses+=("$1")
+    shift
+  done
   local body_file
   body_file="$(mktemp /tmp/deck-go-stage3-smoke-body.XXXXXX)"
 
   local status
-  status="$(curl -s -o "${body_file}" -w "%{http_code}" "${url}")"
+  if [[ $# -gt 0 ]]; then
+    status="$(curl -s -o "${body_file}" -w "%{http_code}" "$@" "${url}")"
+  else
+    status="$(curl -s -o "${body_file}" -w "%{http_code}" "${url}")"
+  fi
 
   for expected in "${expected_statuses[@]}"; do
     if [[ "${status}" == "${expected}" ]]; then
@@ -108,12 +132,13 @@ echo "[stage3-smoke] starting deck-go backend on ${BACKEND_ADDR}"
   cd "${ROOT_DIR}/backend"
   DECK_GO_ADDR="${BACKEND_ADDR}" \
   DECK_GO_DATA_DIR="${DATA_DIR}" \
+  DECK_GO_ACCESS_TOKEN="${ACCESS_TOKEN}" \
   go run ./cmd/deck-go
 ) >"${BACKEND_LOG}" 2>&1 &
 backend_pid=$!
 
-wait_for_url "${BACKEND_BASE}/api/runtime/gateway" "deck-go backend"
-wait_for_url "${BACKEND_BASE}/api/bootstrap/status" "deck-go bootstrap"
+wait_for_url "${BACKEND_BASE}/api/runtime/gateway" "deck-go backend" "${curl_auth_args[@]}"
+wait_for_url "${BACKEND_BASE}/api/bootstrap/status" "deck-go bootstrap" "${curl_auth_args[@]}"
 
 echo "[stage3-smoke] starting Vite preview on ${FRONTEND_BASE}"
 (
@@ -130,21 +155,21 @@ curl -si "${FRONTEND_BASE}/" | head -20
 echo
 
 echo "[stage3-smoke] runtime gateway"
-curl -sf "${BACKEND_BASE}/api/runtime/gateway"
+curl -sf "${curl_auth_args[@]}" "${BACKEND_BASE}/api/runtime/gateway"
 echo
 echo
 
 echo "[stage3-smoke] bootstrap status"
-curl -sf "${BACKEND_BASE}/api/bootstrap/status"
+curl -sf "${curl_auth_args[@]}" "${BACKEND_BASE}/api/bootstrap/status"
 echo
 echo
 
-assert_status "${BACKEND_BASE}/api/logs?limit=1" "logs" 200 502
-assert_status "${BACKEND_BASE}/api/models/config" "models config" 200 502
-assert_status "${BACKEND_BASE}/api/config" "config" 200 502
-assert_status "${BACKEND_BASE}/api/channels" "channels inventory" 200 502
-assert_status "${BACKEND_BASE}/api/deck/plugins" "plugins inventory" 200 502
-assert_status "${BACKEND_BASE}/api/sessions" "sessions inventory" 200 502
+assert_status "${BACKEND_BASE}/api/logs?limit=1" "logs" 200 502 -- "${curl_auth_args[@]}"
+assert_status "${BACKEND_BASE}/api/models/config" "models config" 200 502 -- "${curl_auth_args[@]}"
+assert_status "${BACKEND_BASE}/api/config" "config" 200 502 -- "${curl_auth_args[@]}"
+assert_status "${BACKEND_BASE}/api/channels" "channels inventory" 200 502 -- "${curl_auth_args[@]}"
+assert_status "${BACKEND_BASE}/api/deck/plugins" "plugins inventory" 200 502 -- "${curl_auth_args[@]}"
+assert_status "${BACKEND_BASE}/api/sessions" "sessions inventory" 200 502 -- "${curl_auth_args[@]}"
 
 echo
 echo "[stage3-smoke] verified stable local surfaces plus runtime-backed inventory route wiring"
@@ -153,7 +178,7 @@ echo
 echo "[stage3-smoke] browser shell probe"
 (
   cd "${ROOT_DIR}/.."
-  node deck-go/scripts/smoke-stage3-browser.mjs "${FRONTEND_BASE}"
+  node deck-go/scripts/smoke-stage3-browser.mjs "${FRONTEND_BASE}" "${ACCESS_TOKEN}"
 )
 echo
 

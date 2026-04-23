@@ -29,6 +29,7 @@ make smoke-stage3-host
 
 That smoke now proves three layers together:
 
+- backend is reachable through a configured Deck access-token path
 - backend bootstrap/runtime endpoints respond
 - Vite preview serves the active host bundle
 - a headless browser can hydrate the page and find the restored shell text

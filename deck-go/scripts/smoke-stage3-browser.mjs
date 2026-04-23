@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 
 const baseUrl = process.argv[2];
+const authToken = process.argv[3] ?? "";
 
 if (!baseUrl) {
   console.error("[stage3-browser-smoke] usage: node smoke-stage3-browser.mjs <base-url>");
@@ -19,6 +20,11 @@ const browser = await chromium.launch({ headless: true });
 
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
+  if (authToken.trim()) {
+    await page.addInitScript((token) => {
+      window.localStorage.setItem("deckGoAccessToken", token);
+    }, authToken);
+  }
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
 
   for (const text of requiredTexts) {
