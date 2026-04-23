@@ -38,6 +38,7 @@ type DeckRequestResult = {
 
 const DEFAULT_STREAM_RETRY_MS = 1_000;
 const DEFAULT_PROMPT_MESSAGE = "Enter Deck access token";
+const STREAM_RETRY_QUERY_PARAM = "__deck_stream_attempt";
 
 function normalizeTrimmed(raw: string | null | undefined): string | null {
   const next = (raw ?? "").trim();
@@ -111,6 +112,25 @@ function waitForReconnect(delayMs: number, signal?: AbortSignal): Promise<void> 
     };
     signal?.addEventListener("abort", onAbort, { once: true });
   });
+}
+
+function withDeckStreamAttempt(
+  input: RequestInfo | URL,
+  reconnectAttempt: number,
+): RequestInfo | URL {
+  if (reconnectAttempt <= 0 || typeof input !== "string") {
+    return input;
+  }
+
+  const hashIndex = input.indexOf("#");
+  const withoutHash = hashIndex >= 0 ? input.slice(0, hashIndex) : input;
+  const hash = hashIndex >= 0 ? input.slice(hashIndex) : "";
+  const queryIndex = withoutHash.indexOf("?");
+  const path = queryIndex >= 0 ? withoutHash.slice(0, queryIndex) : withoutHash;
+  const params = new URLSearchParams(queryIndex >= 0 ? withoutHash.slice(queryIndex + 1) : "");
+  params.set(STREAM_RETRY_QUERY_PARAM, `${reconnectAttempt}`);
+  const query = params.toString();
+  return `${path}${query ? `?${query}` : ""}${hash}`;
 }
 
 export function createDeckTransport(options: DeckTransportOptions = {}) {
@@ -234,6 +254,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
     let lastEventId = streamOptions.lastEventId;
     let lastResponse: Response | null = null;
     let prompted = false;
+    let reconnectAttempt = 0;
 
     while (!streamOptions.signal?.aborted) {
       try {
@@ -241,10 +262,15 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
           response,
           token: nextToken,
           prompted: promptedNow,
-        } = await requestDeckResponse(input, {
+        } = await requestDeckResponse(withDeckStreamAttempt(input, reconnectAttempt), {
           init: {
             method: "GET",
             signal: streamOptions.signal,
+            cache: "no-store",
+            headers: {
+              Accept: "text/event-stream",
+              "Cache-Control": "no-store",
+            },
           },
           token,
           lastEventId,
@@ -261,6 +287,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
             return response;
           }
           streamOptions.onRetry?.();
+          reconnectAttempt += 1;
           await waitForReconnect(
             streamOptions.retryDelayMs ?? DEFAULT_STREAM_RETRY_MS,
             streamOptions.signal,
@@ -269,6 +296,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
         }
 
         streamOptions.onOpen?.();
+        reconnectAttempt = 0;
 
         if (!streamOptions.onEvent) {
           return response;
@@ -324,6 +352,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
       }
 
       streamOptions.onRetry?.();
+      reconnectAttempt += 1;
       await waitForReconnect(
         streamOptions.retryDelayMs ?? DEFAULT_STREAM_RETRY_MS,
         streamOptions.signal,

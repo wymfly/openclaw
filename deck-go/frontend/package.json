@@ -8,7 +8,7 @@
     "check:restored-host": "node scripts/check-restored-host.mjs",
     "dev": "vite --port 5174",
     "preview": "vite preview --port 4174",
-    "test:restored-host": "node ../../scripts/run-vitest.mjs run --config vitest.config.ts src/shell-components.test.tsx"
+    "test:restored-host": "node ../../scripts/run-vitest.mjs run --config vitest.config.ts src/shell-components.test.tsx src/restoration/panels/RestoredChatPanel.test.tsx"
   },
   "dependencies": {
     "react": "^19.2.0",

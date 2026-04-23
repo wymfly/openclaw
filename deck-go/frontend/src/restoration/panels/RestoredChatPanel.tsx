@@ -44,6 +44,7 @@ type StreamState = "idle" | "connecting" | "connected" | "reconnecting" | "error
 
 const PREVIEW_LIMIT = 8;
 const LAST_EVENT_ID_KEY = "deckGoLastEventId";
+const BROWSER_ONLINE_RECOVERY_LABEL = "browser network restored";
 type ToolProgressEntry = {
   runId: string;
   sessionKey: string;
@@ -118,12 +119,14 @@ export function RestoredChatPanel() {
   const [liveTimeline, setLiveTimeline] = useState<string[]>([]);
   const [toolProgressEntries, setToolProgressEntries] = useState<ToolProgressEntry[]>([]);
   const [projectionGapReason, setProjectionGapReason] = useState("");
+  const [streamRestartNonce, setStreamRestartNonce] = useState(0);
   const lastEventIdRef = useRef(
     typeof window === "undefined"
       ? ""
       : window.localStorage.getItem(LAST_EVENT_ID_KEY)?.trim() || "",
   );
   const previousServerStreamStateRef = useRef<StreamState>("idle");
+  const pendingBrowserRecoveryRef = useRef(false);
 
   const selectedSessionMeta =
     sessions?.sessions?.find((session) => session.key === sessionKey) ??
@@ -315,6 +318,19 @@ export function RestoredChatPanel() {
   }, [agentId, sessionKey]);
 
   useEffect(() => {
+    const onOnline = () => {
+      pendingBrowserRecoveryRef.current = true;
+      setLiveTimeline((current) => [BROWSER_ONLINE_RECOVERY_LABEL, ...current].slice(0, 8));
+      setStreamRestartNonce((current) => current + 1);
+    };
+
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+    };
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     void streamEvents({
       signal: controller.signal,
@@ -376,16 +392,17 @@ export function RestoredChatPanel() {
     return () => {
       controller.abort();
     };
-  }, [agentId, sessionKey]);
+  }, [agentId, sessionKey, streamRestartNonce]);
 
   useEffect(() => {
     const previous = previousServerStreamStateRef.current;
     if (
       previous !== serverStreamState &&
       serverStreamState === "connected" &&
-      (previous === "reconnecting" || previous === "error")
+      (previous === "reconnecting" || previous === "error" || pendingBrowserRecoveryRef.current)
     ) {
       setLiveTimeline((current) => ["stream reconnected", ...current].slice(0, 8));
+      pendingBrowserRecoveryRef.current = false;
       if (sessionKey.trim()) {
         void hydrateSessionRead(sessionKey, agentId);
         void refreshSessionsInventory({ preferredSessionKey: sessionKey, preserveSelection: true });

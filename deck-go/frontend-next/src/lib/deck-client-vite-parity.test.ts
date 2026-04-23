@@ -171,5 +171,12 @@ describe("deck-go/frontend transport parity", () => {
     expect(retries).toEqual(["retry"]);
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("Last-Event-ID")).toBe("9");
     expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get("Last-Event-ID")).toBe("9");
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get("Accept")).toBe(
+      "text/event-stream",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.cache).toBe("no-store");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "http://127.0.0.1:19528/api/stream?__deck_stream_attempt=1",
+    );
   });
 });

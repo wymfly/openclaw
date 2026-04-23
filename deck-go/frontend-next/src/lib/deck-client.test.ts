@@ -9,7 +9,11 @@ afterEach(() => {
   vi.resetModules();
   globalThis.fetch = originalFetch;
   globalThis.prompt = originalPrompt;
-  process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+  if (originalApiBase === undefined) {
+    delete process.env.NEXT_PUBLIC_DECK_GO_API_BASE;
+  } else {
+    process.env.NEXT_PUBLIC_DECK_GO_API_BASE = originalApiBase;
+  }
 });
 
 describe("deckFetch", () => {
@@ -156,6 +160,9 @@ describe("deckStream", () => {
     const headers = new Headers(init?.headers);
     expect(headers.get("x-deck-token")).toBe("stream-secret");
     expect(headers.get("Last-Event-ID")).toBe("42");
+    expect(headers.get("Accept")).toBe("text/event-stream");
+    expect(headers.get("Cache-Control")).toBe("no-store");
+    expect(init?.cache).toBe("no-store");
   });
 
   it("retries once with prompted token after a 401 response", async () => {
@@ -233,6 +240,7 @@ describe("deckStream", () => {
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(events).toEqual(["ready"]);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/stream?__deck_stream_attempt=1");
   });
 
   it("retries a reconnecting stream after an initial 500 response", async () => {
@@ -280,6 +288,7 @@ describe("deckStream", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(retries).toEqual(["retry"]);
     expect(events).toEqual(["ready"]);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/stream?__deck_stream_attempt=1");
   });
 
   it("prefixes relative /api stream URLs with NEXT_PUBLIC_DECK_GO_API_BASE", async () => {

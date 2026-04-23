@@ -21,7 +21,22 @@ const panelChecks = [
   { navLabel: "Plugins", panelTitles: ["Plugin inventory"] },
 ];
 
+async function waitForMainText(page, predicate, timeoutMs, errorMessage) {
+  const deadline = Date.now() + timeoutMs;
+  let visibleText = "";
+  while (Date.now() < deadline) {
+    visibleText = await page.locator("main").evaluate((node) => node.innerText);
+    if (predicate(visibleText)) {
+      return visibleText;
+    }
+    await page.waitForTimeout(1_000);
+  }
+
+  throw new Error(`${errorMessage}\n\nLast visible text:\n${visibleText}`);
+}
+
 const browser = await chromium.launch({ headless: true });
+const navigationOptions = { waitUntil: "commit", timeout: 15_000 };
 
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
@@ -30,7 +45,7 @@ try {
       window.localStorage.setItem("deckGoAccessToken", token);
     }, authToken);
   }
-  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.goto(baseUrl, navigationOptions);
 
   for (const text of requiredTexts) {
     const locator = page.getByText(text, { exact: false }).first();
@@ -44,34 +59,41 @@ try {
     await messageBox.fill(chatMessage);
     await page.getByRole("button", { name: "Send message" }).click();
 
-    const deadline = Date.now() + 45_000;
-    let visibleText = "";
-    while (Date.now() < deadline) {
-      visibleText = await page.locator("main").evaluate((node) => node.innerText);
-      if (visibleText.includes(expectedAssistantReply)) {
-        break;
-      }
-      await page.waitForTimeout(1_000);
+    await waitForMainText(
+      page,
+      (text) => text.includes(expectedAssistantReply),
+      45_000,
+      "assistant reply never appeared in visible transcript content",
+    );
+
+    await page.context().setOffline(true);
+    try {
+      await waitForMainText(
+        page,
+        (text) => text.includes("Stream reconnecting"),
+        20_000,
+        "chat panel never exposed stream reconnecting after browser offline",
+      );
+    } finally {
+      await page.context().setOffline(false);
     }
 
-    if (!visibleText.includes(expectedAssistantReply)) {
-      throw new Error("assistant reply never appeared in visible transcript content");
-    }
+    await waitForMainText(
+      page,
+      (text) =>
+        text.includes(expectedAssistantReply) &&
+        (text.includes("stream reconnected") || text.includes("Stream connected")),
+      30_000,
+      "assistant transcript or reconnect evidence did not recover after browser network restore",
+    );
 
-    await page.reload({ waitUntil: "domcontentloaded" });
-    const reloadDeadline = Date.now() + 45_000;
-    let reloadedText = "";
-    while (Date.now() < reloadDeadline) {
-      reloadedText = await page.locator("main").evaluate((node) => node.innerText);
-      if (reloadedText.includes(expectedAssistantReply)) {
-        break;
-      }
-      await page.waitForTimeout(1_000);
-    }
-
-    if (!reloadedText.includes(expectedAssistantReply)) {
-      throw new Error("assistant reply did not survive page reload");
-    }
+    await page.reload(navigationOptions);
+    await waitForMainText(
+      page,
+      (text) => text.includes(expectedAssistantReply),
+      45_000,
+      "assistant reply did not survive page reload",
+    );
 
     await page
       .locator(".deckgo-surface-label")
