@@ -10,10 +10,12 @@ if (!baseUrl) {
 
 const requiredTexts = ["Deck Go operator shell", "Gateway", "Runtime", "Chat"];
 const panelChecks = [
-  { navLabel: "Agents", panelTitle: "Agents" },
-  { navLabel: "Models", panelTitle: "Models" },
-  { navLabel: "Sessions", panelTitle: "Session inventory" },
-  { navLabel: "Plugins", panelTitle: "Plugin inventory" },
+  { navLabel: "Agents", panelTitles: ["Agents", "Agent detail"] },
+  { navLabel: "Channels", panelTitles: ["Channel inventory"] },
+  { navLabel: "Models", panelTitles: ["Models", "Models detail"] },
+  { navLabel: "Config", panelTitles: ["Config", "Config detail"] },
+  { navLabel: "Sessions", panelTitles: ["Session inventory", "Session detail"] },
+  { navLabel: "Plugins", panelTitles: ["Plugin inventory"] },
 ];
 
 const browser = await chromium.launch({ headless: true });
@@ -38,11 +40,13 @@ try {
       .filter({ hasText: panel.navLabel })
       .first()
       .click();
-    await page
-      .locator("h2.deckgo-card-title")
-      .filter({ hasText: panel.panelTitle })
-      .first()
-      .waitFor({ state: "visible", timeout: 15_000 });
+    for (const panelTitle of panel.panelTitles) {
+      await page
+        .locator("h2.deckgo-card-title")
+        .filter({ hasText: panelTitle })
+        .first()
+        .waitFor({ state: "visible", timeout: 15_000 });
+    }
   }
 
   console.log(
