@@ -10,6 +10,10 @@ export type RestorationUIState = {
   sidebarCollapsed: boolean;
   mobileNavOpen: boolean;
   themeMode: DeckGoThemeMode;
+  authRequired: boolean;
+  authMessage: string;
+  authTokenInput: string;
+  summaryReady: boolean;
   bootstrap: DeckGoBootstrapStatusResponse | null;
   runtime: DeckGoRuntimeGatewayActionResponse | null;
   summaryError: string | null;
@@ -19,5 +23,7 @@ export type RestorationUIState = {
   setSidebarCollapsed: (collapsed: boolean) => void;
   setMobileNavOpen: (open: boolean) => void;
   setThemeMode: (mode: DeckGoThemeMode) => void;
+  setAuthTokenInput: (token: string) => void;
+  unlockControlPlane: (token?: string) => Promise<void>;
   refreshRuntimeSummary: () => Promise<void>;
 };

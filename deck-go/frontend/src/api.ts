@@ -54,6 +54,18 @@ async function fetchDeckJson<T>(path: string, init: RequestInit | undefined, fal
   return (await res.json()) as T;
 }
 
+async function fetchDeckJsonNoPrompt<T>(
+  path: string,
+  init: RequestInit | undefined,
+  fallback: string,
+) {
+  const res = await deckFetch(buildApiPath(path), init, { allowPrompt: false });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, fallback));
+  }
+  return (await res.json()) as T;
+}
+
 export async function fetchSettings() {
   return fetchDeckJson<DeckGoSettingsResponse>("/settings", undefined, "settings fetch failed");
 }
@@ -71,7 +83,7 @@ export async function saveSettings(settings: DeckGoSettings) {
 }
 
 export async function fetchBootstrapStatus() {
-  return fetchDeckJson<DeckGoBootstrapStatusResponse>(
+  return fetchDeckJsonNoPrompt<DeckGoBootstrapStatusResponse>(
     "/bootstrap/status",
     undefined,
     "bootstrap fetch failed",
@@ -79,7 +91,7 @@ export async function fetchBootstrapStatus() {
 }
 
 export async function fetchRuntimeGatewayStatus() {
-  return fetchDeckJson<DeckGoRuntimeGatewayActionResponse>(
+  return fetchDeckJsonNoPrompt<DeckGoRuntimeGatewayActionResponse>(
     "/runtime/gateway",
     undefined,
     "runtime gateway fetch failed",

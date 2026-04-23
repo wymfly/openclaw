@@ -68,7 +68,8 @@ make smoke-stage3-host
 
 That smoke now includes a headless browser probe over the live Vite preview and
 waits for restored host content to hydrate, instead of stopping at static HTML.
-It also runs through a configured Deck access-token path by default.
+It also runs through the active host's in-shell access-token unlock path by
+default instead of pre-seeding browser storage.
 Under the default local smoke setup, it additionally checks that
 `POST /api/runtime/gateway/start` reaches the managed-runtime preflight and
 returns the expected `managed gateway token is required` error.

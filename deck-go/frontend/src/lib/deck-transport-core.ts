@@ -321,8 +321,12 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
     };
   }
 
-  async function deckFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    const { response } = await requestDeckResponse(input, { init });
+  async function deckFetch(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+    requestOptions?: Pick<DeckRequestOptions, "allowPrompt" | "token" | "lastEventId">,
+  ): Promise<Response> {
+    const { response } = await requestDeckResponse(input, { init, ...requestOptions });
     return response;
   }
 

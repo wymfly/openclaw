@@ -9,7 +9,7 @@ if (!baseUrl) {
   process.exit(2);
 }
 
-const requiredTexts = ["Deck Go operator shell", "Gateway", "Runtime", "Chat"];
+const requiredTexts = ["Deck Go operator shell"];
 const panelChecks = [
   { navLabel: "Agents", panelTitles: ["Agents", "Agent detail"] },
   { navLabel: "Gateway", panelTitles: ["Gateway runtime", "Managed gateway settings"] },
@@ -66,6 +66,7 @@ try {
   const streamTrace = [];
   const dialogTrace = [];
   let promptCount = 0;
+  let unlockCount = 0;
   const pushTrace = (...entry) => {
     streamTrace.push(entry);
     if (streamTrace.length > 40) {
@@ -99,11 +100,6 @@ try {
       pushTrace(["finished", request.url()]);
     }
   });
-  if (authToken.trim()) {
-    await page.addInitScript((token) => {
-      window.localStorage.setItem("deckGoAccessToken", token);
-    }, authToken);
-  }
   page.on("dialog", async (dialog) => {
     pushDialogTrace(["dialog", dialog.type(), dialog.message()]);
     if (dialog.type() === "prompt" && authToken.trim()) {
@@ -170,10 +166,41 @@ try {
 
   await page.goto(baseUrl, navigationOptions);
 
-  for (const text of requiredTexts) {
-    const locator = page.getByText(text, { exact: false }).first();
-    await locator.waitFor({ state: "visible", timeout: 15_000 });
+  if (authToken.trim()) {
+    const unlockHeading = page.getByText("Unlock control plane", { exact: false }).first();
+    const shellHeading = page.getByText("Deck Go operator shell", { exact: false }).first();
+    const authDeadline = Date.now() + 15_000;
+    while (Date.now() < authDeadline) {
+      if (await shellHeading.isVisible().catch(() => false)) {
+        break;
+      }
+      if (await unlockHeading.isVisible().catch(() => false)) {
+        const tokenInput = page.getByPlaceholder("Enter deck-go access token");
+        await tokenInput.fill(authToken);
+        await page.waitForFunction(
+          (value) => {
+            const input = document.querySelector('input[placeholder="Enter deck-go access token"]');
+            return input?.value === value;
+          },
+          authToken,
+          { timeout: 5_000 },
+        );
+        await page.waitForTimeout(150);
+        await page.getByRole("button", { name: "Unlock control plane" }).click();
+        unlockCount += 1;
+        break;
+      }
+      await page.waitForTimeout(500);
+    }
   }
+
+  await waitForMainText(
+    page,
+    (text) => requiredTexts.every((required) => text.includes(required)),
+    20_000,
+    "active host shell text never became visible",
+    collectDiagnostics,
+  );
 
   if (mode === "rich") {
     const chatMessage = "What number comes immediately after 314158? Reply with digits only.";
@@ -291,7 +318,7 @@ try {
   }
 
   console.log(
-    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}; mode ${mode}; auth prompts ${promptCount}`,
+    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}; mode ${mode}; auth unlocks ${unlockCount}; auth prompts ${promptCount}`,
   );
 } finally {
   await browser.close();
