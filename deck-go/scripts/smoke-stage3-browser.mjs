@@ -2,6 +2,7 @@ import { chromium } from "playwright";
 
 const baseUrl = process.argv[2];
 const authToken = process.argv[3] ?? "";
+const mode = process.argv[4] ?? "basic";
 
 if (!baseUrl) {
   console.error("[stage3-browser-smoke] usage: node smoke-stage3-browser.mjs <base-url>");
@@ -36,6 +37,42 @@ try {
     await locator.waitFor({ state: "visible", timeout: 15_000 });
   }
 
+  if (mode === "rich") {
+    const chatMessage = "hello from stage3 browser smoke";
+    const messageBox = page.getByPlaceholder("Send a message through the restored chat panel");
+    await messageBox.fill(chatMessage);
+    await page.getByRole("button", { name: "Send message" }).click();
+
+    const deadline = Date.now() + 45_000;
+    let visibleText = "";
+    while (Date.now() < deadline) {
+      visibleText = await page.locator("main").evaluate((node) => node.innerText);
+      if (visibleText.includes(chatMessage)) {
+        break;
+      }
+      await page.waitForTimeout(1_000);
+    }
+
+    if (!visibleText.includes(chatMessage)) {
+      throw new Error("chat message never appeared in visible transcript content");
+    }
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    const reloadDeadline = Date.now() + 45_000;
+    let reloadedText = "";
+    while (Date.now() < reloadDeadline) {
+      reloadedText = await page.locator("main").evaluate((node) => node.innerText);
+      if (reloadedText.includes(chatMessage)) {
+        break;
+      }
+      await page.waitForTimeout(1_000);
+    }
+
+    if (!reloadedText.includes(chatMessage)) {
+      throw new Error("chat message did not survive page reload");
+    }
+  }
+
   for (const panel of panelChecks) {
     await page
       .locator(".deckgo-restored-nav-item")
@@ -52,7 +89,7 @@ try {
   }
 
   console.log(
-    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}`,
+    `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}; mode ${mode}`,
   );
 } finally {
   await browser.close();
