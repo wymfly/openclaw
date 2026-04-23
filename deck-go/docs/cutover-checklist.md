@@ -17,7 +17,7 @@ Do not switch the default Deck implementation until every item below is satisfie
 - [ ] E2E smoke passes on all canonical cutover-critical workflows
 - [ ] Chat/replay parity is green
 - [ ] Deployment simplification targets are met on supported environments
-- [ ] Rollback procedure has been rehearsed successfully
+- [x] Rollback procedure has been rehearsed successfully
 - [ ] Two-week stabilization window passes with no Sev-1/Sev-2 regressions attributable to `deck-go`
 
 ## Evidence links
@@ -29,3 +29,4 @@ Do not switch the default Deck implementation until every item below is satisfie
 - Deployment Baseline: `deck-go/docs/deployment-baseline.md`
 - Default repo gate: `cd deck-go && make verify`
 - Local host smoke: `cd deck-go && make smoke-stage3-host`
+- Rollback rehearsal smoke: `cd deck-go && make smoke-stage3-rollback`
