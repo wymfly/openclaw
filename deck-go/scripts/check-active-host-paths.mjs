@@ -29,6 +29,10 @@ const forbiddenPatterns = [
   { label: "legacy VITE_API_BASE contract", regex: /\bVITE_API_BASE\b/ },
 ];
 
+const frontendSrcForbiddenPatterns = [
+  { label: "node-style VITE env access in active host", regex: /\bprocess\.env\.VITE_/ },
+];
+
 const hits = [];
 
 function walk(currentPath) {
@@ -61,6 +65,14 @@ function walk(currentPath) {
     for (const pattern of forbiddenPatterns) {
       if (pattern.regex.test(source)) {
         hits.push(`${relativePath}: ${pattern.label}`);
+      }
+    }
+
+    if (relativePath.startsWith("frontend/src/")) {
+      for (const pattern of frontendSrcForbiddenPatterns) {
+        if (pattern.regex.test(source)) {
+          hits.push(`${relativePath}: ${pattern.label}`);
+        }
       }
     }
   }

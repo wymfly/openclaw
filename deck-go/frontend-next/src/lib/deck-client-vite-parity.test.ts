@@ -4,27 +4,10 @@ const originalFetch = globalThis.fetch;
 const originalPrompt = globalThis.prompt;
 const originalNavigator = globalThis.navigator;
 const originalWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
-const originalViteDeckBase = (
-  globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  }
-).process?.env?.VITE_DECK_GO_API_BASE;
-
-function setProcessEnv(name: string, value: string | undefined) {
-  const holder = globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  };
-  holder.process ??= { env: {} };
-  holder.process.env ??= {};
-  if (value === undefined) {
-    delete holder.process.env[name];
-    return;
-  }
-  holder.process.env[name] = value;
-}
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   vi.useRealTimers();
   vi.resetModules();
   globalThis.fetch = originalFetch;
@@ -41,7 +24,6 @@ afterEach(() => {
       value: originalWindow,
     });
   }
-  setProcessEnv("VITE_DECK_GO_API_BASE", originalViteDeckBase);
 });
 
 describe("deck-go/frontend transport parity", () => {
@@ -53,7 +35,7 @@ describe("deck-go/frontend transport parity", () => {
       }),
     );
     globalThis.fetch = fetchMock;
-    setProcessEnv("VITE_DECK_GO_API_BASE", undefined);
+    vi.stubEnv("VITE_DECK_GO_API_BASE", undefined);
 
     const { deckFetch } = await import("../../../frontend/src/lib/deck-client.js");
     await deckFetch("/api/activity");
@@ -70,12 +52,11 @@ describe("deck-go/frontend transport parity", () => {
       }),
     );
     globalThis.fetch = fetchMock;
-    setProcessEnv("VITE_DECK_GO_API_BASE", "http://127.0.0.1:19528");
 
     const { deckFetch } = await import("../../../frontend/src/lib/deck-client.js");
     await deckFetch("/api/activity");
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://127.0.0.1:19528/api/activity");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/activity");
   });
 
   it("retries once with a prompted token after a 401 response", async () => {
@@ -217,7 +198,6 @@ describe("deck-go/frontend transport parity", () => {
         ),
       );
     globalThis.fetch = fetchMock;
-    setProcessEnv("VITE_DECK_GO_API_BASE", "http://127.0.0.1:19528");
 
     const { deckStream } = await import("../../../frontend/src/lib/deck-client.js");
     const controller = new AbortController();
@@ -243,9 +223,7 @@ describe("deck-go/frontend transport parity", () => {
     expect(response.status).toBe(200);
     expect(retries).toEqual(["retry"]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1]?.[0]).toBe(
-      "http://127.0.0.1:19528/api/stream?__deck_stream_attempt=1",
-    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/stream?__deck_stream_attempt=1");
   });
 
   it("waits for browser online before retrying the Vite stream", async () => {
@@ -288,7 +266,6 @@ describe("deck-go/frontend transport parity", () => {
         ),
       );
     globalThis.fetch = fetchMock;
-    setProcessEnv("VITE_DECK_GO_API_BASE", "http://127.0.0.1:19528");
 
     const { deckStream } = await import("../../../frontend/src/lib/deck-client.js");
     const controller = new AbortController();
@@ -314,8 +291,6 @@ describe("deck-go/frontend transport parity", () => {
     const response = await responsePromise;
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1]?.[0]).toBe(
-      "http://127.0.0.1:19528/api/stream?__deck_stream_attempt=1",
-    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/stream?__deck_stream_attempt=1");
   });
 });
