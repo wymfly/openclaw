@@ -28,8 +28,6 @@ import {
   SessionListCard,
   SessionPreviewCard,
 } from "../../shell-components";
-
-const NOOP_CLEANUP = () => {};
 import { parseServerEvent, summarizeServerEvent } from "../../stream-contract";
 import {
   applyLiveMessageToSessionDetail,
@@ -306,7 +304,7 @@ export function RestoredChatPanel() {
 
   useEffect(() => {
     void refreshSessionsInventory();
-  }, [refreshSessionsInventory]);
+  }, []);
 
   useEffect(() => {
     if (!sessionKey.trim()) {
@@ -314,14 +312,9 @@ export function RestoredChatPanel() {
       return;
     }
     void hydrateSessionRead(sessionKey, agentId);
-  }, [agentId, hydrateSessionRead, sessionKey]);
+  }, [agentId, sessionKey]);
 
   useEffect(() => {
-    if (!sessionKey.trim()) {
-      setServerStreamState("idle");
-      return NOOP_CLEANUP;
-    }
-
     const controller = new AbortController();
     void streamEvents({
       signal: controller.signal,
@@ -338,7 +331,9 @@ export function RestoredChatPanel() {
         if (parsed.kind === "projection.gap") {
           setProjectionGapReason(parsed.payload.reason || "unknown");
           setLiveTimeline((current) => [summarizeServerEvent(event), ...current].slice(0, 8));
-          void hydrateSessionRead(sessionKey, agentId);
+          if (sessionKey.trim()) {
+            void hydrateSessionRead(sessionKey, agentId);
+          }
           return;
         }
 
@@ -381,26 +376,29 @@ export function RestoredChatPanel() {
     return () => {
       controller.abort();
     };
-  }, [agentId, applyLiveMessage, applySessionChange, hydrateSessionRead, sessionKey]);
+  }, [agentId, sessionKey]);
 
   useEffect(() => {
     const previous = previousServerStreamStateRef.current;
     if (
       previous !== serverStreamState &&
       serverStreamState === "connected" &&
-      (previous === "reconnecting" || previous === "error") &&
-      sessionKey.trim()
+      (previous === "reconnecting" || previous === "error")
     ) {
       setLiveTimeline((current) => ["stream reconnected", ...current].slice(0, 8));
-      void hydrateSessionRead(sessionKey, agentId);
-      void refreshSessionsInventory({ preferredSessionKey: sessionKey, preserveSelection: true });
+      if (sessionKey.trim()) {
+        void hydrateSessionRead(sessionKey, agentId);
+        void refreshSessionsInventory({ preferredSessionKey: sessionKey, preserveSelection: true });
+      } else {
+        void refreshSessionsInventory();
+      }
     } else if (previous !== serverStreamState && serverStreamState === "reconnecting") {
       setLiveTimeline((current) => ["stream reconnecting", ...current].slice(0, 8));
     } else if (previous !== serverStreamState && serverStreamState === "error") {
       setLiveTimeline((current) => ["stream error", ...current].slice(0, 8));
     }
     previousServerStreamStateRef.current = serverStreamState;
-  }, [agentId, hydrateSessionRead, refreshSessionsInventory, serverStreamState, sessionKey]);
+  }, [agentId, serverStreamState, sessionKey]);
 
   const onSelectSession = (session: DeckGoSessionMeta) => {
     setSessionKey(session.key);

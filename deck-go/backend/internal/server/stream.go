@@ -44,6 +44,8 @@ func serveEventStream(w http.ResponseWriter, r *http.Request, managed openclawrt
 		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
 		return
 	}
+	_, _ = fmt.Fprint(w, ": connected\n\n")
+	flusher.Flush()
 
 	for _, event := range func() []events.Event {
 		items, gap := managed.EventsSince(lastID)

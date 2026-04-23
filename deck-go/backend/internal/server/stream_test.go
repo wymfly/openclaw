@@ -31,6 +31,9 @@ func TestServeEventStream_ReplaysGapAndEvent(t *testing.T) {
 
 	serveEventStream(rec, req, managed)
 	body := rec.Body.String()
+	if !strings.HasPrefix(body, ": connected\n\n") {
+		t.Fatalf("expected initial connected comment, got: %s", body)
+	}
 	if !strings.Contains(body, "event: runtime.status") {
 		t.Fatalf("unexpected body: %s", body)
 	}
