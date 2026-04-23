@@ -17,8 +17,3 @@ export function writeStoredDeckAccessToken(token: string | null) {
   }
   window.localStorage.removeItem(DECK_ACCESS_TOKEN_STORAGE_KEY);
 }
-
-export function persistStoredDeckAccessToken(token: string | null) {
-  writeStoredDeckAccessToken(token);
-  return token;
-}

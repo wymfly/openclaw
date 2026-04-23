@@ -223,7 +223,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
     pendingPrompt: null as Promise<string | null> | null,
   };
 
-  function persistDeckAccessToken(token: string | null) {
+  function storeDeckAccessToken(token: string | null) {
     authState.token = normalizeTrimmed(token);
     options.writeStoredToken?.(authState.token);
     return authState.token;
@@ -260,7 +260,7 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
         return null;
       }
       const token = globalThis.prompt(options.promptMessage ?? DEFAULT_PROMPT_MESSAGE);
-      return persistDeckAccessToken(token);
+      return storeDeckAccessToken(token);
     });
     try {
       return await authState.pendingPrompt;
@@ -450,6 +450,5 @@ export function createDeckTransport(options: DeckTransportOptions = {}) {
   return {
     deckFetch,
     deckStream,
-    persistDeckAccessToken,
   };
 }

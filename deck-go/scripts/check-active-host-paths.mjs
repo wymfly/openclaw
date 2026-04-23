@@ -35,6 +35,10 @@ const frontendSrcForbiddenPatterns = [
     label: "deck-client token persistence export",
     regex: /\bexport\s+const\s+persistDeckAccessToken\b/,
   },
+  {
+    label: "auth-storage persist wrapper export",
+    regex: /\bexport\s+function\s+persistStoredDeckAccessToken\b/,
+  },
 ];
 
 const hits = [];

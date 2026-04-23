@@ -24,7 +24,7 @@ import type {
   DeckGoSettingsResponse,
   DeckGoSettingsSaveResponse,
 } from "../../contracts/generated/ts/deck-api.generated";
-import { persistStoredDeckAccessToken } from "./lib/deck-auth-storage";
+import { writeStoredDeckAccessToken } from "./lib/deck-auth-storage";
 import { deckFetch, deckStream, type DeckEvent } from "./lib/deck-client";
 
 function buildApiPath(path: string) {
@@ -1590,7 +1590,7 @@ export async function setSessionEventsSubscription(body: DeckGoSessionEventsRequ
 }
 
 export function persistAccessToken(token: string) {
-  persistStoredDeckAccessToken(token);
+  writeStoredDeckAccessToken(token);
 }
 
 function toDeckServerEvent<TEvent extends DeckGoServerEvent>(event: DeckEvent): TEvent {
