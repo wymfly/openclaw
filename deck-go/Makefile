@@ -3,7 +3,7 @@ SHELL := /bin/bash
 GO_ENV := GOCACHE=/tmp/deck-go-buildcache GOMODCACHE=/tmp/deck-go-modcache GOPATH=/tmp/deck-go-gopath GOSUMDB=off
 NPM_ENV := npm_config_cache=/tmp/deck-go-npm-cache
 
-.PHONY: contracts-sync contracts-check host-check backend-test frontend-build verify smoke-stage3-host smoke-stage3-rollback
+.PHONY: contracts-sync contracts-check host-check backend-test frontend-build verify smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback
 
 contracts-sync:
 	node contracts/scripts/sync-deck-api-generated.mjs
@@ -24,6 +24,9 @@ verify: contracts-check host-check backend-test frontend-build
 
 smoke-stage3-host: frontend-build
 	./scripts/smoke-stage3-host.sh
+
+smoke-stage3-e2e:
+	./scripts/smoke-stage3-e2e.sh
 
 smoke-stage3-rollback:
 	./scripts/smoke-stage3-rollback.sh

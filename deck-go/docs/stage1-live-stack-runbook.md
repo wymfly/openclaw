@@ -51,7 +51,7 @@ curl -sf http://127.0.0.1:19566/api/v1/onboarding/status
 
 ## 4. Live browser verification
 
-Stage 3 host cutover is now validated primarily through the default build/verify lane:
+Stage 3 host cutover is now validated through the default build/verify lane:
 
 ```bash
 cd deck-go
@@ -71,6 +71,12 @@ single wrapper step:
 
 ```bash
 make deck-go-stage3-host
+```
+
+The canonical Stage 3 host E2E suite is now:
+
+```bash
+make deck-go-stage3-e2e
 ```
 
 That smoke now includes a headless browser probe over the live Vite preview and
@@ -103,6 +109,12 @@ user message in visible transcript content, surviving a page reload, aborting
 the started run, and completing a managed runtime stop/start cycle back to
 `running/healthy`.
 
+`make deck-go-stage3-e2e` now packages both supported active-host smoke lanes
+into one canonical closure target:
+
+- the default/basic auth + bootstrap lane
+- the richer managed-runtime/browser workflow lane
+
 The frontend build now includes a structural guard that fails if:
 
 - any panel id in `frontend/src/restoration/panel-registry.tsx` is no longer implemented in `ActivePanelHost`
@@ -120,6 +132,6 @@ The frontend build now includes a structural guard that fails if:
 
 ## 6. Known constraints
 
-- live browser smoke against the Stage 3 host is still a separate follow-up tranche; `make verify` is the current canonical gate
+- `make verify` still proves the default repo gate, but Stage 3 closure now additionally relies on `make deck-go-stage3-e2e` for the canonical browser-backed host workflows
 - if `VITE_DECK_GO_API_BASE` is omitted, `deck-client.ts` stays on relative `/api/*` paths and therefore requires the current host origin to be the backend
 - `frontend-next` may still be retained in-repo for archive/reference-only comparison, but it is not part of the default host path

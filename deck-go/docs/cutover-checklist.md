@@ -14,7 +14,7 @@ Do not switch the default Deck implementation until every item below is satisfie
 ## Mandatory gates
 
 - [x] Zero unresolved `must-match` parity failures on cutover-critical workflows
-- [ ] E2E smoke passes on all canonical cutover-critical workflows
+- [x] E2E smoke passes on all canonical cutover-critical workflows
 - [x] Chat/replay parity is green
 - [x] Deployment simplification targets are met on supported environments
 - [x] Rollback procedure has been rehearsed successfully
@@ -28,6 +28,8 @@ Do not switch the default Deck implementation until every item below is satisfie
 - Rollback Runbook: `deck-go/docs/rollback-runbook.md`
 - Deployment Baseline: `deck-go/docs/deployment-baseline.md`
 - Repo-root local/private wrapper: `make deck-go-stage3-host`
+- Repo-root canonical E2E wrapper: `make deck-go-stage3-e2e`
 - Default repo gate: `cd deck-go && make verify`
 - Local host smoke: `cd deck-go && make smoke-stage3-host`
+- Canonical host E2E smoke: `cd deck-go && make smoke-stage3-e2e`
 - Rollback rehearsal smoke: `cd deck-go && make smoke-stage3-rollback`

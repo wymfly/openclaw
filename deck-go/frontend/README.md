@@ -30,6 +30,13 @@ cd deck-go
 make smoke-stage3-host
 ```
 
+Canonical active-host E2E closure suite:
+
+```bash
+cd deck-go
+make smoke-stage3-e2e
+```
+
 Richer local smoke, if you also have a managed Gateway token available:
 
 ```bash
@@ -46,6 +53,11 @@ assistant reply `314159` to land in history, surfacing that same assistant reply
 in visible transcript content, surviving a page reload, aborting the active or
 already-finished run, and completing a
 managed runtime stop/start cycle back to `running/healthy`.
+
+`make smoke-stage3-e2e` runs both supported Stage 3 host lanes in sequence:
+
+- the default/basic auth + bootstrap smoke
+- the richer managed-runtime/browser workflow smoke
 
 That smoke now proves three layers together:
 

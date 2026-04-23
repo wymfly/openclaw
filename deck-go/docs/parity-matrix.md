@@ -9,6 +9,12 @@ Allowed classifications:
 - `legacy-bug-not-carried`
 - `deferred`
 
+Canonical Stage 3 E2E proof now runs through `make smoke-stage3-e2e`, which
+executes both:
+
+- the default/basic active-host auth + bootstrap lane
+- the richer managed-runtime/browser workflow lane
+
 ## Workflow Table
 
 | Workflow                                          | Legacy Surface | deck-go Surface                                         | Status | Classification | Owner | Notes                                                                                                                                                                                                                                                                                                                                                                             |
