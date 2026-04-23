@@ -1,8 +1,11 @@
 # Stage 3 Stabilization Window
 
-This document tracks the final remaining closure gate for Stage 3:
+This document now tracks an optional post-Stage-3 validation window rather than
+a hard Stage 3 closure gate.
 
-- two full weeks with no Sev-1 or Sev-2 regressions attributable to `deck-go`
+Use it when you still want structured observation after Stage 3 closeout, or
+when later integrated E2E / operational testing should accumulate incident
+evidence in one place.
 
 The source-of-truth ledger is `deck-go/docs/stage3-stabilization-window.json`.
 
@@ -15,13 +18,14 @@ The source-of-truth ledger is `deck-go/docs/stage3-stabilization-window.json`.
   - Linux local/private deployment
   - macOS local/private deployment
 
-The window was opened only after these gates were already green:
+This window was opened only after these Stage 3 closure gates were already
+green:
 
 - `cd deck-go && make verify`
 - `cd deck-go && make smoke-stage3-e2e`
 - `cd deck-go && make smoke-stage3-rollback`
 
-## What counts as failure
+## What counts as blocking follow-on evidence
 
 The window fails immediately if a Sev-1 or Sev-2 regression attributable to
 `deck-go` is recorded in the ledger, including:
@@ -32,8 +36,8 @@ The window fails immediately if a Sev-1 or Sev-2 regression attributable to
 - config corruption or operator-visible data loss
 - rollback failure caused by the new Stage 3 host path
 
-Lower-severity issues may still be logged, but they do not block closure unless
-they are later reclassified to Sev-1 or Sev-2.
+Lower-severity issues may still be logged, but they do not represent blocking
+follow-on evidence unless they are later reclassified to Sev-1 or Sev-2.
 
 Allowed severities are:
 
@@ -94,7 +98,7 @@ cd deck-go
 node scripts/check-stage3-stabilization.mjs --file /tmp/stage3-ledger.json
 ```
 
-Enforced gate:
+Optional enforced gate:
 
 ```bash
 cd deck-go
@@ -116,3 +120,6 @@ make deck-go-stage3-stabilization-enforce
 
 - the current date is on or after `2026-05-07`
 - no Sev-1/Sev-2 incidents attributable to `deck-go` are recorded in the ledger
+
+That failure is no longer a Stage 3 blocker by itself; it is only useful if you
+choose to keep this follow-on observation window active.

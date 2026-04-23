@@ -59,7 +59,8 @@ managed runtime stop/start cycle back to `running/healthy`.
 - the default/basic auth + bootstrap smoke
 - the richer managed-runtime/browser workflow smoke
 
-The remaining closure gate after those host proofs is the stabilization window:
+If you still want a post-closeout observation window, the optional
+stabilization tracker is:
 
 ```bash
 cd deck-go

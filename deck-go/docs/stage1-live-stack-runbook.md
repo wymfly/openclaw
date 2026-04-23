@@ -115,15 +115,15 @@ into one canonical closure target:
 - the default/basic auth + bootstrap lane
 - the richer managed-runtime/browser workflow lane
 
-The only remaining Stage 3 closure condition after those gates are green is the
-two-week stabilization window, tracked through:
+If you still want a post-closeout observation window, the optional stabilization
+tracker is:
 
 ```bash
 cd deck-go
 make check-stage3-stabilization
 ```
 
-The machine-enforced closeout gate is:
+The optional enforced follow-on gate is:
 
 ```bash
 make deck-go-stage3-stabilization-enforce

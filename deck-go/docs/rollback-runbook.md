@@ -17,7 +17,7 @@ Rollback target: restore legacy `dashboard/` as the default Deck implementation.
 
 ## Checklist
 
-- [ ] Legacy `dashboard/` remains runnable throughout stabilization window
+- [ ] Optional follow-on observation: legacy `dashboard/` remains runnable throughout the stabilization window
 - [x] Legacy launch procedure is documented
 - [x] Traffic/default switchback procedure is documented
 - [x] Config/data compatibility checks are documented

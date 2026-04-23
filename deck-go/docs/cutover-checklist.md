@@ -18,7 +18,12 @@ Do not switch the default Deck implementation until every item below is satisfie
 - [x] Chat/replay parity is green
 - [x] Deployment simplification targets are met on supported environments
 - [x] Rollback procedure has been rehearsed successfully
-- [ ] Two-week stabilization window passes with no Sev-1/Sev-2 regressions attributable to `deck-go`
+
+Stage 3 closure is now earned once the mandatory gates above are green.
+
+## Follow-on validation
+
+- [ ] Optional two-week stabilization window with no Sev-1/Sev-2 regressions attributable to `deck-go`
 
 ## Evidence links
 
