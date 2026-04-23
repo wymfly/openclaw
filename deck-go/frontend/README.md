@@ -40,7 +40,8 @@ runtime-backed routes such as `logs`, `models config`, `config`, `channels`,
 `plugins`, and `sessions` to `200` proofs. It also proves a minimal chat control
 flow by creating a session, sending a message, waiting for user+assistant
 history messages to appear, surfacing the user message in visible transcript
-content, surviving a page reload, and aborting the started run.
+content, surviving a page reload, aborting the started run, and completing a
+managed runtime stop/start cycle back to `running/healthy`.
 
 That smoke now proves three layers together:
 
