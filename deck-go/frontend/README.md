@@ -27,6 +27,13 @@ cd deck-go
 make smoke-stage3-host
 ```
 
+That smoke now proves three layers together:
+
+- backend bootstrap/runtime endpoints respond
+- Vite preview serves the active host bundle
+- a headless browser can hydrate the page and find the restored shell text
+  (`Deck Go operator shell`, `Gateway`, `Runtime`, `Chat`)
+
 Host guardrails:
 
 - all panel ids from `src/restoration/panel-registry.tsx` must stay implemented in `src/restoration/ActivePanelHost.tsx`

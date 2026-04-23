@@ -150,4 +150,11 @@ echo
 echo "[stage3-smoke] verified stable local surfaces plus runtime-backed inventory route wiring"
 echo
 
+echo "[stage3-smoke] browser shell probe"
+(
+  cd "${ROOT_DIR}/.."
+  node deck-go/scripts/smoke-stage3-browser.mjs "${FRONTEND_BASE}"
+)
+echo
+
 echo "[stage3-smoke] Stage 3 host smoke passed"
