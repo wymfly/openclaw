@@ -96,6 +96,19 @@ export interface DeckGoChatAbortRequest {
   runId?: string;
 }
 
+export interface DeckGoChatSteerRequest {
+  sessionKey: string;
+  message: string;
+}
+
+export interface DeckGoChatSteerResponse {
+  ok?: boolean;
+  runId?: string;
+  status?: string;
+  messageSeq?: number;
+  interruptedActiveRun?: boolean;
+}
+
 export interface DeckGoSessionCreateResponse {
   ok?: boolean;
   key?: string;
@@ -131,7 +144,9 @@ export interface DeckGoSessionMutationResponse {
 export interface DeckGoSessionMeta {
   key: string;
   agentId?: string;
+  label?: string;
   title?: string;
+  kind?: string;
   updatedAt?: number;
   lastMessagePreview?: string;
   compactionCount?: number;
@@ -141,6 +156,23 @@ export interface DeckGoSessionMeta {
   runtimeMs?: number;
   model?: string;
   modelProvider?: string;
+  thinkingLevel?: string;
+  fastMode?: boolean;
+  verboseLevel?: string;
+  reasoningLevel?: string;
+  responseUsage?: string;
+  sendPolicy?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  totalTokensFresh?: boolean;
+  estimatedCostUsd?: number;
+  contextTokens?: number;
+  parentSessionKey?: string;
+  childSessions?: string[];
+  subagentRole?: "orchestrator" | "leaf";
+  subagentControlScope?: "children" | "none";
+  spawnedWorkspaceDir?: string;
 }
 
 export interface DeckGoSessionPreviewOverlay {
@@ -249,6 +281,19 @@ export interface DeckGoChatHistoryResponse {
   messages: DeckGoTranscriptMessage[];
 }
 
+export interface DeckGoChannelUiMeta {
+  id: string;
+  label: string;
+  detailLabel: string;
+  systemImage?: string;
+  pluginId?: string;
+  pluginOrigin?: string;
+  pluginNpmSpec?: string;
+  pluginLocalPath?: string;
+  pluginDefaultInstallChoice?: "npm" | "local";
+  pluginConfigPath?: string;
+}
+
 export interface DeckGoChannelsStatusResponse {
   ts?: number;
   channelOrder?: string[];
@@ -256,14 +301,42 @@ export interface DeckGoChannelsStatusResponse {
   channelAccounts?: Record<string, unknown>;
   channelDefaultAccountId?: Record<string, string>;
   channelLabels?: Record<string, string>;
+  channelDetailLabels?: Record<string, string>;
+  channelSystemImages?: Record<string, string>;
+  channelMeta?: DeckGoChannelUiMeta[];
 }
 
 export interface DeckGoPluginInventoryEntry {
   id: string;
   name?: string;
+  version?: string;
   status?: string;
   origin?: string;
   enabled?: boolean;
+  explicitlyEnabled?: boolean;
+  activated?: boolean;
+  imported?: boolean;
+  activationSource?: string;
+  activationReason?: string;
+  configPath?: string;
+  capabilityKinds?: string[];
+  channelIds?: string[];
+  providerIds?: string[];
+  toolNames?: string[];
+  deckActionCapabilities?: DeckGoPluginActionCapabilities;
+  diagnostics?: DeckGoPluginDiagnostic[];
+}
+
+export interface DeckGoPluginActionCapabilities {
+  login?: boolean;
+  probe?: boolean;
+  testMessage?: boolean;
+  qrCodeAuth?: boolean;
+}
+
+export interface DeckGoPluginDiagnostic {
+  level: string;
+  message: string;
 }
 
 export interface DeckGoPluginsListResponse {

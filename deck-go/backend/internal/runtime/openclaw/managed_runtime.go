@@ -837,6 +837,10 @@ func (m *ManagedRuntime) RunNodeAction(ctx context.Context, runtimeID string, ac
 		return m.GatewayQueries().NodeDescribe(ctx, body)
 	case "rename":
 		return m.GatewayQueries().NodeRename(ctx, body)
+	case "invoke":
+		return m.GatewayQueries().NodeInvoke(ctx, body)
+	case "pending.enqueue":
+		return m.GatewayQueries().NodePendingEnqueue(ctx, body)
 	default:
 		return nil, http.ErrNotSupported
 	}

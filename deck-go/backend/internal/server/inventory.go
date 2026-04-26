@@ -596,6 +596,20 @@ func registerInventoryRoutes(mux interface {
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
+		case "invoke":
+			payload, err := adapter.NodeInvoke(ctx, body)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "node.invoke", "error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		case "pending.enqueue":
+			payload, err := adapter.NodePendingEnqueue(ctx, body)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "node.pending.enqueue", "error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
 		default:
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid action"})
 		}
@@ -857,6 +871,71 @@ func registerInventoryRoutes(mux interface {
 		payload, err := adapter.UsageStatus(ctx)
 		if err != nil {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "usage.status", "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	mux.MethodFunc("GET", "/usage/sessions", func(w http.ResponseWriter, r *http.Request) {
+		params := map[string]any{}
+		for _, key := range []string{"startDate", "endDate", "key"} {
+			if value := r.URL.Query().Get(key); value != "" {
+				params[key] = value
+			}
+		}
+		if r.URL.Query().Get("includeContextWeight") == "true" {
+			params["includeContextWeight"] = true
+		}
+		if raw := r.URL.Query().Get("limit"); raw != "" {
+			limit, err := strconv.Atoi(raw)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid limit"})
+				return
+			}
+			params["limit"] = limit
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := adapter.SessionsUsage(ctx, params)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "sessions.usage", "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	mux.MethodFunc("GET", "/usage/sessions/logs", func(w http.ResponseWriter, r *http.Request) {
+		params := map[string]any{"key": r.URL.Query().Get("key")}
+		if raw := r.URL.Query().Get("limit"); raw != "" {
+			limit, err := strconv.Atoi(raw)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid limit"})
+				return
+			}
+			params["limit"] = limit
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := adapter.SessionsUsageLogs(ctx, params)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "sessions.usage.logs", "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	mux.MethodFunc("GET", "/usage/timeseries", func(w http.ResponseWriter, r *http.Request) {
+		params := map[string]any{}
+		for _, key := range []string{"key", "startDate", "endDate", "mode", "utcOffset"} {
+			if value := r.URL.Query().Get(key); value != "" {
+				params[key] = value
+			}
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		payload, err := adapter.SessionsUsageTimeseries(ctx, params)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "sessions.usage.timeseries", "error": err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusOK, payload)
@@ -1648,11 +1727,6 @@ func registerInventoryRoutes(mux interface {
 		}
 		if channel := query.Get("channel"); channel != "" {
 			params["channel"] = channel
-		}
-		if limitRaw := query.Get("limit"); limitRaw != "" {
-			if limit, err := strconv.Atoi(limitRaw); err == nil {
-				params["limit"] = limit
-			}
 		}
 		if status := query.Get("status"); status != "" {
 			params["status"] = status

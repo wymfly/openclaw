@@ -462,6 +462,14 @@ func (q *GatewayQueries) NodeRename(ctx context.Context, body map[string]any) (a
 	return q.requester.Request(ctx, "node.rename", body)
 }
 
+func (q *GatewayQueries) NodeInvoke(ctx context.Context, body map[string]any) (any, error) {
+	return q.requester.Request(ctx, "node.invoke", body)
+}
+
+func (q *GatewayQueries) NodePendingEnqueue(ctx context.Context, body map[string]any) (any, error) {
+	return q.requester.Request(ctx, "node.pending.enqueue", body)
+}
+
 func (q *GatewayQueries) NodePairList(ctx context.Context) (any, error) {
 	return q.requester.Request(ctx, "node.pair.list", map[string]any{})
 }

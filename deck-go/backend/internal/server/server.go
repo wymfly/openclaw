@@ -35,7 +35,10 @@ func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurfac
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, x-deck-token")
+			w.Header().Set(
+				"Access-Control-Allow-Headers",
+				"Authorization, Content-Type, Last-Event-ID, x-deck-token",
+			)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS")
 			if req.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)

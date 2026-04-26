@@ -148,6 +148,46 @@ describe("provider-usage.load", () => {
     }
   });
 
+  it("keeps one provider usage failure from failing the whole summary", async () => {
+    resolveProviderUsageSnapshotWithPluginMock.mockImplementation(
+      async ({ provider }): Promise<ProviderUsageSnapshot | null> => {
+        if (provider === "openai-codex") {
+          throw new DOMException("This operation was aborted", "AbortError");
+        }
+        return {
+          provider,
+          displayName: "GitHub Copilot",
+          windows: [{ label: "Chat", usedPercent: 20 }],
+        };
+      },
+    );
+    const mockFetch = createProviderUsageFetch(async () => {
+      throw new Error("legacy fetch should not run");
+    });
+
+    const summary = await loadUsageWithAuth(
+      loadProviderUsageSummary,
+      [
+        { provider: "github-copilot", token: "copilot-token" },
+        { provider: "openai-codex", token: "codex-token" },
+      ],
+      mockFetch,
+    );
+
+    expect(summary.providers).toHaveLength(2);
+    expect(summary.providers.find((provider) => provider.provider === "github-copilot")).toEqual({
+      provider: "github-copilot",
+      displayName: "GitHub Copilot",
+      windows: [{ label: "Chat", usedPercent: 20 }],
+    });
+    expect(summary.providers.find((provider) => provider.provider === "openai-codex")).toEqual({
+      provider: "openai-codex",
+      displayName: "Codex",
+      windows: [],
+      error: "This operation was aborted",
+    });
+  });
+
   it("throws when fetch is unavailable", async () => {
     const previousFetch = globalThis.fetch;
     vi.stubGlobal("fetch", undefined);

@@ -59,9 +59,9 @@ func registerGatewayRoutes(
 
 	mux.MethodFunc("POST", "/config/schema-lookup", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Path string `json:"path"`
+			Path *string `json:"path"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Path == "" {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Path == nil {
 			writeJSON(w, http.StatusBadRequest, map[string]any{
 				"ok":    false,
 				"error": "path is required",
@@ -70,7 +70,7 @@ func registerGatewayRoutes(
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
-		payload, err := managed.ConfigSchemaLookup(ctx, body.Path)
+		payload, err := managed.ConfigSchemaLookup(ctx, *body.Path)
 		if err != nil {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "config.schema.lookup", "error": err.Error()})
 			return

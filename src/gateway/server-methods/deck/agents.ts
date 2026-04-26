@@ -2,7 +2,6 @@ import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
   listAgentIds,
-  resolveAgentConfig,
   resolveAgentSkillsFilter,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
@@ -45,6 +44,7 @@ import {
 } from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
+import { resolveDeckAgentReadConfig } from "./agent-read-config.js";
 import { validateBaseHash } from "./utils.js";
 
 function resolveModelString(model: unknown): string | undefined {
@@ -65,7 +65,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     }
     const cfg = loadConfig();
     const agentId = (params as { agentId: string }).agentId;
-    const agentConfig = resolveAgentConfig(cfg, agentId);
+    const agentConfig = resolveDeckAgentReadConfig(cfg, agentId);
     if (!agentConfig) {
       respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
       return;
@@ -166,7 +166,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     }
     const cfg = loadConfig();
     const agentId = (params as { agentId: string }).agentId;
-    const agentConfig = resolveAgentConfig(cfg, agentId);
+    const agentConfig = resolveDeckAgentReadConfig(cfg, agentId);
     if (!agentConfig) {
       respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
       return;
@@ -278,7 +278,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     }
     const cfg = loadConfig();
     const agentId = (params as { agentId: string }).agentId;
-    const agentConfig = resolveAgentConfig(cfg, agentId);
+    const agentConfig = resolveDeckAgentReadConfig(cfg, agentId);
     if (!agentConfig) {
       respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
       return;
@@ -297,7 +297,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     // Build agent lists
     const allIds = listAgentIds(cfg);
     const allAgentEntries = allIds.map((id) => {
-      const ac = resolveAgentConfig(cfg, id);
+      const ac = resolveDeckAgentReadConfig(cfg, id);
       return { id, name: ac?.name };
     });
     const allowedAgents = allowAny
@@ -305,7 +305,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
       : allowAgents
           .filter((id) => id !== "*")
           .map((id) => {
-            const ac = resolveAgentConfig(cfg, id);
+            const ac = resolveDeckAgentReadConfig(cfg, id);
             return { id, name: ac?.name };
           });
 
@@ -409,7 +409,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
     }
     const cfg = loadConfig();
     const agentId = (params as { agentId: string }).agentId;
-    const agentConfig = resolveAgentConfig(cfg, agentId);
+    const agentConfig = resolveDeckAgentReadConfig(cfg, agentId);
     if (!agentConfig) {
       respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
       return;

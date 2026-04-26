@@ -3,13 +3,37 @@ import { chromium } from "playwright";
 const baseUrl = process.argv[2];
 const authToken = process.argv[3] ?? "";
 const mode = process.argv[4] ?? "basic";
+const browserPreference = process.env.DECK_GO_SMOKE_BROWSER ?? "auto";
+const chromePath = process.env.DECK_GO_SMOKE_CHROME_PATH;
+const cdpUrl =
+  process.env.DECK_GO_SMOKE_CDP_URL || (browserPreference === "cdp" ? "http://127.0.0.1:9333" : "");
+const headless = process.env.DECK_GO_SMOKE_HEADLESS !== "false";
+
+function ensureLocalNoProxy() {
+  const localEntries = ["localhost", "127.0.0.1", "::1"];
+  for (const key of ["NO_PROXY", "no_proxy"]) {
+    const current = process.env[key] ?? "";
+    const values = new Set(
+      current
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    );
+    for (const entry of localEntries) {
+      values.add(entry);
+    }
+    process.env[key] = Array.from(values).join(",");
+  }
+}
+
+ensureLocalNoProxy();
 
 if (!baseUrl) {
   console.error("[stage3-browser-smoke] usage: node smoke-stage3-browser.mjs <base-url>");
   process.exit(2);
 }
 
-const requiredTexts = ["Deck Go operator shell"];
+const requiredTexts = ["Sessions", "Agent main"];
 const exerciseChatLane = mode === "rich" || mode === "chat";
 const exerciseContinuityLane = mode === "rich";
 const panelChecks = [
@@ -50,6 +74,73 @@ function formatSmokeDiagnostics(details) {
   return parts.join("\n\n");
 }
 
+function countText(text, needle) {
+  return text.split(needle).length - 1;
+}
+
+async function openBrowser() {
+  const common = { headless, args: ["--no-proxy-server"] };
+  const candidates = [];
+
+  if (cdpUrl) {
+    candidates.push({
+      label: `existing Chrome over CDP ${cdpUrl}`,
+      connect: async () => {
+        const browser = await chromium.connectOverCDP(cdpUrl);
+        return {
+          browser,
+          // Do not close an externally launched Chrome; process exit drops the CDP connection.
+          close: async () => {},
+        };
+      },
+    });
+  }
+
+  if (chromePath) {
+    candidates.push({
+      label: `chrome executable ${chromePath}`,
+      launchOptions: { ...common, executablePath: chromePath },
+    });
+  }
+
+  if (browserPreference === "chrome" || browserPreference === "auto") {
+    candidates.push({
+      label: "local Chrome channel",
+      launchOptions: { ...common, channel: "chrome" },
+    });
+  }
+
+  if (browserPreference === "chromium" || browserPreference === "auto") {
+    candidates.push({
+      label: "bundled Chromium",
+      launchOptions: common,
+    });
+  }
+
+  const failures = [];
+  for (const candidate of candidates) {
+    try {
+      if (candidate.connect) {
+        const session = await candidate.connect();
+        console.log(`[stage3-browser-smoke] connected to ${candidate.label}`);
+        return session;
+      }
+      const browser = await chromium.launch(candidate.launchOptions);
+      console.log(`[stage3-browser-smoke] launched ${candidate.label}`);
+      return {
+        browser,
+        close: async () => {
+          await browser.close();
+        },
+      };
+    } catch (error) {
+      failures.push(`${candidate.label}: ${error?.message ?? String(error)}`);
+    }
+  }
+
+  throw new Error(`Unable to open a browser for smoke testing:\n${failures.join("\n\n")}`);
+}
+
 async function waitForMainText(page, predicate, timeoutMs, errorMessage, detailsProvider) {
   const deadline = Date.now() + timeoutMs;
   let visibleText = "";
@@ -65,7 +156,8 @@ async function waitForMainText(page, predicate, timeoutMs, errorMessage, details
   throw new Error(`${errorMessage}\n\n${formatSmokeDiagnostics({ visibleText, ...extraDetails })}`);
 }
 
-const browser = await chromium.launch({ headless: true });
+const browserSession = await openBrowser();
+const browser = browserSession.browser;
 const navigationOptions = { waitUntil: "commit", timeout: 15_000 };
 
 try {
@@ -205,11 +297,11 @@ try {
 
   if (authToken.trim() && mode !== "rich") {
     const unlockHeading = page.getByText("Unlock control plane", { exact: false }).first();
-    const shellHeading = page.getByText("Deck Go operator shell", { exact: false }).first();
+    const shellFrame = page.locator(".deck-ui-shell").first();
     const tokenInput = page.getByPlaceholder("Enter deck-go access token");
     const authDeadline = Date.now() + 15_000;
     while (Date.now() < authDeadline) {
-      if (await shellHeading.isVisible().catch(() => false)) {
+      if (await shellFrame.isVisible().catch(() => false)) {
         break;
       }
       if (await unlockHeading.isVisible().catch(() => false)) {
@@ -306,13 +398,20 @@ try {
   if (exerciseChatLane) {
     const chatMessage = "What number comes immediately after 314158? Reply with digits only.";
     const expectedAssistantReply = "314159";
-    const messageBox = page.getByPlaceholder("Send a message through the restored chat panel");
+    const mainTextBeforeSend = await page.locator("main").innerText();
+    const replyCountBeforeSend = countText(mainTextBeforeSend, expectedAssistantReply);
+    const composer = page.locator(".deck-ui-composer").last();
+    const messageBox = composer.locator("textarea").last();
     await messageBox.fill(chatMessage);
-    await page.getByRole("button", { name: "Send message" }).click();
+    await composer
+      .locator("button")
+      .filter({ hasText: /^(Send|发送)$/ })
+      .last()
+      .click();
 
     await waitForMainText(
       page,
-      (text) => text.includes(expectedAssistantReply),
+      (text) => countText(text, expectedAssistantReply) > replyCountBeforeSend,
       45_000,
       "assistant reply never appeared in visible transcript content",
       collectDiagnostics,
@@ -380,11 +479,7 @@ try {
         .first()
         .waitFor({ state: "visible", timeout: 15_000 });
 
-      await page
-        .locator(".deckgo-restored-nav-item")
-        .filter({ hasText: "Settings" })
-        .first()
-        .click();
+      await page.locator(".deck-ui-nav-item").filter({ hasText: "Settings" }).first().click();
       await page
         .locator("h2.deckgo-card-title")
         .filter({ hasText: "Deck-go local settings" })
@@ -406,7 +501,7 @@ try {
         .first()
         .waitFor({ state: "visible", timeout: 15_000 });
 
-      await page.locator(".deckgo-restored-nav-item").filter({ hasText: "Config" }).first().click();
+      await page.locator(".deck-ui-nav-item").filter({ hasText: "Config" }).first().click();
       await page
         .locator("h2.deckgo-card-title")
         .filter({ hasText: "Config" })
@@ -424,7 +519,7 @@ try {
       ]);
       await waitForMainText(
         page,
-        (text) => text.includes("Deck Go operator shell") && text.includes("Config detail"),
+        (text) => text.includes("OpenClaw") && text.includes("Config detail"),
         20_000,
         "active host did not remain visible after config apply",
         collectDiagnostics,
@@ -433,11 +528,7 @@ try {
   }
 
   for (const panel of panelChecks) {
-    await page
-      .locator(".deckgo-restored-nav-item")
-      .filter({ hasText: panel.navLabel })
-      .first()
-      .click();
+    await page.locator(".deck-ui-nav-item").filter({ hasText: panel.navLabel }).first().click();
     for (const panelTitle of panel.panelTitles) {
       await page
         .locator("h2.deckgo-card-title")
@@ -451,5 +542,5 @@ try {
     `[stage3-browser-smoke] verified hydrated Vite host content at ${baseUrl}: ${requiredTexts.join(", ")}; panels ${panelChecks.map((panel) => panel.navLabel).join(", ")}; mode ${mode}; auth unlocks ${unlockCount}; auth retries ${authRetryCount}; auth prompts ${promptCount}`,
   );
 } finally {
-  await browser.close();
+  await browserSession.close();
 }

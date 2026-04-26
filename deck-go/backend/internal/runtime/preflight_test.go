@@ -54,11 +54,25 @@ func TestDefaultPreflight_UsesSingleOpenClawOwnedPrepareContract(t *testing.T) {
 	commands := []string{}
 	originalRunner := runManagedCommand
 	runManagedCommand = func(_ context.Context, workingDir string, name string, args []string, env []string) error {
-		commands = append(commands, name+" "+joinArgs(args))
+		command := name + " " + joinArgs(args)
+		commands = append(commands, command)
 		if workingDir != root {
 			t.Fatalf("unexpected working dir: %s", workingDir)
 		}
-		makePreparedArtifacts(t, root)
+		switch command {
+		case "pnpm build":
+			mustWriteFile(t, filepath.Join(root, "dist", "entry.js"), "console.log('entry')")
+			mustWriteFile(t, filepath.Join(root, "dist", ".buildstamp"), `{"builtAt":1,"head":"build-head"}`)
+		case "pnpm ui:build":
+			mustWriteFile(t, filepath.Join(root, "dist", "control-ui", "index.html"), "<html></html>")
+			if err := os.Remove(filepath.Join(root, "dist", ".buildstamp")); err != nil && !os.IsNotExist(err) {
+				t.Fatal(err)
+			}
+		case "node scripts/build-stamp.mjs":
+			mustWriteFile(t, filepath.Join(root, "dist", ".buildstamp"), `{"builtAt":2,"head":"ui-head"}`)
+		default:
+			t.Fatalf("unexpected command: %s", command)
+		}
 		return nil
 	}
 	defer func() {
@@ -76,9 +90,55 @@ func TestDefaultPreflight_UsesSingleOpenClawOwnedPrepareContract(t *testing.T) {
 	expected := []string{
 		"pnpm build",
 		"pnpm ui:build",
+		"node scripts/build-stamp.mjs",
 	}
 	if !reflect.DeepEqual(commands, expected) {
 		t.Fatalf("unexpected prepare contract commands: %#v", commands)
+	}
+}
+
+func TestManagedEnvAddsLocalProxyAndWritableNpmCache(t *testing.T) {
+	t.Setenv("NPM_CONFIG_CACHE", "")
+	t.Setenv("npm_config_cache", "")
+
+	env := managedEnv(config.ManagedGatewaySettings{GatewayToken: "gateway-token"})
+	values := envMap(env)
+
+	expectedCache := filepath.Join(os.TempDir(), "deck-go-npm-cache")
+	if values["NPM_CONFIG_CACHE"] != expectedCache {
+		t.Fatalf("unexpected NPM_CONFIG_CACHE: %q", values["NPM_CONFIG_CACHE"])
+	}
+	if values["npm_config_cache"] != expectedCache {
+		t.Fatalf("unexpected npm_config_cache: %q", values["npm_config_cache"])
+	}
+	if values["NO_PROXY"] != "localhost,127.0.0.1,::1" {
+		t.Fatalf("unexpected NO_PROXY: %q", values["NO_PROXY"])
+	}
+	if values["no_proxy"] != "localhost,127.0.0.1,::1" {
+		t.Fatalf("unexpected no_proxy: %q", values["no_proxy"])
+	}
+	if values["OPENCLAW_GATEWAY_TOKEN"] != "gateway-token" {
+		t.Fatalf("unexpected gateway token: %q", values["OPENCLAW_GATEWAY_TOKEN"])
+	}
+}
+
+func TestManagedEnvPreservesExplicitNpmCache(t *testing.T) {
+	t.Setenv("NPM_CONFIG_CACHE", "")
+	t.Setenv("npm_config_cache", "")
+
+	env := managedEnv(config.ManagedGatewaySettings{
+		GatewayToken: "gateway-token",
+		Env: map[string]string{
+			"NPM_CONFIG_CACHE": "/custom/npm-cache",
+		},
+	})
+	values := envMap(env)
+
+	if values["NPM_CONFIG_CACHE"] != "/custom/npm-cache" {
+		t.Fatalf("unexpected explicit NPM_CONFIG_CACHE: %q", values["NPM_CONFIG_CACHE"])
+	}
+	if _, ok := values["npm_config_cache"]; ok {
+		t.Fatalf("did not expect lowercase npm cache fallback when explicit cache is configured")
 	}
 }
 
@@ -110,4 +170,15 @@ func mustWriteFile(t *testing.T, path string, contents string) {
 
 func joinArgs(args []string) string {
 	return strings.Join(args, " ")
+}
+
+func envMap(env []string) map[string]string {
+	values := map[string]string{}
+	for _, entry := range env {
+		key, value, ok := strings.Cut(entry, "=")
+		if ok {
+			values[key] = value
+		}
+	}
+	return values
 }

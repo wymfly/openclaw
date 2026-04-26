@@ -824,12 +824,22 @@ func defaultProbe(ctx context.Context, cfg config.ManagedGatewaySettings) error 
 }
 
 func managedEnv(cfg config.ManagedGatewaySettings) []string {
-	env := make([]string, 0, len(cfg.Env)+2)
+	env := make([]string, 0, len(cfg.Env)+5)
+	hasNpmCache := false
 	for key, value := range cfg.Env {
+		if key == "NPM_CONFIG_CACHE" || key == "npm_config_cache" {
+			hasNpmCache = true
+		}
 		env = append(env, key+"="+value)
 	}
+	if !hasNpmCache && strings.TrimSpace(os.Getenv("NPM_CONFIG_CACHE")) == "" && strings.TrimSpace(os.Getenv("npm_config_cache")) == "" {
+		cacheDir := filepath.Join(os.TempDir(), "deck-go-npm-cache")
+		_ = os.MkdirAll(cacheDir, 0o755)
+		env = append(env, "NPM_CONFIG_CACHE="+cacheDir, "npm_config_cache="+cacheDir)
+	}
 	env = append(env, "OPENCLAW_GATEWAY_TOKEN="+cfg.GatewayToken)
-	env = append(env, "NO_PROXY=localhost,127.0.0.1")
+	env = append(env, "NO_PROXY=localhost,127.0.0.1,::1")
+	env = append(env, "no_proxy=localhost,127.0.0.1,::1")
 	return env
 }
 

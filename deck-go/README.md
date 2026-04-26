@@ -23,6 +23,22 @@ Local Stage 3 operator stack:
 - copy `deck-go/.env.example` to `deck-go/.env`
 - `cd deck-go && make stack-start`
 - `cd deck-go && make stack-chat-smoke`
+- To force local Chrome for the browser smoke:
+  `DECK_GO_SMOKE_BROWSER=chrome make stack-chat-smoke`
+- If the environment cannot launch Chrome/Chromium directly, run Chrome outside
+  the sandbox and connect over CDP:
+
+```bash
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
+  --remote-debugging-port=9333 \
+  --user-data-dir=/tmp/deck-go-smoke-chrome \
+  --no-first-run \
+  --no-default-browser-check
+
+DECK_GO_SMOKE_BROWSER=cdp \
+DECK_GO_SMOKE_CDP_URL=http://127.0.0.1:9333 \
+make stack-chat-smoke
+```
 
 That stack uses:
 

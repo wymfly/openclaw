@@ -1,8 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import type { OpenClawConfig } from "../../../config/types.js";
 
 // --- Mocks must be hoisted above imports ---
 
-const mockConfig = {
+const defaultMockConfig = {
   agents: {
     defaults: {
       reasoningDefault: "on",
@@ -55,7 +56,9 @@ const mockConfig = {
     { agentId: "main", match: { channel: "telegram" } },
     { agentId: "coder", match: { channel: "slack" } },
   ],
-};
+} satisfies OpenClawConfig;
+
+let mockConfig: OpenClawConfig = structuredClone(defaultMockConfig);
 
 // Track what was written for write-operation tests
 let writtenConfig: unknown = null;
@@ -160,6 +163,7 @@ function callHandler(
 }
 
 beforeEach(() => {
+  mockConfig = structuredClone(defaultMockConfig);
   writtenConfig = null;
   snapshotHash = "hash-abc123";
 });
@@ -212,6 +216,54 @@ describe("deck.agents.detail", () => {
   it("returns error for unknown agent", async () => {
     const result = await callHandler("deck.agents.detail", { agentId: "nonexistent" });
     expect(result.ok).toBe(false);
+  });
+
+  it("returns default-backed detail when agents.list is empty", async () => {
+    mockConfig = {
+      agents: {
+        defaults: {
+          workspace: "/tmp/default-agent",
+          model: "openai/gpt-5.4",
+          reasoningDefault: "stream",
+          fastModeDefault: false,
+          skills: ["python"],
+          subagents: {
+            allowAgents: ["*"],
+            maxSpawnDepth: 2,
+            maxChildrenPerAgent: 6,
+          },
+          channels: {
+            eventStreams: ["assistant"],
+          },
+        },
+        list: [],
+      },
+      bindings: [],
+    } satisfies OpenClawConfig;
+
+    const result = await callHandler("deck.agents.detail", { agentId: "main" });
+    expect(result.ok).toBe(true);
+    const p = result.payload as Record<string, unknown>;
+    expect(p.id).toBe("main");
+    expect(p.name).toBe("main");
+    expect(p.workspace).toBe("/tmp/default-agent");
+    expect(p.model).toBe("openai/gpt-5.4");
+    expect(p.isDefault).toBe(true);
+    expect(p.skillMode).toBe("whitelist");
+    expect(p.effectiveSkills).toEqual(["python"]);
+    expect(p.subagents).toMatchObject({
+      allowAgents: ["*"],
+      effectiveMaxSpawnDepth: 2,
+      effectiveMaxChildrenPerAgent: 6,
+    });
+
+    const skills = await callHandler("deck.agents.skills.get", { agentId: "main" });
+    expect(skills.ok).toBe(true);
+    expect((skills.payload as Record<string, unknown>).mode).toBe("whitelist");
+
+    const eventStreams = await callHandler("deck.agents.eventStreams.get", { agentId: "main" });
+    expect(eventStreams.ok).toBe(true);
+    expect((eventStreams.payload as Record<string, unknown>).eventStreams).toEqual(["assistant"]);
   });
 });
 
@@ -270,7 +322,7 @@ describe("deck.agents.skills.set", () => {
 
     // Verify written config
     expect(writtenConfig).toBeTruthy();
-    const written = writtenConfig as typeof mockConfig;
+    const written = writtenConfig as typeof defaultMockConfig;
     const mainAgent = written.agents.list.find((a) => a.id === "main");
     expect(mainAgent?.skills).toEqual(["python", "git"]);
   });
@@ -287,7 +339,7 @@ describe("deck.agents.skills.set", () => {
     expect(p.mode).toBe("all");
     expect(p.skills).toEqual([]);
 
-    const written = writtenConfig as typeof mockConfig;
+    const written = writtenConfig as typeof defaultMockConfig;
     const coderAgent = written.agents.list.find((a) => a.id === "coder");
     expect(coderAgent?.skills).toBeUndefined();
   });
@@ -354,7 +406,7 @@ describe("deck.agents.subagents.set", () => {
     expect(p.model).toBe("openai/gpt-4o-mini");
     expect(p.configHash).toBeTruthy();
 
-    const written = writtenConfig as typeof mockConfig;
+    const written = writtenConfig as typeof defaultMockConfig;
     const mainAgent = written.agents.list.find((a) => a.id === "main");
     expect(mainAgent?.subagents?.allowAgents).toEqual(["coder"]);
     expect(mainAgent?.subagents?.model).toBe("openai/gpt-4o-mini");
@@ -375,7 +427,7 @@ describe("deck.agents.subagents.set", () => {
     const p = result.payload as Record<string, unknown>;
     expect(p.model).toBeUndefined();
 
-    const written = writtenConfig as typeof mockConfig;
+    const written = writtenConfig as typeof defaultMockConfig;
     const mainAgent = written.agents.list.find((a) => a.id === "main");
     expect(mainAgent?.subagents?.model).toBeUndefined();
   });
@@ -436,7 +488,7 @@ describe("deck.agents.eventStreams.set", () => {
 
     // Verify written config
     expect(writtenConfig).toBeTruthy();
-    const written = writtenConfig as typeof mockConfig;
+    const written = writtenConfig as typeof defaultMockConfig;
     const mainAgent = written.agents.list.find((a) => a.id === "main");
     expect((mainAgent as Record<string, unknown>)?.channels).toBeTruthy();
     expect(

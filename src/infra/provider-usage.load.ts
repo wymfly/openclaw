@@ -78,6 +78,15 @@ async function fetchProviderUsageSnapshot(params: {
   });
 }
 
+function providerUsageErrorSnapshot(auth: ProviderAuth, error: unknown): ProviderUsageSnapshot {
+  return {
+    provider: auth.provider,
+    displayName: PROVIDER_LABELS[auth.provider] ?? auth.provider,
+    windows: [],
+    error: error instanceof Error ? error.message : String(error),
+  };
+}
+
 export async function loadProviderUsageSummary(
   opts: UsageSummaryOptions = {},
 ): Promise<UsageSummary> {
@@ -119,7 +128,7 @@ export async function loadProviderUsageSummary(
         windows: [],
         error: "Timeout",
       },
-    ),
+    ).catch((error: unknown) => providerUsageErrorSnapshot(auth, error)),
   );
 
   const snapshots = await Promise.all(tasks);

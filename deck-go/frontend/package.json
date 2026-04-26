@@ -4,16 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run check:restored-host && tsc -b && vite build",
-    "check:restored-host": "node scripts/check-restored-host.mjs",
+    "build": "npm run check:deck-ui-host && tsc -b && vite build",
+    "check:deck-ui-host": "node scripts/check-deck-ui-host.mjs",
     "dev": "vite --port 5174",
     "preview": "vite preview --port 4174",
-    "test:restored-host": "node ../../scripts/run-vitest.mjs run --config vitest.config.ts src/shell-components.test.tsx src/restoration/panels/RestoredChatPanel.test.tsx"
+    "test:deck-ui": "node ../../scripts/run-vitest.mjs run --config vitest.config.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.4"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",

@@ -121,6 +121,14 @@ func (s *LegacyInventorySurface) NodeRename(ctx context.Context, body map[string
 	return s.managed.GatewayQueries().NodeRename(ctx, body)
 }
 
+func (s *LegacyInventorySurface) NodeInvoke(ctx context.Context, body map[string]any) (any, error) {
+	return s.managed.GatewayQueries().NodeInvoke(ctx, body)
+}
+
+func (s *LegacyInventorySurface) NodePendingEnqueue(ctx context.Context, body map[string]any) (any, error) {
+	return s.managed.GatewayQueries().NodePendingEnqueue(ctx, body)
+}
+
 func (s *LegacyInventorySurface) NodePairList(ctx context.Context) (any, error) {
 	return s.managed.GatewayQueries().NodePairList(ctx)
 }
@@ -175,6 +183,18 @@ func (s *LegacyInventorySurface) UsageCost(ctx context.Context, params map[strin
 
 func (s *LegacyInventorySurface) UsageStatus(ctx context.Context) (any, error) {
 	return s.managed.GatewayQueries().UsageStatus(ctx)
+}
+
+func (s *LegacyInventorySurface) SessionsUsage(ctx context.Context, params map[string]any) (any, error) {
+	return s.managed.GatewayQueries().SessionsUsage(ctx, params)
+}
+
+func (s *LegacyInventorySurface) SessionsUsageLogs(ctx context.Context, params map[string]any) (any, error) {
+	return s.managed.GatewayQueries().SessionsUsageLogs(ctx, params)
+}
+
+func (s *LegacyInventorySurface) SessionsUsageTimeseries(ctx context.Context, params map[string]any) (any, error) {
+	return s.managed.GatewayQueries().SessionsUsageTimeseries(ctx, params)
 }
 
 func (s *LegacyInventorySurface) ConfigGet(ctx context.Context) (any, error) {

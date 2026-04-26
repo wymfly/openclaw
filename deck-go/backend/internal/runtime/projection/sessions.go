@@ -102,19 +102,52 @@ func NormalizeTranscriptMessages(payload any) []deckapi.DeckGoTranscriptMessage 
 
 func normalizeSessionMeta(record map[string]any, fallbackAgentID string) deckapi.DeckGoSessionMeta {
 	return deckapi.DeckGoSessionMeta{
-		Key:                coerce.String(record["key"], coerce.String(record["sessionKey"], "")),
-		AgentId:            coerce.String(record["agentId"], fallbackAgentID),
-		Title:              coerce.FirstString(record["derivedTitle"], record["label"], record["displayName"], record["title"]),
-		UpdatedAt:          coerce.Number(record["updatedAt"]),
-		LastMessagePreview: coerce.String(record["lastMessagePreview"], coerce.String(record["lastMessage"], "")),
-		CompactionCount:    coerce.FirstNumber(record["compactionCount"], record["compactionCheckpointCount"]),
-		Status:             coerce.String(record["status"], ""),
-		StartedAt:          coerce.Number(record["startedAt"]),
-		EndedAt:            coerce.Number(record["endedAt"]),
-		RuntimeMs:          coerce.Number(record["runtimeMs"]),
-		Model:              coerce.String(record["model"], ""),
-		ModelProvider:      coerce.String(record["modelProvider"], ""),
+		Key:                  coerce.String(record["key"], coerce.String(record["sessionKey"], "")),
+		AgentId:              coerce.String(record["agentId"], fallbackAgentID),
+		Label:                coerce.String(record["label"], ""),
+		Title:                coerce.FirstString(record["derivedTitle"], record["label"], record["displayName"], record["title"]),
+		Kind:                 coerce.String(record["kind"], ""),
+		UpdatedAt:            coerce.Number(record["updatedAt"]),
+		LastMessagePreview:   coerce.String(record["lastMessagePreview"], coerce.String(record["lastMessage"], "")),
+		CompactionCount:      coerce.FirstNumber(record["compactionCount"], record["compactionCheckpointCount"]),
+		Status:               coerce.String(record["status"], ""),
+		StartedAt:            coerce.Number(record["startedAt"]),
+		EndedAt:              coerce.Number(record["endedAt"]),
+		RuntimeMs:            coerce.Number(record["runtimeMs"]),
+		Model:                coerce.String(record["model"], ""),
+		ModelProvider:        coerce.String(record["modelProvider"], ""),
+		ThinkingLevel:        coerce.String(record["thinkingLevel"], ""),
+		FastMode:             coerce.Bool(record["fastMode"]),
+		VerboseLevel:         coerce.String(record["verboseLevel"], ""),
+		ReasoningLevel:       coerce.String(record["reasoningLevel"], ""),
+		ResponseUsage:        coerce.String(record["responseUsage"], ""),
+		SendPolicy:           coerce.String(record["sendPolicy"], ""),
+		InputTokens:          coerce.Number(record["inputTokens"]),
+		OutputTokens:         coerce.Number(record["outputTokens"]),
+		TotalTokens:          coerce.Number(record["totalTokens"]),
+		TotalTokensFresh:     coerce.Bool(record["totalTokensFresh"]),
+		EstimatedCostUsd:     coerce.Number(record["estimatedCostUsd"]),
+		ContextTokens:        coerce.Number(record["contextTokens"]),
+		ParentSessionKey:     coerce.String(record["parentSessionKey"], ""),
+		ChildSessions:        stringSlice(record["childSessions"]),
+		SubagentRole:         coerce.String(record["subagentRole"], ""),
+		SubagentControlScope: coerce.String(record["subagentControlScope"], ""),
+		SpawnedWorkspaceDir:  coerce.String(record["spawnedWorkspaceDir"], ""),
 	}
+}
+
+func stringSlice(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		if value, ok := item.(string); ok {
+			result = append(result, value)
+		}
+	}
+	return result
 }
 
 func extractSessionItems(payload any) []map[string]any {

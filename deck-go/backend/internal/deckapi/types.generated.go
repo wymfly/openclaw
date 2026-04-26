@@ -101,6 +101,19 @@ type DeckGoChatAbortRequest struct {
 	RunId string `json:"runId,omitempty"`
 }
 
+type DeckGoChatSteerRequest struct {
+	SessionKey string `json:"sessionKey"`
+	Message string `json:"message"`
+}
+
+type DeckGoChatSteerResponse struct {
+	Ok bool `json:"ok,omitempty"`
+	RunId string `json:"runId,omitempty"`
+	Status string `json:"status,omitempty"`
+	MessageSeq float64 `json:"messageSeq,omitempty"`
+	InterruptedActiveRun bool `json:"interruptedActiveRun,omitempty"`
+}
+
 type DeckGoSessionCreateResponse struct {
 	Ok bool `json:"ok,omitempty"`
 	Key string `json:"key,omitempty"`
@@ -136,7 +149,9 @@ type DeckGoSessionMutationResponse struct {
 type DeckGoSessionMeta struct {
 	Key string `json:"key"`
 	AgentId string `json:"agentId,omitempty"`
+	Label string `json:"label,omitempty"`
 	Title string `json:"title,omitempty"`
+	Kind string `json:"kind,omitempty"`
 	UpdatedAt float64 `json:"updatedAt,omitempty"`
 	LastMessagePreview string `json:"lastMessagePreview,omitempty"`
 	CompactionCount float64 `json:"compactionCount,omitempty"`
@@ -146,6 +161,23 @@ type DeckGoSessionMeta struct {
 	RuntimeMs float64 `json:"runtimeMs,omitempty"`
 	Model string `json:"model,omitempty"`
 	ModelProvider string `json:"modelProvider,omitempty"`
+	ThinkingLevel string `json:"thinkingLevel,omitempty"`
+	FastMode bool `json:"fastMode,omitempty"`
+	VerboseLevel string `json:"verboseLevel,omitempty"`
+	ReasoningLevel string `json:"reasoningLevel,omitempty"`
+	ResponseUsage string `json:"responseUsage,omitempty"`
+	SendPolicy string `json:"sendPolicy,omitempty"`
+	InputTokens float64 `json:"inputTokens,omitempty"`
+	OutputTokens float64 `json:"outputTokens,omitempty"`
+	TotalTokens float64 `json:"totalTokens,omitempty"`
+	TotalTokensFresh bool `json:"totalTokensFresh,omitempty"`
+	EstimatedCostUsd float64 `json:"estimatedCostUsd,omitempty"`
+	ContextTokens float64 `json:"contextTokens,omitempty"`
+	ParentSessionKey string `json:"parentSessionKey,omitempty"`
+	ChildSessions []string `json:"childSessions,omitempty"`
+	SubagentRole string `json:"subagentRole,omitempty"`
+	SubagentControlScope string `json:"subagentControlScope,omitempty"`
+	SpawnedWorkspaceDir string `json:"spawnedWorkspaceDir,omitempty"`
 }
 
 type DeckGoSessionPreviewOverlay struct {
@@ -254,6 +286,19 @@ type DeckGoChatHistoryResponse struct {
 	Messages []DeckGoTranscriptMessage `json:"messages"`
 }
 
+type DeckGoChannelUiMeta struct {
+	Id string `json:"id"`
+	Label string `json:"label"`
+	DetailLabel string `json:"detailLabel"`
+	SystemImage string `json:"systemImage,omitempty"`
+	PluginId string `json:"pluginId,omitempty"`
+	PluginOrigin string `json:"pluginOrigin,omitempty"`
+	PluginNpmSpec string `json:"pluginNpmSpec,omitempty"`
+	PluginLocalPath string `json:"pluginLocalPath,omitempty"`
+	PluginDefaultInstallChoice string `json:"pluginDefaultInstallChoice,omitempty"`
+	PluginConfigPath string `json:"pluginConfigPath,omitempty"`
+}
+
 type DeckGoChannelsStatusResponse struct {
 	Ts float64 `json:"ts,omitempty"`
 	ChannelOrder []string `json:"channelOrder,omitempty"`
@@ -261,14 +306,42 @@ type DeckGoChannelsStatusResponse struct {
 	ChannelAccounts map[string]any `json:"channelAccounts,omitempty"`
 	ChannelDefaultAccountId map[string]string `json:"channelDefaultAccountId,omitempty"`
 	ChannelLabels map[string]string `json:"channelLabels,omitempty"`
+	ChannelDetailLabels map[string]string `json:"channelDetailLabels,omitempty"`
+	ChannelSystemImages map[string]string `json:"channelSystemImages,omitempty"`
+	ChannelMeta []DeckGoChannelUiMeta `json:"channelMeta,omitempty"`
 }
 
 type DeckGoPluginInventoryEntry struct {
 	Id string `json:"id"`
 	Name string `json:"name,omitempty"`
+	Version string `json:"version,omitempty"`
 	Status string `json:"status,omitempty"`
 	Origin string `json:"origin,omitempty"`
 	Enabled bool `json:"enabled,omitempty"`
+	ExplicitlyEnabled bool `json:"explicitlyEnabled,omitempty"`
+	Activated bool `json:"activated,omitempty"`
+	Imported bool `json:"imported,omitempty"`
+	ActivationSource string `json:"activationSource,omitempty"`
+	ActivationReason string `json:"activationReason,omitempty"`
+	ConfigPath string `json:"configPath,omitempty"`
+	CapabilityKinds []string `json:"capabilityKinds,omitempty"`
+	ChannelIds []string `json:"channelIds,omitempty"`
+	ProviderIds []string `json:"providerIds,omitempty"`
+	ToolNames []string `json:"toolNames,omitempty"`
+	DeckActionCapabilities DeckGoPluginActionCapabilities `json:"deckActionCapabilities,omitempty"`
+	Diagnostics []DeckGoPluginDiagnostic `json:"diagnostics,omitempty"`
+}
+
+type DeckGoPluginActionCapabilities struct {
+	Login bool `json:"login,omitempty"`
+	Probe bool `json:"probe,omitempty"`
+	TestMessage bool `json:"testMessage,omitempty"`
+	QrCodeAuth bool `json:"qrCodeAuth,omitempty"`
+}
+
+type DeckGoPluginDiagnostic struct {
+	Level string `json:"level"`
+	Message string `json:"message"`
 }
 
 type DeckGoPluginsListResponse struct {

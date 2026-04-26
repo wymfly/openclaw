@@ -41,7 +41,7 @@ This file may donate code, but must not remain the structural source of truth.
    - `panel-navigation`
    - `ui store`
    - `ActivePanelHost`
-2. Top-level navigation is driven by the restored panel registry, not a single monolithic page.
+2. Top-level navigation is driven by the active panel registry, not a single monolithic page.
 3. The shell/header/nav runtime truth matches the legacy Deck shape.
 4. The current single-shell `App.tsx` no longer acts as the frontend topology baseline.
 5. The slice does not reopen backend/control-plane architecture.

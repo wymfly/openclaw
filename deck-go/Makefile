@@ -22,11 +22,13 @@ frontend-build:
 
 verify: contracts-check host-check backend-test frontend-build
 
-smoke-stage3-host: frontend-build
-	./scripts/smoke-stage3-host.sh
+smoke-stage3-host:
+	@echo "smoke-stage3-host is deprecated for Codex/Ralph validation; use the Codex Playwright plugin against a managed foreground stack." >&2
+	@exit 2
 
 smoke-stage3-e2e:
-	./scripts/smoke-stage3-e2e.sh
+	@echo "smoke-stage3-e2e is deprecated for Codex/Ralph validation; use the Codex Playwright plugin against a managed foreground stack." >&2
+	@exit 2
 
 smoke-stage3-rollback:
 	./scripts/smoke-stage3-rollback.sh
@@ -68,4 +70,5 @@ stack-runtime-stop:
 	./scripts/manage-local-stack.sh runtime-stop
 
 stack-chat-smoke:
-	./scripts/manage-local-stack.sh chat-smoke
+	@echo "stack-chat-smoke is deprecated for Codex/Ralph validation; use the Codex Playwright plugin against a managed foreground stack." >&2
+	@exit 2

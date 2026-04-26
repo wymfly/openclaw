@@ -1,4 +1,4 @@
-import { resolveAgentConfig, resolveAgentWorkspaceDir } from "../../../agents/agent-scope.js";
+import { resolveAgentWorkspaceDir } from "../../../agents/agent-scope.js";
 import { isToolAllowedByPolicyName } from "../../../agents/pi-tools.policy.js";
 import { pickSandboxToolPolicy } from "../../../agents/sandbox-tool-policy.js";
 import { listCoreToolSections } from "../../../agents/tool-catalog.js";
@@ -37,6 +37,7 @@ import {
 } from "../../protocol/schema/deck.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
+import { resolveDeckAgentReadConfig } from "./agent-read-config.js";
 
 /** Collect all known core tool ids in stable order. */
 function listAllCoreToolIds(): string[] {
@@ -61,7 +62,7 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
     };
 
     const cfg = loadConfig();
-    const agentConfig = resolveAgentConfig(cfg, agentId);
+    const agentConfig = resolveDeckAgentReadConfig(cfg, agentId);
     if (!agentConfig) {
       respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
       return;
@@ -166,7 +167,7 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
     };
 
     const cfg = loadConfig();
-    const agentConfig = resolveAgentConfig(cfg, agentId);
+    const agentConfig = resolveDeckAgentReadConfig(cfg, agentId);
     if (!agentConfig) {
       respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, `Agent "${agentId}" not found`));
       return;
@@ -201,11 +202,8 @@ export const deckAgentsPreviewHandlers: GatewayRequestHandlers = {
     const identityFile = fileStats.find((f) => f.name === DEFAULT_IDENTITY_FILENAME);
     const identityChars = identityFile?.charCount ?? 0;
 
-    // Extra instructions from agent config systemPrompt field
     const extraInstructions =
-      typeof (agentConfig as { systemPrompt?: unknown }).systemPrompt === "string"
-        ? ((agentConfig as { systemPrompt: string }).systemPrompt ?? "")
-        : "";
+      typeof agentConfig.systemPromptOverride === "string" ? agentConfig.systemPromptOverride : "";
 
     const layers = [
       {

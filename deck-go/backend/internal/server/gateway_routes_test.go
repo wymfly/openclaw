@@ -60,6 +60,50 @@ func TestGatewayFacade_ConfigSchemaLookup(t *testing.T) {
 	}
 }
 
+func TestGatewayFacade_ConfigSchemaLookupAllowsRootPath(t *testing.T) {
+	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
+		if method != "config.schema.lookup" {
+			t.Fatalf("unexpected method: %s", method)
+		}
+		if params["path"] != "" {
+			t.Fatalf("unexpected params: %#v", params)
+		}
+		_ = conn.WriteJSON(map[string]any{
+			"type": "res",
+			"id":   params["_requestID"],
+			"ok":   true,
+			"payload": map[string]any{
+				"path":     "",
+				"children": []any{},
+			},
+		})
+	})
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/config/schema-lookup", strings.NewReader(`{"path":""}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["path"] != "" {
+		t.Fatalf("unexpected payload: %#v", payload)
+	}
+}
+
 func TestGatewayFacade_ChatSend(t *testing.T) {
 	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
 		if method != "sessions.send" {
@@ -798,6 +842,8 @@ func TestGatewayFacade_CommandsAndNodesRoutes(t *testing.T) {
 		"node.list",
 		"node.describe",
 		"node.rename",
+		"node.invoke",
+		"node.pending.enqueue",
 		"node.pair.list",
 		"node.pair.request",
 		"node.pair.approve",
@@ -816,11 +862,31 @@ func TestGatewayFacade_CommandsAndNodesRoutes(t *testing.T) {
 				t.Fatalf("unexpected node.describe params: %#v", params)
 			}
 		case "node.rename":
-			if params["nodeId"] != "node-1" || params["name"] != "Renamed Node" {
+			if params["nodeId"] != "node-1" || params["displayName"] != "Renamed Node" {
 				t.Fatalf("unexpected node.rename params: %#v", params)
 			}
-		case "node.pair.request", "node.pair.approve", "node.pair.reject", "node.pair.verify":
-			if params["pairingCode"] != "pair-1" {
+		case "node.invoke":
+			if params["nodeId"] != "node-1" || params["command"] != "system.notify" || params["idempotencyKey"] != "invoke-1" {
+				t.Fatalf("unexpected node.invoke params: %#v", params)
+			}
+			nested, _ := params["params"].(map[string]any)
+			if nested["title"] != "Deck" {
+				t.Fatalf("unexpected node.invoke nested params: %#v", params)
+			}
+		case "node.pending.enqueue":
+			if params["nodeId"] != "node-1" || params["type"] != "status.request" || params["priority"] != "high" || params["wake"] != true {
+				t.Fatalf("unexpected node.pending.enqueue params: %#v", params)
+			}
+		case "node.pair.request":
+			if params["nodeId"] != "node-1" {
+				t.Fatalf("unexpected node.pair.request params: %#v", params)
+			}
+		case "node.pair.approve", "node.pair.reject":
+			if params["requestId"] != "pair-1" {
+				t.Fatalf("unexpected node pairing params: %#v", params)
+			}
+		case "node.pair.verify":
+			if params["nodeId"] != "node-1" || params["token"] != "token-1" {
 				t.Fatalf("unexpected node pairing params: %#v", params)
 			}
 		}
@@ -842,12 +908,14 @@ func TestGatewayFacade_CommandsAndNodesRoutes(t *testing.T) {
 		{method: http.MethodGet, path: "/api/commands"},
 		{method: http.MethodGet, path: "/api/nodes"},
 		{method: http.MethodPost, path: "/api/nodes", body: `{"action":"describe","nodeId":"node-1"}`},
-		{method: http.MethodPost, path: "/api/nodes", body: `{"action":"rename","nodeId":"node-1","name":"Renamed Node"}`},
+		{method: http.MethodPost, path: "/api/nodes", body: `{"action":"rename","nodeId":"node-1","displayName":"Renamed Node"}`},
+		{method: http.MethodPost, path: "/api/nodes", body: `{"action":"invoke","nodeId":"node-1","command":"system.notify","params":{"title":"Deck"},"timeoutMs":5000,"idempotencyKey":"invoke-1"}`},
+		{method: http.MethodPost, path: "/api/nodes", body: `{"action":"pending.enqueue","nodeId":"node-1","type":"status.request","priority":"high","wake":true}`},
 		{method: http.MethodGet, path: "/api/nodes/pair"},
-		{method: http.MethodPost, path: "/api/nodes/pair", body: `{"action":"request","pairingCode":"pair-1"}`},
-		{method: http.MethodPost, path: "/api/nodes/pair", body: `{"action":"approve","pairingCode":"pair-1"}`},
-		{method: http.MethodPost, path: "/api/nodes/pair", body: `{"action":"reject","pairingCode":"pair-1"}`},
-		{method: http.MethodPost, path: "/api/nodes/pair", body: `{"action":"verify","pairingCode":"pair-1"}`},
+		{method: http.MethodPost, path: "/api/nodes/pair", body: `{"action":"request","nodeId":"node-1"}`},
+		{method: http.MethodPost, path: "/api/nodes/pair", body: `{"action":"approve","requestId":"pair-1"}`},
+		{method: http.MethodPost, path: "/api/nodes/pair", body: `{"action":"reject","requestId":"pair-1"}`},
+		{method: http.MethodPost, path: "/api/nodes/pair", body: `{"action":"verify","nodeId":"node-1","token":"token-1"}`},
 	}
 
 	for _, tc := range requests {
@@ -891,6 +959,12 @@ func TestGatewayFacade_CronRoutes(t *testing.T) {
 			if params["limit"] != float64(10) && params["limit"] != 10 {
 				t.Fatalf("unexpected cron.list params: %#v", params)
 			}
+			if params["offset"] != float64(5) && params["offset"] != 5 {
+				t.Fatalf("unexpected cron.list params: %#v", params)
+			}
+			if params["query"] != "nightly" || params["enabled"] != "enabled" || params["sortBy"] != "name" || params["sortDir"] != "asc" || params["includeDisabled"] != true {
+				t.Fatalf("unexpected cron.list params: %#v", params)
+			}
 		case "cron.add":
 			if params["name"] != "Nightly" {
 				t.Fatalf("unexpected cron.add params: %#v", params)
@@ -911,6 +985,19 @@ func TestGatewayFacade_CronRoutes(t *testing.T) {
 			if params["jobId"] != "job-1" || params["scope"] != "job" {
 				t.Fatalf("unexpected cron.runs params: %#v", params)
 			}
+			statuses, ok := params["statuses"].([]any)
+			if !ok || len(statuses) != 2 || statuses[0] != "ok" || statuses[1] != "error" {
+				t.Fatalf("unexpected cron.runs statuses: %#v", params)
+			}
+			if params["limit"] != float64(20) && params["limit"] != 20 {
+				t.Fatalf("unexpected cron.runs params: %#v", params)
+			}
+			if params["offset"] != float64(5) && params["offset"] != 5 {
+				t.Fatalf("unexpected cron.runs params: %#v", params)
+			}
+			if params["sortDir"] != "desc" {
+				t.Fatalf("unexpected cron.runs params: %#v", params)
+			}
 		}
 		_ = conn.WriteJSON(map[string]any{
 			"type":    "res",
@@ -927,12 +1014,12 @@ func TestGatewayFacade_CronRoutes(t *testing.T) {
 		path   string
 		body   string
 	}{
-		{method: http.MethodGet, path: "/api/cron?limit=10&offset=5&query=nightly&enabled=true&sortBy=name&sortDir=asc&includeDisabled=true"},
+		{method: http.MethodGet, path: "/api/cron?limit=10&offset=5&query=nightly&enabled=enabled&sortBy=name&sortDir=asc&includeDisabled=true"},
 		{method: http.MethodPost, path: "/api/cron", body: `{"name":"Nightly","enabled":true}`},
 		{method: http.MethodPatch, path: "/api/cron/job-1", body: `{"enabled":false}`},
 		{method: http.MethodDelete, path: "/api/cron/job-1"},
 		{method: http.MethodPost, path: "/api/cron/job-1/run", body: `{"mode":"force"}`},
-		{method: http.MethodGet, path: "/api/cron/job-1/runs?limit=20&offset=5&sortDir=desc&statuses=ok,failed"},
+		{method: http.MethodGet, path: "/api/cron/job-1/runs?limit=20&offset=5&sortDir=desc&statuses=ok,error"},
 		{method: http.MethodGet, path: "/api/cron/status"},
 	}
 
@@ -993,6 +1080,74 @@ func TestGatewayFacade_ModelUsageRoutes(t *testing.T) {
 	}{
 		{method: http.MethodGet, path: "/api/models/usage/cost?days=14"},
 		{method: http.MethodGet, path: "/api/models/usage/providers"},
+	}
+
+	for _, tc := range requests {
+		req, err := http.NewRequest(tc.method, srv.URL+tc.path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer admin-token")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status for %s %s: %d", tc.method, tc.path, res.StatusCode)
+		}
+	}
+}
+
+func TestGatewayFacade_UsageSessionRoutes(t *testing.T) {
+	expectedCalls := []string{
+		"sessions.usage",
+		"sessions.usage.logs",
+		"sessions.usage.timeseries",
+	}
+	callIndex := 0
+
+	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
+		if method != expectedCalls[callIndex] {
+			t.Fatalf("unexpected method at index %d: %s", callIndex, method)
+		}
+		switch method {
+		case "sessions.usage":
+			if params["startDate"] != "2026-04-01" || params["endDate"] != "2026-04-06" || params["key"] != "session-1" || params["includeContextWeight"] != true {
+				t.Fatalf("unexpected sessions.usage params: %#v", params)
+			}
+			if params["limit"] != 20 && params["limit"] != float64(20) {
+				t.Fatalf("unexpected sessions.usage limit: %#v", params)
+			}
+		case "sessions.usage.logs":
+			if params["key"] != "session-1" {
+				t.Fatalf("unexpected sessions.usage.logs params: %#v", params)
+			}
+			if params["limit"] != 50 && params["limit"] != float64(50) {
+				t.Fatalf("unexpected sessions.usage.logs limit: %#v", params)
+			}
+		case "sessions.usage.timeseries":
+			if params["key"] != "session-1" || params["startDate"] != "2026-04-01" || params["endDate"] != "2026-04-07" || params["mode"] != "daily" || params["utcOffset"] != "+08:00" {
+				t.Fatalf("unexpected sessions.usage.timeseries params: %#v", params)
+			}
+		}
+		_ = conn.WriteJSON(map[string]any{
+			"type":    "res",
+			"id":      params["_requestID"],
+			"ok":      true,
+			"payload": map[string]any{"ok": true},
+		})
+		callIndex++
+	})
+	defer srv.Close()
+
+	requests := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/usage/sessions?startDate=2026-04-01&endDate=2026-04-06&key=session-1&includeContextWeight=true&limit=20"},
+		{method: http.MethodGet, path: "/api/usage/sessions/logs?key=session-1&limit=50"},
+		{method: http.MethodGet, path: "/api/usage/timeseries?key=session-1&startDate=2026-04-01&endDate=2026-04-07&mode=daily&utcOffset=%2B08%3A00"},
 	}
 
 	for _, tc := range requests {
@@ -1561,7 +1716,7 @@ func TestGatewayFacade_ChannelTestThroughputAndProjection(t *testing.T) {
 }
 
 func TestGatewayFacade_DeckIdentity(t *testing.T) {
-	expectedCalls := []string{"deck.identity.list", "deck.identity.link"}
+	expectedCalls := []string{"deck.identity.list", "deck.identity.link", "deck.identity.unlink"}
 	callIndex := 0
 
 	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
@@ -1581,6 +1736,22 @@ func TestGatewayFacade_DeckIdentity(t *testing.T) {
 		case "deck.identity.link":
 			if params["canonical"] != "user:1" || params["channel"] != "telegram" || params["peerId"] != "42" {
 				t.Fatalf("unexpected params: %#v", params)
+			}
+			if params["baseHash"] != "hash-1" {
+				t.Fatalf("unexpected identity link baseHash: %#v", params)
+			}
+			_ = conn.WriteJSON(map[string]any{
+				"type":    "res",
+				"id":      params["_requestID"],
+				"ok":      true,
+				"payload": map[string]any{"ok": true},
+			})
+		case "deck.identity.unlink":
+			if params["canonical"] != "user:1" || params["channel"] != "telegram" || params["peerId"] != "42" {
+				t.Fatalf("unexpected params: %#v", params)
+			}
+			if params["baseHash"] != "hash-2" {
+				t.Fatalf("unexpected identity unlink baseHash: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
 				"type":    "res",
@@ -1607,7 +1778,7 @@ func TestGatewayFacade_DeckIdentity(t *testing.T) {
 		t.Fatalf("unexpected identity list status: %d", listRes.StatusCode)
 	}
 
-	linkReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/identity", strings.NewReader(`{"action":"link","canonical":"user:1","channel":"telegram","peerId":"42"}`))
+	linkReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/identity", strings.NewReader(`{"action":"link","canonical":"user:1","channel":"telegram","peerId":"42","baseHash":"hash-1"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1620,6 +1791,21 @@ func TestGatewayFacade_DeckIdentity(t *testing.T) {
 	defer linkRes.Body.Close()
 	if linkRes.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected identity link status: %d", linkRes.StatusCode)
+	}
+
+	unlinkReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/identity", strings.NewReader(`{"action":"unlink","canonical":"user:1","channel":"telegram","peerId":"42","baseHash":"hash-2"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	unlinkReq.Header.Set("Authorization", "Bearer admin-token")
+	unlinkReq.Header.Set("Content-Type", "application/json")
+	unlinkRes, err := http.DefaultClient.Do(unlinkReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlinkRes.Body.Close()
+	if unlinkRes.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected identity unlink status: %d", unlinkRes.StatusCode)
 	}
 }
 
@@ -1720,6 +1906,12 @@ func TestGatewayFacade_DeckSubagentsAndThreads(t *testing.T) {
 			if params["agentId"] != "main" {
 				t.Fatalf("unexpected params: %#v", params)
 			}
+			if params["channel"] != "discord" || params["status"] != "all" {
+				t.Fatalf("unexpected thread filters: %#v", params)
+			}
+			if _, ok := params["limit"]; ok {
+				t.Fatalf("unexpected unsupported thread limit param: %#v", params)
+			}
 			_ = conn.WriteJSON(map[string]any{
 				"type":    "res",
 				"id":      params["_requestID"],
@@ -1760,7 +1952,7 @@ func TestGatewayFacade_DeckSubagentsAndThreads(t *testing.T) {
 		t.Fatalf("unexpected subagents lineage status: %d", lineageRes.StatusCode)
 	}
 
-	threadReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/deck/threads?agentId=main", nil)
+	threadReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/deck/threads?agentId=main&channel=discord&status=all&limit=10", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -29,6 +29,7 @@ let saveExecApprovals: ExecApprovalsModule["saveExecApprovals"];
 
 const tempDirs: string[] = [];
 const originalOpenClawHome = process.env.OPENCLAW_HOME;
+const originalOpenClawStateDir = process.env.OPENCLAW_STATE_DIR;
 
 beforeAll(async () => {
   ({
@@ -59,6 +60,11 @@ afterEach(() => {
   } else {
     process.env.OPENCLAW_HOME = originalOpenClawHome;
   }
+  if (originalOpenClawStateDir === undefined) {
+    delete process.env.OPENCLAW_STATE_DIR;
+  } else {
+    process.env.OPENCLAW_STATE_DIR = originalOpenClawStateDir;
+  }
   for (const dir of tempDirs.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -71,8 +77,19 @@ function createHomeDir(): string {
   return dir;
 }
 
+function createStateDir(): string {
+  const dir = makeTempDir();
+  tempDirs.push(dir);
+  process.env.OPENCLAW_STATE_DIR = dir;
+  return dir;
+}
+
 function approvalsFilePath(homeDir: string): string {
   return path.join(homeDir, ".openclaw", "exec-approvals.json");
+}
+
+function approvalsStateFilePath(stateDir: string): string {
+  return path.join(stateDir, "exec-approvals.json");
 }
 
 function readApprovalsFile(homeDir: string): ExecApprovalsFile {
@@ -89,6 +106,23 @@ describe("exec approvals store helpers", () => {
     expect(path.normalize(resolveExecApprovalsSocketPath())).toBe(
       path.normalize(path.join(dir, ".openclaw", "exec-approvals.sock")),
     );
+  });
+
+  it("uses OPENCLAW_STATE_DIR for default file and socket paths when set", () => {
+    const homeDir = createHomeDir();
+    const stateDir = createStateDir();
+
+    expect(path.normalize(resolveExecApprovalsPath())).toBe(
+      path.normalize(approvalsStateFilePath(stateDir)),
+    );
+    expect(path.normalize(resolveExecApprovalsSocketPath())).toBe(
+      path.normalize(path.join(stateDir, "exec-approvals.sock")),
+    );
+
+    const ensured = ensureExecApprovals();
+    expect(ensured.socket?.path).toBe(resolveExecApprovalsSocketPath());
+    expect(fs.existsSync(approvalsStateFilePath(stateDir))).toBe(true);
+    expect(fs.existsSync(approvalsFilePath(homeDir))).toBe(false);
   });
 
   it("merges socket defaults from normalized, current, and built-in fallback", () => {

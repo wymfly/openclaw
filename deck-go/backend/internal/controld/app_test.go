@@ -120,3 +120,30 @@ func TestNewHandlerWithDependencies_ExposesStage2RuntimeRoutes(t *testing.T) {
 		t.Fatalf("unexpected healthz status: %d", healthRes.StatusCode)
 	}
 }
+
+func TestNewHandlerWithDependencies_CorsAllowsStreamResumeHeader(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandlerWithDependencies(&Dependencies{
+		Store:   store,
+		Runtime: openclawrt.NewManagedRuntime(store, events.NewBus(4)),
+	})
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/v1/logs/stream", nil)
+	req.Header.Set("Origin", "http://127.0.0.1:4176")
+	req.Header.Set("Access-Control-Request-Method", http.MethodGet)
+	req.Header.Set("Access-Control-Request-Headers", "Last-Event-ID, x-deck-token")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("unexpected preflight status: %d", rec.Code)
+	}
+	allowHeaders := rec.Header().Get("Access-Control-Allow-Headers")
+	if !strings.Contains(strings.ToLower(allowHeaders), "last-event-id") {
+		t.Fatalf("Last-Event-ID not allowed in CORS headers: %q", allowHeaders)
+	}
+}

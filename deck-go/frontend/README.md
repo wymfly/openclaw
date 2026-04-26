@@ -1,20 +1,21 @@
 # Frontend
 
-This directory is the active Stage 3 Deck host.
+This directory is the active Vite Deck host.
 
 Current facts:
 
-- `src/main.tsx` boots the restored Vite host by default
+- `src/main.tsx` boots the active `deck-ui` host by default
 - browser transport goes through `src/lib/deck-client.ts`
 - browser transport now recognizes only `VITE_DECK_GO_API_BASE`; otherwise it stays on the current host origin
-- the build now runs `scripts/check-restored-host.mjs` before TypeScript/Vite
+- the build runs `scripts/check-deck-ui-host.mjs` before TypeScript/Vite
 - `frontend-next/` is archive/reference-only and is no longer the active host path
 
 Build / preview:
 
 ```bash
 cd deck-go/frontend
-npm run test:restored-host
+npm run test:deck-ui
+npm run test:deck-ui -- src/stores/__tests__/chat-store.test.ts
 
 VITE_DECK_GO_API_BASE=http://127.0.0.1:19566 \
 npm run build
@@ -42,6 +43,9 @@ That wrapper keeps one shared `deck-go/.env` as the source of truth for:
 `make stack-chat-smoke` is the focused local browser proof for the active host's
 chat path. It validates unlock + send + assistant reply visibility without
 re-running the heavier reconnect continuity lane from Stage 3 closure smoke.
+When a sandbox cannot launch Chrome/Chromium, start Chrome outside the sandbox
+with `--remote-debugging-port=9333` and run the smoke with
+`DECK_GO_SMOKE_BROWSER=cdp DECK_GO_SMOKE_CDP_URL=http://127.0.0.1:9333`.
 
 Canonical local smoke:
 
@@ -94,12 +98,12 @@ That smoke now proves three layers together:
 - runtime gateway start preflight returns the expected operator-visible error when
   the local smoke environment lacks a managed gateway token
 - Vite preview serves the active host bundle
-- a headless browser can hydrate the page and find the restored shell text
-  (`Deck Go operator shell`, `Gateway`, `Runtime`, `Chat`)
+- a browser can hydrate the page and find the active deck-ui shell text
+  (`Gateway`, `Runtime`, `Chat`)
 
 Host guardrails:
 
-- all panel ids from `src/restoration/panel-registry.tsx` must stay implemented in `src/restoration/ActivePanelHost.tsx`
-- `src/restoration/contract-readiness.ts` must not regress any panel back to `frontend-blocked`
-- restored panels must stay compatible with the current frontend TypeScript/lib target
+- all panel ids from `src/deck-ui/panel-registry.tsx` must stay routable through `src/deck-ui/ActivePanelHost.tsx` and `src/deck-ui/panel-component-registry.tsx`
+- `src/deck-ui/panel-readiness.ts` must keep all active panels at `ready`
+- active panel components must stay compatible with the current frontend TypeScript/lib target
 - `src/shell-components.test.tsx` now locks readable transcript rendering for `text`, `tool_use`, and `tool_result` blocks

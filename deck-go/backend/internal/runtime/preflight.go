@@ -38,6 +38,7 @@ func defaultPreflight(ctx context.Context, cfg config.ManagedGatewaySettings) er
 	}{
 		{name: "pnpm", args: []string{"build"}},
 		{name: "pnpm", args: []string{"ui:build"}},
+		{name: "node", args: []string{"scripts/build-stamp.mjs"}},
 	} {
 		if err := runManagedCommand(ctx, cfg.WorkingDir, step.name, step.args, env); err != nil {
 			return err

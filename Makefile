@@ -4,10 +4,12 @@ build:
 	pnpm build
 
 deck-go-stage3-host:
-	$(MAKE) -C deck-go smoke-stage3-host
+	@echo "deck-go-stage3-host is deprecated for Codex/Ralph validation; use the Codex Playwright plugin against a managed foreground stack." >&2
+	@exit 2
 
 deck-go-stage3-e2e:
-	$(MAKE) -C deck-go smoke-stage3-e2e
+	@echo "deck-go-stage3-e2e is deprecated for Codex/Ralph validation; use the Codex Playwright plugin against a managed foreground stack." >&2
+	@exit 2
 
 deck-go-stage3-rollback:
 	$(MAKE) -C deck-go smoke-stage3-rollback

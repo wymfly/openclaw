@@ -15,11 +15,14 @@ retyping env vars:
 cd deck-go
 cp .env.example .env
 make stack-start
-make stack-chat-smoke
 ```
 
 That path keeps backend/frontend/runtime settings in one `deck-go/.env` file and
 lets `deck-go` own local Gateway lifecycle through its own runtime APIs.
+After `make stack-start`, use the Codex Playwright plugin for browser E2E. Do
+not run `make stack-chat-smoke` in Codex/Ralph sessions; that target is
+intentionally disabled because it delegated to the deprecated shell-launched
+browser smoke path.
 
 ## 1. Start `deck-go`
 
@@ -73,62 +76,44 @@ cd deck-go
 make verify
 ```
 
-For a local backend + Vite preview smoke that boots both processes and curls the
-canonical endpoints:
+For Codex/Ralph work, browser E2E verification is done with the Codex
+Playwright plugin, not the shell-launched `smoke-stage3-*` browser scripts.
+The shell smoke path launches Chrome/Chromium from the sandboxed shell and is
+known to fail in this environment with browser startup `SIGABRT` / `kill EPERM`.
+Do not use it as a migration or Ralph closure gate.
+
+The supported Codex/Ralph E2E path is:
 
 ```bash
-cd deck-go
-make smoke-stage3-host
+# Terminal/session 1
+DECK_GO_STACK_ENV=/tmp/deck-go-e2e.env deck-go/scripts/manage-local-stack.sh backend-fg
+
+# Terminal/session 2
+DECK_GO_STACK_ENV=/tmp/deck-go-e2e.env deck-go/scripts/manage-local-stack.sh frontend-fg
+
+# Terminal/session 3
+DECK_GO_STACK_ENV=/tmp/deck-go-e2e.env deck-go/scripts/manage-local-stack.sh runtime-start
 ```
 
-From the repo root, the same supported local/private path is now available as a
-single wrapper step:
+Then use the Codex Playwright plugin to:
 
-```bash
-make deck-go-stage3-host
-```
+- open the Vite preview URL
+- seed `localStorage.deckGoAccessToken`
+- verify `Gateway Healthy` and `Runtime running`
+- navigate the high-value panels
+- send a real Chat message with `browser_type`
+- capture console output and JSON artifacts
 
-The canonical Stage 3 host E2E suite is now:
+The latest accepted artifact shape is:
 
-```bash
-make deck-go-stage3-e2e
-```
+- `deck-go-plugin-core-panels-<backend>-<frontend>.json`
+- `deck-go-plugin-chat-send-<backend>-<frontend>.json`
+- `deck-go-plugin-console-<backend>-<frontend>.log`
 
-That smoke now includes a headless browser probe over the live Vite preview and
-waits for restored host content to hydrate, instead of stopping at static HTML.
-It also runs through the active host's real in-shell access-token unlock path
-by default instead of pre-seeding browser storage, including one invalid-token
-retry before the smoke unlocks with the correct token.
-Under the default local smoke setup, it additionally checks that
-`POST /api/runtime/gateway/start` reaches the managed-runtime preflight and
-returns the expected `managed gateway token is required` error.
-
-If you have a real managed Gateway token available, you can upgrade the same
-smoke lane:
-
-```bash
-cd deck-go
-DECK_GO_SMOKE_GATEWAY_TOKEN=<gateway-token> \
-make smoke-stage3-host
-```
-
-In that richer mode the smoke expects lifecycle start acceptance and upgrades
-the managed runtime all the way to `running/healthy`, then upgrades several
-runtime-backed inventory/config routes from `502` wiring proof to `200` data
-proof. That richer lane now keeps its focus on managed-runtime/browser workflow
-proof instead of re-running the default auth-retry proof; it seeds the known
-smoke access token before browser hydration, then proves a minimal chat control
-flow by creating a session,
-sending a message, waiting for user+assistant history to appear, surfacing the
-user message in visible transcript content, surviving a page reload, aborting
-the started run, and completing a managed runtime stop/start cycle back to
-`running/healthy`.
-
-`make deck-go-stage3-e2e` now packages both supported active-host smoke lanes
-into one canonical closure target:
-
-- the default/basic auth + bootstrap lane
-- the richer managed-runtime/browser workflow lane
+The shell targets `make smoke-stage3-host`, `make smoke-stage3-e2e`,
+`make deck-go-stage3-host`, and `make deck-go-stage3-e2e` are intentionally
+disabled for Codex/Ralph validation. They must not be selected for future
+verification.
 
 If you still want a post-closeout observation window, the optional stabilization
 tracker is:
@@ -146,21 +131,26 @@ make deck-go-stage3-stabilization-enforce
 
 The frontend build now includes a structural guard that fails if:
 
-- any panel id in `frontend/src/restoration/panel-registry.tsx` is no longer implemented in `ActivePanelHost`
-- any readiness entry regresses to `frontend-blocked`
-- restored panels reintroduce compile-target-incompatible helper patterns
+- any panel id in `frontend/src/deck-ui/panel-registry.tsx` is no longer routable through `ActivePanelHost` / `panel-component-registry.tsx`
+- any readiness entry in `frontend/src/deck-ui/panel-readiness.ts` regresses away from `ready`
+- active panels reintroduce compile-target-incompatible helper patterns
 
 ## 5. What this proves
 
 - onboarding/bootstrap works against the external backend
-- core panel loading works through the restored Vite host
+- core panel loading works through the active Vite host
 - gateway lifecycle controls are reachable from the UI
 - browser-initiated lifecycle actions hit `deck-go` directly
 - `frontend-next` is no longer required in the default build/run path
-- the restored panel registry is structurally complete from the Vite host’s point of view
+- the active panel registry is structurally complete from the Vite host's point of view
 
 ## 6. Known constraints
 
-- `make verify` still proves the default repo gate, but Stage 3 closure now additionally relies on `make deck-go-stage3-e2e` for the canonical browser-backed host workflows
+- `make verify` still proves the default repo gate, but Stage 3 closure now
+  additionally relies on Codex Playwright plugin artifacts for browser-backed
+  host workflows
 - if `VITE_DECK_GO_API_BASE` is omitted, `deck-client.ts` stays on relative `/api/*` paths and therefore requires the current host origin to be the backend
 - `frontend-next` may still be retained in-repo for archive/reference-only comparison, but it is not part of the default host path
+- shell-launched Playwright/Chromium smoke is not a Codex/Ralph validation
+  path because this environment cannot reliably launch or control that browser
+  process

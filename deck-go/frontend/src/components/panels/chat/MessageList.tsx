@@ -1,0 +1,179 @@
+import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
+import { useChatStore } from "@/stores/chat";
+import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
+import type { ChatBlockPreferences } from "@/stores/chat-preferences";
+import type { ChatMessage, RunMetadata } from "@/stores/chat-types";
+import { CompactionNotice } from "./CompactionNotice";
+import { MessageActions } from "./MessageActions";
+import { RunStatusBar } from "./RunStatusBar";
+import { TranscriptBlocks } from "./TranscriptBlocks";
+
+const STABLE_EMPTY_RUN_META: Record<string, RunMetadata> = {};
+const NEAR_BOTTOM_PX = 80;
+
+function extractPlainText(message: ChatMessage): string {
+  return message.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .filter(Boolean)
+    .join("\n");
+}
+
+function MessageBubble({
+  message,
+  blockPrefs,
+  runMetadata,
+  sessionTotalTokens,
+  sessionCostUsd,
+  sessionStatus,
+  sessionStreaming,
+  partialResultLabel,
+}: {
+  message: ChatMessage;
+  blockPrefs?: ChatBlockPreferences;
+  runMetadata?: RunMetadata;
+  sessionTotalTokens?: number;
+  sessionCostUsd?: number;
+  sessionStatus?: "idle" | "running" | "done" | "failed" | "killed" | "timeout";
+  sessionStreaming: boolean;
+  partialResultLabel: string;
+}) {
+  const isUser = message.role === "user";
+  const showPartialResult = !isUser && message.streaming && !sessionStreaming;
+
+  return (
+    <div
+      className={`deck-ui-message ${isUser ? "is-user" : "is-assistant"}`}
+      aria-label={`${isUser ? "User" : "Assistant"} message`}
+    >
+      <div className="deck-ui-message-avatar" aria-hidden="true">
+        {isUser ? "U" : "AI"}
+      </div>
+      <div className="deck-ui-message-body">
+        <TranscriptBlocks
+          message={message}
+          isUser={isUser}
+          streaming={message.streaming}
+          blockPreferences={blockPrefs}
+        />
+        {message.error ? <span className="deck-ui-message-error">{message.error}</span> : null}
+        {!isUser && runMetadata ? (
+          <RunStatusBar
+            metadata={runMetadata}
+            sessionTotalTokens={message.streaming ? sessionTotalTokens : undefined}
+            sessionCostUsd={message.streaming ? sessionCostUsd : undefined}
+            sessionStatus={message.streaming ? sessionStatus : undefined}
+          />
+        ) : null}
+        {showPartialResult ? (
+          <span className="deck-ui-partial-result">{partialResultLabel}</span>
+        ) : null}
+        <span className="deck-ui-message-time">
+          {new Date(message.timestamp).toLocaleTimeString()}
+        </span>
+        {!isUser ? <MessageActions content={extractPlainText(message)} /> : null}
+      </div>
+    </div>
+  );
+}
+
+export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlockPreferences }) {
+  const t = useTranslations("chat");
+  const messages = useSessionMessages();
+  const { isStreaming } = useSessionStreaming();
+  const sessionRunMetadata = useChatStore((s) => {
+    const key = s.activeSessionKey;
+    return key
+      ? (s.sessions.get(key)?.runMetadata ?? STABLE_EMPTY_RUN_META)
+      : STABLE_EMPTY_RUN_META;
+  });
+  const sessionMeta = useChatStore((s) => {
+    const key = s.activeSessionKey;
+    return key ? s.sessionMetas.find((m) => m.key === key) : undefined;
+  });
+  const sessionStatus = useChatStore((s) => {
+    const key = s.activeSessionKey;
+    return key ? s.sessions.get(key)?.status : undefined;
+  });
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
+
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) {
+      return;
+    }
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+  };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el && isNearBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages]);
+
+  if (messages.length === 0) {
+    return <p className="deck-ui-message-empty">{t("noMessages")}</p>;
+  }
+
+  return (
+    <div className="deck-ui-message-list" ref={containerRef} onScroll={handleScroll}>
+      {messages.map((msg, idx) => {
+        if (msg.role === "system" && msg.id.startsWith("compaction-")) {
+          return (
+            <CompactionNotice
+              key={msg.id}
+              timestamp={msg.timestamp}
+              tokensBefore={msg.tokensBefore}
+              tokensAfter={msg.tokensAfter}
+            />
+          );
+        }
+
+        const meta = sessionRunMetadata[msg.id];
+        const runMeta: RunMetadata | undefined = meta?.model
+          ? {
+              runId: msg.id,
+              model: meta.model,
+              usage: meta.usage,
+              durationMs: meta.durationMs,
+              startedAt: meta.startedAt,
+              streaming: msg.streaming,
+            }
+          : undefined;
+        const showSessionTotals = Boolean(
+          msg.streaming &&
+          ((sessionMeta?.totalTokens ?? 0) > 0 || (sessionMeta?.estimatedCostUsd ?? 0) > 0),
+        );
+        const effectiveRunMeta =
+          runMeta ??
+          (showSessionTotals
+            ? ({
+                runId: msg.id,
+                streaming: msg.streaming,
+              } satisfies RunMetadata)
+            : undefined);
+
+        return (
+          <div className="deck-ui-message-frame" key={msg.id} data-message-idx={idx}>
+            <MessageBubble
+              message={msg}
+              blockPrefs={blockPreferences}
+              runMetadata={effectiveRunMeta}
+              sessionTotalTokens={sessionMeta?.totalTokens}
+              sessionCostUsd={sessionMeta?.estimatedCostUsd}
+              sessionStatus={sessionStatus}
+              sessionStreaming={isStreaming}
+              partialResultLabel={t("partialResult")}
+            />
+          </div>
+        );
+      })}
+      {isStreaming && !messages.some((m) => m.streaming) ? (
+        <span className="deck-ui-thinking-inline">{t("thinking")}</span>
+      ) : null}
+    </div>
+  );
+}

@@ -22,8 +22,17 @@ This window was opened only after these Stage 3 closure gates were already
 green:
 
 - `cd deck-go && make verify`
-- `cd deck-go && make smoke-stage3-e2e`
+- Codex Playwright plugin E2E for the active Vite host, managed source
+  Gateway, high-value panels, direct API checks, and Chat send/receive. Latest
+  foreground-stack proof used backend `62811`, frontend `62812`, managed source
+  Gateway `18811`, and rendered Chat `959595 -> 959596` with console 0 errors
+  / 0 warnings.
 - `cd deck-go && make smoke-stage3-rollback`
+
+Do not use `make smoke-stage3-host` or `make smoke-stage3-e2e` as follow-on
+Codex/Ralph browser evidence. Those shell-launched Playwright lanes are
+deprecated for this environment because Chrome/Chromium startup is blocked by
+process-control failures.
 
 ## What counts as blocking follow-on evidence
 

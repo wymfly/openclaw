@@ -64,11 +64,10 @@ Active host-specific shell:
 
 Active host invariants:
 
-- every panel id in `frontend/src/restoration/panel-registry.tsx` must have a concrete
-  `ActivePanelHost` implementation
-- `frontend/src/restoration/contract-readiness.ts` must not regress any panel to
-  `frontend-blocked`
-- restored panels must stay within the current frontend TypeScript/lib target;
+- every panel id in `frontend/src/deck-ui/panel-registry.tsx` must stay routable
+  through `ActivePanelHost` / `panel-component-registry.tsx`
+- `frontend/src/deck-ui/panel-readiness.ts` must keep every active panel at `ready`
+- active panels must stay within the current frontend TypeScript/lib target;
   compile-target-incompatible helper patterns are guarded by the frontend build
 
 Archive/reference-only host:

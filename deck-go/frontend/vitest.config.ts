@@ -28,6 +28,18 @@ export default defineConfig({
           new URL("./node_modules/react/jsx-dev-runtime.js", import.meta.url),
         ),
       },
+      {
+        find: /^@$/,
+        replacement: fileURLToPath(new URL("./src", import.meta.url)),
+      },
+      {
+        find: /^@\/(.*)$/,
+        replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/$1`,
+      },
+      {
+        find: /^next-intl$/,
+        replacement: fileURLToPath(new URL("./src/compat/next-intl.tsx", import.meta.url)),
+      },
     ],
     dedupe: ["react", "react-dom"],
   },

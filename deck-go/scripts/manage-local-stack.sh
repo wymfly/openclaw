@@ -17,10 +17,9 @@ BACKEND_BIN="${BIN_DIR}/deck-go"
 FRONTEND_BIN="${ROOT_DIR}/frontend/node_modules/.bin/vite"
 GO_ENV=(
   GOCACHE=/tmp/deck-go-buildcache
-  GOMODCACHE=/tmp/deck-go-modcache
-  GOPATH=/tmp/deck-go-gopath
   GOSUMDB=off
 )
+DEFAULT_NPM_CACHE="/tmp/deck-go-npm-cache"
 
 mkdir -p "${PID_DIR}" "${LOG_DIR}" "${BIN_DIR}"
 
@@ -38,7 +37,7 @@ commands:
   frontend-fg   run Vite preview in the foreground
   runtime-start ask deck-go to start the managed local Gateway
   runtime-stop  ask deck-go to stop the managed local Gateway
-  chat-smoke    verify browser chat flow against the running stack
+  chat-smoke    deprecated: use the Codex Playwright plugin instead
 EOF
 }
 
@@ -62,6 +61,23 @@ load_env() {
   : "${DECK_GO_FRONTEND_HOST:=127.0.0.1}"
   : "${DECK_GO_FRONTEND_PORT:=4174}"
   : "${VITE_DECK_GO_API_BASE:=http://${DECK_GO_ADDR}}"
+  : "${DECK_GO_RUNTIME_ACTION_TIMEOUT:=300}"
+
+  local local_no_proxy="localhost,127.0.0.1,::1"
+  if [[ -n "${NO_PROXY:-}" ]]; then
+    NO_PROXY="${local_no_proxy},${NO_PROXY}"
+  else
+    NO_PROXY="${local_no_proxy}"
+  fi
+  if [[ -n "${no_proxy:-}" ]]; then
+    no_proxy="${local_no_proxy},${no_proxy}"
+  else
+    no_proxy="${local_no_proxy}"
+  fi
+
+  : "${NPM_CONFIG_CACHE:=${npm_config_cache:-${DEFAULT_NPM_CACHE}}}"
+  : "${npm_config_cache:=${NPM_CONFIG_CACHE}}"
+  mkdir -p "${NPM_CONFIG_CACHE}" "${npm_config_cache}"
 
   if [[ "${DECK_GO_DATA_DIR}" != /* ]]; then
     DECK_GO_DATA_DIR="${ROOT_DIR}/${DECK_GO_DATA_DIR}"
@@ -80,9 +96,14 @@ load_env() {
   export DECK_GO_GATEWAY_AUTO_START
   export DECK_GO_FRONTEND_HOST
   export DECK_GO_FRONTEND_PORT
+  export DECK_GO_RUNTIME_ACTION_TIMEOUT
   export VITE_DECK_GO_API_BASE
   export BACKEND_BASE
   export FRONTEND_BASE
+  export NO_PROXY
+  export no_proxy
+  export NPM_CONFIG_CACHE
+  export npm_config_cache
 
   mkdir -p "${DECK_GO_DATA_DIR}"
 }
@@ -109,15 +130,29 @@ port_running() {
 stop_pid() {
   local pid_file="$1"
   local label="$2"
+  local port="${3:-}"
+  local pid=""
   if ! pid_running "${pid_file}"; then
-    rm -f "${pid_file}"
-    return 0
+    if [[ -n "${port}" ]]; then
+      pid="$(listener_pid "${port}")"
+    fi
+    if [[ -z "${pid}" ]]; then
+      rm -f "${pid_file}"
+      return 0
+    fi
+    echo "${pid}" >"${pid_file}"
+  else
+    pid="$(cat "${pid_file}")"
   fi
-  local pid
-  pid="$(cat "${pid_file}")"
   kill "${pid}" 2>/dev/null || true
   for _ in {1..20}; do
-    if ! kill -0 "${pid}" 2>/dev/null; then
+    if [[ -n "${port}" ]]; then
+      if ! port_running "${port}"; then
+        rm -f "${pid_file}"
+        echo "[deck-go-local] stopped ${label} (${pid})"
+        return 0
+      fi
+    elif ! kill -0 "${pid}" 2>/dev/null; then
       rm -f "${pid_file}"
       echo "[deck-go-local] stopped ${label} (${pid})"
       return 0
@@ -125,8 +160,23 @@ stop_pid() {
     sleep 0.5
   done
   kill -9 "${pid}" 2>/dev/null || true
+  for _ in {1..10}; do
+    if [[ -n "${port}" ]]; then
+      if ! port_running "${port}"; then
+        rm -f "${pid_file}"
+        echo "[deck-go-local] force-stopped ${label} (${pid})"
+        return 0
+      fi
+    elif ! kill -0 "${pid}" 2>/dev/null; then
+      rm -f "${pid_file}"
+      echo "[deck-go-local] force-stopped ${label} (${pid})"
+      return 0
+    fi
+    sleep 0.5
+  done
   rm -f "${pid_file}"
-  echo "[deck-go-local] force-stopped ${label} (${pid})"
+  echo "[deck-go-local] failed to stop ${label} (${pid}) on port ${port:-unknown}" >&2
+  return 1
 }
 
 wait_for_url() {
@@ -211,6 +261,12 @@ build_backend() {
   echo "[deck-go-local] building backend binary"
   (
     cd "${ROOT_DIR}/backend"
+    if env "${GO_ENV[@]}" go build -o "${BACKEND_BIN}" ./cmd/deck-go; then
+      exit 0
+    fi
+    echo "[deck-go-local] backend build failed; clearing temporary Go build cache and retrying" >&2
+    rm -rf /tmp/deck-go-buildcache
+    mkdir -p /tmp/deck-go-buildcache
     env "${GO_ENV[@]}" go build -o "${BACKEND_BIN}" ./cmd/deck-go
   )
 }
@@ -267,7 +323,7 @@ runtime_start() {
     return 0
   fi
   echo "[deck-go-local] requesting managed gateway start"
-  curl --max-time 10 -sf -X POST "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway/start" >/dev/null
+  curl --max-time "${DECK_GO_RUNTIME_ACTION_TIMEOUT}" -sf -X POST "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway/start" >/dev/null
   wait_for_runtime_healthy
 }
 
@@ -279,7 +335,7 @@ runtime_stop() {
     return 0
   fi
   echo "[deck-go-local] requesting managed gateway stop"
-  curl --max-time 10 -sf -X POST "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway/stop" >/dev/null
+  curl --max-time "${DECK_GO_RUNTIME_ACTION_TIMEOUT}" -sf -X POST "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway/stop" >/dev/null
   wait_for_runtime_stopped
 }
 
@@ -345,13 +401,9 @@ run_frontend_fg() {
 }
 
 chat_smoke() {
-  wait_for_url "${BACKEND_BASE}/api/bootstrap/status" "deck-go backend" "${CURL_AUTH_ARGS[@]}"
-  wait_for_url "${FRONTEND_BASE}/" "frontend preview"
-  runtime_start
-  (
-    cd "${REPO_ROOT}"
-    node deck-go/scripts/smoke-stage3-browser.mjs "${FRONTEND_BASE}" "${DECK_GO_ACCESS_TOKEN}" chat
-  )
+  echo "[deck-go-local] chat-smoke is deprecated for Codex/Ralph validation" >&2
+  echo "[deck-go-local] use the Codex Playwright plugin against backend-fg/frontend-fg/runtime-start instead" >&2
+  return 2
 }
 
 load_env
@@ -365,12 +417,12 @@ case "${command}" in
     show_status
     ;;
   stop)
-    stop_pid "${FRONTEND_PID_FILE}" "frontend"
-    stop_pid "${BACKEND_PID_FILE}" "backend"
+    stop_pid "${FRONTEND_PID_FILE}" "frontend" "${FRONTEND_PORT}"
+    stop_pid "${BACKEND_PID_FILE}" "backend" "${BACKEND_PORT}"
     ;;
   restart)
-    stop_pid "${FRONTEND_PID_FILE}" "frontend"
-    stop_pid "${BACKEND_PID_FILE}" "backend"
+    stop_pid "${FRONTEND_PID_FILE}" "frontend" "${FRONTEND_PORT}"
+    stop_pid "${BACKEND_PID_FILE}" "backend" "${BACKEND_PORT}"
     build_frontend
     start_backend
     start_frontend

@@ -1,8 +1,9 @@
 import { describe, expect, it, vi, beforeEach, type MockedFunction } from "vitest";
+import type { OpenClawConfig } from "../../../config/types.js";
 
 // --- Mocks must be hoisted above imports ---
 
-const mockConfig = {
+const defaultMockConfig = {
   tools: {
     allow: ["read", "write", "edit", "exec"],
     deny: ["gateway"],
@@ -29,7 +30,9 @@ const mockConfig = {
       },
     ],
   },
-};
+} satisfies OpenClawConfig;
+
+let mockConfig: OpenClawConfig = structuredClone(defaultMockConfig);
 
 let snapshotHash = "hash-preview-123";
 
@@ -101,6 +104,7 @@ function callHandler(
 }
 
 beforeEach(() => {
+  mockConfig = structuredClone(defaultMockConfig);
   snapshotHash = "hash-preview-123";
 });
 
@@ -196,6 +200,29 @@ describe("deck.agents.toolPolicy.preview", () => {
     const readTool = p.tools.find((t) => t.name === "read");
     expect(readTool?.allowed).toBe(true);
   });
+
+  it("returns policy preview for implicit default agent", async () => {
+    mockConfig = {
+      tools: {
+        allow: ["read"],
+      },
+      agents: {
+        defaults: {
+          workspace: "/tmp/default-agent",
+        },
+        list: [],
+      },
+    } satisfies OpenClawConfig;
+
+    const result = await callHandler("deck.agents.toolPolicy.preview", { agentId: "main" });
+    expect(result.ok).toBe(true);
+    const p = result.payload as {
+      layers: Array<{ label: string }>;
+      tools: Array<{ name: string; allowed: boolean }>;
+    };
+    expect(p.layers.some((layer) => layer.label.includes("agents.main"))).toBe(true);
+    expect(p.tools.find((tool) => tool.name === "read")?.allowed).toBe(true);
+  });
 });
 
 describe("deck.agents.systemPrompt.preview", () => {
@@ -254,6 +281,32 @@ describe("deck.agents.systemPrompt.preview", () => {
     // totalChars should be sum of bootstrap chars + extra instructions
     expect(p.totalChars).toBeGreaterThanOrEqual(0);
     expect(p.configHash).toBe("hash-preview-123");
+  });
+
+  it("returns system prompt preview for implicit default agent", async () => {
+    mockConfig = {
+      agents: {
+        defaults: {
+          workspace: "/tmp/default-agent",
+          systemPromptOverride: "Default agent prompt",
+        },
+        list: [],
+      },
+    } satisfies OpenClawConfig;
+
+    const result = await callHandler("deck.agents.systemPrompt.preview", { agentId: "main" });
+    expect(result.ok).toBe(true);
+    const p = result.payload as {
+      layers: Array<{ label: string; source: string; charCount: number }>;
+      totalChars: number;
+    };
+    expect(p.layers[0]?.source).toBe("/tmp/default-agent");
+    expect(p.layers[3]).toMatchObject({
+      label: "Extra Instructions",
+      source: "agents.systemPrompt",
+      charCount: "Default agent prompt".length,
+    });
+    expect(p.totalChars).toBeGreaterThanOrEqual("Default agent prompt".length);
   });
 
   it("returns NOT_FOUND for unknown agent", async () => {

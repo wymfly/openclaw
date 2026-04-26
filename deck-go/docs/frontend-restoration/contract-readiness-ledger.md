@@ -7,22 +7,22 @@ It is no longer the live source of truth for Stage 3 host status.
 
 Current authority now lives in:
 
-- `deck-go/frontend/src/restoration/contract-readiness.ts`
-- `deck-go/frontend/scripts/check-restored-host.mjs`
+- `deck-go/frontend/src/deck-ui/panel-readiness.ts`
+- `deck-go/frontend/scripts/check-deck-ui-host.mjs`
 
 Current fact:
 
-- `frontend-blocked` family count is now `0`
-- every panel id from `panel-registry.tsx` has a concrete `ActivePanelHost`
-  implementation in the Vite host
-- the remaining gap is no longer "missing panel ownership", but "how much
-  deeper each restored panel must go before final cutover"
+- every active panel readiness entry is now `ready`
+- every panel id from `panel-registry.tsx` is routable through `ActivePanelHost`
+  / `panel-component-registry.tsx` in the Vite host
+- the remaining work is refinement on top of migrated logic rather than missing
+  panel ownership
 
-## Status model
+## Historical status model
 
-- `ready`: current deck-go contracts appear sufficient for restoration without new backend façade work
-- `ready-with-adapter`: current deck-go contracts are partially sufficient, but frontend restoration will need adapter-side normalization or selective façade completion
-- `frontend-blocked`: current deck-go contracts are not yet sufficient; frontend restoration should not start on that family without additional backend support
+- `ready`: deck-go contracts appeared sufficient for restoration without new backend facade work
+- `ready-with-adapter`: deck-go contracts were partially sufficient, but frontend restoration needed adapter-side normalization or selective facade completion
+- blocked: deck-go contracts were not yet sufficient; frontend restoration should not start on that family without additional backend support
 
 ## Current interpretation
 
@@ -31,6 +31,6 @@ Every panel family has now crossed from "should frontend restoration start?" to
 
 Use rule:
 
-- treat `frontend/src/restoration/contract-readiness.ts` as the current
+- treat `frontend/src/deck-ui/panel-readiness.ts` as the current
   implementation verdict
 - treat this document as historical planning context only

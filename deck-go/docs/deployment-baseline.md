@@ -35,17 +35,19 @@ This document is the controlled evidence source for the primary migration succes
 
 ## Current `deck-go` baseline
 
-For phase-1 supported environments, the counted operator path is the repo-root
-single-command wrapper that delegates into the canonical Stage 3 host smoke.
+For phase-1 supported environments, the counted operator path is the managed
+foreground stack plus Codex Playwright plugin verification. The former
+repo-root Stage 3 host smoke wrappers are disabled for Codex/Ralph validation
+because they launch Chrome/Chromium from the shell.
 
-| Procedure                | Environment | Current Steps | Source/Notes                                                                              |
-| ------------------------ | ----------- | ------------- | ----------------------------------------------------------------------------------------- |
-| Fresh install            | Linux       | 1             | root `Makefile`: `make deck-go-stage3-host` delegates into `deck-go` canonical host smoke |
-| Fresh install            | macOS       | 1             | same repo-root wrapper; no extra platform-specific step in the current local/private path |
-| Upgrade existing install | Linux       | 1             | same repo-root wrapper revalidates the active Stage 3 host end-to-end                     |
-| Upgrade existing install | macOS       | 1             | same repo-root wrapper                                                                    |
-| Restart and recover      | Linux       | 1             | same repo-root wrapper for the current local/private supported path                       |
-| Restart and recover      | macOS       | 1             | same repo-root wrapper                                                                    |
+| Procedure                | Environment | Current Steps | Source/Notes                                                                         |
+| ------------------------ | ----------- | ------------- | ------------------------------------------------------------------------------------ |
+| Fresh install            | Linux       | 1             | managed foreground stack plus Codex Playwright plugin artifact proof                 |
+| Fresh install            | macOS       | 1             | same plugin-backed local/private path; shell browser smoke wrappers are disabled     |
+| Upgrade existing install | Linux       | 1             | plugin E2E revalidates the active Stage 3 host end-to-end                            |
+| Upgrade existing install | macOS       | 1             | same plugin-backed path                                                              |
+| Restart and recover      | Linux       | 1             | managed runtime start/stop plus plugin-visible `Gateway Healthy` / `Runtime running` |
+| Restart and recover      | macOS       | 1             | same plugin-backed path                                                              |
 
 ## Current comparison
 
@@ -61,7 +63,9 @@ single-command wrapper that delegates into the canonical Stage 3 host smoke.
 Current interpretation:
 
 - phase-1 supported environments are still only Linux/macOS local/private deployment
-- on those supported environments, the repo-root `make deck-go-stage3-host` wrapper is now at least `30%` shorter than the legacy local/private launch path
+- on those supported environments, the managed foreground stack plus Codex
+  Playwright plugin path is now at least `30%` shorter than the legacy
+  local/private launch path
 - this does **not** claim a broader production rollout simplification beyond the currently supported environments
 
 ## Target threshold
