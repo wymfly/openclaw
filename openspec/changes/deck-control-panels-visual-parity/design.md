@@ -50,6 +50,32 @@ Routing parity requires old binding table, condition builder, route simulator, c
 
 If old Node+Next service behavior supplied channel diagnostics, onboarding metadata, schema forms, config conflicts, route simulation, device/session settings, identity links, node pairing, docs content, budget/alert rules, plugin metadata, or subagent runs that Go does not expose, the owning subtrack must fix the Go backend/API adapter or record a Gateway-unsupported exception.
 
+### D6: Control can run in parallel but must split internal risk
+
+Control may run in a separate worktree from baseline `341d965a36`, but it is the largest remaining child change and should use internal staged commits for Channels, Config/Settings, Routing/Subagents, and the smaller panels.
+
+Owned implementation surfaces:
+
+- `deck-go/frontend/src/components/panels/budget/**`
+- `deck-go/frontend/src/components/panels/alerts/**`
+- `deck-go/frontend/src/components/panels/channels/**`
+- `deck-go/frontend/src/components/panels/plugins/**`
+- `deck-go/frontend/src/components/panels/routing/**`
+- `deck-go/frontend/src/components/panels/subagents/**`
+- `deck-go/frontend/src/components/panels/identity/**`
+- `deck-go/frontend/src/components/panels/config/**`
+- `deck-go/frontend/src/components/panels/nodes/**`
+- `deck-go/frontend/src/components/panels/docs/**`
+- `deck-go/frontend/src/components/panels/settings/**`
+- Control panel tests and `openspec/changes/deck-control-panels-visual-parity/**`
+
+Shared-file rules:
+
+- `deck-go/frontend/src/i18n/en.json` and `deck-go/frontend/src/i18n/zh.json` may be extended only with Control panel-local keys.
+- `deck-go/frontend/src/api.ts` and Go backend files may be changed only after the relevant row is added to `backend-gaps.md`.
+- Channel/provider UI must stay behind Gateway metadata, access descriptors, or existing extension contracts.
+- Shell, nav registry, shared lists, and theme changes should be avoided unless a separate shared-baseline patch is created.
+
 ## Risks / Trade-offs
 
 - **Risk: Channels is too large for one implementation pass.** → Split implementation tasks internally by list/detail, settings/access/bindings, onboarding/wizard, analytics/diagnostics, and provider-specific pages.

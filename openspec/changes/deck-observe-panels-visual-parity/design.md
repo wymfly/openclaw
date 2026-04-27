@@ -49,6 +49,27 @@ API Explorer parity requires method detail, schema viewer, event list, request/r
 
 If old Node+Next service behavior supplied usage breakdowns, session transcript/export data, memory graph/search data, logs/activity stream filtering, thread relations, or RPC schema/events that Go does not expose, the owning panel migration must fix the Go backend/API adapter or record a Gateway-unsupported exception.
 
+### D6: Observe owns only its panel surfaces in parallel worktrees
+
+Observe may run in a separate worktree from baseline `341d965a36`.
+
+Owned implementation surfaces:
+
+- `deck-go/frontend/src/components/panels/usage/**`
+- `deck-go/frontend/src/components/panels/sessions/**`
+- `deck-go/frontend/src/components/panels/memory/**`
+- `deck-go/frontend/src/components/panels/logs/**`
+- `deck-go/frontend/src/components/panels/activity/**`
+- `deck-go/frontend/src/components/panels/threads/**`
+- `deck-go/frontend/src/components/panels/api-explorer/**`
+- Observe panel tests and `openspec/changes/deck-observe-panels-visual-parity/**`
+
+Shared-file rules:
+
+- `deck-go/frontend/src/i18n/en.json` and `deck-go/frontend/src/i18n/zh.json` may be extended only with Observe panel-local keys.
+- `deck-go/frontend/src/api.ts` and Go backend files may be changed only after the relevant row is added to `backend-gaps.md`.
+- Shared chart/list/timeline primitives should be local to Observe unless another active worktree needs them; cross-group shared primitives should land as a small shared-baseline patch.
+
 ## Risks / Trade-offs
 
 - **Risk: Observe pages expose stale or partial data.** → Add panel-specific backend gap ledgers and targeted tests for projections.

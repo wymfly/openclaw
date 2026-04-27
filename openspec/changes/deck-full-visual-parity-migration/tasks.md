@@ -1,6 +1,6 @@
 ## 1. Confirm Evidence Baseline
 
-Current review note (2026-04-27): this umbrella change is not implementation-complete. `deck-shell-i18n-parity` has current non-browser and Playwright MCP shell evidence, but all page-level child changes remain open until their own old-authority mapping, implementation, i18n, backend-gap, and browser evidence gates pass.
+Current review note (2026-04-27): this umbrella change is not implementation-complete. `deck-shell-i18n-parity` and `deck-chat-visual-parity` are complete on baseline commit `341d965a36`; the remaining page-level child changes stay open until their own old-authority mapping, implementation, i18n, backend-gap, and browser evidence gates pass.
 
 - [ ] 1.1 Capture and store an old-vs-current component inventory for every active panel.
 - [ ] 1.2 Capture old-vs-current desktop screenshots for shell, Chat, Agents, Models, Channels, Sessions, Settings, and one representative panel per remaining group.
@@ -8,11 +8,12 @@ Current review note (2026-04-27): this umbrella change is not implementation-com
 - [ ] 1.4 Build an interaction audit for nav, theme, locale, keyboard shortcuts, dialogs, tabs, forms, lists, empty/loading/error states, and Chat actions.
 - [ ] 1.5 Build a backend parity gap ledger that records old Node+Next service behavior required by each migrated panel and whether the Go backend already exposes it.
 - [ ] 1.6 For every Architect/Critic/Verifier review, provide a bounded evidence packet and explicit file/tranche scope. Review agents must return `INSUFFICIENT_EVIDENCE` when the packet is incomplete instead of expanding into broad current-worktree discovery.
+- [ ] 1.7 Keep `341d965a36` as the parallel worktree baseline for the remaining Core, Observe, Automate, and Control child changes unless a newer shared-baseline commit is explicitly created first.
 
 ## 2. Execute Child Changes In Order
 
 - [x] 2.1 Complete `deck-shell-i18n-parity`.
-- [ ] 2.2 Complete `deck-chat-visual-parity`.
+- [x] 2.2 Complete `deck-chat-visual-parity`.
 - [ ] 2.3 Complete `deck-core-panels-visual-parity`.
 - [ ] 2.4 Complete `deck-observe-panels-visual-parity`.
 - [ ] 2.5 Complete `deck-automate-panels-visual-parity`.

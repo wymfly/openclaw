@@ -43,6 +43,25 @@ Skills must regain old hub/info/config/matrix/list/install-dialog affordances be
 
 If Go lacks old Node+Next service behavior for job CRUD, run history, run-now, webhook delivery history, approval stream/policy, or skill install/config data, the owning panel migration must fix the Go backend/API adapter or record a Gateway-unsupported exception.
 
+### D5: Automate owns only its panel surfaces in parallel worktrees
+
+Automate may run in a separate worktree from baseline `341d965a36`.
+
+Owned implementation surfaces:
+
+- `deck-go/frontend/src/components/panels/cron/**`
+- `deck-go/frontend/src/components/panels/webhooks/**`
+- `deck-go/frontend/src/components/panels/approvals/**`
+- `deck-go/frontend/src/components/panels/skills/**`
+- Automate panel tests and `openspec/changes/deck-automate-panels-visual-parity/**`
+
+Shared-file rules:
+
+- `deck-go/frontend/src/i18n/en.json` and `deck-go/frontend/src/i18n/zh.json` may be extended only with Automate panel-local keys.
+- `deck-go/frontend/src/api.ts` and Go backend files may be changed only after the relevant row is added to `backend-gaps.md`.
+- Cron/Scheduler mapping must be resolved inside this proposal before adding navigation, registry, or shell-level changes.
+- Approval and skill side effects require targeted tests before merge.
+
 ## Risks / Trade-offs
 
 - **Risk: Cron/Scheduler names do not map one-to-one in Go.** → Make the mapping explicit before implementation and keep visible copy consistent with old Deck where possible.

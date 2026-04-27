@@ -40,6 +40,23 @@ The Vite nav may keep “Gateway”, but visual authority is old `monitor` unles
 
 Agents, Models, and Gateway/Monitor each get a small backend parity ledger. Missing projections or mutations required by old list/detail/compare/config/history/timeline workflows are fixed in Go when the Gateway supports them; otherwise the UI shows an explicit unavailable state and records the exception.
 
+### D5: Core owns only its panel surfaces in parallel worktrees
+
+Core may run in a separate worktree from baseline `341d965a36`.
+
+Owned implementation surfaces:
+
+- `deck-go/frontend/src/components/panels/agents/**`
+- `deck-go/frontend/src/components/panels/gateway/**`
+- `deck-go/frontend/src/components/panels/models/**`
+- Core panel tests and `openspec/changes/deck-core-panels-visual-parity/**`
+
+Shared-file rules:
+
+- `deck-go/frontend/src/i18n/en.json` and `deck-go/frontend/src/i18n/zh.json` may be extended only with Core panel-local keys.
+- `deck-go/frontend/src/api.ts` and Go backend files may be changed only after the relevant row is added to `backend-gaps.md`.
+- `deck-go/frontend/src/components/shared/**`, `deck-go/frontend/src/deck-ui/**`, and `deck-go/frontend/src/theme.css` should not be broadly refactored in this worktree. If Core discovers a shared primitive need, land it as a small shared-baseline patch before other worktrees merge.
+
 ## Risks / Trade-offs
 
 - **Risk: old Agents/Models components assume richer stores than Go currently exposes.** → Use adapters and explicit unavailable states.

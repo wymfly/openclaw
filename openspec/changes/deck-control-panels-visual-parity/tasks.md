@@ -1,3 +1,10 @@
+## 0. Parallel Worktree Readiness
+
+- [ ] 0.1 Confirm this worktree starts from `341d965a36` or a documented descendant shared-baseline commit.
+- [ ] 0.2 Create and maintain `backend-gaps.md` before changing Go backend/API adapter files.
+- [ ] 0.3 Keep shared frontend edits panel-local, namespaced, and recorded in the task evidence.
+- [ ] 0.4 Split Control implementation evidence internally by Channels, Config/Settings, Routing/Subagents, and smaller remaining panels.
+
 ## 1. Channels
 
 - [ ] 1.1 Map old `dashboard/src/components/panels/channels` files to Vite targets, including wizards, onboarding pages, access descriptors, diagnostics, analytics, and provider-specific pages.

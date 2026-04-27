@@ -98,6 +98,20 @@ The right framing is therefore:
 
 **Rejected:** Treat backend/API gaps as out of scope for visual parity. That would preserve the appearance of migration while leaving old Deck workflows broken.
 
+### D7: Remaining child changes may run in parallel from the same baseline
+
+**Decision:** After `deck-shell-i18n-parity` and `deck-chat-visual-parity` are complete, the Core, Observe, Automate, and Control child changes may be implemented in separate worktrees from baseline commit `341d965a36`.
+
+**Guardrails:**
+
+- Each worktree owns its declared panel directories and its own OpenSpec change directory.
+- Shared frontend surfaces (`deck-go/frontend/src/api.ts`, `deck-go/frontend/src/i18n/en.json`, `deck-go/frontend/src/i18n/zh.json`, `deck-go/frontend/src/theme.css`, `deck-go/frontend/src/components/shared/**`, and `deck-go/frontend/src/deck-ui/**`) must be changed only for panel-local namespaces or via a deliberate shared-baseline patch.
+- Go backend/API edits are allowed only when the panel's `backend-gaps.md` records the old workflow, Gateway/source support, Go gap, decision, and verification evidence.
+- Desktop Web is the blocking visual target; mobile parity remains deferred.
+- Browser validation should use the Playwright/browser plugin path, not the old CLI smoke path.
+
+**Rationale:** The remaining proposals are split by navigation group and mostly disjoint by panel directory, but they share transport, i18n, theme, shell, shared-list primitives, and Go gateway facade files. Explicit ownership keeps parallel worktree fan-out reviewable.
+
 ## Risks / Trade-offs
 
 - **Risk: Old Deck components depend on Next-only APIs.** → Mitigation: introduce compatibility adapters only at framework boundaries (`next-intl`, routing, API transport), not inside panel UI code.
