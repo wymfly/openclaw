@@ -35,7 +35,7 @@ export function useListState<T, F extends FilterState = FilterState>(
   const [filters, setFiltersRaw] = useState({} as F);
   const [page, setPageRaw] = useState(1);
   const [pageSize, setPageSizeRaw] = useState(initialPageSize);
-  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [selectedIds, setSelectedIds] = useState(new Set<string>());
   const [sort, setSortRaw] = useState<SortState | null>(null);
 
   const filteredData = useMemo(() => {
@@ -106,7 +106,7 @@ export function useListState<T, F extends FilterState = FilterState>(
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((current) => {
-      const next = new Set(current);
+      const next = new Set<string>(current);
       if (next.has(id)) {
         next.delete(id);
       } else {
@@ -117,7 +117,7 @@ export function useListState<T, F extends FilterState = FilterState>(
   }, []);
 
   const selectAll = useCallback(() => {
-    setSelectedIds(new Set(filteredData.map(idKey)));
+    setSelectedIds(new Set<string>(filteredData.map(idKey)));
   }, [filteredData, idKey]);
 
   const clearSelection = useCallback(() => {

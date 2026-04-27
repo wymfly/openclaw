@@ -225,7 +225,7 @@ describe("PluginsPanel", () => {
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
     );
 
-    expect(cardByText("Slack")?.className).toContain("is-selected");
+    await waitFor(() => expect(cardByText("Slack")?.className).toContain("is-selected"));
     expect(container.textContent).toContain("plugins.entries.slack.config");
   });
 
