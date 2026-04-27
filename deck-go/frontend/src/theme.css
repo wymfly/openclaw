@@ -1221,8 +1221,11 @@ details summary:focus-visible {
 .deck-ui-threads-body > *,
 .deck-ui-threads-controls,
 .deck-ui-threads-input,
+.deck-ui-threads-list-wrap,
+.deck-ui-threads-list-header,
 .deck-ui-threads-list,
 .deck-ui-threads-row,
+.deck-ui-threads-row-cell,
 .deck-ui-threads-relation,
 .deck-ui-threads-relation-grid,
 .deck-ui-threads-relation-node {
@@ -1299,8 +1302,32 @@ details summary:focus-visible {
   white-space: nowrap;
 }
 
-.deck-ui-threads-list {
+.deck-ui-threads-list-wrap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-threads-list-header {
+  display: grid;
+  grid-template-columns: minmax(84px, 0.75fr) minmax(88px, 0.75fr) minmax(140px, 1.35fr) minmax(
+      72px,
+      0.6fr
+    ) minmax(78px, 0.7fr) minmax(92px, 0.8fr);
   gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.deck-ui-threads-list {
+  gap: 0;
 }
 
 .deck-ui-threads-list > li {
@@ -1309,13 +1336,22 @@ details summary:focus-visible {
 }
 
 .deck-ui-threads-row {
-  border: 1px solid var(--border);
-  padding: 10px 12px;
-  background: var(--surface-elevated);
+  display: grid;
+  grid-template-columns: minmax(84px, 0.75fr) minmax(88px, 0.75fr) minmax(140px, 1.35fr) minmax(
+      72px,
+      0.6fr
+    ) minmax(78px, 0.7fr) minmax(92px, 0.8fr);
+  gap: 5px 8px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  padding: 9px 10px;
+  background: transparent;
   box-shadow: none;
 }
 
-.deck-ui-threads-row strong,
+.deck-ui-threads-row-cell,
 .deck-ui-threads-meta {
   min-width: 0;
   overflow: hidden;
@@ -1323,15 +1359,23 @@ details summary:focus-visible {
   white-space: nowrap;
 }
 
+.deck-ui-threads-row-summary {
+  grid-column: 1 / -1;
+  font-size: 0.72rem;
+}
+
+.deck-ui-threads-kind {
+  justify-content: center;
+  min-width: 0;
+}
+
 .deck-ui-threads-row:hover {
   transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
   background: var(--primary-muted);
   box-shadow: none;
 }
 
 .deck-ui-threads-row.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
   background: var(--primary-muted);
   box-shadow: inset 2px 0 0 var(--primary);
 }
@@ -1394,6 +1438,8 @@ details summary:focus-visible {
 @media (max-width: 760px) {
   .deck-ui-threads-controls,
   .deck-ui-threads-stats,
+  .deck-ui-threads-list-header,
+  .deck-ui-threads-row,
   .deck-ui-threads-relation-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2189,7 +2235,7 @@ details summary:focus-visible {
 }
 
 .deck-ui-sessions {
-  grid-template-columns: minmax(300px, 0.72fr) minmax(420px, 1.28fr) minmax(280px, 0.65fr);
+  grid-template-columns: minmax(300px, 0.42fr) minmax(560px, 1fr);
   gap: 12px;
   max-width: none;
   margin: 0;
@@ -2283,6 +2329,10 @@ details summary:focus-visible {
 
 .deck-ui-sessions-action-column .deck-ui-sessions-controls {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.deck-ui-sessions-action-column {
+  grid-column: 2;
 }
 
 .deck-ui-sessions .deckgo-stat {
@@ -2417,13 +2467,17 @@ details summary:focus-visible {
   }
 
   .deck-ui-sessions-action-column {
-    grid-column: 1 / -1;
+    grid-column: 2;
   }
 }
 
 @media (max-width: 900px) {
   .deck-ui-sessions {
     grid-template-columns: 1fr;
+  }
+
+  .deck-ui-sessions-action-column {
+    grid-column: auto;
   }
 }
 

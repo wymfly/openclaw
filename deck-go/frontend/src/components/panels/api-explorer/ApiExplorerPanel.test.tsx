@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { ApiExplorerPanel } from "./ApiExplorerPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -13,6 +14,11 @@ vi.mock("../../../api", () => apiMocks);
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+function renderApiExplorerPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(ApiExplorerPanel)));
+}
 
 function describePayload() {
   return {
@@ -118,8 +124,7 @@ describe("ApiExplorerPanel", () => {
 
   it("loads gateway.describe methods, groups them by domain, and selects the first method", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApiExplorerPanel));
+      renderApiExplorerPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalledTimes(1));
@@ -153,8 +158,7 @@ describe("ApiExplorerPanel", () => {
 
   it("keeps nested schema fields collapsible like the old explorer", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApiExplorerPanel));
+      renderApiExplorerPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalledTimes(1));
@@ -184,8 +188,7 @@ describe("ApiExplorerPanel", () => {
       .mockResolvedValueOnce(describePayload());
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApiExplorerPanel));
+      renderApiExplorerPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("describe unavailable"));
@@ -203,8 +206,7 @@ describe("ApiExplorerPanel", () => {
 
   it("filters methods by name or scope and switches to event inspection", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApiExplorerPanel));
+      renderApiExplorerPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalledTimes(1));

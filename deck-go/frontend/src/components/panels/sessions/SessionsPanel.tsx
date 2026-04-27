@@ -33,6 +33,7 @@ import {
 } from "../../../api";
 import { navigateToPanel } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useTranslations } from "../../../i18n/provider";
 import {
   JsonDetails,
   SessionDetailCard,
@@ -165,6 +166,7 @@ function isSubagentSession(session: DeckGoSessionMeta | null, sessionKey: string
 }
 
 export function SessionsPanel() {
+  const t = useTranslations("sessions");
   const ui = useDeckUI();
   const [navigationTarget] = useState(readSessionNavigationTarget);
   const [sessions, setSessions] = useState<DeckGoSessionsListResponse | null>(null);
@@ -232,68 +234,65 @@ export function SessionsPanel() {
         setSelectedSessionKey(next);
       } catch (loadError) {
         setInventoryState("idle");
-        setError(loadError instanceof Error ? loadError.message : "failed to load sessions");
+        setError(loadError instanceof Error ? loadError.message : t("failedLoadSessions"));
       }
     },
     [activeMinutesFilter, searchQuery],
   );
 
-  const refreshSelectedSession = useCallback(async (sessionKey: string) => {
-    const trimmed = sessionKey.trim();
-    if (!trimmed) {
-      setDetail(null);
-      setHistory(null);
-      setDetailState("idle");
-      return;
-    }
-    setDetailState("loading");
-    try {
-      const cachedHistory = getCachedTranscript(trimmed);
-      const historyPromise = cachedHistory
-        ? Promise.resolve(historyResponseFromMessages(cachedHistory))
-        : fetchChatHistory({ sessionKey: trimmed, limit: 80 }).then((historyResult) => {
-            const normalizedMessages = normalizeTranscriptMessages(
-              trimmed,
-              historyResult.messages as unknown as Array<Record<string, unknown>>,
-            );
-            setCachedTranscript(trimmed, normalizedMessages);
-            return historyResponseFromMessages(normalizedMessages);
-          });
-      const [detailResult, historyResult] = await Promise.all([
-        fetchSessionDetail({ sessionKey: trimmed }),
-        historyPromise,
-      ]);
-      setDetail(detailResult);
-      setHistory(historyResult);
-      setDetailState("ready");
-      setLineage(null);
-      setLineageState("idle");
-      if (isSubagentSession(detailResult.session ?? null, trimmed)) {
-        setLineageState("loading");
-        try {
-          const lineageResult = await fetchSubagentLineage({ sessionKey: trimmed });
-          setLineage(lineageResult);
-          setLineageState("ready");
-        } catch (lineageError) {
-          setLineageState("idle");
-          setError(
-            lineageError instanceof Error
-              ? lineageError.message
-              : "failed to load subagent lineage",
-          );
-          return;
-        }
+  const refreshSelectedSession = useCallback(
+    async (sessionKey: string) => {
+      const trimmed = sessionKey.trim();
+      if (!trimmed) {
+        setDetail(null);
+        setHistory(null);
+        setDetailState("idle");
+        return;
       }
-      setError("");
-    } catch (detailError) {
-      setDetailState("idle");
-      setLineage(null);
-      setLineageState("idle");
-      setError(
-        detailError instanceof Error ? detailError.message : "failed to load session detail",
-      );
-    }
-  }, []);
+      setDetailState("loading");
+      try {
+        const cachedHistory = getCachedTranscript(trimmed);
+        const historyPromise = cachedHistory
+          ? Promise.resolve(historyResponseFromMessages(cachedHistory))
+          : fetchChatHistory({ sessionKey: trimmed, limit: 80 }).then((historyResult) => {
+              const normalizedMessages = normalizeTranscriptMessages(
+                trimmed,
+                historyResult.messages as unknown as Array<Record<string, unknown>>,
+              );
+              setCachedTranscript(trimmed, normalizedMessages);
+              return historyResponseFromMessages(normalizedMessages);
+            });
+        const [detailResult, historyResult] = await Promise.all([
+          fetchSessionDetail({ sessionKey: trimmed }),
+          historyPromise,
+        ]);
+        setDetail(detailResult);
+        setHistory(historyResult);
+        setDetailState("ready");
+        setLineage(null);
+        setLineageState("idle");
+        if (isSubagentSession(detailResult.session ?? null, trimmed)) {
+          setLineageState("loading");
+          try {
+            const lineageResult = await fetchSubagentLineage({ sessionKey: trimmed });
+            setLineage(lineageResult);
+            setLineageState("ready");
+          } catch (lineageError) {
+            setLineageState("idle");
+            setError(lineageError instanceof Error ? lineageError.message : t("failedLoadLineage"));
+            return;
+          }
+        }
+        setError("");
+      } catch (detailError) {
+        setDetailState("idle");
+        setLineage(null);
+        setLineageState("idle");
+        setError(detailError instanceof Error ? detailError.message : t("failedLoadSessionDetail"));
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     void refreshSessionsInventory({ preferredSessionKey: navigationTarget.sessionKey });
@@ -427,7 +426,7 @@ export function SessionsPanel() {
       }
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "session action failed");
+      setError(actionError instanceof Error ? actionError.message : t("sessionActionFailed"));
     }
   };
 
@@ -440,64 +439,64 @@ export function SessionsPanel() {
       <div className="deckgo-column deck-ui-sessions-column">
         <article className="deckgo-card is-float deck-ui-sessions-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Session inventory</h2>
+            <h2 className="deckgo-card-title">{t("inventoryTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Sessions are now a dedicated browse/manage surface instead of staying embedded in chat.
-          </p>
+          <p className="deckgo-card-subtitle">{t("inventoryDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-sessions-body">
             <div className="deckgo-pill-row deck-ui-sessions-status-row">
               <span
                 className={`deckgo-pill ${inventoryState === "ready" ? "is-positive" : "is-muted"}`}
               >
-                Inventory {inventoryState}
+                {t("inventoryStatus", { state: t(inventoryState) })}
               </span>
               <span
                 className={`deckgo-pill ${detailState === "ready" ? "is-positive" : "is-muted"}`}
               >
-                Detail {detailState}
+                {t("detailStatus", { state: t(detailState) })}
               </span>
-              <span className="deckgo-pill">{filteredSessions.length} visible</span>
+              <span className="deckgo-pill">
+                {t("visibleCount", { count: filteredSessions.length })}
+              </span>
             </div>
             <label className="deckgo-label">
-              <span>Search sessions</span>
+              <span>{t("searchSessions")}</span>
               <input
                 className="deckgo-input deck-ui-sessions-input"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="title, key, preview"
+                placeholder={t("searchSessionsPlaceholder")}
               />
             </label>
             <div className="deckgo-grid deckgo-grid-2 deck-ui-sessions-controls">
               <label className="deckgo-label">
-                <span>Session type</span>
+                <span>{t("sessionType")}</span>
                 <select
-                  aria-label="Session type filter"
+                  aria-label={t("sessionTypeFilter")}
                   className="deckgo-input deck-ui-sessions-input"
                   value={sessionKindFilter}
                   onChange={(event) =>
                     setSessionKindFilter(event.target.value as SessionKindFilter)
                   }
                 >
-                  <option value="">all types</option>
-                  <option value="direct">direct</option>
-                  <option value="group">group</option>
-                  <option value="global">global</option>
-                  <option value="subagent">subagent</option>
+                  <option value="">{t("allTypes")}</option>
+                  <option value="direct">{t("directValue")}</option>
+                  <option value="group">{t("groupValue")}</option>
+                  <option value="global">{t("globalValue")}</option>
+                  <option value="subagent">{t("subagentValue")}</option>
                 </select>
               </label>
               <label className="deckgo-label">
-                <span>Active window</span>
+                <span>{t("activeWindow")}</span>
                 <select
-                  aria-label="Active minutes filter"
+                  aria-label={t("activeMinutesFilter")}
                   className="deckgo-input deck-ui-sessions-input"
                   value={activeMinutesFilter}
                   onChange={(event) => setActiveMinutesFilter(event.target.value)}
                 >
-                  <option value="">all time</option>
-                  <option value="5">last 5m</option>
-                  <option value="60">last 1h</option>
-                  <option value="1440">last 24h</option>
+                  <option value="">{t("allTime")}</option>
+                  <option value="5">{t("last5m")}</option>
+                  <option value="60">{t("last1h")}</option>
+                  <option value="1440">{t("last24h")}</option>
                 </select>
               </label>
             </div>
@@ -513,7 +512,7 @@ export function SessionsPanel() {
                   })
                 }
               >
-                Refresh sessions
+                {t("refreshSessions")}
               </button>
               <button
                 className="deckgo-button deck-ui-sessions-button"
@@ -521,7 +520,7 @@ export function SessionsPanel() {
                 onClick={() => void refreshSelectedSession(selectedSessionKey)}
                 disabled={!selectedSessionKey.trim()}
               >
-                Refresh detail
+                {t("refreshDetail")}
               </button>
             </div>
             <div className="deck-ui-sessions-list-shell">
@@ -538,10 +537,10 @@ export function SessionsPanel() {
                 onClick={() => setSessionPage((current) => Math.max(1, current - 1))}
                 type="button"
               >
-                Previous page
+                {t("previousPage")}
               </button>
               <span className="deckgo-note">
-                page {sessionPage} of {totalSessionPages}
+                {t("pageOf", { page: sessionPage, total: totalSessionPages })}
               </span>
               <button
                 className="deckgo-button deck-ui-sessions-button"
@@ -551,11 +550,11 @@ export function SessionsPanel() {
                 }
                 type="button"
               >
-                Next page
+                {t("nextPage")}
               </button>
             </div>
             <details>
-              <summary>Preview overlays</summary>
+              <summary>{t("previewOverlays")}</summary>
               <div className="deck-ui-sessions-preview-shell">
                 <SessionPreviewCard
                   previews={previews?.previews ?? []}
@@ -571,74 +570,85 @@ export function SessionsPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-sessions-column deck-ui-sessions-detail-column">
         <article className="deckgo-card is-float deck-ui-sessions-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Session detail</h2>
+            <h2 className="deckgo-card-title">{t("detailTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            This panel keeps session inspection separate from the main chat workflow while still
-            using deck-go session detail and history seams.
-          </p>
+          <p className="deckgo-card-subtitle">{t("detailDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-sessions-body">
             <div className="deckgo-panel-hero-strip deck-ui-sessions-hero">
               <div>
-                <p className="deckgo-kicker">Selected session</p>
+                <p className="deckgo-kicker">{t("selectedSession")}</p>
                 <strong>
-                  {selectedSession?.title || selectedSessionKey || "No active session"}
+                  {selectedSession?.title || selectedSessionKey || t("noActiveSession")}
                 </strong>
                 <p className="deckgo-note">
-                  agent: {selectedSession?.agentId || "n/a"} | status:{" "}
-                  {selectedSession?.status || "unknown"}
+                  {t("agentStatusLine", {
+                    agent: selectedSession?.agentId || t("na"),
+                    status: selectedSession?.status || t("unknown"),
+                  })}
                 </p>
               </div>
               <div className="deckgo-pill-row deck-ui-sessions-status-row">
-                <span className="deckgo-pill">{history?.messages?.length ?? 0} history msgs</span>
+                <span className="deckgo-pill">
+                  {t("historyMessages", { count: history?.messages?.length ?? 0 })}
+                </span>
                 {selectedIsSubagent ? (
                   <span
                     className={`deckgo-pill ${lineageState === "ready" ? "is-positive" : "is-muted"}`}
                   >
-                    lineage {lineageState}
+                    {t("lineageStatus", { state: t(lineageState) })}
                   </span>
                 ) : null}
                 <span className="deckgo-pill">
-                  runtime{" "}
-                  {selectedSession?.runtimeMs != null ? `${selectedSession.runtimeMs} ms` : "n/a"}
+                  {t("runtimeValue", {
+                    value:
+                      selectedSession?.runtimeMs != null
+                        ? t("milliseconds", { value: selectedSession.runtimeMs })
+                        : t("na"),
+                  })}
                 </span>
                 {selectedContextPressure != null ? (
-                  <span className="deckgo-pill">context {selectedContextPressure}%</span>
+                  <span className="deckgo-pill">
+                    {t("contextPercent", { percent: selectedContextPressure })}
+                  </span>
                 ) : null}
               </div>
             </div>
             {selectedSession ? (
               <div className="deckgo-surface-tile deck-ui-sessions-surface">
-                <p className="deckgo-surface-label">Runtime metadata</p>
+                <p className="deckgo-surface-label">{t("runtimeMetadata")}</p>
                 <div className="deckgo-grid deckgo-grid-3 deck-ui-sessions-stats">
                   <ShellStat
-                    label="input tokens"
+                    label={t("inputTokens")}
                     value={formatCompactNumber(positiveNumber(selectedSession.inputTokens))}
                   />
                   <ShellStat
-                    label="output tokens"
+                    label={t("outputTokens")}
                     value={formatCompactNumber(positiveNumber(selectedSession.outputTokens))}
                   />
                   <ShellStat
-                    label="total tokens"
+                    label={t("totalTokens")}
                     value={formatCompactNumber(selectedTotalTokens)}
                   />
                   <ShellStat
-                    label="context window"
+                    label={t("contextWindow")}
                     value={formatCompactNumber(selectedContextTokens)}
                   />
                   <ShellStat
-                    label="context pressure"
-                    value={selectedContextPressure != null ? `${selectedContextPressure}%` : "n/a"}
+                    label={t("contextPressure")}
+                    value={
+                      selectedContextPressure != null ? `${selectedContextPressure}%` : t("na")
+                    }
                   />
                   <ShellStat
-                    label="estimated cost"
+                    label={t("estimatedCost")}
                     value={formatCost(selectedSession.estimatedCostUsd)}
                   />
                 </div>
                 <p className="deckgo-note">
-                  thinking: {selectedSession.thinkingLevel || "off"} | fast mode:{" "}
-                  {selectedSession.fastMode ? "on" : "off"}
+                  {t("thinkingFastMode", {
+                    fastMode: selectedSession.fastMode ? t("on") : t("off"),
+                    thinking: selectedSession.thinkingLevel || t("off"),
+                  })}
                 </p>
               </div>
             ) : null}
@@ -665,13 +675,13 @@ export function SessionsPanel() {
               relationships={selectedSessionRelationships}
             />
             <div className="deckgo-surface-tile deck-ui-sessions-surface">
-              <p className="deckgo-surface-label">Transcript search and export</p>
+              <p className="deckgo-surface-label">{t("transcriptSearchExport")}</p>
               <div className="deckgo-grid">
                 <input
                   className="deckgo-input deck-ui-sessions-input"
                   value={transcriptSearchQuery}
                   onChange={(event) => setTranscriptSearchQuery(event.target.value)}
-                  placeholder="search transcript"
+                  placeholder={t("searchTranscriptPlaceholder")}
                 />
               </div>
               <div className="deckgo-actions deck-ui-sessions-actions deck-ui-sessions-actions-offset">
@@ -681,7 +691,7 @@ export function SessionsPanel() {
                   onClick={() => moveTranscriptMatch(-1)}
                   disabled={transcriptMatchIndices.length === 0}
                 >
-                  Previous match
+                  {t("previousMatch")}
                 </button>
                 <button
                   className="deckgo-button deck-ui-sessions-button"
@@ -689,7 +699,7 @@ export function SessionsPanel() {
                   onClick={() => moveTranscriptMatch(1)}
                   disabled={transcriptMatchIndices.length === 0}
                 >
-                  Next match
+                  {t("nextMatch")}
                 </button>
                 <button
                   className="deckgo-button deck-ui-sessions-button"
@@ -697,7 +707,7 @@ export function SessionsPanel() {
                   onClick={() => prepareExport("json")}
                   disabled={!selectedSession || transcriptMessages.length === 0}
                 >
-                  Export JSON
+                  {t("exportJson")}
                 </button>
                 <button
                   className="deckgo-button deck-ui-sessions-button"
@@ -705,15 +715,18 @@ export function SessionsPanel() {
                   onClick={() => prepareExport("markdown")}
                   disabled={!selectedSession || transcriptMessages.length === 0}
                 >
-                  Export Markdown
+                  {t("exportMarkdown")}
                 </button>
               </div>
               <p className="deckgo-note">
                 {transcriptSearchQuery.trim()
                   ? transcriptMatchIndices.length > 0
-                    ? `match ${currentTranscriptMatch + 1} of ${transcriptMatchIndices.length}`
-                    : "no transcript matches"
-                  : "enter a query to search loaded transcript history"}
+                    ? t("matchOf", {
+                        current: currentTranscriptMatch + 1,
+                        total: transcriptMatchIndices.length,
+                      })
+                    : t("noTranscriptMatches")
+                  : t("searchPrompt")}
               </p>
               {selectedTranscriptMatch ? (
                 <pre className="deckgo-code deck-ui-sessions-code">
@@ -722,7 +735,7 @@ export function SessionsPanel() {
               ) : null}
               {exportPreview ? (
                 <details open>
-                  <summary>Prepared {exportPreview.format} export</summary>
+                  <summary>{t("preparedExport", { format: exportPreview.format })}</summary>
                   <pre className="deckgo-code deck-ui-sessions-code">{exportPreview.text}</pre>
                 </details>
               ) : null}
@@ -737,35 +750,33 @@ export function SessionsPanel() {
       <aside className="deckgo-column deck-ui-sessions-column deck-ui-sessions-action-column">
         <article className="deckgo-card deck-ui-sessions-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Session actions</h2>
+            <h2 className="deckgo-card-title">{t("actionsTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Reset, clear, and patch are moved here so chat can stay focused on conversation.
-          </p>
+          <p className="deckgo-card-subtitle">{t("actionsDescription")}</p>
           <div className="deckgo-card-body deckgo-form-grid deck-ui-sessions-body">
             <label className="deckgo-label">
-              <span>Model override</span>
+              <span>{t("modelOverride")}</span>
               <input
                 className="deckgo-input deck-ui-sessions-input"
                 value={modelOverride}
                 onChange={(event) => setModelOverride(event.target.value)}
-                placeholder="cpa/gpt-5.4"
+                placeholder={t("modelPlaceholder")}
               />
             </label>
             <label className="deckgo-label">
-              <span>Session label</span>
+              <span>{t("sessionLabel")}</span>
               <input
                 className="deckgo-input deck-ui-sessions-input"
                 value={labelOverride}
                 onChange={(event) => setLabelOverride(event.target.value)}
-                placeholder="session label"
+                placeholder={t("labelPlaceholder")}
               />
             </label>
             <div className="deckgo-grid deckgo-grid-2 deck-ui-sessions-controls">
               <label className="deckgo-label">
-                <span>Thinking level</span>
+                <span>{t("thinkingLevel")}</span>
                 <select
-                  aria-label="Session thinking level"
+                  aria-label={t("sessionThinkingLevel")}
                   className="deckgo-input deck-ui-sessions-input"
                   value={thinkingOverride}
                   onChange={(event) => setThinkingOverride(event.target.value)}
@@ -778,9 +789,9 @@ export function SessionsPanel() {
                 </select>
               </label>
               <label className="deckgo-label">
-                <span>Fast mode</span>
+                <span>{t("fastMode")}</span>
                 <input
-                  aria-label="Session fast mode"
+                  aria-label={t("sessionFastMode")}
                   checked={fastModeOverride}
                   onChange={(event) => setFastModeOverride(event.target.checked)}
                   type="checkbox"
@@ -798,7 +809,7 @@ export function SessionsPanel() {
                 }
                 disabled={!selectedSessionKey.trim()}
               >
-                Reset session
+                {t("resetSession")}
               </button>
               <button
                 className="deckgo-button deck-ui-sessions-button"
@@ -808,7 +819,7 @@ export function SessionsPanel() {
                 }
                 disabled={!selectedSessionKey.trim()}
               >
-                Clear session
+                {t("clearSession")}
               </button>
               <button
                 className="deckgo-button deck-ui-sessions-button is-primary"
@@ -823,7 +834,7 @@ export function SessionsPanel() {
                 }
                 disabled={!selectedSessionKey.trim() || !modelOverride.trim()}
               >
-                Patch model
+                {t("patchModel")}
               </button>
               <button
                 className="deckgo-button deck-ui-sessions-button"
@@ -840,7 +851,7 @@ export function SessionsPanel() {
                 }
                 disabled={!selectedSessionKey.trim()}
               >
-                Patch directives
+                {t("patchDirectives")}
               </button>
               <button
                 className="deckgo-button deck-ui-sessions-button"
@@ -864,7 +875,7 @@ export function SessionsPanel() {
                 }}
                 disabled={!selectedSessionKey.trim()}
               >
-                {compactConfirming ? "Confirm compact" : "Compact session"}
+                {compactConfirming ? t("confirmCompact") : t("compactSession")}
               </button>
               <button
                 className="deckgo-button deck-ui-sessions-button is-danger"
@@ -887,16 +898,18 @@ export function SessionsPanel() {
                 }}
                 disabled={!selectedSessionKey.trim()}
               >
-                {deleteConfirming ? "Confirm delete" : "Delete session"}
+                {deleteConfirming ? t("confirmDeleteShort") : t("deleteSession")}
               </button>
             </div>
             {selectedSession ? (
               <div className="deckgo-surface-tile deck-ui-sessions-surface">
-                <p className="deckgo-surface-label">Metadata</p>
+                <p className="deckgo-surface-label">{t("metadata")}</p>
                 <strong>{selectedSession.key}</strong>
                 <p className="deckgo-note">
-                  provider: {selectedSession.modelProvider || "n/a"} | model:{" "}
-                  {selectedSession.model || "n/a"}
+                  {t("providerModelLine", {
+                    model: selectedSession.model || t("na"),
+                    provider: selectedSession.modelProvider || t("na"),
+                  })}
                 </p>
               </div>
             ) : null}
@@ -907,10 +920,10 @@ export function SessionsPanel() {
         {actionResult ? (
           <article className="deckgo-card deck-ui-sessions-card">
             <div className="deckgo-card-header">
-              <h2 className="deckgo-card-title">Latest action</h2>
+              <h2 className="deckgo-card-title">{t("latestAction")}</h2>
             </div>
             <div className="deckgo-card-body">
-              <JsonDetails title="Session action result" payload={actionResult} />
+              <JsonDetails title={t("actionResultTitle")} payload={actionResult} />
             </div>
           </article>
         ) : null}

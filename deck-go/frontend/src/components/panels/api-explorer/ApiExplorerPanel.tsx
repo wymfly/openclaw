@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DeckGoGatewayDescribeResponse } from "../../../api";
 import { fetchGatewayDescribe } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 
 type ExplorerTab = "methods" | "events";
@@ -76,6 +77,7 @@ function schemaType(schema: SchemaRecord) {
 }
 
 export function ApiExplorerPanel() {
+  const t = useTranslations("apiExplorer");
   const [payload, setPayload] = useState<DeckGoGatewayDescribeResponse | null>(null);
   const [loadState, setLoadState] = useState<PanelState>("idle");
   const [tab, setTab] = useState<ExplorerTab>("methods");
@@ -108,9 +110,7 @@ export function ApiExplorerPanel() {
           return;
         }
         setLoadState("idle");
-        setError(
-          loadError instanceof Error ? loadError.message : "failed to load gateway describe",
-        );
+        setError(loadError instanceof Error ? loadError.message : t("failedLoadDescribe"));
       });
     return () => {
       cancelled = true;
@@ -164,25 +164,22 @@ export function ApiExplorerPanel() {
       <div className="deckgo-column deck-ui-api-column">
         <article className="deckgo-card is-float deck-ui-api-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Gateway API Explorer</h2>
+            <h2 className="deckgo-card-title">{t("panelTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Gateway API Explorer reads the live `gateway.describe` contract, with grouped methods,
-            events, scopes, and decoded schema fields.
-          </p>
+          <p className="deckgo-card-subtitle">{t("panelDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-api-body">
             <div className="deckgo-pill-row deck-ui-api-status-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Describe {loadState}
+                {t("describeStatus", { state: t(loadState) })}
               </span>
-              <span className="deckgo-pill">{methods.length} methods</span>
-              <span className="deckgo-pill">{events.length} events</span>
-              <span className="deckgo-pill">{untyped.length} untyped</span>
+              <span className="deckgo-pill">{t("methodsCount", { count: methods.length })}</span>
+              <span className="deckgo-pill">{t("eventsCount", { count: events.length })}</span>
+              <span className="deckgo-pill">{t("untypedCount", { count: untyped.length })}</span>
             </div>
             <div className="deckgo-grid deckgo-grid-3 deck-ui-api-stats">
-              <ShellStat label="methods" value={methods.length} />
-              <ShellStat label="events" value={events.length} />
-              <ShellStat label="untyped" value={untyped.length} />
+              <ShellStat label={t("methodsLower")} value={methods.length} />
+              <ShellStat label={t("eventsLower")} value={events.length} />
+              <ShellStat label={t("untypedLower")} value={untyped.length} />
             </div>
             <div className="deckgo-pill-row deck-ui-api-actions">
               <button
@@ -190,14 +187,14 @@ export function ApiExplorerPanel() {
                 type="button"
                 onClick={() => setTab("methods")}
               >
-                Methods
+                {t("methodsTab")}
               </button>
               <button
                 className={`deckgo-button deck-ui-api-button ${tab === "events" ? "is-primary" : ""}`}
                 type="button"
                 onClick={() => setTab("events")}
               >
-                Events
+                {t("eventsTab")}
               </button>
               <button
                 className="deckgo-button deck-ui-api-button"
@@ -205,24 +202,24 @@ export function ApiExplorerPanel() {
                 type="button"
                 onClick={() => setReloadNonce((current) => current + 1)}
               >
-                {loadState === "loading" ? "Loading describe" : "Refresh describe"}
+                {loadState === "loading" ? t("loadingDescribe") : t("refreshDescribe")}
               </button>
             </div>
             {error ? <p className="deckgo-note">{error}</p> : null}
             {tab === "methods" ? (
               <>
                 <label className="deckgo-label">
-                  <span>Search methods</span>
+                  <span>{t("searchMethods")}</span>
                   <input
                     className="deckgo-input deck-ui-api-input"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="method name or scope"
+                    placeholder={t("methodSearchPlaceholder")}
                   />
                 </label>
                 <div className="deckgo-shell-list deck-ui-api-domain-list">
                   {Object.entries(groupedMethods).length === 0 ? (
-                    <p className="deckgo-note">No methods match the current search.</p>
+                    <p className="deckgo-note">{t("noMethodsMatchCurrentSearch")}</p>
                   ) : (
                     Object.entries(groupedMethods).map(([domain, items]) => (
                       <div className="deck-ui-api-domain" key={domain}>
@@ -239,7 +236,10 @@ export function ApiExplorerPanel() {
                               >
                                 <strong>{method.name}</strong>
                                 <div className="deckgo-meta">
-                                  scope: {method.scope} | since: {method.since ?? "n/a"}
+                                  {t("methodMeta", {
+                                    scope: method.scope,
+                                    since: method.since ?? t("na"),
+                                  })}
                                 </div>
                               </button>
                             </li>
@@ -253,14 +253,16 @@ export function ApiExplorerPanel() {
             ) : (
               <ul className="deckgo-shell-list deck-ui-api-event-list">
                 {events.length === 0 ? (
-                  <p className="deckgo-note">No events described.</p>
+                  <p className="deckgo-note">{t("noEventsDescribed")}</p>
                 ) : (
                   events.map((event) => (
                     <li key={event.name}>
                       <div className="deckgo-selectable-card deck-ui-api-row deck-ui-api-event-row">
                         <strong>{event.name}</strong>
-                        <div className="deckgo-meta">since: {event.since ?? "n/a"}</div>
-                        <SchemaSection title="Event payload" schema={event.payload} />
+                        <div className="deckgo-meta">
+                          {t("sinceMeta", { since: event.since ?? t("na") })}
+                        </div>
+                        <SchemaSection title={t("eventPayload")} schema={event.payload} />
                       </div>
                     </li>
                   ))
@@ -274,36 +276,37 @@ export function ApiExplorerPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-api-column deck-ui-api-detail-column">
         <article className="deckgo-card is-float deck-ui-api-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Selected method</h2>
+            <h2 className="deckgo-card-title">{t("selectedMethod")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Keeps the first explorer slice focused on inspection: method scope plus params/result
-            schema payloads.
-          </p>
+          <p className="deckgo-card-subtitle">{t("selectedMethodDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-api-body">
             {selectedMethod ? (
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-api-hero">
                   <div>
-                    <p className="deckgo-kicker">Method</p>
+                    <p className="deckgo-kicker">{t("method")}</p>
                     <strong>{selectedMethod.name}</strong>
-                    <p className="deckgo-note">scope: {selectedMethod.scope}</p>
+                    <p className="deckgo-note">{t("scopeMeta", { scope: selectedMethod.scope })}</p>
                   </div>
                   <div className="deckgo-pill-row">
-                    <span className="deckgo-pill">since {selectedMethod.since ?? "n/a"}</span>
+                    <span className="deckgo-pill">
+                      {t("sinceValue", { since: selectedMethod.since ?? t("na") })}
+                    </span>
                   </div>
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-api-detail-stats">
-                  <ShellStat label="scope" value={selectedMethod.scope} />
-                  <ShellStat label="since" value={selectedMethod.since ?? "n/a"} />
+                  <ShellStat label={t("scope")} value={selectedMethod.scope} />
+                  <ShellStat label={t("since")} value={selectedMethod.since ?? t("na")} />
                 </div>
-                <SchemaSection title="Params schema" schema={selectedMethod.params} />
-                <SchemaSection title="Result schema" schema={selectedMethod.result} />
+                <SchemaSection title={t("paramsSchemaTitle")} schema={selectedMethod.params} />
+                <SchemaSection title={t("resultSchemaTitle")} schema={selectedMethod.result} />
               </>
             ) : (
-              <p className="deckgo-note">Choose a method to inspect its schema payloads.</p>
+              <p className="deckgo-note">{t("chooseMethod")}</p>
             )}
-            {untyped.length > 0 ? <JsonDetails title="Untyped methods" payload={untyped} /> : null}
+            {untyped.length > 0 ? (
+              <JsonDetails title={t("untypedMethods")} payload={untyped} />
+            ) : null}
           </div>
         </article>
       </div>
@@ -312,19 +315,22 @@ export function ApiExplorerPanel() {
 }
 
 function SchemaSection({ title, schema }: { title: string; schema?: Record<string, unknown> }) {
+  const t = useTranslations("apiExplorer");
+
   return (
     <div className="deckgo-surface-tile deck-ui-api-surface">
       <p className="deckgo-surface-label">{title}</p>
       {schema ? (
         <SchemaViewer schema={schema} />
       ) : (
-        <p className="deckgo-note">No schema described.</p>
+        <p className="deckgo-note">{t("noSchemaDescribed")}</p>
       )}
     </div>
   );
 }
 
 function SchemaViewer({ schema, depth = 0 }: { schema: SchemaRecord; depth?: number }) {
+  const t = useTranslations("apiExplorer");
   const properties = schemaProperties(schema);
   const required = schemaRequired(schema);
   const enumValues = schemaEnum(schema);
@@ -334,9 +340,9 @@ function SchemaViewer({ schema, depth = 0 }: { schema: SchemaRecord; depth?: num
   return (
     <div className={`deck-ui-api-schema ${depth > 0 ? "is-nested" : ""}`}>
       <div className="deckgo-pill-row deck-ui-api-schema-pills">
-        <span className="deckgo-pill">type: {type}</span>
+        <span className="deckgo-pill">{t("typeMeta", { type })}</span>
         {enumValues.length > 0 ? (
-          <span className="deckgo-pill">enum: {enumValues.join(", ")}</span>
+          <span className="deckgo-pill">{t("enumMeta", { values: enumValues.join(", ") })}</span>
         ) : null}
       </div>
       {properties.length > 0 && depth < MAX_SCHEMA_DEPTH ? (
@@ -354,7 +360,7 @@ function SchemaViewer({ schema, depth = 0 }: { schema: SchemaRecord; depth?: num
       ) : null}
       {arrayItems && depth < MAX_SCHEMA_DEPTH ? (
         <div className="deck-ui-api-array-items">
-          <p className="deckgo-kicker">items</p>
+          <p className="deckgo-kicker">{t("items")}</p>
           <SchemaViewer schema={arrayItems} depth={depth + 1} />
         </div>
       ) : null}
@@ -373,6 +379,7 @@ function SchemaPropertyRow({
   propertySchema: SchemaRecord;
   required: boolean;
 }) {
+  const t = useTranslations("apiExplorer");
   const childProperties = schemaProperties(propertySchema);
   const childItems = asSchemaRecord(propertySchema.items);
   const hasChildren = childProperties.length > 0 || Boolean(childItems);
@@ -384,7 +391,7 @@ function SchemaPropertyRow({
       <div className="deckgo-schema-row deck-ui-api-schema-row">
         {hasChildren ? (
           <button
-            aria-label={`${expanded ? "Collapse" : "Expand"} ${name}`}
+            aria-label={t(expanded ? "collapseSchema" : "expandSchema", { name })}
             className="deckgo-schema-toggle deck-ui-api-toggle"
             type="button"
             onClick={() => setExpanded((current) => !current)}
@@ -400,12 +407,16 @@ function SchemaPropertyRow({
         <div className="deck-ui-api-schema-body">
           <p className="deckgo-kicker">
             {name}
-            {required ? " required" : ""}
+            {required ? ` ${t("required")}` : ""}
           </p>
           <div className="deckgo-pill-row deck-ui-api-schema-pills">
-            <span className="deckgo-pill">type: {schemaType(propertySchema)}</span>
+            <span className="deckgo-pill">
+              {t("typeMeta", { type: schemaType(propertySchema) })}
+            </span>
             {enumValues.length > 0 ? (
-              <span className="deckgo-pill">enum: {enumValues.join(", ")}</span>
+              <span className="deckgo-pill">
+                {t("enumMeta", { values: enumValues.join(", ") })}
+              </span>
             ) : null}
           </div>
         </div>

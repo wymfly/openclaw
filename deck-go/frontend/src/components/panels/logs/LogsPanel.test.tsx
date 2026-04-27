@@ -3,6 +3,7 @@ import { fireEvent } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { LogsPanel } from "./LogsPanel";
 
 type CapturedLogStreamParams = {
@@ -22,6 +23,11 @@ vi.mock("../../../api", () => apiMocks);
 let container: HTMLDivElement;
 let root: Root | null = null;
 let streamParams: CapturedLogStreamParams | null = null;
+
+function renderLogsPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(LogsPanel)));
+}
 
 describe("LogsPanel", () => {
   beforeEach(() => {
@@ -69,8 +75,7 @@ describe("LogsPanel", () => {
     window.localStorage.setItem("deckGoLogsLastEventId", "evt-before");
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(LogsPanel));
+      renderLogsPanel();
     });
 
     expect(apiMocks.fetchLogsTail).toHaveBeenCalledWith({
@@ -95,8 +100,7 @@ describe("LogsPanel", () => {
 
   it("filters parsed log lines by level, source, and session and prepares export text", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(LogsPanel));
+      renderLogsPanel();
     });
 
     expect(container.textContent).toContain("boot line");
@@ -137,8 +141,7 @@ describe("LogsPanel", () => {
 
   it("applies live log batches, persists stream cursors, and handles resets", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(LogsPanel));
+      renderLogsPanel();
     });
 
     expect(streamParams).toBeTruthy();

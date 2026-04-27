@@ -5,6 +5,7 @@ import {
   fetchCompactionCheckpoints,
   restoreCompactionCheckpoint,
 } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 
 type SessionCompactionHistoryProps = {
   compactionCount?: number;
@@ -33,6 +34,7 @@ function savedTokens(checkpoint: DeckGoCompactionCheckpoint) {
 }
 
 export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
+  const t = useTranslations("sessions");
   const [checkpoints, setCheckpoints] = useState<DeckGoCompactionCheckpoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [actingCheckpointId, setActingCheckpointId] = useState("");
@@ -53,13 +55,11 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
       setError("");
     } catch (loadError) {
       setCheckpoints([]);
-      setError(
-        loadError instanceof Error ? loadError.message : "failed to load compaction checkpoints",
-      );
+      setError(loadError instanceof Error ? loadError.message : t("failedLoadCompaction"));
     } finally {
       setLoading(false);
     }
-  }, [props.compactionCount, props.sessionKey]);
+  }, [props.compactionCount, props.sessionKey, t]);
 
   useEffect(() => {
     setActionResult("");
@@ -85,7 +85,11 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
         await refresh();
       }
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : `compaction ${action} failed`);
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : t("compactionActionFailed", { action }),
+      );
     } finally {
       setActingCheckpointId("");
     }
@@ -98,17 +102,19 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
   return (
     <div className="deckgo-surface-tile deck-ui-sessions-surface deck-ui-sessions-compaction">
       <div className="deckgo-pill-row deck-ui-sessions-status-row">
-        <p className="deckgo-surface-label">Compaction checkpoints</p>
+        <p className="deckgo-surface-label">{t("compactionCheckpoints")}</p>
         <span className={`deckgo-pill ${loading ? "is-muted" : "is-positive"}`}>
-          {loading ? "loading" : `${checkpoints.length} loaded`}
+          {loading ? t("loading") : t("loadedCount", { count: checkpoints.length })}
         </span>
       </div>
       {error ? <p className="deckgo-note deck-ui-sessions-error">{error}</p> : null}
       {actionResult ? (
-        <p className="deckgo-note deck-ui-sessions-meta">Last compaction action: {actionResult}</p>
+        <p className="deckgo-note deck-ui-sessions-meta">
+          {t("lastCompactionAction", { action: actionResult })}
+        </p>
       ) : null}
       {checkpoints.length === 0 ? (
-        <p className="deckgo-note deck-ui-sessions-empty">No compaction checkpoints loaded.</p>
+        <p className="deckgo-note deck-ui-sessions-empty">{t("noCompactionCheckpoints")}</p>
       ) : (
         <ul className="deckgo-shell-list deck-ui-sessions-list">
           {checkpoints.map((checkpoint) => {
@@ -119,7 +125,7 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
                 <strong>{checkpoint.reason}</strong>
                 <div className="deckgo-meta deck-ui-sessions-meta">
                   {checkpoint.checkpointId} | {formatTimestamp(checkpoint.createdAt)}
-                  {saved ? ` | saved ${formatTokens(saved)} tokens` : ""}
+                  {saved ? ` | ${t("savedTokensMeta", { tokens: formatTokens(saved) })}` : ""}
                 </div>
                 {checkpoint.summary ? <p className="deckgo-note">{checkpoint.summary}</p> : null}
                 <div className="deckgo-actions deck-ui-sessions-actions">
@@ -129,7 +135,7 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
                     disabled={isActing}
                     onClick={() => void runCheckpointAction(checkpoint.checkpointId, "branch")}
                   >
-                    Branch {checkpoint.checkpointId}
+                    {t("branchCheckpoint", { checkpointId: checkpoint.checkpointId })}
                   </button>
                   <button
                     className="deckgo-button deck-ui-sessions-button"
@@ -137,7 +143,7 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
                     disabled={isActing}
                     onClick={() => void runCheckpointAction(checkpoint.checkpointId, "restore")}
                   >
-                    Restore {checkpoint.checkpointId}
+                    {t("restoreCheckpoint", { checkpointId: checkpoint.checkpointId })}
                   </button>
                 </div>
               </li>

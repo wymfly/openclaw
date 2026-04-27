@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { MemoryPanel } from "./MemoryPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -32,6 +33,11 @@ function archiveFilesPayload() {
   return {
     files: [{ name: "note.md", path: "archive/note.md", type: "file" as const, size: 30 }],
   };
+}
+
+function renderMemoryPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(MemoryPanel)));
 }
 
 describe("MemoryPanel", () => {
@@ -114,8 +120,7 @@ describe("MemoryPanel", () => {
 
   it("loads memory files and reads the selected file through the stable browse/read lane", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(MemoryPanel));
+      renderMemoryPanel();
     });
 
     await waitFor(() => expect(apiMocks.browseMemory).toHaveBeenCalledWith("main", undefined));
@@ -156,8 +161,7 @@ describe("MemoryPanel", () => {
 
   it("switches memory browse agent from the Gateway-backed agent selector", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(MemoryPanel));
+      renderMemoryPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
@@ -180,8 +184,7 @@ describe("MemoryPanel", () => {
 
   it("browses directories separately from file reads and can return to the parent path", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(MemoryPanel));
+      renderMemoryPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
@@ -215,8 +218,7 @@ describe("MemoryPanel", () => {
 
   it("loads health details and runs dream-diary actions without touching file reads", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(MemoryPanel));
+      renderMemoryPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
@@ -263,8 +265,7 @@ describe("MemoryPanel", () => {
 
   it("runs dream maintenance actions with confirmation guards", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(MemoryPanel));
+      renderMemoryPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
@@ -318,8 +319,7 @@ describe("MemoryPanel", () => {
 
   it("renders knowledge graph nodes from the browsed file list", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(MemoryPanel));
+      renderMemoryPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
@@ -344,8 +344,7 @@ describe("MemoryPanel", () => {
 
   it("runs memory search with scope and surfaces LanceDB unavailable responses", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(MemoryPanel));
+      renderMemoryPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));

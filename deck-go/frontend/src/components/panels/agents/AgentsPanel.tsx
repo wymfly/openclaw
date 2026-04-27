@@ -422,7 +422,9 @@ function hasOwnConfigKey(source: Record<string, unknown>, key: string) {
   return Object.prototype.hasOwnProperty.call(source, key);
 }
 
-function buildAgentConfigResetUpdates(rawConfig: DeckGoAgentRawConfig | null) {
+function buildAgentConfigResetUpdates(
+  rawConfig: DeckGoAgentRawConfig | null,
+): Record<string, unknown> {
   const entry = rawConfig?.entry;
   if (!entry) {
     return {};

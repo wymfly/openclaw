@@ -10,7 +10,7 @@ This matters because these panels are how operators inspect usage, sessions, mem
 - Restore old cards, charts, filters, sidebars, detail panes, timelines, transcript search, export controls, stream views, method/schema views, and empty/loading/error states where the old Deck had concrete UI.
 - Wire all Observe group visible copy through EN/ZH i18n.
 - Fix or classify Go backend/API/projection gaps discovered while restoring old Node+Next observe workflows.
-- Validate each Observe panel with old authority files, current target files, screenshots, interaction checks, and backend gap notes.
+- Validate each Observe panel in this worktree with old authority files, current target files, targeted tests/build checks, interaction coverage notes, and backend gap notes; defer Playwright screenshots to the merged local integration branch.
 
 ## Capabilities
 

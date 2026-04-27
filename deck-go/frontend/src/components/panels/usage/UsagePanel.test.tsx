@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { UsagePanel } from "./UsagePanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -210,6 +211,11 @@ function usageTimeseriesPayload() {
   };
 }
 
+function renderUsagePanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(UsagePanel)));
+}
+
 describe("UsagePanel", () => {
   beforeEach(() => {
     (
@@ -240,8 +246,7 @@ describe("UsagePanel", () => {
 
   it("loads cost totals and provider pressure from the usage APIs", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(UsagePanel));
+      renderUsagePanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchModelUsageProviders).toHaveBeenCalledTimes(1));
@@ -300,8 +305,7 @@ describe("UsagePanel", () => {
 
   it("refreshes with the requested day range and preserves a valid provider selection", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(UsagePanel));
+      renderUsagePanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchModelUsageProviders).toHaveBeenCalledTimes(1));
@@ -347,8 +351,7 @@ describe("UsagePanel", () => {
 
   it("filters session usage and loads logs for the expanded session", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(UsagePanel));
+      renderUsagePanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchUsageSessions).toHaveBeenCalledTimes(1));
@@ -399,8 +402,7 @@ describe("UsagePanel", () => {
 
   it("opens expanded usage session agent and session through shared deck navigation", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(UsagePanel));
+      renderUsagePanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchUsageSessions).toHaveBeenCalledTimes(1));

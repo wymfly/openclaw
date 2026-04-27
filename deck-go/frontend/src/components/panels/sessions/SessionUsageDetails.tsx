@@ -5,6 +5,7 @@ import type {
   DeckGoUsageSessionLogEntry,
 } from "../../../api";
 import { fetchUsageSessionLogs, fetchUsageSessions } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { ShellStat } from "../../shared/ShellComponents";
 
 type UsageLoadState = "idle" | "loading" | "ready";
@@ -64,6 +65,7 @@ function highTokenThreshold(logs: DeckGoUsageSessionLogEntry[]) {
 }
 
 export function SessionUsageDetails(props: SessionUsageDetailsProps) {
+  const t = useTranslations("sessions");
   const [loadState, setLoadState] = useState<UsageLoadState>("idle");
   const [usageEntry, setUsageEntry] = useState<DeckGoUsageSessionEntry | null>(null);
   const [logs, setLogs] = useState<DeckGoUsageSessionLogEntry[]>([]);
@@ -105,13 +107,13 @@ export function SessionUsageDetails(props: SessionUsageDetailsProps) {
         setUsageEntry(null);
         setLogs([]);
         setLoadState("idle");
-        setError(loadError instanceof Error ? loadError.message : "failed to load session usage");
+        setError(loadError instanceof Error ? loadError.message : t("failedLoadSessionUsage"));
       });
 
     return () => {
       cancelled = true;
     };
-  }, [props.sessionKey]);
+  }, [props.sessionKey, t]);
 
   const contextSummary = contextWeightSummary(usageEntry?.contextWeight);
   const threshold = useMemo(() => highTokenThreshold(logs), [logs]);
@@ -119,77 +121,89 @@ export function SessionUsageDetails(props: SessionUsageDetailsProps) {
   return (
     <div className="deckgo-surface-tile deck-ui-sessions-surface deck-ui-sessions-usage">
       <div className="deckgo-pill-row deck-ui-sessions-status-row">
-        <p className="deckgo-surface-label">Usage and context</p>
+        <p className="deckgo-surface-label">{t("usageContext")}</p>
         <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-          usage {loadState}
+          {t("usageStatus", { state: t(loadState) })}
         </span>
       </div>
       {error ? <p className="deckgo-note deck-ui-sessions-error">{error}</p> : null}
       <div className="deckgo-grid deckgo-grid-3 deck-ui-sessions-stats">
-        <ShellStat label="usage tokens" value={usageTotal(usageEntry)} />
-        <ShellStat label="usage cost" value={formatCurrency(usageEntry?.usage?.totalCost ?? 0)} />
-        <ShellStat label="compactions" value={props.compactionCount ?? 0} />
+        <ShellStat label={t("usageTokens")} value={usageTotal(usageEntry)} />
+        <ShellStat
+          label={t("usageCost")}
+          value={formatCurrency(usageEntry?.usage?.totalCost ?? 0)}
+        />
+        <ShellStat label={t("compactions")} value={props.compactionCount ?? 0} />
       </div>
       {contextSummary ? (
         <>
           <div className="deckgo-grid deckgo-grid-3 deck-ui-sessions-stats">
-            <ShellStat label="context total" value={formatChars(contextSummary.total)} />
+            <ShellStat label={t("contextTotal")} value={formatChars(contextSummary.total)} />
             <ShellStat
-              label="context source"
-              value={usageEntry?.contextWeight?.source ?? "unknown"}
+              label={t("contextSource")}
+              value={usageEntry?.contextWeight?.source ?? t("unknown")}
             />
             <ShellStat
-              label="context generated"
+              label={t("contextGenerated")}
               value={formatTimestamp(usageEntry?.contextWeight?.generatedAt)}
             />
           </div>
           <ul className="deckgo-shell-list deck-ui-sessions-list">
             <li>
-              <strong>system prompt</strong>
+              <strong>{t("systemPrompt")}</strong>
               <div className="deckgo-meta deck-ui-sessions-meta">
-                {formatChars(contextSummary.system)} chars
+                {t("charsValue", { count: formatChars(contextSummary.system) })}
               </div>
             </li>
             <li>
-              <strong>tools</strong>
+              <strong>{t("toolsLower")}</strong>
               <div className="deckgo-meta deck-ui-sessions-meta">
-                {formatChars(contextSummary.tools)} chars |{" "}
-                {usageEntry?.contextWeight?.tools.entries.length ?? 0} entries
+                {t("contextEntryDetail", {
+                  chars: formatChars(contextSummary.tools),
+                  count: usageEntry?.contextWeight?.tools.entries.length ?? 0,
+                })}
               </div>
             </li>
             <li>
-              <strong>skills</strong>
+              <strong>{t("skillsLower")}</strong>
               <div className="deckgo-meta deck-ui-sessions-meta">
-                {formatChars(contextSummary.skills)} chars |{" "}
-                {usageEntry?.contextWeight?.skills.entries.length ?? 0} entries
+                {t("contextEntryDetail", {
+                  chars: formatChars(contextSummary.skills),
+                  count: usageEntry?.contextWeight?.skills.entries.length ?? 0,
+                })}
               </div>
             </li>
             <li>
-              <strong>files</strong>
+              <strong>{t("filesLower")}</strong>
               <div className="deckgo-meta deck-ui-sessions-meta">
-                {formatChars(contextSummary.files)} chars |{" "}
-                {usageEntry?.contextWeight?.injectedWorkspaceFiles.length ?? 0} files
+                {t("contextFilesDetail", {
+                  chars: formatChars(contextSummary.files),
+                  count: usageEntry?.contextWeight?.injectedWorkspaceFiles.length ?? 0,
+                })}
               </div>
             </li>
           </ul>
         </>
       ) : (
-        <p className="deckgo-note deck-ui-sessions-empty">No context weight data available.</p>
+        <p className="deckgo-note deck-ui-sessions-empty">{t("noContextWeight")}</p>
       )}
-      <p className="deckgo-surface-label">Session turn timeline</p>
+      <p className="deckgo-surface-label">{t("sessionTurnTimeline")}</p>
       {logs.length === 0 ? (
-        <p className="deckgo-note deck-ui-sessions-empty">No session usage logs loaded.</p>
+        <p className="deckgo-note deck-ui-sessions-empty">{t("noSessionUsageLogs")}</p>
       ) : (
         <ul className="deckgo-shell-list deck-ui-sessions-list">
           {logs.slice(0, 8).map((entry, index) => {
             const isHighToken = typeof entry.tokens === "number" && entry.tokens > threshold;
             return (
               <li key={`${entry.timestamp}-${index}`}>
-                <strong>{entry.role || "message"}</strong>
+                <strong>{entry.role || t("message")}</strong>
                 <div className="deckgo-meta deck-ui-sessions-meta">
-                  {formatTimestamp(entry.timestamp)} | {entry.tokens ?? 0} tokens |{" "}
-                  {formatCurrency(entry.cost ?? 0)}
-                  {isHighToken ? " | high token turn" : ""}
+                  {t("timelineEntryMeta", {
+                    cost: formatCurrency(entry.cost ?? 0),
+                    tokens: entry.tokens ?? 0,
+                    timestamp: formatTimestamp(entry.timestamp),
+                  })}
+                  {isHighToken ? ` | ${t("highTokenTurn")}` : ""}
                 </div>
                 <p className="deckgo-note">{entry.content}</p>
               </li>

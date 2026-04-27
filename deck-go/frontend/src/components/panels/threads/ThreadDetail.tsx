@@ -1,4 +1,5 @@
 import type { DeckGoThreadEntry } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { formatThreadTimestamp } from "./thread-utils";
 import { ThreadRelationView } from "./ThreadRelationView";
@@ -18,15 +19,17 @@ export function ThreadDetail({
   onOpenSession,
   thread,
 }: ThreadDetailProps) {
+  const t = useTranslations("threads");
+
   if (!thread) {
-    return <p className="deckgo-note deck-ui-threads-empty">Choose a thread to inspect it.</p>;
+    return <p className="deckgo-note deck-ui-threads-empty">{t("chooseThread")}</p>;
   }
 
   return (
     <>
       <div className="deckgo-panel-hero-strip deck-ui-threads-hero">
         <div>
-          <p className="deckgo-kicker">Thread</p>
+          <p className="deckgo-kicker">{t("thread")}</p>
           <strong>{thread.label || thread.threadId}</strong>
           <p className="deckgo-note">{thread.threadId}</p>
         </div>
@@ -41,34 +44,37 @@ export function ThreadDetail({
           type="button"
           onClick={onCopySessionKey}
         >
-          Copy session key
+          {t("copySessionKey")}
         </button>
         <button
           className="deckgo-button deck-ui-threads-button"
           type="button"
           onClick={onOpenSession}
         >
-          Open session
+          {t("openSession")}
         </button>
         <button
           className="deckgo-button deck-ui-threads-button"
           type="button"
           onClick={onOpenAgent}
         >
-          Open agent
+          {t("openAgent")}
         </button>
       </div>
       {handoffMessage ? (
         <p className="deckgo-note deck-ui-threads-handoff">{handoffMessage}</p>
       ) : null}
       <div className="deckgo-grid deckgo-grid-2 deck-ui-threads-stats">
-        <ShellStat label="bound at" value={formatThreadTimestamp(thread.boundAt)} />
-        <ShellStat label="last activity" value={formatThreadTimestamp(thread.lastActivityAt)} />
-        <ShellStat label="account" value={thread.accountId} />
-        <ShellStat label="bound by" value={thread.boundBy} />
+        <ShellStat label={t("boundAtLower")} value={formatThreadTimestamp(thread.boundAt)} />
+        <ShellStat
+          label={t("lastActivityLower")}
+          value={formatThreadTimestamp(thread.lastActivityAt)}
+        />
+        <ShellStat label={t("accountLower")} value={thread.accountId} />
+        <ShellStat label={t("boundByLower")} value={thread.boundBy} />
       </div>
       <ThreadRelationView thread={thread} />
-      <JsonDetails title="Thread payload" payload={thread} />
+      <JsonDetails title={t("threadPayload")} payload={thread} />
     </>
   );
 }
