@@ -32,19 +32,17 @@ export function buildAgentBatchExportText(agents: AgentBatchEntry[]): string {
 }
 
 export function summarizeAgents(agents: AgentBatchEntry[]): AgentBatchSummary {
-  return agents.reduce(
-    (acc, agent) => {
-      acc.total += 1;
-      const statusKey = readAgentStatus(agent);
-      acc.byStatus[statusKey] = (acc.byStatus[statusKey] ?? 0) + 1;
-      const modelKey = readAgentModel(agent, "unassigned");
-      acc.byModel[modelKey] = (acc.byModel[modelKey] ?? 0) + 1;
-      return acc;
-    },
-    {
-      total: 0,
-      byStatus: {},
-      byModel: {},
-    },
-  );
+  const initialSummary: AgentBatchSummary = {
+    total: 0,
+    byStatus: {},
+    byModel: {},
+  };
+  return agents.reduce((acc, agent) => {
+    acc.total += 1;
+    const statusKey = readAgentStatus(agent);
+    acc.byStatus[statusKey] = (acc.byStatus[statusKey] ?? 0) + 1;
+    const modelKey = readAgentModel(agent, "unassigned");
+    acc.byModel[modelKey] = (acc.byModel[modelKey] ?? 0) + 1;
+    return acc;
+  }, initialSummary);
 }

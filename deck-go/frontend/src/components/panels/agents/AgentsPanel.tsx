@@ -517,12 +517,15 @@ function buildAgentTemplateConfigUpdates(template: AgentTemplate) {
 
 function countResettableAgentConfigOverrides(rawConfig: DeckGoAgentRawConfig | null) {
   const updates = buildAgentConfigResetUpdates(rawConfig);
-  return Object.values(updates).reduce((count, value) => {
+  let count = 0;
+  for (const value of Object.values(updates)) {
     if (isRecord(value)) {
-      return count + Object.keys(value).length;
+      count += Object.keys(value).length;
+    } else {
+      count += 1;
     }
-    return count + 1;
-  }, 0);
+  }
+  return count;
 }
 
 function formatSessionUpdatedAt(updatedAt: number | undefined) {

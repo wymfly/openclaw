@@ -319,12 +319,11 @@ export function getBottomPanels() {
 }
 
 export function getShortcutPanels() {
-  return PANELS.filter((panel) => panel.shortcutIndex != null)
-    .slice()
-    .toSorted(
-      (left: PanelEntry, right: PanelEntry) =>
-        (left.shortcutIndex ?? 0) - (right.shortcutIndex ?? 0),
-    );
+  const shortcutPanels = PANELS.filter((panel) => panel.shortcutIndex != null);
+  shortcutPanels.sort(
+    (left: PanelEntry, right: PanelEntry) => (left.shortcutIndex ?? 0) - (right.shortcutIndex ?? 0),
+  );
+  return shortcutPanels;
 }
 
 export function findPanel(id: string): PanelEntry | null {
