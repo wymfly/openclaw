@@ -14,6 +14,8 @@ import type {
   DeckGoRoutingBinding,
   DeckGoRuntimeConfiguredModelsResponse,
   DeckGoSession,
+  DeckGoSkillEntry,
+  DeckGoSkillsResponse,
   DeckGoSubagentRun,
   DeckGoToolsCatalogResponse,
 } from "../../../api";
@@ -34,10 +36,13 @@ import {
   fetchEffectiveTools,
   fetchRoutingBindings,
   fetchRuntimeConfiguredModels,
+  fetchSkills,
   fetchSessions,
   fetchSubagentRuns,
   fetchToolsCatalog,
+  installSkill,
   removeRoutingBinding,
+  updateSkill,
   updateAgent,
   updateAgentEventStreams,
   updateAgentRawConfig,
@@ -52,9 +57,16 @@ import {
   navigateToSession,
 } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useTranslations } from "../../../i18n/provider";
 import { computeConfigDiff } from "../../../lib/config-diff";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { buildAgentBatchExportText, summarizeAgents } from "./agent-batch-actions";
+import {
+  AgentCompareBoundary,
+  AgentDetailBoundary,
+  AgentEditorBoundary,
+  AgentListBoundary,
+} from "./agent-panel-boundaries";
 import { useAgentMetricsSSE } from "./useAgentMetricsSSE";
 
 type PanelState = "idle" | "loading" | "ready";
@@ -91,11 +103,31 @@ type AgentReasoningMode = "on" | "off" | "stream";
 type AgentThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive";
 type AgentSessionFilter = "all" | "direct" | "group" | "global" | "subagent";
 type ToolOverrideState = "default" | "allow" | "deny";
+type AgentDetailTab =
+  | "overview"
+  | "config"
+  | "routing"
+  | "skills"
+  | "tools"
+  | "context"
+  | "subagent"
+  | "sessions";
 type RuntimeModelOption = {
   ref: string;
   label: string;
   provider: string;
 };
+type SkillEnvPair = { key: string; value: string };
+const AGENT_DETAIL_TABS: Array<{ key: AgentDetailTab; labelKey: string }> = [
+  { key: "overview", labelKey: "overview" },
+  { key: "config", labelKey: "tabs.config" },
+  { key: "routing", labelKey: "routing" },
+  { key: "skills", labelKey: "skills" },
+  { key: "tools", labelKey: "effectiveTools.tab" },
+  { key: "context", labelKey: "context" },
+  { key: "subagent", labelKey: "subagent" },
+  { key: "sessions", labelKey: "sessions" },
+];
 const AGENT_SESSION_FILTERS: AgentSessionFilter[] = [
   "all",
   "direct",
@@ -112,6 +144,7 @@ const THINKING_LEVELS: AgentThinkingLevel[] = [
   "xhigh",
   "adaptive",
 ];
+const VALID_SKILL_SOURCES = new Set<DeckGoSkillEntry["source"]>(["bundled", "managed", "plugin"]);
 
 type AgentTemplate = {
   name: string;
@@ -143,12 +176,87 @@ const DEFAULT_AGENT_CONFIG_DRAFT: AgentConfigDraft = {
   temperature: "",
 };
 
+function isAgentDetailTab(value: string): value is AgentDetailTab {
+  return AGENT_DETAIL_TABS.some((tab) => tab.key === value);
+}
+
+function readInitialAgentDetailTab(value: string): AgentDetailTab {
+  return isAgentDetailTab(value) ? value : "overview";
+}
+
 function normalizeAgentSkillMode(mode: string | undefined): AgentSkillMode {
   return mode === "whitelist" ? "whitelist" : "all";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeSkillInventoryEntry(raw: Record<string, unknown>): DeckGoSkillEntry {
+  const skillKey =
+    typeof raw.skillKey === "string" ? raw.skillKey : typeof raw.name === "string" ? raw.name : "";
+  const disabled = raw.disabled === true;
+  const eligible = raw.eligible !== false;
+  const hasMissing = Array.isArray(raw.missing) && raw.missing.length > 0;
+  const source = typeof raw.source === "string" ? raw.source : "bundled";
+  let status: DeckGoSkillEntry["status"] = "ready";
+  if (disabled) {
+    status = "disabled";
+  } else if (hasMissing || !eligible) {
+    status = "needs-setup";
+  }
+
+  return {
+    key: typeof raw.key === "string" ? raw.key : skillKey,
+    name: typeof raw.name === "string" ? raw.name : skillKey,
+    status,
+    source: VALID_SKILL_SOURCES.has(source as DeckGoSkillEntry["source"])
+      ? (source as DeckGoSkillEntry["source"])
+      : "bundled",
+    enabled: !disabled,
+    missingRequirements: Array.isArray(raw.missing) ? raw.missing.map(String) : undefined,
+    config: isRecord(raw.config) ? raw.config : undefined,
+    description: typeof raw.description === "string" ? raw.description : undefined,
+    emoji: typeof raw.emoji === "string" ? raw.emoji : undefined,
+    homepage: typeof raw.homepage === "string" ? raw.homepage : undefined,
+    primaryEnv: typeof raw.primaryEnv === "string" ? raw.primaryEnv : undefined,
+    installOptions:
+      Array.isArray(raw.installOptions) && raw.installOptions.length > 0
+        ? (raw.installOptions as DeckGoSkillEntry["installOptions"])
+        : Array.isArray(raw.install)
+          ? (raw.install as DeckGoSkillEntry["installOptions"])
+          : undefined,
+  };
+}
+
+function normalizeSkillInventory(payload: DeckGoSkillsResponse | null): DeckGoSkillEntry[] {
+  return (payload?.skills ?? [])
+    .filter(isRecord)
+    .map(normalizeSkillInventoryEntry)
+    .filter((skill) => skill.key);
+}
+
+function readSkillConfigApiKey(config: Record<string, unknown> | undefined) {
+  return typeof config?.apiKey === "string" ? config.apiKey : "";
+}
+
+function readSkillConfigEnvPairs(config: Record<string, unknown> | undefined): SkillEnvPair[] {
+  const env = config?.env;
+  if (!isRecord(env)) {
+    return [];
+  }
+  return Object.entries(env).map(([key, value]) => ({ key, value: String(value) }));
+}
+
+function buildSkillEnvPatch(pairs: SkillEnvPair[]) {
+  const env: Record<string, string> = {};
+  for (const pair of pairs) {
+    const key = pair.key.trim();
+    if (key) {
+      env[key] = pair.value;
+    }
+  }
+  return env;
 }
 
 function readStringConfigValue(value: unknown) {
@@ -526,7 +634,12 @@ function saveAgentTemplates(templates: AgentTemplate[]) {
 
 export function AgentsPanel() {
   const ui = useDeckUI();
+  const tAgents = useTranslations("agents");
+  const tAgentDetail = useTranslations("agentDetail");
   const [navigationTarget] = useState(readAgentNavigationTarget);
+  const [activeAgentTab, setActiveAgentTab] = useState<AgentDetailTab>(() =>
+    readInitialAgentDetailTab(navigationTarget.tab),
+  );
   const [agents, setAgents] = useState<DeckGoAgentSummary[]>([]);
   const bootstrapEditorRef = useRef<HTMLTextAreaElement | null>(null);
   const [defaultAgentId, setDefaultAgentId] = useState("");
@@ -562,6 +675,10 @@ export function AgentsPanel() {
   const [expandedToolName, setExpandedToolName] = useState("");
   const [agentSkillMode, setAgentSkillMode] = useState<AgentSkillMode>("all");
   const [agentSkillKeys, setAgentSkillKeys] = useState<string[]>([]);
+  const [skillInventory, setSkillInventory] = useState<DeckGoSkillEntry[]>([]);
+  const [selectedSkillConfigKey, setSelectedSkillConfigKey] = useState("");
+  const [skillApiKeyDraft, setSkillApiKeyDraft] = useState("");
+  const [skillEnvPairs, setSkillEnvPairs] = useState<SkillEnvPair[]>([]);
   const [agentConfigDraft, setAgentConfigDraft] = useState(DEFAULT_AGENT_CONFIG_DRAFT);
   const [agentConfigBaseline, setAgentConfigBaseline] = useState(DEFAULT_AGENT_CONFIG_DRAFT);
   const [subagentAllowMode, setSubagentAllowMode] = useState<SubagentAllowMode>("none");
@@ -589,11 +706,14 @@ export function AgentsPanel() {
     | "agent-routing"
     | "template"
     | "template-create"
+    | "skill-config"
+    | "skill-install"
   >("idle");
   const [error, setError] = useState("");
   const [eventStreamsError, setEventStreamsError] = useState("");
   const [agentConfigError, setAgentConfigError] = useState("");
   const [skillsConfigError, setSkillsConfigError] = useState("");
+  const [skillInventoryError, setSkillInventoryError] = useState("");
   const [subagentConfigError, setSubagentConfigError] = useState("");
   const [agentSubagentRunsError, setAgentSubagentRunsError] = useState("");
   const [previewError, setPreviewError] = useState("");
@@ -653,6 +773,28 @@ export function AgentsPanel() {
     } catch (loadError) {
       setSkillsConfigError(
         loadError instanceof Error ? loadError.message : "failed to load agent skills",
+      );
+    }
+  };
+
+  const loadSkillInventory = async (agentId: string, preferredSkillKey?: string) => {
+    setSkillInventoryError("");
+    try {
+      const nextPayload = await fetchSkills(agentId);
+      const nextSkills = normalizeSkillInventory(nextPayload);
+      const preferredKey = preferredSkillKey?.trim();
+      setSkillInventory(nextSkills);
+      setSelectedSkillConfigKey((current) =>
+        preferredKey && nextSkills.some((skill) => skill.key === preferredKey)
+          ? preferredKey
+          : current && nextSkills.some((skill) => skill.key === current)
+            ? current
+            : nextSkills[0]?.key || "",
+      );
+    } catch (loadError) {
+      setSkillInventory([]);
+      setSkillInventoryError(
+        loadError instanceof Error ? loadError.message : "failed to load skill inventory",
       );
     }
   };
@@ -832,6 +974,7 @@ export function AgentsPanel() {
       await loadEventStreams(agentId);
       await loadAgentRawConfig(agentId);
       await loadSkillsConfig(agentId);
+      await loadSkillInventory(agentId);
       await loadSubagentConfig(agentId);
       await loadAgentSubagentRuns(agentId);
       await loadAgentRoutingBindings(agentId);
@@ -873,6 +1016,10 @@ export function AgentsPanel() {
         setAgentConfigDraft(DEFAULT_AGENT_CONFIG_DRAFT);
         setAgentConfigBaseline(DEFAULT_AGENT_CONFIG_DRAFT);
         setSkillsConfig(null);
+        setSkillInventory([]);
+        setSelectedSkillConfigKey("");
+        setSkillApiKeyDraft("");
+        setSkillEnvPairs([]);
         setSubagentConfig(null);
         setAgentSubagentRuns([]);
         setAgentRoutingBindings([]);
@@ -906,10 +1053,21 @@ export function AgentsPanel() {
 
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? agents[0] ?? null;
   const agentMetrics = useAgentMetricsSSE(detail?.id ?? null);
+  const selectedSkillConfig =
+    skillInventory.find((skill) => skill.key === selectedSkillConfigKey) ??
+    skillInventory[0] ??
+    null;
   const agentBatchSummary = summarizeAgents(agents);
   const agentBatchExportText = buildAgentBatchExportText(agents);
 
+  useEffect(() => {
+    const config = selectedSkillConfig?.config;
+    setSkillApiKeyDraft(readSkillConfigApiKey(config));
+    setSkillEnvPairs(readSkillConfigEnvPairs(config));
+  }, [selectedSkillConfig?.key, selectedSkillConfig?.config]);
+
   const selectAgent = async (agentId: string) => {
+    setActiveAgentTab("overview");
     setSelectedAgentId(agentId);
     await loadDetail(agentId);
   };
@@ -958,7 +1116,7 @@ export function AgentsPanel() {
     if (!selectedAgent) {
       return;
     }
-    if (!window.confirm(`Delete agent ${selectedAgent.id}?`)) {
+    if (!window.confirm(tAgentDetail("panel.confirmDelete", { id: selectedAgent.id }))) {
       return;
     }
     setActionState("deleting");
@@ -1223,6 +1381,61 @@ export function AgentsPanel() {
     });
   };
 
+  const addSkillEnvPair = () => {
+    setSkillEnvPairs((current) => [...current, { key: "", value: "" }]);
+  };
+
+  const updateSkillEnvPair = (index: number, field: keyof SkillEnvPair, value: string) => {
+    setSkillEnvPairs((current) =>
+      current.map((pair, pairIndex) => (pairIndex === index ? { ...pair, [field]: value } : pair)),
+    );
+  };
+
+  const removeSkillEnvPair = (index: number) => {
+    setSkillEnvPairs((current) => current.filter((_, pairIndex) => pairIndex !== index));
+  };
+
+  const saveSkillConfig = async () => {
+    if (!selectedAgent || !selectedSkillConfig) {
+      return;
+    }
+    setActionState("skill-config");
+    try {
+      const result = await updateSkill(selectedSkillConfig.key, {
+        apiKey: skillApiKeyDraft,
+        env: buildSkillEnvPatch(skillEnvPairs),
+      });
+      setActionResult(result);
+      setSkillInventoryError("");
+      await loadSkillInventory(selectedAgent.id, selectedSkillConfig.key);
+    } catch (actionError) {
+      setSkillInventoryError(
+        actionError instanceof Error ? actionError.message : "skill config update failed",
+      );
+    } finally {
+      setActionState("idle");
+    }
+  };
+
+  const installSkillOption = async (skill: DeckGoSkillEntry, installId: string) => {
+    if (!selectedAgent) {
+      return;
+    }
+    setActionState("skill-install");
+    try {
+      const result = await installSkill(skill.name, installId);
+      setActionResult(result);
+      setSkillInventoryError("");
+      await loadSkillInventory(selectedAgent.id, skill.key);
+    } catch (actionError) {
+      setSkillInventoryError(
+        actionError instanceof Error ? actionError.message : "skill install failed",
+      );
+    } finally {
+      setActionState("idle");
+    }
+  };
+
   const saveAgentRawConfig = async () => {
     if (!selectedAgent || !agentRawConfig) {
       return;
@@ -1469,6 +1682,9 @@ export function AgentsPanel() {
   );
   const runtimeModelOptions = normalizeRuntimeModelOptions(runtimeModels);
   const fallbackDraftList = parseModelFallbacks(agentConfigDraft.modelFallbacks);
+  const skillInstallOptions = skillInventory.flatMap((skill) =>
+    (skill.installOptions ?? []).map((option) => ({ skill, option })),
+  );
   const filteredAgentSessions = effectiveToolSessions.filter((session) => {
     if (agentSessionFilter === "all") {
       return true;
@@ -1495,43 +1711,51 @@ export function AgentsPanel() {
 
   return (
     <section className="deckgo-panel-workspace deck-ui-agents">
-      <div className="deckgo-column deck-ui-agents-column">
+      <AgentListBoundary>
         <article className="deckgo-card is-float deck-ui-agents-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Agents</h2>
+            <h2 className="deckgo-card-title">{tAgents("title")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Agent inventory uses list, create, rename, delete, and detail routes.
-          </p>
+          <p className="deckgo-card-subtitle">{tAgentDetail("panel.listSubtitle")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-agents-body">
             <div className="deckgo-pill-row deck-ui-agents-pill-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Agents {loadState}
+                {tAgentDetail("panel.agentsState", { state: loadState })}
               </span>
-              <span className="deckgo-pill">{agents.length} loaded</span>
-              <span className="deckgo-pill">default {defaultAgentId || "n/a"}</span>
+              <span className="deckgo-pill">
+                {tAgentDetail("panel.loadedCount", { count: agents.length })}
+              </span>
+              <span className="deckgo-pill">
+                {tAgentDetail("panel.defaultAgent", { id: defaultAgentId || "n/a" })}
+              </span>
             </div>
             <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
-              <ShellStat label="agents" value={agents.length} />
-              <ShellStat label="default" value={defaultAgentId || "n/a"} />
-              <ShellStat label="selected" value={selectedAgent?.id || "n/a"} />
+              <ShellStat label={tAgentDetail("panel.agents")} value={agents.length} />
+              <ShellStat label={tAgentDetail("defaultAgent")} value={defaultAgentId || "n/a"} />
+              <ShellStat
+                label={tAgentDetail("panel.selected")}
+                value={selectedAgent?.id || "n/a"}
+              />
             </div>
             <div className="deckgo-surface-tile deck-ui-agents-surface">
-              <p className="deckgo-surface-label">Agent batch summary</p>
+              <p className="deckgo-surface-label">{tAgentDetail("panel.batchSummary")}</p>
               <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
-                <ShellStat label="total" value={agentBatchSummary.total} />
+                <ShellStat label={tAgentDetail("panel.total")} value={agentBatchSummary.total} />
                 <ShellStat
-                  label="statuses"
+                  label={tAgentDetail("panel.statuses")}
                   value={Object.keys(agentBatchSummary.byStatus).length}
                 />
-                <ShellStat label="models" value={Object.keys(agentBatchSummary.byModel).length} />
+                <ShellStat
+                  label={tAgentDetail("panel.models")}
+                  value={Object.keys(agentBatchSummary.byModel).length}
+                />
               </div>
-              <pre className="deckgo-code" aria-label="Agent batch export">
+              <pre className="deckgo-code" aria-label={tAgentDetail("panel.batchExport")}>
                 {agentBatchExportText}
               </pre>
             </div>
             <div className="deckgo-surface-tile deck-ui-agents-surface">
-              <p className="deckgo-surface-label">Create agent</p>
+              <p className="deckgo-surface-label">{tAgentDetail("panel.createAgent")}</p>
               <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid">
                 <input
                   className="deckgo-input deck-ui-agents-input"
@@ -1539,7 +1763,7 @@ export function AgentsPanel() {
                   onChange={(event) =>
                     setCreateDraft((current) => ({ ...current, name: event.target.value }))
                   }
-                  placeholder="agent name"
+                  placeholder={tAgentDetail("panel.agentNamePlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-agents-input"
@@ -1547,7 +1771,7 @@ export function AgentsPanel() {
                   onChange={(event) =>
                     setCreateDraft((current) => ({ ...current, workspace: event.target.value }))
                   }
-                  placeholder="workspace (optional)"
+                  placeholder={tAgentDetail("panel.workspacePlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-agents-input"
@@ -1555,7 +1779,7 @@ export function AgentsPanel() {
                   onChange={(event) =>
                     setCreateDraft((current) => ({ ...current, emoji: event.target.value }))
                   }
-                  placeholder="emoji (optional)"
+                  placeholder={tAgentDetail("panel.emojiPlaceholder")}
                 />
               </div>
               <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced">
@@ -1565,20 +1789,22 @@ export function AgentsPanel() {
                   onClick={() => void createAction()}
                   disabled={actionState !== "idle"}
                 >
-                  {actionState === "creating" ? "Creating" : "Create agent"}
+                  {actionState === "creating"
+                    ? tAgentDetail("panel.creating")
+                    : tAgentDetail("panel.createAgent")}
                 </button>
                 <button
                   className="deckgo-button deck-ui-agents-button"
                   type="button"
                   onClick={() => void refresh(selectedAgentId)}
                 >
-                  Refresh agents
+                  {tAgentDetail("panel.refreshAgents")}
                 </button>
               </div>
             </div>
             {error ? <p className="deckgo-note">{error}</p> : null}
             {agents.length === 0 ? (
-              <p className="deckgo-note">No agents loaded.</p>
+              <p className="deckgo-note">{tAgentDetail("panel.noAgents")}</p>
             ) : (
               <ul className="deckgo-shell-list deck-ui-agents-list">
                 {agents.map((agent) => (
@@ -1590,11 +1816,13 @@ export function AgentsPanel() {
                     >
                       <strong>{agent.name || agent.id}</strong>
                       <div className="deckgo-meta">
-                        id: {agent.id} | workspace:{" "}
+                        {tAgentDetail("id")}: {agent.id} | {tAgentDetail("panel.workspace")}:{" "}
                         {typeof agent.workspace === "string" ? agent.workspace : "n/a"}
                       </div>
                       <div className="deckgo-meta">
-                        {agent.id === defaultAgentId ? "default agent" : "standard agent"}
+                        {agent.id === defaultAgentId
+                          ? tAgentDetail("defaultAgent")
+                          : tAgentDetail("panel.standardAgent")}
                       </div>
                     </button>
                   </li>
@@ -1603,87 +1831,143 @@ export function AgentsPanel() {
             )}
           </div>
         </article>
-      </div>
+      </AgentListBoundary>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-agents-column">
+      <AgentDetailBoundary>
         <article className="deckgo-card is-float deck-ui-agents-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Agent detail</h2>
+            <h2 className="deckgo-card-title">{tAgentDetail("title")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Agent details center on inventory truth, runtime status, recent sessions, tools, skills,
-            and supported config overrides.
-          </p>
+          <p className="deckgo-card-subtitle">{tAgentDetail("panel.detailSubtitle")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-agents-body">
             {detail ? (
               <>
-                <div className="deckgo-panel-hero-strip deck-ui-agents-hero">
+                <div className="deck-ui-agents-tabs deck-ui-tab-strip" role="tablist">
+                  {AGENT_DETAIL_TABS.map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      className={activeAgentTab === tab.key ? "is-active" : ""}
+                      aria-selected={activeAgentTab === tab.key}
+                      onClick={() => setActiveAgentTab(tab.key)}
+                    >
+                      {tAgentDetail(tab.labelKey)}
+                    </button>
+                  ))}
+                </div>
+                <div
+                  className="deckgo-panel-hero-strip deck-ui-agents-hero"
+                  hidden={activeAgentTab !== "overview"}
+                >
                   <div>
-                    <p className="deckgo-kicker">Selected agent</p>
+                    <p className="deckgo-kicker">{tAgentDetail("panel.selectedAgent")}</p>
                     <strong>{detail.name || detail.id}</strong>
                     <p className="deckgo-note">{detail.workspace}</p>
                   </div>
                   <div className="deckgo-pill-row deck-ui-agents-pill-row">
-                    <span className="deckgo-pill">{detail.model || "default model"}</span>
+                    <span className="deckgo-pill">
+                      {detail.model || tAgentDetail("panel.defaultModel")}
+                    </span>
                     <span className="deckgo-pill">{detail.skillMode}</span>
                   </div>
                 </div>
-                <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
-                  <ShellStat label="bindings" value={detail.bindingCount} />
-                  <ShellStat label="sessions" value={detail.sessionCount} />
-                  <ShellStat label="subagents" value={detail.activeSubagentCount} />
+                <div
+                  className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid"
+                  hidden={activeAgentTab !== "overview"}
+                >
+                  <ShellStat label={tAgentDetail("panel.bindings")} value={detail.bindingCount} />
+                  <ShellStat label={tAgentDetail("statSessions")} value={detail.sessionCount} />
+                  <ShellStat
+                    label={tAgentDetail("statSubagents")}
+                    value={detail.activeSubagentCount}
+                  />
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent runtime profile</p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  hidden={activeAgentTab !== "overview"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.runtimeProfile")}</p>
                   <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
                     <ShellStat
-                      label="sandbox"
-                      value={`sandbox ${formatSandboxMode(detail.sandbox)}`}
+                      label={tAgentDetail("panel.sandbox")}
+                      value={tAgentDetail("panel.sandboxValue", {
+                        value: formatSandboxMode(detail.sandbox),
+                      })}
                     />
-                    <ShellStat label="fallbacks" value={detail.fallbackModels?.length ?? 0} />
                     <ShellStat
-                      label="fast mode"
-                      value={detail.fastModeDefault ? "enabled" : "disabled"}
+                      label={tAgentDetail("panel.fallbacks")}
+                      value={detail.fallbackModels?.length ?? 0}
+                    />
+                    <ShellStat
+                      label={tAgentDetail("panel.fastMode")}
+                      value={
+                        detail.fastModeDefault
+                          ? tAgentDetail("panel.enabled")
+                          : tAgentDetail("panel.disabled")
+                      }
                     />
                   </div>
                   <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid deck-ui-agents-spaced">
-                    <ShellStat label="active runs" value={agentMetrics.activeRuns} />
-                    <ShellStat label="messages" value={agentMetrics.messageCount} />
                     <ShellStat
-                      label="metrics"
-                      value={agentMetrics.lastUpdated > 0 ? "live" : "pending"}
+                      label={tAgentDetail("panel.activeRuns")}
+                      value={agentMetrics.activeRuns}
+                    />
+                    <ShellStat
+                      label={tAgentDetail("panel.messages")}
+                      value={agentMetrics.messageCount}
+                    />
+                    <ShellStat
+                      label={tAgentDetail("panel.metrics")}
+                      value={
+                        agentMetrics.lastUpdated > 0
+                          ? tAgentDetail("panel.live")
+                          : tAgentDetail("panel.pending")
+                      }
                     />
                   </div>
                   <div className="deckgo-pill-row deck-ui-agents-pill-row deck-ui-agents-spaced">
                     {readSandboxField(detail.sandbox, "backend") ? (
                       <span className="deckgo-pill">
-                        backend {readSandboxField(detail.sandbox, "backend")}
+                        {tAgentDetail("panel.backend", {
+                          value: readSandboxField(detail.sandbox, "backend"),
+                        })}
                       </span>
                     ) : null}
                     {readSandboxField(detail.sandbox, "filesystem") ? (
                       <span className="deckgo-pill">
-                        filesystem {readSandboxField(detail.sandbox, "filesystem")}
+                        {tAgentDetail("panel.filesystem", {
+                          value: readSandboxField(detail.sandbox, "filesystem"),
+                        })}
                       </span>
                     ) : null}
                     {(detail.fallbackModels ?? []).slice(0, 4).map((fallback) => (
                       <span key={fallback} className="deckgo-pill">
-                        fallback {fallback}
+                        {tAgentDetail("panel.fallback", { value: fallback })}
                       </span>
                     ))}
                     {detail.reasoningDefault ? (
-                      <span className="deckgo-pill">reasoning {detail.reasoningDefault}</span>
+                      <span className="deckgo-pill">
+                        {tAgentDetail("panel.reasoning", { value: detail.reasoningDefault })}
+                      </span>
                     ) : null}
                   </div>
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent routing bindings</p>
-                  <p className="deckgo-note">
-                    Agent-scoped routing rules loaded from Gateway `deck.routing.list` with this
-                    agent id as the filter.
-                  </p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  hidden={activeAgentTab !== "routing"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.routingBindings")}</p>
+                  <p className="deckgo-note">{tAgentDetail("panel.routingDescription")}</p>
                   <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid">
-                    <ShellStat label="bindings" value={agentRoutingBindings.length} />
-                    <ShellStat label="config hash" value={agentRoutingConfigHash || "n/a"} />
+                    <ShellStat
+                      label={tAgentDetail("panel.bindings")}
+                      value={agentRoutingBindings.length}
+                    />
+                    <ShellStat
+                      label={tAgentDetail("panel.configHash")}
+                      value={agentRoutingConfigHash || "n/a"}
+                    />
                   </div>
                   <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced">
                     <button
@@ -1691,7 +1975,7 @@ export function AgentsPanel() {
                       type="button"
                       onClick={() => navigateToRouting(ui, detail.id)}
                     >
-                      Open agent routing
+                      {tAgentDetail("panel.openRouting")}
                     </button>
                     <button
                       className="deckgo-button deck-ui-agents-button"
@@ -1699,7 +1983,7 @@ export function AgentsPanel() {
                       disabled={actionState !== "idle"}
                       onClick={() => void loadAgentRoutingBindings(detail.id)}
                     >
-                      Refresh routing bindings
+                      {tAgentDetail("panel.refreshRouting")}
                     </button>
                   </div>
                   {agentRoutingBindings.length > 0 ? (
@@ -1708,7 +1992,9 @@ export function AgentsPanel() {
                         <li key={binding.id}>
                           <div className="deckgo-selectable-card deck-ui-agents-row">
                             <strong>{binding.tier}</strong>
-                            <div className="deckgo-meta">binding id: {binding.id}</div>
+                            <div className="deckgo-meta">
+                              {tAgentDetail("panel.bindingId", { id: binding.id })}
+                            </div>
                             <div className="deckgo-meta">{summarizeAgentRoutingMatch(binding)}</div>
                             <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced-tight">
                               <button
@@ -1718,8 +2004,8 @@ export function AgentsPanel() {
                                 onClick={() => void removeAgentRoutingBinding(binding.id)}
                               >
                                 {actionState === "agent-routing"
-                                  ? "Removing binding"
-                                  : "Remove routing binding"}
+                                  ? tAgentDetail("panel.removingBinding")
+                                  : tAgentDetail("panel.removeBinding")}
                               </button>
                             </div>
                           </div>
@@ -1727,12 +2013,15 @@ export function AgentsPanel() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="deckgo-note">No routing bindings are assigned to this agent.</p>
+                    <p className="deckgo-note">{tAgentDetail("panel.noRouting")}</p>
                   )}
                   {agentRoutingError ? <p className="deckgo-note">{agentRoutingError}</p> : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent identity</p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  hidden={activeAgentTab !== "overview"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.identity")}</p>
                   <div className="deckgo-panel-hero-strip deck-ui-agents-hero">
                     <div>
                       <p className="deckgo-kicker">
@@ -1742,34 +2031,38 @@ export function AgentsPanel() {
                       <p className="deckgo-note">
                         {agentIdentity?.emoji
                           ? `emoji ${agentIdentity.emoji}`
-                          : "No custom emoji reported."}
+                          : tAgentDetail("panel.noEmoji")}
                       </p>
                     </div>
                     <div className="deckgo-pill-row deck-ui-agents-pill-row">
                       <span className="deckgo-pill">
-                        {agentIdentity?.avatar ? "avatar configured" : "no avatar"}
+                        {agentIdentity?.avatar
+                          ? tAgentDetail("panel.avatarConfigured")
+                          : tAgentDetail("panel.noAvatar")}
                       </span>
                       <span className="deckgo-pill">{agentIdentity?.agentId || detail.id}</span>
                     </div>
                   </div>
                   {agentIdentity?.avatar ? (
-                    <p className="deckgo-note">avatar: {agentIdentity.avatar}</p>
+                    <p className="deckgo-note">
+                      {tAgentDetail("panel.avatar", { value: agentIdentity.avatar })}
+                    </p>
                   ) : null}
                   {agentIdentityError ? <p className="deckgo-note">{agentIdentityError}</p> : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Clone selected agent config</p>
-                  <p className="deckgo-note">
-                    Create a new agent, then copy supported raw config overrides from this agent
-                    using the current config hash.
-                  </p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  hidden={activeAgentTab !== "overview"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.cloneConfig")}</p>
+                  <p className="deckgo-note">{tAgentDetail("panel.cloneDescription")}</p>
                   <div className="deckgo-actions deck-ui-agents-actions">
                     <input
                       className="deckgo-input deck-ui-agents-input"
                       value={cloneName}
                       disabled={actionState !== "idle"}
                       onChange={(event) => setCloneName(event.target.value)}
-                      placeholder="clone name"
+                      placeholder={tAgentDetail("panel.cloneNamePlaceholder")}
                     />
                     <button
                       className="deckgo-button deck-ui-agents-button"
@@ -1777,156 +2070,180 @@ export function AgentsPanel() {
                       disabled={actionState !== "idle" || !cloneName.trim()}
                       onClick={() => void cloneSelectedAgent()}
                     >
-                      {actionState === "cloning" ? "Cloning" : "Clone selected"}
+                      {actionState === "cloning"
+                        ? tAgentDetail("panel.cloning")
+                        : tAgentDetail("panel.cloneSelected")}
                     </button>
                   </div>
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent templates</p>
-                  <p className="deckgo-note">
-                    Save a local template snapshot for this agent's model and identity metadata.
-                  </p>
-                  <div className="deckgo-actions deck-ui-agents-actions">
-                    <input
-                      className="deckgo-input deck-ui-agents-input"
-                      value={templateName}
-                      disabled={actionState !== "idle"}
-                      onChange={(event) => setTemplateName(event.target.value)}
-                      placeholder="template name"
-                    />
-                    <button
-                      className="deckgo-button deck-ui-agents-button"
-                      type="button"
-                      disabled={actionState !== "idle" || !templateName.trim()}
-                      onClick={saveSelectedAgentTemplate}
-                    >
-                      {actionState === "template" ? "Saving template" : "Save template"}
-                    </button>
-                  </div>
-                  {agentTemplates.length > 0 ? (
-                    <ul className="deckgo-shell-list deck-ui-agents-list deck-ui-agents-spaced">
-                      {agentTemplates.map((template, index) => (
-                        <li key={`${template.name}:${template.createdAt}`}>
-                          <div className="deckgo-selectable-card deck-ui-agents-row">
-                            <strong>{template.name}</strong>
-                            <div className="deckgo-meta">
-                              created: {new Date(template.createdAt).toLocaleString()}
-                            </div>
-                            <div className="deckgo-meta">
-                              config: {formatDiffValue(template.config)}
-                            </div>
-                            <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced-tight">
-                              <button
-                                className="deckgo-button deck-ui-agents-button"
-                                type="button"
-                                disabled={actionState !== "idle"}
-                                onClick={() => void createAgentFromTemplate(template)}
-                              >
-                                {actionState === "template-create"
-                                  ? "Creating from template"
-                                  : "Create from template"}
-                              </button>
-                              <button
-                                className="deckgo-button deck-ui-agents-button is-danger"
-                                type="button"
-                                disabled={actionState !== "idle"}
-                                onClick={() => deleteAgentTemplate(index)}
-                              >
-                                Delete template
-                              </button>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="deckgo-note">No local agent templates saved.</p>
-                  )}
-                </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent compare</p>
-                  <p className="deckgo-note">
-                    Compare two Gateway `deck.agents.detail` payloads with the field-level diff
-                    helper.
-                  </p>
-                  <div className="deckgo-actions deck-ui-agents-actions">
-                    <select
-                      aria-label="Compare agent"
-                      className="deckgo-input deck-ui-agents-input"
-                      value={compareAgentId}
-                      disabled={actionState !== "idle"}
-                      onChange={(event) => setCompareAgentId(event.target.value)}
-                    >
-                      <option value="">choose agent</option>
-                      {agents
-                        .filter((agent) => agent.id !== detail.id)
-                        .map((agent) => (
-                          <option key={agent.id} value={agent.id}>
-                            {agent.name || agent.id}
-                          </option>
-                        ))}
-                    </select>
-                    <button
-                      className="deckgo-button deck-ui-agents-button"
-                      type="button"
-                      disabled={actionState !== "idle" || !compareAgentId}
-                      onClick={() => void compareAgentDetail()}
-                    >
-                      {actionState === "compare" ? "Comparing" : "Compare agents"}
-                    </button>
-                  </div>
-                  {compareDetail ? (
-                    <>
-                      <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid deck-ui-agents-spaced">
-                        <ShellStat label="left" value={detail.id} />
-                        <ShellStat label="right" value={compareDetail.id} />
-                        <ShellStat label="diffs" value={compareDiffs.length} />
-                      </div>
-                      {compareDiffs.length > 0 ? (
-                        <ul className="deckgo-shell-list deck-ui-agents-list deck-ui-agents-spaced">
-                          {compareDiffs.slice(0, 10).map((diff) => (
-                            <li key={diff.path}>
-                              <div className="deckgo-selectable-card deck-ui-agents-row">
-                                <strong>
-                                  {diff.type}: {diff.path}
-                                </strong>
-                                <div className="deckgo-meta">
-                                  old: {formatDiffValue(diff.oldValue)} | new:{" "}
-                                  {formatDiffValue(diff.newValue)}
-                                </div>
+                <AgentEditorBoundary kind="template-dialog">
+                  <div
+                    className="deckgo-surface-tile deck-ui-agents-surface"
+                    hidden={activeAgentTab !== "overview"}
+                  >
+                    <p className="deckgo-surface-label">{tAgentDetail("panel.templates")}</p>
+                    <p className="deckgo-note">{tAgentDetail("panel.templatesDescription")}</p>
+                    <div className="deckgo-actions deck-ui-agents-actions">
+                      <input
+                        className="deckgo-input deck-ui-agents-input"
+                        value={templateName}
+                        disabled={actionState !== "idle"}
+                        onChange={(event) => setTemplateName(event.target.value)}
+                        placeholder={tAgentDetail("panel.templateNamePlaceholder")}
+                      />
+                      <button
+                        className="deckgo-button deck-ui-agents-button"
+                        type="button"
+                        disabled={actionState !== "idle" || !templateName.trim()}
+                        onClick={saveSelectedAgentTemplate}
+                      >
+                        {actionState === "template"
+                          ? tAgentDetail("panel.savingTemplate")
+                          : tAgentDetail("panel.saveTemplate")}
+                      </button>
+                    </div>
+                    {agentTemplates.length > 0 ? (
+                      <ul className="deckgo-shell-list deck-ui-agents-list deck-ui-agents-spaced">
+                        {agentTemplates.map((template, index) => (
+                          <li key={`${template.name}:${template.createdAt}`}>
+                            <div className="deckgo-selectable-card deck-ui-agents-row">
+                              <strong>{template.name}</strong>
+                              <div className="deckgo-meta">
+                                {tAgentDetail("panel.createdAt", {
+                                  value: new Date(template.createdAt).toLocaleString(),
+                                })}
                               </div>
-                            </li>
+                              <div className="deckgo-meta">
+                                {tAgentDetail("panel.configValue", {
+                                  value: formatDiffValue(template.config),
+                                })}
+                              </div>
+                              <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced-tight">
+                                <button
+                                  className="deckgo-button deck-ui-agents-button"
+                                  type="button"
+                                  disabled={actionState !== "idle"}
+                                  onClick={() => void createAgentFromTemplate(template)}
+                                >
+                                  {actionState === "template-create"
+                                    ? tAgentDetail("panel.creatingFromTemplate")
+                                    : tAgentDetail("panel.createFromTemplate")}
+                                </button>
+                                <button
+                                  className="deckgo-button deck-ui-agents-button is-danger"
+                                  type="button"
+                                  disabled={actionState !== "idle"}
+                                  onClick={() => deleteAgentTemplate(index)}
+                                >
+                                  {tAgentDetail("panel.deleteTemplate")}
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="deckgo-note">{tAgentDetail("panel.noTemplates")}</p>
+                    )}
+                  </div>
+                </AgentEditorBoundary>
+                <AgentCompareBoundary>
+                  <div
+                    className="deckgo-surface-tile deck-ui-agents-surface"
+                    hidden={activeAgentTab !== "overview"}
+                  >
+                    <p className="deckgo-surface-label">{tAgentDetail("panel.compareTitle")}</p>
+                    <p className="deckgo-note">{tAgentDetail("panel.compareDescription")}</p>
+                    <div className="deckgo-actions deck-ui-agents-actions">
+                      <select
+                        aria-label={tAgentDetail("panel.compareAgent")}
+                        className="deckgo-input deck-ui-agents-input"
+                        value={compareAgentId}
+                        disabled={actionState !== "idle"}
+                        onChange={(event) => setCompareAgentId(event.target.value)}
+                      >
+                        <option value="">{tAgentDetail("panel.chooseAgent")}</option>
+                        {agents
+                          .filter((agent) => agent.id !== detail.id)
+                          .map((agent) => (
+                            <option key={agent.id} value={agent.id}>
+                              {agent.name || agent.id}
+                            </option>
                           ))}
-                        </ul>
-                      ) : (
-                        <p className="deckgo-note">Selected agent detail payloads match.</p>
-                      )}
-                    </>
-                  ) : null}
-                  {compareError ? <p className="deckgo-note">{compareError}</p> : null}
-                </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent config overrides</p>
-                  <p className="deckgo-note">
-                    Edits are persisted through the Gateway config patch path as a selected
-                    agents.list entry merge.
-                  </p>
+                      </select>
+                      <button
+                        className="deckgo-button deck-ui-agents-button"
+                        type="button"
+                        disabled={actionState !== "idle" || !compareAgentId}
+                        onClick={() => void compareAgentDetail()}
+                      >
+                        {actionState === "compare"
+                          ? tAgentDetail("panel.comparing")
+                          : tAgentDetail("panel.compareAgents")}
+                      </button>
+                    </div>
+                    {compareDetail ? (
+                      <>
+                        <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid deck-ui-agents-spaced">
+                          <ShellStat label={tAgentDetail("panel.left")} value={detail.id} />
+                          <ShellStat label={tAgentDetail("panel.right")} value={compareDetail.id} />
+                          <ShellStat
+                            label={tAgentDetail("panel.diffs")}
+                            value={compareDiffs.length}
+                          />
+                        </div>
+                        {compareDiffs.length > 0 ? (
+                          <ul className="deckgo-shell-list deck-ui-agents-list deck-ui-agents-spaced">
+                            {compareDiffs.slice(0, 10).map((diff) => (
+                              <li key={diff.path}>
+                                <div className="deckgo-selectable-card deck-ui-agents-row">
+                                  <strong>
+                                    {diff.type}: {diff.path}
+                                  </strong>
+                                  <div className="deckgo-meta">
+                                    {tAgentDetail("panel.oldNew", {
+                                      oldValue: formatDiffValue(diff.oldValue),
+                                      newValue: formatDiffValue(diff.newValue),
+                                    })}
+                                  </div>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="deckgo-note">{tAgentDetail("panel.payloadsMatch")}</p>
+                        )}
+                      </>
+                    ) : null}
+                    {compareError ? <p className="deckgo-note">{compareError}</p> : null}
+                  </div>
+                </AgentCompareBoundary>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  data-agent-editor="config-editor"
+                  hidden={activeAgentTab !== "config"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.configOverrides")}</p>
+                  <p className="deckgo-note">{tAgentDetail("panel.configDescription")}</p>
                   {agentRawConfig ? (
                     <>
                       <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
                         <ShellStat
-                          label="source"
+                          label={tAgentDetail("panel.source")}
                           value={agentRawConfig.entry ? "agent" : "defaults"}
                         />
                         <ShellStat
-                          label="overrides"
+                          label={tAgentDetail("panel.overrides")}
                           value={countAgentConfigOverrides(agentRawConfig)}
                         />
-                        <ShellStat label="hash" value={agentRawConfig.baseHash ?? "n/a"} />
+                        <ShellStat
+                          label={tAgentDetail("panel.hash")}
+                          value={agentRawConfig.baseHash ?? "n/a"}
+                        />
                       </div>
                       <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid deck-ui-agents-spaced">
                         <label>
-                          <span className="deckgo-surface-label">Model</span>
+                          <span className="deckgo-surface-label">{tAgentDetail("model")}</span>
                           <input
                             className="deckgo-input deck-ui-agents-input"
                             value={agentConfigDraft.model}
@@ -1937,11 +2254,11 @@ export function AgentsPanel() {
                                 model: event.target.value,
                               }))
                             }
-                            placeholder="inherit configured model"
+                            placeholder={tAgentDetail("panel.modelPlaceholder")}
                           />
                           {runtimeModelOptions.length > 0 ? (
                             <select
-                              aria-label="Primary model preset"
+                              aria-label={tAgentDetail("panel.primaryModelPreset")}
                               className="deckgo-input deck-ui-agents-input deck-ui-agents-spaced-tight"
                               value={
                                 runtimeModelOptions.some(
@@ -1961,7 +2278,7 @@ export function AgentsPanel() {
                                 }
                               }}
                             >
-                              <option value="">select runtime model</option>
+                              <option value="">{tAgentDetail("panel.selectRuntimeModel")}</option>
                               {runtimeModelOptions.map((option) => (
                                 <option key={option.ref} value={option.ref}>
                                   {option.label} ({option.provider})
@@ -1971,7 +2288,9 @@ export function AgentsPanel() {
                           ) : null}
                         </label>
                         <label>
-                          <span className="deckgo-surface-label">Fallback models</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("panel.fallbackModels")}
+                          </span>
                           <input
                             className="deckgo-input deck-ui-agents-input"
                             value={agentConfigDraft.modelFallbacks}
@@ -1982,17 +2301,17 @@ export function AgentsPanel() {
                                 modelFallbacks: event.target.value,
                               }))
                             }
-                            placeholder="comma-separated fallback model ids"
+                            placeholder={tAgentDetail("panel.fallbackPlaceholder")}
                           />
                           {runtimeModelOptions.length > 0 ? (
                             <select
-                              aria-label="Add fallback model"
+                              aria-label={tAgentDetail("panel.addFallbackModel")}
                               className="deckgo-input deck-ui-agents-input deck-ui-agents-spaced-tight"
                               value=""
                               disabled={actionState !== "idle"}
                               onChange={(event) => addFallbackModel(event.target.value)}
                             >
-                              <option value="">add runtime fallback</option>
+                              <option value="">{tAgentDetail("panel.addRuntimeFallback")}</option>
                               {runtimeModelOptions
                                 .filter(
                                   (option) =>
@@ -2030,7 +2349,7 @@ export function AgentsPanel() {
                                           })
                                         }
                                       >
-                                        Move up
+                                        {tAgentDetail("config.moveFallbackUp")}
                                       </button>
                                       <button
                                         className="deckgo-button deck-ui-agents-button"
@@ -2050,7 +2369,7 @@ export function AgentsPanel() {
                                           })
                                         }
                                       >
-                                        Move down
+                                        {tAgentDetail("config.moveFallbackDown")}
                                       </button>
                                       <button
                                         className="deckgo-button deck-ui-agents-button is-danger"
@@ -2064,7 +2383,7 @@ export function AgentsPanel() {
                                           )
                                         }
                                       >
-                                        Remove fallback
+                                        {tAgentDetail("panel.removeFallback")}
                                       </button>
                                     </div>
                                   </div>
@@ -2072,11 +2391,13 @@ export function AgentsPanel() {
                               ))}
                             </ul>
                           ) : (
-                            <p className="deckgo-note">No fallback models configured.</p>
+                            <p className="deckgo-note">{tAgentDetail("panel.noFallbackModels")}</p>
                           )}
                         </label>
                         <label>
-                          <span className="deckgo-surface-label">Reasoning default</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("panel.reasoningDefault")}
+                          </span>
                           <select
                             className="deckgo-input deck-ui-agents-input"
                             value={agentConfigDraft.reasoningDefault}
@@ -2088,13 +2409,17 @@ export function AgentsPanel() {
                               }))
                             }
                           >
-                            <option value="stream">stream</option>
-                            <option value="on">on</option>
-                            <option value="off">off</option>
+                            <option value="stream">
+                              {tAgentDetail("config.reasoning_stream")}
+                            </option>
+                            <option value="on">{tAgentDetail("config.reasoning_on")}</option>
+                            <option value="off">{tAgentDetail("config.reasoning_off")}</option>
                           </select>
                         </label>
                         <label>
-                          <span className="deckgo-surface-label">Thinking default</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("panel.thinkingDefault")}
+                          </span>
                           <select
                             className="deckgo-input deck-ui-agents-input"
                             value={agentConfigDraft.thinkingDefault}
@@ -2106,16 +2431,18 @@ export function AgentsPanel() {
                               }))
                             }
                           >
-                            <option value="">inherit thinking default</option>
+                            <option value="">{tAgentDetail("panel.inheritThinkingDefault")}</option>
                             {THINKING_LEVELS.map((level) => (
                               <option key={level} value={level}>
-                                {level}
+                                {tAgentDetail(`config.thinking_${level}`)}
                               </option>
                             ))}
                           </select>
                         </label>
                         <label>
-                          <span className="deckgo-surface-label">Temperature</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("panel.temperature")}
+                          </span>
                           <input
                             className="deckgo-input deck-ui-agents-input"
                             value={agentConfigDraft.temperature}
@@ -2127,11 +2454,13 @@ export function AgentsPanel() {
                                 temperature: event.target.value,
                               }))
                             }
-                            placeholder="inherit temperature"
+                            placeholder={tAgentDetail("panel.temperaturePlaceholder")}
                           />
                         </label>
                         <label>
-                          <span className="deckgo-surface-label">Tools profile</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("panel.toolsProfile")}
+                          </span>
                           <input
                             className="deckgo-input deck-ui-agents-input"
                             value={agentConfigDraft.toolsProfile}
@@ -2142,13 +2471,13 @@ export function AgentsPanel() {
                                 toolsProfile: event.target.value,
                               }))
                             }
-                            placeholder="inherit tools profile"
+                            placeholder={tAgentDetail("panel.toolsProfilePlaceholder")}
                           />
                           {(toolsCatalog?.profiles?.length ?? 0) > 0 ? (
                             <div
                               className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced-tight"
                               role="radiogroup"
-                              aria-label="Tool profile presets"
+                              aria-label={tAgentDetail("panel.toolProfilePresets")}
                             >
                               {toolsCatalog?.profiles?.map((profile) => (
                                 <button
@@ -2174,7 +2503,9 @@ export function AgentsPanel() {
                           ) : null}
                         </label>
                         <label>
-                          <span className="deckgo-surface-label">Allowed tools</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("panel.allowedTools")}
+                          </span>
                           <input
                             className="deckgo-input deck-ui-agents-input"
                             value={agentConfigDraft.toolsAllow}
@@ -2185,11 +2516,13 @@ export function AgentsPanel() {
                                 toolsAllow: event.target.value,
                               }))
                             }
-                            placeholder="comma-separated allow overrides"
+                            placeholder={tAgentDetail("panel.allowedToolsPlaceholder")}
                           />
                         </label>
                         <label>
-                          <span className="deckgo-surface-label">Denied tools</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("panel.deniedTools")}
+                          </span>
                           <input
                             className="deckgo-input deck-ui-agents-input"
                             value={agentConfigDraft.toolsDeny}
@@ -2200,7 +2533,7 @@ export function AgentsPanel() {
                                 toolsDeny: event.target.value,
                               }))
                             }
-                            placeholder="comma-separated deny overrides"
+                            placeholder={tAgentDetail("panel.deniedToolsPlaceholder")}
                           />
                         </label>
                         <label className="deckgo-checkbox-row">
@@ -2216,7 +2549,7 @@ export function AgentsPanel() {
                               }));
                             }}
                           />
-                          <span>Fast mode default</span>
+                          <span>{tAgentDetail("panel.fastModeDefault")}</span>
                         </label>
                       </div>
                       <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced">
@@ -2226,7 +2559,9 @@ export function AgentsPanel() {
                           disabled={actionState !== "idle"}
                           onClick={() => void saveAgentRawConfig()}
                         >
-                          {actionState === "agent-config" ? "Saving config" : "Save agent config"}
+                          {actionState === "agent-config"
+                            ? tAgentDetail("panel.savingConfig")
+                            : tAgentDetail("panel.saveAgentConfig")}
                         </button>
                         <button
                           className="deckgo-button deck-ui-agents-button"
@@ -2236,26 +2571,28 @@ export function AgentsPanel() {
                           }
                           onClick={() => void resetAgentRawConfigOverrides()}
                         >
-                          Reset editable overrides
+                          {tAgentDetail("panel.resetEditableOverrides")}
                         </button>
                       </div>
                     </>
                   ) : (
-                    <p className="deckgo-note">Loading raw agent config...</p>
+                    <p className="deckgo-note">{tAgentDetail("panel.loadingRawConfig")}</p>
                   )}
                   {agentConfigError ? <p className="deckgo-note">{agentConfigError}</p> : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Channel event streams</p>
-                  <p className="deckgo-note">
-                    Chat is always enabled; lifecycle, assistant, tool, and thinking streams can be
-                    configured through the Gateway-backed agent event stream API.
-                  </p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  hidden={activeAgentTab !== "config"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("eventStreams.title")}</p>
+                  <p className="deckgo-note">{tAgentDetail("eventStreams.description")}</p>
                   {eventStreams?.isDefault ? (
-                    <p className="deckgo-note">Using default event stream policy.</p>
+                    <p className="deckgo-note">{tAgentDetail("eventStreams.usingDefault")}</p>
                   ) : null}
                   <div className="deckgo-pill-row deck-ui-agents-pill-row">
-                    <span className="deckgo-pill is-positive">chat locked on</span>
+                    <span className="deckgo-pill is-positive">
+                      {tAgentDetail("eventStreams.locked")}
+                    </span>
                     {(eventStreams?.eventStreams ?? []).map((stream) => (
                       <span key={stream} className="deckgo-pill">
                         {stream}
@@ -2274,31 +2611,43 @@ export function AgentsPanel() {
                               void toggleEventStream(stream, event.currentTarget.checked)
                             }
                           />
-                          <span>{stream}</span>
+                          <span>{tAgentDetail(`config.eventStream_${stream}`)}</span>
                         </label>
                       ))}
                     </div>
                   ) : (
-                    <p className="deckgo-note">Loading event stream policy...</p>
+                    <p className="deckgo-note">{tAgentDetail("eventStreams.loading")}</p>
                   )}
                   {eventStreamsError ? <p className="deckgo-note">{eventStreamsError}</p> : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent skills</p>
-                  <p className="deckgo-note">
-                    Configure whether this agent can use all skills or only a Gateway-backed
-                    whitelist.
-                  </p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  data-agent-editor="skill-config"
+                  hidden={activeAgentTab !== "skills"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("skillsEditor.title")}</p>
+                  <p className="deckgo-note">{tAgentDetail("skillsEditor.description")}</p>
                   {skillsConfig ? (
                     <>
                       <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
-                        <ShellStat label="mode" value={agentSkillMode} />
-                        <ShellStat label="assigned" value={agentSkillKeys.length} />
-                        <ShellStat label="available" value={skillsConfig.available.length} />
+                        <ShellStat
+                          label={tAgentDetail("skillsEditor.mode")}
+                          value={agentSkillMode}
+                        />
+                        <ShellStat
+                          label={tAgentDetail("skillsEditor.assigned")}
+                          value={agentSkillKeys.length}
+                        />
+                        <ShellStat
+                          label={tAgentDetail("skillsEditor.available")}
+                          value={skillsConfig.available.length}
+                        />
                       </div>
                       <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid deck-ui-agents-spaced">
                         <label>
-                          <span className="deckgo-surface-label">Skill mode</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("skillsEditor.modeLabel")}
+                          </span>
                           <select
                             className="deckgo-input deck-ui-agents-input"
                             value={agentSkillMode}
@@ -2307,8 +2656,8 @@ export function AgentsPanel() {
                               setAgentSkillMode(event.target.value as AgentSkillMode)
                             }
                           >
-                            <option value="all">all skills</option>
-                            <option value="whitelist">selected skills</option>
+                            <option value="all">{tAgentDetail("skillModeAll")}</option>
+                            <option value="whitelist">{tAgentDetail("skillModeWhitelist")}</option>
                           </select>
                         </label>
                       </div>
@@ -2325,7 +2674,9 @@ export function AgentsPanel() {
                             />
                             <span>
                               {skill.name || skill.key}
-                              {skill.eligible ? "" : " (not eligible)"}
+                              {skill.eligible
+                                ? ""
+                                : ` (${tAgentDetail("skillsEditor.notEligible")})`}
                             </span>
                           </label>
                         ))}
@@ -2337,21 +2688,193 @@ export function AgentsPanel() {
                           disabled={actionState !== "idle"}
                           onClick={() => void saveSkillsConfig()}
                         >
-                          {actionState === "skills" ? "Saving skills" : "Save agent skills"}
+                          {actionState === "skills"
+                            ? tAgentDetail("skillsEditor.savingAgentSkills")
+                            : tAgentDetail("skillsEditor.saveAgentSkills")}
                         </button>
+                      </div>
+                      <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid deck-ui-agents-spaced">
+                        <div data-agent-editor="skill-install-dialog">
+                          <p className="deckgo-surface-label">
+                            {tAgentDetail("skillsEditor.installTitle")}
+                          </p>
+                          <p className="deckgo-note">
+                            {tAgentDetail("skillsEditor.installDescription")}
+                          </p>
+                          {skillInstallOptions.length > 0 ? (
+                            <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced">
+                              {skillInstallOptions.map(({ skill, option }) => (
+                                <button
+                                  className="deckgo-button deck-ui-agents-button"
+                                  key={`${skill.key}-${option.id}`}
+                                  type="button"
+                                  disabled={actionState !== "idle"}
+                                  onClick={() => void installSkillOption(skill, option.id)}
+                                >
+                                  {actionState === "skill-install"
+                                    ? tAgentDetail("installing")
+                                    : `${skill.name}: ${option.label}`}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="deckgo-note">
+                              {skillInventory.length === 0
+                                ? tAgentDetail("skillsEditor.loadingInventory")
+                                : tAgentDetail("skillsEditor.noInstallOptions")}
+                            </p>
+                          )}
+                        </div>
+                        <div data-agent-editor="skill-config-editor">
+                          <p className="deckgo-surface-label">
+                            {tAgentDetail("skillsEditor.configTitle")}
+                          </p>
+                          <p className="deckgo-note">
+                            {tAgentDetail("skillsEditor.configDescription")}
+                          </p>
+                          {selectedSkillConfig ? (
+                            <>
+                              <label>
+                                <span className="deckgo-surface-label">
+                                  {tAgentDetail("skillsEditor.selectSkill")}
+                                </span>
+                                <select
+                                  className="deckgo-input deck-ui-agents-input"
+                                  value={selectedSkillConfig.key}
+                                  disabled={actionState !== "idle"}
+                                  onChange={(event) =>
+                                    setSelectedSkillConfigKey(event.target.value)
+                                  }
+                                >
+                                  {skillInventory.map((skill) => (
+                                    <option key={skill.key} value={skill.key}>
+                                      {skill.name || skill.key}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid deck-ui-agents-spaced">
+                                <ShellStat
+                                  label={tAgentDetail("skillsEditor.status")}
+                                  value={selectedSkillConfig.status}
+                                />
+                                <ShellStat
+                                  label={tAgentDetail("skillsEditor.source")}
+                                  value={selectedSkillConfig.source}
+                                />
+                                <ShellStat
+                                  label={tAgentDetail("skillsEditor.enabled")}
+                                  value={
+                                    selectedSkillConfig.enabled
+                                      ? tAgentDetail("panel.enabled")
+                                      : tAgentDetail("panel.disabled")
+                                  }
+                                />
+                              </div>
+                              <label>
+                                <span className="deckgo-surface-label">
+                                  {tAgentDetail("skillApiKey")}
+                                </span>
+                                <input
+                                  className="deckgo-input deck-ui-agents-input"
+                                  type="password"
+                                  value={skillApiKeyDraft}
+                                  disabled={actionState !== "idle"}
+                                  placeholder={tAgentDetail("skillApiKeyPlaceholder")}
+                                  onChange={(event) => setSkillApiKeyDraft(event.target.value)}
+                                />
+                              </label>
+                              <div className="deck-ui-agents-spaced">
+                                <div className="deckgo-actions deck-ui-agents-actions">
+                                  <span className="deckgo-surface-label">
+                                    {tAgentDetail("skillEnvVars")}
+                                  </span>
+                                  <button
+                                    className="deckgo-button deck-ui-agents-button"
+                                    type="button"
+                                    disabled={actionState !== "idle"}
+                                    onClick={addSkillEnvPair}
+                                  >
+                                    {tAgentDetail("addEnvVar")}
+                                  </button>
+                                </div>
+                                {skillEnvPairs.length > 0 ? (
+                                  <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid">
+                                    {skillEnvPairs.map((pair, index) => (
+                                      <div
+                                        className="deckgo-actions deck-ui-agents-actions"
+                                        key={`${pair.key}-${index}`}
+                                      >
+                                        <input
+                                          className="deckgo-input deck-ui-agents-input"
+                                          value={pair.key}
+                                          disabled={actionState !== "idle"}
+                                          placeholder={tAgentDetail("skillEnvKey")}
+                                          onChange={(event) =>
+                                            updateSkillEnvPair(index, "key", event.target.value)
+                                          }
+                                        />
+                                        <input
+                                          className="deckgo-input deck-ui-agents-input"
+                                          value={pair.value}
+                                          disabled={actionState !== "idle"}
+                                          placeholder={tAgentDetail("skillEnvValue")}
+                                          onChange={(event) =>
+                                            updateSkillEnvPair(index, "value", event.target.value)
+                                          }
+                                        />
+                                        <button
+                                          className="deckgo-button deck-ui-agents-button"
+                                          type="button"
+                                          disabled={actionState !== "idle"}
+                                          onClick={() => removeSkillEnvPair(index)}
+                                        >
+                                          {tAgentDetail("config.removeFallback")}
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="deckgo-note">
+                                    {tAgentDetail("skillsEditor.noEnvVars")}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced">
+                                <button
+                                  className="deckgo-button is-primary deck-ui-agents-button"
+                                  type="button"
+                                  disabled={actionState !== "idle"}
+                                  onClick={() => void saveSkillConfig()}
+                                >
+                                  {actionState === "skill-config"
+                                    ? tAgentDetail("skillsEditor.savingConfig")
+                                    : tAgentDetail("skillsEditor.saveConfig")}
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="deckgo-note">
+                              {tAgentDetail("skillsEditor.loadingInventory")}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </>
                   ) : (
-                    <p className="deckgo-note">Loading agent skill policy...</p>
+                    <p className="deckgo-note">{tAgentDetail("skillsEditor.loadingPolicy")}</p>
                   )}
                   {skillsConfigError ? <p className="deckgo-note">{skillsConfigError}</p> : null}
+                  {skillInventoryError ? (
+                    <p className="deckgo-note">{skillInventoryError}</p>
+                  ) : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Subagent spawning</p>
-                  <p className="deckgo-note">
-                    Configure which agents this agent may spawn and whether spawned runs should use
-                    a model override.
-                  </p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  hidden={activeAgentTab !== "subagent"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.subagentSpawning")}</p>
+                  <p className="deckgo-note">{tAgentDetail("panel.subagentDescription")}</p>
                   {subagentConfig ? (
                     <>
                       <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
@@ -2370,7 +2893,9 @@ export function AgentsPanel() {
                       </div>
                       <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid deck-ui-agents-spaced">
                         <label>
-                          <span className="deckgo-surface-label">Spawn permission</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("spawnPermission")}
+                          </span>
                           <select
                             className="deckgo-input deck-ui-agents-input"
                             value={subagentAllowMode}
@@ -2379,23 +2904,25 @@ export function AgentsPanel() {
                               setSubagentAllowMode(event.target.value as SubagentAllowMode)
                             }
                           >
-                            <option value="none">none</option>
-                            <option value="list">selected agents</option>
-                            <option value="any">any agent</option>
+                            <option value="none">{tAgentDetail("spawnNone")}</option>
+                            <option value="list">{tAgentDetail("spawnList")}</option>
+                            <option value="any">{tAgentDetail("spawnAny")}</option>
                           </select>
                         </label>
                         <label>
-                          <span className="deckgo-surface-label">Model override</span>
+                          <span className="deckgo-surface-label">
+                            {tAgentDetail("modelOverride")}
+                          </span>
                           <input
                             className="deckgo-input deck-ui-agents-input"
                             value={subagentModel}
                             disabled={actionState !== "idle"}
                             onChange={(event) => setSubagentModel(event.target.value)}
-                            placeholder="inherit default model"
+                            placeholder={tAgentDetail("panel.subagentModelPlaceholder")}
                           />
                           {runtimeModelOptions.length > 0 ? (
                             <select
-                              aria-label="Subagent model preset"
+                              aria-label={tAgentDetail("panel.subagentModelPreset")}
                               className="deckgo-input deck-ui-agents-input deck-ui-agents-spaced-tight"
                               value={
                                 runtimeModelOptions.some((option) => option.ref === subagentModel)
@@ -2405,7 +2932,7 @@ export function AgentsPanel() {
                               disabled={actionState !== "idle"}
                               onChange={(event) => setSubagentModel(event.target.value)}
                             >
-                              <option value="">select runtime model</option>
+                              <option value="">{tAgentDetail("panel.selectRuntimeModel")}</option>
                               {runtimeModelOptions.map((option) => (
                                 <option key={option.ref} value={option.ref}>
                                   {option.label} ({option.provider})
@@ -2441,23 +2968,25 @@ export function AgentsPanel() {
                           disabled={actionState !== "idle"}
                           onClick={() => void saveSubagentConfig()}
                         >
-                          {actionState === "subagents" ? "Saving subagents" : "Save subagents"}
+                          {actionState === "subagents"
+                            ? tAgentDetail("panel.savingSubagents")
+                            : tAgentDetail("panel.saveSubagents")}
                         </button>
                       </div>
                     </>
                   ) : (
-                    <p className="deckgo-note">Loading subagent policy...</p>
+                    <p className="deckgo-note">{tAgentDetail("panel.loadingSubagentPolicy")}</p>
                   )}
                   {subagentConfigError ? (
                     <p className="deckgo-note">{subagentConfigError}</p>
                   ) : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent subagent runs</p>
-                  <p className="deckgo-note">
-                    Active subagent runs requested by this agent, loaded with the same requester
-                    filter as the old Deck detail tab.
-                  </p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  hidden={activeAgentTab !== "subagent"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.subagentRuns")}</p>
+                  <p className="deckgo-note">{tAgentDetail("panel.subagentRunsDescription")}</p>
                   <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid">
                     <ShellStat label="active runs" value={agentSubagentRuns.length} />
                     <ShellStat
@@ -2471,7 +3000,7 @@ export function AgentsPanel() {
                       type="button"
                       onClick={() => navigateToPanel(ui, "subagents")}
                     >
-                      Open subagents panel
+                      {tAgentDetail("panel.openSubagentsPanel")}
                     </button>
                   </div>
                   {agentSubagentRuns.length > 0 ? (
@@ -2494,7 +3023,7 @@ export function AgentsPanel() {
                                 disabled={!run.childAgentId}
                                 onClick={() => navigateToAgent(ui, run.childAgentId, "subagents")}
                               >
-                                Open child agent
+                                {tAgentDetail("panel.openChildAgent")}
                               </button>
                               <button
                                 className="deckgo-button deck-ui-agents-button"
@@ -2502,7 +3031,7 @@ export function AgentsPanel() {
                                 disabled={!run.childSessionKey}
                                 onClick={() => navigateToSession(ui, run.childSessionKey ?? "")}
                               >
-                                Open child session
+                                {tAgentDetail("panel.openChildSession")}
                               </button>
                             </div>
                           </div>
@@ -2510,16 +3039,24 @@ export function AgentsPanel() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="deckgo-note">No active subagent runs for this agent.</p>
+                    <p className="deckgo-note">{tAgentDetail("panel.noActiveSubagentRuns")}</p>
                   )}
                   {agentSubagentRunsError ? (
                     <p className="deckgo-note">{agentSubagentRunsError}</p>
                   ) : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Effective previews</p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  data-agent-editor="tools-editor"
+                  hidden={
+                    activeAgentTab !== "tools" &&
+                    activeAgentTab !== "context" &&
+                    activeAgentTab !== "sessions"
+                  }
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.effectivePreviews")}</p>
                   <p className="deckgo-note">
-                    Gateway-derived tool policy and system prompt summaries for the selected agent.
+                    {tAgentDetail("panel.effectivePreviewsDescription")}
                   </p>
                   {toolPolicyPreview || systemPromptPreview ? (
                     <>
@@ -2538,8 +3075,14 @@ export function AgentsPanel() {
                         />
                       </div>
                       {toolsCatalog ? (
-                        <div className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced">
-                          <p className="deckgo-surface-label">Tools catalog</p>
+                        <div
+                          className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced"
+                          data-agent-editor="tool-policy-trace"
+                          hidden={activeAgentTab !== "tools"}
+                        >
+                          <p className="deckgo-surface-label">
+                            {tAgentDetail("panel.toolsCatalog")}
+                          </p>
                           <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
                             <ShellStat label="groups" value={toolsCatalog.groups.length} />
                             <ShellStat label="tools" value={catalogToolCount} />
@@ -2556,8 +3099,7 @@ export function AgentsPanel() {
                             ))}
                           </div>
                           <p className="deckgo-note deck-ui-agents-spaced">
-                            Catalog overrides update the editable allow/deny lists below; use Save
-                            agent config to persist them through the config patch path.
+                            {tAgentDetail("panel.toolsCatalogDescription")}
                           </p>
                           <ul className="deckgo-shell-list deck-ui-agents-list deck-ui-agents-spaced">
                             {toolsCatalog.groups
@@ -2591,9 +3133,15 @@ export function AgentsPanel() {
                                         );
                                       }}
                                     >
-                                      <option value="default">default</option>
-                                      <option value="allow">allow</option>
-                                      <option value="deny">deny</option>
+                                      <option value="default">
+                                        {tAgentDetail("config.toolDefault")}
+                                      </option>
+                                      <option value="allow">
+                                        {tAgentDetail("config.toolAllow")}
+                                      </option>
+                                      <option value="deny">
+                                        {tAgentDetail("config.toolDeny")}
+                                      </option>
                                     </select>
                                   </div>
                                 </li>
@@ -2601,8 +3149,13 @@ export function AgentsPanel() {
                           </ul>
                         </div>
                       ) : null}
-                      <div className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced">
-                        <p className="deckgo-surface-label">Session effective tools</p>
+                      <div
+                        className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced"
+                        hidden={activeAgentTab !== "tools"}
+                      >
+                        <p className="deckgo-surface-label">
+                          {tAgentDetail("panel.sessionEffectiveTools")}
+                        </p>
                         {effectiveToolSessions.length > 0 ? (
                           <>
                             <div className="deckgo-grid deckgo-grid-3 deck-ui-agents-grid">
@@ -2611,7 +3164,9 @@ export function AgentsPanel() {
                               <ShellStat label="tools" value={effectiveToolCount} />
                             </div>
                             <label className="deck-ui-agents-label deck-ui-agents-spaced">
-                              <span className="deckgo-surface-label">Session</span>
+                              <span className="deckgo-surface-label">
+                                {tAgentDetail("panel.session")}
+                              </span>
                               <select
                                 className="deckgo-input deck-ui-agents-input"
                                 value={effectiveToolsSessionKey}
@@ -2639,27 +3194,36 @@ export function AgentsPanel() {
                                 ))}
                               </div>
                             ) : (
-                              <p className="deckgo-note">No effective tools for this session.</p>
+                              <p className="deckgo-note">
+                                {tAgentDetail("panel.noEffectiveTools")}
+                              </p>
                             )}
                           </>
                         ) : (
                           <p className="deckgo-note">
-                            No sessions are available for effective tool inspection.
+                            {tAgentDetail("panel.noEffectiveToolSessions")}
                           </p>
                         )}
                         {effectiveToolsError ? (
                           <p className="deckgo-note">{effectiveToolsError}</p>
                         ) : null}
                       </div>
-                      <div className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced">
-                        <p className="deckgo-surface-label">Recent agent sessions</p>
+                      <div
+                        className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced"
+                        hidden={activeAgentTab !== "sessions"}
+                      >
+                        <p className="deckgo-surface-label">
+                          {tAgentDetail("panel.recentSessions")}
+                        </p>
                         {effectiveToolSessions.length > 0 ? (
                           <>
                             <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid">
                               <label>
-                                <span className="deckgo-surface-label">Session type</span>
+                                <span className="deckgo-surface-label">
+                                  {tAgentDetail("panel.sessionType")}
+                                </span>
                                 <select
-                                  aria-label="Agent session filter"
+                                  aria-label={tAgentDetail("panel.agentSessionFilter")}
                                   className="deckgo-input deck-ui-agents-input"
                                   value={agentSessionFilter}
                                   onChange={(event) =>
@@ -2709,7 +3273,7 @@ export function AgentsPanel() {
                                             type="button"
                                             onClick={() => navigateToSession(ui, session.key)}
                                           >
-                                            Open session
+                                            {tAgentDetail("panel.openSession")}
                                           </button>
                                         </div>
                                       </div>
@@ -2719,16 +3283,19 @@ export function AgentsPanel() {
                               </ul>
                             ) : (
                               <p className="deckgo-note">
-                                No recent sessions match the selected type.
+                                {tAgentDetail("panel.noRecentSessionsMatch")}
                               </p>
                             )}
                           </>
                         ) : (
-                          <p className="deckgo-note">No recent sessions reported for this agent.</p>
+                          <p className="deckgo-note">{tAgentDetail("panel.noRecentSessions")}</p>
                         )}
                       </div>
                       {(toolPolicyPreview?.layers?.length ?? 0) > 0 ? (
-                        <div className="deckgo-pill-row deck-ui-agents-pill-row deck-ui-agents-spaced">
+                        <div
+                          className="deckgo-pill-row deck-ui-agents-pill-row deck-ui-agents-spaced"
+                          hidden={activeAgentTab !== "tools"}
+                        >
                           {toolPolicyPreview?.layers?.slice(0, 6).map((layer) => (
                             <span key={layer.label} className="deckgo-pill">
                               {layer.label}: {layer.effect}
@@ -2737,13 +3304,18 @@ export function AgentsPanel() {
                         </div>
                       ) : null}
                       {toolPolicyPreview ? (
-                        <div className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced">
-                          <p className="deckgo-surface-label">Tool policy trace</p>
+                        <div
+                          className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced"
+                          hidden={activeAgentTab !== "tools"}
+                        >
+                          <p className="deckgo-surface-label">
+                            {tAgentDetail("panel.toolPolicyTrace")}
+                          </p>
                           <input
                             className="deckgo-input deck-ui-agents-input"
                             value={toolPolicySearch}
                             onChange={(event) => setToolPolicySearch(event.target.value)}
-                            placeholder="search tools"
+                            placeholder={tAgentDetail("panel.searchToolsPlaceholder")}
                           />
                           <ul className="deckgo-shell-list deck-ui-agents-list deck-ui-agents-spaced">
                             {filteredPolicyTools.slice(0, 12).map((tool) => (
@@ -2768,7 +3340,7 @@ export function AgentsPanel() {
                                         ? tool.trace
                                             ?.map((entry) => `${entry.layer} -> ${entry.decision}`)
                                             .join(" | ")
-                                        : "No trace entries."}
+                                        : tAgentDetail("panel.noTraceEntries")}
                                     </div>
                                   ) : null}
                                 </button>
@@ -2778,7 +3350,11 @@ export function AgentsPanel() {
                         </div>
                       ) : null}
                       {(systemPromptPreview?.bootstrapFiles?.length ?? 0) > 0 ? (
-                        <ul className="deckgo-shell-list deck-ui-agents-list deck-ui-agents-spaced">
+                        <ul
+                          className="deckgo-shell-list deck-ui-agents-list deck-ui-agents-spaced"
+                          data-agent-editor="prompt-preview"
+                          hidden={activeAgentTab !== "context"}
+                        >
                           {systemPromptPreview?.bootstrapFiles?.slice(0, 4).map((file) => (
                             <li key={file.name}>
                               <button
@@ -2792,7 +3368,9 @@ export function AgentsPanel() {
                                   {file.exists ? "present" : "missing"} | {file.charCount} chars
                                 </div>
                                 <div className="deckgo-meta">
-                                  {file.exists ? "Edit bootstrap file" : "Create bootstrap file"}
+                                  {file.exists
+                                    ? tAgentDetail("panel.editBootstrapFile")
+                                    : tAgentDetail("panel.createBootstrapFile")}
                                 </div>
                               </button>
                             </li>
@@ -2800,14 +3378,20 @@ export function AgentsPanel() {
                         </ul>
                       ) : null}
                       {bootstrapFileName ? (
-                        <div className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced">
+                        <div
+                          className="deckgo-surface-tile deck-ui-agents-surface deck-ui-agents-spaced"
+                          data-agent-editor="bootstrap-file-editor"
+                          hidden={activeAgentTab !== "context"}
+                        >
                           <p className="deckgo-surface-label">
                             Bootstrap file: {bootstrapFileName}
                           </p>
                           <p className="deckgo-note">
                             {bootstrapFile?.missing
-                              ? "This file does not exist yet."
-                              : `${bootstrapFile?.size ?? bootstrapFileDraft.length} bytes loaded.`}
+                              ? tAgentDetail("panel.bootstrapMissing")
+                              : tAgentDetail("panel.bootstrapBytesLoaded", {
+                                  bytes: bootstrapFile?.size ?? bootstrapFileDraft.length,
+                                })}
                           </p>
                           <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-actions-bottom">
                             {PROMPT_VARIABLE_KEYS.map((key) => (
@@ -2829,7 +3413,7 @@ export function AgentsPanel() {
                             value={bootstrapFileDraft}
                             disabled={actionState === "bootstrap-file"}
                             onChange={(event) => setBootstrapFileDraft(event.target.value)}
-                            placeholder="bootstrap prompt content"
+                            placeholder={tAgentDetail("panel.bootstrapPromptPlaceholder")}
                           />
                           <div className="deckgo-actions deck-ui-agents-actions deck-ui-agents-spaced">
                             <button
@@ -2839,8 +3423,8 @@ export function AgentsPanel() {
                               onClick={() => void saveBootstrapFile()}
                             >
                               {actionState === "bootstrap-file"
-                                ? "Saving bootstrap file"
-                                : "Save bootstrap file"}
+                                ? tAgentDetail("panel.savingBootstrapFile")
+                                : tAgentDetail("panel.saveBootstrapFile")}
                             </button>
                             <button
                               className="deckgo-button deck-ui-agents-button"
@@ -2848,24 +3432,26 @@ export function AgentsPanel() {
                               disabled={actionState !== "idle"}
                               onClick={closeBootstrapFile}
                             >
-                              Close file
+                              {tAgentDetail("panel.closeFile")}
                             </button>
                           </div>
                         </div>
                       ) : null}
                     </>
                   ) : (
-                    <p className="deckgo-note">Loading effective previews...</p>
+                    <p className="deckgo-note">{tAgentDetail("panel.loadingEffectivePreviews")}</p>
                   )}
                   {previewError ? <p className="deckgo-note">{previewError}</p> : null}
                   {toolsCatalogError ? <p className="deckgo-note">{toolsCatalogError}</p> : null}
                   {bootstrapFileError ? <p className="deckgo-note">{bootstrapFileError}</p> : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Agent files</p>
-                  <p className="deckgo-note">
-                    Browse Gateway-listed workspace files and open them in the same inline editor.
-                  </p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  data-agent-editor="files-browser"
+                  hidden={activeAgentTab !== "context"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.agentFiles")}</p>
+                  <p className="deckgo-note">{tAgentDetail("panel.agentFilesDescription")}</p>
                   <div className="deckgo-grid deckgo-grid-2 deck-ui-agents-grid">
                     <ShellStat label="files" value={agentFiles.length} />
                     <ShellStat
@@ -2893,18 +3479,21 @@ export function AgentsPanel() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="deckgo-note">No agent files reported.</p>
+                    <p className="deckgo-note">{tAgentDetail("panel.noAgentFiles")}</p>
                   )}
                   {agentFilesError ? <p className="deckgo-note">{agentFilesError}</p> : null}
                 </div>
-                <div className="deckgo-surface-tile deck-ui-agents-surface">
-                  <p className="deckgo-surface-label">Rename or remove</p>
+                <div
+                  className="deckgo-surface-tile deck-ui-agents-surface"
+                  hidden={activeAgentTab !== "overview"}
+                >
+                  <p className="deckgo-surface-label">{tAgentDetail("panel.renameOrRemove")}</p>
                   <div className="deckgo-actions deck-ui-agents-actions">
                     <input
                       className="deckgo-input deck-ui-agents-input"
                       value={renameValue}
                       onChange={(event) => setRenameValue(event.target.value)}
-                      placeholder="agent name"
+                      placeholder={tAgentDetail("panel.agentNamePlaceholder")}
                     />
                     <button
                       className="deckgo-button deck-ui-agents-button"
@@ -2912,7 +3501,9 @@ export function AgentsPanel() {
                       onClick={() => void renameAction()}
                       disabled={actionState !== "idle"}
                     >
-                      {actionState === "renaming" ? "Renaming" : "Rename"}
+                      {actionState === "renaming"
+                        ? tAgentDetail("panel.renaming")
+                        : tAgentDetail("panel.rename")}
                     </button>
                     <button
                       className="deckgo-button deck-ui-agents-button is-danger"
@@ -2920,20 +3511,22 @@ export function AgentsPanel() {
                       onClick={() => void deleteAction()}
                       disabled={actionState !== "idle" || detail.isDefault}
                     >
-                      {actionState === "deleting" ? "Deleting" : "Delete"}
+                      {actionState === "deleting"
+                        ? tAgentDetail("panel.deleting")
+                        : tAgentDetail("panel.delete")}
                     </button>
                   </div>
                 </div>
-                <JsonDetails title="Agent detail payload" payload={detail} />
+                <JsonDetails title={tAgentDetail("panel.detailPayload")} payload={detail} />
               </>
             ) : (
-              <p className="deckgo-note">Choose an agent to inspect it.</p>
+              <p className="deckgo-note">{tAgentDetail("panel.chooseAgentToInspect")}</p>
             )}
             {runtimeModelsError ? <p className="deckgo-note">{runtimeModelsError}</p> : null}
             {actionResult ? <JsonDetails title="Last agent action" payload={actionResult} /> : null}
           </div>
         </article>
-      </div>
+      </AgentDetailBoundary>
     </section>
   );
 }
