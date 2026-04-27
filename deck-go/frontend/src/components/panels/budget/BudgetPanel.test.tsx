@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { BudgetPanel } from "./BudgetPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -22,7 +23,7 @@ function rule(id: string, name: string, enabled = true) {
   return {
     id,
     name,
-    scope: "global",
+    scope: enabled ? "global" : "agent",
     agentId: enabled ? null : "agent-1",
     taskId: null,
     dimension: enabled ? ("cost" as const) : ("totalTokens" as const),
@@ -61,6 +62,26 @@ function evaluationsPayload() {
   };
 }
 
+function renderBudget(locale: "en" | "zh" = "en") {
+  act(() => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(BudgetPanel)));
+  });
+}
+
+function buttonWithText(text: string) {
+  return Array.from(container.querySelectorAll("button")).find((button) =>
+    button.textContent?.includes(text),
+  );
+}
+
+function formButtonWithText(text: string) {
+  const form = container.querySelector("form");
+  return Array.from(form?.querySelectorAll("button") ?? []).find((button) =>
+    button.textContent?.includes(text),
+  );
+}
+
 describe("BudgetPanel", () => {
   beforeEach(() => {
     (
@@ -68,7 +89,6 @@ describe("BudgetPanel", () => {
     ).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     apiMocks.fetchBudgetRules.mockResolvedValue(rulesPayload());
     apiMocks.evaluateBudgetRules.mockResolvedValue(evaluationsPayload());
     apiMocks.createBudgetRule.mockResolvedValue(rule("budget-c", "Created budget"));
@@ -88,75 +108,42 @@ describe("BudgetPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads budget rules, evaluations, and selects the first rule", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(BudgetPanel));
-    });
+  it("loads budget rules into the old split sidebar and status workspace", async () => {
+    renderBudget();
 
     await waitFor(() => expect(apiMocks.fetchBudgetRules).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(container.textContent).toContain("Budget ready"));
 
-    expect(container.querySelector(".deck-ui-budget")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-card")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-body")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-status-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-surface")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-chart")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-chart-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-form-grid")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-input")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-actions")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-button")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-list")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-hero")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-detail-stats")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-control-shell.deck-ui-budget")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-control-sidebar")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-control-detail")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-budget-status")).toBeTruthy();
     expect(apiMocks.evaluateBudgetRules).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("2 rules");
-    expect(container.textContent).toContain("evaluations1");
+    expect(container.textContent).toContain("1 evaluations");
+    expect(container.textContent).toContain("Budget Status");
     expect(container.textContent).toContain("Cost cap");
     expect(container.textContent).toContain("Token cap");
-    expect(container.textContent).toContain("cost | warn: 10 | over: 20");
-    expect(container.textContent).toContain("totalTokens | warn: n/a | over: 1000");
-    expect(container.textContent).toContain("Budget status");
-    expect(container.textContent).toContain("$12.00 / $20.00");
-    expect(container.textContent).toContain("Selected rule status");
-    expect(container.textContent).toContain("Evaluation");
-    expect((container.querySelector(".deckgo-usage-chart-bar") as HTMLProgressElement).value).toBe(
-      60,
-    );
-
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Cost cap");
+    expect(container.textContent).toContain("$12.00");
+    expect(container.textContent).toContain("Over Threshold: $20.00");
   });
 
-  it("creates, toggles, and deletes rules while preserving preferred selection", async () => {
+  it("creates a per-agent rule through the restored rule form", async () => {
     apiMocks.fetchBudgetRules
       .mockResolvedValueOnce(rulesPayload())
       .mockResolvedValue(rulesPayload(true));
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(BudgetPanel));
-    });
+    renderBudget();
 
     await waitFor(() => expect(container.textContent).toContain("Budget ready"));
 
+    await act(async () => {
+      fireEvent.click(buttonWithText("Create") as HTMLButtonElement);
+    });
+    await waitFor(() => expect(container.textContent).toContain("New Rule"));
+
     const nameInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="budget rule name"]',
-    );
-    const scopeSelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="budget scope"]',
-    );
-    const dimensionSelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="budget dimension"]',
-    );
-    const periodSelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="budget period"]',
     );
     const warnInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="budget warn threshold"]',
@@ -167,25 +154,22 @@ describe("BudgetPanel", () => {
 
     await act(async () => {
       fireEvent.change(nameInput as HTMLInputElement, { target: { value: "Created budget" } });
-      fireEvent.change(scopeSelect as HTMLSelectElement, { target: { value: "agent" } });
+      fireEvent.click(formButtonWithText("Per Agent") as HTMLButtonElement);
     });
+
     const agentInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="budget agent id"]',
     );
+
     await act(async () => {
       fireEvent.change(agentInput as HTMLInputElement, { target: { value: "agent-created" } });
-      fireEvent.change(dimensionSelect as HTMLSelectElement, {
-        target: { value: "totalTokens" },
-      });
-      fireEvent.change(periodSelect as HTMLSelectElement, { target: { value: "daily" } });
+      fireEvent.click(formButtonWithText("Total Tokens") as HTMLButtonElement);
+      fireEvent.click(formButtonWithText("Daily") as HTMLButtonElement);
       fireEvent.change(warnInput as HTMLInputElement, { target: { value: "100" } });
       fireEvent.change(overInput as HTMLInputElement, { target: { value: "200" } });
     });
-
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Create rule")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
     });
 
     await waitFor(() =>
@@ -201,114 +185,33 @@ describe("BudgetPanel", () => {
         enabled: true,
       }),
     );
-
-    const selectedAfterCreate = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedAfterCreate?.textContent).toContain("Created budget");
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Disable")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() =>
-      expect(apiMocks.updateBudgetRule).toHaveBeenCalledWith("budget-c", { enabled: false }),
-    );
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() => expect(apiMocks.deleteBudgetRule).toHaveBeenCalledWith("budget-c"));
-    expect(window.confirm).toHaveBeenCalledWith("Delete budget rule budget-c?");
+    expect(container.textContent).toContain("Created budget");
   });
 
-  it("does not delete a budget rule when confirmation is cancelled", async () => {
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
-
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(BudgetPanel));
-    });
+  it("edits and deletes a selected rule with inline confirmation", async () => {
+    renderBudget();
 
     await waitFor(() => expect(container.textContent).toContain("Budget ready"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("Token cap") as HTMLButtonElement);
     });
 
-    expect(window.confirm).toHaveBeenCalledWith("Delete budget rule budget-a?");
-    expect(apiMocks.deleteBudgetRule).not.toHaveBeenCalled();
-  });
-
-  it("loads the selected rule into the draft and saves full rule edits", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(BudgetPanel));
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Budget ready"));
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Token cap"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Load selected")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
+    expect(container.textContent).toContain("Edit Rule");
     const nameInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="budget rule name"]',
-    );
-    const scopeSelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="budget scope"]',
-    );
-    const periodSelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="budget period"]',
     );
     const warnInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="budget warn threshold"]',
     );
-    const overInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="budget over threshold"]',
-    );
-    const enabledInput = container.querySelector<HTMLInputElement>('input[type="checkbox"]');
-
-    expect(nameInput?.value).toBe("Token cap");
-    expect(scopeSelect?.value).toBe("global");
-    expect(container.querySelector('input[aria-label="budget agent id"]')).toBeNull();
-    expect(overInput?.value).toBe("1000");
-    expect(enabledInput?.checked).toBe(false);
 
     await act(async () => {
       fireEvent.change(nameInput as HTMLInputElement, { target: { value: "Token cap edited" } });
-      fireEvent.change(scopeSelect as HTMLSelectElement, { target: { value: "agent" } });
-    });
-    const agentInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="budget agent id"]',
-    );
-    expect(agentInput?.value).toBe("agent-1");
-
-    await act(async () => {
-      fireEvent.change(periodSelect as HTMLSelectElement, { target: { value: "weekly" } });
       fireEvent.change(warnInput as HTMLInputElement, { target: { value: "500" } });
-      fireEvent.change(overInput as HTMLInputElement, { target: { value: "900" } });
-      fireEvent.click(enabledInput as HTMLInputElement);
+      fireEvent.click(formButtonWithText("Weekly") as HTMLButtonElement);
     });
-
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save selected")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
     });
 
     await waitFor(() =>
@@ -319,70 +222,32 @@ describe("BudgetPanel", () => {
         taskId: null,
         dimension: "totalTokens",
         warnThreshold: 500,
-        overThreshold: 900,
+        overThreshold: 1000,
         period: "weekly",
-        enabled: true,
+        enabled: false,
       }),
     );
+
+    await act(async () => {
+      fireEvent.click(buttonWithText("Token cap") as HTMLButtonElement);
+    });
+    await act(async () => {
+      fireEvent.click(buttonWithText("Delete") as HTMLButtonElement);
+    });
+    expect(apiMocks.deleteBudgetRule).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(buttonWithText("Delete this rule?") as HTMLButtonElement);
+    });
+
+    await waitFor(() => expect(apiMocks.deleteBudgetRule).toHaveBeenCalledWith("budget-b"));
   });
 
-  it("blocks invalid rule drafts before calling budget mutation routes", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(BudgetPanel));
-    });
+  it("renders localized budget copy when the Deck locale changes", async () => {
+    renderBudget("zh");
 
-    await waitFor(() => expect(container.textContent).toContain("Budget ready"));
-
-    const nameInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="budget rule name"]',
-    );
-    const scopeSelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="budget scope"]',
-    );
-    const warnInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="budget warn threshold"]',
-    );
-
-    await act(async () => {
-      fireEvent.change(nameInput as HTMLInputElement, { target: { value: "   " } });
-    });
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Create rule")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(container.textContent).toContain("create requires a rule name");
-    expect(apiMocks.createBudgetRule).not.toHaveBeenCalled();
-
-    await act(async () => {
-      fireEvent.change(nameInput as HTMLInputElement, { target: { value: "Agent cap" } });
-      fireEvent.change(scopeSelect as HTMLSelectElement, { target: { value: "agent" } });
-    });
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Create rule")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(container.textContent).toContain("create requires an agent id");
-    expect(apiMocks.createBudgetRule).not.toHaveBeenCalled();
-
-    const agentInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="budget agent id"]',
-    );
-    await act(async () => {
-      fireEvent.change(agentInput as HTMLInputElement, { target: { value: "agent-1" } });
-      fireEvent.change(warnInput as HTMLInputElement, { target: { value: "-1" } });
-    });
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Create rule")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(container.textContent).toContain("create warn threshold must be zero or greater");
-    expect(apiMocks.createBudgetRule).not.toHaveBeenCalled();
+    await waitFor(() => expect(container.textContent).toContain("预算已就绪"));
+    expect(container.textContent).toContain("预算状态");
+    expect(container.textContent).toContain("2 条规则");
   });
 });

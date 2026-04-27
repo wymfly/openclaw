@@ -25,10 +25,12 @@ import {
   navigateToSession,
 } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useTranslations } from "../../../i18n/provider";
 import { detectConflicts, type ConflictPair } from "../../../lib/detect-conflicts";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 
 type PanelState = "idle" | "loading" | "ready";
+type RoutingTranslator = ReturnType<typeof useTranslations>;
 
 type RoutingFilters = {
   agentId: string;
@@ -155,31 +157,41 @@ function parsePosition(value: string) {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
-function summarizeBindingMatch(binding: DeckGoRoutingBinding) {
-  const parts = [`channel ${binding.match.channel}`];
+function summarizeBindingMatch(
+  binding: DeckGoRoutingBinding,
+  labels: {
+    account: string;
+    channel: string;
+    guild: string;
+    peer: string;
+    roles: string;
+    team: string;
+  },
+) {
+  const parts = [`${labels.channel} ${binding.match.channel}`];
   if (binding.match.accountId) {
-    parts.push(`account ${binding.match.accountId}`);
+    parts.push(`${labels.account} ${binding.match.accountId}`);
   }
   if (binding.match.peer) {
-    parts.push(`peer ${binding.match.peer.kind}:${binding.match.peer.id}`);
+    parts.push(`${labels.peer} ${binding.match.peer.kind}:${binding.match.peer.id}`);
   }
   if (binding.match.guildId) {
-    parts.push(`guild ${binding.match.guildId}`);
+    parts.push(`${labels.guild} ${binding.match.guildId}`);
   }
   if (binding.match.teamId) {
-    parts.push(`team ${binding.match.teamId}`);
+    parts.push(`${labels.team} ${binding.match.teamId}`);
   }
   if (binding.match.roles?.length) {
-    parts.push(`roles ${binding.match.roles.join(", ")}`);
+    parts.push(`${labels.roles} ${binding.match.roles.join(", ")}`);
   }
   return parts.join(" | ");
 }
 
-function summarizeSimulationTier(tier: DeckGoRoutingSimulationTier) {
+function summarizeSimulationTier(t: RoutingTranslator, tier: DeckGoRoutingSimulationTier) {
   if (tier.matched) {
-    return "matched";
+    return t("matched");
   }
-  return tier.checked ? "checked" : "skipped";
+  return tier.checked ? t("checked") : t("skipped");
 }
 
 function buildConflictMap(conflicts: ConflictPair[]) {
@@ -191,9 +203,9 @@ function buildConflictMap(conflicts: ConflictPair[]) {
   return byBinding;
 }
 
-function describeConflict(bindingId: string, conflict: ConflictPair) {
+function describeConflict(t: RoutingTranslator, bindingId: string, conflict: ConflictPair) {
   const otherBindingId = conflict.bindingA === bindingId ? conflict.bindingB : conflict.bindingA;
-  return `${conflict.overlapType} with ${otherBindingId}`;
+  return t("conflictWith", { type: conflict.overlapType, bindingId: otherBindingId });
 }
 
 function isKnownDmScope(value: string) {
@@ -201,6 +213,8 @@ function isKnownDmScope(value: string) {
 }
 
 export function RoutingPanel() {
+  const t = useTranslations("routing");
+  const tc = useTranslations("common");
   const ui = useDeckUI();
   const initialSimulationDraft = useMemo(() => buildInitialSimulationDraft(), []);
   const [filters, setFilters] = useState(buildInitialFilters);
@@ -252,7 +266,7 @@ export function RoutingPanel() {
       );
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to load routing");
+      setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
     }
   };
 
@@ -276,7 +290,7 @@ export function RoutingPanel() {
       );
     } catch (loadError) {
       setRoutingActivityError(
-        loadError instanceof Error ? loadError.message : "failed to load routing activity",
+        loadError instanceof Error ? loadError.message : t("activityLoadFailed"),
       );
     }
   };
@@ -305,10 +319,19 @@ export function RoutingPanel() {
   const selectedBindingAccountId = selectedBinding?.match.accountId?.trim() ?? "";
   const simulationChannelId = simulationDraft.channel.trim();
   const simulationAccountId = simulationDraft.accountId.trim();
+  const emptyLabel = t("notAvailable");
+  const bindingMatchLabels = {
+    account: t("dimAccountId"),
+    channel: t("dimChannel"),
+    guild: t("dimGuildId"),
+    peer: t("dimPeer"),
+    roles: t("dimRoles"),
+    team: t("dimTeamId"),
+  };
 
   const runSimulation = async () => {
     if (!simulationDraft.channel.trim()) {
-      setError("simulation channel is required");
+      setError(t("simulationChannelRequired"));
       return;
     }
     setActionState("simulating");
@@ -331,7 +354,7 @@ export function RoutingPanel() {
       setSimulationResult(result);
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "routing simulate failed");
+      setError(actionError instanceof Error ? actionError.message : t("simulateFailed"));
     } finally {
       setActionState("idle");
     }
@@ -344,7 +367,7 @@ export function RoutingPanel() {
 
   const loadSelectedBindingIntoSimulation = () => {
     if (!selectedBinding) {
-      setError("select a binding before loading it into the simulator");
+      setError(t("selectBindingBeforeSimulation"));
       return;
     }
     setSimulationDraft({
@@ -362,7 +385,7 @@ export function RoutingPanel() {
 
   const validateBinding = async () => {
     if (!bindingDraft.agentId.trim() || !bindingDraft.channel.trim()) {
-      setError("binding agent and channel are required");
+      setError(t("bindingAgentChannelRequired"));
       return;
     }
     setActionState("validating");
@@ -374,7 +397,7 @@ export function RoutingPanel() {
       setValidationResult(result);
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "routing validate failed");
+      setError(actionError instanceof Error ? actionError.message : t("validateFailed"));
     } finally {
       setActionState("idle");
     }
@@ -382,11 +405,11 @@ export function RoutingPanel() {
 
   const addBinding = async () => {
     if (!bindingDraft.agentId.trim() || !bindingDraft.channel.trim()) {
-      setError("binding agent and channel are required");
+      setError(t("bindingAgentChannelRequired"));
       return;
     }
     if (!configHash) {
-      setError("routing config hash is required before adding a binding");
+      setError(t("configHashRequiredAdd"));
       return;
     }
     setActionState("adding");
@@ -404,7 +427,7 @@ export function RoutingPanel() {
       setError("");
       await refresh(result.binding.id);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "routing add failed");
+      setError(actionError instanceof Error ? actionError.message : t("addFailed"));
     } finally {
       setActionState("idle");
     }
@@ -412,7 +435,7 @@ export function RoutingPanel() {
 
   const removeSelectedBinding = async () => {
     if (!selectedBinding || !configHash) {
-      setError("select a binding and load a config hash before removing");
+      setError(t("selectBindingBeforeRemove"));
       return;
     }
     setActionState("removing");
@@ -426,7 +449,7 @@ export function RoutingPanel() {
       setError("");
       await refresh();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "routing remove failed");
+      setError(actionError instanceof Error ? actionError.message : t("removeFailed"));
     } finally {
       setActionState("idle");
     }
@@ -434,12 +457,12 @@ export function RoutingPanel() {
 
   const reorderSelectedBinding = async (direction: -1 | 1) => {
     if (!selectedBinding || !configHash) {
-      setError("select a binding and load a config hash before reordering");
+      setError(t("selectBindingBeforeReorder"));
       return;
     }
     const nextPosition = selectedBindingIndex + direction;
     if (selectedBindingIndex < 0 || nextPosition < 0 || nextPosition >= bindings.length) {
-      setError("selected binding is already at the requested edge");
+      setError(t("bindingAtEdge"));
       return;
     }
     setActionState("reordering");
@@ -460,7 +483,7 @@ export function RoutingPanel() {
       setError("");
       await refresh(addResult.binding.id);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "routing reorder failed");
+      setError(actionError instanceof Error ? actionError.message : t("reorderFailed"));
     } finally {
       setActionState("idle");
     }
@@ -468,24 +491,24 @@ export function RoutingPanel() {
 
   const patchDmScope = async () => {
     if (!scopeDraft.trim()) {
-      setError("dm scope is required");
+      setError(t("dmScopeRequired"));
       return;
     }
     if (!configHash) {
-      setError("routing config hash is required before patching dm scope");
+      setError(t("configHashRequiredScope"));
       return;
     }
     setActionState("scope");
     try {
       const nextScope = scopeDraft.trim();
       const result = await patchDeckConfig({ session: { dmScope: nextScope } }, configHash);
-      setScopeResult(`DM scope updated to ${nextScope}`);
+      setScopeResult(t("dmScopeUpdated", { scope: nextScope }));
       setDmScope(nextScope);
       setConfigHash(result.hash || result.baseHash || configHash);
       setError("");
       await refresh(selectedBindingId);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "dm scope patch failed");
+      setError(actionError instanceof Error ? actionError.message : t("dmScopePatchFailed"));
     } finally {
       setActionState("idle");
     }
@@ -496,34 +519,36 @@ export function RoutingPanel() {
       <div className="deckgo-column deck-ui-routing-column">
         <article className="deckgo-card is-float deck-ui-routing-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Routing</h2>
+            <h2 className="deckgo-card-title">{t("title")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Routing shows live bindings and route simulation from the control plane.
-          </p>
+          <p className="deckgo-card-subtitle">{t("description")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-routing-body">
             <div className="deckgo-pill-row deck-ui-routing-status-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Routing {loadState}
+                {loadState === "loading" ? tc("loading") : t(loadState)}
               </span>
-              <span className="deckgo-pill">default {defaultAgentId || "n/a"}</span>
-              <span className="deckgo-pill">dm scope {dmScope || "n/a"}</span>
+              <span className="deckgo-pill">
+                {t("defaultPill", { agent: defaultAgentId || emptyLabel })}
+              </span>
+              <span className="deckgo-pill">
+                {t("dmScopePill", { scope: dmScope || emptyLabel })}
+              </span>
               <span
                 className={`deckgo-pill ${conflictPairs.length > 0 ? "is-warning" : "is-muted"}`}
               >
-                routing conflicts {conflictPairs.length}
+                {t("conflictCount", { count: conflictPairs.length })}
               </span>
             </div>
             <div className="deckgo-grid deckgo-grid-3 deck-ui-routing-stats">
-              <ShellStat label="bindings" value={bindings.length} />
-              <ShellStat label="dm scope" value={dmScope || "n/a"} />
-              <ShellStat label="config hash" value={configHash || "n/a"} />
+              <ShellStat label={t("bindingsStat")} value={bindings.length} />
+              <ShellStat label={t("dmScope")} value={dmScope || emptyLabel} />
+              <ShellStat label={t("configHash")} value={configHash || emptyLabel} />
             </div>
             <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">DM scope strategy</p>
+              <p className="deckgo-surface-label">{t("dmScopeStrategy")}</p>
               <div className="deckgo-actions deck-ui-routing-actions">
                 <select
-                  aria-label="DM scope strategy"
+                  aria-label={t("dmScopeStrategy")}
                   className="deckgo-input deck-ui-routing-input"
                   value={scopeDraft}
                   onChange={(event) => setScopeDraft(event.target.value)}
@@ -543,7 +568,7 @@ export function RoutingPanel() {
                   onClick={() => void patchDmScope()}
                   type="button"
                 >
-                  {actionState === "scope" ? "Patching DM scope" : "Patch DM scope"}
+                  {actionState === "scope" ? t("patchingDmScope") : t("patchDmScope")}
                 </button>
               </div>
               {scopeResult ? (
@@ -551,7 +576,7 @@ export function RoutingPanel() {
               ) : null}
             </div>
             <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">Filter bindings</p>
+              <p className="deckgo-surface-label">{t("filterBindings")}</p>
               <div className="deckgo-grid deckgo-grid-2 deck-ui-routing-form-grid">
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -560,6 +585,7 @@ export function RoutingPanel() {
                     setFilters((current) => ({ ...current, agentId: event.target.value }))
                   }
                   placeholder="agent id"
+                  aria-label={t("agentId")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -568,6 +594,7 @@ export function RoutingPanel() {
                     setFilters((current) => ({ ...current, channel: event.target.value }))
                   }
                   placeholder="channel"
+                  aria-label={t("dimChannel")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -576,6 +603,7 @@ export function RoutingPanel() {
                     setFilters((current) => ({ ...current, accountId: event.target.value }))
                   }
                   placeholder="account id"
+                  aria-label={t("dimAccountId")}
                 />
               </div>
               <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
@@ -584,13 +612,13 @@ export function RoutingPanel() {
                   type="button"
                   onClick={() => void refresh()}
                 >
-                  Refresh routing
+                  {t("refreshRouting")}
                 </button>
               </div>
             </div>
             {error ? <p className="deckgo-note deck-ui-routing-error">{error}</p> : null}
             <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">Add or validate binding</p>
+              <p className="deckgo-surface-label">{t("addOrValidateBinding")}</p>
               <div className="deckgo-grid deckgo-grid-2 deck-ui-routing-form-grid">
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -598,7 +626,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, agentId: event.target.value }))
                   }
-                  placeholder="binding agent id"
+                  aria-label={t("bindingAgentId")}
+                  placeholder={t("bindingAgentIdPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -606,7 +635,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, channel: event.target.value }))
                   }
-                  placeholder="binding channel"
+                  aria-label={t("bindingChannel")}
+                  placeholder={t("bindingChannelPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -614,7 +644,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, accountId: event.target.value }))
                   }
-                  placeholder="binding account id"
+                  aria-label={t("bindingAccountId")}
+                  placeholder={t("bindingAccountIdPlaceholder")}
                 />
                 <select
                   className="deckgo-input deck-ui-routing-input"
@@ -625,12 +656,12 @@ export function RoutingPanel() {
                       peerKind: event.target.value as RoutingBindingDraft["peerKind"],
                     }))
                   }
-                  aria-label="binding peer kind"
+                  aria-label={t("bindingPeerKind")}
                 >
-                  <option value="">no peer</option>
-                  <option value="direct">direct peer</option>
-                  <option value="group">group peer</option>
-                  <option value="channel">channel peer</option>
+                  <option value="">{t("noPeer")}</option>
+                  <option value="direct">{t("directPeer")}</option>
+                  <option value="group">{t("groupPeer")}</option>
+                  <option value="channel">{t("channelPeer")}</option>
                 </select>
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -638,7 +669,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, peerId: event.target.value }))
                   }
-                  placeholder="binding peer id"
+                  aria-label={t("bindingPeerId")}
+                  placeholder={t("bindingPeerIdPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -646,7 +678,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, guildId: event.target.value }))
                   }
-                  placeholder="binding guild id"
+                  aria-label={t("bindingGuildId")}
+                  placeholder={t("bindingGuildIdPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -654,7 +687,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, teamId: event.target.value }))
                   }
-                  placeholder="binding team id"
+                  aria-label={t("bindingTeamId")}
+                  placeholder={t("bindingTeamIdPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -662,7 +696,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, roles: event.target.value }))
                   }
-                  placeholder="binding roles, comma separated"
+                  aria-label={t("bindingRoles")}
+                  placeholder={t("bindingRolesPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -670,7 +705,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, comment: event.target.value }))
                   }
-                  placeholder="binding comment"
+                  aria-label={t("bindingComment")}
+                  placeholder={t("bindingCommentPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -679,7 +715,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setBindingDraft((current) => ({ ...current, position: event.target.value }))
                   }
-                  placeholder="binding position"
+                  aria-label={t("bindingPosition")}
+                  placeholder={t("bindingPositionPlaceholder")}
                 />
               </div>
               <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
@@ -689,7 +726,7 @@ export function RoutingPanel() {
                   disabled={actionState !== "idle"}
                   onClick={() => void validateBinding()}
                 >
-                  {actionState === "validating" ? "Validating" : "Validate binding"}
+                  {actionState === "validating" ? t("validating") : t("validateBinding")}
                 </button>
                 <button
                   className="deckgo-button deck-ui-routing-button is-primary"
@@ -697,7 +734,7 @@ export function RoutingPanel() {
                   disabled={actionState !== "idle"}
                   onClick={() => void addBinding()}
                 >
-                  {actionState === "adding" ? "Adding binding" : "Add binding"}
+                  {actionState === "adding" ? t("addingBinding") : t("addBindingAction")}
                 </button>
               </div>
               {validationResult ? (
@@ -705,15 +742,21 @@ export function RoutingPanel() {
                   <span
                     className={`deckgo-pill ${validationResult.ok ? "is-positive" : "is-muted"}`}
                   >
-                    validation {validationResult.ok ? "ok" : "blocked"}
+                    {t("validationResult", {
+                      state: validationResult.ok ? t("ok") : t("blocked"),
+                    })}
                   </span>
-                  <span className="deckgo-pill">tier {validationResult.tier}</span>
-                  <span className="deckgo-pill">conflicts {validationResult.conflicts.length}</span>
+                  <span className="deckgo-pill">
+                    {t("tierValue", { tier: validationResult.tier })}
+                  </span>
+                  <span className="deckgo-pill">
+                    {t("conflictsValue", { count: validationResult.conflicts.length })}
+                  </span>
                 </div>
               ) : null}
             </div>
             {bindings.length === 0 ? (
-              <p className="deckgo-note deck-ui-routing-empty">No routing bindings loaded.</p>
+              <p className="deckgo-note deck-ui-routing-empty">{t("noBindingsLoaded")}</p>
             ) : (
               <ul className="deckgo-shell-list deck-ui-routing-list">
                 {bindings.map((binding) => {
@@ -727,14 +770,16 @@ export function RoutingPanel() {
                       >
                         <strong>{binding.agentId}</strong>
                         <div className="deckgo-meta">
-                          tier: {binding.tier} | binding id: {binding.id}
+                          {t("tier")}: {binding.tier} | {t("bindingId")}: {binding.id}
                         </div>
-                        <div className="deckgo-meta">{summarizeBindingMatch(binding)}</div>
+                        <div className="deckgo-meta">
+                          {summarizeBindingMatch(binding, bindingMatchLabels)}
+                        </div>
                         {conflicts.length > 0 ? (
                           <div className="deckgo-meta">
-                            conflicts:{" "}
+                            {t("conflictsValue", { count: conflicts.length })}:{" "}
                             {conflicts
-                              .map((conflict) => describeConflict(binding.id, conflict))
+                              .map((conflict) => describeConflict(t, binding.id, conflict))
                               .join("; ")}
                           </div>
                         ) : null}
@@ -751,18 +796,15 @@ export function RoutingPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-routing-column">
         <article className="deckgo-card is-float deck-ui-routing-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Routing detail</h2>
+            <h2 className="deckgo-card-title">{t("routingDetail")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Inspect the live binding set, then simulate match order against the current route
-            configuration.
-          </p>
+          <p className="deckgo-card-subtitle">{t("routingDetailDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-routing-body">
             {selectedBinding ? (
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-routing-hero">
                   <div>
-                    <p className="deckgo-kicker">Selected binding</p>
+                    <p className="deckgo-kicker">{t("selectedBinding")}</p>
                     <strong>{selectedBinding.agentId}</strong>
                     <p className="deckgo-note">{selectedBinding.id}</p>
                   </div>
@@ -772,8 +814,8 @@ export function RoutingPanel() {
                   </div>
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-routing-detail-stats">
-                  <ShellStat label="agent" value={selectedBinding.agentId} />
-                  <ShellStat label="tier" value={selectedBinding.tier} />
+                  <ShellStat label={t("agent")} value={selectedBinding.agentId} />
+                  <ShellStat label={t("tier")} value={selectedBinding.tier} />
                 </div>
                 {(conflictMap.get(selectedBinding.id) ?? []).length > 0 ? (
                   <div className="deckgo-pill-row deck-ui-routing-status-row deck-ui-routing-actions-offset">
@@ -782,7 +824,7 @@ export function RoutingPanel() {
                         key={`${conflict.bindingA}:${conflict.bindingB}`}
                         className="deckgo-pill is-warning"
                       >
-                        conflict {describeConflict(selectedBinding.id, conflict)}
+                        {t("conflict")} {describeConflict(t, selectedBinding.id, conflict)}
                       </span>
                     ))}
                   </div>
@@ -794,7 +836,7 @@ export function RoutingPanel() {
                     disabled={actionState !== "idle"}
                     onClick={loadSelectedBindingIntoSimulation}
                   >
-                    Use as simulation
+                    {t("useAsSimulation")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-routing-button"
@@ -802,7 +844,7 @@ export function RoutingPanel() {
                     disabled={!selectedBinding.agentId.trim()}
                     onClick={() => navigateToAgent(ui, selectedBinding.agentId)}
                   >
-                    Open binding agent
+                    {t("openBindingAgent")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-routing-button"
@@ -810,7 +852,7 @@ export function RoutingPanel() {
                     disabled={!selectedBindingChannelId}
                     onClick={() => navigateToChannel(ui, selectedBindingChannelId)}
                   >
-                    Open binding channel
+                    {t("openBindingChannel")}
                   </button>
                   {selectedBindingChannelId === "wecom" && selectedBindingAccountId ? (
                     <button
@@ -824,7 +866,7 @@ export function RoutingPanel() {
                         )
                       }
                     >
-                      Open binding access
+                      {t("openBindingAccess")}
                     </button>
                   ) : null}
                   <button
@@ -833,7 +875,7 @@ export function RoutingPanel() {
                     disabled={actionState !== "idle" || selectedBindingIndex <= 0}
                     onClick={() => void reorderSelectedBinding(-1)}
                   >
-                    {actionState === "reordering" ? "Reordering" : "Move up"}
+                    {actionState === "reordering" ? t("reordering") : t("moveUp")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-routing-button"
@@ -845,7 +887,7 @@ export function RoutingPanel() {
                     }
                     onClick={() => void reorderSelectedBinding(1)}
                   >
-                    {actionState === "reordering" ? "Reordering" : "Move down"}
+                    {actionState === "reordering" ? t("reordering") : t("moveDown")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-routing-button is-danger"
@@ -853,17 +895,17 @@ export function RoutingPanel() {
                     disabled={actionState !== "idle"}
                     onClick={() => void removeSelectedBinding()}
                   >
-                    {actionState === "removing" ? "Removing binding" : "Remove binding"}
+                    {actionState === "removing" ? t("removingBinding") : t("removeBinding")}
                   </button>
                 </div>
-                <JsonDetails title="Binding payload" payload={selectedBinding} />
+                <JsonDetails title={t("bindingPayload")} payload={selectedBinding} />
               </>
             ) : (
-              <p className="deckgo-note deck-ui-routing-empty">Choose a binding to inspect it.</p>
+              <p className="deckgo-note deck-ui-routing-empty">{t("chooseBinding")}</p>
             )}
 
             <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">Simulate route selection</p>
+              <p className="deckgo-surface-label">{t("simulateRouteSelection")}</p>
               <div className="deckgo-grid deckgo-grid-2 deck-ui-routing-form-grid">
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -871,7 +913,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, channel: event.target.value }))
                   }
-                  placeholder="channel"
+                  aria-label={t("simulationChannel")}
+                  placeholder={t("channelPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -879,7 +922,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, accountId: event.target.value }))
                   }
-                  placeholder="account id"
+                  aria-label={t("simulationAccountId")}
+                  placeholder={t("accountIdPlaceholder")}
                 />
                 <select
                   className="deckgo-input deck-ui-routing-input"
@@ -890,12 +934,12 @@ export function RoutingPanel() {
                       peerKind: event.target.value as RoutingSimulationDraft["peerKind"],
                     }))
                   }
-                  aria-label="simulation peer kind"
+                  aria-label={t("simulationPeerKind")}
                 >
-                  <option value="">no peer</option>
-                  <option value="direct">direct peer</option>
-                  <option value="group">group peer</option>
-                  <option value="channel">channel peer</option>
+                  <option value="">{t("noPeer")}</option>
+                  <option value="direct">{t("directPeer")}</option>
+                  <option value="group">{t("groupPeer")}</option>
+                  <option value="channel">{t("channelPeer")}</option>
                 </select>
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -903,7 +947,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, peerId: event.target.value }))
                   }
-                  placeholder="peer id"
+                  aria-label={t("simulationPeerId")}
+                  placeholder={t("peerIdPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -911,7 +956,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, guildId: event.target.value }))
                   }
-                  placeholder="guild id"
+                  aria-label={t("simulationGuildId")}
+                  placeholder={t("guildIdPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -919,7 +965,8 @@ export function RoutingPanel() {
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, teamId: event.target.value }))
                   }
-                  placeholder="team id"
+                  aria-label={t("simulationTeamId")}
+                  placeholder={t("teamIdPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-routing-input"
@@ -930,7 +977,8 @@ export function RoutingPanel() {
                       memberRoleIds: event.target.value,
                     }))
                   }
-                  placeholder="role ids, comma separated"
+                  aria-label={t("simulationRoles")}
+                  placeholder={t("roleIdsPlaceholder")}
                 />
               </div>
               <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
@@ -940,14 +988,14 @@ export function RoutingPanel() {
                   onClick={() => void runSimulation()}
                   disabled={actionState !== "idle"}
                 >
-                  {actionState === "simulating" ? "Simulating" : "Simulate"}
+                  {actionState === "simulating" ? t("simulating") : t("simulate")}
                 </button>
                 <button
                   className="deckgo-button deck-ui-routing-button"
                   type="button"
                   onClick={resetSimulation}
                 >
-                  Reset simulation
+                  {t("resetSimulation")}
                 </button>
               </div>
             </div>
@@ -956,13 +1004,17 @@ export function RoutingPanel() {
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-routing-hero">
                   <div>
-                    <p className="deckgo-kicker">Simulation result</p>
-                    <strong>{simulationResult.agentId || "no agent matched"}</strong>
-                    <p className="deckgo-note">session {simulationResult.sessionKey || "n/a"}</p>
+                    <p className="deckgo-kicker">{t("simulationResult")}</p>
+                    <strong>{simulationResult.agentId || t("noAgentMatched")}</strong>
+                    <p className="deckgo-note">
+                      {t("sessionValue", { session: simulationResult.sessionKey || emptyLabel })}
+                    </p>
                   </div>
                   <div className="deckgo-pill-row deck-ui-routing-status-row">
-                    <span className="deckgo-pill">matched by {simulationResult.matchedBy}</span>
-                    <span className="deckgo-pill">{tiers.length} tiers</span>
+                    <span className="deckgo-pill">
+                      {t("matchedByValue", { tier: simulationResult.matchedBy })}
+                    </span>
+                    <span className="deckgo-pill">{t("tiersCount", { count: tiers.length })}</span>
                   </div>
                 </div>
                 <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
@@ -972,7 +1024,7 @@ export function RoutingPanel() {
                     disabled={!simulationResult.agentId?.trim()}
                     onClick={() => navigateToAgent(ui, simulationResult.agentId ?? "")}
                   >
-                    Open simulation agent
+                    {t("openSimulationAgent")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-routing-button"
@@ -980,7 +1032,7 @@ export function RoutingPanel() {
                     disabled={!simulationResult.sessionKey?.trim()}
                     onClick={() => navigateToSession(ui, simulationResult.sessionKey ?? "")}
                   >
-                    Open simulation session
+                    {t("openSimulationSession")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-routing-button"
@@ -988,7 +1040,7 @@ export function RoutingPanel() {
                     disabled={!simulationChannelId}
                     onClick={() => navigateToChannel(ui, simulationChannelId)}
                   >
-                    Open simulation channel
+                    {t("openSimulationChannel")}
                   </button>
                   {simulationChannelId === "wecom" && simulationAccountId ? (
                     <button
@@ -998,7 +1050,7 @@ export function RoutingPanel() {
                         navigateToChannelAccess(ui, simulationChannelId, simulationAccountId)
                       }
                     >
-                      Open simulation access
+                      {t("openSimulationAccess")}
                     </button>
                   ) : null}
                 </div>
@@ -1007,30 +1059,26 @@ export function RoutingPanel() {
                     <li key={tier.tier}>
                       <div className="deckgo-selectable-card deck-ui-routing-row">
                         <strong>{tier.tier}</strong>
-                        <div className="deckgo-meta">{summarizeSimulationTier(tier)}</div>
+                        <div className="deckgo-meta">{summarizeSimulationTier(t, tier)}</div>
                       </div>
                     </li>
                   ))}
                 </ul>
-                <JsonDetails title="Simulation payload" payload={simulationResult} />
+                <JsonDetails title={t("simulationPayload")} payload={simulationResult} />
               </>
             ) : (
-              <p className="deckgo-note deck-ui-routing-empty">
-                Run a simulation to inspect routing tier evaluation.
-              </p>
+              <p className="deckgo-note deck-ui-routing-empty">{t("runSimulationPrompt")}</p>
             )}
             <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">Routing activity feed</p>
-              <p className="deckgo-note">
-                Recent routing-adjacent activity from the shared deck activity API.
-              </p>
+              <p className="deckgo-surface-label">{t("activityFeed")}</p>
+              <p className="deckgo-note">{t("activityFeedDescription")}</p>
               <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
                 <button
                   className="deckgo-button deck-ui-routing-button"
                   type="button"
                   onClick={() => void loadRoutingActivity()}
                 >
-                  Refresh activity
+                  {t("refreshActivity")}
                 </button>
               </div>
               {routingActivityEvents.length > 0 ? (
@@ -1040,7 +1088,7 @@ export function RoutingPanel() {
                       <div className="deckgo-selectable-card deck-ui-routing-row">
                         <strong>{event.description}</strong>
                         <div className="deckgo-meta">
-                          {event.type} | {event.agentName || event.agentId || "system"}
+                          {event.type} | {event.agentName || event.agentId || t("systemActor")}
                         </div>
                         <div className="deckgo-meta">
                           {new Date(event.timestamp).toLocaleString()}
@@ -1050,16 +1098,14 @@ export function RoutingPanel() {
                   ))}
                 </ul>
               ) : (
-                <p className="deckgo-note deck-ui-routing-empty">
-                  No recent routing activity loaded.
-                </p>
+                <p className="deckgo-note deck-ui-routing-empty">{t("noRecentActivity")}</p>
               )}
               {routingActivityError ? (
                 <p className="deckgo-note deck-ui-routing-error">{routingActivityError}</p>
               ) : null}
             </div>
             {mutationResult ? (
-              <JsonDetails title="Routing mutation" payload={mutationResult} />
+              <JsonDetails title={t("routingMutation")} payload={mutationResult} />
             ) : null}
           </div>
         </article>

@@ -5,6 +5,7 @@ import {
   type DeckGoConfigApplyResponse,
   type DeckGoConfigSnapshotResponse,
 } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { WecomRoutingSummary } from "./WecomRoutingSummary";
 
 type DmPolicy = "pairing" | "allowlist" | "open" | "disabled";
@@ -171,6 +172,7 @@ function AllowFromEditor(props: {
   hint: string;
   onChange: (entries: string[]) => void;
 }) {
+  const t = useTranslations("channels");
   const [input, setInput] = useState("");
   const [bulkInput, setBulkInput] = useState("");
 
@@ -210,7 +212,7 @@ function AllowFromEditor(props: {
   return (
     <div className="deckgo-form-grid deck-ui-channels-form-grid">
       <div className="deckgo-meta">
-        {props.entries.length} entries | {props.hint}
+        {t("entriesWithHint", { count: props.entries.length, hint: props.hint })}
       </div>
       <div className="deckgo-actions deck-ui-channels-actions">
         <input
@@ -226,7 +228,7 @@ function AllowFromEditor(props: {
           placeholder={props.placeholder}
         />
         <button className="deckgo-button deck-ui-channels-button" type="button" onClick={addInput}>
-          Add
+          {t("add")}
         </button>
       </div>
       {props.entries.length > 0 ? (
@@ -239,31 +241,31 @@ function AllowFromEditor(props: {
               onClick={() =>
                 props.onChange(props.entries.filter((candidate) => candidate !== entry))
               }
-              aria-label={`Remove ${entry}`}
+              aria-label={t("removeEntry", { entry })}
             >
-              {entry} x
+              {t("entryWithRemove", { entry })}
             </button>
           ))}
         </div>
       ) : (
-        <p className="deckgo-note">No entries configured.</p>
+        <p className="deckgo-note">{t("noEntriesConfigured")}</p>
       )}
       <details className="deckgo-selectable-card deck-ui-channels-row">
-        <summary>Bulk import</summary>
+        <summary>{t("bulkImport")}</summary>
         <div className="deckgo-form-grid deck-ui-channels-form-grid">
           <textarea
             className="deckgo-input deck-ui-channels-input deck-ui-channels-textarea"
             rows={4}
             value={bulkInput}
             onChange={(event) => setBulkInput(event.target.value)}
-            placeholder="Paste one entry per line or comma-separated values"
+            placeholder={t("bulkImportPlaceholder")}
           />
           <button
             className="deckgo-button deck-ui-channels-button"
             type="button"
             onClick={applyBulk}
           >
-            Apply bulk
+            {t("applyBulk")}
           </button>
         </div>
       </details>
@@ -280,16 +282,17 @@ function PolicySection(props: {
   onChange: (dm: WecomDmState) => void;
   onSave: () => void;
 }) {
+  const t = useTranslations("channels");
   return (
     <div className="deckgo-surface-tile deck-ui-channels-surface">
       <p className="deckgo-surface-label">{props.title}</p>
       <p className="deckgo-note">{props.description}</p>
       {props.dm.policy === "allowlist" && props.dm.allowFrom.length === 0 ? (
-        <p className="deckgo-note">Allowlist mode is enabled but allowFrom is empty.</p>
+        <p className="deckgo-note">{t("allowlistEmpty")}</p>
       ) : null}
       <div className="deckgo-form-grid deck-ui-channels-form-grid">
         <label className="deckgo-form-row">
-          <span>Policy</span>
+          <span>{t("policy")}</span>
           <select
             className="deckgo-input deck-ui-channels-input"
             value={props.dm.policy}
@@ -309,8 +312,8 @@ function PolicySection(props: {
           <AllowFromEditor
             entries={props.dm.allowFrom}
             onChange={(allowFrom) => props.onChange({ ...props.dm, allowFrom })}
-            hint="userid / user:userid / wecom:userid / *"
-            placeholder="Add a WeCom user id or *"
+            hint={t("access.allowFromHint")}
+            placeholder={t("access.allowFromPlaceholder")}
           />
         ) : null}
         <button
@@ -319,7 +322,7 @@ function PolicySection(props: {
           disabled={!props.dirty || props.saving}
           onClick={props.onSave}
         >
-          {props.saving ? "Saving" : "Save"}
+          {props.saving ? t("saving") : t("save")}
         </button>
       </div>
     </div>
@@ -334,6 +337,7 @@ export function WecomAccessControls(props: {
   initialFocus?: "access";
   onSaved?: () => Promise<void> | void;
 }) {
+  const t = useTranslations("channels");
   const [snapshot, setSnapshot] = useState<DeckGoConfigSnapshotResponse | null>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready">("idle");
   const [error, setError] = useState("");
@@ -375,9 +379,9 @@ export function WecomAccessControls(props: {
     } catch (loadError) {
       setLoadState("idle");
       setSnapshot(null);
-      setError(loadError instanceof Error ? loadError.message : "config fetch failed");
+      setError(loadError instanceof Error ? loadError.message : t("configFetchFailed"));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void reloadConfig();
@@ -427,12 +431,12 @@ export function WecomAccessControls(props: {
         await props.onSaved?.();
         setError("");
       } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : "config patch failed");
+        setError(saveError instanceof Error ? saveError.message : t("configPatchFailedGeneric"));
       } finally {
         setSavingSection("");
       }
     },
-    [baseHash, props, reloadConfig],
+    [baseHash, props.channelId, props.onSaved, reloadConfig, t],
   );
 
   const saveDmScope = (scope: "bot" | "agent", dm: WecomDmState) => {
@@ -443,24 +447,23 @@ export function WecomAccessControls(props: {
 
   return (
     <div className="deckgo-surface-tile deck-ui-channels-surface deck-ui-channels-wecom">
-      <p className="deckgo-surface-label">WeCom access controls</p>
+      <p className="deckgo-surface-label">{t("wecomAccessControls")}</p>
       {props.initialFocus === "access" ? (
-        <p className="deckgo-note">Opened from a channel access handoff.</p>
+        <p className="deckgo-note">{t("openedFromAccessHandoff")}</p>
       ) : null}
-      <p className="deckgo-note">
-        Edit DM allowlists, dynamic-agent isolation, and unmatched-route behavior through the
-        current config patch route.
-      </p>
+      <p className="deckgo-note">{t("wecomAccessDescription")}</p>
       <div className="deckgo-pill-row deck-ui-channels-status-row">
         <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-          config {loadState}
+          {t("configStatus", { status: t(loadState) })}
         </span>
-        <span className="deckgo-pill">hash {baseHash ?? "n/a"}</span>
+        <span className="deckgo-pill">
+          {t("hashStatus", { hash: baseHash ?? t("notAvailable") })}
+        </span>
       </div>
       {error ? <p className="deckgo-note">{error}</p> : null}
       {model.accountIds.length > 1 ? (
         <label className="deckgo-form-row deck-ui-channels-form-row">
-          <span>Account</span>
+          <span>{t("account")}</span>
           <select
             className="deckgo-input deck-ui-channels-input"
             value={selectedAccountId}
@@ -494,8 +497,10 @@ export function WecomAccessControls(props: {
               >
                 <strong>{label}</strong>
                 <div className="deckgo-meta">
-                  bot {account?.botConfigured ? account.bot.policy : "not configured"} | agent{" "}
-                  {account?.agentConfigured ? account.agent.policy : "not configured"}
+                  {t("accountPolicySummary", {
+                    bot: account?.botConfigured ? account.bot.policy : t("notConfigured"),
+                    agent: account?.agentConfigured ? account.agent.policy : t("notConfigured"),
+                  })}
                 </div>
               </button>
             );
@@ -504,8 +509,8 @@ export function WecomAccessControls(props: {
       ) : null}
       {selectedState?.botConfigured ? (
         <PolicySection
-          title={`Bot DM policy (${selectedLabel})`}
-          description="Controls how users can direct-message the WeCom bot for this account."
+          title={t("botDmPolicyTitle", { label: selectedLabel })}
+          description={t("botDmPolicyDescription")}
           dm={botDm}
           dirty={botDirty}
           saving={savingSection === "bot"}
@@ -515,8 +520,8 @@ export function WecomAccessControls(props: {
       ) : null}
       {selectedState?.agentConfigured ? (
         <PolicySection
-          title={`Agent DM policy (${selectedLabel})`}
-          description="Controls how users can direct-message the WeCom agent for this account."
+          title={t("agentDmPolicyTitle", { label: selectedLabel })}
+          description={t("agentDmPolicyDescription")}
           dm={agentDm}
           dirty={agentDirty}
           saving={savingSection === "agent"}
@@ -525,18 +530,16 @@ export function WecomAccessControls(props: {
         />
       ) : null}
       {!selectedState?.botConfigured && !selectedState?.agentConfigured ? (
-        <p className="deckgo-note">No bot or agent access modes are configured for this account.</p>
+        <p className="deckgo-note">{t("noAccessModes")}</p>
       ) : null}
       <div className="deckgo-surface-tile deck-ui-channels-surface">
-        <p className="deckgo-surface-label">Dynamic agents</p>
-        <p className="deckgo-note">
-          Configure WeCom-specific per-user and per-group agent isolation behavior.
-        </p>
+        <p className="deckgo-surface-label">{t("dynamicAgents")}</p>
+        <p className="deckgo-note">{t("dynamicAgentsDescription")}</p>
         {dynamicAgents.enabled && dynamicAgents.adminUsers.length === 0 ? (
-          <p className="deckgo-note">Dynamic agents are enabled without admin users.</p>
+          <p className="deckgo-note">{t("dynamicAgentsNoAdmins")}</p>
         ) : null}
         <label className="deckgo-checkbox-row deck-ui-channels-check">
-          <span>Enable dynamic agents</span>
+          <span>{t("enableDynamicAgents")}</span>
           <input
             type="checkbox"
             checked={dynamicAgents.enabled}
@@ -546,7 +549,7 @@ export function WecomAccessControls(props: {
           />
         </label>
         <label className="deckgo-checkbox-row deck-ui-channels-check">
-          <span>Create per-user DM agents</span>
+          <span>{t("createDmAgents")}</span>
           <input
             type="checkbox"
             checked={dynamicAgents.dmCreateAgent}
@@ -559,7 +562,7 @@ export function WecomAccessControls(props: {
           />
         </label>
         <label className="deckgo-checkbox-row deck-ui-channels-check">
-          <span>Create per-group agents</span>
+          <span>{t("createGroupAgents")}</span>
           <input
             type="checkbox"
             checked={dynamicAgents.groupEnabled}
@@ -571,8 +574,8 @@ export function WecomAccessControls(props: {
         <AllowFromEditor
           entries={dynamicAgents.adminUsers}
           onChange={(adminUsers) => setDynamicAgents((current) => ({ ...current, adminUsers }))}
-          hint="admins stay on the main agent"
-          placeholder="Add an admin user id"
+          hint={t("adminsHint")}
+          placeholder={t("adminPlaceholder")}
         />
         <button
           className="deckgo-button is-primary deck-ui-channels-button"
@@ -589,17 +592,15 @@ export function WecomAccessControls(props: {
             })
           }
         >
-          {savingSection === "dynamicAgents" ? "Saving" : "Save dynamic agents"}
+          {savingSection === "dynamicAgents" ? t("saving") : t("saveDynamicAgents")}
         </button>
       </div>
       <WecomRoutingSummary channelId={props.channelId} accountId={selectedAccountId} />
       <div className="deckgo-surface-tile deck-ui-channels-surface">
-        <p className="deckgo-surface-label">Routing behavior</p>
-        <p className="deckgo-note">
-          Control how WeCom behaves when no explicit route binding matches.
-        </p>
+        <p className="deckgo-surface-label">{t("routingBehavior")}</p>
+        <p className="deckgo-note">{t("routingBehaviorDescription")}</p>
         <label className="deckgo-checkbox-row deck-ui-channels-check">
-          <span>Reject unmatched messages</span>
+          <span>{t("rejectUnmatchedMessages")}</span>
           <input
             type="checkbox"
             checked={failClosed}
@@ -616,12 +617,14 @@ export function WecomAccessControls(props: {
             })
           }
         >
-          {savingSection === "routing" ? "Saving" : "Save routing behavior"}
+          {savingSection === "routing" ? t("saving") : t("saveRoutingBehavior")}
         </button>
       </div>
       {saveResult ? (
         <p className="deckgo-note">
-          Saved config hash {saveResult.hash ?? saveResult.baseHash ?? "n/a"}
+          {t("savedConfigHash", {
+            hash: saveResult.hash ?? saveResult.baseHash ?? t("notAvailable"),
+          })}
         </p>
       ) : null}
     </div>

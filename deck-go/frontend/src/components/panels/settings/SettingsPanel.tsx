@@ -23,11 +23,27 @@ import {
   testSettingsConnection,
 } from "../../../api";
 import { useDeckUI } from "../../../deck-ui/ui-store";
-import { useTranslations } from "../../../i18n/provider";
+import type { Locale } from "../../../i18n/config";
+import { useLocale, useSetLocale, useTranslations } from "../../../i18n/provider";
 import { JsonDetails } from "../../shared/ShellComponents";
 
 type PairedDevice = LocalPairedDevice;
 type PendingDeviceRequest = LocalPendingDeviceRequest;
+
+const LANGUAGE_OPTIONS: { value: Locale; label: string }[] = [
+  { value: "zh", label: "中文" },
+  { value: "en", label: "English" },
+];
+
+type PendingDeviceAction = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  variant: "default" | "danger";
+  actionName: string;
+  showToken?: boolean;
+  action: () => Promise<unknown>;
+};
 
 function normalizeSettings(result: DeckGoSettingsResponse): DeckGoSettings {
   return {
@@ -130,6 +146,13 @@ function readDeviceStreamPayload(event: { data?: string; json?: unknown }) {
   }
 }
 
+function readRotatedToken(result: unknown) {
+  if (isRecord(result) && typeof result.token === "string" && result.token.trim()) {
+    return result.token;
+  }
+  return "";
+}
+
 function deviceStreamLabel(
   event: { event?: string; data?: string; json?: unknown },
   labels: { deviceEvent: string; unknownDevice: string },
@@ -148,6 +171,8 @@ function deviceStreamLabel(
 export function SettingsPanel() {
   const t = useTranslations("settings");
   const { bootstrap, runtime, themeMode, refreshRuntimeSummary, setThemeMode } = useDeckUI();
+  const locale = useLocale();
+  const setLocale = useSetLocale();
   const [settings, setSettings] = useState<DeckGoSettings>({
     accessToken: "",
     managedGateway: {
@@ -176,6 +201,10 @@ export function SettingsPanel() {
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [deviceActionState, setDeviceActionState] = useState("idle");
   const [deviceActionResult, setDeviceActionResult] = useState<unknown>(null);
+  const [pendingDeviceAction, setPendingDeviceAction] = useState<PendingDeviceAction | null>(null);
+  const [confirmingDeviceAction, setConfirmingDeviceAction] = useState(false);
+  const [deviceActionError, setDeviceActionError] = useState("");
+  const [rotatedToken, setRotatedToken] = useState("");
   const [lastDeviceStreamEvent, setLastDeviceStreamEvent] = useState("");
   const [devicesError, setDevicesError] = useState("");
   const [managedGatewayArgsText, setManagedGatewayArgsText] = useState("[]");
@@ -312,24 +341,34 @@ export function SettingsPanel() {
     }
   };
 
-  const runDeviceAction = async (
-    confirmMessage: string,
-    actionName: string,
-    action: () => Promise<unknown>,
-  ) => {
-    if (!window.confirm(confirmMessage)) {
+  const requestDeviceAction = (action: PendingDeviceAction) => {
+    setDeviceActionError("");
+    setPendingDeviceAction(action);
+  };
+
+  const confirmDeviceAction = async () => {
+    if (!pendingDeviceAction) {
       return;
     }
-    setDeviceActionState(actionName);
+    setConfirmingDeviceAction(true);
+    setDeviceActionState(pendingDeviceAction.actionName);
     try {
-      const result = await action();
+      const result = await pendingDeviceAction.action();
       setDeviceActionResult(result ?? { ok: true });
+      const token = pendingDeviceAction.showToken ? readRotatedToken(result) : "";
+      if (token) {
+        setRotatedToken(token);
+      }
       await refreshDevices();
+      setPendingDeviceAction(null);
       setDevicesError("");
     } catch (actionError) {
-      setDevicesError(actionError instanceof Error ? actionError.message : t("deviceActionFailed"));
+      const message = actionError instanceof Error ? actionError.message : t("deviceActionFailed");
+      setDeviceActionError(message);
+      setDevicesError(message);
     } finally {
       setDeviceActionState("idle");
+      setConfirmingDeviceAction(false);
     }
   };
 
@@ -566,6 +605,43 @@ export function SettingsPanel() {
                 {t("themeSystem")}
               </button>
             </div>
+            <p className="deckgo-note">{t("languageLocalDescription")}</p>
+            <div className="deckgo-actions deck-ui-settings-actions">
+              {LANGUAGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  className={`deckgo-button deck-ui-settings-button ${locale === option.value ? "is-primary" : ""}`}
+                  type="button"
+                  onClick={() => setLocale(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </article>
+
+        <article className="deckgo-card deck-ui-settings-card">
+          <div className="deckgo-card-header">
+            <h2 className="deckgo-card-title">{t("notifications")}</h2>
+          </div>
+          <div className="deckgo-card-body deck-ui-settings-body deck-ui-settings-side-body">
+            <p className="deckgo-note">{t("notificationPreferencesUnavailable")}</p>
+            <div className="deckgo-surface-tile deck-ui-settings-surface">
+              <p className="deckgo-surface-label">{t("notificationScope")}</p>
+              <strong>{t("notifyApprovals")}</strong>
+              <p className="deckgo-note">{t("notifyApprovalsDesc")}</p>
+            </div>
+            <div className="deckgo-surface-tile deck-ui-settings-surface">
+              <p className="deckgo-surface-label">{t("notificationScope")}</p>
+              <strong>{t("notifyBudget")}</strong>
+              <p className="deckgo-note">{t("notifyBudgetDesc")}</p>
+            </div>
+            <div className="deckgo-surface-tile deck-ui-settings-surface">
+              <p className="deckgo-surface-label">{t("notificationScope")}</p>
+              <strong>{t("notifyAlerts")}</strong>
+              <p className="deckgo-note">{t("notifyAlertsDesc")}</p>
+            </div>
           </div>
         </article>
 
@@ -697,11 +773,16 @@ export function SettingsPanel() {
                             className="deckgo-button deck-ui-settings-button is-primary"
                             type="button"
                             onClick={() =>
-                              void runDeviceAction(
-                                t("confirmApproveDevice", { requestId: request.requestId }),
-                                "approving",
-                                () => approveDeviceRequest(request.requestId),
-                              )
+                              requestDeviceAction({
+                                title: t("approveRequest"),
+                                description: t("confirmApproveDevice", {
+                                  requestId: request.requestId,
+                                }),
+                                confirmLabel: t("approveRequest"),
+                                variant: "default",
+                                actionName: "approving",
+                                action: () => approveDeviceRequest(request.requestId),
+                              })
                             }
                             disabled={deviceActionState !== "idle"}
                           >
@@ -711,11 +792,16 @@ export function SettingsPanel() {
                             className="deckgo-button deck-ui-settings-button is-danger"
                             type="button"
                             onClick={() =>
-                              void runDeviceAction(
-                                t("confirmRejectDevice", { requestId: request.requestId }),
-                                "rejecting",
-                                () => rejectDeviceRequest(request.requestId),
-                              )
+                              requestDeviceAction({
+                                title: t("rejectRequest"),
+                                description: t("confirmRejectDevice", {
+                                  requestId: request.requestId,
+                                }),
+                                confirmLabel: t("rejectRequest"),
+                                variant: "danger",
+                                actionName: "rejecting",
+                                action: () => rejectDeviceRequest(request.requestId),
+                              })
                             }
                             disabled={deviceActionState !== "idle"}
                           >
@@ -777,14 +863,19 @@ export function SettingsPanel() {
                                         className="deckgo-button deck-ui-settings-button"
                                         type="button"
                                         onClick={() =>
-                                          void runDeviceAction(
-                                            t("confirmRotateToken", {
+                                          requestDeviceAction({
+                                            title: t("rotateToken"),
+                                            description: t("confirmRotateToken", {
                                               role: token.role,
                                               deviceId: device.deviceId,
                                             }),
-                                            "rotating",
-                                            () => rotateDeviceToken(device.deviceId, token.role),
-                                          )
+                                            confirmLabel: t("rotateToken"),
+                                            variant: "default",
+                                            actionName: "rotating",
+                                            showToken: true,
+                                            action: () =>
+                                              rotateDeviceToken(device.deviceId, token.role),
+                                          })
                                         }
                                         disabled={deviceActionState !== "idle" || revoked}
                                       >
@@ -794,14 +885,18 @@ export function SettingsPanel() {
                                         className="deckgo-button deck-ui-settings-button is-danger"
                                         type="button"
                                         onClick={() =>
-                                          void runDeviceAction(
-                                            t("confirmRevokeToken", {
+                                          requestDeviceAction({
+                                            title: t("revokeToken"),
+                                            description: t("confirmRevokeToken", {
                                               role: token.role,
                                               deviceId: device.deviceId,
                                             }),
-                                            "revoking",
-                                            () => revokeDeviceToken(device.deviceId, token.role),
-                                          )
+                                            confirmLabel: t("revokeToken"),
+                                            variant: "danger",
+                                            actionName: "revoking",
+                                            action: () =>
+                                              revokeDeviceToken(device.deviceId, token.role),
+                                          })
                                         }
                                         disabled={deviceActionState !== "idle" || revoked || isSelf}
                                       >
@@ -819,11 +914,16 @@ export function SettingsPanel() {
                             className="deckgo-button deck-ui-settings-button is-danger"
                             type="button"
                             onClick={() =>
-                              void runDeviceAction(
-                                t("confirmRemoveDevice", { deviceId: device.deviceId }),
-                                "removing",
-                                () => removeDevice(device.deviceId),
-                              )
+                              requestDeviceAction({
+                                title: t("removeDevice"),
+                                description: t("confirmRemoveDevice", {
+                                  deviceId: device.deviceId,
+                                }),
+                                confirmLabel: t("removeDevice"),
+                                variant: "danger",
+                                actionName: "removing",
+                                action: () => removeDevice(device.deviceId),
+                              })
                             }
                             disabled={deviceActionState !== "idle" || isSelf}
                           >
@@ -845,6 +945,95 @@ export function SettingsPanel() {
           </div>
         </article>
       </aside>
+
+      {pendingDeviceAction ? (
+        <div
+          aria-modal="true"
+          className="deck-ui-settings-modal-backdrop"
+          role="dialog"
+          aria-labelledby="deck-ui-settings-confirm-title"
+        >
+          <article className="deck-ui-settings-modal deck-ui-settings-confirm-dialog">
+            <header className="deck-ui-settings-modal-header">
+              <h2 id="deck-ui-settings-confirm-title">{pendingDeviceAction.title}</h2>
+              <button
+                aria-label={t("closeDialog")}
+                className="deckgo-button deck-ui-settings-button"
+                type="button"
+                disabled={confirmingDeviceAction}
+                onClick={() => setPendingDeviceAction(null)}
+              >
+                {t("close")}
+              </button>
+            </header>
+            <p className="deckgo-note">{pendingDeviceAction.description}</p>
+            {deviceActionError ? (
+              <p className="deckgo-note deck-ui-settings-error">{deviceActionError}</p>
+            ) : null}
+            <div className="deckgo-actions deck-ui-settings-actions">
+              <button
+                className="deckgo-button deck-ui-settings-button"
+                type="button"
+                disabled={confirmingDeviceAction}
+                onClick={() => setPendingDeviceAction(null)}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                className={`deckgo-button deck-ui-settings-button ${
+                  pendingDeviceAction.variant === "danger" ? "is-danger" : "is-primary"
+                }`}
+                type="button"
+                disabled={confirmingDeviceAction}
+                onClick={() => void confirmDeviceAction()}
+              >
+                {confirmingDeviceAction ? t("working") : pendingDeviceAction.confirmLabel}
+              </button>
+            </div>
+          </article>
+        </div>
+      ) : null}
+
+      {rotatedToken ? (
+        <div
+          aria-modal="true"
+          className="deck-ui-settings-modal-backdrop"
+          role="dialog"
+          aria-labelledby="deck-ui-settings-token-title"
+        >
+          <article className="deck-ui-settings-modal deck-ui-settings-token-dialog">
+            <header className="deck-ui-settings-modal-header">
+              <h2 id="deck-ui-settings-token-title">{t("tokenGenerated")}</h2>
+              <button
+                aria-label={t("closeDialog")}
+                className="deckgo-button deck-ui-settings-button"
+                type="button"
+                onClick={() => setRotatedToken("")}
+              >
+                {t("close")}
+              </button>
+            </header>
+            <p className="deckgo-note">{t("tokenWarning")}</p>
+            <pre className="deckgo-code deck-ui-settings-token-value">{rotatedToken}</pre>
+            <div className="deckgo-actions deck-ui-settings-actions">
+              <button
+                className="deckgo-button deck-ui-settings-button"
+                type="button"
+                onClick={() => void navigator.clipboard?.writeText(rotatedToken)}
+              >
+                {t("copyToken")}
+              </button>
+              <button
+                className="deckgo-button deck-ui-settings-button is-primary"
+                type="button"
+                onClick={() => setRotatedToken("")}
+              >
+                {t("close")}
+              </button>
+            </div>
+          </article>
+        </div>
+      ) : null}
     </section>
   );
 }

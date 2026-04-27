@@ -5,6 +5,7 @@ import type {
   DeckGoConfigSnapshotResponse,
 } from "../../../api";
 import { applyDeckConfig, fetchDeckConfig, lookupConfigPath } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { computeConfigDiff, type DiffEntry } from "../../../lib/config-diff";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 
@@ -265,12 +266,12 @@ function childMatchesStructuredFilter(params: {
 
 function diffTypeLabel(type: DiffEntry["type"]) {
   if (type === "add") {
-    return "added";
+    return "diffAdded";
   }
   if (type === "remove") {
-    return "removed";
+    return "diffRemoved";
   }
-  return "changed";
+  return "diffChanged";
 }
 
 function formatDiffValue(value: unknown) {
@@ -304,6 +305,7 @@ function isConfigConflictMessage(message: string) {
 }
 
 export function ConfigPanel() {
+  const t = useTranslations("config");
   const [rawConfig, setRawConfig] = useState("");
   const [lastLoadedRawConfig, setLastLoadedRawConfig] = useState("");
   const [baseHash, setBaseHash] = useState("");
@@ -339,7 +341,7 @@ export function ConfigPanel() {
       setError("");
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to load config");
+      setError(loadError instanceof Error ? loadError.message : t("loadConfigFailed"));
     }
   };
 
@@ -348,7 +350,7 @@ export function ConfigPanel() {
       const result = await lookupConfigPath("");
       setRootLookup(result);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "config schema lookup failed");
+      setError(actionError instanceof Error ? actionError.message : t("schemaLookupFailed"));
     }
   };
 
@@ -431,7 +433,7 @@ export function ConfigPanel() {
 
   const lookupAction = async (nextPath = schemaPath) => {
     if (!nextPath.trim()) {
-      setError("schema path is required");
+      setError(t("schemaPathRequired"));
       return;
     }
     setActionState("lookup");
@@ -441,7 +443,7 @@ export function ConfigPanel() {
       setSchemaPath(nextPath.trim());
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "config schema lookup failed");
+      setError(actionError instanceof Error ? actionError.message : t("schemaLookupFailed"));
     } finally {
       setActionState("idle");
     }
@@ -453,18 +455,18 @@ export function ConfigPanel() {
     const nextConfig = parseRawConfigRecord(rawConfig);
     if (!nextConfig) {
       setPendingDiffEntries(null);
-      setError("raw config must be a valid JSON object before apply");
+      setError(t("rawConfigObjectRequired"));
       return;
     }
     if (!loadedConfig) {
       setPendingDiffEntries(null);
-      setError("loaded config snapshot is not a JSON object; refresh config before apply");
+      setError(t("loadedConfigObjectRequired"));
       return;
     }
     const entries = computeConfigDiff(loadedConfig, nextConfig);
     if (entries.length === 0) {
       setPendingDiffEntries(null);
-      setError("no config changes to apply");
+      setError(t("noConfigChanges"));
       return;
     }
     setPendingDiffEntries(entries);
@@ -491,8 +493,8 @@ export function ConfigPanel() {
     } catch (conflictError) {
       setError(
         conflictError instanceof Error
-          ? `config apply conflict; failed to reload latest config: ${conflictError.message}`
-          : "config apply conflict; failed to reload latest config",
+          ? t("conflictReloadFailedWithMessage", { message: conflictError.message })
+          : t("conflictReloadFailed"),
       );
     }
   };
@@ -522,7 +524,7 @@ export function ConfigPanel() {
       setError("");
       await refresh();
     } catch (actionError) {
-      const message = actionError instanceof Error ? actionError.message : "config apply failed";
+      const message = actionError instanceof Error ? actionError.message : t("configApplyFailed");
       if (isConfigConflictMessage(message)) {
         await handleApplyConflict(message);
       } else {
@@ -544,18 +546,18 @@ export function ConfigPanel() {
       setVisibleSensitiveFields({});
       setError("");
     } catch {
-      setError("raw config must be valid JSON before structured edits");
+      setError(t("rawConfigValidRequired"));
     }
   };
 
   const updateStructuredNumberPath = (path: string, rawValue: string) => {
     if (!rawValue.trim()) {
-      setError(`${path} requires a number`);
+      setError(t("pathRequiresNumber", { path }));
       return;
     }
     const nextValue = Number(rawValue);
     if (!Number.isFinite(nextValue)) {
-      setError(`${path} requires a finite number`);
+      setError(t("pathRequiresFiniteNumber", { path }));
       return;
     }
     updateStructuredPath(path, nextValue);
@@ -573,7 +575,7 @@ export function ConfigPanel() {
     try {
       updateStructuredPath(path, JSON.parse(draft) as unknown);
     } catch {
-      setError(`${path} requires valid JSON`);
+      setError(t("pathRequiresValidJson", { path }));
     }
   };
 
@@ -589,27 +591,31 @@ export function ConfigPanel() {
       <div className="deckgo-column deck-ui-config-column">
         <article className="deckgo-card is-float deck-ui-config-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Config</h2>
+            <h2 className="deckgo-card-title">{t("panelTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Raw config editing uses deck-go config get/apply plus targeted schema lookup.
-          </p>
+          <p className="deckgo-card-subtitle">{t("panelDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-config-body">
             <div className="deckgo-pill-row deck-ui-config-status-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Config {loadState}
+                {t("configStatus", { status: t(loadState) })}
               </span>
-              <span className="deckgo-pill">{topLevelKeys.length} top-level keys</span>
-              <span className="deckgo-pill">{schemaSections.length} schema sections</span>
-              <span className="deckgo-pill">hash {baseHash || "n/a"}</span>
+              <span className="deckgo-pill">
+                {t("topLevelKeysCount", { count: topLevelKeys.length })}
+              </span>
+              <span className="deckgo-pill">
+                {t("schemaSectionsCount", { count: schemaSections.length })}
+              </span>
+              <span className="deckgo-pill">
+                {t("hashValue", { value: baseHash || t("notAvailable") })}
+              </span>
               <span className={`deckgo-pill ${isDirty ? "is-warning" : "is-muted"}`}>
-                unsaved {isDirty ? "yes" : "no"}
+                {t("unsavedStatus", { value: isDirty ? t("yes") : t("no") })}
               </span>
             </div>
             <div className="deckgo-grid deckgo-grid-3 deck-ui-config-stats">
-              <ShellStat label="keys" value={topLevelKeys.length} />
-              <ShellStat label="schema path" value={schemaPath} />
-              <ShellStat label="hash" value={baseHash || "n/a"} />
+              <ShellStat label={t("keys")} value={topLevelKeys.length} />
+              <ShellStat label={t("schemaPath")} value={schemaPath} />
+              <ShellStat label={t("hash")} value={baseHash || t("notAvailable")} />
             </div>
             <div className="deckgo-actions deck-ui-config-actions">
               <button
@@ -617,7 +623,7 @@ export function ConfigPanel() {
                 type="button"
                 onClick={() => void refresh()}
               >
-                Refresh config
+                {t("refreshConfig")}
               </button>
               <button
                 className="deckgo-button is-primary deck-ui-config-button"
@@ -625,7 +631,7 @@ export function ConfigPanel() {
                 onClick={() => previewSaveAction()}
                 disabled={!isDirty || actionState !== "idle"}
               >
-                {actionState === "saving" ? "Saving" : "Apply config"}
+                {actionState === "saving" ? t("saving") : t("applyConfig")}
               </button>
               <button
                 className="deckgo-button deck-ui-config-button"
@@ -639,7 +645,7 @@ export function ConfigPanel() {
                 }}
                 disabled={!isDirty || actionState !== "idle"}
               >
-                Reset edits
+                {t("resetEdits")}
               </button>
             </div>
             {error ? <p className="deckgo-note deck-ui-config-error">{error}</p> : null}
@@ -647,16 +653,15 @@ export function ConfigPanel() {
               <div
                 className="deckgo-surface-tile deck-ui-config-surface deck-ui-config-dialog"
                 role="dialog"
-                aria-label="Config diff preview"
+                aria-label={t("configDiffPreview")}
               >
                 <div className="deckgo-card-header">
                   <div>
-                    <p className="deckgo-surface-label">Config diff preview</p>
-                    <strong>{pendingDiffEntries.length} pending config changes</strong>
-                    <p className="deckgo-note">
-                      Review the computed diff before submitting this raw snapshot through
-                      config.apply.
-                    </p>
+                    <p className="deckgo-surface-label">{t("configDiffPreview")}</p>
+                    <strong>
+                      {t("pendingConfigChanges", { count: pendingDiffEntries.length })}
+                    </strong>
+                    <p className="deckgo-note">{t("configDiffDescription")}</p>
                   </div>
                 </div>
                 <ul className="deckgo-shell-list deck-ui-config-list">
@@ -671,7 +676,7 @@ export function ConfigPanel() {
                               {formatDiffValue(entry.newValue)}
                             </p>
                           </div>
-                          <span className="deckgo-pill">{diffTypeLabel(entry.type)}</span>
+                          <span className="deckgo-pill">{t(diffTypeLabel(entry.type))}</span>
                         </div>
                       </div>
                     </li>
@@ -679,7 +684,7 @@ export function ConfigPanel() {
                 </ul>
                 {pendingDiffEntries.length > 50 ? (
                   <p className="deckgo-note">
-                    {pendingDiffEntries.length - 50} additional changes are hidden from the preview.
+                    {t("additionalChangesHidden", { count: pendingDiffEntries.length - 50 })}
                   </p>
                 ) : null}
                 <div className="deckgo-actions deck-ui-config-actions">
@@ -689,7 +694,7 @@ export function ConfigPanel() {
                     onClick={() => void saveAction()}
                     disabled={actionState !== "idle"}
                   >
-                    Confirm apply config
+                    {t("confirmApplyConfig")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-config-button"
@@ -697,7 +702,7 @@ export function ConfigPanel() {
                     onClick={() => setPendingDiffEntries(null)}
                     disabled={actionState !== "idle"}
                   >
-                    Cancel diff preview
+                    {t("cancelDiffPreview")}
                   </button>
                 </div>
               </div>
@@ -706,27 +711,25 @@ export function ConfigPanel() {
               <div
                 className="deckgo-surface-tile deck-ui-config-surface deck-ui-config-dialog"
                 role="dialog"
-                aria-label="Config apply conflict"
+                aria-label={t("configApplyConflict")}
               >
                 <div className="deckgo-card-header">
                   <div>
-                    <p className="deckgo-surface-label">Config apply conflict</p>
-                    <strong>Remote config changed since this snapshot was loaded</strong>
+                    <p className="deckgo-surface-label">{t("configApplyConflict")}</p>
+                    <strong>{t("remoteConfigChanged")}</strong>
                     <p className="deckgo-note">{conflictPreview.message}</p>
                     <p className="deckgo-note">
-                      Latest hash {conflictPreview.remoteHash || "n/a"}; review the remote-to-local
-                      diff before choosing a recovery action.
+                      {t("latestHashDescription", {
+                        hash: conflictPreview.remoteHash || t("notAvailable"),
+                      })}
                     </p>
                   </div>
                   <span className="deckgo-pill is-warning">
-                    {conflictPreview.entries.length} diffs
+                    {t("diffsCount", { count: conflictPreview.entries.length })}
                   </span>
                 </div>
                 {conflictPreview.entries.length === 0 ? (
-                  <p className="deckgo-note">
-                    The latest remote snapshot was loaded, but no field-level diff could be
-                    computed. Reload before editing if the conflict is unexpected.
-                  </p>
+                  <p className="deckgo-note">{t("noConflictDiffComputed")}</p>
                 ) : (
                   <ul className="deckgo-shell-list deck-ui-config-list">
                     {conflictPreview.entries.slice(0, 50).map((entry) => (
@@ -736,11 +739,13 @@ export function ConfigPanel() {
                             <div>
                               <strong>{entry.path}</strong>
                               <p className="deckgo-note">
-                                remote {formatDiffValue(entry.oldValue)} -&gt; local{" "}
-                                {formatDiffValue(entry.newValue)}
+                                {t("remoteToLocalDiff", {
+                                  remote: formatDiffValue(entry.oldValue),
+                                  local: formatDiffValue(entry.newValue),
+                                })}
                               </p>
                             </div>
-                            <span className="deckgo-pill">{diffTypeLabel(entry.type)}</span>
+                            <span className="deckgo-pill">{t(diffTypeLabel(entry.type))}</span>
                           </div>
                         </div>
                       </li>
@@ -749,8 +754,9 @@ export function ConfigPanel() {
                 )}
                 {conflictPreview.entries.length > 50 ? (
                   <p className="deckgo-note">
-                    {conflictPreview.entries.length - 50} additional conflict diffs are hidden from
-                    the preview.
+                    {t("additionalConflictDiffsHidden", {
+                      count: conflictPreview.entries.length - 50,
+                    })}
                   </p>
                 ) : null}
                 <div className="deckgo-actions deck-ui-config-actions">
@@ -760,7 +766,7 @@ export function ConfigPanel() {
                     onClick={() => reloadConflictRemote()}
                     disabled={actionState !== "idle"}
                   >
-                    Reload latest config
+                    {t("reloadLatestConfig")}
                   </button>
                   <button
                     className="deckgo-button is-primary deck-ui-config-button"
@@ -768,7 +774,7 @@ export function ConfigPanel() {
                     onClick={() => void saveAction(conflictPreview.remoteHash)}
                     disabled={!conflictPreview.remoteHash || actionState !== "idle"}
                   >
-                    Retry local config with latest hash
+                    {t("retryLocalWithLatestHash")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-config-button"
@@ -776,13 +782,13 @@ export function ConfigPanel() {
                     onClick={() => setConflictPreview(null)}
                     disabled={actionState !== "idle"}
                   >
-                    Dismiss conflict
+                    {t("dismissConflict")}
                   </button>
                 </div>
               </div>
             ) : null}
             <label className="deckgo-label deck-ui-config-label">
-              <span>Raw config</span>
+              <span>{t("rawConfig")}</span>
               <textarea
                 className="deckgo-textarea deck-ui-config-textarea"
                 rows={20}
@@ -802,25 +808,22 @@ export function ConfigPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-config-column">
         <article className="deckgo-card is-float deck-ui-config-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Config detail</h2>
+            <h2 className="deckgo-card-title">{t("configDetail")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Structured field edits submit through the raw config snapshot while schema lookup keeps
-            section details grounded in the current config contract.
-          </p>
+          <p className="deckgo-card-subtitle">{t("configDetailDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-config-body">
             <div className="deckgo-surface-tile deck-ui-config-surface">
-              <p className="deckgo-surface-label">Schema sections</p>
+              <p className="deckgo-surface-label">{t("schemaSections")}</p>
               <input
                 className="deckgo-input deck-ui-config-input"
                 value={sectionFilter}
                 onChange={(event) => setSectionFilter(event.target.value)}
-                placeholder="Filter sections"
+                placeholder={t("filterSections")}
               />
               <div className="deckgo-actions deck-ui-config-actions">
                 {filteredSchemaSections.length === 0 ? (
                   <span className="deckgo-note deck-ui-config-empty">
-                    No matching schema sections.
+                    {t("noMatchingSchemaSections")}
                   </span>
                 ) : (
                   filteredSchemaSections.map((section) => (
@@ -841,13 +844,13 @@ export function ConfigPanel() {
               </div>
             </div>
             <div className="deckgo-surface-tile deck-ui-config-surface">
-              <p className="deckgo-surface-label">Lookup config path</p>
+              <p className="deckgo-surface-label">{t("lookupConfigPath")}</p>
               <div className="deckgo-actions deck-ui-config-actions">
                 <input
                   className="deckgo-input deck-ui-config-input"
                   value={schemaPath}
                   onChange={(event) => setSchemaPath(event.target.value)}
-                  placeholder="config path"
+                  placeholder={t("configPath")}
                 />
                 <button
                   className="deckgo-button deck-ui-config-button"
@@ -855,21 +858,19 @@ export function ConfigPanel() {
                   onClick={() => void lookupAction()}
                   disabled={actionState !== "idle"}
                 >
-                  {actionState === "lookup" ? "Looking up" : "Lookup schema"}
+                  {actionState === "lookup" ? t("lookingUp") : t("lookupSchema")}
                 </button>
               </div>
             </div>
             <div className="deckgo-surface-tile deck-ui-config-surface">
-              <p className="deckgo-surface-label">Structured section editor</p>
+              <p className="deckgo-surface-label">{t("structuredSectionEditor")}</p>
               {lookupResult ? (
                 <>
                   <p className="deckgo-note">
-                    Editing direct children from schema lookup path {lookupResult.path}.
+                    {t("editingSchemaChildren", { path: lookupResult.path })}
                   </p>
                   {lookupResult.children.length === 0 ? (
-                    <p className="deckgo-note deck-ui-config-empty">
-                      This schema path has no editable child fields.
-                    </p>
+                    <p className="deckgo-note deck-ui-config-empty">{t("noEditableChildFields")}</p>
                   ) : (
                     <>
                       <div className="deckgo-actions deck-ui-config-actions">
@@ -877,7 +878,7 @@ export function ConfigPanel() {
                           className="deckgo-input deck-ui-config-input"
                           value={structuredFieldFilter}
                           onChange={(event) => setStructuredFieldFilter(event.target.value)}
-                          placeholder="Filter structured fields"
+                          placeholder={t("filterStructuredFields")}
                         />
                         {structuredFieldTags.length > 0 ? (
                           <>
@@ -888,7 +889,7 @@ export function ConfigPanel() {
                               type="button"
                               onClick={() => setStructuredFieldTag("")}
                             >
-                              All tags
+                              {t("allTags")}
                             </button>
                             {structuredFieldTags.map((tag) => (
                               <button
@@ -906,12 +907,14 @@ export function ConfigPanel() {
                         ) : null}
                       </div>
                       <p className="deckgo-note">
-                        Showing {visibleLookupChildren.length} of {lookupResult.children.length}{" "}
-                        structured fields.
+                        {t("showingStructuredFields", {
+                          visible: visibleLookupChildren.length,
+                          total: lookupResult.children.length,
+                        })}
                       </p>
                       {visibleLookupChildren.length === 0 ? (
                         <p className="deckgo-note deck-ui-config-empty">
-                          No structured fields match the current filter.
+                          {t("noStructuredFieldsMatch")}
                         </p>
                       ) : null}
                       <div className="deckgo-shell-list deck-ui-config-list deck-ui-config-field-list">
@@ -940,7 +943,7 @@ export function ConfigPanel() {
                                   {schemaChildType(child) ?? fieldKind}
                                 </span>
                                 {isSensitive ? (
-                                  <span className="deckgo-pill is-warning">sensitive</span>
+                                  <span className="deckgo-pill is-warning">{t("sensitive")}</span>
                                 ) : null}
                               </div>
                               {fieldKind === "boolean" ? (
@@ -953,7 +956,7 @@ export function ConfigPanel() {
                                       updateStructuredPath(childPath, event.target.checked)
                                     }
                                   />
-                                  <span>{childValue === true ? "enabled" : "disabled"}</span>
+                                  <span>{childValue === true ? t("enabled") : t("disabled")}</span>
                                 </label>
                               ) : null}
                               {fieldKind === "enum" ? (
@@ -1008,17 +1011,14 @@ export function ConfigPanel() {
                                       type="button"
                                       onClick={() => toggleSensitiveVisibility(childPath)}
                                     >
-                                      {isSensitiveVisible ? "Hide" : "Show"}
+                                      {isSensitiveVisible ? t("hidePassword") : t("showPassword")}
                                     </button>
                                   ) : null}
                                 </div>
                               ) : null}
                               {fieldKind === "readonly" ? (
                                 <div>
-                                  <p className="deckgo-note">
-                                    Edit this nested or non-primitive value as JSON, then apply it
-                                    to the raw config snapshot.
-                                  </p>
+                                  <p className="deckgo-note">{t("jsonFieldDescription")}</p>
                                   <textarea
                                     aria-label={`Edit JSON ${childPath}`}
                                     className="deckgo-textarea deck-ui-config-textarea"
@@ -1038,7 +1038,7 @@ export function ConfigPanel() {
                                       type="button"
                                       onClick={() => applyStructuredJsonPath(childPath, childValue)}
                                     >
-                                      Apply JSON field
+                                      {t("applyJsonField")}
                                     </button>
                                     <button
                                       aria-label={`Reset JSON ${childPath}`}
@@ -1051,10 +1051,13 @@ export function ConfigPanel() {
                                         )
                                       }
                                     >
-                                      Reset JSON field
+                                      {t("resetJsonField")}
                                     </button>
                                   </div>
-                                  <JsonDetails title={`Value: ${childPath}`} payload={childValue} />
+                                  <JsonDetails
+                                    title={t("valuePayload", { path: childPath })}
+                                    payload={childValue}
+                                  />
                                 </div>
                               ) : null}
                             </div>
@@ -1065,30 +1068,26 @@ export function ConfigPanel() {
                   )}
                 </>
               ) : (
-                <p className="deckgo-note deck-ui-config-empty">
-                  Run a schema lookup to edit structured fields.
-                </p>
+                <p className="deckgo-note deck-ui-config-empty">{t("runSchemaLookup")}</p>
               )}
             </div>
             <div className="deckgo-panel-hero-strip deck-ui-config-hero">
               <div>
-                <p className="deckgo-kicker">Top-level sections</p>
-                <strong>{selectedSection || topLevelKeys[0] || "No config keys"}</strong>
-                <p className="deckgo-note">
-                  Current section value from the deck-go config snapshot
-                </p>
+                <p className="deckgo-kicker">{t("topLevelSections")}</p>
+                <strong>{selectedSection || topLevelKeys[0] || t("noConfigKeys")}</strong>
+                <p className="deckgo-note">{t("currentSectionValueDescription")}</p>
               </div>
               <div className="deckgo-pill-row deck-ui-config-status-row">
-                <span className="deckgo-pill">{topLevelKeys.length} sections</span>
                 <span className="deckgo-pill">
-                  {lookupResult?.children.length ?? 0} schema children
+                  {t("sectionsCount", { count: topLevelKeys.length })}
+                </span>
+                <span className="deckgo-pill">
+                  {t("schemaChildrenCount", { count: lookupResult?.children.length ?? 0 })}
                 </span>
               </div>
             </div>
             {topLevelKeys.length === 0 ? (
-              <p className="deckgo-note deck-ui-config-empty">
-                The current config snapshot has no top-level keys.
-              </p>
+              <p className="deckgo-note deck-ui-config-empty">{t("noTopLevelKeys")}</p>
             ) : (
               <ul className="deckgo-shell-list deck-ui-config-list">
                 {topLevelKeys.map((key) => (
@@ -1102,18 +1101,20 @@ export function ConfigPanel() {
             )}
             {selectedSection ? (
               selectedSectionValue === undefined ? (
-                <p className="deckgo-note deck-ui-config-empty">
-                  The selected schema section is not present in the current config snapshot.
-                </p>
+                <p className="deckgo-note deck-ui-config-empty">{t("selectedSectionMissing")}</p>
               ) : (
                 <JsonDetails
-                  title={`Config section: ${selectedSection}`}
+                  title={t("configSectionPayload", { section: selectedSection })}
                   payload={selectedSectionValue}
                 />
               )
             ) : null}
-            {lookupResult ? <JsonDetails title="Schema lookup" payload={lookupResult} /> : null}
-            {actionResult ? <JsonDetails title="Last apply result" payload={actionResult} /> : null}
+            {lookupResult ? (
+              <JsonDetails title={t("schemaLookupPayload")} payload={lookupResult} />
+            ) : null}
+            {actionResult ? (
+              <JsonDetails title={t("lastApplyResult")} payload={actionResult} />
+            ) : null}
           </div>
         </article>
       </div>

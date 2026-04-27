@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { patchChannelConfig } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 
 type ChannelDmPolicy = "pairing" | "allowlist" | "open" | "disabled";
 
@@ -48,10 +49,10 @@ function retryEquals(left: typeof DEFAULT_RETRY, right: typeof DEFAULT_RETRY) {
   );
 }
 
-function parseJsonPatch(draft: string): Record<string, unknown> {
+function parseJsonPatch(draft: string, objectMessage: string): Record<string, unknown> {
   const parsed = JSON.parse(draft) as unknown;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Channel JSON patch must be an object.");
+    throw new Error(objectMessage);
   }
   return parsed as Record<string, unknown>;
 }
@@ -65,6 +66,7 @@ export function ChannelSettingsEditor(props: {
   channel: Record<string, unknown>;
   onSaved: (result: Record<string, unknown>) => Promise<void>;
 }) {
+  const t = useTranslations("channels");
   const [dmPolicy, setDmPolicy] = useState<ChannelDmPolicy>(() =>
     readChannelDmPolicy(props.channel),
   );
@@ -109,7 +111,7 @@ export function ChannelSettingsEditor(props: {
       setInitialRetry(retry);
       await props.onSaved(result);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "channel settings save failed");
+      setError(saveError instanceof Error ? saveError.message : t("channelSettingsSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -118,9 +120,9 @@ export function ChannelSettingsEditor(props: {
   const applyJsonPatch = async () => {
     setSaving(true);
     try {
-      const patch = parseJsonPatch(jsonPatchDraft);
+      const patch = parseJsonPatch(jsonPatchDraft, t("channelJsonPatchObject"));
       if (isEmptyRecord(patch)) {
-        setError("Channel JSON patch is empty.");
+        setError(t("channelJsonPatchEmpty"));
         return;
       }
       const result = await patchChannelConfig(props.channelId, patch);
@@ -128,7 +130,7 @@ export function ChannelSettingsEditor(props: {
       setJsonPatchDraft("{}");
       await props.onSaved(result);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "channel JSON patch failed");
+      setError(saveError instanceof Error ? saveError.message : t("channelJsonPatchFailed"));
     } finally {
       setSaving(false);
     }
@@ -136,11 +138,11 @@ export function ChannelSettingsEditor(props: {
 
   return (
     <div className="deckgo-surface-tile deck-ui-channels-surface">
-      <p className="deckgo-surface-label">Channel settings</p>
-      <p className="deckgo-note">Edit fallback DM policy and retry behavior for this channel.</p>
+      <p className="deckgo-surface-label">{t("channelSettings")}</p>
+      <p className="deckgo-note">{t("channelSettingsDescription")}</p>
       <div className="deckgo-grid deckgo-grid-2 deck-ui-channels-form-grid">
         <label className="deckgo-label">
-          <span>DM policy</span>
+          <span>{t("dmPolicy")}</span>
           <select
             aria-label="channel dm policy"
             className="deckgo-input deck-ui-channels-input"
@@ -155,7 +157,7 @@ export function ChannelSettingsEditor(props: {
           </select>
         </label>
         <label className="deckgo-label">
-          <span>Attempts</span>
+          <span>{t("attempts")}</span>
           <input
             className="deckgo-input deck-ui-channels-input"
             inputMode="numeric"
@@ -166,11 +168,11 @@ export function ChannelSettingsEditor(props: {
                 attempts: Number(event.target.value) || DEFAULT_RETRY.attempts,
               }))
             }
-            placeholder="retry attempts"
+            placeholder={t("retryAttemptsPlaceholder")}
           />
         </label>
         <label className="deckgo-label">
-          <span>Min delay ms</span>
+          <span>{t("minDelayMs")}</span>
           <input
             className="deckgo-input deck-ui-channels-input"
             inputMode="numeric"
@@ -181,11 +183,11 @@ export function ChannelSettingsEditor(props: {
                 minDelayMs: Number(event.target.value) || DEFAULT_RETRY.minDelayMs,
               }))
             }
-            placeholder="retry min delay"
+            placeholder={t("retryMinDelayPlaceholder")}
           />
         </label>
         <label className="deckgo-label">
-          <span>Max delay ms</span>
+          <span>{t("maxDelayMs")}</span>
           <input
             className="deckgo-input deck-ui-channels-input"
             inputMode="numeric"
@@ -196,11 +198,11 @@ export function ChannelSettingsEditor(props: {
                 maxDelayMs: Number(event.target.value) || DEFAULT_RETRY.maxDelayMs,
               }))
             }
-            placeholder="retry max delay"
+            placeholder={t("retryMaxDelayPlaceholder")}
           />
         </label>
         <label className="deckgo-label">
-          <span>Jitter</span>
+          <span>{t("jitter")}</span>
           <input
             className="deckgo-input deck-ui-channels-input"
             inputMode="decimal"
@@ -211,7 +213,7 @@ export function ChannelSettingsEditor(props: {
                 jitter: Number(event.target.value) || DEFAULT_RETRY.jitter,
               }))
             }
-            placeholder="retry jitter"
+            placeholder={t("retryJitterPlaceholder")}
           />
         </label>
       </div>
@@ -222,11 +224,11 @@ export function ChannelSettingsEditor(props: {
           disabled={!dirty || saving}
           onClick={() => void saveSettings()}
         >
-          {saving ? "Saving settings" : "Save channel settings"}
+          {saving ? t("savingSettings") : t("saveChannelSettings")}
         </button>
       </div>
       <label className="deckgo-label deck-ui-channels-label-offset">
-        <span>Channel JSON patch</span>
+        <span>{t("channelJsonPatch")}</span>
         <textarea
           aria-label="channel json patch"
           className="deckgo-input deckgo-json-textarea deck-ui-channels-input deck-ui-channels-textarea"
@@ -243,7 +245,7 @@ export function ChannelSettingsEditor(props: {
           disabled={saving}
           onClick={() => void applyJsonPatch()}
         >
-          {saving ? "Applying patch" : "Apply JSON patch"}
+          {saving ? t("applyingPatch") : t("applyJsonPatch")}
         </button>
       </div>
       {error ? <p className="deckgo-note deck-ui-channels-error">{error}</p> : null}

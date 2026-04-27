@@ -16,23 +16,28 @@ import {
   navigateToRouting,
 } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 
 type PanelState = "idle" | "loading" | "ready";
+type PluginTranslator = ReturnType<typeof useTranslations>;
 
-function formatList(values: string[] | undefined) {
-  return values?.length ? values.join(", ") : "none";
+function formatList(values: string[] | undefined, noneLabel: string) {
+  return values?.length ? values.join(", ") : noneLabel;
 }
 
-function formatDeckActions(capabilities: DeckGoPluginActionCapabilities | undefined) {
+function formatDeckActions(
+  capabilities: DeckGoPluginActionCapabilities | undefined,
+  noneLabel: string,
+) {
   if (!capabilities) {
-    return "none";
+    return noneLabel;
   }
   return (
     Object.entries(capabilities)
       .filter(([, enabled]) => enabled)
       .map(([name]) => name)
-      .join(", ") || "none"
+      .join(", ") || noneLabel
   );
 }
 
@@ -71,6 +76,8 @@ function readPluginNavigationTarget() {
 }
 
 export function PluginsPanel() {
+  const t = useTranslations("pluginsInventory");
+  const tc = useTranslations("common");
   const ui = useDeckUI();
   const [navigationTarget] = useState(readPluginNavigationTarget);
   const [payload, setPayload] = useState<DeckGoPluginsListResponse | null>(null);
@@ -107,18 +114,16 @@ export function PluginsPanel() {
           return;
         }
         setLoadState("idle");
-        setError(loadError instanceof Error ? loadError.message : "failed to load plugins");
+        setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
       });
     return () => {
       cancelled = true;
     };
-  }, [capability]);
+  }, [capability, navigationTarget.pluginId, t]);
 
   const plugins = payload?.plugins ?? [];
   const availableChannels = useMemo(() => channelIdSet(channelsPayload), [channelsPayload]);
   const accessChannels = useMemo(() => accessChannelIdSet(channelsPayload), [channelsPayload]);
-  const selectedPlugin =
-    plugins.find((plugin) => plugin.id === selectedPluginId) ?? plugins[0] ?? null;
   const enabledCount = useMemo(
     () => plugins.filter((plugin) => plugin.enabled !== false).length,
     [plugins],
@@ -126,164 +131,199 @@ export function PluginsPanel() {
   const statusSummary = useMemo(() => {
     const counts = new Map<string, number>();
     for (const plugin of plugins) {
-      const key = plugin.status?.trim() || "unknown";
+      const key = plugin.status?.trim() || t("unknown");
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return Array.from(counts.entries())
       .map(([status, count]) => `${status}: ${count}`)
       .join(" · ");
-  }, [plugins]);
+  }, [plugins, t]);
+  const scopeLabel =
+    payload?.scope === "channel" ? t("scopeChannel") : (payload?.scope ?? t("unknown"));
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-plugins">
-      <div className="deckgo-column deck-ui-plugins-column">
-        <article className="deckgo-card is-float deck-ui-plugins-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Plugin inventory</h2>
-          </div>
-          <p className="deckgo-card-subtitle">
-            Plugin capability inventory is backed by the live `deck.plugins.list` contract.
+    <section className="deck-ui-control-single deck-ui-plugins">
+      <header className="deck-ui-control-topbar deck-ui-plugins-header">
+        <div>
+          <h2 className="deck-ui-control-section-title">{t("title")}</h2>
+          <p className="deckgo-note">{t("description")}</p>
+          <p className="deckgo-meta">
+            {t("scope")}: {scopeLabel}
           </p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-plugins-body">
-            <div className="deckgo-pill-row deck-ui-plugins-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Inventory {loadState}
-              </span>
-              <span className="deckgo-pill">scope: {payload?.scope || "unknown"}</span>
-              <span className="deckgo-pill">capability: {capability}</span>
-            </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-plugins-stats">
-              <ShellStat label="plugins" value={plugins.length} />
-              <ShellStat label="enabled" value={enabledCount} />
-              <ShellStat label="statuses" value={statusSummary || "none"} />
-            </div>
-            <div className="deckgo-actions deck-ui-plugins-actions">
-              <button
-                className={`deckgo-button deck-ui-plugins-button ${capability === "channel" ? "is-primary" : ""}`}
-                type="button"
-                onClick={() => setCapability("channel")}
-                disabled={loadState === "loading"}
-              >
-                Channel plugins
-              </button>
-              <button
-                className={`deckgo-button deck-ui-plugins-button ${capability === "all" ? "is-primary" : ""}`}
-                type="button"
-                onClick={() => setCapability("all")}
-                disabled={loadState === "loading"}
-              >
-                All plugins
-              </button>
-            </div>
-            {error ? <p className="deckgo-note deck-ui-plugins-error">{error}</p> : null}
-            {plugins.length === 0 ? (
-              <p className="deckgo-note deck-ui-plugins-empty">No plugins loaded.</p>
-            ) : (
-              <ul className="deckgo-shell-list deck-ui-plugins-list">
-                {plugins.map((plugin) => (
-                  <li key={plugin.id}>
-                    <button
-                      type="button"
-                      className={`deckgo-selectable-card deck-ui-plugins-row ${selectedPluginId === plugin.id ? "is-selected" : ""}`}
-                      onClick={() => setSelectedPluginId(plugin.id)}
-                    >
-                      <strong>{plugin.name || plugin.id}</strong>
-                      <div className="deckgo-meta">
-                        id: {plugin.id} | origin: {plugin.origin || "unknown"} | status:{" "}
-                        {plugin.status || "unknown"}
-                      </div>
-                      <div className="deckgo-meta">
-                        enabled: {plugin.enabled === false ? "no" : "yes"}
-                      </div>
-                      <div className="deckgo-meta">
-                        capabilities: {formatList(plugin.capabilityKinds)} | channels:{" "}
-                        {formatList(plugin.channelIds)}
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </article>
-      </div>
+        </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-plugins-column">
-        <article className="deckgo-card is-float deck-ui-plugins-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Selected plugin</h2>
+        <div className="deck-ui-control-topbar-actions deck-ui-plugins-actions">
+          <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
+            {loadState === "loading" ? tc("loading") : t(loadState)}
+          </span>
+          <span className="deckgo-pill">{t("pluginCount", { count: plugins.length })}</span>
+          <span className="deckgo-pill">{t("enabledCount", { count: enabledCount })}</span>
+          <button
+            className={`deckgo-button deck-ui-plugins-button ${
+              capability === "channel" ? "is-primary" : ""
+            }`}
+            disabled={loadState === "loading"}
+            type="button"
+            onClick={() => setCapability("channel")}
+          >
+            {t("channelPlugins")}
+          </button>
+          <button
+            className={`deckgo-button deck-ui-plugins-button ${
+              capability === "all" ? "is-primary" : ""
+            }`}
+            disabled={loadState === "loading"}
+            type="button"
+            onClick={() => setCapability("all")}
+          >
+            {t("allPlugins")}
+          </button>
+        </div>
+      </header>
+
+      <div className="deck-ui-control-panel-body deck-ui-plugins-body">
+        <div className="deckgo-grid deckgo-grid-3 deck-ui-plugins-stats">
+          <ShellStat label={t("plugins")} value={plugins.length} />
+          <ShellStat label={t("enabled")} value={enabledCount} />
+          <ShellStat label={t("statuses")} value={statusSummary || t("none")} />
+        </div>
+
+        {error ? <p className="deck-ui-control-error">{error}</p> : null}
+        {handoffMessage ? (
+          <p className="deckgo-note deck-ui-plugins-handoff">{handoffMessage}</p>
+        ) : null}
+        {loadState === "loading" && plugins.length === 0 ? (
+          <p className="deck-ui-control-empty">{tc("loading")}</p>
+        ) : null}
+        {loadState !== "loading" && plugins.length === 0 ? (
+          <div className="deck-ui-control-empty-state">
+            <h3>{t("empty")}</h3>
+            <p>{t("description")}</p>
           </div>
-          <p className="deckgo-card-subtitle">
-            Plugin inventory comes from `deck.plugins.list`, with related channel visibility and
-            diagnostics cross-checked against channel status.
-          </p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-plugins-body">
-            {selectedPlugin ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-plugins-hero">
-                  <div>
-                    <p className="deckgo-kicker">Plugin</p>
-                    <strong>{selectedPlugin.name || selectedPlugin.id}</strong>
-                    <p className="deckgo-note">scope: {payload?.scope || "unknown"}</p>
-                  </div>
-                  <div className="deckgo-pill-row deck-ui-plugins-status-row">
-                    <span className="deckgo-pill">origin {selectedPlugin.origin || "unknown"}</span>
-                    <span className="deckgo-pill">status {selectedPlugin.status || "unknown"}</span>
-                  </div>
-                </div>
-                <RelatedChannelActions
+        ) : null}
+
+        {plugins.length > 0 ? (
+          <ul className="deckgo-shell-list deck-ui-plugins-list">
+            {plugins.map((plugin) => (
+              <li key={plugin.id}>
+                <PluginCard
                   accessChannels={accessChannels}
                   availableChannels={availableChannels}
-                  plugin={selectedPlugin}
-                  onOpenChannel={(channelId) => {
-                    navigateToChannel(ui, { channelId });
-                    setHandoffMessage(`Opened Channels panel; target channel: ${channelId}`);
-                  }}
+                  plugin={plugin}
+                  selected={selectedPluginId === plugin.id}
+                  t={t}
                   onOpenAccess={(channelId) => {
                     navigateToChannelAccess(ui, { channelId });
-                    setHandoffMessage(`Opened Channels access controls for ${channelId}`);
+                    setHandoffMessage(t("openedAccess", { channel: channelId }));
+                  }}
+                  onOpenChannel={(channelId) => {
+                    navigateToChannel(ui, { channelId });
+                    setHandoffMessage(t("openedChannel", { channel: channelId }));
                   }}
                   onOpenRouting={(channelId) => {
                     navigateToRouting(ui, { channelId });
-                    setHandoffMessage(`Opened Routing panel; target channel: ${channelId}`);
+                    setHandoffMessage(t("openedRouting", { channel: channelId }));
                   }}
+                  onSelect={() => setSelectedPluginId(plugin.id)}
                 />
-                {handoffMessage ? (
-                  <p className="deckgo-note deck-ui-plugins-handoff">{handoffMessage}</p>
-                ) : null}
-                <PluginDetails plugin={selectedPlugin} />
-                <PluginDiagnostics plugin={selectedPlugin} />
-                <JsonDetails title="Plugin payload" payload={selectedPlugin} />
-              </>
-            ) : (
-              <p className="deckgo-note deck-ui-plugins-empty">
-                Choose a plugin to inspect its payload.
-              </p>
-            )}
-          </div>
-        </article>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     </section>
   );
 }
 
-function PluginDetails(props: { plugin: DeckGoPluginInventoryEntry }) {
+function PluginCard(props: {
+  accessChannels: Set<string>;
+  availableChannels: Set<string>;
+  plugin: DeckGoPluginInventoryEntry;
+  selected: boolean;
+  t: PluginTranslator;
+  onOpenAccess: (channelId: string) => void;
+  onOpenChannel: (channelId: string) => void;
+  onOpenRouting: (channelId: string) => void;
+  onSelect: () => void;
+}) {
+  const t = props.t;
+  const noneLabel = t("none");
+
+  return (
+    <article
+      role="button"
+      tabIndex={0}
+      className={`deckgo-selectable-card deck-ui-plugins-row ${
+        props.selected ? "is-selected" : ""
+      }`}
+      onClick={props.onSelect}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+        event.preventDefault();
+        props.onSelect();
+      }}
+    >
+      <div className="deck-ui-control-row-header">
+        <div>
+          <strong>{props.plugin.name || props.plugin.id}</strong>
+          <p className="deckgo-meta">{props.plugin.id}</p>
+        </div>
+        <div className="deckgo-pill-row deck-ui-plugins-status-row">
+          <span className="deckgo-pill">{props.plugin.origin || t("unknown")}</span>
+          <span className="deckgo-pill">{props.plugin.status || t("unknown")}</span>
+        </div>
+      </div>
+
+      <PluginDetails noneLabel={noneLabel} plugin={props.plugin} t={t} />
+
+      <RelatedChannelActions
+        accessChannels={props.accessChannels}
+        availableChannels={props.availableChannels}
+        plugin={props.plugin}
+        t={t}
+        onOpenAccess={props.onOpenAccess}
+        onOpenChannel={props.onOpenChannel}
+        onOpenRouting={props.onOpenRouting}
+      />
+      <PluginDiagnostics plugin={props.plugin} t={t} />
+      {props.selected ? <JsonDetails title={t("pluginPayload")} payload={props.plugin} /> : null}
+    </article>
+  );
+}
+
+function PluginDetails(props: {
+  noneLabel: string;
+  plugin: DeckGoPluginInventoryEntry;
+  t: PluginTranslator;
+}) {
+  const t = props.t;
   return (
     <div className="deckgo-grid deckgo-grid-2 deck-ui-plugins-detail-stats">
-      <ShellStat label="id" value={props.plugin.id} />
-      <ShellStat label="name" value={props.plugin.name || props.plugin.id} />
-      <ShellStat label="version" value={props.plugin.version || "n/a"} />
-      <ShellStat label="origin" value={props.plugin.origin || "unknown"} />
-      <ShellStat label="status" value={props.plugin.status || "unknown"} />
-      <ShellStat label="enabled" value={props.plugin.enabled === false ? "no" : "yes"} />
-      <ShellStat label="config path" value={props.plugin.configPath || "n/a"} />
-      <ShellStat label="capabilities" value={formatList(props.plugin.capabilityKinds)} />
-      <ShellStat label="channels" value={formatList(props.plugin.channelIds)} />
-      <ShellStat label="providers" value={formatList(props.plugin.providerIds)} />
-      <ShellStat label="tools" value={formatList(props.plugin.toolNames)} />
+      <ShellStat label={t("id")} value={props.plugin.id} />
+      <ShellStat label={t("name")} value={props.plugin.name || props.plugin.id} />
+      <ShellStat label={t("version")} value={props.plugin.version || "n/a"} />
+      <ShellStat label={t("origin")} value={props.plugin.origin || t("unknown")} />
+      <ShellStat label={t("status")} value={props.plugin.status || t("unknown")} />
+      <ShellStat label={t("enabled")} value={props.plugin.enabled === false ? t("no") : t("yes")} />
+      <ShellStat label={t("configPath")} value={props.plugin.configPath || "n/a"} />
       <ShellStat
-        label="deck actions"
-        value={formatDeckActions(props.plugin.deckActionCapabilities)}
+        label={t("capabilities")}
+        value={formatList(props.plugin.capabilityKinds, props.noneLabel)}
+      />
+      <ShellStat
+        label={t("channels")}
+        value={formatList(props.plugin.channelIds, props.noneLabel)}
+      />
+      <ShellStat
+        label={t("providers")}
+        value={formatList(props.plugin.providerIds, props.noneLabel)}
+      />
+      <ShellStat label={t("tools")} value={formatList(props.plugin.toolNames, props.noneLabel)} />
+      <ShellStat
+        label={t("deckActions")}
+        value={formatDeckActions(props.plugin.deckActionCapabilities, props.noneLabel)}
       />
     </div>
   );
@@ -293,6 +333,7 @@ function RelatedChannelActions(props: {
   accessChannels: Set<string>;
   availableChannels: Set<string>;
   plugin: DeckGoPluginInventoryEntry;
+  t: PluginTranslator;
   onOpenAccess: (channelId: string) => void;
   onOpenChannel: (channelId: string) => void;
   onOpenRouting: (channelId: string) => void;
@@ -309,7 +350,7 @@ function RelatedChannelActions(props: {
   const routingChannel = visibleChannels[0] ?? channelIds[0];
   return (
     <div className="deckgo-surface-tile deck-ui-plugins-surface">
-      <p className="deckgo-surface-label">Related channels</p>
+      <p className="deckgo-surface-label">{props.t("relatedChannels")}</p>
       <div className="deckgo-actions deck-ui-plugins-actions">
         {visibleChannels.length > 0 ? (
           visibleChannels.map((channelId) => (
@@ -317,21 +358,27 @@ function RelatedChannelActions(props: {
               className="deckgo-button deck-ui-plugins-button"
               key={`${props.plugin.id}-${channelId}`}
               type="button"
-              onClick={() => props.onOpenChannel(channelId)}
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onOpenChannel(channelId);
+              }}
             >
-              Open channel {channelId}
+              {props.t("openChannel", { channel: channelId })}
             </button>
           ))
         ) : (
-          <span className="deckgo-pill is-muted">No visible channels in Channels yet</span>
+          <span className="deckgo-pill is-muted">{props.t("noVisibleChannels")}</span>
         )}
         {routingChannel ? (
           <button
             className="deckgo-button deck-ui-plugins-button"
             type="button"
-            onClick={() => props.onOpenRouting(routingChannel)}
+            onClick={(event) => {
+              event.stopPropagation();
+              props.onOpenRouting(routingChannel);
+            }}
           >
-            Open routing for {routingChannel}
+            {props.t("openRouting", { channel: routingChannel })}
           </button>
         ) : null}
         {visibleAccessChannels.map((channelId) => (
@@ -339,22 +386,25 @@ function RelatedChannelActions(props: {
             className="deckgo-button deck-ui-plugins-button"
             key={`${props.plugin.id}-${channelId}-access`}
             type="button"
-            onClick={() => props.onOpenAccess(channelId)}
+            onClick={(event) => {
+              event.stopPropagation();
+              props.onOpenAccess(channelId);
+            }}
           >
-            Open access for {channelId}
+            {props.t("openAccess", { channel: channelId })}
           </button>
         ))}
       </div>
       {hiddenChannels.length > 0 ? (
         <p className="deckgo-note deck-ui-plugins-empty">
-          Not visible in Channels: {hiddenChannels.join(", ")}
+          {props.t("channelVisibilityWarning", { channels: hiddenChannels.join(", ") })}
         </p>
       ) : null}
     </div>
   );
 }
 
-function PluginDiagnostics(props: { plugin: DeckGoPluginInventoryEntry }) {
+function PluginDiagnostics(props: { plugin: DeckGoPluginInventoryEntry; t: PluginTranslator }) {
   const diagnostics = props.plugin.diagnostics ?? [];
   const hasActivation = props.plugin.activationSource || props.plugin.activationReason;
   if (!hasActivation && diagnostics.length === 0) {
@@ -364,16 +414,16 @@ function PluginDiagnostics(props: { plugin: DeckGoPluginInventoryEntry }) {
     <div className="deckgo-form-grid deck-ui-plugins-diagnostics">
       {hasActivation ? (
         <div className="deckgo-surface-tile deck-ui-plugins-surface">
-          <p className="deckgo-surface-label">Activation</p>
+          <p className="deckgo-surface-label">{props.t("activation")}</p>
           <p className="deckgo-note">
-            source: {props.plugin.activationSource || "n/a"} | reason:{" "}
-            {props.plugin.activationReason || "n/a"}
+            {props.t("activationSource")}: {props.plugin.activationSource || "n/a"} |{" "}
+            {props.t("activationReason")}: {props.plugin.activationReason || "n/a"}
           </p>
         </div>
       ) : null}
       {diagnostics.length > 0 ? (
         <div className="deckgo-surface-tile deck-ui-plugins-surface">
-          <p className="deckgo-surface-label">Diagnostics</p>
+          <p className="deckgo-surface-label">{props.t("diagnostics")}</p>
           <ul className="deckgo-shell-list deck-ui-plugins-list">
             {diagnostics.map((diagnostic, index) => (
               <li key={`${props.plugin.id}-diagnostic-${index}`}>

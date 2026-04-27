@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { SubagentsPanel } from "./SubagentsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -35,6 +36,13 @@ let container: HTMLDivElement;
 let root: Root | null = null;
 
 const baseTime = Date.UTC(2026, 3, 24, 9, 0, 0);
+
+function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
+  act(() => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(SubagentsPanel)));
+  });
+}
 
 function subagentRuns() {
   return {
@@ -221,10 +229,7 @@ describe("SubagentsPanel", () => {
   });
 
   it("loads active runs and renders lineage for the selected run", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SubagentsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchSubagentLineage).toHaveBeenCalledWith({ runId: "run-root" }),
@@ -238,6 +243,13 @@ describe("SubagentsPanel", () => {
     expect(container.textContent).toContain("1 visible");
     expect(container.textContent).toContain("Builder Agent");
     expect(container.textContent).toContain("Reviewer Agent");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Config")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
     expect(container.textContent).toContain("Per-agent permissions");
     expect(container.textContent).toContain("Global spawn defaults");
     expect(container.textContent).toContain("Gateway-valid agents.defaults.subagents");
@@ -257,14 +269,12 @@ describe("SubagentsPanel", () => {
     ).toBeGreaterThanOrEqual(3);
     expect(container.querySelector(".deck-ui-subagents-stats")).toBeTruthy();
     expect(container.querySelectorAll(".deck-ui-subagents-surface").length).toBeGreaterThanOrEqual(
-      5,
+      4,
     );
     expect(
       container.querySelectorAll(".deck-ui-subagents-form-grid").length,
-    ).toBeGreaterThanOrEqual(4);
-    expect(container.querySelectorAll(".deck-ui-subagents-input").length).toBeGreaterThanOrEqual(
-      12,
-    );
+    ).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll(".deck-ui-subagents-input").length).toBeGreaterThanOrEqual(8);
     expect(container.querySelectorAll(".deck-ui-subagents-actions").length).toBeGreaterThanOrEqual(
       5,
     );
@@ -332,12 +342,14 @@ describe("SubagentsPanel", () => {
   });
 
   it("saves global subagent defaults through agents.defaults.subagents config", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SubagentsPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchDeckConfig).toHaveBeenCalled());
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Config")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     const maxDepthInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="Global max spawn depth"]',
@@ -387,10 +399,7 @@ describe("SubagentsPanel", () => {
   });
 
   it("refreshes filters and runs steer and kill actions for the selected run", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SubagentsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchSubagentLineage).toHaveBeenCalledWith({ runId: "run-root" }),
@@ -457,10 +466,7 @@ describe("SubagentsPanel", () => {
   it("does not kill a subagent run when kill confirmation is cancelled", async () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false);
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SubagentsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchSubagentLineage).toHaveBeenCalledWith({ runId: "run-root" }),
@@ -477,10 +483,7 @@ describe("SubagentsPanel", () => {
   });
 
   it("applies child-agent and status filters through the Gateway list query", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SubagentsPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchAgentsList).toHaveBeenCalled());
 
@@ -506,11 +509,27 @@ describe("SubagentsPanel", () => {
       }),
     );
     expect(container.textContent).toContain("Review feature");
-    expect(container.textContent).toContain("status: completed");
+    expect(container.textContent).toContain("Status: Completed");
     expect(container.textContent).toContain("Historical run detail");
     expect(container.textContent).toContain("agent:reviewer:web-child");
     expect(container.textContent).toContain("agent:builder:web-root");
     expect(container.textContent).toContain("gpt-5.4");
-    expect(container.textContent).not.toContain("status: active | depth: 0");
+    expect(container.textContent).not.toContain("Status: Active | Depth: 0");
+  });
+
+  it("renders the subagents shell in Chinese", async () => {
+    renderPanel("zh");
+
+    await waitFor(() =>
+      expect(apiMocks.fetchSubagentLineage).toHaveBeenCalledWith({ runId: "run-root" }),
+    );
+
+    expect(container.textContent).toContain("子智能体就绪");
+    expect(container.textContent).toContain("活跃运行");
+    expect(container.textContent).toContain("历史记录");
+    expect(container.textContent).toContain("配置");
+    expect(container.textContent).toContain("运行过滤");
+    expect(container.textContent).toContain("运行详情");
+    expect(container.textContent).toContain("谱系根节点");
   });
 });
