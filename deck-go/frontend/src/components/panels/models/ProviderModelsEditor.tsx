@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { DeckGoCatalogProvider } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { StringRecordEditor } from "./StringRecordEditor";
 
 type ProviderModelObject = Record<string, unknown> & {
@@ -29,14 +30,14 @@ type CompatBooleanField =
   | "supportsStrictMode"
   | "nativeWebSearchTool";
 
-const COMPAT_BOOLEAN_FIELDS: Array<{ key: CompatBooleanField; label: string }> = [
-  { key: "supportsStore", label: "store" },
-  { key: "supportsDeveloperRole", label: "developer role" },
-  { key: "supportsReasoningEffort", label: "reasoning effort" },
-  { key: "supportsTools", label: "tools" },
-  { key: "supportsUsageInStreaming", label: "stream usage" },
-  { key: "supportsStrictMode", label: "strict mode" },
-  { key: "nativeWebSearchTool", label: "native web search" },
+const COMPAT_BOOLEAN_FIELDS: Array<{ key: CompatBooleanField; labelKey: string }> = [
+  { key: "supportsStore", labelKey: "editor.compatStore" },
+  { key: "supportsDeveloperRole", labelKey: "editor.compatDeveloperRole" },
+  { key: "supportsReasoningEffort", labelKey: "editor.compatReasoningEffort" },
+  { key: "supportsTools", labelKey: "editor.compatTools" },
+  { key: "supportsUsageInStreaming", labelKey: "editor.compatStreamUsage" },
+  { key: "supportsStrictMode", labelKey: "editor.compatStrictMode" },
+  { key: "nativeWebSearchTool", labelKey: "editor.compatNativeWebSearch" },
 ];
 
 const COMPAT_MAX_TOKEN_FIELDS = ["max_completion_tokens", "max_tokens"];
@@ -220,6 +221,7 @@ export function ProviderModelsEditor(props: {
   modelsValue: unknown;
   onChange: (models: unknown[]) => void;
 }) {
+  const t = useTranslations("models");
   const [newModelId, setNewModelId] = useState("");
   const [newModelName, setNewModelName] = useState("");
   const [newModelApi, setNewModelApi] = useState("");
@@ -275,13 +277,15 @@ export function ProviderModelsEditor(props: {
 
   return (
     <div className="deckgo-surface-tile deck-ui-models-surface">
-      <p className="deckgo-surface-label">Provider model entries</p>
+      <p className="deckgo-surface-label">{t("editor.providerModelEntries")}</p>
       <div className="deckgo-pill-row deck-ui-models-pill-row">
-        <span className="deckgo-pill">{drafts.length} entries</span>
-        <span className="deckgo-pill">{catalogModels.length} catalog additions</span>
+        <span className="deckgo-pill">{t("editor.entriesCount", { count: drafts.length })}</span>
+        <span className="deckgo-pill">
+          {t("editor.catalogAdditionsCount", { count: catalogModels.length })}
+        </span>
       </div>
       {drafts.length === 0 ? (
-        <p className="deckgo-note">No explicit provider model entries configured.</p>
+        <p className="deckgo-note">{t("editor.noProviderModelEntries")}</p>
       ) : (
         <ul className="deckgo-shell-list deck-ui-models-list">
           {drafts.map((draft, index) => {
@@ -295,9 +299,11 @@ export function ProviderModelsEditor(props: {
                 <div className="deckgo-selectable-card deck-ui-models-row">
                   <div className="deckgo-panel-hero-strip deck-ui-models-hero">
                     <div>
-                      <strong>{modelId || "unnamed model"}</strong>
+                      <strong>{modelId || t("editor.unnamedModel")}</strong>
                       <p className="deckgo-note">
-                        {draft.isStringEntry ? "string entry" : "structured entry"}
+                        {draft.isStringEntry
+                          ? t("editor.stringEntry")
+                          : t("editor.structuredEntry")}
                       </p>
                     </div>
                     <button
@@ -305,12 +311,12 @@ export function ProviderModelsEditor(props: {
                       type="button"
                       onClick={() => props.onChange(removeModelAt(props.modelsValue, index))}
                     >
-                      Remove model {modelId || index + 1}
+                      {t("editor.removeModel", { model: modelId || index + 1 })}
                     </button>
                   </div>
                   <div className="deckgo-grid deckgo-grid-3 deck-ui-models-grid deck-ui-models-spaced">
                     <label className="deckgo-label deck-ui-models-label">
-                      <span>ID</span>
+                      <span>{t("editor.id")}</span>
                       <input
                         aria-label={`Provider model id ${modelId || index + 1}`}
                         className="deckgo-input deck-ui-models-input"
@@ -325,7 +331,7 @@ export function ProviderModelsEditor(props: {
                       />
                     </label>
                     <label className="deckgo-label deck-ui-models-label">
-                      <span>Name</span>
+                      <span>{t("editor.name")}</span>
                       <input
                         aria-label={`Provider model name ${modelId || index + 1}`}
                         className="deckgo-input deck-ui-models-input"
@@ -340,7 +346,7 @@ export function ProviderModelsEditor(props: {
                       />
                     </label>
                     <label className="deckgo-label deck-ui-models-label">
-                      <span>API</span>
+                      <span>{t("editor.api")}</span>
                       <input
                         aria-label={`Provider model API ${modelId || index + 1}`}
                         className="deckgo-input deck-ui-models-input"
@@ -355,7 +361,7 @@ export function ProviderModelsEditor(props: {
                       />
                     </label>
                     <label className="deckgo-label deck-ui-models-label">
-                      <span>Context window</span>
+                      <span>{t("editor.contextWindow")}</span>
                       <input
                         aria-label={`Provider model context ${modelId || index + 1}`}
                         className="deckgo-input deck-ui-models-input"
@@ -372,7 +378,7 @@ export function ProviderModelsEditor(props: {
                       />
                     </label>
                     <label className="deckgo-label deck-ui-models-label">
-                      <span>Max tokens</span>
+                      <span>{t("editor.maxTokens")}</span>
                       <input
                         aria-label={`Provider model max tokens ${modelId || index + 1}`}
                         className="deckgo-input deck-ui-models-input"
@@ -401,7 +407,7 @@ export function ProviderModelsEditor(props: {
                         }
                         type="checkbox"
                       />{" "}
-                      reasoning
+                      {t("editor.reasoning")}
                     </label>
                   </div>
                   <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
@@ -426,16 +432,16 @@ export function ProviderModelsEditor(props: {
                       </label>
                     ))}
                     {modelId && knownCatalogIds.has(modelId) ? (
-                      <span className="deckgo-pill is-positive">catalog known</span>
+                      <span className="deckgo-pill is-positive">{t("editor.catalogKnown")}</span>
                     ) : null}
                   </div>
                   <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
                     {(
                       [
-                        ["input", "Input cost"],
-                        ["output", "Output cost"],
-                        ["cacheRead", "Cache read cost"],
-                        ["cacheWrite", "Cache write cost"],
+                        ["input", t("editor.inputCost")],
+                        ["output", t("editor.outputCost")],
+                        ["cacheRead", t("editor.cacheReadCost")],
+                        ["cacheWrite", t("editor.cacheWriteCost")],
                       ] as Array<[keyof NonNullable<ProviderModelObject["cost"]>, string]>
                     ).map(([field, label]) => (
                       <label className="deckgo-label deck-ui-models-label" key={field}>
@@ -463,14 +469,14 @@ export function ProviderModelsEditor(props: {
                     ))}
                   </div>
                   <StringRecordEditor
-                    addLabel="Add model header"
+                    addLabel={t("editor.addModelHeader")}
                     ariaPrefix={`Provider model header ${modelId || index + 1}`}
-                    emptyText="No model headers configured."
-                    nameLabel="Header name"
-                    removeLabel="Remove header"
-                    title="Model headers"
+                    emptyText={t("editor.noModelHeaders")}
+                    nameLabel={t("editor.headerName")}
+                    removeLabel={t("editor.removeHeader")}
+                    title={t("editor.modelHeaders")}
                     value={headers}
-                    valueLabel="Header value"
+                    valueLabel={t("editor.headerValue")}
                     onChange={(nextHeaders) =>
                       props.onChange(
                         updateModelAt(props.modelsValue, index, {
@@ -480,7 +486,7 @@ export function ProviderModelsEditor(props: {
                     }
                   />
                   <div className="deckgo-surface-tile deck-ui-models-surface deck-ui-models-spaced">
-                    <p className="deckgo-surface-label">Model compat</p>
+                    <p className="deckgo-surface-label">{t("editor.modelCompat")}</p>
                     <div className="deckgo-pill-row deck-ui-models-pill-row">
                       {COMPAT_BOOLEAN_FIELDS.map((field) => (
                         <label className="deckgo-pill" key={field.key}>
@@ -500,13 +506,13 @@ export function ProviderModelsEditor(props: {
                             }
                             type="checkbox"
                           />{" "}
-                          {field.label}
+                          {t(field.labelKey)}
                         </label>
                       ))}
                     </div>
                     <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
                       <label className="deckgo-label deck-ui-models-label">
-                        <span>Max tokens field</span>
+                        <span>{t("editor.maxTokensField")}</span>
                         <select
                           aria-label={`Provider model compat max tokens field ${modelId || index + 1}`}
                           className="deckgo-input deck-ui-models-input"
@@ -525,7 +531,7 @@ export function ProviderModelsEditor(props: {
                             )
                           }
                         >
-                          <option value="">default</option>
+                          <option value="">{t("common.defaultValue")}</option>
                           {COMPAT_MAX_TOKEN_FIELDS.map((field) => (
                             <option key={field} value={field}>
                               {field}
@@ -534,7 +540,7 @@ export function ProviderModelsEditor(props: {
                         </select>
                       </label>
                       <label className="deckgo-label deck-ui-models-label">
-                        <span>Thinking format</span>
+                        <span>{t("editor.thinkingFormat")}</span>
                         <select
                           aria-label={`Provider model compat thinking format ${modelId || index + 1}`}
                           className="deckgo-input deck-ui-models-input"
@@ -553,7 +559,7 @@ export function ProviderModelsEditor(props: {
                             )
                           }
                         >
-                          <option value="">default</option>
+                          <option value="">{t("common.defaultValue")}</option>
                           {COMPAT_THINKING_FORMATS.map((format) => (
                             <option key={format} value={format}>
                               {format}
@@ -570,10 +576,10 @@ export function ProviderModelsEditor(props: {
         </ul>
       )}
       <div className="deckgo-surface-tile deck-ui-models-surface deck-ui-models-spaced">
-        <p className="deckgo-surface-label">Add provider model</p>
+        <p className="deckgo-surface-label">{t("editor.addProviderModel")}</p>
         <div className="deckgo-grid deckgo-grid-3 deck-ui-models-grid">
           <label className="deckgo-label deck-ui-models-label">
-            <span>ID</span>
+            <span>{t("editor.id")}</span>
             <input
               aria-label="New provider model id"
               className="deckgo-input deck-ui-models-input"
@@ -582,7 +588,7 @@ export function ProviderModelsEditor(props: {
             />
           </label>
           <label className="deckgo-label deck-ui-models-label">
-            <span>Name</span>
+            <span>{t("editor.name")}</span>
             <input
               aria-label="New provider model name"
               className="deckgo-input deck-ui-models-input"
@@ -591,7 +597,7 @@ export function ProviderModelsEditor(props: {
             />
           </label>
           <label className="deckgo-label deck-ui-models-label">
-            <span>API</span>
+            <span>{t("editor.api")}</span>
             <input
               aria-label="New provider model API"
               className="deckgo-input deck-ui-models-input"
@@ -600,7 +606,7 @@ export function ProviderModelsEditor(props: {
             />
           </label>
           <label className="deckgo-label deck-ui-models-label">
-            <span>Context window</span>
+            <span>{t("editor.contextWindow")}</span>
             <input
               aria-label="New provider model context"
               className="deckgo-input deck-ui-models-input"
@@ -611,7 +617,7 @@ export function ProviderModelsEditor(props: {
             />
           </label>
           <label className="deckgo-label deck-ui-models-label">
-            <span>Max tokens</span>
+            <span>{t("editor.maxTokens")}</span>
             <input
               aria-label="New provider model max tokens"
               className="deckgo-input deck-ui-models-input"
@@ -629,20 +635,20 @@ export function ProviderModelsEditor(props: {
             type="button"
             onClick={addModel}
           >
-            Add model entry
+            {t("editor.addModelEntry")}
           </button>
         </div>
       </div>
       {catalogModels.length > 0 ? (
         <div className="deckgo-surface-tile deck-ui-models-surface deck-ui-models-spaced">
-          <p className="deckgo-surface-label">Add from catalog</p>
+          <p className="deckgo-surface-label">{t("editor.addFromCatalog")}</p>
           <div className="deckgo-actions deck-ui-models-actions deck-ui-models-actions-bottom">
             <button
               className="deckgo-button deck-ui-models-button"
               type="button"
               onClick={addAllCatalogModels}
             >
-              Add all {catalogModels.length} catalog models
+              {t("editor.addAllCatalogModels", { count: catalogModels.length })}
             </button>
           </div>
           <div className="deckgo-pill-row deck-ui-models-pill-row">
@@ -653,7 +659,7 @@ export function ProviderModelsEditor(props: {
                 type="button"
                 onClick={() => addCatalogModel(model)}
               >
-                Add catalog model {model.id}
+                {t("editor.addCatalogModel", { model: model.id })}
               </button>
             ))}
           </div>

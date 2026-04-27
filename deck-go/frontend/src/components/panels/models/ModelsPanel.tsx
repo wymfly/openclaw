@@ -23,15 +23,21 @@ import {
   probeRuntimeModelAuth,
   saveModelsConfig,
 } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { ProviderModelsEditor } from "./ProviderModelsEditor";
 import { StringRecordEditor } from "./StringRecordEditor";
 
 type PanelState = "idle" | "loading" | "ready";
+type ModelsTab = "catalog" | "provider-config" | "fallbacks" | "usage";
 type ProviderStringField = "api" | "apiKey" | "apiKeyEnv" | "auth" | "baseUrl";
 type ProviderBooleanField = "authHeader" | "injectNumCtxForOpenAICompat";
 type RuntimeModelFilter = "reasoning" | "vision" | "text";
 type ModelChainTarget = "model" | "imageModel";
+type CatalogSelection =
+  | { type: "provider"; provider: string }
+  | { type: "model"; provider: string; ref: string }
+  | null;
 type CatalogModelSelections = Record<string, string[]>;
 type AllowlistEntry = {
   alias?: string;
@@ -49,10 +55,16 @@ type BedrockDiscoveryConfig = {
 
 const COMMON_BEDROCK_REGIONS = ["us-east-1", "us-west-2", "eu-west-1", "ap-northeast-1"];
 const BEDROCK_PROVIDER_FILTERS = ["anthropic", "amazon", "meta", "cohere", "mistral"];
-const RUNTIME_MODEL_FILTERS: Array<{ key: RuntimeModelFilter; label: string }> = [
-  { key: "reasoning", label: "Reasoning" },
-  { key: "vision", label: "Vision" },
-  { key: "text", label: "Text" },
+const RUNTIME_MODEL_FILTERS: Array<{ key: RuntimeModelFilter; labelKey: string }> = [
+  { key: "reasoning", labelKey: "filter.reasoning" },
+  { key: "vision", labelKey: "filter.vision" },
+  { key: "text", labelKey: "filter.text" },
+];
+const MODEL_TABS: Array<{ key: ModelsTab; labelKey: string }> = [
+  { key: "catalog", labelKey: "tabs.catalog" },
+  { key: "provider-config", labelKey: "tabs.config" },
+  { key: "fallbacks", labelKey: "tabs.fallbacks" },
+  { key: "usage", labelKey: "tabs.usage" },
 ];
 
 function parseJsonRecord(raw: string) {
@@ -401,12 +413,12 @@ function formatTokenWindow(value: unknown) {
   return String(value);
 }
 
-function formatModelPrice(value: unknown) {
+function formatModelPrice(value: unknown, freeLabel = "free") {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return "n/a";
   }
   if (value === 0) {
-    return "free";
+    return freeLabel;
   }
   return `$${value.toFixed(2)}/M`;
 }
@@ -420,6 +432,14 @@ function usageCostValue(entry: DeckGoUsageCostEntry | undefined) {
 
 function formatUsageCost(value: number) {
   return `$${value.toFixed(2)}`;
+}
+
+function formatUsageDate(value: string) {
+  const parts = value.split("-");
+  if (parts.length === 3) {
+    return `${Number(parts[1])}/${Number(parts[2])}`;
+  }
+  return value;
 }
 
 function formatCountdown(ms: unknown) {
@@ -475,6 +495,7 @@ function ModelFallbackControls({
   onRemove: (ref: string) => void;
   onMove: (ref: string, direction: -1 | 1) => void;
 }) {
+  const t = useTranslations("models");
   const [draftRef, setDraftRef] = useState("");
   const selectedRefs = new Set([primary, ...fallbacks].filter(Boolean));
   const availableRefs = configuredModelRefs.filter((ref) => !selectedRefs.has(ref));
@@ -496,15 +517,15 @@ function ModelFallbackControls({
   return (
     <div className="deck-ui-models-spaced">
       <div className="deckgo-actions deck-ui-models-actions deck-ui-models-actions-center">
-        <strong>{label === "text" ? "Text fallback order" : "Image fallback order"}</strong>
+        <strong>{label === "text" ? t("fallbacks.textOrder") : t("fallbacks.imageOrder")}</strong>
         <select
-          aria-label={`Add ${label} fallback`}
+          aria-label={label === "text" ? t("fallbacks.addTextAria") : t("fallbacks.addImageAria")}
           className="deckgo-input deck-ui-models-input"
           disabled={availableRefs.length === 0}
           value={draftRef}
           onChange={(event) => setDraftRef(event.currentTarget.value)}
         >
-          <option value="">Add fallback model</option>
+          <option value="">{t("fallbacks.add")}</option>
           {availableRefs.map((ref) => (
             <option key={ref} value={ref}>
               {ref}
@@ -517,11 +538,13 @@ function ModelFallbackControls({
           type="button"
           onClick={addDraftRef}
         >
-          Add {label} fallback
+          {label === "text" ? t("fallbacks.addText") : t("fallbacks.addImage")}
         </button>
       </div>
       {fallbacks.length === 0 ? (
-        <p className="deckgo-note">No {label} fallback models configured.</p>
+        <p className="deckgo-note">
+          {label === "text" ? t("fallbacks.noTextFallbacks") : t("fallbacks.noImageFallbacks")}
+        </p>
       ) : (
         <div className="deck-ui-models-fallback-list">
           {fallbacks.map((ref, index) => (
@@ -533,30 +556,30 @@ function ModelFallbackControls({
                 <span>{ref}</span>
                 <div className="deckgo-actions deck-ui-models-actions">
                   <button
-                    aria-label={`Move up ${label} fallback ${ref}`}
+                    aria-label={`${label === "text" ? t("fallbacks.moveUpText") : t("fallbacks.moveUpImage")} ${ref}`}
                     className="deckgo-button deckgo-button-compact deck-ui-models-button"
                     disabled={index === 0}
                     type="button"
                     onClick={() => onMove(ref, -1)}
                   >
-                    Move up
+                    {t("fallbacks.moveUp")}
                   </button>
                   <button
-                    aria-label={`Move down ${label} fallback ${ref}`}
+                    aria-label={`${label === "text" ? t("fallbacks.moveDownText") : t("fallbacks.moveDownImage")} ${ref}`}
                     className="deckgo-button deckgo-button-compact deck-ui-models-button"
                     disabled={index === fallbacks.length - 1}
                     type="button"
                     onClick={() => onMove(ref, 1)}
                   >
-                    Move down
+                    {t("fallbacks.moveDown")}
                   </button>
                   <button
-                    aria-label={`Remove ${label} fallback ${ref}`}
+                    aria-label={`${label === "text" ? t("fallbacks.removeText") : t("fallbacks.removeImage")} ${ref}`}
                     className="deckgo-button deckgo-button-compact deck-ui-models-button is-danger"
                     type="button"
                     onClick={() => onRemove(ref)}
                   >
-                    Remove
+                    {t("fallbacks.remove")}
                   </button>
                 </div>
               </div>
@@ -569,6 +592,8 @@ function ModelFallbackControls({
 }
 
 export function ModelsPanel() {
+  const t = useTranslations("models");
+  const [activeTab, setActiveTab] = useState<ModelsTab>("catalog");
   const [rawConfig, setRawConfig] = useState("");
   const [baseHash, setBaseHash] = useState("");
   const [runtimeModels, setRuntimeModels] = useState<DeckGoRuntimeConfiguredModelsResponse | null>(
@@ -593,6 +618,7 @@ export function ModelsPanel() {
   );
   const [catalogModelSelections, setCatalogModelSelections] = useState<CatalogModelSelections>({});
   const [catalogProviderSearch, setCatalogProviderSearch] = useState("");
+  const [catalogSelection, setCatalogSelection] = useState<CatalogSelection>(null);
 
   const refresh = async () => {
     setLoadState("loading");
@@ -623,7 +649,7 @@ export function ModelsPanel() {
       setError("");
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to load models config");
+      setError(loadError instanceof Error ? loadError.message : t("errors.failedLoad"));
     }
   };
 
@@ -698,6 +724,10 @@ export function ModelsPanel() {
   );
   const latestUsageCost = usageCostValue(usageCostEntries.at(-1));
   const usageWindowCost = usageCostEntries.reduce((sum, entry) => sum + usageCostValue(entry), 0);
+  const maxUsageDailyCost = usageCostEntries.reduce(
+    (max, entry) => Math.max(max, usageCostValue(entry)),
+    0,
+  );
   const usagePressureWindows = usageProviderEntries.flatMap((provider) =>
     provider.windows.map((window) => ({ provider: provider.provider, window })),
   );
@@ -717,6 +747,18 @@ export function ModelsPanel() {
   const runtimeProviderGroups = useMemo(
     () => groupConfiguredModelsByProvider(filteredConfiguredModels),
     [filteredConfiguredModels],
+  );
+  const defaultCatalogProvider = runtimeProviderGroups[0]?.[0] ?? "";
+  const activeCatalogProvider = catalogSelection?.provider || defaultCatalogProvider;
+  const activeCatalogModels =
+    runtimeProviderGroups.find(([provider]) => provider === activeCatalogProvider)?.[1] ?? [];
+  const activeCatalogModel =
+    catalogSelection?.type === "model"
+      ? (activeCatalogModels.find((model) => configuredModelRef(model) === catalogSelection.ref) ??
+        null)
+      : null;
+  const activeCatalogAuth = authProviders.find(
+    (provider) => provider.provider === activeCatalogProvider,
   );
   const allowlistCandidateRefs = useMemo(
     () => [
@@ -743,7 +785,7 @@ export function ModelsPanel() {
 
   const lookupAction = async (nextPath = schemaPath) => {
     if (!nextPath.trim()) {
-      setError("schema path is required");
+      setError(t("errors.schemaPathRequired"));
       return;
     }
     setActionState("lookup");
@@ -753,7 +795,7 @@ export function ModelsPanel() {
       setSchemaPath(nextPath.trim());
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "schema lookup failed");
+      setError(actionError instanceof Error ? actionError.message : t("errors.schemaLookupFailed"));
     } finally {
       setActionState("idle");
     }
@@ -801,7 +843,7 @@ export function ModelsPanel() {
   const addDefaultFallbackAction = (target: ModelChainTarget, ref: string) => {
     const trimmed = ref.trim();
     if (!trimmed) {
-      setError("model ref is required");
+      setError(t("errors.modelRefRequired"));
       return;
     }
     transformDefaultModelChain(target, (currentChain) => ({
@@ -851,7 +893,7 @@ export function ModelsPanel() {
   const toggleAllowlistModelAction = (ref: string, enabled: boolean) => {
     const trimmed = ref.trim();
     if (!trimmed) {
-      setError("model ref is required");
+      setError(t("errors.modelRefRequired"));
       return;
     }
     setRawConfig((currentRaw) =>
@@ -891,7 +933,7 @@ export function ModelsPanel() {
       updateAllowlistEntryAction(ref, (entry) => ({ ...entry, params }));
       setError("");
     } catch (paramsError) {
-      setError(paramsError instanceof Error ? paramsError.message : "invalid params json");
+      setError(paramsError instanceof Error ? paramsError.message : t("errors.invalidParamsJson"));
     }
   };
 
@@ -935,7 +977,7 @@ export function ModelsPanel() {
     }
     const next = Number(trimmed);
     if (!Number.isFinite(next) || next < 0) {
-      setError(`${field} must be a non-negative number`);
+      setError(t("errors.nonNegativeNumber", { field }));
       return;
     }
     updateBedrockDiscoveryAction({ [field]: next });
@@ -1013,7 +1055,9 @@ export function ModelsPanel() {
       );
       setError("");
     } catch (jsonError) {
-      setError(jsonError instanceof Error ? jsonError.message : `invalid ${field} json`);
+      setError(
+        jsonError instanceof Error ? jsonError.message : t("errors.invalidFieldJson", { field }),
+      );
     }
   };
 
@@ -1053,7 +1097,7 @@ export function ModelsPanel() {
   const addProviderAction = () => {
     const providerId = newProviderId.trim();
     if (!providerId) {
-      setError("provider id is required");
+      setError(t("errors.providerIdRequired"));
       return;
     }
     setRawConfig((currentRaw) =>
@@ -1067,12 +1111,12 @@ export function ModelsPanel() {
   const applyCatalogProviderAction = (provider: DeckGoCatalogProvider) => {
     const providerId = provider.id.trim();
     if (!providerId) {
-      setError("catalog provider id is required");
+      setError(t("errors.catalogProviderIdRequired"));
       return;
     }
     const selectedModelIds = selectedCatalogModelIds(provider, catalogModelSelections);
     if (Array.isArray(provider.models) && selectedModelIds.length === 0) {
-      setError("select at least one catalog model");
+      setError(t("errors.selectCatalogModel"));
       return;
     }
     setRawConfig((currentRaw) =>
@@ -1122,7 +1166,7 @@ export function ModelsPanel() {
   const probeAction = async (provider: string) => {
     const trimmed = provider.trim();
     if (!trimmed) {
-      setError("provider is required");
+      setError(t("errors.providerRequired"));
       return;
     }
     setActionState("probe");
@@ -1133,7 +1177,9 @@ export function ModelsPanel() {
       const nextModelAuth = await fetchRuntimeModelAuthOverview();
       setModelAuth(nextModelAuth);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "model auth probe failed");
+      setError(
+        actionError instanceof Error ? actionError.message : t("errors.modelAuthProbeFailed"),
+      );
     } finally {
       setActionState("idle");
     }
@@ -1148,7 +1194,7 @@ export function ModelsPanel() {
       setError("");
       await refresh();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "models config save failed");
+      setError(actionError instanceof Error ? actionError.message : t("errors.saveFailed"));
     } finally {
       setActionState("idle");
     }
@@ -1159,27 +1205,34 @@ export function ModelsPanel() {
       <div className="deckgo-column deck-ui-models-column">
         <article className="deckgo-card is-float deck-ui-models-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Models</h2>
+            <h2 className="deckgo-card-title">{t("title")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Models config uses provider inventory, schema lookup, catalog data, auth overview, and
-            structured provider edits.
-          </p>
+          <p className="deckgo-card-subtitle">{t("panel.configDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-models-body">
             <div className="deckgo-pill-row deck-ui-models-status-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Models {loadState}
+                {t("status.modelsState", { state: t(`states.${loadState}`) })}
               </span>
-              <span className="deckgo-pill">{providerEntries.length} providers</span>
-              <span className="deckgo-pill">{configuredModels.length} configured models</span>
-              <span className="deckgo-pill">{authProviders.length} auth providers</span>
-              <span className="deckgo-pill">{catalogProviderEntries.length} catalog providers</span>
-              <span className="deckgo-pill">hash {baseHash || "n/a"}</span>
+              <span className="deckgo-pill">
+                {t("status.providersCount", { count: providerEntries.length })}
+              </span>
+              <span className="deckgo-pill">
+                {t("status.configuredModelsCount", { count: configuredModels.length })}
+              </span>
+              <span className="deckgo-pill">
+                {t("status.authProvidersCount", { count: authProviders.length })}
+              </span>
+              <span className="deckgo-pill">
+                {t("status.catalogProvidersCount", { count: catalogProviderEntries.length })}
+              </span>
+              <span className="deckgo-pill">
+                {t("status.hash", { hash: baseHash || t("common.notAvailable") })}
+              </span>
             </div>
             <div className="deckgo-grid deckgo-grid-3 deck-ui-models-stats">
-              <ShellStat label="providers" value={providerEntries.length} />
-              <ShellStat label="configured" value={configuredModels.length} />
-              <ShellStat label="schema path" value={schemaPath} />
+              <ShellStat label={t("status.providers")} value={providerEntries.length} />
+              <ShellStat label={t("status.configured")} value={configuredModels.length} />
+              <ShellStat label={t("status.schemaPath")} value={schemaPath} />
             </div>
             <div className="deckgo-actions deck-ui-models-actions">
               <button
@@ -1187,7 +1240,7 @@ export function ModelsPanel() {
                 type="button"
                 onClick={() => void refresh()}
               >
-                Refresh models
+                {t("panel.refreshModels")}
               </button>
               <button
                 className="deckgo-button deck-ui-models-button is-primary"
@@ -1195,12 +1248,12 @@ export function ModelsPanel() {
                 onClick={() => void saveAction()}
                 disabled={actionState !== "idle"}
               >
-                {actionState === "saving" ? "Saving" : "Save models config"}
+                {actionState === "saving" ? t("panel.saving") : t("panel.saveConfig")}
               </button>
             </div>
             {error ? <p className="deckgo-note deck-ui-models-error">{error}</p> : null}
             <label className="deckgo-label deck-ui-models-label">
-              <span>Models config</span>
+              <span>{t("panel.modelsConfig")}</span>
               <textarea
                 className="deckgo-textarea deck-ui-models-textarea deck-ui-models-raw-textarea"
                 rows={20}
@@ -1215,988 +1268,1551 @@ export function ModelsPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-models-column">
         <article className="deckgo-card is-float deck-ui-models-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Models detail</h2>
+            <h2 className="deckgo-card-title">{t("detailTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Model management stays anchored on current config truth, provider catalog data, and
-            supported default/fallback actions.
-          </p>
+          <p className="deckgo-card-subtitle">{t("panel.detailDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-models-body">
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Lookup config path</p>
-              <div className="deckgo-actions deck-ui-models-actions">
-                <input
-                  className="deckgo-input deck-ui-models-input"
-                  value={schemaPath}
-                  onChange={(event) => setSchemaPath(event.target.value)}
-                  placeholder="config path"
-                />
+            <div className="deck-ui-models-tabs deck-ui-tab-strip" role="tablist">
+              {MODEL_TABS.map((tab) => (
                 <button
-                  className="deckgo-button deck-ui-models-button"
+                  aria-controls={`deck-ui-models-${tab.key}`}
+                  aria-selected={activeTab === tab.key}
+                  className={activeTab === tab.key ? "is-active" : ""}
+                  key={tab.key}
+                  role="tab"
                   type="button"
-                  onClick={() => void lookupAction()}
-                  disabled={actionState !== "idle"}
+                  onClick={() => setActiveTab(tab.key)}
                 >
-                  {actionState === "lookup" ? "Looking up" : "Lookup schema"}
+                  {t(tab.labelKey)}
                 </button>
+              ))}
+            </div>
+            <div
+              className="deck-ui-models-tab-panel"
+              hidden={activeTab !== "provider-config"}
+              id="deck-ui-models-provider-config"
+              role="tabpanel"
+            >
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("panel.lookupConfigPath")}</p>
+                <div className="deckgo-actions deck-ui-models-actions">
+                  <input
+                    className="deckgo-input deck-ui-models-input"
+                    value={schemaPath}
+                    onChange={(event) => setSchemaPath(event.target.value)}
+                    placeholder={t("panel.configPathPlaceholder")}
+                  />
+                  <button
+                    className="deckgo-button deck-ui-models-button"
+                    type="button"
+                    onClick={() => void lookupAction()}
+                    disabled={actionState !== "idle"}
+                  >
+                    {actionState === "lookup" ? t("panel.lookingUp") : t("panel.lookupSchema")}
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Default model chain</p>
-              <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid">
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Primary model</span>
-                  <input
-                    aria-label="Primary model"
-                    className="deckgo-input deck-ui-models-input"
-                    list="deckgo-configured-models"
-                    value={modelChain.primary}
-                    onChange={(event) =>
-                      updateDefaultModelChain("model", { primary: event.target.value })
-                    }
-                  />
-                </label>
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Fallback models</span>
-                  <input
-                    aria-label="Fallback models"
-                    className="deckgo-input deck-ui-models-input"
-                    value={modelChain.fallbacks.join(", ")}
-                    onChange={(event) =>
-                      updateDefaultModelChain("model", {
-                        fallbacks: parseFallbackList(event.target.value),
-                      })
-                    }
-                  />
-                </label>
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Image primary</span>
-                  <input
-                    aria-label="Image primary model"
-                    className="deckgo-input deck-ui-models-input"
-                    list="deckgo-configured-models"
-                    value={imageModelChain.primary}
-                    onChange={(event) =>
-                      updateDefaultModelChain("imageModel", { primary: event.target.value })
-                    }
-                  />
-                </label>
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Image fallbacks</span>
-                  <input
-                    aria-label="Image fallback models"
-                    className="deckgo-input deck-ui-models-input"
-                    value={imageModelChain.fallbacks.join(", ")}
-                    onChange={(event) =>
-                      updateDefaultModelChain("imageModel", {
-                        fallbacks: parseFallbackList(event.target.value),
-                      })
-                    }
-                  />
-                </label>
-              </div>
-              <ModelFallbackControls
-                label="text"
-                primary={modelChain.primary}
-                fallbacks={modelChain.fallbacks}
-                configuredModelRefs={configuredModelRefs}
-                onAdd={(ref) => addDefaultFallbackAction("model", ref)}
-                onRemove={(ref) => removeDefaultFallbackAction("model", ref)}
-                onMove={(ref, direction) => moveDefaultFallbackAction("model", ref, direction)}
-              />
-              <ModelFallbackControls
-                label="image"
-                primary={imageModelChain.primary}
-                fallbacks={imageModelChain.fallbacks}
-                configuredModelRefs={configuredModelRefs}
-                onAdd={(ref) => addDefaultFallbackAction("imageModel", ref)}
-                onRemove={(ref) => removeDefaultFallbackAction("imageModel", ref)}
-                onMove={(ref, direction) => moveDefaultFallbackAction("imageModel", ref, direction)}
-              />
-              <datalist id="deckgo-configured-models">
-                {configuredModelRefs.map((ref) => (
-                  <option key={ref} value={ref} />
-                ))}
-              </datalist>
-              <p className="deckgo-note">
-                Updates preserve existing model object fields and are saved with the raw config
-                hash.
-              </p>
-            </div>
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Model allowlist</p>
-              <div className="deckgo-pill-row deck-ui-models-pill-row">
-                <button
-                  className={`deckgo-pill ${allowlistActive ? "is-selected" : ""}`}
-                  type="button"
-                  onClick={() => toggleAllowlistAction(!allowlistActive)}
-                >
-                  {allowlistActive ? "Allowlist on" : "Allowlist off"}
-                </button>
-                <span className="deckgo-pill">{Object.keys(allowlistEntries).length} entries</span>
-              </div>
-              <p className="deckgo-note">
-                When enabled, agents.defaults.models restricts usable models. Turning it off removes
-                the key to preserve Gateway allow-any semantics.
-              </p>
-              {allowlistCandidateRefs.length === 0 ? (
-                <p className="deckgo-note">No configured model refs are available yet.</p>
-              ) : (
-                <ul className="deckgo-shell-list deck-ui-models-list">
-                  {allowlistCandidateRefs.map((ref) => {
-                    const entry = allowlistEntries[ref];
-                    const paramsDraft = entry?.params ? JSON.stringify(entry.params, null, 2) : "";
-                    return (
-                      <li key={ref}>
-                        <div className="deckgo-selectable-card deck-ui-models-row">
-                          <div className="deckgo-panel-hero-strip deck-ui-models-hero">
+            <div
+              className="deck-ui-models-tab-panel"
+              hidden={activeTab !== "fallbacks"}
+              id="deck-ui-models-fallbacks"
+              role="tabpanel"
+            >
+              <div className="deck-ui-models-fallback-chains">
+                {[
+                  {
+                    key: "text",
+                    title: t("fallbacks.textModels"),
+                    primary: modelChain.primary,
+                    fallbacks: modelChain.fallbacks,
+                    target: "model" as const,
+                  },
+                  {
+                    key: "image",
+                    title: t("fallbacks.imageModels"),
+                    primary: imageModelChain.primary,
+                    fallbacks: imageModelChain.fallbacks,
+                    target: "imageModel" as const,
+                  },
+                ].map((chain) => (
+                  <div className="deck-ui-models-chain-card" key={chain.key}>
+                    <div className="deck-ui-models-chain-header">
+                      <div>
+                        <p className="deckgo-surface-label">{chain.title}</p>
+                        <strong>{chain.primary || t("fallbacks.noPrimary")}</strong>
+                      </div>
+                      <span className="deckgo-pill">
+                        {t("fallbacks.fallbackCount", { count: chain.fallbacks.length })}
+                      </span>
+                    </div>
+                    <div className="deck-ui-models-chain-primary">
+                      <span className="deck-ui-models-chain-dot">1</span>
+                      <div>
+                        <strong>{chain.primary || t("fallbacks.unset")}</strong>
+                        <p className="deckgo-note">{t("fallbacks.primary")}</p>
+                      </div>
+                    </div>
+                    {chain.fallbacks.length === 0 ? (
+                      <p className="deckgo-note">{t("fallbacks.emptyShort")}</p>
+                    ) : (
+                      <ol className="deck-ui-models-chain-list">
+                        {chain.fallbacks.map((ref, index) => (
+                          <li className="deck-ui-models-chain-step" key={`${chain.key}-${ref}`}>
+                            <span className="deck-ui-models-chain-dot">{index + 2}</span>
                             <div>
                               <strong>{ref}</strong>
                               <p className="deckgo-note">
-                                {entry ? "enabled in allowlist" : "not allowlisted"}
+                                {t("fallbacks.priority", { index: index + 1 })}
                               </p>
                             </div>
-                            <button
-                              className={`deckgo-pill ${entry ? "is-selected" : ""}`}
-                              type="button"
-                              onClick={() => toggleAllowlistModelAction(ref, !entry)}
-                            >
-                              {entry ? "Enabled" : "Disabled"}
-                            </button>
-                          </div>
-                          {entry ? (
-                            <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
-                              <label className="deckgo-label deck-ui-models-label">
-                                <span>Alias</span>
-                                <input
-                                  aria-label={`Alias ${ref}`}
-                                  className="deckgo-input deck-ui-models-input"
-                                  value={entry.alias ?? ""}
-                                  onChange={(event) =>
-                                    updateAllowlistEntryAction(ref, (current) => ({
-                                      ...current,
-                                      alias: event.target.value.trim() || undefined,
-                                    }))
-                                  }
-                                />
-                              </label>
-                              <label className="deckgo-pill deck-ui-models-check-end">
-                                <input
-                                  aria-label={`Streaming ${ref}`}
-                                  checked={entry.streaming === true}
-                                  onChange={(event) =>
-                                    updateAllowlistEntryAction(ref, (current) => ({
-                                      ...current,
-                                      streaming: event.target.checked,
-                                    }))
-                                  }
-                                  type="checkbox"
-                                />{" "}
-                                streaming
-                              </label>
-                              <label className="deckgo-label deck-ui-models-label">
-                                <span>Params JSON</span>
-                                <textarea
-                                  aria-label={`Params ${ref}`}
-                                  className="deckgo-textarea deck-ui-models-textarea"
-                                  rows={4}
-                                  value={paramsDraft}
-                                  onChange={(event) =>
-                                    updateAllowlistParamsAction(ref, event.target.value)
-                                  }
-                                />
-                              </label>
+                            <div className="deckgo-actions deck-ui-models-actions">
+                              <button
+                                aria-label={`${chain.key === "text" ? t("fallbacks.moveUpText") : t("fallbacks.moveUpImage")} ${ref}`}
+                                className="deckgo-button deckgo-button-compact deck-ui-models-button"
+                                disabled={index === 0}
+                                type="button"
+                                onClick={() => moveDefaultFallbackAction(chain.target, ref, -1)}
+                              >
+                                {t("fallbacks.moveUp")}
+                              </button>
+                              <button
+                                aria-label={`${chain.key === "text" ? t("fallbacks.removeText") : t("fallbacks.removeImage")} ${ref}`}
+                                className="deckgo-button deckgo-button-compact deck-ui-models-button is-danger"
+                                type="button"
+                                onClick={() => removeDefaultFallbackAction(chain.target, ref)}
+                              >
+                                {t("fallbacks.remove")}
+                              </button>
                             </div>
-                          ) : null}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Bedrock discovery</p>
-              <div className="deckgo-pill-row deck-ui-models-pill-row">
-                <label className="deckgo-pill">
-                  <input
-                    aria-label="Bedrock discovery enabled"
-                    checked={bedrockDiscovery.enabled === true}
-                    onChange={(event) =>
-                      updateBedrockDiscoveryAction({ enabled: event.target.checked })
-                    }
-                    type="checkbox"
-                  />{" "}
-                  discovery {bedrockDiscovery.enabled ? "on" : "off"}
-                </label>
-                <span className="deckgo-pill">
-                  {(bedrockDiscovery.providerFilter ?? []).length} providers
-                </span>
-              </div>
-              <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Region</span>
-                  <input
-                    aria-label="Bedrock region"
-                    className="deckgo-input deck-ui-models-input"
-                    list="deckgo-bedrock-regions"
-                    value={bedrockDiscovery.region ?? ""}
-                    onChange={(event) =>
-                      updateBedrockDiscoveryAction({
-                        region: event.target.value.trim() || undefined,
-                      })
-                    }
-                  />
-                </label>
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Refresh interval</span>
-                  <input
-                    aria-label="Bedrock refresh interval"
-                    className="deckgo-input deck-ui-models-input"
-                    min={0}
-                    onChange={(event) =>
-                      updateBedrockNumberAction("refreshInterval", event.target.value)
-                    }
-                    type="number"
-                    value={bedrockDiscovery.refreshInterval ?? ""}
-                  />
-                </label>
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Default context window</span>
-                  <input
-                    aria-label="Bedrock default context"
-                    className="deckgo-input deck-ui-models-input"
-                    min={0}
-                    onChange={(event) =>
-                      updateBedrockNumberAction("defaultContextWindow", event.target.value)
-                    }
-                    type="number"
-                    value={bedrockDiscovery.defaultContextWindow ?? ""}
-                  />
-                </label>
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Default max tokens</span>
-                  <input
-                    aria-label="Bedrock default max tokens"
-                    className="deckgo-input deck-ui-models-input"
-                    min={0}
-                    onChange={(event) =>
-                      updateBedrockNumberAction("defaultMaxTokens", event.target.value)
-                    }
-                    type="number"
-                    value={bedrockDiscovery.defaultMaxTokens ?? ""}
-                  />
-                </label>
-              </div>
-              <datalist id="deckgo-bedrock-regions">
-                {COMMON_BEDROCK_REGIONS.map((region) => (
-                  <option key={region} value={region} />
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
                 ))}
-              </datalist>
-              <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
-                {BEDROCK_PROVIDER_FILTERS.map((provider) => (
-                  <label className="deckgo-pill" key={provider}>
+              </div>
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("fallbacks.defaultChain")}</p>
+                <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid">
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("fallbacks.primary")}</span>
                     <input
-                      aria-label={`Bedrock provider ${provider}`}
-                      checked={(bedrockDiscovery.providerFilter ?? []).includes(provider)}
+                      aria-label={t("fallbacks.primary")}
+                      className="deckgo-input deck-ui-models-input"
+                      list="deckgo-configured-models"
+                      value={modelChain.primary}
                       onChange={(event) =>
-                        toggleBedrockProviderFilter(provider, event.target.checked)
+                        updateDefaultModelChain("model", { primary: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("fallbacks.fallbackModels")}</span>
+                    <input
+                      aria-label={t("fallbacks.fallbackModels")}
+                      className="deckgo-input deck-ui-models-input"
+                      value={modelChain.fallbacks.join(", ")}
+                      onChange={(event) =>
+                        updateDefaultModelChain("model", {
+                          fallbacks: parseFallbackList(event.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("fallbacks.imagePrimary")}</span>
+                    <input
+                      aria-label={t("fallbacks.imagePrimary")}
+                      className="deckgo-input deck-ui-models-input"
+                      list="deckgo-configured-models"
+                      value={imageModelChain.primary}
+                      onChange={(event) =>
+                        updateDefaultModelChain("imageModel", { primary: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("fallbacks.imageFallbacks")}</span>
+                    <input
+                      aria-label={t("fallbacks.imageFallbacks")}
+                      className="deckgo-input deck-ui-models-input"
+                      value={imageModelChain.fallbacks.join(", ")}
+                      onChange={(event) =>
+                        updateDefaultModelChain("imageModel", {
+                          fallbacks: parseFallbackList(event.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+                <ModelFallbackControls
+                  label="text"
+                  primary={modelChain.primary}
+                  fallbacks={modelChain.fallbacks}
+                  configuredModelRefs={configuredModelRefs}
+                  onAdd={(ref) => addDefaultFallbackAction("model", ref)}
+                  onRemove={(ref) => removeDefaultFallbackAction("model", ref)}
+                  onMove={(ref, direction) => moveDefaultFallbackAction("model", ref, direction)}
+                />
+                <ModelFallbackControls
+                  label="image"
+                  primary={imageModelChain.primary}
+                  fallbacks={imageModelChain.fallbacks}
+                  configuredModelRefs={configuredModelRefs}
+                  onAdd={(ref) => addDefaultFallbackAction("imageModel", ref)}
+                  onRemove={(ref) => removeDefaultFallbackAction("imageModel", ref)}
+                  onMove={(ref, direction) =>
+                    moveDefaultFallbackAction("imageModel", ref, direction)
+                  }
+                />
+                <datalist id="deckgo-configured-models">
+                  {configuredModelRefs.map((ref) => (
+                    <option key={ref} value={ref} />
+                  ))}
+                </datalist>
+                <p className="deckgo-note">{t("fallbacks.saveHashHint")}</p>
+              </div>
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("catalog.allowlistToggle")}</p>
+                <div className="deckgo-pill-row deck-ui-models-pill-row">
+                  <button
+                    className={`deckgo-pill ${allowlistActive ? "is-selected" : ""}`}
+                    type="button"
+                    onClick={() => toggleAllowlistAction(!allowlistActive)}
+                  >
+                    {allowlistActive ? t("catalog.allowlistOn") : t("catalog.allowlistOffButton")}
+                  </button>
+                  <span className="deckgo-pill">
+                    {t("catalog.allowlistEntries", { count: Object.keys(allowlistEntries).length })}
+                  </span>
+                </div>
+                <p className="deckgo-note">{t("catalog.allowlistHint")}</p>
+                {allowlistCandidateRefs.length === 0 ? (
+                  <p className="deckgo-note">{t("catalog.noConfiguredRefs")}</p>
+                ) : (
+                  <ul className="deckgo-shell-list deck-ui-models-list">
+                    {allowlistCandidateRefs.map((ref) => {
+                      const entry = allowlistEntries[ref];
+                      const paramsDraft = entry?.params
+                        ? JSON.stringify(entry.params, null, 2)
+                        : "";
+                      return (
+                        <li key={ref}>
+                          <div className="deckgo-selectable-card deck-ui-models-row">
+                            <div className="deckgo-panel-hero-strip deck-ui-models-hero">
+                              <div>
+                                <strong>{ref}</strong>
+                                <p className="deckgo-note">
+                                  {entry
+                                    ? t("catalog.enabledInAllowlist")
+                                    : t("catalog.notAllowlisted")}
+                                </p>
+                              </div>
+                              <button
+                                className={`deckgo-pill ${entry ? "is-selected" : ""}`}
+                                type="button"
+                                onClick={() => toggleAllowlistModelAction(ref, !entry)}
+                              >
+                                {entry ? t("catalog.enabled") : t("catalog.disabled")}
+                              </button>
+                            </div>
+                            {entry ? (
+                              <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
+                                <label className="deckgo-label deck-ui-models-label">
+                                  <span>{t("catalog.alias")}</span>
+                                  <input
+                                    aria-label={`${t("catalog.alias")} ${ref}`}
+                                    className="deckgo-input deck-ui-models-input"
+                                    value={entry.alias ?? ""}
+                                    onChange={(event) =>
+                                      updateAllowlistEntryAction(ref, (current) => ({
+                                        ...current,
+                                        alias: event.target.value.trim() || undefined,
+                                      }))
+                                    }
+                                  />
+                                </label>
+                                <label className="deckgo-pill deck-ui-models-check-end">
+                                  <input
+                                    aria-label={`${t("catalog.streaming")} ${ref}`}
+                                    checked={entry.streaming === true}
+                                    onChange={(event) =>
+                                      updateAllowlistEntryAction(ref, (current) => ({
+                                        ...current,
+                                        streaming: event.target.checked,
+                                      }))
+                                    }
+                                    type="checkbox"
+                                  />{" "}
+                                  {t("catalog.streaming")}
+                                </label>
+                                <label className="deckgo-label deck-ui-models-label">
+                                  <span>{t("catalog.params")}</span>
+                                  <textarea
+                                    aria-label={`${t("catalog.params")} ${ref}`}
+                                    className="deckgo-textarea deck-ui-models-textarea"
+                                    rows={4}
+                                    value={paramsDraft}
+                                    onChange={(event) =>
+                                      updateAllowlistParamsAction(ref, event.target.value)
+                                    }
+                                  />
+                                </label>
+                              </div>
+                            ) : null}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <div className="deck-ui-models-tab-panel" hidden={activeTab !== "provider-config"}>
+              <div className="deck-ui-models-provider-config-layout">
+                <aside
+                  className="deck-ui-models-provider-sidebar"
+                  aria-label={t("config.providerConfigSidebar")}
+                >
+                  <div className="deck-ui-models-section-heading">
+                    <strong>{t("config.providers")}</strong>
+                    <span>{t("status.configuredCount", { count: providerEntries.length })}</span>
+                  </div>
+                  <div className="deck-ui-models-provider-sidebar-list">
+                    {providerEntries.map(([provider]) => (
+                      <button
+                        className={`deck-ui-models-provider-sidebar-item ${
+                          provider === selectedProvider ? "is-selected" : ""
+                        }`}
+                        key={`sidebar-${provider}`}
+                        type="button"
+                        onClick={() => setSelectedProviderId(provider)}
+                      >
+                        <span>{provider}</span>
+                        <span>
+                          {authProviders.find((entry) => entry.provider === provider)?.status ??
+                            t("common.unknown")}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="deck-ui-models-add-provider-wizard">
+                    <p className="deckgo-surface-label">{t("config.addProviderWizard")}</p>
+                    <div className="deckgo-actions deck-ui-models-actions">
+                      <input
+                        aria-label={t("config.newProviderId")}
+                        className="deckgo-input deck-ui-models-input"
+                        value={newProviderId}
+                        onChange={(event) => setNewProviderId(event.target.value)}
+                        placeholder={t("config.providerIdPlaceholder")}
+                      />
+                      <button
+                        className="deckgo-button deck-ui-models-button"
+                        type="button"
+                        onClick={addProviderAction}
+                      >
+                        {t("config.addProvider")}
+                      </button>
+                    </div>
+                  </div>
+                </aside>
+                <div className="deck-ui-models-provider-main">
+                  <div className="deckgo-panel-hero-strip deck-ui-models-hero">
+                    <div>
+                      <p className="deckgo-kicker">{t("config.selectedProvider")}</p>
+                      <strong>{selectedProvider || t("config.noProviderSelected")}</strong>
+                      <p className="deckgo-note">
+                        {t("common.auth")}{" "}
+                        {authProviders.find((entry) => entry.provider === selectedProvider)
+                          ?.status ?? t("common.unknown")}
+                      </p>
+                    </div>
+                    <div className="deckgo-pill-row deck-ui-models-pill-row">
+                      <span className="deckgo-pill">
+                        {t("status.modelsCount", {
+                          count: Array.isArray(selectedProviderConfig.models)
+                            ? selectedProviderConfig.models.length
+                            : 0,
+                        })}
+                      </span>
+                      <span className="deckgo-pill">
+                        {selectedProviderConfig.api
+                          ? t("config.apiConfigured")
+                          : t("config.apiUnset")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("config.bedrockTitle")}</p>
+                <div className="deckgo-pill-row deck-ui-models-pill-row">
+                  <label className="deckgo-pill">
+                    <input
+                      aria-label={t("config.bedrockEnabled")}
+                      checked={bedrockDiscovery.enabled === true}
+                      onChange={(event) =>
+                        updateBedrockDiscoveryAction({ enabled: event.target.checked })
                       }
                       type="checkbox"
                     />{" "}
-                    {provider}
+                    {t("config.discoveryState", {
+                      state: bedrockDiscovery.enabled ? t("states.on") : t("states.off"),
+                    })}
                   </label>
-                ))}
-              </div>
-            </div>
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Model catalog mode</p>
-              <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid">
-                <label className="deckgo-label deck-ui-models-label">
-                  <span>Provider catalog behavior</span>
-                  <select
-                    aria-label="Models catalog mode"
-                    className="deckgo-input deck-ui-models-input"
-                    value={modelsMode}
-                    onChange={(event) =>
-                      updateModelsModeAction(event.target.value as "" | "merge" | "replace")
-                    }
-                  >
-                    <option value="">default</option>
-                    <option value="merge">merge</option>
-                    <option value="replace">replace</option>
-                  </select>
-                </label>
-                <div className="deckgo-selectable-card deck-ui-models-row">
-                  <strong>{modelsMode || "default"}</strong>
-                  <p className="deckgo-note">
-                    merge overlays configured providers on built-ins; replace uses configured
-                    providers only.
-                  </p>
+                  <span className="deckgo-pill">
+                    {t("status.providersCount", {
+                      count: (bedrockDiscovery.providerFilter ?? []).length,
+                    })}
+                  </span>
                 </div>
-              </div>
-            </div>
-            <div className="deckgo-panel-hero-strip deck-ui-models-hero">
-              <div>
-                <p className="deckgo-kicker">Provider inventory</p>
-                <strong>{providerEntries.length ? providerEntries[0][0] : "No providers"}</strong>
-                <p className="deckgo-note">Current models.providers keys from raw config</p>
-              </div>
-              <div className="deckgo-pill-row deck-ui-models-pill-row">
-                <span className="deckgo-pill">{providerEntries.length} configured</span>
-                <span className="deckgo-pill">
-                  {lookupResult?.children.length ?? 0} schema children
-                </span>
-              </div>
-            </div>
-            {providerEntries.length === 0 ? (
-              <p className="deckgo-note">No model providers found in the current raw config.</p>
-            ) : (
-              <ul className="deckgo-shell-list deck-ui-models-list">
-                {providerEntries.map(([provider, value]) => (
-                  <li key={provider}>
-                    <div className="deckgo-selectable-card deck-ui-models-row">
-                      <strong>{provider}</strong>
-                      <div className="deckgo-meta">
-                        keys:{" "}
-                        {Object.keys((value as Record<string, unknown>) ?? {}).join(", ") || "n/a"}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Provider config editor</p>
-              <div className="deckgo-actions deck-ui-models-actions">
-                <input
-                  aria-label="New provider id"
-                  className="deckgo-input deck-ui-models-input"
-                  value={newProviderId}
-                  onChange={(event) => setNewProviderId(event.target.value)}
-                  placeholder="provider id"
-                />
-                <button
-                  className="deckgo-button deck-ui-models-button"
-                  type="button"
-                  onClick={addProviderAction}
-                >
-                  Add provider
-                </button>
-              </div>
-              {providerEntries.length > 0 ? (
+                <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("config.bedrockRegion")}</span>
+                    <input
+                      aria-label={t("config.bedrockRegion")}
+                      className="deckgo-input deck-ui-models-input"
+                      list="deckgo-bedrock-regions"
+                      value={bedrockDiscovery.region ?? ""}
+                      onChange={(event) =>
+                        updateBedrockDiscoveryAction({
+                          region: event.target.value.trim() || undefined,
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("config.bedrockRefreshInterval")}</span>
+                    <input
+                      aria-label={t("config.bedrockRefreshInterval")}
+                      className="deckgo-input deck-ui-models-input"
+                      min={0}
+                      onChange={(event) =>
+                        updateBedrockNumberAction("refreshInterval", event.target.value)
+                      }
+                      type="number"
+                      value={bedrockDiscovery.refreshInterval ?? ""}
+                    />
+                  </label>
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("config.bedrockDefaultContext")}</span>
+                    <input
+                      aria-label={t("config.bedrockDefaultContext")}
+                      className="deckgo-input deck-ui-models-input"
+                      min={0}
+                      onChange={(event) =>
+                        updateBedrockNumberAction("defaultContextWindow", event.target.value)
+                      }
+                      type="number"
+                      value={bedrockDiscovery.defaultContextWindow ?? ""}
+                    />
+                  </label>
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("config.bedrockDefaultMaxTokens")}</span>
+                    <input
+                      aria-label={t("config.bedrockDefaultMaxTokens")}
+                      className="deckgo-input deck-ui-models-input"
+                      min={0}
+                      onChange={(event) =>
+                        updateBedrockNumberAction("defaultMaxTokens", event.target.value)
+                      }
+                      type="number"
+                      value={bedrockDiscovery.defaultMaxTokens ?? ""}
+                    />
+                  </label>
+                </div>
+                <datalist id="deckgo-bedrock-regions">
+                  {COMMON_BEDROCK_REGIONS.map((region) => (
+                    <option key={region} value={region} />
+                  ))}
+                </datalist>
                 <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
-                  {providerEntries.map(([provider]) => (
-                    <button
-                      className={`deckgo-pill ${provider === selectedProvider ? "is-selected" : ""}`}
-                      key={provider}
-                      type="button"
-                      onClick={() => setSelectedProviderId(provider)}
-                    >
+                  {BEDROCK_PROVIDER_FILTERS.map((provider) => (
+                    <label className="deckgo-pill" key={provider}>
+                      <input
+                        aria-label={`Bedrock provider ${provider}`}
+                        checked={(bedrockDiscovery.providerFilter ?? []).includes(provider)}
+                        onChange={(event) =>
+                          toggleBedrockProviderFilter(provider, event.target.checked)
+                        }
+                        type="checkbox"
+                      />{" "}
                       {provider}
-                    </button>
+                    </label>
                   ))}
                 </div>
-              ) : null}
-              {selectedProvider ? (
-                <>
-                  <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
-                    <label className="deckgo-label deck-ui-models-label">
-                      <span>API format</span>
-                      <input
-                        aria-label="Provider API"
-                        className="deckgo-input deck-ui-models-input"
-                        value={
-                          typeof selectedProviderConfig.api === "string"
-                            ? selectedProviderConfig.api
-                            : ""
-                        }
-                        onChange={(event) =>
-                          updateProviderStringField(selectedProvider, "api", event.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="deckgo-label deck-ui-models-label">
-                      <span>Auth type</span>
-                      <input
-                        aria-label="Provider auth type"
-                        className="deckgo-input deck-ui-models-input"
-                        value={
-                          typeof selectedProviderConfig.auth === "string"
-                            ? selectedProviderConfig.auth
-                            : ""
-                        }
-                        onChange={(event) =>
-                          updateProviderStringField(selectedProvider, "auth", event.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="deckgo-label deck-ui-models-label">
-                      <span>Base URL</span>
-                      <input
-                        aria-label="Provider base URL"
-                        className="deckgo-input deck-ui-models-input"
-                        value={
-                          typeof selectedProviderConfig.baseUrl === "string"
-                            ? selectedProviderConfig.baseUrl
-                            : ""
-                        }
-                        onChange={(event) =>
-                          updateProviderStringField(selectedProvider, "baseUrl", event.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="deckgo-label deck-ui-models-label">
-                      <span>API key env</span>
-                      <input
-                        aria-label="Provider API key env"
-                        className="deckgo-input deck-ui-models-input"
-                        value={
-                          typeof selectedProviderConfig.apiKeyEnv === "string"
-                            ? selectedProviderConfig.apiKeyEnv
-                            : ""
-                        }
-                        onChange={(event) =>
-                          updateProviderStringField(
-                            selectedProvider,
-                            "apiKeyEnv",
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </label>
-                    <label className="deckgo-label deck-ui-models-label">
-                      <span>API key</span>
-                      <input
-                        aria-label="Provider API key"
-                        className="deckgo-input deck-ui-models-input"
-                        value={
-                          typeof selectedProviderConfig.apiKey === "string"
-                            ? selectedProviderConfig.apiKey
-                            : ""
-                        }
-                        onChange={(event) =>
-                          updateProviderStringField(selectedProvider, "apiKey", event.target.value)
-                        }
-                      />
-                    </label>
-                  </div>
-                  <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
-                    <label className="deckgo-pill">
-                      <input
-                        aria-label="Provider auth header"
-                        checked={selectedProviderConfig.authHeader === true}
-                        onChange={(event) =>
-                          updateProviderBooleanField(
-                            selectedProvider,
-                            "authHeader",
-                            event.target.checked,
-                          )
-                        }
-                        type="checkbox"
-                      />{" "}
-                      auth header
-                    </label>
-                    <label className="deckgo-pill">
-                      <input
-                        aria-label="Provider inject num ctx"
-                        checked={selectedProviderConfig.injectNumCtxForOpenAICompat === true}
-                        onChange={(event) =>
-                          updateProviderBooleanField(
-                            selectedProvider,
-                            "injectNumCtxForOpenAICompat",
-                            event.target.checked,
-                          )
-                        }
-                        type="checkbox"
-                      />{" "}
-                      inject num ctx
-                    </label>
-                    <span className="deckgo-pill">
-                      models{" "}
-                      {Array.isArray(selectedProviderConfig.models)
-                        ? selectedProviderConfig.models.length
-                        : 0}
-                    </span>
-                  </div>
-                  <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
-                    <label className="deckgo-label deck-ui-models-label">
-                      <span>Headers JSON</span>
-                      <textarea
-                        aria-label="Provider headers JSON"
-                        className="deckgo-textarea deck-ui-models-textarea"
-                        rows={5}
-                        value={
-                          selectedProviderConfig.headers
-                            ? JSON.stringify(selectedProviderConfig.headers, null, 2)
-                            : ""
-                        }
-                        onChange={(event) =>
-                          updateProviderJsonField(selectedProvider, "headers", event.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="deckgo-label deck-ui-models-label">
-                      <span>Provider models JSON</span>
-                      <textarea
-                        aria-label="Provider models JSON"
-                        className="deckgo-textarea deck-ui-models-textarea"
-                        rows={5}
-                        value={
-                          Array.isArray(selectedProviderConfig.models)
-                            ? JSON.stringify(selectedProviderConfig.models, null, 2)
-                            : ""
-                        }
-                        onChange={(event) =>
-                          updateProviderJsonField(selectedProvider, "models", event.target.value)
-                        }
-                      />
-                    </label>
-                  </div>
-                  <StringRecordEditor
-                    addLabel="Add provider header"
-                    ariaPrefix="Provider header"
-                    emptyText="No provider headers configured."
-                    nameLabel="Header name"
-                    removeLabel="Remove header"
-                    title="Provider headers"
-                    value={readStringRecord(selectedProviderConfig.headers)}
-                    valueLabel="Header value"
-                    onChange={(headers) => updateProviderHeadersAction(selectedProvider, headers)}
-                  />
-                  <ProviderModelsEditor
-                    catalogProvider={selectedCatalogProvider}
-                    modelsValue={selectedProviderConfig.models}
-                    onChange={(models) => updateProviderModelsAction(selectedProvider, models)}
-                  />
-                </>
-              ) : (
-                <p className="deckgo-note">Add or select a provider to edit structured fields.</p>
-              )}
-            </div>
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Model auth overview</p>
-              <div className="deckgo-pill-row deck-ui-models-pill-row">
-                <span className="deckgo-pill">{modelAuth?.runtimeId || "rt_local"}</span>
-                <span className="deckgo-pill">{authProviders.length} providers</span>
               </div>
-              {authProviders.length === 0 ? (
-                <p className="deckgo-note">No model auth providers returned by Gateway.</p>
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("config.modelCatalogMode")}</p>
+                <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid">
+                  <label className="deckgo-label deck-ui-models-label">
+                    <span>{t("config.providerCatalogBehavior")}</span>
+                    <select
+                      aria-label={t("config.modelCatalogMode")}
+                      className="deckgo-input deck-ui-models-input"
+                      value={modelsMode}
+                      onChange={(event) =>
+                        updateModelsModeAction(event.target.value as "" | "merge" | "replace")
+                      }
+                    >
+                      <option value="">{t("common.defaultValue")}</option>
+                      <option value="merge">merge</option>
+                      <option value="replace">replace</option>
+                    </select>
+                  </label>
+                  <div className="deckgo-selectable-card deck-ui-models-row">
+                    <strong>{modelsMode || t("common.defaultValue")}</strong>
+                    <p className="deckgo-note">{t("config.modelCatalogModeHint")}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="deckgo-panel-hero-strip deck-ui-models-hero">
+                <div>
+                  <p className="deckgo-kicker">{t("config.providerInventory")}</p>
+                  <strong>
+                    {providerEntries.length ? providerEntries[0][0] : t("config.noProviders")}
+                  </strong>
+                  <p className="deckgo-note">{t("config.providerInventoryHint")}</p>
+                </div>
+                <div className="deckgo-pill-row deck-ui-models-pill-row">
+                  <span className="deckgo-pill">
+                    {t("status.configuredCount", { count: providerEntries.length })}
+                  </span>
+                  <span className="deckgo-pill">
+                    {t("status.schemaChildrenCount", { count: lookupResult?.children.length ?? 0 })}
+                  </span>
+                </div>
+              </div>
+              {providerEntries.length === 0 ? (
+                <p className="deckgo-note">{t("config.noModelProviders")}</p>
               ) : (
                 <ul className="deckgo-shell-list deck-ui-models-list">
-                  {authProviders.map((provider) => (
-                    <li key={provider.provider}>
-                      <div className="deckgo-selectable-card deck-ui-models-row">
-                        <strong>{provider.provider}</strong>
-                        <div className="deckgo-meta">
-                          {provider.status || "unknown"} | source {provider.source || "unknown"} |
-                          scope {provider.scope || "global"}
-                        </div>
-                        <div className="deckgo-pill-row deck-ui-models-pill-row">
-                          <span
-                            className={`deckgo-pill ${provider.authPresent ? "is-positive" : "is-muted"}`}
-                          >
-                            auth {provider.authPresent ? "present" : "missing"}
-                          </span>
-                          <span
-                            className={`deckgo-pill ${provider.configPresent ? "is-positive" : "is-muted"}`}
-                          >
-                            config {provider.configPresent ? "present" : "missing"}
-                          </span>
-                          <span className="deckgo-pill">
-                            {provider.editable ? "editable" : "runtime-only"}
-                          </span>
-                          {provider.auth?.type ? (
-                            <span className="deckgo-pill">
-                              auth {authTypeLabel(provider.auth.type)}
-                            </span>
-                          ) : null}
-                          {provider.auth?.source ? (
-                            <span className="deckgo-pill">auth source {provider.auth.source}</span>
-                          ) : null}
-                          {provider.oauth ? (
-                            <span className="deckgo-pill">
-                              oauth {provider.oauth.status || "unknown"} ·{" "}
-                              {formatCountdown(provider.oauth.remainingMs)}
-                            </span>
-                          ) : null}
-                          {provider.cooldown && Number(provider.cooldown.remainingMs ?? 0) > 0 ? (
-                            <span className="deckgo-pill">
-                              cooldown {provider.cooldown.reason || "unknown"} ·{" "}
-                              {formatCountdown(provider.cooldown.remainingMs)}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="deckgo-actions deck-ui-models-actions">
-                          <button
-                            className="deckgo-button deck-ui-models-button"
-                            type="button"
-                            onClick={() => void probeAction(provider.provider)}
-                            disabled={actionState !== "idle"}
-                          >
-                            {actionState === "probe" ? "Probing" : `Probe ${provider.provider}`}
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Model usage summary</p>
-              <div className="deckgo-grid deckgo-grid-3 deck-ui-models-stats">
-                <ShellStat label="latest day cost" value={formatUsageCost(latestUsageCost)} />
-                <ShellStat
-                  label={`${usageCost?.days ?? 14}d cost`}
-                  value={formatUsageCost(usageWindowCost)}
-                />
-                <ShellStat label="providers" value={usageProviderEntries.length} />
-                <ShellStat label="quota windows" value={usagePressureWindows.length} />
-                <ShellStat label="highest pressure" value={`${highestUsagePressure.toFixed(0)}%`} />
-                <ShellStat label="usage updated" value={usageProviders?.updatedAt ?? "n/a"} />
-              </div>
-              {usageProviderEntries.length === 0 ? (
-                <p className="deckgo-note">No model usage provider pressure returned by Gateway.</p>
-              ) : (
-                <ul className="deckgo-shell-list deck-ui-models-list deck-ui-models-spaced">
-                  {usageProviderEntries.map((provider: DeckGoUsageProviderStatus) => (
-                    <li key={provider.provider}>
-                      <div className="deckgo-selectable-card deck-ui-models-row">
-                        <div className="deckgo-panel-hero-strip deck-ui-models-hero">
-                          <div>
-                            <strong>{provider.displayName || provider.provider}</strong>
-                            <p className="deckgo-note">
-                              {provider.provider} {provider.plan ? `| plan ${provider.plan}` : ""}
-                            </p>
-                          </div>
-                          <span
-                            className={`deckgo-pill ${
-                              provider.error
-                                ? "is-danger"
-                                : provider.windows.some((window) => window.usedPercent >= 80)
-                                  ? "is-warning"
-                                  : "is-positive"
-                            }`}
-                          >
-                            {provider.error || `${provider.windows.length} quota windows`}
-                          </span>
-                        </div>
-                        {provider.windows.length === 0 ? (
-                          <p className="deckgo-note">No quota windows reported.</p>
-                        ) : (
-                          <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
-                            {provider.windows.map((window) => (
-                              <span className="deckgo-pill" key={window.label}>
-                                {window.label}: {window.usedPercent.toFixed(0)}%
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Catalog providers</p>
-              <div className="deckgo-pill-row deck-ui-models-pill-row">
-                <span className="deckgo-pill">{catalogProviders?.runtimeId || "rt_local"}</span>
-                <span className="deckgo-pill">{catalogProviderEntries.length} providers</span>
-                <span className="deckgo-pill">{filteredCatalogProviderEntries.length} visible</span>
-              </div>
-              <label className="deckgo-label deck-ui-models-label deck-ui-models-spaced">
-                <span>Search catalog providers</span>
-                <input
-                  aria-label="Catalog provider search"
-                  className="deckgo-input deck-ui-models-input"
-                  placeholder="provider, api, or auth"
-                  value={catalogProviderSearch}
-                  onChange={(event) => setCatalogProviderSearch(event.target.value)}
-                />
-              </label>
-              {catalogProviderEntries.length === 0 ? (
-                <p className="deckgo-note">No catalog providers returned by Gateway.</p>
-              ) : filteredCatalogProviderEntries.length === 0 ? (
-                <p className="deckgo-note">No catalog providers match the current search.</p>
-              ) : (
-                <ul className="deckgo-shell-list deck-ui-models-list">
-                  {filteredCatalogProviderEntries.map((provider: DeckGoCatalogProvider) => (
-                    <li key={provider.id}>
-                      <div className="deckgo-selectable-card deck-ui-models-row">
-                        {(() => {
-                          const selectedModelIds = selectedCatalogModelIds(
-                            provider,
-                            catalogModelSelections,
-                          );
-                          const firstSelectedRef = firstCatalogModelRef(provider, selectedModelIds);
-                          const hasSelectableModels = Array.isArray(provider.models);
-                          return (
-                            <>
-                              <strong>{provider.displayName || provider.id}</strong>
-                              <div className="deckgo-meta">
-                                {provider.id} | api {provider.api || "unknown"} | auth{" "}
-                                {provider.authType || "unknown"} | models {provider.modelCount ?? 0}
-                              </div>
-                              {provider.defaultBaseUrl ? (
-                                <div className="deckgo-meta">base: {provider.defaultBaseUrl}</div>
-                              ) : null}
-                              {provider.models?.length ? (
-                                <div className="deckgo-surface-tile deck-ui-models-surface deck-ui-models-spaced">
-                                  <div className="deckgo-panel-hero-strip deck-ui-models-hero">
-                                    <div>
-                                      <strong>Catalog model selection</strong>
-                                      <p className="deckgo-note">
-                                        {selectedModelIds.length} / {provider.models.length}{" "}
-                                        selected
-                                      </p>
-                                    </div>
-                                    <div className="deckgo-actions deck-ui-models-actions">
-                                      <button
-                                        className="deckgo-button deckgo-button-compact deck-ui-models-button"
-                                        type="button"
-                                        onClick={() => setAllCatalogModelsSelected(provider, true)}
-                                      >
-                                        Select all
-                                      </button>
-                                      <button
-                                        className="deckgo-button deckgo-button-compact deck-ui-models-button"
-                                        type="button"
-                                        onClick={() => setAllCatalogModelsSelected(provider, false)}
-                                      >
-                                        Clear
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
-                                    {provider.models.map((model) => (
-                                      <label className="deckgo-pill" key={model.id}>
-                                        <input
-                                          aria-label={`Catalog model ${provider.id}/${model.id}`}
-                                          checked={selectedModelIds.includes(model.id)}
-                                          onChange={(event) =>
-                                            toggleCatalogModelSelection(
-                                              provider,
-                                              model.id,
-                                              event.target.checked,
-                                            )
-                                          }
-                                          type="checkbox"
-                                        />{" "}
-                                        {model.name || model.id}
-                                      </label>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : null}
-                              <div className="deckgo-actions deck-ui-models-actions deck-ui-models-spaced-tight">
-                                {firstSelectedRef ? (
-                                  <>
-                                    <button
-                                      className="deckgo-button deck-ui-models-button"
-                                      type="button"
-                                      onClick={() => {
-                                        applyCatalogProviderAction(provider);
-                                        updateDefaultModelChain("model", {
-                                          primary: firstSelectedRef,
-                                        });
-                                      }}
-                                    >
-                                      Set catalog default {provider.id}
-                                    </button>
-                                    <button
-                                      className="deckgo-button deck-ui-models-button"
-                                      type="button"
-                                      onClick={() => {
-                                        applyCatalogProviderAction(provider);
-                                        addDefaultFallbackAction("model", firstSelectedRef);
-                                      }}
-                                    >
-                                      Add catalog fallback {provider.id}
-                                    </button>
-                                  </>
-                                ) : null}
-                                <button
-                                  className="deckgo-button deck-ui-models-button"
-                                  type="button"
-                                  disabled={hasSelectableModels && selectedModelIds.length === 0}
-                                  onClick={() => applyCatalogProviderAction(provider)}
-                                >
-                                  Use catalog {provider.id}
-                                </button>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="deckgo-surface-tile deck-ui-models-surface">
-              <p className="deckgo-surface-label">Runtime model catalog</p>
-              <div className="deckgo-pill-row deck-ui-models-pill-row">
-                <span className="deckgo-pill">{runtimeModels?.runtimeId || "rt_local"}</span>
-                <span className="deckgo-pill">{configuredModels.length} models</span>
-                <span className="deckgo-pill">{filteredConfiguredModels.length} visible</span>
-                {RUNTIME_MODEL_FILTERS.map((filter) => (
-                  <button
-                    className={`deckgo-pill ${runtimeModelFilters.has(filter.key) ? "is-selected" : ""}`}
-                    key={filter.key}
-                    type="button"
-                    onClick={() => toggleRuntimeModelFilter(filter.key)}
-                  >
-                    Filter {filter.label}
-                  </button>
-                ))}
-              </div>
-              {filteredConfiguredModels.length === 0 ? (
-                <p className="deckgo-note">No configured runtime models returned by Gateway.</p>
-              ) : (
-                <ul className="deckgo-shell-list deck-ui-models-list">
-                  {runtimeProviderGroups.map(([provider, models]) => (
+                  {providerEntries.map(([provider, value]) => (
                     <li key={provider}>
                       <div className="deckgo-selectable-card deck-ui-models-row">
-                        <div className="deckgo-panel-hero-strip deck-ui-models-hero">
-                          <div>
-                            <strong>{provider}</strong>
-                            <p className="deckgo-note">{models.length} visible runtime models</p>
-                          </div>
-                          <span className="deckgo-pill">
-                            auth{" "}
-                            {authProviders.find((entry) => entry.provider === provider)?.status ??
-                              "unknown"}
-                          </span>
+                        <strong>{provider}</strong>
+                        <div className="deckgo-meta">
+                          {t("config.keys", {
+                            keys:
+                              Object.keys((value as Record<string, unknown>) ?? {}).join(", ") ||
+                              t("common.notAvailable"),
+                          })}
                         </div>
-                        <ul className="deckgo-shell-list deck-ui-models-list deck-ui-models-spaced">
-                          {models.map((model, index) => {
-                            const ref = configuredModelRef(model);
-                            const inputModes = modelInputModes(model);
-                            const isTextDefault = modelChain.primary === ref;
-                            const isImageDefault = imageModelChain.primary === ref;
-                            const allowlistEntry = allowlistEntries[ref];
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("config.providerConfigEditor")}</p>
+                <div className="deckgo-actions deck-ui-models-actions">
+                  <input
+                    aria-label={t("config.newProviderId")}
+                    className="deckgo-input deck-ui-models-input"
+                    value={newProviderId}
+                    onChange={(event) => setNewProviderId(event.target.value)}
+                    placeholder={t("config.providerIdPlaceholder")}
+                  />
+                  <button
+                    className="deckgo-button deck-ui-models-button"
+                    type="button"
+                    onClick={addProviderAction}
+                  >
+                    {t("config.addProvider")}
+                  </button>
+                </div>
+                {providerEntries.length > 0 ? (
+                  <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
+                    {providerEntries.map(([provider]) => (
+                      <button
+                        className={`deckgo-pill ${provider === selectedProvider ? "is-selected" : ""}`}
+                        key={provider}
+                        type="button"
+                        onClick={() => setSelectedProviderId(provider)}
+                      >
+                        {provider}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {selectedProvider ? (
+                  <>
+                    <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
+                      <label className="deckgo-label deck-ui-models-label">
+                        <span>{t("config.apiFormat")}</span>
+                        <input
+                          aria-label={t("config.providerApiAria")}
+                          className="deckgo-input deck-ui-models-input"
+                          value={
+                            typeof selectedProviderConfig.api === "string"
+                              ? selectedProviderConfig.api
+                              : ""
+                          }
+                          onChange={(event) =>
+                            updateProviderStringField(selectedProvider, "api", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="deckgo-label deck-ui-models-label">
+                        <span>{t("config.authType")}</span>
+                        <input
+                          aria-label={t("config.providerAuthTypeAria")}
+                          className="deckgo-input deck-ui-models-input"
+                          value={
+                            typeof selectedProviderConfig.auth === "string"
+                              ? selectedProviderConfig.auth
+                              : ""
+                          }
+                          onChange={(event) =>
+                            updateProviderStringField(selectedProvider, "auth", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="deckgo-label deck-ui-models-label">
+                        <span>{t("config.baseUrl")}</span>
+                        <input
+                          aria-label={t("config.providerBaseUrlAria")}
+                          className="deckgo-input deck-ui-models-input"
+                          value={
+                            typeof selectedProviderConfig.baseUrl === "string"
+                              ? selectedProviderConfig.baseUrl
+                              : ""
+                          }
+                          onChange={(event) =>
+                            updateProviderStringField(
+                              selectedProvider,
+                              "baseUrl",
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </label>
+                      <label className="deckgo-label deck-ui-models-label">
+                        <span>{t("config.apiKeyEnv")}</span>
+                        <input
+                          aria-label={t("config.providerApiKeyEnvAria")}
+                          className="deckgo-input deck-ui-models-input"
+                          value={
+                            typeof selectedProviderConfig.apiKeyEnv === "string"
+                              ? selectedProviderConfig.apiKeyEnv
+                              : ""
+                          }
+                          onChange={(event) =>
+                            updateProviderStringField(
+                              selectedProvider,
+                              "apiKeyEnv",
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </label>
+                      <label className="deckgo-label deck-ui-models-label">
+                        <span>{t("config.apiKey")}</span>
+                        <input
+                          aria-label={t("config.providerApiKeyAria")}
+                          className="deckgo-input deck-ui-models-input"
+                          value={
+                            typeof selectedProviderConfig.apiKey === "string"
+                              ? selectedProviderConfig.apiKey
+                              : ""
+                          }
+                          onChange={(event) =>
+                            updateProviderStringField(
+                              selectedProvider,
+                              "apiKey",
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
+                      <label className="deckgo-pill">
+                        <input
+                          aria-label={t("config.providerAuthHeader")}
+                          checked={selectedProviderConfig.authHeader === true}
+                          onChange={(event) =>
+                            updateProviderBooleanField(
+                              selectedProvider,
+                              "authHeader",
+                              event.target.checked,
+                            )
+                          }
+                          type="checkbox"
+                        />{" "}
+                        {t("config.authHeader")}
+                      </label>
+                      <label className="deckgo-pill">
+                        <input
+                          aria-label={t("config.providerInjectNumCtx")}
+                          checked={selectedProviderConfig.injectNumCtxForOpenAICompat === true}
+                          onChange={(event) =>
+                            updateProviderBooleanField(
+                              selectedProvider,
+                              "injectNumCtxForOpenAICompat",
+                              event.target.checked,
+                            )
+                          }
+                          type="checkbox"
+                        />{" "}
+                        {t("config.injectNumCtx")}
+                      </label>
+                      <span className="deckgo-pill">
+                        {t("status.modelsCount", {
+                          count: Array.isArray(selectedProviderConfig.models)
+                            ? selectedProviderConfig.models.length
+                            : 0,
+                        })}
+                      </span>
+                    </div>
+                    <div className="deckgo-grid deckgo-grid-2 deck-ui-models-grid deck-ui-models-spaced">
+                      <label className="deckgo-label deck-ui-models-label">
+                        <span>{t("config.headersJson")}</span>
+                        <textarea
+                          aria-label={t("config.providerHeadersJson")}
+                          className="deckgo-textarea deck-ui-models-textarea"
+                          rows={5}
+                          value={
+                            selectedProviderConfig.headers
+                              ? JSON.stringify(selectedProviderConfig.headers, null, 2)
+                              : ""
+                          }
+                          onChange={(event) =>
+                            updateProviderJsonField(selectedProvider, "headers", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="deckgo-label deck-ui-models-label">
+                        <span>{t("config.providerModelsJson")}</span>
+                        <textarea
+                          aria-label={t("config.providerModelsJson")}
+                          className="deckgo-textarea deck-ui-models-textarea"
+                          rows={5}
+                          value={
+                            Array.isArray(selectedProviderConfig.models)
+                              ? JSON.stringify(selectedProviderConfig.models, null, 2)
+                              : ""
+                          }
+                          onChange={(event) =>
+                            updateProviderJsonField(selectedProvider, "models", event.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
+                    <StringRecordEditor
+                      addLabel={t("config.addProviderHeader")}
+                      ariaPrefix={t("config.providerHeaderAriaPrefix")}
+                      emptyText={t("config.noProviderHeaders")}
+                      nameLabel={t("editor.headerName")}
+                      removeLabel={t("editor.removeHeader")}
+                      title={t("config.providerHeaders")}
+                      value={readStringRecord(selectedProviderConfig.headers)}
+                      valueLabel={t("editor.headerValue")}
+                      onChange={(headers) => updateProviderHeadersAction(selectedProvider, headers)}
+                    />
+                    <ProviderModelsEditor
+                      catalogProvider={selectedCatalogProvider}
+                      modelsValue={selectedProviderConfig.models}
+                      onChange={(models) => updateProviderModelsAction(selectedProvider, models)}
+                    />
+                  </>
+                ) : (
+                  <p className="deckgo-note">{t("config.addOrSelectProvider")}</p>
+                )}
+              </div>
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("auth.overviewTitle")}</p>
+                <div className="deckgo-pill-row deck-ui-models-pill-row">
+                  <span className="deckgo-pill">{modelAuth?.runtimeId || "rt_local"}</span>
+                  <span className="deckgo-pill">
+                    {t("status.providersCount", { count: authProviders.length })}
+                  </span>
+                </div>
+                {authProviders.length === 0 ? (
+                  <p className="deckgo-note">{t("auth.noProviders")}</p>
+                ) : (
+                  <ul className="deckgo-shell-list deck-ui-models-list">
+                    {authProviders.map((provider) => (
+                      <li key={provider.provider}>
+                        <div className="deckgo-selectable-card deck-ui-models-row">
+                          <strong>{provider.provider}</strong>
+                          <div className="deckgo-meta">
+                            {t("auth.providerMeta", {
+                              status: provider.status || t("common.unknown"),
+                              source: provider.source || t("common.unknown"),
+                              scope: provider.scope || "global",
+                            })}
+                          </div>
+                          <div className="deckgo-pill-row deck-ui-models-pill-row">
+                            <span
+                              className={`deckgo-pill ${provider.authPresent ? "is-positive" : "is-muted"}`}
+                            >
+                              {provider.authPresent ? t("auth.authPresent") : t("auth.authMissing")}
+                            </span>
+                            <span
+                              className={`deckgo-pill ${provider.configPresent ? "is-positive" : "is-muted"}`}
+                            >
+                              {provider.configPresent
+                                ? t("auth.configPresent")
+                                : t("auth.configMissing")}
+                            </span>
+                            <span className="deckgo-pill">
+                              {provider.editable ? t("common.editable") : t("common.runtimeOnly")}
+                            </span>
+                            {provider.auth?.type ? (
+                              <span className="deckgo-pill">
+                                {t("auth.authType", { type: authTypeLabel(provider.auth.type) })}
+                              </span>
+                            ) : null}
+                            {provider.auth?.source ? (
+                              <span className="deckgo-pill">
+                                {t("auth.authSource", { source: provider.auth.source })}
+                              </span>
+                            ) : null}
+                            {provider.oauth ? (
+                              <span className="deckgo-pill">
+                                {t("auth.oauthStatus", {
+                                  status: provider.oauth.status || t("common.unknown"),
+                                  remaining: formatCountdown(provider.oauth.remainingMs),
+                                })}
+                              </span>
+                            ) : null}
+                            {provider.cooldown && (provider.cooldown.remainingMs ?? 0) > 0 ? (
+                              <span className="deckgo-pill">
+                                {t("auth.cooldownStatus", {
+                                  reason: provider.cooldown.reason || t("common.unknown"),
+                                  remaining: formatCountdown(provider.cooldown.remainingMs),
+                                })}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="deckgo-actions deck-ui-models-actions">
+                            <button
+                              className="deckgo-button deck-ui-models-button"
+                              type="button"
+                              onClick={() => void probeAction(provider.provider)}
+                              disabled={actionState !== "idle"}
+                            >
+                              {actionState === "probe"
+                                ? t("auth.probing")
+                                : t("auth.probeProvider", { provider: provider.provider })}
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <div
+              className="deck-ui-models-tab-panel"
+              hidden={activeTab !== "usage"}
+              id="deck-ui-models-usage"
+              role="tabpanel"
+            >
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("usage.summaryTitle")}</p>
+                <div className="deckgo-grid deckgo-grid-3 deck-ui-models-stats">
+                  <ShellStat
+                    label={t("usage.latestDayCost")}
+                    value={formatUsageCost(latestUsageCost)}
+                  />
+                  <ShellStat
+                    label={t("usage.windowCost", { days: usageCost?.days ?? 14 })}
+                    value={formatUsageCost(usageWindowCost)}
+                  />
+                  <ShellStat label={t("status.providers")} value={usageProviderEntries.length} />
+                  <ShellStat label={t("usage.quotaWindows")} value={usagePressureWindows.length} />
+                  <ShellStat
+                    label={t("usage.highestPressure")}
+                    value={`${highestUsagePressure.toFixed(0)}%`}
+                  />
+                  <ShellStat
+                    label={t("usage.updated")}
+                    value={usageProviders?.updatedAt ?? t("common.notAvailable")}
+                  />
+                </div>
+                {usageProviderEntries.length === 0 ? (
+                  <p className="deckgo-note">{t("usage.noProviderPressure")}</p>
+                ) : (
+                  <ul className="deckgo-shell-list deck-ui-models-list deck-ui-models-spaced">
+                    {usageProviderEntries.map((provider: DeckGoUsageProviderStatus) => (
+                      <li key={provider.provider}>
+                        <div className="deckgo-selectable-card deck-ui-models-row">
+                          <div className="deckgo-panel-hero-strip deck-ui-models-hero">
+                            <div>
+                              <strong>{provider.displayName || provider.provider}</strong>
+                              <p className="deckgo-note">
+                                {provider.provider}{" "}
+                                {provider.plan ? t("usage.plan", { plan: provider.plan }) : ""}
+                              </p>
+                            </div>
+                            <span
+                              className={`deckgo-pill ${
+                                provider.error
+                                  ? "is-danger"
+                                  : provider.windows.some((window) => window.usedPercent >= 80)
+                                    ? "is-warning"
+                                    : "is-positive"
+                              }`}
+                            >
+                              {provider.error ||
+                                t("usage.quotaWindowsCount", { count: provider.windows.length })}
+                            </span>
+                          </div>
+                          {provider.windows.length === 0 ? (
+                            <p className="deckgo-note">{t("usage.noQuotaWindows")}</p>
+                          ) : (
+                            <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
+                              {provider.windows.map((window) => (
+                                <span className="deckgo-pill" key={window.label}>
+                                  {window.label}: {window.usedPercent.toFixed(0)}%
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {usageCostEntries.length === 0 ? (
+                  <p className="deckgo-note deck-ui-models-spaced">{t("usage.noCostData")}</p>
+                ) : (
+                  <div className="deck-ui-models-usage-chart deck-ui-models-spaced">
+                    <div className="deck-ui-models-section-heading">
+                      <strong>{t("usage.costTrend")}</strong>
+                      <span>
+                        {t("usage.daysCount", { count: usageCostEntries.slice(-7).length })}
+                      </span>
+                    </div>
+                    <div className="deck-ui-models-usage-bars">
+                      {usageCostEntries.slice(-7).map((entry) => (
+                        <div className="deck-ui-models-usage-bar-row" key={entry.date}>
+                          <span>{formatUsageDate(entry.date)}</span>
+                          <progress
+                            aria-label={`Model usage cost ${entry.date}`}
+                            className="deck-ui-models-usage-bar"
+                            max={maxUsageDailyCost || 1}
+                            value={usageCostValue(entry)}
+                          />
+                          <strong>{formatUsageCost(usageCostValue(entry))}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {usageProviderEntries.length > 0 ? (
+                  <div className="deck-ui-models-quota-grid deck-ui-models-spaced">
+                    <div className="deck-ui-models-section-heading">
+                      <strong>{t("usage.providerQuota")}</strong>
+                      <span>{t("usage.windowsCount", { count: usagePressureWindows.length })}</span>
+                    </div>
+                    <div className="deck-ui-models-quota-cards">
+                      {usageProviderEntries.map((provider) => (
+                        <div className="deck-ui-models-quota-card" key={provider.provider}>
+                          <div className="deck-ui-models-quota-card-header">
+                            <strong>{provider.displayName || provider.provider}</strong>
+                            {provider.plan ? (
+                              <span className="deckgo-pill">{provider.plan}</span>
+                            ) : null}
+                          </div>
+                          {provider.windows.length === 0 ? (
+                            <p className="deckgo-note">
+                              {provider.error || t("usage.noQuotaData")}
+                            </p>
+                          ) : (
+                            <div className="deck-ui-models-quota-window-list">
+                              {provider.windows.map((window) => (
+                                <label
+                                  className="deck-ui-models-quota-window"
+                                  key={`${provider.provider}:${window.label}`}
+                                >
+                                  <span>{window.label}</span>
+                                  <progress
+                                    aria-label={`${provider.provider} ${window.label} quota`}
+                                    className="deck-ui-models-usage-bar"
+                                    max={100}
+                                    value={window.usedPercent}
+                                  />
+                                  <strong>{window.usedPercent.toFixed(0)}%</strong>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div
+              className="deck-ui-models-tab-panel"
+              hidden={activeTab !== "catalog"}
+              id="deck-ui-models-catalog"
+              role="tabpanel"
+            >
+              <div className="deckgo-surface-tile deck-ui-models-surface">
+                <p className="deckgo-surface-label">{t("catalog.catalogProviders")}</p>
+                <div className="deckgo-pill-row deck-ui-models-pill-row">
+                  <span className="deckgo-pill">{catalogProviders?.runtimeId || "rt_local"}</span>
+                  <span className="deckgo-pill">
+                    {t("status.providersCount", { count: catalogProviderEntries.length })}
+                  </span>
+                  <span className="deckgo-pill">
+                    {t("status.visibleCount", { count: filteredCatalogProviderEntries.length })}
+                  </span>
+                </div>
+                <label className="deckgo-label deck-ui-models-label deck-ui-models-spaced">
+                  <span>{t("catalog.searchProviders")}</span>
+                  <input
+                    aria-label={t("catalog.searchProviders")}
+                    className="deckgo-input deck-ui-models-input"
+                    placeholder={t("catalog.searchProvidersPlaceholder")}
+                    value={catalogProviderSearch}
+                    onChange={(event) => setCatalogProviderSearch(event.target.value)}
+                  />
+                </label>
+                {catalogProviderEntries.length === 0 ? (
+                  <p className="deckgo-note">{t("catalog.noCatalogProviders")}</p>
+                ) : filteredCatalogProviderEntries.length === 0 ? (
+                  <p className="deckgo-note">{t("catalog.noCatalogProviderMatches")}</p>
+                ) : (
+                  <ul className="deckgo-shell-list deck-ui-models-list">
+                    {filteredCatalogProviderEntries.map((provider: DeckGoCatalogProvider) => (
+                      <li key={provider.id}>
+                        <div className="deckgo-selectable-card deck-ui-models-row">
+                          {(() => {
+                            const selectedModelIds = selectedCatalogModelIds(
+                              provider,
+                              catalogModelSelections,
+                            );
+                            const firstSelectedRef = firstCatalogModelRef(
+                              provider,
+                              selectedModelIds,
+                            );
+                            const hasSelectableModels = Array.isArray(provider.models);
                             return (
-                              <li key={`${ref}-${index}`}>
-                                <div className="deckgo-selectable-card deck-ui-models-row">
-                                  <div className="deckgo-panel-hero-strip deck-ui-models-hero">
-                                    <div>
-                                      <strong>{model.name || configuredModelId(model)}</strong>
-                                      <div className="deckgo-meta">
-                                        ref: {ref} | id: {configuredModelId(model)}
+                              <>
+                                <strong>{provider.displayName || provider.id}</strong>
+                                <div className="deckgo-meta">
+                                  {t("catalog.providerMeta", {
+                                    provider: provider.id,
+                                    api: provider.api || t("common.unknown"),
+                                    auth: provider.authType || t("common.unknown"),
+                                    count: provider.modelCount ?? 0,
+                                  })}
+                                </div>
+                                {provider.defaultBaseUrl ? (
+                                  <div className="deckgo-meta">
+                                    {t("catalog.baseUrlMeta", { url: provider.defaultBaseUrl })}
+                                  </div>
+                                ) : null}
+                                {provider.models?.length ? (
+                                  <div className="deckgo-surface-tile deck-ui-models-surface deck-ui-models-spaced">
+                                    <div className="deckgo-panel-hero-strip deck-ui-models-hero">
+                                      <div>
+                                        <strong>{t("catalog.modelSelection")}</strong>
+                                        <p className="deckgo-note">
+                                          {t("catalog.selectedModelsCount", {
+                                            selected: selectedModelIds.length,
+                                            total: provider.models.length,
+                                          })}
+                                        </p>
+                                      </div>
+                                      <div className="deckgo-actions deck-ui-models-actions">
+                                        <button
+                                          className="deckgo-button deckgo-button-compact deck-ui-models-button"
+                                          type="button"
+                                          onClick={() =>
+                                            setAllCatalogModelsSelected(provider, true)
+                                          }
+                                        >
+                                          {t("catalog.selectAll")}
+                                        </button>
+                                        <button
+                                          className="deckgo-button deckgo-button-compact deck-ui-models-button"
+                                          type="button"
+                                          onClick={() =>
+                                            setAllCatalogModelsSelected(provider, false)
+                                          }
+                                        >
+                                          {t("catalog.clearSelection")}
+                                        </button>
                                       </div>
                                     </div>
-                                    <div className="deckgo-pill-row deck-ui-models-pill-row">
-                                      {isTextDefault ? (
-                                        <span className="deckgo-pill is-positive">default</span>
-                                      ) : null}
-                                      {isImageDefault ? (
-                                        <span className="deckgo-pill is-positive">
-                                          image default
-                                        </span>
-                                      ) : null}
-                                      <span className="deckgo-pill">
-                                        auth {model.authStatus || "unknown"}
-                                      </span>
+                                    <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
+                                      {provider.models.map((model) => (
+                                        <label className="deckgo-pill" key={model.id}>
+                                          <input
+                                            aria-label={`Catalog model ${provider.id}/${model.id}`}
+                                            checked={selectedModelIds.includes(model.id)}
+                                            onChange={(event) =>
+                                              toggleCatalogModelSelection(
+                                                provider,
+                                                model.id,
+                                                event.target.checked,
+                                              )
+                                            }
+                                            type="checkbox"
+                                          />{" "}
+                                          {model.name || model.id}
+                                        </label>
+                                      ))}
                                     </div>
                                   </div>
-                                  <div className="deckgo-grid deckgo-grid-3 deck-ui-models-stats deck-ui-models-spaced">
-                                    <ShellStat
-                                      label="context"
-                                      value={formatTokenWindow(model.contextWindow)}
-                                    />
-                                    <ShellStat
-                                      label="max output"
-                                      value={formatTokenWindow(model.maxTokens)}
-                                    />
-                                    <ShellStat
-                                      label="input"
-                                      value={inputModes.length > 0 ? inputModes.join(", ") : "text"}
-                                    />
-                                  </div>
-                                  <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
-                                    <span className="deckgo-pill">
-                                      input {formatModelPrice(model.cost?.input)}
-                                    </span>
-                                    <span className="deckgo-pill">
-                                      output {formatModelPrice(model.cost?.output)}
-                                    </span>
-                                    <span className="deckgo-pill">
-                                      cache read {formatModelPrice(model.cost?.cacheRead)}
-                                    </span>
-                                    <span className="deckgo-pill">
-                                      cache write {formatModelPrice(model.cost?.cacheWrite)}
-                                    </span>
-                                    {model.reasoning ? (
-                                      <span className="deckgo-pill is-positive">reasoning</span>
-                                    ) : null}
-                                    {typeof model.source === "string" ? (
-                                      <span className="deckgo-pill">source {model.source}</span>
-                                    ) : null}
-                                    {typeof model.scope === "string" ? (
-                                      <span className="deckgo-pill">scope {model.scope}</span>
-                                    ) : null}
-                                    {typeof model.editable === "boolean" ? (
-                                      <span className="deckgo-pill">
-                                        {model.editable ? "editable" : "runtime-only"}
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  <div className="deckgo-actions deck-ui-models-actions deck-ui-models-spaced">
-                                    <button
-                                      className="deckgo-button deck-ui-models-button"
-                                      type="button"
-                                      onClick={() =>
-                                        updateDefaultModelChain("model", { primary: ref })
-                                      }
-                                    >
-                                      Set default {ref}
-                                    </button>
-                                    <button
-                                      className="deckgo-button deck-ui-models-button"
-                                      type="button"
-                                      onClick={() => addFallbackModelAction(ref)}
-                                    >
-                                      Add fallback {ref}
-                                    </button>
-                                    {inputModes.includes("image") ? (
+                                ) : null}
+                                <div className="deckgo-actions deck-ui-models-actions deck-ui-models-spaced-tight">
+                                  {firstSelectedRef ? (
+                                    <>
                                       <button
                                         className="deckgo-button deck-ui-models-button"
                                         type="button"
-                                        onClick={() =>
-                                          updateDefaultModelChain("imageModel", { primary: ref })
-                                        }
+                                        onClick={() => {
+                                          applyCatalogProviderAction(provider);
+                                          updateDefaultModelChain("model", {
+                                            primary: firstSelectedRef,
+                                          });
+                                        }}
                                       >
-                                        Set image default {ref}
+                                        {t("catalog.setCatalogDefault", { provider: provider.id })}
                                       </button>
-                                    ) : null}
-                                    {allowlistActive ? (
                                       <button
-                                        className={`deckgo-button deck-ui-models-button ${allowlistEntry ? "is-primary" : ""}`}
+                                        className="deckgo-button deck-ui-models-button"
                                         type="button"
-                                        onClick={() =>
-                                          toggleAllowlistModelAction(ref, allowlistEntry == null)
-                                        }
+                                        onClick={() => {
+                                          applyCatalogProviderAction(provider);
+                                          addDefaultFallbackAction("model", firstSelectedRef);
+                                        }}
                                       >
-                                        {allowlistEntry ? "Disallow" : "Allow"} {ref}
+                                        {t("catalog.addCatalogFallback", { provider: provider.id })}
                                       </button>
-                                    ) : null}
+                                    </>
+                                  ) : null}
+                                  <button
+                                    className="deckgo-button deck-ui-models-button"
+                                    type="button"
+                                    disabled={hasSelectableModels && selectedModelIds.length === 0}
+                                    onClick={() => applyCatalogProviderAction(provider)}
+                                  >
+                                    {t("catalog.useCatalog", { provider: provider.id })}
+                                  </button>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="deckgo-surface-tile deck-ui-models-surface deck-ui-models-catalog-shell">
+                <div className="deck-ui-models-section-heading">
+                  <div>
+                    <p className="deckgo-surface-label">{t("catalog.runtimeModelCatalog")}</p>
+                    <strong>{runtimeModels?.runtimeId || "rt_local"}</strong>
+                  </div>
+                  <div className="deckgo-pill-row deck-ui-models-pill-row">
+                    <span className="deckgo-pill">
+                      {t("status.modelsCount", { count: configuredModels.length })}
+                    </span>
+                    <span className="deckgo-pill">
+                      {t("status.visibleCount", { count: filteredConfiguredModels.length })}
+                    </span>
+                    {RUNTIME_MODEL_FILTERS.map((filter) => (
+                      <button
+                        className={`deckgo-pill ${runtimeModelFilters.has(filter.key) ? "is-selected" : ""}`}
+                        key={filter.key}
+                        type="button"
+                        onClick={() => {
+                          setCatalogSelection(null);
+                          toggleRuntimeModelFilter(filter.key);
+                        }}
+                      >
+                        {t("catalog.filterButton", { label: t(filter.labelKey) })}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {filteredConfiguredModels.length === 0 ? (
+                  <p className="deckgo-note">{t("catalog.noRuntimeModels")}</p>
+                ) : (
+                  <div className="deck-ui-models-split-pane">
+                    <aside
+                      className="deck-ui-models-provider-tree"
+                      aria-label={t("catalog.runtimeModelProviders")}
+                    >
+                      {runtimeProviderGroups.map(([provider, models]) => {
+                        const selected = activeCatalogProvider === provider && !activeCatalogModel;
+                        return (
+                          <div className="deck-ui-models-provider-tree-group" key={provider}>
+                            <button
+                              className={`deck-ui-models-provider-tree-provider ${
+                                selected ? "is-selected" : ""
+                              }`}
+                              type="button"
+                              onClick={() => setCatalogSelection({ type: "provider", provider })}
+                            >
+                              <span>{provider}</span>
+                              <span>{models.length}</span>
+                            </button>
+                            <div className="deck-ui-models-provider-tree-models">
+                              {models.map((model) => {
+                                const ref = configuredModelRef(model);
+                                const modelSelected = activeCatalogModel
+                                  ? configuredModelRef(activeCatalogModel) === ref
+                                  : false;
+                                return (
+                                  <button
+                                    className={`deck-ui-models-provider-tree-model ${
+                                      modelSelected ? "is-selected" : ""
+                                    }`}
+                                    key={ref}
+                                    type="button"
+                                    onClick={() =>
+                                      setCatalogSelection({ type: "model", provider, ref })
+                                    }
+                                  >
+                                    <span>{model.name || configuredModelId(model)}</span>
+                                    <span>
+                                      ref: {ref} | id: {configuredModelId(model)}
+                                    </span>
+                                    <span>{formatTokenWindow(model.contextWindow)}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </aside>
+                    <div className="deck-ui-models-catalog-detail">
+                      {activeCatalogModel ? (
+                        (() => {
+                          const ref = configuredModelRef(activeCatalogModel);
+                          const inputModes = modelInputModes(activeCatalogModel);
+                          const isTextDefault = modelChain.primary === ref;
+                          const isImageDefault = imageModelChain.primary === ref;
+                          const allowlistEntry = allowlistEntries[ref];
+                          return (
+                            <div className="deckgo-selectable-card deck-ui-models-row">
+                              <div className="deckgo-panel-hero-strip deck-ui-models-hero">
+                                <div>
+                                  <p className="deckgo-kicker">{t("catalog.modelDetail")}</p>
+                                  <strong>
+                                    {activeCatalogModel.name ||
+                                      configuredModelId(activeCatalogModel)}
+                                  </strong>
+                                  <div className="deckgo-meta">
+                                    {t("catalog.refIdMeta", {
+                                      ref,
+                                      id: configuredModelId(activeCatalogModel),
+                                    })}
                                   </div>
                                 </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                                <div className="deckgo-pill-row deck-ui-models-pill-row">
+                                  {isTextDefault ? (
+                                    <span className="deckgo-pill is-positive">
+                                      {t("common.defaultValue")}
+                                    </span>
+                                  ) : null}
+                                  {isImageDefault ? (
+                                    <span className="deckgo-pill is-positive">
+                                      {t("catalog.imageDefault")}
+                                    </span>
+                                  ) : null}
+                                  <span className="deckgo-pill">
+                                    {t("common.auth")}{" "}
+                                    {activeCatalogModel.authStatus ||
+                                      activeCatalogAuth?.status ||
+                                      t("common.unknown")}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="deckgo-grid deckgo-grid-3 deck-ui-models-stats deck-ui-models-spaced">
+                                <ShellStat
+                                  label={t("catalog.contextWindow")}
+                                  value={formatTokenWindow(activeCatalogModel.contextWindow)}
+                                />
+                                <ShellStat
+                                  label={t("catalog.maxOutput")}
+                                  value={formatTokenWindow(activeCatalogModel.maxTokens)}
+                                />
+                                <ShellStat
+                                  label={t("catalog.input")}
+                                  value={
+                                    inputModes.length > 0
+                                      ? inputModes.join(", ")
+                                      : t("catalog.text")
+                                  }
+                                />
+                              </div>
+                              <div className="deckgo-pill-row deck-ui-models-pill-row deck-ui-models-spaced">
+                                <span className="deckgo-pill">
+                                  {t("catalog.inputPriceWithValue", {
+                                    value: formatModelPrice(
+                                      activeCatalogModel.cost?.input,
+                                      t("catalog.free"),
+                                    ),
+                                  })}
+                                </span>
+                                <span className="deckgo-pill">
+                                  {t("catalog.outputPriceWithValue", {
+                                    value: formatModelPrice(
+                                      activeCatalogModel.cost?.output,
+                                      t("catalog.free"),
+                                    ),
+                                  })}
+                                </span>
+                                <span className="deckgo-pill">
+                                  {t("catalog.cacheReadWithValue", {
+                                    value: formatModelPrice(
+                                      activeCatalogModel.cost?.cacheRead,
+                                      t("catalog.free"),
+                                    ),
+                                  })}
+                                </span>
+                                <span className="deckgo-pill">
+                                  {t("catalog.cacheWriteWithValue", {
+                                    value: formatModelPrice(
+                                      activeCatalogModel.cost?.cacheWrite,
+                                      t("catalog.free"),
+                                    ),
+                                  })}
+                                </span>
+                                {activeCatalogModel.reasoning ? (
+                                  <span className="deckgo-pill is-positive">
+                                    {t("filter.reasoning")}
+                                  </span>
+                                ) : null}
+                                {typeof activeCatalogModel.source === "string" ? (
+                                  <span className="deckgo-pill">
+                                    {t("common.source", { source: activeCatalogModel.source })}
+                                  </span>
+                                ) : null}
+                                {typeof activeCatalogModel.scope === "string" ? (
+                                  <span className="deckgo-pill">
+                                    {t("common.scope", { scope: activeCatalogModel.scope })}
+                                  </span>
+                                ) : null}
+                                {typeof activeCatalogModel.editable === "boolean" ? (
+                                  <span className="deckgo-pill">
+                                    {activeCatalogModel.editable
+                                      ? t("common.editable")
+                                      : t("common.runtimeOnly")}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="deckgo-actions deck-ui-models-actions deck-ui-models-spaced">
+                                <button
+                                  className="deckgo-button deck-ui-models-button"
+                                  type="button"
+                                  onClick={() => updateDefaultModelChain("model", { primary: ref })}
+                                >
+                                  {t("catalog.setDefaultRef", { ref })}
+                                </button>
+                                <button
+                                  className="deckgo-button deck-ui-models-button"
+                                  type="button"
+                                  onClick={() => addFallbackModelAction(ref)}
+                                >
+                                  {t("catalog.addFallbackRef", { ref })}
+                                </button>
+                                {inputModes.includes("image") ? (
+                                  <button
+                                    className="deckgo-button deck-ui-models-button"
+                                    type="button"
+                                    onClick={() =>
+                                      updateDefaultModelChain("imageModel", { primary: ref })
+                                    }
+                                  >
+                                    {t("catalog.setImageDefaultRef", { ref })}
+                                  </button>
+                                ) : null}
+                                {allowlistActive ? (
+                                  <button
+                                    className={`deckgo-button deck-ui-models-button ${
+                                      allowlistEntry ? "is-primary" : ""
+                                    }`}
+                                    type="button"
+                                    onClick={() =>
+                                      toggleAllowlistModelAction(ref, allowlistEntry == null)
+                                    }
+                                  >
+                                    {allowlistEntry
+                                      ? t("catalog.disallowRef", { ref })
+                                      : t("catalog.allowRef", { ref })}
+                                  </button>
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="deckgo-selectable-card deck-ui-models-row">
+                          <div className="deckgo-panel-hero-strip deck-ui-models-hero">
+                            <div>
+                              <p className="deckgo-kicker">{t("catalog.providerOverview")}</p>
+                              <strong>
+                                {activeCatalogProvider || t("config.noProviderSelected")}
+                              </strong>
+                              <p className="deckgo-note">
+                                {t("catalog.visibleRuntimeModels", {
+                                  count: activeCatalogModels.length,
+                                })}
+                              </p>
+                            </div>
+                            <div className="deckgo-pill-row deck-ui-models-pill-row">
+                              <span className="deckgo-pill">
+                                {t("common.auth")}{" "}
+                                {activeCatalogAuth?.status ?? t("common.unknown")}
+                              </span>
+                              <button
+                                className="deckgo-button deckgo-button-compact deck-ui-models-button"
+                                type="button"
+                                onClick={() => {
+                                  setSelectedProviderId(activeCatalogProvider);
+                                  setActiveTab("provider-config");
+                                }}
+                              >
+                                {t("catalog.openProviderConfig")}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="deckgo-grid deckgo-grid-3 deck-ui-models-stats deck-ui-models-spaced">
+                            <ShellStat
+                              label={t("status.models")}
+                              value={activeCatalogModels.length}
+                            />
+                            <ShellStat
+                              label={t("common.auth")}
+                              value={activeCatalogAuth?.status ?? t("common.unknown")}
+                            />
+                            <ShellStat
+                              label={t("status.visible")}
+                              value={filteredConfiguredModels.length}
+                            />
+                          </div>
+                          <ul className="deckgo-shell-list deck-ui-models-list deck-ui-models-spaced">
+                            {activeCatalogModels.map((model) => {
+                              const ref = configuredModelRef(model);
+                              const inputModes = modelInputModes(model);
+                              const isTextDefault = modelChain.primary === ref;
+                              const isImageDefault = imageModelChain.primary === ref;
+                              const allowlistEntry = allowlistEntries[ref];
+                              return (
+                                <li key={ref}>
+                                  <div className="deck-ui-models-model-table-row">
+                                    <button
+                                      className="deck-ui-models-model-name"
+                                      type="button"
+                                      onClick={() =>
+                                        setCatalogSelection({
+                                          type: "model",
+                                          provider: activeCatalogProvider,
+                                          ref,
+                                        })
+                                      }
+                                    >
+                                      <strong>{model.name || configuredModelId(model)}</strong>
+                                      <span>
+                                        {t("catalog.refIdMeta", {
+                                          ref,
+                                          id: configuredModelId(model),
+                                        })}
+                                      </span>
+                                    </button>
+                                    <ShellStat
+                                      label={t("catalog.contextWindow")}
+                                      value={formatTokenWindow(model.contextWindow)}
+                                    />
+                                    <ShellStat
+                                      label={t("catalog.input")}
+                                      value={
+                                        inputModes.length > 0
+                                          ? inputModes.join(", ")
+                                          : t("catalog.text")
+                                      }
+                                    />
+                                    <div className="deckgo-actions deck-ui-models-actions">
+                                      {isTextDefault ? (
+                                        <span className="deckgo-pill is-positive">
+                                          {t("common.defaultValue")}
+                                        </span>
+                                      ) : null}
+                                      {isImageDefault ? (
+                                        <span className="deckgo-pill is-positive">
+                                          {t("catalog.imageDefault")}
+                                        </span>
+                                      ) : null}
+                                      <button
+                                        className="deckgo-button deckgo-button-compact deck-ui-models-button"
+                                        type="button"
+                                        onClick={() =>
+                                          updateDefaultModelChain("model", { primary: ref })
+                                        }
+                                      >
+                                        {t("catalog.setDefaultRef", { ref })}
+                                      </button>
+                                      <button
+                                        className="deckgo-button deckgo-button-compact deck-ui-models-button"
+                                        type="button"
+                                        onClick={() => addFallbackModelAction(ref)}
+                                      >
+                                        {t("catalog.addFallbackRef", { ref })}
+                                      </button>
+                                      {inputModes.includes("image") ? (
+                                        <button
+                                          className="deckgo-button deckgo-button-compact deck-ui-models-button"
+                                          type="button"
+                                          onClick={() =>
+                                            updateDefaultModelChain("imageModel", { primary: ref })
+                                          }
+                                        >
+                                          {t("catalog.setImageDefaultRef", { ref })}
+                                        </button>
+                                      ) : null}
+                                      {allowlistActive ? (
+                                        <button
+                                          className={`deckgo-button deckgo-button-compact deck-ui-models-button ${
+                                            allowlistEntry ? "is-primary" : ""
+                                          }`}
+                                          type="button"
+                                          onClick={() =>
+                                            toggleAllowlistModelAction(ref, allowlistEntry == null)
+                                          }
+                                        >
+                                          {allowlistEntry
+                                            ? t("catalog.disallowRef", { ref })
+                                            : t("catalog.allowRef", { ref })}
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            {lookupResult ? <JsonDetails title="Schema lookup" payload={lookupResult} /> : null}
-            {actionResult ? <JsonDetails title="Last save result" payload={actionResult} /> : null}
-            {probeResult ? <JsonDetails title="Last model probe" payload={probeResult} /> : null}
+            {lookupResult ? (
+              <JsonDetails title={t("panel.schemaLookupResult")} payload={lookupResult} />
+            ) : null}
+            {actionResult ? (
+              <JsonDetails title={t("panel.lastSaveResult")} payload={actionResult} />
+            ) : null}
+            {probeResult ? (
+              <JsonDetails title={t("panel.lastModelProbe")} payload={probeResult} />
+            ) : null}
           </div>
         </article>
       </div>

@@ -11,7 +11,7 @@ This change restores Core group visual and interaction parity after the shell ba
 - Restore Gateway/Monitor visual parity using old Monitor overview/history/timeline structure while keeping Go-backed Gateway authority.
 - Wire Core group visible copy through EN/ZH i18n.
 - Fix or classify Go backend/API/projection gaps discovered while restoring Agents, Models, and Gateway/Monitor workflows that old Node+Next service behavior already supported.
-- Validate desktop visual parity page-by-page.
+- Validate desktop visual parity page-by-page with worktree-local structural, i18n, unit, and build evidence; defer Playwright/browser E2E screenshots until after local integration merge.
 
 ## Capabilities
 
@@ -33,7 +33,7 @@ This change restores Core group visual and interaction parity after the shell ba
   - `deck-go/frontend/src/components/panels/agents/**/*`
   - `deck-go/frontend/src/components/panels/gateway/**/*`
   - `deck-go/frontend/src/components/panels/models/**/*`
-  - `deck-go/**/*` backend/API files needed to close documented Core panel parity gaps
+  - `deck-go/**/*` backend/API files needed to close documented Core panel parity gaps after the specific workflow row is classified in `backend-gaps.md`
 - Evidence:
   - Agents: old 28 non-test UI files, current 3.
   - Models: old 31 non-test UI files, current 3.

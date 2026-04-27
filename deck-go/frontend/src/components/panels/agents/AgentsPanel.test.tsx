@@ -3,6 +3,8 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Locale } from "../../../i18n/config";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { AgentsPanel } from "./AgentsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -23,10 +25,13 @@ const apiMocks = vi.hoisted(() => ({
   fetchEffectiveTools: vi.fn(),
   fetchRoutingBindings: vi.fn(),
   fetchRuntimeConfiguredModels: vi.fn(),
+  fetchSkills: vi.fn(),
   fetchSessions: vi.fn(),
   fetchSubagentRuns: vi.fn(),
   fetchToolsCatalog: vi.fn(),
+  installSkill: vi.fn(),
   removeRoutingBinding: vi.fn(),
+  updateSkill: vi.fn(),
   updateAgentEventStreams: vi.fn(),
   updateAgentRawConfig: vi.fn(),
   updateAgentSkills: vi.fn(),
@@ -63,6 +68,20 @@ let latestStreamParams:
       onEvent: (event: { event?: string; data?: string; json?: unknown }) => void;
     }
   | undefined;
+
+function expectTextOneOf(...values: string[]) {
+  expect(values.some((value) => container.textContent?.includes(value))).toBe(true);
+}
+
+function findButtonByText(...values: string[]) {
+  return Array.from(container.querySelectorAll("button")).find((button) =>
+    values.some((value) => button.textContent?.includes(value)),
+  );
+}
+
+function renderAgentsPanel(locale: Locale = "en") {
+  root?.render(createElement(DeckIntlProvider, { locale }, createElement(AgentsPanel)));
+}
 
 function agentsList(includeCreated = false) {
   return {
@@ -130,6 +149,7 @@ describe("AgentsPanel", () => {
     (
       globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
     ).IS_REACT_ACT_ENVIRONMENT = true;
+    document.cookie = "NEXT_LOCALE=en;path=/";
     window.history.replaceState({}, "", "/");
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -179,6 +199,29 @@ describe("AgentsPanel", () => {
       ],
       configHash: "skills-hash-1",
     });
+    apiMocks.fetchSkills.mockResolvedValue({
+      skills: [
+        {
+          key: "shell",
+          name: "Shell Skill",
+          source: "bundled",
+          disabled: false,
+          eligible: true,
+          config: { apiKey: "shell-key", env: { SHELL_MODE: "safe" } },
+          install: [{ id: "brew-shell", label: "Homebrew shell", bins: ["shell"] }],
+        },
+        {
+          key: "memory",
+          name: "Memory Skill",
+          source: "managed",
+          disabled: false,
+          eligible: true,
+          config: { env: {} },
+        },
+      ],
+    });
+    apiMocks.updateSkill.mockResolvedValue({ ok: true, config: { apiKey: "next-key" } });
+    apiMocks.installSkill.mockResolvedValue({ ok: true, installed: "shell" });
     apiMocks.fetchAgentSubagentConfig.mockResolvedValue({
       agentId: "main",
       allowAgents: ["builder"],
@@ -472,7 +515,7 @@ describe("AgentsPanel", () => {
   it("loads agents, sorts the list, and selects the default agent detail", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentDetail).toHaveBeenCalledWith("main"));
@@ -512,8 +555,33 @@ describe("AgentsPanel", () => {
     expect(apiMocks.fetchAgentsList).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Agents ready");
     expect(container.querySelector(".deck-ui-agents")).toBeTruthy();
+    expect(container.querySelector('[data-agent-boundary="list"]')).toBeTruthy();
+    expect(container.querySelector('[data-agent-boundary="detail"]')).toBeTruthy();
+    expect(container.querySelector('[data-agent-boundary="compare"]')).toBeTruthy();
+    for (const editor of [
+      "template-dialog",
+      "config-editor",
+      "skill-config",
+      "skill-install-dialog",
+      "skill-config-editor",
+      "tools-editor",
+      "tool-policy-trace",
+      "prompt-preview",
+      "files-browser",
+    ]) {
+      expect(container.querySelector(`[data-agent-editor="${editor}"]`)).toBeTruthy();
+    }
     expect(container.querySelectorAll(".deck-ui-agents-card")).toHaveLength(2);
     expect(container.querySelectorAll(".deck-ui-agents-body")).toHaveLength(2);
+    expect(container.querySelector(".deck-ui-agents-tabs")).toBeTruthy();
+    expect(container.querySelectorAll(".deck-ui-agents-tabs [role='tab']")).toHaveLength(8);
+    const tabLabels = Array.from(
+      container.querySelectorAll(".deck-ui-agents-tabs [role='tab']"),
+    ).map((tab) => tab.textContent);
+    expect([
+      ["Overview", "Config", "Routing", "Skills", "Tools", "Context", "Subagent", "Sessions"],
+      ["概览", "配置", "路由", "Skills", "工具", "上下文", "子智能体", "会话"],
+    ]).toContainEqual(tabLabels);
     expect(container.querySelectorAll(".deck-ui-agents-surface").length).toBeGreaterThanOrEqual(8);
     expect(container.querySelectorAll(".deck-ui-agents-hero").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelectorAll(".deck-ui-agents-row").length).toBeGreaterThanOrEqual(6);
@@ -538,7 +606,7 @@ describe("AgentsPanel", () => {
     expect(container.textContent).toContain("Channel event streams");
     expect(container.textContent).toContain("Using default event stream policy.");
     expect(container.textContent).toContain("chat locked on");
-    expect(container.textContent).toContain("Agent skills");
+    expectTextOneOf("Agent skills", "智能体技能");
     expect(container.textContent).toContain("Shell Skill");
     expect(container.textContent).toContain("Memory Skill");
     expect(container.textContent).toContain("Subagent spawning");
@@ -634,12 +702,33 @@ describe("AgentsPanel", () => {
     );
   });
 
-  it("selects the agent requested by cross-panel navigation params", async () => {
-    window.history.replaceState({}, "", "/?surface=deck-ui&panel=agents&agentId=builder");
+  it("renders the restored Agents shell with Chinese UI copy", async () => {
+    await act(async () => {
+      root = createRoot(container);
+      renderAgentsPanel("zh");
+    });
+
+    await waitFor(() => expect(apiMocks.fetchAgentDetail).toHaveBeenCalledWith("main"));
+    expect(container.textContent).toContain("智能体清单");
+    expect(container.textContent).toContain("智能体批量摘要");
+    expect(container.textContent).toContain("智能体技能");
+    expect(container.textContent).toContain("安装选项");
+    expect(container.textContent).toContain("技能配置");
+    expect(container.textContent).toContain("子智能体生成");
+    expect(container.textContent).toContain("生效预览");
+    expect(container.textContent).toContain("智能体文件");
+  });
+
+  it("selects the agent and detail tab requested by cross-panel navigation params", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/?surface=deck-ui&panel=agents&agentId=builder&agentTab=skills",
+    );
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentDetail).toHaveBeenCalledWith("builder"));
@@ -648,6 +737,10 @@ describe("AgentsPanel", () => {
       button.className.includes("is-selected"),
     );
     expect(selectedButton?.textContent).toContain("Builder Agent");
+    expect(
+      container.querySelector<HTMLButtonElement>(".deck-ui-agents-tabs button.is-active")
+        ?.textContent,
+    ).toBe("Skills");
     expect(container.textContent).toContain("Selected agent");
     expect(container.textContent).toContain("gpt-5.4");
   });
@@ -655,7 +748,7 @@ describe("AgentsPanel", () => {
   it("shows SSE-backed live agent metrics", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentHealthSnapshot).toHaveBeenCalled());
@@ -685,7 +778,7 @@ describe("AgentsPanel", () => {
   it("compares two Gateway-backed agent detail payloads", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentDetail).toHaveBeenCalledWith("main"));
@@ -715,13 +808,13 @@ describe("AgentsPanel", () => {
   it("loads and updates Gateway-backed agent event stream settings", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentEventStreams).toHaveBeenCalledWith("main"));
 
     const thinkingRow = Array.from(container.querySelectorAll<HTMLLabelElement>("label")).find(
-      (label) => label.textContent === "thinking",
+      (label) => label.textContent?.toLowerCase() === "thinking",
     );
     const thinkingToggle = thinkingRow?.querySelector<HTMLInputElement>('input[type="checkbox"]');
     expect(thinkingToggle).toBeTruthy();
@@ -745,7 +838,7 @@ describe("AgentsPanel", () => {
   it("loads and saves raw agent config overrides through the config patch path", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentRawConfig).toHaveBeenCalledWith("main"));
@@ -841,7 +934,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentRawConfig).toHaveBeenCalledWith("main"));
@@ -912,7 +1005,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchRuntimeConfiguredModels).toHaveBeenCalled());
@@ -959,7 +1052,7 @@ describe("AgentsPanel", () => {
   it("rejects out-of-range temperature before saving raw agent config", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentRawConfig).toHaveBeenCalledWith("main"));
@@ -1003,7 +1096,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentRawConfig).toHaveBeenCalledWith("main"));
@@ -1082,7 +1175,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchToolsCatalog).toHaveBeenCalledWith("main"));
@@ -1134,7 +1227,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchToolsCatalog).toHaveBeenCalledWith("main"));
@@ -1210,7 +1303,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentRawConfig).toHaveBeenCalledWith("main"));
@@ -1248,7 +1341,7 @@ describe("AgentsPanel", () => {
   it("loads and updates Gateway-backed agent skill settings", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentSkills).toHaveBeenCalledWith("main"));
@@ -1270,9 +1363,9 @@ describe("AgentsPanel", () => {
       fireEvent.click(memoryToggle as HTMLInputElement);
     });
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save agent skills")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save agent skills", "保存智能体技能")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() =>
@@ -1285,10 +1378,63 @@ describe("AgentsPanel", () => {
     expect(container.textContent).toContain("Last agent action");
   });
 
+  it("restores skill install and API/env config controls inside the agent editor", async () => {
+    await act(async () => {
+      root = createRoot(container);
+      renderAgentsPanel();
+    });
+
+    await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledWith("main"));
+    expect(container.querySelector('[data-agent-editor="skill-install-dialog"]')).toBeTruthy();
+    expect(container.querySelector('[data-agent-editor="skill-config-editor"]')).toBeTruthy();
+    expect(container.textContent).toContain("Homebrew shell");
+
+    const apiKeyInput = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
+      (input) => input.type === "password",
+    );
+    expect(apiKeyInput).toBeTruthy();
+    expect(apiKeyInput?.value).toBe("shell-key");
+
+    await act(async () => {
+      fireEvent.change(apiKeyInput as HTMLInputElement, { target: { value: "next-key" } });
+    });
+
+    const envValueInput = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
+      (input) => input.value === "safe",
+    );
+    expect(envValueInput).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(envValueInput as HTMLInputElement, { target: { value: "strict" } });
+    });
+
+    await act(async () => {
+      findButtonByText("Save skill config", "保存技能配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
+    });
+
+    await waitFor(() =>
+      expect(apiMocks.updateSkill).toHaveBeenCalledWith("shell", {
+        apiKey: "next-key",
+        env: { SHELL_MODE: "strict" },
+      }),
+    );
+
+    await waitFor(() => expect(findButtonByText("Homebrew shell")?.disabled).toBe(false));
+
+    await act(async () => {
+      findButtonByText("Homebrew shell")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await waitFor(() =>
+      expect(apiMocks.installSkill).toHaveBeenCalledWith("Shell Skill", "brew-shell"),
+    );
+  });
+
   it("loads and saves Gateway-backed bootstrap prompt files", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() =>
@@ -1305,6 +1451,7 @@ describe("AgentsPanel", () => {
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentFile).toHaveBeenCalledWith("main", "AGENTS.md"));
+    expect(container.querySelector('[data-agent-editor="bootstrap-file-editor"]')).toBeTruthy();
 
     const editor = container.querySelector<HTMLTextAreaElement>("textarea.deckgo-textarea");
     expect(editor).toBeTruthy();
@@ -1336,7 +1483,7 @@ describe("AgentsPanel", () => {
   it("loads effective tools for the selected agent session", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() =>
@@ -1368,7 +1515,7 @@ describe("AgentsPanel", () => {
   it("filters recent agent sessions by kind and subagent key metadata", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Recent agent sessions"));
@@ -1411,7 +1558,7 @@ describe("AgentsPanel", () => {
   it("filters and expands Gateway-backed tool policy trace entries", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentToolPolicyPreview).toHaveBeenCalledWith("main"));
@@ -1440,7 +1587,7 @@ describe("AgentsPanel", () => {
   it("opens files from the Gateway-backed agent files list", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentFiles).toHaveBeenCalledWith("main"));
@@ -1463,7 +1610,7 @@ describe("AgentsPanel", () => {
   it("loads and updates Gateway-backed subagent spawn settings", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentSubagentConfig).toHaveBeenCalledWith("main"));
@@ -1538,7 +1685,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentRawConfig).toHaveBeenCalledWith("main"));
@@ -1582,7 +1729,7 @@ describe("AgentsPanel", () => {
   it("removes an agent-scoped routing binding with the loaded routing config hash", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() =>
@@ -1619,7 +1766,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentDetail).toHaveBeenCalledWith("main"));
@@ -1707,7 +1854,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentDetail).toHaveBeenCalledWith("main"));
@@ -1737,7 +1884,7 @@ describe("AgentsPanel", () => {
   it("loads selected details and runs create, rename, and delete actions through deck-go APIs", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentDetail).toHaveBeenCalledWith("main"));
@@ -1818,7 +1965,7 @@ describe("AgentsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(AgentsPanel));
+      renderAgentsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentDetail).toHaveBeenCalledWith("main"));
