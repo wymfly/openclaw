@@ -79,5 +79,5 @@ Evidence: `openspec validate deck-observe-panels-visual-parity --strict` passed;
 
 ## 7. Integration-Branch Closure Gate
 
-- [ ] 7.1 After this worktree merges back locally, run the Playwright/browser screenshot matrix for Usage, Sessions, Memory, Logs, Activity, Threads, and API Explorer.
-- [ ] 7.2 Treat any failed route, language/theme mode, or critical visual parity screenshot as blocking final completion/archive of this OpenSpec change.
+- [x] 7.1 After this worktree merges back locally, run the Playwright/browser screenshot matrix for Usage, Sessions, Memory, Logs, Activity, Threads, and API Explorer.
+- [x] 7.2 Treat any failed route, language/theme mode, or critical visual parity screenshot as blocking final completion/archive of this OpenSpec change.

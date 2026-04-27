@@ -44,5 +44,5 @@
 
 ## 5. Integration-Branch E2E Closure
 
-- [ ] 5.1 Run Playwright MCP desktop browser validation for Agents, Gateway, and Models across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
-- [ ] 5.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.
+- [x] 5.1 Run Playwright MCP desktop browser validation for Agents, Gateway, and Models across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
+- [x] 5.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.

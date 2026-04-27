@@ -63,5 +63,5 @@
 
 ## 6. Integration-Branch E2E Closure
 
-- [ ] 6.1 Run Playwright MCP desktop browser validation for Cron, Webhooks, Approvals, and Skills across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
-- [ ] 6.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.
+- [x] 6.1 Run Playwright MCP desktop browser validation for Cron, Webhooks, Approvals, and Skills across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
+- [x] 6.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.

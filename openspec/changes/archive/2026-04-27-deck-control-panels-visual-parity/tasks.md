@@ -63,5 +63,5 @@
 
 ## 8. Integration-Branch E2E Closure
 
-- [ ] 8.1 Run Playwright MCP desktop browser validation for Budget, Alerts, Channels, Plugins, Routing, Subagents, Identity, Config, Nodes, Docs, and Settings across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
-- [ ] 8.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.
+- [x] 8.1 Run Playwright MCP desktop browser validation for Budget, Alerts, Channels, Plugins, Routing, Subagents, Identity, Config, Nodes, Docs, and Settings across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
+- [x] 8.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.
