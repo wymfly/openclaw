@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { ConfigPanel } from "./ConfigPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -126,6 +127,10 @@ function rootLookupPayload() {
   };
 }
 
+function renderConfigPanel(locale: "en" | "zh" = "en") {
+  return createElement(DeckIntlProvider, { locale }, createElement(ConfigPanel));
+}
+
 describe("ConfigPanel", () => {
   beforeEach(() => {
     (
@@ -154,7 +159,7 @@ describe("ConfigPanel", () => {
   it("loads config snapshots, top-level keys, and default schema lookup", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchDeckConfig).toHaveBeenCalledTimes(1));
@@ -186,10 +191,27 @@ describe("ConfigPanel", () => {
     expect(container.querySelector(".deck-ui-config-textarea")).toBeTruthy();
   });
 
+  it("renders localized Chinese config editor and schema surfaces", async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(renderConfigPanel("zh"));
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("配置就绪"));
+
+    expect(container.textContent).toContain("2 个顶层键");
+    expect(container.textContent).toContain("2 个 schema 分区");
+    expect(container.textContent).toContain("结构化分区编辑器");
+    expect(container.textContent).toContain("配置详情");
+    expect(container.textContent).toContain("原始配置");
+    expect(container.textContent).toContain("Schema 分区");
+    expect(container.textContent).toContain("应用配置");
+  });
+
   it("uses password inputs for sensitive structured string fields and can reveal them", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("API key"));
@@ -233,7 +255,7 @@ describe("ConfigPanel", () => {
   it("looks up edited schema paths and applies edited raw config with the base hash", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("Config ready"));
@@ -308,7 +330,7 @@ describe("ConfigPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("Config ready"));
@@ -349,7 +371,7 @@ describe("ConfigPanel", () => {
   it("writes primitive structured field edits back into the raw config snapshot", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("Structured section editor"));
@@ -427,7 +449,7 @@ describe("ConfigPanel", () => {
   it("writes nested structured JSON field edits back into the raw config snapshot", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("Structured section editor"));
@@ -482,7 +504,7 @@ describe("ConfigPanel", () => {
   it("filters structured fields by text and schema hint tags", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() =>
@@ -526,7 +548,7 @@ describe("ConfigPanel", () => {
   it("tracks unsaved raw edits, guards navigation, and resets to the loaded snapshot", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("unsaved no"));
@@ -557,7 +579,7 @@ describe("ConfigPanel", () => {
   it("navigates schema sections and inspects the matching config value", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ConfigPanel));
+      root.render(renderConfigPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("2 schema sections"));

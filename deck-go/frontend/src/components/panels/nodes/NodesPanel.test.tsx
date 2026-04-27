@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { NodesPanel } from "./NodesPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -22,6 +23,13 @@ vi.mock("../../../api", () => apiMocks);
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
+  act(() => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(NodesPanel)));
+  });
+}
 
 function nodesPayload() {
   return {
@@ -145,10 +153,7 @@ describe("NodesPanel", () => {
   });
 
   it("loads node inventory, pairing requests, and selects the first node by default", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(NodesPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchNodes).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
@@ -158,18 +163,19 @@ describe("NodesPanel", () => {
     expect(container.textContent).toContain("1 pending");
     expect(container.textContent).toContain("Alpha Node");
     expect(container.textContent).toContain("Beta Node");
-    expect(container.textContent).toContain("request: pair-b | repair: yes");
+    expect(container.textContent).toContain("request: pair-b");
+    expect(container.textContent).toContain("Repair: yes");
     expect(container.textContent).toContain("platform: darwin | connected: yes");
     expect(container.textContent).toContain("paired: no");
     expect(container.textContent).toContain("Connected and ready");
     expect(container.textContent).toContain(
       "This node is paired and currently connected, so remote capabilities should be available.",
     );
-    await waitFor(() => expect(container.textContent).toContain("core version"));
+    await waitFor(() => expect(container.textContent).toContain("Core Version"));
     expect(container.textContent).toContain("1.0.1");
-    expect(container.textContent).toContain("ui version");
+    expect(container.textContent).toContain("UI Version");
     expect(container.textContent).toContain("1.0.2");
-    expect(container.textContent).toContain("device family");
+    expect(container.textContent).toContain("Device Family");
     expect(container.textContent).toContain("MacBookPro");
     expect(container.textContent).toContain("/usr/local/bin:/usr/bin");
     expect(container.textContent).toContain("Capabilities");
@@ -205,10 +211,7 @@ describe("NodesPanel", () => {
   });
 
   it("runs rename and pairing actions while preserving the preferred node", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(NodesPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
 
@@ -280,10 +283,7 @@ describe("NodesPanel", () => {
   });
 
   it("does not approve or reject pairing when confirmation is cancelled", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(NodesPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
 
@@ -322,10 +322,7 @@ describe("NodesPanel", () => {
     });
     apiMocks.fetchNodePairing.mockResolvedValue(orphanPairingPayload());
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(NodesPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
     expect(container.textContent).toContain("Unlisted Node");
@@ -353,10 +350,7 @@ describe("NodesPanel", () => {
   });
 
   it("invokes advertised node commands and queues pending work through the Gateway facade", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(NodesPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
 
@@ -452,10 +446,7 @@ describe("NodesPanel", () => {
     apiMocks.fetchNodePairing.mockResolvedValue({ pending: [] });
     apiMocks.describeNode.mockResolvedValue(unpairedNode);
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(NodesPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(container.textContent).toContain("Gamma Node"));
     expect(container.textContent).toContain("Unpaired");
@@ -483,5 +474,18 @@ describe("NodesPanel", () => {
     expect(window.confirm).toHaveBeenCalledWith("Request node pairing for node-c?");
     expect(container.textContent).toContain("Last node action");
     expect(container.textContent).toContain("pair-requested");
+  });
+
+  it("renders the migrated nodes shell in Chinese", async () => {
+    renderPanel("zh");
+
+    await waitFor(() => expect(apiMocks.fetchNodes).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(container.textContent).toContain("节点就绪"));
+
+    expect(container.textContent).toContain("2 个节点");
+    expect(container.textContent).toContain("1 个待处理");
+    expect(container.textContent).toContain("节点列表");
+    expect(container.textContent).toContain("当前节点");
+    expect(container.textContent).toContain("待处理配对");
   });
 });

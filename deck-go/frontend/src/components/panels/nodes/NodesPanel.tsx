@@ -17,15 +17,16 @@ import {
   requestNodePairing,
   verifyNodePairing,
 } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 
 type PanelState = "idle" | "loading" | "ready";
 
 type NodeLifecycleSummary = {
   tone: "success" | "warning" | "neutral";
-  title: string;
-  description: string;
-  nextStep: string;
+  titleKey: string;
+  descriptionKey: string;
+  nextStepKey: string;
 };
 
 function getNodeLifecycleSummary(
@@ -35,42 +36,40 @@ function getNodeLifecycleSummary(
   if (pendingRequest?.isRepair) {
     return {
       tone: "warning",
-      title: "Repair requested",
-      description:
-        "This node was previously paired and is requesting repair approval to recover access.",
-      nextStep: "Review the repair request and approve it if the device is trusted.",
+      titleKey: "lifecycleRepairTitle",
+      descriptionKey: "lifecycleRepairDescription",
+      nextStepKey: "lifecycleRepairNextStep",
     };
   }
   if (pendingRequest) {
     return {
       tone: "warning",
-      title: "Pending pairing request",
-      description: "This node is waiting for approval before it can become a paired device.",
-      nextStep: "Approve or reject the pending request to continue onboarding.",
+      titleKey: "lifecyclePendingTitle",
+      descriptionKey: "lifecyclePendingDescription",
+      nextStepKey: "lifecyclePendingNextStep",
     };
   }
   if (node.connected && node.paired) {
     return {
       tone: "success",
-      title: "Connected and ready",
-      description:
-        "This node is paired and currently connected, so remote capabilities should be available.",
-      nextStep: "Inspect capabilities and commands to understand what this node can do.",
+      titleKey: "lifecycleConnectedTitle",
+      descriptionKey: "lifecycleConnectedDescription",
+      nextStepKey: "lifecycleConnectedNextStep",
     };
   }
   if (node.paired) {
     return {
       tone: "warning",
-      title: "Paired but offline",
-      description: "This node is paired, but it is not currently connected to the gateway.",
-      nextStep: "Bring the node back online or run repair if connectivity cannot recover.",
+      titleKey: "lifecycleOfflineTitle",
+      descriptionKey: "lifecycleOfflineDescription",
+      nextStepKey: "lifecycleOfflineNextStep",
     };
   }
   return {
     tone: "neutral",
-    title: "Unpaired",
-    description: "This node has not finished pairing, so remote access is not yet available.",
-    nextStep: "Start or approve a pairing flow before expecting remote node features to work.",
+    titleKey: "lifecycleUnpairedTitle",
+    descriptionKey: "lifecycleUnpairedDescription",
+    nextStepKey: "lifecycleUnpairedNextStep",
   };
 }
 
@@ -83,6 +82,8 @@ function formatNodeTimestamp(value?: number) {
 }
 
 export function NodesPanel() {
+  const t = useTranslations("nodes");
+  const tc = useTranslations("common");
   const [nodes, setNodes] = useState<DeckGoNodeSummary[]>([]);
   const [pending, setPending] = useState<DeckGoPairingRequest[]>([]);
   const [nodeDetails, setNodeDetails] = useState<Record<string, DeckGoNodeSummary>>({});
@@ -140,7 +141,7 @@ export function NodesPanel() {
       }
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to load nodes");
+      setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
     }
   };
 
@@ -163,10 +164,10 @@ export function NodesPanel() {
         setRenameValue(detail.displayName || detail.nodeId);
       })
       .catch((loadError) => {
-        setError(loadError instanceof Error ? loadError.message : "failed to describe node");
+        setError(loadError instanceof Error ? loadError.message : t("describeFailed"));
       })
       .finally(() => setActionState("idle"));
-  }, [nodeDetails, nodes, selectedNodeId]);
+  }, [nodeDetails, nodes, selectedNodeId, t]);
 
   const selectedNode = selectedNodeId
     ? (nodeDetails[selectedNodeId] ?? nodes.find((node) => node.nodeId === selectedNodeId) ?? null)
@@ -176,9 +177,9 @@ export function NodesPanel() {
     : null;
   const lifecycle = selectedNode ? getNodeLifecycleSummary(selectedNode, selectedRequest) : null;
   const selectedPermissions = selectedNode
-    ? Object.entries(selectedNode.permissions ?? {}).toSorted(([left], [right]) =>
-        left.localeCompare(right),
-      )
+    ? Object.entries(selectedNode.permissions ?? {})
+        .slice()
+        .toSorted(([left], [right]) => left.localeCompare(right))
     : [];
   const selectedInvokeCommand = selectedNode?.commands.includes(invokeCommand)
     ? invokeCommand
@@ -195,7 +196,7 @@ export function NodesPanel() {
       setError("");
       await refresh(selectedNode.nodeId);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "node rename failed");
+      setError(actionError instanceof Error ? actionError.message : t("renameFailed"));
     } finally {
       setActionState("idle");
     }
@@ -214,7 +215,9 @@ export function NodesPanel() {
       return;
     }
     if (
-      !window.confirm(`Invoke node command ${selectedInvokeCommand} on ${selectedNode.nodeId}?`)
+      !window.confirm(
+        t("confirmInvoke", { command: selectedInvokeCommand, nodeId: selectedNode.nodeId }),
+      )
     ) {
       return;
     }
@@ -225,7 +228,7 @@ export function NodesPanel() {
       setError(
         parseError instanceof Error
           ? `Invalid invoke params JSON: ${parseError.message}`
-          : "Invalid invoke params JSON",
+          : t("invalidInvokeParams"),
       );
       return;
     }
@@ -241,7 +244,7 @@ export function NodesPanel() {
       setActionResult(result);
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "node invoke failed");
+      setError(actionError instanceof Error ? actionError.message : t("invokeFailed"));
     } finally {
       setActionState("idle");
     }
@@ -251,7 +254,11 @@ export function NodesPanel() {
     if (!selectedNode) {
       return;
     }
-    if (!window.confirm(`Queue ${pendingWorkType} pending work for ${selectedNode.nodeId}?`)) {
+    if (
+      !window.confirm(
+        t("confirmQueuePending", { type: pendingWorkType, nodeId: selectedNode.nodeId }),
+      )
+    ) {
       return;
     }
     setActionState("enqueueing");
@@ -265,7 +272,7 @@ export function NodesPanel() {
       setActionResult(result);
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "node pending enqueue failed");
+      setError(actionError instanceof Error ? actionError.message : t("enqueueFailed"));
     } finally {
       setActionState("idle");
     }
@@ -275,8 +282,13 @@ export function NodesPanel() {
     if (!selectedRequest) {
       return;
     }
-    const actionLabel = decision === "approve" ? "Approve" : "Reject";
-    if (!window.confirm(`${actionLabel} node pairing request ${selectedRequest.requestId}?`)) {
+    if (
+      !window.confirm(
+        decision === "approve"
+          ? t("confirmApprovePairing", { requestId: selectedRequest.requestId })
+          : t("confirmRejectPairing", { requestId: selectedRequest.requestId }),
+      )
+    ) {
       return;
     }
     setActionState(decision === "approve" ? "approving" : "rejecting");
@@ -289,7 +301,7 @@ export function NodesPanel() {
       setError("");
       await refresh(selectedNodeId);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "node pairing action failed");
+      setError(actionError instanceof Error ? actionError.message : t("pairingActionFailed"));
     } finally {
       setActionState("idle");
     }
@@ -299,7 +311,7 @@ export function NodesPanel() {
     if (!selectedNode) {
       return;
     }
-    if (!window.confirm(`Request node pairing for ${selectedNode.nodeId}?`)) {
+    if (!window.confirm(t("confirmRequestPairing", { nodeId: selectedNode.nodeId }))) {
       return;
     }
     setActionState("requesting");
@@ -321,7 +333,7 @@ export function NodesPanel() {
       setError("");
       await refresh(selectedNode.nodeId);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "node pairing request failed");
+      setError(actionError instanceof Error ? actionError.message : t("pairingRequestFailed"));
     } finally {
       setActionState("idle");
     }
@@ -339,7 +351,7 @@ export function NodesPanel() {
       setError("");
       await refresh(selectedNode.nodeId);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "node pairing verify failed");
+      setError(actionError instanceof Error ? actionError.message : t("pairingVerifyFailed"));
     } finally {
       setActionState("idle");
     }
@@ -350,22 +362,20 @@ export function NodesPanel() {
       <div className="deckgo-column deck-ui-nodes-column">
         <article className="deckgo-card is-float deck-ui-nodes-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Nodes</h2>
+            <h2 className="deckgo-card-title">{t("nodesList")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Manage node inventory, pairing, command invocation, and pending work.
-          </p>
+          <p className="deckgo-card-subtitle">{t("managementDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-nodes-body">
             <div className="deckgo-pill-row deck-ui-nodes-status-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Nodes {loadState}
+                {loadState === "loading" ? tc("loading") : t(loadState)}
               </span>
-              <span className="deckgo-pill">{nodes.length} nodes</span>
-              <span className="deckgo-pill">{pending.length} pending</span>
+              <span className="deckgo-pill">{t("nodeCount", { count: nodes.length })}</span>
+              <span className="deckgo-pill">{t("pendingCount", { count: pending.length })}</span>
             </div>
             <div className="deckgo-grid deckgo-grid-2 deck-ui-nodes-stats">
-              <ShellStat label="nodes" value={nodes.length} />
-              <ShellStat label="pending requests" value={pending.length} />
+              <ShellStat label={t("nodesStat")} value={nodes.length} />
+              <ShellStat label={t("pendingRequests")} value={pending.length} />
             </div>
             <div className="deckgo-actions deck-ui-nodes-actions">
               <button
@@ -373,13 +383,13 @@ export function NodesPanel() {
                 type="button"
                 onClick={() => void refresh(selectedNodeId)}
               >
-                Refresh nodes
+                {t("refreshNodes")}
               </button>
             </div>
             {error ? <p className="deckgo-note deck-ui-nodes-error">{error}</p> : null}
             {pending.length > 0 ? (
               <div className="deckgo-surface-tile deck-ui-nodes-surface">
-                <p className="deckgo-surface-label">Pending pairing</p>
+                <p className="deckgo-surface-label">{t("pendingPairing")}</p>
                 <ul className="deckgo-shell-list deck-ui-nodes-list">
                   {pending.map((request) => (
                     <li key={request.requestId}>
@@ -390,7 +400,8 @@ export function NodesPanel() {
                       >
                         <strong>{request.displayName || request.nodeId}</strong>
                         <div className="deckgo-meta">
-                          request: {request.requestId} | repair: {request.isRepair ? "yes" : "no"}
+                          {t("request")}: {request.requestId} | {t("repair")}:{" "}
+                          {request.isRepair ? t("yes") : t("no")}
                         </div>
                       </button>
                     </li>
@@ -399,7 +410,7 @@ export function NodesPanel() {
               </div>
             ) : null}
             {nodes.length === 0 ? (
-              <p className="deckgo-note deck-ui-nodes-empty">No nodes loaded.</p>
+              <p className="deckgo-note deck-ui-nodes-empty">{t("emptyDescription")}</p>
             ) : (
               <ul className="deckgo-shell-list deck-ui-nodes-list">
                 {nodes.map((node) => (
@@ -411,10 +422,12 @@ export function NodesPanel() {
                     >
                       <strong>{node.displayName || node.nodeId}</strong>
                       <div className="deckgo-meta">
-                        platform: {node.platform || "n/a"} | connected:{" "}
-                        {node.connected ? "yes" : "no"}
+                        {t("platform")}: {node.platform || t("notAvailable")} | {t("connected")}:{" "}
+                        {node.connected ? t("yes") : t("no")}
                       </div>
-                      <div className="deckgo-meta">paired: {node.paired ? "yes" : "no"}</div>
+                      <div className="deckgo-meta">
+                        {t("paired")}: {node.paired ? t("yes") : t("no")}
+                      </div>
                     </button>
                   </li>
                 ))}
@@ -427,42 +440,60 @@ export function NodesPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-nodes-column">
         <article className="deckgo-card is-float deck-ui-nodes-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Selected node</h2>
+            <h2 className="deckgo-card-title">{t("selectedNode")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Inspect node state, pairing requests, lifecycle diagnostics, invoke, and pending work
-            from current node routes.
-          </p>
+          <p className="deckgo-card-subtitle">{t("selectedNodeDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-nodes-body">
             {selectedNode ? (
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-nodes-hero">
                   <div>
-                    <p className="deckgo-kicker">Node</p>
+                    <p className="deckgo-kicker">{t("node")}</p>
                     <strong>{selectedNode.displayName || selectedNode.nodeId}</strong>
-                    <p className="deckgo-note">{selectedNode.platform || "unknown platform"}</p>
+                    <p className="deckgo-note">{selectedNode.platform || t("unknownPlatform")}</p>
                   </div>
                   <div className="deckgo-pill-row deck-ui-nodes-status-row">
                     <span className="deckgo-pill">
-                      {selectedNode.connected ? "connected" : "offline"}
+                      {selectedNode.connected ? t("connected") : t("offline")}
                     </span>
                     <span className="deckgo-pill">
-                      {selectedNode.paired ? "paired" : "unpaired"}
+                      {selectedNode.paired ? t("paired") : t("unpaired")}
                     </span>
                   </div>
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-nodes-detail-stats">
-                  <ShellStat label="version" value={selectedNode.version || "n/a"} />
-                  <ShellStat label="remote ip" value={selectedNode.remoteIp || "n/a"} />
-                  <ShellStat label="core version" value={selectedNode.coreVersion || "n/a"} />
-                  <ShellStat label="ui version" value={selectedNode.uiVersion || "n/a"} />
-                  <ShellStat label="device family" value={selectedNode.deviceFamily || "n/a"} />
-                  <ShellStat label="model" value={selectedNode.modelIdentifier || "n/a"} />
                   <ShellStat
-                    label="connected at"
+                    label={t("version")}
+                    value={selectedNode.version || t("notAvailable")}
+                  />
+                  <ShellStat
+                    label={t("remoteIp")}
+                    value={selectedNode.remoteIp || t("notAvailable")}
+                  />
+                  <ShellStat
+                    label={t("coreVersion")}
+                    value={selectedNode.coreVersion || t("notAvailable")}
+                  />
+                  <ShellStat
+                    label={t("uiVersion")}
+                    value={selectedNode.uiVersion || t("notAvailable")}
+                  />
+                  <ShellStat
+                    label={t("deviceFamily")}
+                    value={selectedNode.deviceFamily || t("notAvailable")}
+                  />
+                  <ShellStat
+                    label={t("model")}
+                    value={selectedNode.modelIdentifier || t("notAvailable")}
+                  />
+                  <ShellStat
+                    label={t("connectedAt")}
                     value={formatNodeTimestamp(selectedNode.connectedAtMs)}
                   />
-                  <ShellStat label="path env" value={selectedNode.pathEnv || "n/a"} />
+                  <ShellStat
+                    label={t("pathEnv")}
+                    value={selectedNode.pathEnv || t("notAvailable")}
+                  />
                 </div>
                 {lifecycle ? (
                   <div className="deckgo-surface-tile deck-ui-nodes-surface">
@@ -476,11 +507,13 @@ export function NodesPanel() {
                               : "is-muted"
                         }`}
                       >
-                        {lifecycle.title}
+                        {t(lifecycle.titleKey)}
                       </span>
                     </div>
-                    <p className="deckgo-note">{lifecycle.description}</p>
-                    <p className="deckgo-meta">Next step: {lifecycle.nextStep}</p>
+                    <p className="deckgo-note">{t(lifecycle.descriptionKey)}</p>
+                    <p className="deckgo-meta">
+                      {t("lifecycleNextStepLabel")}: {t(lifecycle.nextStepKey)}
+                    </p>
                   </div>
                 ) : null}
                 <div className="deckgo-actions deck-ui-nodes-actions">
@@ -488,8 +521,8 @@ export function NodesPanel() {
                     className="deckgo-input deck-ui-nodes-input"
                     value={renameValue}
                     onChange={(event) => setRenameValue(event.target.value)}
-                    placeholder="rename node"
-                    aria-label="Node display name"
+                    placeholder={t("renamePlaceholder")}
+                    aria-label={t("nodeDisplayName")}
                   />
                   <button
                     className="deckgo-button deck-ui-nodes-button"
@@ -497,7 +530,7 @@ export function NodesPanel() {
                     onClick={() => void renameAction()}
                     disabled={actionState !== "idle"}
                   >
-                    {actionState === "renaming" ? "Renaming" : "Rename"}
+                    {actionState === "renaming" ? t("renaming") : t("rename")}
                   </button>
                   {selectedRequest ? (
                     <>
@@ -507,7 +540,7 @@ export function NodesPanel() {
                         onClick={() => void pairingAction("approve")}
                         disabled={actionState !== "idle"}
                       >
-                        {actionState === "approving" ? "Approving" : "Approve pairing"}
+                        {actionState === "approving" ? t("approving") : t("approvePairing")}
                       </button>
                       <button
                         className="deckgo-button is-danger deck-ui-nodes-button"
@@ -515,7 +548,7 @@ export function NodesPanel() {
                         onClick={() => void pairingAction("reject")}
                         disabled={actionState !== "idle"}
                       >
-                        {actionState === "rejecting" ? "Rejecting" : "Reject pairing"}
+                        {actionState === "rejecting" ? t("rejecting") : t("rejectPairing")}
                       </button>
                     </>
                   ) : null}
@@ -526,7 +559,7 @@ export function NodesPanel() {
                       onClick={() => void requestPairingAction()}
                       disabled={actionState !== "idle"}
                     >
-                      {actionState === "requesting" ? "Requesting" : "Request pairing"}
+                      {actionState === "requesting" ? t("requesting") : t("requestPairing")}
                     </button>
                   ) : null}
                 </div>
@@ -535,8 +568,8 @@ export function NodesPanel() {
                     className="deckgo-input deck-ui-nodes-input"
                     value={verifyToken}
                     onChange={(event) => setVerifyToken(event.target.value)}
-                    placeholder="pairing verification token"
-                    aria-label="Pairing verification token"
+                    placeholder={t("pairingTokenPlaceholder")}
+                    aria-label={t("pairingTokenLabel")}
                   />
                   <button
                     className="deckgo-button deck-ui-nodes-button"
@@ -544,25 +577,22 @@ export function NodesPanel() {
                     onClick={() => void verifyPairingAction()}
                     disabled={actionState !== "idle" || !verifyToken.trim()}
                   >
-                    {actionState === "verifying" ? "Verifying" : "Verify pairing"}
+                    {actionState === "verifying" ? t("verifying") : t("verifyPairing")}
                   </button>
                 </div>
                 <div className="deckgo-surface-tile deck-ui-nodes-surface">
-                  <p className="deckgo-surface-label">Invoke node command</p>
-                  <p className="deckgo-note">
-                    Uses Gateway `node.invoke`; command allowlists and approvals remain enforced by
-                    Gateway.
-                  </p>
+                  <p className="deckgo-surface-label">{t("invokeNodeCommand")}</p>
+                  <p className="deckgo-note">{t("invokeDescription")}</p>
                   <div className="deckgo-actions deck-ui-nodes-actions">
                     <select
-                      aria-label="Node command"
+                      aria-label={t("nodeCommand")}
                       className="deckgo-input deck-ui-nodes-input"
                       disabled={selectedNode.commands.length === 0}
                       onChange={(event) => setInvokeCommand(event.target.value)}
                       value={selectedInvokeCommand}
                     >
                       {selectedNode.commands.length === 0 ? (
-                        <option value="">No commands advertised</option>
+                        <option value="">{t("noCommandsAdvertised")}</option>
                       ) : (
                         selectedNode.commands.map((command) => (
                           <option key={command} value={command}>
@@ -572,15 +602,15 @@ export function NodesPanel() {
                       )}
                     </select>
                     <input
-                      aria-label="Node invoke timeout"
+                      aria-label={t("nodeInvokeTimeout")}
                       className="deckgo-input deck-ui-nodes-input"
                       onChange={(event) => setInvokeTimeoutMs(event.target.value)}
-                      placeholder="timeout ms"
+                      placeholder={t("timeoutMs")}
                       value={invokeTimeoutMs}
                     />
                   </div>
                   <textarea
-                    aria-label="Node invoke params JSON"
+                    aria-label={t("nodeInvokeParamsJson")}
                     className="deckgo-textarea deck-ui-nodes-textarea"
                     onChange={(event) => setInvokeParamsJson(event.target.value)}
                     rows={4}
@@ -597,19 +627,16 @@ export function NodesPanel() {
                       onClick={() => void invokeAction()}
                       type="button"
                     >
-                      {actionState === "invoking" ? "Invoking" : "Invoke command"}
+                      {actionState === "invoking" ? t("invoking") : t("invokeCommand")}
                     </button>
                   </div>
                 </div>
                 <div className="deckgo-surface-tile deck-ui-nodes-surface">
-                  <p className="deckgo-surface-label">Pending work</p>
-                  <p className="deckgo-note">
-                    Queues Gateway `node.pending.enqueue` work for nodes that need a wake/pull cycle
-                    before they can report status or location.
-                  </p>
+                  <p className="deckgo-surface-label">{t("pendingWork")}</p>
+                  <p className="deckgo-note">{t("pendingWorkDescription")}</p>
                   <div className="deckgo-actions deck-ui-nodes-actions">
                     <select
-                      aria-label="Pending work type"
+                      aria-label={t("pendingWorkType")}
                       className="deckgo-input deck-ui-nodes-input"
                       onChange={(event) =>
                         setPendingWorkType(event.target.value as DeckGoNodePendingWorkType)
@@ -620,7 +647,7 @@ export function NodesPanel() {
                       <option value="location.request">location.request</option>
                     </select>
                     <select
-                      aria-label="Pending work priority"
+                      aria-label={t("pendingWorkPriority")}
                       className="deckgo-input deck-ui-nodes-input"
                       onChange={(event) =>
                         setPendingPriority(event.target.value as DeckGoNodePendingWorkPriority)
@@ -636,7 +663,7 @@ export function NodesPanel() {
                         onChange={(event) => setPendingWake(event.target.checked)}
                         type="checkbox"
                       />
-                      <span>wake if offline</span>
+                      <span>{t("wakeIfOffline")}</span>
                     </label>
                   </div>
                   <div className="deckgo-actions deck-ui-nodes-actions">
@@ -646,13 +673,13 @@ export function NodesPanel() {
                       onClick={() => void enqueuePendingWorkAction()}
                       type="button"
                     >
-                      {actionState === "enqueueing" ? "Queueing" : "Queue pending work"}
+                      {actionState === "enqueueing" ? t("queueing") : t("queuePendingWork")}
                     </button>
                   </div>
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-nodes-surface-grid">
                   <div className="deckgo-surface-tile deck-ui-nodes-surface">
-                    <p className="deckgo-surface-label">Capabilities</p>
+                    <p className="deckgo-surface-label">{t("capabilities")}</p>
                     {selectedNode.caps.length > 0 ? (
                       <div className="deckgo-pill-row deck-ui-nodes-status-row">
                         {selectedNode.caps.map((capability) => (
@@ -662,11 +689,11 @@ export function NodesPanel() {
                         ))}
                       </div>
                     ) : (
-                      <p className="deckgo-note deck-ui-nodes-empty">No capabilities reported.</p>
+                      <p className="deckgo-note deck-ui-nodes-empty">{t("noCapabilities")}</p>
                     )}
                   </div>
                   <div className="deckgo-surface-tile deck-ui-nodes-surface">
-                    <p className="deckgo-surface-label">Commands</p>
+                    <p className="deckgo-surface-label">{t("commands")}</p>
                     {selectedNode.commands.length > 0 ? (
                       <div className="deckgo-pill-row deck-ui-nodes-status-row">
                         {selectedNode.commands.map((command) => (
@@ -676,12 +703,12 @@ export function NodesPanel() {
                         ))}
                       </div>
                     ) : (
-                      <p className="deckgo-note deck-ui-nodes-empty">No commands reported.</p>
+                      <p className="deckgo-note deck-ui-nodes-empty">{t("noCommands")}</p>
                     )}
                   </div>
                 </div>
                 <div className="deckgo-surface-tile deck-ui-nodes-surface">
-                  <p className="deckgo-surface-label">Permissions</p>
+                  <p className="deckgo-surface-label">{t("permissions")}</p>
                   {selectedPermissions.length > 0 ? (
                     <div className="deckgo-pill-row deck-ui-nodes-status-row">
                       {selectedPermissions.map(([permission, enabled]) => (
@@ -689,40 +716,39 @@ export function NodesPanel() {
                           className={`deckgo-pill ${enabled ? "is-positive" : "is-muted"}`}
                           key={permission}
                         >
-                          {permission}: {enabled ? "allowed" : "denied"}
+                          {permission}: {enabled ? t("allowed") : t("denied")}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="deckgo-note deck-ui-nodes-empty">No permissions reported.</p>
+                    <p className="deckgo-note deck-ui-nodes-empty">{t("noPermissions")}</p>
                   )}
                 </div>
-                <JsonDetails title="Node payload" payload={selectedNode} />
+                <JsonDetails title={t("nodePayload")} payload={selectedNode} />
                 {selectedRequest ? (
-                  <JsonDetails title="Pairing request" payload={selectedRequest} />
+                  <JsonDetails title={t("pairingRequest")} payload={selectedRequest} />
                 ) : null}
               </>
             ) : selectedRequest ? (
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-nodes-hero">
                   <div>
-                    <p className="deckgo-kicker">Pairing request</p>
+                    <p className="deckgo-kicker">{t("pairingRequest")}</p>
                     <strong>{selectedRequest.displayName || selectedRequest.nodeId}</strong>
-                    <p className="deckgo-note">request: {selectedRequest.requestId}</p>
+                    <p className="deckgo-note">
+                      {t("request")}: {selectedRequest.requestId}
+                    </p>
                   </div>
                   <div className="deckgo-pill-row deck-ui-nodes-status-row">
                     <span className="deckgo-pill">
-                      {selectedRequest.isRepair ? "repair" : "pending"}
+                      {selectedRequest.isRepair ? t("repair") : t("requestKindPending")}
                     </span>
-                    <span className="deckgo-pill">{selectedRequest.platform || "unknown"}</span>
+                    <span className="deckgo-pill">{selectedRequest.platform || t("unknown")}</span>
                   </div>
                 </div>
                 <div className="deckgo-surface-tile deck-ui-nodes-surface">
-                  <p className="deckgo-surface-label">Pairing action</p>
-                  <p className="deckgo-note">
-                    This pairing request is not present in node inventory yet, so only
-                    request-scoped approve/reject actions are available.
-                  </p>
+                  <p className="deckgo-surface-label">{t("pairingAction")}</p>
+                  <p className="deckgo-note">{t("orphanPairingDescription")}</p>
                   <div className="deckgo-actions deck-ui-nodes-actions">
                     <button
                       className="deckgo-button is-primary deck-ui-nodes-button"
@@ -730,7 +756,7 @@ export function NodesPanel() {
                       onClick={() => void pairingAction("approve")}
                       disabled={actionState !== "idle"}
                     >
-                      {actionState === "approving" ? "Approving" : "Approve pairing"}
+                      {actionState === "approving" ? t("approving") : t("approvePairing")}
                     </button>
                     <button
                       className="deckgo-button is-danger deck-ui-nodes-button"
@@ -738,18 +764,18 @@ export function NodesPanel() {
                       onClick={() => void pairingAction("reject")}
                       disabled={actionState !== "idle"}
                     >
-                      {actionState === "rejecting" ? "Rejecting" : "Reject pairing"}
+                      {actionState === "rejecting" ? t("rejecting") : t("rejectPairing")}
                     </button>
                   </div>
                 </div>
-                <JsonDetails title="Pairing request" payload={selectedRequest} />
+                <JsonDetails title={t("pairingRequest")} payload={selectedRequest} />
               </>
             ) : (
-              <p className="deckgo-note deck-ui-nodes-empty">
-                Choose a node or pairing request to inspect it.
-              </p>
+              <p className="deckgo-note deck-ui-nodes-empty">{t("chooseNodeOrPairing")}</p>
             )}
-            {actionResult ? <JsonDetails title="Last node action" payload={actionResult} /> : null}
+            {actionResult ? (
+              <JsonDetails title={t("lastNodeAction")} payload={actionResult} />
+            ) : null}
           </div>
         </article>
       </div>

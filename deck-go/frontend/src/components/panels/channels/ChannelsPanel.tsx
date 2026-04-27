@@ -14,6 +14,7 @@ import {
 } from "../../../api";
 import { navigateToPlugin } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { AccountDmPolicyEditor } from "./AccountDmPolicyEditor";
 import { ChannelSettingsEditor } from "./ChannelSettingsEditor";
@@ -23,6 +24,7 @@ type PanelState = "idle" | "loading" | "ready";
 type ChannelDiagnosticTone = "success" | "warning" | "error" | "neutral";
 type ThroughputWindow = "1h" | "6h" | "24h";
 type ChannelUiMeta = NonNullable<DeckGoChannelsStatusResponse["channelMeta"]>[number];
+type ChannelTranslator = ReturnType<typeof useTranslations>;
 
 const THROUGHPUT_WINDOWS: ThroughputWindow[] = ["1h", "6h", "24h"];
 
@@ -72,6 +74,7 @@ function numberValue(record: Record<string, unknown>, key: string) {
 
 function accountDiagnostic(
   record: Record<string, unknown>,
+  t: ChannelTranslator,
 ): NormalizedChannelAccount["diagnostic"] {
   const enabled = booleanValue(record, "enabled");
   const configured = booleanValue(record, "configured");
@@ -82,52 +85,55 @@ function accountDiagnostic(
   if (enabled === false) {
     return {
       tone: "neutral",
-      title: "disabled",
-      description: "This account is disabled in channel configuration.",
-      nextStep: "Enable it before expecting runtime delivery.",
+      title: t("diagDisabledTitle"),
+      description: t("diagDisabledDescription"),
+      nextStep: t("diagDisabledNextStep"),
     };
   }
   if (configured === false) {
     return {
       tone: "warning",
-      title: "config incomplete",
-      description: "Required channel configuration is incomplete.",
-      nextStep: "Open the raw channel config or schema-guided settings before reconnecting.",
+      title: t("diagConfigIncompleteTitle"),
+      description: t("diagConfigIncompleteDescription"),
+      nextStep: t("diagConfigIncompleteNextStep"),
     };
   }
   if (lastError) {
     return {
       tone: "error",
-      title: "account error",
+      title: t("diagAccountErrorTitle"),
       description: lastError,
-      nextStep: "Inspect the channel runtime error and refresh after remediation.",
+      nextStep: t("diagAccountErrorNextStep"),
     };
   }
   if (linked === true && connected === false) {
     return {
       tone: "warning",
-      title: "linked disconnected",
-      description: "The account is linked but not connected.",
-      nextStep: "Retry login or check the channel runtime process.",
+      title: t("diagLinkedDisconnectedTitle"),
+      description: t("diagLinkedDisconnectedDescription"),
+      nextStep: t("diagLinkedDisconnectedNextStep"),
     };
   }
   if (enabled === true && linked === false) {
     return {
       tone: "warning",
-      title: "enabled not linked",
-      description: "The account is enabled but has not completed linking.",
-      nextStep: "Start the channel login flow for this account.",
+      title: t("diagEnabledNotLinkedTitle"),
+      description: t("diagEnabledNotLinkedDescription"),
+      nextStep: t("diagEnabledNotLinkedNextStep"),
     };
   }
   return {
     tone: "success",
-    title: "healthy",
-    description: "No account-level health issue is reported.",
-    nextStep: "No action needed.",
+    title: t("diagHealthyTitle"),
+    description: t("diagHealthyDescription"),
+    nextStep: t("diagHealthyNextStep"),
   };
 }
 
-function normalizeChannelAccounts(value: unknown): NormalizedChannelAccount[] {
+function normalizeChannelAccounts(
+  value: unknown,
+  t: ChannelTranslator,
+): NormalizedChannelAccount[] {
   const entries = Array.isArray(value)
     ? value.map((entry, index) => [`${index + 1}`, entry] as const)
     : Object.entries(asRecord(value));
@@ -138,7 +144,7 @@ function normalizeChannelAccounts(value: unknown): NormalizedChannelAccount[] {
     return {
       accountId,
       payload: { accountId, ...payload },
-      diagnostic: accountDiagnostic(payload),
+      diagnostic: accountDiagnostic(payload, t),
     };
   });
 }
@@ -162,13 +168,13 @@ function diagnosticClassName(tone: ChannelDiagnosticTone) {
   return "is-muted";
 }
 
-function formatBucketTime(time: number | undefined, window: ThroughputWindow) {
+function formatBucketTime(time: number | undefined, window: ThroughputWindow, fallback: string) {
   if (typeof time !== "number") {
-    return "bucket";
+    return fallback;
   }
   const date = new Date(time);
   if (Number.isNaN(date.getTime())) {
-    return "bucket";
+    return fallback;
   }
   const hour = date.getHours().toString().padStart(2, "0");
   const minute = date.getMinutes().toString().padStart(2, "0");
@@ -178,6 +184,7 @@ function formatBucketTime(time: number | undefined, window: ThroughputWindow) {
 function ChannelThroughputChart(props: {
   buckets: DeckGoChannelThroughputBucket[];
   window: ThroughputWindow;
+  t: ChannelTranslator;
 }) {
   const maxValue = Math.max(
     1,
@@ -185,7 +192,9 @@ function ChannelThroughputChart(props: {
   );
 
   if (props.buckets.length === 0) {
-    return <p className="deckgo-note">No throughput buckets loaded for {props.window}.</p>;
+    return (
+      <p className="deckgo-note">{props.t("noThroughputBuckets", { window: props.window })}</p>
+    );
   }
 
   return (
@@ -202,7 +211,7 @@ function ChannelThroughputChart(props: {
             key={`${bucket.time ?? index}:${index}`}
           >
             <span className="deckgo-usage-chart-label">
-              {formatBucketTime(bucket.time, props.window)}
+              {formatBucketTime(bucket.time, props.window, props.t("bucket"))}
             </span>
             <span className="deckgo-usage-chart-track" aria-hidden="true">
               <progress
@@ -217,7 +226,7 @@ function ChannelThroughputChart(props: {
               />
             </span>
             <span className="deckgo-usage-chart-value">
-              in {messagesIn} / out {messagesOut}
+              {props.t("throughputInOut", { in: messagesIn, out: messagesOut })}
             </span>
           </div>
         );
@@ -236,21 +245,24 @@ function channelProbeTone(result: DeckGoChannelTestResponse) {
   return "is-danger";
 }
 
-function channelProbeLabel(result: DeckGoChannelTestResponse) {
+function channelProbeLabel(result: DeckGoChannelTestResponse, t: ChannelTranslator) {
   if (result.ok === true) {
-    return "probe success";
+    return t("probeSuccess");
   }
   if (/timeout|deadline/i.test(result.error ?? "")) {
-    return "probe timeout";
+    return t("probeTimeout");
   }
-  return "probe failure";
+  return t("probeFailure");
 }
 
-function ChannelProbeResultBadge(props: { result: DeckGoChannelTestResponse }) {
+function ChannelProbeResultBadge(props: {
+  result: DeckGoChannelTestResponse;
+  t: ChannelTranslator;
+}) {
   return (
     <div className="deckgo-pill-row deck-ui-channels-status-row">
       <span className={`deckgo-pill ${channelProbeTone(props.result)}`}>
-        {channelProbeLabel(props.result)}
+        {channelProbeLabel(props.result, props.t)}
       </span>
       {props.result.latencyMs != null ? (
         <span className="deckgo-pill">{props.result.latencyMs}ms</span>
@@ -263,6 +275,7 @@ function ChannelProbeResultBadge(props: { result: DeckGoChannelTestResponse }) {
 }
 
 export function ChannelsPanel() {
+  const t = useTranslations("channels");
   const ui = useDeckUI();
   const [navigationTarget] = useState(readChannelNavigationTarget);
   const [payload, setPayload] = useState<DeckGoChannelsStatusResponse | null>(null);
@@ -301,7 +314,7 @@ export function ChannelsPanel() {
       );
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to load channels");
+      setError(loadError instanceof Error ? loadError.message : t("loadChannelsFailed"));
     }
   };
 
@@ -331,9 +344,7 @@ export function ChannelsPanel() {
         }
         setThroughput(null);
         setThroughputState("idle");
-        setError(
-          loadError instanceof Error ? loadError.message : "channel throughput fetch failed",
-        );
+        setError(loadError instanceof Error ? loadError.message : t("throughputFetchFailed"));
       });
     return () => {
       mounted = false;
@@ -360,7 +371,7 @@ export function ChannelsPanel() {
   const selectedChannelMeta = selectedChannelId
     ? channelMetaById.get(selectedChannelId)
     : undefined;
-  const selectedAccounts = normalizeChannelAccounts(rawChannelAccounts[selectedChannelId]);
+  const selectedAccounts = normalizeChannelAccounts(rawChannelAccounts[selectedChannelId], t);
   const selectedAccessAccounts: WecomAccessAccount[] = selectedAccounts.map((account) => ({
     accountId: account.accountId,
     label:
@@ -375,7 +386,7 @@ export function ChannelsPanel() {
     booleanValue(selectedChannel, "enabled") ??
     selectedAccounts.some((account) => booleanValue(account.payload, "enabled") === true);
   const totalAccounts = Object.values(rawChannelAccounts).reduce((sum: number, value) => {
-    return sum + normalizeChannelAccounts(value).length;
+    return sum + normalizeChannelAccounts(value, t).length;
   }, 0);
   const throughputBuckets = Array.isArray(throughput?.buckets) ? throughput.buckets : [];
   const throughputMessagesIn = throughput?.messagesIn ?? 0;
@@ -389,7 +400,7 @@ export function ChannelsPanel() {
     if (!selectedChannelId) {
       return;
     }
-    if (!window.confirm(`Logout channel ${selectedChannelId}?`)) {
+    if (!window.confirm(t("confirmLogoutChannel", { channelId: selectedChannelId }))) {
       return;
     }
     setActionState("logging-out");
@@ -399,7 +410,7 @@ export function ChannelsPanel() {
       setError("");
       await refresh(selectedChannelId);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "channel logout failed");
+      setError(actionError instanceof Error ? actionError.message : t("logoutFailed"));
     } finally {
       setActionState("idle");
     }
@@ -413,9 +424,9 @@ export function ChannelsPanel() {
     try {
       const result = await testChannel(selectedChannelId);
       setChannelTestResult({ ...result, channelId: result.channelId || selectedChannelId });
-      setError(result.ok === false ? result.error || "channel test failed" : "");
+      setError(result.ok === false ? result.error || t("testFailed") : "");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "channel test failed");
+      setError(actionError instanceof Error ? actionError.message : t("testFailed"));
     } finally {
       setActionState("idle");
     }
@@ -426,7 +437,14 @@ export function ChannelsPanel() {
       return;
     }
     const nextEnabled = !selectedChannelEnabled;
-    if (!window.confirm(`Set channel ${selectedChannelId} enabled=${String(nextEnabled)}?`)) {
+    if (
+      !window.confirm(
+        t("confirmSetChannelEnabled", {
+          channelId: selectedChannelId,
+          value: String(nextEnabled),
+        }),
+      )
+    ) {
       return;
     }
     setActionState("toggling");
@@ -436,7 +454,7 @@ export function ChannelsPanel() {
       setError("");
       await refresh(selectedChannelId);
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "channel config patch failed");
+      setError(actionError instanceof Error ? actionError.message : t("configPatchFailed"));
     } finally {
       setActionState("idle");
     }
@@ -447,24 +465,23 @@ export function ChannelsPanel() {
       <div className="deckgo-column deck-ui-channels-column">
         <article className="deckgo-card is-float deck-ui-channels-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Channel inventory</h2>
+            <h2 className="deckgo-card-title">{t("inventoryTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Read and update channel runtime state through `channels.status`, logout, probe,
-            throughput, and config routes.
-          </p>
+          <p className="deckgo-card-subtitle">{t("inventoryDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-channels-body">
             <div className="deckgo-pill-row deck-ui-channels-status-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Inventory {loadState}
+                {t("inventoryStatus", { status: t(loadState) })}
               </span>
-              <span className="deckgo-pill">ts: {payload?.ts ?? "n/a"}</span>
+              <span className="deckgo-pill">
+                {t("timestampValue", { value: payload?.ts ?? t("notAvailable") })}
+              </span>
             </div>
             <div className="deckgo-grid deckgo-grid-3 deck-ui-channels-stats">
-              <ShellStat label="channels" value={channelOrder.length} />
-              <ShellStat label="accounts" value={totalAccounts} />
+              <ShellStat label={t("channelsStat")} value={channelOrder.length} />
+              <ShellStat label={t("accountsStat")} value={totalAccounts} />
               <ShellStat
-                label="defaults"
+                label={t("defaultsStat")}
                 value={Object.keys(payload?.channelDefaultAccountId ?? {}).length}
               />
             </div>
@@ -474,7 +491,7 @@ export function ChannelsPanel() {
                 type="button"
                 onClick={() => void refresh(selectedChannelId)}
               >
-                Refresh channels
+                {t("refreshChannels")}
               </button>
               <button
                 className="deckgo-button deck-ui-channels-button"
@@ -482,7 +499,7 @@ export function ChannelsPanel() {
                 onClick={() => void runLogout()}
                 disabled={!selectedChannelId || actionState !== "idle"}
               >
-                {actionState === "logging-out" ? "Logging out" : "Logout channel"}
+                {actionState === "logging-out" ? t("loggingOut") : t("logoutChannel")}
               </button>
               <button
                 className="deckgo-button deck-ui-channels-button"
@@ -490,7 +507,7 @@ export function ChannelsPanel() {
                 onClick={() => void runChannelTest()}
                 disabled={!selectedChannelId || actionState !== "idle"}
               >
-                {actionState === "testing" ? "Testing channel" : "Test channel"}
+                {actionState === "testing" ? t("testingChannel") : t("testChannel")}
               </button>
               <button
                 className="deckgo-button deck-ui-channels-button"
@@ -499,19 +516,22 @@ export function ChannelsPanel() {
                 disabled={!selectedChannelId || actionState !== "idle"}
               >
                 {actionState === "toggling"
-                  ? "Saving config"
+                  ? t("savingConfig")
                   : selectedChannelEnabled
-                    ? "Disable channel"
-                    : "Enable channel"}
+                    ? t("disableChannel")
+                    : t("enableChannel")}
               </button>
             </div>
             {error ? <p className="deckgo-note deck-ui-channels-error">{error}</p> : null}
             {channelOrder.length === 0 ? (
-              <p className="deckgo-note deck-ui-channels-empty">No channels loaded.</p>
+              <p className="deckgo-note deck-ui-channels-empty">{t("noChannelsLoaded")}</p>
             ) : (
               <ul className="deckgo-shell-list deck-ui-channels-list">
                 {channelOrder.map((channelId) => {
-                  const channelAccounts = normalizeChannelAccounts(rawChannelAccounts[channelId]);
+                  const channelAccounts = normalizeChannelAccounts(
+                    rawChannelAccounts[channelId],
+                    t,
+                  );
                   const alertCount = countAlertingAccounts(channelAccounts);
                   const channelMeta = channelMetaById.get(channelId);
                   return (
@@ -526,13 +546,24 @@ export function ChannelsPanel() {
                       >
                         <strong>{labels[channelId] || channelId}</strong>
                         <div className="deckgo-meta">
-                          id: {channelId} | detail:{" "}
-                          {channelMeta?.detailLabel || detailLabels[channelId] || "n/a"} | default
-                          account: {payload?.channelDefaultAccountId?.[channelId] || "n/a"}
+                          {t("channelRowMeta", {
+                            channelId,
+                            detail:
+                              channelMeta?.detailLabel ||
+                              detailLabels[channelId] ||
+                              t("notAvailable"),
+                            account:
+                              payload?.channelDefaultAccountId?.[channelId] || t("notAvailable"),
+                          })}
                         </div>
                         <div className="deckgo-meta">
-                          accounts: {channelAccounts.length} | alerts: {alertCount}
-                          {channelMeta?.pluginId ? ` | plugin: ${channelMeta.pluginId}` : ""}
+                          {t("channelRowStats", {
+                            accounts: channelAccounts.length,
+                            alerts: alertCount,
+                            plugin: channelMeta?.pluginId
+                              ? t("pluginSuffix", { plugin: channelMeta.pluginId })
+                              : "",
+                          })}
                         </div>
                       </button>
                     </li>
@@ -547,71 +578,94 @@ export function ChannelsPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-channels-column">
         <article className="deckgo-card is-float deck-ui-channels-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Selected channel</h2>
+            <h2 className="deckgo-card-title">{t("selectedChannel")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            This keeps the first channel slice narrow: inventory truth, account wiring, and logout.
-          </p>
+          <p className="deckgo-card-subtitle">{t("selectedChannelDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-channels-body">
             {selectedChannelId ? (
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-channels-hero">
                   <div>
-                    <p className="deckgo-kicker">Channel</p>
+                    <p className="deckgo-kicker">{t("channelKicker")}</p>
                     <strong>{labels[selectedChannelId] || selectedChannelId}</strong>
                     <p className="deckgo-note">
-                      detail:{" "}
-                      {selectedChannelMeta?.detailLabel || detailLabels[selectedChannelId] || "n/a"}{" "}
-                      | default account: {selectedDefaultAccountId || "n/a"}
+                      {t("selectedChannelNote", {
+                        detail:
+                          selectedChannelMeta?.detailLabel ||
+                          detailLabels[selectedChannelId] ||
+                          t("notAvailable"),
+                        account: selectedDefaultAccountId || t("notAvailable"),
+                      })}
                     </p>
                   </div>
                   <div className="deckgo-pill-row deck-ui-channels-status-row">
-                    <span className="deckgo-pill">{selectedAccounts.length} accounts</span>
+                    <span className="deckgo-pill">
+                      {t("accountsBadge", { count: selectedAccounts.length })}
+                    </span>
                     <span
                       className={`deckgo-pill ${selectedChannelEnabled ? "is-positive" : "is-muted"}`}
                     >
-                      {selectedChannelEnabled ? "enabled" : "disabled"}
+                      {selectedChannelEnabled ? t("enabled") : t("disabled")}
                     </span>
                     <span
                       className={`deckgo-pill ${
                         countAlertingAccounts(selectedAccounts) > 0 ? "is-warning" : "is-positive"
                       }`}
                     >
-                      {countAlertingAccounts(selectedAccounts)} alerts
+                      {t("alertsBadge", { count: countAlertingAccounts(selectedAccounts) })}
                     </span>
-                    <span className="deckgo-pill">channel id {selectedChannelId}</span>
+                    <span className="deckgo-pill">
+                      {t("channelIdBadge", { channelId: selectedChannelId })}
+                    </span>
                   </div>
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-channels-detail-stats">
-                  <ShellStat label="label" value={labels[selectedChannelId] || selectedChannelId} />
                   <ShellStat
-                    label="detail label"
+                    label={t("labelStat")}
+                    value={labels[selectedChannelId] || selectedChannelId}
+                  />
+                  <ShellStat
+                    label={t("detailLabelStat")}
                     value={
-                      selectedChannelMeta?.detailLabel || detailLabels[selectedChannelId] || "n/a"
+                      selectedChannelMeta?.detailLabel ||
+                      detailLabels[selectedChannelId] ||
+                      t("notAvailable")
                     }
                   />
                   <ShellStat
-                    label="system image"
+                    label={t("systemImageStat")}
                     value={
-                      selectedChannelMeta?.systemImage || systemImages[selectedChannelId] || "n/a"
+                      selectedChannelMeta?.systemImage ||
+                      systemImages[selectedChannelId] ||
+                      t("notAvailable")
                     }
                   />
-                  <ShellStat label="plugin" value={selectedChannelMeta?.pluginId || "n/a"} />
                   <ShellStat
-                    label="plugin origin"
-                    value={selectedChannelMeta?.pluginOrigin || "n/a"}
+                    label={t("pluginStat")}
+                    value={selectedChannelMeta?.pluginId || t("notAvailable")}
                   />
                   <ShellStat
-                    label="plugin config"
-                    value={selectedChannelMeta?.pluginConfigPath || "n/a"}
+                    label={t("pluginOriginStat")}
+                    value={selectedChannelMeta?.pluginOrigin || t("notAvailable")}
                   />
-                  <ShellStat label="default account" value={selectedDefaultAccountId || "n/a"} />
-                  <ShellStat label="messages in" value={throughputMessagesIn} />
-                  <ShellStat label="messages out" value={throughputMessagesOut} />
-                  <ShellStat label="throughput buckets" value={throughputBuckets.length} />
                   <ShellStat
-                    label="probe latency"
-                    value={selectedChannelLatency != null ? `${selectedChannelLatency}ms` : "n/a"}
+                    label={t("pluginConfigStat")}
+                    value={selectedChannelMeta?.pluginConfigPath || t("notAvailable")}
+                  />
+                  <ShellStat
+                    label={t("defaultAccountStat")}
+                    value={selectedDefaultAccountId || t("notAvailable")}
+                  />
+                  <ShellStat label={t("messagesInStat")} value={throughputMessagesIn} />
+                  <ShellStat label={t("messagesOutStat")} value={throughputMessagesOut} />
+                  <ShellStat label={t("throughputBucketsStat")} value={throughputBuckets.length} />
+                  <ShellStat
+                    label={t("probeLatencyStat")}
+                    value={
+                      selectedChannelLatency != null
+                        ? `${selectedChannelLatency}ms`
+                        : t("notAvailable")
+                    }
                   />
                 </div>
                 {selectedChannelMeta?.pluginId ? (
@@ -621,16 +675,20 @@ export function ChannelsPanel() {
                       type="button"
                       onClick={() => navigateToPlugin(ui, selectedChannelMeta.pluginId)}
                     >
-                      Open channel plugin
+                      {t("openChannelPlugin")}
                     </button>
                   </div>
                 ) : null}
                 <div className="deckgo-surface-tile deck-ui-channels-surface">
+                  <p className="deckgo-surface-label">{t("providerOnboardingTitle")}</p>
+                  <p className="deckgo-note">{t("providerOnboardingUnavailable")}</p>
+                </div>
+                <div className="deckgo-surface-tile deck-ui-channels-surface">
                   <div className="deckgo-card-header deck-ui-channels-surface-head">
                     <div>
-                      <p className="deckgo-surface-label">Throughput</p>
+                      <p className="deckgo-surface-label">{t("throughput")}</p>
                       <p className="deckgo-note">
-                        Throughput {throughputState} from channel runtime.
+                        {t("throughputStatus", { status: t(throughputState) })}
                       </p>
                     </div>
                     <div className="deckgo-actions deck-ui-channels-actions">
@@ -648,12 +706,16 @@ export function ChannelsPanel() {
                       ))}
                     </div>
                   </div>
-                  <ChannelThroughputChart buckets={throughputBuckets} window={throughputWindow} />
+                  <ChannelThroughputChart
+                    buckets={throughputBuckets}
+                    window={throughputWindow}
+                    t={t}
+                  />
                 </div>
                 {selectedProbeResult ? (
                   <div className="deckgo-surface-tile deck-ui-channels-surface">
-                    <p className="deckgo-surface-label">Probe result</p>
-                    <ChannelProbeResultBadge result={selectedProbeResult} />
+                    <p className="deckgo-surface-label">{t("probeResult")}</p>
+                    <ChannelProbeResultBadge result={selectedProbeResult} t={t} />
                   </div>
                 ) : null}
                 {!selectedIsWecomAccessChannel ? (
@@ -689,7 +751,9 @@ export function ChannelsPanel() {
                             </span>
                           </div>
                           <p className="deckgo-note">{account.diagnostic.description}</p>
-                          <p className="deckgo-note">Next: {account.diagnostic.nextStep}</p>
+                          <p className="deckgo-note">
+                            {t("nextStep", { step: account.diagnostic.nextStep })}
+                          </p>
                           {!selectedIsWecomAccessChannel ? (
                             <AccountDmPolicyEditor
                               channelId={selectedChannelId}
@@ -707,9 +771,9 @@ export function ChannelsPanel() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="deckgo-note">No channel accounts reported.</p>
+                  <p className="deckgo-note">{t("noChannelAccounts")}</p>
                 )}
-                <JsonDetails title="Channel metadata" payload={selectedChannelMeta ?? null} />
+                <JsonDetails title={t("channelMetadata")} payload={selectedChannelMeta ?? null} />
                 {selectedIsWecomAccessChannel ? (
                   <WecomAccessControls
                     channelId={selectedChannelId}
@@ -720,15 +784,13 @@ export function ChannelsPanel() {
                     onSaved={() => refresh(selectedChannelId)}
                   />
                 ) : null}
-                <JsonDetails title="Channel payload" payload={selectedChannel} />
-                <JsonDetails title="Channel test result" payload={selectedProbeResult} />
-                <JsonDetails title="Channel config patch result" payload={configPatchResult} />
-                <JsonDetails title="Logout result" payload={actionResult} />
+                <JsonDetails title={t("channelPayload")} payload={selectedChannel} />
+                <JsonDetails title={t("channelTestResult")} payload={selectedProbeResult} />
+                <JsonDetails title={t("channelConfigPatchResult")} payload={configPatchResult} />
+                <JsonDetails title={t("logoutResult")} payload={actionResult} />
               </>
             ) : (
-              <p className="deckgo-note deck-ui-channels-empty">
-                Choose a channel to inspect its payload.
-              </p>
+              <p className="deckgo-note deck-ui-channels-empty">{t("chooseChannel")}</p>
             )}
           </div>
         </article>

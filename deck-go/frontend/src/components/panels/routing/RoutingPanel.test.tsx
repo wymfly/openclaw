@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { RoutingPanel } from "./RoutingPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -36,6 +37,13 @@ vi.mock("../../../deck-ui/ui-store", () => ({
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
+  act(() => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(RoutingPanel)));
+  });
+}
 
 function routingBindings() {
   return {
@@ -154,10 +162,7 @@ describe("RoutingPanel", () => {
   });
 
   it("loads routing bindings and selects the first binding by default", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(RoutingPanel));
-    });
+    renderPanel();
 
     expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledWith({
       agentId: "",
@@ -165,15 +170,16 @@ describe("RoutingPanel", () => {
       accountId: "",
     });
     expect(apiMocks.fetchActivityEvents).toHaveBeenCalledWith(20);
+    await waitFor(() => expect(container.textContent).toContain("Routing ready"));
     expect(container.textContent).toContain("Routing ready");
     expect(container.textContent).toContain("default main");
     expect(container.textContent).toContain("dm scope per-channel-peer");
     expect(container.textContent).toContain("hash-1");
     expect(container.textContent).toContain("bind-main");
-    expect(container.textContent).toContain("peer direct:peer-main");
+    expect(container.textContent).toContain("Peer direct:peer-main");
     expect(container.textContent).toContain("routing conflicts 1");
     expect(container.textContent).toContain("subset with bind-shadow");
-    expect(container.textContent).toContain("Routing activity feed");
+    expect(container.textContent).toContain("Activity Feed");
     expect(container.textContent).toContain("Routed discord message to builder");
     expect(container.textContent).not.toContain("System-only event");
     expect(container.querySelector(".deck-ui-routing")).toBeTruthy();
@@ -211,10 +217,7 @@ describe("RoutingPanel", () => {
   });
 
   it("patches the DM scope strategy through the config API", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(RoutingPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
@@ -251,10 +254,7 @@ describe("RoutingPanel", () => {
       "/?surface=deck-ui&panel=routing&routingAgentId=builder&routingChannel=wecom&routingAccountId=default",
     );
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(RoutingPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledWith({
@@ -313,10 +313,7 @@ describe("RoutingPanel", () => {
   });
 
   it("refreshes with filters and runs route simulation with normalized payload", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(RoutingPanel));
-    });
+    renderPanel();
 
     const [agentFilter, channelFilter, accountFilter] = Array.from(
       container.querySelectorAll<HTMLInputElement>(
@@ -436,10 +433,7 @@ describe("RoutingPanel", () => {
   });
 
   it("validates, adds, and removes routing bindings with the current config hash", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(RoutingPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
@@ -548,10 +542,7 @@ describe("RoutingPanel", () => {
       warnings: [],
     });
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(RoutingPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
@@ -584,10 +575,7 @@ describe("RoutingPanel", () => {
   });
 
   it("loads the selected binding match into the route simulator draft", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(RoutingPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
@@ -621,5 +609,18 @@ describe("RoutingPanel", () => {
     expect(simulateGuild?.value).toBe("guild-1");
     expect(simulateTeam?.value).toBe("team-1");
     expect(simulateRoles?.value).toBe("admin, ops");
+  });
+
+  it("renders the routing shell in Chinese", async () => {
+    renderPanel("zh");
+
+    await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
+
+    expect(container.textContent).toContain("路由就绪");
+    expect(container.textContent).toContain("过滤绑定");
+    expect(container.textContent).toContain("添加或验证绑定");
+    expect(container.textContent).toContain("路由详情");
+    expect(container.textContent).toContain("模拟路由选择");
+    expect(container.textContent).toContain("活动事件");
   });
 });

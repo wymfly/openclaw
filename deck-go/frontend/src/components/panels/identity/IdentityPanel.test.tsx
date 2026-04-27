@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { IdentityPanel } from "./IdentityPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -62,6 +63,49 @@ function identityPayloadWithoutHash() {
   };
 }
 
+function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
+  act(() => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(IdentityPanel)));
+  });
+}
+
+function buttonByText(text: string) {
+  return Array.from(container.querySelectorAll("button")).find(
+    (button) => button.textContent === text,
+  );
+}
+
+function rowByText(text: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>('[role="button"]')).find((row) =>
+    row.textContent?.includes(text),
+  );
+}
+
+function inputByLabel(label: string) {
+  return container.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`);
+}
+
+async function openLinkDialog() {
+  await act(async () => {
+    buttonByText("+ Link Identity")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
+async function fillLinkDialog(input: { canonical: string; channel: string; peerId: string }) {
+  await act(async () => {
+    fireEvent.change(inputByLabel("identity canonical") as HTMLInputElement, {
+      target: { value: input.canonical },
+    });
+    fireEvent.change(inputByLabel("identity channel") as HTMLInputElement, {
+      target: { value: input.channel },
+    });
+    fireEvent.change(inputByLabel("identity peer id") as HTMLInputElement, {
+      target: { value: input.peerId },
+    });
+  });
+}
+
 describe("IdentityPanel", () => {
   beforeEach(() => {
     (
@@ -87,51 +131,30 @@ describe("IdentityPanel", () => {
     vi.restoreAllMocks();
   });
 
-  it("loads canonical links and selects the first canonical by default", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+  it("loads canonical links into the old Deck split identity layout", async () => {
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
 
     expect(container.textContent).toContain("Identity ready");
     expect(container.textContent).toContain("2 canonicals");
+    expect(container.textContent).toContain("3 peers");
     expect(container.textContent).toContain("hash hash-1");
     expect(container.textContent).toContain("main");
-    expect(container.textContent).toContain("3");
     expect(container.textContent).toContain("telegram: tg-main");
     expect(container.textContent).toContain("discord: disc-main");
-    expect(container.textContent).toContain("telegram");
-    expect(container.textContent).toContain("tg-main");
-    expect(container.querySelector(".deck-ui-identity")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-identity-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-identity-body")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-identity-status-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-identity-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-identity-surface")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-identity-form-grid")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-identity-input")).toHaveLength(3);
-    expect(container.querySelector(".deck-ui-identity-actions")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-identity-button").length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".deck-ui-identity-list")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-identity-row").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelector(".deck-ui-identity-peer-pills")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-identity-hero")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-control-shell.deck-ui-identity")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-control-sidebar")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-control-detail")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-identity-dialog")).toBeFalsy();
 
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("main");
+    const selectedRow = rowByText("main");
+    expect(selectedRow?.className).toContain("is-selected");
   });
 
-  it("shows peer badges and empty peer state in the canonical list", async () => {
+  it("shows empty peer state in both the list and selected detail", async () => {
     apiMocks.fetchIdentityLinks.mockResolvedValue(identityPayload(false, true));
-
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
 
@@ -142,33 +165,19 @@ describe("IdentityPanel", () => {
   });
 
   it("links a trimmed peer with the config hash and preserves the preferred canonical", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
-
-    const canonicalInput = container.querySelector<HTMLInputElement>(
-      'input[placeholder="canonical"]',
-    );
-    const channelInput = container.querySelector<HTMLInputElement>('input[placeholder="channel"]');
-    const peerInput = container.querySelector<HTMLInputElement>('input[placeholder="peer id"]');
-    expect(canonicalInput).toBeTruthy();
-    expect(channelInput).toBeTruthy();
-    expect(peerInput).toBeTruthy();
-
     apiMocks.fetchIdentityLinks.mockResolvedValue(identityPayload(true));
 
-    await act(async () => {
-      fireEvent.change(canonicalInput as HTMLInputElement, { target: { value: " reviewer " } });
-      fireEvent.change(channelInput as HTMLInputElement, { target: { value: " telegram " } });
-      fireEvent.change(peerInput as HTMLInputElement, { target: { value: " tg-reviewer " } });
+    await openLinkDialog();
+    await fillLinkDialog({
+      canonical: " reviewer ",
+      channel: " telegram ",
+      peerId: " tg-reviewer ",
     });
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Link identity")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
     });
 
     await waitFor(() =>
@@ -180,63 +189,35 @@ describe("IdentityPanel", () => {
       ),
     );
     await waitFor(() => expect(container.textContent).toContain("Last identity action"));
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("reviewer");
+    expect(rowByText("reviewer")?.className).toContain("is-selected");
   });
 
   it("validates link drafts before calling the identity mutation route", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await openLinkDialog();
 
-    const linkButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Link identity",
-    );
-
-    expect(linkButton).toBeTruthy();
-    expect((linkButton as HTMLButtonElement).disabled).toBe(true);
+    expect(buttonByText("Save")).toBeTruthy();
+    expect((buttonByText("Save") as HTMLButtonElement).disabled).toBe(true);
     expect(apiMocks.linkIdentityPeer).not.toHaveBeenCalled();
   });
 
   it("refreshes identity config hash after a failed link mutation", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
     apiMocks.linkIdentityPeer.mockRejectedValueOnce(new Error("base hash mismatch"));
     apiMocks.fetchIdentityLinks.mockResolvedValue(identityPayload(true));
 
-    await act(async () => {
-      fireEvent.change(
-        container.querySelector('input[placeholder="canonical"]') as HTMLInputElement,
-        {
-          target: { value: " reviewer " },
-        },
-      );
-      fireEvent.change(
-        container.querySelector('input[placeholder="channel"]') as HTMLInputElement,
-        {
-          target: { value: " telegram " },
-        },
-      );
-      fireEvent.change(
-        container.querySelector('input[placeholder="peer id"]') as HTMLInputElement,
-        {
-          target: { value: " tg-reviewer " },
-        },
-      );
+    await openLinkDialog();
+    await fillLinkDialog({
+      canonical: " reviewer ",
+      channel: " telegram ",
+      peerId: " tg-reviewer ",
     });
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Link identity")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
     });
 
     await waitFor(() => expect(container.textContent).toContain("base hash mismatch"));
@@ -245,38 +226,17 @@ describe("IdentityPanel", () => {
 
   it("blocks identity mutations when the config hash is missing", async () => {
     apiMocks.fetchIdentityLinks.mockResolvedValue(identityPayloadWithoutHash());
-
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
-
-    await act(async () => {
-      fireEvent.change(
-        container.querySelector('input[placeholder="canonical"]') as HTMLInputElement,
-        {
-          target: { value: " reviewer " },
-        },
-      );
-      fireEvent.change(
-        container.querySelector('input[placeholder="channel"]') as HTMLInputElement,
-        {
-          target: { value: " telegram " },
-        },
-      );
-      fireEvent.change(
-        container.querySelector('input[placeholder="peer id"]') as HTMLInputElement,
-        {
-          target: { value: " tg-reviewer " },
-        },
-      );
+    await openLinkDialog();
+    await fillLinkDialog({
+      canonical: " reviewer ",
+      channel: " telegram ",
+      peerId: " tg-reviewer ",
     });
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Link identity")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
     });
 
     await waitFor(() =>
@@ -286,12 +246,10 @@ describe("IdentityPanel", () => {
     );
     expect(apiMocks.linkIdentityPeer).not.toHaveBeenCalled();
 
-    const inlineUnlink = container.querySelector<HTMLElement>(
-      '[aria-label="Unlink telegram:tg-main"]',
-    );
-    expect(inlineUnlink).toBeTruthy();
     await act(async () => {
-      inlineUnlink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container
+        .querySelector<HTMLElement>('[aria-label="Unlink telegram:tg-main"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(window.confirm).not.toHaveBeenCalled();
@@ -299,25 +257,14 @@ describe("IdentityPanel", () => {
   });
 
   it("unlinks the selected canonical peer with the config hash", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
-
-    const builderButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("builder"),
-    );
-    expect(builderButton).toBeTruthy();
-
     await act(async () => {
-      builderButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      rowByText("builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Unlink")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Unlink peer")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -333,20 +280,13 @@ describe("IdentityPanel", () => {
   });
 
   it("unlinks directly from peer badges without changing selection first", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
-
-    const inlineUnlink = container.querySelector<HTMLElement>(
-      '[aria-label="Unlink discord:disc-main"]',
-    );
-    expect(inlineUnlink).toBeTruthy();
-
     await act(async () => {
-      inlineUnlink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container
+        .querySelector<HTMLElement>('[aria-label="Unlink discord:disc-main"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -362,29 +302,28 @@ describe("IdentityPanel", () => {
 
   it("does not unlink a peer when unlink confirmation is cancelled", async () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false);
-
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(IdentityPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
-
-    const builderButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("builder"),
-    );
-    expect(builderButton).toBeTruthy();
-
     await act(async () => {
-      builderButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      rowByText("builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Unlink")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Unlink peer")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(window.confirm).toHaveBeenCalledWith("Unlink slack:slack-builder from builder?");
     expect(apiMocks.unlinkIdentityPeer).not.toHaveBeenCalled();
+  });
+
+  it("renders the migrated identity shell in Chinese", async () => {
+    renderPanel("zh");
+
+    await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+
+    expect(container.textContent).toContain("身份就绪");
+    expect(container.textContent).toContain("2 个统一身份");
+    expect(container.textContent).toContain("3 个 peer");
+    expect(container.textContent).toContain("关联身份");
   });
 });

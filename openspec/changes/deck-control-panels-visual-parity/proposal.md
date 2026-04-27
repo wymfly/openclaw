@@ -10,7 +10,9 @@ These pages are also where Go backend parity is most likely to matter: old Node+
 - Restore old shared management patterns: list/detail workspaces, section navigation, schema forms, conflict/diff dialogs, wizards, onboarding pages, access controls, diagnostics, analytics, route simulator, device rows, token rotation, settings sections, and docs viewer.
 - Wire all Control group visible copy through EN/ZH i18n.
 - Fix or classify Go backend/API/projection gaps discovered while restoring old Node+Next control workflows.
-- Validate each Control panel with old authority files, current target files, screenshots, interaction checks, and backend gap notes.
+- Validate each Control panel in this worktree with old authority files, current target files, targeted tests, interaction checks that do not require Playwright, and backend gap notes.
+- Defer Playwright/browser traversal, screenshots, and full theme/locale browser evidence until this worktree is merged into the local integration branch.
+- Render explicit unavailable states for old Deck workflows that lack Gateway/source support; do not silently omit unsupported controls.
 
 ## Capabilities
 

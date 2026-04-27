@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { patchChannelConfig } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 
 type DmPolicy = "pairing" | "allowlist" | "open" | "disabled";
 
@@ -27,6 +28,7 @@ export function AccountDmPolicyEditor(props: {
   accountPayload: Record<string, unknown>;
   onSaved: (result: Record<string, unknown>) => Promise<void>;
 }) {
+  const t = useTranslations("channels");
   const [policy, setPolicy] = useState<DmPolicy>(() => readAccountPolicy(props.accountPayload));
   const [initialPolicy, setInitialPolicy] = useState<DmPolicy>(() =>
     readAccountPolicy(props.accountPayload),
@@ -58,7 +60,7 @@ export function AccountDmPolicyEditor(props: {
       setError("");
       await props.onSaved(result);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "account policy save failed");
+      setError(saveError instanceof Error ? saveError.message : t("accountPolicySaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -67,7 +69,7 @@ export function AccountDmPolicyEditor(props: {
   return (
     <div className="deckgo-form-grid deck-ui-channels-form-grid deck-ui-channels-actions-offset">
       <label className="deckgo-label">
-        <span>Account DM override</span>
+        <span>{t("accountDmOverride")}</span>
         <select
           aria-label={`account dm policy ${props.accountId}`}
           className="deckgo-input deck-ui-channels-input"
@@ -88,7 +90,7 @@ export function AccountDmPolicyEditor(props: {
           disabled={policy === initialPolicy || saving}
           onClick={() => void savePolicy()}
         >
-          {saving ? "Saving account policy" : "Save account policy"}
+          {saving ? t("savingAccountPolicy") : t("saveAccountPolicy")}
         </button>
       </div>
       {error ? <p className="deckgo-note deck-ui-channels-error">{error}</p> : null}

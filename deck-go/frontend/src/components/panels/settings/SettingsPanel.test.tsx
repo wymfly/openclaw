@@ -115,8 +115,8 @@ function devicesPayload() {
   };
 }
 
-function renderSettingsPanel() {
-  return createElement(DeckIntlProvider, { locale: "en" }, createElement(SettingsPanel));
+function renderSettingsPanel(locale: "en" | "zh" = "en") {
+  return createElement(DeckIntlProvider, { locale }, createElement(SettingsPanel));
 }
 
 describe("SettingsPanel", () => {
@@ -178,8 +178,12 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("cli version: cli-v1");
     expect(container.textContent).toContain("Connection probe");
     expect(container.textContent).toContain("Appearance");
+    expect(container.textContent).toContain("Notifications");
+    expect(container.textContent).toContain("Language changes are local");
+    expect(container.textContent).toContain("English");
+    expect(container.textContent).toContain("中文");
     expect(container.querySelector(".deck-ui-settings")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-settings-card")).toHaveLength(4);
+    expect(container.querySelectorAll(".deck-ui-settings-card")).toHaveLength(5);
     expect(container.querySelectorAll(".deck-ui-settings-status-row")).toHaveLength(2);
     expect(container.querySelectorAll(".deck-ui-settings-form-row")).toHaveLength(2);
     expect(container.querySelectorAll(".deck-ui-settings-input")).toHaveLength(8);
@@ -236,6 +240,25 @@ describe("SettingsPanel", () => {
     });
 
     expect(setThemeMode).toHaveBeenCalledWith("dark");
+  });
+
+  it("renders localized Chinese settings, device, and unavailable notification copy", async () => {
+    act(() => {
+      root = createRoot(container);
+      root.render(renderSettingsPanel("zh"));
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("设置就绪"));
+    await waitFor(() => expect(container.textContent).toContain("设备就绪"));
+
+    expect(container.textContent).toContain("Deck-go 本地设置");
+    expect(container.textContent).toContain("外观");
+    expect(container.textContent).toContain("语言更改仅作用于当前 Deck UI 外壳");
+    expect(container.textContent).toContain("通知");
+    expect(container.textContent).toContain("尚未暴露持久化通知偏好的 API");
+    expect(container.textContent).toContain("已配对设备");
+    expect(container.textContent).toContain("待处理请求");
+    expect(container.textContent).toContain("批准请求");
   });
 
   it("saves edited settings, persists the deck token, and refreshes runtime state", async () => {
@@ -364,7 +387,6 @@ describe("SettingsPanel", () => {
   });
 
   it("loads devices and runs confirmed device actions through the device facade", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     act(() => {
       root = createRoot(container);
       root.render(renderSettingsPanel());
@@ -385,6 +407,15 @@ describe("SettingsPanel", () => {
         .find((button) => button.textContent === "Approve request")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    expect(container.textContent).toContain("Approve device pairing request req-1?");
+    await act(async () => {
+      Array.from(
+        container.querySelector(".deck-ui-settings-confirm-dialog")?.querySelectorAll("button") ??
+          [],
+      )
+        .find((button) => button.textContent === "Approve request")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
     await waitFor(() => expect(apiMocks.approveDeviceRequest).toHaveBeenCalledWith("req-1"));
 
     const otherDevice = Array.from(container.querySelectorAll("li")).find((item) =>
@@ -396,12 +427,39 @@ describe("SettingsPanel", () => {
         .find((button) => button.textContent === "Rotate token")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    expect(container.textContent).toContain("Rotate operator token for dev-1?");
+    await act(async () => {
+      Array.from(
+        container.querySelector(".deck-ui-settings-confirm-dialog")?.querySelectorAll("button") ??
+          [],
+      )
+        .find((button) => button.textContent === "Rotate token")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
     await waitFor(() =>
       expect(apiMocks.rotateDeviceToken).toHaveBeenCalledWith("dev-1", "operator"),
     );
+    expect(container.textContent).toContain("New token generated");
+    expect(container.textContent).toContain("rotated-token");
+    await act(async () => {
+      Array.from(
+        container.querySelector(".deck-ui-settings-token-dialog")?.querySelectorAll("button") ?? [],
+      )
+        .find((button) => button.textContent === "Close")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     await act(async () => {
       Array.from(otherDevice?.querySelectorAll("button") ?? [])
+        .find((button) => button.textContent === "Revoke token")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.textContent).toContain("Revoke operator token for dev-1?");
+    await act(async () => {
+      Array.from(
+        container.querySelector(".deck-ui-settings-confirm-dialog")?.querySelectorAll("button") ??
+          [],
+      )
         .find((button) => button.textContent === "Revoke token")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -414,11 +472,16 @@ describe("SettingsPanel", () => {
         .find((button) => button.textContent === "Remove device")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    expect(container.textContent).toContain("Remove paired device dev-1?");
+    await act(async () => {
+      Array.from(
+        container.querySelector(".deck-ui-settings-confirm-dialog")?.querySelectorAll("button") ??
+          [],
+      )
+        .find((button) => button.textContent === "Remove device")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
     await waitFor(() => expect(apiMocks.removeDevice).toHaveBeenCalledWith("dev-1"));
-    expect(confirmSpy).toHaveBeenCalledWith("Approve device pairing request req-1?");
-    expect(confirmSpy).toHaveBeenCalledWith("Rotate operator token for dev-1?");
-    expect(confirmSpy).toHaveBeenCalledWith("Revoke operator token for dev-1?");
-    expect(confirmSpy).toHaveBeenCalledWith("Remove paired device dev-1?");
     expect(container.textContent).toContain("Last device action");
   });
 

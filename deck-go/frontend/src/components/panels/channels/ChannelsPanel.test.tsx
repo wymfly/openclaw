@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { ChannelsPanel } from "./ChannelsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -35,6 +36,10 @@ vi.mock("../../../deck-ui/ui-store", () => ({
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+function renderChannelsPanel(locale: "en" | "zh" = "en") {
+  return createElement(DeckIntlProvider, { locale }, createElement(ChannelsPanel));
+}
 
 function channelsPayload() {
   return {
@@ -243,7 +248,7 @@ describe("ChannelsPanel", () => {
   it("loads channel status and selects the first ordered channel by default", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -308,12 +313,28 @@ describe("ChannelsPanel", () => {
     expect(selectedButton?.textContent).toContain("Telegram");
   });
 
+  it("renders localized Chinese channel inventory and detail copy", async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(renderChannelsPanel("zh"));
+    });
+
+    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(container.textContent).toContain("清单就绪"));
+
+    expect(container.textContent).toContain("渠道清单");
+    expect(container.textContent).toContain("所选渠道");
+    expect(container.textContent).toContain("刷新渠道");
+    expect(container.textContent).toContain("吞吐量");
+    expect(container.textContent).toContain("打开渠道插件");
+  });
+
   it("selects the channel requested by cross-panel navigation params", async () => {
     window.history.replaceState({}, "", "/?surface=deck-ui&panel=channels&channelId=discord");
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -338,7 +359,7 @@ describe("ChannelsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -359,7 +380,7 @@ describe("ChannelsPanel", () => {
   it("renders selected channel accounts and preserves selection after logout refresh", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -405,7 +426,7 @@ describe("ChannelsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -432,7 +453,7 @@ describe("ChannelsPanel", () => {
   it("runs channel probe tests and toggles selected channel config through the facade", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -482,7 +503,7 @@ describe("ChannelsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -510,7 +531,7 @@ describe("ChannelsPanel", () => {
   it("saves generic channel DM policy and retry settings through channel patch", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -553,7 +574,7 @@ describe("ChannelsPanel", () => {
   it("applies arbitrary channel JSON patches through the channel config facade", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -591,7 +612,7 @@ describe("ChannelsPanel", () => {
   it("saves generic account DM policy overrides through channel patch", async () => {
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
@@ -642,7 +663,7 @@ describe("ChannelsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(apiMocks.fetchDeckConfig).toHaveBeenCalledTimes(1));
@@ -694,7 +715,7 @@ describe("ChannelsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("Dynamic agents"));
@@ -807,7 +828,7 @@ describe("ChannelsPanel", () => {
 
     await act(async () => {
       root = createRoot(container);
-      root.render(createElement(ChannelsPanel));
+      root.render(renderChannelsPanel());
     });
 
     await waitFor(() =>

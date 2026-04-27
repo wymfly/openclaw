@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { DocsPanel } from "./DocsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -32,6 +33,13 @@ vi.mock("../../../stores/chat-hooks", () => ({
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
+  act(() => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(DocsPanel)));
+  });
+}
 
 function docsPayload() {
   return {
@@ -100,18 +108,15 @@ describe("DocsPanel", () => {
   });
 
   it("loads docs, category summaries, and the first document detail", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(DocsPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
 
     expect(container.textContent).toContain("Docs ready");
     expect(container.textContent).toContain("2 docs");
     expect(container.textContent).toContain("active session sess-active");
-    expect(container.textContent).toContain("summary: 1");
-    expect(container.textContent).toContain("spec: 1");
+    expect(container.textContent).toContain("Summary: 1");
+    expect(container.textContent).toContain("Spec: 1");
     expect(container.querySelector(".deck-ui-docs")).toBeTruthy();
     expect(container.querySelectorAll(".deck-ui-docs-card")).toHaveLength(2);
     expect(container.querySelectorAll(".deck-ui-docs-stats .deckgo-stat")).toHaveLength(2);
@@ -157,15 +162,12 @@ describe("DocsPanel", () => {
   });
 
   it("refreshes filters and runs extract and delete actions for the selected doc", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(DocsPanel));
-    });
+    renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledTimes(1));
 
     const queryInput = container.querySelector<HTMLInputElement>(
-      'input[placeholder="search docs"]',
+      'input[placeholder="Search docs..."]',
     );
     expect(queryInput).toBeTruthy();
     const specFilter = container.querySelector<HTMLButtonElement>('[data-category-filter="spec"]');
@@ -233,5 +235,17 @@ describe("DocsPanel", () => {
     });
 
     await waitFor(() => expect(apiMocks.deleteDoc).toHaveBeenCalledWith("doc-api"));
+  });
+
+  it("renders the migrated docs shell in Chinese", async () => {
+    renderPanel("zh");
+
+    await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
+
+    expect(container.textContent).toContain("文档就绪");
+    expect(container.textContent).toContain("2 份文档");
+    expect(container.textContent).toContain("活跃 session sess-active");
+    expect(container.textContent).toContain("文档中心");
+    expect(container.textContent).toContain("当前文档");
   });
 });

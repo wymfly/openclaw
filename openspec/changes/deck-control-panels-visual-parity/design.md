@@ -52,7 +52,7 @@ If old Node+Next service behavior supplied channel diagnostics, onboarding metad
 
 ### D6: Control can run in parallel but must split internal risk
 
-Control may run in a separate worktree from baseline `341d965a36`, but it is the largest remaining child change and should use internal staged commits for Channels, Config/Settings, Routing/Subagents, and the smaller panels.
+Control may run in a separate worktree from baseline `0f17c40ca7`, but it is the largest remaining child change and should use internal staged commits for Channels, Config/Settings, Routing/Subagents, and the smaller panels.
 
 Owned implementation surfaces:
 
@@ -76,6 +76,14 @@ Shared-file rules:
 - Channel/provider UI must stay behind Gateway metadata, access descriptors, or existing extension contracts.
 - Shell, nav registry, shared lists, and theme changes should be avoided unless a separate shared-baseline patch is created.
 
+### D7: Browser visual evidence is an integration gate, not a worktree gate
+
+This worktree does not run Playwright E2E, browser traversal, or screenshot parity gates. It must instead provide old authority mappings, targeted unit/component tests, non-browser interaction checks, i18n coverage, backend gap classification, and build/typecheck evidence. Browser traversal, desktop screenshots, EN/ZH browser switching, light/dark browser switching, and managed Gateway lifecycle E2E run after all visual parity worktrees merge into the local integration branch.
+
+### D8: Unsupported old workflows require explicit UI states
+
+When an old Next Deck workflow lacks Gateway/source support, the migrated Vite UI must render an explicit unavailable state and `backend-gaps.md` must record the decision. Unsupported controls must not be silently omitted, hidden behind fake data, or restored with frontend-only placeholders that imply real capability.
+
 ## Risks / Trade-offs
 
 - **Risk: Channels is too large for one implementation pass.** → Split implementation tasks internally by list/detail, settings/access/bindings, onboarding/wizard, analytics/diagnostics, and provider-specific pages.
@@ -85,10 +93,11 @@ Shared-file rules:
 
 ## Migration Plan
 
-1. Restore shared management primitives from shell work.
+1. Audit and reuse existing shared management primitives from shell/chat work; avoid new shared refactors inside this worktree unless a narrow shared-baseline patch is created.
 2. Restore Channels in internal subtracks: list/detail, settings/access/bindings, wizard/onboarding, analytics/diagnostics, provider pages.
 3. Restore Config schema editor.
 4. Restore Settings sectioned UI.
 5. Restore Routing simulation/conflict/activity UI.
 6. Restore Budget, Alerts, Subagents, Identity, Nodes, Docs, and Plugins visual parity.
-7. Run group-level i18n, light/dark, browser traversal, action tests, and backend gap validation.
+7. Run worktree-local non-E2E validation: i18n/static copy audit, targeted unit/component tests, action tests with mocked or direct API facades, build/typecheck, targeted Go tests if backend files changed, and backend gap validation.
+8. Defer browser traversal, screenshots, light/dark browser evidence, and EN/ZH browser evidence to the local integration branch after merge.

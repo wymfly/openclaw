@@ -3,6 +3,7 @@ import { waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { PluginsPanel } from "./PluginsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -31,6 +32,25 @@ vi.mock("../../../deck-ui/ui-store", () => ({
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
+  act(() => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(PluginsPanel)));
+  });
+}
+
+function buttonByText(text: string) {
+  return Array.from(container.querySelectorAll("button")).find(
+    (button) => button.textContent === text,
+  );
+}
+
+function cardByText(text: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>('[role="button"]')).find((card) =>
+    card.textContent?.includes(text),
+  );
+}
 
 function pluginsPayload() {
   return {
@@ -140,28 +160,25 @@ describe("PluginsPanel", () => {
   });
 
   it("loads plugin inventory and selects the first plugin by default", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(PluginsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
     );
 
     expect(container.textContent).toContain("Inventory ready");
-    expect(container.textContent).toContain("scope: workspace");
-    expect(container.textContent).toContain("capability: channel");
+    expect(container.textContent).toContain("Inventory Scope: workspace");
+    expect(container.textContent).toContain("Channel plugins");
+    expect(container.textContent).toContain("All plugins");
     expect(container.textContent).toContain("2");
     expect(container.textContent).toContain("ready: 1");
     expect(container.textContent).toContain("error: 1");
     expect(container.textContent).toContain("GitHub");
     expect(container.textContent).toContain("Slack");
-    expect(container.textContent).toContain("capabilities: channel, tool");
-    expect(container.textContent).toContain("channels: github, teams");
-    expect(container.querySelector(".deck-ui-plugins")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-plugins-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-plugins-body")).toHaveLength(2);
+    expect(container.textContent).toContain("channel, tool");
+    expect(container.textContent).toContain("github, teams");
+    expect(container.querySelector(".deck-ui-control-single.deck-ui-plugins")).toBeTruthy();
+    expect(container.querySelectorAll(".deck-ui-plugins-body")).toHaveLength(1);
     expect(container.querySelectorAll(".deck-ui-plugins-status-row").length).toBeGreaterThanOrEqual(
       2,
     );
@@ -170,113 +187,86 @@ describe("PluginsPanel", () => {
     expect(container.querySelectorAll(".deck-ui-plugins-button").length).toBeGreaterThanOrEqual(4);
     expect(container.querySelector(".deck-ui-plugins-list")).toBeTruthy();
     expect(container.querySelectorAll(".deck-ui-plugins-row")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-plugins-hero")).toBeTruthy();
     expect(container.querySelector(".deck-ui-plugins-detail-stats")).toBeTruthy();
     expect(container.querySelector(".deck-ui-plugins-surface")).toBeTruthy();
     expect(container.querySelector(".deck-ui-plugins-diagnostics")).toBeTruthy();
 
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("GitHub");
+    const selectedCard = cardByText("GitHub");
+    expect(selectedCard?.className).toContain("is-selected");
   });
 
   it("renders selected plugin metadata when the operator changes selection", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(PluginsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
     );
 
-    const slackButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Slack"),
-    );
-    expect(slackButton).toBeTruthy();
+    const slackCard = cardByText("Slack");
+    expect(slackCard).toBeTruthy();
 
     await act(async () => {
-      slackButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      slackCard?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Slack");
-    expect(container.textContent).toContain("origin workspace");
-    expect(container.textContent).toContain("status error");
-    expect(container.textContent).toContain("enabled: no");
+    expect(cardByText("Slack")?.className).toContain("is-selected");
+    expect(container.textContent).toContain("workspace");
+    expect(container.textContent).toContain("error");
+    expect(container.textContent).toContain("No");
     expect(container.textContent).toContain("plugins.entries.slack.config");
   });
 
   it("selects the plugin requested by cross-panel navigation params", async () => {
     window.history.replaceState({}, "", "/?surface=deck-ui&panel=plugins&pluginId=slack");
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(PluginsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
     );
 
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Slack");
+    expect(cardByText("Slack")?.className).toContain("is-selected");
     expect(container.textContent).toContain("plugins.entries.slack.config");
   });
 
   it("switches between channel and all capability inventory modes", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(PluginsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
     );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "All plugins")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("All plugins")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenLastCalledWith("all"),
     );
-    expect(container.textContent).toContain("capability: all");
+    expect(buttonByText("All plugins")?.className).toContain("is-primary");
   });
 
   it("renders plugin capability diagnostics and cross-panel handoffs", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(PluginsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
     );
 
-    expect(container.textContent).toContain("version");
+    expect(container.textContent).toContain("Version");
     expect(container.textContent).toContain("1.2.3");
-    expect(container.textContent).toContain("config path");
+    expect(container.textContent).toContain("Plugin Config Key");
     expect(container.textContent).toContain("plugins.entries.github.config");
-    expect(container.textContent).toContain("deck actions");
+    expect(container.textContent).toContain("Deck Actions");
     expect(container.textContent).toContain("login, probe");
-    expect(container.textContent).toContain("source: config");
-    expect(container.textContent).toContain("channel enabled in config");
+    expect(container.textContent).toContain("Activation Source: config");
+    expect(container.textContent).toContain("Activation Reason: channel enabled in config");
     expect(container.textContent).toContain("[warn] token missing");
     expect(container.textContent).toContain("Not visible in Channels: teams");
-    expect(container.textContent).not.toContain("Open channel teams");
+    expect(container.textContent).not.toContain("Open teams");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Open channel github")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Open github")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(deckUIMocks.navigateToChannel).toHaveBeenCalledWith(deckUIMocks.ui, {
@@ -285,9 +275,9 @@ describe("PluginsPanel", () => {
     expect(container.textContent).toContain("Opened Channels panel; target channel: github");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Open routing for github")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Open routing for github")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(deckUIMocks.navigateToRouting).toHaveBeenCalledWith(deckUIMocks.ui, {
@@ -300,24 +290,36 @@ describe("PluginsPanel", () => {
     apiMocks.fetchChannels.mockResolvedValue(wecomChannelsPayload());
     apiMocks.fetchPluginsWithCapability.mockResolvedValue(wecomPluginsPayload());
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(PluginsPanel));
-    });
+    renderPanel();
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
     );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Open access for wecom")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Open access for wecom")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(deckUIMocks.navigateToChannelAccess).toHaveBeenCalledWith(deckUIMocks.ui, {
       channelId: "wecom",
     });
     expect(container.textContent).toContain("Opened Channels access controls for wecom");
+  });
+
+  it("renders the migrated plugin inventory shell in Chinese", async () => {
+    renderPanel("zh");
+
+    await waitFor(() =>
+      expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
+    );
+
+    await waitFor(() => expect(container.textContent).toContain("清单就绪"));
+    expect(container.textContent).toContain("清单范围");
+    expect(container.textContent).toContain("workspace");
+    expect(container.textContent).toContain("渠道插件");
+    expect(container.textContent).toContain("全部插件");
+    expect(container.textContent).toContain("2 个插件");
   });
 });
