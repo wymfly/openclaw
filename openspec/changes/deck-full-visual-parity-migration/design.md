@@ -84,6 +84,8 @@ The right framing is therefore:
 
 **Rationale:** Static tests cannot prove perceptual parity. Prior closure relied too heavily on “panel opens” traversal and missed obvious UI differences.
 
+**Update 2026-04-27:** The Core, Observe, Automate, and Control child proposals now have integration E2E evidence, but that evidence does not equal final visual parity. The final umbrella validation must follow the Chat standard: a paired old Next Deck vs current Vite/Go screenshot matrix with per-state verdicts, console review, EN/ZH coverage, light/dark coverage, and accepted exceptions only when screenshots are not deterministic or the Gateway/source capability does not exist. The execution details live in `visual-comparison-validation-plan.md`.
+
 ### D5: i18n parity is a first-class migration target
 
 **Decision:** A panel is not visually migrated if switching EN/ZH leaves panel-local copy in English, except for proper nouns, API identifiers, code, method names, tokens, or user data.
