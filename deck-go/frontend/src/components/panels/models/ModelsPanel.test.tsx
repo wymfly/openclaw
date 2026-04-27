@@ -3,6 +3,8 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Locale } from "../../../i18n/config";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { ModelsPanel } from "./ModelsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -21,6 +23,31 @@ vi.mock("../../../api", () => apiMocks);
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+function textIncludes(...labels: string[]) {
+  return expect.stringMatching(new RegExp(labels.map(escapeRegExp).join("|")));
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findButtonByText(...labels: string[]) {
+  return Array.from(container.querySelectorAll("button")).find((button) =>
+    labels.includes(button.textContent ?? ""),
+  );
+}
+
+function findByAria<T extends HTMLElement>(selector: string, ...labels: string[]) {
+  return Array.from(container.querySelectorAll<T>(selector)).find((element) =>
+    labels.includes(element.getAttribute("aria-label") ?? ""),
+  );
+}
+
+function renderModelsPanel(locale: Locale = "en") {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale }, createElement(ModelsPanel)));
+}
 
 function rawModelsConfig() {
   return JSON.stringify(
@@ -270,8 +297,7 @@ describe("ModelsPanel", () => {
 
   it("loads raw models config, provider inventory, and default schema lookup", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchModelsConfig).toHaveBeenCalledTimes(1));
@@ -316,6 +342,18 @@ describe("ModelsPanel", () => {
     expect(container.textContent).toContain("$4.50");
     expect(container.textContent).toContain("highest pressure");
     expect(container.textContent).toContain("90%");
+    expect(container.querySelector(".deck-ui-models-usage-chart")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-models-quota-grid")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-models-catalog-shell")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-models-split-pane")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-models-provider-tree")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-models-provider-config-layout")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-models-provider-sidebar")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-models-add-provider-wizard")).toBeTruthy();
+    expect(container.querySelector(".deck-ui-models-fallback-chains")).toBeTruthy();
+    expect(container.querySelectorAll(".deck-ui-models-chain-card")).toHaveLength(2);
+    expect(container.querySelectorAll('progress[aria-label^="Model usage cost"]')).toHaveLength(2);
+    expect(container.querySelectorAll('progress[aria-label$="quota"]')).toHaveLength(3);
     expect(container.textContent).toContain("OpenAI");
     expect(container.textContent).toContain("daily: 40%");
     expect(container.textContent).toContain("hourly: 90%");
@@ -323,7 +361,7 @@ describe("ModelsPanel", () => {
     expect(container.textContent).toContain("OpenAI Catalog");
     expect(container.textContent).toContain("Claude Catalog");
     expect(container.textContent).toContain("api openai-responses | auth api-key | models 2");
-    expect(container.textContent).toContain("Default model chain");
+    expect(container.textContent).toEqual(textIncludes("Default model chain", "默认模型回退链"));
     expect(container.textContent).toContain("hash h1");
     expect(container.textContent).toContain("anthropic");
     expect(container.textContent).toContain("openai");
@@ -332,10 +370,20 @@ describe("ModelsPanel", () => {
     expect(container.textContent).toContain("2 schema children");
   });
 
+  it("renders localized Chinese model chrome for the migrated panel shell", async () => {
+    await act(async () => {
+      renderModelsPanel("zh");
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("模型 就绪"));
+    expect(container.textContent).toContain("运行时清单");
+    expect(container.textContent).toContain("目录提供商");
+    expect(container.textContent).toContain("诊断 openai");
+  });
+
   it("looks up edited schema paths and saves the raw models config with the base hash", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Models ready"));
@@ -347,9 +395,9 @@ describe("ModelsPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Lookup schema")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Lookup schema", "查询 schema")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() =>
@@ -363,9 +411,9 @@ describe("ModelsPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalledWith(nextRaw, "h1"));
@@ -374,80 +422,89 @@ describe("ModelsPanel", () => {
 
   it("edits default text and image fallback chains while preserving object fields", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Models ready"));
 
     await act(async () => {
-      fireEvent.change(container.querySelector('input[aria-label="Primary model"]')!, {
+      fireEvent.change(findByAria<HTMLInputElement>("input", "Primary Model", "主力模型")!, {
         target: { value: "anthropic/sonnet-4.6" },
       });
-      fireEvent.change(container.querySelector('input[aria-label="Fallback models"]')!, {
+      fireEvent.change(findByAria<HTMLInputElement>("input", "Fallback models", "回退模型")!, {
         target: { value: "openai/gpt-5.4, local/qwen" },
       });
-      fireEvent.change(container.querySelector('input[aria-label="Image primary model"]')!, {
+      fireEvent.change(findByAria<HTMLInputElement>("input", "Image primary", "图像主模型")!, {
         target: { value: "openai/gpt-image-2" },
       });
     });
 
     await act(async () => {
-      fireEvent.change(container.querySelector('select[aria-label="Add text fallback"]')!, {
-        target: { value: "openai/gpt-4o" },
-      });
+      fireEvent.change(
+        findByAria<HTMLSelectElement>("select", "Add text fallback", "添加文本回退模型")!,
+        {
+          target: { value: "openai/gpt-4o" },
+        },
+      );
     });
 
     await waitFor(() =>
       expect(
-        Array.from(container.querySelectorAll("button"))
-          .find((button) => button.textContent === "Add text fallback")
-          ?.hasAttribute("disabled"),
+        findButtonByText("Add text fallback", "添加文本回退模型")?.hasAttribute("disabled"),
       ).toBe(false),
     );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Add text fallback")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Add text fallback", "添加文本回退模型")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() =>
       expect(
-        container.querySelector('button[aria-label="Move up text fallback openai/gpt-4o"]'),
+        findByAria<HTMLButtonElement>(
+          "button",
+          "Move up text fallback openai/gpt-4o",
+          "上移文本回退模型 openai/gpt-4o",
+        ),
       ).not.toBeNull(),
     );
 
     await act(async () => {
-      container
-        .querySelector('button[aria-label="Move up text fallback openai/gpt-4o"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      container
-        .querySelector('button[aria-label="Remove text fallback local/qwen"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      fireEvent.change(container.querySelector('select[aria-label="Add image fallback"]')!, {
-        target: { value: "openai/gpt-4o" },
-      });
+      findByAria<HTMLButtonElement>(
+        "button",
+        "Move up text fallback openai/gpt-4o",
+        "上移文本回退模型 openai/gpt-4o",
+      )?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findByAria<HTMLButtonElement>(
+        "button",
+        "Remove text fallback local/qwen",
+        "移除文本回退模型 local/qwen",
+      )?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.change(
+        findByAria<HTMLSelectElement>("select", "Add image fallback", "添加图像回退模型")!,
+        {
+          target: { value: "openai/gpt-4o" },
+        },
+      );
     });
 
     await waitFor(() =>
       expect(
-        Array.from(container.querySelectorAll("button"))
-          .find((button) => button.textContent === "Add image fallback")
-          ?.hasAttribute("disabled"),
+        findButtonByText("Add image fallback", "添加图像回退模型")?.hasAttribute("disabled"),
       ).toBe(false),
     );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Add image fallback")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Add image fallback", "添加图像回退模型")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -473,8 +530,7 @@ describe("ModelsPanel", () => {
 
   it("filters runtime model catalog and applies model quick actions", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("3 visible"));
@@ -488,7 +544,7 @@ describe("ModelsPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("1 visible"));
     expect(container.textContent).toContain("GPT-4o");
     expect(container.textContent).toContain("inputtext, image");
-    expect(container.textContent).toContain("context128K");
+    expect(container.textContent).toContain("Context128K");
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -511,9 +567,9 @@ describe("ModelsPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -536,8 +592,7 @@ describe("ModelsPanel", () => {
 
   it("edits provider config fields and fills missing defaults from catalog providers", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Use catalog openai"));
@@ -587,9 +642,9 @@ describe("ModelsPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -644,8 +699,7 @@ describe("ModelsPanel", () => {
 
   it("applies catalog provider post-add actions to the default chain", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Set catalog default anthropic"));
@@ -660,9 +714,9 @@ describe("ModelsPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -693,8 +747,7 @@ describe("ModelsPanel", () => {
 
   it("applies only selected catalog models from the old wizard checkbox flow", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Catalog model selection"));
@@ -718,9 +771,9 @@ describe("ModelsPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -744,15 +797,16 @@ describe("ModelsPanel", () => {
 
   it("filters catalog providers with the old wizard search behavior", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Catalog providers"));
 
-    const search = container.querySelector(
-      'input[aria-label="Catalog provider search"]',
-    ) as HTMLInputElement;
+    const search = findByAria<HTMLInputElement>(
+      "input",
+      "Search catalog providers",
+      "搜索目录提供商",
+    )!;
 
     await act(async () => {
       fireEvent.change(search, { target: { value: "anthropic-messages" } });
@@ -770,8 +824,7 @@ describe("ModelsPanel", () => {
 
   it("edits provider model entries through structured controls", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Use catalog openai"));
@@ -884,9 +937,9 @@ describe("ModelsPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -939,8 +992,7 @@ describe("ModelsPanel", () => {
 
   it("adds all missing catalog models for the selected provider", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Add all 1 catalog models"));
@@ -954,9 +1006,9 @@ describe("ModelsPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("claude-haiku"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -980,8 +1032,7 @@ describe("ModelsPanel", () => {
 
   it("adds a custom provider and edits it through the structured config fields", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Models ready"));
@@ -1007,9 +1058,9 @@ describe("ModelsPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -1025,35 +1076,55 @@ describe("ModelsPanel", () => {
 
   it("enables allowlist from default chains and edits per-model entry metadata", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Allowlist off"));
+    await waitFor(() =>
+      expect(container.textContent).toEqual(textIncludes("Allowlist off", "白名单已关闭")),
+    );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Allowlist off")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Allowlist off", "白名单已关闭")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Allowlist on"));
+    await waitFor(() =>
+      expect(container.textContent).toEqual(textIncludes("Allowlist on", "白名单已开启")),
+    );
     expect(container.textContent).toContain("openai/gpt-image-1");
 
     await act(async () => {
-      fireEvent.change(container.querySelector('input[aria-label="Alias openai/gpt-5.4"]')!, {
-        target: { value: "fast-default" },
-      });
-      fireEvent.click(container.querySelector('input[aria-label="Streaming openai/gpt-5.4"]')!);
-      fireEvent.change(container.querySelector('textarea[aria-label="Params openai/gpt-5.4"]')!, {
-        target: { value: '{ "temperature": 0.2 }' },
-      });
+      fireEvent.change(
+        findByAria<HTMLInputElement>("input", "Alias openai/gpt-5.4", "别名 openai/gpt-5.4")!,
+        {
+          target: { value: "fast-default" },
+        },
+      );
+      fireEvent.click(
+        findByAria<HTMLInputElement>(
+          "input",
+          "Streaming openai/gpt-5.4",
+          "流式输出 openai/gpt-5.4",
+        )!,
+      );
+      fireEvent.change(
+        findByAria<HTMLTextAreaElement>(
+          "textarea",
+          "Params openai/gpt-5.4",
+          "Model Parameters openai/gpt-5.4",
+          "模型参数 openai/gpt-5.4",
+        )!,
+        {
+          target: { value: '{ "temperature": 0.2 }' },
+        },
+      );
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -1082,29 +1153,32 @@ describe("ModelsPanel", () => {
 
   it("turns allowlist off by deleting agents.defaults.models", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Allowlist off"));
+    await waitFor(() =>
+      expect(container.textContent).toEqual(textIncludes("Allowlist off", "白名单已关闭")),
+    );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Allowlist off")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Allowlist off", "白名单已关闭")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
-    await waitFor(() => expect(container.textContent).toContain("Allowlist on"));
+    await waitFor(() =>
+      expect(container.textContent).toEqual(textIncludes("Allowlist on", "白名单已开启")),
+    );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Allowlist on")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Allowlist on", "白名单已开启")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -1115,34 +1189,46 @@ describe("ModelsPanel", () => {
 
   it("edits bedrock discovery settings through raw models config", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Bedrock discovery"));
+    await waitFor(() =>
+      expect(container.textContent).toEqual(
+        textIncludes("Bedrock discovery", "AWS Bedrock Discovery", "AWS Bedrock 动态发现"),
+      ),
+    );
 
     await act(async () => {
-      fireEvent.click(container.querySelector('input[aria-label="Bedrock discovery enabled"]')!);
-      fireEvent.change(container.querySelector('input[aria-label="Bedrock region"]')!, {
+      fireEvent.click(findByAria<HTMLInputElement>("input", "Enable Discovery", "启用发现")!);
+      fireEvent.change(findByAria<HTMLInputElement>("input", "Region", "区域")!, {
         target: { value: "us-west-2" },
       });
-      fireEvent.change(container.querySelector('input[aria-label="Bedrock refresh interval"]')!, {
-        target: { value: "7200" },
-      });
-      fireEvent.change(container.querySelector('input[aria-label="Bedrock default context"]')!, {
-        target: { value: "240000" },
-      });
-      fireEvent.change(container.querySelector('input[aria-label="Bedrock default max tokens"]')!, {
-        target: { value: "8192" },
-      });
+      fireEvent.change(
+        findByAria<HTMLInputElement>("input", "Refresh Interval (seconds)", "刷新间隔（秒）")!,
+        {
+          target: { value: "7200" },
+        },
+      );
+      fireEvent.change(
+        findByAria<HTMLInputElement>("input", "Default Context Window", "默认上下文窗口")!,
+        {
+          target: { value: "240000" },
+        },
+      );
+      fireEvent.change(
+        findByAria<HTMLInputElement>("input", "Default Max Output", "默认最大输出")!,
+        {
+          target: { value: "8192" },
+        },
+      );
       fireEvent.click(container.querySelector('input[aria-label="Bedrock provider anthropic"]')!);
       fireEvent.click(container.querySelector('input[aria-label="Bedrock provider meta"]')!);
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -1171,22 +1257,24 @@ describe("ModelsPanel", () => {
 
   it("edits the models catalog merge mode through structured controls", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Model catalog mode"));
 
     await act(async () => {
-      fireEvent.change(container.querySelector('select[aria-label="Models catalog mode"]')!, {
-        target: { value: "replace" },
-      });
+      fireEvent.change(
+        findByAria<HTMLSelectElement>("select", "Model catalog mode", "模型目录模式")!,
+        {
+          target: { value: "replace" },
+        },
+      );
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -1199,20 +1287,19 @@ describe("ModelsPanel", () => {
     apiMocks.fetchModelsConfig.mockResolvedValue({ raw: rawModelsConfigWithBedrock(), hash: "h1" });
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("discovery on"));
 
     await act(async () => {
-      fireEvent.click(container.querySelector('input[aria-label="Bedrock discovery enabled"]')!);
+      fireEvent.click(findByAria<HTMLInputElement>("input", "Enable Discovery", "启用发现")!);
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save models config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      findButtonByText("Save models config", "保存模型配置")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.saveModelsConfig).toHaveBeenCalled());
@@ -1232,8 +1319,7 @@ describe("ModelsPanel", () => {
 
   it("probes model auth through the runtime model probe route", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ModelsPanel));
+      renderModelsPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Probe openai"));

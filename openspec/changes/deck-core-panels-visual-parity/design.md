@@ -42,7 +42,7 @@ Agents, Models, and Gateway/Monitor each get a small backend parity ledger. Miss
 
 ### D5: Core owns only its panel surfaces in parallel worktrees
 
-Core may run in a separate worktree from baseline `341d965a36`.
+Core may run in a separate worktree from baseline `0f17c40ca7`.
 
 Owned implementation surfaces:
 
@@ -57,9 +57,32 @@ Shared-file rules:
 - `deck-go/frontend/src/api.ts` and Go backend files may be changed only after the relevant row is added to `backend-gaps.md`.
 - `deck-go/frontend/src/components/shared/**`, `deck-go/frontend/src/deck-ui/**`, and `deck-go/frontend/src/theme.css` should not be broadly refactored in this worktree. If Core discovers a shared primitive need, land it as a small shared-baseline patch before other worktrees merge.
 
+### D6: Classify workflow support before deep component restoration
+
+Before restoring deep tabs, dialogs, or editors for a Core subtrack, the implementation SHALL classify the related old workflow in `backend-gaps.md` as one of:
+
+- `supported`: Gateway/Go already exposes the needed data/control shape.
+- `adapter-only`: Gateway/source supports the workflow, but Vite or Go adapter shaping is required.
+- `unavailable`: Gateway/source does not support the workflow yet; the UI must render an explicit unavailable state.
+
+This checkpoint happens before deep component splitting so old UI shells do not get recreated around unsupported data.
+
+### D7: Gateway/Monitor i18n uses `monitor` for old parity surfaces
+
+The panel id may remain `gateway`, but old Monitor-equivalent visible copy SHALL use the `monitor` i18n namespace. Go-specific managed Gateway lifecycle controls may use `gateway` keys only when they have no old Monitor equivalent.
+
+### D8: Browser evidence is deferred for this worktree
+
+This worktree SHALL NOT require Playwright/browser E2E evidence. It proves structural, i18n, unit, build, and backend-gap correctness. Browser screenshots and traversal are post-merge integration evidence.
+
+### D9: Managed Gateway runtime controls use a Runtime tab by default
+
+The Vite panel id may remain `gateway`, but old Monitor Overview should not absorb Go-specific lifecycle operations. Managed Gateway start/stop/restart controls, runtime settings, and action history SHALL live in a fourth `Runtime` tab by default. Overview may show one compact read-only runtime status card if it does not crowd old Monitor parity content.
+
 ## Risks / Trade-offs
 
 - **Risk: old Agents/Models components assume richer stores than Go currently exposes.** → Use adapters and explicit unavailable states.
 - **Risk: Gateway/Monitor naming creates confusion.** → Maintain a mapping note in registry/design and visible copy.
 - **Risk: large files remain large.** → Migration should split Vite panels along old component boundaries.
 - **Risk: backend fixes broaden Core scope.** → Only close gaps tied to old Deck workflow parity; do not add speculative Gateway features.
+- **Risk: browser evidence is deferred.** → Keep all deferred visual/E2E evidence explicit in task notes and require final integration validation before closing the umbrella visual parity change.

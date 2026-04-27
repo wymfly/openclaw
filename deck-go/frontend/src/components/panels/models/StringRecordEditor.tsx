@@ -86,7 +86,7 @@ export function StringRecordEditor(props: {
           ))}
         </div>
       ) : (
-        <p className="deckgo-note">{props.emptyText ?? "No entries configured."}</p>
+        <p className="deckgo-note">{props.emptyText ?? ""}</p>
       )}
     </div>
   );
