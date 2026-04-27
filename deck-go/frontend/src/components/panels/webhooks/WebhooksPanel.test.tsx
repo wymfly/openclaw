@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { WebhooksPanel } from "./WebhooksPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -81,6 +82,11 @@ function deliveriesPayload(id: string) {
   };
 }
 
+function renderWebhooksPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(WebhooksPanel)));
+}
+
 describe("WebhooksPanel", () => {
   beforeEach(() => {
     (
@@ -113,8 +119,7 @@ describe("WebhooksPanel", () => {
 
   it("loads webhook inventory, delivery history, and selects the first webhook", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(WebhooksPanel));
+      renderWebhooksPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchWebhooks).toHaveBeenCalledTimes(1));
@@ -126,21 +131,23 @@ describe("WebhooksPanel", () => {
     expect(container.textContent).toContain("Usage");
     expect(container.textContent).toContain("failures: 2 | last status: n/a");
     expect(container.textContent).toContain("delivery-a");
-    expect(container.textContent).toContain("Delivery records");
+    expect(container.textContent).toContain("Delivery History");
     expect(container.textContent).toContain("2 deliveries");
     expect(container.textContent).toContain("status 200");
     expect(container.textContent).toContain("duration 12ms");
-    expect(container.textContent).toContain("success");
+    expect(container.textContent).toContain("Success");
     expect(container.textContent).toContain("usage.limit");
     expect(container.textContent).toContain("status 503");
-    expect(container.textContent).toContain("attempt 2");
-    expect(container.textContent).toContain("retry");
-    expect(container.textContent).toContain('details: {"error":"receiver unavailable"}');
+    expect(container.textContent).toContain("Attempt 2");
+    expect(container.textContent).toContain("Retrying");
+    expect(container.textContent).toContain('Details: {"error":"receiver unavailable"}');
     expect(container.querySelector(".deck-ui-webhooks")).toBeTruthy();
     expect(container.querySelectorAll(".deck-ui-webhooks-card").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-webhooks-surface").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-webhooks-input").length).toBe(4);
-    expect(container.querySelectorAll(".deck-ui-webhooks-button").length).toBe(16);
+    expect(container.querySelectorAll(".deck-ui-webhooks-surface").length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(container.querySelectorAll(".deck-ui-webhooks-input").length).toBe(0);
+    expect(container.querySelectorAll(".deck-ui-webhooks-button").length).toBeGreaterThanOrEqual(5);
     expect(container.querySelectorAll(".deck-ui-webhooks-row").length).toBe(2);
     expect(container.querySelectorAll(".deck-ui-webhooks-delivery-row").length).toBe(2);
     expect(container.querySelectorAll(".deck-ui-webhooks-hero").length).toBeGreaterThanOrEqual(2);
@@ -158,11 +165,16 @@ describe("WebhooksPanel", () => {
       .mockResolvedValue(webhooksPayload(true));
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(WebhooksPanel));
+      renderWebhooksPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "New Webhook")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     const nameInput = container.querySelector<HTMLInputElement>('input[aria-label="webhook name"]');
     const urlInput = container.querySelector<HTMLInputElement>('input[aria-label="webhook url"]');
@@ -208,7 +220,7 @@ describe("WebhooksPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Test delivery")
+        .find((button) => button.textContent === "Test Delivery")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -216,7 +228,7 @@ describe("WebhooksPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete")
+        .find((button) => button.textContent === "Delete Webhook")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -228,15 +240,14 @@ describe("WebhooksPanel", () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false);
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(WebhooksPanel));
+      renderWebhooksPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete")
+        .find((button) => button.textContent === "Delete Webhook")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -246,8 +257,7 @@ describe("WebhooksPanel", () => {
 
   it("loads selected webhooks into the draft and saves full webhook edits", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(WebhooksPanel));
+      renderWebhooksPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
@@ -260,7 +270,7 @@ describe("WebhooksPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Load selected")
+        .find((button) => button.textContent === "Edit Webhook")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 

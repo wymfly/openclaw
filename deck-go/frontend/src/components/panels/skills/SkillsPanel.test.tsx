@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { SkillsPanel } from "./SkillsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -34,6 +35,11 @@ vi.mock("../../../deck-ui/ui-store", () => ({
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+function renderSkillsPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(SkillsPanel)));
+}
 
 function skillsPayload() {
   return {
@@ -154,8 +160,7 @@ describe("SkillsPanel", () => {
 
   it("normalizes raw skills and selects the first skill by default", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SkillsPanel));
+      renderSkillsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
@@ -182,8 +187,8 @@ describe("SkillsPanel", () => {
     expect(container.textContent).toContain("Shell");
     expect(container.textContent).toContain("GitHub");
     expect(container.textContent).toContain("Legacy");
-    expect(container.textContent).toContain("source: plugin | status: needs-setup");
-    expect(container.textContent).toContain("source: bundled | status: disabled");
+    expect(container.textContent).toContain("Source: plugin | Status: needs-setup");
+    expect(container.textContent).toContain("Source: bundled | Status: disabled");
 
     const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.className.includes("is-selected"),
@@ -193,8 +198,7 @@ describe("SkillsPanel", () => {
 
   it("filters installed skills by status and search text", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SkillsPanel));
+      renderSkillsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
@@ -236,8 +240,7 @@ describe("SkillsPanel", () => {
 
   it("runs enable and disable updates and preserves the selected skill", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SkillsPanel));
+      renderSkillsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
@@ -281,8 +284,7 @@ describe("SkillsPanel", () => {
 
   it("saves selected skill config and runs install options through the skill facade", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SkillsPanel));
+      renderSkillsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
@@ -334,8 +336,7 @@ describe("SkillsPanel", () => {
 
   it("searches ClawHub and runs hub install/update actions through the hub facade", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SkillsPanel));
+      renderSkillsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
@@ -366,7 +367,7 @@ describe("SkillsPanel", () => {
     });
 
     await waitFor(() => expect(apiMocks.fetchSkillHubDetail).toHaveBeenCalledWith("git-helper"));
-    expect(container.textContent).toContain("version 1.0.0");
+    expect(container.textContent).toContain("Version: 1.0.0");
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -390,8 +391,7 @@ describe("SkillsPanel", () => {
 
   it("loads and updates the agent skill matrix with Gateway config hashes", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SkillsPanel));
+      renderSkillsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchAgentsList).toHaveBeenCalledTimes(1));

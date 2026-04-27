@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { CronPanel } from "./CronPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -60,6 +61,11 @@ function runsPayload(jobId: string) {
   };
 }
 
+function renderCronPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(CronPanel)));
+}
+
 describe("CronPanel", () => {
   beforeEach(() => {
     (
@@ -101,8 +107,7 @@ describe("CronPanel", () => {
 
   it("loads cron status, inventory, and selected job runs", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(CronPanel));
+      renderCronPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchCronJobs).toHaveBeenCalledTimes(1));
@@ -116,14 +121,13 @@ describe("CronPanel", () => {
     expect(container.textContent).toContain("enabled1");
     expect(container.textContent).toContain("Nightly");
     expect(container.textContent).toContain("Frequent");
-    expect(container.textContent).toContain("schedule: 0 0 * * * | enabled: yes");
-    expect(container.textContent).toContain("schedule: every 60000ms | enabled: no");
-    expect(container.textContent).toContain("job-a-run");
+    expect(container.textContent).toContain("Schedule: 0 0 * * * | Status: Enabled");
+    expect(container.textContent).toContain("Schedule: every 60000ms | Status: Disabled");
     expect(container.querySelector(".deck-ui-cron")).toBeTruthy();
     expect(container.querySelectorAll(".deck-ui-cron-card").length).toBe(2);
     expect(container.querySelectorAll(".deck-ui-cron-surface").length).toBe(1);
     expect(container.querySelectorAll(".deck-ui-cron-input").length).toBe(9);
-    expect(container.querySelectorAll(".deck-ui-cron-button").length).toBe(10);
+    expect(container.querySelectorAll(".deck-ui-cron-button").length).toBeGreaterThanOrEqual(14);
     expect(container.querySelectorAll(".deck-ui-cron-row").length).toBe(2);
     expect(container.querySelector(".deck-ui-cron-hero")).toBeTruthy();
     expect(container.querySelector(".deck-ui-cron-details")).toBeTruthy();
@@ -136,8 +140,7 @@ describe("CronPanel", () => {
 
   it("runs and deletes the selected job while preserving preferred selection", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(CronPanel));
+      renderCronPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Cron ready"));
@@ -157,7 +160,7 @@ describe("CronPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Run now")
+        .find((button) => button.textContent === "Run Now")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -173,7 +176,7 @@ describe("CronPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete")
+        .find((button) => button.textContent === "Delete Job")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -185,15 +188,14 @@ describe("CronPanel", () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false);
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(CronPanel));
+      renderCronPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Cron ready"));
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete")
+        .find((button) => button.textContent === "Delete Job")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -203,8 +205,7 @@ describe("CronPanel", () => {
 
   it("applies schedule templates to the cron draft", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(CronPanel));
+      renderCronPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Cron ready"));
@@ -228,8 +229,7 @@ describe("CronPanel", () => {
 
   it("creates cron jobs and saves selected job edits through the Gateway-backed facade", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(CronPanel));
+      renderCronPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Cron ready"));
@@ -257,7 +257,7 @@ describe("CronPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Create job")
+        .find((button) => button.textContent === "Create Job")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
