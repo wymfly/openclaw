@@ -21,7 +21,7 @@ Current review note (2026-04-27): this umbrella change is not implementation-com
 
 ## 3. Final Umbrella Validation
 
-- [ ] 3.1 Confirm old Next Deck and current Vite/Go Deck stacks are both reachable through Codex Playwright MCP.
+- [x] 3.1 Confirm old Next Deck and current Vite/Go Deck stacks are both reachable through Codex Playwright MCP.
 - [ ] 3.2 Capture paired old/current screenshots for Shell/App frame and refresh or revalidate the Chat screenshot matrix.
 - [ ] 3.3 Capture paired old/current screenshots for every Core, Observe, Automate, and Control panel state listed in `visual-comparison-validation-plan.md`.
 - [ ] 3.4 Verify EN/ZH switching changes panel-local copy on every migrated panel and record results in `.omx/artifacts/deck-full-visual-parity-comparison/i18n-audit.md`.
