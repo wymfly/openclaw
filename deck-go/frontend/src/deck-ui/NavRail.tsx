@@ -1,9 +1,17 @@
 import { useEffect } from "react";
 import { useTranslations } from "../i18n/provider";
 import { PanelCollapseIcon, PanelExpandIcon, XIcon } from "./icons";
-import { getBottomPanels, getPanelGroups } from "./panel-registry";
+import { getBottomPanels, getPanelGroups, type PanelEntry } from "./panel-registry";
 import { useDeckUI } from "./ui-store";
 import { useDeckViewport } from "./use-deck-viewport";
+
+function renderBadge(item: PanelEntry) {
+  const count = item.badge?.() ?? 0;
+  if (count <= 0) {
+    return null;
+  }
+  return <span className="deck-ui-nav-badge">{count > 99 ? "99+" : count}</span>;
+}
 
 export function DeckNavRail() {
   const tNav = useTranslations("nav");
@@ -78,8 +86,9 @@ export function DeckNavRail() {
                   }}
                   title={collapsed ? tNav(item.labelKey) : undefined}
                 >
-                  <span className="deck-ui-nav-glyph" aria-hidden="true">
+                  <span className="deck-ui-nav-glyph">
                     <Icon />
+                    {renderBadge(item)}
                   </span>
                   {!collapsed ? <span>{tNav(item.labelKey)}</span> : null}
                 </button>
@@ -105,8 +114,9 @@ export function DeckNavRail() {
               }}
               title={collapsed ? tNav(item.labelKey) : undefined}
             >
-              <span className="deck-ui-nav-glyph" aria-hidden="true">
+              <span className="deck-ui-nav-glyph">
                 <Icon />
+                {renderBadge(item)}
               </span>
               {!collapsed ? <span>{tNav(item.labelKey)}</span> : null}
             </button>

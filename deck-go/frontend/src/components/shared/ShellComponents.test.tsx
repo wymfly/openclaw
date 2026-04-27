@@ -1,10 +1,38 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DeckGoTranscriptMessage } from "../../../../contracts/generated/ts/deck-api.generated";
+import { DeckIntlProvider } from "../../i18n/provider";
 import { TranscriptList } from "./ShellComponents";
 
+let container: HTMLDivElement;
+let root: Root | null = null;
+
+function renderTranscript(messages: DeckGoTranscriptMessage[], locale: "en" | "zh") {
+  act(() => {
+    root = createRoot(container);
+    root.render(
+      createElement(DeckIntlProvider, { locale }, createElement(TranscriptList, { messages })),
+    );
+  });
+}
+
+beforeEach(() => {
+  (
+    globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+  ).IS_REACT_ACT_ENVIRONMENT = true;
+  container = document.createElement("div");
+  document.body.appendChild(container);
+});
+
 afterEach(() => {
-  cleanup();
+  if (root) {
+    act(() => {
+      root?.unmount();
+    });
+  }
+  root = null;
+  container.remove();
 });
 
 describe("TranscriptList", () => {
@@ -32,13 +60,19 @@ describe("TranscriptList", () => {
       },
     ];
 
-    render(<TranscriptList messages={messages} />);
+    renderTranscript(messages, "en");
 
-    expect(screen.getByText("Text")).toBeTruthy();
-    expect(screen.getByText("Tool use")).toBeTruthy();
-    expect(screen.getByText("Tool result")).toBeTruthy();
-    expect(screen.getByText("exec")).toBeTruthy();
-    expect(screen.getByText("pwd")).toBeTruthy();
-    expect(screen.getByText("/tmp/workspace")).toBeTruthy();
+    expect(container.textContent).toContain("Text");
+    expect(container.textContent).toContain("Tool use");
+    expect(container.textContent).toContain("Tool result");
+    expect(container.textContent).toContain("exec");
+    expect(container.textContent).toContain("pwd");
+    expect(container.textContent).toContain("/tmp/workspace");
+  });
+
+  it("renders shared transcript copy through the active locale", () => {
+    renderTranscript([], "zh");
+
+    expect(container.textContent).toContain("暂无对话消息。");
   });
 });

@@ -2,6 +2,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../i18n/provider";
 import { ActivePanelHost } from "./ActivePanelHost";
 
 const uiState = vi.hoisted(() => ({
@@ -56,7 +57,9 @@ describe("ActivePanelHost panel components", () => {
   it("delegates non-chat panels through the panel component registry", () => {
     act(() => {
       root = createRoot(container);
-      root.render(createElement(ActivePanelHost));
+      root.render(
+        createElement(DeckIntlProvider, { locale: "en" }, createElement(ActivePanelHost)),
+      );
     });
 
     expect(container.textContent).toContain("Gateway Panel");
@@ -68,7 +71,9 @@ describe("ActivePanelHost panel components", () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(createElement(ActivePanelHost));
+      root.render(
+        createElement(DeckIntlProvider, { locale: "en" }, createElement(ActivePanelHost)),
+      );
     });
 
     expect(container.textContent).toContain("Deck panel host keyed to the active panel registry");

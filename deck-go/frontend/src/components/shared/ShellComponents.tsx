@@ -6,7 +6,10 @@ import type {
   DeckGoSessionPreviewEntry,
   DeckGoTranscriptMessage,
 } from "../../../../contracts/generated/ts/deck-api.generated";
+import { useTranslations } from "../../i18n/provider";
 import { summarizeLogEvent, summarizeServerEvent } from "../../stream-contract";
+
+type SharedTranslator = (key: string, values?: Record<string, number | string>) => string;
 
 export function JsonDetails(props: { title: string; payload: unknown }) {
   return (
@@ -26,7 +29,7 @@ export function ShellStat(props: { label: string; value: string | number }) {
   );
 }
 
-function stringifyBlockValue(value: unknown) {
+function stringifyBlockValue(value: unknown, t: SharedTranslator) {
   if (typeof value === "string") {
     return value;
   }
@@ -36,47 +39,53 @@ function stringifyBlockValue(value: unknown) {
   try {
     return JSON.stringify(value, null, 2);
   } catch {
-    return "[unserializable payload]";
+    return t("unserializablePayload");
   }
 }
 
-function summarizeTranscriptBlock(block: DeckGoTranscriptMessage["content"][number]) {
+function summarizeTranscriptBlock(
+  block: DeckGoTranscriptMessage["content"][number],
+  t: SharedTranslator,
+) {
   switch (block.type) {
     case "text":
       return {
-        label: "Text",
-        title: "Transcript text",
-        preview: block.text?.trim() || "(empty text block)",
+        label: t("text"),
+        title: t("transcriptText"),
+        preview: block.text?.trim() || t("emptyTextBlock"),
       };
     case "tool_use":
       return {
-        label: "Tool use",
-        title: block.name?.trim() || block.id?.trim() || "Unnamed tool",
+        label: t("toolUse"),
+        title: block.name?.trim() || block.id?.trim() || t("unnamedTool"),
         preview:
           (typeof block.input?.command === "string" && block.input.command.trim()) ||
-          stringifyBlockValue(block.input) ||
-          "No structured input",
+          stringifyBlockValue(block.input, t) ||
+          t("noStructuredInput"),
       };
     case "tool_result":
       return {
-        label: block.isError ? "Tool result error" : "Tool result",
-        title: block.toolUseId?.trim() || "Tool output",
-        preview: stringifyBlockValue(block.content) || "(empty result block)",
+        label: block.isError ? t("toolResultError") : t("toolResult"),
+        title: block.toolUseId?.trim() || t("toolOutput"),
+        preview: stringifyBlockValue(block.content, t) || t("emptyResultBlock"),
       };
     default:
       return {
-        label: block.type?.trim() || "Block",
-        title: block.name?.trim() || block.title?.trim() || "Transcript payload",
+        label: block.type?.trim() || t("block"),
+        title: block.name?.trim() || block.title?.trim() || t("transcriptPayload"),
         preview:
           block.text?.trim() ||
-          stringifyBlockValue({
-            input: block.input,
-            content: block.content,
-            summary: block.summary,
-            data: block.data,
-            url: block.url,
-          }) ||
-          "(empty block)",
+          stringifyBlockValue(
+            {
+              input: block.input,
+              content: block.content,
+              summary: block.summary,
+              data: block.data,
+              url: block.url,
+            },
+            t,
+          ) ||
+          t("emptyBlock"),
       };
   }
 }
@@ -86,7 +95,8 @@ function TranscriptBlockCard(props: {
   messageId: string;
   index: number;
 }) {
-  const summary = summarizeTranscriptBlock(props.block);
+  const t = useTranslations("shellComponents");
+  const summary = summarizeTranscriptBlock(props.block, t);
   const rawPayload = {
     ...props.block,
     ...(props.block.text?.trim() ? {} : { text: undefined }),
@@ -101,7 +111,8 @@ function TranscriptBlockCard(props: {
       <pre className="deckgo-code deckgo-transcript-block-preview">{summary.preview}</pre>
       <details>
         <summary>
-          Raw payload · {props.messageId || "message"} · block {props.index + 1}
+          {t("rawPayload")} · {props.messageId || t("message")} ·{" "}
+          {t("blockIndex", { index: props.index + 1 })}
         </summary>
         <pre className="deckgo-code">{JSON.stringify(rawPayload, null, 2)}</pre>
       </details>
@@ -110,8 +121,9 @@ function TranscriptBlockCard(props: {
 }
 
 export function TranscriptList(props: { messages: DeckGoTranscriptMessage[] }) {
+  const t = useTranslations("shellComponents");
   if (props.messages.length === 0) {
-    return <p className="deckgo-note">No transcript messages.</p>;
+    return <p className="deckgo-note">{t("noTranscriptMessages")}</p>;
   }
 
   return (
@@ -121,10 +133,12 @@ export function TranscriptList(props: { messages: DeckGoTranscriptMessage[] }) {
           <article className="deckgo-transcript-message">
             <div className="deckgo-transcript-message-header">
               <strong>
-                {message.role} · {message.id || "pending"}
+                {message.role} · {message.id || t("pending")}
               </strong>
-              {message.streaming ? <span className="deckgo-pill is-primary">streaming</span> : null}
-              {message.error ? <span className="deckgo-pill is-danger">error</span> : null}
+              {message.streaming ? (
+                <span className="deckgo-pill is-primary">{t("streaming")}</span>
+              ) : null}
+              {message.error ? <span className="deckgo-pill is-danger">{t("error")}</span> : null}
             </div>
             <div className="deckgo-transcript-blocks">
               {(message.content ?? []).map((block, index) => (
@@ -148,8 +162,9 @@ export function SessionListCard(props: {
   selectedKey?: string;
   onSelect?: (session: DeckGoSessionMeta) => void;
 }) {
+  const t = useTranslations("shellComponents");
   if (props.sessions.length === 0) {
-    return <p className="deckgo-note">No sessions loaded.</p>;
+    return <p className="deckgo-note">{t("noSessionsLoaded")}</p>;
   }
 
   return (
@@ -163,8 +178,8 @@ export function SessionListCard(props: {
           >
             <strong>{session.title || session.key}</strong>
             <div className="deckgo-meta">
-              key: {session.key} | agent: {session.agentId || "n/a"} | status:{" "}
-              {session.status || "unknown"}
+              {t("key")}: {session.key} | {t("agent")}: {session.agentId || t("notAvailable")} |{" "}
+              {t("status")}: {session.status || t("unknown")}
             </div>
             {session.lastMessagePreview ? (
               <div className="deckgo-meta">{session.lastMessagePreview}</div>
@@ -181,8 +196,9 @@ export function SessionPreviewCard(props: {
   selectedKey?: string;
   onSelect?: (preview: DeckGoSessionPreviewEntry) => void;
 }) {
+  const t = useTranslations("shellComponents");
   if (props.previews.length === 0) {
-    return <p className="deckgo-note">No previews loaded.</p>;
+    return <p className="deckgo-note">{t("noPreviewsLoaded")}</p>;
   }
 
   return (
@@ -196,10 +212,11 @@ export function SessionPreviewCard(props: {
           >
             <strong>{preview.key}</strong>
             <div className="deckgo-meta">
-              {preview.items?.map((item) => item.text).join(" · ") || "(empty)"}
+              {preview.items?.map((item) => item.text).join(" · ") || t("empty")}
             </div>
             <div className="deckgo-meta">
-              status: {preview.status || "unknown"} | items: {preview.items?.length ?? 0}
+              {t("status")}: {preview.status || t("unknown")} | {t("items")}:{" "}
+              {preview.items?.length ?? 0}
             </div>
           </button>
         </li>
@@ -213,15 +230,16 @@ export function EventFeedCard(props: {
   events: DeckGoServerEvent[] | DeckGoLogStreamEvent[];
   kind: "server" | "log";
 }) {
+  const t = useTranslations("shellComponents");
   if (props.events.length === 0) {
-    return <p className="deckgo-note">No {props.kind} events.</p>;
+    return <p className="deckgo-note">{t("noEvents", { kind: props.kind })}</p>;
   }
 
   return (
     <ul className="deckgo-shell-list">
       {props.events.map((event, index) => (
         <li key={`${event.id || props.kind}-${index}`}>
-          <strong>{event.event || "unknown"}</strong>
+          <strong>{event.event || t("unknown")}</strong>
           <div className="deckgo-meta">
             {props.kind === "server"
               ? summarizeServerEvent(event as DeckGoServerEvent)
@@ -238,6 +256,7 @@ export function SessionDetailCard(props: {
   snapshot: DeckGoSessionDetailResponse | null;
   history: { messages?: DeckGoTranscriptMessage[] } | null;
 }) {
+  const t = useTranslations("shellComponents");
   const detailSession = props.detail?.session;
   const detailMessages = props.detail?.messages ?? [];
   const snapshotMessages = props.snapshot?.messages ?? [];
@@ -247,10 +266,11 @@ export function SessionDetailCard(props: {
     <div className="deckgo-dividerless">
       {detailSession ? (
         <div>
-          <p className="deckgo-kicker deckgo-session-detail-kicker">Session detail</p>
+          <p className="deckgo-kicker deckgo-session-detail-kicker">{t("sessionDetail")}</p>
           <div className="deckgo-meta">
-            {detailSession.title || detailSession.key} | agent: {detailSession.agentId || "n/a"} |
-            status: {detailSession.status || "unknown"}
+            {detailSession.title || detailSession.key} | {t("agent")}:{" "}
+            {detailSession.agentId || t("notAvailable")} | {t("status")}:{" "}
+            {detailSession.status || t("unknown")}
           </div>
         </div>
       ) : null}
@@ -259,11 +279,12 @@ export function SessionDetailCard(props: {
 
       {props.snapshot ? (
         <details>
-          <summary>Snapshot alias</summary>
+          <summary>{t("snapshotAlias")}</summary>
           {snapshotSession ? (
             <div className="deckgo-meta deckgo-session-snapshot-meta">
-              {snapshotSession.title || snapshotSession.key} | agent:{" "}
-              {snapshotSession.agentId || "n/a"} | status: {snapshotSession.status || "unknown"}
+              {snapshotSession.title || snapshotSession.key} | {t("agent")}:{" "}
+              {snapshotSession.agentId || t("notAvailable")} | {t("status")}:{" "}
+              {snapshotSession.status || t("unknown")}
             </div>
           ) : null}
           <TranscriptList messages={snapshotMessages} />
@@ -272,7 +293,7 @@ export function SessionDetailCard(props: {
 
       {props.history ? (
         <details>
-          <summary>History seam</summary>
+          <summary>{t("historySeam")}</summary>
           <TranscriptList messages={props.history.messages ?? []} />
         </details>
       ) : null}

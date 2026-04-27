@@ -61,6 +61,7 @@ load_env() {
   : "${DECK_GO_FRONTEND_HOST:=127.0.0.1}"
   : "${DECK_GO_FRONTEND_PORT:=4174}"
   : "${VITE_DECK_GO_API_BASE:=http://${DECK_GO_ADDR}}"
+  : "${VITE_DECK_VISUAL_STATE:=1}"
   : "${DECK_GO_RUNTIME_ACTION_TIMEOUT:=300}"
 
   local local_no_proxy="localhost,127.0.0.1,::1"
@@ -98,6 +99,7 @@ load_env() {
   export DECK_GO_FRONTEND_PORT
   export DECK_GO_RUNTIME_ACTION_TIMEOUT
   export VITE_DECK_GO_API_BASE
+  export VITE_DECK_VISUAL_STATE
   export BACKEND_BASE
   export FRONTEND_BASE
   export NO_PROXY
@@ -253,7 +255,9 @@ build_frontend() {
   echo "[deck-go-local] building frontend against ${VITE_DECK_GO_API_BASE}"
   (
     cd "${ROOT_DIR}/frontend"
-    VITE_DECK_GO_API_BASE="${VITE_DECK_GO_API_BASE}" npm run build
+    VITE_DECK_GO_API_BASE="${VITE_DECK_GO_API_BASE}" \
+      VITE_DECK_VISUAL_STATE="${VITE_DECK_VISUAL_STATE}" \
+      npm run build
   )
 }
 
@@ -304,6 +308,7 @@ start_frontend() {
     cd "${ROOT_DIR}/frontend"
     nohup env \
       VITE_DECK_GO_API_BASE="${VITE_DECK_GO_API_BASE}" \
+      VITE_DECK_VISUAL_STATE="${VITE_DECK_VISUAL_STATE}" \
       "${FRONTEND_BIN}" preview --host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}" >"${FRONTEND_LOG}" 2>&1 </dev/null &
   )
   wait_for_url "${FRONTEND_BASE}/" "frontend preview"
@@ -394,9 +399,11 @@ run_backend_fg() {
 }
 
 run_frontend_fg() {
+  build_frontend
   cd "${ROOT_DIR}/frontend"
   exec env \
     VITE_DECK_GO_API_BASE="${VITE_DECK_GO_API_BASE}" \
+    VITE_DECK_VISUAL_STATE="${VITE_DECK_VISUAL_STATE}" \
     "${FRONTEND_BIN}" preview --host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}"
 }
 

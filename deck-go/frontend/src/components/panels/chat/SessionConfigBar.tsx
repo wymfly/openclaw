@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { BanIcon, BarChartIcon, BrainIcon, CpuIcon, FileCodeIcon, ZapIcon } from "@/deck-ui/icons";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
@@ -6,6 +7,7 @@ import { patchSession } from "./chat-api";
 
 const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
 const RESPONSE_USAGE_LEVELS = ["off", "tokens", "full"] as const;
+type ThinkingLevel = (typeof THINKING_LEVELS)[number];
 
 export function SessionConfigBar(
   props: {
@@ -89,10 +91,17 @@ function SessionConfigBarView({
   };
 
   const model = meta.model ?? t("configModelDefault");
+  const thinkingLevel = (meta.thinkingLevel ?? "off") as ThinkingLevel;
+  const usageLevel = meta.responseUsage ?? "off";
+  const optionLabel = (prefix: string, value: string) => {
+    const key = `${prefix}_${value}`;
+    return typeof t.has === "function" && t.has(key) ? t(key) : value;
+  };
 
   return (
     <div className="deck-ui-session-config">
       <span className="deck-ui-session-config-model">
+        <CpuIcon />
         {t("configModel")} <strong>{model}</strong>
       </span>
 
@@ -102,7 +111,8 @@ function SessionConfigBarView({
         title={t("configThinkingToggle")}
         onClick={handleCycleThinking}
       >
-        {t("configThinking")} {meta.thinkingLevel ?? "off"}
+        <BrainIcon />
+        {t("configThinking")} {optionLabel("configLevel", thinkingLevel)}
       </button>
 
       <button
@@ -111,11 +121,13 @@ function SessionConfigBarView({
         title={t("configFastToggle")}
         onClick={handleToggleFast}
       >
+        <ZapIcon />
         {t("configFast")} {meta.fastMode ? t("configOn") : t("configOff")}
       </button>
 
       {meta.verboseLevel ? (
         <span className="deck-ui-session-config-pill">
+          <FileCodeIcon />
           {t("configVerbose")} {meta.verboseLevel}
         </span>
       ) : null}
@@ -126,7 +138,8 @@ function SessionConfigBarView({
         title={t("configUsageToggle")}
         onClick={handleCycleUsage}
       >
-        {t("configUsage")} {meta.responseUsage ?? "off"}
+        <BarChartIcon />
+        {t("configUsage")} {optionLabel("configUsageValue", usageLevel)}
       </button>
 
       <button
@@ -135,6 +148,7 @@ function SessionConfigBarView({
         title={t("configSendPolicyToggle")}
         onClick={handleToggleSendPolicy}
       >
+        <BanIcon />
         {t("configSendPolicy")} {meta.sendPolicy === "deny" ? t("configDeny") : t("configAllow")}
       </button>
     </div>

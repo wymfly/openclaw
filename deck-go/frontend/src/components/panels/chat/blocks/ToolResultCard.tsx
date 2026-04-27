@@ -12,8 +12,12 @@ import type { ContentBlock } from "@/stores/chat-types";
 import { ArtifactContext } from "../artifact-context";
 import { ArtifactCard } from "../artifacts/ArtifactCard";
 import { detectArtifact } from "../artifacts/detectArtifact";
+import { BashResultView } from "./BashResultView";
+import { DiffPreview } from "./DiffPreview";
 import { FileBlock } from "./FileBlock";
+import { HighlightedCodeView } from "./HighlightedCodeView";
 import { ImageBlock } from "./ImageBlock";
+import { ShowRawToggle } from "./ShowRawToggle";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolUseCard } from "./ToolUseCard";
 import { UnknownBlockCard } from "./UnknownBlockCard";
@@ -102,7 +106,7 @@ export function ToolResultCard(props: ToolResultCardProps) {
     [contentText, viewType],
   );
   const lineCount = useMemo(() => countLines(contentText), [contentText]);
-  const hasEnhancedView = viewType !== "raw" || lineCount > 200;
+  const hasEnhancedView = viewType !== "raw" || lineCount > 200 || typeof content !== "string";
   const artifact =
     !isError && typeof content === "string"
       ? detectArtifact(content, resolveToolContext(props))
@@ -124,13 +128,7 @@ export function ToolResultCard(props: ToolResultCardProps) {
         <strong>{isError ? t("toolError") : t("toolResult")}</strong>
       </div>
       {hasEnhancedView ? (
-        <button
-          className="deck-ui-tool-control"
-          type="button"
-          onClick={() => setShowRaw((current) => !current)}
-        >
-          {showRaw ? t("showFormatted") : t("showRaw")}
-        </button>
+        <ShowRawToggle isRaw={showRaw} onToggle={() => setShowRaw((current) => !current)} />
       ) : null}
       {showRaw ? (
         renderRawContent({ content: contentText, lineCount })
@@ -203,43 +201,12 @@ function renderStringContent({
   }
 
   if (viewType === "bash" && bashResult) {
-    return (
-      <div className="deck-ui-tool-result-bash" data-tool-result-view="bash">
-        {bashResult.command ? (
-          <div className="deck-ui-tool-result-command">
-            {t("bashCommand")}: <code>$ {bashResult.command}</code>
-          </div>
-        ) : null}
-        <div className="deck-ui-tool-result-exit">
-          {t("bashExitCode")}: {bashResult.exitCode}
-        </div>
-        {bashResult.stdout ? (
-          <section className="deck-ui-tool-result-stream">
-            <strong>{t("bashStdout")}</strong>
-            <pre>{bashResult.stdout}</pre>
-          </section>
-        ) : null}
-        {bashResult.stderr ? (
-          <section className="deck-ui-tool-result-stream is-error">
-            <strong>{t("bashStderr")}</strong>
-            <pre>{bashResult.stderr}</pre>
-          </section>
-        ) : null}
-      </div>
-    );
+    return <BashResultView result={bashResult} />;
   }
 
   if (viewType === "read") {
     const extension = getFileExtension(filePath);
-    return (
-      <pre
-        className="deck-ui-tool-result-raw"
-        data-tool-result-view="read"
-        data-language={extension}
-      >
-        {content}
-      </pre>
-    );
+    return <HighlightedCodeView content={content} extension={extension} />;
   }
 
   if (viewType === "diff") {
@@ -255,56 +222,6 @@ function renderRawContent({ content, lineCount }: { content: string; lineCount: 
   }
 
   return <pre className="deck-ui-tool-result-raw">{content}</pre>;
-}
-
-function DiffPreview({ content }: { content: string }) {
-  const t = useTranslations("chat");
-  if (isBinaryContent(content)) {
-    return (
-      <div className="deck-ui-tool-result-binary" data-tool-result-view="diff">
-        {t("binaryFile")}
-      </div>
-    );
-  }
-
-  const lines = content.split("\n");
-  const isUnified =
-    content.includes("\n@@") && (content.includes("\n---") || content.includes("\n+++"));
-  return (
-    <div className="deck-ui-diff-preview" data-tool-result-view="diff">
-      {lines.map((line, index) => {
-        const kind = classifyDiffLine(line, isUnified);
-        return (
-          <div
-            className={`deck-ui-diff-line is-${kind}`}
-            key={`${index}-${line}`}
-            data-diff-line={kind}
-          >
-            {isUnified ? line : `+${line}`}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function classifyDiffLine(
-  line: string,
-  isUnified: boolean,
-): "added" | "removed" | "hunk" | "context" {
-  if (!isUnified) {
-    return "added";
-  }
-  if (line.startsWith("@@")) {
-    return "hunk";
-  }
-  if (line.startsWith("+") && !line.startsWith("+++")) {
-    return "added";
-  }
-  if (line.startsWith("-") && !line.startsWith("---")) {
-    return "removed";
-  }
-  return "context";
 }
 
 function resolveToolContext(

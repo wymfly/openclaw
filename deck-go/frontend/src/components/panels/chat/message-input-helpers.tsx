@@ -1,4 +1,5 @@
 import { useCallback, useContext } from "react";
+import { FileTextIcon, MonitorDotIcon } from "@/deck-ui/icons";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { ArtifactContext } from "./artifact-context";
@@ -89,7 +90,8 @@ export function CanvasToggle({ label }: { label: string }) {
       title={label}
       onClick={handleToggle}
     >
-      {label}
+      <MonitorDotIcon />
+      <span>{label}</span>
     </button>
   );
 }
@@ -104,6 +106,7 @@ export function ArtifactToggle({ label }: { label: string }) {
       title={label}
       onClick={onToggleArtifactPanel}
     >
+      <FileTextIcon />
       {label}
     </button>
   );

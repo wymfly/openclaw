@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { fetchSubagentLineage, type DeckGoSubagentLineageNode } from "@/api";
 import { useChatStore } from "@/stores/chat";
+import { SubagentCard } from "./SubagentCard";
 
 type LineageTreeNode = {
   node: DeckGoSubagentLineageNode;
@@ -10,13 +11,6 @@ type LineageTreeNode = {
 
 function nodeLabel(node: DeckGoSubagentLineageNode) {
   return node.agentName || node.agentId || node.sessionKey;
-}
-
-function nodeElapsed(node: DeckGoSubagentLineageNode) {
-  if (typeof node.durationMs !== "number" || node.durationMs <= 0) {
-    return "";
-  }
-  return `${(node.durationMs / 1000).toFixed(1)}s`;
 }
 
 function buildLineageTree(nodes: DeckGoSubagentLineageNode[]) {
@@ -60,37 +54,19 @@ function buildLineageTree(nodes: DeckGoSubagentLineageNode[]) {
 }
 
 function SubagentTreeNode({ entry }: { entry: LineageTreeNode }) {
-  const [expanded, setExpanded] = useState(true);
   const hasChildren = entry.children.length > 0;
-  const elapsed = nodeElapsed(entry.node);
 
   return (
     <li className="deck-ui-subagent-node">
-      <button
-        aria-expanded={hasChildren ? expanded : undefined}
-        className="deck-ui-subagent-row"
-        data-run-id={entry.node.runId}
-        type="button"
-        onClick={() => {
-          if (hasChildren) {
-            setExpanded((current) => !current);
-          }
-        }}
-      >
-        <span className={`deck-ui-subagent-status is-${entry.node.status}`} aria-hidden="true" />
-        <span className="deck-ui-subagent-label">{nodeLabel(entry.node)}</span>
-        {entry.node.task ? (
-          <small className="deck-ui-subagent-task">{entry.node.task}</small>
+      <SubagentCard hasChildren={hasChildren} node={entry.node}>
+        {hasChildren ? (
+          <ul className="deck-ui-subagent-children">
+            {entry.children.map((child) => (
+              <SubagentTreeNode entry={child} key={child.node.runId || child.node.sessionKey} />
+            ))}
+          </ul>
         ) : null}
-        {elapsed ? <em className="deck-ui-subagent-elapsed">{elapsed}</em> : null}
-      </button>
-      {expanded && hasChildren ? (
-        <ul className="deck-ui-subagent-children">
-          {entry.children.map((child) => (
-            <SubagentTreeNode entry={child} key={child.node.runId || child.node.sessionKey} />
-          ))}
-        </ul>
-      ) : null}
+      </SubagentCard>
     </li>
   );
 }
@@ -142,7 +118,7 @@ export function SubagentTree() {
     <section className="deck-ui-subagent-tree" aria-label={t("subagents")}>
       <header>
         <strong>{t("subagents")}</strong>
-        {loading ? <span className="deck-ui-subagent-loading">Loading</span> : null}
+        {loading ? <span className="deck-ui-subagent-loading">{t("subagentLoading")}</span> : null}
       </header>
       <ul>
         {tree.map((entry) => (

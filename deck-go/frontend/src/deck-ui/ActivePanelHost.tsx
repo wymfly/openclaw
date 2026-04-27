@@ -1,3 +1,4 @@
+import { useTranslations } from "../i18n/provider";
 import { renderPanelComponent } from "./panel-component-registry";
 import {
   navigateToAgent,
@@ -12,6 +13,8 @@ import { findPanel, panelPlaceholderDescription } from "./panel-registry";
 import { useDeckUI } from "./ui-store";
 
 export function ActivePanelHost() {
+  const tNav = useTranslations("nav");
+  const tShell = useTranslations("shell");
   const ui = useDeckUI();
   const { activePanel, runtime, bootstrap } = ui;
   const entry = findPanel(activePanel);
@@ -20,15 +23,17 @@ export function ActivePanelHost() {
     return (
       <section className="deckgo-card">
         <div className="deckgo-card-body">
-          <p className="deckgo-note">Unknown panel: {activePanel}</p>
+          <p className="deckgo-note">{tShell("unknownPanel", { panel: activePanel })}</p>
         </div>
       </section>
     );
   }
 
   const readiness = getPanelReadiness(entry.id);
-  const gatewaySummary = bootstrap?.gateway.connected ? "Gateway linked" : "Gateway pending";
-  const runtimeSummary = runtime?.runtime.status || bootstrap?.runtime.status || "pending";
+  const gatewaySummary = bootstrap?.gateway.connected
+    ? tShell("gatewayLinked")
+    : tShell("gatewayPending");
+  const runtimeSummary = runtime?.runtime.status || bootstrap?.runtime.status || tShell("pending");
   const panelComponent = renderPanelComponent(entry.id);
 
   if (panelComponent) {
@@ -39,63 +44,66 @@ export function ActivePanelHost() {
     <section className="deckgo-panel-workspace">
       <article className="deckgo-card is-float">
         <div className="deckgo-card-header">
-          <h2 className="deckgo-card-title">{entry.label}</h2>
+          <h2 className="deckgo-card-title">{tNav(entry.labelKey)}</h2>
         </div>
-        <p className="deckgo-card-subtitle">
-          Deck panel host keyed to the active panel registry. This fallback appears only when a
-          panel id has no registered component.
-        </p>
+        <p className="deckgo-card-subtitle">{tShell("panelHostFallbackDescription")}</p>
         <div className="deckgo-card-body deckgo-dividerless">
           <div className="deckgo-pill-row">
-            <span className="deckgo-pill is-primary">group: {entry.group}</span>
-            <span className="deckgo-pill">panel id: {entry.id}</span>
+            <span className="deckgo-pill is-primary">
+              {tShell("groupLabel")}: {entry.group}
+            </span>
+            <span className="deckgo-pill">
+              {tShell("panelIdLabel")}: {entry.id}
+            </span>
             <span className="deckgo-pill is-positive">{readiness.status}</span>
           </div>
           <div className="deckgo-panel-hero-strip">
             <div>
-              <p className="deckgo-kicker">Panel import target</p>
+              <p className="deckgo-kicker">{tShell("panelImportTarget")}</p>
               <strong>{entry.importTarget}</strong>
             </div>
             <div className="deckgo-pill-row">
               <span className="deckgo-pill">{gatewaySummary}</span>
-              <span className="deckgo-pill">Runtime {runtimeSummary}</span>
+              <span className="deckgo-pill">
+                {tShell("runtimeLabel")} {runtimeSummary}
+              </span>
             </div>
           </div>
-          <div className="deckgo-surface-tile">{panelPlaceholderDescription(entry)}</div>
+          <div className="deckgo-surface-tile">
+            {panelPlaceholderDescription(entry, tShell("importLabel"))}
+          </div>
         </div>
       </article>
 
       <aside className="deckgo-column">
         <article className="deckgo-card">
           <div className="deckgo-card-header">
-            <h3 className="deckgo-card-title">Cross-panel handoffs</h3>
+            <h3 className="deckgo-card-title">{tShell("handoffsTitle")}</h3>
           </div>
-          <p className="deckgo-card-subtitle">
-            Jump between related operational surfaces without losing the active runtime context.
-          </p>
+          <p className="deckgo-card-subtitle">{tShell("handoffsDescription")}</p>
           <div className="deckgo-card-body">
             <div className="deckgo-actions">
               <button className="deckgo-button" type="button" onClick={() => navigateToAgent(ui)}>
-                Agents
+                {tNav("agents")}
               </button>
               <button className="deckgo-button" type="button" onClick={() => navigateToSession(ui)}>
-                Sessions
+                {tNav("sessions")}
               </button>
               <button className="deckgo-button" type="button" onClick={() => navigateToRouting(ui)}>
-                Routing
+                {tNav("routing")}
               </button>
               <button className="deckgo-button" type="button" onClick={() => navigateToChannel(ui)}>
-                Channels
+                {tNav("channels")}
               </button>
               <button className="deckgo-button" type="button" onClick={() => navigateToPlugin(ui)}>
-                Plugins
+                {tNav("plugins")}
               </button>
               <button
                 className="deckgo-button"
                 type="button"
                 onClick={() => navigateToSubagents(ui)}
               >
-                Subagents
+                {tNav("subagents")}
               </button>
             </div>
           </div>
@@ -103,14 +111,16 @@ export function ActivePanelHost() {
 
         <article className="deckgo-card">
           <div className="deckgo-card-header">
-            <h3 className="deckgo-card-title">Contract readiness</h3>
+            <h3 className="deckgo-card-title">{tShell("contractReadiness")}</h3>
           </div>
           <p className="deckgo-card-subtitle">{readiness.evidence}</p>
           <div className="deckgo-card-body">
             <div className="deckgo-panel-readiness">
               <span className="deckgo-pill is-positive">{readiness.status}</span>
               {entry.shortcutIndex ? (
-                <span className="deckgo-pill">Alt+{entry.shortcutIndex} shortcut</span>
+                <span className="deckgo-pill">
+                  {tShell("altShortcut", { index: entry.shortcutIndex })}
+                </span>
               ) : null}
             </div>
           </div>

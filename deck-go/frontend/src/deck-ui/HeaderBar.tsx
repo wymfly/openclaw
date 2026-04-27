@@ -14,6 +14,8 @@ export function DeckHeaderBar() {
   const {
     activePanel,
     bootstrap,
+    runtime,
+    refreshingSummary,
     summaryError,
     themeMode,
     setThemeMode,
@@ -23,6 +25,15 @@ export function DeckHeaderBar() {
   const { isMobile } = useDeckViewport();
   const entry = findPanel(activePanel);
   const gatewayConnected = bootstrap?.gateway.connected ?? false;
+  const runtimeStatus = runtime?.runtime.status ?? bootstrap?.runtime.status;
+  const statusKind = gatewayConnected
+    ? "connected"
+    : refreshingSummary ||
+        runtimeStatus === "starting" ||
+        runtimeStatus === "stopping" ||
+        runtimeStatus === "degraded"
+      ? "reconnecting"
+      : "disconnected";
   const panelLabel = entry ? tNav(entry.labelKey) : activePanel;
   const toggleLocale = () => setLocale(locale === "zh" ? "en" : "zh");
   const themeLabels: Record<DeckGoThemeMode, string> = {
@@ -63,11 +74,22 @@ export function DeckHeaderBar() {
       <div className="deck-ui-header-right">
         <button
           type="button"
-          className={`deck-ui-status-chip ${gatewayConnected ? "is-healthy" : "is-muted"}`}
+          className={`deck-ui-status-chip ${
+            statusKind === "connected"
+              ? "is-healthy"
+              : statusKind === "reconnecting"
+                ? "is-pending"
+                : "is-muted"
+          }`}
           onClick={() => setActivePanel("gateway")}
+          title={runtimeStatus ? `${tHeader("runtime")}: ${runtimeStatus}` : tHeader("gateway")}
         >
           <span className="deck-ui-dot" aria-hidden="true" />
-          {gatewayConnected ? tHeader("connected") : tHeader("disconnected")}
+          {statusKind === "connected"
+            ? tHeader("connected")
+            : statusKind === "reconnecting"
+              ? tHeader("reconnecting")
+              : tHeader("disconnected")}
         </button>
         <button
           type="button"

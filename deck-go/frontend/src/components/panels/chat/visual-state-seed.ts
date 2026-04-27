@@ -1,3 +1,4 @@
+import { useAgentsStore } from "@/stores/agents";
 import { useApprovalsStore } from "@/stores/approvals";
 import { useChatStore } from "@/stores/chat";
 import type { ChatMessage, SessionMeta } from "@/stores/chat-types";
@@ -5,17 +6,34 @@ import type { ChatMessage, SessionMeta } from "@/stores/chat-types";
 const VISUAL_STATE_PARAM = "deckVisualState";
 const LEGACY_VISUAL_STATE_PARAM = "visualState";
 const CHAT_RICH_STATE = "chat-rich";
+const CHAT_EMPTY_STATE = "chat-empty";
+const VISUAL_STATE_ENV = "VITE_DECK_VISUAL_STATE";
 
 function canSeedVisualState() {
-  return import.meta.env.DEV || import.meta.env.MODE === "test";
+  return (
+    import.meta.env.DEV ||
+    import.meta.env.MODE === "test" ||
+    import.meta.env[VISUAL_STATE_ENV] === "1"
+  );
 }
 
-function wantsChatRichState(search: string) {
+function readRequestedVisualState(search: string): string | null {
   const params = new URLSearchParams(search);
-  return (
-    params.get(VISUAL_STATE_PARAM) === CHAT_RICH_STATE ||
-    params.get(LEGACY_VISUAL_STATE_PARAM) === CHAT_RICH_STATE
-  );
+  return params.get(VISUAL_STATE_PARAM) ?? params.get(LEGACY_VISUAL_STATE_PARAM);
+}
+
+function isSupportedVisualState(state: string | null) {
+  return state === CHAT_RICH_STATE || state === CHAT_EMPTY_STATE;
+}
+
+function seedAgents(status: "idle" | "busy") {
+  useAgentsStore.setState((agentsState) => ({
+    agents: [
+      { id: "main", name: "Main Agent", model: "gpt-5.4", status },
+      { id: "ops", name: "Ops Bot", model: "sonnet-4.6", status: "idle" },
+    ],
+    fetchAgents: agentsState.fetchAgents,
+  }));
 }
 
 function readCurrentLocationSearch() {
@@ -34,7 +52,10 @@ function readCurrentLocationSearch() {
 }
 
 export function isChatVisualStateRequested(search?: string): boolean {
-  return canSeedVisualState() && wantsChatRichState(search ?? readCurrentLocationSearch());
+  return (
+    canSeedVisualState() &&
+    isSupportedVisualState(readRequestedVisualState(search ?? readCurrentLocationSearch()))
+  );
 }
 
 function seededSessionMetas(now: number): SessionMeta[] {
@@ -152,8 +173,19 @@ function seededMessages(now: number): ChatMessage[] {
 }
 
 export function applyChatVisualStateSeed(search?: string): boolean {
-  if (!isChatVisualStateRequested(search)) {
+  const state = readRequestedVisualState(search ?? readCurrentLocationSearch());
+  if (!canSeedVisualState() || !isSupportedVisualState(state)) {
     return false;
+  }
+
+  if (state === CHAT_EMPTY_STATE) {
+    const store = useChatStore.getState();
+    seedAgents("idle");
+    store.setActiveAgent("main");
+    store.setSessionMetas([]);
+    store.setActiveSession(null);
+    store.setSSEStatus("connected");
+    return true;
   }
 
   const now = Date.UTC(2026, 3, 26, 14, 0, 0);
@@ -161,6 +193,7 @@ export function applyChatVisualStateSeed(search?: string): boolean {
   const sessionKey = "visual-main";
   const store = useChatStore.getState();
   const metas = seededSessionMetas(now);
+  seedAgents("busy");
   const approval = {
     id: "visual-approval-1",
     toolName: "shell_command",

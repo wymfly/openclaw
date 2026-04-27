@@ -27,7 +27,7 @@ import {
   type IconComponent,
 } from "./icons";
 
-export type PanelGroup = "core" | "observe" | "automate" | "control" | "bottom";
+export type PanelGroup = "core" | "observe" | "automate" | "control";
 
 export type PanelId =
   | "chat"
@@ -66,6 +66,7 @@ export type PanelEntry = {
   importTarget: string;
   shortcutIndex?: number;
   position?: "bottom";
+  badge?: () => number;
 };
 
 export const PANELS: PanelEntry[] = [
@@ -280,7 +281,7 @@ export const PANELS: PanelEntry[] = [
   },
   {
     id: "settings",
-    group: "bottom",
+    group: "control",
     label: "Settings",
     labelKey: "settings",
     icon: SettingsIcon,
@@ -301,14 +302,13 @@ export function getPanelGroups() {
     observe: "Observe",
     automate: "Automate",
     control: "Control",
-    bottom: "Bottom",
   };
   for (const group of ["core", "observe", "automate", "control"] as const) {
     grouped.push({
       title: titles[group],
       titleKey: group,
       group,
-      items: PANELS.filter((panel) => panel.group === group),
+      items: PANELS.filter((panel) => panel.group === group && !panel.position),
     });
   }
   return grouped;
@@ -347,11 +347,13 @@ export function getAdjacentPanel(id: PanelId, direction: "next" | "prev") {
   return PANELS[nextIndex] ?? null;
 }
 
-export function panelPlaceholderDescription(panel: PanelEntry): ReactNode {
+export function panelPlaceholderDescription(panel: PanelEntry, importLabel = "import"): ReactNode {
   return (
     <>
       <strong>{panel.label}</strong>
-      <div className="deckgo-meta">import: {panel.importTarget}</div>
+      <div className="deckgo-meta">
+        {importLabel}: {panel.importTarget}
+      </div>
     </>
   );
 }

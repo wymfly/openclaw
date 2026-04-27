@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpIcon, PlusIcon, SquareIcon } from "@/deck-ui/icons";
 import { useMention } from "@/hooks/useMention";
 import { resolveSelectMode, useSlashCommand } from "@/hooks/useSlashCommand";
 import { commandRegistry } from "@/lib/command-registry";
@@ -594,9 +595,11 @@ export function MessageInput(props: MessageInputProps = {}) {
         className="deck-ui-composer-action"
         type="button"
         aria-label={attachFilesLabel}
+        title={attachFilesLabel}
         onClick={() => fileInputRef.current?.click()}
       >
-        {attachFilesLabel}
+        <PlusIcon />
+        <span>{attachFilesLabel}</span>
       </button>
       <input
         ref={fileInputRef}
@@ -666,17 +669,21 @@ export function MessageInput(props: MessageInputProps = {}) {
         className="deck-ui-composer-send"
         type="button"
         disabled={sendDisabled}
+        title={t("send")}
         onClick={() => void sendPlainMessage()}
       >
-        {t("send")}
+        <ArrowUpIcon />
+        <span>{t("send")}</span>
       </button>
       <button
         className="deck-ui-composer-abort"
         type="button"
         disabled={abortDisabled}
+        title={t("abort")}
         onClick={() => void abortRun()}
       >
-        {t("abort")}
+        <SquareIcon />
+        <span>{t("abort")}</span>
       </button>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { AlertTriangleIcon, MinusIcon } from "@/deck-ui/icons";
 import { contextPct, formatTokens, pressureState } from "@/lib/context-utils";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
@@ -58,26 +59,44 @@ export function ChatContextBar() {
 
   return (
     <div className="deck-ui-context-strip">
-      <span>{activeAgentId ?? "main"}</span>
-      <strong>{activeSessionKey ?? noSessionLabel}</strong>
+      <span className="deck-ui-context-pill">{activeAgentId ?? "main"}</span>
+      <strong className="deck-ui-context-session">{activeSessionKey ?? noSessionLabel}</strong>
       <span>{messagesCountLabel}</span>
       <span>{isStreaming ? streamingLabel : idleLabel}</span>
       {contextWindow > 0 ? (
         <span
+          className="deck-ui-context-pressure"
           data-pressure={pressure}
           title={`${formatTokens(usedTokens)} / ${formatTokens(contextWindow)} tokens`}
         >
-          {t("contextLabel")}: {pct}%
+          <span>{t("contextLabel")}: </span>
+          <span className="deck-ui-context-pressure-track">
+            <span style={{ width: `${pct}%` }} />
+          </span>
+          <strong>{pct}%</strong>
         </span>
       ) : null}
-      {pct >= 80 ? <span role="status">{t("contextWarning")}</span> : null}
+      {pct >= 80 ? (
+        <span className="deck-ui-context-warning" role="status">
+          <AlertTriangleIcon />
+          {t("contextWarning")}
+        </span>
+      ) : null}
       {compactionCount > 0 ? (
-        <span title={t("contextCompacted", { count: compactionCount })}>
-          {t("contextCompacted", { count: compactionCount })}
+        <span
+          className="deck-ui-context-compacted"
+          title={t("contextCompacted", { count: compactionCount })}
+        >
+          <AlertTriangleIcon />
+          {compactionCount}
+          <span className="deck-ui-sr-only">
+            {t("contextCompacted", { count: compactionCount })}
+          </span>
         </span>
       ) : null}
       {pct >= 60 && activeSessionKey ? (
         <button type="button" onClick={handleCompact} disabled={compacting}>
+          <MinusIcon />
           {compacting ? ts("compacting") : ts("compact")}
         </button>
       ) : null}

@@ -1,5 +1,13 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import {
+  CheckIcon,
+  CopyIcon,
+  RotateCcwIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+  type IconComponent,
+} from "@/deck-ui/icons";
 
 export function MessageActions({ content, onRetry }: { content: string; onRetry?: () => void }) {
   const t = useTranslations("chat");
@@ -14,42 +22,49 @@ export function MessageActions({ content, onRetry }: { content: string; onRetry?
 
   return (
     <div className="deck-ui-message-actions" role="toolbar" aria-label={t("messageActions")}>
-      <button
-        className="deck-ui-message-action"
-        type="button"
-        title={copied ? t("copied") : t("copy")}
+      <ActionButton
+        icon={copied ? CheckIcon : CopyIcon}
+        label={copied ? t("copied") : t("copy")}
         onClick={() => void handleCopy()}
-      >
-        {copied ? t("copied") : t("copy")}
-      </button>
-      {onRetry ? (
-        <button
-          className="deck-ui-message-action"
-          type="button"
-          title={t("retry")}
-          onClick={onRetry}
-        >
-          {t("retry")}
-        </button>
-      ) : null}
-      <button
-        className="deck-ui-message-action"
-        type="button"
-        title={t("thumbsUp")}
-        aria-pressed={reaction === "up"}
+      />
+      {onRetry ? <ActionButton icon={RotateCcwIcon} label={t("retry")} onClick={onRetry} /> : null}
+      <ActionButton
+        icon={ThumbsUpIcon}
+        label={t("thumbsUp")}
+        pressed={reaction === "up"}
         onClick={() => setReaction((current) => (current === "up" ? null : "up"))}
-      >
-        {t("thumbsUp")}
-      </button>
-      <button
-        className="deck-ui-message-action"
-        type="button"
-        title={t("thumbsDown")}
-        aria-pressed={reaction === "down"}
+      />
+      <ActionButton
+        icon={ThumbsDownIcon}
+        label={t("thumbsDown")}
+        pressed={reaction === "down"}
         onClick={() => setReaction((current) => (current === "down" ? null : "down"))}
-      >
-        {t("thumbsDown")}
-      </button>
+      />
     </div>
+  );
+}
+
+function ActionButton({
+  icon: Icon,
+  label,
+  pressed,
+  onClick,
+}: {
+  icon: IconComponent;
+  label: string;
+  pressed?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-label={label}
+      aria-pressed={pressed}
+      className="deck-ui-message-action"
+      title={label}
+      type="button"
+      onClick={onClick}
+    >
+      <Icon />
+    </button>
   );
 }

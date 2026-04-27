@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { ClockIcon, CpuIcon, ZapIcon } from "@/deck-ui/icons";
 import { formatDuration, formatTokenCount } from "@/lib/format-utils";
 import type { RunMetadata } from "@/stores/chat-types";
 
@@ -44,8 +45,14 @@ export function RunStatusBar({
           {t(`status_${sessionStatus}`)}
         </span>
       ) : null}
-      {metadata.model ? <span className="deck-ui-run-status-model">{metadata.model}</span> : null}
+      {metadata.model ? (
+        <span className="deck-ui-run-status-model">
+          <CpuIcon />
+          {metadata.model}
+        </span>
+      ) : null}
       <span>
+        <ZapIcon />
         {t("runTokensIn")} {formatTokenCount(metadata.usage?.input)} / {t("runTokensOut")}{" "}
         {formatTokenCount(metadata.usage?.output)}
         {metadata.usage?.cache !== undefined ? (
@@ -56,6 +63,7 @@ export function RunStatusBar({
         ) : null}
       </span>
       <span>
+        <ClockIcon />
         {metadata.streaming ? t("runStreaming") : t("runDuration")} {formatDuration(elapsed)}
       </span>
       {sessionTotalTokens != null && sessionTotalTokens > 0 ? (

@@ -1,12 +1,32 @@
 import type { FormEvent } from "react";
+import { ToastContainer } from "../components/shared/ToastContainer";
+import { useTranslations } from "../i18n/provider";
 import { useThemeMode } from "../theme";
+import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
+import { PanelErrorBoundary } from "./PanelErrorBoundary";
 import { DeckPanelHost } from "./PanelHost";
 import { DeckShell } from "./Shell";
 import { DeckUIProvider, useDeckUI } from "./ui-store";
 import { useDeckShortcuts } from "./use-deck-shortcuts";
 
+const DEFAULT_AUTH_MESSAGE = "Enter the deck-go access token to unlock the control plane.";
+const TOKEN_REQUIRED_MESSAGE = "Access token is required.";
+
+function resolveAuthMessage(message: string, tShell: (key: string) => string) {
+  if (!message || message === DEFAULT_AUTH_MESSAGE) {
+    return tShell("authDescription");
+  }
+  if (message === TOKEN_REQUIRED_MESSAGE) {
+    return tShell("authTokenRequired");
+  }
+  return message;
+}
+
 function DeckAppFrame() {
+  const tShell = useTranslations("shell");
+  const tPanelError = useTranslations("panelError");
   const {
+    activePanel,
     authMessage,
     authRequired,
     authTokenInput,
@@ -15,7 +35,7 @@ function DeckAppFrame() {
     setAuthTokenInput,
     unlockControlPlane,
   } = useDeckUI();
-  useDeckShortcuts();
+  const { shortcutsOpen, setShortcutsOpen } = useDeckShortcuts();
 
   const handleUnlockSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -29,8 +49,8 @@ function DeckAppFrame() {
       <main className="deck-ui-loading">
         <section className="deck-ui-status-panel">
           <p className="deck-ui-eyebrow">OpenClaw Deck</p>
-          <h1>Connecting gateway</h1>
-          <p>Resolving the local control plane before opening the operator workspace.</p>
+          <h1>{tShell("loadingTitle")}</h1>
+          <p>{tShell("loadingDescription")}</p>
         </section>
       </main>
     );
@@ -41,18 +61,18 @@ function DeckAppFrame() {
       <main className="deck-ui-loading">
         <section className="deck-ui-status-panel deck-ui-auth-panel">
           <p className="deck-ui-eyebrow">OpenClaw Deck</p>
-          <h1>Unlock control plane</h1>
-          <p>{authMessage}</p>
+          <h1>{tShell("authTitle")}</h1>
+          <p>{resolveAuthMessage(authMessage, tShell)}</p>
           <form className="deckgo-form-grid" onSubmit={handleUnlockSubmit}>
             <label className="deckgo-label">
-              <span>Deck access token</span>
+              <span>{tShell("authTokenLabel")}</span>
               <input
                 className="deckgo-input"
                 name="deckAccessToken"
                 type="password"
                 value={authTokenInput}
                 onChange={(event) => setAuthTokenInput(event.target.value)}
-                placeholder="Enter deck-go access token"
+                placeholder={tShell("authTokenPlaceholder")}
               />
             </label>
             <div className="deckgo-actions">
@@ -61,7 +81,7 @@ function DeckAppFrame() {
                 type="submit"
                 disabled={refreshingSummary}
               >
-                {refreshingSummary ? "Unlocking..." : "Unlock control plane"}
+                {refreshingSummary ? tShell("unlocking") : tShell("unlock")}
               </button>
             </div>
           </form>
@@ -71,9 +91,23 @@ function DeckAppFrame() {
   }
 
   return (
-    <DeckShell>
-      <DeckPanelHost />
-    </DeckShell>
+    <>
+      <DeckShell>
+        <PanelErrorBoundary
+          resetKey={activePanel}
+          labels={{
+            description: tPanelError("description"),
+            details: tPanelError("details"),
+            retry: tPanelError("retry"),
+            title: tPanelError("title"),
+          }}
+        >
+          <DeckPanelHost />
+        </PanelErrorBoundary>
+      </DeckShell>
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <ToastContainer />
+    </>
   );
 }
 

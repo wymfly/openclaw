@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { RefreshIcon } from "@/deck-ui/icons";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UIEvents } from "@/stores/chat-hooks";
 
@@ -89,7 +90,7 @@ export function CanvasDebugPanel() {
             aria-label={t("debugRefreshTree")}
             onClick={refreshTree}
           >
-            Refresh
+            <RefreshIcon />
           </button>
           {treeData != null ? (
             <pre className="deck-ui-canvas-debug-raw">{JSON.stringify(treeData, null, 2)}</pre>

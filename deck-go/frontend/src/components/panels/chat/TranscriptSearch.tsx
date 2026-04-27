@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { ChevronDownIcon, ChevronUpIcon, SearchIcon, XIcon } from "@/deck-ui/icons";
 import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
 
 function blockSearchText(block: ContentBlock): string {
@@ -93,8 +94,9 @@ export function TranscriptSearch({
   };
 
   return (
-    <div className="deck-ui-transcript-search">
-      <label>
+    <div className="deck-ui-transcript-search" role="search">
+      <SearchIcon className="deck-ui-transcript-search-icon" />
+      <label className="deck-ui-transcript-search-field">
         <span>{t("searchTranscript")}</span>
         <input
           ref={resolvedInputRef}
@@ -117,20 +119,37 @@ export function TranscriptSearch({
       </label>
       <div className="deck-ui-transcript-search-controls">
         {query.trim() ? (
-          <span>
+          <span className="deck-ui-transcript-search-count">
             {matches.length > 0
               ? `${Math.min(currentIdx + 1, matches.length)}/${matches.length}`
               : t("noSearchResults")}
           </span>
         ) : null}
-        <button type="button" onClick={() => navigate(-1)} disabled={matches.length === 0}>
-          {t("searchPrev")}
+        <button
+          aria-label={t("searchPrev")}
+          disabled={matches.length === 0}
+          title={t("searchPrev")}
+          type="button"
+          onClick={() => navigate(-1)}
+        >
+          <ChevronUpIcon />
         </button>
-        <button type="button" onClick={() => navigate(1)} disabled={matches.length === 0}>
-          {t("searchNext")}
+        <button
+          aria-label={t("searchNext")}
+          disabled={matches.length === 0}
+          title={t("searchNext")}
+          type="button"
+          onClick={() => navigate(1)}
+        >
+          <ChevronDownIcon />
         </button>
-        <button type="button" onClick={() => onQueryChange("")} disabled={!query.trim()}>
-          {t("searchClear")}
+        <button
+          aria-label={t("searchClose")}
+          title={t("searchClose")}
+          type="button"
+          onClick={onClose}
+        >
+          <XIcon />
         </button>
       </div>
     </div>

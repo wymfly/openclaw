@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { BrainIcon, CheckSquareIcon, WrenchIcon, type IconComponent } from "@/deck-ui/icons";
 import type { ChatBlockPreferences } from "@/stores/chat-preferences";
 
 type BlockFilterKey = keyof Pick<
@@ -6,10 +7,10 @@ type BlockFilterKey = keyof Pick<
   "showThinking" | "showToolUse" | "showToolResult"
 >;
 
-const TOGGLES: Array<{ key: BlockFilterKey; labelKey: string }> = [
-  { key: "showThinking", labelKey: "filterThinking" },
-  { key: "showToolUse", labelKey: "filterTools" },
-  { key: "showToolResult", labelKey: "filterResults" },
+const TOGGLES: Array<{ key: BlockFilterKey; labelKey: string; icon: IconComponent }> = [
+  { key: "showThinking", labelKey: "filterThinking", icon: BrainIcon },
+  { key: "showToolUse", labelKey: "filterTools", icon: WrenchIcon },
+  { key: "showToolResult", labelKey: "filterResults", icon: CheckSquareIcon },
 ];
 
 export function BlockFilterBar({
@@ -23,16 +24,20 @@ export function BlockFilterBar({
 
   return (
     <div className="deck-ui-filter-row" aria-label={t("filterBlocks")}>
-      {TOGGLES.map(({ key, labelKey }) => {
+      {TOGGLES.map(({ key, labelKey, icon: Icon }) => {
         const enabled = preferences[key] ?? true;
+        const label = t(labelKey);
         return (
           <button
             key={key}
+            aria-pressed={enabled}
             className={enabled ? "is-active" : ""}
+            title={label}
             type="button"
             onClick={() => onChange({ ...preferences, [key]: !enabled })}
           >
-            {t(labelKey)}
+            <Icon />
+            {label}
           </button>
         );
       })}

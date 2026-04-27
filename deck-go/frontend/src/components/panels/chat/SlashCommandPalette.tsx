@@ -1,4 +1,23 @@
+import { useTranslations } from "next-intl";
 import { useEffect, useSyncExternalStore, type MutableRefObject } from "react";
+import {
+  ArrowDownIcon,
+  BarChartIcon,
+  BotIcon,
+  BrainIcon,
+  CpuIcon,
+  FileTextIcon,
+  MonitorIcon,
+  PanelCollapseIcon,
+  PlusIcon,
+  RotateCcwIcon,
+  ShieldCheckIcon,
+  SquareIcon,
+  TrashIcon,
+  WrenchIcon,
+  ZapIcon,
+  type IconComponent,
+} from "@/deck-ui/icons";
 import { commandRegistry } from "@/lib/command-registry";
 import type { RegisteredCommand } from "@/lib/command-types";
 import type { CommandVisibilityContext } from "@/lib/command-types";
@@ -24,6 +43,43 @@ export type SlashCommandPaletteProps = {
   onArgOptionsIndexChange?: (index: number) => void;
 };
 
+const COMMAND_ICONS: Record<string, IconComponent> = {
+  "bar-chart-2": BarChartIcon,
+  book: FileTextIcon,
+  "book-open": FileTextIcon,
+  brain: BrainIcon,
+  cpu: CpuIcon,
+  download: ArrowDownIcon,
+  lightbulb: BrainIcon,
+  "minimize-2": PanelCollapseIcon,
+  monitor: MonitorIcon,
+  plus: PlusIcon,
+  "refresh-cw": RotateCcwIcon,
+  shield: ShieldCheckIcon,
+  square: SquareIcon,
+  "trash-2": TrashIcon,
+  zap: ZapIcon,
+};
+
+function CommandIcon({ command }: { command: RegisteredCommand }) {
+  if (command.source === "skill" || command.source === "plugin") {
+    return <BotIcon />;
+  }
+  const Icon = command.icon ? COMMAND_ICONS[command.icon] : undefined;
+  return Icon ? <Icon /> : <WrenchIcon />;
+}
+
+function translatedOrFallback(
+  t: ReturnType<typeof useTranslations>,
+  key: string | undefined,
+  fallback: string,
+) {
+  if (key && (typeof t.has !== "function" || t.has(key))) {
+    return t(key);
+  }
+  return fallback;
+}
+
 export function SlashCommandPalette({
   filter,
   selectedIndex,
@@ -37,25 +93,29 @@ export function SlashCommandPalette({
   onArgOptionsBack,
   onArgOptionsIndexChange,
 }: SlashCommandPaletteProps) {
+  const t = useTranslations("chat");
   initializeLocalCommands();
   useSyncExternalStore(commandRegistry.subscribe.bind(commandRegistry), () =>
     commandRegistry.getVersion(),
   );
+
+  const commandLabel = `/${argOptionsState?.command.name ?? ""}`;
 
   if (argOptionsState) {
     return (
       <div
         className="deck-ui-command-palette is-arg-options"
         role="listbox"
-        aria-label={`/${argOptionsState.command.name}`}
+        aria-label={t("cmdOptionsFor", { command: argOptionsState.command.name })}
       >
         <button
           className="deck-ui-command-palette-back"
           type="button"
           onMouseDown={() => onArgOptionsBack?.()}
         >
-          Back
+          {t("cmdBack")}
         </button>
+        <div className="deck-ui-command-section-title">{commandLabel}</div>
         {argOptionsState.options.map((option, index) => (
           <div
             className={`deck-ui-command-option ${
@@ -113,7 +173,7 @@ export function SlashCommandPalette({
     <div
       className="deck-ui-command-palette"
       role="listbox"
-      aria-label="Slash commands"
+      aria-label={t("slashCommands")}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           onDismiss();
@@ -123,11 +183,16 @@ export function SlashCommandPalette({
       {[...sections.entries()].map(([sectionKey, sectionCommands]) => (
         <div className="deck-ui-command-section" key={sectionKey}>
           <div className="deck-ui-command-section-title">
-            {CATEGORY_LABEL_KEYS[sectionKey] ?? sectionKey}
+            {translatedOrFallback(t, CATEGORY_LABEL_KEYS[sectionKey], sectionKey)}
           </div>
           {sectionCommands.map((command) => {
             globalIndex++;
             const index = globalIndex;
+            const description = translatedOrFallback(
+              t,
+              command.descriptionKey,
+              command.description,
+            );
             return (
               <div
                 className={`deck-ui-command-option ${index === selectedIndex ? "is-selected" : ""}`}
@@ -140,12 +205,15 @@ export function SlashCommandPalette({
                 }}
                 onMouseEnter={() => onSelectedIndexChange(index)}
               >
-                <span className="deck-ui-command-name">/{command.name}</span>
-                {command.args ? (
-                  <span className="deck-ui-command-args"> {command.args}</span>
-                ) : null}
-                <span className="deck-ui-command-description">
-                  {command.descriptionKey ?? command.description}
+                <span className="deck-ui-command-primary">
+                  <CommandIcon command={command} />
+                  <span className="deck-ui-command-name">/{command.name}</span>
+                  {command.args ? (
+                    <span className="deck-ui-command-args">{command.args}</span>
+                  ) : null}
+                </span>
+                <span className="deck-ui-command-description" title={description}>
+                  {description}
                 </span>
               </div>
             );

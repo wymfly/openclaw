@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BugIcon, RefreshIcon, XIcon } from "@/deck-ui/icons";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { A2UIBridge, sendUserActionToAgent, type UserAction } from "./a2ui-bridge";
@@ -13,6 +14,8 @@ interface CanvasPanelProps {
 }
 
 type CanvasCommand = ReturnType<typeof useChatStore.getState>["canvasCommands"][number];
+
+const VISUAL_STATE_ENV = "VITE_DECK_VISUAL_STATE";
 
 function visualSeedCanvasHtml() {
   return `<!doctype html>
@@ -47,7 +50,11 @@ function visualSeedCanvasHtml() {
 }
 
 function canResolveVisualSeedCanvas() {
-  return import.meta.env.DEV || import.meta.env.MODE === "test";
+  return (
+    import.meta.env.DEV ||
+    import.meta.env.MODE === "test" ||
+    import.meta.env[VISUAL_STATE_ENV] === "1"
+  );
 }
 
 function resolveCanvasSrc(url: string | null): string {
@@ -274,11 +281,23 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
       <header className="deck-ui-canvas-header">
         <span>{t("canvasTitle")}</span>
         <div>
-          <button type="button" onClick={() => setShowDebug((value) => !value)}>
-            {t("debugTitle")}
+          <button
+            aria-label={t("debugTitle")}
+            title={t("debugTitle")}
+            type="button"
+            onClick={() => setShowDebug((value) => !value)}
+          >
+            <BugIcon />
+            <span className="deck-ui-sr-only">{t("debugTitle")}</span>
           </button>
-          <button type="button" onClick={onClose}>
-            {t("canvasCollapse")}
+          <button
+            aria-label={t("canvasCollapse")}
+            title={t("canvasCollapse")}
+            type="button"
+            onClick={onClose}
+          >
+            <XIcon />
+            <span className="deck-ui-sr-only">{t("canvasCollapse")}</span>
           </button>
         </div>
       </header>
@@ -300,6 +319,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
           <div className="deck-ui-canvas-overlay">
             <span>{t("canvasError")}</span>
             <button type="button" onClick={handleRetry}>
+              <RefreshIcon />
               {t("canvasRetry")}
             </button>
           </div>

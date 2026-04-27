@@ -1,5 +1,13 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import {
+  BotIcon,
+  CheckIcon,
+  ClockIcon,
+  FileTextIcon,
+  ShieldCheckIcon,
+  XIcon,
+} from "@/deck-ui/icons";
 import type { ApprovalDecision } from "@/stores/approvals";
 import type { ApprovalRequest } from "@/stores/chat-types";
 
@@ -53,8 +61,14 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
   return (
     <section aria-label={t("inlineTitle")} className="deck-ui-approval-dialog">
       <header>
+        <ShieldCheckIcon className="deck-ui-approval-icon" />
         <strong>{t("inlineTitle")}</strong>
-        {remaining != null ? <span>{formatCountdown(remaining)}</span> : null}
+        {remaining != null ? (
+          <span className="deck-ui-approval-countdown">
+            <ClockIcon />
+            {formatCountdown(remaining)}
+          </span>
+        ) : null}
         {pendingCount != null && pendingCount > 1 ? (
           <span>
             {pendingCount} {t("pendingBadge")}
@@ -73,13 +87,19 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
           {approval.agentId ? (
             <>
               <dt>{t("agent")}</dt>
-              <dd>{approval.agentId}</dd>
+              <dd>
+                <BotIcon />
+                {approval.agentId}
+              </dd>
             </>
           ) : null}
           {approval.cwd ? (
             <>
               <dt>cwd</dt>
-              <dd>{approval.cwd}</dd>
+              <dd>
+                <FileTextIcon />
+                {approval.cwd}
+              </dd>
             </>
           ) : null}
         </dl>
@@ -92,6 +112,7 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
           disabled={resolving}
           onClick={() => void handleResolve("allow-once")}
         >
+          <CheckIcon />
           {t("approve")}
         </button>
         <button
@@ -100,6 +121,7 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
           disabled={resolving}
           onClick={() => void handleResolve("allow-always")}
         >
+          <ShieldCheckIcon />
           {t("approveAlways")}
         </button>
         <button
@@ -108,6 +130,7 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
           disabled={resolving}
           onClick={() => void handleResolve("deny")}
         >
+          <XIcon />
           {t("deny")}
         </button>
       </div>

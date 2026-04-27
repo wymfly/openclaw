@@ -24,4 +24,8 @@ describe("chat visual state seed", () => {
 
     expect(isChatVisualStateRequested()).toBe(true);
   });
+
+  it("accepts the empty deterministic Chat state", () => {
+    expect(isChatVisualStateRequested("?deckVisualState=chat-empty")).toBe(true);
+  });
 });

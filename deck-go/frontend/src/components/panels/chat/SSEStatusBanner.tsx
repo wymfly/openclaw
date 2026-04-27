@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { WifiOffIcon } from "@/deck-ui/icons";
 import { useSSEStatus } from "@/stores/chat-hooks";
 
 export function SSEStatusBanner() {
@@ -11,9 +12,11 @@ export function SSEStatusBanner() {
 
   return (
     <div className="deck-ui-stream-banner" role="status">
-      <span className="deck-ui-dot" aria-hidden="true" />
+      <WifiOffIcon />
       <strong>{status === "reconnecting" ? t("sseReconnecting") : t("sseDisconnected")}</strong>
-      <span>SSE · {status}</span>
+      {status === "reconnecting" ? (
+        <span className="deck-ui-dot animate-pulse" aria-hidden="true" />
+      ) : null}
     </div>
   );
 }

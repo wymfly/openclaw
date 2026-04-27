@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { NavigationIcon } from "@/deck-ui/icons";
 import { useChatStore } from "@/stores/chat";
 import { steerChatSession } from "./chat-api";
 
@@ -45,6 +46,7 @@ export function SteerDialog() {
 
   return (
     <div className="deck-ui-context-strip">
+      <NavigationIcon className="deck-ui-steer-icon" />
       <label className="deck-ui-inline-input">
         <span>{t("steer")}</span>
         <input

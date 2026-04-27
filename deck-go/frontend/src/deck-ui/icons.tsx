@@ -77,6 +77,29 @@ export function GlobeIcon(props: IconProps) {
   );
 }
 
+export function LoaderIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 2v4" />
+      <path d="M12 18v4" />
+      <path d="m4.93 4.93 2.83 2.83" />
+      <path d="m16.24 16.24 2.83 2.83" />
+      <path d="M2 12h4" />
+      <path d="M18 12h4" />
+      <path d="m4.93 19.07 2.83-2.83" />
+      <path d="m16.24 7.76 2.83-2.83" />
+    </IconBase>
+  );
+}
+
+export function MinusIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M5 12h14" />
+    </IconBase>
+  );
+}
+
 export function RefreshIcon(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -84,6 +107,15 @@ export function RefreshIcon(props: IconProps) {
       <path d="M4 5v5h5" />
       <path d="M4 13a8 8 0 0 0 14.7 4" />
       <path d="M20 19v-5h-5" />
+    </IconBase>
+  );
+}
+
+export function RotateCcwIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M3 12a9 9 0 1 0 9-9 9.8 9.8 0 0 0-6.4 2.4L3 8" />
+      <path d="M3 3v5h5" />
     </IconBase>
   );
 }
@@ -106,11 +138,53 @@ export function MonitorIcon(props: IconProps) {
   );
 }
 
+export function PencilIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </IconBase>
+  );
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path d="M12 5v14" />
       <path d="M5 12h14" />
+    </IconBase>
+  );
+}
+
+export function SearchIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </IconBase>
+  );
+}
+
+export function SlidersIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 21v-7" />
+      <path d="M4 10V3" />
+      <path d="M12 21v-9" />
+      <path d="M12 8V3" />
+      <path d="M20 21v-5" />
+      <path d="M20 12V3" />
+      <path d="M2 14h4" />
+      <path d="M10 8h4" />
+      <path d="M18 16h4" />
+    </IconBase>
+  );
+}
+
+export function SquareIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect height="16" rx="2" width="16" x="4" y="4" />
     </IconBase>
   );
 }
@@ -151,6 +225,44 @@ export function ActivityIcon(props: IconProps) {
   );
 }
 
+export function AlertTriangleIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </IconBase>
+  );
+}
+
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </IconBase>
+  );
+}
+
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 19V5" />
+      <path d="m5 12 7-7 7 7" />
+    </IconBase>
+  );
+}
+
+export function ArrowUpDownIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m7 15 5 5 5-5" />
+      <path d="M12 20V4" />
+      <path d="m7 9 5-5 5 5" />
+    </IconBase>
+  );
+}
+
 export function BarChartIcon(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -158,6 +270,32 @@ export function BarChartIcon(props: IconProps) {
       <path d="M18 17V9" />
       <path d="M13 17V5" />
       <path d="M8 17v-4" />
+    </IconBase>
+  );
+}
+
+export function BanIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m5.6 5.6 12.8 12.8" />
+    </IconBase>
+  );
+}
+
+export function CheckSquareIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect height="16" rx="2" width="16" x="4" y="4" />
+      <path d="m9 12 2 2 4-4" />
+    </IconBase>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m20 6-11 11-5-5" />
     </IconBase>
   );
 }
@@ -197,11 +335,51 @@ export function BrainIcon(props: IconProps) {
   );
 }
 
+export function BugIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m8 2 1.9 2" />
+      <path d="M14.1 4 16 2" />
+      <path d="M9 9h6" />
+      <path d="M7 13H3" />
+      <path d="M21 13h-4" />
+      <path d="M7 17H4" />
+      <path d="M20 17h-3" />
+      <path d="M12 20a5 5 0 0 0 5-5v-4a5 5 0 0 0-10 0v4a5 5 0 0 0 5 5Z" />
+    </IconBase>
+  );
+}
+
 export function ClockIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
+    </IconBase>
+  );
+}
+
+export function CopyIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect height="13" rx="2" width="13" x="8" y="8" />
+      <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+    </IconBase>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </IconBase>
+  );
+}
+
+export function ChevronUpIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m18 15-6-6-6 6" />
     </IconBase>
   );
 }
@@ -295,6 +473,15 @@ export function MonitorDotIcon(props: IconProps) {
   );
 }
 
+export function NavigationIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m3 11 19-8-8 19-3-8-8-3Z" />
+      <path d="m11 14 11-11" />
+    </IconBase>
+  );
+}
+
 export function NetworkIcon(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -381,10 +568,43 @@ export function WebhookIcon(props: IconProps) {
   );
 }
 
+export function WifiOffIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M2 8.8a15 15 0 0 1 4.3-2.5" />
+      <path d="M10.4 4.2A15.5 15.5 0 0 1 22 8.8" />
+      <path d="M5 13a10 10 0 0 1 5.2-2.8" />
+      <path d="M14.2 10.3A10 10 0 0 1 19 13" />
+      <path d="M8.5 17a5 5 0 0 1 7 0" />
+      <path d="m2 2 20 20" />
+    </IconBase>
+  );
+}
+
 export function WrenchIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path d="M14.7 6.3a4 4 0 0 0-5 5L3 18v3h3l6.7-6.7a4 4 0 0 0 5-5l-2.4 2.4-3-3z" />
+    </IconBase>
+  );
+}
+
+export function ThumbsDownIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M17 14V3" />
+      <path d="M7 10.5V3" />
+      <path d="M7 10.5 4.4 10A2 2 0 0 1 3 8.1V5a2 2 0 0 1 2-2h10.7a2 2 0 0 1 1.9 1.4L20 11v3h-5.3a2 2 0 0 0-1.9 1.4L12 21h-1a2 2 0 0 1-2-2v-4.5Z" />
+    </IconBase>
+  );
+}
+
+export function ThumbsUpIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M7 10v11" />
+      <path d="M17 10v11" />
+      <path d="M7 10 9 4a2 2 0 0 1 2-1h1v6h5.3a2 2 0 0 1 1.9 2.6L17 18.5A2 2 0 0 1 15.1 20H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z" />
     </IconBase>
   );
 }

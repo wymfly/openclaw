@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { useActiveSessionKey, useSessionToolProgress } from "@/stores/chat-hooks";
+import type { ToolProgress } from "@/stores/chat-types";
 
 const COMPLETED_VISIBLE_MS = 3_000;
 
@@ -17,6 +18,11 @@ function ElapsedTime({ startedAt }: { startedAt: number }) {
   }, [startedAt]);
 
   return elapsed > 0 ? <span>{elapsed}s</span> : null;
+}
+
+function toolStatusLabel(t: ReturnType<typeof useTranslations>, status: ToolProgress["status"]) {
+  const key = `toolStatus_${status}`;
+  return typeof t.has === "function" && t.has(key) ? t(key) : status;
 }
 
 export function ToolProgressBar() {
@@ -69,14 +75,14 @@ export function ToolProgressBar() {
     <div className="deck-ui-tool-ladder" aria-label={t("tools")}>
       {entries.map((entry) => (
         <section className={`deck-ui-tool-step is-${entry.status}`} key={entry.toolUseId}>
-          <p className="deck-ui-surface-label">{entry.status}</p>
+          <p className="deck-ui-surface-label">{toolStatusLabel(t, entry.status)}</p>
           <strong>{entry.name}</strong>
           <span>{entry.toolUseId}</span>
           {entry.status === "running" ? <ElapsedTime startedAt={entry.startedAt} /> : null}
         </section>
       ))}
       <section className="deck-ui-tool-step is-summary">
-        <p className="deck-ui-surface-label">Tools</p>
+        <p className="deck-ui-surface-label">{t("tools")}</p>
         <strong>{running > 0 ? t("toolsRunning", { count: running }) : t("toolsCompleted")}</strong>
       </section>
     </div>
