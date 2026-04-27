@@ -27,9 +27,16 @@ Automate panels govern scheduled work, inbound/outbound automation, approval gat
 
 ## Decisions
 
-### D1: Cron and Scheduler need an explicit mapping
+### D1: Scheduler maps into the current Cron surface
 
-Old Deck had both Cron and Scheduler component trees. The Vite migration must document whether Scheduler is restored as a separate panel, folded into Cron with old-equivalent sections, or intentionally unavailable due to Gateway capability.
+Old Deck had both Cron and Scheduler component trees. The current shell has only the Cron automation entry, and this proposal's parallel-worktree scope should not change navigation, registry, or shell structure unless a Gateway capability requires it.
+
+Decision: restore Scheduler affordances inside the current Cron panel as old-equivalent top-level sections:
+
+- **Cron jobs**: old Cron job list, form, run history, run-now, empty/loading/error states.
+- **Heartbeat / scheduling status**: old Scheduler heartbeat/countdown affordances where Gateway/Go data exists.
+
+Unsupported Scheduler heartbeat controls must render as an explicit unavailable or read-only state and be recorded in `backend-gaps.md`; they must not be faked in the frontend.
 
 ### D2: Approvals preserves realtime and policy affordances
 
@@ -62,17 +69,31 @@ Shared-file rules:
 - Cron/Scheduler mapping must be resolved inside this proposal before adding navigation, registry, or shell-level changes.
 - Approval and skill side effects require targeted tests before merge.
 
+### D6: Playwright E2E is deferred to the integration branch
+
+This worktree must not run Playwright E2E. Automate visual parity work here is validated with source evidence, OpenSpec strict validation, TypeScript/build checks when implementation begins, and targeted unit/component tests for the affected panels. Browser traversal and full Playwright E2E are deferred until the parallel worktrees merge back to the integration/local branch.
+
+### D7: Shared backend and shell gaps are follow-ups by default
+
+Automate may fix panel-owned adapter/projection gaps after recording the row in `backend-gaps.md`. Shared Gateway protocol changes, shared Gateway handlers, shell/nav/registry changes, and broad Go service contracts are not absorbed into this worktree by default. If an old Deck workflow needs one of those broader changes, this proposal must render an explicit unsupported/unavailable state and record the follow-up.
+
+### D8: Non-Playwright parity evidence uses old-to-new checklists
+
+Because this worktree defers Playwright E2E, every Automate panel must maintain `parity-checklists.md` as the local visual/interaction evidence artifact. The checklist maps old authority components to new Vite targets and tracks layout, actions, loading/empty/error states, EN/ZH copy, light/dark coverage, and unsupported runtime capabilities.
+
 ## Risks / Trade-offs
 
-- **Risk: Cron/Scheduler names do not map one-to-one in Go.** → Make the mapping explicit before implementation and keep visible copy consistent with old Deck where possible.
+- **Risk: Cron/Scheduler names do not map one-to-one in Go.** → Make the mapping explicit before implementation, treat Scheduler-in-Cron as this worktree's merge-safety mapping, and keep visible copy consistent with old Deck where possible.
 - **Risk: approval policy changes are sensitive.** → Add targeted tests around policy editor and approval actions.
 - **Risk: skills may depend on local filesystem/plugin state.** → Treat missing backend projections as explicit Go service gaps, not frontend omissions.
+- **Risk: no Playwright in this branch lowers visual confidence.** → Use old-to-new parity checklists plus targeted tests/build/OpenSpec, then run browser/E2E after merge.
 
 ## Migration Plan
 
-1. Decide and document Cron/Scheduler panel mapping.
+1. Keep Scheduler inside the current Cron panel and document any unavailable heartbeat controls in `backend-gaps.md`.
 2. Restore Cron/Scheduler job list/form/history/run-now/countdown/heartbeat UI.
 3. Restore Webhooks form and delivery history UI.
 4. Restore Approvals pending/plugin/policy/path allowlist/realtime UI.
 5. Restore Skills list/hub/info/config/matrix/install UI.
-6. Run group-level i18n, light/dark, browser traversal, action tests, and backend gap validation.
+6. Complete `parity-checklists.md` entries and run group-level i18n, light/dark, targeted action tests, OpenSpec validation, and backend gap validation in this worktree.
+7. Defer browser traversal and Playwright E2E to the post-merge integration branch.

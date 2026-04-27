@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { ApprovalsPanel } from "./ApprovalsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -40,6 +41,11 @@ let root: Root | null = null;
 let streamParams: CapturedApprovalStreamParams | null = null;
 
 const baseTime = Date.now();
+
+function renderApprovalsPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(ApprovalsPanel)));
+}
 
 function policyPayload() {
   return {
@@ -152,8 +158,7 @@ describe("ApprovalsPanel", () => {
 
   it("loads policy and active pending approvals while filtering expired requests", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApprovalsPanel));
+      renderApprovalsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchPendingApprovals).toHaveBeenCalledTimes(1));
@@ -167,7 +172,7 @@ describe("ApprovalsPanel", () => {
     expect(container.textContent).toContain("pnpm test");
     expect(container.textContent).toContain("pnpm build");
     expect(container.textContent).not.toContain("rm stale");
-    expect(container.textContent).toContain("run: run-main");
+    expect(container.textContent).toContain("Run: run-main");
     expect(container.querySelector(".deck-ui-approvals")).toBeTruthy();
     expect(container.querySelectorAll(".deck-ui-approvals-card").length).toBe(2);
     expect(container.querySelectorAll(".deck-ui-approvals-row").length).toBe(2);
@@ -190,8 +195,7 @@ describe("ApprovalsPanel", () => {
 
   it("runs approval decisions for the selected request and preserves preferred selection", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApprovalsPanel));
+      renderApprovalsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchPendingApprovals).toHaveBeenCalledTimes(1));
@@ -233,8 +237,7 @@ describe("ApprovalsPanel", () => {
 
   it("opens the selected approval agent and session through shared deck navigation", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApprovalsPanel));
+      renderApprovalsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchPendingApprovals).toHaveBeenCalledTimes(1));
@@ -258,8 +261,7 @@ describe("ApprovalsPanel", () => {
 
   it("loads plugin approvals and resolves the selected plugin request", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApprovalsPanel));
+      renderApprovalsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchPluginApprovals).toHaveBeenCalledTimes(1));
@@ -290,8 +292,7 @@ describe("ApprovalsPanel", () => {
 
   it("saves edited approval policy through the current policy route", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApprovalsPanel));
+      renderApprovalsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchApprovalsPolicy).toHaveBeenCalledTimes(1));
@@ -326,8 +327,7 @@ describe("ApprovalsPanel", () => {
 
   it("edits approval policy defaults, agent overrides, and path allowlist structurally", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApprovalsPanel));
+      renderApprovalsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchApprovalsPolicy).toHaveBeenCalledTimes(1));
@@ -397,8 +397,7 @@ describe("ApprovalsPanel", () => {
 
   it("merges live approval stream events and aborts the stream on unmount", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ApprovalsPanel));
+      renderApprovalsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchPendingApprovals).toHaveBeenCalledTimes(1));

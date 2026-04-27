@@ -7,7 +7,6 @@ import type {
   DeckGoPendingApprovalsResponse,
   DeckGoPluginApprovalEntry,
   DeckGoPluginApprovalsResponse,
-  DeckGoServerEvent,
 } from "../../../api";
 import {
   fetchApprovalsPolicy,
@@ -15,21 +14,22 @@ import {
   fetchPluginApprovals,
   resolveApproval,
   resolvePluginApproval,
-  streamEvents,
   updateApprovalsPolicy,
 } from "../../../api";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { formatOptionalDate, isPluginApprovalExpired } from "./approval-model";
+import { PendingList } from "./PendingList";
+import { PluginApprovalList } from "./PluginApprovalList";
+import { isExecAsk, isExecSecurity } from "./PolicyDefaultsControls";
+import { PolicyEditor } from "./PolicyEditor";
+import { useApprovalsStream } from "./useApprovalsStream";
 
 type PanelState = "idle" | "loading" | "ready";
 type ApprovalDecision = "allow-once" | "allow-always" | "deny";
 type ApprovalSurface = "exec" | "plugins";
-type ExecSecurity = NonNullable<DeckGoApprovalPolicyDefaults["security"]>;
-type ExecAsk = NonNullable<DeckGoApprovalPolicyDefaults["ask"]>;
-
-const SECURITY_OPTIONS: ExecSecurity[] = ["deny", "allowlist", "full"];
-const ASK_OPTIONS: ExecAsk[] = ["off", "on-miss", "always"];
 
 function normalizePolicy(
   response: DeckGoApprovalPolicyResponse | null,
@@ -55,14 +55,6 @@ function readRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
-}
-
-function isExecSecurity(value: unknown): value is ExecSecurity {
-  return typeof value === "string" && SECURITY_OPTIONS.includes(value as ExecSecurity);
-}
-
-function isExecAsk(value: unknown): value is ExecAsk {
-  return typeof value === "string" && ASK_OPTIONS.includes(value as ExecAsk);
 }
 
 function sanitizePolicyDefaults(value: unknown): DeckGoApprovalPolicyDefaults {
@@ -119,87 +111,6 @@ function formatPolicyDraft(policy: DeckGoApprovalPolicy) {
   return JSON.stringify(policy, null, 2);
 }
 
-function readStreamPayload(event: DeckGoServerEvent): Record<string, unknown> | null {
-  const jsonPayload = readRecord(event.json);
-  if (jsonPayload) {
-    return jsonPayload;
-  }
-  if (!event.data) {
-    return null;
-  }
-  try {
-    return readRecord(JSON.parse(event.data));
-  } catch {
-    return null;
-  }
-}
-
-function readPendingApproval(event: DeckGoServerEvent): DeckGoPendingApproval | null {
-  const payload = readStreamPayload(event);
-  if (!payload) {
-    return null;
-  }
-  const { id, command, createdAtMs, expiresAtMs } = payload;
-  if (
-    typeof id !== "string" ||
-    !id.trim() ||
-    typeof command !== "string" ||
-    typeof createdAtMs !== "number" ||
-    typeof expiresAtMs !== "number"
-  ) {
-    return null;
-  }
-  return {
-    id,
-    command,
-    commandArgv: Array.isArray(payload.commandArgv)
-      ? payload.commandArgv.filter((item): item is string => typeof item === "string")
-      : undefined,
-    agentId: typeof payload.agentId === "string" ? payload.agentId : undefined,
-    sessionKey: typeof payload.sessionKey === "string" ? payload.sessionKey : undefined,
-    runId: typeof payload.runId === "string" ? payload.runId : undefined,
-    cwd: typeof payload.cwd === "string" ? payload.cwd : undefined,
-    createdAtMs,
-    expiresAtMs,
-  };
-}
-
-function readResolvedApprovalId(event: DeckGoServerEvent): string | null {
-  const payload = readStreamPayload(event);
-  const id = payload?.id;
-  return typeof id === "string" && id.trim() ? id : null;
-}
-
-function addPendingApproval(
-  response: DeckGoPendingApprovalsResponse | null,
-  approval: DeckGoPendingApproval,
-): DeckGoPendingApprovalsResponse | null {
-  if (filterActivePendingApprovals([approval]).length === 0) {
-    return response;
-  }
-  const pending = filterActivePendingApprovals(response?.pending ?? []);
-  if (pending.some((entry) => entry.id === approval.id)) {
-    return response ? { ...response, pending } : { pending };
-  }
-  return {
-    ...response,
-    pending: [...pending, approval],
-  };
-}
-
-function removePendingApproval(
-  response: DeckGoPendingApprovalsResponse | null,
-  id: string,
-): DeckGoPendingApprovalsResponse | null {
-  if (!response) {
-    return response;
-  }
-  return {
-    ...response,
-    pending: (response.pending ?? []).filter((approval) => approval.id !== id),
-  };
-}
-
 function normalizePluginApprovals(
   response: DeckGoPluginApprovalsResponse | null,
 ): DeckGoPluginApprovalEntry[] {
@@ -209,121 +120,8 @@ function normalizePluginApprovals(
   return Array.isArray(response) ? response : (response.entries ?? []);
 }
 
-function isPluginApprovalExpired(approval: DeckGoPluginApprovalEntry, now = Date.now()) {
-  return Number.isFinite(approval.expiresAtMs) && Number(approval.expiresAtMs) <= now;
-}
-
-function formatOptionalDate(value: number | undefined) {
-  return Number.isFinite(value) ? new Date(Number(value)).toLocaleString() : "n/a";
-}
-
-function setDefaultsSelectValue(
-  defaults: DeckGoApprovalPolicyDefaults,
-  key: "security" | "ask" | "askFallback",
-  value: string,
-) {
-  const next = { ...defaults };
-  if (!value) {
-    delete next[key];
-    return next;
-  }
-  if (key === "ask" && isExecAsk(value)) {
-    next.ask = value;
-  } else if ((key === "security" || key === "askFallback") && isExecSecurity(value)) {
-    next[key] = value;
-  }
-  return next;
-}
-
-function setDefaultsAutoAllowSkills(defaults: DeckGoApprovalPolicyDefaults, checked: boolean) {
-  const next = { ...defaults };
-  if (checked) {
-    next.autoAllowSkills = true;
-  } else {
-    delete next.autoAllowSkills;
-  }
-  return next;
-}
-
-function PolicyDefaultsControls({
-  label,
-  defaults,
-  onChange,
-}: {
-  label: string;
-  defaults: DeckGoApprovalPolicyDefaults;
-  onChange: (defaults: DeckGoApprovalPolicyDefaults) => void;
-}) {
-  return (
-    <div className="deckgo-form-grid deck-ui-approvals-policy-grid">
-      <label className="deckgo-form-row">
-        <span>Security</span>
-        <select
-          aria-label={`${label} security`}
-          className="deckgo-input deck-ui-approvals-input"
-          value={defaults.security ?? ""}
-          onChange={(event) =>
-            onChange(setDefaultsSelectValue(defaults, "security", event.target.value))
-          }
-        >
-          <option value="">inherit</option>
-          {SECURITY_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="deckgo-form-row">
-        <span>Ask mode</span>
-        <select
-          aria-label={`${label} ask`}
-          className="deckgo-input deck-ui-approvals-input"
-          value={defaults.ask ?? ""}
-          onChange={(event) =>
-            onChange(setDefaultsSelectValue(defaults, "ask", event.target.value))
-          }
-        >
-          <option value="">inherit</option>
-          {ASK_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="deckgo-form-row">
-        <span>Ask fallback</span>
-        <select
-          aria-label={`${label} ask fallback`}
-          className="deckgo-input deck-ui-approvals-input"
-          value={defaults.askFallback ?? ""}
-          onChange={(event) =>
-            onChange(setDefaultsSelectValue(defaults, "askFallback", event.target.value))
-          }
-        >
-          <option value="">inherit</option>
-          {SECURITY_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="deckgo-checkbox-row">
-        <input
-          aria-label={`${label} auto allow skills`}
-          type="checkbox"
-          checked={defaults.autoAllowSkills === true}
-          onChange={(event) => onChange(setDefaultsAutoAllowSkills(defaults, event.target.checked))}
-        />
-        <span>Auto allow skills</span>
-      </label>
-    </div>
-  );
-}
-
 export function ApprovalsPanel() {
+  const t = useTranslations("approvals");
   const ui = useDeckUI();
   const [policyResponse, setPolicyResponse] = useState<DeckGoApprovalPolicyResponse | null>(null);
   const [pendingResponse, setPendingResponse] = useState<DeckGoPendingApprovalsResponse | null>(
@@ -387,34 +185,7 @@ export function ApprovalsPanel() {
     void refresh();
   }, []);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    void streamEvents({
-      signal: controller.signal,
-      retryDelayMs: 1_000,
-      onEvent(event) {
-        if (event.event === "approval.pending") {
-          const approval = readPendingApproval(event);
-          if (!approval) {
-            return;
-          }
-          setPendingResponse((current) => addPendingApproval(current, approval));
-          setSelectedApprovalId((current) => current || approval.id);
-          return;
-        }
-        if (event.event === "approval.resolved") {
-          const id = readResolvedApprovalId(event);
-          if (!id) {
-            return;
-          }
-          setPendingResponse((current) => removePendingApproval(current, id));
-          setSelectedApprovalId((current) => (current === id ? "" : current));
-        }
-      },
-    }).catch(() => {});
-
-    return () => controller.abort();
-  }, []);
+  useApprovalsStream({ setPendingResponse, setSelectedApprovalId });
 
   const policy = useMemo(() => normalizePolicy(policyResponse), [policyResponse]);
   const pendingApprovals = useMemo(
@@ -653,59 +424,19 @@ export function ApprovalsPanel() {
               )}
             </div>
             {error ? <p className="deckgo-note deck-ui-approvals-error">{error}</p> : null}
-            {surface === "exec" && pendingApprovals.length === 0 ? (
-              <p className="deckgo-note deck-ui-approvals-empty">No pending approvals.</p>
+            {surface === "exec" ? (
+              <PendingList
+                approvals={pendingApprovals}
+                selectedApprovalId={selectedApproval?.id ?? ""}
+                onSelect={setSelectedApprovalId}
+              />
             ) : null}
-            {surface === "exec" && pendingApprovals.length > 0 ? (
-              <ul className="deckgo-shell-list deck-ui-approvals-list">
-                {pendingApprovals.map((approval) => (
-                  <li key={approval.id}>
-                    <button
-                      type="button"
-                      className={`deckgo-selectable-card deck-ui-approvals-row ${selectedApproval?.id === approval.id ? "is-selected" : ""}`}
-                      onClick={() => setSelectedApprovalId(approval.id)}
-                    >
-                      <strong>{approval.command}</strong>
-                      <div className="deckgo-meta">
-                        id: {approval.id} | agent: {approval.agentId || "n/a"} | session:{" "}
-                        {approval.sessionKey || "n/a"}
-                      </div>
-                      <div className="deckgo-meta">
-                        expires: {new Date(approval.expiresAtMs).toLocaleString()}
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {surface === "plugins" && pluginApprovals.length === 0 ? (
-              <p className="deckgo-note deck-ui-approvals-empty">No plugin approvals.</p>
-            ) : null}
-            {surface === "plugins" && pluginApprovals.length > 0 ? (
-              <ul className="deckgo-shell-list deck-ui-approvals-list">
-                {pluginApprovals.map((approval) => {
-                  const expired = isPluginApprovalExpired(approval);
-                  return (
-                    <li key={approval.id}>
-                      <button
-                        type="button"
-                        className={`deckgo-selectable-card deck-ui-approvals-row ${selectedPluginApproval?.id === approval.id ? "is-selected" : ""}`}
-                        onClick={() => setSelectedPluginApprovalId(approval.id)}
-                      >
-                        <strong>{approval.pluginId || approval.id}</strong>
-                        <div className="deckgo-meta">
-                          id: {approval.id} | status: {approval.status || "pending"} | decision:{" "}
-                          {approval.decision || (expired ? "expired" : "pending")}
-                        </div>
-                        <div className="deckgo-meta">
-                          command: {approval.command || "n/a"} | expires:{" "}
-                          {formatOptionalDate(approval.expiresAtMs)}
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+            {surface === "plugins" ? (
+              <PluginApprovalList
+                approvals={pluginApprovals}
+                selectedApprovalId={selectedPluginApproval?.id ?? ""}
+                onSelect={setSelectedPluginApprovalId}
+              />
             ) : null}
           </div>
         </article>
@@ -716,40 +447,48 @@ export function ApprovalsPanel() {
           <div className="deckgo-card-header">
             <h2 className="deckgo-card-title">Selected approval</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Inspect exec/plugin approval requests, inspect policy, and take direct allow/deny
-            actions.
-          </p>
+          <p className="deckgo-card-subtitle">{t("inspectDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-approvals-body">
             {surface === "plugins" && selectedPluginApproval ? (
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-approvals-hero">
                   <div>
-                    <p className="deckgo-kicker">Plugin approval</p>
+                    <p className="deckgo-kicker">{t("pluginApproval")}</p>
                     <strong>{selectedPluginApproval.pluginId || selectedPluginApproval.id}</strong>
-                    <p className="deckgo-note">id: {selectedPluginApproval.id}</p>
+                    <p className="deckgo-note">
+                      {t("id")}: {selectedPluginApproval.id}
+                    </p>
                   </div>
                   <div className="deckgo-pill-row">
                     <span className="deckgo-pill">
-                      status {selectedPluginApproval.status || "pending"}
+                      {t("status")}: {selectedPluginApproval.status || t("pendingBadge")}
                     </span>
                     <span className="deckgo-pill">
-                      decision {selectedPluginApproval.decision || "pending"}
+                      {t("decision")}: {selectedPluginApproval.decision || t("pendingBadge")}
                     </span>
                   </div>
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-approvals-detail-stats">
                   <ShellStat
-                    label="created"
-                    value={formatOptionalDate(selectedPluginApproval.createdAtMs)}
+                    label={t("created")}
+                    value={formatOptionalDate(
+                      selectedPluginApproval.createdAtMs,
+                      t("notAvailable"),
+                    )}
                   />
                   <ShellStat
-                    label="expires"
-                    value={formatOptionalDate(selectedPluginApproval.expiresAtMs)}
+                    label={t("expires")}
+                    value={formatOptionalDate(
+                      selectedPluginApproval.expiresAtMs,
+                      t("notAvailable"),
+                    )}
                   />
                 </div>
                 <div className="deck-ui-approvals-details">
-                  <JsonDetails title="Plugin approval payload" payload={selectedPluginApproval} />
+                  <JsonDetails
+                    title={t("pluginApprovalPayload")}
+                    payload={selectedPluginApproval}
+                  />
                 </div>
               </>
             ) : null}
@@ -757,14 +496,18 @@ export function ApprovalsPanel() {
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-approvals-hero">
                   <div>
-                    <p className="deckgo-kicker">Command</p>
+                    <p className="deckgo-kicker">{t("command")}</p>
                     <strong>{selectedApproval.command}</strong>
-                    <p className="deckgo-note">run: {selectedApproval.runId || "n/a"}</p>
+                    <p className="deckgo-note">
+                      {t("run")}: {selectedApproval.runId || t("notAvailable")}
+                    </p>
                   </div>
                   <div className="deckgo-pill-row">
-                    <span className="deckgo-pill">agent {selectedApproval.agentId || "n/a"}</span>
                     <span className="deckgo-pill">
-                      session {selectedApproval.sessionKey || "n/a"}
+                      {t("agent")}: {selectedApproval.agentId || t("notAvailable")}
+                    </span>
+                    <span className="deckgo-pill">
+                      {t("session")}: {selectedApproval.sessionKey || t("notAvailable")}
                     </span>
                   </div>
                 </div>
@@ -775,7 +518,7 @@ export function ApprovalsPanel() {
                       type="button"
                       onClick={() => navigateToAgent(ui, selectedApproval.agentId)}
                     >
-                      Open approval agent
+                      {t("openApprovalAgent")}
                     </button>
                   ) : null}
                   {selectedApproval.sessionKey ? (
@@ -784,180 +527,52 @@ export function ApprovalsPanel() {
                       type="button"
                       onClick={() => navigateToSession(ui, selectedApproval.sessionKey)}
                     >
-                      Open approval session
+                      {t("openApprovalSession")}
                     </button>
                   ) : null}
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-approvals-detail-stats">
                   <ShellStat
-                    label="created"
+                    label={t("created")}
                     value={new Date(selectedApproval.createdAtMs).toLocaleString()}
                   />
                   <ShellStat
-                    label="expires"
+                    label={t("expires")}
                     value={new Date(selectedApproval.expiresAtMs).toLocaleString()}
                   />
                 </div>
                 <div className="deck-ui-approvals-details">
-                  <JsonDetails title="Approval payload" payload={selectedApproval} />
+                  <JsonDetails title={t("approvalPayload")} payload={selectedApproval} />
                 </div>
               </>
             ) : null}
             {surface === "exec" && !selectedApproval ? (
-              <p className="deckgo-note">Choose a pending approval to inspect it.</p>
+              <p className="deckgo-note">{t("choosePendingApproval")}</p>
             ) : null}
             {surface === "plugins" && !selectedPluginApproval ? (
-              <p className="deckgo-note">Choose a plugin approval to inspect it.</p>
+              <p className="deckgo-note">{t("choosePluginApproval")}</p>
             ) : null}
             {policy ? (
               <div className="deck-ui-approvals-details">
-                <JsonDetails title="Policy payload" payload={policy} />
+                <JsonDetails title={t("policyPayload")} payload={policy} />
               </div>
             ) : null}
-            <div className="deckgo-surface-tile deck-ui-approvals-surface">
-              <p className="deckgo-surface-label">Approval policy editor</p>
-              {structuredPolicyDraft ? (
-                <>
-                  <p className="deckgo-kicker">Global defaults</p>
-                  <PolicyDefaultsControls
-                    label="global"
-                    defaults={structuredPolicyDraft.defaults}
-                    onChange={(defaults) =>
-                      updatePolicyDraft({ ...structuredPolicyDraft, defaults })
-                    }
-                  />
-
-                  <p className="deckgo-kicker deck-ui-approvals-section-title">
-                    Per-agent overrides
-                  </p>
-                  {Object.entries(structuredPolicyDraft.agents).length > 0 ? (
-                    <div className="deckgo-shell-list deck-ui-approvals-agent-list">
-                      {Object.entries(structuredPolicyDraft.agents).map(
-                        ([agentId, agentDefaults]) => (
-                          <div
-                            key={agentId}
-                            className="deckgo-selectable-card deck-ui-approvals-policy-card"
-                          >
-                            <div className="deckgo-card-header">
-                              <strong>{agentId}</strong>
-                              <button
-                                className="deckgo-button deck-ui-approvals-button is-danger"
-                                type="button"
-                                onClick={() => removeAgentOverride(agentId)}
-                              >
-                                Remove
-                              </button>
-                            </div>
-                            <PolicyDefaultsControls
-                              label={`agent ${agentId}`}
-                              defaults={agentDefaults}
-                              onChange={(defaults) =>
-                                updatePolicyDraft({
-                                  ...structuredPolicyDraft,
-                                  agents: {
-                                    ...structuredPolicyDraft.agents,
-                                    [agentId]: defaults,
-                                  },
-                                })
-                              }
-                            />
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  ) : (
-                    <p className="deckgo-note">No agent overrides.</p>
-                  )}
-                  <div className="deckgo-actions deck-ui-approvals-actions">
-                    <input
-                      aria-label="new approval agent id"
-                      className="deckgo-input deck-ui-approvals-input"
-                      value={newAgentId}
-                      onChange={(event) => setNewAgentId(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          addAgentOverride();
-                        }
-                      }}
-                      placeholder="agent id"
-                    />
-                    <button
-                      className="deckgo-button deck-ui-approvals-button"
-                      type="button"
-                      onClick={addAgentOverride}
-                      disabled={!newAgentId.trim()}
-                    >
-                      Add agent
-                    </button>
-                  </div>
-
-                  <p className="deckgo-kicker deck-ui-approvals-section-title">Path allowlist</p>
-                  {structuredPolicyDraft.allowlist.length > 0 ? (
-                    <div className="deckgo-pill-row deck-ui-approvals-allowlist-row">
-                      {structuredPolicyDraft.allowlist.map((path) => (
-                        <span key={path} className="deckgo-pill">
-                          <code>{path}</code>
-                          <button
-                            className="deckgo-button deck-ui-approvals-button is-danger"
-                            type="button"
-                            onClick={() => removeAllowlistPath(path)}
-                          >
-                            Remove
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="deckgo-note">No allowlisted paths.</p>
-                  )}
-                  <div className="deckgo-actions deck-ui-approvals-actions deck-ui-approvals-actions-bottom">
-                    <input
-                      aria-label="new approval allowlist path"
-                      className="deckgo-input deck-ui-approvals-input"
-                      value={newAllowlistPath}
-                      onChange={(event) => setNewAllowlistPath(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          addAllowlistPath();
-                        }
-                      }}
-                      placeholder="/path/to/allow"
-                    />
-                    <button
-                      className="deckgo-button deck-ui-approvals-button"
-                      type="button"
-                      onClick={addAllowlistPath}
-                      disabled={!newAllowlistPath.trim()}
-                    >
-                      Add path
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <p className="deckgo-note">
-                  Policy JSON is invalid, so structured controls are paused until it parses.
-                </p>
-              )}
-              <textarea
-                aria-label="approval policy json"
-                className="deckgo-textarea deck-ui-approvals-textarea"
-                value={policyDraft}
-                onChange={(event) => setPolicyDraft(event.target.value)}
-                rows={12}
-              />
-              <div className="deckgo-actions deck-ui-approvals-actions deck-ui-approvals-actions-offset">
-                <button
-                  className="deckgo-button deck-ui-approvals-button is-primary"
-                  type="button"
-                  onClick={() => void savePolicyDraft()}
-                  disabled={policySaveState !== "idle" || !policyDraft.trim()}
-                >
-                  {policySaveState === "saving" ? "Saving policy" : "Save policy"}
-                </button>
-              </div>
-            </div>
+            <PolicyEditor
+              structuredPolicyDraft={structuredPolicyDraft}
+              policyDraft={policyDraft}
+              newAgentId={newAgentId}
+              newAllowlistPath={newAllowlistPath}
+              policySaveState={policySaveState}
+              onAddAgent={addAgentOverride}
+              onAddAllowlistPath={addAllowlistPath}
+              onPolicyDraftChange={setPolicyDraft}
+              onNewAgentIdChange={setNewAgentId}
+              onNewAllowlistPathChange={setNewAllowlistPath}
+              onRemoveAgent={removeAgentOverride}
+              onRemoveAllowlistPath={removeAllowlistPath}
+              onSave={() => void savePolicyDraft()}
+              onStructuredPolicyChange={updatePolicyDraft}
+            />
             {actionResult ? (
               <div className="deck-ui-approvals-details">
                 <JsonDetails title="Last approval action" payload={actionResult} />
