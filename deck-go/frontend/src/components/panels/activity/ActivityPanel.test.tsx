@@ -3,6 +3,7 @@ import { fireEvent } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { ActivityPanel } from "./ActivityPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -42,6 +43,11 @@ async function flushEffects() {
     await Promise.resolve();
     await Promise.resolve();
   });
+}
+
+function renderActivityPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(ActivityPanel)));
 }
 
 function activityEvents() {
@@ -210,8 +216,7 @@ describe("ActivityPanel", () => {
 
   it("loads, sorts, and selects activity events from the deck-go activity API", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ActivityPanel));
+      renderActivityPanel();
     });
     await flushEffects();
     await flushEffects();
@@ -238,8 +243,7 @@ describe("ActivityPanel", () => {
 
   it("loads monitor run history and selected run detail from the current monitor API", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ActivityPanel));
+      renderActivityPanel();
     });
 
     expect(apiMocks.fetchMonitorRuns).toHaveBeenCalledWith({ limit: 50 });
@@ -276,8 +280,7 @@ describe("ActivityPanel", () => {
 
   it("passes monitor run history filters through the current monitor API", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ActivityPanel));
+      renderActivityPanel();
     });
 
     const runAgentFilter = container.querySelector<HTMLInputElement>(
@@ -378,8 +381,7 @@ describe("ActivityPanel", () => {
       });
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ActivityPanel));
+      renderActivityPanel();
     });
     await flushEffects();
 
@@ -402,8 +404,7 @@ describe("ActivityPanel", () => {
 
   it("opens activity and run agent/session context through shared deck navigation", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ActivityPanel));
+      renderActivityPanel();
     });
 
     await act(async () => {
@@ -434,8 +435,7 @@ describe("ActivityPanel", () => {
 
   it("groups visible activity by time bucket and collapses groups independently", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ActivityPanel));
+      renderActivityPanel();
     });
 
     const groupButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
@@ -457,8 +457,7 @@ describe("ActivityPanel", () => {
 
   it("filters by agent and event type while preserving selected details", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ActivityPanel));
+      renderActivityPanel();
     });
 
     const agentFilter = container.querySelector<HTMLInputElement>(
@@ -491,8 +490,7 @@ describe("ActivityPanel", () => {
 
   it("merges realtime activity.event payloads from the shared deck stream", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ActivityPanel));
+      renderActivityPanel();
     });
 
     expect(apiMocks.streamEvents).toHaveBeenCalled();

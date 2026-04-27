@@ -54,7 +54,7 @@ export function buildUsageTrendRows(
 export function buildUsageModelTrendRows(response: DeckGoUsageSessionsResponse | null) {
   const byLabel = new Map<string, UsageModelTrendRow>();
   for (const entry of response?.aggregates?.modelDaily ?? []) {
-    const label = entry.model || entry.provider || "unknown model";
+    const label = entry.model || entry.provider || "";
     const current = byLabel.get(label) ?? { cost: 0, count: 0, label, tokens: 0 };
     current.cost += entry.cost;
     current.count += entry.count;

@@ -35,30 +35,29 @@ export function sortThreadsByActivity(threads: DeckGoThreadEntry[]) {
   );
 }
 
-export function formatThreadTimestamp(value: number) {
-  return Number.isFinite(value) ? new Date(value).toLocaleString() : "n/a";
+export function formatThreadTimestamp(value: number, fallback = "n/a") {
+  return Number.isFinite(value) ? new Date(value).toLocaleString() : fallback;
 }
 
-export function formatRelativeThreadTime(value: number) {
+export function formatRelativeThreadTime(
+  value: number,
+  t?: (key: string, values?: Record<string, number>) => string,
+) {
   if (!Number.isFinite(value)) {
     return "n/a";
   }
   const seconds = Math.max(0, Math.floor((Date.now() - value) / 1000));
   if (seconds < 60) {
-    return `${seconds}s ago`;
+    return t ? t("secondsAgo", { n: seconds }) : `${seconds}s ago`;
   }
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) {
-    return `${minutes}m ago`;
+    return t ? t("minutesAgo", { n: minutes }) : `${minutes}m ago`;
   }
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return `${hours}h ago`;
+    return t ? t("hoursAgo", { n: hours }) : `${hours}h ago`;
   }
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-export function explainThreadRelation(thread: DeckGoThreadEntry) {
-  return `Thread ${thread.threadId} on ${thread.channelId} routes ${thread.targetKind} ${thread.targetSessionKey} to agent ${thread.agentId}; bound by ${thread.boundBy} for account ${thread.accountId}.`;
+  return t ? t("daysAgo", { n: days }) : `${days}d ago`;
 }

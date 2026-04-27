@@ -13,6 +13,7 @@ import {
 } from "../../../api";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useTranslations } from "../../../i18n/provider";
 import { formatDuration, formatTokenCount } from "../../../lib/format-utils";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { useActivitySSE } from "./useActivitySSE";
@@ -24,11 +25,11 @@ type MonitorRunStatusFilter = "all" | "running" | "completed" | "error";
 type MonitorRunQuery = Parameters<typeof fetchMonitorRuns>[0];
 
 const GROUP_ORDER: ActivityTimeGroup[] = ["today", "yesterday", "thisWeek", "older"];
-const GROUP_LABELS: Record<ActivityTimeGroup, string> = {
-  today: "Today",
-  yesterday: "Yesterday",
-  thisWeek: "This week",
-  older: "Older",
+const GROUP_LABEL_KEYS: Record<ActivityTimeGroup, string> = {
+  today: "today",
+  yesterday: "yesterday",
+  thisWeek: "thisWeek",
+  older: "older",
 };
 const MONITOR_RUN_STATUSES: MonitorRunStatusFilter[] = ["all", "running", "completed", "error"];
 
@@ -149,6 +150,7 @@ function classifyFileOp(name: string) {
 }
 
 export function ActivityPanel() {
+  const t = useTranslations("activity");
   const ui = useDeckUI();
   const [events, setEvents] = useState<DeckGoActivityEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState("");
@@ -210,7 +212,7 @@ export function ActivityPanel() {
       );
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to load activity");
+      setError(loadError instanceof Error ? loadError.message : t("failedLoadActivity"));
     }
   };
 
@@ -264,9 +266,7 @@ export function ActivityPanel() {
         }
       } catch (loadError) {
         setRunsState("idle");
-        setMonitorError(
-          loadError instanceof Error ? loadError.message : "failed to load run history",
-        );
+        setMonitorError(loadError instanceof Error ? loadError.message : t("failedLoadRunHistory"));
       }
     },
     [buildRunQuery],
@@ -282,7 +282,7 @@ export function ActivityPanel() {
       setMonitorError("");
     } catch (loadError) {
       setRunDetailState("idle");
-      setMonitorError(loadError instanceof Error ? loadError.message : "failed to load run detail");
+      setMonitorError(loadError instanceof Error ? loadError.message : t("failedLoadRunDetail"));
     }
   };
 
@@ -308,7 +308,7 @@ export function ActivityPanel() {
     } catch (loadError) {
       setRunsState("idle");
       setMonitorError(
-        loadError instanceof Error ? loadError.message : "failed to load more run history",
+        loadError instanceof Error ? loadError.message : t("failedLoadMoreRunHistory"),
       );
     }
   };
@@ -322,7 +322,7 @@ export function ActivityPanel() {
       setMonitorError("");
     } catch (loadError) {
       setStatsState("idle");
-      setMonitorError(loadError instanceof Error ? loadError.message : "failed to load stats");
+      setMonitorError(loadError instanceof Error ? loadError.message : t("failedLoadStats"));
     }
   };
 
@@ -480,39 +480,39 @@ export function ActivityPanel() {
       <div className="deckgo-column deck-ui-activity-column">
         <article className="deckgo-card is-float deck-ui-activity-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Activity</h2>
+            <h2 className="deckgo-card-title">{t("activityTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Recent activity uses the synthesized deck-go event feed, monitor stats, and run history.
-          </p>
+          <p className="deckgo-card-subtitle">{t("activityDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-activity-body">
             <div className="deckgo-pill-row deck-ui-activity-status-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Activity {loadState}
+                {t("activityStatus", { state: t(loadState) })}
               </span>
-              <span className="deckgo-pill">{events.length} loaded</span>
-              <span className="deckgo-pill">{filteredEvents.length} visible</span>
+              <span className="deckgo-pill">{t("loadedCount", { count: events.length })}</span>
+              <span className="deckgo-pill">
+                {t("visibleCount", { count: filteredEvents.length })}
+              </span>
             </div>
             <div className="deckgo-grid deckgo-grid-3 deck-ui-activity-stats">
-              <ShellStat label="events" value={events.length} />
-              <ShellStat label="visible" value={filteredEvents.length} />
-              <ShellStat label="agents" value={uniqueAgents} />
+              <ShellStat label={t("eventsLower")} value={events.length} />
+              <ShellStat label={t("visibleLower")} value={filteredEvents.length} />
+              <ShellStat label={t("agentsLower")} value={uniqueAgents} />
             </div>
             <div className="deckgo-surface-tile deck-ui-activity-surface">
-              <p className="deckgo-surface-label">Filter activity</p>
+              <p className="deckgo-surface-label">{t("filterActivity")}</p>
               <div className="deckgo-grid deckgo-grid-2 deck-ui-activity-grid">
                 <input
                   className="deckgo-input deck-ui-activity-input"
                   value={agentFilter}
                   onChange={(event) => setAgentFilter(event.target.value)}
-                  placeholder="agent id or name"
+                  placeholder={t("agentFilterPlaceholder")}
                 />
                 <select
                   className="deckgo-input deck-ui-activity-input"
                   value={eventTypeFilter}
                   onChange={(event) => setEventTypeFilter(event.target.value)}
                 >
-                  <option value="">all event types</option>
+                  <option value="">{t("allEventTypes")}</option>
                   {uniqueEventTypes.map((type) => (
                     <option key={type} value={type}>
                       {type}
@@ -524,11 +524,11 @@ export function ActivityPanel() {
                   value={timeRange}
                   onChange={(event) => setTimeRange(event.target.value as ActivityTimeRange)}
                 >
-                  <option value="1h">last hour</option>
-                  <option value="6h">last 6 hours</option>
-                  <option value="24h">last 24 hours</option>
-                  <option value="7d">last 7 days</option>
-                  <option value="all">all</option>
+                  <option value="1h">{t("lastHourLower")}</option>
+                  <option value="6h">{t("last6HoursLower")}</option>
+                  <option value="24h">{t("last24HoursLower")}</option>
+                  <option value="7d">{t("last7DaysLower")}</option>
+                  <option value="all">{t("allLower")}</option>
                 </select>
               </div>
               <div className="deckgo-actions deck-ui-activity-actions deck-ui-activity-actions-offset">
@@ -537,13 +537,13 @@ export function ActivityPanel() {
                   type="button"
                   onClick={() => void refresh(selectedEventId)}
                 >
-                  Refresh activity
+                  {t("refreshActivity")}
                 </button>
               </div>
             </div>
             {error ? <p className="deckgo-note">{error}</p> : null}
             {filteredEvents.length === 0 ? (
-              <p className="deckgo-note">No activity events match the current filters.</p>
+              <p className="deckgo-note">{t("noFilteredActivity")}</p>
             ) : (
               <div className="deckgo-form-grid">
                 {groupedEvents.map(({ group, events: groupEvents }) => {
@@ -556,7 +556,7 @@ export function ActivityPanel() {
                         aria-expanded={!isCollapsed}
                         onClick={() => toggleGroup(group)}
                       >
-                        {GROUP_LABELS[group]} ({groupEvents.length})
+                        {t(GROUP_LABEL_KEYS[group])} ({groupEvents.length})
                       </button>
                       {!isCollapsed ? (
                         <ul className="deckgo-shell-list deck-ui-activity-list deck-ui-activity-list-offset">
@@ -569,7 +569,10 @@ export function ActivityPanel() {
                               >
                                 <strong>{event.description}</strong>
                                 <div className="deckgo-meta">
-                                  {event.type} | {event.agentName || event.agentId || "system"}
+                                  {t("eventMeta", {
+                                    agent: event.agentName || event.agentId || t("system"),
+                                    type: event.type,
+                                  })}
                                 </div>
                                 <div className="deckgo-meta">
                                   {new Date(event.timestamp).toLocaleString()}
@@ -589,45 +592,46 @@ export function ActivityPanel() {
 
         <article className="deckgo-card is-float deck-ui-activity-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Run history</h2>
+            <h2 className="deckgo-card-title">{t("runHistory")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Current monitor runs from deck-go&apos;s projection-backed run history.
-          </p>
+          <p className="deckgo-card-subtitle">{t("runHistoryDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-activity-body">
             <div className="deckgo-pill-row deck-ui-activity-status-row">
               <span className={`deckgo-pill ${runsState === "ready" ? "is-positive" : "is-muted"}`}>
-                Runs {runsState}
+                {t("runsStatus", { state: t(runsState) })}
               </span>
               <span
                 className={`deckgo-pill ${statsState === "ready" ? "is-positive" : "is-muted"}`}
               >
-                Stats {statsState}
+                {t("statsStatus", { state: t(statsState) })}
               </span>
-              <span className="deckgo-pill">{monitorRuns.length} loaded</span>
+              <span className="deckgo-pill">{t("loadedCount", { count: monitorRuns.length })}</span>
             </div>
             <div className="deckgo-grid deckgo-grid-3 deck-ui-activity-stats">
-              <ShellStat label="total runs" value={monitorStats?.totalRuns ?? 0} />
-              <ShellStat label="today" value={monitorStats?.todayRuns ?? 0} />
-              <ShellStat label="avg duration" value={formatDuration(monitorStats?.avgDurationMs)} />
+              <ShellStat label={t("totalRuns")} value={monitorStats?.totalRuns ?? 0} />
+              <ShellStat label={t("todayLower")} value={monitorStats?.todayRuns ?? 0} />
+              <ShellStat
+                label={t("avgDuration")}
+                value={formatDuration(monitorStats?.avgDurationMs)}
+              />
             </div>
             <div className="deckgo-surface-tile deck-ui-activity-surface">
-              <p className="deckgo-surface-label">Filter run history</p>
+              <p className="deckgo-surface-label">{t("filterRunHistory")}</p>
               <div className="deckgo-grid deckgo-grid-2 deck-ui-activity-grid">
                 <input
                   className="deckgo-input deck-ui-activity-input"
                   value={runAgentFilter}
                   onChange={(event) => setRunAgentFilter(event.target.value)}
-                  placeholder="run agent id"
+                  placeholder={t("runAgentIdPlaceholder")}
                 />
                 <input
                   className="deckgo-input deck-ui-activity-input"
                   value={runSessionFilter}
                   onChange={(event) => setRunSessionFilter(event.target.value)}
-                  placeholder="run session key"
+                  placeholder={t("runSessionKeyPlaceholder")}
                 />
                 <select
-                  aria-label="run status filter"
+                  aria-label={t("runStatusFilter")}
                   className="deckgo-input deck-ui-activity-input"
                   value={runStatusFilter}
                   onChange={(event) =>
@@ -636,21 +640,21 @@ export function ActivityPanel() {
                 >
                   {MONITOR_RUN_STATUSES.map((status) => (
                     <option key={status} value={status}>
-                      {status === "all" ? "all statuses" : status}
+                      {status === "all" ? t("allStatuses") : status}
                     </option>
                   ))}
                 </select>
                 <select
-                  aria-label="run time range"
+                  aria-label={t("runTimeRange")}
                   className="deckgo-input deck-ui-activity-input"
                   value={runTimeRange}
                   onChange={(event) => setRunTimeRange(event.target.value as ActivityTimeRange)}
                 >
-                  <option value="1h">last hour</option>
-                  <option value="6h">last 6 hours</option>
-                  <option value="24h">last 24 hours</option>
-                  <option value="7d">last 7 days</option>
-                  <option value="all">all runs</option>
+                  <option value="1h">{t("lastHourLower")}</option>
+                  <option value="6h">{t("last6HoursLower")}</option>
+                  <option value="24h">{t("last24HoursLower")}</option>
+                  <option value="7d">{t("last7DaysLower")}</option>
+                  <option value="all">{t("allRuns")}</option>
                 </select>
               </div>
               {runAgentFilter ||
@@ -668,14 +672,14 @@ export function ActivityPanel() {
                       setRunTimeRange("all");
                     }}
                   >
-                    Clear run filters
+                    {t("clearRunFilters")}
                   </button>
                 </div>
               ) : null}
             </div>
             {monitorStats?.topAgents?.length ? (
               <div className="deckgo-surface-tile deck-ui-activity-surface">
-                <p className="deckgo-surface-label">Top agents</p>
+                <p className="deckgo-surface-label">{t("topAgents")}</p>
                 <div className="deckgo-pill-row deck-ui-activity-status-row">
                   {monitorStats.topAgents.map((agent) => (
                     <button
@@ -696,7 +700,7 @@ export function ActivityPanel() {
                 type="button"
                 onClick={() => void refreshRuns(selectedRunId)}
               >
-                Refresh runs
+                {t("refreshRuns")}
               </button>
               {monitorNextCursor ? (
                 <button
@@ -704,7 +708,7 @@ export function ActivityPanel() {
                   type="button"
                   onClick={() => void loadMoreRuns()}
                 >
-                  Load more runs
+                  {t("loadMoreRuns")}
                 </button>
               ) : null}
               <button
@@ -712,7 +716,7 @@ export function ActivityPanel() {
                 type="button"
                 onClick={() => void refreshMonitorStats()}
               >
-                Refresh stats
+                {t("refreshStats")}
               </button>
             </div>
             {monitorError ? <p className="deckgo-note">{monitorError}</p> : null}
@@ -727,16 +731,24 @@ export function ActivityPanel() {
                   >
                     <strong>{run.runId}</strong>
                     <div className="deckgo-meta">
-                      {run.status} | agent {run.agentId || "n/a"} | events {run.eventCount}
+                      {t("runMeta", {
+                        agent: run.agentId || t("na"),
+                        eventCount: run.eventCount,
+                        status: run.status,
+                      })}
                     </div>
                     <div className="deckgo-meta">
-                      tools {run.toolCalls} | models {run.modelCalls} | tokens {run.totalTokens}
+                      {t("runUsageMeta", {
+                        modelCalls: run.modelCalls,
+                        tokens: run.totalTokens,
+                        toolCalls: run.toolCalls,
+                      })}
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <p className="deckgo-note">No monitor runs reported.</p>
+              <p className="deckgo-note">{t("noMonitorRuns")}</p>
             )}
           </div>
         </article>
@@ -745,34 +757,31 @@ export function ActivityPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-activity-column deck-ui-activity-inspector">
         <article className="deckgo-card is-float deck-ui-activity-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Selected event</h2>
+            <h2 className="deckgo-card-title">{t("selectedEvent")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Read live timeline buckets, inspect event details, and review parsed monitor/run
-            diagnostics.
-          </p>
+          <p className="deckgo-card-subtitle">{t("selectedEventDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-activity-body">
             {selectedEvent ? (
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-activity-hero">
                   <div>
-                    <p className="deckgo-kicker">Event</p>
+                    <p className="deckgo-kicker">{t("event")}</p>
                     <strong>{selectedEvent.description}</strong>
                     <p className="deckgo-note">{selectedEvent.id}</p>
                   </div>
                   <div className="deckgo-pill-row deck-ui-activity-status-row">
                     <span className="deckgo-pill">{selectedEvent.type}</span>
                     <span className="deckgo-pill">
-                      {selectedEvent.agentName || selectedEvent.agentId || "system"}
+                      {selectedEvent.agentName || selectedEvent.agentId || t("system")}
                     </span>
                   </div>
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-activity-grid">
                   <ShellStat
-                    label="timestamp"
+                    label={t("timestamp")}
                     value={new Date(selectedEvent.timestamp).toLocaleString()}
                   />
-                  <ShellStat label="type" value={selectedEvent.type} />
+                  <ShellStat label={t("type")} value={selectedEvent.type} />
                 </div>
                 {selectedEvent.agentId ? (
                   <div className="deckgo-actions deck-ui-activity-actions">
@@ -781,73 +790,76 @@ export function ActivityPanel() {
                       type="button"
                       onClick={() => navigateToAgent(ui, selectedEvent.agentId ?? "")}
                     >
-                      Open event agent
+                      {t("openEventAgent")}
                     </button>
                   </div>
                 ) : null}
                 {selectedEvent.details ? (
                   <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">Details</p>
+                    <p className="deckgo-surface-label">{t("details")}</p>
                     <p className="deckgo-note">{selectedEvent.details}</p>
                   </div>
                 ) : null}
-                <JsonDetails title="Event payload" payload={selectedEvent} />
+                <JsonDetails title={t("eventPayload")} payload={selectedEvent} />
               </>
             ) : (
-              <p className="deckgo-note">Choose an activity event to inspect it.</p>
+              <p className="deckgo-note">{t("chooseActivityEvent")}</p>
             )}
           </div>
         </article>
 
         <article className="deckgo-card is-float deck-ui-activity-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Selected run</h2>
+            <h2 className="deckgo-card-title">{t("selectedRun")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Summary and event rows from the current `/monitor/runs/:runId` facade.
-          </p>
+          <p className="deckgo-card-subtitle">{t("selectedRunDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-activity-body">
             {selectedRunId ? (
               <>
                 <div className="deckgo-panel-hero-strip deck-ui-activity-hero">
                   <div>
-                    <p className="deckgo-kicker">Run</p>
+                    <p className="deckgo-kicker">{t("run")}</p>
                     <strong>{selectedRunId}</strong>
-                    <p className="deckgo-note">detail {runDetailState}</p>
+                    <p className="deckgo-note">{t("detailStatus", { state: t(runDetailState) })}</p>
                   </div>
                   <div className="deckgo-pill-row deck-ui-activity-status-row">
                     <span className="deckgo-pill">
-                      events {runDetail?.summary?.eventCount ?? runDetail?.events?.length ?? 0}
+                      {t("eventsCount", {
+                        count: runDetail?.summary?.eventCount ?? runDetail?.events?.length ?? 0,
+                      })}
                     </span>
                     <span className="deckgo-pill">
-                      tokens {runDetail?.summary?.totalTokens ?? 0}
+                      {t("tokensCount", { count: runDetail?.summary?.totalTokens ?? 0 })}
                     </span>
                   </div>
                 </div>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-activity-grid">
-                  <ShellStat label="tool calls" value={runDetail?.summary?.toolCalls ?? 0} />
-                  <ShellStat label="model calls" value={runDetail?.summary?.modelCalls ?? 0} />
-                  <ShellStat label="file ops" value={runDetail?.summary?.fileOps ?? 0} />
-                  <ShellStat label="subagents" value={runDetail?.summary?.subagentSpawns ?? 0} />
+                  <ShellStat label={t("toolCalls")} value={runDetail?.summary?.toolCalls ?? 0} />
+                  <ShellStat label={t("modelCalls")} value={runDetail?.summary?.modelCalls ?? 0} />
+                  <ShellStat label={t("fileOps")} value={runDetail?.summary?.fileOps ?? 0} />
                   <ShellStat
-                    label="duration"
+                    label={t("subagents")}
+                    value={runDetail?.summary?.subagentSpawns ?? 0}
+                  />
+                  <ShellStat
+                    label={t("duration")}
                     value={formatDuration(runDetail?.summary?.durationMs)}
                   />
                   <ShellStat
-                    label="input tokens"
+                    label={t("inputTokens")}
                     value={formatTokenCount(runDetail?.summary?.totalInputTokens)}
                   />
                   <ShellStat
-                    label="output tokens"
+                    label={t("outputTokens")}
                     value={formatTokenCount(runDetail?.summary?.totalOutputTokens)}
                   />
                   <ShellStat
-                    label="cache tokens"
+                    label={t("cacheTokens")}
                     value={formatTokenCount(runDetail?.summary?.totalCacheTokens)}
                   />
                   <ShellStat
-                    label="compacted"
-                    value={runDetail?.summary?.compacted ? "yes" : "no"}
+                    label={t("compacted")}
+                    value={runDetail?.summary?.compacted ? t("yes") : t("no")}
                   />
                 </div>
                 <div className="deckgo-actions deck-ui-activity-actions">
@@ -857,7 +869,7 @@ export function ActivityPanel() {
                       type="button"
                       onClick={() => navigateToAgent(ui, selectedRunAgentId)}
                     >
-                      Open run agent
+                      {t("openRunAgent")}
                     </button>
                   ) : null}
                   {selectedRunSessionKey ? (
@@ -866,13 +878,13 @@ export function ActivityPanel() {
                       type="button"
                       onClick={() => navigateToSession(ui, selectedRunSessionKey)}
                     >
-                      Open run session
+                      {t("openRunSession")}
                     </button>
                   ) : null}
                 </div>
                 {runDiagnostics.modelStats.length ? (
                   <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">Model stats</p>
+                    <p className="deckgo-surface-label">{t("modelStats")}</p>
                     <div className="deckgo-form-grid">
                       {runDiagnostics.modelStats.slice(0, 5).map((stat) => (
                         <div
@@ -881,11 +893,16 @@ export function ActivityPanel() {
                         >
                           <strong>{stat.model}</strong>
                           <div className="deckgo-meta">
-                            calls {stat.calls} | input {formatTokenCount(stat.inputTokens)} | output{" "}
-                            {formatTokenCount(stat.outputTokens)} | cache{" "}
-                            {formatTokenCount(stat.cacheTokens)}
+                            {t("modelStatsMeta", {
+                              cache: formatTokenCount(stat.cacheTokens),
+                              calls: stat.calls,
+                              input: formatTokenCount(stat.inputTokens),
+                              output: formatTokenCount(stat.outputTokens),
+                            })}
                           </div>
-                          {stat.fallback ? <div className="deckgo-meta">fallback used</div> : null}
+                          {stat.fallback ? (
+                            <div className="deckgo-meta">{t("fallbackUsed")}</div>
+                          ) : null}
                         </div>
                       ))}
                     </div>
@@ -893,13 +910,13 @@ export function ActivityPanel() {
                 ) : null}
                 {runDiagnostics.toolEvents.length ? (
                   <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">Tool calls</p>
+                    <p className="deckgo-surface-label">{t("toolCallsTitle")}</p>
                     <div className="deckgo-form-grid">
                       {runDiagnostics.toolEvents.slice(0, 5).map((event) => (
                         <div className="deckgo-selectable-card deck-ui-activity-row" key={event.id}>
                           <strong>{event.name}</strong>
                           <div className="deckgo-meta">
-                            {event.phase || "event"} | {formatDuration(event.durationMs)}
+                            {event.phase || t("eventFallback")} | {formatDuration(event.durationMs)}
                           </div>
                         </div>
                       ))}
@@ -908,7 +925,7 @@ export function ActivityPanel() {
                 ) : null}
                 {runDiagnostics.fileEvents.length ? (
                   <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">File operations</p>
+                    <p className="deckgo-surface-label">{t("fileOperations")}</p>
                     <div className="deckgo-form-grid">
                       {runDiagnostics.fileEvents.slice(0, 5).map((event) => (
                         <div className="deckgo-selectable-card deck-ui-activity-row" key={event.id}>
@@ -921,13 +938,13 @@ export function ActivityPanel() {
                 ) : null}
                 {runDiagnostics.subagentEvents.length ? (
                   <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">Subagent events</p>
+                    <p className="deckgo-surface-label">{t("subagentEvents")}</p>
                     <div className="deckgo-form-grid">
                       {runDiagnostics.subagentEvents.slice(0, 5).map((event) => (
                         <div className="deckgo-selectable-card deck-ui-activity-row" key={event.id}>
                           <strong>{event.runId}</strong>
                           <div className="deckgo-meta">
-                            {event.agentId || "agent"} | {event.status}
+                            {event.agentId || t("agentFallback")} | {event.status}
                           </div>
                           {event.task ? <div className="deckgo-meta">{event.task}</div> : null}
                         </div>
@@ -937,7 +954,7 @@ export function ActivityPanel() {
                 ) : null}
                 {runDetail?.events?.length ? (
                   <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">Run events</p>
+                    <p className="deckgo-surface-label">{t("runEvents")}</p>
                     <div className="deckgo-form-grid">
                       {runDetail.events.slice(0, 5).map((event) => (
                         <div className="deckgo-selectable-card deck-ui-activity-row" key={event.id}>
@@ -945,7 +962,10 @@ export function ActivityPanel() {
                             #{event.seq} {event.stream}
                           </strong>
                           <div className="deckgo-meta">
-                            {event.agent_id || "system"} | {event.created_at}
+                            {t("runEventMeta", {
+                              agent: event.agent_id || t("system"),
+                              createdAt: event.created_at,
+                            })}
                           </div>
                           <div className="deckgo-meta">{event.data}</div>
                         </div>
@@ -953,10 +973,10 @@ export function ActivityPanel() {
                     </div>
                   </div>
                 ) : null}
-                <JsonDetails title="Run detail payload" payload={runDetail} />
+                <JsonDetails title={t("runDetailPayload")} payload={runDetail} />
               </>
             ) : (
-              <p className="deckgo-note">Choose a monitor run to inspect it.</p>
+              <p className="deckgo-note">{t("chooseMonitorRun")}</p>
             )}
           </div>
         </article>

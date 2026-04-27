@@ -18,6 +18,7 @@ import {
   runMemoryDreams,
   searchMemory,
 } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 
 type PanelState = "idle" | "loading" | "ready";
@@ -79,6 +80,7 @@ function formatMemoryTimestamp(value?: number) {
 }
 
 export function MemoryPanel() {
+  const t = useTranslations("memory");
   const [agents, setAgents] = useState<DeckGoAgentSummary[]>([]);
   const [agentId, setAgentId] = useState("main");
   const [tab, setTab] = useState<MemoryTab>("files");
@@ -127,7 +129,7 @@ export function MemoryPanel() {
       setSelectedContent("");
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to browse memory");
+      setError(loadError instanceof Error ? loadError.message : t("failedBrowse"));
     }
   };
 
@@ -139,7 +141,7 @@ export function MemoryPanel() {
       setSelectedContent(fileResult.content ?? "");
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "failed to read memory file");
+      setError(actionError instanceof Error ? actionError.message : t("failedRead"));
     } finally {
       setActionState("idle");
     }
@@ -154,7 +156,7 @@ export function MemoryPanel() {
       setError("");
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to load memory health");
+      setError(loadError instanceof Error ? loadError.message : t("failedHealth"));
     }
   };
 
@@ -169,7 +171,7 @@ export function MemoryPanel() {
       }
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "memory dreams read failed");
+      setError(actionError instanceof Error ? actionError.message : t("failedDreamRead"));
     } finally {
       setActionState("idle");
     }
@@ -207,7 +209,7 @@ export function MemoryPanel() {
   const searchAction = async () => {
     const query = searchQuery.trim();
     if (!query) {
-      setError("memory search query is required");
+      setError(t("searchRequired"));
       return;
     }
     setActionState("searching");
@@ -219,7 +221,7 @@ export function MemoryPanel() {
     } catch (actionError) {
       setSearchResults([]);
       setSearchUnavailableReason("");
-      setError(actionError instanceof Error ? actionError.message : "memory search failed");
+      setError(actionError instanceof Error ? actionError.message : t("failedSearch"));
     } finally {
       setActionState("idle");
     }
@@ -232,7 +234,7 @@ export function MemoryPanel() {
     }
     if (
       DREAM_ACTIONS_REQUIRING_CONFIRMATION.has(action) &&
-      !window.confirm(`Run memory dreams ${action}?`)
+      !window.confirm(t("confirmDreamAction", { action }))
     ) {
       return;
     }
@@ -246,7 +248,7 @@ export function MemoryPanel() {
       }
       setError("");
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "memory dreams action failed");
+      setError(actionError instanceof Error ? actionError.message : t("failedDreamAction"));
     } finally {
       setActionState("idle");
     }
@@ -257,28 +259,26 @@ export function MemoryPanel() {
       <div className="deckgo-column deck-ui-memory-column">
         <article className="deckgo-card is-float deck-ui-memory-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Memory</h2>
+            <h2 className="deckgo-card-title">{t("title")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Browse memory files, search memory, inspect health, and run dream-diary actions.
-          </p>
+          <p className="deckgo-card-subtitle">{t("panelDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-memory-body">
             <div className="deckgo-pill-row deck-ui-memory-status-row">
               <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Memory {loadState}
+                {t("memoryStatus", { state: t(loadState) })}
               </span>
-              <span className="deckgo-pill">agent {agentId}</span>
+              <span className="deckgo-pill">{t("agentValue", { agentId })}</span>
             </div>
             <div className="deckgo-actions deck-ui-memory-controls">
               <input
                 className="deckgo-input deck-ui-memory-input"
                 value={agentId}
                 onChange={(event) => setAgentId(event.target.value)}
-                placeholder="agent id"
+                placeholder={t("agentIdPlaceholder")}
               />
               {agents.length > 0 ? (
                 <select
-                  aria-label="Memory agent selector"
+                  aria-label={t("agentSelector")}
                   className="deckgo-input deck-ui-memory-input"
                   value={agentId}
                   onChange={(event) => setAgentId(event.target.value)}
@@ -295,46 +295,48 @@ export function MemoryPanel() {
                 type="button"
                 onClick={() => setTab("files")}
               >
-                Files
+                {t("files")}
               </button>
               <button
                 className={`deckgo-button deck-ui-memory-button deck-ui-memory-tab ${tab === "search" ? "is-primary" : ""}`}
                 type="button"
                 onClick={() => setTab("search")}
               >
-                Search
+                {t("searchTab")}
               </button>
               <button
                 className={`deckgo-button deck-ui-memory-button deck-ui-memory-tab ${tab === "graph" ? "is-primary" : ""}`}
                 type="button"
                 onClick={() => setTab("graph")}
               >
-                Graph
+                {t("graphTab")}
               </button>
               <button
                 className={`deckgo-button deck-ui-memory-button deck-ui-memory-tab ${tab === "health" ? "is-primary" : ""}`}
                 type="button"
                 onClick={() => setTab("health")}
               >
-                Health
+                {t("health")}
               </button>
               <button
                 className={`deckgo-button deck-ui-memory-button deck-ui-memory-tab ${tab === "dreams" ? "is-primary" : ""}`}
                 type="button"
                 onClick={() => setTab("dreams")}
               >
-                Dreams
+                {t("dreams.tab")}
               </button>
             </div>
             {error ? <p className="deckgo-note deck-ui-memory-error">{error}</p> : null}
             {tab === "files" ? (
               <>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-memory-stats">
-                  <ShellStat label="entries" value={files.length} />
-                  <ShellStat label="selected path" value={selectedPath || "n/a"} />
+                  <ShellStat label={t("entries")} value={files.length} />
+                  <ShellStat label={t("selectedPath")} value={selectedPath || t("na")} />
                 </div>
                 <div className="deckgo-actions deck-ui-memory-actions">
-                  <span className="deckgo-pill">browsing {currentBrowsePath || "memory root"}</span>
+                  <span className="deckgo-pill">
+                    {t("browsing", { path: currentBrowsePath || t("memoryRoot") })}
+                  </span>
                   {currentBrowsePath ? (
                     <button
                       className="deckgo-button deck-ui-memory-button"
@@ -343,13 +345,13 @@ export function MemoryPanel() {
                         void refreshFiles(memoryParentPath(currentBrowsePath) || undefined)
                       }
                     >
-                      Back to parent
+                      {t("backToParent")}
                     </button>
                   ) : null}
                 </div>
                 <ul className="deckgo-shell-list deck-ui-memory-list">
                   {files.length === 0 ? (
-                    <p className="deckgo-note deck-ui-memory-empty">No memory files loaded.</p>
+                    <p className="deckgo-note deck-ui-memory-empty">{t("noMemoryFilesLoaded")}</p>
                   ) : (
                     files.map((file) => (
                       <li key={file.path}>
@@ -366,7 +368,11 @@ export function MemoryPanel() {
                         >
                           <strong>{file.name}</strong>
                           <div className="deckgo-meta deck-ui-memory-meta">
-                            {file.type} | {file.path} | size: {file.size ?? "n/a"}
+                            {t("fileMeta", {
+                              path: file.path,
+                              size: file.size ?? t("na"),
+                              type: file.type,
+                            })}
                           </div>
                         </button>
                       </li>
@@ -378,31 +384,30 @@ export function MemoryPanel() {
             {tab === "graph" ? (
               <>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-memory-stats">
-                  <ShellStat label="nodes" value={files.length} />
+                  <ShellStat label={t("nodes")} value={files.length} />
                   <ShellStat
-                    label="directories"
+                    label={t("directories")}
                     value={files.filter((file) => file.type === "directory").length}
                   />
                 </div>
                 <div className="deckgo-surface-tile deck-ui-memory-surface">
-                  <p className="deckgo-surface-label">Knowledge graph</p>
-                  <p className="deckgo-note">
-                    Memory files grouped by path relationships for quick context navigation.
-                  </p>
+                  <p className="deckgo-surface-label">{t("graph")}</p>
+                  <p className="deckgo-note">{t("graphDescription")}</p>
                 </div>
                 <ul className="deckgo-shell-list deck-ui-memory-list">
                   {files.length === 0 ? (
-                    <p className="deckgo-note deck-ui-memory-empty">
-                      No memory graph nodes loaded.
-                    </p>
+                    <p className="deckgo-note deck-ui-memory-empty">{t("noGraphNodes")}</p>
                   ) : (
                     files.map((file) => (
                       <li key={file.path}>
                         <div className="deckgo-selectable-card deck-ui-memory-row">
                           <strong>{file.name}</strong>
                           <div className="deckgo-meta deck-ui-memory-meta">
-                            {file.type} | {file.path} | connections:{" "}
-                            {countRelatedMemoryNodes(file, files)}
+                            {t("graphNodeMeta", {
+                              connections: countRelatedMemoryNodes(file, files),
+                              path: file.path,
+                              type: file.type,
+                            })}
                           </div>
                         </div>
                       </li>
@@ -418,7 +423,7 @@ export function MemoryPanel() {
                     className="deckgo-input deck-ui-memory-input"
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="search memory"
+                    placeholder={t("searchMemoryPlaceholder")}
                   />
                   <select
                     className="deckgo-input deck-ui-memory-input"
@@ -427,9 +432,9 @@ export function MemoryPanel() {
                       setSearchScope(event.target.value as DeckGoMemorySearchScope)
                     }
                   >
-                    <option value="all">all</option>
-                    <option value="global">global</option>
-                    <option value="agent">agent</option>
+                    <option value="all">{t("scopeAll")}</option>
+                    <option value="global">{t("scopeGlobalValue")}</option>
+                    <option value="agent">{t("scopeAgentValue")}</option>
                   </select>
                   <button
                     className="deckgo-button deck-ui-memory-button is-primary"
@@ -437,29 +442,30 @@ export function MemoryPanel() {
                     onClick={() => void searchAction()}
                     disabled={actionState !== "idle"}
                   >
-                    {actionState === "searching" ? "Searching" : "Search memory"}
+                    {actionState === "searching" ? t("searching") : t("searchMemory")}
                   </button>
                 </div>
                 {searchUnavailableReason ? (
                   <p className="deckgo-note deck-ui-memory-error">{searchUnavailableReason}</p>
                 ) : null}
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-memory-stats">
-                  <ShellStat label="results" value={searchResults.length} />
-                  <ShellStat label="scope" value={searchScope} />
+                  <ShellStat label={t("results")} value={searchResults.length} />
+                  <ShellStat label={t("scope")} value={searchScope} />
                 </div>
                 <ul className="deckgo-shell-list deck-ui-memory-list">
                   {searchResults.length === 0 ? (
-                    <p className="deckgo-note deck-ui-memory-empty">
-                      No memory search results loaded.
-                    </p>
+                    <p className="deckgo-note deck-ui-memory-empty">{t("noSearchResultsLoaded")}</p>
                   ) : (
                     searchResults.map((result, index) => (
                       <li key={`${result.path}-${index}`}>
                         <div className="deckgo-selectable-card deck-ui-memory-row">
                           <strong>{result.path}</strong>
                           <div className="deckgo-meta deck-ui-memory-meta">
-                            relevance: {result.relevance} | tier: {result.tier || "n/a"} | scope:{" "}
-                            {result.scope || "n/a"}
+                            {t("searchResultMeta", {
+                              relevance: result.relevance,
+                              scope: result.scope || t("na"),
+                              tier: result.tier || t("na"),
+                            })}
                           </div>
                           <div className="deckgo-meta deck-ui-memory-meta">{result.content}</div>
                         </div>
@@ -472,13 +478,13 @@ export function MemoryPanel() {
             {tab === "health" ? (
               <>
                 <div className="deckgo-grid deckgo-grid-2 deck-ui-memory-stats">
-                  <ShellStat label="entries" value={healthEntries.length} />
+                  <ShellStat label={t("entries")} value={healthEntries.length} />
                   <ShellStat
-                    label="lance db"
-                    value={healthResponse?.lanceDbEnabled ? "enabled" : "off"}
+                    label={t("lanceDb")}
+                    value={healthResponse?.lanceDbEnabled ? t("enabled") : t("off")}
                   />
                 </div>
-                <JsonDetails title="Health payload" payload={healthEntries} />
+                <JsonDetails title={t("healthPayload")} payload={healthEntries} />
               </>
             ) : null}
             {tab === "dreams" ? (
@@ -490,7 +496,7 @@ export function MemoryPanel() {
                     onClick={() => void dreamsAction("read")}
                     disabled={actionState !== "idle"}
                   >
-                    Read
+                    {t("dreamRead")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-memory-button"
@@ -498,7 +504,7 @@ export function MemoryPanel() {
                     onClick={() => void dreamsAction("backfill")}
                     disabled={actionState !== "idle"}
                   >
-                    Backfill
+                    {t("dreamBackfill")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-memory-button"
@@ -506,7 +512,7 @@ export function MemoryPanel() {
                     onClick={() => void dreamsAction("dedupe")}
                     disabled={actionState !== "idle"}
                   >
-                    Dedupe
+                    {t("dreamDedupe")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-memory-button"
@@ -514,7 +520,7 @@ export function MemoryPanel() {
                     onClick={() => void dreamsAction("repair")}
                     disabled={actionState !== "idle"}
                   >
-                    Repair
+                    {t("dreamRepair")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-memory-button is-danger"
@@ -522,7 +528,7 @@ export function MemoryPanel() {
                     onClick={() => void dreamsAction("resetShortTerm")}
                     disabled={actionState !== "idle"}
                   >
-                    Reset short-term
+                    {t("dreamResetShortTerm")}
                   </button>
                   <button
                     className="deckgo-button deck-ui-memory-button is-danger"
@@ -530,22 +536,22 @@ export function MemoryPanel() {
                     onClick={() => void dreamsAction("reset")}
                     disabled={actionState !== "idle"}
                   >
-                    Reset
+                    {t("dreamReset")}
                   </button>
                 </div>
                 <div className="deckgo-surface-tile deck-ui-memory-surface deck-ui-memory-diary">
-                  <p className="deckgo-surface-label">Dream diary</p>
+                  <p className="deckgo-surface-label">{t("dreams.title")}</p>
                   {dreamDiary ? (
                     <>
                       <div className="deckgo-grid deckgo-grid-2 deck-ui-memory-stats">
-                        <ShellStat label="agent" value={dreamDiary.agentId} />
+                        <ShellStat label={t("agent")} value={dreamDiary.agentId} />
                         <ShellStat
-                          label="status"
-                          value={dreamDiary.found ? "found" : "not found"}
+                          label={t("status")}
+                          value={dreamDiary.found ? t("found") : t("notFound")}
                         />
-                        <ShellStat label="path" value={dreamDiary.path} />
+                        <ShellStat label={t("path")} value={dreamDiary.path} />
                         <ShellStat
-                          label="updated"
+                          label={t("updated")}
                           value={formatMemoryTimestamp(dreamDiary.updatedAtMs)}
                         />
                       </div>
@@ -554,11 +560,11 @@ export function MemoryPanel() {
                           {dreamDiary.content.replace(/\s+/g, " ").trim().slice(0, 160)}
                         </p>
                       ) : (
-                        <p className="deckgo-note">No dream diary content returned.</p>
+                        <p className="deckgo-note">{t("noDreamDiaryContent")}</p>
                       )}
                     </>
                   ) : (
-                    <p className="deckgo-note">Dream diary has not been read yet.</p>
+                    <p className="deckgo-note">{t("dreamDiaryUnread")}</p>
                   )}
                 </div>
               </>
@@ -570,12 +576,9 @@ export function MemoryPanel() {
       <div className="deckgo-column deckgo-panel-main deck-ui-memory-column deck-ui-memory-detail-column">
         <article className="deckgo-card is-float deck-ui-memory-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Memory detail</h2>
+            <h2 className="deckgo-card-title">{t("detailTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Gateway recall results render when available, and the LanceDB-unavailable state stays
-            explicit when the backend returns a degraded response.
-          </p>
+          <p className="deckgo-card-subtitle">{t("detailDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-memory-body">
             {tab === "files" ? (
               selectedPath ? (
@@ -586,29 +589,25 @@ export function MemoryPanel() {
                   </pre>
                 </div>
               ) : (
-                <p className="deckgo-note deck-ui-memory-empty">Select a memory file to read it.</p>
+                <p className="deckgo-note deck-ui-memory-empty">{t("selectFileToRead")}</p>
               )
             ) : null}
             {tab === "search" ? (
               searchResults.length > 0 ? (
-                <JsonDetails title="Memory search results" payload={searchResults} />
+                <JsonDetails title={t("searchResultsTitle")} payload={searchResults} />
               ) : (
-                <p className="deckgo-note deck-ui-memory-empty">
-                  Run a memory search to inspect recall results.
-                </p>
+                <p className="deckgo-note deck-ui-memory-empty">{t("runSearchToInspect")}</p>
               )
             ) : null}
             {tab === "graph" ? (
               files.length > 0 ? (
-                <JsonDetails title="Memory graph nodes" payload={files} />
+                <JsonDetails title={t("graphNodesTitle")} payload={files} />
               ) : (
-                <p className="deckgo-note deck-ui-memory-empty">
-                  Load memory files to inspect graph nodes.
-                </p>
+                <p className="deckgo-note deck-ui-memory-empty">{t("loadFilesForGraph")}</p>
               )
             ) : null}
             {tab === "health" ? (
-              <JsonDetails title="Raw health response" payload={healthResponse} />
+              <JsonDetails title={t("rawHealthResponse")} payload={healthResponse} />
             ) : null}
             {tab === "dreams" ? (
               <>
@@ -616,16 +615,14 @@ export function MemoryPanel() {
                   <div className="deckgo-surface-tile deck-ui-memory-surface">
                     <p className="deckgo-surface-label">{dreamDiary.path}</p>
                     <pre className="deckgo-code deck-ui-memory-code deck-ui-memory-code-wrap">
-                      {dreamDiary.content || "No dream diary content returned."}
+                      {dreamDiary.content || t("noDreamDiaryContent")}
                     </pre>
                   </div>
                 ) : (
-                  <p className="deckgo-note deck-ui-memory-empty">
-                    Read the dream diary to inspect its content.
-                  </p>
+                  <p className="deckgo-note deck-ui-memory-empty">{t("readDreamDiaryToInspect")}</p>
                 )}
                 {dreamsResult ? (
-                  <JsonDetails title="Dream diary action result" payload={dreamsResult} />
+                  <JsonDetails title={t("dreamActionResult")} payload={dreamsResult} />
                 ) : null}
               </>
             ) : null}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DeckGoLogStreamEvent } from "../../../../../contracts/generated/ts/deck-api.generated";
 import { fetchLogsTail, streamLogEvents, type DeckGoLogsTailResponse } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 import { parseLogEvent, summarizeLogEvent } from "../../../stream-contract";
 import { EventFeedCard, JsonDetails } from "../../shared/ShellComponents";
 
@@ -131,6 +132,7 @@ function buildLogExport(entries: ParsedLogEntry[]) {
 }
 
 export function LogsPanel() {
+  const t = useTranslations("logs");
   const [tail, setTail] = useState<DeckGoLogsTailResponse | null>(null);
   const [tailState, setTailState] = useState<LogsState>("idle");
   const [streamState, setStreamState] = useState<StreamState>("idle");
@@ -148,21 +150,24 @@ export function LogsPanel() {
       : window.localStorage.getItem(LOG_LAST_EVENT_ID_KEY)?.trim() || "",
   );
 
-  const refreshLogsTail = useCallback(async (cursor?: number) => {
-    setTailState("loading");
-    try {
-      const result = await fetchLogsTail({ cursor, limit: 200, maxBytes: 65536 });
-      setTail(result);
-      if (typeof result.cursor === "number") {
-        window.localStorage.setItem(LOG_CURSOR_KEY, String(result.cursor));
+  const refreshLogsTail = useCallback(
+    async (cursor?: number) => {
+      setTailState("loading");
+      try {
+        const result = await fetchLogsTail({ cursor, limit: 200, maxBytes: 65536 });
+        setTail(result);
+        if (typeof result.cursor === "number") {
+          window.localStorage.setItem(LOG_CURSOR_KEY, String(result.cursor));
+        }
+        setTailState("ready");
+        setError("");
+      } catch (tailError) {
+        setTailState("idle");
+        setError(tailError instanceof Error ? tailError.message : t("failedFetchTail"));
       }
-      setTailState("ready");
-      setError("");
-    } catch (tailError) {
-      setTailState("idle");
-      setError(tailError instanceof Error ? tailError.message : "failed to fetch logs tail");
-    }
-  }, []);
+    },
+    [t],
+  );
 
   useEffect(() => {
     const initialCursorRaw =
@@ -194,7 +199,7 @@ export function LogsPanel() {
 
         const parsed = parseLogEvent(event);
         if (parsed.kind === "log.reset") {
-          setLiveTape((current) => ["log reset", ...current].slice(0, 10));
+          setLiveTape((current) => [t("logReset"), ...current].slice(0, 10));
           setTail((current) => (current ? { ...current, lines: [], reset: true } : current));
           return;
         }
@@ -214,16 +219,14 @@ export function LogsPanel() {
       },
     }).catch((streamError) => {
       if (!controller.signal.aborted) {
-        setError(
-          streamError instanceof Error ? streamError.message : "failed to connect logs stream",
-        );
+        setError(streamError instanceof Error ? streamError.message : t("failedConnectStream"));
       }
     });
 
     return () => {
       controller.abort();
     };
-  }, [streamingEnabled]);
+  }, [streamingEnabled, t]);
 
   const parsedLogEntries = (tail?.lines ?? []).map(parseLogLine).filter((entry) => entry !== null);
   const filteredLogEntries = parsedLogEntries.filter((entry) => {
@@ -261,27 +264,26 @@ export function LogsPanel() {
       <div className="deckgo-column deck-ui-logs-column">
         <article className="deckgo-card is-float deck-ui-logs-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Logs tail</h2>
+            <h2 className="deckgo-card-title">{t("tailTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">
-            Logs are loaded from `/logs` and live `/logs/stream` events, with local filtering and
-            export preview controls.
-          </p>
+          <p className="deckgo-card-subtitle">{t("tailDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-logs-body">
             <div className="deckgo-pill-row deck-ui-logs-status-row">
               <span className={`deckgo-pill ${tailState === "ready" ? "is-positive" : "is-muted"}`}>
-                Tail {tailState}
+                {t("tailStatus", { state: t(tailState) })}
               </span>
               <span
                 className={`deckgo-pill ${streamState === "connected" ? "is-positive" : "is-muted"}`}
               >
-                Stream {streamState}
+                {t("streamStatus", { state: t(streamState) })}
               </span>
-              <span className="deckgo-pill">cursor {tail?.cursor ?? 0}</span>
-              <span className="deckgo-pill">{filteredLogEntries.length} visible</span>
+              <span className="deckgo-pill">{t("cursorValue", { cursor: tail?.cursor ?? 0 })}</span>
+              <span className="deckgo-pill">
+                {t("visibleCount", { count: filteredLogEntries.length })}
+              </span>
             </div>
             <div className="deckgo-surface-tile deck-ui-logs-surface deck-ui-logs-filter">
-              <p className="deckgo-surface-label">Filters</p>
+              <p className="deckgo-surface-label">{t("filters")}</p>
               <div className="deckgo-pill-row deck-ui-logs-levels">
                 {ALL_LOG_LEVELS.map((level) => (
                   <label key={level} className="deckgo-checkbox-row deck-ui-logs-level">
@@ -296,7 +298,7 @@ export function LogsPanel() {
               </div>
               <div className="deckgo-actions deck-ui-logs-controls">
                 <select
-                  aria-label="Log source filter"
+                  aria-label={t("sourceFilter")}
                   className="deckgo-input deck-ui-logs-input"
                   onChange={(event) => setSourceFilter(event.target.value as LogSource | "all")}
                   value={sourceFilter}
@@ -310,7 +312,7 @@ export function LogsPanel() {
                 <input
                   className="deckgo-input deck-ui-logs-input"
                   onChange={(event) => setSessionFilter(event.target.value)}
-                  placeholder="session key"
+                  placeholder={t("sessionKeyPlaceholder")}
                   value={sessionFilter}
                 />
               </div>
@@ -321,34 +323,34 @@ export function LogsPanel() {
                 type="button"
                 onClick={() => void refreshLogsTail(tail?.cursor)}
               >
-                Refresh tail
+                {t("refreshTail")}
               </button>
               <button
                 className="deckgo-button deck-ui-logs-button"
                 onClick={() => setStreamingEnabled((current) => !current)}
                 type="button"
               >
-                {streamingEnabled ? "Pause stream" : "Resume stream"}
+                {streamingEnabled ? t("pauseStream") : t("resumeStream")}
               </button>
               <button
                 className="deckgo-button deck-ui-logs-button"
                 onClick={clearLocalLogs}
                 type="button"
               >
-                Clear local logs
+                {t("clearLocalLogs")}
               </button>
               <button
                 className="deckgo-button deck-ui-logs-button"
                 onClick={() => setExportPreview(buildLogExport(filteredLogEntries))}
                 type="button"
               >
-                Prepare export
+                {t("prepareExport")}
               </button>
             </div>
             <div className="deckgo-surface-tile deck-ui-logs-surface deck-ui-logs-lines">
-              <p className="deckgo-surface-label">Latest lines</p>
+              <p className="deckgo-surface-label">{t("latestLines")}</p>
               {filteredLogEntries.length === 0 ? (
-                <p className="deckgo-note">No log lines yet.</p>
+                <p className="deckgo-note">{t("noLogLines")}</p>
               ) : (
                 <ul className="deckgo-shell-list deck-ui-logs-list">
                   {filteredLogEntries.slice(0, 50).map((entry, index) => (
@@ -370,7 +372,7 @@ export function LogsPanel() {
             </div>
             {exportPreview ? (
               <div className="deckgo-surface-tile deck-ui-logs-surface deck-ui-logs-export">
-                <p className="deckgo-surface-label">Prepared log export</p>
+                <p className="deckgo-surface-label">{t("preparedLogExport")}</p>
                 <pre className="deckgo-code deck-ui-logs-code">{exportPreview}</pre>
               </div>
             ) : null}
@@ -382,11 +384,11 @@ export function LogsPanel() {
       <aside className="deckgo-column deck-ui-logs-column deck-ui-logs-sidecar">
         <article className="deckgo-card deck-ui-logs-card deck-ui-logs-tape">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Live event tape</h2>
+            <h2 className="deckgo-card-title">{t("liveEventTape")}</h2>
           </div>
           <div className="deckgo-card-body deck-ui-logs-body">
             {liveTape.length === 0 ? (
-              <p className="deckgo-note">No live log events captured yet.</p>
+              <p className="deckgo-note">{t("noLiveEvents")}</p>
             ) : (
               <ul className="deckgo-shell-list deck-ui-logs-list">
                 {liveTape.map((item, index) => (
@@ -399,13 +401,13 @@ export function LogsPanel() {
 
         <article className="deckgo-card deck-ui-logs-card deck-ui-logs-stream-events">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Log stream events</h2>
+            <h2 className="deckgo-card-title">{t("streamEventsTitle")}</h2>
           </div>
           <div className="deckgo-card-body deck-ui-logs-body">
             {logEvents.length === 0 ? (
-              <p className="deckgo-note">No log events yet.</p>
+              <p className="deckgo-note">{t("noLogEvents")}</p>
             ) : (
-              <EventFeedCard title="Log events" events={logEvents} kind="log" />
+              <EventFeedCard title={t("logEvents")} events={logEvents} kind="log" />
             )}
           </div>
         </article>
@@ -413,11 +415,11 @@ export function LogsPanel() {
         {tail ? (
           <article className="deckgo-card deck-ui-logs-card deck-ui-logs-seam">
             <div className="deckgo-card-header">
-              <h2 className="deckgo-card-title">Filtered tail seam</h2>
+              <h2 className="deckgo-card-title">{t("filteredTailSeam")}</h2>
             </div>
             <div className="deckgo-card-body deck-ui-logs-body">
               <JsonDetails
-                title="Logs tail payload"
+                title={t("tailPayload")}
                 payload={{
                   cursor: tail.cursor,
                   lines: filteredLogEntries,

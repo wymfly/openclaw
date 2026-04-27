@@ -1,4 +1,5 @@
 import type { DeckGoSubagentsLineageResponse } from "../../../api";
+import { useTranslations } from "../../../i18n/provider";
 
 export type SessionRelationshipMeta = {
   childSessions?: string[];
@@ -20,25 +21,29 @@ type SessionSubagentDetailsProps = {
 };
 
 export function SessionSubagentDetails(props: SessionSubagentDetailsProps) {
+  const t = useTranslations("sessions");
+
   return (
     <>
       {props.isSubagent ? (
         <div className="deckgo-surface-tile deck-ui-sessions-surface deck-ui-sessions-subagent">
-          <p className="deckgo-surface-label">Subagent lineage</p>
+          <p className="deckgo-surface-label">{t("subagentLineage")}</p>
           <div className="deckgo-actions deck-ui-sessions-actions deck-ui-sessions-actions-offset">
             <button
               className="deckgo-button deck-ui-sessions-button"
               type="button"
               onClick={props.onOpenSubagents}
             >
-              Open subagents panel
+              {t("openSubagentsPanel")}
             </button>
           </div>
           {props.lineage ? (
             <>
               <div className="deckgo-meta">
-                root: {props.lineage.root.sessionKey} | agent:{" "}
-                {props.lineage.root.agentName ?? props.lineage.root.agentId}
+                {t("lineageRoot", {
+                  agent: props.lineage.root.agentName ?? props.lineage.root.agentId,
+                  sessionKey: props.lineage.root.sessionKey,
+                })}
               </div>
               {props.lineage.nodes.length > 0 ? (
                 <ul className="deckgo-shell-list deck-ui-sessions-list">
@@ -46,8 +51,12 @@ export function SessionSubagentDetails(props: SessionSubagentDetailsProps) {
                     <li key={node.runId}>
                       <strong>{node.agentName ?? node.agentId}</strong>
                       <div className="deckgo-meta deck-ui-sessions-meta">
-                        run: {node.runId} | session: {node.sessionKey} | depth: {node.depth} |
-                        status: {node.status}
+                        {t("lineageRunMeta", {
+                          depth: node.depth,
+                          runId: node.runId,
+                          sessionKey: node.sessionKey,
+                          status: node.status,
+                        })}
                       </div>
                       {node.task ? (
                         <div className="deckgo-meta deck-ui-sessions-meta">{node.task}</div>
@@ -56,29 +65,29 @@ export function SessionSubagentDetails(props: SessionSubagentDetailsProps) {
                   ))}
                 </ul>
               ) : (
-                <p className="deckgo-note deck-ui-sessions-empty">
-                  No child lineage nodes returned.
-                </p>
+                <p className="deckgo-note deck-ui-sessions-empty">{t("noChildLineage")}</p>
               )}
             </>
           ) : (
-            <p className="deckgo-note deck-ui-sessions-empty">No subagent lineage loaded.</p>
+            <p className="deckgo-note deck-ui-sessions-empty">{t("noSubagentLineage")}</p>
           )}
           {props.relationships?.subagentRole ||
           props.relationships?.subagentControlScope ||
           props.relationships?.spawnedWorkspaceDir ? (
             <div className="deckgo-pill-row deck-ui-sessions-status-row deck-ui-sessions-actions-offset">
               {props.relationships.subagentRole ? (
-                <span className="deckgo-pill">role {props.relationships.subagentRole}</span>
+                <span className="deckgo-pill">
+                  {t("roleValue", { role: props.relationships.subagentRole })}
+                </span>
               ) : null}
               {props.relationships.subagentControlScope ? (
                 <span className="deckgo-pill">
-                  control {props.relationships.subagentControlScope}
+                  {t("controlValue", { control: props.relationships.subagentControlScope })}
                 </span>
               ) : null}
               {props.relationships.spawnedWorkspaceDir ? (
                 <span className="deckgo-pill">
-                  workspace {props.relationships.spawnedWorkspaceDir}
+                  {t("workspaceValue", { workspace: props.relationships.spawnedWorkspaceDir })}
                 </span>
               ) : null}
             </div>
@@ -87,14 +96,14 @@ export function SessionSubagentDetails(props: SessionSubagentDetailsProps) {
       ) : null}
       {props.parentSessionKey || props.childSessionKeys.length > 0 ? (
         <div className="deckgo-surface-tile deck-ui-sessions-surface deck-ui-sessions-relations">
-          <p className="deckgo-surface-label">Session relations</p>
+          <p className="deckgo-surface-label">{t("sessionRelations")}</p>
           {props.parentSessionKey ? (
             <button
               className="deckgo-button deck-ui-sessions-button"
               type="button"
               onClick={() => props.onSelectSessionKey(props.parentSessionKey)}
             >
-              Parent {props.parentSessionKey}
+              {t("parentButton", { sessionKey: props.parentSessionKey })}
             </button>
           ) : null}
           {props.childSessionKeys.length > 0 ? (
@@ -106,7 +115,7 @@ export function SessionSubagentDetails(props: SessionSubagentDetailsProps) {
                     type="button"
                     onClick={() => props.onSelectSessionKey(childKey)}
                   >
-                    Child {childKey}
+                    {t("childButton", { sessionKey: childKey })}
                   </button>
                 </li>
               ))}

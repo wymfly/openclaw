@@ -8,6 +8,7 @@ import {
   getCachedTranscript,
   setCachedTranscript,
 } from "@/lib/transcript-cache";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { SessionsPanel } from "./SessionsPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -261,6 +262,11 @@ function compactionCheckpointsPayload() {
   };
 }
 
+function renderSessionsPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(SessionsPanel)));
+}
+
 describe("SessionsPanel", () => {
   beforeEach(() => {
     (
@@ -314,8 +320,7 @@ describe("SessionsPanel", () => {
 
   it("loads session inventory, previews, detail, and history for the selected session", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -388,8 +393,7 @@ describe("SessionsPanel", () => {
     window.history.replaceState({}, "", "/?surface=deck-ui&panel=sessions&sessionKey=sess-build");
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -405,8 +409,7 @@ describe("SessionsPanel", () => {
 
   it("loads selected session usage, context weight, and usage-log timeline", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -435,8 +438,7 @@ describe("SessionsPanel", () => {
 
   it("loads compaction checkpoints and runs branch or restore actions", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -472,8 +474,7 @@ describe("SessionsPanel", () => {
 
   it("loads subagent lineage and preserves parent/child session navigation", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -522,8 +523,7 @@ describe("SessionsPanel", () => {
 
   it("applies session inventory search, active window, and type filters", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -569,8 +569,7 @@ describe("SessionsPanel", () => {
 
   it("searches loaded transcript history and prepares JSON/Markdown exports", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -623,8 +622,7 @@ describe("SessionsPanel", () => {
     ]);
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -637,8 +635,7 @@ describe("SessionsPanel", () => {
 
   it("runs reset, clear, and model patch actions through deck-go session APIs", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -728,8 +725,7 @@ describe("SessionsPanel", () => {
 
   it("requires confirmation before compacting a selected session", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>
@@ -765,8 +761,7 @@ describe("SessionsPanel", () => {
       .mockResolvedValue(remainingSessions);
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(SessionsPanel));
+      renderSessionsPanel();
     });
 
     await waitFor(() =>

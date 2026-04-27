@@ -88,7 +88,7 @@ export function useListState<T, F extends FilterState = FilterState>(
   const setFilters = useCallback((newFilters: F) => {
     setFiltersRaw(newFilters);
     setPageRaw(1);
-    setSelectedIds(new Set());
+    setSelectedIds(new Set<string>());
   }, []);
 
   const setSort = useCallback((newSort: SortState | null) => {
@@ -121,7 +121,7 @@ export function useListState<T, F extends FilterState = FilterState>(
   }, [filteredData, idKey]);
 
   const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
+    setSelectedIds(new Set<string>());
   }, []);
 
   return {

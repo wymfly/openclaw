@@ -3,6 +3,7 @@ import { fireEvent } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { THREAD_FILTER_DEBOUNCE_MS } from "./thread-utils";
 import { ThreadsPanel } from "./ThreadsPanel";
 
@@ -32,6 +33,11 @@ let root: Root | null = null;
 let clipboardWriteText: ReturnType<typeof vi.fn>;
 
 const baseTime = Date.UTC(2026, 3, 24, 8, 0, 0);
+
+function renderThreadsPanel() {
+  root = createRoot(container);
+  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(ThreadsPanel)));
+}
 
 function threadEntries() {
   return [
@@ -95,8 +101,7 @@ describe("ThreadsPanel", () => {
 
   it("loads active threads and selects the most recently active thread by default", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ThreadsPanel));
+      renderThreadsPanel();
     });
 
     expect(apiMocks.fetchThreads).toHaveBeenCalledWith({
@@ -123,8 +128,7 @@ describe("ThreadsPanel", () => {
 
   it("debounces agent/channel filters, applies status immediately, and preserves selection", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ThreadsPanel));
+      renderThreadsPanel();
     });
 
     const builderButton = Array.from(container.querySelectorAll("button")).find((button) =>
@@ -180,8 +184,7 @@ describe("ThreadsPanel", () => {
 
   it("renders relation details and exposes copy/navigation handoffs", async () => {
     await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(ThreadsPanel));
+      renderThreadsPanel();
     });
 
     expect(container.textContent).toContain("Routing relationship");
