@@ -263,8 +263,11 @@ describe("IdentityPanel", () => {
     await act(async () => {
       rowByText("builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    await waitFor(() => expect(container.textContent).toContain("slack-builder"));
     await act(async () => {
-      buttonByText("Unlink peer")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container
+        .querySelector<HTMLElement>('[aria-label="Unlink slack:slack-builder"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>

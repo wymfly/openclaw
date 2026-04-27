@@ -41,3 +41,8 @@
 - [x] 4.1 Run targeted Core panel tests.
 - [x] 4.2 Run frontend build and any targeted backend tests for changed Go packages.
 - [x] 4.3 Ensure old authority files, current target files, intentional differences, and deferred browser evidence are documented.
+
+## 5. Integration-Branch E2E Closure
+
+- [ ] 5.1 Run Playwright MCP desktop browser validation for Agents, Gateway, and Models across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
+- [ ] 5.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.

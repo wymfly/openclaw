@@ -60,3 +60,8 @@
 - [x] 7.2 Run frontend build/typecheck for the changed Control surfaces.
 - [x] 7.3 Run targeted Go tests if Go backend/API files changed; no Go backend/API files changed in this worktree slice.
 - [x] 7.4 Confirm every Control panel has old authority files, current target files, backend gap classification, targeted non-E2E evidence, and an integration-branch screenshot/browser follow-up note.
+
+## 8. Integration-Branch E2E Closure
+
+- [ ] 8.1 Run Playwright MCP desktop browser validation for Budget, Alerts, Channels, Plugins, Routing, Subagents, Identity, Config, Nodes, Docs, and Settings across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
+- [ ] 8.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.

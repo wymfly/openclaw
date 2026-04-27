@@ -60,3 +60,8 @@
 - Production build passed: `cd deck-go/frontend && npm run build` (`check:deck-ui-host`, `tsc -b`, and `vite build` all passed).
 - OpenSpec validation passed: `openspec validate deck-automate-panels-visual-parity --strict`.
 - Browser plugin traversal and Playwright E2E remain intentionally deferred until this worktree is merged back to the integration/local branch.
+
+## 6. Integration-Branch E2E Closure
+
+- [ ] 6.1 Run Playwright MCP desktop browser validation for Cron, Webhooks, Approvals, and Skills across dark/light plus EN/ZH modes after all visual parity worktrees are merged.
+- [ ] 6.2 Record runtime stack status, route/screenshot evidence, console/error review, and any accepted unavailable-state rationale in `e2e-evidence.md` before archive.
