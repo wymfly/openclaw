@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
@@ -18,7 +21,13 @@ type commandRunner func(context.Context, string, string, []string, []string) err
 var runManagedCommand commandRunner = defaultCommandRunner
 
 func defaultPreflight(ctx context.Context, cfg config.ManagedGatewaySettings) error {
-	if !requiresPreparedRuntime(cfg) {
+	requiresPrepared := requiresPreparedRuntime(cfg)
+	if requiresPrepared && launchesGatewayCommand(cfg) {
+		if err := ensureManagedGatewayPortAvailable(cfg); err != nil {
+			return err
+		}
+	}
+	if !requiresPrepared {
 		return nil
 	}
 	if err := validatePreparedRuntimeRoot(cfg.WorkingDir); err != nil {
@@ -52,6 +61,31 @@ func defaultPreflight(ctx context.Context, cfg config.ManagedGatewaySettings) er
 		return errors.New("prepared runtime contract completed but required runtime artifacts are still missing")
 	}
 	return nil
+}
+
+func launchesGatewayCommand(cfg config.ManagedGatewaySettings) bool {
+	for idx := 0; idx+1 < len(cfg.Args); idx++ {
+		if cfg.Args[idx] == "gateway" && cfg.Args[idx+1] == "run" {
+			return true
+		}
+	}
+	return false
+}
+
+func ensureManagedGatewayPortAvailable(cfg config.ManagedGatewaySettings) error {
+	if cfg.BindPort <= 0 {
+		return nil
+	}
+	host := cfg.BindHost
+	if strings.TrimSpace(host) == "" || host == "loopback" {
+		host = "127.0.0.1"
+	}
+	addr := net.JoinHostPort(host, strconv.Itoa(cfg.BindPort))
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("managed gateway port %s is already in use; stop the other listener or configure another port: %w", addr, err)
+	}
+	return listener.Close()
 }
 
 func requiresPreparedRuntime(cfg config.ManagedGatewaySettings) bool {

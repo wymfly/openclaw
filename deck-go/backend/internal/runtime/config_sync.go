@@ -30,7 +30,10 @@ func syncManagedGatewayProviderConfig(settingsPath string) error {
 	}
 
 	stateDir := filepath.Join(filepath.Dir(settingsPath), "managed-gateway-state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o700); err != nil {
+		return err
+	}
+	if err := os.Chmod(stateDir, 0o700); err != nil {
 		return err
 	}
 	targetPath := filepath.Join(stateDir, "openclaw.json")
@@ -58,7 +61,7 @@ func syncManagedGatewayProviderConfig(settingsPath string) error {
 		return err
 	}
 	tmpPath := targetPath + ".tmp"
-	if err := os.WriteFile(tmpPath, append(raw, '\n'), 0o644); err != nil {
+	if err := os.WriteFile(tmpPath, append(raw, '\n'), 0o600); err != nil {
 		return err
 	}
 	return os.Rename(tmpPath, targetPath)

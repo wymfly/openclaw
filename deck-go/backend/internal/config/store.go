@@ -19,20 +19,26 @@ const (
 )
 
 type ManagedGatewaySettings struct {
-	Mode         string            `json:"mode,omitempty"`
-	Command      string            `json:"command,omitempty"`
-	Args         []string          `json:"args,omitempty"`
-	WorkingDir   string            `json:"workingDir,omitempty"`
-	BindHost     string            `json:"bindHost,omitempty"`
-	BindPort     int               `json:"bindPort,omitempty"`
-	GatewayToken string            `json:"gatewayToken,omitempty"`
-	AutoStart    bool              `json:"autoStart,omitempty"`
-	Env          map[string]string `json:"env,omitempty"`
+	Mode                string            `json:"mode,omitempty"`
+	Command             string            `json:"command,omitempty"`
+	Args                []string          `json:"args,omitempty"`
+	WorkingDir          string            `json:"workingDir,omitempty"`
+	BindHost            string            `json:"bindHost,omitempty"`
+	BindPort            int               `json:"bindPort,omitempty"`
+	GatewayToken        string            `json:"gatewayToken,omitempty"`
+	AutoStart           bool              `json:"autoStart"`
+	AutoStartConfigured bool              `json:"-"`
+	Env                 map[string]string `json:"env,omitempty"`
 }
 
 type Settings struct {
 	AccessToken    string                 `json:"accessToken,omitempty"`
 	ManagedGateway ManagedGatewaySettings `json:"managedGateway,omitempty"`
+}
+
+type ServiceTokenStatus struct {
+	Configured bool
+	Source     string
 }
 
 type Store struct {
@@ -50,7 +56,7 @@ func NewStore() (*Store, error) {
 		}
 		dir = filepath.Join(home, ".openclaw", "deck-go")
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := ensurePrivateDir(dir); err != nil {
 		return nil, err
 	}
 	store := &Store{path: filepath.Join(dir, "settings.json")}
@@ -127,13 +133,10 @@ func (s *Store) Effective() Settings {
 		managed.Args = strings.Fields(v)
 	}
 
-	if v := os.Getenv("DECK_GO_GATEWAY_TOKEN"); v != "" {
-		managed.GatewayToken = v
-	}
-
 	if v := os.Getenv("DECK_GO_GATEWAY_AUTO_START"); v != "" {
 		if parsed, err := strconv.ParseBool(v); err == nil {
 			managed.AutoStart = parsed
+			managed.AutoStartConfigured = true
 		}
 	}
 
@@ -143,17 +146,17 @@ func (s *Store) Effective() Settings {
 		}
 	}
 
-	current.ManagedGateway = normalizeManagedGatewaySettings(managed)
-	return current
+	current.ManagedGateway = managed
+	return applyCanonicalServiceToken(current, os.Getenv("DECK_GO_GATEWAY_TOKEN"))
 }
 
 func (s *Store) Update(next Settings) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.data = cloneSettings(Settings{
+	s.data = applyCanonicalServiceToken(Settings{
 		AccessToken:    next.AccessToken,
 		ManagedGateway: normalizeManagedGatewaySettings(next.ManagedGateway),
-	})
+	}, "")
 	return s.saveLocked()
 }
 
@@ -166,6 +169,23 @@ func (s *Store) GatewayConnection() (string, string, bool) {
 		return "", "", false
 	}
 	return ManagedGatewayURL(current.ManagedGateway), current.ManagedGateway.GatewayToken, true
+}
+
+func (s *Store) ServiceTokenStatus() ServiceTokenStatus {
+	current := s.Get()
+	if strings.TrimSpace(os.Getenv("DECK_GO_ACCESS_TOKEN")) != "" {
+		return ServiceTokenStatus{Configured: true, Source: "env"}
+	}
+	if strings.TrimSpace(current.AccessToken) != "" {
+		return ServiceTokenStatus{Configured: true, Source: "settings"}
+	}
+	if strings.TrimSpace(os.Getenv("DECK_GO_GATEWAY_TOKEN")) != "" {
+		return ServiceTokenStatus{Configured: true, Source: "legacy-env"}
+	}
+	if strings.TrimSpace(current.ManagedGateway.GatewayToken) != "" {
+		return ServiceTokenStatus{Configured: true, Source: "legacy-settings"}
+	}
+	return ServiceTokenStatus{Configured: false, Source: "none"}
 }
 
 func ManagedGatewayURL(settings ManagedGatewaySettings) string {
@@ -189,9 +209,11 @@ func (s *Store) load() error {
 		return nil
 	}
 	var parsed Settings
+	autoStartConfigured := managedGatewayAutoStartConfigured(raw)
 	if err := json.Unmarshal(raw, &parsed); err != nil {
 		return err
 	}
+	parsed.ManagedGateway.AutoStartConfigured = autoStartConfigured
 	parsed.ManagedGateway = normalizeManagedGatewaySettings(parsed.ManagedGateway)
 	s.data = cloneSettings(parsed)
 	return nil
@@ -203,7 +225,7 @@ func (s *Store) saveLocked() error {
 		return err
 	}
 	tmp := s.path + ".tmp"
-	if err := os.WriteFile(tmp, raw, 0o644); err != nil {
+	if err := os.WriteFile(tmp, raw, 0o600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, s.path)
@@ -222,6 +244,9 @@ func normalizeManagedGatewaySettings(settings ManagedGatewaySettings) ManagedGat
 	}
 	if next.BindPort <= 0 {
 		next.BindPort = defaultManagedGatewayBindPort
+	}
+	if !next.AutoStartConfigured {
+		next.AutoStart = true
 	}
 	if len(next.Args) == 0 {
 		next.Args = defaultManagedGatewayArgs(next)
@@ -250,8 +275,43 @@ func defaultManagedGatewayArgs(settings ManagedGatewaySettings) []string {
 		"--port",
 		strconv.Itoa(port),
 		"--allow-unconfigured",
-		"--force",
 	}
+}
+
+func applyCanonicalServiceToken(settings Settings, legacyGatewayToken string) Settings {
+	next := cloneSettings(settings)
+	token := strings.TrimSpace(next.AccessToken)
+	if token == "" {
+		token = strings.TrimSpace(legacyGatewayToken)
+	}
+	if token == "" {
+		token = strings.TrimSpace(next.ManagedGateway.GatewayToken)
+	}
+	next.AccessToken = token
+	next.ManagedGateway.GatewayToken = token
+	next.ManagedGateway = normalizeManagedGatewaySettings(next.ManagedGateway)
+	return next
+}
+
+func managedGatewayAutoStartConfigured(raw []byte) bool {
+	var envelope struct {
+		ManagedGateway map[string]json.RawMessage `json:"managedGateway"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		return false
+	}
+	if envelope.ManagedGateway == nil {
+		return false
+	}
+	_, ok := envelope.ManagedGateway["autoStart"]
+	return ok
+}
+
+func ensurePrivateDir(path string) error {
+	if err := os.MkdirAll(path, 0o700); err != nil {
+		return err
+	}
+	return os.Chmod(path, 0o700)
 }
 
 func resolveDefaultManagedGatewayWorkingDir() (string, error) {

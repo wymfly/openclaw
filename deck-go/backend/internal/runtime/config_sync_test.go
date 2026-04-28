@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -59,5 +60,21 @@ func TestSyncManagedGatewayProviderConfig_CopiesUserProvidersIntoManagedState(t 
 	cpa, _ := providers["cpa"].(map[string]any)
 	if cpa["baseUrl"] != "http://example.test/v1" {
 		t.Fatalf("unexpected synced provider payload: %#v", cpa)
+	}
+	if runtime.GOOS != "windows" {
+		stateInfo, err := os.Stat(filepath.Dir(targetPath))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if stateInfo.Mode().Perm() != 0o700 {
+			t.Fatalf("expected managed state dir mode 0700, got %#o", stateInfo.Mode().Perm())
+		}
+		targetInfo, err := os.Stat(targetPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if targetInfo.Mode().Perm() != 0o600 {
+			t.Fatalf("expected managed openclaw config mode 0600, got %#o", targetInfo.Mode().Perm())
+		}
 	}
 }

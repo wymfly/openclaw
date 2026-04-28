@@ -56,7 +56,6 @@ load_env() {
   : "${DECK_GO_ADDR:=127.0.0.1:19566}"
   : "${DECK_GO_DATA_DIR:=.local/deck-go-stack/data}"
   : "${DECK_GO_ACCESS_TOKEN:=stage3-local-access-token}"
-  : "${DECK_GO_GATEWAY_TOKEN:=stage3-local-gateway-token}"
   : "${DECK_GO_GATEWAY_AUTO_START:=true}"
   : "${DECK_GO_FRONTEND_HOST:=127.0.0.1}"
   : "${DECK_GO_FRONTEND_PORT:=4174}"
@@ -93,7 +92,6 @@ load_env() {
   export DECK_GO_ADDR
   export DECK_GO_DATA_DIR
   export DECK_GO_ACCESS_TOKEN
-  export DECK_GO_GATEWAY_TOKEN
   export DECK_GO_GATEWAY_AUTO_START
   export DECK_GO_FRONTEND_HOST
   export DECK_GO_FRONTEND_PORT
@@ -225,6 +223,15 @@ raise SystemExit(1)
 PY
 }
 
+wait_for_backend_autostart_runtime() {
+  if [[ "${DECK_GO_GATEWAY_AUTO_START}" != "true" ]]; then
+    echo "[deck-go-local] managed runtime autostart disabled"
+    return 0
+  fi
+  echo "[deck-go-local] waiting for backend-managed Gateway autostart"
+  wait_for_runtime_healthy
+}
+
 wait_for_runtime_stopped() {
   python3 - "${BACKEND_BASE}" "${DECK_GO_ACCESS_TOKEN}" <<'PY'
 import json
@@ -289,7 +296,6 @@ start_backend() {
       DECK_GO_ADDR="${DECK_GO_ADDR}" \
       DECK_GO_DATA_DIR="${DECK_GO_DATA_DIR}" \
       DECK_GO_ACCESS_TOKEN="${DECK_GO_ACCESS_TOKEN}" \
-      DECK_GO_GATEWAY_TOKEN="${DECK_GO_GATEWAY_TOKEN}" \
       DECK_GO_GATEWAY_AUTO_START="${DECK_GO_GATEWAY_AUTO_START}" \
       "${BACKEND_BIN}" >"${BACKEND_LOG}" 2>&1 </dev/null &
   )
@@ -393,7 +399,6 @@ run_backend_fg() {
     DECK_GO_ADDR="${DECK_GO_ADDR}" \
     DECK_GO_DATA_DIR="${DECK_GO_DATA_DIR}" \
     DECK_GO_ACCESS_TOKEN="${DECK_GO_ACCESS_TOKEN}" \
-    DECK_GO_GATEWAY_TOKEN="${DECK_GO_GATEWAY_TOKEN}" \
     DECK_GO_GATEWAY_AUTO_START="${DECK_GO_GATEWAY_AUTO_START}" \
     "${BACKEND_BIN}"
 }
@@ -420,6 +425,7 @@ case "${command}" in
   start)
     build_frontend
     start_backend
+    wait_for_backend_autostart_runtime
     start_frontend
     show_status
     ;;
@@ -432,6 +438,7 @@ case "${command}" in
     stop_pid "${BACKEND_PID_FILE}" "backend" "${BACKEND_PORT}"
     build_frontend
     start_backend
+    wait_for_backend_autostart_runtime
     start_frontend
     show_status
     ;;

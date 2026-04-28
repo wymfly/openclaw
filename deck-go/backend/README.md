@@ -74,3 +74,23 @@ This split preserves the intended authority model:
   not `RuntimeSupervisor()` or other raw supervisor accessors
 - registry surfaces stay descriptive/read-only even when they are fed by
   supervisor lifecycle events
+
+## Managed Gateway operations
+
+`deck-go` default mode is Go-owned Gateway supervision: the backend resolves one
+canonical service token from `DECK_GO_ACCESS_TOKEN` or persisted `accessToken`,
+passes it to the child Gateway through `OPENCLAW_GATEWAY_TOKEN`, and starts the
+managed Gateway automatically when `autoStart` is enabled. The legacy
+`DECK_GO_GATEWAY_TOKEN` and `managedGateway.gatewayToken` inputs are
+compatibility fallbacks only when no canonical service token exists.
+
+The managed child process runs without `--force` and without token-bearing argv
+arguments. The supervisor persists owner-only metadata under the managed state
+directory, retries abnormal owned exits with bounded backoff, and stops only the
+owned process tree during explicit stop/restart or backend shutdown.
+
+Standalone OpenClaw Gateway service management remains available through the
+official CLI path, for example `openclaw gateway install`, `openclaw gateway
+start`, `openclaw gateway restart`, and `openclaw gateway status`. Use that path
+when Gateway should be operated independently from `deck-go`; use the Go-owned
+default when deploying `deck-go` backend + frontend as the operational unit.

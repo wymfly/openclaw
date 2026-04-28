@@ -2,6 +2,7 @@ package runtimecontrol
 
 import (
 	"context"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -94,6 +95,29 @@ func TestDefaultPreflight_UsesSingleOpenClawOwnedPrepareContract(t *testing.T) {
 	}
 	if !reflect.DeepEqual(commands, expected) {
 		t.Fatalf("unexpected prepare contract commands: %#v", commands)
+	}
+}
+
+func TestDefaultPreflight_UnownedListenerBlocksPreparedGatewayWithoutKillingIt(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	err = defaultPreflight(context.Background(), config.ManagedGatewaySettings{
+		Command:    "node",
+		Args:       []string{"dist/entry.js", "gateway", "run"},
+		WorkingDir: t.TempDir(),
+		BindHost:   "127.0.0.1",
+		BindPort:   port,
+	})
+	if err == nil {
+		t.Fatal("expected occupied port to block prepared gateway startup")
+	}
+	if _, err := net.Listen("tcp", listener.Addr().String()); err == nil {
+		t.Fatal("expected original unowned listener to remain alive")
 	}
 }
 
