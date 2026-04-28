@@ -28,37 +28,57 @@ func (m *ManagedRuntime) GetSettings(ctx context.Context) (deckapi.DeckGoSetting
 	}
 	return deckapi.DeckGoSettingsResponse{
 		Ok:       true,
-		Settings: toDeckSettings(m.store.Get()),
+		Settings: toDeckSettings(m.store.Get(), m.store.ServiceTokenStatus()),
 		Path:     m.store.Path(),
 	}, nil
 }
 
 func (m *ManagedRuntime) UpdateSettingsFromConfig(ctx context.Context, settings config.Settings) (deckapi.DeckGoSettingsSaveResponse, error) {
-	return m.UpdateSettings(ctx, toDeckSettings(settings))
+	if m == nil || m.store == nil {
+		return deckapi.DeckGoSettingsSaveResponse{}, http.ErrServerClosed
+	}
+	if err := m.store.Update(settings); err != nil {
+		return deckapi.DeckGoSettingsSaveResponse{}, err
+	}
+	current := m.store.Get()
+	return deckapi.DeckGoSettingsSaveResponse{
+		Ok:       true,
+		Settings: toDeckSettings(current, m.store.ServiceTokenStatus()),
+	}, nil
 }
 
 func (m *ManagedRuntime) UpdateSettings(ctx context.Context, settings deckapi.DeckGoSettings) (deckapi.DeckGoSettingsSaveResponse, error) {
 	if m == nil || m.store == nil {
 		return deckapi.DeckGoSettingsSaveResponse{}, http.ErrServerClosed
 	}
+	current := m.store.Get()
+	accessToken := strings.TrimSpace(settings.AccessToken)
+	gatewayToken := strings.TrimSpace(settings.ManagedGateway.GatewayToken)
+	if accessToken == "" {
+		accessToken = current.AccessToken
+	}
+	if gatewayToken == "" {
+		gatewayToken = current.ManagedGateway.GatewayToken
+	}
 	next := config.Settings{
-		AccessToken: settings.AccessToken,
+		AccessToken: accessToken,
 		ManagedGateway: config.ManagedGatewaySettings{
-			Mode:         settings.ManagedGateway.Mode,
-			Command:      settings.ManagedGateway.Command,
-			Args:         append([]string(nil), settings.ManagedGateway.Args...),
-			WorkingDir:   settings.ManagedGateway.WorkingDir,
-			BindHost:     settings.ManagedGateway.BindHost,
-			BindPort:     int(settings.ManagedGateway.BindPort),
-			GatewayToken: settings.ManagedGateway.GatewayToken,
-			AutoStart:    settings.ManagedGateway.AutoStart,
-			Env:          mapsClone(settings.ManagedGateway.Env),
+			Mode:                settings.ManagedGateway.Mode,
+			Command:             settings.ManagedGateway.Command,
+			Args:                append([]string(nil), settings.ManagedGateway.Args...),
+			WorkingDir:          settings.ManagedGateway.WorkingDir,
+			BindHost:            settings.ManagedGateway.BindHost,
+			BindPort:            int(settings.ManagedGateway.BindPort),
+			GatewayToken:        gatewayToken,
+			AutoStart:           settings.ManagedGateway.AutoStart,
+			AutoStartConfigured: true,
+			Env:                 mapsClone(settings.ManagedGateway.Env),
 		},
 	}
 	if err := m.store.Update(next); err != nil {
 		return deckapi.DeckGoSettingsSaveResponse{}, err
 	}
-	current := m.store.Get()
+	current = m.store.Get()
 	if m.bus != nil {
 		eventPayload, _ := json.Marshal(map[string]any{
 			"type": "settings.saved",
@@ -68,13 +88,19 @@ func (m *ManagedRuntime) UpdateSettings(ctx context.Context, settings deckapi.De
 	}
 	return deckapi.DeckGoSettingsSaveResponse{
 		Ok:       true,
-		Settings: toDeckSettings(current),
+		Settings: toDeckSettings(current, m.store.ServiceTokenStatus()),
 	}, nil
 }
 
 func (m *ManagedRuntime) TestConnection(ctx context.Context, rawURL string, token string) (map[string]any, error) {
 	if strings.TrimSpace(rawURL) == "" {
 		return map[string]any{"ok": false, "error": "Gateway URL is required"}, nil
+	}
+	if strings.TrimSpace(token) == "" && m != nil && m.store != nil {
+		effective := m.store.Effective()
+		if rawURL == config.ManagedGatewayURL(effective.ManagedGateway) {
+			token = effective.ManagedGateway.GatewayToken
+		}
 	}
 	if strings.TrimSpace(token) != "" {
 		if err := ProbeConnection(ctx, rawURL, token); err != nil {
@@ -191,19 +217,23 @@ func (m *ManagedRuntime) SaveOnboardingSettings(ctx context.Context, gatewayURL 
 	return map[string]any{"success": true}, http.StatusOK, nil
 }
 
-func toDeckSettings(current config.Settings) deckapi.DeckGoSettings {
+func toDeckSettings(current config.Settings, tokenStatus config.ServiceTokenStatus) deckapi.DeckGoSettings {
 	return deckapi.DeckGoSettings{
-		AccessToken: current.AccessToken,
+		AccessToken:           "",
+		AccessTokenConfigured: tokenStatus.Configured,
+		AccessTokenSource:     tokenStatus.Source,
 		ManagedGateway: deckapi.DeckGoManagedGatewaySettings{
-			Mode:         current.ManagedGateway.Mode,
-			Command:      current.ManagedGateway.Command,
-			Args:         append([]string(nil), current.ManagedGateway.Args...),
-			WorkingDir:   current.ManagedGateway.WorkingDir,
-			BindHost:     current.ManagedGateway.BindHost,
-			BindPort:     float64(current.ManagedGateway.BindPort),
-			GatewayToken: current.ManagedGateway.GatewayToken,
-			AutoStart:    current.ManagedGateway.AutoStart,
-			Env:          mapsClone(current.ManagedGateway.Env),
+			Mode:                   current.ManagedGateway.Mode,
+			Command:                current.ManagedGateway.Command,
+			Args:                   append([]string(nil), current.ManagedGateway.Args...),
+			WorkingDir:             current.ManagedGateway.WorkingDir,
+			BindHost:               current.ManagedGateway.BindHost,
+			BindPort:               float64(current.ManagedGateway.BindPort),
+			GatewayToken:           "",
+			GatewayTokenConfigured: tokenStatus.Configured,
+			GatewayTokenSource:     tokenStatus.Source,
+			AutoStart:              current.ManagedGateway.AutoStart,
+			Env:                    mapsClone(current.ManagedGateway.Env),
 		},
 	}
 }

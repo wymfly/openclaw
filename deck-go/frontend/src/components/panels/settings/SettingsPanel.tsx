@@ -48,6 +48,8 @@ type PendingDeviceAction = {
 function normalizeSettings(result: DeckGoSettingsResponse): DeckGoSettings {
   return {
     accessToken: result.settings.accessToken ?? "",
+    accessTokenConfigured: result.settings.accessTokenConfigured ?? false,
+    accessTokenSource: result.settings.accessTokenSource ?? "",
     managedGateway: {
       mode: result.settings.managedGateway?.mode ?? "managed",
       command: result.settings.managedGateway?.command ?? "",
@@ -56,6 +58,8 @@ function normalizeSettings(result: DeckGoSettingsResponse): DeckGoSettings {
       bindHost: result.settings.managedGateway?.bindHost ?? "127.0.0.1",
       bindPort: result.settings.managedGateway?.bindPort ?? 18789,
       gatewayToken: result.settings.managedGateway?.gatewayToken ?? "",
+      gatewayTokenConfigured: result.settings.managedGateway?.gatewayTokenConfigured ?? false,
+      gatewayTokenSource: result.settings.managedGateway?.gatewayTokenSource ?? "",
       autoStart: result.settings.managedGateway?.autoStart ?? true,
       env: result.settings.managedGateway?.env ?? {},
     },
@@ -119,6 +123,23 @@ function buildGatewayUrl(settings: DeckGoSettings["managedGateway"]) {
   return `ws://${host}:${port}`;
 }
 
+function buildSettingsSavePayload(settings: DeckGoSettings): DeckGoSettings {
+  return {
+    accessToken: settings.accessToken ?? "",
+    managedGateway: {
+      mode: settings.managedGateway?.mode ?? "managed",
+      command: settings.managedGateway?.command ?? "",
+      args: settings.managedGateway?.args ?? [],
+      workingDir: settings.managedGateway?.workingDir ?? "",
+      bindHost: settings.managedGateway?.bindHost ?? "127.0.0.1",
+      bindPort: settings.managedGateway?.bindPort ?? 18789,
+      gatewayToken: settings.managedGateway?.gatewayToken ?? "",
+      autoStart: settings.managedGateway?.autoStart ?? true,
+      env: settings.managedGateway?.env ?? {},
+    },
+  };
+}
+
 function deviceName(device: Pick<PairedDevice | PendingDeviceRequest, "deviceId" | "displayName">) {
   return device.displayName || device.deviceId.slice(0, 8);
 }
@@ -175,6 +196,8 @@ export function SettingsPanel() {
   const setLocale = useSetLocale();
   const [settings, setSettings] = useState<DeckGoSettings>({
     accessToken: "",
+    accessTokenConfigured: false,
+    accessTokenSource: "",
     managedGateway: {
       mode: "managed",
       command: "",
@@ -183,6 +206,8 @@ export function SettingsPanel() {
       bindHost: "127.0.0.1",
       bindPort: 18789,
       gatewayToken: "",
+      gatewayTokenConfigured: false,
+      gatewayTokenSource: "",
       autoStart: true,
       env: {},
     },
@@ -309,7 +334,7 @@ export function SettingsPanel() {
 
     setSaving(true);
     try {
-      const result = await saveSettings(settings);
+      const result = await saveSettings(buildSettingsSavePayload(settings));
       persistAccessToken(settings.accessToken ?? "");
       setLastSaved(result);
       await refreshSettings();
@@ -407,6 +432,9 @@ export function SettingsPanel() {
                 type="password"
                 autoComplete="new-password"
                 value={settings.accessToken ?? ""}
+                placeholder={
+                  settings.accessTokenConfigured ? t("tokenConfiguredPlaceholder") : undefined
+                }
                 onChange={(event) =>
                   setSettings((current) => ({ ...current, accessToken: event.target.value }))
                 }
@@ -437,6 +465,11 @@ export function SettingsPanel() {
                   type="password"
                   autoComplete="new-password"
                   value={settings.managedGateway?.gatewayToken ?? ""}
+                  placeholder={
+                    settings.managedGateway?.gatewayTokenConfigured
+                      ? t("tokenConfiguredPlaceholder")
+                      : undefined
+                  }
                   onChange={(event) => updateManagedGateway({ gatewayToken: event.target.value })}
                 />
               </label>
@@ -652,7 +685,7 @@ export function SettingsPanel() {
           <div className="deckgo-card-body deck-ui-settings-body deck-ui-settings-side-body">
             <p className="deckgo-note">
               {t("summaryAccessTokenConfigured", {
-                value: settings.accessToken ? t("yes") : t("no"),
+                value: settings.accessTokenConfigured ? t("yes") : t("no"),
               })}
             </p>
             <p className="deckgo-note">
@@ -662,7 +695,7 @@ export function SettingsPanel() {
             </p>
             <p className="deckgo-note">
               {t("summaryGatewayTokenConfigured", {
-                value: settings.managedGateway?.gatewayToken ? t("yes") : t("no"),
+                value: settings.managedGateway?.gatewayTokenConfigured ? t("yes") : t("no"),
               })}
             </p>
             <p className="deckgo-note">{t("summaryRuntimeUrl", { value: activeRuntimeUrl })}</p>
