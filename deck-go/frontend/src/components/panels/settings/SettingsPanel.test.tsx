@@ -55,7 +55,9 @@ function settingsPayload() {
   return {
     path: "/tmp/deck-go.json",
     settings: {
-      accessToken: "token",
+      accessToken: "",
+      accessTokenConfigured: true,
+      accessTokenSource: "settings",
       managedGateway: {
         mode: "managed",
         command: "pnpm",
@@ -63,7 +65,9 @@ function settingsPayload() {
         workingDir: "/tmp/openclaw",
         bindHost: "127.0.0.1",
         bindPort: 18789,
-        gatewayToken: "gateway-token",
+        gatewayToken: "",
+        gatewayTokenConfigured: true,
+        gatewayTokenSource: "settings",
         autoStart: false,
         env: { NO_PROXY: "localhost,127.0.0.1" },
       },
@@ -377,10 +381,7 @@ describe("SettingsPanel", () => {
     });
 
     await waitFor(() =>
-      expect(apiMocks.testSettingsConnection).toHaveBeenCalledWith(
-        "ws://127.0.0.1:18789",
-        "gateway-token",
-      ),
+      expect(apiMocks.testSettingsConnection).toHaveBeenCalledWith("ws://127.0.0.1:18789", ""),
     );
     expect(container.textContent).toContain("Connection test result");
     expect(container.textContent).toContain('"ok": true');

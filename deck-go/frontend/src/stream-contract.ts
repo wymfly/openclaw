@@ -40,17 +40,26 @@ export function parseServerEvent(event: DeckGoServerEvent): DeckGoParsedServerEv
     case "runtime.gateway.status":
       return {
         kind: "runtime.gateway.status",
-        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? { managed: false },
+        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? {
+          managed: false,
+          autoStart: false,
+        },
       };
     case "runtime.gateway.health":
       return {
         kind: "runtime.gateway.health",
-        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? { managed: false },
+        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? {
+          managed: false,
+          autoStart: false,
+        },
       };
     case "runtime.gateway.exit":
       return {
         kind: "runtime.gateway.exit",
-        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? { managed: false },
+        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? {
+          managed: false,
+          autoStart: false,
+        },
       };
     case "session.message":
       return {

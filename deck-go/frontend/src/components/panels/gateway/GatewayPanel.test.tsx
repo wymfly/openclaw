@@ -18,22 +18,26 @@ const apiMocks = vi.hoisted(() => ({
 }));
 
 const refreshRuntimeSummary = vi.hoisted(() => vi.fn());
+const bootstrapSummary = vi.hoisted(() => ({
+  gateway: { connected: true },
+  runtime: { status: "running", health: "healthy", autoStart: true },
+}));
 const runtimeSummary = vi.hoisted(() => ({
   status: "running",
   health: "healthy",
   gatewayUrl: "ws://127.0.0.1:18789",
   pid: 1234,
   configured: true,
+  autoStart: true,
+  ownershipState: "owned",
+  restartAttempts: 0,
 }));
 
 vi.mock("../../../api", () => apiMocks);
 
 vi.mock("../../../deck-ui/ui-store", () => ({
   useDeckUI: () => ({
-    bootstrap: {
-      gateway: { connected: true },
-      runtime: { status: "running", health: "healthy" },
-    },
+    bootstrap: bootstrapSummary,
     runtime: {
       runtime: runtimeSummary,
     },
@@ -51,6 +55,26 @@ function findButtonText(pattern: RegExp) {
   );
 }
 
+function settingsResponse(autoStart: boolean) {
+  return {
+    path: "/tmp/deck-go.json",
+    settings: {
+      accessToken: "token",
+      managedGateway: {
+        mode: "managed",
+        command: "pnpm",
+        args: ["openclaw", "gateway", "run"],
+        workingDir: "/tmp/openclaw",
+        bindHost: "127.0.0.1",
+        bindPort: 18789,
+        gatewayToken: "gateway-token",
+        autoStart,
+        env: {},
+      },
+    },
+  };
+}
+
 describe("GatewayPanel", () => {
   beforeEach(() => {
     (
@@ -58,23 +82,7 @@ describe("GatewayPanel", () => {
     ).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
-    apiMocks.fetchSettings.mockResolvedValue({
-      path: "/tmp/deck-go.json",
-      settings: {
-        accessToken: "token",
-        managedGateway: {
-          mode: "managed",
-          command: "pnpm",
-          args: ["openclaw", "gateway", "run"],
-          workingDir: "/tmp/openclaw",
-          bindHost: "127.0.0.1",
-          bindPort: 18789,
-          gatewayToken: "gateway-token",
-          autoStart: true,
-          env: {},
-        },
-      },
-    });
+    apiMocks.fetchSettings.mockResolvedValue(settingsResponse(true));
     apiMocks.fetchGatewayHealth.mockResolvedValue({
       ok: true,
       durationMs: 17,
@@ -156,6 +164,13 @@ describe("GatewayPanel", () => {
     runtimeSummary.gatewayUrl = "ws://127.0.0.1:18789";
     runtimeSummary.pid = 1234;
     runtimeSummary.configured = true;
+    runtimeSummary.autoStart = true;
+    runtimeSummary.ownershipState = "owned";
+    runtimeSummary.restartAttempts = 0;
+    bootstrapSummary.gateway.connected = true;
+    bootstrapSummary.runtime.status = "running";
+    bootstrapSummary.runtime.health = "healthy";
+    bootstrapSummary.runtime.autoStart = true;
     refreshRuntimeSummary.mockResolvedValue(undefined);
   });
 
@@ -228,6 +243,133 @@ describe("GatewayPanel", () => {
     expect(restartButton?.disabled).toBe(false);
     expect(stopButton?.disabled).toBe(false);
   });
+
+  it.each([
+    {
+      name: "connected",
+      status: "running",
+      health: "healthy",
+      connected: true,
+      ownership: "owned",
+      restarts: 0,
+      autoStart: true,
+      gatewayText: /gateway Connected|网关 已连接/,
+      canStart: false,
+      canRestart: true,
+      canStop: true,
+    },
+    {
+      name: "reconnecting",
+      status: "starting",
+      health: "unhealthy",
+      connected: false,
+      ownership: "owned",
+      restarts: 1,
+      autoStart: true,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: false,
+      canRestart: false,
+      canStop: true,
+    },
+    {
+      name: "degraded",
+      status: "degraded",
+      health: "unhealthy",
+      connected: false,
+      ownership: "owned",
+      restarts: 2,
+      autoStart: true,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: true,
+      canRestart: true,
+      canStop: true,
+    },
+    {
+      name: "failed",
+      status: "failed",
+      health: "unknown",
+      connected: false,
+      ownership: "none",
+      restarts: 3,
+      autoStart: true,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: true,
+      canRestart: true,
+      canStop: true,
+    },
+    {
+      name: "port-conflict",
+      status: "failed",
+      health: "unknown",
+      connected: false,
+      ownership: "external",
+      restarts: 0,
+      autoStart: true,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: true,
+      canRestart: true,
+      canStop: true,
+    },
+    {
+      name: "autostart-disabled",
+      status: "stopped",
+      health: "unknown",
+      connected: false,
+      ownership: "none",
+      restarts: 0,
+      autoStart: false,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: true,
+      canRestart: false,
+      canStop: false,
+    },
+  ])(
+    "renders managed runtime state matrix row: $name",
+    async ({
+      status,
+      health,
+      connected,
+      ownership,
+      restarts,
+      autoStart,
+      gatewayText,
+      canStart,
+      canRestart,
+      canStop,
+    }) => {
+      runtimeSummary.status = status;
+      runtimeSummary.health = health;
+      runtimeSummary.ownershipState = ownership;
+      runtimeSummary.restartAttempts = restarts;
+      runtimeSummary.autoStart = autoStart;
+      bootstrapSummary.gateway.connected = connected;
+      bootstrapSummary.runtime.status = status;
+      bootstrapSummary.runtime.health = health;
+      bootstrapSummary.runtime.autoStart = autoStart;
+      apiMocks.fetchSettings.mockResolvedValue(settingsResponse(autoStart));
+
+      await act(async () => {
+        root = createRoot(container);
+        root.render(createElement(GatewayPanel));
+      });
+
+      expect(container.textContent).toMatch(new RegExp(`(status|运行状态) ${status}`));
+      expect(container.textContent).toMatch(new RegExp(`(Health|健康度) ${health}`));
+      expect(container.textContent).toMatch(gatewayText);
+      expect(container.textContent).toMatch(new RegExp(`(owner|归属) ${ownership}`));
+      expect(container.textContent).toMatch(new RegExp(`(restarts|重启) ${restarts}`));
+      expect(container.textContent).toMatch(
+        autoStart ? /autoStart on|自动启动 开启/ : /autoStart off|自动启动 关闭/,
+      );
+
+      const startButton = findButtonText(/^(Start|启动)$/);
+      const restartButton = findButtonText(/^(Restart|重启)$/);
+      const stopButton = findButtonText(/^(Stop|停止)$/);
+      expect(startButton?.disabled).toBe(!canStart);
+      expect(restartButton?.disabled).toBe(!canRestart);
+      expect(stopButton?.disabled).toBe(!canStop);
+    },
+  );
 
   it("starts a stopped managed gateway and refreshes runtime summary", async () => {
     runtimeSummary.status = "stopped";

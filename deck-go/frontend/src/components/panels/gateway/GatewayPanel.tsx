@@ -217,6 +217,10 @@ export function GatewayPanel() {
 
   const runtimeStatus = runtime?.runtime.status || bootstrap?.runtime.status || "stopped";
   const runtimeHealth = runtime?.runtime.health || bootstrap?.runtime.health || "unknown";
+  const runtimeOwnership =
+    runtime?.runtime.ownershipState || bootstrap?.runtime.ownershipState || "none";
+  const restartAttempts =
+    runtime?.runtime.restartAttempts ?? bootstrap?.runtime.restartAttempts ?? 0;
   const gatewayUrl = runtime?.runtime.gatewayUrl || t("runtime.notResolved");
   const managedGateway = settingsResponse?.settings.managedGateway;
   const healthChannelCount = countRecordEntries(healthResponse?.channels);
@@ -293,6 +297,12 @@ export function GatewayPanel() {
               <span className="deckgo-pill">
                 {t("runtime.refreshState")}{" "}
                 {refreshingSummary ? t("runtime.inFlight") : t("runtime.idle")}
+              </span>
+              <span className="deckgo-pill">
+                {t("runtime.ownership")} {runtimeOwnership}
+              </span>
+              <span className="deckgo-pill">
+                {t("runtime.restartAttempts")} {restartAttempts}
               </span>
             </div>
 
