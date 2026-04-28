@@ -155,6 +155,37 @@ Workflow hygiene:
 
 ---
 
+## 二次开发主目标 (current focus)
+
+本仓库的二次开发工作分为「上一代」和「当前主目标」两条线，并存于同一棵代码树中。
+
+### 当前主目标 — `deck-go/`
+
+`deck-go/` 是 OpenClaw 之上新建的企业管理/运维平台（Go 后端 + React 前端），按 `RUNTIME_MODE` 在 bundled / remote 两种模式下运行：bundled 模式下 deck-go 本机 spawn Gateway；remote 模式下连接远程 Gateway。新工作均以此目录为主线。
+
+- 完整设计：`docs/superpowers/specs/2026-04-28-runtime-mode-decoupling-design.md`
+- 现状：后端 + 前端骨架已就位；runtime-mode 解耦实施待启动（计划 5 个 phase，约 12-16 天）
+- 后续会新增 `deck-go/scripts/dev/run-bundled.sh` / `run-remote.sh` 等开发脚本，以及独立于 `deploy/` 的 deck-go 部署产物（待规划）
+
+### 已归档参考 — 上一代 Deck 客户端
+
+下列内容**保留可用、不再迭代**，仅作为历史决策与代码模式的参考：
+
+| 路径                                                      | 性质                                                            |
+| --------------------------------------------------------- | --------------------------------------------------------------- |
+| `dashboard/`                                              | Next.js 实现的上一代 Deck 客户端（`openclaw-deck` v0.1.0）      |
+| `deck-e2e/`                                               | 上一代 Deck 视觉基线截图                                        |
+| `deploy/`                                                 | 上一代 Deck + Gateway 部署产物（`openclaw-deploy-*.tar.gz` 等） |
+| `scripts/dev/deck-dev.sh`                                 | 上一代 Gateway+Dashboard 开发启动脚本                           |
+| `scripts/protocol-gen*.ts` / `protocol-coverage-check.ts` | 为 `dashboard/src/types/` 生成 typed client 的 codegen          |
+| `scripts/deck-gap-report.ts`                              | 上一代 Deck 能力差距报告                                        |
+| `scripts/deck-visual-comparison-scaffold.mjs`             | 上一代视觉 parity 脚手架                                        |
+| 根目录 `deck-chat-visual-parity-*.png/.md`                | 上一代视觉 parity 历史快照                                      |
+
+新功能、新需求、新 bug 修复**不要进上面的目录**。下面 "Enhanced Fork" 一节里 `Deck 客户端三层架构定位` / `Deck 开发环境` / `Gateway Protocol SDK` 三个子节均针对 `dashboard/`，已统一标记 (legacy)。
+
+---
+
 ## Enhanced Fork — 上游同步流程
 
 本项目是 OpenClaw 的增强 fork（`wymfly/openclaw`）。`enhanced` 分支包含所有增量改动，`main` 分支跟踪上游。
@@ -207,7 +238,7 @@ git push --force-with-lease origin enhanced
 设计文档：`docs/plans/2026-02-28-openclaw-migration-design.md`
 实施计划：`docs/plans/2026-02-28-openclaw-migration-plan.md`
 
-### Deck 客户端三层架构定位
+### Deck 客户端三层架构定位 (legacy: 针对 `dashboard/`)
 
 | 层             | 数据源                                   | 核心工作                                 | 典型模块                              |
 | -------------- | ---------------------------------------- | ---------------------------------------- | ------------------------------------- |
@@ -215,7 +246,9 @@ git push --force-with-lease origin enhanced
 | **配置管理层** | `openclaw.json`（通过 Gateway RPC 读写） | 对齐源码校验逻辑，设计交互友好的配置界面 | Models、Channels、Hooks、Agent 配置   |
 | **状态监控层** | Gateway RPC（只读）                      | 可视化展示运行状态                       | Device 状态、Channel 连接、Usage 统计 |
 
-### Deck 开发环境
+### Deck 开发环境 (legacy: 针对 `dashboard/`)
+
+> **新主目标 deck-go 的开发环境见文末 "Deck-go 开发环境" 一节。**
 
 **强制规则：Gateway 必须从本地源码运行，不得使用全局安装的 `openclaw` 命令。**
 
@@ -244,7 +277,9 @@ scripts/dev/deck-dev.sh stop      # 停止所有
 - [ ] Gateway 从本地源码运行（`pnpm openclaw`，不是全局 `openclaw`）
 - [ ] 验证：`curl -s http://localhost:3000/api/deck/agents -X POST -H 'Content-Type: application/json' -d '{"action":"eventStreams.get","agentId":"main"}'` 应返回 JSON
 
-### Gateway Protocol SDK
+### Gateway Protocol SDK (legacy: `dashboard/` typed client)
+
+> deck-go 走自己的契约链路（`deck-go/contracts/` + `deckapi.generated.go`），与本节描述的 `dashboard/src/types/gateway-*.generated.ts` 流水线**无关**。本节保留供 `dashboard/` 维护参考。
 
 Deck 通过 typed client（`gw.*`）调用 Gateway RPC，类型从 TypeBox schema 自动生成。
 
@@ -311,3 +346,45 @@ export const deckAgentsMethodDefs: Record<string, Omit<MethodDefinition, "handle
 ```
 
 **Result Schema 优先级**：P0（`deck.*` 全部）+ P1（Deck 已用的上游方法）必须有 result schema；P2（Deck 未用的）标记 `result: undefined`。
+
+---
+
+## Deck-go 开发环境（新主目标）
+
+`deck-go/` 是当前二次开发主目标，与上一代 `dashboard/` 共存但完全独立——独立的 contracts 链路、独立的运行时模型（.env-driven）、独立的开发/部署工具链（待落地）。
+
+### 设计与状态
+
+- **设计文档**：`docs/superpowers/specs/2026-04-28-runtime-mode-decoupling-design.md`
+- **核心理念**：`RUNTIME_MODE` 由 .env 决定，运行时不可切换
+  - `bundled` 模式：deck-go 本机 spawn Gateway，UI 对 runtime 配置只读，所有参数从 .env 读
+  - `remote` 模式：deck-go 连接远程 Gateway，UI 可改 endpoint 并写入 `deck-state.json`（覆盖 .env 默认值）
+- **架构原则**：facade 接口 + 两个 impl 包（`bundled/`、`remote/`）物理隔离，Browser 永远只跟 deck-go 说话不直连 Gateway
+- **现状**：runtime-mode 解耦实施待启动，分 5 个 phase（backend foundation / API surface / remote impl / frontend / docs+scripts）
+
+### 即将到来的开发产物（预告）
+
+实施落地后将产生：
+
+- `deck-go/.env.bundled.example` / `deck-go/.env.remote.example` —— 部署样例
+- `deck-go/scripts/dev/run-bundled.sh` / `run-remote.sh` —— 本地开发启动脚本（不复用上一代 `scripts/dev/deck-dev.sh`）
+- `deck-go/internal/runtime/{facade,envconf,state,bundled,remote}/` —— 后端模块切分
+- 独立于上一代 `deploy/` 的 deck-go 部署形态（systemd unit / 容器镜像，待规划）
+- E2E：`bundled.spec.ts` / `remote.spec.ts`
+
+### 与上一代 Deck 的关系
+
+| 维度         | `dashboard/`（legacy）                            | `deck-go/`（current）                          |
+| ------------ | ------------------------------------------------- | ---------------------------------------------- |
+| UI 框架      | Next.js (TS/React)                                | React + Vite + 自研 deck-ui                    |
+| 后端         | 直接走 Gateway typed client                       | Go middleware (controld) + facade abstraction  |
+| 部署         | `deploy/openclaw-deploy-*.tar.gz`                 | 待规划，不复用 `deploy/`                       |
+| 启动         | `scripts/dev/deck-dev.sh`（启 Gateway+Dashboard） | `deck-go/scripts/dev/run-*.sh`（待落地）       |
+| Gateway 关系 | 1:1 本机绑定                                      | 1:1 本机（bundled）或 1:N 远程（remote，未来） |
+| 状态         | 冻结（仍可使用，不再迭代新功能）                  | 主线（所有新工作）                             |
+
+### 开发约定
+
+- 给 `deck-go/` 加新功能时 **不要**回参考 `dashboard/` 的实现细节去做"对齐"——两套架构不同，对齐是错的
+- 上游 rebase 流程仍然走 "Enhanced Fork — 上游同步流程"；其中 Protocol SDK 同步那一节只针对 `dashboard/`，对 `deck-go/` 无影响
+- deck-go 后续可能产生自己的 AGENTS.md 子节或独立 `deck-go/AGENTS.md`，目前由本节统一描述
