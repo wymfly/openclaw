@@ -6,12 +6,16 @@ export interface DeckGoManagedGatewaySettings {
   bindHost?: string;
   bindPort?: number;
   gatewayToken?: string;
+  gatewayTokenConfigured?: boolean;
+  gatewayTokenSource?: string;
   autoStart?: boolean;
   env?: Record<string, string>;
 }
 
 export interface DeckGoSettings {
   accessToken?: string;
+  accessTokenConfigured?: boolean;
+  accessTokenSource?: string;
   managedGateway?: DeckGoManagedGatewaySettings;
 }
 
@@ -39,7 +43,7 @@ export interface DeckGoRuntimeGatewayStatus {
   managed: boolean;
   configured?: boolean;
   status?: "stopped" | "starting" | "running" | "degraded" | "stopping" | "failed";
-  failurePhase?: "preflight" | "launch" | "runtime";
+  failurePhase?: "preflight" | "launch" | "ownership" | "runtime";
   pid?: number;
   startedAt?: string;
   lastExitAt?: string;
@@ -47,7 +51,12 @@ export interface DeckGoRuntimeGatewayStatus {
   health?: "unknown" | "healthy" | "unhealthy";
   gatewayUrl?: string;
   lastError?: string;
-  autoStart?: boolean;
+  autoStart: boolean;
+  owner?: string;
+  ownershipState?: "none" | "owned" | "adopted" | "external";
+  ownershipFile?: string;
+  restartAttempts?: number;
+  restartDelayMs?: number;
 }
 
 export interface DeckGoBootstrapGatewayStatus {

@@ -11,12 +11,16 @@ type DeckGoManagedGatewaySettings struct {
 	BindHost string `json:"bindHost,omitempty"`
 	BindPort float64 `json:"bindPort,omitempty"`
 	GatewayToken string `json:"gatewayToken,omitempty"`
+	GatewayTokenConfigured bool `json:"gatewayTokenConfigured,omitempty"`
+	GatewayTokenSource string `json:"gatewayTokenSource,omitempty"`
 	AutoStart bool `json:"autoStart,omitempty"`
 	Env map[string]string `json:"env,omitempty"`
 }
 
 type DeckGoSettings struct {
 	AccessToken string `json:"accessToken,omitempty"`
+	AccessTokenConfigured bool `json:"accessTokenConfigured,omitempty"`
+	AccessTokenSource string `json:"accessTokenSource,omitempty"`
 	ManagedGateway DeckGoManagedGatewaySettings `json:"managedGateway,omitempty"`
 }
 
@@ -52,7 +56,12 @@ type DeckGoRuntimeGatewayStatus struct {
 	Health string `json:"health,omitempty"`
 	GatewayUrl string `json:"gatewayUrl,omitempty"`
 	LastError string `json:"lastError,omitempty"`
-	AutoStart bool `json:"autoStart,omitempty"`
+	AutoStart bool `json:"autoStart"`
+	Owner string `json:"owner,omitempty"`
+	OwnershipState string `json:"ownershipState,omitempty"`
+	OwnershipFile string `json:"ownershipFile,omitempty"`
+	RestartAttempts float64 `json:"restartAttempts,omitempty"`
+	RestartDelayMs float64 `json:"restartDelayMs,omitempty"`
 }
 
 type DeckGoBootstrapGatewayStatus struct {
