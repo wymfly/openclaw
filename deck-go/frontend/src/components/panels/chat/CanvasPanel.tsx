@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BugIcon, RefreshIcon, XIcon } from "@/deck-ui/icons";
+import { BugIcon, LoaderIcon, RefreshIcon, XIcon } from "@/deck-ui/icons";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { A2UIBridge, sendUserActionToAgent, type UserAction } from "./a2ui-bridge";
@@ -312,6 +312,7 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         />
         {state === "loading" ? (
           <div className="deck-ui-canvas-overlay">
+            <LoaderIcon className="deck-ui-canvas-spinner" />
             <span>{t("canvasLoading")}</span>
           </div>
         ) : null}

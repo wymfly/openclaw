@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
+import { BotIcon, UserIcon } from "@/deck-ui/icons";
 import { useChatStore } from "@/stores/chat";
 import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import type { ChatBlockPreferences } from "@/stores/chat-preferences";
@@ -47,7 +48,7 @@ function MessageBubble({
       aria-label={`${isUser ? "User" : "Assistant"} message`}
     >
       <div className="deck-ui-message-avatar" aria-hidden="true">
-        {isUser ? "U" : "AI"}
+        {isUser ? <UserIcon /> : <BotIcon />}
       </div>
       <div className="deck-ui-message-body">
         <TranscriptBlocks
@@ -172,7 +173,14 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
         );
       })}
       {isStreaming && !messages.some((m) => m.streaming) ? (
-        <span className="deck-ui-thinking-inline">{t("thinking")}</span>
+        <div className="deck-ui-message-frame">
+          <div className="deck-ui-waiting-message">
+            <span className="deck-ui-message-avatar" aria-hidden="true">
+              <BotIcon />
+            </span>
+            <span className="deck-ui-thinking-inline">{t("thinking")}</span>
+          </div>
+        </div>
       ) : null}
     </div>
   );

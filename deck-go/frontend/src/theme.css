@@ -9162,6 +9162,11 @@ details summary {
   font-size: 0.68rem;
 }
 
+.deck-ui-message-avatar svg {
+  width: 14px;
+  height: 14px;
+}
+
 .deck-ui-message.is-assistant .deck-ui-message-avatar {
   background: var(--surface-elevated);
   color: var(--text-faint);
@@ -9217,6 +9222,12 @@ details summary {
   padding: 0 2px;
   font-size: 0.66rem;
   line-height: 1.2;
+}
+
+.deck-ui-waiting-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .deck-ui-thinking-block,
@@ -9319,6 +9330,7 @@ details summary {
 .deck-ui-tool-use-actions {
   display: flex;
   justify-content: flex-end;
+  margin-inline-start: auto;
 }
 
 .deck-ui-tool-control,
@@ -9346,9 +9358,9 @@ details summary {
 }
 
 .deck-ui-tool-result-card {
-  display: grid;
-  gap: 8px;
-  padding: 8px;
+  display: block;
+  overflow: hidden;
+  padding: 0;
 }
 
 .deck-ui-tool-result-card.is-error {
@@ -10372,6 +10384,12 @@ details summary {
   }
 }
 
+@keyframes deckgo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .deck-ui-message-input {
   min-width: 0;
   display: flex;
@@ -10744,6 +10762,13 @@ details summary {
 .deck-ui-tool-control svg {
   width: 14px;
   height: 14px;
+}
+
+.deck-ui-canvas-spinner {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+  animation: deckgo-spin 1s linear infinite;
 }
 
 .deck-ui-canvas-overlay button {

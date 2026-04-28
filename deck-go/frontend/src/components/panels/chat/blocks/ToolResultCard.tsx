@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   countLines,
   getFileExtension,
@@ -83,7 +83,9 @@ export function ToolResultCard(props: ToolResultCardProps) {
   const { content, isError, toolName, toolInput } = props;
   const t = useTranslations("chat");
   const { onOpenArtifact } = useContext(ArtifactContext);
+  const [isOpen, setIsOpen] = useState(Boolean(isError));
   const [showRaw, setShowRaw] = useState(false);
+  const previousIsError = useRef(Boolean(isError));
   const contentText = typeof content === "string" ? content : JSON.stringify(content, null, 2);
   const viewType = useMemo<ViewType>(() => {
     if (isError || typeof content !== "string") {
@@ -118,47 +120,66 @@ export function ToolResultCard(props: ToolResultCardProps) {
     typeof content === "string" &&
     filePath &&
     (viewType === "diff" || (viewType === "read" && isImagePath(filePath)));
+  const title = isError ? t("toolError") : t("toolResult");
+  const renderedContent = showRaw ? (
+    <div className="deck-ui-tool-use-body">
+      {renderRawContent({ content: contentText, lineCount })}
+    </div>
+  ) : typeof content === "string" ? (
+    <div className="deck-ui-tool-use-body">
+      {renderStringContent({
+        bashResult,
+        content,
+        lineCount,
+        t,
+        toolInput,
+        viewType,
+      })}
+    </div>
+  ) : (
+    <div className="deck-ui-tool-result-structured">
+      {content.map((block, index) => renderNestedBlock(block, index))}
+    </div>
+  );
+
+  useEffect(() => {
+    if (isError && !previousIsError.current) {
+      setIsOpen(true);
+    }
+    previousIsError.current = Boolean(isError);
+  }, [isError]);
 
   return (
-    <div className={`deck-ui-tool-result-card ${isError ? "is-error" : ""}`}>
-      <div className="deck-ui-tool-result-head">
-        <span className="deck-ui-tool-icon" aria-hidden="true">
-          {isError ? "!" : "ok"}
-        </span>
-        <strong>{isError ? t("toolError") : t("toolResult")}</strong>
-      </div>
-      {hasEnhancedView ? (
-        <ShowRawToggle isRaw={showRaw} onToggle={() => setShowRaw((current) => !current)} />
-      ) : null}
-      {showRaw ? (
-        renderRawContent({ content: contentText, lineCount })
-      ) : typeof content === "string" ? (
-        <>
-          {renderStringContent({
-            bashResult,
-            content,
-            lineCount,
-            t,
-            toolInput,
-            viewType,
-          })}
-          {artifact ? <ArtifactCard artifact={artifact} onOpen={onOpenArtifact} /> : null}
-          {showDownload ? (
-            <a
-              className="deck-ui-tool-download"
-              href={`/api/media?path=${encodeURIComponent(filePath)}&dl=1`}
-              download={fileName}
-            >
-              {fileName}
-            </a>
+    <>
+      <details
+        className={`deck-ui-tool-result-card ${isError ? "is-error" : ""}`}
+        open={isOpen}
+        onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      >
+        <summary className="deck-ui-tool-use-summary">
+          <span className="deck-ui-tool-icon" aria-hidden="true">
+            {isError ? "!" : "ok"}
+          </span>
+          <span className="deck-ui-tool-label">{title}</span>
+          {hasEnhancedView ? (
+            <span className="deck-ui-tool-use-actions">
+              <ShowRawToggle isRaw={showRaw} onToggle={() => setShowRaw((current) => !current)} />
+            </span>
           ) : null}
-        </>
-      ) : (
-        <div className="deck-ui-tool-result-structured">
-          {content.map((block, index) => renderNestedBlock(block, index))}
-        </div>
-      )}
-    </div>
+        </summary>
+        {renderedContent}
+      </details>
+      {artifact ? <ArtifactCard artifact={artifact} onOpen={onOpenArtifact} /> : null}
+      {showDownload ? (
+        <a
+          className="deck-ui-tool-download"
+          href={`/api/media?path=${encodeURIComponent(filePath)}&dl=1`}
+          download={fileName}
+        >
+          {fileName}
+        </a>
+      ) : null}
+    </>
   );
 }
 

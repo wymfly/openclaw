@@ -8,7 +8,10 @@ export function ShowRawToggle({ isRaw, onToggle }: { isRaw: boolean; onToggle: (
       aria-pressed={isRaw}
       className="deck-ui-tool-control deck-ui-raw-toggle"
       type="button"
-      onClick={onToggle}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
     >
       <span aria-hidden="true" className="deck-ui-raw-toggle-icon" />
       {isRaw ? t("showFormatted") : t("showRaw")}

@@ -16,6 +16,7 @@ const chatState = {
 const resetSessionProjection = vi.fn();
 const setSessionError = vi.fn();
 const setSessionStreaming = vi.fn();
+let sessionStreaming = false;
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, values?: Record<string, string>) => {
@@ -97,7 +98,7 @@ vi.mock("@/stores/chat-hooks", () => ({
   useSessionA2UI: () => null,
   useSessionApproval: () => null,
   useSessionStreaming: () => ({
-    isStreaming: false,
+    isStreaming: sessionStreaming,
     runId: null,
   }),
 }));
@@ -169,6 +170,7 @@ beforeEach(async () => {
   vi.mocked(abortChatRun).mockResolvedValue({ ok: true });
   vi.mocked(abortChatRun).mockClear();
   vi.mocked(sendChatMessage).mockClear();
+  sessionStreaming = false;
   chatState.activeSessionKey = "sess-1";
   chatState.sessions = new Map([["sess-1", { messages: [], isStreaming: false }]]);
   chatState.sessionMetas = [];
@@ -381,6 +383,7 @@ describe("MessageInput mention and slash interactions", () => {
   });
 
   it("aborts the active run with local streaming state and toast feedback", async () => {
+    sessionStreaming = true;
     mountInput();
 
     fireEvent.click(screen.getByRole("button", { name: "Stop" }));

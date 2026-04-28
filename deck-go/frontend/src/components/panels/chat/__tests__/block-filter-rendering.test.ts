@@ -2,6 +2,7 @@ import { NextIntlClientProvider } from "next-intl";
 // @vitest-environment jsdom
 import { act } from "react";
 import { createElement, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -311,6 +312,197 @@ describe("showToolResult block filter", () => {
     expect(container.querySelector('[data-tool-result-view="diff"]')).toBeTruthy();
     expect(container.textContent).toContain("Binary file");
     expect(container.querySelector("[data-diff-line]")).toBeNull();
+  });
+
+  it("restores the legacy details chrome and keeps raw toggle state per card", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    act(() => {
+      root = createRoot(container);
+      root.render(
+        createElement(
+          Wrapper,
+          null,
+          createElement(
+            "div",
+            null,
+            createElement(ToolResultCard, {
+              content: "export const first = 1;",
+              toolName: "read_file",
+              toolInput: { path: "src/first.ts" },
+            }),
+            createElement(ToolResultCard, {
+              content: "export const second = 2;",
+              toolName: "read_file",
+              toolInput: { path: "src/second.ts" },
+            }),
+          ),
+        ),
+      );
+    });
+
+    const details = Array.from(container.querySelectorAll<HTMLDetailsElement>("details")).filter(
+      (element) => element.classList.contains("deck-ui-tool-result-card"),
+    );
+    expect(details).toHaveLength(2);
+    expect(details[0]?.open).toBe(false);
+    expect(details[1]?.open).toBe(false);
+
+    const rawButtons = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).filter(
+      (button) => button.textContent === "Show raw",
+    );
+    expect(rawButtons).toHaveLength(2);
+    expect(details[0]?.querySelector("summary")?.contains(rawButtons[0] ?? null)).toBe(true);
+
+    act(() => {
+      rawButtons[0]?.click();
+    });
+
+    expect(details[0]?.open).toBe(false);
+    expect(rawButtons[0]?.textContent).toBe("Show formatted");
+    expect(rawButtons[1]?.textContent).toBe("Show raw");
+  });
+
+  it("opens error tool result cards by default", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    act(() => {
+      root = createRoot(container);
+      root.render(
+        createElement(
+          Wrapper,
+          null,
+          createElement(ToolResultCard, {
+            content: "boom",
+            toolName: "custom_tool",
+            isError: true,
+          }),
+        ),
+      );
+    });
+
+    const details = container.querySelector<HTMLDetailsElement>(
+      "details.deck-ui-tool-result-card.is-error",
+    );
+    expect(details).toBeTruthy();
+    expect(details?.open).toBe(true);
+    expect(details?.querySelector("summary")?.textContent).toContain("Tool error");
+  });
+
+  it("keeps an error card collapsed after rerender once the user closes it", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    const renderCard = () =>
+      createElement(
+        Wrapper,
+        null,
+        createElement(ToolResultCard, {
+          content: "boom",
+          toolName: "custom_tool",
+          isError: true,
+        }),
+      );
+
+    act(() => {
+      root = createRoot(container);
+      root.render(renderCard());
+    });
+
+    const details = container.querySelector<HTMLDetailsElement>(
+      "details.deck-ui-tool-result-card.is-error",
+    );
+    expect(details?.open).toBe(true);
+
+    act(() => {
+      if (!details) {
+        return;
+      }
+      flushSync(() => {
+        details.open = false;
+        details.dispatchEvent(new Event("toggle", { bubbles: false }));
+      });
+      root?.render(renderCard());
+    });
+
+    const rerenderedDetails = container.querySelector<HTMLDetailsElement>(
+      "details.deck-ui-tool-result-card.is-error",
+    );
+    expect(rerenderedDetails?.open).toBe(false);
+  });
+
+  it("opens a card when the same instance transitions into an error result", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    const renderCard = (isError: boolean) =>
+      createElement(
+        Wrapper,
+        null,
+        createElement(ToolResultCard, {
+          content: "transition",
+          toolName: "custom_tool",
+          isError,
+        }),
+      );
+
+    act(() => {
+      root = createRoot(container);
+      root.render(renderCard(false));
+    });
+
+    const initialDetails = container.querySelector<HTMLDetailsElement>(
+      "details.deck-ui-tool-result-card",
+    );
+    expect(initialDetails?.open).toBe(false);
+
+    act(() => {
+      root?.render(renderCard(true));
+    });
+
+    const errorDetails = container.querySelector<HTMLDetailsElement>(
+      "details.deck-ui-tool-result-card.is-error",
+    );
+    expect(errorDetails?.open).toBe(true);
+  });
+
+  it("does not block the native keyboard activation path for the raw toggle button", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    act(() => {
+      root = createRoot(container);
+      root.render(
+        createElement(
+          Wrapper,
+          null,
+          createElement(ToolResultCard, {
+            content: "export const value = 1;",
+            toolName: "read_file",
+            toolInput: { path: "src/value.ts" },
+          }),
+        ),
+      );
+    });
+
+    const rawButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+      (button) => button.textContent === "Show raw",
+    );
+    expect(rawButton).toBeTruthy();
+
+    const keyboardEvent = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: " ",
+    });
+    rawButton?.dispatchEvent(keyboardEvent);
+
+    expect(keyboardEvent.defaultPrevented).toBe(false);
+
+    act(() => {
+      if (!keyboardEvent.defaultPrevented) {
+        rawButton?.click();
+      }
+    });
+
+    expect(rawButton?.textContent).toBe("Show formatted");
   });
 
   it("collapses long raw tool results until explicitly expanded", async () => {

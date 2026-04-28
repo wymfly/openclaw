@@ -599,7 +599,7 @@ export function MessageInput(props: MessageInputProps = {}) {
         onClick={() => fileInputRef.current?.click()}
       >
         <PlusIcon />
-        <span>{attachFilesLabel}</span>
+        <span className="deck-ui-sr-only">{attachFilesLabel}</span>
       </button>
       <input
         ref={fileInputRef}
@@ -665,26 +665,29 @@ export function MessageInput(props: MessageInputProps = {}) {
       <PromptTemplateMenu onSelect={(template) => setInputValue(`${input}${template}`)} />
       <CanvasToggle label={t("canvasToggle")} />
       <ArtifactToggle label={t("artifactToggle")} />
-      <button
-        className="deck-ui-composer-send"
-        type="button"
-        disabled={sendDisabled}
-        title={t("send")}
-        onClick={() => void sendPlainMessage()}
-      >
-        <ArrowUpIcon />
-        <span>{t("send")}</span>
-      </button>
-      <button
-        className="deck-ui-composer-abort"
-        type="button"
-        disabled={abortDisabled}
-        title={t("abort")}
-        onClick={() => void abortRun()}
-      >
-        <SquareIcon />
-        <span>{t("abort")}</span>
-      </button>
+      {isStreaming ? (
+        <button
+          className="deck-ui-composer-abort"
+          type="button"
+          disabled={abortDisabled}
+          title={t("abort")}
+          onClick={() => void abortRun()}
+        >
+          <SquareIcon />
+          <span>{t("abort")}</span>
+        </button>
+      ) : (
+        <button
+          className="deck-ui-composer-send"
+          type="button"
+          disabled={sendDisabled}
+          title={t("send")}
+          onClick={() => void sendPlainMessage()}
+        >
+          <ArrowUpIcon />
+          <span>{t("send")}</span>
+        </button>
+      )}
     </div>
   );
 }
