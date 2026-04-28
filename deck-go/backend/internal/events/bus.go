@@ -14,6 +14,7 @@ type Event struct {
 
 type Bus struct {
 	mu          sync.RWMutex
+	noop        bool
 	nextID      int64
 	buffer      []Event
 	bufferSize  int
@@ -30,7 +31,18 @@ func NewBus(bufferSize int) *Bus {
 	}
 }
 
+func NewNoopBus() *Bus {
+	return &Bus{noop: true}
+}
+
 func (b *Bus) Publish(eventType string, data []byte) Event {
+	if b == nil || b.noop {
+		return Event{
+			Type:      eventType,
+			Data:      append([]byte(nil), data...),
+			Timestamp: time.Now().UnixMilli(),
+		}
+	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.nextID++
@@ -55,6 +67,9 @@ func (b *Bus) Publish(eventType string, data []byte) Event {
 
 func (b *Bus) Subscribe() chan Event {
 	ch := make(chan Event, 32)
+	if b == nil || b.noop {
+		return ch
+	}
 	b.mu.Lock()
 	b.subscribers[ch] = struct{}{}
 	b.mu.Unlock()
@@ -62,6 +77,10 @@ func (b *Bus) Subscribe() chan Event {
 }
 
 func (b *Bus) Unsubscribe(ch chan Event) {
+	if b == nil || b.noop {
+		close(ch)
+		return
+	}
 	b.mu.Lock()
 	if _, ok := b.subscribers[ch]; ok {
 		delete(b.subscribers, ch)
@@ -71,6 +90,9 @@ func (b *Bus) Unsubscribe(ch chan Event) {
 }
 
 func (b *Bus) EventsSince(lastID int64) (events []Event, gapDetected bool) {
+	if b == nil || b.noop {
+		return nil, false
+	}
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	if len(b.buffer) == 0 {

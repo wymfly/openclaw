@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,10 +11,12 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 )
 
 const (
@@ -20,9 +24,19 @@ const (
 )
 
 var requestCounter uint64
+var healthProbeClients sync.Map
 
 type ConnectionProvider interface {
 	GatewayConnection() (string, string, bool)
+}
+
+type staticConnectionProvider struct {
+	upstreamURL string
+	token       string
+}
+
+func (p staticConnectionProvider) GatewayConnection() (string, string, bool) {
+	return p.upstreamURL, p.token, strings.TrimSpace(p.upstreamURL) != "" && strings.TrimSpace(p.token) != ""
 }
 
 type responseError struct {
@@ -41,24 +55,36 @@ type frame struct {
 }
 
 type Client struct {
-	provider ConnectionProvider
+	realtime *Realtime
 }
 
 func New(provider ConnectionProvider) *Client {
-	return &Client{provider: provider}
+	return NewClient(provider)
+}
+
+func NewClient(provider ConnectionProvider) *Client {
+	return &Client{
+		realtime: NewRealtime(provider, events.NewNoopBus()),
+	}
+}
+
+func NewClientWithRealtime(realtime *Realtime) *Client {
+	return &Client{realtime: realtime}
 }
 
 func (c *Client) Request(ctx context.Context, method string, params map[string]any) (any, error) {
-	if c.provider == nil {
+	if c.realtime == nil {
 		return nil, errors.New("gateway connection provider is not configured")
 	}
-	url, token, ok := c.provider.GatewayConnection()
-	if !ok {
-		return nil, errors.New("managed gateway connection is not configured")
-	}
-	return RequestDirect(ctx, url, token, method, params)
+	return c.realtime.Request(ctx, method, params)
 }
 
+func (c *Client) ProbeHealth(ctx context.Context) error {
+	_, err := c.Request(ctx, "health", nil)
+	return err
+}
+
+// Deprecated: prefer Client.Request via Realtime so calls share one Gateway connection.
 func RequestDirect(ctx context.Context, upstreamURL string, token string, method string, params map[string]any) (any, error) {
 	if strings.TrimSpace(upstreamURL) == "" {
 		return nil, errors.New("gateway url is not configured")
@@ -115,11 +141,39 @@ func RequestDirect(ctx context.Context, upstreamURL string, token string, method
 }
 
 func ProbeHealth(ctx context.Context, upstreamURL string, token string) error {
-	_, err := RequestDirect(ctx, upstreamURL, token, "health", map[string]any{})
-	return err
+	upstreamURL = strings.TrimSpace(upstreamURL)
+	token = strings.TrimSpace(token)
+	if upstreamURL == "" {
+		return errors.New("gateway url is not configured")
+	}
+	if token == "" {
+		return errors.New("gateway token is not configured")
+	}
+
+	key := healthProbeClientKey(upstreamURL, token)
+	value, _ := healthProbeClients.LoadOrStore(
+		key,
+		NewClient(staticConnectionProvider{upstreamURL: upstreamURL, token: token}),
+	)
+	return value.(*Client).ProbeHealth(ctx)
+}
+
+func healthProbeClientKey(upstreamURL string, token string) string {
+	tokenHash := sha256.Sum256([]byte(token))
+	return upstreamURL + "\x00" + hex.EncodeToString(tokenHash[:])
 }
 
 func completeConnect(ctx context.Context, conn *websocket.Conn, token string, clientID string) error {
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-done:
+		}
+	}()
+	defer close(done)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -128,6 +182,9 @@ func completeConnect(ctx context.Context, conn *websocket.Conn, token string, cl
 		}
 		_, raw, err := conn.ReadMessage()
 		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			return err
 		}
 		var fr frame
@@ -213,6 +270,9 @@ func completeConnect(ctx context.Context, conn *websocket.Conn, token string, cl
 				}
 				_, connectRaw, err := conn.ReadMessage()
 				if err != nil {
+					if ctx.Err() != nil {
+						return ctx.Err()
+					}
 					return err
 				}
 				var connectResp frame

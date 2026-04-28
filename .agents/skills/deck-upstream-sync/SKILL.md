@@ -132,12 +132,15 @@ For each new method in `allMethodNames` that doesn't have a corresponding entry 
 
 ```bash
 pnpm protocol:gen:ts
+cd deck-go && make protocol-update
 ```
 
 This regenerates:
 
 - `dashboard/src/types/gateway-protocol.generated.ts` (type definitions)
 - `dashboard/src/types/gateway-client.generated.ts` (typed client + allowlist)
+- `deck-go/contracts/generated/ts/gateway/` (deck-go TS protocol/client)
+- `deck-go/backend/internal/gateway/generated/` (deck-go Go Gateway bindings)
 
 ### 2.4 Fix Dashboard Type Errors
 
@@ -158,6 +161,8 @@ Fix all type errors before proceeding. Run `npx tsc --noEmit` until clean.
 
 ```bash
 pnpm protocol:gen:check   # must pass — generated files match registry
+cd deck-go && make protocol-check
+cd deck-go && make fork-divergence-report
 ```
 
 **[CHECKPOINT] Report: "Protocol sync complete. N new methods added to allowlist. M type errors fixed. `protocol:gen:check` passes."**

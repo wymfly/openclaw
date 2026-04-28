@@ -18,6 +18,25 @@ Directory map:
 - `docs/` — parity, cutover, governance, and deployment evidence
 - `dev/` — local side-by-side development helpers
 
+Gateway protocol workflow:
+
+```bash
+cd deck-go
+make protocol-update          # regenerate Gateway TS + Go typed bindings
+make protocol-check           # CHECK_MODE drift check, no file writes
+make fork-divergence-report   # refresh docs/fork-divergent-methods.md
+make benchmark-rpc            # loopback RPC latency guard
+```
+
+Generated Gateway artifacts:
+
+- `contracts/generated/ts/gateway/` — TS `GatewayMethodMap`, typed client, and allowlist
+- `backend/internal/gateway/generated/` — Go typed bindings and method allowlist
+
+Backend RPC calls through `gateway.Client.Request` reuse `gateway.Realtime` so
+one-off RPC wrappers and subscriptions share the same Gateway WebSocket
+connection.
+
 Local Stage 3 operator stack:
 
 - copy `deck-go/.env.example` to `deck-go/.env`

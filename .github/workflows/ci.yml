@@ -485,6 +485,7 @@ jobs:
               pnpm build
               pnpm test:contracts
               pnpm protocol:check
+              cd deck-go && make protocol-check
               ;;
             *)
               echo "Unsupported checks-fast task: $TASK" >&2
