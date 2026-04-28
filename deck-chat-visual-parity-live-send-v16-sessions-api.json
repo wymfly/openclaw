@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "status": 200,
+  "json": {
+    "sessions": [
+      {
+        "key": "agent:main:dashboard:286d46a5-a0d1-4c38-b32a-7ea37716195f",
+        "agentId": "main",
+        "label": "Playwright live send 1777274507312",
+        "title": "Sender (untrusted metadata): ```json { \"label\":…",
+        "kind": "direct",
+        "updatedAt": 1777274521256,
+        "lastMessagePreview": "515152",
+        "status": "done",
+        "startedAt": 1777274518610,
+        "endedAt": 1777274521224,
+        "runtimeMs": 2614,
+        "model": "gpt-5.4",
+        "modelProvider": "cpa",
+        "inputTokens": 12104,
+        "outputTokens": 6,
+        "totalTokens": 16712,
+        "totalTokensFresh": true,
+        "contextTokens": 256000
+      },
+      {
+        "key": "agent:main:dashboard:700dcd32-f478-447f-b1f0-f15ed77b9fec",
+        "agentId": "main",
+        "title": "Sender (untrusted metadata): ```json { \"label\":…",
+        "kind": "direct",
+        "updatedAt": 1777139033313,
+        "lastMessagePreview": "314159",
+        "status": "done",
+        "startedAt": 1777139029100,
+        "endedAt": 1777139031723,
+        "runtimeMs": 2623,
+        "model": "gpt-5.4",
+        "modelProvider": "cpa",
+        "inputTokens": 14158,
+        "outputTokens": 6,
+        "totalTokens": 16718,
+        "totalTokensFresh": true,
+        "contextTokens": 256000
+      },
+      {
+        "key": "agent:main:dashboard:a4f9efd2-f2dc-4b49-b594-1908f017d3a6",
+        "agentId": "main",
+        "title": "Sender (untrusted metadata): ```json { \"label\":…",
+        "kind": "direct",
+        "updatedAt": 1776929499388,
+        "lastMessagePreview": "314159",
+        "status": "done",
+        "startedAt": 1776929496004,
+        "endedAt": 1776929499355,
+        "runtimeMs": 3351,
+        "model": "gpt-5.4",
+        "modelProvider": "cpa",
+        "inputTokens": 13983,
+        "outputTokens": 6,
+        "totalTokens": 16543,
+        "totalTokensFresh": true,
+        "contextTokens": 256000
+      }
+    ]
+  }
+}

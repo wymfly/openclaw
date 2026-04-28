@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:4179/?panel=gateway",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "ready": true,
+  "classCounts": {
+    "workspace": 1,
+    "cards": 4,
+    "bodies": 4,
+    "statusRows": 2,
+    "hero": 1,
+    "surfaceGrid": 1,
+    "surfaces": 4,
+    "actions": 1,
+    "buttons": 4,
+    "inlineStyles": 0
+  },
+  "layout": {
+    "workspaceGrid": "362px",
+    "bodyWidth": 390,
+    "viewportWidth": 390
+  },
+  "statusText": {
+    "runtime": true,
+    "statusRunning": true,
+    "healthHealthy": true,
+    "gatewayLinked": true,
+    "diagnostics": true,
+    "statusSummary": true,
+    "managedSettings": true,
+    "rawSettings": true,
+    "rawDiagnostics": true
+  },
+  "overflowCount": 0,
+  "overflow": []
+}

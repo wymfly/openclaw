@@ -1,0 +1,25 @@
+{
+  "location": "http://127.0.0.1:4179/?panel=subagents",
+  "active": [
+    {
+      "tag": "BUTTON",
+      "text": "Light",
+      "className": "is-active",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    }
+  ],
+  "subagentsCandidates": [
+    {
+      "tag": "BUTTON",
+      "text": "Open agent subagents",
+      "className": "deckgo-button deck-ui-subagents-button",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    }
+  ],
+  "threadsCandidates": [],
+  "currentPanelFromStorage": "subagents"
+}

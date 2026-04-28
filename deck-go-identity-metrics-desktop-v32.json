@@ -1,0 +1,63 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=identity",
+  "viewport": {
+    "width": 1440,
+    "height": 960,
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-identity",
+  "overflowCount": 0,
+  "overflowNodes": [],
+  "classCounts": {
+    "root": 1,
+    "columns": 2,
+    "cards": 2,
+    "bodies": 2,
+    "statusRows": 1,
+    "stats": 1,
+    "surfaces": 1,
+    "formGrids": 1,
+    "inputs": 3,
+    "actions": 1,
+    "buttons": 2,
+    "lists": 0,
+    "rows": 0,
+    "peerPills": 0,
+    "hero": 0,
+    "empty": 2,
+    "errors": 0
+  },
+  "navItems": [
+    {
+      "text": "SASubagents",
+      "className": "deck-ui-nav-item ",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    },
+    {
+      "text": "IDIdentity",
+      "className": "deck-ui-nav-item is-active",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    },
+    {
+      "text": "Light",
+      "className": "is-active",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    }
+  ],
+  "cardTitles": ["Identity links", "Selected canonical"],
+  "statusTexts": [
+    "Identity ready0 canonicalshash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff",
+    "canonicals0peers0",
+    "No identity links loaded.",
+    "Choose a canonical identity to inspect it."
+  ],
+  "visibleTextSample": "OC\nOpenClaw\nDeck\n‹\n\nCORE\n\nCH\nChat\nAG\nAgents\nGW\nGateway\nMO\nModels\n\nOBSERVE\n\nUS\nUsage\nSE\nSessions\nME\nMemory\nLO\nLogs\nAC\nActivity\nTH\nThreads\nAX\nAPI Explorer\n\nAUTOMATE\n\nCR\nCron\nWH\nWebhooks\nAP\nApprovals\nSK\nSkills\n\nCONTROL\n\nBU\nBudget\nAL\nAlerts\nCN\nChannels\nPL\nPlugins\nRT\nRouting\nSA\nSubagents\nID\nIdentity\nCF\nConfig\nNO\nNodes\nDO\nDocs\nST\nSettings\n‹\nIdentity\n\ncontrol · panel 22 of 26\n\nGateway Healthy\nRuntime running\nRefresh\nLight\nDark\nIdentity links\n\nIdentity management links canonical identities to channel peers.\n\nIdentity ready\n0 canonicals\nhash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff\n\nCANONICALS\n\n0\n\nPEERS\n\n0\n\nLINK IDENTITY\n\nRefresh identity\nLink identity\n\nNo identity links loaded.\n\nSelected canonical\n\nManage current links and explicit unlink actions from the selected canonical identity.\n\nChoose a canonical identity to inspect it.",
+  "assetHrefs": ["/assets/index-CABebOQC.js", "/assets/index-Dd6cvQqv.css"]
+}

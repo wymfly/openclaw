@@ -1,0 +1,199 @@
+{
+  "stack": {
+    "backend": "127.0.0.1:62611",
+    "frontend": "127.0.0.1:62612",
+    "gateway": "127.0.0.1:18789"
+  },
+  "hasExpectedReply": true,
+  "runtimeRunning": true,
+  "gatewayHealthy": true,
+  "transcriptExcerpt": [
+    "Runtime running",
+    "Sender (untrusted metadata): ```json { \"label\": \"gateway-client\", \"id\": \"gateway-client\" } ``` [Sun 2026-04-26 17:23 GMT+8] What number comes immediately after 515151? Reply with digits only. · 515152",
+    "Idle",
+    "What number comes immediately after 515151? Reply with digits only.",
+    "515152"
+  ],
+  "apiResources": [
+    {
+      "name": "http://127.0.0.1:62611/api/bootstrap/status",
+      "initiatorType": "fetch",
+      "duration": 5
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/runtime/gateway",
+      "initiatorType": "fetch",
+      "duration": 1
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/gateway/describe",
+      "initiatorType": "fetch",
+      "duration": 6
+    },
+    {
+      "name": "http://127.0.0.1:62612/api/bootstrap/status",
+      "initiatorType": "fetch",
+      "duration": 3
+    },
+    {
+      "name": "http://127.0.0.1:62612/api/runtime/gateway",
+      "initiatorType": "fetch",
+      "duration": 1
+    },
+    {
+      "name": "http://127.0.0.1:62612/api/agents",
+      "initiatorType": "fetch",
+      "duration": 1
+    },
+    {
+      "name": "http://127.0.0.1:62612/api/config",
+      "initiatorType": "fetch",
+      "duration": 1
+    },
+    {
+      "name": "http://127.0.0.1:62612/api/sessions?agentId=main&limit=5",
+      "initiatorType": "fetch",
+      "duration": 1
+    },
+    {
+      "name": "http://127.0.0.1:62612/api/models/usage/providers",
+      "initiatorType": "fetch",
+      "duration": 1
+    },
+    {
+      "name": "http://127.0.0.1:62612/api/gateway/health",
+      "initiatorType": "fetch",
+      "duration": 0
+    },
+    {
+      "name": "http://127.0.0.1:62612/api/gateway/status",
+      "initiatorType": "fetch",
+      "duration": 1
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/runtime/gateway",
+      "initiatorType": "fetch",
+      "duration": 1
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/bootstrap/status",
+      "initiatorType": "fetch",
+      "duration": 4
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/settings",
+      "initiatorType": "fetch",
+      "duration": 3
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/gateway/health",
+      "initiatorType": "fetch",
+      "duration": 4
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/gateway/status",
+      "initiatorType": "fetch",
+      "duration": 4
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/bootstrap/status",
+      "initiatorType": "fetch",
+      "duration": 11
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/runtime/gateway",
+      "initiatorType": "fetch",
+      "duration": 5
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/deck/commands/discover",
+      "initiatorType": "fetch",
+      "duration": 121
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/sessions",
+      "initiatorType": "fetch",
+      "duration": 122
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/bootstrap/status",
+      "initiatorType": "fetch",
+      "duration": 9
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/runtime/gateway",
+      "initiatorType": "fetch",
+      "duration": 3
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/bootstrap/status",
+      "initiatorType": "fetch",
+      "duration": 7
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/runtime/gateway",
+      "initiatorType": "fetch",
+      "duration": 2
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/bootstrap/status",
+      "initiatorType": "fetch",
+      "duration": 7
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/runtime/gateway",
+      "initiatorType": "fetch",
+      "duration": 2
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/chat/sessions/create",
+      "initiatorType": "fetch",
+      "duration": 97
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/chat/sessions/preview",
+      "initiatorType": "fetch",
+      "duration": 37
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/chat/session-events",
+      "initiatorType": "fetch",
+      "duration": 35
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/chat/sessions/preview",
+      "initiatorType": "fetch",
+      "duration": 18
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/chat/sessions/preview",
+      "initiatorType": "fetch",
+      "duration": 17
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/chat/sessions/preview",
+      "initiatorType": "fetch",
+      "duration": 8
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/chat/history?sessionKey=agent%3Amain%3Adashboard%3Ab41fa739-a96c-410b-8533-0120daff466a&limit=5",
+      "initiatorType": "fetch",
+      "duration": 9
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/chat/sessions/preview",
+      "initiatorType": "fetch",
+      "duration": 9
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/bootstrap/status",
+      "initiatorType": "fetch",
+      "duration": 13
+    },
+    {
+      "name": "http://127.0.0.1:62611/api/runtime/gateway",
+      "initiatorType": "fetch",
+      "duration": 7
+    }
+  ]
+}

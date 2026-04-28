@@ -1,0 +1,11 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - paragraph [ref=e5]: OpenClaw Deck
+    - heading "Unlock control plane" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Missing authentication token.
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: Deck access token
+        - textbox "Deck access token" [ref=e11]:
+          - /placeholder: Enter deck-go access token
+      - button "Unlock control plane" [ref=e13] [cursor=pointer]

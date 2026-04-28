@@ -1,0 +1,297 @@
+{
+  "shell": {
+    "gatewayHealthy": true,
+    "runtimeRunning": true,
+    "active": "Chat"
+  },
+  "panels": [
+    {
+      "nav": "Chat",
+      "ok": true,
+      "heading": "Chat",
+      "mainChars": 202,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Sessions\nAgents\n全部\n新建会话\n默认智能体 main\nmain\nNo session\n0 messages\nIdle\n搜索对话...\n上一个\n下一个\n清除\n\nTRANSCRIPT\n\n开始新对话\n\n选择一个话题开始，或直接输入你的问题\n\n帮我写一段创意文案\n分析这段代码的性能问题\n解释一个复杂的技术概念\non\nShow canvas\nAttach\n提示模板\n画布面板\n工件面板\n发送\n停止"
+    },
+    {
+      "nav": "Agents",
+      "ok": true,
+      "heading": "Agents",
+      "mainChars": 549,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Agents\n\nAgent inventory uses list, create, rename, delete, and detail routes.\n\nAgents ready\n1 loaded\ndefault main\n\nAGENTS\n\n1\n\nDEFAULT\n\nmain\n\nSELECTED\n\nmain\n\nAGENT BATCH SUMMARY\n\nTOTAL\n\n1\n\nSTATUSES\n\n1\n\nMODELS\n\n1\n\nname | id | model | status\nmain | main | - | unknown\n\nCREATE AGENT\n\nCreate agent\nRefresh"
+    },
+    {
+      "nav": "Gateway",
+      "ok": true,
+      "heading": "Gateway",
+      "mainChars": 857,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Gateway runtime\n\nThis panel is wired to deck-go's managed Gateway control plane for runtime status, health, diagnostics, and lifecycle actions.\n\nstatus running\nhealth healthy\ngateway linked\nrefresh idle\n\nRESOLVED URL\n\nws://127.0.0.1:18789\n\npid: 96470 | configured: yes\n\nStart\nRestart\nStop\nRefresh run"
+    },
+    {
+      "nav": "Models",
+      "ok": true,
+      "heading": "Models",
+      "mainChars": 2193,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Models\n\nModels config uses provider inventory, schema lookup, catalog data, auth overview, and structured provider edits.\n\nModels loading\n0 providers\n0 configured models\n0 auth providers\n0 catalog providers\nhash n/a\n\nPROVIDERS\n\n0\n\nCONFIGURED\n\n0\n\nSCHEMA PATH\n\nmodels.providers\n\nRefresh models\nSave mod"
+    },
+    {
+      "nav": "Usage",
+      "ok": true,
+      "heading": "Usage",
+      "mainChars": 617,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Usage\n\nCost and provider quota overview uses current model and session usage data.\n\nUsage loading\n0 days\n0 providers\n\nDAYS\n\n0\n\nPROVIDERS\n\n0\n\nTOTAL COST\n\n$0.00\n\nREFRESH USAGE RANGE\n\nToday\n7d\n14d\n30d\nRefresh usage\n\nUSAGE TREND\n\nTokens\nCost\n\nNo usage trend loaded.\n\nSESSION USAGE DRILLDOWN\n\nSESSIONS\n\n0\n"
+    },
+    {
+      "nav": "Sessions",
+      "ok": true,
+      "heading": "Sessions",
+      "mainChars": 1035,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Session inventory\n\nSessions are now a dedicated browse/manage surface instead of staying embedded in chat.\n\nInventory ready\nDetail idle\n0 visible\nSearch sessions\nSession type\nall types\ndirect\ngroup\nglobal\nsubagent\nActive window\nall time\nlast 5m\nlast 1h\nlast 24h\nRefresh sessions\nRefresh detail\n\nNo se"
+    },
+    {
+      "nav": "Memory",
+      "ok": true,
+      "heading": "Memory",
+      "mainChars": 1006,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Memory\n\nBrowse memory files, search memory, inspect health, and run dream-diary actions.\n\nMemory ready\nagent main\nmain\nFiles\nSearch\nGraph\nHealth\nDreams\n\nENTRIES\n\n14\n\nSELECTED PATH\n\nn/a\n\nbrowsing memory root\n111.md\nfile | 111.md | size: 102618\nAGENTS.md\nfile | AGENTS.md | size: 7869\nBOOTSTRAP.md\nfile"
+    },
+    {
+      "nav": "Logs",
+      "ok": true,
+      "heading": "Logs",
+      "mainChars": 419,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Logs tail\n\nLogs are loaded from `/logs` and live `/logs/stream` events, with local filtering and export preview controls.\n\nTail loading\nStream connecting\ncursor 0\n0 visible\n\nFILTERS\n\ndebug\ninfo\nwarn\nerror\nall\ngateway\nagent\nchannel\nunknown\nRefresh tail\nPause stream\nClear local logs\nPrepare export\n\nLA"
+    },
+    {
+      "nav": "Activity",
+      "ok": true,
+      "heading": "Activity",
+      "mainChars": 926,
+      "badDelta": 0,
+      "errorDelta": 1,
+      "excerpt": "Activity\n\nRecent activity uses the synthesized deck-go event feed, monitor stats, and run history.\n\nActivity loading\n0 loaded\n0 visible\n\nEVENTS\n\n0\n\nVISIBLE\n\n0\n\nAGENTS\n\n0\n\nFILTER ACTIVITY\n\nall event types\nlast hour\nlast 6 hours\nlast 24 hours\nlast 7 days\nall\nRefresh activity\n\nNo activity events match "
+    },
+    {
+      "nav": "Threads",
+      "ok": true,
+      "heading": "Threads",
+      "mainChars": 333,
+      "badDelta": 0,
+      "errorDelta": 1,
+      "excerpt": "Threads\n\nThread bindings from `deck.threads.list`, with relation diagnostics and cross-panel handoffs.\n\nThreads loading\n0 results\nactive\nall\nRefresh threads\n\nTHREADS\n\n0\n\nSELECTED\n\nn/a\n\nNo threads loaded.\n\nSelected thread\n\nInspect the selected platform thread, bound OpenClaw session, and target agent"
+    },
+    {
+      "nav": "API Explorer",
+      "ok": true,
+      "heading": "API Explorer",
+      "mainChars": 5170,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Gateway API Explorer\n\nGateway API Explorer reads the live `gateway.describe` contract, with grouped methods, events, scopes, and decoded schema fields.\n\nDescribe ready\n81 methods\n5 events\n79 untyped\n\nMETHODS\n\n81\n\nEVENTS\n\n5\n\nUNTYPED\n\n79\n\nMethods\nEvents\nRefresh describe\nSearch methods\n\nAGENT (2)\n\nagen"
+    },
+    {
+      "nav": "Cron",
+      "ok": true,
+      "heading": "Cron",
+      "mainChars": 568,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Cron jobs\n\nScheduler inventory, status, run history, templates, and manual run/delete actions use the current cron routes.\n\nCron ready\nrunning: no\njobs: 0\n\nJOBS\n\n0\n\nENABLED\n\n0\n\nNEXT RUN\n\nn/a\n\nCREATE/EDIT JOB\n\nEvery 5 min\nHourly\nDaily\nWeekly\ncron\nevery\nat\nmain\nisolated\ncurrent\nnow\nnext-heartbeat\nsyst"
+    },
+    {
+      "nav": "Webhooks",
+      "ok": true,
+      "heading": "Webhooks",
+      "mainChars": 544,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Webhooks\n\nWebhook inventory, delivery testing, deletion, and delivery history use the current webhook routes.\n\nWebhooks ready\n0 configured\n\nWEBHOOKS\n\n0\n\nDELIVERIES\n\n0\n\nCREATE/EDIT WEBHOOK\n\n*\nchat\nagent\nagent.updated\ncron.run.complete\napproval.pending\napproval.resolved\nbudget.warn\nbudget.over\nalert.f"
+    },
+    {
+      "nav": "Approvals",
+      "ok": true,
+      "heading": "Approvals",
+      "mainChars": 755,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Pending approvals\n\nApprovals use the live pending, policy, plugin, and stream contracts.\n\nApprovals ready\n0 pending\n0 plugin pending\nallowlist 0\n\nPENDING\n\n0\n\nPLUGIN PENDING\n\n0\n\nAGENT OVERRIDES\n\n0\n\nExec approvals\nPlugin approvals\nRefresh approvals\nAllow once\nAllow always\nDeny\n\nNo pending approvals.\n\n"
+    },
+    {
+      "nav": "Skills",
+      "ok": true,
+      "heading": "Skills",
+      "mainChars": 9251,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Installed skills\n\nInstalled skills, setup state, and enable/disable actions use the current skill routes.\n\nSkills ready\n73 installed\n38 need setup\n\nINSTALLED\n\n73\n\nREADY\n\n35\n\nNEEDS SETUP\n\n38\n\nSHOWN\n\n73\n\nall\nready\nneeds-setup\ndisabled\nRefresh skills\nEnable\nDisable\n🔐 1password\nkey: 1password | source:"
+    },
+    {
+      "nav": "Budget",
+      "ok": true,
+      "heading": "Budget",
+      "mainChars": 468,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Budget rules\n\nBudget rules are loaded from the control plane with current evaluation snapshots.\n\nBudget ready\n0 rules\n\nRULES\n\n0\n\nEVALUATIONS\n\n0\n\nCREATE RULE\n\nglobal\nagent\ntask\ncost\ntokensIn\ntokensOut\ntotalTokens\ndaily\nweekly\nmonthly\nRule enabled\nRefresh budget\nCreate rule\nLoad selected\nSave selected"
+    },
+    {
+      "nav": "Alerts",
+      "ok": true,
+      "heading": "Alerts",
+      "mainChars": 421,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Alert rules\n\nAlert rules support inventory, create, enable/disable, and delete actions.\n\nAlerts ready\n0 rules\n\nRULES\n\n0\n\nENABLED\n\n0\n\nCREATE RULE\n\nusage\ncron\napproval\nagent\ntoast\nactivity\nwebhook\nRule enabled\nRefresh alerts\nCreate rule\nLoad selected\nSave selected\n\nNo alert rules loaded.\n\nSelected rul"
+    },
+    {
+      "nav": "Channels",
+      "ok": true,
+      "heading": "Channels",
+      "mainChars": 434,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Channel inventory\n\nRead and update channel runtime state through `channels.status`, logout, probe, throughput, and config routes.\n\nInventory ready\nts: 1777193354049\n\nCHANNELS\n\n0\n\nACCOUNTS\n\n0\n\nDEFAULTS\n\n0\n\nRefresh channels\nLogout channel\nTest channel\nEnable channel\n\nNo channels loaded.\n\nSelected chan"
+    },
+    {
+      "nav": "Plugins",
+      "ok": true,
+      "heading": "Plugins",
+      "mainChars": 434,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Plugin inventory\n\nPlugin capability inventory is backed by the live `deck.plugins.list` contract.\n\nInventory loading\nscope: unknown\ncapability: channel\n\nPLUGINS\n\n0\n\nENABLED\n\n0\n\nSTATUSES\n\nnone\n\nChannel plugins\nAll plugins\n\nNo plugins loaded.\n\nSelected plugin\n\nPlugin inventory comes from `deck.plugins"
+    },
+    {
+      "nav": "Routing",
+      "ok": true,
+      "heading": "Routing",
+      "mainChars": 886,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Routing\n\nRouting shows live bindings and route simulation from the control plane.\n\nRouting loading\ndefault n/a\ndm scope n/a\nrouting conflicts 0\n\nBINDINGS\n\n0\n\nDM SCOPE\n\nn/a\n\nCONFIG HASH\n\nn/a\n\nDM SCOPE STRATEGY\n\nmain\nper-peer\nper-channel-peer\nper-account-channel-peer\nPatch DM scope\n\nFILTER BINDINGS\n\nR"
+    },
+    {
+      "nav": "Subagents",
+      "ok": true,
+      "heading": "Subagents",
+      "mainChars": 848,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Subagents\n\nSubagent runs show active/history inspection plus lineage, kill, and steer actions.\n\nSubagents loading\n0 visible\n0 server total\nactive mode\n\nRUNS\n\n0\n\nACTIVE\n\n0\n\nHISTORY\n\n0\n\nRUN FILTERS\n\nall child agents\nall\nactive\ncompleted\nfailed\ntimeout\nlast 1h\nlast 6h\nlast 24h\nall time\nRefresh runs\nAut"
+    },
+    {
+      "nav": "Identity",
+      "ok": true,
+      "heading": "Identity",
+      "mainChars": 430,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Identity links\n\nIdentity management links canonical identities to channel peers.\n\nIdentity ready\n0 canonicals\nhash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff\n\nCANONICALS\n\n0\n\nPEERS\n\n0\n\nLINK IDENTITY\n\nRefresh identity\nLink identity\n\nNo identity links loaded.\n\nSelected canonical\n\n"
+    },
+    {
+      "nav": "Config",
+      "ok": true,
+      "heading": "Config",
+      "mainChars": 7955,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Config\n\nRaw config editing uses deck-go config get/apply plus targeted schema lookup.\n\nConfig ready\n4 top-level keys\n36 schema sections\nhash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff\nunsaved no\n\nKEYS\n\n4\n\nSCHEMA PATH\n\nagents.defaults\n\nHASH\n\nf528060c2293964e7cf6544314865cd9b8b9b"
+    },
+    {
+      "nav": "Nodes",
+      "ok": true,
+      "heading": "Nodes",
+      "mainChars": 348,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Nodes\n\nManage node inventory, pairing, command invocation, and pending work.\n\nNodes ready\n0 nodes\n0 pending\n\nNODES\n\n0\n\nPENDING REQUESTS\n\n0\n\nRefresh nodes\n\nNo nodes loaded.\n\nSelected node\n\nInspect node state, pairing requests, lifecycle diagnostics, invoke, and pending work from current node routes.\n"
+    },
+    {
+      "nav": "Docs",
+      "ok": true,
+      "heading": "Docs",
+      "mainChars": 400,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Docs hub\n\nDocs use existing list, extract, get, and delete routes.\n\nDocs ready\n0 docs\nactive session none\n\nDOCUMENTS\n\n0\n\nCATEGORIES\n\nnone\n\nall\nsummary\nplan\nspec\nmanual\ndraft\nRefresh docs\nExtract active session\nDelete\n\nNo docs loaded.\n\nSelected doc\n\nBrowse documents, inspect metadata, render Markdown"
+    },
+    {
+      "nav": "Settings",
+      "ok": true,
+      "heading": "Settings",
+      "mainChars": 1052,
+      "badDelta": 0,
+      "errorDelta": 0,
+      "excerpt": "Deck-go local settings\n\nThis panel owns deck-go local access and managed Gateway launch settings, so chat no longer needs to carry them.\n\nSettings ready\nGateway linked\nRuntime running\nDeck access token\nManaged Gateway command\nWorking dir\nGateway token\nBind host\nBind port\nRuntime endpoint\nStartup arg"
+    }
+  ],
+  "api": [
+    {
+      "path": "/api/bootstrap/status",
+      "status": 200
+    },
+    {
+      "path": "/api/runtime/gateway",
+      "status": 200
+    },
+    {
+      "path": "/api/agents",
+      "status": 200
+    },
+    {
+      "path": "/api/config",
+      "status": 200
+    },
+    {
+      "path": "/api/sessions?agentId=main&limit=5",
+      "status": 200
+    },
+    {
+      "path": "/api/models/usage/providers",
+      "status": 200
+    },
+    {
+      "path": "/api/gateway/health",
+      "status": 200
+    },
+    {
+      "path": "/api/gateway/status",
+      "status": 200
+    }
+  ],
+  "badResponses": [],
+  "fetchErrors": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:62551/api/logs/stream",
+      "message": "signal is aborted without reason"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:62551/api/stream",
+      "message": "signal is aborted without reason"
+    }
+  ],
+  "traceSummary": {
+    "requests": 160,
+    "responses": 156,
+    "errors": 4,
+    "badResponses": []
+  },
+  "ok": false
+}

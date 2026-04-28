@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "value": "@",
+  "mentionVisible": true,
+  "bodyIncludesAgents": true,
+  "excerpt": "rompt, and canvas drawer visible. I am now checking responsive spacing\n\nRunning\ngpt-5.4\nIn 12,440 / Out 840 / Cache 3,200\nStreaming 1055m 51s\nSession total 97,200\n21:59:30\nThinking\nTools\nResults\nSteer\nSteer\n\nRUNNING\n\nshell_command\ntool-run-gateway\n63334s\n\nTOOLS\n\nTools running\nModel\ngpt-5.4\nThinking off\nFast off\nUsage tokens\nSend allow\nApproval required\n19m 55s\nshell_command\npnpm openclaw gateway run --bind loopback --port 18789 --force\nAgent\nmain\ncwd\n/workspace/openclaw\nApprove\nAlways Approve\nDeny\nContext window nearly full — consider compacting or starting a new session\nAttach\nAGENTS\nMain Agent\nOps Bot\nPrompt Templates\nCanvas panel\nArtifact panel\nSend\nStop\nCanvas\nDebug panel\nCollapse canvas"
+}

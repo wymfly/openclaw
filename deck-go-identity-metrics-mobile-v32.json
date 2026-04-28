@@ -1,0 +1,38 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=identity",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-identity",
+  "overflowCount": 0,
+  "overflowNodes": [],
+  "classCounts": {
+    "root": 1,
+    "columns": 2,
+    "cards": 2,
+    "bodies": 2,
+    "statusRows": 1,
+    "stats": 1,
+    "surfaces": 1,
+    "formGrids": 1,
+    "inputs": 3,
+    "actions": 1,
+    "buttons": 2,
+    "lists": 0,
+    "rows": 0,
+    "peerPills": 0,
+    "hero": 0,
+    "empty": 2,
+    "errors": 0
+  },
+  "statusTexts": [
+    "Identity ready0 canonicalshash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff",
+    "canonicals0peers0",
+    "No identity links loaded.",
+    "Choose a canonical identity to inspect it."
+  ],
+  "assetHrefs": ["/assets/index-CABebOQC.js", "/assets/index-Dd6cvQqv.css"]
+}

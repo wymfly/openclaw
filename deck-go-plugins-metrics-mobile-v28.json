@@ -1,0 +1,33 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=plugins",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-plugins",
+  "classCounts": {
+    "deck-ui-plugins": 1,
+    "deck-ui-plugins-card": 2,
+    "deck-ui-plugins-body": 2,
+    "deck-ui-plugins-status-row": 2,
+    "deck-ui-plugins-stats": 1,
+    "deck-ui-plugins-actions": 2,
+    "deck-ui-plugins-button": 3,
+    "deck-ui-plugins-list": 1,
+    "deck-ui-plugins-row": 24,
+    "deck-ui-plugins-hero": 1,
+    "deck-ui-plugins-detail-stats": 1,
+    "deck-ui-plugins-surface": 2,
+    "deck-ui-plugins-diagnostics": 1
+  },
+  "statusTexts": [
+    "Inventory readyscope: channelcapability: channel",
+    "origin bundledstatus disabled"
+  ],
+  "cardTitles": ["Plugin inventory", "Selected plugin", "Related channels", "Activation"],
+  "selectedPlugin": "@openclaw/bluebubbles",
+  "visibleTextSample": "☰\nPlugins\n\ncontrol · panel 19 of 26\n\nGateway Healthy\nRuntime running\nRefresh\nLight\nDark\nPlugin inventory\n\nPlugin capability inventory is backed by the live `deck.plugins.list` contract.\n\nInventory ready\nscope: channel\ncapability: channel\n\nPLUGINS\n\n24\n\nENABLED\n\n0\n\nSTATUSES\n\ndisabled: 24\n\nChannel plugins\nAll plugins\n@openclaw/bluebubbles\nid: bluebubbles | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: bluebubbles\n@openclaw/discord\nid: discord | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: discord\n@openclaw/feishu\nid: feishu | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: feishu\n@openclaw/googlechat\nid: googlechat | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: googlechat\n@openclaw/imessage\nid: imessage | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: imessage\n@openclaw/irc\nid: irc | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: irc\n@openclaw/line\nid: line | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: line\n@openclaw/matrix\nid: matrix | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: matrix\n@openclaw/mattermost\nid: mattermost | origin: bundled | status: disabled\nenabled: no\ncapabilities: channel | channels: ",
+  "overflowCount": 0,
+  "overflow": []
+}

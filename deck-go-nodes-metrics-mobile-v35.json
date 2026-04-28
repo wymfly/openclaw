@@ -1,0 +1,40 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=nodes",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-nodes",
+  "overflowCount": 0,
+  "overflowNodes": [],
+  "classCounts": {
+    "root": 1,
+    "columns": 2,
+    "cards": 2,
+    "bodies": 2,
+    "statusRows": 1,
+    "stats": 1,
+    "detailStats": 0,
+    "surfaces": 0,
+    "surfaceGrids": 0,
+    "inputs": 0,
+    "textareas": 0,
+    "actions": 1,
+    "buttons": 1,
+    "lists": 0,
+    "rows": 0,
+    "hero": 0,
+    "checks": 0,
+    "empty": 2,
+    "errors": 0
+  },
+  "statusTexts": [
+    "Nodes ready0 nodes0 pending",
+    "nodes0pending requests0",
+    "No nodes loaded.",
+    "Choose a node or pairing request to inspect it."
+  ],
+  "assetHrefs": ["/assets/index-D4W4jBr4.js", "/assets/index-BN8H28hM.css"]
+}

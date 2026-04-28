@@ -1,0 +1,59 @@
+- generic [ref=e3]:
+  - navigation "Deck panels" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: OC
+      - generic [ref=e7]:
+        - strong [ref=e8]: OpenClaw
+        - generic [ref=e9]: Deck
+      - button "Collapse navigation" [ref=e10] [cursor=pointer]: ‹
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - paragraph [ref=e13]: Core
+        - button "CH Chat" [ref=e14] [cursor=pointer]
+        - button "AG Agents" [ref=e17] [cursor=pointer]
+        - button "GW Gateway" [ref=e20] [cursor=pointer]
+        - button "MO Models" [ref=e23] [cursor=pointer]
+      - generic [ref=e26]:
+        - paragraph [ref=e27]: Observe
+        - button "US Usage" [ref=e28] [cursor=pointer]
+        - button "SE Sessions" [ref=e31] [cursor=pointer]
+        - button "ME Memory" [ref=e34] [cursor=pointer]
+        - button "LO Logs" [ref=e37] [cursor=pointer]
+        - button "AC Activity" [ref=e40] [cursor=pointer]
+        - button "TH Threads" [ref=e43] [cursor=pointer]
+        - button "AX API Explorer" [ref=e46] [cursor=pointer]
+      - generic [ref=e49]:
+        - paragraph [ref=e50]: Automate
+        - button "CR Cron" [ref=e51] [cursor=pointer]
+        - button "WH Webhooks" [ref=e54] [cursor=pointer]
+        - button "AP Approvals" [ref=e57] [cursor=pointer]
+        - button "SK Skills" [ref=e60] [cursor=pointer]
+      - generic [ref=e63]:
+        - paragraph [ref=e64]: Control
+        - button "BU Budget" [ref=e65] [cursor=pointer]
+        - button "AL Alerts" [ref=e68] [cursor=pointer]
+        - button "CN Channels" [ref=e71] [cursor=pointer]
+        - button "PL Plugins" [ref=e74] [cursor=pointer]
+        - button "RT Routing" [ref=e77] [cursor=pointer]
+        - button "SA Subagents" [ref=e80] [cursor=pointer]
+        - button "ID Identity" [ref=e83] [cursor=pointer]
+        - button "CF Config" [ref=e86] [cursor=pointer]
+        - button "NO Nodes" [ref=e89] [cursor=pointer]
+        - button "DO Docs" [ref=e92] [cursor=pointer]
+    - button "ST Settings" [ref=e96] [cursor=pointer]:
+      - generic [ref=e97]: ST
+      - generic [ref=e98]: Settings
+  - generic [ref=e99]:
+    - banner [ref=e100]:
+      - generic [ref=e101]:
+        - button "Collapse navigation" [ref=e102] [cursor=pointer]: ‹
+        - generic [ref=e103]
+      - generic [ref=e106]:
+        - button "Gateway Healthy" [ref=e107]: Gateway Healthy
+        - generic [ref=e109]: Runtime running
+        - button "Refresh" [ref=e110] [cursor=pointer]
+        - generic "Theme switch" [ref=e111]
+    - main [ref=e114]:
+      - generic [ref=e115]:
+        - article [ref=e117]
+        - article [ref=e151]

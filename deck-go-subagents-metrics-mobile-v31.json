@@ -1,0 +1,40 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=subagents",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-subagents",
+  "overflowCount": 0,
+  "overflowNodes": [],
+  "classCounts": {
+    "root": 1,
+    "columns": 2,
+    "cards": 2,
+    "bodies": 2,
+    "statusRows": 1,
+    "stats": 1,
+    "surfaces": 3,
+    "formGrids": 3,
+    "defaultGrids": 1,
+    "inputs": 11,
+    "actions": 3,
+    "buttons": 4,
+    "checks": 2,
+    "list": 1,
+    "rows": 1,
+    "hero": 0,
+    "empty": 3,
+    "errors": 0
+  },
+  "statusTexts": [
+    "Subagents ready0 visible0 server totalactive mode",
+    "runs0active0history0",
+    "No subagent runs loaded.",
+    "Choose a subagent run to inspect it.",
+    "Select a run to load its lineage."
+  ],
+  "assetHrefs": ["/assets/index-Br8es11k.js", "/assets/index-YzunJytb.css"]
+}

@@ -1,0 +1,5 @@
+{
+  "hasEmptyTitle": true,
+  "hasSessionCount": false,
+  "text": "CORE\n\nChat\nAgents\nMonitor\nModels\n\nOBSERVE\n\nUsage\nSessions\nMemory\nLogs\nActivity\nThreads\nAPI Explorer\n\nAUTOMATE\n\nCron Jobs\nWebhooks\nApprovals\nSkills\n\nCONTROL\n\nBudget\nAlerts\nChannels\nPlugins\nRouting\nSubagents\nIdentities\nConfig\nNodes\nDocs\nSettings\nChat\nConnected\nZH\nAll\nNew Session\nDefault Agent main\nmain\nNo session\n0 messages\nIdle\n\nTRANSCRIPT\n\nStart a conversation\n\nPick a topic to get started, or type your question\n\nHelp me write creative copy\nAnalyze performance issues in this code\nExplain a complex technical concept\nAttach\nPrompt Templates\nCanvas panel\nArtifact panel\nSend\nStop"
+}

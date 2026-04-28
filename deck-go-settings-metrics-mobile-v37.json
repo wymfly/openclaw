@@ -1,0 +1,41 @@
+{
+  "url": "http://127.0.0.1:4179/?panel=settings",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "ready": true,
+  "classCounts": {
+    "workspace": 1,
+    "cards": 4,
+    "bodies": 4,
+    "statusRows": 2,
+    "formRows": 2,
+    "inputs": 8,
+    "textareas": 1,
+    "checks": 1,
+    "surfaces": 2,
+    "lists": 0,
+    "rows": 0,
+    "actions": 4,
+    "buttons": 9,
+    "inlineStyles": 0
+  },
+  "layout": {
+    "workspaceGrid": "362px",
+    "bodyWidth": 390,
+    "viewportWidth": 390
+  },
+  "statusText": {
+    "settingsReady": true,
+    "gatewayLinked": true,
+    "runtimeRunning": true,
+    "devicesReady": true,
+    "noPairedDevices": true,
+    "connectionProbe": false,
+    "appearance": true,
+    "settingsSummary": true
+  },
+  "overflowCount": 0,
+  "overflow": []
+}
