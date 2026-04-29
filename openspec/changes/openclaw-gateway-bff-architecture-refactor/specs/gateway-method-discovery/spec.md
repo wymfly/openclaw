@@ -75,6 +75,20 @@ The `BASE_METHODS` constant in `src/gateway/server-methods-list.ts` SHALL be der
 - **WHEN** the derived `BASE_METHODS` constant is implemented
 - **THEN** it MUST consume `gatewayMethodRegistry.listMethods()` or `Array.from(gatewayMethodRegistry.methods.keys())`, and MUST NOT use `Object.keys(gatewayMethodRegistry.methods)` which would return `[]` since `methods` is a `ReadonlyMap` not a plain object
 
+### Requirement: Dispatcher exposes controlled sub-request dispatch without leaking raw handlers
+
+The gateway SHALL extract request dispatch into `src/gateway/server-methods/dispatcher.ts` as `dispatchGatewayRequest({ handlers, ...opts })`. The raw `GatewayRequestHandlers` map MUST remain private to the dispatcher call path and MUST NOT be stored on `GatewayRequestContext`, because that context is available through plugin runtime scope. Handlers that need to dispatch sub-requests (initially `gateway.batch`) SHALL receive an optional `dispatchSubRequest` function on `GatewayRequestHandlerOptions`; this function MUST re-enter `dispatchGatewayRequest` and preserve authorization, role, unavailable-method, and control-plane budget checks.
+
+#### Scenario: GatewayRequestContext does not expose raw handlers
+
+- **WHEN** TypeScript compiles `GatewayRequestContext` and plugin runtime request scope after the dispatcher extraction
+- **THEN** neither surface SHALL contain `handlers`, `coreGatewayHandlers`, or any raw `GatewayRequestHandlers` map
+
+#### Scenario: Sub-request dispatch preserves the normal request pipeline
+
+- **WHEN** a handler invokes `dispatchSubRequest` for a sub-call
+- **THEN** the sub-call MUST pass through the same authorization, role, unavailable-method, handler lookup, and control-plane write budget logic as a top-level request
+
 ### Requirement: MethodDefinition type contract carries fork-introspection metadata
 
 The `MethodDefinition` interface in `src/gateway/method-registry.ts` SHALL include three optional fields used by fork-only registration: `forkClass?: "C1" | "C2" | "C3" | "C4" | "C5"`, `bffEligible?: boolean`, `controlPlaneWrite?: boolean`. The `GatewayDescribePayload` and the `gateway.describe` result schema SHALL surface these fields. The `schemaVersion` hash SHALL incorporate them so any change triggers a bump.

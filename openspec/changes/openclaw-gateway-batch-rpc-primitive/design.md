@@ -57,21 +57,17 @@ GatewayBatchResultSchema = Type.Object({
 
 **Why id max 64 chars** (vs frame.id `NonEmptyString` no max at `frames.ts:140-147`): `id` here is a batch-local correlation id, not the WebSocket frame id; bounding it bounds error-message size. Top-level frame.id is unconstrained and handled by the existing transport.
 
-### D2: Reuse parent proposal's extracted dispatcher (P0 fix from R1 + R2)
+### D2: Reuse parent proposal's extracted dispatcher through a private dispatch capability (P0 fix from R1 + R2)
 
-The parent proposal `openclaw-gateway-bff-architecture-refactor` Phase 2.C extracts the dispatch logic from `server-methods.ts:147` into `src/gateway/server-methods/dispatcher.ts` as `dispatchGatewayRequest({ handlers, ...opts })`. This proposal **reuses** that extracted dispatcher rather than creating a parallel one. The earlier R1 design (a `dispatchSubCall` wrapper that invoked `handleGatewayRequest`) was rejected by R2 as still cyclic — wrapping `handleGatewayRequest` does not break the chain `dispatcher → server-methods → _modules.generated → batch.module → dispatcher`.
+The parent proposal `openclaw-gateway-bff-architecture-refactor` Phase 2.C extracts the dispatch logic from `server-methods.ts:147` into `src/gateway/server-methods/dispatcher.ts` as `dispatchGatewayRequest({ handlers, ...opts })`. This proposal **reuses** that extracted dispatcher through the parent-provided `dispatchSubRequest` handler option rather than creating a parallel one. The earlier R1 design (a `dispatchSubCall` wrapper that invoked `handleGatewayRequest`) was rejected by R2 as still cyclic — wrapping `handleGatewayRequest` does not break the chain `dispatcher → server-methods → _modules.generated → batch.module → dispatcher`.
 
 ```typescript
-// src/gateway/server-methods/gateway-batch.module.ts (this proposal)
-import { dispatchGatewayRequest } from "./dispatcher.js"; // sibling, parent-extracted helper
-
 export const module: GatewayMethodModule = {
   name: "gateway-batch",
   metadata,
   handlers: {
-    "gateway.batch": async ({ params, client, context, respond }) => {
-      const handlers = context.handlers; // populated by outer handleGatewayRequest, see parent D1 context augmentation
-      if (!handlers) {
+    "gateway.batch": async ({ params, client, context, respond, dispatchSubRequest }) => {
+      if (!dispatchSubRequest) {
         respond(
           false,
           undefined,
@@ -89,7 +85,7 @@ export const module: GatewayMethodModule = {
         }
         let resp: unknown;
         let err: GatewayError | undefined;
-        await dispatchGatewayRequest({
+        await dispatchSubRequest({
           req: { type: "req", id: call.id, method: call.method, params: call.params },
           respond: (ok, result, error) => {
             if (ok) resp = result;
@@ -97,7 +93,6 @@ export const module: GatewayMethodModule = {
           },
           client,
           context,
-          handlers,
         });
         results.push({ id: call.id, ok: !err, result: resp, error: err });
         if (err && params.options?.failFast) break;
@@ -108,14 +103,15 @@ export const module: GatewayMethodModule = {
 };
 ```
 
-**Cycle analysis.** `dispatcher.ts` (parent-owned) imports only from low-level support modules (control-plane, method-scopes, protocol, role-policy, plugin scope) — none of which import `server-methods.ts` or `_modules.generated.ts`. `gateway-batch.module.ts` imports only `dispatcher.ts` (sibling). Therefore: `_modules.generated.ts → gateway-batch.module.ts → dispatcher.ts` is a directed acyclic chain. Verified by `pnpm check:import-cycles`.
+**Cycle analysis.** `dispatcher.ts` (parent-owned) imports only from low-level support modules (control-plane, method-scopes, protocol, role-policy, plugin scope) — none of which import `server-methods.ts` or `_modules.generated.ts`. `gateway-batch.module.ts` imports no handler manifest and no `server-methods.ts`; it only consumes the `dispatchSubRequest` function provided in its handler options. Therefore: `_modules.generated.ts → gateway-batch.module.ts` does not point back to `server-methods.ts` or the generated manifest. Verified by `pnpm check:import-cycles`.
 
-**Why context.handlers (vs alternatives).**
+**Why handler-option dispatch (vs alternatives).**
 
 - _vs. importing `coreGatewayHandlers` from `server-methods.ts`_: Direct cycle — `server-methods.ts → _modules.generated.ts → gateway-batch.module.ts → server-methods.ts`. Rejected.
 - _vs. dynamic `import("../server-methods.js")` at handler-invoke time_: Defers cycle but doesn't break it; module initialization still touches the import graph. Rejected.
 - _vs. registering a handlers ref via a setter called by `server-methods.ts` after manifest load_: Hidden module-level state; harder to test. Rejected.
-- _Chosen: context augmentation_: The outer `handleGatewayRequest` in `server-methods.ts` already constructs `handlers = { ...coreGatewayHandlers, ...extraHandlers }` and populates a new `context.handlers` field before calling `dispatchGatewayRequest`. The batch handler simply reads it. Zero new module-level state, zero cycle.
+- _vs. storing `handlers` on `GatewayRequestContext`_: The context is passed into plugin runtime scope, and some plugin SDK surfaces can read that scope. Exposing a raw handler map there would let plugin code bypass the dispatcher pipeline. Rejected.
+- _Chosen: handler-option dispatch capability_: The parent dispatcher injects `dispatchSubRequest` into `GatewayRequestHandlerOptions`. The closure captures the private handler map and re-enters `dispatchGatewayRequest`, preserving auth, role, unavailable-method, and control-plane budget checks without exposing raw handlers.
 
 ### D3: Nested-batch rejection (P0 fix from R1)
 
@@ -136,7 +132,7 @@ This bounds dispatch depth to 1. Spec encodes this as a normative requirement.
 
 ### D4: Per-sub-call scope and rate-limit
 
-Each sub-call goes through `handleGatewayRequest` (via `dispatchSubCall`), which already enforces `authorizeOperatorScopesForMethod` and `isRoleAuthorizedForMethod`. The batch wrapper itself requires `READ_SCOPE` minimum; sub-calls needing WRITE/ADMIN scope are individually authorised.
+Each sub-call goes through the parent-provided `dispatchSubRequest` capability, which re-enters `dispatchGatewayRequest` and enforces `authorizeOperatorScopesForMethod` and `isRoleAuthorizedForMethod`. The batch wrapper itself requires `READ_SCOPE` minimum; sub-calls needing WRITE/ADMIN scope are individually authorised.
 
 For control-plane write budget: each sub-call that is in `CONTROL_PLANE_WRITE_METHODS` triggers `consumeControlPlaneWriteBudget` independently. **This relies on the parent proposal's `controlPlaneWrite: true` method-def annotation** — without it, only the upstream 3 methods (`config.apply`, `config.patch`, `update.run`) are budgeted, and fork-added C2 methods slip through. This proposal's spec assumes the parent has landed.
 
@@ -151,7 +147,7 @@ Result array ordering follows input array ordering exactly. Each sub-call result
 ## Risks / Trade-offs
 
 - **R1: Nested batch (cycle risk)** → D3 rejects nested batch at validation time; integration test exercises rejection.
-- **R2: Init cycle from importing the handlers manifest** → D2 reuses the parent proposal's extracted `dispatcher.ts` (which imports zero handler modules) and reads `handlers` from `context.handlers` populated by the outer `handleGatewayRequest`. No module-level cycle.
+- **R2: Init cycle from importing the handlers manifest** → D2 reuses the parent proposal's extracted dispatcher through the `dispatchSubRequest` handler option. The batch module imports no handler modules and reads no raw handler map from context. No module-level cycle.
 - **R3: Amplified write-budget consumption** → D4 enforces per-sub-call budget; depends on parent proposal's task 2.22 having added `controlPlaneWrite: true` to the explicit 10-method list (3 upstream + 7 fork-config-write). Spec test asserts: 5 batched `config.apply` calls consume 5 budget tokens.
 - **R4: Surprise non-transactional semantics** → Spec is explicit; consumer-facing docs updated.
 - **R5: Bounded fan-out (32) too restrictive** → Acceptable for v1; can be revisited via a separate proposal if metrics show real demand for higher.
@@ -160,10 +156,10 @@ Result array ordering follows input array ordering exactly. Each sub-call result
 
 ## Migration Plan
 
-This proposal lands as a single phase after `openclaw-gateway-bff-architecture-refactor` is complete (specifically: parent Phase 2.A type extension + Phase 2.C dispatcher extraction + Phase 2.E controlPlaneWrite list must all be in `enhanced` first):
+This proposal lands as a single phase after `openclaw-gateway-bff-architecture-refactor` is complete (specifically: parent Phase 2.A type extension + Phase 2.C dispatcher extraction / `dispatchSubRequest` handler option + Phase 2.E controlPlaneWrite list must all be in `enhanced` first):
 
 1. Add schema + validator (no behavior change).
-2. Add `gateway-batch.module.ts` + `gateway-batch.method-defs.ts` registered via the parent's discovery mechanism. The module imports `dispatchGatewayRequest` from the parent-extracted `./dispatcher.js`.
+2. Add `gateway-batch.module.ts` + `gateway-batch.method-defs.ts` registered via the parent's discovery mechanism. The module dispatches sub-calls via the parent-provided `dispatchSubRequest` handler option.
 3. Add unit + integration tests covering: ordering, error propagation, scope enforcement, write-budget (relying on parent's `controlPlaneWrite` flag), subscription rejection, nested-batch rejection, failFast, byte-stability, **import-cycle freedom**.
 4. Regenerate codegen.
 5. Update `scripts/diff-describe-baseline.ts` allow-list to include `gateway.batch` as a known new method.

@@ -60,7 +60,7 @@ This proposal introduces 4 new capabilities and modifies 1 existing capability, 
 
 **Generated artifacts:**
 
-- `dashboard/src/types/gateway-protocol.generated.ts` and `gateway-client.generated.ts`: Regenerated. Public-RPC surface bytes are byte-identical to baseline (any difference must be limited to the small whitelist of new `forkClass` / `bffEligible` introspection fields surfaced by `gateway.describe`, validated by the spec).
+- `dashboard/src/types/gateway-protocol.generated.ts` and `gateway-client.generated.ts`: Regenerated. Public-RPC surface bytes are byte-identical to baseline (any difference must be limited to the small whitelist of new `forkClass` / `bffEligible` / `controlPlaneWrite` introspection fields surfaced by `gateway.describe`, validated by the spec).
 - `deck-go/backend/internal/gateway/generated/*.go`: Regenerated. Existing 113 typed wrappers continue to work; no new public methods.
 - `pnpm protocol:gen:check` must pass.
 

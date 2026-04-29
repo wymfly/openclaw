@@ -43,7 +43,7 @@ This proposal introduces 1 new capability and modifies 1 existing capability:
 - `src/gateway/server-methods/gateway-batch.module.ts` and `gateway-batch.method-defs.ts` (new): hosts the handler + metadata, registered via the discovery mechanism shipped by the parent proposal.
 - `src/gateway/protocol/schema/gateway-batch.ts` (new): TypeBox schemas for `GatewayBatchParams`, `GatewayBatchResult`.
 - `src/gateway/protocol/index.ts`: adds `validateGatewayBatchParams` validator export (small append, fork-extension siblings if available).
-- `src/gateway/server-methods/dispatcher.ts` (new): acyclic helper that performs the sub-call dispatch logic without importing the generated handler manifest, avoiding initialization cycles. The helper is exported from a separate file from `server-methods.ts` so the batch module can consume it without circular dependency on the manifest it lives in.
+- `src/gateway/server-methods/dispatcher.ts` (provided by parent): acyclic helper that performs dispatch logic without importing the generated handler manifest, avoiding initialization cycles. The batch module uses the parent-provided `dispatchSubRequest` handler option, which re-enters this dispatcher without exposing the raw handler map through `GatewayRequestContext`.
 
 **Generated artifacts:**
 

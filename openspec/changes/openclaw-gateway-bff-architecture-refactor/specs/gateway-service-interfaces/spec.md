@@ -60,7 +60,7 @@ The initial service set SHALL include exactly nine services: `agents`, `auth`, `
 #### Scenario: deck-auth.ts depth-1 imports are mapped
 
 - **WHEN** the audit enumerates `deck-auth.ts` imports
-- **THEN** `resolveOpenClawAgentDir` (from `../../agents/agent-paths.js`), `buildAuthOverview` (from `../../agents/auth-diagnostics.js`), `runAuthProbes` (from `../../commands/models/list.probe.js`), and the dynamically-imported `resolveSessionTranscriptsDirForAgent` MUST all be reachable through service interfaces (initially `agentsService` and `authService`)
+- **THEN** `resolveOpenClawAgentDir` (from `../../agents/agent-paths.js`), `buildAuthOverview` (from `../../agents/auth-diagnostics.js`), `runAuthProbes` (from `../../commands/models/list.probe.js`), and the dynamically-imported `resolveSessionTranscriptsDirForAgent` MUST all be reachable through service interfaces (initially `agentsService`, `authService`, and `sessionsService`; session path helpers belong to `sessionsService`, not `authService`)
 
 #### Scenario: deck/subagents-steer.ts multiline imports are mapped
 

@@ -113,7 +113,7 @@ function loadGatewayMethodModules() {
 
 **Build hook.** `package.json` does **not** have a `prebuild` script (verified). Wire `gen-method-modules.ts` into `scripts/build-all.mjs` (the script invoked by `"build": "node scripts/build-all.mjs"`), and add `check:method-modules-up-to-date` to `pnpm check` to fail CI when the generated files are stale.
 
-**Dispatcher core extraction (enables future batch primitive without import cycle).** Today `handleGatewayRequest` lives in `src/gateway/server-methods.ts:147` and combines (a) authorization (`authorizeGatewayMethod`), (b) unavailable-method check, (c) control-plane write budget, (d) handler lookup from `coreGatewayHandlers`, (e) `withPluginRuntimeGatewayRequestScope` invocation. Phase 2 of this proposal extracts the **logic** (a)–(c) and (e) into `src/gateway/server-methods/dispatcher.ts` as `dispatchGatewayRequest({ handlers, ...opts })`, where `handlers` is passed in (not imported). `server-methods.ts` becomes a thin caller that passes `{ ...coreGatewayHandlers, ...opts.extraHandlers }` to the dispatcher.
+**Dispatcher core extraction (enables future batch primitive without import cycle).** Today `handleGatewayRequest` lives in `src/gateway/server-methods.ts:147` and combines (a) authorization (`authorizeGatewayMethod`), (b) unavailable-method check, (c) control-plane write budget, (d) handler lookup from `coreGatewayHandlers`, (e) `withPluginRuntimeGatewayRequestScope` invocation. Phase 2 of this proposal extracts the **logic** (a)–(c) and (e) into `src/gateway/server-methods/dispatcher.ts` as `dispatchGatewayRequest({ handlers, ...opts })`, where `handlers` is passed in (not imported). `server-methods.ts` becomes a thin caller that passes `{ ...coreGatewayHandlers, ...opts.extraHandlers }` to the dispatcher. The raw handler map is private to the dispatcher call and is never stored on `GatewayRequestContext`.
 
 ```typescript
 // src/gateway/server-methods/dispatcher.ts (new)
@@ -123,6 +123,7 @@ export interface DispatchGatewayRequestOpts extends GatewayRequestOptions {
 export async function dispatchGatewayRequest(opts: DispatchGatewayRequestOpts): Promise<void> {
   // (a) authorize, (b) check unavailable, (c) budget, look up handler in opts.handlers, (e) wrap in plugin scope
   // — exactly the existing handleGatewayRequest body, parameterized by opts.handlers.
+  // Handler options include a dispatchSubRequest closure that re-enters this function with the same private handlers.
 }
 
 // src/gateway/server-methods.ts (after Phase 2)
@@ -137,7 +138,7 @@ export async function handleGatewayRequest(
 
 **Why this matters now (not later).** The separate `openclaw-gateway-batch-rpc-primitive` proposal needs a low-level dispatcher that does NOT import `_modules.generated.ts`, otherwise its `gateway-batch.module.ts` participates in a cycle: `server-methods.ts` → `_modules.generated.ts` → `gateway-batch.module.ts` → `dispatcher.ts` → `server-methods.ts`. Extracting `dispatcher.ts` here, in this proposal, gives the batch primitive a true bottom-of-stack helper. **Cycle proof**: `dispatcher.ts` imports only from `control-plane-rate-limit.js`, `control-plane-audit.js`, `method-scopes.js`, `protocol/index.js`, `role-policy.js`, `plugins/runtime/gateway-request-scope.js` — none of which import `server-methods.ts` or any handler module.
 
-**Context augmentation.** To let the batch handler re-invoke `dispatchGatewayRequest` for sub-calls without importing the handler manifest, `GatewayRequestContext` adds a new field `handlers?: GatewayRequestHandlers` populated by the outer `handleGatewayRequest` before invocation. The batch handler reads `context.handlers` and passes it back to `dispatchGatewayRequest` per sub-call. This keeps the batch handler's import surface limited to `dispatcher.ts` (sibling) only.
+**Private sub-request dispatch capability.** To let the batch handler re-invoke `dispatchGatewayRequest` for sub-calls without importing the handler manifest, `GatewayRequestHandlerOptions` adds an optional `dispatchSubRequest` function. The dispatcher constructs this closure when invoking any handler; the closure captures the private `handlers` map and re-enters `dispatchGatewayRequest` with the same authorization, role, unavailable-method, and control-plane budget pipeline. `GatewayRequestContext` is intentionally unchanged so `withPluginRuntimeGatewayRequestScope({ context, ... })` does not expose the raw handler map through plugin SDK surfaces such as `getPluginRuntimeGatewayRequestScope()`. The batch handler reads `dispatchSubRequest` from its handler options, not from context.
 
 **Cache stability.** Sort by `(priority, name)`. The generated manifests are deterministic; a regression test asserts `JSON.stringify(loadGatewayMethodModules()) === expectedFixture` and shuffles the source list before generation to detect ordering regressions.
 
@@ -196,30 +197,27 @@ export async function handleGatewayRequest(
 
 ```typescript
 // src/gateway/services/agents.service.ts
-import { loadConfig as _loadConfig } from "../../config/config.js";
 import { listAgentEntries as _listAgentEntries /* ... */ } from "../../agents/agent-scope.js";
 
 export interface AgentsService {
   readonly version: 1;
-  loadConfigSnapshot(): OpenClawConfig;
-  listEntries(): readonly AgentEntry[];
-  resolveDefaultId(cfg?: OpenClawConfig): string | undefined;
-  resolveSkillsFilter(agentId: string): SkillsFilter;
-  workspaceSkillStatus(agentId: string): SkillsStatus;
-  workspaceDir(agentId: string): string;
-  loadBootstrapFiles(agentId: string): BootstrapFiles;
+  listEntries(cfg: OpenClawConfig): readonly AgentEntry[];
+  resolveDefaultId(cfg: OpenClawConfig): string | undefined;
+  resolveSkillsFilter(cfg: OpenClawConfig, agentId: string): SkillsFilter;
+  workspaceSkillStatus(workspaceDir: string, opts?: { config?: OpenClawConfig }): SkillsStatus;
+  workspaceDir(cfg: OpenClawConfig, agentId: string): string;
+  loadBootstrapFiles(workspaceDir: string): Promise<BootstrapFiles>;
 }
 
 export function createAgentsService(): AgentsService {
   return {
     version: 1,
-    loadConfigSnapshot: () => _loadConfig(),
-    listEntries: () => _listAgentEntries(),
-    resolveDefaultId: (cfg) => _resolveDefaultAgentId(cfg ?? _loadConfig()),
-    resolveSkillsFilter: (id) => _resolveAgentSkillsFilter(_loadConfig(), id),
-    workspaceSkillStatus: (id) => _buildWorkspaceSkillStatus(_loadConfig(), id),
-    workspaceDir: (id) => _resolveAgentWorkspaceDir(_loadConfig(), id),
-    loadBootstrapFiles: (id) => _loadWorkspaceBootstrapFiles(_loadConfig(), id),
+    listEntries: (cfg) => _listAgentEntries(cfg),
+    resolveDefaultId: (cfg) => _resolveDefaultAgentId(cfg),
+    resolveSkillsFilter: (cfg, id) => _resolveAgentSkillsFilter(cfg, id),
+    workspaceSkillStatus: (workspaceDir, opts) => _buildWorkspaceSkillStatus(workspaceDir, opts),
+    workspaceDir: (cfg, id) => _resolveAgentWorkspaceDir(cfg, id),
+    loadBootstrapFiles: (workspaceDir) => _loadWorkspaceBootstrapFiles(workspaceDir),
   };
 }
 ```
@@ -228,7 +226,7 @@ export function createAgentsService(): AgentsService {
 
 - _vs. continuing to import internals directly_: Couples deck handler maintenance to upstream internal renames (e.g., if upstream renames `loadConfig` → `loadConfigSnapshot`, every handler breaks). The service interface absorbs the rename in one place.
 - _vs. RPC-ifying internals_: Would push 5–10 extra round-trips per deck handler call. Service interfaces are in-process function calls; zero perf cost.
-- _vs. dependency injection container_: Overengineered for ≤ 7 services. Plain factory functions that return interface objects keep code obvious and testable.
+- _vs. dependency injection container_: Overengineered for 9 thin service facades. Plain factory functions that return interface objects keep code obvious and testable.
 
 **Versioning.** Each service exports `version: 1`. Breaking changes bump the version and add a `version: 2` factory; consumers migrate explicitly. Contract test asserts that `createAgentsService().version === 1` to detect accidental drift.
 
@@ -320,7 +318,7 @@ The split MUST extract: (a) `models.configured` handler into a new `models-confi
 **Decision.** Every aggregation point (D1 module merge, D2 schema barrel re-export) sorts inputs deterministically. Two regression tests are required:
 
 1. **Same-implementation byte-stability**: `gateway.describe` JSON output is byte-identical across two consecutive invocations against an unchanged registry.
-2. **Pre/post-migration bounded diff**: A baseline `gateway.describe` JSON snapshot is captured in Phase 0; after each phase, the snapshot is re-captured and `scripts/diff-describe-baseline.ts` asserts that the JSON-pointer-level differences fall within a documented allow-list (initially: `forkClass`, `bffEligible`).
+2. **Pre/post-migration bounded diff**: A baseline `gateway.describe` JSON snapshot is captured in Phase 0; after each phase, the snapshot is re-captured and `scripts/diff-describe-baseline.ts` asserts that the JSON-pointer-level differences fall within a documented allow-list (initially: `forkClass`, `bffEligible`, `controlPlaneWrite`).
 
 **Why.** CLAUDE.md mandates: "Make ordering deterministic for any code assembling model/tool payloads from maps, sets, registries, or network results. ... Cache-sensitive changes require a regression test proving prefix stability." `gateway.describe` is a model-facing payload through the protocol introspection path, so its output ordering must remain stable, and the migration must not silently change the payload shape.
 
@@ -330,7 +328,7 @@ The split MUST extract: (a) `models.configured` handler into a new `models-confi
 - **R2: Discovery breaks the existing side-effect-free guarantee on `method-registry-data.ts`** → Split the runtime handler manifest from the metadata manifest at the file level (`*.module.ts` for runtime, `*.method-defs.ts` for codegen). Add a CI assertion that imports the metadata manifest and observes no runtime side effects (mirrors the existing `bun -e 'import(...)'` pattern at `method-registry-data.ts:5`).
 - **R3: Schema sibling-split cannot capture small `-1` / `-3` modifications** (`logs-chat.ts -1`, `config.ts -3`, `models.ts -1`) → These are real fork modifications, not appends. Each requires individual investigation: either upstream PR if benign, or absorb into service interface, or accept residual fork modification on those specific lines.
 - **R4: Service interface introduces an indirection that obscures debugging** → Mitigation: services are thin (each method ≤ 5 lines, mostly forwarding). Stack traces still point to internal modules. Documented in `services/README.md`.
-- **R5: Discovery startup cost** → Module list is generated at build time (`scripts/gen-method-modules.ts`); runtime imports a static `_modules.generated.ts`. Zero filesystem walk at startup. `[UNVERIFIED]` against tsdown bundling — covered as a Phase 2 verification task.
+- **R5: Discovery startup cost** → Module list is generated at build time (`scripts/gen-method-modules.ts`); runtime imports a static `_modules.generated.ts`. Zero filesystem walk at startup. Runtime-bundle exclusion of the generator is covered by Phase 2 task 2.29.
 - **R6: Upstream renames the internal symbols a service interface wraps** → Contract tests run on every rebase and fail loudly. Maintenance cost moves from "every handler" to "one service file."
 - **R7: Module manifest generator becomes a chokepoint for codegen** → Same chokepoint already exists for `pnpm protocol:gen:ts`. Adding a sibling generator is mechanical.
 - **R8: BFF migration of C3 handlers is _not_ delivered in this proposal** → Acknowledged. The point of this change is to _annotate_ migration eligibility, not to migrate. Migration depends on the separate `gateway.batch` proposal landing first plus a separate deck-go BFF proposal.
@@ -360,8 +358,8 @@ The split MUST extract: (a) `models.configured` handler into a new `models-confi
    - Convert the `deck/index.ts` barrel into a `deck.module.ts` plus `deck.method-defs.ts` pair.
    - Replace `coreGatewayHandlers` spread + `buildMethodRegistry` argument list in `server-methods.ts` with the discovery-driven aggregation.
    - Convert `BASE_METHODS` in `server-methods-list.ts` to a derived constant.
-   - Add `controlPlaneWrite: true` flag to upstream `config.apply`, `config.patch`, `update.run` method-defs and switch `CONTROL_PLANE_WRITE_METHODS` to derive from the registry.
-   - Verification gate: `pnpm test`, `pnpm build`, `pnpm protocol:gen:check`. Byte-stable codegen output. The `bun -e 'import("./src/gateway/_method-defs.generated.ts")'` smoke test must produce no runtime side effects.
+   - Add `controlPlaneWrite: true` flag to the explicit 10-method list (3 upstream + 7 fork-config-write per task 2.22) and switch `CONTROL_PLANE_WRITE_METHODS` to derive from the registry.
+   - Verification gate: `pnpm test`, `pnpm build`, `pnpm protocol:gen:check`. Byte-stable codegen output. The `bun -e 'import("./src/gateway/server-methods/_method-defs.generated.ts")'` smoke test must produce no runtime side effects.
 
 3. **Phase 3 — Service interfaces + deck handler refactor (~1.5 weeks).**
    - Implement service interfaces under `src/gateway/services/` (the exact set is generated by `audit-gateway-service-coverage.ts`).
@@ -383,12 +381,12 @@ The split MUST extract: (a) `models.configured` handler into a new `models-confi
 - `pnpm test` (full suite must stay green)
 - `pnpm build` (tsgo + tsdown)
 - `pnpm protocol:gen:check` (codegen byte-stability)
-- For Phase 2 specifically: `bun -e 'import("./src/gateway/_method-defs.generated.ts")'` produces no runtime side effects, and produces identical bytes across two runs.
+- For Phase 2 specifically: `bun -e 'import("./src/gateway/server-methods/_method-defs.generated.ts")'` produces no runtime side effects, and produces identical bytes across two runs.
 - For Phase 1, 2, and 4: `node scripts/diff-describe-baseline.ts` exits zero (or fails only on documented allow-listed fields).
 
 ## Open Questions
 
-- **OQ1**: Do any of the 33 services-mapped internal symbols themselves need caching at the service layer (e.g., `loadConfig` is observed at `io.ts:1796-1800` to use a pinned runtime snapshot, so v1 pass-through is acceptable; but `buildPluginSnapshotReport` and `runAuthProbes` may have I/O cost worth caching)? Current decision: service interfaces are pass-through in v1. Caching is a v2 concern. Codex independently verified the `loadConfig` pinning.
+- **OQ1**: Do any of the audited service-mapped internal symbols themselves need caching at the service layer (e.g., `loadConfig` is observed at `io.ts:1796-1800` to use a pinned runtime snapshot, so v1 pass-through is acceptable; but `buildPluginSnapshotReport` and `runAuthProbes` may have I/O cost worth caching)? Current decision: service interfaces are pass-through in v1. Caching is a v2 concern. Codex independently verified the `loadConfig` pinning.
 - **OQ2**: How to expose the C3 → BFF migration eligibility list to deck-go? Current decision: a `bffEligible: true` field on the method-def, surfaced in `gateway.describe`. deck-go can choose to mirror the gateway view in its own BFF later; both must remain valid until the eligible methods are formally retired.
 - **OQ3**: Should we attempt the upstream PR for `gateway-method-discovery` before or after landing in `enhanced`? Current decision: land in `enhanced` first to derisk; submit upstream PR from a stable known-good base. Upstream acceptance is a bonus, not a prerequisite.
 - **OQ4**: Should the audit scripts be packaged inside `scripts/` (current default) or live under `tools/` to signal "non-runtime, non-lib"? Current decision: `scripts/` for parity with existing `protocol-gen-ts.ts`.

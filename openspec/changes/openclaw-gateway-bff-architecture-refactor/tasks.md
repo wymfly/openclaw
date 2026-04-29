@@ -7,7 +7,7 @@
 - [ ] 0.5 Add `scripts/audit-schema-fork-footprint.ts` (measures fork-added/modified lines per upstream schema file)
 - [ ] 0.6 Add `scripts/audit-fork-classifications.ts` (enumerates registered methods + asserts every fork-only method has `forkClass`)
 - [ ] 0.7 Add `scripts/audit-gateway-service-coverage.ts` (uses TypeScript Compiler API to enumerate every internal symbol consumed by `src/gateway/server-methods/deck/**/*.ts` AND `src/gateway/server-methods/deck-auth.ts`; handles depth-1 `../../`, depth-3 `../../../`, multiline imports, and dynamic imports; exits non-zero if any consumed symbol is unmapped)
-- [ ] 0.8 Add `scripts/diff-describe-baseline.ts` (compares pre/post `gateway.describe` JSON, exits zero only when JSON-pointer-level diffs fall within the documented allow-list — initially `forkClass`, `bffEligible`)
+- [ ] 0.8 Add `scripts/diff-describe-baseline.ts` (compares pre/post `gateway.describe` JSON, exits zero only when JSON-pointer-level diffs fall within the documented allow-list — initially `forkClass`, `bffEligible`, `controlPlaneWrite`)
 - [ ] 0.9 **Fix `deck.plugins.list` registry drift**: `deck/index.ts:7,21` registers the handler but `method-registry-data.ts` (currently 25 deck.\* entries) and `server-methods-list.ts` omit it. Add `deck.plugins.list` to both files and to `deckMethodDefs`. Verify via `grep -c '"deck\.' src/gateway/method-registry-data.ts` returns 26 after the fix
 - [ ] 0.10 Run all baseline audits and commit `.omc/research/*` snapshots
 
@@ -58,9 +58,9 @@
 ### 2.C Dispatcher extraction (enables future batch primitive without import cycle)
 
 - [ ] 2.15 Create `src/gateway/server-methods/dispatcher.ts` exporting `dispatchGatewayRequest({ handlers, ...opts }: DispatchGatewayRequestOpts)`. Move the body of `handleGatewayRequest` from `server-methods.ts:147-220` (authorize → unavailable check → control-plane budget → handler lookup from `opts.handlers` → `withPluginRuntimeGatewayRequestScope` invocation) into this new function. Imports: `withPluginRuntimeGatewayRequestScope`, `consumeControlPlaneWriteBudget`, `formatControlPlaneActor`, `resolveControlPlaneActor`, `ADMIN_SCOPE`, `authorizeOperatorScopesForMethod`, `ErrorCodes`, `errorShape`, `isRoleAuthorizedForMethod`, `parseGatewayRole`. **Must NOT import `server-methods.ts` or any handler module or `_modules.generated.ts`** (cycle proof)
-- [ ] 2.16 Add `handlers?: GatewayRequestHandlers` field to `GatewayRequestContext`. Outer `handleGatewayRequest` populates it before invoking `dispatchGatewayRequest`. Subsequent batch handler (separate proposal) reads it
-- [ ] 2.17 Refactor `handleGatewayRequest` in `server-methods.ts` to be a thin wrapper: `const handlers = { ...coreGatewayHandlers, ...opts.extraHandlers }; await dispatchGatewayRequest({ ...opts, handlers, context: { ...opts.context, handlers } });`
-- [ ] 2.18 Add CI test in `src/gateway/server-methods/__tests__/dispatcher.test.ts` covering: success path equivalent to today's `handleGatewayRequest`, scope enforcement, control-plane budget, handler-not-found error
+- [ ] 2.16 Add an optional `dispatchSubRequest` field to `GatewayRequestHandlerOptions` (not to `GatewayRequestContext`). `dispatchGatewayRequest` populates it when invoking handlers; the closure captures the private `handlers` map and re-enters `dispatchGatewayRequest` for sub-calls. Do not expose `handlers` through `GatewayRequestContext` or plugin runtime scope
+- [ ] 2.17 Refactor `handleGatewayRequest` in `server-methods.ts` to be a thin wrapper: `const handlers = { ...coreGatewayHandlers, ...opts.extraHandlers }; await dispatchGatewayRequest({ ...opts, handlers });`
+- [ ] 2.18 Add CI test in `src/gateway/server-methods/__tests__/dispatcher.test.ts` covering: success path equivalent to today's `handleGatewayRequest`, scope enforcement, control-plane budget, handler-not-found error, and that plugin runtime scope does not expose a raw `handlers` map on `context`
 - [ ] 2.19 Verify cycle proof: `node scripts/check-import-cycles.ts` (or `pnpm check:import-cycles` if equivalent) on `src/gateway/server-methods/dispatcher.ts` reports no import cycle
 
 ### 2.D Registration site replacement
@@ -139,7 +139,7 @@
 - [ ] 5.6 Run service contract test suite (`src/gateway/services/__tests__/contract.test.ts`) — every service method exercised
 - [ ] 5.7 Run discovery determinism + duplicate detection tests
 - [ ] 5.8 Run service coverage + classification audits (both must exit 0)
-- [ ] 5.9 Snapshot post-refactor `gateway.describe` JSON; run `node scripts/diff-describe-baseline.ts` (allow-list-only diff: `forkClass`, `bffEligible`)
+- [ ] 5.9 Snapshot post-refactor `gateway.describe` JSON; run `node scripts/diff-describe-baseline.ts` (allow-list-only diff: `forkClass`, `bffEligible`, `controlPlaneWrite`)
 - [ ] 5.10 Verify dashboard and deck-go regenerated typed clients compile cleanly: `cd dashboard && pnpm tsgo` and `cd deck-go/backend && go build ./...`
 - [ ] 5.11 Update `openspec/specs/gateway-communication/spec.md` archive (per OpenSpec apply workflow) to reflect the modified requirements
 
@@ -148,7 +148,7 @@
 - [ ] 6.1 Draft upstream PR for `gateway-method-discovery` (auto-discovery + module manifest + `*.method-defs.ts` side-effect-free pattern)
 - [ ] 6.2 Land the separate proposal `openclaw-gateway-batch-rpc-primitive` (the `gateway.batch` RPC primitive that was carved out of this proposal). That proposal handles:
   - acyclic dispatcher design (forbid nested `gateway.batch`)
-  - per-sub-call scope / control-plane budget enforcement (relies on the `controlPlaneWrite` flag added in 2.13)
+  - per-sub-call scope / control-plane budget enforcement (relies on the `controlPlaneWrite` flag added in 2.22)
   - typed-client codegen for `dashboard` and `deck-go`
 - [ ] 6.3 Open separate proposal: deck-go BFF view layer for the 5 C3-eligible handlers (`deck.routing.list`, `deck.subagents.list`, `deck.subagents.lineage`, `deck.identity.list`, `deck.threads.list`); requires 6.2 to ship first
 - [ ] 6.4 Open separate proposal: deck-go `gateway_queries.go` thin-wrapper retirement

@@ -77,7 +77,7 @@ The classification of any handler SHALL be derivable from inspection of its sour
 - **WHEN** `gateway.describe` is examined
 - **THEN** because it exposes registry introspection (rule 1 above), the classifier SHALL assign `forkClass: "C5"`
 
-### Requirement: Initial classification of all 33 fork-only methods is locked
+### Requirement: Initial classification of all 34 fork-only methods is locked
 
 The initial classification table SHALL be:
 

@@ -39,7 +39,7 @@ Every step that aggregates handlers, method definitions, or events into model-fa
 
 ### Requirement: Pre/post-migration `gateway.describe` diff is bounded
 
-The migration to discovery-based registration SHALL preserve `gateway.describe` semantics such that the pre-vs-post-migration JSON diff is limited to a documented allow-list of fields (initially: `forkClass`, `bffEligible`). All other content MUST be byte-identical between the captured baseline (Phase 0) and the post-migration snapshot.
+The migration to discovery-based registration SHALL preserve `gateway.describe` semantics such that the pre-vs-post-migration JSON diff is limited to a documented allow-list of fields (initially: `forkClass`, `bffEligible`, `controlPlaneWrite`). All other content MUST be byte-identical between the captured baseline (Phase 0) and the post-migration snapshot.
 
 #### Scenario: Baseline diff allow-list enforcement
 

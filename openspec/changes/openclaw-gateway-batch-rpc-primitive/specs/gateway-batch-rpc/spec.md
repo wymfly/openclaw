@@ -2,7 +2,7 @@
 
 ### Requirement: `gateway.batch` accepts and dispatches multiple typed sub-calls
 
-The gateway SHALL expose a typed `gateway.batch` RPC method that accepts an array of sub-calls and dispatches each through `dispatchGatewayRequest` from `src/gateway/server-methods/dispatcher.ts`. The dispatcher is **owned by the parent proposal** `openclaw-gateway-bff-architecture-refactor` (Phase 2.C task 2.15) and is reused — NOT duplicated — by this proposal. Each sub-call MUST be validated, authorized, role-checked, and rate-limited as if it had been sent as an independent top-level RPC.
+The gateway SHALL expose a typed `gateway.batch` RPC method that accepts an array of sub-calls and dispatches each through the parent-provided `dispatchSubRequest` handler option, which re-enters `dispatchGatewayRequest` from `src/gateway/server-methods/dispatcher.ts`. The dispatcher is **owned by the parent proposal** `openclaw-gateway-bff-architecture-refactor` (Phase 2.C task 2.15) and is reused — NOT duplicated — by this proposal. Each sub-call MUST be validated, authorized, role-checked, and rate-limited as if it had been sent as an independent top-level RPC.
 
 #### Scenario: A batch of three reads returns three results in order
 
@@ -25,17 +25,22 @@ Sub-calls whose method is `gateway.batch` SHALL be rejected with `ErrorCodes.INV
 
 ### Requirement: Acyclic dispatcher avoids initialization cycles
 
-The `gateway.batch` handler SHALL invoke `dispatchGatewayRequest` from the parent-extracted `src/gateway/server-methods/dispatcher.ts`. The dispatcher module MUST NOT import `server-methods.ts`, `coreGatewayHandlers`, or `_modules.generated.ts`. The batch handler MUST receive the handler map via `context.handlers` (populated by the outer `handleGatewayRequest` per parent Phase 2.C task 2.16) and pass it explicitly to `dispatchGatewayRequest`. No module-level cycle exists in the chain `_modules.generated.ts → gateway-batch.module.ts → dispatcher.ts`.
+The `gateway.batch` handler SHALL invoke the parent-provided `dispatchSubRequest` handler option. The dispatcher module MUST NOT import `server-methods.ts`, `coreGatewayHandlers`, or `_modules.generated.ts`. The batch handler MUST NOT receive or read the raw handler map from `GatewayRequestContext`; the private handler map stays captured inside the dispatcher-provided closure. No module-level cycle exists in the chain `_modules.generated.ts → gateway-batch.module.ts`.
 
 #### Scenario: gateway.batch module does not import the generated manifest or server-methods.ts
 
 - **WHEN** `src/gateway/server-methods/gateway-batch.module.ts` is examined
-- **THEN** it MUST NOT contain an import of `_modules.generated.ts`, `server-methods.ts`, or `coreGatewayHandlers`. The only `server-methods/` import allowed at module scope is `./dispatcher.js`
+- **THEN** it MUST NOT contain an import of `_modules.generated.ts`, `server-methods.ts`, `coreGatewayHandlers`, or `dispatcher.ts`. Sub-call dispatch MUST flow through the `dispatchSubRequest` handler option
 
 #### Scenario: dispatcher.ts does not depend on server-methods.ts
 
 - **WHEN** `src/gateway/server-methods/dispatcher.ts` is examined
 - **THEN** it MUST NOT contain an import of `server-methods.ts`, `_modules.generated.ts`, `_method-defs.generated.ts`, or any `*.module.ts` file. Permitted imports are limited to low-level support modules: `control-plane-rate-limit`, `control-plane-audit`, `method-scopes`, `protocol/index`, `role-policy`, `plugins/runtime/gateway-request-scope`
+
+#### Scenario: GatewayRequestContext does not expose raw handlers
+
+- **WHEN** `GatewayRequestContext` and plugin runtime scope are inspected
+- **THEN** they MUST NOT expose `handlers`, `coreGatewayHandlers`, or any raw `GatewayRequestHandlers` map; only the handler invocation options may expose the controlled `dispatchSubRequest` function
 
 #### Scenario: pnpm check:import-cycles reports no batch-related cycle
 

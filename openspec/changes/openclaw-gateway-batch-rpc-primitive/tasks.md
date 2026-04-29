@@ -3,7 +3,7 @@
 - [ ] 0.1 Verify that `openclaw-gateway-bff-architecture-refactor` Phases 0-4 have landed and `pnpm check`, `pnpm test`, `pnpm build` are green on the resulting `enhanced` branch
 - [ ] 0.2 Confirm the parent's `*.module.ts` / `*.method-defs.ts` discovery infrastructure is live (`src/gateway/server-methods/_modules.generated.ts` and `_method-defs.generated.ts` exist and are imported by `server-methods.ts`)
 - [ ] 0.3 Confirm parent Phase 2.A type extension is in place: `MethodDefinition` (in `src/gateway/method-registry.ts`) has `forkClass?`, `bffEligible?`, `controlPlaneWrite?` fields, and `gateway.describe` payload surfaces them
-- [ ] 0.4 Confirm parent Phase 2.C dispatcher extraction is in place: `src/gateway/server-methods/dispatcher.ts` exports `dispatchGatewayRequest({ handlers, ...opts })`, `GatewayRequestContext` has a `handlers?: GatewayRequestHandlers` field, and `handleGatewayRequest` in `server-methods.ts` is a thin wrapper that populates `context.handlers` and calls `dispatchGatewayRequest`
+- [ ] 0.4 Confirm parent Phase 2.C dispatcher extraction is in place: `src/gateway/server-methods/dispatcher.ts` exports `dispatchGatewayRequest({ handlers, ...opts })`, `GatewayRequestHandlerOptions` exposes a `dispatchSubRequest` handler option, and `handleGatewayRequest` in `server-methods.ts` is a thin wrapper that calls `dispatchGatewayRequest` without storing raw handlers on `GatewayRequestContext`
 - [ ] 0.5 Confirm parent Phase 2.E `controlPlaneWrite` annotations are in place for the explicit 10-method list (3 upstream + 7 fork-config-write per parent task 2.22)
 - [ ] 0.6 Confirm `scripts/diff-describe-baseline.ts` exists with the parent-proposal allow-list (`forkClass`, `bffEligible`, `controlPlaneWrite`)
 
@@ -17,15 +17,15 @@
 
 - [ ] 2.1 Create `src/gateway/server-methods/gateway-batch.method-defs.ts` exporting `metadata: GatewayMethodMetadataModule` for the `gateway.batch` method (params/result schemas, scope `READ_SCOPE`, `forkClass: "C5"`, no `controlPlaneWrite`). Side-effect-free imports only
 - [ ] 2.2 Create `src/gateway/server-methods/gateway-batch.module.ts` exporting `module: GatewayMethodModule` whose handler:
-  - Imports `dispatchGatewayRequest` from sibling `./dispatcher.js` (parent-extracted in Phase 2.C). **Does NOT import `coreGatewayHandlers`, `_modules.generated.ts`, or `server-methods.ts`** at module scope
-  - Reads `handlers` from `context.handlers` (populated by parent's `handleGatewayRequest` per Phase 2.C task 2.16)
-  - If `context.handlers` is missing, responds with `INVALID_REQUEST` and aborts (fail-loud guard against misconfiguration)
+  - **Does NOT import `dispatchGatewayRequest`, `coreGatewayHandlers`, `_modules.generated.ts`, or `server-methods.ts`** at module scope
+  - Reads `dispatchSubRequest` from handler options (populated by parent's dispatcher per Phase 2.C task 2.16)
+  - If `dispatchSubRequest` is missing, responds with `INVALID_REQUEST` and aborts (fail-loud guard against misconfiguration)
   - Validates batch-level params (calls 1..32, no empty)
-  - For each sub-call: validates `method !== "gateway.batch"` (reject `INVALID_REQUEST`), validates `!method.match(/\.(subscribe|unsubscribe)$/)` (reject `INVALID_REQUEST`), invokes `dispatchGatewayRequest({ req, respond: capturingRespond, client, context, handlers })`
+  - For each sub-call: validates `method !== "gateway.batch"` (reject `INVALID_REQUEST`), validates `!method.match(/\.(subscribe|unsubscribe)$/)` (reject `INVALID_REQUEST`), invokes `dispatchSubRequest({ req, respond: capturingRespond, client, context })`
   - Honors `options.failFast` (break on first error)
   - Accumulates results in input order
   - Calls `respond(true, { results })` at the end
-- [ ] 2.3 Verify the import graph is acyclic: run `pnpm check:import-cycles` (or `pnpm check:madge-import-cycles`) and confirm `gateway-batch.module.ts → dispatcher.ts` does not produce a cycle. Also verify by inspection that `dispatcher.ts` does not import `server-methods.ts` or `_modules.generated.ts`
+- [ ] 2.3 Verify the import graph is acyclic: run `pnpm check:import-cycles` (or `pnpm check:madge-import-cycles`) and confirm `gateway-batch.module.ts` does not import `dispatcher.ts`, `server-methods.ts`, `_modules.generated.ts`, or `coreGatewayHandlers`; also verify by inspection that `dispatcher.ts` does not import `server-methods.ts` or `_modules.generated.ts`
 - [ ] 2.4 Run `node scripts/gen-method-modules.ts` to regenerate `_modules.generated.ts` and `_method-defs.generated.ts` (the new pair is auto-discovered)
 
 ## 3. Tests
