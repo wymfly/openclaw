@@ -117,6 +117,14 @@ func newRPCGatewayServer(t *testing.T, opts rpcGatewayOptions) *httptest.Server 
 
 func newHandshakeStallServer(t *testing.T, delay time.Duration, connCount *atomic.Int32) *httptest.Server {
 	t.Helper()
+	stop := make(chan struct{})
+	t.Cleanup(func() {
+		select {
+		case <-stop:
+		default:
+			close(stop)
+		}
+	})
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -125,7 +133,13 @@ func newHandshakeStallServer(t *testing.T, delay time.Duration, connCount *atomi
 			return
 		}
 		connCount.Add(1)
-		time.Sleep(delay)
+		// Stall for the configured delay, but exit early when the test ends so
+		// goroutines do not outlive the test (otherwise goleak.VerifyTestMain
+		// catches them and we have to ignore the helper).
+		select {
+		case <-time.After(delay):
+		case <-stop:
+		}
 		_ = conn.Close()
 	}))
 }
