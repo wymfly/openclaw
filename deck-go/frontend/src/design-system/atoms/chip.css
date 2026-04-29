@@ -1,0 +1,19 @@
+.ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-1);
+  padding: 1px var(--ds-sp-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.ds-chip--active {
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+  border-color: var(--ds-accent-dim);
+}

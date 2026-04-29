@@ -1,0 +1,88 @@
+/**
+ * Button atom styles. Visual baseline: Claude Design pilot bundle.
+ * All values reference `--ds-*` tokens; no raw hex.
+ */
+
+.ds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-sp-2);
+  height: var(--ds-row-h);
+  padding: 0 var(--ds-sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-md);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-body);
+  font-weight: 500;
+  line-height: var(--ds-line);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.ds-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ds-button--sm {
+  height: calc(var(--ds-row-h) - 6px);
+  padding: 0 var(--ds-sp-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-button--primary {
+  background: var(--ds-accent);
+  color: var(--ds-bg-1);
+  border-color: var(--ds-accent);
+}
+.ds-button--primary:hover:not(:disabled) {
+  background: var(--ds-accent-dim);
+  border-color: var(--ds-accent-dim);
+}
+
+.ds-button--secondary {
+  background: var(--ds-bg-2);
+  color: var(--ds-text-1);
+  border-color: var(--ds-border);
+}
+.ds-button--secondary:hover:not(:disabled) {
+  background: var(--ds-bg-hover);
+  border-color: var(--ds-border-strong);
+}
+
+.ds-button--ghost {
+  background: transparent;
+  color: var(--ds-text-2);
+  border-color: transparent;
+}
+.ds-button--ghost:hover:not(:disabled) {
+  background: var(--ds-bg-hover);
+  color: var(--ds-text-1);
+}
+
+.ds-button--danger {
+  background: var(--ds-error-bg);
+  color: var(--ds-error);
+  border-color: transparent;
+}
+.ds-button--danger:hover:not(:disabled) {
+  background: var(--ds-error);
+  color: var(--ds-bg-1);
+  border-color: var(--ds-error);
+}
+
+.ds-button[aria-pressed="true"] {
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+  border-color: var(--ds-accent-dim);
+}
+
+.ds-button:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 1px;
+}

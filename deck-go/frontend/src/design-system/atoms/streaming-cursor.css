@@ -1,0 +1,25 @@
+.ds-streaming-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  background: var(--ds-cursor);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: ds-cursor-blink 1s step-end infinite;
+}
+@keyframes ds-cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-streaming-cursor {
+    animation: none;
+    opacity: 0.6;
+  }
+}
