@@ -23,74 +23,97 @@ Entrypoints:
 - `cmd/controld/` — Stage 2 successor entrypoint alias using the same backend
   handler while the `controld` boundary is being introduced
 
-## Runtime lifecycle ownership seams
+## Runtime Mode Architecture
 
-The current Stage 2 runtime stack is intentionally split across three backend
-packages so lifecycle truth, runtime adaptation, and inventory surfaces do not
-collapse together:
+`RUNTIME_MODE` is loaded once at process start. There is no runtime UI toggle
+for switching modes; operators change mode by editing process environment and
+restarting `deck-go`.
 
-- `internal/runtime/supervisor`
-  - owns the managed child-process lifecycle snapshot
-  - owns start/stop/restart, probe state, exit bookkeeping, and lifecycle event
-    emission
-  - does **not** own deck-facing DTOs, runtime inventory summaries, or frontend
-    contracts
-- `internal/runtime/openclaw`
-  - owns the Deck control-plane seam above the generic supervisor
-  - binds supervisor + transport requester + session subscriptions + projection
-    queries into the `ManagedRuntime` facade consumed by HTTP/SSE routes
-  - is the correct home for Deck-specific lifecycle wiring and constructor
-    defaults; new managed supervisors should be created through
-    `NewManagedSupervisorWithOptions(...)` rather than reaching into the generic
-    supervisor package directly
-  - owns the legacy `/api/runtime/gateway*` route contract after the runtime
-    route cutover; treat `openclaw.ManagedRuntime` as the lifecycle response
-    authority even when `internal/server/runtime.go` still contains thin HTTP
-    translation helpers
-  - is also the external-consumption seam for lifecycle route/status behavior:
-    downstream packages should use `ManagedRuntime` route/status helpers such as
-    `RuntimeGatewayStatusResponse`, `StartRuntimeGateway`, `StopRuntimeGateway`,
-    and `RestartRuntimeGateway` instead of reaching for raw supervisor lifecycle
-    methods directly
-  - is likewise the external-consumption seam for runtime inventory/replay
-    views: downstream packages should depend on `ManagedRuntime` registry
-    surfaces such as `ListRuntimes`, `GetRuntime`, `Replay`, `SupportsRuntime`,
-    and `Subscribe` instead of depending on `RuntimeSupervisor()` or other raw
-    supervisor accessors
-- `internal/runtime/registry`
-  - owns read-only runtime inventory summaries plus replay/subscribe feed
-  - consumes supervisor snapshots and capability summaries
-  - must never gain process-control responsibilities
+The mode boundary is the `internal/runtime/facade.RuntimeFacade` interface.
+`cmd/deck-go` and `cmd/controld` both call `envconf.Load`, open the
+`deck-state.json` store, and build exactly one facade via `facade.BuildFacade`.
+HTTP handlers consume that facade for capabilities, endpoint configuration,
+Gateway status, and mode-specific operations.
 
-This split preserves the intended authority model:
+Implementation packages stay physically separated:
 
-- OpenClaw runtime remains runtime truth
-- `deck-go` owns bounded lifecycle supervision above that truth
-- legacy runtime-gateway route ownership now flows through
-  `openclaw.ManagedRuntime`, not `internal/server`
-- external packages should depend on `ManagedRuntime` lifecycle route/status
-  helpers, not raw supervisor lifecycle methods
-- external packages should depend on `ManagedRuntime` registry/replay surfaces,
-  not `RuntimeSupervisor()` or other raw supervisor accessors
-- registry surfaces stay descriptive/read-only even when they are fed by
-  supervisor lifecycle events
+- `internal/runtime/bundled` owns local Gateway process supervision.
+- `internal/runtime/remote` owns remote endpoint state and Gateway RPC access.
+- `internal/runtime/shared` contains mode-neutral Gateway client helpers only.
+- `internal/runtime/envconf` parses `.env` / process environment and rejects
+  invalid runtime configuration.
+- `internal/runtime/state` owns `deck-state.json` persistence.
 
-## Managed Gateway operations
+Capability flags drive the frontend and API behavior:
 
-`deck-go` default mode is Go-owned Gateway supervision: the backend resolves one
-canonical service token from `DECK_GO_ACCESS_TOKEN` or persisted `accessToken`,
-passes it to the child Gateway through `OPENCLAW_GATEWAY_TOKEN`, and starts the
-managed Gateway automatically when `autoStart` is enabled. The legacy
-`DECK_GO_GATEWAY_TOKEN` and `managedGateway.gatewayToken` inputs are
-compatibility fallbacks only when no canonical service token exists.
+- `mode`: `bundled` or `remote`
+- `configured`: whether the active Gateway endpoint is usable
+- `endpointMutable`: `false` for bundled `.env` endpoints, `true` for remote
+  endpoints persisted through `deck-state.json`
+- `supervisorState`: `true` when status includes local process fields, `false`
+  when status includes remote connection fields
 
-The managed child process runs without `--force` and without token-bearing argv
-arguments. The supervisor persists owner-only metadata under the managed state
-directory, retries abnormal owned exits with bounded backoff, and stops only the
-owned process tree during explicit stop/restart or backend shutdown.
+## Operations
 
-Standalone OpenClaw Gateway service management remains available through the
-official CLI path, for example `openclaw gateway install`, `openclaw gateway
-start`, `openclaw gateway restart`, and `openclaw gateway status`. Use that path
-when Gateway should be operated independently from `deck-go`; use the Go-owned
-default when deploying `deck-go` backend + frontend as the operational unit.
+Bundled mode spawns a local Gateway from `RUNTIME_BUNDLED_COMMAND` and
+`RUNTIME_BUNDLED_ARGS`. The token is passed through environment as
+`OPENCLAW_GATEWAY_TOKEN`; token-bearing argv values are stripped by the
+supervisor. Bundled endpoint fields are read-only in the UI because `.env`
+remains the authority.
+
+Remote mode never spawns or stops Gateway. If `RUNTIME_REMOTE_URL` is empty,
+`deck-go` starts in first-run state and Gateway passthrough routes return
+`503 gateway_not_configured` until the operator saves an endpoint in Settings.
+When configured, remote endpoint overrides are stored in `deck-state.json`;
+`GET /api/runtime/endpoint` redacts the token.
+
+Break-glass runtime operations use the local admin socket, not HTTP. Configure
+the socket path with `RUNTIME_ADMIN_SOCKET` (default `/run/deck-go/admin.sock`
+on POSIX) and optionally set `RUNTIME_ADMIN_GROUP` for shared operator access.
+When the group resolves, the socket mode is `0660`; otherwise it falls back to
+owner-only `0600`.
+
+Examples:
+
+```bash
+deck-go admin status
+RUNTIME_ADMIN_SOCKET=/run/deck-go/admin.sock deck-go admin status
+deck-go admin reload-runtime
+```
+
+`status` is read-only and works in both `bundled` and `remote` mode. The
+`reload-runtime` verb is reserved for local operator recovery: bundled mode
+will re-spawn the supervised Gateway, while remote mode will reconnect to the
+currently active endpoint. Admin verbs are intentionally not exposed under
+`/admin/*`, `/runtime/admin`, or `/internal/admin/*` HTTP routes.
+
+Development examples live at:
+
+- `../.env.bundled.example`
+- `../.env.remote.example`
+- `../scripts/dev/run-bundled.sh`
+- `../scripts/dev/run-remote.sh`
+
+## Security
+
+Runtime mode configuration is intentionally fail-closed:
+
+- `RUNTIME_MODE` is required at boot and must be `bundled` or `remote`.
+- Remote endpoint URLs are restricted to `http` and `https` at both env-load
+  time and API update time.
+- The HTTP listener refuses non-loopback binds unless TLS certificate and key
+  paths are configured.
+- `deck-state.json` is private runtime state. POSIX writes use owner-only file
+  permissions; Windows owner-only ACL parity remains part of the runtime-mode
+  security checklist.
+
+Token handling rules:
+
+- `GET /api/runtime/endpoint`, `GET /api/runtime/gateway`, and
+  `GET /api/settings` must never return plaintext tokens.
+- Access logs redact `Authorization` globally.
+- Routes tagged with `sensitiveBody` omit request bodies from access logs:
+  `PUT /api/runtime/endpoint`, `POST /api/runtime/endpoint:test`, and
+  `PUT /api/settings`.
+- Remote Gateway RPCs issued with `tlsVerify: false` emit a WARN containing
+  the endpoint URL and method, never the token.

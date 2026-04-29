@@ -14,13 +14,14 @@ import (
 	"time"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
 )
 
 type recordingManagedSupervisor struct {
-	snapshot         runtimecontrol.Snapshot
+	snapshot         bundled.Snapshot
 	startCalls       int
 	stopCalls        int
 	restartCalls     int
@@ -28,14 +29,14 @@ type recordingManagedSupervisor struct {
 	gatewayToken     string
 }
 
-func (s *recordingManagedSupervisor) Snapshot() runtimecontrol.Snapshot {
+func (s *recordingManagedSupervisor) Snapshot() bundled.Snapshot {
 	return s.snapshot
 }
 
-func (s *recordingManagedSupervisor) Start(context.Context) (runtimecontrol.Snapshot, error) {
+func (s *recordingManagedSupervisor) Start(context.Context) (bundled.Snapshot, error) {
 	s.startCalls++
-	s.snapshot.Status = runtimecontrol.StatusRunning
-	s.snapshot.Health = runtimecontrol.HealthHealthy
+	s.snapshot.Status = bundled.StatusRunning
+	s.snapshot.Health = bundled.HealthHealthy
 	if s.snapshot.GatewayURL == "" {
 		s.snapshot.GatewayURL = "ws://127.0.0.1:18789"
 	}
@@ -45,17 +46,17 @@ func (s *recordingManagedSupervisor) Start(context.Context) (runtimecontrol.Snap
 	return s.snapshot, nil
 }
 
-func (s *recordingManagedSupervisor) Stop(context.Context) (runtimecontrol.Snapshot, error) {
+func (s *recordingManagedSupervisor) Stop(context.Context) (bundled.Snapshot, error) {
 	s.stopCalls++
-	s.snapshot.Status = runtimecontrol.StatusStopped
-	s.snapshot.Health = runtimecontrol.HealthUnknown
+	s.snapshot.Status = bundled.StatusStopped
+	s.snapshot.Health = bundled.HealthUnknown
 	return s.snapshot, nil
 }
 
-func (s *recordingManagedSupervisor) Restart(context.Context) (runtimecontrol.Snapshot, error) {
+func (s *recordingManagedSupervisor) Restart(context.Context) (bundled.Snapshot, error) {
 	s.restartCalls++
-	s.snapshot.Status = runtimecontrol.StatusRunning
-	s.snapshot.Health = runtimecontrol.HealthHealthy
+	s.snapshot.Status = bundled.StatusRunning
+	s.snapshot.Health = bundled.HealthHealthy
 	if s.snapshot.GatewayURL == "" {
 		s.snapshot.GatewayURL = "ws://127.0.0.1:18789"
 	}
@@ -126,6 +127,39 @@ func TestNewManagedRuntime_ComposesSupervisorAdapterAndRegistry(t *testing.T) {
 	}
 }
 
+func TestNewManagedRuntimeWithRequesterRoutesGatewayCallsThroughInjectedRequester(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	requester := &stubAdapterRequester{
+		t: t,
+		payload: map[string]any{
+			"sessions.create": map[string]any{
+				"key":        "session-remote",
+				"sessionId":  "session-remote",
+				"runId":      "run-remote",
+				"status":     "started",
+				"runStarted": true,
+			},
+		},
+		errs: map[string]error{},
+	}
+
+	managed := NewManagedRuntimeWithRequester(store, requester, events.NewBus(8))
+	created, err := managed.Create(context.Background(), map[string]any{"message": "hello"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Key != "session-remote" || created.RunId != "run-remote" {
+		t.Fatalf("unexpected session create response: %#v", created)
+	}
+	if _, _, ok := managed.GatewayConnection(); ok {
+		t.Fatal("injected requester should not expose a local managed gateway connection")
+	}
+}
+
 func TestManagedRuntime_PropagatesLifecycleStateIntoRegistrySummaries(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 
@@ -162,7 +196,7 @@ func TestManagedRuntime_PropagatesLifecycleStateIntoRegistrySummaries(t *testing
 	expectManagedRuntimeEvent(t, sub, "runtime.gateway.status")
 
 	snapshot := managed.Snapshot()
-	if snapshot.Status != runtimecontrol.StatusFailed {
+	if snapshot.Status != bundled.StatusFailed {
 		t.Fatalf("expected failed lifecycle snapshot, got %#v", snapshot)
 	}
 
@@ -176,11 +210,40 @@ func TestManagedRuntime_PropagatesLifecycleStateIntoRegistrySummaries(t *testing
 	if items[0].RuntimeID != runtimeregistry.DefaultRuntimeID {
 		t.Fatalf("expected default runtime id, got %#v", items[0])
 	}
-	if items[0].Status != string(runtimecontrol.StatusFailed) {
+	if items[0].Status != string(bundled.StatusFailed) {
 		t.Fatalf("expected failed runtime summary, got %#v", items[0])
 	}
 	if items[0].LastError == nil || *items[0].LastError != "launch failed" {
 		t.Fatalf("expected launch failure to surface in registry summary, got %#v", items[0])
+	}
+}
+
+func TestManagedRuntime_UpdateSettingsDoesNotCarryForwardRuntimeTokens(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Update(config.Settings{
+		AccessToken: "old-token",
+		ManagedGateway: config.ManagedGatewaySettings{
+			GatewayToken: "old-token",
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	managed := NewManagedRuntime(store, events.NewBus(4))
+
+	_, err = managed.UpdateSettings(context.Background(), deckapi.DeckGoSettings{
+		Appearance: map[string]any{"theme": "dark"},
+	})
+	if err != nil {
+		t.Fatalf("UpdateSettings() error = %v", err)
+	}
+	current := store.Get()
+	if current.AccessToken != "" || current.ManagedGateway.GatewayToken != "" {
+		t.Fatalf("runtime tokens were carried forward: %#v", current)
 	}
 }
 

@@ -27,6 +27,11 @@ import {
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
 import { detectConflicts, type ConflictPair } from "../../../lib/detect-conflicts";
+import {
+  GatewayNotConfiguredEmptyState,
+  gatewayNotConfiguredValue,
+  isGatewayNotConfiguredValue,
+} from "../../runtime/GatewayNotConfiguredEmptyState";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 
 type PanelState = "idle" | "loading" | "ready";
@@ -289,9 +294,7 @@ export function RoutingPanel() {
           .slice(0, 10),
       );
     } catch (loadError) {
-      setRoutingActivityError(
-        loadError instanceof Error ? loadError.message : t("activityLoadFailed"),
-      );
+      setRoutingActivityError(gatewayNotConfiguredValue(loadError, t("activityLoadFailed")));
     }
   };
 
@@ -320,6 +323,7 @@ export function RoutingPanel() {
   const simulationChannelId = simulationDraft.channel.trim();
   const simulationAccountId = simulationDraft.accountId.trim();
   const emptyLabel = t("notAvailable");
+  const routingActivityNotConfigured = isGatewayNotConfiguredValue(routingActivityError);
   const bindingMatchLabels = {
     account: t("dimAccountId"),
     channel: t("dimChannel"),
@@ -1081,7 +1085,9 @@ export function RoutingPanel() {
                   {t("refreshActivity")}
                 </button>
               </div>
-              {routingActivityEvents.length > 0 ? (
+              {routingActivityNotConfigured ? (
+                <GatewayNotConfiguredEmptyState className="deck-ui-routing-surface" />
+              ) : routingActivityEvents.length > 0 ? (
                 <ul className="deckgo-shell-list deck-ui-routing-list deck-ui-routing-list-offset">
                   {routingActivityEvents.map((event) => (
                     <li key={event.id}>
@@ -1100,7 +1106,7 @@ export function RoutingPanel() {
               ) : (
                 <p className="deckgo-note deck-ui-routing-empty">{t("noRecentActivity")}</p>
               )}
-              {routingActivityError ? (
+              {routingActivityError && !routingActivityNotConfigured ? (
                 <p className="deckgo-note deck-ui-routing-error">{routingActivityError}</p>
               ) : null}
             </div>

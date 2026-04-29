@@ -8,20 +8,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 )
 
-type stubRuntimeStopper struct {
+type stubRuntimeShutdown struct {
 	calls atomic.Int32
 	err   error
 }
 
-func (s *stubRuntimeStopper) StopRuntimeGateway(ctx context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error) {
+func (s *stubRuntimeShutdown) Stop(ctx context.Context) (facade.RuntimeStatus, error) {
 	s.calls.Add(1)
 	if s.err != nil {
-		return deckapi.DeckGoRuntimeGatewayActionResponse{}, s.err
+		return facade.RuntimeStatus{}, s.err
 	}
-	return deckapi.DeckGoRuntimeGatewayActionResponse{Ok: true}, nil
+	return facade.RuntimeStatus{Mode: "bundled"}, nil
 }
 
 func TestRunServer_StopsRuntimeGatewayOnContextCancel(t *testing.T) {
@@ -36,7 +36,7 @@ func TestRunServer_StopsRuntimeGatewayOnContextCancel(t *testing.T) {
 	}
 	_ = listener.Close()
 
-	stub := &stubRuntimeStopper{}
+	stub := &stubRuntimeShutdown{}
 	ctx, cancel := context.WithCancel(context.Background())
 
 	done := make(chan error, 1)
@@ -57,7 +57,7 @@ func TestRunServer_StopsRuntimeGatewayOnContextCancel(t *testing.T) {
 	}
 
 	if stub.calls.Load() != 1 {
-		t.Fatalf("expected StopRuntimeGateway to be called exactly once, got %d", stub.calls.Load())
+		t.Fatalf("expected RuntimeShutdown.Stop to be called exactly once, got %d", stub.calls.Load())
 	}
 }
 

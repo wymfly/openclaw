@@ -1,4 +1,4 @@
-package runtimecontrol
+package bundled
 
 import (
 	"context"
@@ -95,6 +95,66 @@ func TestSupervisor_StartStopAndFailureTransitions(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitForStatus(t, supervisor, StatusStopped)
+}
+
+func TestSupervisor_ManagedGatewayConfigOverrideTakesPrecedenceOverStore(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Update(config.Settings{
+		ManagedGateway: config.ManagedGatewaySettings{
+			Command:      "legacy-command",
+			Args:         []string{"legacy", "args"},
+			BindHost:     "127.0.0.1",
+			BindPort:     18888,
+			GatewayToken: "legacy-token",
+			AutoStart:    false,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	runtimeConfig := config.ManagedGatewaySettings{
+		Mode:                "managed",
+		Command:             "runtime-command",
+		Args:                []string{"runtime", "args"},
+		BindHost:            "127.0.0.1",
+		BindPort:            19999,
+		GatewayToken:        "runtime-token",
+		AutoStart:           true,
+		AutoStartConfigured: true,
+		Env:                 map[string]string{"FOO": "bar"},
+	}
+	var preflightConfig config.ManagedGatewaySettings
+	var launchConfig config.ManagedGatewaySettings
+	supervisor := NewSupervisorWithOptions(
+		store,
+		nil,
+		WithManagedGatewayConfig(runtimeConfig),
+		WithPreflight(func(_ context.Context, cfg config.ManagedGatewaySettings) error {
+			preflightConfig = cfg
+			return nil
+		}),
+		WithLauncher(func(cfg config.ManagedGatewaySettings) (*exec.Cmd, error) {
+			launchConfig = cfg
+			return nil, errors.New("stop before process launch")
+		}),
+	)
+
+	if _, err := supervisor.Start(context.Background()); err == nil {
+		t.Fatal("expected launcher error")
+	}
+	if preflightConfig.Command != "runtime-command" || launchConfig.Command != "runtime-command" {
+		t.Fatalf("expected runtime config to override store config, preflight=%#v launch=%#v", preflightConfig, launchConfig)
+	}
+	if launchConfig.GatewayToken != "runtime-token" || launchConfig.BindPort != 19999 || launchConfig.Env["FOO"] != "bar" {
+		t.Fatalf("unexpected launch config: %#v", launchConfig)
+	}
+	if store.Effective().ManagedGateway.Command != "legacy-command" {
+		t.Fatalf("override should not mutate persisted settings: %#v", store.Effective().ManagedGateway)
+	}
 }
 
 func TestSupervisor_AutoStartAndAbnormalExitBecomesFailed(t *testing.T) {
@@ -1331,10 +1391,10 @@ func TestSupervisor_AdoptedAbnormalExitTransitions(t *testing.T) {
 	if err := store.Update(config.Settings{
 		AccessToken: "token-a",
 		ManagedGateway: config.ManagedGatewaySettings{
-			Command:      os.Args[0],
-			Args:         []string{"-test.run=TestSupervisorHelperProcess", "--", "sleep"},
-			BindHost:     "127.0.0.1",
-			BindPort:     19013,
+			Command:             os.Args[0],
+			Args:                []string{"-test.run=TestSupervisorHelperProcess", "--", "sleep"},
+			BindHost:            "127.0.0.1",
+			BindPort:            19013,
 			GatewayToken:        "token-a",
 			AutoStart:           false,
 			AutoStartConfigured: true,
@@ -1408,10 +1468,10 @@ func TestSupervisor_AdoptedUnhealthyDoesNotReplaceWhenAutoStartDisabled(t *testi
 	if err := store.Update(config.Settings{
 		AccessToken: "token-a",
 		ManagedGateway: config.ManagedGatewaySettings{
-			Command:      os.Args[0],
-			Args:         []string{"-test.run=TestSupervisorHelperProcess", "--", "sleep"},
-			BindHost:     "127.0.0.1",
-			BindPort:     19014,
+			Command:             os.Args[0],
+			Args:                []string{"-test.run=TestSupervisorHelperProcess", "--", "sleep"},
+			BindHost:            "127.0.0.1",
+			BindPort:            19014,
 			GatewayToken:        "token-a",
 			AutoStart:           false,
 			AutoStartConfigured: true,

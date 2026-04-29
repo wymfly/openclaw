@@ -13,7 +13,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	runtimecoerce "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
 	runtimeprojection "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/projection"
 	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
@@ -21,10 +21,10 @@ import (
 
 type ManagedRuntimeSupervisor interface {
 	ManagedConnectionProvider
-	Snapshot() runtimecontrol.Snapshot
-	Start(context.Context) (runtimecontrol.Snapshot, error)
-	Stop(context.Context) (runtimecontrol.Snapshot, error)
-	Restart(context.Context) (runtimecontrol.Snapshot, error)
+	Snapshot() bundled.Snapshot
+	Start(context.Context) (bundled.Snapshot, error)
+	Stop(context.Context) (bundled.Snapshot, error)
+	Restart(context.Context) (bundled.Snapshot, error)
 }
 
 type ManagedRuntimeRegistrySurface interface {
@@ -47,10 +47,10 @@ type ManagedRuntimeSurface interface {
 	GetOnboardingStatus(context.Context) (map[string]any, error)
 	TestOnboardingConnection(context.Context, string, string) (map[string]any, error)
 	SaveOnboardingSettings(context.Context, string, string) (map[string]any, int, error)
-	RuntimeGatewayStatusResponse() deckapi.DeckGoRuntimeGatewayActionResponse
-	StartRuntimeGateway(context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error)
-	StopRuntimeGateway(context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error)
-	RestartRuntimeGateway(context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error)
+	RuntimeGatewayStatusResponse() RuntimeGatewayActionResponse
+	StartRuntimeGateway(context.Context) (RuntimeGatewayActionResponse, error)
+	StopRuntimeGateway(context.Context) (RuntimeGatewayActionResponse, error)
+	RestartRuntimeGateway(context.Context) (RuntimeGatewayActionResponse, error)
 	BootstrapStatus(context.Context) (deckapi.DeckGoBootstrapStatusResponse, error)
 	ListActivity(context.Context, string, int) ([]runtimeprojection.ActivityEventEntry, error)
 	ListRuns(context.Context, string) ([]runtimeprojection.RunRecord, error)
@@ -222,7 +222,7 @@ type ManagedRuntime struct {
 }
 
 var _ ManagedRuntimeSurface = (*ManagedRuntime)(nil)
-var _ ManagedRuntimeSupervisor = (*runtimecontrol.Supervisor)(nil)
+var _ ManagedRuntimeSupervisor = (*bundled.Supervisor)(nil)
 
 func NewManagedRuntime(store *config.Store, bus *events.Bus) *ManagedRuntime {
 	supervisor := NewManagedSupervisorWithOptions(store, bus)
@@ -233,8 +233,23 @@ func NewManagedRuntimeWithSupervisor(supervisor ManagedRuntimeSupervisor, bus *e
 	return NewManagedRuntimeWithStoreAndSupervisor(nil, supervisor, bus)
 }
 
+func NewManagedRuntimeWithRequester(store *config.Store, requester Requester, bus *events.Bus) *ManagedRuntime {
+	supervisor := NewManagedSupervisorWithOptions(store, bus)
+	adapter := NewAdapterWithRealtime(requester, nil)
+	return newManagedRuntimeWithStoreSupervisorAdapter(store, supervisor, adapter, bus)
+}
+
 func NewManagedRuntimeWithStoreAndSupervisor(store *config.Store, supervisor ManagedRuntimeSupervisor, bus *events.Bus) *ManagedRuntime {
 	adapter := NewManagedAdapter(supervisor, bus)
+	return newManagedRuntimeWithStoreSupervisorAdapter(store, supervisor, adapter, bus)
+}
+
+func newManagedRuntimeWithStoreSupervisorAdapter(
+	store *config.Store,
+	supervisor ManagedRuntimeSupervisor,
+	adapter RuntimeSurface,
+	bus *events.Bus,
+) *ManagedRuntime {
 	registry := runtimeregistry.NewWithCapabilities(
 		supervisor,
 		adapter.CapabilitySummary(),
@@ -1248,30 +1263,30 @@ func (m *ManagedRuntime) GetModelUsageCost(ctx context.Context, days int) (any, 
 	return m.UsageCost(ctx, map[string]any{"days": days})
 }
 
-func (m *ManagedRuntime) Snapshot() runtimecontrol.Snapshot {
+func (m *ManagedRuntime) Snapshot() bundled.Snapshot {
 	if m == nil || m.supervisor == nil {
-		return runtimecontrol.Snapshot{}
+		return bundled.Snapshot{}
 	}
 	return m.supervisor.Snapshot()
 }
 
-func (m *ManagedRuntime) Start(ctx context.Context) (runtimecontrol.Snapshot, error) {
+func (m *ManagedRuntime) Start(ctx context.Context) (bundled.Snapshot, error) {
 	if m == nil || m.supervisor == nil {
-		return runtimecontrol.Snapshot{}, nil
+		return bundled.Snapshot{}, nil
 	}
 	return m.supervisor.Start(ctx)
 }
 
-func (m *ManagedRuntime) Stop(ctx context.Context) (runtimecontrol.Snapshot, error) {
+func (m *ManagedRuntime) Stop(ctx context.Context) (bundled.Snapshot, error) {
 	if m == nil || m.supervisor == nil {
-		return runtimecontrol.Snapshot{}, nil
+		return bundled.Snapshot{}, nil
 	}
 	return m.supervisor.Stop(ctx)
 }
 
-func (m *ManagedRuntime) Restart(ctx context.Context) (runtimecontrol.Snapshot, error) {
+func (m *ManagedRuntime) Restart(ctx context.Context) (bundled.Snapshot, error) {
 	if m == nil || m.supervisor == nil {
-		return runtimecontrol.Snapshot{}, nil
+		return bundled.Snapshot{}, nil
 	}
 	return m.supervisor.Restart(ctx)
 }

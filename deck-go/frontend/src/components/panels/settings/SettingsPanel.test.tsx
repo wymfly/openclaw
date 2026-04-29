@@ -9,6 +9,8 @@ import { SettingsPanel } from "./SettingsPanel";
 const apiMocks = vi.hoisted(() => ({
   approveDeviceRequest: vi.fn(),
   fetchDevices: vi.fn(),
+  fetchCapabilities: vi.fn(),
+  fetchEndpoint: vi.fn(),
   fetchSettings: vi.fn(),
   fetchSelfDevice: vi.fn(),
   fetchSettingsVersion: vi.fn(),
@@ -19,7 +21,9 @@ const apiMocks = vi.hoisted(() => ({
   rotateDeviceToken: vi.fn(),
   saveSettings: vi.fn(),
   streamEvents: vi.fn(),
+  testEndpoint: vi.fn(),
   testSettingsConnection: vi.fn(),
+  updateEndpoint: vi.fn(),
 }));
 
 const refreshRuntimeSummary = vi.hoisted(() => vi.fn());
@@ -131,7 +135,19 @@ describe("SettingsPanel", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     apiMocks.approveDeviceRequest.mockResolvedValue({ ok: true });
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      mode: "bundled",
+      configured: true,
+      endpointMutable: false,
+      supervisorState: true,
+    });
     apiMocks.fetchDevices.mockResolvedValue(devicesPayload());
+    apiMocks.fetchEndpoint.mockResolvedValue({
+      url: "ws://127.0.0.1:18789",
+      tokenConfigured: true,
+      tlsVerify: false,
+      source: "env",
+    });
     apiMocks.fetchSettings.mockResolvedValue(settingsPayload());
     apiMocks.fetchSelfDevice.mockResolvedValue({ deviceId: "self-1" });
     apiMocks.fetchSettingsVersion.mockResolvedValue({
@@ -145,7 +161,14 @@ describe("SettingsPanel", () => {
     apiMocks.rotateDeviceToken.mockResolvedValue({ token: "rotated-token" });
     apiMocks.saveSettings.mockResolvedValue({ saved: true, path: "/tmp/deck-go.json" });
     apiMocks.streamEvents.mockResolvedValue(undefined);
+    apiMocks.testEndpoint.mockResolvedValue({ ok: true, tlsVerified: false });
     apiMocks.testSettingsConnection.mockResolvedValue({ ok: true });
+    apiMocks.updateEndpoint.mockResolvedValue({
+      url: "http://remote-gateway:18789",
+      tokenConfigured: true,
+      tlsVerify: true,
+      source: "json",
+    });
     refreshRuntimeSummary.mockResolvedValue(undefined);
   });
 
@@ -174,24 +197,27 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("Deck-go local settings");
     expect(container.textContent).toContain("Gateway linked");
     expect(container.textContent).toContain("Runtime running");
+    expect(container.textContent).toContain("Runtime endpoint");
+    expect(container.textContent).toContain("set via .env");
     expect(container.textContent).toContain("/tmp/deck-go.json");
-    expect(container.textContent).toContain("autoStart: false | managed mode: managed");
+    expect(container.textContent).toContain("runtime mode: bundled | configured: true");
     expect(container.textContent).toContain("runtime url: ws://127.0.0.1:18789");
     expect(container.textContent).toContain("deck version: deck-v1");
     expect(container.textContent).toContain("gateway version: gateway-v1");
     expect(container.textContent).toContain("cli version: cli-v1");
-    expect(container.textContent).toContain("Connection probe");
     expect(container.textContent).toContain("Appearance");
     expect(container.textContent).toContain("Notifications");
     expect(container.textContent).toContain("Language changes are local");
     expect(container.textContent).toContain("English");
     expect(container.textContent).toContain("中文");
     expect(container.querySelector(".deck-ui-settings")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-settings-card")).toHaveLength(5);
-    expect(container.querySelectorAll(".deck-ui-settings-status-row")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-settings-form-row")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-settings-input")).toHaveLength(8);
-    expect(container.querySelectorAll(".deck-ui-settings-textarea")).toHaveLength(1);
+    expect(container.querySelectorAll(".deck-ui-settings-card").length).toBeGreaterThanOrEqual(5);
+    expect(
+      container.querySelectorAll(".deck-ui-settings-status-row").length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(container.querySelectorAll(".deck-ui-settings-form-row")).toHaveLength(1);
+    expect(container.querySelectorAll(".deck-ui-settings-input")).toHaveLength(0);
+    expect(container.querySelectorAll(".deck-ui-settings-textarea")).toHaveLength(0);
     expect(container.querySelectorAll(".deck-ui-settings-surface").length).toBeGreaterThanOrEqual(
       5,
     );
@@ -208,25 +234,10 @@ describe("SettingsPanel", () => {
     ).toBeTruthy();
 
     const inputs = Array.from(container.querySelectorAll("input"));
-    const textInputs = inputs.filter((input) => input.type !== "checkbox");
-    const passwordInputs = textInputs.filter((input) => input.type === "password");
-    expect(passwordInputs).toHaveLength(2);
-    expect(
-      textInputs.filter((input) => input.type !== "password").map((input) => input.value),
-    ).toEqual([
-      "pnpm",
-      "/tmp/openclaw",
-      "127.0.0.1",
-      "18789",
-      "ws://127.0.0.1:18789",
-      '["openclaw","gateway","run","--config","/tmp/open claw/config.json"]',
-    ]);
-    expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toBe(
-      "NO_PROXY=localhost,127.0.0.1",
+    expect(inputs.filter((input) => input.readOnly).map((input) => input.value)).toContain(
+      "configured",
     );
-    expect((inputs.find((input) => input.type === "checkbox") as HTMLInputElement).checked).toBe(
-      false,
-    );
+    expect(inputs.find((input) => input.value === "ws://127.0.0.1:18789")?.readOnly).toBe(true);
   });
 
   it("restores old Settings appearance theme controls through the Deck UI shell", async () => {
@@ -265,41 +276,13 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("批准请求");
   });
 
-  it("saves edited settings, persists the deck token, and refreshes runtime state", async () => {
+  it("saves only deck-go local preferences and refreshes runtime state", async () => {
     act(() => {
       root = createRoot(container);
       root.render(renderSettingsPanel());
     });
 
     await waitFor(() => expect(container.textContent).toContain("Settings ready"));
-
-    const inputs = Array.from(container.querySelectorAll("input"));
-    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
-
-    act(() => {
-      fireEvent.change(inputs[0], { target: { value: "next-token" } });
-      fireEvent.change(inputs[1], { target: { value: "bun" } });
-      fireEvent.change(inputs[2], { target: { value: "/workspace/openclaw" } });
-      fireEvent.change(inputs[3], { target: { value: "gateway-next" } });
-      fireEvent.change(inputs[4], { target: { value: "0.0.0.0" } });
-      fireEvent.change(inputs[5], { target: { value: "18888" } });
-      fireEvent.change(inputs[7], {
-        target: {
-          value: JSON.stringify([
-            "openclaw",
-            "gateway",
-            "run",
-            "--force",
-            "--config",
-            "path with spaces/config.json",
-          ]),
-        },
-      });
-      fireEvent.change(textarea, {
-        target: { value: "EXTRA=1\nNO_PROXY=localhost,127.0.0.1" },
-      });
-      fireEvent.click(inputs.find((input) => input.type === "checkbox") as HTMLInputElement);
-    });
 
     act(() => {
       fireEvent.click(
@@ -311,62 +294,148 @@ describe("SettingsPanel", () => {
 
     await waitFor(() =>
       expect(apiMocks.saveSettings).toHaveBeenCalledWith({
-        accessToken: "next-token",
-        managedGateway: {
-          mode: "managed",
-          command: "bun",
-          args: [
-            "openclaw",
-            "gateway",
-            "run",
-            "--force",
-            "--config",
-            "path with spaces/config.json",
-          ],
-          workingDir: "/workspace/openclaw",
-          bindHost: "0.0.0.0",
-          bindPort: 18888,
-          gatewayToken: "gateway-next",
-          autoStart: true,
-          env: { EXTRA: "1", NO_PROXY: "localhost,127.0.0.1" },
-        },
+        appearance: undefined,
+        notifications: undefined,
+        pairedDevices: undefined,
       }),
     );
-    expect(apiMocks.persistAccessToken).toHaveBeenCalledWith("next-token");
+    expect(apiMocks.persistAccessToken).not.toHaveBeenCalled();
     expect(apiMocks.fetchSettings).toHaveBeenCalledTimes(2);
     expect(refreshRuntimeSummary).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(container.textContent).toContain("Settings save result"));
     expect(container.textContent).toContain('"saved": true');
   });
 
-  it("rejects invalid managed Gateway args instead of whitespace-splitting them", async () => {
+  it("saves a remote endpoint with the explicit token-preserve sentinel", async () => {
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      mode: "remote",
+      configured: true,
+      endpointMutable: true,
+      supervisorState: false,
+    });
+    apiMocks.fetchEndpoint.mockResolvedValue({
+      url: "http://old-gateway:18789",
+      tokenConfigured: true,
+      tlsVerify: false,
+      source: "env",
+    });
+
     act(() => {
       root = createRoot(container);
       root.render(renderSettingsPanel());
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Settings ready"));
+    await waitFor(() => expect(container.textContent).toContain("Save endpoint"));
 
     const inputs = Array.from(container.querySelectorAll("input"));
+    const urlInput = inputs.find((input) => input.value === "http://old-gateway:18789");
+    expect(urlInput).toBeTruthy();
 
     act(() => {
-      fireEvent.change(inputs[7], { target: { value: "openclaw gateway run" } });
+      fireEvent.change(urlInput as HTMLInputElement, {
+        target: { value: "http://remote-gateway:18789" },
+      });
     });
 
-    expect(container.textContent).toContain("Startup args must be valid JSON.");
-
-    act(() => {
+    await act(async () => {
       fireEvent.click(
         Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Save settings",
+          (button) => button.textContent === "Save endpoint",
         ) as HTMLButtonElement,
       );
     });
 
-    expect(apiMocks.saveSettings).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(apiMocks.updateEndpoint).toHaveBeenCalledWith({
+        url: "http://remote-gateway:18789",
+        token: "__unchanged__",
+        tlsVerify: false,
+      }),
+    );
+    expect(refreshRuntimeSummary).toHaveBeenCalledTimes(1);
   });
 
-  it("tests the configured managed Gateway connection and renders the result", async () => {
+  it("tests an unchanged remote endpoint using the active configuration", async () => {
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      mode: "remote",
+      configured: true,
+      endpointMutable: true,
+      supervisorState: false,
+    });
+    apiMocks.fetchEndpoint.mockResolvedValue({
+      url: "http://old-gateway:18789",
+      tokenConfigured: true,
+      tlsVerify: false,
+      source: "env",
+    });
+
+    act(() => {
+      root = createRoot(container);
+      root.render(renderSettingsPanel());
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("Save endpoint"));
+
+    await act(async () => {
+      fireEvent.click(
+        Array.from(container.querySelectorAll("button")).find(
+          (button) => button.textContent === "Test endpoint",
+        ) as HTMLButtonElement,
+      );
+    });
+
+    await waitFor(() => expect(apiMocks.testEndpoint).toHaveBeenCalledWith(undefined));
+  });
+
+  it("tests an edited remote endpoint while preserving the active token", async () => {
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      mode: "remote",
+      configured: true,
+      endpointMutable: true,
+      supervisorState: false,
+    });
+    apiMocks.fetchEndpoint.mockResolvedValue({
+      url: "http://old-gateway:18789",
+      tokenConfigured: true,
+      tlsVerify: false,
+      source: "env",
+    });
+
+    act(() => {
+      root = createRoot(container);
+      root.render(renderSettingsPanel());
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("Save endpoint"));
+
+    const inputs = Array.from(container.querySelectorAll("input"));
+    const urlInput = inputs.find((input) => input.value === "http://old-gateway:18789");
+    expect(urlInput).toBeTruthy();
+
+    act(() => {
+      fireEvent.change(urlInput as HTMLInputElement, {
+        target: { value: "http://new-gateway:18789" },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        Array.from(container.querySelectorAll("button")).find(
+          (button) => button.textContent === "Test endpoint",
+        ) as HTMLButtonElement,
+      );
+    });
+
+    await waitFor(() =>
+      expect(apiMocks.testEndpoint).toHaveBeenCalledWith({
+        url: "http://new-gateway:18789",
+        token: "__unchanged__",
+        tlsVerify: false,
+      }),
+    );
+  });
+
+  it("tests the configured runtime endpoint and renders the result", async () => {
     act(() => {
       root = createRoot(container);
       root.render(renderSettingsPanel());
@@ -376,14 +445,12 @@ describe("SettingsPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Test connection")
+        .find((button) => button.textContent === "Test endpoint")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    await waitFor(() =>
-      expect(apiMocks.testSettingsConnection).toHaveBeenCalledWith("ws://127.0.0.1:18789", ""),
-    );
-    expect(container.textContent).toContain("Connection test result");
+    await waitFor(() => expect(apiMocks.testEndpoint).toHaveBeenCalledWith(undefined));
+    expect(container.textContent).toContain("Endpoint test result");
     expect(container.textContent).toContain('"ok": true');
   });
 

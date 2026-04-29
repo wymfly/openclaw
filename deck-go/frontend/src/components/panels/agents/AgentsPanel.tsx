@@ -59,6 +59,11 @@ import {
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
 import { computeConfigDiff } from "../../../lib/config-diff";
+import {
+  GatewayNotConfiguredEmptyState,
+  gatewayNotConfiguredValue,
+  isGatewayNotConfiguredValue,
+} from "../../runtime/GatewayNotConfiguredEmptyState";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { buildAgentBatchExportText, summarizeAgents } from "./agent-batch-actions";
 import {
@@ -1046,7 +1051,7 @@ export function AgentsPanel() {
       }
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : "failed to load agents");
+      setError(gatewayNotConfiguredValue(loadError, "failed to load agents"));
     }
   };
 
@@ -1713,6 +1718,7 @@ export function AgentsPanel() {
       fallbacks.includes(modelRef) ? fallbacks : [...fallbacks, modelRef],
     );
   };
+  const agentsNotConfigured = isGatewayNotConfiguredValue(error);
 
   return (
     <section className="deckgo-panel-workspace deck-ui-agents">
@@ -1807,8 +1813,12 @@ export function AgentsPanel() {
                 </button>
               </div>
             </div>
-            {error ? <p className="deckgo-note">{error}</p> : null}
-            {agents.length === 0 ? (
+            {agentsNotConfigured ? (
+              <GatewayNotConfiguredEmptyState className="deck-ui-agents-surface" />
+            ) : error ? (
+              <p className="deckgo-note">{error}</p>
+            ) : null}
+            {agentsNotConfigured ? null : agents.length === 0 ? (
               <p className="deckgo-note">{tAgentDetail("panel.noAgents")}</p>
             ) : (
               <ul className="deckgo-shell-list deck-ui-agents-list">

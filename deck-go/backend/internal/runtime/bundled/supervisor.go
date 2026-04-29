@@ -1,4 +1,4 @@
-package runtimecontrol
+package bundled
 
 import (
 	"context"
@@ -55,19 +55,19 @@ type Snapshot struct {
 	Configured      bool         `json:"configured,omitempty"`
 	Status          Status       `json:"status,omitempty"`
 	FailurePhase    FailurePhase `json:"failurePhase,omitempty"`
-	PID             int    `json:"pid,omitempty"`
-	StartedAt       string `json:"startedAt,omitempty"`
-	LastExitAt      string `json:"lastExitAt,omitempty"`
-	LastExitCode    int    `json:"lastExitCode,omitempty"`
-	Health          Health `json:"health,omitempty"`
-	GatewayURL      string `json:"gatewayUrl,omitempty"`
-	LastError       string `json:"lastError,omitempty"`
-	AutoStart       bool   `json:"autoStart,omitempty"`
-	Owner           string `json:"owner,omitempty"`
-	OwnershipState  string `json:"ownershipState,omitempty"`
-	OwnershipFile   string `json:"ownershipFile,omitempty"`
-	RestartAttempts int    `json:"restartAttempts,omitempty"`
-	RestartDelayMs  int    `json:"restartDelayMs,omitempty"`
+	PID             int          `json:"pid,omitempty"`
+	StartedAt       string       `json:"startedAt,omitempty"`
+	LastExitAt      string       `json:"lastExitAt,omitempty"`
+	LastExitCode    int          `json:"lastExitCode,omitempty"`
+	Health          Health       `json:"health,omitempty"`
+	GatewayURL      string       `json:"gatewayUrl,omitempty"`
+	LastError       string       `json:"lastError,omitempty"`
+	AutoStart       bool         `json:"autoStart,omitempty"`
+	Owner           string       `json:"owner,omitempty"`
+	OwnershipState  string       `json:"ownershipState,omitempty"`
+	OwnershipFile   string       `json:"ownershipFile,omitempty"`
+	RestartAttempts int          `json:"restartAttempts,omitempty"`
+	RestartDelayMs  int          `json:"restartDelayMs,omitempty"`
 }
 
 type launcher func(config.ManagedGatewaySettings) (*exec.Cmd, error)
@@ -157,6 +157,7 @@ type processTerminator func(*exec.Cmd) error
 type Supervisor struct {
 	store *config.Store
 
+	configProvider        func() config.ManagedGatewaySettings
 	notifier              LifecycleNotifier
 	launch                launcher
 	prepare               preflightFunc
@@ -272,6 +273,15 @@ func WithPreflight(fn preflightFunc) Option {
 	}
 }
 
+func WithManagedGatewayConfig(settings config.ManagedGatewaySettings) Option {
+	cloned := cloneManagedGatewaySettings(settings)
+	return func(supervisor *Supervisor) {
+		supervisor.configProvider = func() config.ManagedGatewaySettings {
+			return cloneManagedGatewaySettings(cloned)
+		}
+	}
+}
+
 func WithProbeInterval(interval time.Duration) Option {
 	return func(supervisor *Supervisor) {
 		supervisor.probeInterval = interval
@@ -365,7 +375,7 @@ func (s *Supervisor) Snapshot() Snapshot {
 }
 
 func (s *Supervisor) EnsureAutoStart() {
-	cfg := s.store.Effective().ManagedGateway
+	cfg := s.configuredManagedGateway()
 	if !cfg.AutoStart {
 		return
 	}
@@ -391,7 +401,7 @@ func (s *Supervisor) start(ctx context.Context, resetRestart bool) (Snapshot, er
 		s.restartDelay = 0
 		s.stopRequested = false
 	}
-	cfg := s.store.Effective().ManagedGateway
+	cfg := s.configuredManagedGateway()
 	cfg = withManagedStateDir(cfg, s.store.Path())
 	if err := validateManagedConfig(cfg); err != nil {
 		snapshot := s.applyStartFailureLocked(FailurePhasePreflight, err)
@@ -425,12 +435,6 @@ func (s *Supervisor) start(ctx context.Context, resetRestart bool) (Snapshot, er
 		}
 	} else if mismatchReason != "" {
 		log.Printf("supervisor: adoption rejected: %s", mismatchReason)
-	}
-	if err := syncManagedGatewayProviderConfig(s.store.Path()); err != nil {
-		snapshot := s.applyStartFailureLocked(FailurePhasePreflight, err)
-		s.mu.Unlock()
-		s.publishStatus(snapshot)
-		return snapshot, err
 	}
 	if s.prepare != nil {
 		if err := s.prepare(ctx, cfg); err != nil {
@@ -603,6 +607,10 @@ func (s *Supervisor) Restart(ctx context.Context) (Snapshot, error) {
 		return s.Snapshot(), err
 	}
 	return s.Start(ctx)
+}
+
+func (s *Supervisor) ForceRespawn(ctx context.Context) (Snapshot, error) {
+	return s.Restart(ctx)
 }
 
 func (s *Supervisor) waitLoop(cmd *exec.Cmd) {
@@ -1033,7 +1041,29 @@ func (s *Supervisor) currentConfigLocked() config.ManagedGatewaySettings {
 	if s.status != StatusStopped && s.activeConfig.Mode != "" {
 		return s.activeConfig
 	}
-	return withManagedStateDir(s.store.Effective().ManagedGateway, s.store.Path())
+	return withManagedStateDir(s.configuredManagedGateway(), s.store.Path())
+}
+
+func (s *Supervisor) configuredManagedGateway() config.ManagedGatewaySettings {
+	if s != nil && s.configProvider != nil {
+		return cloneManagedGatewaySettings(s.configProvider())
+	}
+	if s == nil || s.store == nil {
+		return config.ManagedGatewaySettings{}
+	}
+	return s.store.Effective().ManagedGateway
+}
+
+func cloneManagedGatewaySettings(settings config.ManagedGatewaySettings) config.ManagedGatewaySettings {
+	cloned := settings
+	cloned.Args = append([]string(nil), settings.Args...)
+	if settings.Env != nil {
+		cloned.Env = make(map[string]string, len(settings.Env))
+		for key, value := range settings.Env {
+			cloned.Env[key] = value
+		}
+	}
+	return cloned
 }
 
 func (s *Supervisor) publishStatus(snapshot Snapshot) {

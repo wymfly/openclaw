@@ -7,16 +7,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 )
 
 const defaultShutdownTimeout = 10 * time.Second
 
-type RuntimeStopper interface {
-	StopRuntimeGateway(ctx context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error)
+type RuntimeShutdown interface {
+	Stop(ctx context.Context) (facade.RuntimeStatus, error)
 }
 
-func RunServer(ctx context.Context, server *http.Server, runtime RuntimeStopper, serviceName string) error {
+func RunServer(ctx context.Context, server *http.Server, runtime RuntimeShutdown, serviceName string) error {
 	if server == nil {
 		return errors.New("RunServer: server is nil")
 	}
@@ -34,8 +34,8 @@ func RunServer(ctx context.Context, server *http.Server, runtime RuntimeStopper,
 			log.Printf("%s shutdown failed: %v", serviceName, err)
 		}
 		if runtime != nil {
-			if _, err := runtime.StopRuntimeGateway(shutdownCtx); err != nil {
-				log.Printf("%s: managed gateway stop on shutdown failed: %v (orphan possible)", serviceName, err)
+			if _, err := runtime.Stop(shutdownCtx); err != nil {
+				log.Printf("%s: runtime stop on shutdown failed: %v (orphan possible)", serviceName, err)
 			}
 		}
 		return nil

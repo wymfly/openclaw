@@ -164,8 +164,10 @@ Workflow hygiene:
 `deck-go/` 是 OpenClaw 之上新建的企业管理/运维平台（Go 后端 + React 前端），按 `RUNTIME_MODE` 在 bundled / remote 两种模式下运行：bundled 模式下 deck-go 本机 spawn Gateway；remote 模式下连接远程 Gateway。新工作均以此目录为主线。
 
 - 完整设计：`docs/superpowers/specs/2026-04-28-runtime-mode-decoupling-design.md`
-- 现状：后端 + 前端骨架已就位；runtime-mode 解耦实施待启动（计划 5 个 phase，约 12-16 天）
-- 后续会新增 `deck-go/scripts/dev/run-bundled.sh` / `run-remote.sh` 等开发脚本，以及独立于 `deploy/` 的 deck-go 部署产物（待规划）
+- 现状：runtime-mode 解耦正在按 `openspec/changes/runtime-mode-decoupling/tasks.md` 实施
+- 本地后端启动脚本：`deck-go/scripts/dev/run-bundled.sh` / `deck-go/scripts/dev/run-remote.sh`
+- `.env` 样例：`deck-go/.env.bundled.example` / `deck-go/.env.remote.example`
+- 独立于 `deploy/` 的 deck-go 部署产物后续单独规划
 
 ### 已归档参考 — 上一代 Deck 客户端
 
@@ -351,7 +353,7 @@ export const deckAgentsMethodDefs: Record<string, Omit<MethodDefinition, "handle
 
 ## Deck-go 开发环境（新主目标）
 
-`deck-go/` 是当前二次开发主目标，与上一代 `dashboard/` 共存但完全独立——独立的 contracts 链路、独立的运行时模型（.env-driven）、独立的开发/部署工具链（待落地）。
+`deck-go/` 是当前二次开发主目标，与上一代 `dashboard/` 共存但完全独立——独立的 contracts 链路、独立的运行时模型（.env-driven）、独立的开发/部署工具链。
 
 ### 设计与状态
 
@@ -360,17 +362,18 @@ export const deckAgentsMethodDefs: Record<string, Omit<MethodDefinition, "handle
   - `bundled` 模式：deck-go 本机 spawn Gateway，UI 对 runtime 配置只读，所有参数从 .env 读
   - `remote` 模式：deck-go 连接远程 Gateway，UI 可改 endpoint 并写入 `deck-state.json`（覆盖 .env 默认值）
 - **架构原则**：facade 接口 + 两个 impl 包（`bundled/`、`remote/`）物理隔离，Browser 永远只跟 deck-go 说话不直连 Gateway
-- **现状**：runtime-mode 解耦实施待启动，分 5 个 phase（backend foundation / API surface / remote impl / frontend / docs+scripts）
+- **现状**：runtime-mode 解耦已进入实施，后续闭环以 `openspec/changes/runtime-mode-decoupling/tasks.md` 为准
 
-### 即将到来的开发产物（预告）
+### 开发产物
 
-实施落地后将产生：
+当前主线产物：
 
-- `deck-go/.env.bundled.example` / `deck-go/.env.remote.example` —— 部署样例
-- `deck-go/scripts/dev/run-bundled.sh` / `run-remote.sh` —— 本地开发启动脚本（不复用上一代 `scripts/dev/deck-dev.sh`）
-- `deck-go/internal/runtime/{facade,envconf,state,bundled,remote}/` —— 后端模块切分
-- 独立于上一代 `deploy/` 的 deck-go 部署形态（systemd unit / 容器镜像，待规划）
-- E2E：`bundled.spec.ts` / `remote.spec.ts`
+- `deck-go/.env.bundled.example` / `deck-go/.env.remote.example` —— runtime-mode `.env` 样例（复制后请设为私有权限）
+- `deck-go/scripts/dev/run-bundled.sh` / `deck-go/scripts/dev/run-remote.sh` —— 本地后端启动脚本（不复用上一代 `scripts/dev/deck-dev.sh`）
+- `deck-go/backend/internal/runtime/{facade,envconf,state,bundled,remote,shared}/` —— 后端 runtime-mode 模块切分
+- `deck-go/contracts/` —— deck-go 自有契约链路；修改 API 合约后运行 `cd deck-go && make contracts-sync`
+- 独立于上一代 `deploy/` 的 deck-go 部署形态（systemd unit / 容器镜像）后续单独规划
+- E2E 目标：`bundled.spec.ts` / `remote.spec.ts`
 
 ### 与上一代 Deck 的关系
 

@@ -15,6 +15,11 @@ import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navig
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
 import { formatDuration, formatTokenCount } from "../../../lib/format-utils";
+import {
+  GatewayNotConfiguredEmptyState,
+  gatewayNotConfiguredValue,
+  isGatewayNotConfiguredValue,
+} from "../../runtime/GatewayNotConfiguredEmptyState";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { useActivitySSE } from "./useActivitySSE";
 
@@ -212,7 +217,7 @@ export function ActivityPanel() {
       );
     } catch (loadError) {
       setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : t("failedLoadActivity"));
+      setError(gatewayNotConfiguredValue(loadError, t("failedLoadActivity")));
     }
   };
 
@@ -266,10 +271,10 @@ export function ActivityPanel() {
         }
       } catch (loadError) {
         setRunsState("idle");
-        setMonitorError(loadError instanceof Error ? loadError.message : t("failedLoadRunHistory"));
+        setMonitorError(gatewayNotConfiguredValue(loadError, t("failedLoadRunHistory")));
       }
     },
-    [buildRunQuery],
+    [buildRunQuery, t],
   );
 
   const loadRunDetail = async (runId: string) => {
@@ -282,7 +287,7 @@ export function ActivityPanel() {
       setMonitorError("");
     } catch (loadError) {
       setRunDetailState("idle");
-      setMonitorError(loadError instanceof Error ? loadError.message : t("failedLoadRunDetail"));
+      setMonitorError(gatewayNotConfiguredValue(loadError, t("failedLoadRunDetail")));
     }
   };
 
@@ -307,9 +312,7 @@ export function ActivityPanel() {
       setMonitorError("");
     } catch (loadError) {
       setRunsState("idle");
-      setMonitorError(
-        loadError instanceof Error ? loadError.message : t("failedLoadMoreRunHistory"),
-      );
+      setMonitorError(gatewayNotConfiguredValue(loadError, t("failedLoadMoreRunHistory")));
     }
   };
 
@@ -319,7 +322,6 @@ export function ActivityPanel() {
       const next = await fetchMonitorStats();
       setMonitorStats(next);
       setStatsState("ready");
-      setMonitorError("");
     } catch (loadError) {
       setStatsState("idle");
       setMonitorError(loadError instanceof Error ? loadError.message : t("failedLoadStats"));
@@ -400,6 +402,8 @@ export function ActivityPanel() {
     selectedRun?.sessionKey ??
     runDetail?.events?.find((event) => typeof event.session_key === "string")?.session_key ??
     "";
+  const activityNotConfigured = isGatewayNotConfiguredValue(error);
+  const monitorNotConfigured = isGatewayNotConfiguredValue(monitorError);
 
   const runDiagnostics = useMemo(() => {
     const modelStats = new Map<string, RunModelStat>();
@@ -541,8 +545,12 @@ export function ActivityPanel() {
                 </button>
               </div>
             </div>
-            {error ? <p className="deckgo-note">{error}</p> : null}
-            {filteredEvents.length === 0 ? (
+            {activityNotConfigured ? (
+              <GatewayNotConfiguredEmptyState className="deck-ui-activity-surface" />
+            ) : error ? (
+              <p className="deckgo-note">{error}</p>
+            ) : null}
+            {activityNotConfigured ? null : filteredEvents.length === 0 ? (
               <p className="deckgo-note">{t("noFilteredActivity")}</p>
             ) : (
               <div className="deckgo-form-grid">
@@ -719,8 +727,12 @@ export function ActivityPanel() {
                 {t("refreshStats")}
               </button>
             </div>
-            {monitorError ? <p className="deckgo-note">{monitorError}</p> : null}
-            {monitorRuns.length ? (
+            {monitorNotConfigured ? (
+              <GatewayNotConfiguredEmptyState className="deck-ui-activity-surface" />
+            ) : monitorError ? (
+              <p className="deckgo-note">{monitorError}</p>
+            ) : null}
+            {monitorNotConfigured ? null : monitorRuns.length ? (
               <div className="deckgo-form-grid">
                 {monitorRuns.map((run) => (
                   <button

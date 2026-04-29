@@ -278,6 +278,29 @@ describe("ActivityPanel", () => {
     expect(container.textContent).toContain("started");
   });
 
+  it("renders first-run empty states for activity and monitor Gateway data", async () => {
+    const notConfigured = new Error("gateway_not_configured: runtime gateway is not configured");
+    apiMocks.fetchActivityEvents.mockRejectedValue(notConfigured);
+    apiMocks.fetchMonitorRuns.mockRejectedValue(notConfigured);
+
+    await act(async () => {
+      renderActivityPanel();
+    });
+    await flushEffects();
+    await flushEffects();
+
+    expect(container.querySelector('[data-testid="empty-state-not-configured"]')).toBeTruthy();
+    expect(
+      container.querySelectorAll('[data-testid="empty-state-not-configured"]').length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(container.textContent).toContain(
+      "Open Settings and save a remote endpoint before loading Gateway data.",
+    );
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).not.toContain("gateway_not_configured");
+    expect(apiMocks.fetchMonitorRunDetail).not.toHaveBeenCalled();
+  });
+
   it("passes monitor run history filters through the current monitor API", async () => {
     await act(async () => {
       renderActivityPanel();

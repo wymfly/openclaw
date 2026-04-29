@@ -216,6 +216,23 @@ describe("RoutingPanel", () => {
     expect(deckUIMocks.navigateToChannel).toHaveBeenCalledWith(deckUIMocks.ui, "telegram");
   });
 
+  it("renders first-run empty state for routing activity feed", async () => {
+    apiMocks.fetchActivityEvents.mockRejectedValue(
+      new Error("gateway_not_configured: runtime gateway is not configured"),
+    );
+
+    renderPanel();
+
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="empty-state-not-configured"]')).toBeTruthy(),
+    );
+    expect(container.textContent).toContain(
+      "Open Settings and save a remote endpoint before loading Gateway data.",
+    );
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).not.toContain("gateway_not_configured");
+  });
+
   it("patches the DM scope strategy through the config API", async () => {
     renderPanel();
 

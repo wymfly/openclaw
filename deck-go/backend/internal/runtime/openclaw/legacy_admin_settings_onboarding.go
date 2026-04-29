@@ -14,7 +14,7 @@ import (
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 )
 
 var (
@@ -51,34 +51,15 @@ func (m *ManagedRuntime) UpdateSettings(ctx context.Context, settings deckapi.De
 	if m == nil || m.store == nil {
 		return deckapi.DeckGoSettingsSaveResponse{}, http.ErrServerClosed
 	}
-	current := m.store.Get()
-	accessToken := strings.TrimSpace(settings.AccessToken)
-	gatewayToken := strings.TrimSpace(settings.ManagedGateway.GatewayToken)
-	if accessToken == "" {
-		accessToken = current.AccessToken
-	}
-	if gatewayToken == "" {
-		gatewayToken = current.ManagedGateway.GatewayToken
-	}
 	next := config.Settings{
-		AccessToken: accessToken,
-		ManagedGateway: config.ManagedGatewaySettings{
-			Mode:                settings.ManagedGateway.Mode,
-			Command:             settings.ManagedGateway.Command,
-			Args:                append([]string(nil), settings.ManagedGateway.Args...),
-			WorkingDir:          settings.ManagedGateway.WorkingDir,
-			BindHost:            settings.ManagedGateway.BindHost,
-			BindPort:            int(settings.ManagedGateway.BindPort),
-			GatewayToken:        gatewayToken,
-			AutoStart:           settings.ManagedGateway.AutoStart,
-			AutoStartConfigured: true,
-			Env:                 mapsClone(settings.ManagedGateway.Env),
-		},
+		Appearance:    settings.Appearance,
+		Notifications: settings.Notifications,
+		PairedDevices: settings.PairedDevices,
 	}
 	if err := m.store.Update(next); err != nil {
 		return deckapi.DeckGoSettingsSaveResponse{}, err
 	}
-	current = m.store.Get()
+	current := m.store.Get()
 	if m.bus != nil {
 		eventPayload, _ := json.Marshal(map[string]any{
 			"type": "settings.saved",
@@ -219,22 +200,11 @@ func (m *ManagedRuntime) SaveOnboardingSettings(ctx context.Context, gatewayURL 
 
 func toDeckSettings(current config.Settings, tokenStatus config.ServiceTokenStatus) deckapi.DeckGoSettings {
 	return deckapi.DeckGoSettings{
-		AccessToken:           "",
 		AccessTokenConfigured: tokenStatus.Configured,
 		AccessTokenSource:     tokenStatus.Source,
-		ManagedGateway: deckapi.DeckGoManagedGatewaySettings{
-			Mode:                   current.ManagedGateway.Mode,
-			Command:                current.ManagedGateway.Command,
-			Args:                   append([]string(nil), current.ManagedGateway.Args...),
-			WorkingDir:             current.ManagedGateway.WorkingDir,
-			BindHost:               current.ManagedGateway.BindHost,
-			BindPort:               float64(current.ManagedGateway.BindPort),
-			GatewayToken:           "",
-			GatewayTokenConfigured: tokenStatus.Configured,
-			GatewayTokenSource:     tokenStatus.Source,
-			AutoStart:              current.ManagedGateway.AutoStart,
-			Env:                    mapsClone(current.ManagedGateway.Env),
-		},
+		Appearance:            current.Appearance,
+		Notifications:         current.Notifications,
+		PairedDevices:         current.PairedDevices,
 	}
 }
 
@@ -258,8 +228,8 @@ func readDeckVersion() string {
 	return deckVersion
 }
 
-func runtimeVersionStatus(snapshot runtimecontrol.Snapshot) string {
-	if snapshot.Status == runtimecontrol.StatusRunning || snapshot.Status == runtimecontrol.StatusDegraded {
+func runtimeVersionStatus(snapshot bundled.Snapshot) string {
+	if snapshot.Status == bundled.StatusRunning || snapshot.Status == bundled.StatusDegraded {
 		return "connected"
 	}
 	return "unknown"

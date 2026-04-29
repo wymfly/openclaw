@@ -8,10 +8,10 @@ import (
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 )
 
-type ManagedSupervisorOption = runtimecontrol.Option
+type ManagedSupervisorOption = bundled.Option
 
 func NewManagedSupervisorWithOptions(store *config.Store, bus *events.Bus, options ...ManagedSupervisorOption) ManagedRuntimeSupervisor {
 	options = append([]ManagedSupervisorOption{
@@ -27,43 +27,47 @@ func NewManagedSupervisorWithOptions(store *config.Store, bus *events.Bus, optio
 			WithManagedLifecycleNotifier(bus),
 		}, options...)
 	}
-	return runtimecontrol.NewSupervisorWithOptions(store, nil, options...)
+	return bundled.NewSupervisorWithOptions(store, nil, options...)
 }
 
 func WithManagedLauncher(fn func(config.ManagedGatewaySettings) (*exec.Cmd, error)) ManagedSupervisorOption {
-	return runtimecontrol.WithLauncher(fn)
+	return bundled.WithLauncher(fn)
 }
 
 func WithManagedProcessTerminator(fn func(*exec.Cmd) error) ManagedSupervisorOption {
-	return runtimecontrol.WithProcessTerminator(fn)
+	return bundled.WithProcessTerminator(fn)
 }
 
 func WithManagedForceKillProcess(fn func(*exec.Cmd) error) ManagedSupervisorOption {
-	return runtimecontrol.WithForceKillProcess(fn)
+	return bundled.WithForceKillProcess(fn)
 }
 
 func WithManagedProbe(fn func(context.Context, config.ManagedGatewaySettings) error) ManagedSupervisorOption {
-	return runtimecontrol.WithProbe(fn)
+	return bundled.WithProbe(fn)
+}
+
+func WithManagedGatewayConfig(settings config.ManagedGatewaySettings) ManagedSupervisorOption {
+	return bundled.WithManagedGatewayConfig(settings)
 }
 
 func WithManagedProbeInterval(interval time.Duration) ManagedSupervisorOption {
-	return runtimecontrol.WithProbeInterval(interval)
+	return bundled.WithProbeInterval(interval)
 }
 
 func WithManagedStartupTimeout(timeout time.Duration) ManagedSupervisorOption {
-	return runtimecontrol.WithStartupTimeout(timeout)
+	return bundled.WithStartupTimeout(timeout)
 }
 
 func WithManagedStopTimeout(timeout time.Duration) ManagedSupervisorOption {
-	return runtimecontrol.WithStopTimeout(timeout)
+	return bundled.WithStopTimeout(timeout)
 }
 
 func WithManagedLifecycleNotifier(bus *events.Bus) ManagedSupervisorOption {
-	return runtimecontrol.WithLifecycleNotifier(&managedLifecycleNotifier{bus: bus})
+	return bundled.WithLifecycleNotifier(&managedLifecycleNotifier{bus: bus})
 }
 
 func WithManagedStartFailurePolicy(fn func(ManagedStartFailureContext) ManagedStartFailureDecision) ManagedSupervisorOption {
-	return runtimecontrol.WithStartFailurePolicy(func(input runtimecontrol.StartFailureContext) runtimecontrol.StartFailureDecision {
+	return bundled.WithStartFailurePolicy(func(input bundled.StartFailureContext) bundled.StartFailureDecision {
 		return fn(input)
 	})
 }
@@ -75,8 +79,8 @@ func WithManagedDefaultStartFailurePolicy() ManagedSupervisorOption {
 			lastError = input.Err.Error()
 		}
 		return ManagedStartFailureDecision{
-			Status:       runtimecontrol.StatusFailed,
-			Health:       runtimecontrol.HealthUnknown,
+			Status:       bundled.StatusFailed,
+			Health:       bundled.HealthUnknown,
 			LastError:    lastError,
 			FailurePhase: input.Stage,
 		}
@@ -84,7 +88,7 @@ func WithManagedDefaultStartFailurePolicy() ManagedSupervisorOption {
 }
 
 func WithManagedStopSignalFailurePolicy(fn func(ManagedStopSignalFailureContext) ManagedStopSignalFailureDecision) ManagedSupervisorOption {
-	return runtimecontrol.WithStopSignalFailurePolicy(func(input runtimecontrol.StopSignalFailureContext) runtimecontrol.StopSignalFailureDecision {
+	return bundled.WithStopSignalFailurePolicy(func(input bundled.StopSignalFailureContext) bundled.StopSignalFailureDecision {
 		return fn(input)
 	})
 }
@@ -92,8 +96,8 @@ func WithManagedStopSignalFailurePolicy(fn func(ManagedStopSignalFailureContext)
 func WithManagedDefaultStopSignalFailurePolicy() ManagedSupervisorOption {
 	return WithManagedStopSignalFailurePolicy(func(ManagedStopSignalFailureContext) ManagedStopSignalFailureDecision {
 		return ManagedStopSignalFailureDecision{
-			Status:       runtimecontrol.StatusStopping,
-			Health:       runtimecontrol.HealthUnknown,
+			Status:       bundled.StatusStopping,
+			Health:       bundled.HealthUnknown,
 			LastError:    "",
 			FailurePhase: "",
 		}
@@ -101,7 +105,7 @@ func WithManagedDefaultStopSignalFailurePolicy() ManagedSupervisorOption {
 }
 
 func WithManagedStopNoProcessPolicy(fn func(ManagedStopNoProcessContext) ManagedStopNoProcessDecision) ManagedSupervisorOption {
-	return runtimecontrol.WithStopNoProcessPolicy(func(input runtimecontrol.StopNoProcessContext) runtimecontrol.StopNoProcessDecision {
+	return bundled.WithStopNoProcessPolicy(func(input bundled.StopNoProcessContext) bundled.StopNoProcessDecision {
 		return fn(input)
 	})
 }
@@ -109,8 +113,8 @@ func WithManagedStopNoProcessPolicy(fn func(ManagedStopNoProcessContext) Managed
 func WithManagedDefaultStopNoProcessPolicy() ManagedSupervisorOption {
 	return WithManagedStopNoProcessPolicy(func(ManagedStopNoProcessContext) ManagedStopNoProcessDecision {
 		return ManagedStopNoProcessDecision{
-			Status:            runtimecontrol.StatusStopped,
-			Health:            runtimecontrol.HealthUnknown,
+			Status:            bundled.StatusStopped,
+			Health:            bundled.HealthUnknown,
 			LastError:         "",
 			FailurePhase:      "",
 			ClearActiveConfig: false,
@@ -119,7 +123,7 @@ func WithManagedDefaultStopNoProcessPolicy() ManagedSupervisorOption {
 }
 
 func WithManagedStopWaitFailurePolicy(fn func(ManagedStopWaitFailureContext) ManagedStopWaitFailureDecision) ManagedSupervisorOption {
-	return runtimecontrol.WithStopWaitFailurePolicy(func(input runtimecontrol.StopWaitFailureContext) runtimecontrol.StopWaitFailureDecision {
+	return bundled.WithStopWaitFailurePolicy(func(input bundled.StopWaitFailureContext) bundled.StopWaitFailureDecision {
 		return fn(input)
 	})
 }
@@ -127,8 +131,8 @@ func WithManagedStopWaitFailurePolicy(fn func(ManagedStopWaitFailureContext) Man
 func WithManagedDefaultStopWaitFailurePolicy() ManagedSupervisorOption {
 	return WithManagedStopWaitFailurePolicy(func(ManagedStopWaitFailureContext) ManagedStopWaitFailureDecision {
 		return ManagedStopWaitFailureDecision{
-			Status:       runtimecontrol.StatusStopping,
-			Health:       runtimecontrol.HealthUnknown,
+			Status:       bundled.StatusStopping,
+			Health:       bundled.HealthUnknown,
 			LastError:    "",
 			FailurePhase: "",
 		}
@@ -136,7 +140,7 @@ func WithManagedDefaultStopWaitFailurePolicy() ManagedSupervisorOption {
 }
 
 func WithManagedExitTransitionPolicy(fn func(ManagedExitTransitionContext) ManagedExitTransitionDecision) ManagedSupervisorOption {
-	return runtimecontrol.WithExitTransitionPolicy(func(input runtimecontrol.ExitTransitionContext) runtimecontrol.ExitTransitionDecision {
+	return bundled.WithExitTransitionPolicy(func(input bundled.ExitTransitionContext) bundled.ExitTransitionDecision {
 		return fn(input)
 	})
 }
@@ -149,16 +153,16 @@ func WithManagedDefaultExitTransitionPolicy() ManagedSupervisorOption {
 		}
 		if input.StopRequested {
 			return ManagedExitTransitionDecision{
-				Status:            runtimecontrol.StatusStopped,
-				Health:            runtimecontrol.HealthUnknown,
+				Status:            bundled.StatusStopped,
+				Health:            bundled.HealthUnknown,
 				LastError:         "",
 				FailurePhase:      "",
 				ClearActiveConfig: true,
 			}
 		}
 		return ManagedExitTransitionDecision{
-			Status:            runtimecontrol.StatusFailed,
-			Health:            runtimecontrol.HealthUnknown,
+			Status:            bundled.StatusFailed,
+			Health:            bundled.HealthUnknown,
 			LastError:         lastError,
 			FailurePhase:      "runtime",
 			ClearActiveConfig: false,
@@ -167,36 +171,36 @@ func WithManagedDefaultExitTransitionPolicy() ManagedSupervisorOption {
 }
 
 func WithManagedProbeTransitionPolicy() ManagedSupervisorOption {
-	return runtimecontrol.WithProbeTransitionPolicy(func(input runtimecontrol.ProbeTransitionContext) runtimecontrol.ProbeTransitionDecision {
+	return bundled.WithProbeTransitionPolicy(func(input bundled.ProbeTransitionContext) bundled.ProbeTransitionDecision {
 		switch {
 		case input.Err == nil:
-			return runtimecontrol.ProbeTransitionDecision{
-				Status:       runtimecontrol.StatusRunning,
-				Health:       runtimecontrol.HealthHealthy,
+			return bundled.ProbeTransitionDecision{
+				Status:       bundled.StatusRunning,
+				Health:       bundled.HealthHealthy,
 				LastError:    "",
 				FailurePhase: "",
 				HealthyOnce:  true,
 			}
 		case input.HealthyOnce:
-			return runtimecontrol.ProbeTransitionDecision{
-				Status:       runtimecontrol.StatusDegraded,
-				Health:       runtimecontrol.HealthUnhealthy,
+			return bundled.ProbeTransitionDecision{
+				Status:       bundled.StatusDegraded,
+				Health:       bundled.HealthUnhealthy,
 				LastError:    input.Err.Error(),
 				FailurePhase: "runtime",
 				HealthyOnce:  true,
 			}
 		case !input.StartedAt.IsZero() && input.Now.Sub(input.StartedAt) >= input.StartupTimeout:
-			return runtimecontrol.ProbeTransitionDecision{
-				Status:       runtimecontrol.StatusFailed,
-				Health:       runtimecontrol.HealthUnhealthy,
+			return bundled.ProbeTransitionDecision{
+				Status:       bundled.StatusFailed,
+				Health:       bundled.HealthUnhealthy,
 				LastError:    input.Err.Error(),
 				FailurePhase: "runtime",
 				HealthyOnce:  false,
 			}
 		default:
-			return runtimecontrol.ProbeTransitionDecision{
-				Status:       runtimecontrol.StatusStarting,
-				Health:       runtimecontrol.HealthUnhealthy,
+			return bundled.ProbeTransitionDecision{
+				Status:       bundled.StatusStarting,
+				Health:       bundled.HealthUnhealthy,
 				LastError:    input.Err.Error(),
 				FailurePhase: "runtime",
 				HealthyOnce:  false,
@@ -209,15 +213,15 @@ type managedLifecycleNotifier struct {
 	bus *events.Bus
 }
 
-func (n *managedLifecycleNotifier) PublishStatus(snapshot runtimecontrol.Snapshot) {
+func (n *managedLifecycleNotifier) PublishStatus(snapshot bundled.Snapshot) {
 	n.publish("runtime.gateway.status", snapshot)
 }
 
-func (n *managedLifecycleNotifier) PublishHealth(snapshot runtimecontrol.Snapshot) {
+func (n *managedLifecycleNotifier) PublishHealth(snapshot bundled.Snapshot) {
 	n.publish("runtime.gateway.health", snapshot)
 }
 
-func (n *managedLifecycleNotifier) PublishExit(snapshot runtimecontrol.Snapshot) {
+func (n *managedLifecycleNotifier) PublishExit(snapshot bundled.Snapshot) {
 	n.publish("runtime.gateway.exit", snapshot)
 }
 

@@ -34,6 +34,9 @@ type ManagedGatewaySettings struct {
 type Settings struct {
 	AccessToken    string                 `json:"accessToken,omitempty"`
 	ManagedGateway ManagedGatewaySettings `json:"managedGateway,omitempty"`
+	Appearance     map[string]any         `json:"appearance,omitempty"`
+	Notifications  map[string]any         `json:"notifications,omitempty"`
+	PairedDevices  []map[string]any       `json:"pairedDevices,omitempty"`
 }
 
 type ServiceTokenStatus struct {
@@ -156,6 +159,9 @@ func (s *Store) Update(next Settings) error {
 	s.data = applyCanonicalServiceToken(Settings{
 		AccessToken:    next.AccessToken,
 		ManagedGateway: normalizeManagedGatewaySettings(next.ManagedGateway),
+		Appearance:     cloneAnyMap(next.Appearance),
+		Notifications:  cloneAnyMap(next.Notifications),
+		PairedDevices:  cloneAnyMapSlice(next.PairedDevices),
 	}, "")
 	return s.saveLocked()
 }
@@ -371,6 +377,31 @@ func cloneSettings(settings Settings) Settings {
 		for key, value := range settings.ManagedGateway.Env {
 			cloned.ManagedGateway.Env[key] = value
 		}
+	}
+	cloned.Appearance = cloneAnyMap(settings.Appearance)
+	cloned.Notifications = cloneAnyMap(settings.Notifications)
+	cloned.PairedDevices = cloneAnyMapSlice(settings.PairedDevices)
+	return cloned
+}
+
+func cloneAnyMap(src map[string]any) map[string]any {
+	if src == nil {
+		return nil
+	}
+	cloned := make(map[string]any, len(src))
+	for key, value := range src {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+func cloneAnyMapSlice(src []map[string]any) []map[string]any {
+	if src == nil {
+		return nil
+	}
+	cloned := make([]map[string]any, len(src))
+	for idx, item := range src {
+		cloned[idx] = cloneAnyMap(item)
 	}
 	return cloned
 }

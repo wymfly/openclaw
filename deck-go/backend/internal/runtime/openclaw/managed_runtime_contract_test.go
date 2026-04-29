@@ -11,10 +11,10 @@ import (
 )
 
 type runtimeGatewayRouteSurface interface {
-	RuntimeGatewayStatusResponse() deckapi.DeckGoRuntimeGatewayActionResponse
-	StartRuntimeGateway(context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error)
-	StopRuntimeGateway(context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error)
-	RestartRuntimeGateway(context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error)
+	RuntimeGatewayStatusResponse() openclawrt.RuntimeGatewayActionResponse
+	StartRuntimeGateway(context.Context) (openclawrt.RuntimeGatewayActionResponse, error)
+	StopRuntimeGateway(context.Context) (openclawrt.RuntimeGatewayActionResponse, error)
+	RestartRuntimeGateway(context.Context) (openclawrt.RuntimeGatewayActionResponse, error)
 	BootstrapStatus(context.Context) (deckapi.DeckGoBootstrapStatusResponse, error)
 }
 

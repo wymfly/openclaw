@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { ModeBadge } from "../components/runtime/ModeBadge";
+import { useCapabilities } from "../hooks/useCapabilities";
 import { useLocale, useSetLocale, useTranslations } from "../i18n/provider";
 import { DECK_GO_THEME_TOGGLE_ORDER, type DeckGoThemeMode } from "../theme";
 import { GlobeIcon, MenuIcon, MonitorIcon, MoonIcon, SunIcon } from "./icons";
@@ -23,6 +25,7 @@ export function DeckHeaderBar() {
     setMobileNavOpen,
   } = useDeckUI();
   const { isMobile } = useDeckViewport();
+  const { capabilities } = useCapabilities();
   const entry = findPanel(activePanel);
   const gatewayConnected = bootstrap?.gateway.connected ?? false;
   const runtimeStatus = runtime?.runtime.status ?? bootstrap?.runtime.status;
@@ -72,6 +75,7 @@ export function DeckHeaderBar() {
       </div>
 
       <div className="deck-ui-header-right">
+        <ModeBadge capabilities={capabilities} />
         <button
           type="button"
           className={`deck-ui-status-chip ${

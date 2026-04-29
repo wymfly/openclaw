@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { DeckGoGatewayDescribeResponse } from "../../../api";
 import { fetchGatewayDescribe } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
+import {
+  GatewayNotConfiguredEmptyState,
+  gatewayNotConfiguredValue,
+  isGatewayNotConfiguredValue,
+} from "../../runtime/GatewayNotConfiguredEmptyState";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 
 type ExplorerTab = "methods" | "events";
@@ -110,7 +115,7 @@ export function ApiExplorerPanel() {
           return;
         }
         setLoadState("idle");
-        setError(loadError instanceof Error ? loadError.message : t("failedLoadDescribe"));
+        setError(gatewayNotConfiguredValue(loadError, t("failedLoadDescribe")));
       });
     return () => {
       cancelled = true;
@@ -158,6 +163,7 @@ export function ApiExplorerPanel() {
   const selectedMethod =
     methods.find((method) => method.name === selectedMethodName) ?? methods[0] ?? null;
   const untyped = payload?.untyped ?? [];
+  const gatewayNotConfigured = isGatewayNotConfiguredValue(error);
 
   return (
     <section className="deckgo-panel-workspace deck-ui-api-explorer">
@@ -205,8 +211,12 @@ export function ApiExplorerPanel() {
                 {loadState === "loading" ? t("loadingDescribe") : t("refreshDescribe")}
               </button>
             </div>
-            {error ? <p className="deckgo-note">{error}</p> : null}
-            {tab === "methods" ? (
+            {gatewayNotConfigured ? (
+              <GatewayNotConfiguredEmptyState className="deck-ui-api-surface" />
+            ) : error ? (
+              <p className="deckgo-note">{error}</p>
+            ) : null}
+            {gatewayNotConfigured ? null : tab === "methods" ? (
               <>
                 <label className="deckgo-label">
                   <span>{t("searchMethods")}</span>

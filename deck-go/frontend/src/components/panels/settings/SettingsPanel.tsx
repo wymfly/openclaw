@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
+  DeckGoRuntimeEndpointPutRequest,
+  DeckGoRuntimeEndpointResponse,
+  DeckGoRuntimeEndpointTestRequest,
   DeckGoSettings,
   DeckGoSettingsResponse,
 } from "../../../../../contracts/generated/ts/deck-api.generated";
@@ -10,21 +13,25 @@ import type {
 import {
   approveDeviceRequest,
   fetchDevices,
+  fetchEndpoint,
   fetchSelfDevice,
   fetchSettings,
   fetchSettingsVersion,
-  persistAccessToken,
   rejectDeviceRequest,
   removeDevice,
   revokeDeviceToken,
   rotateDeviceToken,
   saveSettings,
   streamEvents,
-  testSettingsConnection,
+  testEndpoint,
+  updateEndpoint,
 } from "../../../api";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useCapabilities } from "../../../hooks/useCapabilities";
 import type { Locale } from "../../../i18n/config";
 import { useLocale, useSetLocale, useTranslations } from "../../../i18n/provider";
+import { EndpointSection } from "../../runtime/EndpointSection";
+import { ReadOnlyField } from "../../runtime/ReadOnlyField";
 import { JsonDetails } from "../../shared/ShellComponents";
 
 type PairedDevice = LocalPairedDevice;
@@ -47,96 +54,19 @@ type PendingDeviceAction = {
 
 function normalizeSettings(result: DeckGoSettingsResponse): DeckGoSettings {
   return {
-    accessToken: result.settings.accessToken ?? "",
     accessTokenConfigured: result.settings.accessTokenConfigured ?? false,
     accessTokenSource: result.settings.accessTokenSource ?? "",
-    managedGateway: {
-      mode: result.settings.managedGateway?.mode ?? "managed",
-      command: result.settings.managedGateway?.command ?? "",
-      args: result.settings.managedGateway?.args ?? [],
-      workingDir: result.settings.managedGateway?.workingDir ?? "",
-      bindHost: result.settings.managedGateway?.bindHost ?? "127.0.0.1",
-      bindPort: result.settings.managedGateway?.bindPort ?? 18789,
-      gatewayToken: result.settings.managedGateway?.gatewayToken ?? "",
-      gatewayTokenConfigured: result.settings.managedGateway?.gatewayTokenConfigured ?? false,
-      gatewayTokenSource: result.settings.managedGateway?.gatewayTokenSource ?? "",
-      autoStart: result.settings.managedGateway?.autoStart ?? true,
-      env: result.settings.managedGateway?.env ?? {},
-    },
+    appearance: result.settings.appearance,
+    notifications: result.settings.notifications,
+    pairedDevices: result.settings.pairedDevices,
   };
-}
-
-function formatEnvLines(env: Record<string, string> | undefined) {
-  return Object.entries(env ?? {})
-    .toSorted(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => `${key}=${value}`)
-    .join("\n");
-}
-
-function parseEnvLines(raw: string) {
-  const env: Record<string, string> = {};
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const index = trimmed.indexOf("=");
-    if (index <= 0) {
-      continue;
-    }
-    const key = trimmed.slice(0, index).trim();
-    if (!key) {
-      continue;
-    }
-    env[key] = trimmed.slice(index + 1).trim();
-  }
-  return env;
-}
-
-function formatArgsText(args: string[] | undefined) {
-  return JSON.stringify(args ?? []);
-}
-
-function parseArgsText(raw: string): {
-  args: string[];
-  errorKey: "startupArgsJsonError" | "startupArgsArrayError" | "";
-} {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return { args: [], errorKey: "" };
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
-      return { args: [], errorKey: "startupArgsArrayError" };
-    }
-    return { args: parsed, errorKey: "" };
-  } catch {
-    return { args: [], errorKey: "startupArgsJsonError" };
-  }
-}
-
-function buildGatewayUrl(settings: DeckGoSettings["managedGateway"]) {
-  const host = settings?.bindHost?.trim() || "127.0.0.1";
-  const port = Number(settings?.bindPort) || 18789;
-  return `ws://${host}:${port}`;
 }
 
 function buildSettingsSavePayload(settings: DeckGoSettings): DeckGoSettings {
   return {
-    accessToken: settings.accessToken ?? "",
-    managedGateway: {
-      mode: settings.managedGateway?.mode ?? "managed",
-      command: settings.managedGateway?.command ?? "",
-      args: settings.managedGateway?.args ?? [],
-      workingDir: settings.managedGateway?.workingDir ?? "",
-      bindHost: settings.managedGateway?.bindHost ?? "127.0.0.1",
-      bindPort: settings.managedGateway?.bindPort ?? 18789,
-      gatewayToken: settings.managedGateway?.gatewayToken ?? "",
-      autoStart: settings.managedGateway?.autoStart ?? true,
-      env: settings.managedGateway?.env ?? {},
-    },
+    appearance: settings.appearance,
+    notifications: settings.notifications,
+    pairedDevices: settings.pairedDevices,
   };
 }
 
@@ -192,34 +122,26 @@ function deviceStreamLabel(
 export function SettingsPanel() {
   const t = useTranslations("settings");
   const { bootstrap, runtime, themeMode, refreshRuntimeSummary, setThemeMode } = useDeckUI();
+  const {
+    capabilities,
+    loading: capabilitiesLoading,
+    refresh: refreshCapabilities,
+  } = useCapabilities();
   const locale = useLocale();
   const setLocale = useSetLocale();
   const [settings, setSettings] = useState<DeckGoSettings>({
-    accessToken: "",
     accessTokenConfigured: false,
     accessTokenSource: "",
-    managedGateway: {
-      mode: "managed",
-      command: "",
-      args: [],
-      workingDir: "",
-      bindHost: "127.0.0.1",
-      bindPort: 18789,
-      gatewayToken: "",
-      gatewayTokenConfigured: false,
-      gatewayTokenSource: "",
-      autoStart: true,
-      env: {},
-    },
   });
+  const [endpoint, setEndpoint] = useState<DeckGoRuntimeEndpointResponse | null>(null);
+  const [endpointLoading, setEndpointLoading] = useState(true);
+  const [endpointError, setEndpointError] = useState("");
   const [settingsPath, setSettingsPath] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [lastSaved, setLastSaved] = useState<unknown>(null);
   const [versionInfo, setVersionInfo] = useState({ deck: "", gateway: "", cli: "" });
-  const [connectionTestState, setConnectionTestState] = useState("idle");
-  const [connectionTestResult, setConnectionTestResult] = useState<unknown>(null);
   const [pendingDevices, setPendingDevices] = useState<PendingDeviceRequest[]>([]);
   const [pairedDevices, setPairedDevices] = useState<PairedDevice[]>([]);
   const [selfDeviceId, setSelfDeviceId] = useState<string | null>(null);
@@ -232,8 +154,6 @@ export function SettingsPanel() {
   const [rotatedToken, setRotatedToken] = useState("");
   const [lastDeviceStreamEvent, setLastDeviceStreamEvent] = useState("");
   const [devicesError, setDevicesError] = useState("");
-  const [managedGatewayArgsText, setManagedGatewayArgsText] = useState("[]");
-  const [managedGatewayArgsError, setManagedGatewayArgsError] = useState("");
 
   const refreshSettings = useCallback(async () => {
     setLoading(true);
@@ -241,8 +161,6 @@ export function SettingsPanel() {
       const result = await fetchSettings();
       const normalized = normalizeSettings(result);
       setSettings(normalized);
-      setManagedGatewayArgsText(formatArgsText(normalized.managedGateway?.args));
-      setManagedGatewayArgsError("");
       setSettingsPath(result.path);
       setError("");
     } catch (loadError) {
@@ -255,6 +173,23 @@ export function SettingsPanel() {
   useEffect(() => {
     void refreshSettings();
   }, [refreshSettings]);
+
+  const refreshEndpoint = useCallback(async () => {
+    setEndpointLoading(true);
+    try {
+      const result = await fetchEndpoint();
+      setEndpoint(result);
+      setEndpointError("");
+    } catch (loadError) {
+      setEndpointError(loadError instanceof Error ? loadError.message : t("loadEndpointFailed"));
+    } finally {
+      setEndpointLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    void refreshEndpoint();
+  }, [refreshEndpoint]);
 
   const refreshVersion = useCallback(async () => {
     try {
@@ -316,26 +251,10 @@ export function SettingsPanel() {
     return () => controller.abort();
   }, [refreshDevices, t]);
 
-  const updateManagedGateway = (patch: Partial<NonNullable<DeckGoSettings["managedGateway"]>>) => {
-    setSettings((current) => ({
-      ...current,
-      managedGateway: {
-        ...current.managedGateway,
-        ...patch,
-      },
-    }));
-  };
-
   const onSave = async () => {
-    if (managedGatewayArgsError) {
-      setError(managedGatewayArgsError);
-      return;
-    }
-
     setSaving(true);
     try {
       const result = await saveSettings(buildSettingsSavePayload(settings));
-      persistAccessToken(settings.accessToken ?? "");
       setLastSaved(result);
       await refreshSettings();
       await refreshRuntimeSummary();
@@ -347,24 +266,20 @@ export function SettingsPanel() {
     }
   };
 
-  const onTestConnection = async () => {
-    setConnectionTestState("testing");
-    setConnectionTestResult(null);
-    const url = buildGatewayUrl(settings.managedGateway);
-    try {
-      const result = await testSettingsConnection(url, settings.managedGateway?.gatewayToken ?? "");
-      setConnectionTestResult({ url, ...result });
-      setError("");
-    } catch (testError) {
-      setConnectionTestResult({
-        url,
-        ok: false,
-        error: testError instanceof Error ? testError.message : t("connectionTestFailed"),
-      });
-    } finally {
-      setConnectionTestState("idle");
-    }
-  };
+  const saveEndpoint = useCallback(
+    async (payload: DeckGoRuntimeEndpointPutRequest) => {
+      const result = await updateEndpoint(payload);
+      setEndpoint(result);
+      await refreshCapabilities();
+      await refreshRuntimeSummary();
+      return result;
+    },
+    [refreshCapabilities, refreshRuntimeSummary],
+  );
+
+  const testRuntimeEndpoint = useCallback(async (payload?: DeckGoRuntimeEndpointTestRequest) => {
+    return testEndpoint(payload);
+  }, []);
 
   const requestDeviceAction = (action: PendingDeviceAction) => {
     setDeviceActionError("");
@@ -397,8 +312,7 @@ export function SettingsPanel() {
     }
   };
 
-  const activeRuntimeUrl = runtime?.runtime.gatewayUrl || t("notResolved");
-  const configuredProbeUrl = buildGatewayUrl(settings.managedGateway);
+  const activeRuntimeUrl = runtime?.runtime.gatewayUrl || endpoint?.url || t("notResolved");
 
   return (
     <section className="deckgo-panel-workspace deck-ui-settings">
@@ -423,147 +337,40 @@ export function SettingsPanel() {
               <span className="deckgo-pill">
                 {t("runtimeStatus", { status: runtime?.runtime.status || t("idle") })}
               </span>
-            </div>
-
-            <label className="deckgo-label deck-ui-settings-label">
-              <span>{t("deckAccessToken")}</span>
-              <input
-                className="deckgo-input deck-ui-settings-input"
-                type="password"
-                autoComplete="new-password"
-                value={settings.accessToken ?? ""}
-                placeholder={
-                  settings.accessTokenConfigured ? t("tokenConfiguredPlaceholder") : undefined
-                }
-                onChange={(event) =>
-                  setSettings((current) => ({ ...current, accessToken: event.target.value }))
-                }
-              />
-            </label>
-
-            <div className="deckgo-form-row deck-ui-settings-form-row">
-              <label className="deckgo-label deck-ui-settings-label">
-                <span>{t("managedGatewayCommand")}</span>
-                <input
-                  className="deckgo-input deck-ui-settings-input"
-                  value={settings.managedGateway?.command ?? ""}
-                  onChange={(event) => updateManagedGateway({ command: event.target.value })}
-                />
-              </label>
-              <label className="deckgo-label deck-ui-settings-label">
-                <span>{t("workingDir")}</span>
-                <input
-                  className="deckgo-input deck-ui-settings-input"
-                  value={settings.managedGateway?.workingDir ?? ""}
-                  onChange={(event) => updateManagedGateway({ workingDir: event.target.value })}
-                />
-              </label>
-              <label className="deckgo-label deck-ui-settings-label">
-                <span>{t("gatewayToken")}</span>
-                <input
-                  className="deckgo-input deck-ui-settings-input"
-                  type="password"
-                  autoComplete="new-password"
-                  value={settings.managedGateway?.gatewayToken ?? ""}
-                  placeholder={
-                    settings.managedGateway?.gatewayTokenConfigured
-                      ? t("tokenConfiguredPlaceholder")
-                      : undefined
-                  }
-                  onChange={(event) => updateManagedGateway({ gatewayToken: event.target.value })}
-                />
-              </label>
-            </div>
-
-            <div className="deckgo-form-row deck-ui-settings-form-row">
-              <label className="deckgo-label deck-ui-settings-label">
-                <span>{t("bindHost")}</span>
-                <input
-                  className="deckgo-input deck-ui-settings-input"
-                  value={settings.managedGateway?.bindHost ?? ""}
-                  onChange={(event) => updateManagedGateway({ bindHost: event.target.value })}
-                />
-              </label>
-              <label className="deckgo-label deck-ui-settings-label">
-                <span>{t("bindPort")}</span>
-                <input
-                  className="deckgo-input deck-ui-settings-input"
-                  type="number"
-                  value={settings.managedGateway?.bindPort ?? 18789}
-                  onChange={(event) =>
-                    updateManagedGateway({ bindPort: Number(event.target.value) || 18789 })
-                  }
-                />
-              </label>
-              <label className="deckgo-label deck-ui-settings-label">
-                <span>{t("runtimeEndpoint")}</span>
-                <input
-                  className="deckgo-input deck-ui-settings-input"
-                  value={activeRuntimeUrl}
-                  readOnly
-                />
-              </label>
-            </div>
-
-            <label className="deckgo-label deck-ui-settings-label">
-              <span>{t("startupArgs")}</span>
-              <input
-                className="deckgo-input deck-ui-settings-input"
-                value={managedGatewayArgsText}
-                placeholder='["openclaw","gateway","run"]'
-                aria-invalid={managedGatewayArgsError ? true : undefined}
-                onChange={(event) => {
-                  const nextText = event.target.value;
-                  const parsed = parseArgsText(nextText);
-                  setManagedGatewayArgsText(nextText);
-                  setManagedGatewayArgsError(parsed.errorKey ? t(parsed.errorKey) : "");
-                  if (!parsed.errorKey) {
-                    updateManagedGateway({ args: parsed.args });
-                  }
-                }}
-              />
-              {managedGatewayArgsError ? (
-                <span role="alert" className="deckgo-note deck-ui-settings-error">
-                  {managedGatewayArgsError}
-                </span>
+              {capabilities ? (
+                <span className="deckgo-pill">{t("runtimeMode", { mode: capabilities.mode })}</span>
               ) : null}
-            </label>
-
-            <label className="deckgo-label deck-ui-settings-label">
-              <span>{t("managedGatewayEnvironment")}</span>
-              <textarea
-                className="deckgo-textarea deck-ui-settings-textarea"
-                rows={5}
-                value={formatEnvLines(settings.managedGateway?.env)}
-                onChange={(event) =>
-                  updateManagedGateway({
-                    env: parseEnvLines(event.target.value),
-                  })
-                }
-                placeholder="NO_PROXY=localhost,127.0.0.1"
-              />
-            </label>
-
-            <label className="deckgo-checkbox-row deck-ui-settings-check">
-              <input
-                type="checkbox"
-                checked={settings.managedGateway?.autoStart ?? true}
-                onChange={(event) => updateManagedGateway({ autoStart: event.target.checked })}
-              />
-              <span>{t("autoStartManagedGateway")}</span>
-            </label>
-
-            <div className="deckgo-surface-tile deck-ui-settings-surface">
-              <p className="deckgo-surface-label">{t("connectionProbe")}</p>
-              <strong>{configuredProbeUrl}</strong>
-              <p className="deckgo-note">{t("connectionProbeDescription")}</p>
             </div>
+
+            {capabilities && endpoint ? (
+              <EndpointSection
+                capabilities={capabilities}
+                value={endpoint}
+                onSave={saveEndpoint}
+                onTest={testRuntimeEndpoint}
+              />
+            ) : (
+              <div className="deckgo-surface-tile deck-ui-settings-surface">
+                <p className="deckgo-surface-label">{t("endpointTitle")}</p>
+                <p className="deckgo-note">
+                  {endpointLoading || capabilitiesLoading
+                    ? t("loading")
+                    : endpointError || t("notLoadedYet")}
+                </p>
+              </div>
+            )}
+
+            <ReadOnlyField
+              badge={t("setViaEnv")}
+              label={t("deckAccessToken")}
+              value={settings.accessTokenConfigured ? t("configured") : t("notConfigured")}
+            />
 
             <div className="deckgo-actions deck-ui-settings-actions">
               <button
                 className="deckgo-button deck-ui-settings-button is-primary"
                 type="button"
-                disabled={saving || Boolean(managedGatewayArgsError)}
+                disabled={saving}
                 onClick={() => void onSave()}
               >
                 {saving ? t("savingSettings") : t("saveSettings")}
@@ -582,23 +389,15 @@ export function SettingsPanel() {
               >
                 {t("refreshRuntime")}
               </button>
-              <button
-                className="deckgo-button deck-ui-settings-button"
-                type="button"
-                onClick={() => void onTestConnection()}
-                disabled={connectionTestState !== "idle"}
-              >
-                {connectionTestState === "testing" ? t("testingConnection") : t("testConnection")}
-              </button>
             </div>
 
             <div className="deckgo-surface-tile deck-ui-settings-surface">
               <p className="deckgo-surface-label">{t("settingsFile")}</p>
               <strong>{settingsPath || t("notLoadedYet")}</strong>
               <p className="deckgo-note">
-                {t("managedSettingsSummary", {
-                  autoStart: settings.managedGateway?.autoStart ? "true" : "false",
-                  mode: settings.managedGateway?.mode || "managed",
+                {t("runtimeSettingsSummary", {
+                  configured: capabilities?.configured ? "true" : "false",
+                  mode: capabilities?.mode || t("notAvailable"),
                 })}
               </p>
             </div>
@@ -689,13 +488,13 @@ export function SettingsPanel() {
               })}
             </p>
             <p className="deckgo-note">
-              {t("summaryCommandConfigured", {
-                value: settings.managedGateway?.command ? t("yes") : t("no"),
+              {t("summaryRuntimeMode", {
+                value: capabilities?.mode || t("notAvailable"),
               })}
             </p>
             <p className="deckgo-note">
-              {t("summaryGatewayTokenConfigured", {
-                value: settings.managedGateway?.gatewayTokenConfigured ? t("yes") : t("no"),
+              {t("summaryEndpointConfigured", {
+                value: capabilities?.configured ? t("yes") : t("no"),
               })}
             </p>
             <p className="deckgo-note">{t("summaryRuntimeUrl", { value: activeRuntimeUrl })}</p>
@@ -728,17 +527,6 @@ export function SettingsPanel() {
             </div>
           </div>
         </article>
-
-        {connectionTestResult ? (
-          <article className="deckgo-card deck-ui-settings-card">
-            <div className="deckgo-card-header">
-              <h2 className="deckgo-card-title">{t("connectionTestResult")}</h2>
-            </div>
-            <div className="deckgo-card-body deck-ui-settings-body">
-              <JsonDetails title={t("settingsConnectionResult")} payload={connectionTestResult} />
-            </div>
-          </article>
-        ) : null}
 
         {lastSaved ? (
           <article className="deckgo-card deck-ui-settings-card">

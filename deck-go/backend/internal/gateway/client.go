@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,6 +45,12 @@ type Client struct {
 	provider ConnectionProvider
 }
 
+type DirectRequestOptions struct {
+	Headers               http.Header
+	HandshakeTimeout      time.Duration
+	InsecureSkipTLSVerify bool
+}
+
 func New(provider ConnectionProvider) *Client {
 	return &Client{provider: provider}
 }
@@ -60,6 +67,10 @@ func (c *Client) Request(ctx context.Context, method string, params map[string]a
 }
 
 func RequestDirect(ctx context.Context, upstreamURL string, token string, method string, params map[string]any) (any, error) {
+	return RequestDirectWithOptions(ctx, upstreamURL, token, method, params, DirectRequestOptions{})
+}
+
+func RequestDirectWithOptions(ctx context.Context, upstreamURL string, token string, method string, params map[string]any, opts DirectRequestOptions) (any, error) {
 	if strings.TrimSpace(upstreamURL) == "" {
 		return nil, errors.New("gateway url is not configured")
 	}
@@ -67,10 +78,22 @@ func RequestDirect(ctx context.Context, upstreamURL string, token string, method
 		return nil, errors.New("gateway token is not configured")
 	}
 
-	dialer := websocket.Dialer{
-		HandshakeTimeout: 8 * time.Second,
+	handshakeTimeout := opts.HandshakeTimeout
+	if handshakeTimeout <= 0 {
+		handshakeTimeout = 8 * time.Second
 	}
-	conn, _, err := dialer.DialContext(ctx, upstreamURL, http.Header{})
+	dialer := websocket.Dialer{
+		HandshakeTimeout: handshakeTimeout,
+	}
+	if opts.InsecureSkipTLSVerify {
+		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	headers := opts.Headers.Clone()
+	if headers == nil {
+		headers = http.Header{}
+	}
+	headers.Set("Authorization", "Bearer "+token)
+	conn, _, err := dialer.DialContext(ctx, upstreamURL, headers)
 	if err != nil {
 		return nil, err
 	}

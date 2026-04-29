@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	runtimecapability "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/capability"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/runtimeid"
 )
@@ -12,7 +12,7 @@ import (
 const DefaultRuntimeID = runtimeid.Default
 
 type SnapshotReader interface {
-	Snapshot() runtimecontrol.Snapshot
+	Snapshot() bundled.Snapshot
 }
 
 type CapabilitySummary = runtimecapability.Summary
@@ -63,7 +63,7 @@ func (s *Summaries) GetRuntime(ctx context.Context, runtimeID string) (RuntimeSu
 	return summarize(ctx, s.reader.Snapshot(), s.capabilities), true, nil
 }
 
-func summarize(ctx context.Context, snapshot runtimecontrol.Snapshot, capabilities CapabilityLoader) RuntimeSummary {
+func summarize(ctx context.Context, snapshot bundled.Snapshot, capabilities CapabilityLoader) RuntimeSummary {
 	summary := RuntimeSummary{
 		RuntimeID:         DefaultRuntimeID,
 		Managed:           snapshot.Managed,

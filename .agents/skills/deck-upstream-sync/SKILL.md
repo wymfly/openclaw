@@ -9,6 +9,16 @@ Orchestrates the full cycle: upstream rebase, conflict resolution, protocol sync
 
 This skill is **checkpoint-driven**: every phase ends with a user confirmation gate. Never proceed to the next phase without explicit approval.
 
+## Runtime Mode Relocation Note
+
+The current `deck-go` runtime-mode implementation moved local Gateway lifecycle
+files under `deck-go/backend/internal/runtime/bundled/`. Use
+`bundled/supervisor.go`, `bundled/preflight.go`, and the adjacent process-group
+files when inspecting or rebasing supervisor logic. The old
+`deck-go/backend/internal/runtime/config_sync*` files were removed; runtime
+configuration now comes from `internal/runtime/envconf`, `state`, `facade`,
+`bundled`, `remote`, and `shared`.
+
 ## Prerequisites
 
 Before invoking, verify:

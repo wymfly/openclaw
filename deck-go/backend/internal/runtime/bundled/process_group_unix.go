@@ -1,6 +1,6 @@
 //go:build !windows
 
-package runtimecontrol
+package bundled
 
 import (
 	"os/exec"
