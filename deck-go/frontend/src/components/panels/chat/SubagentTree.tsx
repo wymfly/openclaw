@@ -58,10 +58,10 @@ function SubagentTreeNode({ entry }: { entry: LineageTreeNode }) {
   const hasChildren = entry.children.length > 0;
 
   return (
-    <li className="ds-subagent-tree__node deck-ui-subagent-node">
+    <li className="ds-subagent-tree__node">
       <SubagentCard hasChildren={hasChildren} node={entry.node}>
         {hasChildren ? (
-          <ul className="ds-subagent-tree__children deck-ui-subagent-children">
+          <ul className="ds-subagent-tree__children">
             {entry.children.map((child) => (
               <SubagentTreeNode entry={child} key={child.node.runId || child.node.sessionKey} />
             ))}
@@ -116,16 +116,12 @@ export function SubagentTree() {
   const tree = buildLineageTree(nodes);
 
   return (
-    <section className="ds-subagent-tree deck-ui-subagent-tree" aria-label={t("subagents")}>
-      <header>
+    <section className="ds-subagent-tree" aria-label={t("subagents")}>
+      <header className="ds-subagent-tree__head">
         <strong>{t("subagents")}</strong>
-        {loading ? (
-          <span className="ds-subagent-tree__loading deck-ui-subagent-loading">
-            {t("subagentLoading")}
-          </span>
-        ) : null}
+        {loading ? <span className="ds-subagent-tree__loading">{t("subagentLoading")}</span> : null}
       </header>
-      <ul>
+      <ul className="ds-subagent-tree__list">
         {tree.map((entry) => (
           <SubagentTreeNode entry={entry} key={entry.node.runId || entry.node.sessionKey} />
         ))}

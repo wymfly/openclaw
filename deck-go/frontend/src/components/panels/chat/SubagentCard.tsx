@@ -41,10 +41,10 @@ export function SubagentCard({
   const normalizedStatus = node.status.toLowerCase();
 
   return (
-    <article className={`deck-ui-subagent-card is-${normalizedStatus}`}>
+    <article className={`ds-subagent-card ds-subagent-card--${normalizedStatus}`}>
       <button
         aria-expanded={hasChildren ? expanded : undefined}
-        className="deck-ui-subagent-row"
+        className="ds-subagent-card__row"
         data-run-id={node.runId}
         type="button"
         onClick={() => {
@@ -54,15 +54,15 @@ export function SubagentCard({
         }}
       >
         <span
-          className={`deck-ui-subagent-status is-${normalizedStatus}`}
+          className={`ds-subagent-card__status ds-subagent-card__status--${normalizedStatus}`}
           data-subagent-status={normalizedStatus}
         />
-        <span className="deck-ui-subagent-label">{nodeLabel(node)}</span>
-        {node.task ? <small className="deck-ui-subagent-task">{node.task}</small> : null}
-        <span className="deck-ui-subagent-badge">{t(statusKey(node.status))}</span>
-        {elapsed ? <em className="deck-ui-subagent-elapsed">{elapsed}</em> : null}
+        <span className="ds-subagent-card__label">{nodeLabel(node)}</span>
+        {node.task ? <small className="ds-subagent-card__task">{node.task}</small> : null}
+        <span className="ds-subagent-card__badge">{t(statusKey(node.status))}</span>
+        {elapsed ? <em className="ds-subagent-card__elapsed">{elapsed}</em> : null}
       </button>
-      {expanded && children ? <div className="deck-ui-subagent-card-body">{children}</div> : null}
+      {expanded && children ? <div className="ds-subagent-card__body">{children}</div> : null}
     </article>
   );
 }
