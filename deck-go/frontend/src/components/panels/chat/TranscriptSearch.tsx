@@ -97,9 +97,9 @@ export function TranscriptSearch({
   };
 
   return (
-    <div className="ds-transcript-search deck-ui-transcript-search" role="search">
-      <SearchIcon className="ds-transcript-search__icon deck-ui-transcript-search-icon" />
-      <label className="ds-transcript-search__field deck-ui-transcript-search-field">
+    <div className="ds-transcript-search" role="search">
+      <SearchIcon className="ds-transcript-search__icon" />
+      <label className="ds-transcript-search__field">
         <span>{t("searchTranscript")}</span>
         <Input
           ref={resolvedInputRef}
@@ -121,9 +121,9 @@ export function TranscriptSearch({
           placeholder={t("searchTranscript")}
         />
       </label>
-      <div className="ds-transcript-search__controls deck-ui-transcript-search-controls">
+      <div className="ds-transcript-search__controls">
         {query.trim() ? (
-          <span className="ds-transcript-search__count deck-ui-transcript-search-count">
+          <span className="ds-transcript-search__count">
             {matches.length > 0
               ? `${Math.min(currentIdx + 1, matches.length)}/${matches.length}`
               : t("noSearchResults")}

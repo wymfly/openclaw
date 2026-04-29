@@ -206,34 +206,45 @@
   flex: 1;
 }
 
+/* Transcript-search — bundle .t-search (lines 232-241).
+ * Floats above the transcript when the user opens the search affordance
+ * from the context-bar; Input atom owns the input chrome so this rule
+ * only owns frame + label sr-only + controls + count chrome. */
 .ds-transcript-search {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--ds-border);
-  background: var(--ds-bg-elev);
+  gap: 8px;
+  padding: 8px 22px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-2);
 }
 
 .ds-transcript-search__icon {
   width: 14px;
   height: 14px;
+  flex: 0 0 auto;
+  color: var(--ds-text-3);
 }
 
 .ds-transcript-search__field {
   flex: 1 1 auto;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+
+.ds-transcript-search__field > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 
 .ds-transcript-search__field input {
   flex: 1;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  color: inherit;
-  outline: none;
+  min-width: 0;
 }
 
 .ds-transcript-search__controls {
@@ -243,8 +254,10 @@
 }
 
 .ds-transcript-search__count {
-  font-size: 0.75rem;
-  color: var(--ds-text-2, currentColor);
+  padding-inline: 4px;
+  white-space: nowrap;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
 }
 
 .ds-subagent-tree {

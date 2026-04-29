@@ -8501,8 +8501,7 @@ details summary {
   background: var(--surface-inset);
 }
 
-.deck-ui-session-mode-tab,
-.deck-ui-transcript-search-controls button {
+.deck-ui-session-mode-tab {
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
@@ -8546,8 +8545,6 @@ details summary {
   color: #fff;
 }
 
-.deck-ui-search,
-.deck-ui-transcript-search,
 .deck-ui-config-strip label {
   display: grid;
   gap: 6px;
@@ -8555,8 +8552,6 @@ details summary {
   font-size: 0.78rem;
 }
 
-.deck-ui-search span,
-.deck-ui-transcript-search label > span,
 .deck-ui-config-strip label span {
   position: absolute;
   width: 1px;
@@ -8565,8 +8560,6 @@ details summary {
   clip: rect(0, 0, 0, 0);
 }
 
-.deck-ui-search input,
-.deck-ui-transcript-search input,
 .deck-ui-config-strip input {
   width: 100%;
   border: 1px solid var(--border);
@@ -8576,15 +8569,11 @@ details summary {
   font: inherit;
 }
 
-.deck-ui-search input,
-.deck-ui-transcript-search input,
 .deck-ui-config-strip input {
   min-height: 38px;
   padding: 9px 12px;
 }
 
-.deck-ui-search input:focus,
-.deck-ui-transcript-search input:focus,
 .deck-ui-config-strip input:focus,
 .deck-ui-nav-item:focus-visible,
 .deck-ui-icon-button:focus-visible,
@@ -8610,7 +8599,6 @@ details summary {
 }
 
 .deck-ui-context-strip,
-.deck-ui-transcript-search,
 .deck-ui-config-strip {
   border: 0;
   border-bottom: 1px solid var(--border);
@@ -8683,67 +8671,6 @@ details summary {
   outline-offset: 2px;
 }
 
-.deck-ui-transcript-search {
-  padding: 8px 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.deck-ui-transcript-search-icon {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  color: var(--text-faint);
-}
-
-.deck-ui-transcript-search-field {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.deck-ui-transcript-search-controls {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  color: var(--text-faint);
-  font-size: 0.75rem;
-}
-
-.deck-ui-transcript-search-count {
-  padding-inline: 4px;
-  white-space: nowrap;
-}
-
-.deck-ui-transcript-search-controls button {
-  width: 28px;
-  height: 28px;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text-soft);
-  padding: 0;
-}
-
-.deck-ui-transcript-search-controls button:hover,
-.deck-ui-transcript-search-controls button:focus-visible {
-  border-color: var(--border);
-  background: var(--surface-elevated);
-  color: var(--text);
-}
-
-.deck-ui-transcript-search-controls svg {
-  width: 14px;
-  height: 14px;
-}
-
-.deck-ui-transcript-search-controls button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
 
 .deck-ui-transcript {
   display: grid;
