@@ -9313,7 +9313,6 @@ details summary {
 
 .deck-ui-session-config-button,
 .deck-ui-context-button,
-.deck-ui-approval-actions button,
 .deck-ui-steer-shortcut,
 .deck-ui-config-strip-button {
   min-height: 28px;
@@ -9480,78 +9479,6 @@ details summary {
   text-align: center;
 }
 
-.deck-ui-approval-dialog {
-  grid-column: 1 / -1;
-  min-width: 0;
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--warning) 36%, var(--border));
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--warning) 8%, var(--panel));
-}
-
-.deck-ui-approval-dialog header,
-.deck-ui-approval-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.deck-ui-approval-dialog header span {
-  color: var(--text-faint);
-  font-size: 0.78rem;
-}
-
-.deck-ui-approval-icon {
-  width: 16px;
-  height: 16px;
-  color: var(--warning);
-}
-
-.deck-ui-approval-countdown,
-.deck-ui-approval-dialog dd,
-.deck-ui-approval-actions button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.deck-ui-approval-countdown {
-  margin-left: auto;
-  font-family: var(--font-mono);
-}
-
-.deck-ui-approval-countdown svg,
-.deck-ui-approval-dialog dd svg,
-.deck-ui-approval-actions svg {
-  width: 12px;
-  height: 12px;
-  flex: 0 0 auto;
-}
-
-.deck-ui-approval-body {
-  display: grid;
-  gap: 8px;
-}
-
-.deck-ui-approval-body pre {
-  margin: 0;
-  overflow: auto;
-  padding: 10px;
-  border-radius: 6px;
-  background: var(--surface-inset);
-}
-
-.deck-ui-approval-allow {
-  color: var(--primary) !important;
-}
-
-.deck-ui-approval-deny {
-  color: var(--danger) !important;
-}
-
 .animate-pulse {
   animation: deckgo-pulse 1.2s ease-in-out infinite;
 }
@@ -9573,9 +9500,6 @@ details summary {
   }
 }
 
-.deck-ui-approval-dialog {
-  flex: 1 0 100%;
-}
 
 .deck-ui-state-line {
   margin: 0;
