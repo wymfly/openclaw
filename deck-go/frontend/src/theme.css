@@ -8706,7 +8706,6 @@ details summary {
   text-transform: uppercase;
 }
 
-.deck-ui-diff-preview,
 .deck-ui-artifact-code {
   margin: 0;
   overflow: auto;
@@ -8719,102 +8718,6 @@ details summary {
   font-size: 0.78rem;
   line-height: 1.55;
   white-space: pre-wrap;
-}
-
-.deck-ui-highlighted-code {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-inset);
-}
-
-.deck-ui-code-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-elevated);
-  color: var(--text-faint);
-  font-size: 0.72rem;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-}
-
-.deck-ui-code-scroll {
-  max-height: 400px;
-  overflow: auto;
-}
-
-.deck-ui-code-line {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  min-width: 0;
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  line-height: 1.55;
-}
-
-.deck-ui-code-line:hover {
-  background: color-mix(in srgb, var(--primary) 5%, transparent);
-}
-
-.deck-ui-code-gutter {
-  min-width: 4ch;
-  padding: 0 8px;
-  border-right: 1px solid var(--border);
-  color: var(--text-faint);
-  text-align: right;
-  user-select: none;
-}
-
-.deck-ui-code-line code {
-  min-width: 0;
-  padding: 0 10px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-diff-preview {
-  display: grid;
-  gap: 0;
-  padding: 0;
-}
-
-.deck-ui-diff-line {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 2ch minmax(0, 1fr);
-  gap: 6px;
-  padding: 2px 9px;
-  border-left: 3px solid transparent;
-  color: var(--text-soft);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-  white-space: pre-wrap;
-}
-
-.deck-ui-diff-line.is-added {
-  border-left-color: var(--success);
-  background: color-mix(in srgb, var(--success) 8%, transparent);
-}
-
-.deck-ui-diff-line.is-removed {
-  border-left-color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 8%, transparent);
-}
-
-.deck-ui-diff-line.is-hunk {
-  border-left-color: var(--primary);
-  color: var(--primary);
-}
-
-.deck-ui-diff-prefix {
-  color: inherit;
-  text-align: center;
-  user-select: none;
 }
 
 .deck-ui-artifact-card-language {
@@ -8901,45 +8804,6 @@ details summary {
 
 .deck-ui-artifact-markdown {
   padding: 10px 12px;
-}
-
-.deck-ui-json-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-}
-
-.deck-ui-json-toggle:hover {
-  background: var(--panel);
-}
-
-.deck-ui-json-children {
-  margin-left: 16px;
-  padding-left: 10px;
-  border-left: 1px solid var(--border);
-}
-
-.deck-ui-json-key {
-  color: var(--text);
-}
-
-.deck-ui-json-string {
-  color: var(--success);
-}
-
-.deck-ui-json-primitive {
-  color: var(--primary);
-}
-
-.deck-ui-json-null,
-.deck-ui-json-summary {
-  color: var(--text-faint);
 }
 
 .deck-ui-artifact-empty {

@@ -38,7 +38,6 @@ export function ArtifactPanel({
         </span>
         <IconButton
           size="sm"
-          className="deck-ui-tool-control"
           aria-label={t("artifactDownload")}
           title={t("artifactDownload")}
           onClick={() => downloadArtifact(artifact)}
@@ -48,7 +47,6 @@ export function ArtifactPanel({
         </IconButton>
         <IconButton
           size="sm"
-          className="deck-ui-tool-control"
           aria-label={copied ? t("copied") : t("artifactCopy")}
           title={t("artifactCopy")}
           onClick={() => void handleCopy()}
@@ -60,7 +58,6 @@ export function ArtifactPanel({
         </IconButton>
         <IconButton
           size="sm"
-          className="deck-ui-tool-control"
           aria-pressed={fullscreen}
           aria-label={t("artifactFullscreen")}
           title={t("artifactFullscreen")}
@@ -69,12 +66,7 @@ export function ArtifactPanel({
           <MaximizeIcon />
           <span className="ds-sr-only deck-ui-sr-only">{t("artifactFullscreen")}</span>
         </IconButton>
-        <IconButton
-          size="sm"
-          className="deck-ui-tool-control"
-          aria-label={t("artifactClose")}
-          onClick={onClose}
-        >
+        <IconButton size="sm" aria-label={t("artifactClose")} onClick={onClose}>
           <XIcon />
           <span className="ds-sr-only deck-ui-sr-only">{t("artifactClose")}</span>
         </IconButton>

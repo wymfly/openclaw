@@ -278,9 +278,7 @@ function renderStringContent({
   }
 
   if (viewType === "read" && isBinaryContent(content)) {
-    return (
-      <div className="ds-tool-result-binary deck-ui-tool-result-binary">{t("binaryFile")}</div>
-    );
+    return <div className="ds-tool-result-binary">{t("binaryFile")}</div>;
   }
 
   if (viewType === "bash" && bashResult) {

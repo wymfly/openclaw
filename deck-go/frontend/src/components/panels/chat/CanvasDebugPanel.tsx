@@ -96,7 +96,6 @@ export function CanvasDebugPanel() {
         <div className="ds-canvas-debug__tree deck-ui-canvas-debug-tree">
           <IconButton
             size="sm"
-            className="deck-ui-tool-control"
             title={t("debugRefreshTree")}
             aria-label={t("debugRefreshTree")}
             onClick={refreshTree}

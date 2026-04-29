@@ -1,8 +1,16 @@
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { isBinaryContent } from "@/lib/tool-result-parser";
+import "@/design-system/atoms/diff-view.css";
 
 type DiffLineKind = "added" | "removed" | "context" | "hunk";
+
+const KIND_TO_VARIANT: Record<DiffLineKind, string> = {
+  added: "add",
+  removed: "del",
+  hunk: "hunk",
+  context: "context",
+};
 
 type DiffLine = {
   kind: DiffLineKind;
@@ -81,24 +89,24 @@ export function DiffPreview({ content }: { content: string }) {
 
   if (isBinary) {
     return (
-      <div className="deck-ui-tool-result-binary" data-tool-result-view="diff">
+      <div className="ds-diff__binary" data-tool-result-view="diff">
         {t("binaryFile")}
       </div>
     );
   }
 
   return (
-    <div className="deck-ui-diff-preview" data-tool-result-view="diff">
+    <div className="ds-diff" data-tool-result-view="diff">
       {lines.map((line, index) => (
         <div
-          className={`deck-ui-diff-line is-${line.kind}`}
+          className={`ds-diff__line ds-diff__line--${KIND_TO_VARIANT[line.kind]}`}
           data-diff-line={line.kind}
           data-new-num={line.newNum ?? ""}
           data-old-num={line.oldNum ?? ""}
           key={`${index}-${line.kind}-${line.text}`}
         >
-          <span className="deck-ui-diff-prefix">{PREFIX[line.kind]}</span>
-          <span>{line.kind === "hunk" ? line.text : line.text || "\u00A0"}</span>
+          <span className="ds-diff__sym">{PREFIX[line.kind]}</span>
+          <code>{line.kind === "hunk" ? line.text : line.text || "\u00A0"}</code>
         </div>
       ))}
     </div>

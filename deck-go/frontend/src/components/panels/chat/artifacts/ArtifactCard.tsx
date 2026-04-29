@@ -17,7 +17,7 @@ export function ArtifactCard({
       <PlayIcon className="deck-ui-artifact-card-icon" aria-hidden="true" />
       <span className="deck-ui-artifact-card-title">{title}</span>
       <span className="deck-ui-artifact-card-language">{artifact.language}</span>
-      <button className="deck-ui-tool-control" type="button" onClick={() => onOpen(artifact)}>
+      <button type="button" onClick={() => onOpen(artifact)}>
         {t("openArtifact")}
       </button>
     </div>

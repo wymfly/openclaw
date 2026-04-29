@@ -20,7 +20,7 @@ export function VirtualScrollResult({ content }: { content: string }) {
           })}
         </span>
         <button
-          className="ds-tool-control deck-ui-tool-control"
+          className="ds-tool-control"
           type="button"
           onClick={() => setExpanded((current) => !current)}
         >
