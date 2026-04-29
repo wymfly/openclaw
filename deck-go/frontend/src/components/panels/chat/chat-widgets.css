@@ -461,3 +461,73 @@
   display: inline-flex;
   gap: 4px;
 }
+
+/* File-block — bundle .file-block (lines 547-554). Card atom owns
+ * the outer surface chrome via `<Card surface="flat" padded={false}>`;
+ * this rule supplies the inner flex row + name/size typography +
+ * --ds-bg-2 background that matches bundle. */
+.ds-file-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--ds-bg-2);
+  font-size: var(--ds-fs-body);
+}
+
+.ds-file-block__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-file-block__size {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-transform: uppercase;
+}
+
+/* Image-block — bundle has no direct counterpart for the inline
+ * thumbnail surface (.img-result lines 526-533 covers a different
+ * stub state). Deck-go renders a click-to-zoom preview; the
+ * thumbnail card is bordered on --ds-bg-elev, the preview overlay
+ * is full-screen with a darker scrim. */
+.ds-image-block {
+  display: inline-grid;
+  max-width: min(100%, 520px);
+  padding: 6px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-elev);
+  cursor: zoom-in;
+}
+
+.ds-image-block img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: var(--ds-radius-sm);
+}
+
+.ds-image-block__preview {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(8 13 20 / 82%);
+  cursor: zoom-out;
+}
+
+.ds-image-block__preview img {
+  max-width: min(100%, 1100px);
+  max-height: 90vh;
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-lg, var(--ds-shadow-md));
+}
