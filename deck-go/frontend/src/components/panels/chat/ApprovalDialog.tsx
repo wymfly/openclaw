@@ -8,8 +8,12 @@ import {
   ShieldCheckIcon,
   XIcon,
 } from "@/deck-ui/icons";
+import { Badge } from "@/design-system/atoms/Badge";
+import { Button } from "@/design-system/atoms/Button";
+import { Card } from "@/design-system/atoms/Card";
 import type { ApprovalDecision } from "@/stores/approvals";
 import type { ApprovalRequest } from "@/stores/chat-types";
+import "./approval-dialog.css";
 
 export type ApprovalDialogProps = {
   approval: ApprovalRequest;
@@ -59,31 +63,37 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
   };
 
   return (
-    <section aria-label={t("inlineTitle")} className="deck-ui-approval-dialog">
-      <header>
-        <ShieldCheckIcon className="deck-ui-approval-icon" />
+    <Card
+      surface="elev"
+      padded={false}
+      role="region"
+      aria-label={t("inlineTitle")}
+      className="ds-approval-dialog deck-ui-approval-dialog"
+    >
+      <header className="ds-approval-dialog__header">
+        <ShieldCheckIcon className="ds-approval-dialog__icon deck-ui-approval-icon" />
         <strong>{t("inlineTitle")}</strong>
         {remaining != null ? (
-          <span className="deck-ui-approval-countdown">
+          <span className="ds-approval-dialog__countdown deck-ui-approval-countdown">
             <ClockIcon />
             {formatCountdown(remaining)}
           </span>
         ) : null}
         {pendingCount != null && pendingCount > 1 ? (
-          <span>
+          <Badge variant="warn">
             {pendingCount} {t("pendingBadge")}
-          </span>
+          </Badge>
         ) : null}
       </header>
 
-      <div className="deck-ui-approval-body">
+      <div className="ds-approval-dialog__body deck-ui-approval-body">
         <code>{approval.toolName}</code>
         {approval.command ? <pre>{approval.command}</pre> : null}
         {approval.description && !approval.command ? <p>{approval.description}</p> : null}
       </div>
 
       {approval.agentId || approval.cwd ? (
-        <dl>
+        <dl className="ds-approval-dialog__meta">
           {approval.agentId ? (
             <>
               <dt>{t("agent")}</dt>
@@ -105,35 +115,38 @@ export function ApprovalDialog({ approval, pendingCount, onResolve }: ApprovalDi
         </dl>
       ) : null}
 
-      <div className="deck-ui-approval-actions">
-        <button
+      <div className="ds-approval-dialog__actions deck-ui-approval-actions">
+        <Button
+          variant="primary"
+          size="sm"
           className="deck-ui-approval-allow"
-          type="button"
           disabled={resolving}
           onClick={() => void handleResolve("allow-once")}
         >
           <CheckIcon />
           {t("approve")}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
           className="deck-ui-approval-allow"
-          type="button"
           disabled={resolving}
           onClick={() => void handleResolve("allow-always")}
         >
           <ShieldCheckIcon />
           {t("approveAlways")}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
           className="deck-ui-approval-deny"
-          type="button"
           disabled={resolving}
           onClick={() => void handleResolve("deny")}
         >
           <XIcon />
           {t("deny")}
-        </button>
+        </Button>
       </div>
-    </section>
+    </Card>
   );
 }

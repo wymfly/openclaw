@@ -19,14 +19,21 @@ export function MentionPopover({ filter, onSelect, onDismiss }: MentionPopoverPr
     return null;
   }
 
+  // Inline list (not anchored Popover) so the parent textarea owns dismissal +
+  // keyboard nav (filtering via composer state). Visual matches bundle's
+  // `mention-popover` floating panel — see chat-popover.css.
   return (
-    <div className="deck-ui-mention-popover" role="listbox" aria-label={t("mentionAgents")}>
-      <div className="deck-ui-mention-title">{t("mentionAgents")}</div>
+    <div
+      className="ds-mention-popover deck-ui-mention-popover"
+      role="listbox"
+      aria-label={t("mentionAgents")}
+    >
+      <div className="ds-mention-popover__title deck-ui-mention-title">{t("mentionAgents")}</div>
       {filtered.map((agent) => {
         const label = agent.name || agent.id;
         return (
           <button
-            className="deck-ui-mention-option"
+            className="ds-mention-popover__option deck-ui-mention-option"
             key={agent.id}
             type="button"
             onClick={() => {

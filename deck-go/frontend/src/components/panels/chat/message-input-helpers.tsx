@@ -1,5 +1,7 @@
 import { useCallback, useContext } from "react";
 import { FileTextIcon, MonitorDotIcon } from "@/deck-ui/icons";
+import { Button } from "@/design-system/atoms/Button";
+import { IconButton } from "@/design-system/atoms/IconButton";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { ArtifactContext } from "./artifact-context";
@@ -45,19 +47,22 @@ export function FileAttachmentBar({
   }
 
   return (
-    <div className="deck-ui-attachment-bar" aria-label="Attached files">
+    <div className="ds-attachment-bar deck-ui-attachment-bar" aria-label="Attached files">
       {files.map((file, index) => (
-        <span className="deck-ui-attachment-pill" key={`${file.name}-${index}`}>
+        <span
+          className="ds-attachment-bar__pill deck-ui-attachment-pill"
+          key={`${file.name}-${index}`}
+        >
           <span>{file.name}</span>
           <span>{formatSize(file.size)}</span>
-          <button
-            className="deck-ui-attachment-remove"
-            type="button"
-            onClick={() => onRemove(index)}
+          <IconButton
+            size="sm"
+            className="ds-attachment-bar__remove deck-ui-attachment-remove"
             aria-label={`Remove ${file.name}`}
+            onClick={() => onRemove(index)}
           >
             x
-          </button>
+          </IconButton>
         </span>
       ))}
     </div>
@@ -83,31 +88,33 @@ export function CanvasToggle({ label }: { label: string }) {
   }, [activeSessionKey, canvasVisible]);
 
   return (
-    <button
-      className="deck-ui-composer-action"
-      type="button"
+    <Button
+      variant="ghost"
+      size="sm"
+      className="ds-message-input__action deck-ui-composer-action"
       aria-pressed={canvasVisible}
       title={label}
       onClick={handleToggle}
     >
       <MonitorDotIcon />
       <span>{label}</span>
-    </button>
+    </Button>
   );
 }
 
 export function ArtifactToggle({ label }: { label: string }) {
   const { artifactPanelOpen, onToggleArtifactPanel } = useContext(ArtifactContext);
   return (
-    <button
-      className="deck-ui-composer-action"
-      type="button"
+    <Button
+      variant="ghost"
+      size="sm"
+      className="ds-message-input__action deck-ui-composer-action"
       aria-pressed={artifactPanelOpen}
       title={label}
       onClick={onToggleArtifactPanel}
     >
       <FileTextIcon />
       {label}
-    </button>
+    </Button>
   );
 }

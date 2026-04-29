@@ -6,6 +6,7 @@ import { useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import type { ChatBlockPreferences } from "@/stores/chat-preferences";
 import type { ChatMessage, RunMetadata } from "@/stores/chat-types";
 import { CompactionNotice } from "./CompactionNotice";
+import "./chat-message.css";
 import { MessageActions } from "./MessageActions";
 import { RunStatusBar } from "./RunStatusBar";
 import { TranscriptBlocks } from "./TranscriptBlocks";
@@ -44,20 +45,24 @@ function MessageBubble({
 
   return (
     <div
-      className={`deck-ui-message ${isUser ? "is-user" : "is-assistant"}`}
+      className={`ds-chat-message ${isUser ? "ds-chat-message--user" : "ds-chat-message--assistant"} deck-ui-message ${isUser ? "is-user" : "is-assistant"}`}
       aria-label={`${isUser ? "User" : "Assistant"} message`}
     >
-      <div className="deck-ui-message-avatar" aria-hidden="true">
+      <div className="ds-chat-message__avatar deck-ui-message-avatar" aria-hidden="true">
         {isUser ? <UserIcon /> : <BotIcon />}
       </div>
-      <div className="deck-ui-message-body">
-        <TranscriptBlocks
-          message={message}
-          isUser={isUser}
-          streaming={message.streaming}
-          blockPreferences={blockPrefs}
-        />
-        {message.error ? <span className="deck-ui-message-error">{message.error}</span> : null}
+      <div className="ds-chat-message__body deck-ui-message-body">
+        <div className="ds-chat-message__bubble">
+          <TranscriptBlocks
+            message={message}
+            isUser={isUser}
+            streaming={message.streaming}
+            blockPreferences={blockPrefs}
+          />
+        </div>
+        {message.error ? (
+          <span className="ds-chat-message__error deck-ui-message-error">{message.error}</span>
+        ) : null}
         {!isUser && runMetadata ? (
           <RunStatusBar
             metadata={runMetadata}
@@ -67,9 +72,11 @@ function MessageBubble({
           />
         ) : null}
         {showPartialResult ? (
-          <span className="deck-ui-partial-result">{partialResultLabel}</span>
+          <span className="ds-chat-message__partial deck-ui-partial-result">
+            {partialResultLabel}
+          </span>
         ) : null}
-        <span className="deck-ui-message-time">
+        <span className="ds-chat-message__time deck-ui-message-time">
           {new Date(message.timestamp).toLocaleTimeString()}
         </span>
         {!isUser ? <MessageActions content={extractPlainText(message)} /> : null}

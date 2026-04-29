@@ -1,0 +1,87 @@
+/* Chat message bubble — IM-style right-align for user, left/full for assistant.
+ *
+ * Migrates from `.deck-ui-message`/`.deck-ui-message-body` (theme.css) and adds
+ * the right-aligned IM bubble pattern (bundle visual same): user messages
+ * collapse to an accent-tinted bubble pinned to the right; assistant content
+ * stays full-width left-aligned with the bot avatar gutter.
+ */
+
+.ds-chat-message {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px 12px;
+  align-items: flex-start;
+}
+
+.ds-chat-message__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2, currentColor);
+  font-size: 14px;
+}
+
+.ds-chat-message__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ds-chat-message__error {
+  color: var(--ds-danger, #d94747);
+  font-size: 0.85rem;
+}
+
+.ds-chat-message__partial {
+  color: var(--ds-text-2);
+  font-style: italic;
+  font-size: 0.78rem;
+}
+
+.ds-chat-message__time {
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+/* Right-aligned IM bubble for user messages — bundle parity. */
+.ds-chat-message--user {
+  grid-template-columns: minmax(0, 1fr) 28px;
+  justify-items: end;
+}
+
+.ds-chat-message--user .ds-chat-message__avatar {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.ds-chat-message--user .ds-chat-message__body {
+  grid-column: 1;
+  grid-row: 1;
+  align-items: flex-end;
+  text-align: left;
+}
+
+.ds-chat-message--user .ds-chat-message__bubble {
+  display: inline-block;
+  max-width: min(640px, 100%);
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ds-accent) 16%, var(--ds-bg-1));
+  color: var(--ds-fg, currentColor);
+  text-align: left;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* Assistant: bubble wrapper is transparent so transcript blocks render full-width. */
+.ds-chat-message--assistant .ds-chat-message__bubble {
+  display: block;
+  width: 100%;
+}

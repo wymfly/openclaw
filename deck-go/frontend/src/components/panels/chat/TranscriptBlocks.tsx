@@ -3,6 +3,7 @@ import { getToolResultBlocks, type ChatMessage } from "@/stores/chat-types";
 import { ToolResultCard } from "./blocks/ToolResultCard";
 import { ToolUseCard } from "./blocks/ToolUseCard";
 import { MarkdownText } from "./MarkdownText";
+import { ToolPair } from "./ToolPair";
 import { renderTranscriptBlock } from "./transcript-render-registry";
 
 export function TranscriptBlocks({
@@ -41,18 +42,27 @@ export function TranscriptBlocks({
           if (result) {
             consumedToolResults.add(result.toolUseId);
           }
+          const showResult = result && blockPreferences?.showToolResult !== false;
           return (
-            <div className="deck-ui-transcript-tool-pair" key={`tool-${block.id}-${index}`}>
-              <ToolUseCard name={block.name} input={block.input} defaultOpen={streaming} />
-              {result && blockPreferences?.showToolResult !== false && (
-                <ToolResultCard
-                  content={result.content}
-                  isError={result.isError}
-                  toolName={block.name}
-                  toolInput={block.input}
-                />
-              )}
-            </div>
+            <ToolPair
+              key={`tool-${block.id}-${index}`}
+              paired
+              error={Boolean(result?.isError)}
+              toolUse={
+                <ToolUseCard name={block.name} input={block.input} defaultOpen={streaming} paired />
+              }
+              toolResult={
+                showResult ? (
+                  <ToolResultCard
+                    content={result.content}
+                    isError={result.isError}
+                    toolName={block.name}
+                    toolInput={block.input}
+                    paired
+                  />
+                ) : undefined
+              }
+            />
           );
         }
 

@@ -1,0 +1,123 @@
+/* Chat composer popovers — slash command palette + mention popover.
+ *
+ * The DS DropdownMenu / Popover atoms are anchored via getBoundingClientRect;
+ * these chat composer surfaces are positioned inline relative to the textarea
+ * via CSS (parent has `position: relative`). We keep the visual layout from
+ * theme.css and migrate to ds-* namespace.
+ */
+
+.ds-command-palette,
+.ds-mention-popover {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  max-height: 320px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-bg-elev);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.ds-command-palette__back {
+  align-self: flex-start;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ds-text-2, currentColor);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.ds-command-palette__back:hover {
+  background: var(--ds-bg-hover);
+}
+
+.ds-command-palette__section + .ds-command-palette__section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ds-border-subtle, var(--ds-border));
+}
+
+.ds-command-palette__section-title {
+  margin: 0 0 4px 0;
+  padding: 0 4px;
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ds-command-palette__option {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ds-command-palette__option:hover,
+.ds-command-palette__option--selected {
+  background: var(--ds-bg-hover);
+}
+
+.ds-command-palette__primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-command-palette__name {
+  font-weight: 500;
+}
+
+.ds-command-palette__args {
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.78rem;
+}
+
+.ds-command-palette__description {
+  text-align: right;
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-mention-popover__title {
+  margin-bottom: 4px;
+  padding: 0 4px;
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ds-mention-popover__option {
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ds-mention-popover__option:hover {
+  background: var(--ds-bg-hover);
+}
+
+.ds-template-menu {
+  position: relative;
+}

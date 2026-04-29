@@ -1,0 +1,224 @@
+/* Smaller chat widgets — config bar, filters, tool ladder, compaction notice,
+ * empty state, steer dialog, transcript search, subagent tree, message actions.
+ *
+ * Each surface gets a `ds-*` class while keeping the legacy `deck-ui-*` class
+ * so theme.css visuals stay valid until P2d 7.3 cleanup.
+ */
+
+.ds-session-config {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-bg-elev);
+  font-size: 0.8rem;
+}
+
+.ds-session-config__model {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.ds-block-filter-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-bg-elev);
+}
+
+.ds-tool-ladder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-bg-elev);
+  font-size: 0.78rem;
+}
+
+.ds-tool-ladder__step {
+  padding: 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: 6px;
+  background: var(--ds-bg-1);
+}
+
+.ds-tool-ladder__step--running {
+  border-color: var(--ds-accent);
+}
+
+.ds-tool-ladder__step--completed {
+  border-color: var(--ds-success, #2c9b6b);
+}
+
+.ds-tool-ladder__step--error {
+  border-color: var(--ds-danger, #d94747);
+}
+
+.ds-tool-ladder__step-label {
+  margin: 0 0 2px;
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ds-compaction-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  margin: 6px 12px;
+  border-radius: 999px;
+  background: var(--ds-bg-2);
+  font-size: 0.78rem;
+  color: var(--ds-text-2, currentColor);
+}
+
+.ds-compaction-notice__icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--ds-bg-3);
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+.ds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.ds-empty-state__eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  color: var(--ds-text-2, currentColor);
+}
+
+.ds-empty-state__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.ds-steer-dialog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-bg-elev);
+}
+
+.ds-steer-dialog__icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ds-accent);
+}
+
+.ds-steer-dialog__input {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-steer-dialog__input input {
+  flex: 1;
+}
+
+.ds-transcript-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-bg-elev);
+}
+
+.ds-transcript-search__icon {
+  width: 14px;
+  height: 14px;
+}
+
+.ds-transcript-search__field {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-transcript-search__field input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+
+.ds-transcript-search__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ds-transcript-search__count {
+  font-size: 0.75rem;
+  color: var(--ds-text-2, currentColor);
+}
+
+.ds-subagent-tree {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-bg-elev);
+  font-size: 0.82rem;
+}
+
+.ds-subagent-tree header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ds-subagent-tree__loading {
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.75rem;
+}
+
+.ds-subagent-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ds-subagent-tree__children {
+  margin-left: 16px;
+  border-left: 1px solid var(--ds-border-subtle, var(--ds-border));
+  padding-left: 8px;
+}
+
+.ds-message-actions {
+  display: inline-flex;
+  gap: 4px;
+}

@@ -1,0 +1,49 @@
+/* Right-side drawer for chat — composes design-system Drawer atom + adds the
+ * resize handle and chat-specific layout rows used by Canvas / Artifact panels.
+ *
+ * Migrates from `.deck-ui-right-drawer` / `.deck-ui-right-drawer-resize`
+ * (theme.css) to `ds-chat-right-drawer__*` namespace.
+ *
+ * Note: `.ds-drawer--right` (from design-system Drawer atom) provides the
+ * fixed-width container and right-anchored positioning. We layer chat-specific
+ * styling on top via `className="ds-chat-right-drawer"` passed to Drawer.
+ */
+
+.ds-chat-right-drawer {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 16px;
+  border-left: 1px solid var(--ds-border);
+  background: var(--ds-bg-elev);
+}
+
+.ds-chat-right-drawer__resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  z-index: 2;
+  width: 6px;
+  cursor: col-resize;
+}
+
+.ds-chat-right-drawer__resize:hover {
+  background: color-mix(in srgb, var(--ds-accent) 20%, transparent);
+}
+
+.ds-chat-right-drawer header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+@media (max-width: 1180px) {
+  .ds-chat-right-drawer {
+    grid-column: 1 / -1;
+    width: auto !important;
+  }
+}

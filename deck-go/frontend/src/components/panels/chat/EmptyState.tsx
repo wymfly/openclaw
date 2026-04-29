@@ -1,4 +1,6 @@
 import { useTranslations } from "next-intl";
+import { Button } from "@/design-system/atoms/Button";
+import "./chat-widgets.css";
 
 export function EmptyState({ onSelectPrompt }: { onSelectPrompt?: (text: string) => void }) {
   const t = useTranslations("chat");
@@ -7,21 +9,22 @@ export function EmptyState({ onSelectPrompt }: { onSelectPrompt?: (text: string)
     typeof t.has === "function" && t.has("transcriptLabel") ? t("transcriptLabel") : "Transcript";
 
   return (
-    <section className="deck-ui-empty-state">
-      <p className="deck-ui-eyebrow">{transcriptLabel}</p>
+    <section className="ds-empty-state deck-ui-empty-state">
+      <p className="ds-empty-state__eyebrow deck-ui-eyebrow">{transcriptLabel}</p>
       <h2>{t("emptyTitle")}</h2>
       <p>{t("emptyDescription")}</p>
       {onSelectPrompt ? (
-        <div className="deck-ui-filter-row">
+        <div className="ds-empty-state__suggestions deck-ui-filter-row">
           {suggestions.map((key) => (
-            <button
-              className="deck-ui-suggestion-button"
+            <Button
               key={key}
-              type="button"
+              variant="secondary"
+              size="sm"
+              className="deck-ui-suggestion-button"
               onClick={() => onSelectPrompt(t(key))}
             >
               {t(key)}
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}

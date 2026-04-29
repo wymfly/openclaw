@@ -314,7 +314,7 @@ describe("showToolResult block filter", () => {
     expect(container.querySelector("[data-diff-line]")).toBeNull();
   });
 
-  it("restores the legacy details chrome and keeps raw toggle state per card", async () => {
+  it("restores the legacy details chrome and keeps view-tab state per card", async () => {
     const { ToolResultCard } = await import("../blocks/ToolResultCard");
 
     act(() => {
@@ -348,19 +348,31 @@ describe("showToolResult block filter", () => {
     expect(details[0]?.open).toBe(false);
     expect(details[1]?.open).toBe(false);
 
-    const rawButtons = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).filter(
-      (button) => button.textContent === "Show raw",
-    );
-    expect(rawButtons).toHaveLength(2);
-    expect(details[0]?.querySelector("summary")?.contains(rawButtons[0] ?? null)).toBe(true);
+    // SegmentedControl: each card has 4 tabs (raw/bash/read/diff). The raw tab
+    // is always enabled and labelled "Show raw" via t() mock; for read_file the
+    // detected view is "read" so that tab is selected by default.
+    function rawTabs(): HTMLButtonElement[] {
+      return Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
+        (button) => button.textContent === "Show raw",
+      );
+    }
+    const initialRawTabs = rawTabs();
+    expect(initialRawTabs).toHaveLength(2);
+    expect(details[0]?.querySelector("summary")?.contains(initialRawTabs[0] ?? null)).toBe(true);
+    expect(initialRawTabs[0]?.getAttribute("aria-selected")).toBe("false");
+    expect(initialRawTabs[1]?.getAttribute("aria-selected")).toBe("false");
 
     act(() => {
-      rawButtons[0]?.click();
+      initialRawTabs[0]?.click();
     });
 
+    // Card 1 switched to raw; card 2 stays on detected (read) view.
+    const updatedRawTabs = rawTabs();
+    expect(updatedRawTabs[0]?.getAttribute("aria-selected")).toBe("true");
+    expect(updatedRawTabs[1]?.getAttribute("aria-selected")).toBe("false");
+    // Per-card details still closed (clicking a tab inside summary does not toggle the details).
     expect(details[0]?.open).toBe(false);
-    expect(rawButtons[0]?.textContent).toBe("Show formatted");
-    expect(rawButtons[1]?.textContent).toBe("Show raw");
+    expect(details[1]?.open).toBe(false);
   });
 
   it("opens error tool result cards by default", async () => {
@@ -464,7 +476,7 @@ describe("showToolResult block filter", () => {
     expect(errorDetails?.open).toBe(true);
   });
 
-  it("does not block the native keyboard activation path for the raw toggle button", async () => {
+  it("does not block the native keyboard activation path for the raw view tab", async () => {
     const { ToolResultCard } = await import("../blocks/ToolResultCard");
 
     act(() => {
@@ -482,27 +494,29 @@ describe("showToolResult block filter", () => {
       );
     });
 
-    const rawButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+    const rawTab = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(
       (button) => button.textContent === "Show raw",
     );
-    expect(rawButton).toBeTruthy();
+    expect(rawTab).toBeTruthy();
+    expect(rawTab?.getAttribute("aria-selected")).toBe("false");
 
+    // SegmentedControl tabs are native <button> elements — Space/Enter map to
+    // click. Verify we don't preventDefault on the keyboard path that would
+    // suppress activation.
     const keyboardEvent = new KeyboardEvent("keydown", {
       bubbles: true,
       cancelable: true,
       key: " ",
     });
-    rawButton?.dispatchEvent(keyboardEvent);
-
+    rawTab?.dispatchEvent(keyboardEvent);
     expect(keyboardEvent.defaultPrevented).toBe(false);
 
     act(() => {
-      if (!keyboardEvent.defaultPrevented) {
-        rawButton?.click();
-      }
+      rawTab?.click();
     });
 
-    expect(rawButton?.textContent).toBe("Show formatted");
+    // After click the raw tab becomes the selected segment.
+    expect(rawTab?.getAttribute("aria-selected")).toBe("true");
   });
 
   it("collapses long raw tool results until explicitly expanded", async () => {
@@ -561,19 +575,24 @@ describe("showToolResult block filter", () => {
       );
     });
 
+    // Default activeView is "structured" for structured (non-string) content;
+    // each child block renders via its typed renderer.
     expect(container.textContent).toContain("structured-line-60");
 
-    const rawButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+    // Click the raw tab to switch to JSON serialization.
+    const rawTab = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(
       (button) => button.textContent === "Show raw",
     );
-    expect(rawButton).toBeTruthy();
+    expect(rawTab).toBeTruthy();
+    expect(rawTab?.getAttribute("aria-selected")).toBe("false");
 
     act(() => {
-      rawButton?.click();
+      rawTab?.click();
     });
 
-    expect(container.querySelector('[data-tool-result-view="virtual"]')).toBeTruthy();
+    expect(rawTab?.getAttribute("aria-selected")).toBe("true");
     expect(container.textContent).toContain('"type": "text"');
-    expect(container.textContent).toContain("Show formatted");
+    // Long content (>200 JSON lines) renders via virtual scroll.
+    expect(container.querySelector('[data-tool-result-view="virtual"]')).toBeTruthy();
   });
 });

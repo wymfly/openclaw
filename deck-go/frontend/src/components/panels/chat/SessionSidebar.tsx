@@ -1,11 +1,16 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, TrashIcon } from "@/deck-ui/icons";
+import { Button } from "@/design-system/atoms/Button";
+import { IconButton } from "@/design-system/atoms/IconButton";
+import { Input } from "@/design-system/atoms/Input";
+import { SidebarRow } from "@/design-system/atoms/SidebarRow";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
 import { AgentTabs } from "./AgentTabs";
 import { deleteChatSession, fetchSessionPreviews, patchSession } from "./chat-api";
+import "./session-sidebar.css";
 
 function formatTime(timestamp?: number): string {
   if (!timestamp) {
@@ -205,31 +210,76 @@ export function SessionSidebar(
   }, [searchQuery, sessionMetas, sessionPreviewOverlays]);
 
   return (
-    <aside className="deck-ui-session-sidebar">
+    <aside className="ds-session-sidebar deck-ui-session-sidebar">
       <AgentTabs />
-      <button className="deck-ui-session-new" type="button" onClick={handleNew}>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="ds-session-sidebar__new deck-ui-session-new"
+        onClick={handleNew}
+      >
         <PlusIcon />
         <span>{t("newSession")}</span>
-      </button>
-      <input
-        className="deck-ui-session-search"
+      </Button>
+      <Input
+        className="ds-session-sidebar__search deck-ui-session-search"
+        inputSize="sm"
         type="text"
         value={searchQuery}
         onChange={(event) => setSearchQuery(event.target.value)}
         placeholder={t("searchSessions")}
       />
 
-      <div className="deck-ui-session-list">
+      <div className="ds-session-sidebar__list deck-ui-session-list">
         {filteredMetas.map((session) => {
           const previewText = finalSessionPreview(session, sessionPreviewOverlays);
+          const titleNode =
+            editingKey === session.key ? (
+              <input
+                className="ds-session-sidebar__edit deck-ui-session-edit"
+                value={editValue}
+                onChange={(event) => setEditValue(event.target.value)}
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => {
+                  event.stopPropagation();
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  }
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelRenameRef.current = true;
+                    setEditingKey(null);
+                  }
+                }}
+                onBlur={() => void handleFinishRename(session)}
+                autoFocus
+              />
+            ) : (
+              <span>{sessionTitle(session)}</span>
+            );
+
           return (
-            <div
-              className={`deck-ui-session-row ${
-                activeSessionKey === session.key ? "is-selected" : ""
-              }`}
+            <SidebarRow
               key={session.key}
-              role="button"
-              tabIndex={0}
+              className="deck-ui-session-row"
+              active={activeSessionKey === session.key}
+              title={titleNode}
+              preview={previewText || undefined}
+              meta={formatTime(session.updatedAt)}
+              trailing={
+                <IconButton
+                  size="sm"
+                  className="deck-ui-session-delete"
+                  aria-label={t("deleteConfirmTitle")}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setDeleteTarget(session.key);
+                  }}
+                >
+                  <TrashIcon />
+                </IconButton>
+              }
               onClick={() => handleSelect(session)}
               onDoubleClick={(event) => {
                 event.stopPropagation();
@@ -241,70 +291,38 @@ export function SessionSidebar(
                   handleSelect(session);
                 }
               }}
-            >
-              {editingKey === session.key ? (
-                <input
-                  className="deck-ui-session-edit"
-                  value={editValue}
-                  onChange={(event) => setEditValue(event.target.value)}
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => {
-                    event.stopPropagation();
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      event.currentTarget.blur();
-                    }
-                    if (event.key === "Escape") {
-                      event.preventDefault();
-                      cancelRenameRef.current = true;
-                      setEditingKey(null);
-                    }
-                  }}
-                  onBlur={() => void handleFinishRename(session)}
-                  autoFocus
-                />
-              ) : (
-                <span>{sessionTitle(session)}</span>
-              )}
-              {previewText ? <span>{previewText}</span> : null}
-              <span>{formatTime(session.updatedAt)}</span>
-              <button
-                className="deck-ui-session-delete"
-                type="button"
-                aria-label={t("deleteConfirmTitle")}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setDeleteTarget(session.key);
-                }}
-              >
-                <TrashIcon />
-              </button>
-            </div>
+            />
           );
         })}
       </div>
 
       {deleteTarget ? (
-        <div className="deck-ui-delete-dialog" role="dialog" aria-label={t("deleteConfirmTitle")}>
+        <div
+          className="ds-session-sidebar__delete-dialog deck-ui-delete-dialog"
+          role="dialog"
+          aria-label={t("deleteConfirmTitle")}
+        >
           <p>{t("deleteConfirmMessage")}</p>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             className="deck-ui-delete-cancel"
-            type="button"
             onClick={() => setDeleteTarget(null)}
           >
             {t("deleteConfirmCancel")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
             className="deck-ui-delete-confirm"
-            type="button"
             onClick={() => void handleDeleteConfirm()}
           >
             {t("deleteConfirmOk")}
-          </button>
+          </Button>
         </div>
       ) : null}
 
-      <footer className="deck-ui-sidebar-foot">
+      <footer className="ds-session-sidebar__foot deck-ui-sidebar-foot">
         {t("defaultAgent")} {activeAgentId ?? "main"}
       </footer>
       {activeSessionKey ? <div data-active-session={activeSessionKey} /> : null}

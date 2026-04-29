@@ -1,11 +1,14 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
 import { useEscapeClose } from "../hooks/use-escape-close";
 import { useFocusTrap } from "../hooks/use-focus-trap";
 import "./drawer.css";
 
 export type DrawerSide = "right" | "left";
 
-export interface DrawerProps {
+export interface DrawerProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "role" | "aria-modal" | "aria-label" | "aria-labelledby" | "style" | "children"
+> {
   /** Whether the drawer is shown. */
   open: boolean;
   /** Called when the drawer requests to close (Escape, scrim click, or close button via caller). */
@@ -23,7 +26,6 @@ export interface DrawerProps {
   /** Reference to header element id used as dialog accessible name. */
   "aria-labelledby"?: string;
   children: ReactNode;
-  className?: string;
 }
 
 /**
@@ -43,6 +45,7 @@ export function Drawer({
   "aria-labelledby": ariaLabelledBy,
   children,
   className,
+  ...rest
 }: DrawerProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +83,7 @@ export function Drawer({
       aria-labelledby={ariaLabelledBy}
       className={classes.join(" ")}
       style={style}
+      {...rest}
     >
       {children}
     </div>

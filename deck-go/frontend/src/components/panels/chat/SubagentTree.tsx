@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { fetchSubagentLineage, type DeckGoSubagentLineageNode } from "@/api";
 import { useChatStore } from "@/stores/chat";
+import "./chat-widgets.css";
 import { SubagentCard } from "./SubagentCard";
 
 type LineageTreeNode = {
@@ -57,10 +58,10 @@ function SubagentTreeNode({ entry }: { entry: LineageTreeNode }) {
   const hasChildren = entry.children.length > 0;
 
   return (
-    <li className="deck-ui-subagent-node">
+    <li className="ds-subagent-tree__node deck-ui-subagent-node">
       <SubagentCard hasChildren={hasChildren} node={entry.node}>
         {hasChildren ? (
-          <ul className="deck-ui-subagent-children">
+          <ul className="ds-subagent-tree__children deck-ui-subagent-children">
             {entry.children.map((child) => (
               <SubagentTreeNode entry={child} key={child.node.runId || child.node.sessionKey} />
             ))}
@@ -115,10 +116,14 @@ export function SubagentTree() {
   const tree = buildLineageTree(nodes);
 
   return (
-    <section className="deck-ui-subagent-tree" aria-label={t("subagents")}>
+    <section className="ds-subagent-tree deck-ui-subagent-tree" aria-label={t("subagents")}>
       <header>
         <strong>{t("subagents")}</strong>
-        {loading ? <span className="deck-ui-subagent-loading">{t("subagentLoading")}</span> : null}
+        {loading ? (
+          <span className="ds-subagent-tree__loading deck-ui-subagent-loading">
+            {t("subagentLoading")}
+          </span>
+        ) : null}
       </header>
       <ul>
         {tree.map((entry) => (

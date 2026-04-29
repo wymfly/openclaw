@@ -1,6 +1,9 @@
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { ArrowUpIcon, PlusIcon, SquareIcon } from "@/deck-ui/icons";
+import { Button } from "@/design-system/atoms/Button";
+import { IconButton } from "@/design-system/atoms/IconButton";
+import { Textarea } from "@/design-system/atoms/Textarea";
 import { useMention } from "@/hooks/useMention";
 import { resolveSelectMode, useSlashCommand } from "@/hooks/useSlashCommand";
 import { commandRegistry } from "@/lib/command-registry";
@@ -18,6 +21,7 @@ import {
   resolveInitialSessionSendPlan,
   sendChatMessage,
 } from "./chat-api";
+import "./message-input.css";
 import { MentionPopover } from "./MentionPopover";
 import {
   ArtifactToggle,
@@ -32,6 +36,7 @@ import { PromptTemplateMenu } from "./PromptTemplateMenu";
 import { executeSlashCommand, initializeLocalCommands } from "./slash-command-executor";
 import { parseSlashCommand } from "./slash-commands";
 import { SlashCommandPalette } from "./SlashCommandPalette";
+import { useComposerState } from "./useComposerState";
 import { useInputHistory } from "./useInputHistory";
 
 export type MessageInputProps = {
@@ -82,10 +87,16 @@ export function MessageInput(props: MessageInputProps = {}) {
   const pendingCount = pendingApprovals.length;
   const removePending = useApprovalsStore((state) => state.removePending);
   const resolveApproval = useApprovalsStore((state) => state.resolveApproval);
-  const [draftInput, setDraftInput] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [isSending, setIsSending] = useState(false);
-  const input = value ?? draftInput;
+  const composer = useComposerState(value, onChange);
+  const {
+    input,
+    setInput,
+    files,
+    addFiles: appendFiles,
+    removeFile,
+    setFiles,
+    isSending,
+  } = composer;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const slash = useSlashCommand(input);
@@ -125,32 +136,22 @@ export function MessageInput(props: MessageInputProps = {}) {
     initializeLocalCommands();
   }, []);
 
-  const setInputValue = useCallback(
-    (nextValue: string) => {
-      if (value === undefined) {
-        setDraftInput(nextValue);
-      }
-      onChange?.(nextValue);
-    },
-    [onChange, value],
-  );
-
   useEffect(() => {
     if (!suggestedText) {
       return;
     }
-    setInputValue(suggestedText);
+    setInput(suggestedText);
     onSuggestedTextConsumed?.();
-  }, [onSuggestedTextConsumed, setInputValue, suggestedText]);
+  }, [onSuggestedTextConsumed, setInput, suggestedText]);
 
   const handleInputChange = useCallback(
-    (value: string) => {
-      setInputValue(value);
-      slash.handleSlashInput(value);
-      mention.handleMentionInput(value, value.length);
+    (next: string) => {
+      setInput(next);
+      slash.handleSlashInput(next);
+      mention.handleMentionInput(next, next.length);
       history.reset();
     },
-    [history, mention, setInputValue, slash],
+    [history, mention, setInput, slash],
   );
 
   useEffect(() => {
@@ -212,10 +213,10 @@ export function MessageInput(props: MessageInputProps = {}) {
         valid.push(file);
       }
       if (valid.length > 0) {
-        setFiles((current) => [...current, ...valid]);
+        appendFiles(valid);
       }
     },
-    [activeSessionKey],
+    [activeSessionKey, appendFiles],
   );
 
   const abortRun = useCallback(async () => {
@@ -239,7 +240,7 @@ export function MessageInput(props: MessageInputProps = {}) {
   const handleSlashCommand = useCallback(
     async (cmd: RegisteredCommand, cmdArgs = "") => {
       slash.closePalette();
-      setInputValue("");
+      setInput("");
 
       if (cmd.execMode === "remote") {
         const message = cmdArgs ? `/${cmd.name} ${cmdArgs}` : `/${cmd.name}`;
@@ -326,7 +327,7 @@ export function MessageInput(props: MessageInputProps = {}) {
         showCommandError(cmd.name, error);
       }
     },
-    [abortRun, activeAgentId, activeSessionKey, setInputValue, showCommandError, showToast, slash],
+    [abortRun, activeAgentId, activeSessionKey, setInput, showCommandError, showToast, slash, t],
   );
 
   const handleCommandSelect = useCallback(
@@ -338,31 +339,31 @@ export function MessageInput(props: MessageInputProps = {}) {
       }
       if (mode === "tag") {
         slash.enterTagMode(cmd);
-        setInputValue("");
+        setInput("");
         return;
       }
       if (mode === "immediate") {
         void handleSlashCommand(cmd);
       }
     },
-    [handleSlashCommand, setInputValue, slash],
+    [handleSlashCommand, setInput, slash],
   );
 
   const handleArgOptionSelect = useCallback(
     (cmd: RegisteredCommand, arg: string) => {
       slash.closePalette();
-      setInputValue("");
+      setInput("");
       void handleSlashCommand(cmd, arg);
     },
-    [handleSlashCommand, setInputValue, slash],
+    [handleSlashCommand, setInput, slash],
   );
 
   const handleMentionSelect = useCallback(
     (agentName: string) => {
-      setInputValue(mention.selectMention(agentName, input));
+      setInput(mention.selectMention(agentName, input));
       mention.closeMention();
     },
-    [input, mention, setInputValue],
+    [input, mention, setInput],
   );
 
   const sendPlainMessage = useCallback(async () => {
@@ -373,7 +374,7 @@ export function MessageInput(props: MessageInputProps = {}) {
       }
       const command = slash.activeTag;
       slash.clearTag();
-      setInputValue("");
+      setInput("");
       await handleSlashCommand(command, message);
       return;
     }
@@ -410,8 +411,8 @@ export function MessageInput(props: MessageInputProps = {}) {
     const messageText =
       message || (pendingFiles.length > 0 ? pendingFiles.map((file) => file.name).join(", ") : "");
     try {
-      setIsSending(true);
-      setInputValue("");
+      composer.setIsSending(true);
+      setInput("");
       setFiles([]);
       const attachments = await Promise.all(
         pendingFiles.map(async (file) => ({
@@ -431,7 +432,7 @@ export function MessageInput(props: MessageInputProps = {}) {
         });
         sessionKey = createData.key ?? null;
         if (!sessionKey) {
-          setInputValue(message);
+          setInput(message);
           setFiles(pendingFiles);
           return;
         }
@@ -499,20 +500,23 @@ export function MessageInput(props: MessageInputProps = {}) {
         useChatStore.getState().setSessionError(sessionKey, t("error"));
         useChatStore.getState().setSessionStreaming(sessionKey, false);
       } else {
-        setInputValue(message);
+        setInput(message);
         setFiles(pendingFiles);
       }
     } finally {
-      setIsSending(false);
+      composer.setIsSending(false);
     }
   }, [
     activeAgentId,
     activeSessionKey,
+    composer,
     files,
     handleSlashCommand,
+    history,
     input,
     onSendMessage,
-    setInputValue,
+    setFiles,
+    setInput,
     showToast,
     slash,
     t,
@@ -537,7 +541,7 @@ export function MessageInput(props: MessageInputProps = {}) {
       const previous = history.up(input);
       if (previous !== null) {
         event.preventDefault();
-        setInputValue(previous);
+        setInput(previous);
         return;
       }
     }
@@ -545,7 +549,7 @@ export function MessageInput(props: MessageInputProps = {}) {
       const next = history.down();
       if (next !== null) {
         event.preventDefault();
-        setInputValue(next);
+        setInput(next);
         return;
       }
     }
@@ -568,7 +572,7 @@ export function MessageInput(props: MessageInputProps = {}) {
 
   return (
     <div
-      className="deck-ui-message-input"
+      className="ds-message-input deck-ui-message-input"
       onDrop={(event) => {
         event.preventDefault();
         addFiles(Array.from(event.dataTransfer.files));
@@ -583,27 +587,22 @@ export function MessageInput(props: MessageInputProps = {}) {
         />
       ) : null}
       {contextCritical ? (
-        <div className="deck-ui-composer-warning" role="status">
+        <div className="ds-message-input__warning deck-ui-composer-warning" role="status">
           {t("contextWarning")}
         </div>
       ) : null}
-      <FileAttachmentBar
-        files={files}
-        onRemove={(index) => setFiles((current) => current.filter((_, item) => item !== index))}
-      />
-      <button
-        className="deck-ui-composer-action"
-        type="button"
+      <FileAttachmentBar files={files} onRemove={removeFile} />
+      <IconButton
+        className="ds-message-input__action deck-ui-composer-action"
         aria-label={attachFilesLabel}
         title={attachFilesLabel}
         onClick={() => fileInputRef.current?.click()}
       >
         <PlusIcon />
-        <span className="deck-ui-sr-only">{attachFilesLabel}</span>
-      </button>
+      </IconButton>
       <input
         ref={fileInputRef}
-        className="deck-ui-file-input"
+        className="ds-message-input__file-input deck-ui-file-input"
         type="file"
         multiple
         aria-label={fileAttachmentsLabel}
@@ -614,7 +613,7 @@ export function MessageInput(props: MessageInputProps = {}) {
           }
         }}
       />
-      <div className="deck-ui-composer-field">
+      <div className="ds-message-input__field deck-ui-composer-field">
         {slash.showPalette ? (
           <SlashCommandPalette
             filter={slash.slashFilter}
@@ -637,10 +636,12 @@ export function MessageInput(props: MessageInputProps = {}) {
             onDismiss={mention.closeMention}
           />
         ) : null}
-        {slash.ghostHint ? <div className="deck-ui-ghost-hint">{slash.ghostHint}</div> : null}
+        {slash.ghostHint ? (
+          <div className="ds-message-input__ghost deck-ui-ghost-hint">{slash.ghostHint}</div>
+        ) : null}
         {slash.activeTag ? (
           <button
-            className="deck-ui-command-tag"
+            className="ds-message-input__tag deck-ui-command-tag"
             type="button"
             onClick={() => slash.clearTag()}
             title={t("cmdTagRemove")}
@@ -648,9 +649,10 @@ export function MessageInput(props: MessageInputProps = {}) {
             /{slash.activeTag.name}
           </button>
         ) : null}
-        <textarea
+        <Textarea
           ref={textareaRef}
           value={input}
+          noResize
           onChange={(event) => handleInputChange(event.target.value)}
           onKeyDown={handleInputKeyDown}
           onPaste={(event) => {
@@ -662,31 +664,33 @@ export function MessageInput(props: MessageInputProps = {}) {
           placeholder={slash.activeTag ? t("cmdTagPlaceholder") : t("placeholder")}
         />
       </div>
-      <PromptTemplateMenu onSelect={(template) => setInputValue(`${input}${template}`)} />
+      <PromptTemplateMenu onSelect={(template) => setInput(`${input}${template}`)} />
       <CanvasToggle label={t("canvasToggle")} />
       <ArtifactToggle label={t("artifactToggle")} />
       {isStreaming ? (
-        <button
-          className="deck-ui-composer-abort"
-          type="button"
+        <Button
+          variant="danger"
+          size="sm"
+          className="ds-message-input__abort deck-ui-composer-abort"
           disabled={abortDisabled}
           title={t("abort")}
           onClick={() => void abortRun()}
         >
           <SquareIcon />
           <span>{t("abort")}</span>
-        </button>
+        </Button>
       ) : (
-        <button
-          className="deck-ui-composer-send"
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
+          className="ds-message-input__send deck-ui-composer-send"
           disabled={sendDisabled}
           title={t("send")}
           onClick={() => void sendPlainMessage()}
         >
           <ArrowUpIcon />
           <span>{t("send")}</span>
-        </button>
+        </Button>
       )}
     </div>
   );

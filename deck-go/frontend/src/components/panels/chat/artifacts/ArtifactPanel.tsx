@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { CheckIcon, CopyIcon, DownloadIcon, MaximizeIcon, XIcon } from "@/deck-ui/icons";
+import { IconButton } from "@/design-system/atoms/IconButton";
 import { downloadArtifact } from "../shared-renderer/download";
 import { SharedRenderer } from "../shared-renderer/SharedRenderer";
 import type { ArtifactInfo } from "./detectArtifact";
@@ -23,56 +24,65 @@ export function ArtifactPanel({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const sectionClasses = ["ds-artifact-panel", "deck-ui-artifact"];
+  if (fullscreen) {
+    sectionClasses.push("ds-artifact-panel--fullscreen", "deck-ui-artifact-fullscreen");
+  }
+
   return (
-    <section
-      className={fullscreen ? "deck-ui-artifact deck-ui-artifact-fullscreen" : "deck-ui-artifact"}
-      data-fullscreen={fullscreen ? "true" : "false"}
-    >
-      <div className="deck-ui-artifact-head">
+    <section className={sectionClasses.join(" ")} data-fullscreen={fullscreen ? "true" : "false"}>
+      <div className="ds-artifact-panel__head deck-ui-artifact-head">
         <strong>{title}</strong>
-        <span className="deck-ui-artifact-language">{artifact.language}</span>
-        <button
+        <span className="ds-artifact-panel__language deck-ui-artifact-language">
+          {artifact.language}
+        </span>
+        <IconButton
+          size="sm"
           className="deck-ui-tool-control"
-          type="button"
-          onClick={() => downloadArtifact(artifact)}
           aria-label={t("artifactDownload")}
           title={t("artifactDownload")}
+          onClick={() => downloadArtifact(artifact)}
         >
           <DownloadIcon />
-          <span className="deck-ui-sr-only">{t("artifactDownload")}</span>
-        </button>
-        <button
+          <span className="ds-sr-only deck-ui-sr-only">{t("artifactDownload")}</span>
+        </IconButton>
+        <IconButton
+          size="sm"
           className="deck-ui-tool-control"
-          type="button"
-          onClick={() => void handleCopy()}
           aria-label={copied ? t("copied") : t("artifactCopy")}
           title={t("artifactCopy")}
+          onClick={() => void handleCopy()}
         >
           {copied ? <CheckIcon /> : <CopyIcon />}
-          <span className="deck-ui-sr-only">{copied ? t("copied") : t("artifactCopy")}</span>
-        </button>
-        <button
+          <span className="ds-sr-only deck-ui-sr-only">
+            {copied ? t("copied") : t("artifactCopy")}
+          </span>
+        </IconButton>
+        <IconButton
+          size="sm"
+          className="deck-ui-tool-control"
           aria-pressed={fullscreen}
           aria-label={t("artifactFullscreen")}
-          className="deck-ui-tool-control"
           title={t("artifactFullscreen")}
-          type="button"
           onClick={() => setFullscreen((current) => !current)}
         >
           <MaximizeIcon />
-          <span className="deck-ui-sr-only">{t("artifactFullscreen")}</span>
-        </button>
-        <button
-          aria-label={t("artifactClose")}
+          <span className="ds-sr-only deck-ui-sr-only">{t("artifactFullscreen")}</span>
+        </IconButton>
+        <IconButton
+          size="sm"
           className="deck-ui-tool-control"
-          type="button"
+          aria-label={t("artifactClose")}
           onClick={onClose}
         >
           <XIcon />
-          <span className="deck-ui-sr-only">{t("artifactClose")}</span>
-        </button>
+          <span className="ds-sr-only deck-ui-sr-only">{t("artifactClose")}</span>
+        </IconButton>
       </div>
-      <SharedRenderer artifact={artifact} className="deck-ui-artifact-body" />
+      <SharedRenderer
+        artifact={artifact}
+        className="ds-artifact-panel__body deck-ui-artifact-body"
+      />
     </section>
   );
 }

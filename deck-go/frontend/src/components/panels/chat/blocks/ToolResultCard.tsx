@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { SegmentedControl } from "@/design-system/atoms/SegmentedControl";
 import {
   countLines,
   getFileExtension,
@@ -17,7 +18,6 @@ import { DiffPreview } from "./DiffPreview";
 import { FileBlock } from "./FileBlock";
 import { HighlightedCodeView } from "./HighlightedCodeView";
 import { ImageBlock } from "./ImageBlock";
-import { ShowRawToggle } from "./ShowRawToggle";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolUseCard } from "./ToolUseCard";
 import { UnknownBlockCard } from "./UnknownBlockCard";
@@ -52,7 +52,7 @@ function renderNestedBlock(block: ContentBlock, index: number) {
     case "canvas":
       return (
         <iframe
-          className="deck-ui-canvas-embed"
+          className="ds-canvas-embed deck-ui-canvas-embed"
           key={`canvas-${index}`}
           src={block.url}
           title={block.title ?? "canvas"}
@@ -75,20 +75,28 @@ interface ToolResultCardProps {
   isError?: boolean;
   toolName?: string;
   toolInput?: Record<string, unknown>;
+  /** When rendered inside a `ToolPair`, suppress own border. */
+  paired?: boolean;
 }
 
 type ViewType = "raw" | "bash" | "read" | "diff";
+type ViewMode = ViewType | "structured";
 
 export function ToolResultCard(props: ToolResultCardProps) {
-  const { content, isError, toolName, toolInput } = props;
+  const { content, isError, toolName, toolInput, paired } = props;
   const t = useTranslations("chat");
   const { onOpenArtifact } = useContext(ArtifactContext);
   const [isOpen, setIsOpen] = useState(Boolean(isError));
-  const [showRaw, setShowRaw] = useState(false);
   const previousIsError = useRef(Boolean(isError));
+  const isStructuredContent = typeof content !== "string";
   const contentText = typeof content === "string" ? content : JSON.stringify(content, null, 2);
-  const viewType = useMemo<ViewType>(() => {
-    if (isError || typeof content !== "string") {
+  const detectedView = useMemo<ViewMode>(() => {
+    if (isStructuredContent) {
+      // Structured arrays default to the per-item renderer (`renderNestedBlock`)
+      // rather than JSON; user can click the raw tab to see the JSON form.
+      return "structured";
+    }
+    if (isError) {
       return "raw";
     }
     if (isBashTool(toolName)) {
@@ -102,13 +110,17 @@ export function ToolResultCard(props: ToolResultCardProps) {
       return "diff";
     }
     return "raw";
-  }, [content, isError, toolName]);
+  }, [isError, isStructuredContent, toolName]);
+  const [activeView, setActiveView] = useState<ViewMode>(detectedView);
+  useEffect(() => {
+    setActiveView(detectedView);
+  }, [detectedView]);
   const bashResult = useMemo(
-    () => (viewType === "bash" ? parseBashResult(contentText) : null),
-    [contentText, viewType],
+    () => (detectedView === "bash" ? parseBashResult(contentText) : null),
+    [contentText, detectedView],
   );
   const lineCount = useMemo(() => countLines(contentText), [contentText]);
-  const hasEnhancedView = viewType !== "raw" || lineCount > 200 || typeof content !== "string";
+  const hasEnhancedView = detectedView !== "raw" || lineCount > 200 || isStructuredContent;
   const artifact =
     !isError && typeof content === "string"
       ? detectArtifact(content, resolveToolContext(props))
@@ -119,28 +131,36 @@ export function ToolResultCard(props: ToolResultCardProps) {
     !isError &&
     typeof content === "string" &&
     filePath &&
-    (viewType === "diff" || (viewType === "read" && isImagePath(filePath)));
+    (detectedView === "diff" || (detectedView === "read" && isImagePath(filePath)));
   const title = isError ? t("toolError") : t("toolResult");
-  const renderedContent = showRaw ? (
-    <div className="deck-ui-tool-use-body">
-      {renderRawContent({ content: contentText, lineCount })}
-    </div>
-  ) : typeof content === "string" ? (
-    <div className="deck-ui-tool-use-body">
-      {renderStringContent({
-        bashResult,
-        content,
-        lineCount,
-        t,
-        toolInput,
-        viewType,
-      })}
-    </div>
-  ) : (
-    <div className="deck-ui-tool-result-structured">
-      {content.map((block, index) => renderNestedBlock(block, index))}
-    </div>
-  );
+  const renderedContent = (() => {
+    if (activeView === "raw") {
+      return (
+        <div className="deck-ui-tool-use-body">
+          {renderRawContent({ content: contentText, lineCount })}
+        </div>
+      );
+    }
+    if (isStructuredContent) {
+      return (
+        <div className="deck-ui-tool-result-structured">
+          {content.map((block, index) => renderNestedBlock(block, index))}
+        </div>
+      );
+    }
+    return (
+      <div className="deck-ui-tool-use-body">
+        {renderStringContent({
+          bashResult,
+          content: content,
+          lineCount,
+          t,
+          toolInput,
+          viewType: activeView as ViewType,
+        })}
+      </div>
+    );
+  })();
 
   useEffect(() => {
     if (isError && !previousIsError.current) {
@@ -149,21 +169,61 @@ export function ToolResultCard(props: ToolResultCardProps) {
     previousIsError.current = Boolean(isError);
   }, [isError]);
 
+  // SegmentedControl tabs:
+  //  - String content → raw / bash / read / diff (disabled-not-hidden; only the
+  //    detected view + raw are enabled; raw fallback always available).
+  //  - Structured (array) content → raw / structured (the per-item renderer).
+  // bash/read/diff/structured are technical view-name identifiers (not translated).
+  const viewTabs = useMemo<Array<{ value: ViewMode; label: string; disabled?: boolean }>>(() => {
+    if (isStructuredContent) {
+      return [
+        { value: "raw", label: t("showRaw") },
+        { value: "structured", label: "structured" },
+      ];
+    }
+    return [
+      { value: "raw", label: t("showRaw") },
+      { value: "bash", label: "bash", disabled: detectedView !== "bash" },
+      { value: "read", label: "read", disabled: detectedView !== "read" },
+      { value: "diff", label: "diff", disabled: detectedView !== "diff" },
+    ];
+  }, [detectedView, isStructuredContent, t]);
+
+  const wrapperClasses = ["deck-ui-tool-result-card", "ds-tool-result-card"];
+  if (isError) {
+    wrapperClasses.push("is-error");
+    wrapperClasses.push("ds-tool-result-card--error");
+  }
+  if (paired) {
+    wrapperClasses.push("ds-tool-result-card--paired");
+  }
+
   return (
     <>
       <details
-        className={`deck-ui-tool-result-card ${isError ? "is-error" : ""}`}
+        className={wrapperClasses.join(" ")}
         open={isOpen}
         onToggle={(event) => setIsOpen(event.currentTarget.open)}
+        data-tool-result-card="true"
+        data-tool-error={isError ? "true" : undefined}
       >
-        <summary className="deck-ui-tool-use-summary">
+        <summary className="deck-ui-tool-use-summary ds-tool-result-card__summary">
           <span className="deck-ui-tool-icon" aria-hidden="true">
             {isError ? "!" : "ok"}
           </span>
           <span className="deck-ui-tool-label">{title}</span>
           {hasEnhancedView ? (
-            <span className="deck-ui-tool-use-actions">
-              <ShowRawToggle isRaw={showRaw} onToggle={() => setShowRaw((current) => !current)} />
+            <span
+              className="deck-ui-tool-use-actions ds-tool-result-card__actions"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <SegmentedControl
+                aria-label={t("toolResult")}
+                controlSize="xs"
+                items={viewTabs}
+                value={activeView}
+                onChange={(next) => setActiveView(next)}
+              />
             </span>
           ) : null}
         </summary>
@@ -172,7 +232,7 @@ export function ToolResultCard(props: ToolResultCardProps) {
       {artifact ? <ArtifactCard artifact={artifact} onOpen={onOpenArtifact} /> : null}
       {showDownload ? (
         <a
-          className="deck-ui-tool-download"
+          className="deck-ui-tool-download ds-tool-result-card__download"
           href={`/api/media?path=${encodeURIComponent(filePath)}&dl=1`}
           download={fileName}
         >

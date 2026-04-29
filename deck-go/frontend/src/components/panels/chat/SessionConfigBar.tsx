@@ -1,9 +1,12 @@
 import { useTranslations } from "next-intl";
 import { BanIcon, BarChartIcon, BrainIcon, CpuIcon, FileCodeIcon, ZapIcon } from "@/deck-ui/icons";
+import { Button } from "@/design-system/atoms/Button";
+import { Chip } from "@/design-system/atoms/Chip";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
 import { patchSession } from "./chat-api";
+import "./chat-widgets.css";
 
 const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
 const RESPONSE_USAGE_LEVELS = ["off", "tokens", "full"] as const;
@@ -99,58 +102,62 @@ function SessionConfigBarView({
   };
 
   return (
-    <div className="deck-ui-session-config">
-      <span className="deck-ui-session-config-model">
+    <div className="ds-session-config deck-ui-session-config">
+      <span className="ds-session-config__model deck-ui-session-config-model">
         <CpuIcon />
         {t("configModel")} <strong>{model}</strong>
       </span>
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         className="deck-ui-session-config-button"
-        type="button"
         title={t("configThinkingToggle")}
         onClick={handleCycleThinking}
       >
         <BrainIcon />
         {t("configThinking")} {optionLabel("configLevel", thinkingLevel)}
-      </button>
+      </Button>
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         className="deck-ui-session-config-button"
-        type="button"
         title={t("configFastToggle")}
         onClick={handleToggleFast}
       >
         <ZapIcon />
         {t("configFast")} {meta.fastMode ? t("configOn") : t("configOff")}
-      </button>
+      </Button>
 
       {meta.verboseLevel ? (
-        <span className="deck-ui-session-config-pill">
+        <Chip className="deck-ui-session-config-pill">
           <FileCodeIcon />
           {t("configVerbose")} {meta.verboseLevel}
-        </span>
+        </Chip>
       ) : null}
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         className="deck-ui-session-config-button"
-        type="button"
         title={t("configUsageToggle")}
         onClick={handleCycleUsage}
       >
         <BarChartIcon />
         {t("configUsage")} {optionLabel("configUsageValue", usageLevel)}
-      </button>
+      </Button>
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         className="deck-ui-session-config-button"
-        type="button"
         title={t("configSendPolicyToggle")}
         onClick={handleToggleSendPolicy}
       >
         <BanIcon />
         {t("configSendPolicy")} {meta.sendPolicy === "deny" ? t("configDeny") : t("configAllow")}
-      </button>
+      </Button>
     </div>
   );
 }

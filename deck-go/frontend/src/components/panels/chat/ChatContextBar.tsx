@@ -1,11 +1,14 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AlertTriangleIcon, MinusIcon } from "@/deck-ui/icons";
+import { Badge } from "@/design-system/atoms/Badge";
+import { Chip } from "@/design-system/atoms/Chip";
 import { contextPct, formatTokens, pressureState } from "@/lib/context-utils";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
 import { useSessionsStore } from "@/stores/sessions";
 import { compactChatSession } from "./chat-api";
+import "./chat-context-bar.css";
 
 export function ChatContextBar() {
   const t = useTranslations("chat");
@@ -58,44 +61,51 @@ export function ChatContextBar() {
   };
 
   return (
-    <div className="deck-ui-context-strip">
-      <span className="deck-ui-context-pill">{activeAgentId ?? "main"}</span>
-      <strong className="deck-ui-context-session">{activeSessionKey ?? noSessionLabel}</strong>
+    <div className="ds-chat-context-bar">
+      <Chip active>{activeAgentId ?? "main"}</Chip>
+      <strong className="ds-chat-context-bar__session">{activeSessionKey ?? noSessionLabel}</strong>
       <span>{messagesCountLabel}</span>
-      <span>{isStreaming ? streamingLabel : idleLabel}</span>
+      <Badge variant={isStreaming ? "running" : "neutral"}>
+        {isStreaming ? streamingLabel : idleLabel}
+      </Badge>
       {contextWindow > 0 ? (
         <span
-          className="deck-ui-context-pressure"
+          className="ds-chat-context-bar__pressure"
           data-pressure={pressure}
           title={`${formatTokens(usedTokens)} / ${formatTokens(contextWindow)} tokens`}
         >
           <span>{t("contextLabel")}: </span>
-          <span className="deck-ui-context-pressure-track">
+          <span className="ds-chat-context-bar__pressure-track">
             <span style={{ width: `${pct}%` }} />
           </span>
           <strong>{pct}%</strong>
         </span>
       ) : null}
       {pct >= 80 ? (
-        <span className="deck-ui-context-warning" role="status">
+        <span className="ds-chat-context-bar__warning" role="status">
           <AlertTriangleIcon />
           {t("contextWarning")}
         </span>
       ) : null}
       {compactionCount > 0 ? (
         <span
-          className="deck-ui-context-compacted"
+          className="ds-chat-context-bar__compacted"
           title={t("contextCompacted", { count: compactionCount })}
         >
           <AlertTriangleIcon />
           {compactionCount}
-          <span className="deck-ui-sr-only">
+          <span className="ds-chat-context-bar__sr">
             {t("contextCompacted", { count: compactionCount })}
           </span>
         </span>
       ) : null}
       {pct >= 60 && activeSessionKey ? (
-        <button type="button" onClick={handleCompact} disabled={compacting}>
+        <button
+          type="button"
+          className="ds-chat-context-bar__compact-action"
+          onClick={handleCompact}
+          disabled={compacting}
+        >
           <MinusIcon />
           {compacting ? ts("compacting") : ts("compact")}
         </button>

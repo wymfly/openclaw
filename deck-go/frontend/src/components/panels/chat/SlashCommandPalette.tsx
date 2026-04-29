@@ -21,6 +21,7 @@ import {
 import { commandRegistry } from "@/lib/command-registry";
 import type { RegisteredCommand } from "@/lib/command-types";
 import type { CommandVisibilityContext } from "@/lib/command-types";
+import "./chat-popover.css";
 import { initializeLocalCommands } from "./slash-command-executor";
 import { CATEGORY_LABEL_KEYS } from "./slash-commands";
 
@@ -104,35 +105,41 @@ export function SlashCommandPalette({
   if (argOptionsState) {
     return (
       <div
-        className="deck-ui-command-palette is-arg-options"
+        className="ds-command-palette deck-ui-command-palette is-arg-options"
         role="listbox"
         aria-label={t("cmdOptionsFor", { command: argOptionsState.command.name })}
       >
         <button
-          className="deck-ui-command-palette-back"
+          className="ds-command-palette__back deck-ui-command-palette-back"
           type="button"
           onMouseDown={() => onArgOptionsBack?.()}
         >
           {t("cmdBack")}
         </button>
-        <div className="deck-ui-command-section-title">{commandLabel}</div>
-        {argOptionsState.options.map((option, index) => (
-          <div
-            className={`deck-ui-command-option ${
-              index === argOptionsState.selectedIndex ? "is-selected" : ""
-            }`}
-            key={option}
-            role="option"
-            aria-selected={index === argOptionsState.selectedIndex}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              onSelectWithArg?.(argOptionsState.command, option);
-            }}
-            onMouseEnter={() => onArgOptionsIndexChange?.(index)}
-          >
-            {option}
-          </div>
-        ))}
+        <div className="ds-command-palette__section-title deck-ui-command-section-title">
+          {commandLabel}
+        </div>
+        {argOptionsState.options.map((option, index) => {
+          const optionClasses = ["ds-command-palette__option", "deck-ui-command-option"];
+          if (index === argOptionsState.selectedIndex) {
+            optionClasses.push("ds-command-palette__option--selected", "is-selected");
+          }
+          return (
+            <div
+              className={optionClasses.join(" ")}
+              key={option}
+              role="option"
+              aria-selected={index === argOptionsState.selectedIndex}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                onSelectWithArg?.(argOptionsState.command, option);
+              }}
+              onMouseEnter={() => onArgOptionsIndexChange?.(index)}
+            >
+              {option}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -171,7 +178,7 @@ export function SlashCommandPalette({
   let globalIndex = -1;
   return (
     <div
-      className="deck-ui-command-palette"
+      className="ds-command-palette deck-ui-command-palette"
       role="listbox"
       aria-label={t("slashCommands")}
       onKeyDown={(event) => {
@@ -181,8 +188,8 @@ export function SlashCommandPalette({
       }}
     >
       {[...sections.entries()].map(([sectionKey, sectionCommands]) => (
-        <div className="deck-ui-command-section" key={sectionKey}>
-          <div className="deck-ui-command-section-title">
+        <div className="ds-command-palette__section deck-ui-command-section" key={sectionKey}>
+          <div className="ds-command-palette__section-title deck-ui-command-section-title">
             {translatedOrFallback(t, CATEGORY_LABEL_KEYS[sectionKey], sectionKey)}
           </div>
           {sectionCommands.map((command) => {
@@ -193,9 +200,13 @@ export function SlashCommandPalette({
               command.descriptionKey,
               command.description,
             );
+            const optionClasses = ["ds-command-palette__option", "deck-ui-command-option"];
+            if (index === selectedIndex) {
+              optionClasses.push("ds-command-palette__option--selected", "is-selected");
+            }
             return (
               <div
-                className={`deck-ui-command-option ${index === selectedIndex ? "is-selected" : ""}`}
+                className={optionClasses.join(" ")}
                 key={`${command.source}:${command.name}`}
                 role="option"
                 aria-selected={index === selectedIndex}
@@ -205,14 +216,21 @@ export function SlashCommandPalette({
                 }}
                 onMouseEnter={() => onSelectedIndexChange(index)}
               >
-                <span className="deck-ui-command-primary">
+                <span className="ds-command-palette__primary deck-ui-command-primary">
                   <CommandIcon command={command} />
-                  <span className="deck-ui-command-name">/{command.name}</span>
+                  <span className="ds-command-palette__name deck-ui-command-name">
+                    /{command.name}
+                  </span>
                   {command.args ? (
-                    <span className="deck-ui-command-args">{command.args}</span>
+                    <span className="ds-command-palette__args deck-ui-command-args">
+                      {command.args}
+                    </span>
                   ) : null}
                 </span>
-                <span className="deck-ui-command-description" title={description}>
+                <span
+                  className="ds-command-palette__description deck-ui-command-description"
+                  title={description}
+                >
                   {description}
                 </span>
               </div>

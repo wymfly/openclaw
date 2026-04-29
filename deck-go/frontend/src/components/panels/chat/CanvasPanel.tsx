@@ -1,10 +1,13 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BugIcon, LoaderIcon, RefreshIcon, XIcon } from "@/deck-ui/icons";
+import { Button } from "@/design-system/atoms/Button";
+import { IconButton } from "@/design-system/atoms/IconButton";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { A2UIBridge, sendUserActionToAgent, type UserAction } from "./a2ui-bridge";
 import { CanvasDebugPanel } from "./CanvasDebugPanel";
+import "./chat-canvas.css";
 import { persistChatProjection, resolveCanvasEval, setCanvasBridgeReady } from "./chat-api";
 
 type CanvasState = "loading" | "ready" | "error" | "empty";
@@ -277,56 +280,56 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
   }, []);
 
   return (
-    <section className="deck-ui-canvas-panel" aria-label={t("canvasTitle")}>
-      <header className="deck-ui-canvas-header">
+    <section className="ds-canvas-panel deck-ui-canvas-panel" aria-label={t("canvasTitle")}>
+      <header className="ds-canvas-panel__header deck-ui-canvas-header">
         <span>{t("canvasTitle")}</span>
         <div>
-          <button
+          <IconButton
+            size="sm"
             aria-label={t("debugTitle")}
             title={t("debugTitle")}
-            type="button"
             onClick={() => setShowDebug((value) => !value)}
           >
             <BugIcon />
-            <span className="deck-ui-sr-only">{t("debugTitle")}</span>
-          </button>
-          <button
+            <span className="ds-sr-only deck-ui-sr-only">{t("debugTitle")}</span>
+          </IconButton>
+          <IconButton
+            size="sm"
             aria-label={t("canvasCollapse")}
             title={t("canvasCollapse")}
-            type="button"
             onClick={onClose}
           >
             <XIcon />
-            <span className="deck-ui-sr-only">{t("canvasCollapse")}</span>
-          </button>
+            <span className="ds-sr-only deck-ui-sr-only">{t("canvasCollapse")}</span>
+          </IconButton>
         </div>
       </header>
 
-      <div className="deck-ui-canvas-viewport">
+      <div className="ds-canvas-panel__viewport deck-ui-canvas-viewport">
         <iframe
           ref={iframeRef}
           src={iframeSrc}
-          className="deck-ui-canvas-frame"
+          className="ds-canvas-panel__frame deck-ui-canvas-frame"
           sandbox="allow-scripts allow-same-origin"
           title="A2UI Canvas"
         />
         {state === "loading" ? (
-          <div className="deck-ui-canvas-overlay">
-            <LoaderIcon className="deck-ui-canvas-spinner" />
+          <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
+            <LoaderIcon className="ds-canvas-panel__spinner deck-ui-canvas-spinner" />
             <span>{t("canvasLoading")}</span>
           </div>
         ) : null}
         {state === "error" ? (
-          <div className="deck-ui-canvas-overlay">
+          <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
             <span>{t("canvasError")}</span>
-            <button type="button" onClick={handleRetry}>
+            <Button variant="secondary" size="sm" onClick={handleRetry}>
               <RefreshIcon />
               {t("canvasRetry")}
-            </button>
+            </Button>
           </div>
         ) : null}
         {state === "empty" ? (
-          <div className="deck-ui-canvas-overlay">
+          <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
             <span>{t("canvasEmpty")}</span>
           </div>
         ) : null}

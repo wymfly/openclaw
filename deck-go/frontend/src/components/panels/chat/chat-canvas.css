@@ -1,0 +1,146 @@
+/* CanvasPanel + ArtifactPanel layout — viewport, overlays, debug. */
+
+.ds-canvas-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 8px;
+  height: 100%;
+}
+
+.ds-canvas-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ds-canvas-panel__viewport {
+  position: relative;
+  height: 100%;
+  border: 1px solid var(--ds-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--ds-bg-1);
+}
+
+.ds-canvas-panel__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.ds-canvas-panel__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ds-bg-1) 85%, transparent);
+}
+
+.ds-canvas-panel__spinner {
+  width: 24px;
+  height: 24px;
+  animation: ds-spin 0.9s linear infinite;
+}
+
+@keyframes ds-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ds-canvas-debug {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: 6px;
+  background: var(--ds-bg-1);
+  font-size: 0.78rem;
+}
+
+.ds-canvas-debug__tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ds-canvas-debug__events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.ds-canvas-debug__event {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 80px 100px 1fr;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ds-canvas-debug__event:hover {
+  background: var(--ds-bg-hover);
+}
+
+.ds-canvas-debug__time {
+  color: var(--ds-text-2, currentColor);
+}
+
+.ds-canvas-debug__raw {
+  margin: 0;
+  padding: 6px;
+  border-radius: 4px;
+  background: var(--ds-bg-2);
+  white-space: pre-wrap;
+  font-size: 0.72rem;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.ds-artifact-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.ds-artifact-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ds-artifact-panel__language {
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.ds-artifact-panel__body {
+  flex: 1;
+  overflow: auto;
+}
+
+.ds-artifact-panel--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: var(--ds-bg-elev);
+  padding: 16px;
+}

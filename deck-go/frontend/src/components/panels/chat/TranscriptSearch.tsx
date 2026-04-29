@@ -1,7 +1,10 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { ChevronDownIcon, ChevronUpIcon, SearchIcon, XIcon } from "@/deck-ui/icons";
+import { IconButton } from "@/design-system/atoms/IconButton";
+import { Input } from "@/design-system/atoms/Input";
 import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
+import "./chat-widgets.css";
 
 function blockSearchText(block: ContentBlock): string {
   switch (block.type) {
@@ -94,12 +97,13 @@ export function TranscriptSearch({
   };
 
   return (
-    <div className="deck-ui-transcript-search" role="search">
-      <SearchIcon className="deck-ui-transcript-search-icon" />
-      <label className="deck-ui-transcript-search-field">
+    <div className="ds-transcript-search deck-ui-transcript-search" role="search">
+      <SearchIcon className="ds-transcript-search__icon deck-ui-transcript-search-icon" />
+      <label className="ds-transcript-search__field deck-ui-transcript-search-field">
         <span>{t("searchTranscript")}</span>
-        <input
+        <Input
           ref={resolvedInputRef}
+          inputSize="sm"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={(event) => {
@@ -117,40 +121,40 @@ export function TranscriptSearch({
           placeholder={t("searchTranscript")}
         />
       </label>
-      <div className="deck-ui-transcript-search-controls">
+      <div className="ds-transcript-search__controls deck-ui-transcript-search-controls">
         {query.trim() ? (
-          <span className="deck-ui-transcript-search-count">
+          <span className="ds-transcript-search__count deck-ui-transcript-search-count">
             {matches.length > 0
               ? `${Math.min(currentIdx + 1, matches.length)}/${matches.length}`
               : t("noSearchResults")}
           </span>
         ) : null}
-        <button
+        <IconButton
+          size="sm"
           aria-label={t("searchPrev")}
           disabled={matches.length === 0}
           title={t("searchPrev")}
-          type="button"
           onClick={() => navigate(-1)}
         >
           <ChevronUpIcon />
-        </button>
-        <button
+        </IconButton>
+        <IconButton
+          size="sm"
           aria-label={t("searchNext")}
           disabled={matches.length === 0}
           title={t("searchNext")}
-          type="button"
           onClick={() => navigate(1)}
         >
           <ChevronDownIcon />
-        </button>
-        <button
+        </IconButton>
+        <IconButton
+          size="sm"
           aria-label={t("searchClose")}
           title={t("searchClose")}
-          type="button"
           onClick={onClose}
         >
           <XIcon />
-        </button>
+        </IconButton>
       </div>
     </div>
   );

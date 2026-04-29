@@ -1,0 +1,81 @@
+/* Inline approval dialog — sits above the composer when an approval is active.
+ * Visual: bundle's `inline approval` card with shield icon + countdown + 3
+ * action buttons.
+ */
+
+.ds-approval-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  border-color: var(--ds-warning, #d99838);
+}
+
+.ds-approval-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ds-approval-dialog__icon {
+  width: 16px;
+  height: 16px;
+  color: var(--ds-warning, #d99838);
+}
+
+.ds-approval-dialog__countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.78rem;
+}
+
+.ds-approval-dialog__body code {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--ds-bg-2);
+  font-family: var(--ds-font-mono, monospace);
+  font-size: 0.85rem;
+}
+
+.ds-approval-dialog__body pre {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: 6px;
+  background: var(--ds-bg-1);
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.ds-approval-dialog__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--ds-border-subtle, var(--ds-border));
+  font-size: 0.78rem;
+}
+
+.ds-approval-dialog__meta dt {
+  color: var(--ds-text-2, currentColor);
+}
+
+.ds-approval-dialog__meta dd {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ds-approval-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

@@ -8,6 +8,8 @@ import {
   ThumbsUpIcon,
   type IconComponent,
 } from "@/deck-ui/icons";
+import { IconButton } from "@/design-system/atoms/IconButton";
+import "./chat-widgets.css";
 
 export function MessageActions({ content, onRetry }: { content: string; onRetry?: () => void }) {
   const t = useTranslations("chat");
@@ -21,7 +23,11 @@ export function MessageActions({ content, onRetry }: { content: string; onRetry?
   };
 
   return (
-    <div className="deck-ui-message-actions" role="toolbar" aria-label={t("messageActions")}>
+    <div
+      className="ds-message-actions deck-ui-message-actions"
+      role="toolbar"
+      aria-label={t("messageActions")}
+    >
       <ActionButton
         icon={copied ? CheckIcon : CopyIcon}
         label={copied ? t("copied") : t("copy")}
@@ -56,15 +62,15 @@ function ActionButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <IconButton
+      size="sm"
+      className="deck-ui-message-action"
       aria-label={label}
       aria-pressed={pressed}
-      className="deck-ui-message-action"
       title={label}
-      type="button"
       onClick={onClick}
     >
       <Icon />
-    </button>
+    </IconButton>
   );
 }

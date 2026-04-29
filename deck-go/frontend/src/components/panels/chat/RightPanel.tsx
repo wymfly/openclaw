@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Drawer } from "@/design-system/atoms/Drawer";
+import "./chat-right-drawer.css";
 
 const STORAGE_KEY = "deck:rightPanelWidth";
 const DEFAULT_WIDTH = 480;
@@ -26,7 +28,7 @@ function loadSavedWidth() {
   return saved ? clampWidth(Number(saved)) : DEFAULT_WIDTH;
 }
 
-export function RightPanel({ mode, onClose: _onClose, children }: RightPanelProps) {
+export function RightPanel({ mode, onClose, children }: RightPanelProps) {
   const [width, setWidth] = useState(loadSavedWidth);
   const latestWidth = useRef(width);
   const isOpen = mode !== "hidden";
@@ -64,14 +66,24 @@ export function RightPanel({ mode, onClose: _onClose, children }: RightPanelProp
   }
 
   return (
-    <aside className="deck-ui-right-drawer" data-right-panel-mode={mode} style={{ width }}>
+    <Drawer
+      open={isOpen}
+      onClose={onClose}
+      side="right"
+      width={width}
+      scrim={false}
+      focusTrap={false}
+      aria-label="Side drawer"
+      className="ds-chat-right-drawer"
+      data-right-panel-mode={mode}
+    >
       <div
         aria-hidden="true"
-        className="deck-ui-right-drawer-resize"
+        className="ds-chat-right-drawer__resize"
         data-right-panel-resize-handle
         onMouseDown={handleMouseDown}
       />
       {children}
-    </aside>
+    </Drawer>
   );
 }
