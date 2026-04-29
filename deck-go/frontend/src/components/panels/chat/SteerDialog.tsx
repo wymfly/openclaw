@@ -48,9 +48,9 @@ export function SteerDialog() {
   };
 
   return (
-    <div className="ds-steer-dialog deck-ui-context-strip">
-      <NavigationIcon className="ds-steer-dialog__icon deck-ui-steer-icon" />
-      <label className="ds-steer-dialog__input deck-ui-inline-input">
+    <div className="ds-steer-dialog">
+      <NavigationIcon className="ds-steer-dialog__icon" />
+      <label className="ds-steer-dialog__input">
         <span>{t("steer")}</span>
         <Input
           ref={inputRef}
@@ -70,7 +70,7 @@ export function SteerDialog() {
       <Button
         variant="primary"
         size="sm"
-        className="deck-ui-context-button"
+        className="ds-steer-dialog__button"
         onClick={() => void handleSteer()}
         disabled={!message.trim() || sending}
       >

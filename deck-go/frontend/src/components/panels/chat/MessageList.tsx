@@ -193,7 +193,7 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
             <span className="ds-chat-message__avatar deck-ui-message-avatar" aria-hidden="true">
               <BotIcon />
             </span>
-            <span className="deck-ui-thinking-inline">{t("thinking")}</span>
+            <span className="ds-thinking-inline">{t("thinking")}</span>
           </div>
         </div>
       ) : null}

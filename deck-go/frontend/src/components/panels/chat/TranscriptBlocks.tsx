@@ -84,7 +84,7 @@ export function TranscriptBlocks({
 
         if (block.type === "text") {
           return (
-            <div className="deck-ui-transcript-text" key={`text-${index}`}>
+            <div className="ds-transcript-text" key={`text-${index}`}>
               {isUser ? (
                 <p>{block.text}</p>
               ) : (

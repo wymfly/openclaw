@@ -5,15 +5,22 @@
  * so theme.css visuals stay valid until P2d 7.3 cleanup.
  */
 
+/* Session-config bar — bordered island that surfaces the active
+ * session's model + agent + status so the user can see/change them
+ * without opening Settings. Bundle has no direct counterpart; the
+ * shape is bespoke deck-go chrome with `--ds-bg-elev` interior
+ * and chip-style toggles. */
 .ds-session-config {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
   align-items: center;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--ds-border);
+  gap: 6px;
+  padding: 7px 9px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
   background: var(--ds-bg-elev);
-  font-size: 0.8rem;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
 }
 
 .ds-session-config__model {
@@ -21,6 +28,46 @@
   align-items: center;
   gap: 4px;
   margin-right: 8px;
+}
+
+.ds-session-config__model strong,
+.ds-session-config__pill {
+  color: var(--ds-accent);
+  font-weight: 600;
+}
+
+.ds-session-config span,
+.ds-session-config button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ds-session-config svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  color: var(--ds-text-3);
+}
+
+.ds-session-config__button,
+.ds-steer-dialog__button {
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-2);
+  font: inherit;
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.ds-session-config__button:hover,
+.ds-steer-dialog__button:hover {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
 }
 
 /* Block-filter-bar — bundle .block-filter-bar (lines 241-260).
@@ -460,6 +507,36 @@
 .ds-message-actions {
   display: inline-flex;
   gap: 4px;
+}
+
+/* Inline "thinking…" pill — surfaces during partial assistant
+ * stream when the model has emitted a thinking block but no
+ * visible text yet. Centered in the message body slot. */
+.ds-thinking-inline {
+  margin: 0;
+  align-self: center;
+  justify-self: center;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-body);
+}
+
+/* Transcript text wrapper — used by TranscriptBlocks for plain
+ * text blocks (user message body) so the pre/code block-level
+ * cascade matches the markdown viewer. */
+.ds-transcript-text {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.ds-transcript-text pre {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-code-bg);
+  color: var(--ds-text-1);
+  overflow: auto;
 }
 
 /* File-block — bundle .file-block (lines 547-554). Card atom owns

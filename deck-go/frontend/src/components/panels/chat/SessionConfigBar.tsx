@@ -102,8 +102,8 @@ function SessionConfigBarView({
   };
 
   return (
-    <div className="ds-session-config deck-ui-session-config">
-      <span className="ds-session-config__model deck-ui-session-config-model">
+    <div className="ds-session-config">
+      <span className="ds-session-config__model">
         <CpuIcon />
         {t("configModel")} <strong>{model}</strong>
       </span>
@@ -111,7 +111,7 @@ function SessionConfigBarView({
       <Button
         variant="ghost"
         size="sm"
-        className="deck-ui-session-config-button"
+        className="ds-session-config__button"
         title={t("configThinkingToggle")}
         onClick={handleCycleThinking}
       >
@@ -122,7 +122,7 @@ function SessionConfigBarView({
       <Button
         variant="ghost"
         size="sm"
-        className="deck-ui-session-config-button"
+        className="ds-session-config__button"
         title={t("configFastToggle")}
         onClick={handleToggleFast}
       >
@@ -131,7 +131,7 @@ function SessionConfigBarView({
       </Button>
 
       {meta.verboseLevel ? (
-        <Chip className="deck-ui-session-config-pill">
+        <Chip className="ds-session-config__pill">
           <FileCodeIcon />
           {t("configVerbose")} {meta.verboseLevel}
         </Chip>
@@ -140,7 +140,7 @@ function SessionConfigBarView({
       <Button
         variant="ghost"
         size="sm"
-        className="deck-ui-session-config-button"
+        className="ds-session-config__button"
         title={t("configUsageToggle")}
         onClick={handleCycleUsage}
       >
@@ -151,7 +151,7 @@ function SessionConfigBarView({
       <Button
         variant="ghost"
         size="sm"
-        className="deck-ui-session-config-button"
+        className="ds-session-config__button"
         title={t("configSendPolicyToggle")}
         onClick={handleToggleSendPolicy}
       >
