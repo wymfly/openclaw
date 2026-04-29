@@ -156,21 +156,53 @@
   text-transform: uppercase;
 }
 
+.ds-compaction-notice__counts {
+  font-family: var(--ds-font-mono);
+}
+
+.ds-compaction-notice__time {
+  margin-left: auto;
+  font-family: var(--ds-font-mono);
+}
+
+/* Empty-state — bundle has no explicit empty-state, so this rule
+ * stays bespoke. Surface palette aligned to bundle (transparent on
+ * --ds-bg-1 transcript), eyebrow uses the bundle's accent eyebrow
+ * pattern (mono / accent / uppercase 0.06em), title/description
+ * absorbed from legacy `.deck-ui-empty-state h2 / p`. */
 .ds-empty-state {
+  align-self: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  max-width: 540px;
   padding: 48px 24px;
   text-align: center;
 }
 
 .ds-empty-state__eyebrow {
   margin: 0;
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: 0.7rem;
-  color: var(--ds-text-2, currentColor);
+}
+
+.ds-empty-state__title {
+  margin: 0;
+  color: var(--ds-text-1);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ds-empty-state__description {
+  margin: 0;
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-line);
 }
 
 .ds-empty-state__suggestions {

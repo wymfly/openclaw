@@ -13,17 +13,17 @@ export function CompactionNotice({
 }) {
   const t = useTranslations("chat");
   return (
-    <div className="ds-compaction-notice deck-ui-compaction-notice">
-      <span className="ds-compaction-notice__icon deck-ui-compaction-icon" aria-hidden="true">
+    <div className="ds-compaction-notice">
+      <span className="ds-compaction-notice__icon" aria-hidden="true">
         cmp
       </span>
-      <span className="deck-ui-compaction-label">{t("compacted")}</span>
+      <span>{t("compacted")}</span>
       {tokensBefore != null && tokensAfter != null ? (
-        <span className="deck-ui-compaction-counts">
+        <span className="ds-compaction-notice__counts">
           {formatTokenCount(tokensBefore)} → {formatTokenCount(tokensAfter)}
         </span>
       ) : null}
-      <span className="deck-ui-compaction-time">{new Date(timestamp).toLocaleTimeString()}</span>
+      <span className="ds-compaction-notice__time">{new Date(timestamp).toLocaleTimeString()}</span>
     </div>
   );
 }

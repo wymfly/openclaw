@@ -23,11 +23,7 @@ export function MessageActions({ content, onRetry }: { content: string; onRetry?
   };
 
   return (
-    <div
-      className="ds-message-actions deck-ui-message-actions"
-      role="toolbar"
-      aria-label={t("messageActions")}
-    >
+    <div className="ds-message-actions" role="toolbar" aria-label={t("messageActions")}>
       <ActionButton
         icon={copied ? CheckIcon : CopyIcon}
         label={copied ? t("copied") : t("copy")}
@@ -62,14 +58,7 @@ function ActionButton({
   onClick: () => void;
 }) {
   return (
-    <IconButton
-      size="sm"
-      className="deck-ui-message-action"
-      aria-label={label}
-      aria-pressed={pressed}
-      title={label}
-      onClick={onClick}
-    >
+    <IconButton size="sm" aria-label={label} aria-pressed={pressed} title={label} onClick={onClick}>
       <Icon />
     </IconButton>
   );

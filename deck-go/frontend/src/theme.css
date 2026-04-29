@@ -8017,15 +8017,6 @@ details summary {
   margin-top: 6px;
 }
 
-.deck-ui-eyebrow {
-  margin: 0;
-  color: var(--primary);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .deck-ui-shell {
   display: grid;
   grid-template-columns: 208px minmax(0, 1fr);
@@ -8693,24 +8684,6 @@ details summary {
   font-size: 0.86rem;
 }
 
-.deck-ui-empty-state {
-  align-self: center;
-  justify-self: center;
-  max-width: 420px;
-  padding: 30px;
-  text-align: center;
-}
-
-.deck-ui-empty-state h2 {
-  margin: 8px 0;
-  font-family: var(--font-display);
-  font-weight: 500;
-}
-
-.deck-ui-empty-state p {
-  color: var(--text-soft);
-}
-
 .deck-ui-file-block,
 .deck-ui-artifact-card,
 .deck-ui-subagent-tree {
@@ -9289,21 +9262,6 @@ details summary {
   height: 12px;
   flex: 0 0 auto;
   color: var(--text-faint);
-}
-
-.deck-ui-suggestion-button {
-  min-height: 34px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 7px 10px;
-  background: var(--surface-elevated);
-  text-align: left;
-}
-
-.deck-ui-suggestion-button:hover {
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  color: var(--primary);
 }
 
 .deck-ui-config-strip > * + * {
