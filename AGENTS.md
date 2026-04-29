@@ -165,8 +165,9 @@ Workflow hygiene:
 
 - 完整设计：`docs/superpowers/specs/2026-04-28-runtime-mode-decoupling-design.md`
 - 现状：runtime-mode 解耦正在按 `openspec/changes/runtime-mode-decoupling/tasks.md` 实施
-- 本地后端启动脚本：`deck-go/scripts/dev/run-bundled.sh` / `deck-go/scripts/dev/run-remote.sh`
-- `.env` 样例：`deck-go/.env.bundled.example` / `deck-go/.env.remote.example`
+- 本地后端启动脚本：`deck-go/scripts/dev/run-bundled.sh` / `deck-go/scripts/dev/run-remote.sh`（仅 backend）
+- 真 Gateway 全栈一键脚本（E2E 默认基础设施）：`deck-go/scripts/dev/run-stack-real.sh`
+- `.env` 样例：`deck-go/.env.bundled.example` / `deck-go/.env.remote.example` / `deck-go/.env.real-stack.example`
 - 独立于 `deploy/` 的 deck-go 部署产物后续单独规划
 
 ### 已归档参考 — 上一代 Deck 客户端
@@ -368,23 +369,37 @@ export const deckAgentsMethodDefs: Record<string, Omit<MethodDefinition, "handle
 
 当前主线产物：
 
-- `deck-go/.env.bundled.example` / `deck-go/.env.remote.example` —— runtime-mode `.env` 样例（复制后请设为私有权限）
-- `deck-go/scripts/dev/run-bundled.sh` / `deck-go/scripts/dev/run-remote.sh` —— 本地后端启动脚本（不复用上一代 `scripts/dev/deck-dev.sh`）
+- `deck-go/.env.{bundled,remote,real-stack}.example` —— runtime-mode `.env` 样例（复制后请设为私有权限 `chmod 0600`）
+- `deck-go/scripts/dev/run-bundled.sh` / `run-remote.sh` —— 本地后端启动脚本（仅 backend，前端要自起；不复用上一代 `scripts/dev/deck-dev.sh`）
+- `deck-go/scripts/dev/run-stack-real.sh` —— 真 OpenClaw Gateway + backend + Vite preview 一键全栈，**E2E 默认基础设施**；启动前自动清理 18789/19566/4174 端口占用
 - `deck-go/backend/internal/runtime/{facade,envconf,state,bundled,remote,shared}/` —— 后端 runtime-mode 模块切分
 - `deck-go/contracts/` —— deck-go 自有契约链路；修改 API 合约后运行 `cd deck-go && make contracts-sync`
 - 独立于上一代 `deploy/` 的 deck-go 部署形态（systemd unit / 容器镜像）后续单独规划
-- E2E 目标：`bundled.spec.ts` / `remote.spec.ts`
+
+### E2E 测试基础设施
+
+**两层并存**：
+
+- **L1 — Mock Gateway**（保留，CI 友好）：`deck-go/test/e2e/{bundled,remote}.spec.ts` + `test/fixtures/mock-gateway.mjs`，由 `manage-local-stack.sh start` 默认编排。验证 deck-go 自身 ~85%（HTTP API、UI capability gating、WebSocket transport、supervisor 字段）。启动 ~2s，不依赖 OpenClaw build/LLM key。
+- **L2 — Real Gateway**（默认主路径）：`scripts/dev/run-stack-real.sh start`，从仓库根 `pnpm openclaw gateway run` 跑真 OpenClaw 源码版 Gateway。验证 L1 不能覆盖的协议漂移、Gateway 内部行为、真实 LLM chat round-trip。**新写 E2E 默认走 L2**，特殊场景（无网络、无 build cache、CI 烟测）才用 L1。
+
+**L2 启动注意点**：
+
+- 真 Gateway 首次启动需 OpenClaw TS build + runtime-postbuild plugin deps 安装（~5-10 分钟），后续启动 ~10s
+- `RUNTIME_BUNDLED_ARGS` 必须含 `--allow-unconfigured`，否则报 `Missing config`（child supervisor 不复用全局 OpenClaw config 探测路径）
+- OpenClaw state 不隔离（用 `~/.openclaw`），便于真实 LLM key/channel 直接生效
+- 端口固定 `18789`（Gateway）/ `19566`（backend）/ `4174`（Vite），`run-stack-real.sh start` 启动前自动清占用
 
 ### 与上一代 Deck 的关系
 
-| 维度         | `dashboard/`（legacy）                            | `deck-go/`（current）                          |
-| ------------ | ------------------------------------------------- | ---------------------------------------------- |
-| UI 框架      | Next.js (TS/React)                                | React + Vite + 自研 deck-ui                    |
-| 后端         | 直接走 Gateway typed client                       | Go middleware (controld) + facade abstraction  |
-| 部署         | `deploy/openclaw-deploy-*.tar.gz`                 | 待规划，不复用 `deploy/`                       |
-| 启动         | `scripts/dev/deck-dev.sh`（启 Gateway+Dashboard） | `deck-go/scripts/dev/run-*.sh`（待落地）       |
-| Gateway 关系 | 1:1 本机绑定                                      | 1:1 本机（bundled）或 1:N 远程（remote，未来） |
-| 状态         | 冻结（仍可使用，不再迭代新功能）                  | 主线（所有新工作）                             |
+| 维度         | `dashboard/`（legacy）                            | `deck-go/`（current）                                    |
+| ------------ | ------------------------------------------------- | -------------------------------------------------------- |
+| UI 框架      | Next.js (TS/React)                                | React + Vite + 自研 deck-ui                              |
+| 后端         | 直接走 Gateway typed client                       | Go middleware (controld) + facade abstraction            |
+| 部署         | `deploy/openclaw-deploy-*.tar.gz`                 | 待规划，不复用 `deploy/`                                 |
+| 启动         | `scripts/dev/deck-dev.sh`（启 Gateway+Dashboard） | `deck-go/scripts/dev/run-{bundled,remote,stack-real}.sh` |
+| Gateway 关系 | 1:1 本机绑定                                      | 1:1 本机（bundled）或 1:N 远程（remote，未来）           |
+| 状态         | 冻结（仍可使用，不再迭代新功能）                  | 主线（所有新工作）                                       |
 
 ### 开发约定
 

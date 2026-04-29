@@ -1,6 +1,11 @@
 node_modules
 **/node_modules/
 .env
+# deck-go runtime env files (含 token，凭据敏感) — 仅 .example 跟踪
+deck-go/.env*
+!deck-go/.env*.example
+# deck-go local dev/E2E state（pid/log/build cache/data dir）
+deck-go/.local/
 docker-compose.override.yml
 docker-compose.extra.yml
 dist
