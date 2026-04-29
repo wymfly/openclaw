@@ -74,4 +74,38 @@
 
 - [x] 8.1 Batch A — chat-shell layer (`chat-shell.css` + `chat-right-drawer.css` are complete ports). Removed 16 rule blocks across 5 chat-only classes (`.deck-ui-chat`, `.deck-ui-chat.has-right-drawer`, `.deck-ui-chat-sidebar`, `.deck-ui-chat-main`, `.deck-ui-right-drawer*`) including 2 `@media` companion blocks. theme.css `grep` for these classes → 0 hits. Playwright visual regression at chat-rich confirmed unchanged. Commit `e1c12e08e8`.
 - [~] 8.2 Batch B — atom-level chat-only classes (message body, session row, canvas header, composer, etc., ~35 top-level rules). **Aborted: severe layout regression** at chat-rich (user message bubble grid columns lost, session-row sidebar grid widened, canvas header flex direction inverted, composer spacing collapsed). Root cause: P2c's `chat-message.css` / `session-sidebar.css` / `chat-canvas.css` / `message-input.css` only ported a subset of the legacy layout rules; theme.css `deck-ui-*` for these atoms is load-bearing, not dead. Reverted via `git checkout`.
-- [x] 8.3 Decision A locked (2026-04-29) — keep dual-class indefinitely. The remaining ~185 chat-only `deck-ui-*` classes (~1.5K lines) stay in theme.css as a no-op styling layer until the legacy `dashboard/` Next.js client retires; theme.css will then be wholesale replaced. Per-atom audit alternative documented in `.omc/scratch/p2d-chat-only-deck-ui-classes.md` for future picker.
+- [~] 8.3 ~~Decision A locked~~ — superseded 2026-04-29. After re-reading proposal/design (Decision 4 + Decision 7), the actual intent of P2 was visual replacement to align with Claude Design bundle (blue accent / new spacing / new tokens), not just className migration with bundle-baseline visuals preserved. Decision A would have left that core goal unmet. Switched to **Decision B** under section 9 below.
+
+## 9. P3 task 2 — visual replacement to Claude Design bundle (Decision B, next session)
+
+**Why:** P2c finished the structural migration (atom-ization, dual-class, 3 UX decisions, type extensions) but the chat surface still renders with theme.css's legacy `deck-ui-*` rules and old tokens (`--primary` purple, etc.). The proposal's Decision 4 + Decision 7 + tokens header comment all require the chat panel to render with `--ds-*` tokens (blue accent #7aa2ff, new spacing/shadows from `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css`). That is the actual completion criterion that's still open.
+
+**Reference inputs:**
+
+- `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/tokens.css` — token target values (already mirrored in `design-system/tokens/index.css`)
+- `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css` — atom-by-atom visual target
+- `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/screenshots/` — pixel-level reference
+
+**Per-atom workflow (repeat for each row in the table):**
+
+1. Diff legacy `deck-ui-*` CSS in theme.css (the rules listed for that atom in `.omc/scratch/p2d-chat-only-deck-ui-classes.md` cross-reference table) against the corresponding `chat-*.css` / atom CSS to identify port gaps (layout grids, flex direction, sizing).
+2. Diff bundle `styles.css` for the same atom against the current `chat-*.css` to identify visual gaps (colors, spacing, shadows, typography, hover/focus states).
+3. Port both gap sets into the `ds-*` CSS file using `--ds-*` tokens only (no raw hex / no `var(--primary)` etc.).
+4. Delete the corresponding chat-only `deck-ui-*` rules from theme.css.
+5. Playwright screenshot at `?deckVisualState=chat-rich` and `chat-empty`, compare against bundle screenshots; iterate until visually aligned.
+6. Run `pnpm test:deck-ui` to confirm 840/840 still green.
+7. Commit per atom (one PR-sized commit per row keeps regression isolation tight).
+
+- [ ] 9.1 Atom audit matrix — generate a table mapping each `chat-*.css` / atom CSS to (a) the legacy `deck-ui-*` rules it replaces, (b) the bundle `styles.css` selectors it should align to, (c) the `?deckVisualState` slice that exercises it, (d) port-status (none / partial / complete). Save to `.omc/scratch/p3-task-2-atom-audit.md`. Use this to decide atom order (do high-frequency atoms first: message → tool-pair → composer → context-bar → session-sidebar → canvas → popover → approval-dialog → chat-widgets).
+- [ ] 9.2 Atom: chat-message (user IM bubble, assistant full-width, message-actions toolbar). Port + delete + visual validate. Visual contract: user message right-aligned with `--ds-accent`-tinted bubble; assistant message left full-width; message-time / message-actions hidden until hover.
+- [ ] 9.3 Atom: tool-pair (tool_use card + tool_result card with shared border, segmented control tabs, error tone). Port + delete + visual validate. Visual contract: paired single card with hairline divider; segmented tabs (raw / bash / read / diff / structured); error → red border on whole pair.
+- [ ] 9.4 Atom: message-input + composer (textarea, attach bar, send/abort, slash hint, mention popover, template menu, ghost hint, command tag chip). Port + delete + visual validate.
+- [ ] 9.5 Atom: chat-context-bar (banner, agent chip, pressure track, warning, compaction notice, run-status badge). Port + delete + visual validate.
+- [ ] 9.6 Atom: session-sidebar (session-row grid, agent-tabs, delete-confirm dialog, search input, sidebar-foot). Port + delete + visual validate.
+- [ ] 9.7 Atom: chat-canvas (canvas panel, header buttons, viewport, frame, spinner, overlay, debug panel, artifact panel head/body, fullscreen modifier). Port + delete + visual validate.
+- [ ] 9.8 Atom: chat-popover (slash command palette, mention popover, prompt-template menu). Port + delete + visual validate.
+- [ ] 9.9 Atom: approval-dialog (header, body, countdown, allow/deny actions). Port + delete + visual validate.
+- [ ] 9.10 Atom: chat-widgets bucket (block-filter-bar, tool-ladder, transcript-search, message-actions, compaction-notice, empty-state, subagent-tree, file-block, image-block, json-tree, table-view, diff-view, code-view, markdown). Port + delete + visual validate. (May split into 9.10.x sub-tasks during execution.)
+- [ ] 9.11 Final visual regression — Playwright screenshots of chat-rich + chat-empty + density toggle + light theme, all aligned to bundle screenshots. Update `?deckVisualState` baseline screenshot set in `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/screenshots/` mirror dir if useful.
+- [ ] 9.12 Final theme.css audit — `grep "deck-ui-(" pattern selectors of all 190 chat-only classes from inventory; expected zero hits. Any remaining hits document why (e.g. shared with markdown shipped through `Markdown`atom that uses`.deck-ui-markdown`+`.ds-markdown` dual class as a shipping migration path).
+- [ ] 9.13 P3 task 1 batch A had auto-unlock added (`923862790a`); confirm dev/E2E env still works after token rotation, restart real-stack at start of every 9.x atom session.
