@@ -8136,8 +8136,7 @@ details summary {
 .deck-ui-filter-row button,
 .deck-ui-quiet-button,
 .deck-ui-icon-button,
-.deck-ui-config-strip button,
-.deck-ui-composer button {
+.deck-ui-config-strip button {
   border: 0;
   color: var(--text);
   font: inherit;
@@ -8262,7 +8261,6 @@ details summary {
 .deck-ui-tab-strip,
 .deck-ui-filter-row,
 .deck-ui-config-strip,
-.deck-ui-composer,
 .deck-ui-stream-banner,
 .deck-ui-context-strip {
   display: flex;
@@ -8301,8 +8299,7 @@ details summary {
 .deck-ui-primary-button,
 .deck-ui-tab-strip button,
 .deck-ui-filter-row button,
-.deck-ui-config-strip button,
-.deck-ui-composer button {
+.deck-ui-config-strip button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -8655,8 +8652,7 @@ details summary {
 
 .deck-ui-search input,
 .deck-ui-transcript-search input,
-.deck-ui-config-strip input,
-.deck-ui-composer textarea {
+.deck-ui-config-strip input {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 0.72rem;
@@ -8675,7 +8671,6 @@ details summary {
 .deck-ui-search input:focus,
 .deck-ui-transcript-search input:focus,
 .deck-ui-config-strip input:focus,
-.deck-ui-composer textarea:focus,
 .deck-ui-nav-item:focus-visible,
 .deck-ui-session-row:focus-visible,
 .deck-ui-icon-button:focus-visible,
@@ -8827,7 +8822,6 @@ details summary {
 .deck-ui-transcript-search,
 .deck-ui-tool-ladder,
 .deck-ui-config-strip,
-.deck-ui-composer,
 .deck-ui-filter-row {
   border: 0;
   border-bottom: 1px solid var(--border);
@@ -9813,22 +9807,6 @@ details summary {
   text-align: center;
 }
 
-.deck-ui-composer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  padding: 8px;
-  border-top: 1px solid var(--border);
-  border-bottom: 0;
-}
-
-.deck-ui-composer textarea {
-  min-height: 44px;
-  max-height: 160px;
-  resize: vertical;
-  padding: 10px 12px;
-}
-
 .deck-ui-approval-dialog {
   grid-column: 1 / -1;
   min-width: 0;
@@ -9922,43 +9900,17 @@ details summary {
   }
 }
 
-.deck-ui-message-input {
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-}
-
-.deck-ui-file-input {
-  display: none;
-}
-
-.deck-ui-composer-field {
-  order: 1;
+.deck-ui-approval-dialog {
   flex: 1 0 100%;
-  position: relative;
-  min-width: 0;
 }
 
-.deck-ui-composer-action,
-.deck-ui-template-menu,
-.deck-ui-message-input > button {
+.deck-ui-template-menu {
   order: 2;
   flex: 0 0 auto;
   min-width: max-content;
 }
 
-.deck-ui-approval-dialog,
-.deck-ui-attachment-bar,
-.deck-ui-composer-warning {
-  flex: 1 0 100%;
-}
-
-.deck-ui-composer-action,
-.deck-ui-template-menu > button,
-.deck-ui-message-input > button {
+.deck-ui-template-menu > button {
   width: auto;
   max-width: 100%;
   min-height: 36px;
@@ -9978,94 +9930,20 @@ details summary {
   white-space: nowrap;
 }
 
-.deck-ui-composer-action svg,
-.deck-ui-template-menu > button svg,
-.deck-ui-message-input > button svg {
+.deck-ui-template-menu > button svg {
   width: 14px;
   height: 14px;
   flex: 0 0 auto;
 }
 
-.deck-ui-composer-action:hover,
-.deck-ui-template-menu > button:hover,
-.deck-ui-message-input > button:hover {
+.deck-ui-template-menu > button:hover {
   border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
   background: var(--primary-muted);
 }
 
-.deck-ui-composer-send {
-  border-color: var(--primary) !important;
-  background: var(--primary) !important;
-  color: #fff !important;
-}
-
-.deck-ui-composer-abort {
-  color: var(--danger) !important;
-}
-
-.deck-ui-message-input > button:disabled,
-.deck-ui-template-menu > button:disabled,
-.deck-ui-composer-action:disabled {
+.deck-ui-template-menu > button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.deck-ui-composer-warning {
-  order: 0;
-  grid-column: 1 / -1;
-  min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--warning) 32%, var(--border));
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--warning) 10%, var(--panel));
-  color: var(--text);
-  font-size: 0.82rem;
-}
-
-.deck-ui-attachment-bar {
-  order: 0;
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.deck-ui-attachment-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--text-soft);
-  background: var(--surface-elevated);
-  font-size: 0.78rem;
-}
-
-.deck-ui-attachment-pill span:first-child {
-  max-width: min(220px, 54vw);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-attachment-remove {
-  width: 22px;
-  height: 22px;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--text-faint);
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
-}
-
-.deck-ui-attachment-remove:hover {
-  border-color: color-mix(in srgb, var(--danger) 32%, var(--border));
-  color: var(--danger);
 }
 
 .deck-ui-template-menu {
@@ -10198,22 +10076,6 @@ details summary {
 .deck-ui-template-menu-popover button {
   justify-content: flex-start;
   text-align: left;
-}
-
-.deck-ui-ghost-hint {
-  position: absolute;
-  inset: 10px 12px auto auto;
-  color: var(--text-faint);
-  font-size: 0.82rem;
-  pointer-events: none;
-}
-
-.deck-ui-command-tag {
-  position: absolute;
-  left: 7px;
-  top: 7px;
-  min-height: 26px;
-  padding: 4px 8px;
 }
 
 .deck-ui-state-line {
@@ -10577,19 +10439,4 @@ details summary {
     width: min(320px, 88vw);
   }
 
-  .deck-ui-composer {
-    grid-template-columns: 1fr;
-  }
-
-  .deck-ui-message-input {
-    grid-template-columns: 1fr;
-  }
-
-  .deck-ui-message-input {
-    justify-content: stretch;
-  }
-
-  .deck-ui-message-input button {
-    flex: 1;
-  }
 }

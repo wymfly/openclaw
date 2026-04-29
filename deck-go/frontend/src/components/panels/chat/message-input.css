@@ -1,100 +1,198 @@
-/* MessageInput composer — flat row of: attach + textarea + template + send.
+/* MessageInput composer — flat row of attach + textarea + toolbar + send.
  *
- * Migrates from `.deck-ui-composer*` (theme.css) to `ds-message-input*`
- * namespace. Layout matches bundle composer baseline.
+ * P3 task 2 atom 9.4 — Decision B per-atom visual replacement.
+ * Bundle target: docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css
+ *   .composer-frame              (lines 637-644)
+ *   .ctx-warn                    (lines 646-654)
+ *   .attach-bar / .attach-chip   (lines 656-678)
+ *   .composer-field              (lines 679-685)
+ *   .composer-attach / .composer-icon-btn (lines 686-694)
+ *   .cmd-tag                     (lines 696-712)
+ *   .ta-wrap / .ghost-hint / .ta-wrap textarea (lines 714-736)
+ *   .composer-toolbar / .btn-send / .btn-stop (lines 738-765)
+ *
+ * Replaces legacy `.deck-ui-composer*` / `.deck-ui-message-input` /
+ * `.deck-ui-attachment-*` / `.deck-ui-command-tag` / `.deck-ui-ghost-hint`
+ * / `.deck-ui-file-input` rules removed from theme.css in the same commit.
  */
 
+/* Composer frame — bundle .composer-frame. */
 .ds-message-input {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 6px;
-  padding: 8px 10px;
-  background: var(--ds-bg-elev);
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-2);
 }
 
+/* Context-pressure warning bar — bundle .ctx-warn. */
 .ds-message-input__warning {
-  flex: 1 1 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--ds-warning, #d99838);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--ds-warning, #d99838) 8%, transparent);
-  color: var(--ds-warning, #d99838);
-  font-size: 0.78rem;
-}
-
-.ds-message-input__field {
-  position: relative;
-  flex: 1 1 240px;
+  flex: 1 0 100%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-warn-bg);
+  color: var(--ds-warn);
+  font-size: var(--ds-fs-meta);
 }
 
+/* Hidden file input — kept in DOM for accessibility / file picker trigger. */
 .ds-message-input__file-input {
   display: none;
 }
 
-.ds-message-input__ghost {
-  position: absolute;
-  top: 4px;
-  left: 8px;
-  pointer-events: none;
-  color: var(--ds-text-2, currentColor);
-  opacity: 0.6;
-  font-size: 0.78rem;
+/* Composer field — owns textarea, popovers, ghost hint, slash-command tag.
+ * Bundle layout is row-based (.composer-field flex row); we keep a stacking
+ * column so popover / ghost / tag / textarea sit naturally without z-index
+ * juggling, then expand to fill the frame's remaining horizontal space. */
+.ds-message-input__field {
+  position: relative;
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
 }
 
+/* Ghost hint — bundle .ghost-hint, slash command preview overlay. */
+.ds-message-input__ghost {
+  position: absolute;
+  inset: 6px 8px auto 8px;
+  pointer-events: none;
+  color: var(--ds-text-4);
+  font-size: var(--ds-fs-body);
+  white-space: pre;
+}
+
+/* Active slash-command tag chip — bundle .cmd-tag. */
 .ds-message-input__tag {
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
   gap: 4px;
-  margin: 4px 0;
-  padding: 3px 8px;
-  border: 1px solid var(--ds-accent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ds-accent) 12%, transparent);
+  height: 24px;
+  padding: 4px 8px;
+  border: 1px solid var(--ds-accent-dim);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-accent-bg);
   color: var(--ds-accent);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--ds-fs-meta);
   cursor: pointer;
 }
 
 .ds-message-input__tag:hover {
-  background: color-mix(in srgb, var(--ds-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--ds-accent) 22%, var(--ds-accent-bg));
 }
 
-/* The composer Textarea atom owns its own ds-textarea visual; we just need to
- * make sure the inner control fills the field. */
+/* Inner textarea — neutralize the Textarea atom's surface so the textarea
+ * blends into composer-frame; bundle .ta-wrap textarea is borderless +
+ * transparent + no resize handle. */
 .ds-message-input__field .ds-textarea {
   flex: 1 1 auto;
-  min-height: 60px;
+  min-height: 28px;
+  max-height: 200px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-line);
+  resize: none;
 }
 
-/* Action / send / abort buttons — design-system Button atom owns visuals;
- * additional layout is handled here. */
+.ds-message-input__field .ds-textarea:hover:not(:disabled),
+.ds-message-input__field .ds-textarea:focus-visible {
+  border: 0;
+  outline: none;
+  background: transparent;
+}
+
+/* Action / send / abort layout — visuals owned by Button + IconButton atoms;
+ * here we only pin alignment within the composer flex row. */
 .ds-message-input__action,
 .ds-message-input__send,
-.ds-message-input__abort {
-  align-self: flex-end;
+.ds-message-input__abort,
+.ds-message-input > .ds-template-menu {
   flex: 0 0 auto;
+  align-self: flex-end;
 }
 
-/* Attachment bar — stacks pills horizontally. */
+/* Attachment bar — bundle .attach-bar. */
 .ds-attachment-bar {
-  flex: 1 1 100%;
+  flex: 1 0 100%;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--ds-border-subtle);
 }
 
+/* Attach chip — bundle .attach-chip. */
 .ds-attachment-bar__pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
-  border: 1px solid var(--ds-border);
-  border-radius: 999px;
-  background: var(--ds-bg-2);
-  font-size: 0.78rem;
+  padding: 3px 8px 3px 6px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-1);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-attachment-bar__pill > span:first-child {
+  max-width: min(220px, 54vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Remove icon — bundle .attach-chip button. */
+.ds-attachment-bar__remove {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text-3);
+  cursor: pointer;
+}
+
+.ds-attachment-bar__remove:hover {
+  background: var(--ds-bg-hover);
+  color: var(--ds-error);
+}
+
+/* Density compact override — keep composer dense without losing tap area. */
+[data-density="compact"] .ds-message-input {
+  padding: 8px;
+  gap: 6px;
+}
+
+[data-density="compact"] .ds-message-input__field .ds-textarea {
+  min-height: 24px;
+}
+
+/* Small viewport — keep textarea full-width + let action buttons share the
+ * remaining row evenly, mirroring bundle small-viewport intent. */
+@media (max-width: 720px) {
+  .ds-message-input__field {
+    flex: 1 0 100%;
+  }
+
+  .ds-message-input__action,
+  .ds-message-input__send,
+  .ds-message-input__abort {
+    flex: 1 1 auto;
+  }
 }
