@@ -6,14 +6,14 @@ export function ShowRawToggle({ isRaw, onToggle }: { isRaw: boolean; onToggle: (
   return (
     <button
       aria-pressed={isRaw}
-      className="deck-ui-tool-control deck-ui-raw-toggle"
+      className="ds-tool-control ds-raw-toggle deck-ui-tool-control deck-ui-raw-toggle"
       type="button"
       onClick={(event) => {
         event.stopPropagation();
         onToggle();
       }}
     >
-      <span aria-hidden="true" className="deck-ui-raw-toggle-icon" />
+      <span aria-hidden="true" className="ds-raw-toggle__icon deck-ui-raw-toggle-icon" />
       {isRaw ? t("showFormatted") : t("showRaw")}
     </button>
   );

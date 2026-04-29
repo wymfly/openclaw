@@ -9071,12 +9071,7 @@ details summary {
   color: var(--text-soft);
 }
 
-.deck-ui-thinking-block,
-.deck-ui-tool-use-card,
-.deck-ui-tool-result-card,
-.deck-ui-unknown-block,
 .deck-ui-file-block,
-.deck-ui-virtual-result,
 .deck-ui-artifact-card,
 .deck-ui-compaction-notice,
 .deck-ui-subagent-tree,
@@ -9087,40 +9082,6 @@ details summary {
   background: var(--surface-elevated);
 }
 
-.deck-ui-thinking-block,
-.deck-ui-tool-use-card,
-.deck-ui-unknown-block {
-  overflow: hidden;
-}
-
-.deck-ui-thinking-block summary,
-.deck-ui-tool-use-summary,
-.deck-ui-unknown-block summary,
-.deck-ui-tool-result-head,
-.deck-ui-virtual-result-head {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 9px;
-  color: var(--text-soft);
-  cursor: pointer;
-  font-size: 0.78rem;
-}
-
-.deck-ui-tool-result-head,
-.deck-ui-virtual-result-head {
-  cursor: default;
-}
-
-.deck-ui-thinking-block summary:hover,
-.deck-ui-tool-use-summary:hover,
-.deck-ui-unknown-block summary:hover {
-  color: var(--text);
-  background: var(--surface-inset);
-}
-
-.deck-ui-tool-icon,
 .deck-ui-artifact-card-icon {
   min-width: 24px;
   height: 20px;
@@ -9136,93 +9097,6 @@ details summary {
   text-transform: uppercase;
 }
 
-.deck-ui-tool-label,
-.deck-ui-tool-result-head strong {
-  color: var(--text);
-  font-weight: 650;
-}
-
-.deck-ui-tool-use-summary code,
-.deck-ui-tool-result-command code {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono);
-}
-
-.deck-ui-tool-summary {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-faint);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-tool-use-body,
-.deck-ui-tool-result-structured {
-  display: grid;
-  gap: 8px;
-  padding: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.deck-ui-tool-use-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-inline-start: auto;
-}
-
-.deck-ui-tool-control,
-.deck-ui-tool-inline-button,
-.deck-ui-tool-download {
-  min-height: 28px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 4px 8px;
-  background: var(--panel);
-  color: var(--text-soft);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.74rem;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.deck-ui-tool-control:hover,
-.deck-ui-tool-inline-button:hover,
-.deck-ui-tool-download:hover {
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  color: var(--primary);
-}
-
-.deck-ui-tool-result-card {
-  display: block;
-  overflow: hidden;
-  padding: 0;
-}
-
-.deck-ui-tool-result-card.is-error {
-  border-color: color-mix(in srgb, var(--danger) 34%, var(--border));
-  background: color-mix(in srgb, var(--danger) 6%, var(--surface-elevated));
-}
-
-.deck-ui-tool-result-card.is-error .deck-ui-tool-icon {
-  color: var(--danger);
-}
-
-.deck-ui-tool-result-head {
-  padding: 0;
-}
-
-.deck-ui-tool-result-raw,
-.deck-ui-thinking-block pre,
-.deck-ui-unknown-block pre,
-.deck-ui-tool-param-nested pre,
-.deck-ui-virtual-result pre,
-.deck-ui-tool-result-stream pre,
 .deck-ui-diff-preview,
 .deck-ui-artifact-code {
   margin: 0;
@@ -9236,97 +9110,6 @@ details summary {
   font-size: 0.78rem;
   line-height: 1.55;
   white-space: pre-wrap;
-}
-
-.deck-ui-thinking-block pre,
-.deck-ui-unknown-block pre {
-  margin: 0 8px 8px;
-}
-
-.deck-ui-tool-params {
-  display: grid;
-  gap: 5px;
-}
-
-.deck-ui-tool-param-row {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(86px, max-content) minmax(0, 1fr);
-  gap: 8px;
-  padding: 5px 7px;
-  border-radius: 5px;
-  background: var(--surface-inset);
-  font-size: 0.78rem;
-}
-
-.deck-ui-tool-param-key {
-  overflow: hidden;
-  color: var(--text-faint);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono);
-}
-
-.deck-ui-tool-param-value {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--text);
-}
-
-.deck-ui-tool-param-value.is-null,
-.deck-ui-tool-param-empty {
-  margin: 0;
-  color: var(--text-faint);
-}
-
-.deck-ui-tool-param-nested summary {
-  color: var(--primary);
-  cursor: pointer;
-}
-
-.deck-ui-tool-result-bash,
-.deck-ui-tool-result-stream {
-  display: grid;
-  gap: 7px;
-}
-
-.deck-ui-tool-result-command,
-.deck-ui-tool-result-exit,
-.deck-ui-tool-result-binary {
-  padding: 7px 9px;
-  border-radius: 6px;
-  background: var(--surface-inset);
-  color: var(--text-soft);
-  font-size: 0.78rem;
-}
-
-.deck-ui-tool-result-stream strong {
-  color: var(--text);
-  font-size: 0.76rem;
-}
-
-.deck-ui-tool-result-stream.is-error pre {
-  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
-  color: var(--danger);
-}
-
-.deck-ui-raw-toggle {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.deck-ui-raw-toggle span {
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.deck-ui-tool-result-exit.is-error {
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 8%, var(--surface-inset));
 }
 
 .deck-ui-highlighted-code {
@@ -9425,7 +9208,6 @@ details summary {
   user-select: none;
 }
 
-.deck-ui-tool-result-media,
 .deck-ui-image-block {
   display: inline-grid;
   max-width: min(100%, 520px);
@@ -9435,7 +9217,6 @@ details summary {
   background: var(--surface-inset);
 }
 
-.deck-ui-tool-result-media img,
 .deck-ui-image-block img {
   max-width: 100%;
   max-height: 320px;
@@ -9489,17 +9270,6 @@ details summary {
   font-size: 0.72rem;
   font-family: var(--font-mono);
   text-transform: uppercase;
-}
-
-.deck-ui-virtual-result {
-  display: grid;
-  gap: 8px;
-  padding: 8px;
-}
-
-.deck-ui-virtual-result-head {
-  justify-content: space-between;
-  padding: 0;
 }
 
 .deck-ui-canvas-embed {
@@ -10489,8 +10259,7 @@ details summary {
 }
 
 .deck-ui-canvas-header button svg,
-.deck-ui-canvas-overlay button svg,
-.deck-ui-tool-control svg {
+.deck-ui-canvas-overlay button svg {
   width: 14px;
   height: 14px;
 }

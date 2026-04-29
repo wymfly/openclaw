@@ -29,7 +29,7 @@ function renderNestedBlock(block: ContentBlock, index: number) {
   switch (block.type) {
     case "text":
       return (
-        <pre className="deck-ui-tool-result-raw" key={`text-${index}`}>
+        <pre className="ds-tool-result-raw deck-ui-tool-result-raw" key={`text-${index}`}>
           {block.text}
         </pre>
       );
@@ -136,20 +136,20 @@ export function ToolResultCard(props: ToolResultCardProps) {
   const renderedContent = (() => {
     if (activeView === "raw") {
       return (
-        <div className="deck-ui-tool-use-body">
+        <div className="ds-tool-use-body deck-ui-tool-use-body">
           {renderRawContent({ content: contentText, lineCount })}
         </div>
       );
     }
     if (isStructuredContent) {
       return (
-        <div className="deck-ui-tool-result-structured">
+        <div className="ds-tool-result-structured deck-ui-tool-result-structured">
           {content.map((block, index) => renderNestedBlock(block, index))}
         </div>
       );
     }
     return (
-      <div className="deck-ui-tool-use-body">
+      <div className="ds-tool-use-body deck-ui-tool-use-body">
         {renderStringContent({
           bashResult,
           content: content,
@@ -208,10 +208,10 @@ export function ToolResultCard(props: ToolResultCardProps) {
         data-tool-error={isError ? "true" : undefined}
       >
         <summary className="deck-ui-tool-use-summary ds-tool-result-card__summary">
-          <span className="deck-ui-tool-icon" aria-hidden="true">
+          <span className="ds-tool-icon deck-ui-tool-icon" aria-hidden="true">
             {isError ? "!" : "ok"}
           </span>
-          <span className="deck-ui-tool-label">{title}</span>
+          <span className="ds-tool-label deck-ui-tool-label">{title}</span>
           {hasEnhancedView ? (
             <span
               className="deck-ui-tool-use-actions ds-tool-result-card__actions"
@@ -264,7 +264,7 @@ function renderStringContent({
     const fileName = filePath?.split("/").pop() ?? "image";
     return (
       <div
-        className="deck-ui-tool-result-media"
+        className="ds-tool-result-media deck-ui-tool-result-media"
         data-tool-result-view="read"
         data-file-preview="image"
       >
@@ -278,7 +278,9 @@ function renderStringContent({
   }
 
   if (viewType === "read" && isBinaryContent(content)) {
-    return <div className="deck-ui-tool-result-binary">{t("binaryFile")}</div>;
+    return (
+      <div className="ds-tool-result-binary deck-ui-tool-result-binary">{t("binaryFile")}</div>
+    );
   }
 
   if (viewType === "bash" && bashResult) {
@@ -302,7 +304,7 @@ function renderRawContent({ content, lineCount }: { content: string; lineCount: 
     return <VirtualScrollResult content={content} />;
   }
 
-  return <pre className="deck-ui-tool-result-raw">{content}</pre>;
+  return <pre className="ds-tool-result-raw deck-ui-tool-result-raw">{content}</pre>;
 }
 
 function resolveToolContext(

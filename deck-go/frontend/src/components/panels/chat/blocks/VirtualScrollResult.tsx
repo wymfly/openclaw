@@ -10,8 +10,8 @@ export function VirtualScrollResult({ content }: { content: string }) {
   const visibleLines = expanded ? lines : lines.slice(0, COLLAPSED_LINE_COUNT);
 
   return (
-    <div className="deck-ui-virtual-result" data-tool-result-view="virtual">
-      <div className="deck-ui-virtual-result-head">
+    <div className="ds-virtual-result deck-ui-virtual-result" data-tool-result-view="virtual">
+      <div className="ds-virtual-result__head deck-ui-virtual-result-head">
         <span>
           {t("virtualLines", {
             start: lines.length > 0 ? 1 : 0,
@@ -20,7 +20,7 @@ export function VirtualScrollResult({ content }: { content: string }) {
           })}
         </span>
         <button
-          className="deck-ui-tool-control"
+          className="ds-tool-control deck-ui-tool-control"
           type="button"
           onClick={() => setExpanded((current) => !current)}
         >
