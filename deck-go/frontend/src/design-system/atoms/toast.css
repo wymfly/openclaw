@@ -1,0 +1,27 @@
+.ds-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-3);
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-elev);
+  border: 1px solid var(--ds-border);
+  box-shadow: var(--ds-shadow-md);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-body);
+  color: var(--ds-text-1);
+  min-width: 240px;
+  max-width: 480px;
+}
+.ds-toast--success {
+  border-color: var(--ds-success);
+  color: var(--ds-success);
+}
+.ds-toast--warn {
+  border-color: var(--ds-warn);
+  color: var(--ds-warn);
+}
+.ds-toast--error {
+  border-color: var(--ds-error);
+  color: var(--ds-error);
+}

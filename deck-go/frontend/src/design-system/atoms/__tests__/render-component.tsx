@@ -1,6 +1,10 @@
 import { act, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
+// Tell React this is a test environment so async state updates triggered by
+// fake-timer callbacks (e.g. Tooltip openDelay) are flushed by `act`.
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
 export interface RenderResult {
   container: HTMLDivElement;
   unmount: () => void;

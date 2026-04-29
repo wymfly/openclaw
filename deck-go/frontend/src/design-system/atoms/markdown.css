@@ -1,0 +1,121 @@
+.ds-md {
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-line);
+  color: var(--ds-text-1);
+  word-wrap: break-word;
+}
+.ds-md p {
+  margin: var(--ds-sp-2) 0;
+}
+.ds-md p:first-child {
+  margin-top: 0;
+}
+.ds-md p:last-child {
+  margin-bottom: 0;
+}
+.ds-md h1,
+.ds-md h2,
+.ds-md h3,
+.ds-md h4,
+.ds-md h5,
+.ds-md h6 {
+  margin: var(--ds-sp-5) 0 var(--ds-sp-2);
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+.ds-md h1 {
+  font-size: 1.5em;
+}
+.ds-md h2 {
+  font-size: 1.3em;
+}
+.ds-md h3 {
+  font-size: 1.15em;
+}
+.ds-md h4,
+.ds-md h5,
+.ds-md h6 {
+  font-size: 1em;
+}
+.ds-md ul,
+.ds-md ol {
+  margin: var(--ds-sp-2) 0 var(--ds-sp-2) var(--ds-sp-6);
+  padding: 0;
+}
+.ds-md li {
+  margin: var(--ds-sp-1) 0;
+}
+.ds-md strong {
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+.ds-md em {
+  font-style: italic;
+}
+.ds-md a {
+  color: var(--ds-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ds-md a:hover {
+  filter: brightness(1.15);
+}
+.ds-md code {
+  font-family: var(--ds-font-mono);
+  font-size: 0.92em;
+  background: var(--ds-code-bg);
+  border: 1px solid var(--ds-code-border);
+  border-radius: 3px;
+  padding: 0 var(--ds-sp-1);
+}
+.ds-md pre {
+  margin: var(--ds-sp-3) 0;
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-code-bg);
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: var(--ds-line);
+  overflow-x: auto;
+}
+.ds-md pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+.ds-md blockquote {
+  margin: var(--ds-sp-3) 0;
+  padding: var(--ds-sp-1) var(--ds-sp-4);
+  border-left: 3px solid var(--ds-border);
+  color: var(--ds-text-2);
+}
+.ds-md hr {
+  border: none;
+  border-top: 1px solid var(--ds-border-subtle);
+  margin: var(--ds-sp-4) 0;
+}
+.ds-md table {
+  border-collapse: collapse;
+  width: auto;
+  margin: var(--ds-sp-3) 0;
+  font-size: var(--ds-fs-body);
+}
+.ds-md th,
+.ds-md td {
+  border: 1px solid var(--ds-border-subtle);
+  padding: var(--ds-sp-1) var(--ds-sp-3);
+  text-align: left;
+}
+.ds-md th {
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  font-weight: 500;
+}
+.ds-md img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--ds-radius-sm);
+}

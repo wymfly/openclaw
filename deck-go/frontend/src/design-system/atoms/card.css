@@ -1,0 +1,18 @@
+.ds-card {
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  font-family: var(--ds-font-sans);
+  color: var(--ds-text-1);
+}
+.ds-card--elev {
+  background: var(--ds-bg-elev);
+}
+.ds-card--flat {
+  background: var(--ds-bg-2);
+}
+.ds-card--subtle {
+  background: var(--ds-bg-1);
+}
+.ds-card--padded {
+  padding: var(--ds-sp-4);
+}

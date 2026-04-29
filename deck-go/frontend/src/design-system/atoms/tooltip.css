@@ -1,0 +1,15 @@
+.ds-tooltip {
+  position: absolute;
+  z-index: 80;
+  padding: var(--ds-sp-1) var(--ds-sp-3);
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-1);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-meta);
+  line-height: var(--ds-line);
+  box-shadow: var(--ds-shadow-md);
+  pointer-events: none;
+  max-width: 240px;
+}
