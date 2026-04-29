@@ -374,6 +374,7 @@ export const deckAgentsMethodDefs: Record<string, Omit<MethodDefinition, "handle
 - `deck-go/scripts/dev/run-stack-real.sh` —— 真 OpenClaw Gateway + backend + Vite preview 一键全栈，**E2E 默认基础设施**；启动前自动清理 18789/19566/4174 端口占用
 - `deck-go/backend/internal/runtime/{facade,envconf,state,bundled,remote,shared}/` —— 后端 runtime-mode 模块切分
 - `deck-go/contracts/` —— deck-go 自有契约链路；修改 API 合约后运行 `cd deck-go && make contracts-sync`
+- `deck-go/frontend/src/design-system/` —— Deck UI 设计系统单一来源；`tokens.css` + 36 个 atoms（container/text/form/nav/overlay）+ 5 个 hooks。所有 chat 面板组件经 P2 重构后通过 atoms 复用 `--ds-*` token，外部组件应优先 import `@/design-system/atoms/*` 而非自行手写样式
 - 独立于上一代 `deploy/` 的 deck-go 部署形态（systemd unit / 容器镜像）后续单独规划
 
 ### E2E 测试基础设施

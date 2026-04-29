@@ -342,7 +342,7 @@ describe("showToolResult block filter", () => {
     });
 
     const details = Array.from(container.querySelectorAll<HTMLDetailsElement>("details")).filter(
-      (element) => element.classList.contains("deck-ui-tool-result-card"),
+      (element) => element.classList.contains("ds-tool-result-card"),
     );
     expect(details).toHaveLength(2);
     expect(details[0]?.open).toBe(false);
@@ -394,7 +394,7 @@ describe("showToolResult block filter", () => {
     });
 
     const details = container.querySelector<HTMLDetailsElement>(
-      "details.deck-ui-tool-result-card.is-error",
+      "details.ds-tool-result-card.is-error",
     );
     expect(details).toBeTruthy();
     expect(details?.open).toBe(true);
@@ -421,7 +421,7 @@ describe("showToolResult block filter", () => {
     });
 
     const details = container.querySelector<HTMLDetailsElement>(
-      "details.deck-ui-tool-result-card.is-error",
+      "details.ds-tool-result-card.is-error",
     );
     expect(details?.open).toBe(true);
 
@@ -437,7 +437,7 @@ describe("showToolResult block filter", () => {
     });
 
     const rerenderedDetails = container.querySelector<HTMLDetailsElement>(
-      "details.deck-ui-tool-result-card.is-error",
+      "details.ds-tool-result-card.is-error",
     );
     expect(rerenderedDetails?.open).toBe(false);
   });
@@ -462,7 +462,7 @@ describe("showToolResult block filter", () => {
     });
 
     const initialDetails = container.querySelector<HTMLDetailsElement>(
-      "details.deck-ui-tool-result-card",
+      "details.ds-tool-result-card",
     );
     expect(initialDetails?.open).toBe(false);
 
@@ -471,7 +471,7 @@ describe("showToolResult block filter", () => {
     });
 
     const errorDetails = container.querySelector<HTMLDetailsElement>(
-      "details.deck-ui-tool-result-card.is-error",
+      "details.ds-tool-result-card.is-error",
     );
     expect(errorDetails?.open).toBe(true);
   });
