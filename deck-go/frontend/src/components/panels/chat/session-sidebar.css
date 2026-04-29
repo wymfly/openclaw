@@ -1,20 +1,102 @@
-/* Session sidebar — agent tabs + new-session + search + scrollable list. */
+/* Session sidebar — agent-tabs + new-session + search + scrollable list +
+ * delete-confirm dialog + footer.
+ *
+ * P3 task 2 atom 9.6 — Decision B per-atom visual replacement.
+ * Bundle target: docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css
+ *   .sidebar          (lines 24-31)
+ *   .agent-tabs       (lines 67-72)
+ *   .sidebar-actions  (lines 85-97 — Button atom owns chrome)
+ *   .sidebar-search   (lines 99-109 — Input atom owns chrome)
+ *   .session-list     (lines 118-119)
+ *   .rename-input     (lines 141-149)
+ *   .sidebar-foot     (lines 165-170)
+ *   .modal-actions    (lines 172-189 — adapted to inline dialog)
+ *
+ * Row visuals owned by SidebarRow atom (`design-system/atoms/sidebar-row.css`,
+ * already bundle-aligned with bundle .session-row + .row-title-line + .row-title
+ * + .row-preview + .row-meta). Tab visuals owned by Tab atom (`tab.css`),
+ * already bundle-aligned with bundle .agent-tab.
+ *
+ * Replaces legacy `.deck-ui-session-sidebar` / `-list` / `-row` / `-search` /
+ * `-edit` / `-new` / `-delete` / `-agent-tab(s)` / `-delete-dialog` /
+ * `-delete-cancel` / `-delete-confirm` / `-sidebar-foot` rules removed from
+ * theme.css in the same commit.
+ */
 
 .ds-session-sidebar {
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-  gap: 8px;
-  padding: 8px;
-  background: var(--ds-bg-elev);
-}
-
-.ds-session-sidebar__list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  overflow-y: auto;
+  min-height: 0;
+  height: 100%;
+  background: var(--ds-bg-0);
+  overflow: hidden;
 }
 
+/* AgentTabs container — bundle .agent-tabs (borderless top, single bottom
+ * separator, horizontal scroll for overflow). */
+.ds-agent-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding: 12px 12px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  border-radius: 0;
+  background: transparent;
+  overflow-x: auto;
+}
+
+/* New session button — bundle .sidebar-actions wrapper around Button atom. */
+.ds-session-sidebar__new {
+  flex: 0 0 auto;
+  width: calc(100% - 24px);
+  margin: 10px 12px 6px;
+  justify-content: center;
+}
+
+/* Sidebar search — bundle .sidebar-search wrapper around Input atom. */
+.ds-session-sidebar__search {
+  flex: 0 0 auto;
+  width: calc(100% - 24px);
+  margin: 4px 12px 8px;
+}
+
+/* Scrollable session list — bundle .session-list. */
+.ds-session-sidebar__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px;
+}
+
+/* Inline rename input — bundle .rename-input. */
+.ds-session-sidebar__edit {
+  width: 100%;
+  padding: 2px 6px;
+  border: 1px solid var(--ds-accent-dim);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-1);
+  color: var(--ds-text-1);
+  font: inherit;
+  font-size: 12.8px;
+  outline: none;
+}
+
+/* Sidebar footer — bundle .sidebar-foot. */
+.ds-session-sidebar__foot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+/* Inline delete-confirm dialog — bundle .modal style adapted for an inline
+ * floating panel anchored to the bottom-left of the chat shell so it stays
+ * close to the row that triggered it. */
 .ds-session-sidebar__delete-dialog {
   position: fixed;
   z-index: 60;
@@ -22,35 +104,42 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px;
+  padding: 14px;
+  max-width: 320px;
   border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-lg);
   background: var(--ds-bg-elev);
   box-shadow: var(--ds-shadow-lg);
 }
 
-.ds-session-sidebar__edit {
-  width: 100%;
-  padding: 4px 6px;
-  border: 1px solid var(--ds-accent);
-  border-radius: 4px;
-  background: var(--ds-bg-1);
-  color: var(--ds-fg, currentColor);
-  font: inherit;
+.ds-session-sidebar__delete-dialog p {
+  margin: 0;
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.4;
 }
 
-.ds-session-sidebar__foot {
-  padding: 6px 8px;
-  border-top: 1px solid var(--ds-border-subtle, var(--ds-border));
-  font-size: 0.75rem;
-  color: var(--ds-text-2, currentColor);
+/* Hover-reveal — bundle session rows show the trash button only on row
+ * hover / focus, matching legacy `.deck-ui-session-row:hover .deck-ui-
+ * session-delete` UX. The SidebarRow atom owns the trailing slot; we layer
+ * the reveal here so other consumers of SidebarRow keep their always-on
+ * trailing actions. */
+.ds-session-sidebar__list .ds-sidebar-row__trailing {
+  opacity: 0;
+  transition: opacity 150ms ease;
 }
 
-.ds-agent-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 3px;
-  border: 1px solid var(--ds-border);
-  border-radius: 7px;
-  background: var(--ds-bg-2);
+.ds-session-sidebar__list .ds-sidebar-row:hover .ds-sidebar-row__trailing,
+.ds-session-sidebar__list .ds-sidebar-row:focus-within .ds-sidebar-row__trailing,
+.ds-session-sidebar__list .ds-sidebar-row--active .ds-sidebar-row__trailing {
+  opacity: 1;
+}
+
+/* Density compact override. */
+[data-density="compact"] .ds-agent-tabs {
+  padding: 8px 10px 6px;
+}
+
+[data-density="compact"] .ds-session-sidebar__foot {
+  padding: 7px 10px;
 }

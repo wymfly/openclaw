@@ -8096,16 +8096,13 @@ details summary {
 
 .deck-ui-header p,
 .deck-ui-muted-text,
-.deck-ui-session-row small,
-.deck-ui-session-row em,
 .deck-ui-artifact span {
   color: var(--text-faint);
 }
 
 .deck-ui-rail-scroll,
 .deck-ui-rail-group,
-.deck-ui-rail-footer,
-.deck-ui-session-list {
+.deck-ui-rail-footer {
   display: grid;
   gap: 3px;
   align-content: start;
@@ -8131,7 +8128,6 @@ details summary {
 }
 
 .deck-ui-nav-item,
-.deck-ui-session-row,
 .deck-ui-tab-strip button,
 .deck-ui-filter-row button,
 .deck-ui-quiet-button,
@@ -8174,13 +8170,11 @@ details summary {
   padding-inline: 0;
 }
 
-.deck-ui-nav-item:hover,
-.deck-ui-session-row:hover {
+.deck-ui-nav-item:hover {
   background: var(--primary-muted);
 }
 
-.deck-ui-nav-item.is-active,
-.deck-ui-session-row.is-selected {
+.deck-ui-nav-item.is-active {
   background: var(--primary-muted);
   color: var(--primary);
   box-shadow: inset 2px 0 0 var(--primary);
@@ -8231,8 +8225,6 @@ details summary {
 .deck-ui-icon-button svg,
 .deck-ui-quiet-button svg,
 .deck-ui-nav-glyph svg,
-.deck-ui-session-new svg,
-.deck-ui-session-delete svg,
 .deck-ui-segmented svg {
   width: 16px;
   height: 16px;
@@ -8506,17 +8498,7 @@ details summary {
   gap: 6px;
 }
 
-.deck-ui-session-sidebar {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-  gap: 7px;
-  padding: 8px;
-  background: var(--panel);
-}
-
-.deck-ui-session-mode-tabs,
-.deck-ui-agent-tabs {
+.deck-ui-session-mode-tabs {
   display: flex;
   gap: 4px;
   padding: 3px;
@@ -8526,10 +8508,6 @@ details summary {
 }
 
 .deck-ui-session-mode-tab,
-.deck-ui-agent-tab,
-.deck-ui-session-new,
-.deck-ui-session-delete,
-.deck-ui-delete-dialog button,
 .deck-ui-template-menu button,
 .deck-ui-transcript-search-controls button {
   border: 1px solid transparent;
@@ -8540,8 +8518,7 @@ details summary {
   font: inherit;
 }
 
-.deck-ui-session-mode-tab,
-.deck-ui-agent-tab {
+.deck-ui-session-mode-tab {
   min-width: 0;
   flex: 1 1 0;
   min-height: 28px;
@@ -8549,70 +8526,16 @@ details summary {
   font-size: 0.78rem;
 }
 
-.deck-ui-session-mode-tab.is-active,
-.deck-ui-agent-tab.is-active {
+.deck-ui-session-mode-tab.is-active {
   background: var(--panel);
   color: var(--text);
   border-color: var(--border);
   box-shadow: var(--shadow-soft);
 }
 
-.deck-ui-session-mode-tab:disabled,
-.deck-ui-agent-tab:disabled {
+.deck-ui-session-mode-tab:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-}
-
-.deck-ui-agent-tab span:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-agent-tab span:last-child {
-  margin-left: 6px;
-  color: var(--text-faint);
-}
-
-.deck-ui-session-new {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 32px;
-  padding: 7px 10px;
-  border-color: var(--border);
-  color: var(--primary);
-  background: var(--surface-elevated);
-  text-align: left;
-}
-
-.deck-ui-session-new:hover {
-  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
-  background: var(--primary-muted);
-}
-
-.deck-ui-session-new span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-session-search,
-.deck-ui-session-edit {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 7px 9px;
-  background: var(--input-bg);
-  color: var(--text);
-  font: inherit;
-}
-
-.deck-ui-session-list {
-  min-height: 0;
-  overflow: auto;
 }
 
 .deck-ui-tab-strip button {
@@ -8671,135 +8594,12 @@ details summary {
 .deck-ui-transcript-search input:focus,
 .deck-ui-config-strip input:focus,
 .deck-ui-nav-item:focus-visible,
-.deck-ui-session-row:focus-visible,
 .deck-ui-icon-button:focus-visible,
 .deck-ui-quiet-button:focus-visible,
 .deck-ui-status-chip:focus-visible,
 .deck-ui-primary-button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--primary) 46%, transparent);
   outline-offset: 2px;
-}
-
-.deck-ui-session-row {
-  width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content 28px;
-  gap: 4px 8px;
-  overflow: hidden;
-  padding: 8px 8px 8px 10px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text);
-  text-align: left;
-}
-
-.deck-ui-session-row:hover {
-  border-color: var(--border);
-  background: var(--surface-elevated);
-}
-
-.deck-ui-session-row.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-session-row span {
-  min-width: 0;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-session-row strong,
-.deck-ui-session-row small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-session-row em {
-  font-style: normal;
-  font-size: 0.76rem;
-}
-
-.deck-ui-session-row > span:first-of-type,
-.deck-ui-session-row > span:nth-of-type(2) {
-  grid-column: 1;
-}
-
-.deck-ui-session-row > span:nth-of-type(3) {
-  grid-column: 2;
-  grid-row: 1;
-  align-self: start;
-}
-
-.deck-ui-session-delete {
-  grid-column: 3;
-  grid-row: 1;
-  align-self: start;
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  color: var(--danger);
-  opacity: 0;
-  transition:
-    background 150ms ease,
-    opacity 150ms ease;
-}
-
-.deck-ui-session-row:hover .deck-ui-session-delete,
-.deck-ui-session-delete:focus-visible {
-  opacity: 1;
-}
-
-.deck-ui-delete-dialog {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--danger) 28%, var(--border));
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--danger) 7%, var(--panel));
-}
-
-.deck-ui-delete-dialog p {
-  margin: 0;
-  color: var(--text-soft);
-  font-size: 0.82rem;
-  line-height: 1.4;
-}
-
-.deck-ui-delete-cancel,
-.deck-ui-delete-confirm {
-  min-height: 30px;
-  padding: 5px 8px;
-}
-
-.deck-ui-delete-cancel:hover {
-  background: var(--surface-inset);
-  color: var(--text);
-}
-
-.deck-ui-delete-confirm {
-  border-color: color-mix(in srgb, var(--danger) 28%, var(--border)) !important;
-  color: var(--danger) !important;
-}
-
-.deck-ui-delete-confirm:hover {
-  background: color-mix(in srgb, var(--danger) 11%, var(--panel));
-}
-
-.deck-ui-sidebar-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--text-faint);
-  font-size: 0.82rem;
 }
 
 .deck-ui-pager {
