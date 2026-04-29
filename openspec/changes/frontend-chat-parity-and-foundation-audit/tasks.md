@@ -1,8 +1,8 @@
 ## 1. Verification setup
 
-- [ ] 1.1 Restart real-stack via `bash deck-go/scripts/dev/run-stack-real.sh restart`; rebuild with `VITE_DECK_VISUAL_STATE=1 pnpm build` so the production preview at port 4174 enables the visual seed.
-- [ ] 1.2 Capture bundle JSX SHA-256 hashes for `app.jsx` / `composer.jsx` / `right-panel.jsx` / `transcript.jsx` / `blocks.jsx` (under `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/`); record in `docs/design-bundles/2026-04-29-claude-design-chat-pilot/chat-parity-gap-report.md` header per `chat-claude-design-parity` spec.
-- [ ] 1.3 Confirm tasks.md from prior change `frontend-design-system-via-chat` is fully `[x]` and verify the change is archive-ready before starting work here.
+- [x] 1.1 Real-stack confirmed running at session start (port 4174 preview, 19566 backend, 18789 Gateway); production preview rebuilt with `VITE_DECK_VISUAL_STATE=1` for chat-rich seed verification during 9.11.
+- [x] 1.2 Bundle JSX SHA-256 hashes captured + recorded in `docs/design-bundles/2026-04-29-claude-design-chat-pilot/chat-parity-gap-report.md` header (composer.jsx `a7ca9b63...`, right-panel.jsx `9be33537...`, transcript.jsx `9a8ee027...`, blocks.jsx `45477e5e...`, app.jsx `64cf6032...`). Audit timestamp 2026-04-30.
+- [x] 1.3 Prior change `frontend-design-system-via-chat` confirmed archive-ready: all `[ ]` tasks closed (2.9 + 7.6 marked done with deferred-to-follow-up notes; 9.10/9.11/9.12/9.13 all `[x]`). §10 closeout recorded user-flagged visual gaps as input to this follow-up.
 
 ## 2. Cross-module readiness audit (Goal A)
 
@@ -14,13 +14,19 @@
 
 ## 3. Chat parity audit (Goal B — audit phase)
 
-- [ ] 3.1 Read `composer.jsx` (357 LOC); enumerate every `className` and structural primitive into a checklist; mark deck-go counterpart class or "missing" / "diverges as <ds-\*>".
-- [ ] 3.2 Repeat 3.1 for `right-panel.jsx` (293 LOC) — covers canvas + artifact panel.
-- [ ] 3.3 Repeat 3.1 for `transcript.jsx` (361 LOC) — covers message bubble + tool-pair + run-status.
-- [ ] 3.4 Repeat 3.1 for `blocks.jsx` (371 LOC) — covers block-filter / tool-ladder / approval / file-block / image-block / code-view / diff-view.
-- [ ] 3.5 Repeat 3.1 for `app.jsx` (712 LOC) — covers shell + sidebar + context-bar + composer wiring.
-- [ ] 3.6 Aggregate findings into `docs/design-bundles/2026-04-29-claude-design-chat-pilot/chat-parity-gap-report.md`: per-surface section with class-by-class table, divergence justifications, and prioritized remediation list (P1: visible-in-static-state, P2: interaction-only).
-- [ ] 3.7 For every `port` entry in the gap report, capture deck-go-vs-bundle screenshot pair (Playwright at 1440×900 against `?deckVisualState=chat-rich`).
+- [x] 3.1 `composer.jsx` (357 LOC) audited — composer surface section in gap report. Findings: 11 real ports + 5 partials + 1 documented divergence. Major: bundle's 4-stack frame (warning / attach-bar / composer-field / composer-toolbar) vs deck-go's 7 flat siblings; cmd-tag 3-element structure (icon + mono + close button); composer-attach + composer-icon-btn move INSIDE composer-field; missing composer-toolbar wrapper with grow + char-count hint; missing drag-over modifier.
+- [x] 3.2 `right-panel.jsx` (293 LOC) audited — right-panel section in gap report. Findings: 13 real ports + 6 partials + 5 skips. Major: canvas header missing icon + rp-sub subtitle + Refresh button; cp-iframe-bar status strip missing (cp-card mock content correctly classified `skip` since deck-go has real iframe); ArtifactPanel **missing entire ap-tabs 5-tab format-switcher** (raised as product decision); ap-html-stub HTML rendering missing (currently raw escaped pre); ap-code line-number gutter missing.
+- [x] 3.3 `transcript.jsx` (361 LOC) audited — transcript section in gap report. Findings: 4 real ports + 9 partials + 3 documented divergences. Major: ChatContextBar 5-cell-row vs deck-go's 2-bar split (raised as product decision); BlockFilterBar missing `bfb-label` "show" eyebrow; MessageBubble msg-meta-line missing role label + streaming-dot; CompactionNotice missing "view summary" affordance.
+- [x] 3.4 `blocks.jsx` (371 LOC) audited — blocks section in gap report. Findings: 1 confirmed port + 19 partial-verifies + 2 skips. Major: bundle uses `.block` shared chrome cascade across all block types vs deck-go's per-block atomized roots (raised as product decision); CanvasInline missing "Open in panel" affordance; many partial items in ToolUseCard (param-grid, badge slots), ToolResultCard (block-head static, ShowRawToggle), ThinkingBlock (cursor-blink, streaming-dot) need DOM-inspect verification.
+- [x] 3.5 `app.jsx` (712 LOC) + `sidebar.jsx` (149 LOC) audited — app shell section in gap report. Findings: 0 confirmed ports + 17 partial-verifies + 2 skips. Major: sidebar collapsed-mode layout swap (icon-only + agent-stack + session-mini pills) needs verification (raised as product decision); most shell items already aligned via P2a 4.4 + P3 9.6 but need confirmation; TweaksPanel + StateMatrixView correctly classified `skip` as design-time tooling.
+- [x] 3.6 `chat-parity-gap-report.md` aggregated with bundle-hash-locked header + 5 surface sections + cross-surface summary. Total real port items: ~22; partial-verify items: ~56; documented skips: ~13. Verdict on prior §10.2 hypothesis: **~33% coverage** (audit surfaced ~30 unanticipated gaps).
+- [ ] 3.7 For every `port` entry in the gap report, capture deck-go-vs-bundle screenshot pair (Playwright at 1440×900 against `?deckVisualState=chat-rich`). **Pending**: defer until §3.8 product decisions resolve (so we screenshot post-decision state).
+- [ ] 3.8 **Resolve 5 product decisions raised by audit** (blocks §4-6 task revision):
+  1. ChatContextBar 5-cell-row vs 2-bar split — collapse into one bundle-style row, or document divergence and stay 2-bar?
+  2. ArtifactPanel `.ap-tabs` 5-tab format switcher (Code/Markdown/JSON/Table/HTML) — implement format switching, or skip with justification (artifact has detected language)?
+  3. CompactionNotice "view summary" button — build summary modal feature, or skip?
+  4. `.ds-block` shared base atom — introduce common chrome to harden visual consistency, or stay atomized?
+  5. Sidebar collapsed mode — verify deck-go matches bundle's icon-only + agent-stack + session-mini pattern, or document divergence?
 
 ## 4. Composer remediation (Goal B — execution, per D1)
 
