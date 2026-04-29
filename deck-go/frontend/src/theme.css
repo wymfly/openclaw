@@ -8127,7 +8127,6 @@ details summary {
 
 .deck-ui-nav-item,
 .deck-ui-tab-strip button,
-.deck-ui-filter-row button,
 .deck-ui-quiet-button,
 .deck-ui-icon-button,
 .deck-ui-config-strip button {
@@ -8249,7 +8248,6 @@ details summary {
 .deck-ui-header-right,
 .deck-ui-status-chip,
 .deck-ui-tab-strip,
-.deck-ui-filter-row,
 .deck-ui-config-strip,
 .deck-ui-context-strip {
   display: flex;
@@ -8287,7 +8285,6 @@ details summary {
 .deck-ui-quiet-button,
 .deck-ui-primary-button,
 .deck-ui-tab-strip button,
-.deck-ui-filter-row button,
 .deck-ui-config-strip button {
   display: inline-flex;
   align-items: center;
@@ -8486,8 +8483,7 @@ details summary {
 }
 
 .deck-ui-segmented button.is-active,
-.deck-ui-tab-strip button.is-active,
-.deck-ui-filter-row button.is-active {
+.deck-ui-tab-strip button.is-active {
   background: var(--primary);
   color: #fff;
 }
@@ -8616,8 +8612,7 @@ details summary {
 .deck-ui-context-strip,
 .deck-ui-transcript-search,
 .deck-ui-tool-ladder,
-.deck-ui-config-strip,
-.deck-ui-filter-row {
+.deck-ui-config-strip {
   border: 0;
   border-bottom: 1px solid var(--border);
   border-radius: 0;
@@ -9368,25 +9363,6 @@ details summary {
   height: 12px;
   flex: 0 0 auto;
   color: var(--text-faint);
-}
-
-.deck-ui-filter-row {
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 8px;
-}
-
-.deck-ui-filter-row button {
-  color: var(--text-soft);
-}
-
-.deck-ui-filter-row button[aria-pressed="false"] {
-  opacity: 0.55;
-}
-
-.deck-ui-filter-row button svg {
-  width: 12px;
-  height: 12px;
 }
 
 .deck-ui-suggestion-button {

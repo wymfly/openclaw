@@ -14,7 +14,7 @@ export function EmptyState({ onSelectPrompt }: { onSelectPrompt?: (text: string)
       <h2>{t("emptyTitle")}</h2>
       <p>{t("emptyDescription")}</p>
       {onSelectPrompt ? (
-        <div className="ds-empty-state__suggestions deck-ui-filter-row">
+        <div className="ds-empty-state__suggestions">
           {suggestions.map((key) => (
             <Button
               key={key}

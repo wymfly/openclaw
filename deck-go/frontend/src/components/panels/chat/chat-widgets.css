@@ -23,13 +23,25 @@
   margin-right: 8px;
 }
 
+/* Block-filter-bar — bundle .block-filter-bar (lines 241-260).
+ * Sits between transcript and composer; chip visuals owned by the Chip atom
+ * (`design-system/atoms/Chip.css`) so this rule only owns frame chrome.
+ * `flex-wrap: wrap` retained beyond bundle to keep three chips visible at
+ * narrow viewports / compact density. */
 .ds-block-filter-bar {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--ds-border);
-  background: var(--ds-bg-elev);
+  align-items: center;
+  padding: 6px 22px;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+}
+
+.ds-block-filter-bar__label {
+  color: var(--ds-text-3);
+  margin-right: 4px;
+  font-size: var(--ds-fs-meta);
 }
 
 .ds-tool-ladder {

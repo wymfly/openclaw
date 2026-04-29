@@ -25,11 +25,7 @@ export function BlockFilterBar({
   const t = useTranslations("chat");
 
   return (
-    <div
-      className="ds-block-filter-bar deck-ui-filter-row"
-      role="toolbar"
-      aria-label={t("filterBlocks")}
-    >
+    <div className="ds-block-filter-bar" role="toolbar" aria-label={t("filterBlocks")}>
       {TOGGLES.map(({ key, labelKey, icon: Icon }) => {
         const enabled = preferences[key] ?? true;
         const label = t(labelKey);
