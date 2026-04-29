@@ -1,42 +1,58 @@
 /* Chat context bar — session / agent / pressure / compaction summary strip.
  *
- * Migrates from `.deck-ui-context-strip` and friends (theme.css) to
- * `ds-chat-context-bar*` namespace. The pill / agent badge use the
- * design-system `Chip` and `Badge` atoms; this stylesheet only owns the
- * strip layout + bespoke pressure-track and warning indicators that have
- * no atom equivalent.
+ * P3 task 2 atom 9.5 — Decision B per-atom visual replacement.
+ * Bundle target: docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css
+ *   .context-bar             (lines 201-207)
+ *   .ctx-cell / .ctx-key / .ctx-val (lines 208-211)
+ *   .ctx-bar / .ctx-fill     (lines 212-218)
+ *   .tone-warn / .tone-error (lines 219-220)
+ *   .chip / .chip-warn       (lines 222-230)
+ *
+ * Replaces legacy `.deck-ui-context-pressure*` / `-warning` / `-compacted`
+ * / `-pill` / `-session` rules removed from theme.css in the same commit
+ * (they were dead in JSX — ChatContextBar.tsx is fully migrated to ds-*).
  */
 
 .ds-chat-context-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 14px;
+  padding: 9px 22px;
   border: 0;
-  border-bottom: 1px solid var(--ds-border);
+  border-bottom: 1px solid var(--ds-border-subtle);
   border-radius: 0;
-  background: var(--ds-bg-elev);
-  font-size: 0.82rem;
-  color: var(--ds-text-2, var(--ds-fg, currentColor));
+  background: var(--ds-bg-1);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
 }
 
 .ds-chat-context-bar__session {
   font-weight: 600;
-  color: var(--ds-fg, currentColor);
+  color: var(--ds-text-1);
 }
 
 .ds-chat-context-bar__pressure {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.ds-chat-context-bar__pressure > span:first-child {
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-chat-context-bar__pressure strong {
+  color: var(--ds-text-1);
+  font-weight: 500;
 }
 
 .ds-chat-context-bar__pressure-track {
   position: relative;
   display: inline-block;
-  width: 80px;
-  height: 6px;
+  width: 100px;
+  height: 5px;
   border-radius: 3px;
   background: var(--ds-bg-3);
   overflow: hidden;
@@ -46,17 +62,17 @@
   display: block;
   height: 100%;
   background: var(--ds-accent);
-  transition: width 0.2s ease;
+  transition: width 0.3s;
 }
 
 .ds-chat-context-bar__pressure[data-pressure="warning"]
   .ds-chat-context-bar__pressure-track > span {
-  background: var(--ds-warning, #d99838);
+  background: var(--ds-warn);
 }
 
 .ds-chat-context-bar__pressure[data-pressure="critical"]
   .ds-chat-context-bar__pressure-track > span {
-  background: var(--ds-danger, #d94747);
+  background: var(--ds-error);
 }
 
 .ds-chat-context-bar__warning,
@@ -64,12 +80,14 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  color: var(--ds-warn);
 }
 
 .ds-chat-context-bar__warning svg,
 .ds-chat-context-bar__compacted svg {
   width: 13px;
   height: 13px;
+  flex: 0 0 auto;
 }
 
 .ds-chat-context-bar__compact-action {
@@ -77,12 +95,12 @@
   align-items: center;
   gap: 4px;
   border: 1px solid var(--ds-border);
-  border-radius: 5px;
+  border-radius: var(--ds-radius-sm);
   padding: 4px 8px;
   background: transparent;
-  color: var(--ds-text-2, currentColor);
+  color: var(--ds-text-2);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--ds-fs-meta);
   cursor: pointer;
 }
 
@@ -105,4 +123,10 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Density compact override — tighter padding + smaller meta. */
+[data-density="compact"] .ds-chat-context-bar {
+  padding: 7px 16px;
+  gap: 10px;
 }

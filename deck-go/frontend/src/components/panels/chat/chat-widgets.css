@@ -69,28 +69,39 @@
   letter-spacing: 0.04em;
 }
 
+/* Compaction notice — bundle .compaction-notice (lines 605-616).
+ * Inline pill that surfaces context-window summarization events between
+ * messages; align-self: center so it floats centred in the message list.
+ */
 .ds-compaction-notice {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 12px;
-  margin: 6px 12px;
-  border-radius: 999px;
-  background: var(--ds-bg-2);
-  font-size: 0.78rem;
-  color: var(--ds-text-2, currentColor);
+  align-self: center;
+  margin: 12px auto;
+  padding: 7px 12px;
+  max-width: 540px;
+  border: 1px dashed var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
 }
 
 .ds-compaction-notice__icon {
   display: inline-flex;
-  width: 18px;
-  height: 18px;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: var(--ds-bg-3);
-  font-size: 0.6rem;
-  font-weight: 600;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-warn-bg);
+  color: var(--ds-warn);
+  font-family: var(--ds-font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .ds-empty-state {

@@ -8261,7 +8261,6 @@ details summary {
 .deck-ui-tab-strip,
 .deck-ui-filter-row,
 .deck-ui-config-strip,
-.deck-ui-stream-banner,
 .deck-ui-context-strip {
   display: flex;
   align-items: center;
@@ -8817,7 +8816,6 @@ details summary {
   background: var(--surface-elevated);
 }
 
-.deck-ui-stream-banner,
 .deck-ui-context-strip,
 .deck-ui-transcript-search,
 .deck-ui-tool-ladder,
@@ -8827,24 +8825,6 @@ details summary {
   border-bottom: 1px solid var(--border);
   border-radius: 0;
   background: var(--panel);
-}
-
-.deck-ui-stream-banner {
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 10px;
-  color: var(--text-soft);
-  font-size: 0.82rem;
-}
-
-.deck-ui-stream-banner svg {
-  width: 13px;
-  height: 13px;
-  color: var(--warning);
-}
-
-.deck-ui-stream-banner strong {
-  color: var(--text);
 }
 
 .deck-ui-context-strip {
@@ -8862,57 +8842,6 @@ details summary {
   color: var(--primary);
 }
 
-.deck-ui-context-pill,
-.deck-ui-context-session {
-  color: var(--text);
-}
-
-.deck-ui-context-session {
-  max-width: min(220px, 28vw);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-context-pressure,
-.deck-ui-context-warning,
-.deck-ui-context-compacted {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.deck-ui-context-pressure-track {
-  width: 56px;
-  height: 6px;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--muted);
-}
-
-.deck-ui-context-pressure-track span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--success);
-  transition: width 180ms ease;
-}
-
-.deck-ui-context-pressure[data-pressure="warning"] .deck-ui-context-pressure-track span {
-  background: var(--warning);
-}
-
-.deck-ui-context-pressure[data-pressure="critical"] .deck-ui-context-pressure-track span {
-  background: var(--danger);
-}
-
-.deck-ui-context-warning,
-.deck-ui-context-compacted {
-  color: var(--warning);
-}
-
-.deck-ui-context-warning svg,
-.deck-ui-context-compacted svg,
 .deck-ui-context-strip button svg {
   width: 11px;
   height: 11px;
@@ -9067,7 +8996,6 @@ details summary {
 
 .deck-ui-file-block,
 .deck-ui-artifact-card,
-.deck-ui-compaction-notice,
 .deck-ui-subagent-tree,
 .deck-ui-canvas-debug {
   min-width: 0;
@@ -9533,45 +9461,6 @@ details summary {
 .deck-ui-subagent-children {
   border-left: 1px solid var(--border);
   margin-left: 12px;
-}
-
-.deck-ui-compaction-notice {
-  justify-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: max-content;
-  max-width: 100%;
-  padding: 6px 10px;
-  border-color: color-mix(in srgb, var(--warning) 28%, var(--border));
-  background: color-mix(in srgb, var(--warning) 8%, var(--surface-elevated));
-  color: var(--text-soft);
-  font-size: 0.76rem;
-}
-
-.deck-ui-compaction-icon {
-  min-width: 26px;
-  height: 20px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--warning) 18%, transparent);
-  color: var(--warning);
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.deck-ui-compaction-label {
-  color: var(--text);
-  font-weight: 650;
-}
-
-.deck-ui-compaction-counts,
-.deck-ui-compaction-time {
-  color: var(--text-faint);
-  white-space: nowrap;
 }
 
 .deck-ui-transcript-text,
@@ -10402,10 +10291,6 @@ details summary {
   .deck-ui-config-strip > * + * {
     border-left: 0;
     border-top: 1px solid var(--border);
-  }
-
-  .deck-ui-stream-banner span:last-child {
-    margin-left: 0;
   }
 
   .deck-ui-config-strip label,
