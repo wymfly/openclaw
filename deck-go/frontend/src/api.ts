@@ -29,6 +29,7 @@ import type {
 } from "../../contracts/generated/ts/deck-api.generated";
 import { writeStoredDeckAccessToken } from "./lib/deck-auth-storage";
 import { deckFetch, deckStream, type DeckEvent } from "./lib/deck-client";
+import { createDeckGatewayClient } from "./lib/gateway-client";
 import type { A2UIState } from "./stores/chat-types";
 
 export type DeckGoSession = DeckGoSessionMeta;
@@ -1595,6 +1596,32 @@ export type DeckGoAgentsListResponse = {
   defaultId?: string;
 };
 
+type TypedGatewayAgentSummary = {
+  id: string;
+  identity?: {
+    avatar?: string;
+    avatarUrl?: string;
+    emoji?: string;
+    name?: string;
+  };
+  model?: {
+    fallbacks?: string[];
+    primary?: string;
+  };
+  name?: string;
+  workspace?: string;
+};
+
+function normalizeGatewayAgentSummary(agent: TypedGatewayAgentSummary): DeckGoAgentSummary {
+  return {
+    ...agent,
+    avatar: agent.identity?.avatar ?? agent.identity?.avatarUrl,
+    emoji: agent.identity?.emoji,
+    model: agent.model?.primary,
+    name: agent.name ?? agent.identity?.name,
+  };
+}
+
 export type DeckGoAgentDetailResponse = {
   id: string;
   name?: string;
@@ -2983,40 +3010,52 @@ export async function fetchModelsConfig() {
   );
 }
 
-export async function fetchRuntimeConfiguredModels(runtimeId = "rt_local") {
-  return fetchDeckJson<DeckGoRuntimeConfiguredModelsResponse>(
-    `/api/v1/runtimes/${encodeURIComponent(runtimeId)}/models/configured`,
-    undefined,
-    "configured models fetch failed",
-  );
+export async function fetchRuntimeConfiguredModels(
+  runtimeId = "rt_local",
+): Promise<DeckGoRuntimeConfiguredModelsResponse> {
+  const payload = await createDeckGatewayClient({ runtimeId }).models.configured({});
+  const responsePayload: DeckGoRuntimeConfiguredModelsResponse["payload"] = { ...payload };
+  return {
+    runtimeId,
+    payload: responsePayload,
+  };
 }
 
-export async function fetchRuntimeModelAuthOverview(runtimeId = "rt_local") {
-  return fetchDeckJson<DeckGoModelAuthOverviewResponse>(
-    `/api/v1/runtimes/${encodeURIComponent(runtimeId)}/models/auth`,
-    undefined,
-    "model auth overview fetch failed",
-  );
+export async function fetchRuntimeModelAuthOverview(
+  runtimeId = "rt_local",
+): Promise<DeckGoModelAuthOverviewResponse> {
+  const payload = await createDeckGatewayClient({ runtimeId }).deck.auth.overview({});
+  const responsePayload: DeckGoModelAuthOverviewResponse["payload"] = { ...payload };
+  return {
+    runtimeId,
+    payload: responsePayload,
+    providers: responsePayload.providers,
+  };
 }
 
-export async function fetchRuntimeModelCatalogProviders(runtimeId = "rt_local") {
-  return fetchDeckJson<DeckGoModelCatalogProvidersResponse>(
-    `/api/v1/runtimes/${encodeURIComponent(runtimeId)}/models/catalog-providers`,
-    undefined,
-    "model catalog providers fetch failed",
-  );
+export async function fetchRuntimeModelCatalogProviders(
+  runtimeId = "rt_local",
+): Promise<DeckGoModelCatalogProvidersResponse> {
+  const payload = await createDeckGatewayClient({ runtimeId }).models.catalog.providers({});
+  const responsePayload: DeckGoModelCatalogProvidersResponse["payload"] = { ...payload };
+  return {
+    runtimeId,
+    payload: responsePayload,
+    providers: responsePayload.providers,
+  };
 }
 
-export async function probeRuntimeModelAuth(provider: string, runtimeId = "rt_local") {
-  return fetchDeckJson<DeckGoModelProbeResponse>(
-    `/api/v1/runtimes/${encodeURIComponent(runtimeId)}/models/probe`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider }),
-    },
-    "model auth probe failed",
-  );
+export async function probeRuntimeModelAuth(
+  provider: string,
+  runtimeId = "rt_local",
+): Promise<DeckGoModelProbeResponse> {
+  const payload = await createDeckGatewayClient({ runtimeId }).deck.auth.probe({ provider });
+  const responsePayload: DeckGoModelProbeResponse["payload"] = { ...payload };
+  return {
+    ...responsePayload,
+    runtimeId,
+    payload: responsePayload,
+  };
 }
 
 export async function saveModelsConfig(raw: string, baseHash?: string) {
@@ -3043,8 +3082,12 @@ export async function lookupConfigPath(path: string) {
   );
 }
 
-export async function fetchAgentsList() {
-  return fetchDeckJson<DeckGoAgentsListResponse>("/agents", undefined, "agents fetch failed");
+export async function fetchAgentsList(): Promise<DeckGoAgentsListResponse> {
+  const payload = await createDeckGatewayClient({ runtimeId: "rt_local" }).agents.list({});
+  return {
+    agents: payload.agents.map(normalizeGatewayAgentSummary),
+    defaultId: payload.defaultId,
+  };
 }
 
 export async function fetchAgentDetail(agentId: string) {

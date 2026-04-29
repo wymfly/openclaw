@@ -105,16 +105,47 @@ function baselineMethodSet(ref: string): Set<string> {
   return extractMethods(output);
 }
 
+function extractMethodRegistrationLineMethods(line: string): Set<string> {
+  const body = line.slice(1).trim();
+  const methods = extractMethods(body);
+  if (methods.size === 0) {
+    return methods;
+  }
+  if (/^["`][a-zA-Z0-9_.-]+(?:\.[a-zA-Z0-9_.-]+)+["`]\s*,?$/.test(body)) {
+    return methods;
+  }
+  if (/\b(?:methodDef:|methodDefs|GatewayMethodDef|as\s+Methods)\b/.test(body)) {
+    return methods;
+  }
+  return new Set();
+}
+
 function diffTouchedMethods(baseline: string): Set<string> {
   const diff = git(
     ["diff", baseline, "--", "src/gateway/server-methods-list.ts", "src/gateway/server-methods/"],
     true,
   );
-  const changedLines = diff
-    .split("\n")
-    .filter((line) => /^[+-](?![+-])/.test(line))
-    .join("\n");
-  return extractMethods(changedLines);
+  const added = new Set<string>();
+  const removed = new Set<string>();
+  for (const line of diff.split("\n").filter((line) => /^[+-](?![+-])/.test(line))) {
+    const target = line.startsWith("+") ? added : removed;
+    for (const method of extractMethodRegistrationLineMethods(line)) {
+      target.add(method);
+    }
+  }
+
+  const touched = new Set<string>();
+  for (const method of added) {
+    if (!removed.has(method)) {
+      touched.add(method);
+    }
+  }
+  for (const method of removed) {
+    if (!added.has(method)) {
+      touched.add(method);
+    }
+  }
+  return touched;
 }
 
 function noteFor(method: string, type: Entry["type"]): string {

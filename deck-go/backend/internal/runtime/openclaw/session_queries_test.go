@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 )
 
 type stubRequester struct {
@@ -30,6 +31,14 @@ func (s *stubRequester) Request(_ context.Context, method string, params map[str
 		s.t.Fatalf("unexpected method: %s", method)
 		return nil, nil
 	}
+}
+
+func (s *stubRequester) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	paramsMap, err := typedParamsToMap(params)
+	if err != nil {
+		return nil, err
+	}
+	return s.Request(ctx, method, paramsMap)
 }
 
 func TestSessionQueries_ListSessions(t *testing.T) {
@@ -67,10 +76,10 @@ func TestSessionQueries_ListSessionsWithParams(t *testing.T) {
 		payload: map[string]any{
 			"sessions.list": map[string]any{
 				"sessions": []any{map[string]any{
-					"key":     "session-1",
-					"agentId": "main",
-					"title":   "Filtered Session",
-					"status":  "running",
+					"key":          "session-1",
+					"agentId":      "main",
+					"derivedTitle": "Filtered Session",
+					"status":       "running",
 				}},
 			},
 		},
@@ -102,10 +111,10 @@ func TestSessionQueries_GetTimeline(t *testing.T) {
 			},
 			"sessions.list": map[string]any{
 				"sessions": []any{map[string]any{
-					"key":     "session-1",
-					"agentId": "main",
-					"title":   "Test Session",
-					"status":  "running",
+					"key":          "session-1",
+					"agentId":      "main",
+					"derivedTitle": "Test Session",
+					"status":       "running",
 				}},
 			},
 		},
@@ -140,10 +149,10 @@ func TestSessionQueries_GetTimelineWithParams(t *testing.T) {
 			},
 			"sessions.list": map[string]any{
 				"sessions": []any{map[string]any{
-					"key":     "session-1",
-					"agentId": "main",
-					"title":   "Filtered Session",
-					"status":  "running",
+					"key":          "session-1",
+					"agentId":      "main",
+					"derivedTitle": "Filtered Session",
+					"status":       "running",
 				}},
 			},
 		},
@@ -163,6 +172,39 @@ func TestSessionQueries_GetTimelineWithParams(t *testing.T) {
 }
 
 var _ httpSessionQueryProvider = (*SessionQueries)(nil)
+
+func TestSessionQueriesUseTypedClient(t *testing.T) {
+	requester := &typedOnlyRequester{}
+	query := NewSessionQueries(requester)
+	ctx := context.Background()
+
+	if _, err := query.ListSessionsWithParams(ctx, map[string]any{"agentId": "main", "limit": 5}, "main"); err != nil {
+		t.Fatal(err)
+	}
+	if len(requester.calls) != 1 || requester.calls[0].method != "sessions.list" {
+		t.Fatalf("unexpected list typed calls: %#v", requester.calls)
+	}
+	listParams, ok := requester.calls[0].params.(generated.SessionsListParams)
+	if !ok || listParams.AgentId != "main" || listParams.Limit != 5 || !listParams.IncludeDerivedTitles || !listParams.IncludeLastMessage {
+		t.Fatalf("expected typed SessionsListParams, got %T %#v", requester.calls[0].params, requester.calls[0].params)
+	}
+
+	requester.calls = nil
+	if _, err := query.GetTimelineWithParams(ctx, "session-1", "main", 25); err != nil {
+		t.Fatal(err)
+	}
+	if len(requester.calls) != 2 {
+		t.Fatalf("expected sessions.get and sessions.list typed calls, got %#v", requester.calls)
+	}
+	getParams, ok := requester.calls[0].params.(generated.SessionsGetParams)
+	if requester.calls[0].method != "sessions.get" || !ok || getParams.Key != "session-1" || getParams.Limit != 25 {
+		t.Fatalf("expected typed SessionsGetParams, got %#v", requester.calls[0])
+	}
+	listParams, ok = requester.calls[1].params.(generated.SessionsListParams)
+	if requester.calls[1].method != "sessions.list" || !ok || listParams.Search != "session-1" || listParams.AgentId != "main" || listParams.Limit != 1 {
+		t.Fatalf("expected typed SessionsListParams lookup, got %#v", requester.calls[1])
+	}
+}
 
 type httpSessionQueryProvider interface {
 	ListSessions(context.Context, string) ([]deckapi.DeckGoSessionMeta, error)

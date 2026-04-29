@@ -485,7 +485,14 @@ jobs:
               pnpm build
               pnpm test:contracts
               pnpm protocol:check
-              cd deck-go && make protocol-check
+              cd deck-go
+              make protocol-check
+              make gateway-typecheck
+              make gateway-coverage-report
+              cd backend
+              GOCACHE=/tmp/deck-go-buildcache GOSUMDB=off go vet ./...
+              GOCACHE=/tmp/deck-go-buildcache GOSUMDB=off go build ./...
+              GOCACHE=/tmp/deck-go-buildcache GOSUMDB=off go test -race ./internal/...
               ;;
             *)
               echo "Unsupported checks-fast task: $TASK" >&2

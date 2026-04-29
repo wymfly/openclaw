@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	runtimecoerce "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
 	runtimeprojection "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/projection"
 	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
@@ -41,6 +44,10 @@ type GatewayDiagnosticProvider interface {
 	GetGatewayDescribe(ctx context.Context, runtimeID string, includeSchemas bool) (any, error)
 	GetGatewayHealth(ctx context.Context, runtimeID string) (any, error)
 	GetGatewayStatus(ctx context.Context, runtimeID string) (any, error)
+}
+
+type GatewayRPCProvider interface {
+	RequestGateway(ctx context.Context, runtimeID string, method string, params any) (any, error)
 }
 
 type DeviceProvider interface {
@@ -317,10 +324,10 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			page, nextCursor := filterMonitorRuns(items, r.URL.Query())
 			writeJSON(w, http.StatusOK, map[string]any{
-				"runtimeId": runtimeID,
-				"runs":      page,
+				"runtimeId":  runtimeID,
+				"runs":       page,
 				"nextCursor": nextCursor,
-				"requestId": requestID,
+				"requestId":  requestID,
 			})
 		})
 
@@ -550,6 +557,65 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				"requestId": requestID,
 			})
 		})
+
+		if rpc, ok := diagnostics.(GatewayRPCProvider); ok {
+			r.Post("/runtimes/{runtimeId}/gateway/rpc", func(w http.ResponseWriter, r *http.Request) {
+				requestID := strings.TrimSpace(r.Header.Get("X-Request-Id"))
+				if requestID == "" {
+					requestID = nextRequestID()
+				}
+				runtimeID := chi.URLParam(r, "runtimeId")
+				if runtimeID != DefaultRuntimeID {
+					writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+					return
+				}
+				var body struct {
+					Method    string `json:"method"`
+					Params    any    `json:"params"`
+					TimeoutMs int    `json:"timeoutMs"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+					return
+				}
+				method := strings.TrimSpace(body.Method)
+				if method == "" {
+					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_GATEWAY_METHOD", "message": "Gateway method is required.", "details": nil}, "requestId": requestID})
+					return
+				}
+				if _, ok := generated.TypedMethodNames[method]; !ok {
+					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_GATEWAY_METHOD", "message": "Gateway method is not available through the typed Deck transport.", "details": map[string]any{"method": method}}, "requestId": requestID})
+					return
+				}
+				params := body.Params
+				if params == nil {
+					params = map[string]any{}
+				}
+				ctx := r.Context()
+				if body.TimeoutMs > 0 {
+					var cancel context.CancelFunc
+					ctx, cancel = context.WithTimeout(ctx, time.Duration(body.TimeoutMs)*time.Millisecond)
+					defer cancel()
+				}
+				payload, err := rpc.RequestGateway(ctx, runtimeID, method, params)
+				if err != nil {
+					status := http.StatusBadGateway
+					code := "GATEWAY_RPC_FAILED"
+					details := map[string]any(nil)
+					var errCode *gateway.ErrCode
+					if errors.As(err, &errCode) {
+						code = errCode.Code
+						details = errCode.Details
+						if errors.Is(err, gateway.ErrScopeDenied) {
+							status = http.StatusForbidden
+						}
+					}
+					writeJSON(w, status, map[string]any{"error": map[string]any{"code": code, "message": err.Error(), "details": details}, "requestId": requestID})
+					return
+				}
+				writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "requestId": requestID, "result": payload})
+			})
+		}
 	}
 
 	if devices != nil {
@@ -844,21 +910,6 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 	}
 
 	if agents != nil {
-		r.Get("/runtimes/{runtimeId}/agents", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
-				return
-			}
-			payload, err := agents.ListAgents(r.Context(), runtimeID)
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
 		r.Post("/runtimes/{runtimeId}/agents", func(w http.ResponseWriter, r *http.Request) {
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
@@ -1947,91 +1998,6 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
-		})
-	}
-
-	if models != nil {
-		r.Get("/runtimes/{runtimeId}/models", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
-				return
-			}
-			payload, err := models.ListModels(r.Context(), runtimeID)
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Get("/runtimes/{runtimeId}/models/auth", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
-				return
-			}
-			payload, err := models.GetModelAuthOverview(r.Context(), runtimeID)
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Get("/runtimes/{runtimeId}/models/catalog-providers", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
-				return
-			}
-			payload, err := models.ListModelCatalogProviders(r.Context(), runtimeID)
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Get("/runtimes/{runtimeId}/models/configured", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
-				return
-			}
-			payload, err := models.ListConfiguredModels(r.Context(), runtimeID)
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/models/probe", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := models.ProbeModelAuth(r.Context(), runtimeID, body)
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
 		})
 	}
 

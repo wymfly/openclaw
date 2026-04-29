@@ -3,7 +3,6 @@ package openclaw
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -257,6 +256,17 @@ func (m *ManagedRuntime) RuntimeAdapter() RuntimeSurface {
 	return m.adapter
 }
 
+func (m *ManagedRuntime) Close() error {
+	if m == nil {
+		return nil
+	}
+	closeable, ok := m.adapter.(interface{ Close() error })
+	if !ok {
+		return nil
+	}
+	return closeable.Close()
+}
+
 func (m *ManagedRuntime) CapabilitySummary() *CapabilitySummaryLoader {
 	adapter := m.RuntimeAdapter()
 	if adapter == nil {
@@ -315,6 +325,10 @@ func (m *ManagedRuntime) GetGatewayHealth(ctx context.Context, runtimeID string)
 
 func (m *ManagedRuntime) GetGatewayStatus(ctx context.Context, runtimeID string) (any, error) {
 	return m.GatewayQueries().Status(ctx)
+}
+
+func (m *ManagedRuntime) RequestGateway(ctx context.Context, runtimeID string, method string, params any) (any, error) {
+	return m.GatewayQueries().RequestTypedRaw(ctx, method, params)
 }
 
 func (m *ManagedRuntime) LoadGatewayStatus(ctx context.Context) (GatewayStatusSummary, error) {
@@ -382,11 +396,19 @@ func (m *ManagedRuntime) DevicePairRemove(ctx context.Context, body map[string]a
 }
 
 func (m *ManagedRuntime) RotateDeviceToken(ctx context.Context, runtimeID string, deviceID string, role string) (any, error) {
-	return m.GatewayQueries().DeviceTokenRotate(ctx, map[string]any{"deviceId": deviceID, "role": role})
+	return m.DeviceTokenRotate(ctx, map[string]any{"deviceId": deviceID, "role": role})
 }
 
 func (m *ManagedRuntime) DeviceTokenRotate(ctx context.Context, body map[string]any) (any, error) {
-	return m.GatewayQueries().DeviceTokenRotate(ctx, body)
+	upstreamURL, oldToken, ok := m.GatewayConnection()
+	payload, err := m.GatewayQueries().DeviceTokenRotate(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	if ok {
+		transportBinding.InvalidateProbeClient(upstreamURL, oldToken)
+	}
+	return payload, nil
 }
 
 func (m *ManagedRuntime) RevokeDeviceToken(ctx context.Context, runtimeID string, deviceID string, role string) (any, error) {
@@ -439,21 +461,12 @@ func (m *ManagedRuntime) ListAgents(ctx context.Context, runtimeID string) (any,
 }
 
 func (m *ManagedRuntime) GetAgent(ctx context.Context, runtimeID string, agentID string) (any, bool, error) {
-	payload, err := m.GatewayQueries().AgentsList(ctx)
+	result, err := m.GatewayQueries().AgentsList(ctx)
 	if err != nil {
 		return nil, false, err
 	}
-	record, ok := payload.(map[string]any)
-	if !ok {
-		return nil, false, nil
-	}
-	items, _ := record["agents"].([]any)
-	for _, item := range items {
-		agent, ok := item.(map[string]any)
-		if !ok {
-			continue
-		}
-		if id, _ := agent["id"].(string); id == agentID {
+	for _, agent := range result.Agents {
+		if agent.Id == agentID {
 			return agent, true, nil
 		}
 	}
@@ -667,13 +680,8 @@ func (m *ManagedRuntime) RunDeckAgentAction(ctx context.Context, runtimeID strin
 		if err != nil {
 			return nil, err
 		}
-		record, _ := payload.(map[string]any)
-		baseHash, _ := record["baseHash"].(string)
-		if baseHash == "" {
-			baseHash, _ = record["hash"].(string)
-		}
 		raw, _ := json.Marshal(patch)
-		return m.GatewayQueries().ConfigPatch(ctx, string(raw), baseHash, "")
+		return m.GatewayQueries().ConfigPatch(ctx, string(raw), payload.Hash, "")
 	default:
 		return nil, http.ErrNotSupported
 	}
@@ -951,14 +959,11 @@ func (m *ManagedRuntime) TestChannel(ctx context.Context, runtimeID string, chan
 			"latencyMs": time.Since(startedAt).Milliseconds(),
 		}, nil
 	}
-	record, _ := payload.(map[string]any)
-	channelAccounts, _ := record["channelAccounts"].(map[string]any)
-	channelEntries, _ := channelAccounts[channelID].([]any)
+	channelEntries := payload.ChannelAccounts[channelID]
 	anyOK := false
 	firstError := ""
-	for _, rawAccount := range channelEntries {
-		account, _ := rawAccount.(map[string]any)
-		probe, _ := account["probe"].(map[string]any)
+	for _, account := range channelEntries {
+		probe := runtimecoerce.Map(account.Probe)
 		if ok, _ := probe["ok"].(bool); ok {
 			anyOK = true
 			break
@@ -1002,17 +1007,12 @@ func (m *ManagedRuntime) PatchChannel(ctx context.Context, runtimeID string, cha
 	if err != nil {
 		return nil, err
 	}
-	configPayload, ok := payload.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("unexpected config.get payload shape")
-	}
-	baseHash, _ := configPayload["baseHash"].(string)
 	raw, _ := json.MarshalIndent(map[string]any{
 		"channels": map[string]any{
 			channelID: patch,
 		},
 	}, "", "  ")
-	return m.GatewayQueries().ConfigPatch(ctx, string(raw), baseHash, "")
+	return m.GatewayQueries().ConfigPatch(ctx, string(raw), payload.Hash, "")
 }
 
 func (m *ManagedRuntime) ListSessionsWithParams(ctx context.Context, params map[string]any, agentID string) ([]deckapi.DeckGoSessionMeta, error) {
@@ -1378,10 +1378,8 @@ func (m *ManagedRuntime) defaultAgentWorkspace(ctx context.Context, name string)
 		return ""
 	}
 	if payload, err := m.GatewayQueries().ConfigGetWithParams(ctx, map[string]any{"path": "agents.defaults.workspace"}); err == nil {
-		if record, ok := payload.(map[string]any); ok {
-			if raw, _ := record["raw"].(string); strings.TrimSpace(raw) != "" {
-				return raw
-			}
+		if strings.TrimSpace(payload.Raw) != "" {
+			return payload.Raw
 		}
 	}
 	stateDir := strings.TrimSpace(os.Getenv("OPENCLAW_STATE_DIR"))

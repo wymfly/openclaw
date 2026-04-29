@@ -3,6 +3,7 @@ package openclaw
 import (
 	"context"
 
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	runtimecapability "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/capability"
 )
 
@@ -32,6 +33,14 @@ func (l *CapabilitySummaryLoader) Load(ctx context.Context) (CapabilitySummary, 
 }
 
 func summarizeCapabilitySummaryPayload(payload any) CapabilitySummary {
+	if result, ok := payload.(generated.GatewayDescribeResult); ok {
+		return CapabilitySummary{
+			Available:     true,
+			SchemaVersion: result.SchemaVersion,
+			MethodCount:   len(result.Methods),
+			EventCount:    len(result.Events),
+		}
+	}
 	record, ok := payload.(map[string]any)
 	if !ok {
 		return CapabilitySummary{}

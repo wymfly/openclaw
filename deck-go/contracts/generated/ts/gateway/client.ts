@@ -179,517 +179,604 @@ export interface GatewayClient {
   agent: {
     identity: {
       get(
-        params: AgentIdentityGetParams,
+        params: GatewayMethodMap["agent.identity.get"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<AgentIdentityGetResult>;
+      ): Promise<GatewayMethodMap["agent.identity.get"]["result"]>;
     };
-    wait(params: AgentWaitParams, options?: { timeoutMs?: number }): Promise<AgentWaitResult>;
+    wait(
+      params: GatewayMethodMap["agent.wait"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["agent.wait"]["result"]>;
   };
   agents: {
     create(
-      params: AgentsCreateParams,
+      params: GatewayMethodMap["agents.create"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<AgentsCreateResult>;
+    ): Promise<GatewayMethodMap["agents.create"]["result"]>;
     delete(
-      params: AgentsDeleteParams,
+      params: GatewayMethodMap["agents.delete"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<AgentsDeleteResult>;
+    ): Promise<GatewayMethodMap["agents.delete"]["result"]>;
     files: {
       get(
-        params: AgentsFilesGetParams,
+        params: GatewayMethodMap["agents.files.get"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<AgentsFilesGetResult>;
+      ): Promise<GatewayMethodMap["agents.files.get"]["result"]>;
       list(
-        params: AgentsFilesListParams,
+        params: GatewayMethodMap["agents.files.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<AgentsFilesListResult>;
+      ): Promise<GatewayMethodMap["agents.files.list"]["result"]>;
       set(
-        params: AgentsFilesSetParams,
+        params: GatewayMethodMap["agents.files.set"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<AgentsFilesSetResult>;
+      ): Promise<GatewayMethodMap["agents.files.set"]["result"]>;
     };
-    list(params: AgentsListParams, options?: { timeoutMs?: number }): Promise<AgentsListResult>;
-    update(
-      params: AgentsUpdateParams,
+    list(
+      params: GatewayMethodMap["agents.list"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<AgentsUpdateResult>;
+    ): Promise<GatewayMethodMap["agents.list"]["result"]>;
+    update(
+      params: GatewayMethodMap["agents.update"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["agents.update"]["result"]>;
   };
   channels: {
     logout(
-      params: ChannelsLogoutParams,
+      params: GatewayMethodMap["channels.logout"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<ChannelsLogoutResult>;
+    ): Promise<GatewayMethodMap["channels.logout"]["result"]>;
     status(
-      params: ChannelsStatusParams,
+      params: GatewayMethodMap["channels.status"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<ChannelsStatusResult>;
+    ): Promise<GatewayMethodMap["channels.status"]["result"]>;
   };
   chat: {
-    abort(params: ChatAbortParams, options?: { timeoutMs?: number }): Promise<ChatAbortResult>;
-    history(
-      params: ChatHistoryParams,
+    abort(
+      params: GatewayMethodMap["chat.abort"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<ChatHistoryResult>;
-    send(params: ChatSendParams, options?: { timeoutMs?: number }): Promise<ChatSendResult>;
+    ): Promise<GatewayMethodMap["chat.abort"]["result"]>;
+    history(
+      params: GatewayMethodMap["chat.history"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["chat.history"]["result"]>;
+    send(
+      params: GatewayMethodMap["chat.send"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["chat.send"]["result"]>;
   };
   config: {
-    apply(params: ConfigApplyParams, options?: { timeoutMs?: number }): Promise<ConfigApplyResult>;
-    get(params: ConfigGetParams, options?: { timeoutMs?: number }): Promise<ConfigGetResult>;
-    patch(params: ConfigPatchParams, options?: { timeoutMs?: number }): Promise<ConfigPatchResult>;
+    apply(
+      params: GatewayMethodMap["config.apply"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["config.apply"]["result"]>;
+    get(
+      params: GatewayMethodMap["config.get"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["config.get"]["result"]>;
+    patch(
+      params: GatewayMethodMap["config.patch"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["config.patch"]["result"]>;
     schema: {
       $call(
-        params: ConfigSchemaParams,
+        params: GatewayMethodMap["config.schema"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<ConfigSchemaResult>;
+      ): Promise<GatewayMethodMap["config.schema"]["result"]>;
       lookup(
-        params: ConfigSchemaLookupParams,
+        params: GatewayMethodMap["config.schema.lookup"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<ConfigSchemaLookupResult>;
+      ): Promise<GatewayMethodMap["config.schema.lookup"]["result"]>;
     };
-    set(params: ConfigSetParams, options?: { timeoutMs?: number }): Promise<ConfigSetResult>;
+    set(
+      params: GatewayMethodMap["config.set"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["config.set"]["result"]>;
   };
   cron: {
-    add(params: CronAddParams, options?: { timeoutMs?: number }): Promise<CronAddResult>;
-    list(params: CronListParams, options?: { timeoutMs?: number }): Promise<CronListResult>;
-    remove(params: CronRemoveParams, options?: { timeoutMs?: number }): Promise<CronRemoveResult>;
-    run(params: CronRunParams, options?: { timeoutMs?: number }): Promise<CronRunResult>;
-    runs(params: CronRunsParams, options?: { timeoutMs?: number }): Promise<CronRunsResult>;
-    status(params: CronStatusParams, options?: { timeoutMs?: number }): Promise<CronStatusResult>;
-    update(params: CronUpdateParams, options?: { timeoutMs?: number }): Promise<CronUpdateResult>;
+    add(
+      params: GatewayMethodMap["cron.add"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["cron.add"]["result"]>;
+    list(
+      params: GatewayMethodMap["cron.list"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["cron.list"]["result"]>;
+    remove(
+      params: GatewayMethodMap["cron.remove"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["cron.remove"]["result"]>;
+    run(
+      params: GatewayMethodMap["cron.run"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["cron.run"]["result"]>;
+    runs(
+      params: GatewayMethodMap["cron.runs"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["cron.runs"]["result"]>;
+    status(
+      params: GatewayMethodMap["cron.status"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["cron.status"]["result"]>;
+    update(
+      params: GatewayMethodMap["cron.update"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["cron.update"]["result"]>;
   };
   deck: {
     agents: {
       detail(
-        params: DeckAgentsDetailParams,
+        params: GatewayMethodMap["deck.agents.detail"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckAgentsDetailResult>;
+      ): Promise<GatewayMethodMap["deck.agents.detail"]["result"]>;
       eventStreams: {
         get(
-          params: DeckAgentsEventStreamsGetParams,
+          params: GatewayMethodMap["deck.agents.eventStreams.get"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<DeckAgentsEventStreamsGetResult>;
+        ): Promise<GatewayMethodMap["deck.agents.eventStreams.get"]["result"]>;
         set(
-          params: DeckAgentsEventStreamsSetParams,
+          params: GatewayMethodMap["deck.agents.eventStreams.set"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<DeckAgentsEventStreamsSetResult>;
+        ): Promise<GatewayMethodMap["deck.agents.eventStreams.set"]["result"]>;
       };
       skills: {
         get(
-          params: DeckAgentsSkillsGetParams,
+          params: GatewayMethodMap["deck.agents.skills.get"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<DeckAgentsSkillsGetResult>;
+        ): Promise<GatewayMethodMap["deck.agents.skills.get"]["result"]>;
         set(
-          params: DeckAgentsSkillsSetParams,
+          params: GatewayMethodMap["deck.agents.skills.set"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<DeckAgentsSkillsSetResult>;
+        ): Promise<GatewayMethodMap["deck.agents.skills.set"]["result"]>;
       };
       subagents: {
         get(
-          params: DeckAgentsSubagentsGetParams,
+          params: GatewayMethodMap["deck.agents.subagents.get"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<DeckAgentsSubagentsGetResult>;
+        ): Promise<GatewayMethodMap["deck.agents.subagents.get"]["result"]>;
         set(
-          params: DeckAgentsSubagentsSetParams,
+          params: GatewayMethodMap["deck.agents.subagents.set"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<DeckAgentsSubagentsSetResult>;
+        ): Promise<GatewayMethodMap["deck.agents.subagents.set"]["result"]>;
       };
       systemPrompt: {
         preview(
-          params: DeckAgentsSystemPromptPreviewParams,
+          params: GatewayMethodMap["deck.agents.systemPrompt.preview"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<DeckAgentsSystemPromptPreviewResult>;
+        ): Promise<GatewayMethodMap["deck.agents.systemPrompt.preview"]["result"]>;
       };
       toolPolicy: {
         preview(
-          params: DeckAgentsToolPolicyPreviewParams,
+          params: GatewayMethodMap["deck.agents.toolPolicy.preview"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<DeckAgentsToolPolicyPreviewResult>;
+        ): Promise<GatewayMethodMap["deck.agents.toolPolicy.preview"]["result"]>;
       };
     };
     auth: {
       overview(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["deck.auth.overview"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckAuthOverviewResult>;
+      ): Promise<GatewayMethodMap["deck.auth.overview"]["result"]>;
       probe(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["deck.auth.probe"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckAuthProbeResult>;
+      ): Promise<GatewayMethodMap["deck.auth.probe"]["result"]>;
     };
     commands: {
       discover(
-        params: DeckCommandsDiscoverParams,
+        params: GatewayMethodMap["deck.commands.discover"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckCommandsDiscoverResult>;
+      ): Promise<GatewayMethodMap["deck.commands.discover"]["result"]>;
     };
     identity: {
       link(
-        params: DeckIdentityLinkParams,
+        params: GatewayMethodMap["deck.identity.link"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckIdentityLinkResult>;
+      ): Promise<GatewayMethodMap["deck.identity.link"]["result"]>;
       list(
-        params: DeckIdentityListParams,
+        params: GatewayMethodMap["deck.identity.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckIdentityListResult>;
+      ): Promise<GatewayMethodMap["deck.identity.list"]["result"]>;
       unlink(
-        params: DeckIdentityUnlinkParams,
+        params: GatewayMethodMap["deck.identity.unlink"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckIdentityUnlinkResult>;
+      ): Promise<GatewayMethodMap["deck.identity.unlink"]["result"]>;
     };
     plugins: {
       list(
-        params: DeckPluginsListParams,
+        params: GatewayMethodMap["deck.plugins.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckPluginsListResult>;
+      ): Promise<GatewayMethodMap["deck.plugins.list"]["result"]>;
     };
     routing: {
       add(
-        params: DeckRoutingAddParams,
+        params: GatewayMethodMap["deck.routing.add"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckRoutingAddResult>;
+      ): Promise<GatewayMethodMap["deck.routing.add"]["result"]>;
       list(
-        params: DeckRoutingListParams,
+        params: GatewayMethodMap["deck.routing.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckRoutingListResult>;
+      ): Promise<GatewayMethodMap["deck.routing.list"]["result"]>;
       remove(
-        params: DeckRoutingRemoveParams,
+        params: GatewayMethodMap["deck.routing.remove"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckRoutingRemoveResult>;
+      ): Promise<GatewayMethodMap["deck.routing.remove"]["result"]>;
       simulate(
-        params: DeckRoutingSimulateParams,
+        params: GatewayMethodMap["deck.routing.simulate"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckRoutingSimulateResult>;
+      ): Promise<GatewayMethodMap["deck.routing.simulate"]["result"]>;
       validate(
-        params: DeckRoutingValidateParams,
+        params: GatewayMethodMap["deck.routing.validate"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckRoutingValidateResult>;
+      ): Promise<GatewayMethodMap["deck.routing.validate"]["result"]>;
     };
     subagents: {
       kill(
-        params: DeckSubagentsKillParams,
+        params: GatewayMethodMap["deck.subagents.kill"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckSubagentsKillResult>;
+      ): Promise<GatewayMethodMap["deck.subagents.kill"]["result"]>;
       lineage(
-        params: DeckSubagentsLineageParams,
+        params: GatewayMethodMap["deck.subagents.lineage"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckSubagentsLineageResult>;
+      ): Promise<GatewayMethodMap["deck.subagents.lineage"]["result"]>;
       list(
-        params: DeckSubagentsListParams,
+        params: GatewayMethodMap["deck.subagents.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckSubagentsListResult>;
+      ): Promise<GatewayMethodMap["deck.subagents.list"]["result"]>;
       steer(
-        params: DeckSubagentsSteerParams,
+        params: GatewayMethodMap["deck.subagents.steer"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckSubagentsSteerResult>;
+      ): Promise<GatewayMethodMap["deck.subagents.steer"]["result"]>;
     };
     threads: {
       list(
-        params: DeckThreadsListParams,
+        params: GatewayMethodMap["deck.threads.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeckThreadsListResult>;
+      ): Promise<GatewayMethodMap["deck.threads.list"]["result"]>;
     };
   };
   device: {
     pair: {
       approve(
-        params: DevicePairApproveParams,
+        params: GatewayMethodMap["device.pair.approve"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DevicePairApproveResult>;
+      ): Promise<GatewayMethodMap["device.pair.approve"]["result"]>;
       list(
-        params: DevicePairListParams,
+        params: GatewayMethodMap["device.pair.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DevicePairListResult>;
+      ): Promise<GatewayMethodMap["device.pair.list"]["result"]>;
       reject(
-        params: DevicePairRejectParams,
+        params: GatewayMethodMap["device.pair.reject"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DevicePairRejectResult>;
+      ): Promise<GatewayMethodMap["device.pair.reject"]["result"]>;
       remove(
-        params: DevicePairRemoveParams,
+        params: GatewayMethodMap["device.pair.remove"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DevicePairRemoveResult>;
+      ): Promise<GatewayMethodMap["device.pair.remove"]["result"]>;
     };
     token: {
       revoke(
-        params: DeviceTokenRevokeParams,
+        params: GatewayMethodMap["device.token.revoke"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeviceTokenRevokeResult>;
+      ): Promise<GatewayMethodMap["device.token.revoke"]["result"]>;
       rotate(
-        params: DeviceTokenRotateParams,
+        params: GatewayMethodMap["device.token.rotate"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DeviceTokenRotateResult>;
+      ): Promise<GatewayMethodMap["device.token.rotate"]["result"]>;
     };
   };
   doctor: {
     memory: {
       backfillDreamDiary(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["doctor.memory.backfillDreamDiary"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DoctorMemoryBackfillDreamDiaryResult>;
+      ): Promise<GatewayMethodMap["doctor.memory.backfillDreamDiary"]["result"]>;
       dedupeDreamDiary(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["doctor.memory.dedupeDreamDiary"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DoctorMemoryDedupeDreamDiaryResult>;
+      ): Promise<GatewayMethodMap["doctor.memory.dedupeDreamDiary"]["result"]>;
       dreamDiary(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["doctor.memory.dreamDiary"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DoctorMemoryDreamDiaryResult>;
+      ): Promise<GatewayMethodMap["doctor.memory.dreamDiary"]["result"]>;
       repairDreamingArtifacts(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["doctor.memory.repairDreamingArtifacts"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DoctorMemoryRepairDreamingArtifactsResult>;
+      ): Promise<GatewayMethodMap["doctor.memory.repairDreamingArtifacts"]["result"]>;
       resetDreamDiary(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["doctor.memory.resetDreamDiary"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DoctorMemoryResetDreamDiaryResult>;
+      ): Promise<GatewayMethodMap["doctor.memory.resetDreamDiary"]["result"]>;
       resetGroundedShortTerm(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["doctor.memory.resetGroundedShortTerm"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DoctorMemoryResetGroundedShortTermResult>;
+      ): Promise<GatewayMethodMap["doctor.memory.resetGroundedShortTerm"]["result"]>;
       status(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["doctor.memory.status"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<DoctorMemoryStatusResult>;
+      ): Promise<GatewayMethodMap["doctor.memory.status"]["result"]>;
     };
   };
   exec: {
     approval: {
       request(
-        params: ExecApprovalRequestParams,
+        params: GatewayMethodMap["exec.approval.request"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<ExecApprovalRequestResult>;
+      ): Promise<GatewayMethodMap["exec.approval.request"]["result"]>;
       resolve(
-        params: ExecApprovalResolveParams,
+        params: GatewayMethodMap["exec.approval.resolve"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<ExecApprovalResolveResult>;
+      ): Promise<GatewayMethodMap["exec.approval.resolve"]["result"]>;
       waitDecision(
-        params: ExecApprovalWaitDecisionParams,
+        params: GatewayMethodMap["exec.approval.waitDecision"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<ExecApprovalWaitDecisionResult>;
+      ): Promise<GatewayMethodMap["exec.approval.waitDecision"]["result"]>;
     };
     approvals: {
       get(
-        params: ExecApprovalsGetParams,
+        params: GatewayMethodMap["exec.approvals.get"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<ExecApprovalsGetResult>;
+      ): Promise<GatewayMethodMap["exec.approvals.get"]["result"]>;
       node: {
         get(
-          params: ExecApprovalsNodeGetParams,
+          params: GatewayMethodMap["exec.approvals.node.get"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<ExecApprovalsNodeGetResult>;
+        ): Promise<GatewayMethodMap["exec.approvals.node.get"]["result"]>;
         set(
-          params: ExecApprovalsNodeSetParams,
+          params: GatewayMethodMap["exec.approvals.node.set"]["params"],
           options?: { timeoutMs?: number },
-        ): Promise<ExecApprovalsNodeSetResult>;
+        ): Promise<GatewayMethodMap["exec.approvals.node.set"]["result"]>;
       };
       set(
-        params: ExecApprovalsSetParams,
+        params: GatewayMethodMap["exec.approvals.set"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<ExecApprovalsSetResult>;
+      ): Promise<GatewayMethodMap["exec.approvals.set"]["result"]>;
     };
   };
   gateway: {
     describe(
-      params: GatewayDescribeParams,
+      params: GatewayMethodMap["gateway.describe"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<GatewayDescribeResult>;
+    ): Promise<GatewayMethodMap["gateway.describe"]["result"]>;
   };
-  health(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<HealthResult>;
+  health(
+    params: GatewayMethodMap["health"]["params"],
+    options?: { timeoutMs?: number },
+  ): Promise<GatewayMethodMap["health"]["result"]>;
   models: {
     catalog: {
       providers(
-        params: Record<string, unknown>,
+        params: GatewayMethodMap["models.catalog.providers"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<ModelsCatalogProvidersResult>;
+      ): Promise<GatewayMethodMap["models.catalog.providers"]["result"]>;
     };
     configured(
-      params: ModelsConfiguredParams,
+      params: GatewayMethodMap["models.configured"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<ModelsConfiguredResult>;
-    list(params: ModelsListParams, options?: { timeoutMs?: number }): Promise<ModelsListResult>;
+    ): Promise<GatewayMethodMap["models.configured"]["result"]>;
+    list(
+      params: GatewayMethodMap["models.list"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["models.list"]["result"]>;
   };
   node: {
     describe(
-      params: NodeDescribeParams,
+      params: GatewayMethodMap["node.describe"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<NodeDescribeResult>;
-    list(params: NodeListParams, options?: { timeoutMs?: number }): Promise<NodeListResult>;
+    ): Promise<GatewayMethodMap["node.describe"]["result"]>;
+    list(
+      params: GatewayMethodMap["node.list"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["node.list"]["result"]>;
     pair: {
       approve(
-        params: NodePairApproveParams,
+        params: GatewayMethodMap["node.pair.approve"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<NodePairApproveResult>;
+      ): Promise<GatewayMethodMap["node.pair.approve"]["result"]>;
       list(
-        params: NodePairListParams,
+        params: GatewayMethodMap["node.pair.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<NodePairListResult>;
+      ): Promise<GatewayMethodMap["node.pair.list"]["result"]>;
       reject(
-        params: NodePairRejectParams,
+        params: GatewayMethodMap["node.pair.reject"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<NodePairRejectResult>;
+      ): Promise<GatewayMethodMap["node.pair.reject"]["result"]>;
       request(
-        params: NodePairRequestParams,
+        params: GatewayMethodMap["node.pair.request"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<NodePairRequestResult>;
+      ): Promise<GatewayMethodMap["node.pair.request"]["result"]>;
       verify(
-        params: NodePairVerifyParams,
+        params: GatewayMethodMap["node.pair.verify"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<NodePairVerifyResult>;
+      ): Promise<GatewayMethodMap["node.pair.verify"]["result"]>;
     };
-    rename(params: NodeRenameParams, options?: { timeoutMs?: number }): Promise<NodeRenameResult>;
+    rename(
+      params: GatewayMethodMap["node.rename"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["node.rename"]["result"]>;
   };
   plugin: {
     approval: {
       request(
-        params: PluginApprovalRequestParams,
+        params: GatewayMethodMap["plugin.approval.request"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<GatewayMethodMap["plugin.approval.request"]["result"]>;
       resolve(
-        params: PluginApprovalResolveParams,
+        params: GatewayMethodMap["plugin.approval.resolve"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<unknown>;
+      ): Promise<GatewayMethodMap["plugin.approval.resolve"]["result"]>;
     };
   };
   sessions: {
     abort(
-      params: SessionsAbortParams,
+      params: GatewayMethodMap["sessions.abort"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsAbortResult>;
+    ): Promise<GatewayMethodMap["sessions.abort"]["result"]>;
     clear(
-      params: SessionsClearParams,
+      params: GatewayMethodMap["sessions.clear"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsClearResult>;
+    ): Promise<GatewayMethodMap["sessions.clear"]["result"]>;
     compact(
-      params: SessionsCompactParams,
+      params: GatewayMethodMap["sessions.compact"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsCompactResult>;
+    ): Promise<GatewayMethodMap["sessions.compact"]["result"]>;
     compaction: {
       branch(
-        params: SessionsCompactionBranchParams,
+        params: GatewayMethodMap["sessions.compaction.branch"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsCompactionBranchResult>;
+      ): Promise<GatewayMethodMap["sessions.compaction.branch"]["result"]>;
       get(
-        params: SessionsCompactionGetParams,
+        params: GatewayMethodMap["sessions.compaction.get"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsCompactionGetResult>;
+      ): Promise<GatewayMethodMap["sessions.compaction.get"]["result"]>;
       list(
-        params: SessionsCompactionListParams,
+        params: GatewayMethodMap["sessions.compaction.list"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsCompactionListResult>;
+      ): Promise<GatewayMethodMap["sessions.compaction.list"]["result"]>;
       restore(
-        params: SessionsCompactionRestoreParams,
+        params: GatewayMethodMap["sessions.compaction.restore"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsCompactionRestoreResult>;
+      ): Promise<GatewayMethodMap["sessions.compaction.restore"]["result"]>;
     };
     create(
-      params: SessionsCreateParams,
+      params: GatewayMethodMap["sessions.create"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsCreateResult>;
+    ): Promise<GatewayMethodMap["sessions.create"]["result"]>;
     delete(
-      params: SessionsDeleteParams,
+      params: GatewayMethodMap["sessions.delete"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsDeleteResult>;
-    get(params: SessionsGetParams, options?: { timeoutMs?: number }): Promise<SessionsGetResult>;
-    list(params: SessionsListParams, options?: { timeoutMs?: number }): Promise<SessionsListResult>;
+    ): Promise<GatewayMethodMap["sessions.delete"]["result"]>;
+    get(
+      params: GatewayMethodMap["sessions.get"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["sessions.get"]["result"]>;
+    list(
+      params: GatewayMethodMap["sessions.list"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["sessions.list"]["result"]>;
     messages: {
       subscribe(
-        params: SessionsMessagesSubscribeParams,
+        params: GatewayMethodMap["sessions.messages.subscribe"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsMessagesSubscribeResult>;
+      ): Promise<GatewayMethodMap["sessions.messages.subscribe"]["result"]>;
       unsubscribe(
-        params: SessionsMessagesUnsubscribeParams,
+        params: GatewayMethodMap["sessions.messages.unsubscribe"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsMessagesUnsubscribeResult>;
+      ): Promise<GatewayMethodMap["sessions.messages.unsubscribe"]["result"]>;
     };
     patch(
-      params: SessionsPatchParams,
+      params: GatewayMethodMap["sessions.patch"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsPatchResult>;
+    ): Promise<GatewayMethodMap["sessions.patch"]["result"]>;
     preview(
-      params: SessionsPreviewParams,
+      params: GatewayMethodMap["sessions.preview"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsPreviewResult>;
+    ): Promise<GatewayMethodMap["sessions.preview"]["result"]>;
     reset(
-      params: SessionsResetParams,
+      params: GatewayMethodMap["sessions.reset"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsResetResult>;
-    send(params: SessionsSendParams, options?: { timeoutMs?: number }): Promise<SessionsSendResult>;
+    ): Promise<GatewayMethodMap["sessions.reset"]["result"]>;
+    send(
+      params: GatewayMethodMap["sessions.send"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["sessions.send"]["result"]>;
     steer(
-      params: SessionsSteerParams,
+      params: GatewayMethodMap["sessions.steer"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsSteerResult>;
+    ): Promise<GatewayMethodMap["sessions.steer"]["result"]>;
     subscribe(
-      params: Record<string, unknown>,
+      params: GatewayMethodMap["sessions.subscribe"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsSubscribeResult>;
+    ): Promise<GatewayMethodMap["sessions.subscribe"]["result"]>;
     unsubscribe(
-      params: Record<string, unknown>,
+      params: GatewayMethodMap["sessions.unsubscribe"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SessionsUnsubscribeResult>;
+    ): Promise<GatewayMethodMap["sessions.unsubscribe"]["result"]>;
     usage: {
       $call(
-        params: SessionsUsageParams,
+        params: GatewayMethodMap["sessions.usage"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsUsageResult>;
+      ): Promise<GatewayMethodMap["sessions.usage"]["result"]>;
       logs(
-        params: SessionsUsageLogsParams,
+        params: GatewayMethodMap["sessions.usage.logs"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsUsageLogsResult>;
+      ): Promise<GatewayMethodMap["sessions.usage.logs"]["result"]>;
       timeseries(
-        params: SessionsUsageTimeseriesParams,
+        params: GatewayMethodMap["sessions.usage.timeseries"]["params"],
         options?: { timeoutMs?: number },
-      ): Promise<SessionsUsageTimeseriesResult>;
+      ): Promise<GatewayMethodMap["sessions.usage.timeseries"]["result"]>;
     };
   };
   skills: {
-    bins(params: SkillsBinsParams, options?: { timeoutMs?: number }): Promise<SkillsBinsResult>;
+    bins(
+      params: GatewayMethodMap["skills.bins"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["skills.bins"]["result"]>;
     detail(
-      params: SkillsDetailParams,
+      params: GatewayMethodMap["skills.detail"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SkillsDetailResult>;
+    ): Promise<GatewayMethodMap["skills.detail"]["result"]>;
     install(
-      params: SkillsInstallParams,
+      params: GatewayMethodMap["skills.install"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SkillsInstallResult>;
+    ): Promise<GatewayMethodMap["skills.install"]["result"]>;
     search(
-      params: SkillsSearchParams,
+      params: GatewayMethodMap["skills.search"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SkillsSearchResult>;
+    ): Promise<GatewayMethodMap["skills.search"]["result"]>;
     status(
-      params: SkillsStatusParams,
+      params: GatewayMethodMap["skills.status"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SkillsStatusResult>;
+    ): Promise<GatewayMethodMap["skills.status"]["result"]>;
     update(
-      params: SkillsUpdateParams,
+      params: GatewayMethodMap["skills.update"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<SkillsUpdateResult>;
+    ): Promise<GatewayMethodMap["skills.update"]["result"]>;
   };
-  status(params: Record<string, unknown>, options?: { timeoutMs?: number }): Promise<StatusResult>;
+  status(
+    params: GatewayMethodMap["status"]["params"],
+    options?: { timeoutMs?: number },
+  ): Promise<GatewayMethodMap["status"]["result"]>;
   talk: {
-    config(params: TalkConfigParams, options?: { timeoutMs?: number }): Promise<TalkConfigResult>;
-    mode(params: TalkModeParams, options?: { timeoutMs?: number }): Promise<TalkModeResult>;
-    speak(params: TalkSpeakParams, options?: { timeoutMs?: number }): Promise<TalkSpeakResult>;
+    config(
+      params: GatewayMethodMap["talk.config"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["talk.config"]["result"]>;
+    mode(
+      params: GatewayMethodMap["talk.mode"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["talk.mode"]["result"]>;
+    speak(
+      params: GatewayMethodMap["talk.speak"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["talk.speak"]["result"]>;
   };
   usage: {
     cost(
-      params: Record<string, unknown>,
+      params: GatewayMethodMap["usage.cost"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<UsageCostResult>;
+    ): Promise<GatewayMethodMap["usage.cost"]["result"]>;
     status(
-      params: Record<string, unknown>,
+      params: GatewayMethodMap["usage.status"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<UsageStatusResult>;
+    ): Promise<GatewayMethodMap["usage.status"]["result"]>;
   };
   wizard: {
     cancel(
-      params: WizardCancelParams,
+      params: GatewayMethodMap["wizard.cancel"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<WizardCancelResult>;
-    next(params: WizardNextParams, options?: { timeoutMs?: number }): Promise<WizardNextResult>;
-    start(params: WizardStartParams, options?: { timeoutMs?: number }): Promise<WizardStartResult>;
+    ): Promise<GatewayMethodMap["wizard.cancel"]["result"]>;
+    next(
+      params: GatewayMethodMap["wizard.next"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["wizard.next"]["result"]>;
+    start(
+      params: GatewayMethodMap["wizard.start"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["wizard.start"]["result"]>;
     status(
-      params: WizardStatusParams,
+      params: GatewayMethodMap["wizard.status"]["params"],
       options?: { timeoutMs?: number },
-    ): Promise<WizardStatusResult>;
+    ): Promise<GatewayMethodMap["wizard.status"]["result"]>;
   };
 }
 

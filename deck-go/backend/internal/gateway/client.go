@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -26,6 +27,17 @@ const (
 var requestCounter uint64
 var healthProbeClients sync.Map
 
+type healthProbeClientEntry struct {
+	client   *Client
+	failures atomic.Int32
+}
+
+func newHealthProbeClientEntry(upstreamURL string, token string) *healthProbeClientEntry {
+	return &healthProbeClientEntry{
+		client: NewClient(staticConnectionProvider{upstreamURL: upstreamURL, token: token}),
+	}
+}
+
 type ConnectionProvider interface {
 	GatewayConnection() (string, string, bool)
 }
@@ -40,16 +52,25 @@ func (p staticConnectionProvider) GatewayConnection() (string, string, bool) {
 }
 
 type responseError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Code    string         `json:"code"`
+	Message string         `json:"message"`
+	Details map[string]any `json:"details,omitempty"`
 }
 
+type frameType string
+
+const (
+	frameTypeReq   frameType = "req"
+	frameTypeRes   frameType = "res"
+	frameTypeEvent frameType = "event"
+)
+
 type frame struct {
-	Type    string         `json:"type"`
+	Type    frameType      `json:"type"`
 	ID      string         `json:"id,omitempty"`
 	Event   string         `json:"event,omitempty"`
 	Method  string         `json:"method,omitempty"`
-	Params  map[string]any `json:"params,omitempty"`
+	Params  any            `json:"params,omitempty"`
 	Payload any            `json:"payload,omitempty"`
 	Error   *responseError `json:"error,omitempty"`
 }
@@ -79,65 +100,23 @@ func (c *Client) Request(ctx context.Context, method string, params map[string]a
 	return c.realtime.Request(ctx, method, params)
 }
 
+func (c *Client) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	if c.realtime == nil {
+		return nil, errors.New("gateway connection provider is not configured")
+	}
+	return c.realtime.RequestTyped(ctx, method, params)
+}
+
 func (c *Client) ProbeHealth(ctx context.Context) error {
 	_, err := c.Request(ctx, "health", nil)
 	return err
 }
 
-// Deprecated: prefer Client.Request via Realtime so calls share one Gateway connection.
-func RequestDirect(ctx context.Context, upstreamURL string, token string, method string, params map[string]any) (any, error) {
-	if strings.TrimSpace(upstreamURL) == "" {
-		return nil, errors.New("gateway url is not configured")
+func (c *Client) Close() error {
+	if c == nil || c.realtime == nil {
+		return nil
 	}
-	if strings.TrimSpace(token) == "" {
-		return nil, errors.New("gateway token is not configured")
-	}
-
-	dialer := websocket.Dialer{
-		HandshakeTimeout: 8 * time.Second,
-	}
-	conn, _, err := dialer.DialContext(ctx, upstreamURL, http.Header{})
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	if err := completeConnect(ctx, conn, token, "gateway-client"); err != nil {
-		return nil, err
-	}
-
-	reqID := nextID()
-	if err := conn.WriteJSON(frame{
-		Type:   "req",
-		ID:     reqID,
-		Method: method,
-		Params: params,
-	}); err != nil {
-		return nil, err
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-		_, raw, err := conn.ReadMessage()
-		if err != nil {
-			return nil, err
-		}
-		var fr frame
-		if err := json.Unmarshal(raw, &fr); err != nil {
-			continue
-		}
-		if fr.Type != "res" || fr.ID != reqID {
-			continue
-		}
-		if fr.Error != nil {
-			return nil, fmt.Errorf("%s: %s", fr.Error.Code, fr.Error.Message)
-		}
-		return fr.Payload, nil
-	}
+	return c.realtime.Close()
 }
 
 func ProbeHealth(ctx context.Context, upstreamURL string, token string) error {
@@ -151,16 +130,88 @@ func ProbeHealth(ctx context.Context, upstreamURL string, token string) error {
 	}
 
 	key := healthProbeClientKey(upstreamURL, token)
-	value, _ := healthProbeClients.LoadOrStore(
-		key,
-		NewClient(staticConnectionProvider{upstreamURL: upstreamURL, token: token}),
-	)
-	return value.(*Client).ProbeHealth(ctx)
+	value, loaded := healthProbeClients.Load(key)
+	if !loaded {
+		candidate := newHealthProbeClientEntry(upstreamURL, token)
+		value, loaded = healthProbeClients.LoadOrStore(key, candidate)
+		if loaded {
+			closeProbeClientEntry(candidate)
+		}
+	}
+	entry := value.(*healthProbeClientEntry)
+	err := entry.client.ProbeHealth(ctx)
+	if err != nil {
+		if entry.failures.Add(1) >= int32(healthProbeFailureThreshold()) {
+			evictProbeClient(key, entry)
+		}
+		return err
+	}
+	entry.failures.Store(0)
+	return nil
 }
 
 func healthProbeClientKey(upstreamURL string, token string) string {
 	tokenHash := sha256.Sum256([]byte(token))
 	return upstreamURL + "\x00" + hex.EncodeToString(tokenHash[:])
+}
+
+func normalizeFrameParams(params any) any {
+	if params == nil {
+		return nil
+	}
+	if paramsMap, ok := params.(map[string]any); ok && len(paramsMap) == 0 {
+		return nil
+	}
+	return params
+}
+
+func healthProbeFailureThreshold() int {
+	const defaultThreshold = 5
+	raw := strings.TrimSpace(os.Getenv("GATEWAY_PROBE_FAILURE_THRESHOLD"))
+	if raw == "" {
+		return defaultThreshold
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		return defaultThreshold
+	}
+	return value
+}
+
+func InvalidateProbeClient(upstreamURL string, token string) {
+	upstreamURL = strings.TrimSpace(upstreamURL)
+	token = strings.TrimSpace(token)
+	if upstreamURL == "" || token == "" {
+		return
+	}
+	key := healthProbeClientKey(upstreamURL, token)
+	value, loaded := healthProbeClients.LoadAndDelete(key)
+	if !loaded {
+		return
+	}
+	closeProbeClientEntry(value)
+}
+
+func ShutdownProbeClients() {
+	healthProbeClients.Range(func(key any, value any) bool {
+		healthProbeClients.Delete(key)
+		closeProbeClientEntry(value)
+		return true
+	})
+}
+
+func evictProbeClient(key string, entry *healthProbeClientEntry) {
+	if healthProbeClients.CompareAndDelete(key, entry) {
+		closeProbeClientEntry(entry)
+	}
+}
+
+func closeProbeClientEntry(value any) {
+	entry, ok := value.(*healthProbeClientEntry)
+	if !ok || entry.client == nil || entry.client.realtime == nil {
+		return
+	}
+	_ = entry.client.realtime.Close()
 }
 
 func completeConnect(ctx context.Context, conn *websocket.Conn, token string, clientID string) error {
@@ -191,7 +242,7 @@ func completeConnect(ctx context.Context, conn *websocket.Conn, token string, cl
 		if err := json.Unmarshal(raw, &fr); err != nil {
 			continue
 		}
-		if fr.Type == "event" && fr.Event == "connect.challenge" {
+		if fr.Type == frameTypeEvent && fr.Event == "connect.challenge" {
 			scopes := []string{
 				"operator.admin",
 				"operator.read",
@@ -215,46 +266,54 @@ func completeConnect(ctx context.Context, conn *websocket.Conn, token string, cl
 					"token": token,
 				},
 			}
-			payloadMap, _ := fr.Payload.(map[string]any)
-			nonce, _ := payloadMap["nonce"].(string)
-			if trimmedNonce := strings.TrimSpace(nonce); trimmedNonce != "" {
-				if identity, err := loadOrCreateDeviceIdentity(); err == nil {
-					signedAtMS := time.Now().UnixMilli()
-					payload := buildDeviceAuthPayloadV3(struct {
-						deviceID   string
-						clientID   string
-						clientMode string
-						role       string
-						scopes     []string
-						signedAtMS int64
-						token      string
-						nonce      string
-					}{
-						deviceID:   identity.deviceID,
-						clientID:   clientID,
-						clientMode: "backend",
-						role:       "operator",
-						scopes:     scopes,
-						signedAtMS: signedAtMS,
-						token:      token,
-						nonce:      trimmedNonce,
-					})
-					signature, signErr := signDevicePayload(identity.privateKeyPEM, payload)
-					publicKey, keyErr := publicKeyRawBase64URLFromPEM(identity.publicKeyPEM)
-					if signErr == nil && keyErr == nil {
-						params["device"] = map[string]any{
-							"id":        identity.deviceID,
-							"publicKey": publicKey,
-							"signature": signature,
-							"signedAt":  signedAtMS,
-							"nonce":     trimmedNonce,
-						}
-					}
-				}
+			payloadMap, ok := fr.Payload.(map[string]any)
+			if !ok {
+				return fmt.Errorf("gateway connect: nonce payload is not object: %T", fr.Payload)
+			}
+			nonce, ok := payloadMap["nonce"].(string)
+			if !ok || strings.TrimSpace(nonce) == "" {
+				return errors.New("gateway connect: nonce missing or non-string in challenge payload")
+			}
+			trimmedNonce := strings.TrimSpace(nonce)
+			identity, err := loadOrCreateDeviceIdentity()
+			if err != nil {
+				return fmt.Errorf("gateway connect: device identity unavailable: %w", err)
+			}
+			signedAtMS := time.Now().UnixMilli()
+			payload := buildDeviceAuthPayloadV3(struct {
+				deviceID   string
+				clientID   string
+				clientMode string
+				role       string
+				scopes     []string
+				signedAtMS int64
+				token      string
+				nonce      string
+			}{
+				deviceID:   identity.deviceID,
+				clientID:   clientID,
+				clientMode: "backend",
+				role:       "operator",
+				scopes:     scopes,
+				signedAtMS: signedAtMS,
+				token:      token,
+				nonce:      trimmedNonce,
+			})
+			signature, signErr := signDevicePayload(identity.privateKeyPEM, payload)
+			publicKey, keyErr := publicKeyRawBase64URLFromPEM(identity.publicKeyPEM)
+			if signErr != nil || keyErr != nil {
+				return fmt.Errorf("gateway connect: device signing failed: signErr=%v keyErr=%v", signErr, keyErr)
+			}
+			params["device"] = map[string]any{
+				"id":        identity.deviceID,
+				"publicKey": publicKey,
+				"signature": signature,
+				"signedAt":  signedAtMS,
+				"nonce":     trimmedNonce,
 			}
 			connectID := nextID()
 			if err := conn.WriteJSON(frame{
-				Type:   "req",
+				Type:   frameTypeReq,
 				ID:     connectID,
 				Method: "connect",
 				Params: params,
@@ -279,11 +338,11 @@ func completeConnect(ctx context.Context, conn *websocket.Conn, token string, cl
 				if err := json.Unmarshal(connectRaw, &connectResp); err != nil {
 					continue
 				}
-				if connectResp.Type != "res" || connectResp.ID != connectID {
+				if connectResp.Type != frameTypeRes || connectResp.ID != connectID {
 					continue
 				}
 				if connectResp.Error != nil {
-					return fmt.Errorf("%s: %s", connectResp.Error.Code, connectResp.Error.Message)
+					return FromEnvelope(connectResp.Error)
 				}
 				return nil
 			}

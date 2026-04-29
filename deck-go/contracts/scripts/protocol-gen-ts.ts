@@ -62,10 +62,8 @@ function renderClientInterface(tree: MethodTree, lines: string[], depth: number)
   for (const [key, value] of [...tree.entries()].toSorted(([a], [b]) => a.localeCompare(b))) {
     if (typeof value === "string") {
       const method = value;
-      const def = methodDefs[method];
-      const name = methodToPascalName(method);
-      const paramsType = def?.params ? `${name}Params` : "Record<string, unknown>";
-      const resultType = def?.result ? `${name}Result` : "unknown";
+      const paramsType = `GatewayMethodMap[${JSON.stringify(method)}]["params"]`;
+      const resultType = `GatewayMethodMap[${JSON.stringify(method)}]["result"]`;
       lines.push(
         `${pad}${quoteTSKey(key)}(params: ${paramsType}, options?: { timeoutMs?: number }): Promise<${resultType}>;`,
       );

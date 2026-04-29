@@ -904,11 +904,24 @@ func TestMountAdminRoutes(t *testing.T) {
 			t.Fatalf("unexpected status: %d", res.StatusCode)
 		}
 		buf := make([]byte, 256)
-		n, err := res.Body.Read(buf)
-		if err != nil && err != io.EOF {
-			t.Fatal(err)
+		var streamBody strings.Builder
+		for i := 0; i < 4; i++ {
+			n, err := res.Body.Read(buf)
+			if err != nil && err != io.EOF {
+				t.Fatal(err)
+			}
+			if n > 0 {
+				streamBody.Write(buf[:n])
+			}
+			body := streamBody.String()
+			if strings.Contains(body, "event: projection.gap") && strings.Contains(body, "event: chat") {
+				return
+			}
+			if err == io.EOF {
+				break
+			}
 		}
-		body := string(buf[:n])
+		body := streamBody.String()
 		if !strings.Contains(body, "event: projection.gap") || !strings.Contains(body, "event: chat") {
 			t.Fatalf("unexpected stream body: %q", body)
 		}

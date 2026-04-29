@@ -16,13 +16,21 @@ func (s stubCapabilityRequester) Request(_ context.Context, method string, param
 	if method != "gateway.describe" {
 		s.t.Fatalf("unexpected method: %s", method)
 	}
-	if params["filter"] != "all" || params["includeSchemas"] != false {
+	if params["filter"] != "all" || (params["includeSchemas"] != nil && params["includeSchemas"] != false) {
 		s.t.Fatalf("unexpected params: %#v", params)
 	}
 	if s.err != nil {
 		return nil, s.err
 	}
 	return s.payload, nil
+}
+
+func (s stubCapabilityRequester) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	paramsMap, err := typedParamsToMap(params)
+	if err != nil {
+		return nil, err
+	}
+	return s.Request(ctx, method, paramsMap)
 }
 
 func TestCapabilitySummaryLoad(t *testing.T) {

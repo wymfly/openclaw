@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	"go.uber.org/goleak"
 )
 
 type mutableProvider struct {
@@ -67,6 +68,150 @@ func TestRealtime_SingleConnectionAcrossRPCs(t *testing.T) {
 	}
 	if got := connCount.Load(); got != 1 {
 		t.Fatalf("expected 1 websocket connection, got %d", got)
+	}
+}
+
+func TestRealtimeRequestTyped_SendsTypedParams(t *testing.T) {
+	type nestedPayload struct {
+		Filter struct {
+			Kind string `json:"kind"`
+		} `json:"filter"`
+	}
+	type slicePayload struct {
+		Values []string `json:"values"`
+	}
+	type mapPayload struct {
+		Labels map[string]int `json:"labels"`
+	}
+	type enumPayload struct {
+		Mode string `json:"mode"`
+	}
+
+	for _, tc := range []struct {
+		name   string
+		params any
+		assert func(*testing.T, map[string]any)
+	}{
+		{
+			name: "nil",
+			assert: func(t *testing.T, params map[string]any) {
+				t.Helper()
+				if len(params) != 0 {
+					t.Fatalf("expected empty params for nil typed request, got %#v", params)
+				}
+			},
+		},
+		{
+			name: "nested",
+			params: func() nestedPayload {
+				var payload nestedPayload
+				payload.Filter.Kind = "recent"
+				return payload
+			}(),
+			assert: func(t *testing.T, params map[string]any) {
+				t.Helper()
+				filter, ok := params["filter"].(map[string]any)
+				if !ok || filter["kind"] != "recent" {
+					t.Fatalf("expected nested filter payload, got %#v", params)
+				}
+			},
+		},
+		{
+			name:   "slice",
+			params: slicePayload{Values: []string{"alpha", "beta"}},
+			assert: func(t *testing.T, params map[string]any) {
+				t.Helper()
+				values, ok := params["values"].([]any)
+				if !ok || len(values) != 2 || values[0] != "alpha" || values[1] != "beta" {
+					t.Fatalf("expected slice payload, got %#v", params)
+				}
+			},
+		},
+		{
+			name:   "map",
+			params: mapPayload{Labels: map[string]int{"one": 1}},
+			assert: func(t *testing.T, params map[string]any) {
+				t.Helper()
+				labels, ok := params["labels"].(map[string]any)
+				if !ok || labels["one"] != float64(1) {
+					t.Fatalf("expected map payload, got %#v", params)
+				}
+			},
+		},
+		{
+			name:   "enum",
+			params: enumPayload{Mode: "operator.read"},
+			assert: func(t *testing.T, params map[string]any) {
+				t.Helper()
+				if params["mode"] != "operator.read" {
+					t.Fatalf("expected enum-like payload, got %#v", params)
+				}
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			frames := make(chan frame, 1)
+			server := newRPCGatewayServer(t, rpcGatewayOptions{
+				onFrame: func(req frame) {
+					if req.Method == "typed."+tc.name {
+						frames <- req
+					}
+				},
+			})
+			defer server.Close()
+
+			provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+			realtime := NewRealtime(provider, events.NewNoopBus())
+			defer realtime.Close()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if _, err := realtime.RequestTyped(ctx, "typed."+tc.name, tc.params); err != nil {
+				t.Fatal(err)
+			}
+
+			select {
+			case req := <-frames:
+				tc.assert(t, frameParamsMap(t, req.Params))
+			case <-ctx.Done():
+				t.Fatal(ctx.Err())
+			}
+		})
+	}
+}
+
+func TestClientRequestTyped_DelegatesToRealtime(t *testing.T) {
+	frames := make(chan frame, 1)
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		onFrame: func(req frame) {
+			if req.Method == "gateway.describe" {
+				frames <- req
+			}
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+	client := NewClientWithRealtime(realtime)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := client.RequestTyped(ctx, "gateway.describe", struct {
+		Filter string `json:"filter"`
+	}{Filter: "all"}); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case req := <-frames:
+		params := frameParamsMap(t, req.Params)
+		if params["filter"] != "all" {
+			t.Fatalf("expected typed client params to reach realtime, got %#v", params)
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
 	}
 }
 
@@ -229,6 +374,62 @@ func TestRealtime_PendingReceivesErrConnectionLost(t *testing.T) {
 	}
 }
 
+func TestRealtime_ReadLoopPanicTriggersCloseConnection(t *testing.T) {
+	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	requestSeen := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Errorf("upgrade failed: %v", err)
+			return
+		}
+		defer conn.Close()
+		if _, ok := completeTestGatewayHandshake(t, conn); !ok {
+			return
+		}
+		_, raw, err := conn.ReadMessage()
+		if err != nil {
+			return
+		}
+		var req frame
+		if err := json.Unmarshal(raw, &req); err != nil {
+			t.Errorf("request frame parse failed: %v", err)
+			return
+		}
+		close(requestSeen)
+		_ = conn.WriteJSON(map[string]any{
+			"type":  "event",
+			"event": "session.message",
+			"payload": map[string]any{
+				"sessionKey": "session-1",
+			},
+		})
+		time.Sleep(100 * time.Millisecond)
+	}))
+	defer server.Close()
+
+	bus := events.NewBus(16)
+	sub := bus.Subscribe()
+	close(sub)
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, bus)
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := realtime.Request(ctx, "health", map[string]any{})
+	if !errors.Is(err, ErrConnectionLost) {
+		t.Fatalf("expected ErrConnectionLost after readLoop panic, got %v", err)
+	}
+	select {
+	case <-requestSeen:
+	default:
+		t.Fatal("request was not sent before readLoop panic")
+	}
+	waitForDisconnected(t, realtime)
+}
+
 func TestRealtime_ProviderTokenRotation(t *testing.T) {
 	tokens := make(chan string, 2)
 	first := newRPCGatewayServer(t, rpcGatewayOptions{
@@ -351,6 +552,50 @@ func TestRealtime_RetriesReconnectWhenSubscriptionRestoreFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectBusEvent(t, sub, "session.message")
+}
+
+func TestRealtime_DropsPermanentSubscriptionRestoreFailure(t *testing.T) {
+	first := newRPCGatewayServer(t, rpcGatewayOptions{closeAfterResponses: 2})
+	defer first.Close()
+
+	secondRequests := make(chan string, 8)
+	second := newRPCGatewayServer(t, rpcGatewayOptions{
+		errorFrames: map[string]responseError{
+			"sessions.messages.subscribe": {
+				Code:    "not_found",
+				Message: "session was removed",
+			},
+		},
+		onRequest: func(method string) {
+			secondRequests <- method
+		},
+	})
+	defer second.Close()
+
+	provider := &mutableProvider{url: wsURL(first.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	waitForDisconnected(t, realtime)
+
+	provider.set(wsURL(second.URL), "token-1")
+	if _, err := realtime.Request(ctx, "health", map[string]any{}); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, secondRequests, "sessions.subscribe")
+	expectRequestMethod(t, secondRequests, "sessions.messages.subscribe")
+	expectRequestMethod(t, secondRequests, "health")
+	realtime.mu.Lock()
+	_, stillSubscribed := realtime.sessionSubs["session-1"]
+	realtime.mu.Unlock()
+	if stillSubscribed {
+		t.Fatal("expected permanent restore failure to clear stale session subscription")
+	}
 }
 
 func TestRealtime_BlocksConcurrentRequestsUntilSubscriptionRestoreCompletes(t *testing.T) {
@@ -501,34 +746,6 @@ func TestRealtimeRequest_P50Below10ms(t *testing.T) {
 	}
 }
 
-func TestRequestDirectBaseline_P50Recorded(t *testing.T) {
-	server := newRPCGatewayServer(t, rpcGatewayOptions{})
-	defer server.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	durations := make([]time.Duration, 0, 100)
-	for i := 0; i < 100; i++ {
-		started := time.Now()
-		payload, err := RequestDirect(ctx, wsURL(server.URL), "token-1", "health", map[string]any{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		result, _ := payload.(map[string]any)
-		if result["method"] != "health" {
-			t.Fatalf("unexpected payload: %#v", payload)
-		}
-		durations = append(durations, time.Since(started))
-	}
-	sort.Slice(durations, func(i int, j int) bool { return durations[i] < durations[j] })
-	p50 := durations[len(durations)/2]
-	t.Logf("request_direct_p50_ms=%.3f", float64(p50.Microseconds())/1000)
-	if p50 <= 0 {
-		t.Fatalf("expected positive p50, got %s", p50)
-	}
-}
-
 func TestRealtimeClose_NoGoroutineLeak(t *testing.T) {
 	release := make(chan struct{})
 	server := newRPCGatewayServer(t, rpcGatewayOptions{
@@ -565,6 +782,28 @@ func TestRealtimeClose_NoGoroutineLeak(t *testing.T) {
 	if pendingLen != 0 {
 		t.Fatalf("expected pending map to be empty after Close, got %d", pendingLen)
 	}
+}
+
+func TestRealtime_CloseShutsDownAllGoroutines(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	server := newRPCGatewayServer(t, rpcGatewayOptions{closeAfterResponses: 1})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := realtime.Request(ctx, "health", map[string]any{}); err != nil {
+		t.Fatal(err)
+	}
+	waitForDisconnected(t, realtime)
+	if err := realtime.Close(); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(20 * time.Millisecond)
 }
 
 func TestRealtime_SubscribeSessionPublishesSessionEventsToBus(t *testing.T) {
@@ -669,6 +908,7 @@ func TestRealtime_SubscribeSessionPublishesSessionEventsToBus(t *testing.T) {
 	defer bus.Unsubscribe(sub)
 
 	realtime := NewRealtime(store, bus)
+	defer realtime.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
@@ -678,4 +918,428 @@ func TestRealtime_SubscribeSessionPublishesSessionEventsToBus(t *testing.T) {
 	expectBusEvent(t, sub, "session.message")
 	expectBusEvent(t, sub, "session.tool")
 	expectBusEvent(t, sub, "sessions.changed")
+}
+
+func TestRealtime_RegisterEventChannelReceivesFilteredRawEvents(t *testing.T) {
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		eventsAfterMethod: map[string][]map[string]any{
+			"sessions.messages.subscribe": {{
+				"type":  "event",
+				"event": "session.message",
+				"payload": map[string]any{
+					"sessionKey": "session-1",
+					"message": map[string]any{
+						"id":   "msg-1",
+						"role": "assistant",
+					},
+				},
+			}, {
+				"type":  "event",
+				"event": "session.message",
+				"payload": map[string]any{
+					"sessionKey": "other-session",
+				},
+			}},
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	rawEvents := make(chan json.RawMessage, 4)
+	unregister := realtime.RegisterEventChannel("session.message", "session-1", rawEvents)
+	defer unregister()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case raw := <-rawEvents:
+		var payload map[string]any
+		if err := json.Unmarshal(raw, &payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload["sessionKey"] != "session-1" {
+			t.Fatalf("unexpected raw event payload: %#v", payload)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for filtered raw event")
+	}
+
+	select {
+	case extra := <-rawEvents:
+		t.Fatalf("unexpected unfiltered event: %s", string(extra))
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func TestRealtime_EventDispatchOverflowDropsOldestAndCounts(t *testing.T) {
+	realtime := &Realtime{
+		dispatchQueue: make(chan eventDispatchItem, 1),
+	}
+
+	realtime.enqueueEvent("session.message", json.RawMessage(`{"sessionKey":"old"}`))
+	realtime.enqueueEvent("session.message", json.RawMessage(`{"sessionKey":"new"}`))
+
+	if got := realtime.EventDispatchOverflowTotal(); got != 1 {
+		t.Fatalf("expected one dispatch overflow, got %d", got)
+	}
+	select {
+	case item := <-realtime.dispatchQueue:
+		if eventSessionKey(item.payload) != "new" {
+			t.Fatalf("expected newest dispatch item to be retained, got %s", string(item.payload))
+		}
+	default:
+		t.Fatal("expected dispatch queue to retain newest item")
+	}
+}
+
+func TestRealtime_EventSubscriberOverflowDropsOldestAndCounts(t *testing.T) {
+	realtime := NewRealtime(nil, events.NewNoopBus())
+	defer realtime.Close()
+
+	rawEvents := make(chan json.RawMessage, 1)
+	unregister := realtime.RegisterEventChannel("session.message", "session-1", rawEvents)
+	defer unregister()
+
+	realtime.dispatchEvent(eventDispatchItem{
+		event:   "session.message",
+		payload: json.RawMessage(`{"sessionKey":"session-1","message":{"id":"old"}}`),
+	})
+	realtime.dispatchEvent(eventDispatchItem{
+		event:   "session.message",
+		payload: json.RawMessage(`{"sessionKey":"session-1","message":{"id":"new"}}`),
+	})
+
+	if got := realtime.EventSubscriberOverflowTotal(); got != 1 {
+		t.Fatalf("expected one subscriber overflow, got %d", got)
+	}
+	select {
+	case raw := <-rawEvents:
+		var payload map[string]any
+		if err := json.Unmarshal(raw, &payload); err != nil {
+			t.Fatal(err)
+		}
+		message, _ := payload["message"].(map[string]any)
+		if message["id"] != "new" {
+			t.Fatalf("expected newest subscriber item to be retained, got %#v", payload)
+		}
+	default:
+		t.Fatal("expected subscriber channel to retain newest item")
+	}
+}
+
+func TestRealtime_EventSubscriberOverflowDoesNotAffectOtherSubscriber(t *testing.T) {
+	realtime := NewRealtime(nil, events.NewNoopBus())
+	defer realtime.Close()
+
+	slow := make(chan json.RawMessage, 1)
+	slow <- json.RawMessage(`{"sessionKey":"session-1","message":{"id":"old"}}`)
+	unregisterSlow := realtime.RegisterEventChannel("session.message", "session-1", slow)
+	defer unregisterSlow()
+	fast := make(chan json.RawMessage, 1)
+	unregisterFast := realtime.RegisterEventChannel("session.message", "session-1", fast)
+	defer unregisterFast()
+
+	realtime.dispatchEvent(eventDispatchItem{
+		event:   "session.message",
+		payload: json.RawMessage(`{"sessionKey":"session-1","message":{"id":"new"}}`),
+	})
+
+	if got := realtime.EventSubscriberOverflowTotal(); got != 1 {
+		t.Fatalf("expected one subscriber overflow, got %d", got)
+	}
+	select {
+	case raw := <-fast:
+		var payload map[string]any
+		if err := json.Unmarshal(raw, &payload); err != nil {
+			t.Fatal(err)
+		}
+		message, _ := payload["message"].(map[string]any)
+		if message["id"] != "new" {
+			t.Fatalf("expected fast subscriber to receive newest item, got %#v", payload)
+		}
+	default:
+		t.Fatal("expected fast subscriber to receive event despite slow subscriber overflow")
+	}
+}
+
+func TestRealtime_SlowEventSubscriberDoesNotBlockRPC(t *testing.T) {
+	server := newRPCGatewayServer(t, rpcGatewayOptions{})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	rawEvents := make(chan json.RawMessage, 1)
+	rawEvents <- json.RawMessage(`{"sessionKey":"session-1","message":{"id":"old"}}`)
+	unregister := realtime.RegisterEventChannel("session.message", "session-1", rawEvents)
+	defer unregister()
+	realtime.dispatchEvent(eventDispatchItem{
+		event:   "session.message",
+		payload: json.RawMessage(`{"sessionKey":"session-1","message":{"id":"new"}}`),
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := realtime.Request(ctx, "health", map[string]any{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRealtime_SubscriptionRefcountUnsubscribesOnLastConsumer(t *testing.T) {
+	requests := make(chan string, 8)
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		onRequest: func(method string) {
+			requests <- method
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.subscribe")
+	expectRequestMethod(t, requests, "sessions.messages.subscribe")
+
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.messages.subscribe", 100*time.Millisecond)
+
+	if err := realtime.UnsubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.messages.unsubscribe", 100*time.Millisecond)
+
+	if err := realtime.UnsubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.messages.unsubscribe")
+	expectRequestMethod(t, requests, "sessions.unsubscribe")
+}
+
+func TestRealtime_SessionsLifecycleRefcountUnsubscribesOnLastConsumer(t *testing.T) {
+	requests := make(chan string, 8)
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		onRequest: func(method string) {
+			requests <- method
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := realtime.SubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.subscribe")
+
+	if err := realtime.SubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.subscribe", 100*time.Millisecond)
+
+	if err := realtime.UnsubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.unsubscribe", 100*time.Millisecond)
+
+	if err := realtime.UnsubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.unsubscribe")
+}
+
+func TestRealtime_RefcountInterleave_LifecycleFirstThenMessages(t *testing.T) {
+	requests := make(chan string, 8)
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		onRequest: func(method string) {
+			requests <- method
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := realtime.SubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.subscribe")
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.messages.subscribe")
+
+	if err := realtime.UnsubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.unsubscribe", 100*time.Millisecond)
+	if err := realtime.UnsubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.messages.unsubscribe")
+	expectRequestMethod(t, requests, "sessions.unsubscribe")
+}
+
+func TestRealtime_RefcountInterleave_MessagesFirstThenLifecycle(t *testing.T) {
+	requests := make(chan string, 8)
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		onRequest: func(method string) {
+			requests <- method
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.subscribe")
+	expectRequestMethod(t, requests, "sessions.messages.subscribe")
+	if err := realtime.SubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.subscribe", 100*time.Millisecond)
+
+	if err := realtime.UnsubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.messages.unsubscribe")
+	assertNoRequestMethod(t, requests, "sessions.unsubscribe", 100*time.Millisecond)
+	if err := realtime.UnsubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.unsubscribe")
+}
+
+func TestRealtime_RefcountInterleave_MultipleSessions(t *testing.T) {
+	requests := make(chan string, 8)
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		onRequest: func(method string) {
+			requests <- method
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := realtime.SubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.subscribe")
+	if err := realtime.SubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.subscribe", 100*time.Millisecond)
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.messages.subscribe")
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.messages.subscribe", 100*time.Millisecond)
+
+	if err := realtime.UnsubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.unsubscribe", 100*time.Millisecond)
+	if err := realtime.UnsubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.messages.unsubscribe", 100*time.Millisecond)
+	if err := realtime.UnsubscribeSessions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	assertNoRequestMethod(t, requests, "sessions.unsubscribe", 100*time.Millisecond)
+	if err := realtime.UnsubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	expectRequestMethod(t, requests, "sessions.messages.unsubscribe")
+	expectRequestMethod(t, requests, "sessions.unsubscribe")
+}
+
+func TestRealtime_ReregisteredEventChannelReceivesEventsAfterReconnect(t *testing.T) {
+	first := newRPCGatewayServer(t, rpcGatewayOptions{closeAfterResponses: 2})
+	defer first.Close()
+	second := newRPCGatewayServer(t, rpcGatewayOptions{
+		eventsAfterMethod: map[string][]map[string]any{
+			"sessions.messages.subscribe": {{
+				"type":  "event",
+				"event": "session.message",
+				"payload": map[string]any{
+					"sessionKey": "session-1",
+					"message": map[string]any{
+						"id":   "restored",
+						"role": "assistant",
+					},
+				},
+			}},
+		},
+	})
+	defer second.Close()
+
+	provider := &mutableProvider{url: wsURL(first.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	rawEvents := make(chan json.RawMessage, 4)
+	unregister := realtime.RegisterEventChannel("session.message", "session-1", rawEvents)
+	defer unregister()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := realtime.SubscribeSession(ctx, "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	waitForDisconnected(t, realtime)
+
+	provider.set(wsURL(second.URL), "token-1")
+	if _, err := realtime.Request(ctx, "health", map[string]any{}); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case raw := <-rawEvents:
+		var payload map[string]any
+		if err := json.Unmarshal(raw, &payload); err != nil {
+			t.Fatal(err)
+		}
+		message, _ := payload["message"].(map[string]any)
+		if message["id"] != "restored" {
+			t.Fatalf("unexpected restored event payload: %#v", payload)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for restored raw event")
+	}
 }

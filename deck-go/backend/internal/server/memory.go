@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
@@ -179,6 +180,9 @@ func resolveMemoryWorkspacePath(ctx context.Context, managed openclawrt.ManagedR
 	payload, err := managed.AgentFilesList(ctx, agentID)
 	if err != nil {
 		return "", err
+	}
+	if result, ok := payload.(generated.AgentsFilesListResult); ok {
+		return result.Workspace, nil
 	}
 	record, _ := payload.(map[string]any)
 	if workspace, _ := record["workspace"].(string); workspace != "" {

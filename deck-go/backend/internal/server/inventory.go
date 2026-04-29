@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
@@ -18,17 +19,6 @@ import (
 func registerInventoryRoutes(mux interface {
 	MethodFunc(string, string, http.HandlerFunc)
 }, adapter *openclawrt.LegacyInventorySurface) {
-	mux.MethodFunc("GET", "/agents", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
-		defer cancel()
-		payload, err := adapter.AgentsList(ctx)
-		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "agents.list", "error": err.Error()})
-			return
-		}
-		writeJSON(w, http.StatusOK, payload)
-	})
-
 	mux.MethodFunc("POST", "/agents", func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
@@ -116,24 +106,9 @@ func registerInventoryRoutes(mux interface {
 			})
 			return
 		}
-		payloadMap, ok := payload.(map[string]any)
-		if !ok {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"ok":    false,
-				"error": "unexpected agents.list payload shape",
-			})
+		if agent, ok := agentFromListPayload(payload, agentID); ok {
+			writeJSON(w, http.StatusOK, agent)
 			return
-		}
-		agents, _ := payloadMap["agents"].([]any)
-		for _, candidate := range agents {
-			record, ok := candidate.(map[string]any)
-			if !ok {
-				continue
-			}
-			if recordID, _ := record["id"].(string); recordID == agentID {
-				writeJSON(w, http.StatusOK, record)
-				return
-			}
 		}
 		writeJSON(w, http.StatusNotFound, map[string]any{"error": "Agent not found"})
 	})
@@ -1034,22 +1009,7 @@ func registerInventoryRoutes(mux interface {
 			})
 			return
 		}
-		record, _ := payload.(map[string]any)
-		channelAccounts, _ := record["channelAccounts"].(map[string]any)
-		channelEntries, _ := channelAccounts[channelID].([]any)
-		anyOK := false
-		firstError := ""
-		for _, rawAccount := range channelEntries {
-			account, _ := rawAccount.(map[string]any)
-			probe, _ := account["probe"].(map[string]any)
-			if ok, _ := probe["ok"].(bool); ok {
-				anyOK = true
-				break
-			}
-			if firstError == "" {
-				firstError = coerce.String(probe["error"], "")
-			}
-		}
+		anyOK, firstError := channelProbeStatus(payload, channelID)
 		latencyMs := time.Since(startedAt).Milliseconds()
 		if anyOK {
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -1103,15 +1063,7 @@ func registerInventoryRoutes(mux interface {
 			})
 			return
 		}
-		configPayload, ok := payload.(map[string]any)
-		if !ok {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"ok":    false,
-				"error": "unexpected config.get payload shape",
-			})
-			return
-		}
-		baseHash, _ := configPayload["baseHash"].(string)
+		baseHash := configHashFromPayload(payload)
 
 		payload, err = adapter.ConfigPatch(ctx, mustJSONString(map[string]any{
 			"channels": map[string]any{
@@ -1325,15 +1277,7 @@ func registerInventoryRoutes(mux interface {
 				})
 				return
 			}
-			configRecord, ok := configPayload.(map[string]any)
-			if !ok {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"ok":    false,
-					"error": "unexpected config.get payload shape",
-				})
-				return
-			}
-			baseHash, _ := configRecord["baseHash"].(string)
+			baseHash := configHashFromPayload(configPayload)
 			payload, err := adapter.ConfigPatch(ctx, mustJSONString(buildNestedPatch(path, value)), baseHash, "")
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "config.patch", "error": err.Error()})
@@ -1788,10 +1732,8 @@ func resolveDefaultAgentWorkspace(ctx context.Context, adapter *openclawrt.Legac
 	if payload, err := adapter.ConfigGetWithParams(ctx, map[string]any{
 		"path": "agents.defaults.workspace",
 	}); err == nil {
-		if record, ok := payload.(map[string]any); ok {
-			if raw, _ := record["raw"].(string); strings.TrimSpace(raw) != "" {
-				workspace = raw
-			}
+		if raw := configRawFromPayload(payload); strings.TrimSpace(raw) != "" {
+			workspace = raw
 		}
 	}
 	if workspace != "" {
@@ -1808,4 +1750,81 @@ func resolveDefaultAgentWorkspace(ctx context.Context, adapter *openclawrt.Legac
 		}
 	}
 	return filepath.Join(stateDir, "workspace-"+strings.ToLower(strings.Join(strings.Fields(name), "-")))
+}
+
+func configHashFromPayload(payload any) string {
+	if result, ok := payload.(generated.ConfigGetResult); ok {
+		return result.Hash
+	}
+	record, _ := payload.(map[string]any)
+	if baseHash, _ := record["baseHash"].(string); baseHash != "" {
+		return baseHash
+	}
+	hash, _ := record["hash"].(string)
+	return hash
+}
+
+func configRawFromPayload(payload any) string {
+	if result, ok := payload.(generated.ConfigGetResult); ok {
+		return result.Raw
+	}
+	record, _ := payload.(map[string]any)
+	raw, _ := record["raw"].(string)
+	return raw
+}
+
+func channelProbeStatus(payload any, channelID string) (bool, string) {
+	if result, ok := payload.(generated.ChannelsStatusResult); ok {
+		for _, account := range result.ChannelAccounts[channelID] {
+			probe := coerce.Map(account.Probe)
+			if ok, _ := probe["ok"].(bool); ok {
+				return true, ""
+			}
+			if errMsg := coerce.String(probe["error"], ""); errMsg != "" {
+				return false, errMsg
+			}
+		}
+		return false, ""
+	}
+	record, _ := payload.(map[string]any)
+	channelAccounts, _ := record["channelAccounts"].(map[string]any)
+	channelEntries, _ := channelAccounts[channelID].([]any)
+	firstError := ""
+	for _, rawAccount := range channelEntries {
+		account, _ := rawAccount.(map[string]any)
+		probe, _ := account["probe"].(map[string]any)
+		if ok, _ := probe["ok"].(bool); ok {
+			return true, ""
+		}
+		if firstError == "" {
+			firstError = coerce.String(probe["error"], "")
+		}
+	}
+	return false, firstError
+}
+
+func agentFromListPayload(payload any, agentID string) (any, bool) {
+	if result, ok := payload.(generated.AgentsListResult); ok {
+		for _, agent := range result.Agents {
+			if agent.Id == agentID {
+				return agent, true
+			}
+		}
+		return nil, false
+	}
+	payloadMap, ok := payload.(map[string]any)
+	if !ok {
+		return nil, false
+	}
+	agents, _ := payloadMap["agents"].([]any)
+	for _, candidate := range agents {
+		record, ok := candidate.(map[string]any)
+		if !ok {
+			continue
+		}
+		if recordID, _ := record["id"].(string); recordID == agentID {
+			return record, true
+		}
+	}
+	return nil, false
 }

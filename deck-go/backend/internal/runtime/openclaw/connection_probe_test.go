@@ -13,9 +13,13 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
 )
 
 func TestProbeConnection_UsesGatewayHandshakeAndHealth(t *testing.T) {
+	gateway.ShutdownProbeClients()
+	t.Cleanup(gateway.ShutdownProbeClients)
+
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -99,6 +103,9 @@ func TestProbeConnection_UsesGatewayHandshakeAndHealth(t *testing.T) {
 }
 
 func TestProbeManagedHealth_UsesManagedGatewaySettings(t *testing.T) {
+	gateway.ShutdownProbeClients()
+	t.Cleanup(gateway.ShutdownProbeClients)
+
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)

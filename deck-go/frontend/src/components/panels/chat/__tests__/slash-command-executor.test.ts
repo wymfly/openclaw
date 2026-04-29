@@ -319,8 +319,8 @@ describe("slash command executor", () => {
       ],
     });
     const configuredModelsBody = JSON.stringify({
-      runtimeId: "rt_local",
-      payload: {
+      requestId: "req-test",
+      result: {
         models: [
           { id: "gpt-5.4" },
           { model: "sonnet-4.6" },
@@ -332,7 +332,7 @@ describe("slash command executor", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url =
         typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-      if (url === "/api/v1/runtimes/rt_local/models/configured") {
+      if (url === "/api/v1/runtimes/rt_local/gateway/rpc") {
         return new Response(configuredModelsBody, { status: 200 });
       }
       return new Response(sessionsBody, { status: 200 });
@@ -352,20 +352,23 @@ describe("slash command executor", () => {
     });
     expect(fetchSpy).toHaveBeenCalledWith("/api/sessions", expect.any(Object));
     expect(fetchSpy).toHaveBeenCalledWith(
-      "/api/v1/runtimes/rt_local/models/configured",
+      "/api/v1/runtimes/rt_local/gateway/rpc",
       expect.any(Object),
     );
   });
 
-  it("lists agents through the current agents route", async () => {
+  it("lists agents through the typed gateway client route", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
-          defaultId: "main",
-          agents: [
-            { id: "main", name: "Main Agent" },
-            { id: "ops", name: "Ops Agent" },
-          ],
+          requestId: "req-agents",
+          result: {
+            defaultId: "main",
+            agents: [
+              { id: "main", name: "Main Agent" },
+              { id: "ops", name: "Ops Agent" },
+            ],
+          },
         }),
         { status: 200 },
       ),
@@ -376,7 +379,10 @@ describe("slash command executor", () => {
     await expect(executeSlashCommand("sess-1", "agents", "")).resolves.toEqual({
       content: "Main Agent (default)\nOps Agent",
     });
-    expect(fetchSpy).toHaveBeenCalledWith("/api/agents", expect.any(Object));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/v1/runtimes/rt_local/gateway/rpc",
+      expect.any(Object),
+    );
   });
 
   it("exports the active session as markdown", async () => {

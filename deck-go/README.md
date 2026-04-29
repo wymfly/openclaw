@@ -25,6 +25,8 @@ cd deck-go
 make protocol-update          # regenerate Gateway TS + Go typed bindings
 make protocol-check           # CHECK_MODE drift check, no file writes
 make fork-divergence-report   # refresh docs/fork-divergent-methods.md
+make gateway-typecheck        # block untyped Gateway regressions
+make gateway-coverage-report  # refresh typed coverage baseline/report
 make benchmark-rpc            # loopback RPC latency guard
 ```
 
@@ -36,6 +38,13 @@ Generated Gateway artifacts:
 Backend RPC calls through `gateway.Client.Request` reuse `gateway.Realtime` so
 one-off RPC wrappers and subscriptions share the same Gateway WebSocket
 connection.
+
+All Gateway calls go through typed bindings:
+
+- Go runtime callers use `backend/internal/gateway/generated.TypedClient` or documented `gateway:allow-untyped` D12 exceptions.
+- Frontend Gateway RPC proxy calls use `contracts/generated/ts/gateway/client.ts::createGatewayClient` through `frontend/src/lib/gateway-client.ts`.
+- Deck Go BFF control-plane, binary, SSE, and upload/download routes are classified in `docs/fe-endpoint-classification.md` and intentionally remain outside typed RPC.
+- Run `make gateway-typecheck` before pushing protocol or Deck caller changes; run `make gateway-coverage-report` after upstream syncs or typed migration work.
 
 Local Stage 3 operator stack:
 

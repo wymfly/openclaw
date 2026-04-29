@@ -22,7 +22,7 @@ func (s *stubStatusRequester) Request(_ context.Context, method string, params m
 	case "health":
 		return map[string]any{"ok": true}, nil
 	case "gateway.describe":
-		if params["filter"] != "all" || params["includeSchemas"] != false {
+		if params["filter"] != "all" || (params["includeSchemas"] != nil && params["includeSchemas"] != false) {
 			s.t.Fatalf("unexpected gateway.describe params: %#v", params)
 		}
 		return s.payload["gateway.describe"], nil
@@ -30,6 +30,14 @@ func (s *stubStatusRequester) Request(_ context.Context, method string, params m
 		s.t.Fatalf("unexpected method: %s", method)
 		return nil, nil
 	}
+}
+
+func (s *stubStatusRequester) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	paramsMap, err := typedParamsToMap(params)
+	if err != nil {
+		return nil, err
+	}
+	return s.Request(ctx, method, paramsMap)
 }
 
 func TestGatewayStatusLoad_HealthyWithCapabilities(t *testing.T) {

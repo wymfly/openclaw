@@ -111,6 +111,7 @@ func TestClientRequest_CompletesChallengeConnectAndRequest(t *testing.T) {
 	}
 
 	client := New(store)
+	defer client.realtime.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -130,18 +131,221 @@ func TestClientRequest_CompletesChallengeConnectAndRequest(t *testing.T) {
 	}
 }
 
-func TestRequestDirect_RejectsMissingManagedConnection(t *testing.T) {
+func TestClientRequest_RejectsMissingManagedConnection(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	store, err := config.NewStore()
 	if err != nil {
 		t.Fatal(err)
 	}
 	client := New(store)
+	defer client.realtime.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if _, err := client.Request(ctx, "health", map[string]any{}); err == nil {
 		t.Fatal("expected managed connection error")
 	}
+}
+
+func TestCompleteConnect_NonceMissingFailsLoudly(t *testing.T) {
+	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Errorf("upgrade failed: %v", err)
+			return
+		}
+		defer conn.Close()
+		_ = conn.WriteJSON(map[string]any{
+			"type":    "event",
+			"event":   "connect.challenge",
+			"payload": map[string]any{},
+		})
+	}))
+	defer server.Close()
+
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	realtime := NewRealtime(&mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}, nil)
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := realtime.Request(ctx, "health", map[string]any{})
+	if err == nil || !strings.Contains(err.Error(), "nonce missing or non-string") {
+		t.Fatalf("expected loud nonce error, got %v", err)
+	}
+}
+
+func TestCompleteConnect_SignFailureFailsLoudly(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	identity, err := loadOrCreateDeviceIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	path, err := resolveDeviceIdentityPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := persistDeviceIdentity(path, storedDeviceIdentity{
+		Version:       1,
+		DeviceID:      identity.deviceID,
+		PublicKeyPEM:  identity.publicKeyPEM,
+		PrivateKeyPEM: "not a pem private key",
+		CreatedAtMS:   time.Now().UnixMilli(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Errorf("upgrade failed: %v", err)
+			return
+		}
+		defer conn.Close()
+		_ = conn.WriteJSON(map[string]any{
+			"type":    "event",
+			"event":   "connect.challenge",
+			"payload": map[string]any{"nonce": "nonce-1"},
+		})
+		_ = conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+		if _, _, err := conn.ReadMessage(); err == nil {
+			t.Errorf("unexpected unsigned connect frame after signing failure")
+		}
+	}))
+	defer server.Close()
+
+	realtime := NewRealtime(&mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}, nil)
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err = realtime.Request(ctx, "health", map[string]any{})
+	if err == nil || !strings.Contains(err.Error(), "device signing failed") {
+		t.Fatalf("expected loud signing error, got %v", err)
+	}
+}
+
+func TestProbeHealthEvictsAfterConsecutiveFailures(t *testing.T) {
+	ShutdownProbeClients()
+	t.Cleanup(ShutdownProbeClients)
+	t.Setenv("GATEWAY_PROBE_FAILURE_THRESHOLD", "2")
+
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		errorFrames: map[string]responseError{
+			"health": {
+				Code:    "validation_failed",
+				Message: "missing x",
+			},
+		},
+	})
+	defer server.Close()
+
+	upstreamURL := wsURL(server.URL)
+	token := "token-1"
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := ProbeHealth(ctx, upstreamURL, token); err == nil {
+		t.Fatal("expected first probe failure")
+	}
+	first := mustProbeEntry(t, upstreamURL, token)
+	if first.client.realtimeClosed() {
+		t.Fatal("expected first failed probe to keep cached client below threshold")
+	}
+
+	if err := ProbeHealth(ctx, upstreamURL, token); err == nil {
+		t.Fatal("expected second probe failure")
+	}
+	if _, ok := healthProbeClients.Load(healthProbeClientKey(upstreamURL, token)); ok {
+		t.Fatal("expected cached probe client to be evicted at threshold")
+	}
+	if !first.client.realtimeClosed() {
+		t.Fatal("expected evicted probe client realtime to close")
+	}
+
+	if err := ProbeHealth(ctx, upstreamURL, token); err == nil {
+		t.Fatal("expected rebuilt probe client to still see server failure")
+	}
+	rebuilt := mustProbeEntry(t, upstreamURL, token)
+	if rebuilt == first {
+		t.Fatal("expected probe client to be rebuilt after eviction")
+	}
+}
+
+func TestInvalidateProbeClientEvictsAndCloses(t *testing.T) {
+	ShutdownProbeClients()
+	t.Cleanup(ShutdownProbeClients)
+
+	server := newRPCGatewayServer(t, rpcGatewayOptions{})
+	defer server.Close()
+
+	upstreamURL := wsURL(server.URL)
+	token := "token-1"
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := ProbeHealth(ctx, upstreamURL, token); err != nil {
+		t.Fatal(err)
+	}
+	entry := mustProbeEntry(t, upstreamURL, token)
+
+	InvalidateProbeClient(upstreamURL, token)
+
+	if _, ok := healthProbeClients.Load(healthProbeClientKey(upstreamURL, token)); ok {
+		t.Fatal("expected explicit invalidate to evict probe client")
+	}
+	if !entry.client.realtimeClosed() {
+		t.Fatal("expected explicit invalidate to close realtime")
+	}
+}
+
+func TestShutdownProbeClientsClosesAllEntries(t *testing.T) {
+	ShutdownProbeClients()
+	t.Cleanup(ShutdownProbeClients)
+
+	server := newRPCGatewayServer(t, rpcGatewayOptions{})
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := ProbeHealth(ctx, wsURL(server.URL), "token-1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := ProbeHealth(ctx, wsURL(server.URL), "token-2"); err != nil {
+		t.Fatal(err)
+	}
+	first := mustProbeEntry(t, wsURL(server.URL), "token-1")
+	second := mustProbeEntry(t, wsURL(server.URL), "token-2")
+
+	ShutdownProbeClients()
+
+	for _, token := range []string{"token-1", "token-2"} {
+		if _, ok := healthProbeClients.Load(healthProbeClientKey(wsURL(server.URL), token)); ok {
+			t.Fatalf("expected probe client for %s to be evicted", token)
+		}
+	}
+	if !first.client.realtimeClosed() || !second.client.realtimeClosed() {
+		t.Fatal("expected shutdown to close all cached realtime clients")
+	}
+}
+
+func mustProbeEntry(t *testing.T, upstreamURL string, token string) *healthProbeClientEntry {
+	t.Helper()
+	value, ok := healthProbeClients.Load(healthProbeClientKey(upstreamURL, token))
+	if !ok {
+		t.Fatalf("missing probe client entry for %s", upstreamURL)
+	}
+	entry, ok := value.(*healthProbeClientEntry)
+	if !ok {
+		t.Fatalf("expected healthProbeClientEntry, got %T", value)
+	}
+	return entry
+}
+
+func (c *Client) realtimeClosed() bool {
+	c.realtime.mu.Lock()
+	defer c.realtime.mu.Unlock()
+	return c.realtime.closed
 }
 
 func mustPort(t *testing.T, serverURL string) int {

@@ -3,6 +3,8 @@ package openclaw
 import (
 	"context"
 	"testing"
+
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 )
 
 func TestSessionCommands_CreateSendAbortAndMutation(t *testing.T) {
@@ -119,5 +121,102 @@ func TestSessionCommands_PreviewResetClearAndPatch(t *testing.T) {
 	}
 	if !patched.Ok || patched.Key != "session-1" {
 		t.Fatalf("unexpected patch response: %#v", patched)
+	}
+}
+
+func TestSessionCommandsUseTypedClient(t *testing.T) {
+	requester := &typedOnlyRequester{}
+	commands := NewSessionCommands(requester)
+	ctx := context.Background()
+
+	cases := []struct {
+		name       string
+		call       func() (any, error)
+		method     string
+		assertType func(*testing.T, any)
+	}{
+		{
+			name: "delete",
+			call: func() (any, error) {
+				return commands.Delete(ctx, "session-1")
+			},
+			method: "sessions.delete",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.SessionsDeleteParams)
+				if !ok || got.Key != "session-1" {
+					t.Fatalf("expected SessionsDeleteParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "preview",
+			call: func() (any, error) {
+				return commands.Preview(ctx, []string{"session-1"})
+			},
+			method: "sessions.preview",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.SessionsPreviewParams)
+				if !ok || len(got.Keys) != 1 || got.Keys[0] != "session-1" {
+					t.Fatalf("expected SessionsPreviewParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "patch",
+			call: func() (any, error) {
+				return commands.Patch(ctx, "session-1", map[string]any{"key": "session-1", "model": "gpt-5.4"})
+			},
+			method: "sessions.patch",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.SessionsPatchParams)
+				if !ok || got.Key != "session-1" || got.Model != "gpt-5.4" {
+					t.Fatalf("expected SessionsPatchParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "send",
+			call: func() (any, error) {
+				return commands.Send(ctx, map[string]any{"key": "session-1", "message": "hello"})
+			},
+			method: "sessions.send",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.SessionsSendParams)
+				if !ok || got.Key != "session-1" || got.Message != "hello" {
+					t.Fatalf("expected SessionsSendParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "compaction branch",
+			call: func() (any, error) {
+				return commands.CompactionBranch(ctx, "session-1", "checkpoint-1")
+			},
+			method: "sessions.compaction.branch",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.SessionsCompactionBranchParams)
+				if !ok || got.Key != "session-1" || got.CheckpointId != "checkpoint-1" {
+					t.Fatalf("expected SessionsCompactionBranchParams, got %T %#v", params, params)
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			requester.calls = nil
+			if _, err := tc.call(); err != nil {
+				t.Fatal(err)
+			}
+			if len(requester.calls) != 1 || requester.calls[0].method != tc.method {
+				t.Fatalf("unexpected typed calls: %#v", requester.calls)
+			}
+			tc.assertType(t, requester.calls[0].params)
+		})
 	}
 }

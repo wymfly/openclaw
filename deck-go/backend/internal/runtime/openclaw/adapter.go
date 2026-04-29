@@ -41,6 +41,35 @@ func newAdapter(requester Requester, controller SessionSubscriptionController) *
 	}
 }
 
+func (a *Adapter) Close() error {
+	if a == nil {
+		return nil
+	}
+	var closeErr error
+	if a.queries != nil {
+		closeErr = firstCloseErr(closeErr, closeRuntimeResource(a.queries.requester))
+	}
+	if a.subscriptions != nil {
+		closeErr = firstCloseErr(closeErr, closeRuntimeResource(a.subscriptions.controller))
+	}
+	return closeErr
+}
+
+func closeRuntimeResource(target any) error {
+	closeable, ok := target.(interface{ Close() error })
+	if !ok {
+		return nil
+	}
+	return closeable.Close()
+}
+
+func firstCloseErr(current error, next error) error {
+	if current != nil {
+		return current
+	}
+	return next
+}
+
 func (a *Adapter) CapabilitySummary() *CapabilitySummaryLoader {
 	return a.capabilitySummary
 }

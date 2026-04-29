@@ -15,6 +15,7 @@ type transportBindingLike interface {
 	NewRequester(provider ManagedConnectionProvider) Requester
 	NewSubscriptionController(provider ManagedConnectionProvider, bus *events.Bus) SessionSubscriptionController
 	ProbeHealth(ctx context.Context, upstreamURL string, token string) error
+	InvalidateProbeClient(upstreamURL string, token string)
 	CurrentDeviceID() (string, error)
 }
 
@@ -32,6 +33,10 @@ func (gatewayTransportBinding) NewSubscriptionController(provider ManagedConnect
 
 func (gatewayTransportBinding) ProbeHealth(ctx context.Context, upstreamURL string, token string) error {
 	return gateway.ProbeHealth(ctx, upstreamURL, token)
+}
+
+func (gatewayTransportBinding) InvalidateProbeClient(upstreamURL string, token string) {
+	gateway.InvalidateProbeClient(upstreamURL, token)
 }
 
 func (gatewayTransportBinding) CurrentDeviceID() (string, error) {

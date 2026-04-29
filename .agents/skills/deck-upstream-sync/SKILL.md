@@ -163,9 +163,12 @@ Fix all type errors before proceeding. Run `npx tsc --noEmit` until clean.
 pnpm protocol:gen:check   # must pass — generated files match registry
 cd deck-go && make protocol-check
 cd deck-go && make fork-divergence-report
+cd deck-go && make gateway-coverage-report
 ```
 
-**[CHECKPOINT] Report: "Protocol sync complete. N new methods added to allowlist. M type errors fixed. `protocol:gen:check` passes."**
+Review `deck-go/docs/gateway-coverage.md` after the coverage report. Upstream typed method growth is not a failure by itself, but any decrease in `deck_go_go_migrated` or `deck_go_fe_migrated` is a regression unless the PR explicitly records `gateway-coverage: regress allowed reason: <text>`.
+
+**[CHECKPOINT] Report: "Protocol sync complete. N new methods added to allowlist. M type errors fixed. `protocol:gen:check` passes. Gateway coverage report refreshed."**
 
 ## Phase 3: Capability Gap Detection
 

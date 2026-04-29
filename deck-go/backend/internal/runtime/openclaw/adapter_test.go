@@ -194,6 +194,14 @@ func (s *stubAdapterRequester) Request(_ context.Context, method string, params 
 	}
 }
 
+func (s *stubAdapterRequester) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	paramsMap, err := typedParamsToMap(params)
+	if err != nil {
+		return nil, err
+	}
+	return s.Request(ctx, method, paramsMap)
+}
+
 func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 	requester := &stubAdapterRequester{
 		t: t,
@@ -222,12 +230,38 @@ func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 				"agentId": "main",
 				"name":    "Main",
 			},
-			"agents.create":     map[string]any{"id": "ops"},
-			"agents.delete":     map[string]any{"ok": true},
-			"agents.update":     map[string]any{"ok": true},
-			"agents.files.list": map[string]any{"files": []string{"AGENTS.md"}},
-			"agents.files.set":  map[string]any{"ok": true},
-			"agents.files.get":  map[string]any{"content": "hello"},
+			"agents.create": map[string]any{"id": "ops"},
+			"agents.delete": map[string]any{"ok": true},
+			"agents.update": map[string]any{"ok": true},
+			"agents.files.list": map[string]any{
+				"agentId":   "main",
+				"workspace": "/tmp/openclaw",
+				"files": []any{map[string]any{
+					"missing": false,
+					"name":    "AGENTS.md",
+					"path":    "AGENTS.md",
+				}},
+			},
+			"agents.files.set": map[string]any{
+				"agentId":   "main",
+				"ok":        true,
+				"workspace": "/tmp/openclaw",
+				"file": map[string]any{
+					"missing": false,
+					"name":    "AGENTS.md",
+					"path":    "AGENTS.md",
+				},
+			},
+			"agents.files.get": map[string]any{
+				"agentId":   "main",
+				"workspace": "/tmp/openclaw",
+				"file": map[string]any{
+					"content": "hello",
+					"missing": false,
+					"name":    "notes/README.md",
+					"path":    "notes/README.md",
+				},
+			},
 			"tools.catalog": map[string]any{
 				"tools": []any{map[string]any{"id": "search"}},
 			},
@@ -293,10 +327,10 @@ func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 			"sessions.delete":                       map[string]any{"ok": true, "key": "session-1"},
 			"sessions.list": map[string]any{
 				"sessions": []any{map[string]any{
-					"key":     "session-1",
-					"agentId": "main",
-					"title":   "Test Session",
-					"status":  "running",
+					"key":          "session-1",
+					"agentId":      "main",
+					"derivedTitle": "Test Session",
+					"status":       "running",
 				}},
 			},
 			"sessions.get": map[string]any{
@@ -335,8 +369,7 @@ func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	configRecord, ok := configPayload.(map[string]any)
-	if !ok || configRecord["raw"] != `{"models":{"providers":{}}}` {
+	if configPayload.Raw != `{"models":{"providers":{}}}` {
 		t.Fatalf("unexpected config payload: %#v", configPayload)
 	}
 
@@ -350,20 +383,14 @@ func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	agentsRecord, ok := agentsPayload.(map[string]any)
-	if !ok {
-		t.Fatalf("unexpected agents payload: %#v", agentsPayload)
-	}
-	agents, ok := agentsRecord["agents"].([]any)
-	if !ok || len(agents) != 1 {
+	if len(agentsPayload.Agents) != 1 || agentsPayload.Agents[0].Id != "main" {
 		t.Fatalf("unexpected agents payload: %#v", agentsPayload)
 	}
 	identityPayload, err := adapter.GatewayQueries().AgentIdentityGet(context.Background(), "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	identityRecord, ok := identityPayload.(map[string]any)
-	if !ok || identityRecord["agentId"] != "main" {
+	if identityPayload.AgentId != "main" {
 		t.Fatalf("unexpected agent identity payload: %#v", identityPayload)
 	}
 	if _, err := adapter.GatewayQueries().AgentsCreate(context.Background(), map[string]any{"name": "Ops"}); err != nil {
@@ -572,8 +599,7 @@ func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	describeRecord, ok := describePayload.(map[string]any)
-	if !ok || describeRecord["schemaVersion"] != "3.1" {
+	if describePayload.SchemaVersion != "3.1" {
 		t.Fatalf("unexpected gateway describe payload: %#v", describePayload)
 	}
 

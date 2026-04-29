@@ -8,1676 +8,1220 @@ import (
 )
 
 type Requester interface {
-	Request(ctx context.Context, method string, params map[string]any) (any, error)
+	RequestTyped(ctx context.Context, method string, params any) (any, error)
 }
 
-type Client struct {
+type TypedClient struct {
 	requester Requester
 }
 
-func NewClient(requester Requester) *Client {
-	return &Client{requester: requester}
+func NewTypedClient(requester Requester) *TypedClient {
+	return &TypedClient{requester: requester}
 }
 
-func (c *Client) AgentIdentityGet(ctx context.Context, params AgentIdentityGetParams) (AgentIdentityGetResult, error) {
+func (c *TypedClient) AgentIdentityGet(ctx context.Context, params AgentIdentityGetParams) (AgentIdentityGetResult, error) {
 	var result AgentIdentityGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agent.identity.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agent.identity.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentIdentityGetResult](payload)
 }
 
-func (c *Client) AgentWait(ctx context.Context, params AgentWaitParams) (AgentWaitResult, error) {
+func (c *TypedClient) AgentWait(ctx context.Context, params AgentWaitParams) (AgentWaitResult, error) {
 	var result AgentWaitResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agent.wait", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agent.wait", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentWaitResult](payload)
 }
 
-func (c *Client) AgentsCreate(ctx context.Context, params AgentsCreateParams) (AgentsCreateResult, error) {
+func (c *TypedClient) AgentsCreate(ctx context.Context, params AgentsCreateParams) (AgentsCreateResult, error) {
 	var result AgentsCreateResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agents.create", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agents.create", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentsCreateResult](payload)
 }
 
-func (c *Client) AgentsDelete(ctx context.Context, params AgentsDeleteParams) (AgentsDeleteResult, error) {
+func (c *TypedClient) AgentsDelete(ctx context.Context, params AgentsDeleteParams) (AgentsDeleteResult, error) {
 	var result AgentsDeleteResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agents.delete", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agents.delete", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentsDeleteResult](payload)
 }
 
-func (c *Client) AgentsFilesGet(ctx context.Context, params AgentsFilesGetParams) (AgentsFilesGetResult, error) {
+func (c *TypedClient) AgentsFilesGet(ctx context.Context, params AgentsFilesGetParams) (AgentsFilesGetResult, error) {
 	var result AgentsFilesGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agents.files.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agents.files.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentsFilesGetResult](payload)
 }
 
-func (c *Client) AgentsFilesList(ctx context.Context, params AgentsFilesListParams) (AgentsFilesListResult, error) {
+func (c *TypedClient) AgentsFilesList(ctx context.Context, params AgentsFilesListParams) (AgentsFilesListResult, error) {
 	var result AgentsFilesListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agents.files.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agents.files.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentsFilesListResult](payload)
 }
 
-func (c *Client) AgentsFilesSet(ctx context.Context, params AgentsFilesSetParams) (AgentsFilesSetResult, error) {
+func (c *TypedClient) AgentsFilesSet(ctx context.Context, params AgentsFilesSetParams) (AgentsFilesSetResult, error) {
 	var result AgentsFilesSetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agents.files.set", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agents.files.set", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentsFilesSetResult](payload)
 }
 
-func (c *Client) AgentsList(ctx context.Context, params AgentsListParams) (AgentsListResult, error) {
+func (c *TypedClient) AgentsList(ctx context.Context, params AgentsListParams) (AgentsListResult, error) {
 	var result AgentsListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agents.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agents.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentsListResult](payload)
 }
 
-func (c *Client) AgentsUpdate(ctx context.Context, params AgentsUpdateParams) (AgentsUpdateResult, error) {
+func (c *TypedClient) AgentsUpdate(ctx context.Context, params AgentsUpdateParams) (AgentsUpdateResult, error) {
 	var result AgentsUpdateResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "agents.update", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "agents.update", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[AgentsUpdateResult](payload)
 }
 
-func (c *Client) ChannelsLogout(ctx context.Context, params ChannelsLogoutParams) (ChannelsLogoutResult, error) {
+func (c *TypedClient) ChannelsLogout(ctx context.Context, params ChannelsLogoutParams) (ChannelsLogoutResult, error) {
 	var result ChannelsLogoutResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "channels.logout", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "channels.logout", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ChannelsLogoutResult](payload)
 }
 
-func (c *Client) ChannelsStatus(ctx context.Context, params ChannelsStatusParams) (ChannelsStatusResult, error) {
+func (c *TypedClient) ChannelsStatus(ctx context.Context, params ChannelsStatusParams) (ChannelsStatusResult, error) {
 	var result ChannelsStatusResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "channels.status", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "channels.status", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ChannelsStatusResult](payload)
 }
 
-func (c *Client) ChatAbort(ctx context.Context, params ChatAbortParams) (ChatAbortResult, error) {
+func (c *TypedClient) ChatAbort(ctx context.Context, params ChatAbortParams) (ChatAbortResult, error) {
 	var result ChatAbortResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "chat.abort", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "chat.abort", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ChatAbortResult](payload)
 }
 
-func (c *Client) ChatHistory(ctx context.Context, params ChatHistoryParams) (ChatHistoryResult, error) {
+func (c *TypedClient) ChatHistory(ctx context.Context, params ChatHistoryParams) (ChatHistoryResult, error) {
 	var result ChatHistoryResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "chat.history", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "chat.history", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ChatHistoryResult](payload)
 }
 
-func (c *Client) ChatSend(ctx context.Context, params ChatSendParams) (ChatSendResult, error) {
+func (c *TypedClient) ChatSend(ctx context.Context, params ChatSendParams) (ChatSendResult, error) {
 	var result ChatSendResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "chat.send", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "chat.send", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ChatSendResult](payload)
 }
 
-func (c *Client) ConfigApply(ctx context.Context, params ConfigApplyParams) (ConfigApplyResult, error) {
+func (c *TypedClient) ConfigApply(ctx context.Context, params ConfigApplyParams) (ConfigApplyResult, error) {
 	var result ConfigApplyResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "config.apply", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "config.apply", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ConfigApplyResult](payload)
 }
 
-func (c *Client) ConfigGet(ctx context.Context, params ConfigGetParams) (ConfigGetResult, error) {
+func (c *TypedClient) ConfigGet(ctx context.Context, params ConfigGetParams) (ConfigGetResult, error) {
 	var result ConfigGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "config.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "config.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ConfigGetResult](payload)
 }
 
-func (c *Client) ConfigPatch(ctx context.Context, params ConfigPatchParams) (ConfigPatchResult, error) {
+func (c *TypedClient) ConfigPatch(ctx context.Context, params ConfigPatchParams) (ConfigPatchResult, error) {
 	var result ConfigPatchResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "config.patch", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "config.patch", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ConfigPatchResult](payload)
 }
 
-func (c *Client) ConfigSchema(ctx context.Context, params ConfigSchemaParams) (ConfigSchemaResult, error) {
+func (c *TypedClient) ConfigSchema(ctx context.Context, params ConfigSchemaParams) (ConfigSchemaResult, error) {
 	var result ConfigSchemaResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "config.schema", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "config.schema", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ConfigSchemaResult](payload)
 }
 
-func (c *Client) ConfigSchemaLookup(ctx context.Context, params ConfigSchemaLookupParams) (ConfigSchemaLookupResult, error) {
+func (c *TypedClient) ConfigSchemaLookup(ctx context.Context, params ConfigSchemaLookupParams) (ConfigSchemaLookupResult, error) {
 	var result ConfigSchemaLookupResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "config.schema.lookup", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "config.schema.lookup", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ConfigSchemaLookupResult](payload)
 }
 
-func (c *Client) ConfigSet(ctx context.Context, params ConfigSetParams) (ConfigSetResult, error) {
+func (c *TypedClient) ConfigSet(ctx context.Context, params ConfigSetParams) (ConfigSetResult, error) {
 	var result ConfigSetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "config.set", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "config.set", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ConfigSetResult](payload)
 }
 
-func (c *Client) CronAdd(ctx context.Context, params CronAddParams) (CronAddResult, error) {
+func (c *TypedClient) CronAdd(ctx context.Context, params CronAddParams) (CronAddResult, error) {
 	var result CronAddResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "cron.add", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "cron.add", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[CronAddResult](payload)
 }
 
-func (c *Client) CronList(ctx context.Context, params CronListParams) (CronListResult, error) {
+func (c *TypedClient) CronList(ctx context.Context, params CronListParams) (CronListResult, error) {
 	var result CronListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "cron.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "cron.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[CronListResult](payload)
 }
 
-func (c *Client) CronRemove(ctx context.Context, params CronRemoveParams) (CronRemoveResult, error) {
+func (c *TypedClient) CronRemove(ctx context.Context, params CronRemoveParams) (CronRemoveResult, error) {
 	var result CronRemoveResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "cron.remove", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "cron.remove", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[CronRemoveResult](payload)
 }
 
-func (c *Client) CronRun(ctx context.Context, params CronRunParams) (CronRunResult, error) {
+func (c *TypedClient) CronRun(ctx context.Context, params CronRunParams) (CronRunResult, error) {
 	var result CronRunResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "cron.run", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "cron.run", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[CronRunResult](payload)
 }
 
-func (c *Client) CronRuns(ctx context.Context, params CronRunsParams) (CronRunsResult, error) {
+func (c *TypedClient) CronRuns(ctx context.Context, params CronRunsParams) (CronRunsResult, error) {
 	var result CronRunsResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "cron.runs", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "cron.runs", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[CronRunsResult](payload)
 }
 
-func (c *Client) CronStatus(ctx context.Context, params CronStatusParams) (CronStatusResult, error) {
+func (c *TypedClient) CronStatus(ctx context.Context, params CronStatusParams) (CronStatusResult, error) {
 	var result CronStatusResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "cron.status", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "cron.status", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[CronStatusResult](payload)
 }
 
-func (c *Client) CronUpdate(ctx context.Context, params CronUpdateParams) (CronUpdateResult, error) {
+func (c *TypedClient) CronUpdate(ctx context.Context, params CronUpdateParams) (CronUpdateResult, error) {
 	var result CronUpdateResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "cron.update", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "cron.update", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[CronUpdateResult](payload)
 }
 
-func (c *Client) DeckAgentsDetail(ctx context.Context, params DeckAgentsDetailParams) (DeckAgentsDetailResult, error) {
+func (c *TypedClient) DeckAgentsDetail(ctx context.Context, params DeckAgentsDetailParams) (DeckAgentsDetailResult, error) {
 	var result DeckAgentsDetailResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.detail", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.detail", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsDetailResult](payload)
 }
 
-func (c *Client) DeckAgentsEventStreamsGet(ctx context.Context, params DeckAgentsEventStreamsGetParams) (DeckAgentsEventStreamsGetResult, error) {
+func (c *TypedClient) DeckAgentsEventStreamsGet(ctx context.Context, params DeckAgentsEventStreamsGetParams) (DeckAgentsEventStreamsGetResult, error) {
 	var result DeckAgentsEventStreamsGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.eventStreams.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.eventStreams.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsEventStreamsGetResult](payload)
 }
 
-func (c *Client) DeckAgentsEventStreamsSet(ctx context.Context, params DeckAgentsEventStreamsSetParams) (DeckAgentsEventStreamsSetResult, error) {
+func (c *TypedClient) DeckAgentsEventStreamsSet(ctx context.Context, params DeckAgentsEventStreamsSetParams) (DeckAgentsEventStreamsSetResult, error) {
 	var result DeckAgentsEventStreamsSetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.eventStreams.set", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.eventStreams.set", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsEventStreamsSetResult](payload)
 }
 
-func (c *Client) DeckAgentsSkillsGet(ctx context.Context, params DeckAgentsSkillsGetParams) (DeckAgentsSkillsGetResult, error) {
+func (c *TypedClient) DeckAgentsSkillsGet(ctx context.Context, params DeckAgentsSkillsGetParams) (DeckAgentsSkillsGetResult, error) {
 	var result DeckAgentsSkillsGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.skills.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.skills.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsSkillsGetResult](payload)
 }
 
-func (c *Client) DeckAgentsSkillsSet(ctx context.Context, params DeckAgentsSkillsSetParams) (DeckAgentsSkillsSetResult, error) {
+func (c *TypedClient) DeckAgentsSkillsSet(ctx context.Context, params DeckAgentsSkillsSetParams) (DeckAgentsSkillsSetResult, error) {
 	var result DeckAgentsSkillsSetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.skills.set", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.skills.set", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsSkillsSetResult](payload)
 }
 
-func (c *Client) DeckAgentsSubagentsGet(ctx context.Context, params DeckAgentsSubagentsGetParams) (DeckAgentsSubagentsGetResult, error) {
+func (c *TypedClient) DeckAgentsSubagentsGet(ctx context.Context, params DeckAgentsSubagentsGetParams) (DeckAgentsSubagentsGetResult, error) {
 	var result DeckAgentsSubagentsGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.subagents.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.subagents.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsSubagentsGetResult](payload)
 }
 
-func (c *Client) DeckAgentsSubagentsSet(ctx context.Context, params DeckAgentsSubagentsSetParams) (DeckAgentsSubagentsSetResult, error) {
+func (c *TypedClient) DeckAgentsSubagentsSet(ctx context.Context, params DeckAgentsSubagentsSetParams) (DeckAgentsSubagentsSetResult, error) {
 	var result DeckAgentsSubagentsSetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.subagents.set", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.subagents.set", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsSubagentsSetResult](payload)
 }
 
-func (c *Client) DeckAgentsSystemPromptPreview(ctx context.Context, params DeckAgentsSystemPromptPreviewParams) (DeckAgentsSystemPromptPreviewResult, error) {
+func (c *TypedClient) DeckAgentsSystemPromptPreview(ctx context.Context, params DeckAgentsSystemPromptPreviewParams) (DeckAgentsSystemPromptPreviewResult, error) {
 	var result DeckAgentsSystemPromptPreviewResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.systemPrompt.preview", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.systemPrompt.preview", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsSystemPromptPreviewResult](payload)
 }
 
-func (c *Client) DeckAgentsToolPolicyPreview(ctx context.Context, params DeckAgentsToolPolicyPreviewParams) (DeckAgentsToolPolicyPreviewResult, error) {
+func (c *TypedClient) DeckAgentsToolPolicyPreview(ctx context.Context, params DeckAgentsToolPolicyPreviewParams) (DeckAgentsToolPolicyPreviewResult, error) {
 	var result DeckAgentsToolPolicyPreviewResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.agents.toolPolicy.preview", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.toolPolicy.preview", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAgentsToolPolicyPreviewResult](payload)
 }
 
-func (c *Client) DeckAuthOverview(ctx context.Context, params map[string]any) (DeckAuthOverviewResult, error) {
+func (c *TypedClient) DeckAuthOverview(ctx context.Context, params map[string]any) (DeckAuthOverviewResult, error) {
 	var result DeckAuthOverviewResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "deck.auth.overview", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.auth.overview", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAuthOverviewResult](payload)
 }
 
-func (c *Client) DeckAuthProbe(ctx context.Context, params map[string]any) (DeckAuthProbeResult, error) {
+func (c *TypedClient) DeckAuthProbe(ctx context.Context, params map[string]any) (DeckAuthProbeResult, error) {
 	var result DeckAuthProbeResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "deck.auth.probe", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.auth.probe", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckAuthProbeResult](payload)
 }
 
-func (c *Client) DeckCommandsDiscover(ctx context.Context, params DeckCommandsDiscoverParams) (DeckCommandsDiscoverResult, error) {
+func (c *TypedClient) DeckCommandsDiscover(ctx context.Context, params DeckCommandsDiscoverParams) (DeckCommandsDiscoverResult, error) {
 	var result DeckCommandsDiscoverResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.commands.discover", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.commands.discover", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckCommandsDiscoverResult](payload)
 }
 
-func (c *Client) DeckIdentityLink(ctx context.Context, params DeckIdentityLinkParams) (DeckIdentityLinkResult, error) {
+func (c *TypedClient) DeckIdentityLink(ctx context.Context, params DeckIdentityLinkParams) (DeckIdentityLinkResult, error) {
 	var result DeckIdentityLinkResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.identity.link", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.identity.link", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckIdentityLinkResult](payload)
 }
 
-func (c *Client) DeckIdentityList(ctx context.Context, params DeckIdentityListParams) (DeckIdentityListResult, error) {
+func (c *TypedClient) DeckIdentityList(ctx context.Context, params DeckIdentityListParams) (DeckIdentityListResult, error) {
 	var result DeckIdentityListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.identity.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.identity.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckIdentityListResult](payload)
 }
 
-func (c *Client) DeckIdentityUnlink(ctx context.Context, params DeckIdentityUnlinkParams) (DeckIdentityUnlinkResult, error) {
+func (c *TypedClient) DeckIdentityUnlink(ctx context.Context, params DeckIdentityUnlinkParams) (DeckIdentityUnlinkResult, error) {
 	var result DeckIdentityUnlinkResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.identity.unlink", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.identity.unlink", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckIdentityUnlinkResult](payload)
 }
 
-func (c *Client) DeckPluginsList(ctx context.Context, params DeckPluginsListParams) (DeckPluginsListResult, error) {
+func (c *TypedClient) DeckPluginsList(ctx context.Context, params DeckPluginsListParams) (DeckPluginsListResult, error) {
 	var result DeckPluginsListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.plugins.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.plugins.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckPluginsListResult](payload)
 }
 
-func (c *Client) DeckRoutingAdd(ctx context.Context, params DeckRoutingAddParams) (DeckRoutingAddResult, error) {
+func (c *TypedClient) DeckRoutingAdd(ctx context.Context, params DeckRoutingAddParams) (DeckRoutingAddResult, error) {
 	var result DeckRoutingAddResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.routing.add", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.routing.add", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckRoutingAddResult](payload)
 }
 
-func (c *Client) DeckRoutingList(ctx context.Context, params DeckRoutingListParams) (DeckRoutingListResult, error) {
+func (c *TypedClient) DeckRoutingList(ctx context.Context, params DeckRoutingListParams) (DeckRoutingListResult, error) {
 	var result DeckRoutingListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.routing.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.routing.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckRoutingListResult](payload)
 }
 
-func (c *Client) DeckRoutingRemove(ctx context.Context, params DeckRoutingRemoveParams) (DeckRoutingRemoveResult, error) {
+func (c *TypedClient) DeckRoutingRemove(ctx context.Context, params DeckRoutingRemoveParams) (DeckRoutingRemoveResult, error) {
 	var result DeckRoutingRemoveResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.routing.remove", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.routing.remove", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckRoutingRemoveResult](payload)
 }
 
-func (c *Client) DeckRoutingSimulate(ctx context.Context, params DeckRoutingSimulateParams) (DeckRoutingSimulateResult, error) {
+func (c *TypedClient) DeckRoutingSimulate(ctx context.Context, params DeckRoutingSimulateParams) (DeckRoutingSimulateResult, error) {
 	var result DeckRoutingSimulateResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.routing.simulate", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.routing.simulate", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckRoutingSimulateResult](payload)
 }
 
-func (c *Client) DeckRoutingValidate(ctx context.Context, params DeckRoutingValidateParams) (DeckRoutingValidateResult, error) {
+func (c *TypedClient) DeckRoutingValidate(ctx context.Context, params DeckRoutingValidateParams) (DeckRoutingValidateResult, error) {
 	var result DeckRoutingValidateResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.routing.validate", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.routing.validate", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckRoutingValidateResult](payload)
 }
 
-func (c *Client) DeckSubagentsKill(ctx context.Context, params DeckSubagentsKillParams) (DeckSubagentsKillResult, error) {
+func (c *TypedClient) DeckSubagentsKill(ctx context.Context, params DeckSubagentsKillParams) (DeckSubagentsKillResult, error) {
 	var result DeckSubagentsKillResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.subagents.kill", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.subagents.kill", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckSubagentsKillResult](payload)
 }
 
-func (c *Client) DeckSubagentsLineage(ctx context.Context, params DeckSubagentsLineageParams) (DeckSubagentsLineageResult, error) {
+func (c *TypedClient) DeckSubagentsLineage(ctx context.Context, params DeckSubagentsLineageParams) (DeckSubagentsLineageResult, error) {
 	var result DeckSubagentsLineageResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.subagents.lineage", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.subagents.lineage", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckSubagentsLineageResult](payload)
 }
 
-func (c *Client) DeckSubagentsList(ctx context.Context, params DeckSubagentsListParams) (DeckSubagentsListResult, error) {
+func (c *TypedClient) DeckSubagentsList(ctx context.Context, params DeckSubagentsListParams) (DeckSubagentsListResult, error) {
 	var result DeckSubagentsListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.subagents.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.subagents.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckSubagentsListResult](payload)
 }
 
-func (c *Client) DeckSubagentsSteer(ctx context.Context, params DeckSubagentsSteerParams) (DeckSubagentsSteerResult, error) {
+func (c *TypedClient) DeckSubagentsSteer(ctx context.Context, params DeckSubagentsSteerParams) (DeckSubagentsSteerResult, error) {
 	var result DeckSubagentsSteerResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.subagents.steer", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.subagents.steer", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckSubagentsSteerResult](payload)
 }
 
-func (c *Client) DeckThreadsList(ctx context.Context, params DeckThreadsListParams) (DeckThreadsListResult, error) {
+func (c *TypedClient) DeckThreadsList(ctx context.Context, params DeckThreadsListParams) (DeckThreadsListResult, error) {
 	var result DeckThreadsListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "deck.threads.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "deck.threads.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeckThreadsListResult](payload)
 }
 
-func (c *Client) DevicePairApprove(ctx context.Context, params DevicePairApproveParams) (DevicePairApproveResult, error) {
+func (c *TypedClient) DevicePairApprove(ctx context.Context, params DevicePairApproveParams) (DevicePairApproveResult, error) {
 	var result DevicePairApproveResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "device.pair.approve", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "device.pair.approve", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DevicePairApproveResult](payload)
 }
 
-func (c *Client) DevicePairList(ctx context.Context, params DevicePairListParams) (DevicePairListResult, error) {
+func (c *TypedClient) DevicePairList(ctx context.Context, params DevicePairListParams) (DevicePairListResult, error) {
 	var result DevicePairListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "device.pair.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "device.pair.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DevicePairListResult](payload)
 }
 
-func (c *Client) DevicePairReject(ctx context.Context, params DevicePairRejectParams) (DevicePairRejectResult, error) {
+func (c *TypedClient) DevicePairReject(ctx context.Context, params DevicePairRejectParams) (DevicePairRejectResult, error) {
 	var result DevicePairRejectResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "device.pair.reject", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "device.pair.reject", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DevicePairRejectResult](payload)
 }
 
-func (c *Client) DevicePairRemove(ctx context.Context, params DevicePairRemoveParams) (DevicePairRemoveResult, error) {
+func (c *TypedClient) DevicePairRemove(ctx context.Context, params DevicePairRemoveParams) (DevicePairRemoveResult, error) {
 	var result DevicePairRemoveResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "device.pair.remove", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "device.pair.remove", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DevicePairRemoveResult](payload)
 }
 
-func (c *Client) DeviceTokenRevoke(ctx context.Context, params DeviceTokenRevokeParams) (DeviceTokenRevokeResult, error) {
+func (c *TypedClient) DeviceTokenRevoke(ctx context.Context, params DeviceTokenRevokeParams) (DeviceTokenRevokeResult, error) {
 	var result DeviceTokenRevokeResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "device.token.revoke", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "device.token.revoke", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeviceTokenRevokeResult](payload)
 }
 
-func (c *Client) DeviceTokenRotate(ctx context.Context, params DeviceTokenRotateParams) (DeviceTokenRotateResult, error) {
+func (c *TypedClient) DeviceTokenRotate(ctx context.Context, params DeviceTokenRotateParams) (DeviceTokenRotateResult, error) {
 	var result DeviceTokenRotateResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "device.token.rotate", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "device.token.rotate", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DeviceTokenRotateResult](payload)
 }
 
-func (c *Client) DoctorMemoryBackfillDreamDiary(ctx context.Context, params map[string]any) (DoctorMemoryBackfillDreamDiaryResult, error) {
+func (c *TypedClient) DoctorMemoryBackfillDreamDiary(ctx context.Context, params map[string]any) (DoctorMemoryBackfillDreamDiaryResult, error) {
 	var result DoctorMemoryBackfillDreamDiaryResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "doctor.memory.backfillDreamDiary", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "doctor.memory.backfillDreamDiary", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DoctorMemoryBackfillDreamDiaryResult](payload)
 }
 
-func (c *Client) DoctorMemoryDedupeDreamDiary(ctx context.Context, params map[string]any) (DoctorMemoryDedupeDreamDiaryResult, error) {
+func (c *TypedClient) DoctorMemoryDedupeDreamDiary(ctx context.Context, params map[string]any) (DoctorMemoryDedupeDreamDiaryResult, error) {
 	var result DoctorMemoryDedupeDreamDiaryResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "doctor.memory.dedupeDreamDiary", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "doctor.memory.dedupeDreamDiary", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DoctorMemoryDedupeDreamDiaryResult](payload)
 }
 
-func (c *Client) DoctorMemoryDreamDiary(ctx context.Context, params map[string]any) (DoctorMemoryDreamDiaryResult, error) {
+func (c *TypedClient) DoctorMemoryDreamDiary(ctx context.Context, params map[string]any) (DoctorMemoryDreamDiaryResult, error) {
 	var result DoctorMemoryDreamDiaryResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "doctor.memory.dreamDiary", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "doctor.memory.dreamDiary", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DoctorMemoryDreamDiaryResult](payload)
 }
 
-func (c *Client) DoctorMemoryRepairDreamingArtifacts(ctx context.Context, params map[string]any) (DoctorMemoryRepairDreamingArtifactsResult, error) {
+func (c *TypedClient) DoctorMemoryRepairDreamingArtifacts(ctx context.Context, params map[string]any) (DoctorMemoryRepairDreamingArtifactsResult, error) {
 	var result DoctorMemoryRepairDreamingArtifactsResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "doctor.memory.repairDreamingArtifacts", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "doctor.memory.repairDreamingArtifacts", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DoctorMemoryRepairDreamingArtifactsResult](payload)
 }
 
-func (c *Client) DoctorMemoryResetDreamDiary(ctx context.Context, params map[string]any) (DoctorMemoryResetDreamDiaryResult, error) {
+func (c *TypedClient) DoctorMemoryResetDreamDiary(ctx context.Context, params map[string]any) (DoctorMemoryResetDreamDiaryResult, error) {
 	var result DoctorMemoryResetDreamDiaryResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "doctor.memory.resetDreamDiary", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "doctor.memory.resetDreamDiary", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DoctorMemoryResetDreamDiaryResult](payload)
 }
 
-func (c *Client) DoctorMemoryResetGroundedShortTerm(ctx context.Context, params map[string]any) (DoctorMemoryResetGroundedShortTermResult, error) {
+func (c *TypedClient) DoctorMemoryResetGroundedShortTerm(ctx context.Context, params map[string]any) (DoctorMemoryResetGroundedShortTermResult, error) {
 	var result DoctorMemoryResetGroundedShortTermResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "doctor.memory.resetGroundedShortTerm", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "doctor.memory.resetGroundedShortTerm", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DoctorMemoryResetGroundedShortTermResult](payload)
 }
 
-func (c *Client) DoctorMemoryStatus(ctx context.Context, params map[string]any) (DoctorMemoryStatusResult, error) {
+func (c *TypedClient) DoctorMemoryStatus(ctx context.Context, params map[string]any) (DoctorMemoryStatusResult, error) {
 	var result DoctorMemoryStatusResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "doctor.memory.status", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "doctor.memory.status", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[DoctorMemoryStatusResult](payload)
 }
 
-func (c *Client) ExecApprovalRequest(ctx context.Context, params ExecApprovalRequestParams) (ExecApprovalRequestResult, error) {
+func (c *TypedClient) ExecApprovalRequest(ctx context.Context, params ExecApprovalRequestParams) (ExecApprovalRequestResult, error) {
 	var result ExecApprovalRequestResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "exec.approval.request", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "exec.approval.request", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ExecApprovalRequestResult](payload)
 }
 
-func (c *Client) ExecApprovalResolve(ctx context.Context, params ExecApprovalResolveParams) (ExecApprovalResolveResult, error) {
+func (c *TypedClient) ExecApprovalResolve(ctx context.Context, params ExecApprovalResolveParams) (ExecApprovalResolveResult, error) {
 	var result ExecApprovalResolveResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "exec.approval.resolve", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "exec.approval.resolve", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ExecApprovalResolveResult](payload)
 }
 
-func (c *Client) ExecApprovalWaitDecision(ctx context.Context, params ExecApprovalWaitDecisionParams) (ExecApprovalWaitDecisionResult, error) {
+func (c *TypedClient) ExecApprovalWaitDecision(ctx context.Context, params ExecApprovalWaitDecisionParams) (ExecApprovalWaitDecisionResult, error) {
 	var result ExecApprovalWaitDecisionResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "exec.approval.waitDecision", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "exec.approval.waitDecision", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ExecApprovalWaitDecisionResult](payload)
 }
 
-func (c *Client) ExecApprovalsGet(ctx context.Context, params ExecApprovalsGetParams) (ExecApprovalsGetResult, error) {
+func (c *TypedClient) ExecApprovalsGet(ctx context.Context, params ExecApprovalsGetParams) (ExecApprovalsGetResult, error) {
 	var result ExecApprovalsGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "exec.approvals.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "exec.approvals.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ExecApprovalsGetResult](payload)
 }
 
-func (c *Client) ExecApprovalsNodeGet(ctx context.Context, params ExecApprovalsNodeGetParams) (ExecApprovalsNodeGetResult, error) {
+func (c *TypedClient) ExecApprovalsNodeGet(ctx context.Context, params ExecApprovalsNodeGetParams) (ExecApprovalsNodeGetResult, error) {
 	var result ExecApprovalsNodeGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "exec.approvals.node.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "exec.approvals.node.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ExecApprovalsNodeGetResult](payload)
 }
 
-func (c *Client) ExecApprovalsNodeSet(ctx context.Context, params ExecApprovalsNodeSetParams) (ExecApprovalsNodeSetResult, error) {
+func (c *TypedClient) ExecApprovalsNodeSet(ctx context.Context, params ExecApprovalsNodeSetParams) (ExecApprovalsNodeSetResult, error) {
 	var result ExecApprovalsNodeSetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "exec.approvals.node.set", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "exec.approvals.node.set", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ExecApprovalsNodeSetResult](payload)
 }
 
-func (c *Client) ExecApprovalsSet(ctx context.Context, params ExecApprovalsSetParams) (ExecApprovalsSetResult, error) {
+func (c *TypedClient) ExecApprovalsSet(ctx context.Context, params ExecApprovalsSetParams) (ExecApprovalsSetResult, error) {
 	var result ExecApprovalsSetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "exec.approvals.set", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "exec.approvals.set", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ExecApprovalsSetResult](payload)
 }
 
-func (c *Client) GatewayDescribe(ctx context.Context, params GatewayDescribeParams) (GatewayDescribeResult, error) {
+func (c *TypedClient) GatewayDescribe(ctx context.Context, params GatewayDescribeParams) (GatewayDescribeResult, error) {
 	var result GatewayDescribeResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "gateway.describe", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "gateway.describe", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[GatewayDescribeResult](payload)
 }
 
-func (c *Client) Health(ctx context.Context, params map[string]any) (HealthResult, error) {
+func (c *TypedClient) Health(ctx context.Context, params map[string]any) (HealthResult, error) {
 	var result HealthResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "health", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "health", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[HealthResult](payload)
 }
 
-func (c *Client) ModelsCatalogProviders(ctx context.Context, params map[string]any) (ModelsCatalogProvidersResult, error) {
+func (c *TypedClient) ModelsCatalogProviders(ctx context.Context, params map[string]any) (ModelsCatalogProvidersResult, error) {
 	var result ModelsCatalogProvidersResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "models.catalog.providers", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "models.catalog.providers", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ModelsCatalogProvidersResult](payload)
 }
 
-func (c *Client) ModelsConfigured(ctx context.Context, params ModelsConfiguredParams) (ModelsConfiguredResult, error) {
+func (c *TypedClient) ModelsConfigured(ctx context.Context, params ModelsConfiguredParams) (ModelsConfiguredResult, error) {
 	var result ModelsConfiguredResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "models.configured", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "models.configured", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ModelsConfiguredResult](payload)
 }
 
-func (c *Client) ModelsList(ctx context.Context, params ModelsListParams) (ModelsListResult, error) {
+func (c *TypedClient) ModelsList(ctx context.Context, params ModelsListParams) (ModelsListResult, error) {
 	var result ModelsListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "models.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "models.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[ModelsListResult](payload)
 }
 
-func (c *Client) NodeDescribe(ctx context.Context, params NodeDescribeParams) (NodeDescribeResult, error) {
+func (c *TypedClient) NodeDescribe(ctx context.Context, params NodeDescribeParams) (NodeDescribeResult, error) {
 	var result NodeDescribeResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "node.describe", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "node.describe", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[NodeDescribeResult](payload)
 }
 
-func (c *Client) NodeList(ctx context.Context, params NodeListParams) (NodeListResult, error) {
+func (c *TypedClient) NodeList(ctx context.Context, params NodeListParams) (NodeListResult, error) {
 	var result NodeListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "node.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "node.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[NodeListResult](payload)
 }
 
-func (c *Client) NodePairApprove(ctx context.Context, params NodePairApproveParams) (NodePairApproveResult, error) {
+func (c *TypedClient) NodePairApprove(ctx context.Context, params NodePairApproveParams) (NodePairApproveResult, error) {
 	var result NodePairApproveResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "node.pair.approve", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "node.pair.approve", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[NodePairApproveResult](payload)
 }
 
-func (c *Client) NodePairList(ctx context.Context, params NodePairListParams) (NodePairListResult, error) {
+func (c *TypedClient) NodePairList(ctx context.Context, params NodePairListParams) (NodePairListResult, error) {
 	var result NodePairListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "node.pair.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "node.pair.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[NodePairListResult](payload)
 }
 
-func (c *Client) NodePairReject(ctx context.Context, params NodePairRejectParams) (NodePairRejectResult, error) {
+func (c *TypedClient) NodePairReject(ctx context.Context, params NodePairRejectParams) (NodePairRejectResult, error) {
 	var result NodePairRejectResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "node.pair.reject", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "node.pair.reject", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[NodePairRejectResult](payload)
 }
 
-func (c *Client) NodePairRequest(ctx context.Context, params NodePairRequestParams) (NodePairRequestResult, error) {
+func (c *TypedClient) NodePairRequest(ctx context.Context, params NodePairRequestParams) (NodePairRequestResult, error) {
 	var result NodePairRequestResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "node.pair.request", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "node.pair.request", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[NodePairRequestResult](payload)
 }
 
-func (c *Client) NodePairVerify(ctx context.Context, params NodePairVerifyParams) (NodePairVerifyResult, error) {
+func (c *TypedClient) NodePairVerify(ctx context.Context, params NodePairVerifyParams) (NodePairVerifyResult, error) {
 	var result NodePairVerifyResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "node.pair.verify", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "node.pair.verify", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[NodePairVerifyResult](payload)
 }
 
-func (c *Client) NodeRename(ctx context.Context, params NodeRenameParams) (NodeRenameResult, error) {
+func (c *TypedClient) NodeRename(ctx context.Context, params NodeRenameParams) (NodeRenameResult, error) {
 	var result NodeRenameResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "node.rename", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "node.rename", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[NodeRenameResult](payload)
 }
 
-func (c *Client) PluginApprovalRequest(ctx context.Context, params PluginApprovalRequestParams) (any, error) {
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return nil, err
-	}
-	payload, err := c.requester.Request(ctx, "plugin.approval.request", paramsMap)
+func (c *TypedClient) PluginApprovalRequest(ctx context.Context, params PluginApprovalRequestParams) (any, error) {
+	payload, err := c.requester.RequestTyped(ctx, "plugin.approval.request", params)
 	if err != nil {
 		return nil, err
 	}
 	return payload, nil
 }
 
-func (c *Client) PluginApprovalResolve(ctx context.Context, params PluginApprovalResolveParams) (any, error) {
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return nil, err
-	}
-	payload, err := c.requester.Request(ctx, "plugin.approval.resolve", paramsMap)
+func (c *TypedClient) PluginApprovalResolve(ctx context.Context, params PluginApprovalResolveParams) (any, error) {
+	payload, err := c.requester.RequestTyped(ctx, "plugin.approval.resolve", params)
 	if err != nil {
 		return nil, err
 	}
 	return payload, nil
 }
 
-func (c *Client) SessionsAbort(ctx context.Context, params SessionsAbortParams) (SessionsAbortResult, error) {
+func (c *TypedClient) SessionsAbort(ctx context.Context, params SessionsAbortParams) (SessionsAbortResult, error) {
 	var result SessionsAbortResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.abort", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.abort", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsAbortResult](payload)
 }
 
-func (c *Client) SessionsClear(ctx context.Context, params SessionsClearParams) (SessionsClearResult, error) {
+func (c *TypedClient) SessionsClear(ctx context.Context, params SessionsClearParams) (SessionsClearResult, error) {
 	var result SessionsClearResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.clear", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.clear", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsClearResult](payload)
 }
 
-func (c *Client) SessionsCompact(ctx context.Context, params SessionsCompactParams) (SessionsCompactResult, error) {
+func (c *TypedClient) SessionsCompact(ctx context.Context, params SessionsCompactParams) (SessionsCompactResult, error) {
 	var result SessionsCompactResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.compact", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.compact", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsCompactResult](payload)
 }
 
-func (c *Client) SessionsCompactionBranch(ctx context.Context, params SessionsCompactionBranchParams) (SessionsCompactionBranchResult, error) {
+func (c *TypedClient) SessionsCompactionBranch(ctx context.Context, params SessionsCompactionBranchParams) (SessionsCompactionBranchResult, error) {
 	var result SessionsCompactionBranchResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.compaction.branch", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.compaction.branch", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsCompactionBranchResult](payload)
 }
 
-func (c *Client) SessionsCompactionGet(ctx context.Context, params SessionsCompactionGetParams) (SessionsCompactionGetResult, error) {
+func (c *TypedClient) SessionsCompactionGet(ctx context.Context, params SessionsCompactionGetParams) (SessionsCompactionGetResult, error) {
 	var result SessionsCompactionGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.compaction.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.compaction.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsCompactionGetResult](payload)
 }
 
-func (c *Client) SessionsCompactionList(ctx context.Context, params SessionsCompactionListParams) (SessionsCompactionListResult, error) {
+func (c *TypedClient) SessionsCompactionList(ctx context.Context, params SessionsCompactionListParams) (SessionsCompactionListResult, error) {
 	var result SessionsCompactionListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.compaction.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.compaction.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsCompactionListResult](payload)
 }
 
-func (c *Client) SessionsCompactionRestore(ctx context.Context, params SessionsCompactionRestoreParams) (SessionsCompactionRestoreResult, error) {
+func (c *TypedClient) SessionsCompactionRestore(ctx context.Context, params SessionsCompactionRestoreParams) (SessionsCompactionRestoreResult, error) {
 	var result SessionsCompactionRestoreResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.compaction.restore", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.compaction.restore", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsCompactionRestoreResult](payload)
 }
 
-func (c *Client) SessionsCreate(ctx context.Context, params SessionsCreateParams) (SessionsCreateResult, error) {
+func (c *TypedClient) SessionsCreate(ctx context.Context, params SessionsCreateParams) (SessionsCreateResult, error) {
 	var result SessionsCreateResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.create", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.create", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsCreateResult](payload)
 }
 
-func (c *Client) SessionsDelete(ctx context.Context, params SessionsDeleteParams) (SessionsDeleteResult, error) {
+func (c *TypedClient) SessionsDelete(ctx context.Context, params SessionsDeleteParams) (SessionsDeleteResult, error) {
 	var result SessionsDeleteResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.delete", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.delete", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsDeleteResult](payload)
 }
 
-func (c *Client) SessionsGet(ctx context.Context, params SessionsGetParams) (SessionsGetResult, error) {
+func (c *TypedClient) SessionsGet(ctx context.Context, params SessionsGetParams) (SessionsGetResult, error) {
 	var result SessionsGetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.get", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.get", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsGetResult](payload)
 }
 
-func (c *Client) SessionsList(ctx context.Context, params SessionsListParams) (SessionsListResult, error) {
+func (c *TypedClient) SessionsList(ctx context.Context, params SessionsListParams) (SessionsListResult, error) {
 	var result SessionsListResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.list", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.list", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsListResult](payload)
 }
 
-func (c *Client) SessionsMessagesSubscribe(ctx context.Context, params SessionsMessagesSubscribeParams) (SessionsMessagesSubscribeResult, error) {
+func (c *TypedClient) SessionsMessagesSubscribe(ctx context.Context, params SessionsMessagesSubscribeParams) (SessionsMessagesSubscribeResult, error) {
 	var result SessionsMessagesSubscribeResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.messages.subscribe", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.messages.subscribe", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsMessagesSubscribeResult](payload)
 }
 
-func (c *Client) SessionsMessagesUnsubscribe(ctx context.Context, params SessionsMessagesUnsubscribeParams) (SessionsMessagesUnsubscribeResult, error) {
+func (c *TypedClient) SessionsMessagesUnsubscribe(ctx context.Context, params SessionsMessagesUnsubscribeParams) (SessionsMessagesUnsubscribeResult, error) {
 	var result SessionsMessagesUnsubscribeResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.messages.unsubscribe", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.messages.unsubscribe", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsMessagesUnsubscribeResult](payload)
 }
 
-func (c *Client) SessionsPatch(ctx context.Context, params SessionsPatchParams) (SessionsPatchResult, error) {
+func (c *TypedClient) SessionsPatch(ctx context.Context, params SessionsPatchParams) (SessionsPatchResult, error) {
 	var result SessionsPatchResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.patch", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.patch", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsPatchResult](payload)
 }
 
-func (c *Client) SessionsPreview(ctx context.Context, params SessionsPreviewParams) (SessionsPreviewResult, error) {
+func (c *TypedClient) SessionsPreview(ctx context.Context, params SessionsPreviewParams) (SessionsPreviewResult, error) {
 	var result SessionsPreviewResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.preview", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.preview", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsPreviewResult](payload)
 }
 
-func (c *Client) SessionsReset(ctx context.Context, params SessionsResetParams) (SessionsResetResult, error) {
+func (c *TypedClient) SessionsReset(ctx context.Context, params SessionsResetParams) (SessionsResetResult, error) {
 	var result SessionsResetResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.reset", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.reset", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsResetResult](payload)
 }
 
-func (c *Client) SessionsSend(ctx context.Context, params SessionsSendParams) (SessionsSendResult, error) {
+func (c *TypedClient) SessionsSend(ctx context.Context, params SessionsSendParams) (SessionsSendResult, error) {
 	var result SessionsSendResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.send", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.send", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsSendResult](payload)
 }
 
-func (c *Client) SessionsSteer(ctx context.Context, params SessionsSteerParams) (SessionsSteerResult, error) {
+func (c *TypedClient) SessionsSteer(ctx context.Context, params SessionsSteerParams) (SessionsSteerResult, error) {
 	var result SessionsSteerResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.steer", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.steer", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsSteerResult](payload)
 }
 
-func (c *Client) SessionsSubscribe(ctx context.Context, params map[string]any) (SessionsSubscribeResult, error) {
+func (c *TypedClient) SessionsSubscribe(ctx context.Context, params map[string]any) (SessionsSubscribeResult, error) {
 	var result SessionsSubscribeResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "sessions.subscribe", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.subscribe", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsSubscribeResult](payload)
 }
 
-func (c *Client) SessionsUnsubscribe(ctx context.Context, params map[string]any) (SessionsUnsubscribeResult, error) {
+func (c *TypedClient) SessionsUnsubscribe(ctx context.Context, params map[string]any) (SessionsUnsubscribeResult, error) {
 	var result SessionsUnsubscribeResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "sessions.unsubscribe", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.unsubscribe", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsUnsubscribeResult](payload)
 }
 
-func (c *Client) SessionsUsage(ctx context.Context, params SessionsUsageParams) (SessionsUsageResult, error) {
+func (c *TypedClient) SessionsUsage(ctx context.Context, params SessionsUsageParams) (SessionsUsageResult, error) {
 	var result SessionsUsageResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.usage", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.usage", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsUsageResult](payload)
 }
 
-func (c *Client) SessionsUsageLogs(ctx context.Context, params SessionsUsageLogsParams) (SessionsUsageLogsResult, error) {
+func (c *TypedClient) SessionsUsageLogs(ctx context.Context, params SessionsUsageLogsParams) (SessionsUsageLogsResult, error) {
 	var result SessionsUsageLogsResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.usage.logs", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.usage.logs", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsUsageLogsResult](payload)
 }
 
-func (c *Client) SessionsUsageTimeseries(ctx context.Context, params SessionsUsageTimeseriesParams) (SessionsUsageTimeseriesResult, error) {
+func (c *TypedClient) SessionsUsageTimeseries(ctx context.Context, params SessionsUsageTimeseriesParams) (SessionsUsageTimeseriesResult, error) {
 	var result SessionsUsageTimeseriesResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "sessions.usage.timeseries", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "sessions.usage.timeseries", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SessionsUsageTimeseriesResult](payload)
 }
 
-func (c *Client) SkillsBins(ctx context.Context, params SkillsBinsParams) (SkillsBinsResult, error) {
+func (c *TypedClient) SkillsBins(ctx context.Context, params SkillsBinsParams) (SkillsBinsResult, error) {
 	var result SkillsBinsResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "skills.bins", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "skills.bins", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SkillsBinsResult](payload)
 }
 
-func (c *Client) SkillsDetail(ctx context.Context, params SkillsDetailParams) (SkillsDetailResult, error) {
+func (c *TypedClient) SkillsDetail(ctx context.Context, params SkillsDetailParams) (SkillsDetailResult, error) {
 	var result SkillsDetailResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "skills.detail", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "skills.detail", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SkillsDetailResult](payload)
 }
 
-func (c *Client) SkillsInstall(ctx context.Context, params SkillsInstallParams) (SkillsInstallResult, error) {
+func (c *TypedClient) SkillsInstall(ctx context.Context, params SkillsInstallParams) (SkillsInstallResult, error) {
 	var result SkillsInstallResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "skills.install", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "skills.install", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SkillsInstallResult](payload)
 }
 
-func (c *Client) SkillsSearch(ctx context.Context, params SkillsSearchParams) (SkillsSearchResult, error) {
+func (c *TypedClient) SkillsSearch(ctx context.Context, params SkillsSearchParams) (SkillsSearchResult, error) {
 	var result SkillsSearchResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "skills.search", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "skills.search", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SkillsSearchResult](payload)
 }
 
-func (c *Client) SkillsStatus(ctx context.Context, params SkillsStatusParams) (SkillsStatusResult, error) {
+func (c *TypedClient) SkillsStatus(ctx context.Context, params SkillsStatusParams) (SkillsStatusResult, error) {
 	var result SkillsStatusResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "skills.status", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "skills.status", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SkillsStatusResult](payload)
 }
 
-func (c *Client) SkillsUpdate(ctx context.Context, params SkillsUpdateParams) (SkillsUpdateResult, error) {
+func (c *TypedClient) SkillsUpdate(ctx context.Context, params SkillsUpdateParams) (SkillsUpdateResult, error) {
 	var result SkillsUpdateResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "skills.update", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "skills.update", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[SkillsUpdateResult](payload)
 }
 
-func (c *Client) Status(ctx context.Context, params map[string]any) (StatusResult, error) {
+func (c *TypedClient) Status(ctx context.Context, params map[string]any) (StatusResult, error) {
 	var result StatusResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "status", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "status", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[StatusResult](payload)
 }
 
-func (c *Client) TalkConfig(ctx context.Context, params TalkConfigParams) (TalkConfigResult, error) {
+func (c *TypedClient) TalkConfig(ctx context.Context, params TalkConfigParams) (TalkConfigResult, error) {
 	var result TalkConfigResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "talk.config", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "talk.config", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[TalkConfigResult](payload)
 }
 
-func (c *Client) TalkMode(ctx context.Context, params TalkModeParams) (TalkModeResult, error) {
+func (c *TypedClient) TalkMode(ctx context.Context, params TalkModeParams) (TalkModeResult, error) {
 	var result TalkModeResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "talk.mode", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "talk.mode", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[TalkModeResult](payload)
 }
 
-func (c *Client) TalkSpeak(ctx context.Context, params TalkSpeakParams) (TalkSpeakResult, error) {
+func (c *TypedClient) TalkSpeak(ctx context.Context, params TalkSpeakParams) (TalkSpeakResult, error) {
 	var result TalkSpeakResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "talk.speak", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "talk.speak", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[TalkSpeakResult](payload)
 }
 
-func (c *Client) UsageCost(ctx context.Context, params map[string]any) (UsageCostResult, error) {
+func (c *TypedClient) UsageCost(ctx context.Context, params map[string]any) (UsageCostResult, error) {
 	var result UsageCostResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "usage.cost", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "usage.cost", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[UsageCostResult](payload)
 }
 
-func (c *Client) UsageStatus(ctx context.Context, params map[string]any) (UsageStatusResult, error) {
+func (c *TypedClient) UsageStatus(ctx context.Context, params map[string]any) (UsageStatusResult, error) {
 	var result UsageStatusResult
 	paramsMap := params
 	if paramsMap == nil {
 		paramsMap = map[string]any{}
 	}
-	payload, err := c.requester.Request(ctx, "usage.status", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "usage.status", paramsMap)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[UsageStatusResult](payload)
 }
 
-func (c *Client) WizardCancel(ctx context.Context, params WizardCancelParams) (WizardCancelResult, error) {
+func (c *TypedClient) WizardCancel(ctx context.Context, params WizardCancelParams) (WizardCancelResult, error) {
 	var result WizardCancelResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "wizard.cancel", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "wizard.cancel", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[WizardCancelResult](payload)
 }
 
-func (c *Client) WizardNext(ctx context.Context, params WizardNextParams) (WizardNextResult, error) {
+func (c *TypedClient) WizardNext(ctx context.Context, params WizardNextParams) (WizardNextResult, error) {
 	var result WizardNextResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "wizard.next", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "wizard.next", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[WizardNextResult](payload)
 }
 
-func (c *Client) WizardStart(ctx context.Context, params WizardStartParams) (WizardStartResult, error) {
+func (c *TypedClient) WizardStart(ctx context.Context, params WizardStartParams) (WizardStartResult, error) {
 	var result WizardStartResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "wizard.start", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "wizard.start", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[WizardStartResult](payload)
 }
 
-func (c *Client) WizardStatus(ctx context.Context, params WizardStatusParams) (WizardStatusResult, error) {
+func (c *TypedClient) WizardStatus(ctx context.Context, params WizardStatusParams) (WizardStatusResult, error) {
 	var result WizardStatusResult
-	paramsMap, err := encodeParams(params)
-	if err != nil {
-		return result, err
-	}
-	payload, err := c.requester.Request(ctx, "wizard.status", paramsMap)
+	payload, err := c.requester.RequestTyped(ctx, "wizard.status", params)
 	if err != nil {
 		return result, err
 	}
 	return decodeResult[WizardStatusResult](payload)
-}
-
-func encodeParams(params any) (map[string]any, error) {
-	raw, err := json.Marshal(params)
-	if err != nil {
-		return nil, err
-	}
-	result := map[string]any{}
-	if err := json.Unmarshal(raw, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func decodeResult[T any](payload any) (T, error) {

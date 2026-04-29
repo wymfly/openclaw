@@ -1,7 +1,10 @@
 package projection
 
 import (
+	"encoding/json"
+
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
 )
 
@@ -15,6 +18,27 @@ func NormalizeSessionMetas(payload any, fallbackAgentID string) []deckapi.DeckGo
 }
 
 func NormalizeSessionPreviews(payload any) deckapi.DeckGoSessionsPreviewResponse {
+	if typed, ok := payload.(generated.SessionsPreviewResult); ok {
+		response := deckapi.DeckGoSessionsPreviewResponse{
+			Ts: typed.Ts,
+		}
+		response.Previews = make([]deckapi.DeckGoSessionPreviewEntry, 0, len(typed.Previews))
+		for _, item := range typed.Previews {
+			preview := deckapi.DeckGoSessionPreviewEntry{
+				Key:    item.Key,
+				Status: item.Status,
+			}
+			preview.Items = make([]deckapi.DeckGoSessionPreviewOverlay, 0, len(item.Items))
+			for _, overlay := range item.Items {
+				preview.Items = append(preview.Items, deckapi.DeckGoSessionPreviewOverlay{
+					Role: overlay.Role,
+					Text: overlay.Text,
+				})
+			}
+			response.Previews = append(response.Previews, preview)
+		}
+		return response
+	}
 	record, ok := payload.(map[string]any)
 	if !ok {
 		return deckapi.DeckGoSessionsPreviewResponse{}
@@ -74,6 +98,12 @@ func NormalizeSessionDetail(sessionKey string, historyPayload any, sessionsPaylo
 }
 
 func NormalizeTranscriptMessages(payload any) []deckapi.DeckGoTranscriptMessage {
+	switch history := payload.(type) {
+	case generated.ChatHistoryResult:
+		return normalizeGeneratedTranscriptMessages(history.Messages)
+	case generated.SessionsGetResult:
+		return normalizeRawTranscriptMessages(history.Messages)
+	}
 	record, ok := payload.(map[string]any)
 	if !ok {
 		return nil
@@ -82,6 +112,43 @@ func NormalizeTranscriptMessages(payload any) []deckapi.DeckGoTranscriptMessage 
 	if !ok {
 		return nil
 	}
+	result := make([]deckapi.DeckGoTranscriptMessage, 0, len(items))
+	for _, item := range items {
+		message, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		result = append(result, deckapi.DeckGoTranscriptMessage{
+			Id:        coerce.String(message["id"], ""),
+			Role:      coerce.String(message["role"], ""),
+			Content:   normalizeTranscriptBlocks(message["content"]),
+			Timestamp: coerce.Number(message["timestamp"]),
+			Streaming: coerce.Bool(message["streaming"]),
+			Error:     coerce.String(message["error"], ""),
+		})
+	}
+	return result
+}
+
+func normalizeGeneratedTranscriptMessages(messages []struct {
+	Content   []any   `json:"content"`
+	Id        string  `json:"id,omitempty"`
+	Role      string  `json:"role"`
+	Timestamp float64 `json:"timestamp"`
+}) []deckapi.DeckGoTranscriptMessage {
+	result := make([]deckapi.DeckGoTranscriptMessage, 0, len(messages))
+	for _, message := range messages {
+		result = append(result, deckapi.DeckGoTranscriptMessage{
+			Id:        message.Id,
+			Role:      message.Role,
+			Content:   normalizeTranscriptBlocks(message.Content),
+			Timestamp: message.Timestamp,
+		})
+	}
+	return result
+}
+
+func normalizeRawTranscriptMessages(items []any) []deckapi.DeckGoTranscriptMessage {
 	result := make([]deckapi.DeckGoTranscriptMessage, 0, len(items))
 	for _, item := range items {
 		message, ok := item.(map[string]any)
@@ -170,8 +237,22 @@ func extractSessionItems(payload any) []map[string]any {
 			}
 			return items
 		}
+	case generated.SessionsListResult:
+		return structsToMaps(value.Sessions)
 	}
 	return nil
+}
+
+func structsToMaps(value any) []map[string]any {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil
+	}
+	var items []map[string]any
+	if err := json.Unmarshal(raw, &items); err != nil {
+		return nil
+	}
+	return items
 }
 
 func normalizeTranscriptBlocks(raw any) []deckapi.DeckGoTranscriptBlock {

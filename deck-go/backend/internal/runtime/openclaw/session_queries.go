@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/projection"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/runtimeid"
 )
@@ -11,15 +12,24 @@ import (
 const DefaultRuntimeID = runtimeid.Default
 
 type Requester interface {
+	UntypedRequester
+	generated.Requester
+}
+
+type UntypedRequester interface {
 	Request(ctx context.Context, method string, params map[string]any) (any, error)
 }
 
 type SessionQueries struct {
 	requester Requester
+	typed     *generated.TypedClient
 }
 
 func NewSessionQueries(requester Requester) *SessionQueries {
-	return &SessionQueries{requester: requester}
+	return &SessionQueries{
+		requester: requester,
+		typed:     generated.NewTypedClient(requester),
+	}
 }
 
 func (q *SessionQueries) ListSessions(ctx context.Context, _ string) ([]deckapi.DeckGoSessionMeta, error) {
@@ -30,7 +40,11 @@ func (q *SessionQueries) ListSessionsWithParams(ctx context.Context, params map[
 	requestParams := cloneSessionListParams(params)
 	requestParams["includeDerivedTitles"] = true
 	requestParams["includeLastMessage"] = true
-	payload, err := q.requester.Request(ctx, "sessions.list", requestParams)
+	typedParams, err := typedParamsFromMap[generated.SessionsListParams](requestParams)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := q.typed.SessionsList(ctx, typedParams)
 	if err != nil {
 		return nil, err
 	}
@@ -50,34 +64,34 @@ func (q *SessionQueries) GetTimeline(ctx context.Context, _ string, sessionID st
 }
 
 func (q *SessionQueries) GetTimelineWithParams(ctx context.Context, sessionID string, agentID string, limit int) (deckapi.DeckGoSessionDetailResponse, error) {
-	return fetchSessionDetailPayload(ctx, q.requester, sessionID, agentID, limit)
+	return fetchSessionDetailPayload(ctx, q.typed, sessionID, agentID, limit)
 }
 
 func fetchSessionDetailPayload(
 	ctx context.Context,
-	requester Requester,
+	typed *generated.TypedClient,
 	sessionKey string,
 	agentID string,
 	limit int,
 ) (deckapi.DeckGoSessionDetailResponse, error) {
-	historyParams := map[string]any{"key": sessionKey}
+	historyParams := generated.SessionsGetParams{Key: sessionKey}
 	if limit > 0 {
-		historyParams["limit"] = limit
+		historyParams.Limit = limit
 	}
-	historyPayload, err := requester.Request(ctx, "sessions.get", historyParams)
+	historyPayload, err := typed.SessionsGet(ctx, historyParams)
 	if err != nil {
 		return deckapi.DeckGoSessionDetailResponse{}, err
 	}
-	sessionsParams := map[string]any{
-		"includeDerivedTitles": true,
-		"includeLastMessage":   true,
-		"search":               sessionKey,
-		"limit":                1,
+	sessionsParams := generated.SessionsListParams{
+		IncludeDerivedTitles: true,
+		IncludeLastMessage:   true,
+		Search:               sessionKey,
+		Limit:                1,
 	}
 	if agentID != "" {
-		sessionsParams["agentId"] = agentID
+		sessionsParams.AgentId = agentID
 	}
-	sessionsPayload, err := requester.Request(ctx, "sessions.list", sessionsParams)
+	sessionsPayload, err := typed.SessionsList(ctx, sessionsParams)
 	if err != nil {
 		return deckapi.DeckGoSessionDetailResponse{}, err
 	}

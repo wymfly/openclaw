@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -1257,6 +1258,7 @@ func TestBootstrapStatus_UsesGatewayDescribeAndRuntimeSnapshot(t *testing.T) {
 
 func TestBootstrapStatus_RemainsConnectedWhenDescribeScopeIsMissing(t *testing.T) {
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	var callMu sync.Mutex
 	var callCount int
 	wsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -1283,6 +1285,8 @@ func TestBootstrapStatus_RemainsConnectedWhenDescribeScopeIsMissing(t *testing.T
 		var reqFrame map[string]any
 		_ = json.Unmarshal(raw, &reqFrame)
 
+		callMu.Lock()
+		defer callMu.Unlock()
 		switch callCount {
 		case 0:
 			_ = conn.WriteJSON(map[string]any{

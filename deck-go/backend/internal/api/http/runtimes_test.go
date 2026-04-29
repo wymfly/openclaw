@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
 	runtimecoerce "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
 	runtimeprojection "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/projection"
 	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
@@ -87,6 +89,9 @@ type stubGatewayDiagnosticProvider struct {
 	health   map[string]any
 	status   map[string]any
 	lastKey  string
+	rpc      any
+	rpcErr   error
+	rpcBody  map[string]any
 }
 
 func (s *stubGatewayDiagnosticProvider) GetGatewayDescribe(_ context.Context, runtimeID string, includeSchemas bool) (any, error) {
@@ -102,6 +107,15 @@ func (s *stubGatewayDiagnosticProvider) GetGatewayHealth(_ context.Context, runt
 func (s *stubGatewayDiagnosticProvider) GetGatewayStatus(_ context.Context, runtimeID string) (any, error) {
 	s.lastKey = runtimeID + "/gateway/status"
 	return s.status, nil
+}
+
+func (s *stubGatewayDiagnosticProvider) RequestGateway(_ context.Context, runtimeID string, method string, params any) (any, error) {
+	s.lastKey = runtimeID + "/gateway/rpc/" + method
+	s.rpcBody = map[string]any{
+		"method": method,
+		"params": params,
+	}
+	return s.rpc, s.rpcErr
 }
 
 type stubDeviceProvider struct {
@@ -693,6 +707,7 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 			"heartbeat": "ok",
 			"state":     "active",
 		},
+		rpc: map[string]any{"models": []map[string]any{{"id": "gpt-5.4"}}},
 	}
 	devices := &stubDeviceProvider{
 		list: map[string]any{
@@ -1182,6 +1197,98 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		}
 	})
 
+	t.Run("typed gateway rpc dispatches allowlisted method", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/rpc", strings.NewReader(`{"method":"models.configured","params":{},"timeoutMs":2500}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Request-Id", "req-test")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(res.Body)
+			t.Fatalf("unexpected status: %d body=%s", res.StatusCode, body)
+		}
+		var payload struct {
+			RequestID string         `json:"requestId"`
+			Result    map[string]any `json:"result"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload.RequestID != "req-test" {
+			t.Fatalf("unexpected request id: %#v", payload)
+		}
+		if diagnostics.lastKey != DefaultRuntimeID+"/gateway/rpc/models.configured" {
+			t.Fatalf("unexpected rpc invocation: %q", diagnostics.lastKey)
+		}
+		if diagnostics.rpcBody["method"] != "models.configured" {
+			t.Fatalf("unexpected rpc body: %#v", diagnostics.rpcBody)
+		}
+	})
+
+	t.Run("typed gateway rpc rejects methods outside generated allowlist", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/rpc", strings.NewReader(`{"method":"tools.catalog","params":{}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusBadRequest {
+			body, _ := io.ReadAll(res.Body)
+			t.Fatalf("unexpected status: %d body=%s", res.StatusCode, body)
+		}
+	})
+
+	t.Run("typed gateway rpc preserves scope denied envelope decision", func(t *testing.T) {
+		diagnostics.rpcErr = &gateway.ErrCode{
+			Code:    "scope_denied",
+			Message: "missing scope",
+			Details: map[string]any{
+				"required": "operator.read",
+			},
+		}
+		defer func() {
+			diagnostics.rpcErr = nil
+		}()
+
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/rpc", strings.NewReader(`{"method":"models.configured","params":{}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusForbidden {
+			body, _ := io.ReadAll(res.Body)
+			t.Fatalf("unexpected status: %d body=%s", res.StatusCode, body)
+		}
+		var payload struct {
+			Error struct {
+				Code    string         `json:"code"`
+				Message string         `json:"message"`
+				Details map[string]any `json:"details"`
+			} `json:"error"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload.Error.Code != "scope_denied" || payload.Error.Details["required"] != "operator.read" {
+			t.Fatalf("unexpected scope error payload: %#v", payload.Error)
+		}
+	})
+
 	t.Run("returns devices for a runtime", func(t *testing.T) {
 		res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + "/devices")
 		if err != nil {
@@ -1304,27 +1411,14 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		}
 	})
 
-	t.Run("returns agents for a runtime", func(t *testing.T) {
+	t.Run("does not mount legacy agents list gateway proxy route", func(t *testing.T) {
 		res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + "/agents")
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
+		if res.StatusCode != http.StatusMethodNotAllowed {
 			t.Fatalf("unexpected status: %d", res.StatusCode)
-		}
-		var payload struct {
-			RuntimeID string         `json:"runtimeId"`
-			Payload   map[string]any `json:"payload"`
-		}
-		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
-			t.Fatal(err)
-		}
-		if payload.RuntimeID != DefaultRuntimeID || payload.Payload["agents"] == nil {
-			t.Fatalf("unexpected agents payload: %#v", payload)
-		}
-		if agents.lastKey != DefaultRuntimeID+"/agents" {
-			t.Fatalf("unexpected agent invocation: %q", agents.lastKey)
 		}
 	})
 
@@ -1763,87 +1857,21 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		}
 	})
 
-	t.Run("returns models for a runtime", func(t *testing.T) {
-		res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + "/models")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			t.Fatalf("unexpected status: %d", res.StatusCode)
-		}
-		var payload struct {
-			RuntimeID string         `json:"runtimeId"`
-			Payload   map[string]any `json:"payload"`
-		}
-		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
-			t.Fatal(err)
-		}
-		if payload.RuntimeID != DefaultRuntimeID || payload.Payload["items"] == nil {
-			t.Fatalf("unexpected models payload: %#v", payload)
-		}
-	})
-
-	t.Run("returns model auth overview for a runtime", func(t *testing.T) {
-		res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + "/models/auth")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			t.Fatalf("unexpected status: %d", res.StatusCode)
-		}
-		var payload struct {
-			RuntimeID string         `json:"runtimeId"`
-			Payload   map[string]any `json:"payload"`
-		}
-		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
-			t.Fatal(err)
-		}
-		if payload.RuntimeID != DefaultRuntimeID || payload.Payload["providers"] == nil {
-			t.Fatalf("unexpected model auth payload: %#v", payload)
-		}
-	})
-
-	t.Run("returns model catalog providers for a runtime", func(t *testing.T) {
-		res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + "/models/catalog-providers")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			t.Fatalf("unexpected status: %d", res.StatusCode)
-		}
-		var payload struct {
-			RuntimeID string         `json:"runtimeId"`
-			Payload   map[string]any `json:"payload"`
-		}
-		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
-			t.Fatal(err)
-		}
-		if payload.RuntimeID != DefaultRuntimeID || payload.Payload["providers"] == nil {
-			t.Fatalf("unexpected catalog providers payload: %#v", payload)
-		}
-	})
-
-	t.Run("returns configured models for a runtime", func(t *testing.T) {
-		res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + "/models/configured")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			t.Fatalf("unexpected status: %d", res.StatusCode)
-		}
-		var payload struct {
-			RuntimeID string         `json:"runtimeId"`
-			Payload   map[string]any `json:"payload"`
-		}
-		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
-			t.Fatal(err)
-		}
-		if payload.RuntimeID != DefaultRuntimeID || payload.Payload["models"] == nil {
-			t.Fatalf("unexpected configured models payload: %#v", payload)
+	t.Run("does not mount legacy runtime model gateway proxy routes", func(t *testing.T) {
+		for _, route := range []string{
+			"/models",
+			"/models/auth",
+			"/models/catalog-providers",
+			"/models/configured",
+		} {
+			res, err := http.Get(server.URL + "/runtimes/" + DefaultRuntimeID + route)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusNotFound {
+				t.Fatalf("route %s should be removed, got status %d", route, res.StatusCode)
+			}
 		}
 	})
 
@@ -2621,7 +2649,7 @@ func TestMountRoutes_CommandEndpoints(t *testing.T) {
 		}
 	})
 
-	t.Run("probes model auth", func(t *testing.T) {
+	t.Run("does not mount legacy runtime model probe proxy route", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/models/probe", strings.NewReader(`{"provider":"openai"}`))
 		if err != nil {
 			t.Fatal(err)
@@ -2632,11 +2660,8 @@ func TestMountRoutes_CommandEndpoints(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
+		if res.StatusCode != http.StatusNotFound {
 			t.Fatalf("unexpected status: %d", res.StatusCode)
-		}
-		if models.lastKey != DefaultRuntimeID+"/models/probe" {
-			t.Fatalf("unexpected model probe invocation: %q", models.lastKey)
 		}
 	})
 

@@ -2,12 +2,14 @@ package server
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -208,7 +210,7 @@ func TestGatewayFacade_SessionsList(t *testing.T) {
 				"sessions": []map[string]any{{
 					"key":                "session-1",
 					"agentId":            "main",
-					"title":              "Test Session",
+					"derivedTitle":       "Test Session",
 					"lastMessagePreview": "hello",
 					"status":             "running",
 				}},
@@ -430,7 +432,7 @@ func TestGatewayFacade_DeckAgents(t *testing.T) {
 				"type":    "res",
 				"id":      params["_requestID"],
 				"ok":      true,
-				"payload": map[string]any{"baseHash": "base-hash-1"},
+				"payload": map[string]any{"hash": "base-hash-1"},
 			})
 		case "config.patch":
 			raw, _ := params["raw"].(string)
@@ -486,7 +488,6 @@ func TestGatewayFacade_DeckAgents(t *testing.T) {
 
 func TestGatewayFacade_AgentsAndToolsCatalog(t *testing.T) {
 	expectedCalls := []string{
-		"agents.list",
 		"config.get",
 		"agents.create",
 		"agents.delete",
@@ -563,30 +564,56 @@ func TestGatewayFacade_AgentsAndToolsCatalog(t *testing.T) {
 				t.Fatalf("unexpected agents.files.list params: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
-				"type":    "res",
-				"id":      params["_requestID"],
-				"ok":      true,
-				"payload": map[string]any{"files": []string{"AGENTS.md"}},
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"agentId":   "main",
+					"workspace": "/tmp/default-agents-workspace",
+					"files": []map[string]any{{
+						"missing": false,
+						"name":    "AGENTS.md",
+						"path":    "AGENTS.md",
+					}},
+				},
 			})
 		case "agents.files.set":
 			if params["agentId"] != "main" || params["name"] != "AGENTS.md" || params["content"] != "hello" {
 				t.Fatalf("unexpected agents.files.set params: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
-				"type":    "res",
-				"id":      params["_requestID"],
-				"ok":      true,
-				"payload": map[string]any{"ok": true},
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"agentId":   "main",
+					"ok":        true,
+					"workspace": "/tmp/default-agents-workspace",
+					"file": map[string]any{
+						"missing": false,
+						"name":    "AGENTS.md",
+						"path":    "AGENTS.md",
+					},
+				},
 			})
 		case "agents.files.get":
 			if params["agentId"] != "main" || params["name"] != "notes/README.md" {
 				t.Fatalf("unexpected agents.files.get params: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
-				"type":    "res",
-				"id":      params["_requestID"],
-				"ok":      true,
-				"payload": map[string]any{"content": "hello"},
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"agentId":   "main",
+					"workspace": "/tmp/default-agents-workspace",
+					"file": map[string]any{
+						"content": "hello",
+						"missing": false,
+						"name":    "notes/README.md",
+						"path":    "notes/README.md",
+					},
+				},
 			})
 		case "agent.identity.get":
 			if params["agentId"] != "main" {
@@ -621,7 +648,6 @@ func TestGatewayFacade_AgentsAndToolsCatalog(t *testing.T) {
 		body   string
 		header bool
 	}{
-		{method: http.MethodGet, path: "/api/agents", header: true},
 		{method: http.MethodPost, path: "/api/agents", body: `{"name":"Ops"}`, header: true},
 		{method: http.MethodDelete, path: "/api/agents?agentId=ops", header: true},
 		{method: http.MethodGet, path: "/api/agents/main", header: true},
@@ -1594,10 +1620,12 @@ func TestGatewayFacade_ChatSessionsAlias(t *testing.T) {
 				t.Fatalf("unexpected sessions.list params: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
-				"type":    "res",
-				"id":      params["_requestID"],
-				"ok":      true,
-				"payload": []any{map[string]any{"key": "session-1", "agentId": "main"}},
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"sessions": []map[string]any{{"key": "session-1", "agentId": "main"}},
+				},
 			})
 		case "sessions.delete":
 			if params["key"] != "session-1" {
@@ -2180,8 +2208,8 @@ func TestGatewayFacade_ChannelPatchUsesConfigGetThenConfigPatch(t *testing.T) {
 				"id":   params["_requestID"],
 				"ok":   true,
 				"payload": map[string]any{
-					"config":   map[string]any{},
-					"baseHash": "base-hash-1",
+					"config": map[string]any{},
+					"hash":   "base-hash-1",
 				},
 			})
 		case "config.patch":
@@ -2217,7 +2245,8 @@ func TestGatewayFacade_ChannelPatchUsesConfigGetThenConfigPatch(t *testing.T) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected status: %d", res.StatusCode)
+		body, _ := io.ReadAll(res.Body)
+		t.Fatalf("unexpected status: %d body: %s", res.StatusCode, strings.TrimSpace(string(body)))
 	}
 }
 
@@ -2337,7 +2366,7 @@ func TestGatewayFacade_SessionDetail(t *testing.T) {
 					"sessions": []map[string]any{{
 						"key":                "session-1",
 						"agentId":            "main",
-						"title":              "Test Session",
+						"derivedTitle":       "Test Session",
 						"lastMessagePreview": "hello",
 					}},
 				},
@@ -2584,7 +2613,7 @@ func TestGatewayFacade_SessionPreviewResetClearAndPatch(t *testing.T) {
 }
 
 func TestGatewayFacade_SessionEventsSubscribeAndUnsubscribe(t *testing.T) {
-	expectedCalls := []string{"sessions.subscribe", "sessions.messages.subscribe", "sessions.messages.unsubscribe"}
+	expectedCalls := []string{"sessions.subscribe", "sessions.messages.subscribe", "sessions.messages.unsubscribe", "sessions.unsubscribe"}
 	callIndex := 0
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	wsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2636,6 +2665,8 @@ func TestGatewayFacade_SessionEventsSubscribeAndUnsubscribe(t *testing.T) {
 				if params["key"] != "session-1" {
 					t.Fatalf("unexpected unsubscribe params: %#v", params)
 				}
+				_ = conn.WriteJSON(map[string]any{"type": "res", "id": reqFrame["id"], "ok": true, "payload": map[string]any{"ok": true}})
+			case "sessions.unsubscribe":
 				_ = conn.WriteJSON(map[string]any{"type": "res", "id": reqFrame["id"], "ok": true, "payload": map[string]any{"ok": true}})
 			}
 			callIndex++
@@ -2759,6 +2790,7 @@ func newGatewayBackedServer(t *testing.T, handleMethod func(conn *websocket.Conn
 	t.Helper()
 
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	var handleMu sync.Mutex
 	wsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -2795,6 +2827,8 @@ func newGatewayBackedServer(t *testing.T, handleMethod func(conn *websocket.Conn
 			params = map[string]any{}
 		}
 		params["_requestID"], _ = reqFrame["id"].(string)
+		handleMu.Lock()
+		defer handleMu.Unlock()
 		handleMethod(conn, reqFrame["method"].(string), params)
 	}))
 	t.Cleanup(wsServer.Close)

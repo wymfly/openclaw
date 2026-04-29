@@ -17,9 +17,11 @@ type rpcGatewayOptions struct {
 	onConnect           func(map[string]any)
 	onToken             func(string)
 	onRequest           func(string)
+	onFrame             func(frame)
 	blockMethods        map[string]chan struct{}
 	closeOnMethod       map[string]chan struct{}
 	errorMethods        map[string]string
+	errorFrames         map[string]responseError
 	eventsAfterMethod   map[string][]map[string]any
 	closeAfterResponses int
 }
@@ -61,6 +63,9 @@ func newRPCGatewayServer(t *testing.T, opts rpcGatewayOptions) *httptest.Server 
 			if opts.onRequest != nil {
 				opts.onRequest(req.Method)
 			}
+			if opts.onFrame != nil {
+				opts.onFrame(req)
+			}
 			if release := opts.closeOnMethod[req.Method]; release != nil {
 				<-release
 				return
@@ -76,6 +81,14 @@ func newRPCGatewayServer(t *testing.T, opts rpcGatewayOptions) *httptest.Server 
 						"code":    "TEST_ERROR",
 						"message": message,
 					},
+				})
+				continue
+			}
+			if envelope, ok := opts.errorFrames[req.Method]; ok {
+				_ = conn.WriteJSON(map[string]any{
+					"type":  "res",
+					"id":    req.ID,
+					"error": envelope,
 				})
 				continue
 			}
@@ -150,7 +163,19 @@ func completeTestGatewayHandshake(t *testing.T, conn *websocket.Conn) (map[strin
 		t.Errorf("connect response write failed: %v", err)
 		return nil, false
 	}
-	return connectFrame.Params, true
+	return frameParamsMap(t, connectFrame.Params), true
+}
+
+func frameParamsMap(t *testing.T, params any) map[string]any {
+	t.Helper()
+	if params == nil {
+		return map[string]any{}
+	}
+	result, ok := params.(map[string]any)
+	if !ok {
+		t.Fatalf("expected frame params map, got %T", params)
+	}
+	return result
 }
 
 func wsURL(serverURL string) string {

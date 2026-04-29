@@ -4,7 +4,7 @@ GO_ENV := GOCACHE=/tmp/deck-go-buildcache GOSUMDB=off
 NPM_ENV := npm_config_cache=/tmp/deck-go-npm-cache
 REPO_ROOT := $(abspath ..)
 
-.PHONY: contracts-sync contracts-check protocol-gen-ts protocol-gen-go protocol-update protocol-check protocol-check-missing-test protocol-check-drift-test fork-divergence-report check-allowlist-parity benchmark-rpc host-check backend-test frontend-build verify smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback check-stage3-stabilization enforce-stage3-stabilization record-stage3-stabilization-incident stack-start stack-stop stack-restart stack-status stack-logs stack-backend-fg stack-frontend-fg stack-runtime-start stack-runtime-stop stack-chat-smoke
+.PHONY: contracts-sync contracts-check protocol-gen-ts protocol-gen-go protocol-update protocol-check protocol-check-missing-test protocol-check-drift-test fork-divergence-report gateway-typecheck gateway-coverage-report check-allowlist-parity benchmark-rpc host-check backend-test frontend-build verify smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback check-stage3-stabilization enforce-stage3-stabilization record-stage3-stabilization-incident stack-start stack-stop stack-restart stack-status stack-logs stack-backend-fg stack-frontend-fg stack-runtime-start stack-runtime-stop stack-chat-smoke
 
 contracts-sync:
 	node contracts/scripts/sync-deck-api-generated.mjs
@@ -46,6 +46,12 @@ protocol-check-drift-test:
 
 fork-divergence-report:
 	cd "$(REPO_ROOT)" && pnpm exec tsx deck-go/contracts/scripts/fork-divergence-report.ts
+
+gateway-typecheck:
+	cd "$(REPO_ROOT)" && pnpm exec tsx deck-go/contracts/scripts/gateway-typecheck.ts
+
+gateway-coverage-report:
+	cd "$(REPO_ROOT)" && pnpm exec tsx deck-go/contracts/scripts/gateway-coverage-report.ts
 
 check-allowlist-parity:
 	cd "$(REPO_ROOT)" && pnpm exec tsx deck-go/contracts/scripts/protocol-parity-check.ts

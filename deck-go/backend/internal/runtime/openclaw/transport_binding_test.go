@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
 )
 
 type stubManagedConnectionProvider struct{}
@@ -15,17 +16,29 @@ func (stubManagedConnectionProvider) GatewayConnection() (string, string, bool) 
 }
 
 type stubTransportRequester struct {
-	calls []string
+	calls   []string
+	payload map[string]any
 }
 
 func (s *stubTransportRequester) Request(_ context.Context, method string, params map[string]any) (any, error) {
 	s.calls = append(s.calls, method)
+	if payload, ok := s.payload[method]; ok {
+		return payload, nil
+	}
 	switch method {
 	case "health":
 		return map[string]any{"ok": true}, nil
 	default:
 		return nil, errors.New("unexpected method")
 	}
+}
+
+func (s *stubTransportRequester) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	paramsMap, err := typedParamsToMap(params)
+	if err != nil {
+		return nil, err
+	}
+	return s.Request(ctx, method, paramsMap)
 }
 
 type stubTransportController struct {
@@ -44,15 +57,17 @@ func (s *stubTransportController) UnsubscribeSession(_ context.Context, key stri
 }
 
 type stubTransportBinding struct {
-	requester      *stubTransportRequester
-	controller     *stubTransportController
-	probeURL       string
-	probeToken     string
-	deviceID       string
-	providerSeen   ManagedConnectionProvider
-	busSeen        *events.Bus
-	probeErr       error
-	currentIDError error
+	requester        *stubTransportRequester
+	controller       *stubTransportController
+	probeURL         string
+	probeToken       string
+	deviceID         string
+	providerSeen     ManagedConnectionProvider
+	busSeen          *events.Bus
+	probeErr         error
+	currentIDError   error
+	invalidatedURL   string
+	invalidatedToken string
 }
 
 func (s *stubTransportBinding) NewRequester(provider ManagedConnectionProvider) Requester {
@@ -70,6 +85,11 @@ func (s *stubTransportBinding) ProbeHealth(_ context.Context, upstreamURL string
 	s.probeURL = upstreamURL
 	s.probeToken = token
 	return s.probeErr
+}
+
+func (s *stubTransportBinding) InvalidateProbeClient(upstreamURL string, token string) {
+	s.invalidatedURL = upstreamURL
+	s.invalidatedToken = token
 }
 
 func (s *stubTransportBinding) CurrentDeviceID() (string, error) {
@@ -127,5 +147,35 @@ func TestCurrentDeviceID_UsesTransportBinding(t *testing.T) {
 	}
 	if deviceID != "device-123" {
 		t.Fatalf("unexpected device id: %q", deviceID)
+	}
+}
+
+func TestDeviceTokenRotateInvalidatesOldProbeClient(t *testing.T) {
+	previous := transportBinding
+	stub := &stubTransportBinding{
+		requester: &stubTransportRequester{
+			payload: map[string]any{
+				"device.token.rotate": map[string]any{"ok": true},
+			},
+		},
+		controller: &stubTransportController{},
+	}
+	transportBinding = stub
+	t.Cleanup(func() { transportBinding = previous })
+
+	supervisor := &recordingManagedSupervisor{
+		snapshot: runtimecontrol.Snapshot{
+			GatewayURL: "ws://gateway.example",
+		},
+		gatewayToken: "old-token",
+	}
+	managed := NewManagedRuntimeWithSupervisor(supervisor, events.NewNoopBus())
+
+	if _, err := managed.DeviceTokenRotate(context.Background(), map[string]any{"deviceId": "device-1"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if stub.invalidatedURL != "ws://gateway.example" || stub.invalidatedToken != "old-token" {
+		t.Fatalf("expected old probe client invalidation, got url=%q token=%q", stub.invalidatedURL, stub.invalidatedToken)
 	}
 }

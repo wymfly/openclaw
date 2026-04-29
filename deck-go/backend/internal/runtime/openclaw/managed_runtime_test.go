@@ -86,6 +86,7 @@ func TestNewManagedRuntime_ComposesSupervisorAdapterAndRegistry(t *testing.T) {
 	bus := events.NewBus(8)
 
 	managed := NewManagedRuntime(store, bus)
+	t.Cleanup(func() { _ = managed.Close() })
 	if managed == nil {
 		t.Fatal("expected managed runtime bundle")
 	}
@@ -154,6 +155,7 @@ func TestManagedRuntime_PropagatesLifecycleStateIntoRegistrySummaries(t *testing
 		}),
 	)
 	managed := NewManagedRuntimeWithStoreAndSupervisor(store, supervisor, bus)
+	t.Cleanup(func() { _ = managed.Close() })
 
 	if _, err := managed.Start(context.Background()); err == nil {
 		t.Fatal("expected managed runtime start failure")

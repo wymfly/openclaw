@@ -2,10 +2,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const deckFetchMock = vi.fn();
 const deckStreamMock = vi.fn();
+const createDeckGatewayClientMock = vi.fn();
 
 vi.mock("./lib/deck-client", () => ({
   deckFetch: (...args: unknown[]) => deckFetchMock(...args),
   deckStream: (...args: unknown[]) => deckStreamMock(...args),
+}));
+
+vi.mock("./lib/gateway-client", () => ({
+  createDeckGatewayClient: (...args: unknown[]) => createDeckGatewayClientMock(...args),
 }));
 
 import {
@@ -101,6 +106,34 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function mockGatewayClient(overrides: Record<string, unknown> = {}) {
+  const client = {
+    agents: {
+      list: vi.fn().mockResolvedValue({ agents: [{ id: "main" }], defaultId: "main" }),
+    },
+    deck: {
+      auth: {
+        overview: vi.fn().mockResolvedValue({ providers: [] }),
+        probe: vi.fn().mockResolvedValue({
+          provider: "openai",
+          source: "env",
+          label: "OpenAI",
+          status: "ok",
+        }),
+      },
+    },
+    models: {
+      catalog: {
+        providers: vi.fn().mockResolvedValue({ providers: [] }),
+      },
+      configured: vi.fn().mockResolvedValue({ models: [] }),
+    },
+    ...overrides,
+  };
+  createDeckGatewayClientMock.mockReturnValue(client);
+  return client;
+}
+
 describe("chat helper seam requests", () => {
   it("passes session list filters through to the current sessions route", async () => {
     deckFetchMock.mockResolvedValueOnce(
@@ -159,59 +192,32 @@ describe("chat helper seam requests", () => {
     });
   });
 
-  it("fetches configured runtime models through the current runtime route", async () => {
-    deckFetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ runtimeId: "rt_local", payload: { models: [] } }), {
-        status: 200,
-      }),
-    );
+  it("fetches configured runtime models through the typed gateway client", async () => {
+    const client = mockGatewayClient();
 
     await expect(fetchRuntimeConfiguredModels()).resolves.toMatchObject({
       runtimeId: "rt_local",
       payload: { models: [] },
     });
-    expect(deckFetchMock).toHaveBeenCalledWith(
-      "/api/v1/runtimes/rt_local/models/configured",
-      undefined,
-    );
+    expect(createDeckGatewayClientMock).toHaveBeenCalledWith({ runtimeId: "rt_local" });
+    expect(client.models.configured).toHaveBeenCalledWith({});
+    expect(deckFetchMock).not.toHaveBeenCalled();
   });
 
-  it("fetches runtime model auth, catalog providers, and probe through api v1", async () => {
-    deckFetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ runtimeId: "rt_custom", payload: { providers: [] } }), {
-        status: 200,
-      }),
-    );
-    deckFetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ runtimeId: "rt_local", payload: { providers: [] } }), {
-        status: 200,
-      }),
-    );
-    deckFetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ runtimeId: "rt_local", payload: { status: "ok" } }), {
-        status: 200,
-      }),
-    );
+  it("fetches runtime model auth, catalog providers, and probe through the typed gateway client", async () => {
+    const client = mockGatewayClient();
 
     await fetchRuntimeModelAuthOverview("rt_custom");
     await fetchRuntimeModelCatalogProviders();
     await probeRuntimeModelAuth("openai");
 
-    expect(deckFetchMock).toHaveBeenNthCalledWith(
-      1,
-      "/api/v1/runtimes/rt_custom/models/auth",
-      undefined,
-    );
-    expect(deckFetchMock).toHaveBeenNthCalledWith(
-      2,
-      "/api/v1/runtimes/rt_local/models/catalog-providers",
-      undefined,
-    );
-    expect(deckFetchMock).toHaveBeenNthCalledWith(3, "/api/v1/runtimes/rt_local/models/probe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "openai" }),
-    });
+    expect(createDeckGatewayClientMock).toHaveBeenNthCalledWith(1, { runtimeId: "rt_custom" });
+    expect(createDeckGatewayClientMock).toHaveBeenNthCalledWith(2, { runtimeId: "rt_local" });
+    expect(createDeckGatewayClientMock).toHaveBeenNthCalledWith(3, { runtimeId: "rt_local" });
+    expect(client.deck.auth.overview).toHaveBeenCalledWith({});
+    expect(client.models.catalog.providers).toHaveBeenCalledWith({});
+    expect(client.deck.auth.probe).toHaveBeenCalledWith({ provider: "openai" });
+    expect(deckFetchMock).not.toHaveBeenCalled();
   });
 
   it("passes plugin capability filters through the deck plugins route", async () => {
@@ -326,12 +332,8 @@ describe("chat helper seam requests", () => {
   });
 
   it("routes agent inventory, files, identity, and tools catalog through the current agent facade", async () => {
+    const gatewayClient = mockGatewayClient();
     deckFetchMock
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ agents: [{ id: "main" }], defaultId: "main" }), {
-          status: 200,
-        }),
-      )
       .mockResolvedValueOnce(new Response(JSON.stringify({ agentId: "main" }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: "ops" }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
@@ -360,9 +362,10 @@ describe("chat helper seam requests", () => {
     await fetchAgentIdentity("main");
     await fetchToolsCatalog("main");
 
-    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/agents", undefined);
-    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/deck/agents?agentId=main", undefined);
-    expect(deckFetchMock).toHaveBeenNthCalledWith(3, "/api/agents", {
+    expect(createDeckGatewayClientMock).toHaveBeenCalledWith({ runtimeId: "rt_local" });
+    expect(gatewayClient.agents.list).toHaveBeenCalledWith({});
+    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/deck/agents?agentId=main", undefined);
+    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/agents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -372,27 +375,27 @@ describe("chat helper seam requests", () => {
         workspace: "/tmp/work",
       }),
     });
-    expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/agents/main", {
+    expect(deckFetchMock).toHaveBeenNthCalledWith(3, "/api/agents/main", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Renamed Main" }),
     });
-    expect(deckFetchMock).toHaveBeenNthCalledWith(5, "/api/agents?agentId=ops", {
+    expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/agents?agentId=ops", {
       method: "DELETE",
     });
-    expect(deckFetchMock).toHaveBeenNthCalledWith(6, "/api/agents/main/files", undefined);
-    expect(deckFetchMock).toHaveBeenNthCalledWith(7, "/api/agents/main/files", {
+    expect(deckFetchMock).toHaveBeenNthCalledWith(5, "/api/agents/main/files", undefined);
+    expect(deckFetchMock).toHaveBeenNthCalledWith(6, "/api/agents/main/files", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "AGENTS.md", content: "hello" }),
     });
     expect(deckFetchMock).toHaveBeenNthCalledWith(
-      8,
+      7,
       "/api/agents/main/files/notes%2FREADME.md",
       undefined,
     );
-    expect(deckFetchMock).toHaveBeenNthCalledWith(9, "/api/agents/main/identity", undefined);
-    expect(deckFetchMock).toHaveBeenNthCalledWith(10, "/api/tools/catalog", {
+    expect(deckFetchMock).toHaveBeenNthCalledWith(8, "/api/agents/main/identity", undefined);
+    expect(deckFetchMock).toHaveBeenNthCalledWith(9, "/api/tools/catalog", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ agentId: "main" }),

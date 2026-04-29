@@ -27,8 +27,8 @@ func (p gatewayQuerySmokeProvider) GatewayConnection() (string, string, bool) {
 
 func TestGatewayQueriesRepresentativeWrappersSmoke(t *testing.T) {
 	var connCount atomic.Int32
-	methods := make(chan string, 8)
-	server := newGatewayQueriesSmokeServer(t, &connCount, methods)
+	requests := make(chan gatewayQuerySmokeRequest, 8)
+	server := newGatewayQueriesSmokeServer(t, &connCount, requests)
 	defer server.Close()
 
 	realtime := gateway.NewRealtime(
@@ -91,18 +91,14 @@ func TestGatewayQueriesRepresentativeWrappersSmoke(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			payload, err := tc.call()
+			_, err := tc.call()
 			if err != nil {
 				t.Fatal(err)
 			}
-			result, _ := payload.(map[string]any)
-			if result["method"] != tc.method {
-				t.Fatalf("unexpected payload: %#v", payload)
+			req := expectGatewayQuerySmokeRequest(t, requests, tc.method)
+			if !reflect.DeepEqual(req.params, normalizeGatewayQuerySmokeParams(t, tc.params)) {
+				t.Fatalf("expected params %#v, got %#v", tc.params, req.params)
 			}
-			if !reflect.DeepEqual(result["params"], normalizeGatewayQuerySmokeParams(t, tc.params)) {
-				t.Fatalf("expected params %#v, got %#v", tc.params, result["params"])
-			}
-			expectGatewayQuerySmokeMethod(t, methods, tc.method)
 		})
 	}
 	if got := connCount.Load(); got != 1 {
@@ -110,10 +106,15 @@ func TestGatewayQueriesRepresentativeWrappersSmoke(t *testing.T) {
 	}
 }
 
+type gatewayQuerySmokeRequest struct {
+	method string
+	params map[string]any
+}
+
 func newGatewayQueriesSmokeServer(
 	t *testing.T,
 	connCount *atomic.Int32,
-	methods chan<- string,
+	requests chan<- gatewayQuerySmokeRequest,
 ) *httptest.Server {
 	t.Helper()
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
@@ -167,8 +168,8 @@ func newGatewayQueriesSmokeServer(
 				continue
 			}
 			method, _ := reqFrame["method"].(string)
-			methods <- method
 			params, _ := reqFrame["params"].(map[string]any)
+			requests <- gatewayQuerySmokeRequest{method: method, params: params}
 			if err := conn.WriteJSON(map[string]any{
 				"type": "res",
 				"id":   reqFrame["id"],
@@ -186,7 +187,7 @@ func newGatewayQueriesSmokeServer(
 func normalizeGatewayQuerySmokeParams(t *testing.T, params map[string]any) any {
 	t.Helper()
 	if len(params) == 0 {
-		return nil
+		return map[string]any(nil)
 	}
 	raw, err := json.Marshal(params)
 	if err != nil {
@@ -199,14 +200,20 @@ func normalizeGatewayQuerySmokeParams(t *testing.T, params map[string]any) any {
 	return normalized
 }
 
-func expectGatewayQuerySmokeMethod(t *testing.T, methods <-chan string, expected string) {
+func expectGatewayQuerySmokeRequest(
+	t *testing.T,
+	requests <-chan gatewayQuerySmokeRequest,
+	expected string,
+) gatewayQuerySmokeRequest {
 	t.Helper()
 	select {
-	case got := <-methods:
-		if got != expected {
-			t.Fatalf("expected method %q, got %q", expected, got)
+	case got := <-requests:
+		if got.method != expected {
+			t.Fatalf("expected method %q, got %q", expected, got.method)
 		}
+		return got
 	case <-time.After(time.Second):
 		t.Fatalf("timed out waiting for method %q", expected)
+		return gatewayQuerySmokeRequest{}
 	}
 }

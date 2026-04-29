@@ -7,6 +7,7 @@ import {
   TranscriptMessageSchema,
   allowlistMethodNames,
   checkGeneratedFiles,
+  eventDefs,
   formatGo,
   methodDefs,
   methodToPascalName,
@@ -210,15 +211,15 @@ function generateMethods(): string {
     ")",
     "",
     "type Requester interface {",
-    "\tRequest(ctx context.Context, method string, params map[string]any) (any, error)",
+    "\tRequestTyped(ctx context.Context, method string, params any) (any, error)",
     "}",
     "",
-    "type Client struct {",
+    "type TypedClient struct {",
     "\trequester Requester",
     "}",
     "",
-    "func NewClient(requester Requester) *Client {",
-    "\treturn &Client{requester: requester}",
+    "func NewTypedClient(requester Requester) *TypedClient {",
+    "\treturn &TypedClient{requester: requester}",
     "}",
     "",
   ];
@@ -227,27 +228,21 @@ function generateMethods(): string {
     const sig = methodSignature(method);
     const paramsArg = sig.hasParams ? `params ${sig.paramsType}` : "params map[string]any";
     lines.push(
-      `func (c *Client) ${sig.name}(ctx context.Context, ${paramsArg}) (${sig.resultType}, error) {`,
+      `func (c *TypedClient) ${sig.name}(ctx context.Context, ${paramsArg}) (${sig.resultType}, error) {`,
     );
     if (sig.hasResult) {
       lines.push(`\tvar result ${sig.resultType}`);
     }
-    if (sig.hasParams) {
-      lines.push("\tparamsMap, err := encodeParams(params)");
-      lines.push("\tif err != nil {");
-      if (sig.hasResult) {
-        lines.push("\t\treturn result, err");
-      } else {
-        lines.push("\t\treturn nil, err");
-      }
-      lines.push("\t}");
-    } else {
+    if (!sig.hasParams) {
       lines.push("\tparamsMap := params");
       lines.push("\tif paramsMap == nil {");
       lines.push("\t\tparamsMap = map[string]any{}");
       lines.push("\t}");
     }
-    lines.push(`\tpayload, err := c.requester.Request(ctx, ${goString(method)}, paramsMap)`);
+    const requestParams = sig.hasParams ? "params" : "paramsMap";
+    lines.push(
+      `\tpayload, err := c.requester.RequestTyped(ctx, ${goString(method)}, ${requestParams})`,
+    );
     lines.push("\tif err != nil {");
     if (sig.hasResult) {
       lines.push("\t\treturn result, err");
@@ -264,19 +259,6 @@ function generateMethods(): string {
     lines.push("");
   }
 
-  lines.push("func encodeParams(params any) (map[string]any, error) {");
-  lines.push("\traw, err := json.Marshal(params)");
-  lines.push("\tif err != nil {");
-  lines.push("\t\treturn nil, err");
-  lines.push("\t}");
-  lines.push("\tresult := map[string]any{}");
-  lines.push("\tif err := json.Unmarshal(raw, &result); err != nil {");
-  lines.push("\t\treturn nil, err");
-  lines.push("\t}");
-  lines.push("\treturn result, nil");
-  lines.push("}");
-  lines.push("");
-
   lines.push("func decodeResult[T any](payload any) (T, error) {");
   lines.push("\tvar result T");
   lines.push("\traw, err := json.Marshal(payload)");
@@ -289,6 +271,32 @@ function generateMethods(): string {
   lines.push("\treturn result, nil");
   lines.push("}");
   lines.push("");
+
+  return formatGo(lines.join("\n"));
+}
+
+function generateEvents(): string {
+  const typeBlocks: string[] = [];
+  const eventEntries: string[] = [];
+  for (const [eventName, def] of sortedEntries(eventDefs)) {
+    if (!def.payload) {
+      continue;
+    }
+    const name = `${methodToPascalName(eventName)}EventPayload`;
+    typeBlocks.push(goNamedTypeBlock(name, def.payload));
+    eventEntries.push(`\t${goString(eventName)}: reflect.TypeOf(${name}{}),`);
+  }
+
+  const lines: string[] = [
+    ...goHeader(),
+    'import "reflect"',
+    "",
+    ...typeBlocks,
+    "var GatewayEventPayloadMap = map[string]reflect.Type{",
+    ...eventEntries,
+    "}",
+    "",
+  ];
 
   return formatGo(lines.join("\n"));
 }
@@ -335,6 +343,10 @@ export function generateGoFiles() {
     {
       path: resolve(GO_GATEWAY_OUT_DIR, "methods.go"),
       content: generateMethods(),
+    },
+    {
+      path: resolve(GO_GATEWAY_OUT_DIR, "events.go"),
+      content: generateEvents(),
     },
     ...generateTypesFiles(),
   ];

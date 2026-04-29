@@ -362,10 +362,8 @@ func (s *LegacyInventorySurface) DefaultAgentWorkspace(ctx context.Context, name
 		return ""
 	}
 	if payload, err := s.managed.GatewayQueries().ConfigGetWithParams(ctx, map[string]any{"path": "agents.defaults.workspace"}); err == nil {
-		if record, ok := payload.(map[string]any); ok {
-			if raw, _ := record["raw"].(string); strings.TrimSpace(raw) != "" {
-				return raw
-			}
+		if strings.TrimSpace(payload.Raw) != "" {
+			return payload.Raw
 		}
 	}
 	stateDir := strings.TrimSpace(os.Getenv("OPENCLAW_STATE_DIR"))

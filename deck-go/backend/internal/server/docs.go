@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/localstore"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
@@ -116,6 +117,27 @@ type extractedDoc struct {
 }
 
 func extractDocsFromChatHistory(payload any) []extractedDoc {
+	if history, ok := payload.(generated.ChatHistoryResult); ok {
+		results := make([]extractedDoc, 0)
+		for _, message := range history.Messages {
+			if message.Role != "assistant" {
+				continue
+			}
+			text := flattenDocMessageContent(message.Content)
+			if len(strings.TrimSpace(text)) < 200 {
+				continue
+			}
+			category := categorizeDocContent(text)
+			results = append(results, extractedDoc{
+				Title:    extractDocTitle(text),
+				Category: category,
+				Content:  text,
+				Keywords: extractDocKeywords(text, category),
+				Language: detectDocLanguage(text),
+			})
+		}
+		return results
+	}
 	record, ok := payload.(map[string]any)
 	if !ok {
 		return nil
