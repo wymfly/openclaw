@@ -8611,7 +8611,6 @@ details summary {
 
 .deck-ui-context-strip,
 .deck-ui-transcript-search,
-.deck-ui-tool-ladder,
 .deck-ui-config-strip {
   border: 0;
   border-bottom: 1px solid var(--border);
@@ -9380,57 +9379,8 @@ details summary {
   color: var(--primary);
 }
 
-.deck-ui-clear-button {
-  margin-left: auto;
-}
-
-.deck-ui-tool-ladder {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-}
-
-.deck-ui-tool-ladder section {
-  min-width: 0;
-  display: grid;
-  gap: 5px;
-  padding: 10px 12px;
-}
-
-.deck-ui-tool-step.is-running {
-  background: color-mix(in srgb, var(--primary) 8%, transparent);
-}
-
-.deck-ui-tool-step.is-error,
-.deck-ui-tool-step.is-failed {
-  background: color-mix(in srgb, var(--danger) 8%, transparent);
-}
-
-.deck-ui-tool-ladder section + section,
 .deck-ui-config-strip > * + * {
   border-left: 1px solid var(--border);
-}
-
-.deck-ui-tool-ladder strong,
-.deck-ui-tool-ladder span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-surface-label {
-  margin: 0;
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.deck-ui-tool-ladder span,
-.deck-ui-state-line {
-  color: var(--text-faint);
-  font-size: 0.82rem;
 }
 
 .deck-ui-config-strip {
@@ -9477,11 +9427,6 @@ details summary {
 }
 
 
-.deck-ui-state-line {
-  margin: 0;
-}
-
-
 .deckgo-checkbox-row,
 .deckgo-checkbox-label {
   display: inline-flex;
@@ -9522,13 +9467,11 @@ details summary {
     min-height: 260px;
   }
 
-  .deck-ui-tool-ladder,
   .deck-ui-config-strip {
     display: grid;
     grid-template-columns: 1fr;
   }
 
-  .deck-ui-tool-ladder section + section,
   .deck-ui-config-strip > * + * {
     border-left: 0;
     border-top: 1px solid var(--border);

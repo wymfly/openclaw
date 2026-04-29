@@ -73,27 +73,20 @@ export function ToolProgressBar() {
   const running = entries.filter((entry) => entry.status === "running").length;
 
   return (
-    <div className="ds-tool-ladder deck-ui-tool-ladder" aria-label={t("tools")}>
+    <div className="ds-tool-ladder" aria-label={t("tools")}>
       {entries.map((entry) => {
-        const stepClasses = [
-          "ds-tool-ladder__step",
-          `ds-tool-ladder__step--${entry.status}`,
-          "deck-ui-tool-step",
-          `is-${entry.status}`,
-        ];
+        const stepClasses = ["ds-tool-ladder__step", `ds-tool-ladder__step--${entry.status}`];
         return (
           <section className={stepClasses.join(" ")} key={entry.toolUseId}>
-            <p className="ds-tool-ladder__step-label deck-ui-surface-label">
-              {toolStatusLabel(t, entry.status)}
-            </p>
+            <p className="ds-tool-ladder__step-label">{toolStatusLabel(t, entry.status)}</p>
             <strong>{entry.name}</strong>
             <span>{entry.toolUseId}</span>
             {entry.status === "running" ? <ElapsedTime startedAt={entry.startedAt} /> : null}
           </section>
         );
       })}
-      <section className="ds-tool-ladder__step deck-ui-tool-step is-summary">
-        <p className="ds-tool-ladder__step-label deck-ui-surface-label">{t("tools")}</p>
+      <section className="ds-tool-ladder__step ds-tool-ladder__step--summary">
+        <p className="ds-tool-ladder__step-label">{t("tools")}</p>
         <strong>{running > 0 ? t("toolsRunning", { count: running }) : t("toolsCompleted")}</strong>
       </section>
     </div>

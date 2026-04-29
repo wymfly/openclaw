@@ -44,41 +44,81 @@
   font-size: var(--ds-fs-meta);
 }
 
+/* Tool-ladder — bundle .tool-progress-bar (lines 262-270).
+ * Bundle uses a flat horizontal flex of `.tpb-item` chips; deck-go's
+ * JSX renders multi-line `<section>` cards (label + name + id +
+ * elapsed) per tool-use, so we keep an auto-fit grid for content
+ * density but adopt the bundle surface palette (border-top
+ * --ds-border-subtle + --ds-bg-2). Step variants reuse design-system
+ * status tokens. */
 .ds-tool-ladder {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--ds-border);
-  background: var(--ds-bg-elev);
-  font-size: 0.78rem;
+  padding: 6px 22px;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
+  overflow-x: auto;
 }
 
 .ds-tool-ladder__step {
-  padding: 8px;
-  border: 1px solid var(--ds-border);
-  border-radius: 6px;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 7px 10px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
   background: var(--ds-bg-1);
 }
 
+.ds-tool-ladder__step strong {
+  color: var(--ds-text-1);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-tool-ladder__step span {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ds-tool-ladder__step--running {
-  border-color: var(--ds-accent);
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
 }
 
 .ds-tool-ladder__step--completed {
-  border-color: var(--ds-success, #2c9b6b);
+  border-color: var(--ds-success);
 }
 
-.ds-tool-ladder__step--error {
-  border-color: var(--ds-danger, #d94747);
+.ds-tool-ladder__step--error,
+.ds-tool-ladder__step--failed {
+  border-color: var(--ds-error);
+  background: var(--ds-error-bg);
 }
 
 .ds-tool-ladder__step-label {
-  margin: 0 0 2px;
-  color: var(--ds-text-2, currentColor);
-  font-size: 0.7rem;
+  margin: 0;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 680px) {
+  .ds-tool-ladder {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Compaction notice — bundle .compaction-notice (lines 605-616).
