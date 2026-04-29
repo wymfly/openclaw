@@ -4,14 +4,14 @@ export function TableViewer({ content }: { content: string }) {
   const t = useTranslations("chat");
   const lines = content.split("\n").filter((line) => line.trim());
   if (lines.length < 2) {
-    return <p className="deck-ui-artifact-empty">{t("artifactCsvEmpty")}</p>;
+    return <p className="ds-artifact-body__empty">{t("artifactCsvEmpty")}</p>;
   }
 
   const headers = parseCsvLine(lines[0]);
   const rows = lines.slice(1).map(parseCsvLine);
 
   return (
-    <table className="deck-ui-artifact-table">
+    <table className="ds-artifact-body__table">
       <thead>
         <tr>
           {headers.map((header, index) => (

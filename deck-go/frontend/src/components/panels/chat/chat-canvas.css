@@ -300,3 +300,125 @@
   height: 34px;
   padding: 6px 10px;
 }
+
+/* Inline artifact card — surfaces a runnable artifact inside the
+ * tool-result area. Bundle has no direct counterpart; deck-go
+ * keeps the bordered grid pattern with a play icon, title,
+ * language tag, and a primary "open" button. Palette switched
+ * to --ds-* tokens (was color-mix --primary tinted). */
+.ds-artifact-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-accent-dim);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-accent-bg);
+}
+
+.ds-artifact-card__icon {
+  min-width: 24px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-elev);
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ds-artifact-card__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-artifact-card__language {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-transform: uppercase;
+}
+
+/* Artifact body sub-renderers — bundle .ap-* (lines 974-989) for
+ * code/markdown/json/table/image surfaces inside the artifact panel.
+ * `.ds-artifact-panel__body` already supplies the outer scroll
+ * container; these rules style each language-specific child. */
+.ds-artifact-body__code {
+  margin: 0;
+  padding: 9px 10px;
+  background: var(--ds-code-bg);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: var(--ds-line);
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+.ds-artifact-body__markdown {
+  padding: 10px 12px;
+}
+
+.ds-artifact-body__image {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: 12px;
+  background: var(--ds-bg-1);
+}
+
+.ds-artifact-body__image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.ds-artifact-body__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ds-fs-body);
+}
+
+.ds-artifact-body__table th,
+.ds-artifact-body__table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  text-align: left;
+}
+
+.ds-artifact-body__table th {
+  background: var(--ds-bg-2);
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-artifact-body__empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--ds-text-3);
+  text-align: center;
+}
+
+/* SharedRenderer wrapper — generic overflow container for any
+ * artifact body content. */
+.ds-shared-renderer {
+  min-height: 0;
+  overflow: auto;
+}
+
+.ds-shared-renderer iframe {
+  width: 100%;
+  min-height: 360px;
+  border: 0;
+  background: #fff;
+}

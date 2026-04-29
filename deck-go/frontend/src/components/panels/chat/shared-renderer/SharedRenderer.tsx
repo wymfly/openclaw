@@ -19,7 +19,7 @@ export function SharedRenderer({
   );
 
   return (
-    <div className={className ?? "deck-ui-shared-renderer"}>
+    <div className={className ?? "ds-shared-renderer"}>
       {usesIframe(artifact.language) ? (
         <iframe srcDoc={srcdoc} sandbox="allow-scripts" title={artifact.title} />
       ) : artifact.language === "json" ? (
@@ -31,11 +31,11 @@ export function SharedRenderer({
       ) : artifact.language === "code" ? (
         <CodeViewer content={artifact.content} language={artifact.codeLang} />
       ) : artifact.language === "image" ? (
-        <div className="deck-ui-artifact-image">
+        <div className="ds-artifact-body__image">
           <img src={artifact.content} alt={artifact.title} />
         </div>
       ) : (
-        <pre className="deck-ui-artifact-code">{artifact.content}</pre>
+        <pre className="ds-artifact-body__code">{artifact.content}</pre>
       )}
     </div>
   );

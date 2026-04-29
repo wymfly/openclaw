@@ -37,7 +37,7 @@ export function MarkdownRenderer({ content, className, mode }: MarkdownRendererP
 
 export function MarkdownViewer({ content }: { content: string }) {
   return (
-    <div className="deck-ui-artifact-markdown">
+    <div className="ds-artifact-body__markdown">
       <MarkdownRenderer className="deck-ui-markdown" content={content} mode="static" />
     </div>
   );

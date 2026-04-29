@@ -26,16 +26,14 @@ export function ArtifactPanel({
 
   const sectionClasses = ["ds-artifact-panel", "deck-ui-artifact"];
   if (fullscreen) {
-    sectionClasses.push("ds-artifact-panel--fullscreen", "deck-ui-artifact-fullscreen");
+    sectionClasses.push("ds-artifact-panel--fullscreen");
   }
 
   return (
     <section className={sectionClasses.join(" ")} data-fullscreen={fullscreen ? "true" : "false"}>
-      <div className="ds-artifact-panel__head deck-ui-artifact-head">
+      <div className="ds-artifact-panel__head">
         <strong>{title}</strong>
-        <span className="ds-artifact-panel__language deck-ui-artifact-language">
-          {artifact.language}
-        </span>
+        <span className="ds-artifact-panel__language">{artifact.language}</span>
         <IconButton
           size="sm"
           aria-label={t("artifactDownload")}
@@ -71,10 +69,7 @@ export function ArtifactPanel({
           <span className="ds-sr-only deck-ui-sr-only">{t("artifactClose")}</span>
         </IconButton>
       </div>
-      <SharedRenderer
-        artifact={artifact}
-        className="ds-artifact-panel__body deck-ui-artifact-body"
-      />
+      <SharedRenderer artifact={artifact} className="ds-artifact-panel__body" />
     </section>
   );
 }

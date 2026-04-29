@@ -186,7 +186,7 @@ describe("MarkdownText", () => {
       root.render(createElement(MarkdownViewer, { content: markdown }));
     });
 
-    expect(container.querySelector(".deck-ui-artifact-markdown")).toBeTruthy();
+    expect(container.querySelector(".ds-artifact-body__markdown")).toBeTruthy();
     expect(container.querySelector(".deck-ui-markdown")).toBeTruthy();
     expect(container.querySelector("h2")?.textContent).toBe("Artifact");
     expect(container.querySelector("ul > li")?.textContent).toBe("item");
