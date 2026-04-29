@@ -1,96 +1,172 @@
-/* CanvasPanel + ArtifactPanel layout — viewport, overlays, debug. */
+/* CanvasPanel + CanvasDebugPanel + ArtifactPanel chrome.
+ *
+ * P3 task 2 atom 9.7 — Decision B per-atom visual replacement.
+ * Bundle target: docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css
+ *   .right-panel    (lines 848-856 — drawer wrapper, owned by chat-right-drawer.css)
+ *   .rp-head        (lines 884-901)
+ *   .cp / .cp-body  (lines 903-904)
+ *   .cp-stage       (lines 905-913)
+ *   .cp-overlay     (lines 914-922)
+ *   .cp-debug       (lines 940-948)
+ *   .ap / .ap-tabs  (lines 950-989)
+ *
+ * Replaces legacy `.deck-ui-canvas-panel` / `-header` / `-viewport` /
+ * `-frame` / `-overlay` / `-spinner` / `-debug*` / `-embed` and the
+ * `.deck-ui-artifact` / `-fullscreen` / `-head` panel chrome rules
+ * removed from theme.css in the same commit. Inline `ArtifactCard`
+ * + `SharedRenderer` body sub-renderer styles (artifact-table /
+ * -json / -image / -markdown / -empty / -code) remain on legacy
+ * classes for now and will be cleaned up in 9.10 widgets bucket.
+ */
 
+/* CanvasPanel — bundle .cp (flex column min-height 0). The .right-panel
+ * drawer wrapper is owned separately. */
 .ds-canvas-panel {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   height: 100%;
 }
 
+/* Header — bundle .rp-head adapted for drawer top bar. */
 .ds-canvas-panel__header {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-}
-
-.ds-canvas-panel__viewport {
-  position: relative;
-  height: 100%;
-  border: 1px solid var(--ds-border);
-  border-radius: 6px;
-  overflow: hidden;
+  height: 40px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ds-border-subtle);
   background: var(--ds-bg-1);
+  color: var(--ds-text-1);
+  font-weight: 600;
+  font-size: 13px;
 }
 
+.ds-canvas-panel__header > div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Viewport — bundle .cp-stage. */
+.ds-canvas-panel__viewport {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  background: var(--ds-bg-1);
+  overflow: auto;
+}
+
+/* Iframe fills viewport — runtime A2UI iframe is borderless full-bleed. */
 .ds-canvas-panel__frame {
+  flex: 1 1 auto;
   width: 100%;
-  height: 100%;
   border: 0;
 }
 
+/* Overlay (loading / error / empty) — bundle .cp-overlay. */
 .ds-canvas-panel__overlay {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--ds-bg-1) 85%, transparent);
+  gap: 10px;
+  padding: 16px;
+  background: var(--ds-bg-1);
+  color: var(--ds-text-2);
+  text-align: center;
 }
 
 .ds-canvas-panel__spinner {
-  width: 24px;
-  height: 24px;
-  animation: ds-spin 0.9s linear infinite;
+  width: 20px;
+  height: 20px;
+  color: var(--ds-accent);
+  animation: ds-canvas-spin 0.9s linear infinite;
 }
 
-@keyframes ds-spin {
+@keyframes ds-canvas-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
+/* Debug — bundle .cp-debug. */
 .ds-canvas-debug {
-  margin-top: 8px;
-  padding: 8px;
-  border: 1px solid var(--ds-border);
-  border-radius: 6px;
-  background: var(--ds-bg-1);
-  font-size: 0.78rem;
+  flex: 0 0 auto;
+  max-height: 220px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  overflow: hidden;
 }
 
 .ds-canvas-debug__tabs {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
 }
 
-.ds-canvas-debug__events {
+.ds-canvas-debug__tabs button {
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--ds-text-3);
+  font: inherit;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.ds-canvas-debug__tabs button:hover,
+.ds-canvas-debug__tabs button.is-active {
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-1);
+}
+
+.ds-canvas-debug__tabs span {
+  margin-left: auto;
+  color: var(--ds-text-3);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ds-canvas-debug__events,
+.ds-canvas-debug__surfaces {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  max-height: 240px;
+  gap: 0;
   overflow: auto;
 }
 
 .ds-canvas-debug__event {
   width: 100%;
   display: grid;
-  grid-template-columns: 80px 100px 1fr;
-  gap: 6px;
-  padding: 4px 6px;
+  grid-template-columns: max-content minmax(86px, max-content) minmax(0, 1fr);
+  gap: 8px;
+  padding: 5px 10px;
   border: 0;
-  border-radius: 4px;
+  border-bottom: 1px solid var(--ds-border-subtle);
   background: transparent;
+  color: var(--ds-text-1);
   text-align: left;
   font: inherit;
-  color: inherit;
+  font-size: var(--ds-fs-meta);
   cursor: pointer;
 }
 
@@ -98,49 +174,129 @@
   background: var(--ds-bg-hover);
 }
 
-.ds-canvas-debug__time {
-  color: var(--ds-text-2, currentColor);
+.ds-canvas-debug__time,
+.ds-canvas-debug__empty,
+.ds-canvas-debug__event > span:last-child {
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-canvas-debug__event > span:nth-child(2) {
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
 }
 
 .ds-canvas-debug__raw {
   margin: 0;
-  padding: 6px;
-  border-radius: 4px;
-  background: var(--ds-bg-2);
-  white-space: pre-wrap;
-  font-size: 0.72rem;
-  max-height: 200px;
+  max-height: 140px;
   overflow: auto;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.45;
+  white-space: pre-wrap;
 }
 
-.ds-artifact-panel {
+.ds-canvas-debug__tree {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: 100%;
-}
-
-.ds-artifact-panel__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ds-artifact-panel__language {
-  color: var(--ds-text-2, currentColor);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-}
-
-.ds-artifact-panel__body {
-  flex: 1;
+  padding: 10px;
   overflow: auto;
 }
 
+.ds-canvas-debug__surfaces {
+  gap: 5px;
+}
+
+.ds-canvas-debug__surfaces li {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  padding: 5px 8px;
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-canvas-debug__empty {
+  margin: 0;
+  padding: 12px;
+  text-align: center;
+}
+
+/* Inline canvas embed — used by CanvasEmbed block + nested in tool-result. */
+.ds-canvas-embed {
+  width: 100%;
+  min-height: 260px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-elev);
+}
+
+/* ArtifactPanel — bundle .ap (drawer body, flex column). */
+.ds-artifact-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Head — bundle .rp-head adapted (drawer head row with title + toolbar). */
+.ds-artifact-panel__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+  color: var(--ds-text-1);
+  font-size: 13px;
+}
+
+.ds-artifact-panel__head strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.ds-artifact-panel__language {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-transform: uppercase;
+}
+
+/* Body — bundle .ap-body (overflow auto on a code-bg base). Specific
+ * sub-renderers (.ap-md / .ap-table / .ap-json / .ap-html-stub) override
+ * their own backgrounds; those styles still live on legacy
+ * `.deck-ui-artifact-*` selectors and will be migrated in 9.10. */
+.ds-artifact-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: var(--ds-code-bg);
+}
+
+/* Fullscreen modifier — covers entire viewport on top of the drawer. */
 .ds-artifact-panel--fullscreen {
   position: fixed;
   inset: 0;
   z-index: 80;
   background: var(--ds-bg-elev);
-  padding: 16px;
+}
+
+/* Density compact override. */
+[data-density="compact"] .ds-canvas-panel__header,
+[data-density="compact"] .ds-artifact-panel__head {
+  height: 34px;
+  padding: 6px 10px;
 }
