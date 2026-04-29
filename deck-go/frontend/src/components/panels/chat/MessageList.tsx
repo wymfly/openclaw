@@ -123,11 +123,15 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
   }, [messages]);
 
   if (messages.length === 0) {
-    return <p className="deck-ui-message-empty">{t("noMessages")}</p>;
+    return <p className="ds-chat-message-empty deck-ui-message-empty">{t("noMessages")}</p>;
   }
 
   return (
-    <div className="deck-ui-message-list" ref={containerRef} onScroll={handleScroll}>
+    <div
+      className="ds-chat-message-list deck-ui-message-list"
+      ref={containerRef}
+      onScroll={handleScroll}
+    >
       {messages.map((msg, idx) => {
         if (msg.role === "system" && msg.id.startsWith("compaction-")) {
           return (
@@ -165,7 +169,11 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
             : undefined);
 
         return (
-          <div className="deck-ui-message-frame" key={msg.id} data-message-idx={idx}>
+          <div
+            className="ds-chat-message-frame deck-ui-message-frame"
+            key={msg.id}
+            data-message-idx={idx}
+          >
             <MessageBubble
               message={msg}
               blockPrefs={blockPreferences}
@@ -180,9 +188,9 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
         );
       })}
       {isStreaming && !messages.some((m) => m.streaming) ? (
-        <div className="deck-ui-message-frame">
-          <div className="deck-ui-waiting-message">
-            <span className="deck-ui-message-avatar" aria-hidden="true">
+        <div className="ds-chat-message-frame deck-ui-message-frame">
+          <div className="ds-chat-message-waiting deck-ui-waiting-message">
+            <span className="ds-chat-message__avatar deck-ui-message-avatar" aria-hidden="true">
               <BotIcon />
             </span>
             <span className="deck-ui-thinking-inline">{t("thinking")}</span>

@@ -8096,7 +8096,6 @@ details summary {
 
 .deck-ui-header p,
 .deck-ui-muted-text,
-.deck-ui-message-time,
 .deck-ui-session-row small,
 .deck-ui-session-row em,
 .deck-ui-artifact span {
@@ -9045,21 +9044,6 @@ details summary {
   background: var(--bg);
 }
 
-.deck-ui-message-list {
-  min-height: 0;
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  overflow: auto;
-  padding: 4px 2px 8px;
-}
-
-.deck-ui-message-frame {
-  min-width: 0;
-  display: grid;
-}
-
-.deck-ui-message-empty,
 .deck-ui-thinking-inline {
   margin: 0;
   align-self: center;
@@ -9085,109 +9069,6 @@ details summary {
 
 .deck-ui-empty-state p {
   color: var(--text-soft);
-}
-
-.deck-ui-message {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  max-width: min(90%, 920px);
-}
-
-.deck-ui-message.is-user {
-  justify-self: end;
-  flex-direction: row-reverse;
-  max-width: min(75%, 760px);
-}
-
-.deck-ui-message.is-user .deck-ui-message-avatar {
-  background: var(--primary-muted);
-  color: var(--primary);
-}
-
-.deck-ui-message.is-user .deck-ui-message-body {
-  align-items: flex-end;
-}
-
-.deck-ui-message-avatar {
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--surface-elevated);
-  color: var(--text-faint);
-  font-weight: 700;
-  font-size: 0.68rem;
-}
-
-.deck-ui-message-avatar svg {
-  width: 14px;
-  height: 14px;
-}
-
-.deck-ui-message.is-assistant .deck-ui-message-avatar {
-  background: var(--surface-elevated);
-  color: var(--text-faint);
-}
-
-.deck-ui-message-body {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  max-width: 100%;
-}
-
-.deck-ui-message-body p {
-  margin: 0;
-  line-height: 1.65;
-  white-space: pre-wrap;
-}
-
-.deck-ui-message-body mark {
-  border-radius: 999px;
-  padding: 2px 7px;
-  color: var(--text);
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-}
-
-.deck-ui-message-body mark.is-danger {
-  background: color-mix(in srgb, var(--danger) 18%, transparent);
-}
-
-.deck-ui-message-blocks {
-  display: grid;
-  gap: 8px;
-}
-
-.deck-ui-message.is-user .deck-ui-transcript-text {
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--primary);
-  color: #fff;
-}
-
-.deck-ui-message.is-assistant .deck-ui-transcript-text {
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-floating);
-  color: var(--text);
-}
-
-.deck-ui-message-time {
-  padding: 0 2px;
-  font-size: 0.66rem;
-  line-height: 1.2;
-}
-
-.deck-ui-waiting-message {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .deck-ui-thinking-block,
@@ -9986,14 +9867,6 @@ details summary {
   background: transparent;
 }
 
-.deck-ui-message-error,
-.deck-ui-partial-result {
-  color: var(--danger);
-  font-size: 0.8rem;
-}
-
-.deck-ui-message-actions,
-.deck-ui-run-status,
 .deck-ui-session-config {
   display: flex;
   flex-wrap: wrap;
@@ -10001,18 +9874,6 @@ details summary {
   gap: 6px;
 }
 
-.deck-ui-message-actions {
-  justify-content: flex-end;
-  opacity: 0;
-  transition: opacity 150ms ease;
-}
-
-.deck-ui-message:hover .deck-ui-message-actions,
-.deck-ui-message:focus-within .deck-ui-message-actions {
-  opacity: 1;
-}
-
-.deck-ui-message-action,
 .deck-ui-session-config-button,
 .deck-ui-context-button,
 .deck-ui-approval-actions button,
@@ -10029,29 +9890,6 @@ details summary {
   font-size: 0.78rem;
 }
 
-.deck-ui-message-action {
-  width: 28px;
-  height: 28px;
-  display: inline-grid;
-  place-items: center;
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
-}
-
-.deck-ui-message-action:hover,
-.deck-ui-message-action:focus-visible {
-  border-color: var(--border);
-  background: var(--surface-elevated);
-  color: var(--text);
-}
-
-.deck-ui-message-action svg {
-  width: 13px;
-  height: 13px;
-}
-
-.deck-ui-message-action[aria-pressed="true"],
 .deck-ui-session-config-button:hover,
 .deck-ui-context-button:hover,
 .deck-ui-steer-shortcut:hover,
@@ -10067,7 +9905,6 @@ details summary {
   color: var(--primary);
 }
 
-.deck-ui-run-status,
 .deck-ui-session-config {
   padding: 7px 9px;
   border: 1px solid var(--border);
@@ -10077,14 +9914,12 @@ details summary {
   font-size: 0.76rem;
 }
 
-.deck-ui-run-status-model,
 .deck-ui-session-config-model strong,
 .deck-ui-session-config-pill {
   color: var(--primary);
   font-weight: 650;
 }
 
-.deck-ui-run-status span,
 .deck-ui-session-config span,
 .deck-ui-session-config button {
   display: inline-flex;
@@ -10092,7 +9927,6 @@ details summary {
   gap: 5px;
 }
 
-.deck-ui-run-status svg,
 .deck-ui-session-config svg {
   width: 12px;
   height: 12px;
@@ -10295,38 +10129,6 @@ details summary {
 
 .deck-ui-approval-deny {
   color: var(--danger) !important;
-}
-
-.deck-ui-run-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: 2px 7px;
-  background: var(--surface-inset);
-  color: var(--text-soft);
-}
-
-.deck-ui-run-status-badge.is-running {
-  border-color: color-mix(in srgb, var(--warning) 32%, var(--border));
-  background: color-mix(in srgb, var(--warning) 9%, var(--surface-inset));
-  color: var(--text);
-}
-
-.deck-ui-run-status-badge.is-failed,
-.deck-ui-run-status-badge.is-killed,
-.deck-ui-run-status-badge.is-timeout {
-  border-color: color-mix(in srgb, var(--danger) 32%, var(--border));
-  background: color-mix(in srgb, var(--danger) 9%, var(--surface-inset));
-  color: var(--danger);
-}
-
-.deck-ui-run-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--warning);
 }
 
 .animate-pulse {
