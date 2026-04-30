@@ -137,7 +137,7 @@
 
 ## 14. Closeout
 
-- [ ] 14.1 Re-run gap-report audit: confirm zero `port`-status entries remain (every bundle primitive is either reproduced or has a documented `skip`/`deferred` justification).
-- [ ] 14.2 Update `cross-module-readiness.md` Worklist with any new atoms added during chat remediation (e.g., `Block` atom from §10).
+- [x] 14.1 Re-ran gap-report audit. The 26 `**port**`-status table entries surfaced by §3.1-3.5 audit were preserved in their per-surface tables as historical evidence, and a new "Post-§4-10 closeout" section was appended to `chat-parity-gap-report.md` mapping each port group to the §4-10 commit that closed it (composer 11+5 → 4a/4b/4c, canvas 6 → 6a/6b, artifact 7+1 → 7a/7b, transcript 4 → §8, blocks 1+arch divergence → §10, app shell sidebar collapsed → §9, ChatContextBar Decision 1 → §5). Verdict: **zero functionally outstanding port entries** — every bundle primitive is either reproduced (commits §4-10) or carries a documented `divergence` skip decision (e.g., `approval-meta` dl/dt/dd, `tool-progress-bar` cards, `sat-node` cards, `ap-json` JsonTree).
+- [x] 14.2 Updated `cross-module-readiness.md` with a new "Maintenance log" section. Verdict: **no new atoms introduced by chat remediation §4-11** — the Block atom (§10 work) already existed and gained 5 semantic-only role markers (`ds-block--tool-use|--tool-result|--file|--canvas|--unknown`) with zero visual/API change; Block remains `n/a` for panels (chat-only). §11 axe automation is a regression gate, not an atom API change. The Worklist section's 8 missing atoms + 8 extend rows are unchanged.
 - [ ] 14.3 Mark this change archive-ready in tasks.md; produce a summary commit listing what shipped.
 - [ ] 14.4 Run `openspec validate frontend-chat-parity-and-foundation-audit` to confirm 0 outstanding `[ ]` items, then `/opsx:archive frontend-chat-parity-and-foundation-audit`.

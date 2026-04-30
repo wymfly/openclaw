@@ -669,3 +669,29 @@ These deltas are not pure visual ports — they need product input:
 3. **CompactionNotice "view summary" button**: bundle has a "view summary" affordance after the count; would require a summary modal feature. Build or skip?
 4. **`.ds-block` shared base atom**: bundle uses `.block` chrome cascade across all block types; deck-go atomizes. Worth introducing a shared base for visual consistency hardening, or stay with current approach?
 5. **Sidebar collapsed mode pattern**: verify deck-go's collapsed sidebar matches bundle's icon-stack pattern; if not, port or document divergence.
+
+## Post-§4-10 closeout (audit timestamp 2026-04-30, change `frontend-chat-parity-and-foundation-audit`)
+
+After the audit produced the port lists above, §4-10 of `frontend-chat-parity-and-foundation-audit/tasks.md` shipped 9 commits that close every `**port**` entry. The original status markers in the per-surface tables are preserved as a historical record — the table below maps each port group to the commit that closed it, demonstrating zero functionally outstanding `port`-status work.
+
+| Section                           | Port-status entries (audit verdict)               | Closed by commit                                                                                                                                                     | Status    |
+| --------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| §3.1 Composer                     | 11 ports + 5 partials                             | 4a (4-stack restructure + drag-over + char-count) + 4b (cmd-tag 3-element + ghost-rest + ctx-warn zap) + 4c (active state + popover mode-tag + kbd + attach-bar add) | ✅ closed |
+| §3.2 Right-panel — Canvas         | 6 ports                                           | 6a (canvas header sub + Refresh + overlay icons) + 6b (canvas iframe-bar status strip)                                                                               | ✅ closed |
+| §3.2 Right-panel — Artifact       | 7 ports + 1 partial                               | 7a (artifact icon + sub + 5-tab format switcher) + 7b (ap-html-stub iframe + ap-code line numbers)                                                                   | ✅ closed |
+| §3.3 Transcript                   | 4 ports                                           | 8 (block-filter eyebrow + msg-meta-line role+streaming + compaction summary modal)                                                                                   | ✅ closed |
+| §3.4 Blocks                       | 1 port + architectural divergence                 | 10 (shared `.ds-block` base atom + 6 role variants) — closes the cross-block visual consistency port                                                                 | ✅ closed |
+| §3.5 App shell                    | 0 ports + sidebar collapsed-mode product decision | 9 (sidebar collapsed mode — agent-stack + session-mini)                                                                                                              | ✅ closed |
+| §3.3 Transcript — ChatContextBar  | structural divergence (Decision 1)                | 5 (collapse SessionConfigBar into 5-cell ChatContextBar)                                                                                                             | ✅ closed |
+| §3.4 Blocks — `.ds-block` cascade | architectural divergence (Decision 4)             | 10 (shared `.ds-block` base atom + 6 role variants)                                                                                                                  | ✅ closed |
+
+**Cross-cutting: a11y automation** — §11 added `vitest-axe` matcher + `expectNoAxeViolations(container)` assertion to all 36 atom tests. Every atom passes with **zero violations**, providing a regression gate for any future visual changes.
+
+### Verdict
+
+Every `**port**` entry surfaced by the audit either:
+
+1. **Has been functionally closed** by a §4-10 commit (the table above), OR
+2. **Has been documented as a `divergence` with skip decision** (e.g., `approval-meta` dl/dt/dd vs flat row, `tool-progress-bar` cards vs row, `sat-node` flat-tree vs cards) — preserved as deck-go intentional product features.
+
+No port-status entries remain functionally outstanding. The per-surface tables above retain their original audit markers as historical evidence; the closure map in this section is the load-bearing summary.

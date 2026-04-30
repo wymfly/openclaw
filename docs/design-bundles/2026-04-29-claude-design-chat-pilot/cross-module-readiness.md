@@ -216,3 +216,8 @@ This matrix is updated whenever:
 - (c) A panel migration completes → move its row to the "Completed Migrations" appendix above and link to the archived OpenSpec change.
 
 The current state above reflects audit on 2026-04-30. Subsequent atom or panel additions should append rather than replace entries to preserve the audit trail.
+
+### Maintenance log
+
+- **2026-04-30 — chat-parity §10 (Block atom role markers)**: 5 semantic-only role classes added (`ds-block--tool-use`, `--tool-result`, `--file`, `--canvas`, `--unknown`) to the existing `Block` atom CSS. No visual/API change; consumers keep their per-component chrome. Block atom remains `n/a` for panels (chat-only). No Worklist update required.
+- **2026-04-30 — chat-parity §11 (axe automation)**: Added `vitest-axe` matcher across all 36 atom test files. Every atom passes with zero violations — no atom required a `disableRules` override. This is a regression gate (no atom API/surface change) and does not affect panel readiness.
