@@ -76,6 +76,43 @@ type DeckGoRuntimeGatewayActionResponse struct {
 	Runtime DeckGoRuntimeGatewayStatus `json:"runtime"`
 }
 
+type DeckGoGatewayBatchCall struct {
+	Id string `json:"id"`
+	Method string `json:"method"`
+	Params any `json:"params,omitempty"`
+}
+
+type DeckGoGatewayBatchOptions struct {
+	FailFast bool `json:"failFast,omitempty"`
+	TimeoutMs float64 `json:"timeoutMs,omitempty"`
+}
+
+type DeckGoGatewayBatchRequest struct {
+	Calls []DeckGoGatewayBatchCall `json:"calls"`
+	Options DeckGoGatewayBatchOptions `json:"options,omitempty"`
+}
+
+type DeckGoGatewayBatchError struct {
+	Code string `json:"code"`
+	Message string `json:"message"`
+	Details any `json:"details,omitempty"`
+	Retryable bool `json:"retryable,omitempty"`
+	RetryAfterMs float64 `json:"retryAfterMs,omitempty"`
+}
+
+type DeckGoGatewayBatchResultEntry struct {
+	Id string `json:"id"`
+	Ok bool `json:"ok"`
+	Result any `json:"result,omitempty"`
+	Error DeckGoGatewayBatchError `json:"error,omitempty"`
+}
+
+type DeckGoGatewayBatchResponse struct {
+	RuntimeId string `json:"runtimeId"`
+	RequestId string `json:"requestId"`
+	Results []DeckGoGatewayBatchResultEntry `json:"results"`
+}
+
 type DeckGoConfigSchemaLookupRequest struct {
 	Path string `json:"path"`
 }

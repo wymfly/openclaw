@@ -12,8 +12,10 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
 	runtimecoerce "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw/views"
 	runtimeprojection "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/projection"
 	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
 )
@@ -218,6 +220,7 @@ type ManagedRuntime struct {
 	registry   *runtimeregistry.Registry
 	monitor    *runtimeprojection.MonitorQueries
 	bus        *events.Bus
+	bffViews   *views.Registry
 }
 
 var _ ManagedRuntimeSurface = (*ManagedRuntime)(nil)
@@ -239,7 +242,7 @@ func NewManagedRuntimeWithStoreAndSupervisor(store *config.Store, supervisor Man
 		adapter.CapabilitySummary(),
 		bus,
 	)
-	return &ManagedRuntime{
+	managed := &ManagedRuntime{
 		store:      store,
 		supervisor: supervisor,
 		adapter:    adapter,
@@ -247,6 +250,23 @@ func NewManagedRuntimeWithStoreAndSupervisor(store *config.Store, supervisor Man
 		monitor:    runtimeprojection.NewMonitorQueries(bus),
 		bus:        bus,
 	}
+	managed.bffViews = views.NewRegistry(
+		func(ctx context.Context, params generated.GatewayBatchParams) (generated.GatewayBatchResult, error) {
+			return managed.GatewayQueries().Batch(ctx, params)
+		},
+		func(ctx context.Context, method string, params any) (any, error) {
+			return managed.GatewayQueries().RequestTypedRaw(ctx, method, params)
+		},
+		views.WithStateDir(resolveManagedRuntimeStateDir(store)),
+	)
+	return managed
+}
+
+func resolveManagedRuntimeStateDir(store *config.Store) string {
+	if store == nil || strings.TrimSpace(store.Path()) == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(store.Path()), "managed-gateway-state")
 }
 
 func (m *ManagedRuntime) RuntimeAdapter() RuntimeSurface {
@@ -328,7 +348,21 @@ func (m *ManagedRuntime) GetGatewayStatus(ctx context.Context, runtimeID string)
 }
 
 func (m *ManagedRuntime) RequestGateway(ctx context.Context, runtimeID string, method string, params any) (any, error) {
+	if m != nil && m.bffViews != nil {
+		payload, handled, err := m.bffViews.Dispatch(ctx, method, params)
+		if handled {
+			return payload, err
+		}
+	}
 	return m.GatewayQueries().RequestTypedRaw(ctx, method, params)
+}
+
+func (m *ManagedRuntime) GatewayBatch(ctx context.Context, runtimeID string, params generated.GatewayBatchParams) (generated.GatewayBatchResult, error) {
+	return m.GatewayQueries().Batch(ctx, params)
+}
+
+func (m *ManagedRuntime) BridgeGatewayFrame(ctx context.Context, runtimeID string, raw []byte, idPrefix string) ([]byte, error) {
+	return m.GatewayQueries().BridgeFrame(ctx, raw, idPrefix)
 }
 
 func (m *ManagedRuntime) LoadGatewayStatus(ctx context.Context) (GatewayStatusSummary, error) {
@@ -688,7 +722,7 @@ func (m *ManagedRuntime) RunDeckAgentAction(ctx context.Context, runtimeID strin
 }
 
 func (m *ManagedRuntime) ListDeckIdentity(ctx context.Context, runtimeID string) (any, error) {
-	return m.GatewayQueries().DeckIdentityList(ctx)
+	return m.RequestGateway(ctx, runtimeID, "deck.identity.list", map[string]any{})
 }
 
 func (m *ManagedRuntime) LinkDeckIdentity(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
@@ -700,7 +734,7 @@ func (m *ManagedRuntime) UnlinkDeckIdentity(ctx context.Context, runtimeID strin
 }
 
 func (m *ManagedRuntime) ListDeckRouting(ctx context.Context, runtimeID string, params map[string]any) (any, error) {
-	return m.GatewayQueries().DeckRoutingList(ctx, params)
+	return m.RequestGateway(ctx, runtimeID, "deck.routing.list", params)
 }
 
 func (m *ManagedRuntime) AddDeckRouting(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
@@ -720,7 +754,7 @@ func (m *ManagedRuntime) SimulateDeckRouting(ctx context.Context, runtimeID stri
 }
 
 func (m *ManagedRuntime) ListDeckSubagents(ctx context.Context, runtimeID string, params map[string]any) (any, error) {
-	return m.GatewayQueries().DeckSubagentsList(ctx, params)
+	return m.RequestGateway(ctx, runtimeID, "deck.subagents.list", params)
 }
 
 func (m *ManagedRuntime) KillDeckSubagent(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
@@ -728,7 +762,7 @@ func (m *ManagedRuntime) KillDeckSubagent(ctx context.Context, runtimeID string,
 }
 
 func (m *ManagedRuntime) GetDeckSubagentLineage(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
-	return m.GatewayQueries().DeckSubagentsLineage(ctx, body)
+	return m.RequestGateway(ctx, runtimeID, "deck.subagents.lineage", body)
 }
 
 func (m *ManagedRuntime) SteerDeckSubagent(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
@@ -736,7 +770,7 @@ func (m *ManagedRuntime) SteerDeckSubagent(ctx context.Context, runtimeID string
 }
 
 func (m *ManagedRuntime) ListDeckThreads(ctx context.Context, runtimeID string, params map[string]any) (any, error) {
-	return m.GatewayQueries().DeckThreadsList(ctx, params)
+	return m.RequestGateway(ctx, runtimeID, "deck.threads.list", params)
 }
 
 func (m *ManagedRuntime) GetApprovals(ctx context.Context, runtimeID string) (any, error) {

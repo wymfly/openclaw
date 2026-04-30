@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	runtimecoerce "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
 	runtimeprojection "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/projection"
 	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
@@ -85,13 +86,17 @@ func (s *stubMonitorProvider) GetStats(_ context.Context, runtimeID string) (run
 }
 
 type stubGatewayDiagnosticProvider struct {
-	describe map[string]any
-	health   map[string]any
-	status   map[string]any
-	lastKey  string
-	rpc      any
-	rpcErr   error
-	rpcBody  map[string]any
+	describe   map[string]any
+	health     map[string]any
+	status     map[string]any
+	lastKey    string
+	rpc        any
+	rpcErr     error
+	rpcBody    map[string]any
+	batch      generated.GatewayBatchResult
+	batchErr   error
+	batchBody  generated.GatewayBatchParams
+	batchCalls int
 }
 
 func (s *stubGatewayDiagnosticProvider) GetGatewayDescribe(_ context.Context, runtimeID string, includeSchemas bool) (any, error) {
@@ -116,6 +121,22 @@ func (s *stubGatewayDiagnosticProvider) RequestGateway(_ context.Context, runtim
 		"params": params,
 	}
 	return s.rpc, s.rpcErr
+}
+
+func (s *stubGatewayDiagnosticProvider) GatewayBatch(_ context.Context, runtimeID string, params generated.GatewayBatchParams) (generated.GatewayBatchResult, error) {
+	s.lastKey = runtimeID + "/gateway/batch"
+	s.batchCalls++
+	s.batchBody = params
+	return s.batch, s.batchErr
+}
+
+func mustGatewayBatchResult(t *testing.T, raw string) generated.GatewayBatchResult {
+	t.Helper()
+	var result generated.GatewayBatchResult
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		t.Fatal(err)
+	}
+	return result
 }
 
 type stubDeviceProvider struct {
@@ -707,7 +728,8 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 			"heartbeat": "ok",
 			"state":     "active",
 		},
-		rpc: map[string]any{"models": []map[string]any{{"id": "gpt-5.4"}}},
+		rpc:   map[string]any{"models": []map[string]any{{"id": "gpt-5.4"}}},
+		batch: mustGatewayBatchResult(t, `{"results":[{"id":"a","ok":true,"result":{"id":"ok"}}]}`),
 	}
 	devices := &stubDeviceProvider{
 		list: map[string]any{
@@ -1286,6 +1308,152 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		}
 		if payload.Error.Code != "scope_denied" || payload.Error.Details["required"] != "operator.read" {
 			t.Fatalf("unexpected scope error payload: %#v", payload.Error)
+		}
+	})
+
+	t.Run("typed gateway batch dispatches allowlisted calls in order", func(t *testing.T) {
+		diagnostics.batchCalls = 0
+		diagnostics.batch = mustGatewayBatchResult(t, `{"results":[{"id":"a","ok":true,"result":{"id":"first"}},{"id":"b","ok":true,"result":{"id":"second"}}]}`)
+
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/batch", strings.NewReader(`{"calls":[{"id":"a","method":"models.configured","params":{}},{"id":"b","method":"gateway.describe","params":{"filter":"typed"}}],"options":{"timeoutMs":2500}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Request-Id", "batch-test")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(res.Body)
+			t.Fatalf("unexpected status: %d body=%s", res.StatusCode, body)
+		}
+		var payload struct {
+			RequestID string `json:"requestId"`
+			Results   []struct {
+				ID     string         `json:"id"`
+				OK     bool           `json:"ok"`
+				Result map[string]any `json:"result"`
+			} `json:"results"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload.RequestID != "batch-test" || len(payload.Results) != 2 {
+			t.Fatalf("unexpected batch payload: %#v", payload)
+		}
+		if payload.Results[0].ID != "a" || payload.Results[0].Result["id"] != "first" || payload.Results[1].ID != "b" {
+			t.Fatalf("unexpected ordered results: %#v", payload.Results)
+		}
+		if diagnostics.batchCalls != 1 || diagnostics.lastKey != DefaultRuntimeID+"/gateway/batch" {
+			t.Fatalf("unexpected batch invocation: calls=%d key=%q", diagnostics.batchCalls, diagnostics.lastKey)
+		}
+		if len(diagnostics.batchBody.Calls) != 2 || diagnostics.batchBody.Options.TimeoutMs != 2500 {
+			t.Fatalf("unexpected batch body: %#v", diagnostics.batchBody)
+		}
+	})
+
+	t.Run("typed gateway batch rejects empty and oversized requests before dispatch", func(t *testing.T) {
+		diagnostics.batchCalls = 0
+		for name, body := range map[string]string{
+			"empty":     `{"calls":[]}`,
+			"oversized": `{"calls":[{"id":"0","method":"models.configured"},{"id":"1","method":"models.configured"},{"id":"2","method":"models.configured"},{"id":"3","method":"models.configured"},{"id":"4","method":"models.configured"},{"id":"5","method":"models.configured"},{"id":"6","method":"models.configured"},{"id":"7","method":"models.configured"},{"id":"8","method":"models.configured"},{"id":"9","method":"models.configured"},{"id":"10","method":"models.configured"},{"id":"11","method":"models.configured"},{"id":"12","method":"models.configured"},{"id":"13","method":"models.configured"},{"id":"14","method":"models.configured"},{"id":"15","method":"models.configured"},{"id":"16","method":"models.configured"},{"id":"17","method":"models.configured"},{"id":"18","method":"models.configured"},{"id":"19","method":"models.configured"},{"id":"20","method":"models.configured"},{"id":"21","method":"models.configured"},{"id":"22","method":"models.configured"},{"id":"23","method":"models.configured"},{"id":"24","method":"models.configured"},{"id":"25","method":"models.configured"},{"id":"26","method":"models.configured"},{"id":"27","method":"models.configured"},{"id":"28","method":"models.configured"},{"id":"29","method":"models.configured"},{"id":"30","method":"models.configured"},{"id":"31","method":"models.configured"},{"id":"32","method":"models.configured"}]}`,
+		} {
+			t.Run(name, func(t *testing.T) {
+				req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/batch", strings.NewReader(body))
+				if err != nil {
+					t.Fatal(err)
+				}
+				req.Header.Set("Content-Type", "application/json")
+				res, err := http.DefaultClient.Do(req)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer res.Body.Close()
+				if res.StatusCode != http.StatusBadRequest {
+					body, _ := io.ReadAll(res.Body)
+					t.Fatalf("unexpected status: %d body=%s", res.StatusCode, body)
+				}
+			})
+		}
+		if diagnostics.batchCalls != 0 {
+			t.Fatalf("batch dispatched unexpectedly: %d", diagnostics.batchCalls)
+		}
+	})
+
+	t.Run("typed gateway batch returns per-entry errors for methods outside allowlist", func(t *testing.T) {
+		diagnostics.batchCalls = 0
+		diagnostics.batch = mustGatewayBatchResult(t, `{"results":[{"id":"a","ok":true,"result":{"id":"allowed"}}]}`)
+
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/batch", strings.NewReader(`{"calls":[{"id":"a","method":"models.configured","params":{}},{"id":"b","method":"tools.catalog","params":{}},{"id":"c","method":"gateway.batch","params":{"calls":[]}},{"id":"d","method":"sessions.messages.subscribe","params":{}}]}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(res.Body)
+			t.Fatalf("unexpected status: %d body=%s", res.StatusCode, body)
+		}
+		var payload struct {
+			Results []struct {
+				ID    string `json:"id"`
+				OK    bool   `json:"ok"`
+				Error struct {
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				} `json:"error"`
+			} `json:"results"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if len(payload.Results) != 4 || !payload.Results[0].OK || payload.Results[1].Error.Code != "INVALID_GATEWAY_METHOD" || payload.Results[2].Error.Code != "INVALID_REQUEST" || payload.Results[3].Error.Code != "INVALID_REQUEST" {
+			t.Fatalf("unexpected mixed batch results: %#v", payload.Results)
+		}
+		if diagnostics.batchCalls != 1 || len(diagnostics.batchBody.Calls) != 1 || diagnostics.batchBody.Calls[0].Id != "a" {
+			t.Fatalf("unexpected dispatch body: calls=%d body=%#v", diagnostics.batchCalls, diagnostics.batchBody)
+		}
+	})
+
+	t.Run("typed gateway batch failFast stops after first local rejection", func(t *testing.T) {
+		diagnostics.batchCalls = 0
+		diagnostics.batch = mustGatewayBatchResult(t, `{"results":[{"id":"a","ok":true,"result":{"id":"allowed"}}]}`)
+
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/batch", strings.NewReader(`{"calls":[{"id":"a","method":"models.configured","params":{}},{"id":"b","method":"gateway.batch","params":{"calls":[]}},{"id":"c","method":"gateway.describe","params":{}}],"options":{"failFast":true}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(res.Body)
+			t.Fatalf("unexpected status: %d body=%s", res.StatusCode, body)
+		}
+		var payload struct {
+			Results []struct {
+				ID string `json:"id"`
+				OK bool   `json:"ok"`
+			} `json:"results"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if len(payload.Results) != 2 || payload.Results[0].ID != "a" || payload.Results[1].ID != "b" || payload.Results[1].OK {
+			t.Fatalf("unexpected failFast results: %#v", payload.Results)
+		}
+		if diagnostics.batchCalls != 1 || len(diagnostics.batchBody.Calls) != 1 {
+			t.Fatalf("unexpected failFast dispatch body: calls=%d body=%#v", diagnostics.batchCalls, diagnostics.batchBody)
 		}
 	})
 

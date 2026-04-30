@@ -107,6 +107,13 @@ func (c *Client) RequestTyped(ctx context.Context, method string, params any) (a
 	return c.realtime.RequestTyped(ctx, method, params)
 }
 
+func (c *Client) BridgeFrame(ctx context.Context, raw []byte, idPrefix string) ([]byte, error) {
+	if c.realtime == nil {
+		return nil, errors.New("gateway connection provider is not configured")
+	}
+	return c.realtime.BridgeFrame(ctx, raw, idPrefix)
+}
+
 func (c *Client) ProbeHealth(ctx context.Context) error {
 	_, err := c.Request(ctx, "health", nil)
 	return err

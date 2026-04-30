@@ -1741,13 +1741,17 @@ type GatewayDescribeResult struct {
 		Since   float64        `json:"since,omitempty"`
 	} `json:"events"`
 	Methods map[string]struct {
-		BffEligible       bool           `json:"bffEligible,omitempty"`
-		ControlPlaneWrite bool           `json:"controlPlaneWrite,omitempty"`
-		ForkClass         string         `json:"forkClass,omitempty"`
-		Params            map[string]any `json:"params,omitempty"`
-		Result            map[string]any `json:"result,omitempty"`
-		Scope             string         `json:"scope"`
-		Since             float64        `json:"since,omitempty"`
+		BffEligible                  bool           `json:"bffEligible,omitempty"`
+		ControlPlaneWrite            bool           `json:"controlPlaneWrite,omitempty"`
+		ForkClass                    string         `json:"forkClass,omitempty"`
+		ForkDeprecated               bool           `json:"forkDeprecated,omitempty"`
+		ForkDeprecationRemovalTarget string         `json:"forkDeprecationRemovalTarget,omitempty"`
+		ForkDeprecationReplacement   string         `json:"forkDeprecationReplacement,omitempty"`
+		ForkDeprecationSince         string         `json:"forkDeprecationSince,omitempty"`
+		Params                       map[string]any `json:"params,omitempty"`
+		Result                       map[string]any `json:"result,omitempty"`
+		Scope                        string         `json:"scope"`
+		Since                        float64        `json:"since,omitempty"`
 	} `json:"methods"`
 	Protocol      float64  `json:"protocol"`
 	SchemaVersion string   `json:"schemaVersion"`

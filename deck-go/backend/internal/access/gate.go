@@ -34,7 +34,20 @@ func extractToken(r *http.Request) string {
 	if strings.HasPrefix(auth, "Bearer ") {
 		return strings.TrimPrefix(auth, "Bearer ")
 	}
+	if isWebSocketUpgrade(r) && isGatewayWebSocketPath(r.URL.Path) {
+		if token := strings.TrimSpace(r.URL.Query().Get("token")); token != "" {
+			return token
+		}
+	}
 	return r.Header.Get("x-deck-token")
+}
+
+func isWebSocketUpgrade(r *http.Request) bool {
+	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
+}
+
+func isGatewayWebSocketPath(path string) bool {
+	return strings.HasSuffix(path, "/gateway/ws")
 }
 
 func ShouldBypassAuth(r *http.Request) bool {

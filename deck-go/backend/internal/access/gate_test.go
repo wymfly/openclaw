@@ -56,6 +56,23 @@ func TestValidateRequest_RequiresMatchingToken(t *testing.T) {
 			t.Fatal("expected request to be accepted")
 		}
 	})
+
+	t.Run("matching websocket query token on gateway ws", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/runtimes/rt_local/gateway/ws?token=secret-token", nil)
+		req.Header.Set("Upgrade", "websocket")
+		valid, _ := ValidateRequest(req, store)
+		if !valid {
+			t.Fatal("expected websocket query token to be accepted")
+		}
+	})
+
+	t.Run("query token does not authenticate non-ws api", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/settings?token=secret-token", nil)
+		valid, _ := ValidateRequest(req, store)
+		if valid {
+			t.Fatal("expected non-websocket query token to be rejected")
+		}
+	})
 }
 
 func TestShouldBypassAuth_AllowsStaticShellButNotAPI(t *testing.T) {

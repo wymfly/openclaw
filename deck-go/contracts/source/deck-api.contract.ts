@@ -71,6 +71,43 @@ export interface DeckGoRuntimeGatewayActionResponse {
   runtime: DeckGoRuntimeGatewayStatus;
 }
 
+export interface DeckGoGatewayBatchCall {
+  id: string;
+  method: string;
+  params?: unknown;
+}
+
+export interface DeckGoGatewayBatchOptions {
+  failFast?: boolean;
+  timeoutMs?: number;
+}
+
+export interface DeckGoGatewayBatchRequest {
+  calls: DeckGoGatewayBatchCall[];
+  options?: DeckGoGatewayBatchOptions;
+}
+
+export interface DeckGoGatewayBatchError {
+  code: string;
+  message: string;
+  details?: unknown;
+  retryable?: boolean;
+  retryAfterMs?: number;
+}
+
+export interface DeckGoGatewayBatchResultEntry {
+  id: string;
+  ok: boolean;
+  result?: unknown;
+  error?: DeckGoGatewayBatchError;
+}
+
+export interface DeckGoGatewayBatchResponse {
+  runtimeId: string;
+  requestId: string;
+  results: DeckGoGatewayBatchResultEntry[];
+}
+
 export interface DeckGoConfigSchemaLookupRequest {
   path: string;
 }

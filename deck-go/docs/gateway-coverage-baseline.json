@@ -1,6 +1,6 @@
 {
-  "upstream_typed": 93,
-  "deck_go_go_migrated": 79,
+  "upstream_typed": 12,
+  "deck_go_go_migrated": 9,
   "deck_go_fe_migrated": 5,
-  "fork_divergent": 34
+  "fork_divergent": 116
 }

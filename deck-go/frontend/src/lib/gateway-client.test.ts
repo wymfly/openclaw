@@ -7,6 +7,7 @@ vi.mock("./deck-client", () => ({
 }));
 
 import {
+  createDeckGatewayClient,
   createDeckGatewayTransport,
   GatewayError,
   isGatewayError,
@@ -92,5 +93,73 @@ describe("deck-go gateway typed transport", () => {
       const code: "scope_denied" = error.code;
       expect(code).toBe("scope_denied");
     }
+  });
+
+  it("posts typed batches through the runtime gateway batch endpoint", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          requestId: "batch-1",
+          results: [
+            {
+              id: "describe",
+              ok: true,
+              result: { protocol: 3, schemaVersion: "3.x", methods: {}, events: {}, untyped: [] },
+            },
+            {
+              id: "models",
+              ok: false,
+              error: { code: "INVALID_GATEWAY_METHOD", message: "blocked" },
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const client = createDeckGatewayClient({
+      accessToken: "deck-token",
+      requestId: "batch-1",
+      runtimeId: "rt_local",
+    });
+
+    const result = await client.batch(
+      [
+        { id: "describe", method: "gateway.describe", params: { includeSchemas: false } },
+        { id: "models", method: "models.configured", params: {} },
+      ] as const,
+      { failFast: false, timeoutMs: 2500 },
+    );
+
+    expect(result[0]).toMatchObject({ protocol: 3 });
+    expect(result[1]).toBeInstanceOf(GatewayError);
+    expect(isGatewayError(result[1])).toBe(true);
+    expect(deckFetchMock).toHaveBeenCalledWith(
+      "/api/v1/runtimes/rt_local/gateway/batch",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer deck-token",
+          "Content-Type": "application/json",
+          "X-Request-Id": "batch-1",
+        },
+        body: JSON.stringify({
+          calls: [
+            { id: "describe", method: "gateway.describe", params: { includeSchemas: false } },
+            { id: "models", method: "models.configured", params: {} },
+          ],
+          options: { failFast: false, timeoutMs: 2500 },
+        }),
+      },
+      { token: "deck-token" },
+    );
+  });
+
+  it("rejects mismatched batch params at compile time", () => {
+    const client = createDeckGatewayClient({ requestId: "type-test" });
+    void (() => {
+      // @ts-expect-error agents.files.get requires agentId and name
+      void client.batch([{ id: "file", method: "agents.files.get", params: {} }] as const);
+    });
   });
 });

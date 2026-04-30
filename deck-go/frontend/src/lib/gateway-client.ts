@@ -62,6 +62,42 @@ type GatewayRPCResponse<M extends GatewayMethodName> = {
   payload?: GatewayMethodMap[M]["result"];
 };
 
+type GatewayErrorEnvelope = {
+  error?: GatewayErrorPayload;
+  requestId?: string;
+};
+
+type GatewayBatchResponse = GatewayErrorEnvelope & {
+  results?: Array<{
+    id: string;
+    ok: boolean;
+    result?: unknown;
+    error?: GatewayErrorPayload;
+  }>;
+};
+
+export type BatchCallSpec<M extends GatewayMethodName = GatewayMethodName> =
+  M extends GatewayMethodName
+    ? {
+        id: string;
+        method: M;
+        params: GatewayMethodMap[M]["params"];
+      }
+    : never;
+
+export type BatchResultTuple<R extends readonly BatchCallSpec[]> = {
+  [K in keyof R]: R[K] extends BatchCallSpec<infer M>
+    ? GatewayMethodMap[M]["result"] | GatewayError
+    : never;
+};
+
+export type DeckGatewayClient = GatewayClient & {
+  batch<const R extends readonly BatchCallSpec[]>(
+    calls: R,
+    options?: { failFast?: boolean; timeoutMs?: number },
+  ): Promise<BatchResultTuple<R>>;
+};
+
 function readRequestId(options: DeckGatewayTransportOptions) {
   if (options.requestId) {
     return options.requestId;
@@ -81,7 +117,7 @@ async function readGatewayRPCResponse<M extends GatewayMethodName>(
 
 function buildGatewayError(
   response: Response,
-  envelope: GatewayRPCResponse<GatewayMethodName>,
+  envelope: GatewayErrorEnvelope,
   fallbackMessage: string,
 ) {
   const code = envelope.error?.code || (response.status === 403 ? "scope_denied" : "gateway_error");
@@ -93,6 +129,77 @@ function buildGatewayError(
     requestId: envelope.requestId,
     status: response.status,
   });
+}
+
+async function readGatewayBatchResponse(response: Response): Promise<GatewayBatchResponse> {
+  try {
+    return (await response.json()) as GatewayBatchResponse;
+  } catch {
+    return {};
+  }
+}
+
+function createBatchSlotError(
+  response: Response,
+  requestId: string | undefined,
+  error: GatewayErrorPayload | undefined,
+  fallbackMessage: string,
+) {
+  return new GatewayError({
+    code: error?.code || "gateway_batch_error",
+    details: error?.details,
+    message: error?.message || fallbackMessage,
+    requestId,
+    status: response.status,
+  });
+}
+
+function createDeckGatewayBatchTransport(options: DeckGatewayTransportOptions = {}) {
+  const runtimeId = options.runtimeId ?? "rt_local";
+  const requestId = readRequestId(options);
+
+  return async <const R extends readonly BatchCallSpec[]>(
+    calls: R,
+    batchOptions?: { failFast?: boolean; timeoutMs?: number },
+  ): Promise<BatchResultTuple<R>> => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Request-Id": requestId,
+    };
+    const accessToken = options.accessToken?.trim();
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    const response = await deckFetch(
+      `/api/v1/runtimes/${encodeURIComponent(runtimeId)}/gateway/batch`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          calls,
+          ...(batchOptions ? { options: batchOptions } : {}),
+        }),
+      },
+      accessToken ? { token: accessToken } : undefined,
+    );
+    const envelope = await readGatewayBatchResponse(response);
+    if (!response.ok || envelope.error) {
+      throw buildGatewayError(response, envelope, "gateway.batch failed");
+    }
+
+    return (envelope.results ?? []).map((slot) => {
+      if (slot.ok) {
+        return slot.result;
+      }
+      return createBatchSlotError(
+        response,
+        envelope.requestId,
+        slot.error,
+        `gateway.batch sub-call ${slot.id} failed`,
+      );
+    }) as BatchResultTuple<R>;
+  };
 }
 
 export function createDeckGatewayTransport(
@@ -139,6 +246,11 @@ export function createDeckGatewayTransport(
   };
 }
 
-export function createDeckGatewayClient(options: DeckGatewayTransportOptions = {}): GatewayClient {
-  return createGatewayClient(createDeckGatewayTransport(options));
+export function createDeckGatewayClient(
+  options: DeckGatewayTransportOptions = {},
+): DeckGatewayClient {
+  return {
+    ...createGatewayClient(createDeckGatewayTransport(options)),
+    batch: createDeckGatewayBatchTransport(options),
+  };
 }

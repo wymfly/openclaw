@@ -180,6 +180,64 @@ func TestRealtimeRequestTyped_SendsTypedParams(t *testing.T) {
 	}
 }
 
+func TestRealtimeBridgeFramePrefixesUpstreamIDAndRestoresClientID(t *testing.T) {
+	var upstreamID string
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		onFrame: func(req frame) {
+			upstreamID = req.ID
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	raw, err := realtime.BridgeFrame(ctx, []byte(`{"type":"req","id":"client-1","method":"health","params":{"ok":true}}`), "deck-client")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if upstreamID != "deck-client:client-1" {
+		t.Fatalf("expected prefixed upstream id, got %q", upstreamID)
+	}
+	var response frame
+	if err := json.Unmarshal(raw, &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.ID != "client-1" || response.Type != frameTypeRes {
+		t.Fatalf("expected restored client response id, got %#v", response)
+	}
+}
+
+func TestRealtimeBridgeFramePreservesEnvelopeError(t *testing.T) {
+	server := newRPCGatewayServer(t, rpcGatewayOptions{
+		errorFrames: map[string]responseError{
+			"health": {Code: "TEST_ERROR", Message: "boom", Details: map[string]any{"slot": "a"}},
+		},
+	})
+	defer server.Close()
+
+	provider := &mutableProvider{url: wsURL(server.URL), token: "token-1", ok: true}
+	realtime := NewRealtime(provider, events.NewNoopBus())
+	defer realtime.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	raw, err := realtime.BridgeFrame(ctx, []byte(`{"type":"req","id":"client-err","method":"health","params":{}}`), "deck-client")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var response frame
+	if err := json.Unmarshal(raw, &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.ID != "client-err" || response.Error == nil || response.Error.Code != "TEST_ERROR" {
+		t.Fatalf("expected restored envelope error, got %#v", response)
+	}
+}
+
 func TestClientRequestTyped_DelegatesToRealtime(t *testing.T) {
 	frames := make(chan frame, 1)
 	server := newRPCGatewayServer(t, rpcGatewayOptions{

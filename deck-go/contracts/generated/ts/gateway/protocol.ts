@@ -2451,6 +2451,10 @@ export interface GatewayDescribeResult {
       bffEligible?: boolean;
       controlPlaneWrite?: boolean;
       forkClass?: string;
+      forkDeprecated?: boolean;
+      forkDeprecationRemovalTarget?: string;
+      forkDeprecationReplacement?: string;
+      forkDeprecationSince?: string;
       params?: Record<string, unknown>;
       result?: Record<string, unknown>;
       scope: string;

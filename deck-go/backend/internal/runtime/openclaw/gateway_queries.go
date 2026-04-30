@@ -3,6 +3,7 @@ package openclaw
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 )
@@ -21,6 +22,20 @@ func NewGatewayQueries(requester Requester) *GatewayQueries {
 
 func (q *GatewayQueries) RequestTypedRaw(ctx context.Context, method string, params any) (any, error) {
 	return q.requester.RequestTyped(ctx, method, params)
+}
+
+func (q *GatewayQueries) BridgeFrame(ctx context.Context, raw []byte, idPrefix string) ([]byte, error) {
+	bridge, ok := q.requester.(interface {
+		BridgeFrame(context.Context, []byte, string) ([]byte, error)
+	})
+	if !ok {
+		return nil, errors.New("gateway frame bridge is unavailable")
+	}
+	return bridge.BridgeFrame(ctx, raw, idPrefix)
+}
+
+func (q *GatewayQueries) Batch(ctx context.Context, params generated.GatewayBatchParams) (generated.GatewayBatchResult, error) {
+	return q.typed.Batch(ctx, params)
 }
 
 func (q *GatewayQueries) Describe(ctx context.Context, includeSchemas bool) (generated.GatewayDescribeResult, error) {

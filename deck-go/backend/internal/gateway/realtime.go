@@ -277,6 +277,35 @@ func (r *Realtime) RequestTyped(ctx context.Context, method string, params any) 
 	return r.doRequest(ctx, method, params)
 }
 
+func (r *Realtime) BridgeFrame(ctx context.Context, raw []byte, idPrefix string) ([]byte, error) {
+	var req frame
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return nil, err
+	}
+	if req.Type != frameTypeReq {
+		return nil, errors.New("bridge frame type must be req")
+	}
+	if strings.TrimSpace(req.ID) == "" {
+		return nil, errors.New("bridge frame id is required")
+	}
+	if strings.TrimSpace(req.Method) == "" {
+		return nil, errors.New("bridge frame method is required")
+	}
+	if err := r.ensureConnected(ctx); err != nil {
+		return nil, err
+	}
+	originalID := req.ID
+	req.ID = bridgeFrameID(idPrefix, originalID)
+	payload, err := r.doFrameRequest(ctx, req)
+	res := frame{Type: frameTypeRes, ID: originalID}
+	if err != nil {
+		res.Error = responseErrorFromError(err)
+	} else {
+		res.Payload = payload
+	}
+	return json.Marshal(res)
+}
+
 func (r *Realtime) ensureConnected(ctx context.Context) error {
 	for {
 		r.mu.Lock()
@@ -435,26 +464,37 @@ func isPermanentSubscriptionRestoreError(err error) bool {
 }
 
 func (r *Realtime) doRequest(ctx context.Context, method string, params any) (any, error) {
+	return r.doFrameRequest(ctx, frame{
+		Type:   frameTypeReq,
+		ID:     nextID(),
+		Method: method,
+		Params: normalizeFrameParams(params),
+	})
+}
+
+func (r *Realtime) doFrameRequest(ctx context.Context, req frame) (any, error) {
 	r.mu.Lock()
 	conn := r.conn
 	r.mu.Unlock()
 	if conn == nil {
 		return nil, ErrConnectionLost
 	}
-	id := nextID()
+	id := req.ID
+	if strings.TrimSpace(id) == "" {
+		return nil, errors.New("gateway frame id is required")
+	}
 	ch := make(chan responseResult, 1)
 
 	r.mu.Lock()
+	if _, exists := r.pending[id]; exists {
+		r.mu.Unlock()
+		return nil, fmt.Errorf("gateway frame id %q is already pending", id)
+	}
 	r.pending[id] = ch
 	r.mu.Unlock()
 
 	r.writeMu.Lock()
-	err := conn.WriteJSON(frame{
-		Type:   frameTypeReq,
-		ID:     id,
-		Method: method,
-		Params: normalizeFrameParams(params),
-	})
+	err := conn.WriteJSON(req)
 	r.writeMu.Unlock()
 	if err != nil {
 		r.mu.Lock()
@@ -473,6 +513,29 @@ func (r *Realtime) doRequest(ctx context.Context, method string, params any) (an
 	case result := <-ch:
 		return result.payload, result.err
 	}
+}
+
+func bridgeFrameID(prefix string, originalID string) string {
+	cleanPrefix := strings.NewReplacer(":", "_", " ", "_", "\t", "_", "\n", "_", "\r", "_").Replace(strings.TrimSpace(prefix))
+	if cleanPrefix == "" {
+		cleanPrefix = "deck-go-bff"
+	}
+	return cleanPrefix + ":" + originalID
+}
+
+func responseErrorFromError(err error) *responseError {
+	if err == nil {
+		return nil
+	}
+	var errCode *ErrCode
+	if errors.As(err, &errCode) {
+		return &responseError{
+			Code:    errCode.Code,
+			Message: errCode.Message,
+			Details: errCode.Details,
+		}
+	}
+	return &responseError{Code: "UNAVAILABLE", Message: err.Error()}
 }
 
 func (r *Realtime) readLoop(conn *websocket.Conn) {

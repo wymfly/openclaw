@@ -50,6 +50,96 @@ type GatewayRPCProvider interface {
 	RequestGateway(ctx context.Context, runtimeID string, method string, params any) (any, error)
 }
 
+type GatewayBatchProvider interface {
+	GatewayBatch(ctx context.Context, runtimeID string, params generated.GatewayBatchParams) (generated.GatewayBatchResult, error)
+}
+
+type GatewayWSProvider interface {
+	GatewayUpgradeWS(w http.ResponseWriter, r *http.Request, runtimeID string)
+}
+
+func prepareGatewayBatchDispatch(params generated.GatewayBatchParams) (generated.GatewayBatchParams, []int, []map[string]any) {
+	dispatch := generated.GatewayBatchParams{Options: params.Options}
+	slots := make([]int, 0, len(params.Calls))
+	results := make([]map[string]any, len(params.Calls))
+	for index, call := range params.Calls {
+		method := strings.TrimSpace(call.Method)
+		call.Method = method
+		if method == "" {
+			results[index] = gatewayBatchErrorEntry(call.Id, "INVALID_GATEWAY_METHOD", "Gateway method is required.", nil)
+		} else if method == "gateway.batch" {
+			results[index] = gatewayBatchErrorEntry(call.Id, "INVALID_REQUEST", "gateway.batch cannot include gateway.batch", nil)
+		} else if strings.HasSuffix(method, ".subscribe") || strings.HasSuffix(method, ".unsubscribe") {
+			results[index] = gatewayBatchErrorEntry(call.Id, "INVALID_REQUEST", "gateway.batch does not support subscription method: "+method, nil)
+		} else if _, ok := generated.TypedMethodNames[method]; !ok {
+			results[index] = gatewayBatchErrorEntry(call.Id, "INVALID_GATEWAY_METHOD", "Gateway method is not available through the typed Deck transport.", map[string]any{"method": method})
+		} else {
+			dispatch.Calls = append(dispatch.Calls, call)
+			slots = append(slots, index)
+		}
+		if results[index] != nil && params.Options.FailFast {
+			return dispatch, slots, results[:index+1]
+		}
+	}
+	return dispatch, slots, results
+}
+
+func gatewayBatchErrorEntry(id string, code string, message string, details any) map[string]any {
+	return map[string]any{
+		"id": id,
+		"ok": false,
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+			"details": details,
+		},
+	}
+}
+
+func mergeGatewayBatchResults(results []map[string]any, slots []int, payload generated.GatewayBatchResult, failFast bool) []map[string]any {
+	for index, entry := range payload.Results {
+		if index >= len(slots) {
+			break
+		}
+		slot := slots[index]
+		if slot >= len(results) {
+			continue
+		}
+		result := map[string]any{
+			"id": entry.Id,
+			"ok": entry.Ok,
+		}
+		if entry.Ok {
+			result["result"] = entry.Result
+		} else {
+			errorEntry := map[string]any{
+				"code":    entry.Error.Code,
+				"message": entry.Error.Message,
+			}
+			if entry.Error.Details != nil {
+				errorEntry["details"] = entry.Error.Details
+			}
+			if entry.Error.Retryable {
+				errorEntry["retryable"] = entry.Error.Retryable
+			}
+			if entry.Error.RetryAfterMs > 0 {
+				errorEntry["retryAfterMs"] = entry.Error.RetryAfterMs
+			}
+			result["error"] = errorEntry
+		}
+		results[slot] = result
+	}
+	for index, result := range results {
+		if result == nil {
+			if failFast {
+				return results[:index]
+			}
+			results[index] = gatewayBatchErrorEntry("", "GATEWAY_BATCH_INCOMPLETE", "gateway.batch did not return a result for this call.", nil)
+		}
+	}
+	return results
+}
+
 type DeviceProvider interface {
 	ListDevices(ctx context.Context, runtimeID string) (any, error)
 	GetCurrentDeviceID(runtimeID string) (string, error)
@@ -614,6 +704,64 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 					return
 				}
 				writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "requestId": requestID, "result": payload})
+			})
+		}
+		if batch, ok := diagnostics.(GatewayBatchProvider); ok {
+			r.Post("/runtimes/{runtimeId}/gateway/batch", func(w http.ResponseWriter, r *http.Request) {
+				requestID := strings.TrimSpace(r.Header.Get("X-Request-Id"))
+				if requestID == "" {
+					requestID = nextRequestID()
+				}
+				runtimeID := chi.URLParam(r, "runtimeId")
+				if runtimeID != DefaultRuntimeID {
+					writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+					return
+				}
+				var body generated.GatewayBatchParams
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+					return
+				}
+				if len(body.Calls) == 0 {
+					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_REQUEST", "message": "gateway.batch requires at least one call.", "details": nil}, "requestId": requestID})
+					return
+				}
+				if len(body.Calls) > 32 {
+					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_REQUEST", "message": "gateway.batch accepts at most 32 calls.", "details": map[string]any{"max": 32}}, "requestId": requestID})
+					return
+				}
+
+				dispatchParams, slots, results := prepareGatewayBatchDispatch(body)
+				if len(dispatchParams.Calls) > 0 {
+					payload, err := batch.GatewayBatch(r.Context(), runtimeID, dispatchParams)
+					if err != nil {
+						status := http.StatusBadGateway
+						code := "GATEWAY_BATCH_FAILED"
+						details := map[string]any(nil)
+						var errCode *gateway.ErrCode
+						if errors.As(err, &errCode) {
+							code = errCode.Code
+							details = errCode.Details
+							if errors.Is(err, gateway.ErrScopeDenied) {
+								status = http.StatusForbidden
+							}
+						}
+						writeJSON(w, status, map[string]any{"error": map[string]any{"code": code, "message": err.Error(), "details": details}, "requestId": requestID})
+						return
+					}
+					results = mergeGatewayBatchResults(results, slots, payload, body.Options.FailFast)
+				}
+				writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "requestId": requestID, "results": results})
+			})
+		}
+		if ws, ok := diagnostics.(GatewayWSProvider); ok {
+			r.Get("/runtimes/{runtimeId}/gateway/ws", func(w http.ResponseWriter, r *http.Request) {
+				runtimeID := chi.URLParam(r, "runtimeId")
+				if runtimeID != DefaultRuntimeID {
+					writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": nextRequestID()})
+					return
+				}
+				ws.GatewayUpgradeWS(w, r, runtimeID)
 			})
 		}
 	}
