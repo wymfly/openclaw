@@ -28,14 +28,16 @@
   height: 100%;
 }
 
-/* Header — bundle .rp-head adapted for drawer top bar. */
+/* Header — bundle .rp-head adapted for drawer top bar. Chat-parity §6a
+ * promotes the bar to: leading Canvas icon + title-stack (title + mono-
+ * small subtitle showing live a2ui-bridge state) + grow spacer + Bug /
+ * Refresh / Close IconButtons. */
 .ds-canvas-panel__header {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  height: 40px;
+  min-height: 44px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--ds-border-subtle);
   background: var(--ds-bg-1);
@@ -44,10 +46,52 @@
   font-size: 13px;
 }
 
-.ds-canvas-panel__header > div {
+.ds-canvas-panel__title-icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--ds-text-2);
+}
+
+.ds-canvas-panel__title-stack {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ds-canvas-panel__title {
+  color: var(--ds-text-1);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.ds-canvas-panel__sub {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-canvas-panel__sub[data-bridge="ready"] {
+  color: var(--ds-success, var(--ds-text-2));
+}
+
+.ds-canvas-panel__sub[data-bridge="error"] {
+  color: var(--ds-error);
+}
+
+.ds-canvas-panel__sub[data-bridge="connecting"] {
+  color: var(--ds-warn);
+}
+
+.ds-canvas-panel__header-spacer {
+  flex: 1 1 auto;
 }
 
 /* Viewport — bundle .cp-stage. */
@@ -68,7 +112,9 @@
   border: 0;
 }
 
-/* Overlay (loading / error / empty) — bundle .cp-overlay. */
+/* Overlay (loading / error / empty) — bundle .cp-overlay. Chat-parity §6a
+ * adds icon + mono-small typography to error/empty so the overlay matches
+ * bundle's iconography pattern. */
 .ds-canvas-panel__overlay {
   position: absolute;
   inset: 0;
@@ -76,11 +122,29 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   padding: 16px;
   background: var(--ds-bg-1);
   color: var(--ds-text-2);
   text-align: center;
+}
+
+.ds-canvas-panel__overlay-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--ds-text-3);
+}
+
+.ds-canvas-panel__overlay-text {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-body);
+  color: var(--ds-text-2);
+}
+
+.ds-canvas-panel__overlay-hint {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  color: var(--ds-text-3);
 }
 
 .ds-canvas-panel__spinner {

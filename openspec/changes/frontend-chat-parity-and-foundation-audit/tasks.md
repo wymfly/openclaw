@@ -65,10 +65,10 @@
 
 ### 6a. Canvas header + overlay polish (commit 1)
 
-- [ ] 6.1 Add Canvas icon at start of `ds-canvas-panel__header` + `__title` + `__sub` mono small subtitle showing live bridge state (`a2ui-bridge · ${state}` from `useSessionA2UI` — "ready in 240ms" / "connecting" / "disconnected"). Mirrors bundle `right-panel.jsx` 21-25.
-- [ ] 6.2 Add Refresh IconButton between Bug toggle and X close. Wire to `handleRetry` (already exists for error overlay).
-- [ ] 6.3 Add icons + mono styling to canvas overlays: loading uses spinner+`mono small "Loading canvas…"`; error uses X icon (large) + `mono` "Bridge handshake failed" + Reload `btn-ghost`; empty uses Canvas icon (24px) + `mono` "No canvas yet" + `mono small` waiting subtext (per bundle 42-63).
-- [ ] 6.4 tsc + vitest gauntlet; commit "deck-go: chat-parity 6a — canvas header sub + Refresh button + overlay icons".
+- [x] 6.1 Canvas header now has `MonitorDotIcon` (the canvas glyph) + `__title-stack` (column flex) holding `__title` (font-weight 600) + `__sub` mono-small subtitle reading `a2ui-bridge · ${bridgeStatusLabel}`. Subtitle pulls live bridge state from `useSessionA2UI()` (`bridgeStatus: "ready" | "connecting" | "error"`), with `disconnected` fallback when no a2uiState yet. `data-bridge` attribute drives color (success/warn/error/text-3 tones).
+- [x] 6.2 New Refresh IconButton between Bug toggle and X close, wired to existing `handleRetry`. Replaces previous reliance on the error-overlay-only retry button — user can now refresh canvas anytime.
+- [x] 6.3 Canvas overlays restyled: error uses `XIcon` (large 28px) + mono "Bridge handshake failed" + retry ghost-button; empty uses `MonitorDotIcon` (28px) + mono "No canvas yet" + mono-small `__overlay-hint` waiting subtext. Loading retains the spinner but now uses `__overlay-text` mono class for text consistency.
+- [x] 6.4 New i18n keys: `canvasEmptyHint`, `canvasErrorMessage`, `canvasBridgeReady`, `canvasBridgeConnecting`, `canvasBridgeError`, `canvasBridgeDisconnected`, `canvasRefresh` (en + zh both). Gauntlet: tsc clean + vitest 841/841 pass. Ready to commit "deck-go: chat-parity 6a — canvas header sub + Refresh button + overlay icons".
 
 ### 6b. cp-iframe-bar status strip (commit 2)
 

@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BugIcon, LoaderIcon, RefreshIcon, XIcon } from "@/deck-ui/icons";
+import { BugIcon, LoaderIcon, MonitorDotIcon, RefreshIcon, XIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
 import { useChatStore } from "@/stores/chat";
@@ -279,30 +279,57 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
     iframe.src = currentSrc;
   }, []);
 
+  const hasTranslation = (key: string) => typeof t.has === "function" && t.has(key);
+  const tFallback = (key: string, fallback: string) => (hasTranslation(key) ? t(key) : fallback);
+  const bridgeStatus = a2uiState?.bridgeStatus;
+  const bridgeStatusKey = bridgeStatus ?? (resolvedCanvasUrl ? "ready" : "disconnected");
+  const bridgeStatusLabel = (() => {
+    if (bridgeStatus === "ready") {
+      return tFallback("canvasBridgeReady", "ready");
+    }
+    if (bridgeStatus === "error") {
+      return tFallback("canvasBridgeError", "handshake failed");
+    }
+    if (bridgeStatus === "connecting") {
+      return tFallback("canvasBridgeConnecting", "connecting");
+    }
+    return tFallback("canvasBridgeDisconnected", "disconnected");
+  })();
+  const refreshLabel = tFallback("canvasRefresh", "Refresh canvas");
+
   return (
     <section className="ds-canvas-panel deck-ui-canvas-panel" aria-label={t("canvasTitle")}>
       <header className="ds-canvas-panel__header deck-ui-canvas-header">
-        <span>{t("canvasTitle")}</span>
-        <div>
-          <IconButton
-            size="sm"
-            aria-label={t("debugTitle")}
-            title={t("debugTitle")}
-            onClick={() => setShowDebug((value) => !value)}
-          >
-            <BugIcon />
-            <span className="ds-sr-only deck-ui-sr-only">{t("debugTitle")}</span>
-          </IconButton>
-          <IconButton
-            size="sm"
-            aria-label={t("canvasCollapse")}
-            title={t("canvasCollapse")}
-            onClick={onClose}
-          >
-            <XIcon />
-            <span className="ds-sr-only deck-ui-sr-only">{t("canvasCollapse")}</span>
-          </IconButton>
+        <MonitorDotIcon className="ds-canvas-panel__title-icon" aria-hidden="true" />
+        <div className="ds-canvas-panel__title-stack">
+          <span className="ds-canvas-panel__title">{t("canvasTitle")}</span>
+          <span className="ds-canvas-panel__sub" data-bridge={bridgeStatusKey}>
+            a2ui-bridge · {bridgeStatusLabel}
+          </span>
         </div>
+        <span className="ds-canvas-panel__header-spacer" />
+        <IconButton
+          size="sm"
+          aria-label={t("debugTitle")}
+          title={t("debugTitle")}
+          onClick={() => setShowDebug((value) => !value)}
+        >
+          <BugIcon />
+          <span className="ds-sr-only deck-ui-sr-only">{t("debugTitle")}</span>
+        </IconButton>
+        <IconButton size="sm" aria-label={refreshLabel} title={refreshLabel} onClick={handleRetry}>
+          <RefreshIcon />
+          <span className="ds-sr-only deck-ui-sr-only">{refreshLabel}</span>
+        </IconButton>
+        <IconButton
+          size="sm"
+          aria-label={t("canvasCollapse")}
+          title={t("canvasCollapse")}
+          onClick={onClose}
+        >
+          <XIcon />
+          <span className="ds-sr-only deck-ui-sr-only">{t("canvasCollapse")}</span>
+        </IconButton>
       </header>
 
       <div className="ds-canvas-panel__viewport deck-ui-canvas-viewport">
@@ -316,13 +343,16 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         {state === "loading" ? (
           <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
             <LoaderIcon className="ds-canvas-panel__spinner deck-ui-canvas-spinner" />
-            <span>{t("canvasLoading")}</span>
+            <span className="ds-canvas-panel__overlay-text">{t("canvasLoading")}</span>
           </div>
         ) : null}
         {state === "error" ? (
           <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
-            <span>{t("canvasError")}</span>
-            <Button variant="secondary" size="sm" onClick={handleRetry}>
+            <XIcon className="ds-canvas-panel__overlay-icon" aria-hidden="true" />
+            <span className="ds-canvas-panel__overlay-text">
+              {tFallback("canvasErrorMessage", "Bridge handshake failed")}
+            </span>
+            <Button variant="ghost" size="sm" onClick={handleRetry}>
               <RefreshIcon />
               {t("canvasRetry")}
             </Button>
@@ -330,7 +360,11 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
         ) : null}
         {state === "empty" ? (
           <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
-            <span>{t("canvasEmpty")}</span>
+            <MonitorDotIcon className="ds-canvas-panel__overlay-icon" aria-hidden="true" />
+            <span className="ds-canvas-panel__overlay-text">{t("canvasEmpty")}</span>
+            <span className="ds-canvas-panel__overlay-hint">
+              {tFallback("canvasEmptyHint", "Waiting for the agent to push canvas content")}
+            </span>
           </div>
         ) : null}
       </div>
