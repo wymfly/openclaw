@@ -82,6 +82,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "exec.approvals.node.get",
   "exec.approvals.node.set",
   "exec.approvals.set",
+  "gateway.batch",
   "gateway.describe",
   "health",
   "models.catalog.providers",
@@ -533,6 +534,10 @@ export interface GatewayClient {
     };
   };
   gateway: {
+    batch(
+      params: GatewayMethodMap["gateway.batch"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["gateway.batch"]["result"]>;
     describe(
       params: GatewayMethodMap["gateway.describe"]["params"],
       options?: { timeoutMs?: number },
@@ -925,6 +930,7 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       },
     },
     gateway: {
+      batch: call("gateway.batch"),
       describe: call("gateway.describe"),
     },
     health: call("health"),

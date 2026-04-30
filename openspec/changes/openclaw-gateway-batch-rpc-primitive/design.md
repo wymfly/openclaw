@@ -66,7 +66,7 @@ export const module: GatewayMethodModule = {
   name: "gateway-batch",
   metadata,
   handlers: {
-    "gateway.batch": async ({ params, client, context, respond, dispatchSubRequest }) => {
+    "gateway.batch": async ({ req, params, respond, dispatchSubRequest }) => {
       if (!dispatchSubRequest) {
         respond(
           false,
@@ -78,10 +78,22 @@ export const module: GatewayMethodModule = {
       const results: BatchResult[] = [];
       for (const call of params.calls) {
         if (call.method === "gateway.batch") {
-          /* reject INVALID_REQUEST */ continue;
+          results.push({
+            id: call.id,
+            ok: false,
+            error: errorShape(ErrorCodes.INVALID_REQUEST, "nested gateway.batch is not allowed"),
+          });
+          if (params.options?.failFast) break;
+          continue;
         }
         if (/\.(subscribe|unsubscribe)$/.test(call.method)) {
-          /* reject INVALID_REQUEST */ continue;
+          results.push({
+            id: call.id,
+            ok: false,
+            error: errorShape(ErrorCodes.INVALID_REQUEST, "subscription methods are not batchable"),
+          });
+          if (params.options?.failFast) break;
+          continue;
         }
         let resp: unknown;
         let err: GatewayError | undefined;
@@ -91,8 +103,7 @@ export const module: GatewayMethodModule = {
             if (ok) resp = result;
             else err = error;
           },
-          client,
-          context,
+          batchId: req.id,
         });
         results.push({ id: call.id, ok: !err, result: resp, error: err });
         if (err && params.options?.failFast) break;
@@ -153,6 +164,7 @@ Result array ordering follows input array ordering exactly. Each sub-call result
 - **R5: Bounded fan-out (32) too restrictive** → Acceptable for v1; can be revisited via a separate proposal if metrics show real demand for higher.
 - **R6: `options.timeoutMs` reserved but not enforced** → Documented; clients SHOULD NOT rely on it in v1. Future enhancement can add per-sub-call timeout without breaking the wire format.
 - **R7: Parent proposal's dispatcher signature shifts under us** → Pin against the parent's `DispatchGatewayRequestOpts` interface. If parent revises the signature post-Phase 2, this proposal absorbs the change in a follow-up commit; the surface area is small (one import, one function call).
+- **R8: Plugin runtime scope re-entry amplification** → Each sub-call re-enters the parent dispatcher and therefore re-enters plugin runtime request scope. Current scope setup is an AsyncLocalStorage wrapper and cheap; plugin scope hooks MUST remain idempotent and inexpensive because batch can multiply setup/teardown by up to 32.
 
 ## Migration Plan
 

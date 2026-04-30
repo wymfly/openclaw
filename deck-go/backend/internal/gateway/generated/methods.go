@@ -712,6 +712,15 @@ func (c *TypedClient) ExecApprovalsSet(ctx context.Context, params ExecApprovals
 	return decodeResult[ExecApprovalsSetResult](payload)
 }
 
+func (c *TypedClient) Batch(ctx context.Context, params GatewayBatchParams) (GatewayBatchResult, error) {
+	var result GatewayBatchResult
+	payload, err := c.requester.RequestTyped(ctx, "gateway.batch", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[GatewayBatchResult](payload)
+}
+
 func (c *TypedClient) GatewayDescribe(ctx context.Context, params GatewayDescribeParams) (GatewayDescribeResult, error) {
 	var result GatewayDescribeResult
 	payload, err := c.requester.RequestTyped(ctx, "gateway.describe", params)

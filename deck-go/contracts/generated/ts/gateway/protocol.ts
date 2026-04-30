@@ -2405,6 +2405,33 @@ export interface ExecApprovalsSetResult {
   path: string;
 }
 
+export interface GatewayBatchParams {
+  calls: {
+    id: string;
+    method: string;
+    params?: unknown;
+  }[];
+  options?: {
+    failFast?: boolean;
+    timeoutMs?: number;
+  };
+}
+
+export interface GatewayBatchResult {
+  results: {
+    error?: {
+      code: string;
+      details?: unknown;
+      message: string;
+      retryable?: boolean;
+      retryAfterMs?: number;
+    };
+    id: string;
+    ok: boolean;
+    result?: unknown;
+  }[];
+}
+
 export interface GatewayDescribeParams {
   filter?: string;
   includeSchemas?: boolean;
@@ -2421,6 +2448,9 @@ export interface GatewayDescribeResult {
   methods: Record<
     string,
     {
+      bffEligible?: boolean;
+      controlPlaneWrite?: boolean;
+      forkClass?: string;
       params?: Record<string, unknown>;
       result?: Record<string, unknown>;
       scope: string;
@@ -3724,6 +3754,7 @@ export interface GatewayMethodMap {
     result: ExecApprovalsNodeSetResult;
   };
   "exec.approvals.set": { params: ExecApprovalsSetParams; result: ExecApprovalsSetResult };
+  "gateway.batch": { params: GatewayBatchParams; result: GatewayBatchResult };
   "gateway.describe": { params: GatewayDescribeParams; result: GatewayDescribeResult };
   health: { params: Record<string, unknown>; result: HealthResult };
   "models.catalog.providers": {

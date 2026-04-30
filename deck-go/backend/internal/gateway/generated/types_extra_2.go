@@ -2,6 +2,42 @@
 
 package generated
 
+type ModelsConfiguredResult struct {
+	Models []struct {
+		AuthStatus    string  `json:"authStatus"`
+		ContextWindow float64 `json:"contextWindow,omitempty"`
+		Cost          struct {
+			CacheRead  float64 `json:"cacheRead"`
+			CacheWrite float64 `json:"cacheWrite"`
+			Input      float64 `json:"input"`
+			Output     float64 `json:"output"`
+		} `json:"cost,omitempty"`
+		Id        string   `json:"id"`
+		Input     []string `json:"input,omitempty"`
+		MaxTokens float64  `json:"maxTokens,omitempty"`
+		Name      string   `json:"name"`
+		Provider  string   `json:"provider"`
+		Reasoning bool     `json:"reasoning,omitempty"`
+	} `json:"models"`
+}
+
+type ModelsListParams = map[string]any
+
+type ModelsListResult struct {
+	Models []struct {
+		Alias         string `json:"alias,omitempty"`
+		ContextWindow int    `json:"contextWindow,omitempty"`
+		Id            string `json:"id"`
+		Name          string `json:"name"`
+		Provider      string `json:"provider"`
+		Reasoning     bool   `json:"reasoning,omitempty"`
+	} `json:"models"`
+}
+
+type NodeDescribeParams struct {
+	NodeId string `json:"nodeId"`
+}
+
 type NodeDescribeResult struct {
 	Caps            []string        `json:"caps"`
 	Commands        []string        `json:"commands"`

@@ -25,6 +25,7 @@ export type GatewayClient = {
   canvasCapabilityExpiresAtMs?: number;
   internal?: {
     allowModelOverride?: boolean;
+    batchId?: string;
   };
 };
 
@@ -120,6 +121,7 @@ export type DispatchGatewaySubRequest = (opts: {
   respond: RespondFn;
   client?: GatewayClient | null;
   isWebchatConnect?: (params: ConnectParams | null | undefined) => boolean;
+  batchId?: string;
 }) => Promise<void>;
 
 export type GatewayRequestHandlerOptions = {

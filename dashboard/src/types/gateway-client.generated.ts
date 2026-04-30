@@ -82,6 +82,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "exec.approvals.node.get",
   "exec.approvals.node.set",
   "exec.approvals.set",
+  "gateway.batch",
   "gateway.describe",
   "health",
   "models.catalog.providers",
@@ -679,6 +680,10 @@ export interface GatewayClient {
       params: import("./gateway-protocol.generated").GatewayDescribeParams,
       options?: { timeoutMs?: number },
     ): Promise<import("./gateway-protocol.generated").GatewayDescribeResult>;
+    batch(
+      params: import("./gateway-protocol.generated").GatewayBatchParams,
+      options?: { timeoutMs?: number },
+    ): Promise<import("./gateway-protocol.generated").GatewayBatchResult>;
   };
   talk: {
     config(
@@ -972,6 +977,7 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
     },
     gateway: {
       describe: call("gateway.describe"),
+      batch: call("gateway.batch"),
     },
     talk: {
       config: call("talk.config"),

@@ -1,0 +1,75 @@
+change: openclaw-gateway-batch-rpc-primitive
+closureCompanion:
+  scriptsFound: false
+  note: "package.json does not expose openspec:closure:* scripts; maintain this file manually."
+entries:
+  - scenarioId: preflight.parent-seams
+    ownerTask: "0.1-0.6"
+    status: verified
+    verificationCommand: "test -f src/gateway/server-methods/dispatcher.ts && test -f src/gateway/server-methods/shared-types.ts && test -f src/gateway/server-methods/runtime.ts && rg 'dispatchSubRequest|forkClass|bffEligible|controlPlaneWrite' src/gateway/server-methods src/gateway/method-registry.ts"
+    evidence: "Parent dispatcher seam, DispatchGatewaySubRequest handler option, runtime CONTROL_PLANE_WRITE_METHODS derivation, generated method manifests, and MethodDefinition metadata fields are present. Broad parent gates are tracked separately as baseline blockers."
+  - scenarioId: protocol.schema-validator
+    ownerTask: "1.1-1.3"
+    status: verified
+    verificationCommand: "pnpm protocol:gen:check"
+    evidence: "GatewayBatchParams/GatewayBatchResult schemas are exported through protocol barrels and validateGatewayBatchParams is available; protocol:gen:check passed after regeneration."
+  - scenarioId: method.registration-handler
+    ownerTask: "2.1-2.4"
+    status: verified
+    verificationCommand: "pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm check:madge-import-cycles"
+    evidence: "gateway.batch is registered through gateway-batch.module.ts and gateway-batch.method-defs.ts with READ_SCOPE and forkClass=C5. Method module manifests are up to date. Import-cycle and madge checks both reported 0 cycles."
+  - scenarioId: handler.targeted-tests
+    ownerTask: "3.1,3.3"
+    status: verified
+    verificationCommand: "OPENCLAW_VITEST_MAX_WORKERS=1 pnpm test src/gateway/server-methods/__tests__/gateway-batch.test.ts"
+    evidence: "Passed 1 file / 12 tests after Claude review handling. Coverage includes ordered read batches, isolated failures, thrown handler isolation, read-scope write denial, 5 write sub-calls consuming per-sub-call budget checks with batchId audit correlation, empty/oversized rejection, missing dispatcher seam guard, nested/subscription rejection, non-rollback, failFast, missing/double response handling, byte-stable results, and forbidden import guard."
+  - scenarioId: websocket.e2e
+    ownerTask: "3.2"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server.batch.e2e.test.ts"
+    evidence: "Passed 1 file / 1 test against a real gateway websocket harness; gateway.batch dispatched health and status in one request."
+  - scenarioId: gateway.neighbor-regressions
+    ownerTask: "2.3,4.1"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/__tests__/dispatcher.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts"
+    evidence: "Passed 3 files / 15 tests, covering dispatcher behavior, gateway.describe metadata, and method-registry-data consistency."
+  - scenarioId: generated.clients
+    ownerTask: "4.1,4.3"
+    status: verified
+    verificationCommand: "pnpm protocol:gen:check && make -C deck-go protocol-check && rg 'gateway\\.batch|GatewayBatchParams|GatewayBatchResult' dashboard/src/types deck-go/contracts/generated/ts/gateway deck-go/backend/internal/gateway/generated"
+    evidence: "Dashboard generated protocol/client include GatewayBatchParams, GatewayBatchResult, GatewayMethodMap['gateway.batch'], and GENERATED_METHOD_ALLOWLIST. Deck-Go TS generated client exposes gateway.batch; Deck-Go Go generated client exposes TypedClient.Batch(ctx, GatewayBatchParams) returning GatewayBatchResult."
+  - scenarioId: describe-diff
+    ownerTask: "4.2,4.4"
+    status: verified
+    verificationCommand: 'node --import tsx -e "write .omc/research/describe-current-batch.json from gatewayMethodRegistry.describe({ filter: ''all'', includeSchemas: true })" && node --import tsx scripts/diff-describe-baseline.ts --current .omc/research/describe-current-batch.json'
+    evidence: "describe diff count=80 disallowed=0. Differences are limited to parent metadata fields/schemaVersion and the allowlisted gateway.batch method addition."
+  - scenarioId: docs.semantics
+    ownerTask: "5.3"
+    status: verified
+    verificationCommand: "rg 'gateway.batch|Batch RPC|timeoutMs' docs/gateway/protocol.md"
+    evidence: "docs/gateway/protocol.md documents max 32 calls, ordered results, non-transactional execution, per-sub-call dispatch/auth/budget checks, no nested batch, no subscriptions, failFast, and reserved/no-op timeoutMs."
+  - scenarioId: claude-review.handling
+    ownerTask: "cross-review"
+    status: verified
+    verificationCommand: "Apply accepted findings from .omc/research/claude-batch-impl-review-2026-04-30.md and update §11"
+    evidence: "Accepted and implemented P2.1 throw isolation, P2.2 batchId audit correlation, P2.3 precise subscription pattern, P2.4 design risk documentation, P2.5 schema description, P3.1 design example alignment, and P3.2 test wording/comment. Handling rationale is recorded in .omc/research/claude-batch-impl-review-2026-04-30.md §11."
+  - scenarioId: openspec.strict
+    ownerTask: "all"
+    status: verified
+    verificationCommand: "openspec validate openclaw-gateway-batch-rpc-primitive --strict"
+    evidence: "Change 'openclaw-gateway-batch-rpc-primitive' is valid."
+  - scenarioId: deslop.post-regression
+    ownerTask: "ralph-step-7.5"
+    status: verified
+    verificationCommand: "pnpm exec oxfmt --check --threads=1 <changed batch files> && OPENCLAW_VITEST_MAX_WORKERS=1 pnpm test src/gateway/server-methods/__tests__/gateway-batch.test.ts && pnpm test src/gateway/server.batch.e2e.test.ts"
+    evidence: "Scoped deslop pass found no behavior-changing simplifications; oxfmt was applied to the scoped batch/review-handling files only. Post-deslop format check passed, batch handler tests passed 1 file / 12 tests, and websocket e2e passed 1 file / 1 test."
+  - scenarioId: architect.signoff
+    ownerTask: "ralph-step-7"
+    status: verified
+    verificationCommand: "Codex subagent architect verification over batch handler/schema/tests/docs/verification"
+    evidence: "APPROVED - no blocking findings. Reviewer confirmed subcalls route through dispatchSubRequest without raw dispatcher/handler manifest imports, tests cover per-subcall scope and write-budget preservation, schema bounds the batch params, docs cover protocol semantics, and broad gate blockers are unrelated baseline failures."
+  - scenarioId: broad.gates
+    ownerTask: "5.1,5.2"
+    status: blocked
+    verificationCommand: "pnpm check && pnpm build && pnpm tsgo (dashboard) && GOCACHE=/tmp/openclaw-go-build-cache go build ./... (deck-go/backend)"
+    evidence: "pnpm build passed. deck-go/backend go build ./... passed. pnpm check passed conflict-marker, tool-display, host-env policy, method-modules, import-cycle, and madge gates, then failed in pnpm tsgo on known unrelated baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158. dashboard pnpm tsgo failed on existing dashboard test/e2e typing errors and did not reference dashboard/src/types/gateway-*.generated.ts."

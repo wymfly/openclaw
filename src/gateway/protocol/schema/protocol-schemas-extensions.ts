@@ -26,6 +26,7 @@ import {
   DeckSubagentsSteerResultSchema,
   DeckThreadsListResultSchema,
 } from "./deck.js";
+import { GatewayBatchParamsSchema, GatewayBatchResultSchema } from "./gateway-batch.js";
 import { SessionsClearParamsSchema } from "./sessions-extensions.js";
 import {
   SessionMessageEventPayloadSchema,
@@ -87,6 +88,8 @@ export const ProtocolExtensionSchemas = {
   SessionsUsageResult: SessionsUsageResultSchema,
   SessionsUsageTimeseriesParams: SessionsUsageTimeseriesParamsSchema,
   SessionsUsageTimeseriesResult: SessionsUsageTimeseriesResultSchema,
+  GatewayBatchParams: GatewayBatchParamsSchema,
+  GatewayBatchResult: GatewayBatchResultSchema,
   SkillsInstallResult: SkillsInstallResultSchema,
   TranscriptRole: TranscriptRoleSchema,
   TranscriptTextBlock: TranscriptTextBlockSchema,

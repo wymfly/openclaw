@@ -22,6 +22,7 @@ import { gatewayMethodMetadataModule as deckRoutingValidateMetadataModule } from
 import { gatewayMethodMetadataModule as describeMetadataModule } from "./describe.method-defs.js";
 import { gatewayMethodMetadataModule as deviceMetadataModule } from "./device.method-defs.js";
 import { gatewayMethodMetadataModule as eventsMetadataModule } from "./events.method-defs.js";
+import { gatewayMethodMetadataModule as gatewayBatchMetadataModule } from "./gateway-batch.method-defs.js";
 import { gatewayMethodMetadataModule as modelsCatalogProvidersMetadataModule } from "./models-catalog-providers.method-defs.js";
 import { gatewayMethodMetadataModule as modelsConfiguredMetadataModule } from "./models-configured.method-defs.js";
 import { gatewayMethodMetadataModule as modelsListMetadataModule } from "./models-list.method-defs.js";
@@ -54,6 +55,7 @@ export const gatewayMethodMetadataModules: readonly GatewayMethodMetadataModule[
   describeMetadataModule,
   deviceMetadataModule,
   eventsMetadataModule,
+  gatewayBatchMetadataModule,
   modelsCatalogProvidersMetadataModule,
   modelsConfiguredMetadataModule,
   modelsListMetadataModule,

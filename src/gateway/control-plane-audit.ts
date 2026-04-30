@@ -5,6 +5,7 @@ export type ControlPlaneActor = {
   deviceId: string;
   clientIp: string;
   connId: string;
+  batchId?: string;
 };
 
 function normalizePart(value: unknown, fallback: string): string {
@@ -16,16 +17,19 @@ function normalizePart(value: unknown, fallback: string): string {
 }
 
 export function resolveControlPlaneActor(client: GatewayClient | null): ControlPlaneActor {
+  const batchId = normalizePart(client?.internal?.batchId, "");
   return {
     actor: normalizePart(client?.connect?.client?.id, "unknown-actor"),
     deviceId: normalizePart(client?.connect?.device?.id, "unknown-device"),
     clientIp: normalizePart(client?.clientIp, "unknown-ip"),
     connId: normalizePart(client?.connId, "unknown-conn"),
+    ...(batchId ? { batchId } : {}),
   };
 }
 
 export function formatControlPlaneActor(actor: ControlPlaneActor): string {
-  return `actor=${actor.actor} device=${actor.deviceId} ip=${actor.clientIp} conn=${actor.connId}`;
+  const batch = actor.batchId ? ` batch=${actor.batchId}` : "";
+  return `actor=${actor.actor} device=${actor.deviceId} ip=${actor.clientIp} conn=${actor.connId}${batch}`;
 }
 
 export function summarizeChangedPaths(paths: string[], maxPaths = 8): string {

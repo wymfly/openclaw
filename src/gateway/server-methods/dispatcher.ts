@@ -9,7 +9,24 @@ import type { GatewayRequestHandlers, GatewayRequestOptions } from "./types.js";
 export type DispatchGatewayRequestOpts = GatewayRequestOptions & {
   handlers: GatewayRequestHandlers;
   controlPlaneWriteMethods?: ReadonlySet<string>;
+  batchId?: string;
 };
+
+function attachBatchId(
+  client: GatewayRequestOptions["client"],
+  batchId: string | undefined,
+): GatewayRequestOptions["client"] {
+  if (!client || !batchId) {
+    return client;
+  }
+  return {
+    ...client,
+    internal: {
+      ...client.internal,
+      batchId,
+    },
+  };
+}
 
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
   if (!client?.connect) {
@@ -106,11 +123,12 @@ export async function dispatchGatewayRequest(opts: DispatchGatewayRequestOpts): 
         dispatchGatewayRequest({
           req: subOpts.req,
           respond: subOpts.respond,
-          client: subOpts.client ?? client,
+          client: attachBatchId(subOpts.client ?? client, subOpts.batchId ?? opts.batchId),
           isWebchatConnect: subOpts.isWebchatConnect ?? isWebchatConnect,
           context,
           handlers,
           controlPlaneWriteMethods: opts.controlPlaneWriteMethods,
+          batchId: subOpts.batchId ?? opts.batchId,
         }),
     });
   await withPluginRuntimeGatewayRequestScope({ context, client, isWebchatConnect }, invokeHandler);

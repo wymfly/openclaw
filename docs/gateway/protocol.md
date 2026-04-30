@@ -159,6 +159,23 @@ roles still need scopes under their own role prefix.
 
 Side-effecting methods require **idempotency keys** (see schema).
 
+### Batch RPC
+
+`gateway.batch` lets operator clients submit 1 to 32 ordinary Gateway RPC
+requests in one frame. It returns a `results` array in the same order as the
+input calls. Each entry contains the call `id`, `ok`, and either `result` or
+`error`.
+
+Batch execution is non-transactional: successful earlier sub-calls are not
+rolled back if a later sub-call fails. Each sub-call re-enters normal Gateway
+dispatch, so existing role checks, operator scopes, unavailable-method checks,
+validation, and control-plane write budgets still apply per sub-call.
+
+`gateway.batch` rejects nested `gateway.batch` calls and subscription methods
+whose names end in `.subscribe` or `.unsubscribe`. `options.failFast` stops
+after the first failed sub-call. `options.timeoutMs` is reserved on the wire for
+future timeout semantics and is currently accepted without enforcement.
+
 ## Roles + scopes
 
 ### Roles

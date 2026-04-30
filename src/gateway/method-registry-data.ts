@@ -199,6 +199,7 @@ export const allMethodNames: readonly string[] = [
   // deck.threads
   "deck.threads.list",
   // gateway introspection
+  "gateway.batch",
   "gateway.describe",
 ];
 

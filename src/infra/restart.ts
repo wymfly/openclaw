@@ -62,6 +62,7 @@ export type RestartAuditInfo = {
   actor?: string;
   deviceId?: string;
   clientIp?: string;
+  batchId?: string;
   changedPaths?: string[];
 };
 
@@ -82,6 +83,8 @@ function formatRestartAudit(audit: RestartAuditInfo | undefined): string {
     typeof audit?.deviceId === "string" && audit.deviceId.trim() ? audit.deviceId.trim() : null;
   const clientIp =
     typeof audit?.clientIp === "string" && audit.clientIp.trim() ? audit.clientIp.trim() : null;
+  const batchId =
+    typeof audit?.batchId === "string" && audit.batchId.trim() ? audit.batchId.trim() : null;
   const changed = summarizeChangedPaths(audit?.changedPaths);
   const fields = [];
   if (actor) {
@@ -92,6 +95,9 @@ function formatRestartAudit(audit: RestartAuditInfo | undefined): string {
   }
   if (clientIp) {
     fields.push(`ip=${clientIp}`);
+  }
+  if (batchId) {
+    fields.push(`batch=${batchId}`);
   }
   if (changed) {
     fields.push(`changedPaths=${changed}`);

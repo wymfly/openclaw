@@ -1703,6 +1703,33 @@ type ExecApprovalsSetResult struct {
 	Path string `json:"path"`
 }
 
+type GatewayBatchParams struct {
+	Calls []struct {
+		Id     string `json:"id"`
+		Method string `json:"method"`
+		Params any    `json:"params,omitempty"`
+	} `json:"calls"`
+	Options struct {
+		FailFast  bool `json:"failFast,omitempty"`
+		TimeoutMs int  `json:"timeoutMs,omitempty"`
+	} `json:"options,omitempty"`
+}
+
+type GatewayBatchResult struct {
+	Results []struct {
+		Error struct {
+			Code         string `json:"code"`
+			Details      any    `json:"details,omitempty"`
+			Message      string `json:"message"`
+			Retryable    bool   `json:"retryable,omitempty"`
+			RetryAfterMs int    `json:"retryAfterMs,omitempty"`
+		} `json:"error,omitempty"`
+		Id     string `json:"id"`
+		Ok     bool   `json:"ok"`
+		Result any    `json:"result,omitempty"`
+	} `json:"results"`
+}
+
 type GatewayDescribeParams struct {
 	Filter         string `json:"filter,omitempty"`
 	IncludeSchemas bool   `json:"includeSchemas,omitempty"`
@@ -1714,10 +1741,13 @@ type GatewayDescribeResult struct {
 		Since   float64        `json:"since,omitempty"`
 	} `json:"events"`
 	Methods map[string]struct {
-		Params map[string]any `json:"params,omitempty"`
-		Result map[string]any `json:"result,omitempty"`
-		Scope  string         `json:"scope"`
-		Since  float64        `json:"since,omitempty"`
+		BffEligible       bool           `json:"bffEligible,omitempty"`
+		ControlPlaneWrite bool           `json:"controlPlaneWrite,omitempty"`
+		ForkClass         string         `json:"forkClass,omitempty"`
+		Params            map[string]any `json:"params,omitempty"`
+		Result            map[string]any `json:"result,omitempty"`
+		Scope             string         `json:"scope"`
+		Since             float64        `json:"since,omitempty"`
 	} `json:"methods"`
 	Protocol      float64  `json:"protocol"`
 	SchemaVersion string   `json:"schemaVersion"`
@@ -1760,39 +1790,3 @@ type ModelsCatalogProvidersResult struct {
 }
 
 type ModelsConfiguredParams = map[string]any
-
-type ModelsConfiguredResult struct {
-	Models []struct {
-		AuthStatus    string  `json:"authStatus"`
-		ContextWindow float64 `json:"contextWindow,omitempty"`
-		Cost          struct {
-			CacheRead  float64 `json:"cacheRead"`
-			CacheWrite float64 `json:"cacheWrite"`
-			Input      float64 `json:"input"`
-			Output     float64 `json:"output"`
-		} `json:"cost,omitempty"`
-		Id        string   `json:"id"`
-		Input     []string `json:"input,omitempty"`
-		MaxTokens float64  `json:"maxTokens,omitempty"`
-		Name      string   `json:"name"`
-		Provider  string   `json:"provider"`
-		Reasoning bool     `json:"reasoning,omitempty"`
-	} `json:"models"`
-}
-
-type ModelsListParams = map[string]any
-
-type ModelsListResult struct {
-	Models []struct {
-		Alias         string `json:"alias,omitempty"`
-		ContextWindow int    `json:"contextWindow,omitempty"`
-		Id            string `json:"id"`
-		Name          string `json:"name"`
-		Provider      string `json:"provider"`
-		Reasoning     bool   `json:"reasoning,omitempty"`
-	} `json:"models"`
-}
-
-type NodeDescribeParams struct {
-	NodeId string `json:"nodeId"`
-}

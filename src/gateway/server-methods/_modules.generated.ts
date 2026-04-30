@@ -27,6 +27,7 @@ import { gatewayMethodModule as deviceModule } from "./device.module.js";
 import { gatewayMethodModule as doctorModule } from "./doctor.module.js";
 import { gatewayMethodModule as eventsModule } from "./events.module.js";
 import { gatewayMethodModule as execApprovalsModule } from "./exec-approvals.module.js";
+import { gatewayMethodModule as gatewayBatchModule } from "./gateway-batch.module.js";
 import { gatewayMethodModule as healthModule } from "./health.module.js";
 import { gatewayMethodModule as logsModule } from "./logs.module.js";
 import { gatewayMethodModule as modelsCatalogProvidersModule } from "./models-catalog-providers.module.js";
@@ -77,6 +78,7 @@ export const gatewayMethodModules: readonly GatewayMethodModule[] = [
   doctorModule,
   eventsModule,
   execApprovalsModule,
+  gatewayBatchModule,
   healthModule,
   logsModule,
   modelsCatalogProvidersModule,

@@ -143,6 +143,10 @@ import {
   type EventFrame,
   EventFrameSchema,
   errorShape,
+  type GatewayBatchParams,
+  GatewayBatchParamsSchema,
+  type GatewayBatchResult,
+  GatewayBatchResultSchema,
   type GatewayFrame,
   GatewayFrameSchema,
   type HelloOk,
@@ -307,6 +311,7 @@ export const validateConnectParams = ajv.compile<ConnectParams>(ConnectParamsSch
 export const validateRequestFrame = ajv.compile<RequestFrame>(RequestFrameSchema);
 export const validateResponseFrame = ajv.compile<ResponseFrame>(ResponseFrameSchema);
 export const validateEventFrame = ajv.compile<EventFrame>(EventFrameSchema);
+export const validateGatewayBatchParams = ajv.compile<GatewayBatchParams>(GatewayBatchParamsSchema);
 export const validateMessageActionParams =
   ajv.compile<MessageActionParams>(MessageActionParamsSchema);
 export const validateSendParams = ajv.compile(SendParamsSchema);
@@ -552,6 +557,8 @@ export {
   ResponseFrameSchema,
   EventFrameSchema,
   GatewayFrameSchema,
+  GatewayBatchParamsSchema,
+  GatewayBatchResultSchema,
   PresenceEntrySchema,
   SnapshotSchema,
   ErrorShapeSchema,
@@ -676,6 +683,8 @@ export {
 
 export type {
   GatewayFrame,
+  GatewayBatchParams,
+  GatewayBatchResult,
   ConnectParams,
   HelloOk,
   RequestFrame,

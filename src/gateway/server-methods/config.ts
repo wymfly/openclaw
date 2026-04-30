@@ -600,6 +600,7 @@ export const configHandlers: GatewayRequestHandlers = {
             actor: actor.actor,
             deviceId: actor.deviceId,
             clientIp: actor.clientIp,
+            batchId: actor.batchId,
             changedPaths,
           },
         })
@@ -673,6 +674,7 @@ export const configHandlers: GatewayRequestHandlers = {
             actor: actor.actor,
             deviceId: actor.deviceId,
             clientIp: actor.clientIp,
+            batchId: actor.batchId,
             changedPaths,
           },
         })

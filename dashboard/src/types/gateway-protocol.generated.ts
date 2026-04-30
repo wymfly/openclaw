@@ -3548,6 +3548,33 @@ export interface NodeRenameResult {
   displayName: string;
 }
 
+export interface GatewayBatchParams {
+  calls: {
+    id: string;
+    method: string;
+    params?: unknown;
+  }[];
+  options?: {
+    failFast?: boolean;
+    timeoutMs?: number;
+  };
+}
+
+export interface GatewayBatchResult {
+  results: {
+    id: string;
+    ok: boolean;
+    result?: unknown;
+    error?: {
+      code: string;
+      message: string;
+      details?: unknown;
+      retryable?: boolean;
+      retryAfterMs?: number;
+    };
+  }[];
+}
+
 export interface GatewayMethodMap {
   "chat.history": { params: ChatHistoryParams; result: ChatHistoryResult };
   "chat.abort": { params: ChatAbortParams; result: ChatAbortResult };
@@ -3757,6 +3784,7 @@ export interface GatewayMethodMap {
   "node.pair.reject": { params: NodePairRejectParams; result: NodePairRejectResult };
   "node.pair.verify": { params: NodePairVerifyParams; result: NodePairVerifyResult };
   "node.rename": { params: NodeRenameParams; result: NodeRenameResult };
+  "gateway.batch": { params: GatewayBatchParams; result: GatewayBatchResult };
 }
 
 export type GatewayMethodName = keyof GatewayMethodMap;

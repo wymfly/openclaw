@@ -36,6 +36,13 @@ function goString(value: string): string {
   return JSON.stringify(value);
 }
 
+function methodToGoClientMethodName(method: string): string {
+  if (method === "gateway.batch") {
+    return "Batch";
+  }
+  return methodToPascalName(method);
+}
+
 function schemaToGoType(schema: TSchema, indent = 0): string {
   const s = schemaRecord(schema);
   const kind = s.type as string | undefined;
@@ -194,7 +201,7 @@ function methodSignature(method: string): {
   const def = methodDefs[method];
   const name = methodToPascalName(method);
   return {
-    name,
+    name: methodToGoClientMethodName(method),
     paramsType: def.params ? `${name}Params` : "map[string]any",
     resultType: def.result ? `${name}Result` : "any",
     hasParams: Boolean(def.params),

@@ -131,6 +131,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "deck.identity.list",
     "deck.plugins.list",
     "deck.threads.list",
+    "gateway.batch",
     "gateway.describe",
   ],
   [WRITE_SCOPE]: [

@@ -10,6 +10,7 @@ const defaultAllowedFields = new Set([
   "controlPlaneWrite",
   "schemaVersion",
 ]);
+const defaultAllowedMethods = new Set(["gateway.batch"]);
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -17,7 +18,7 @@ function parseArgs() {
     baseline: ".omc/research/describe-baseline.json",
     current: ".omc/research/describe-current.json",
     allowField: new Set(defaultAllowedFields),
-    allowMethod: new Set(),
+    allowMethod: new Set(defaultAllowedMethods),
     json: false,
   };
   for (let index = 0; index < args.length; index += 1) {
