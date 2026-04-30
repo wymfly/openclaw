@@ -333,13 +333,25 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
       </header>
 
       <div className="ds-canvas-panel__viewport deck-ui-canvas-viewport">
-        <iframe
-          ref={iframeRef}
-          src={iframeSrc}
-          className="ds-canvas-panel__frame deck-ui-canvas-frame"
-          sandbox="allow-scripts allow-same-origin"
-          title="A2UI Canvas"
-        />
+        <div className="ds-canvas-panel__iframe-mock">
+          <div className="ds-canvas-panel__iframe-bar" data-bridge={bridgeStatusKey}>
+            <span>a2ui:tree</span>
+            <span className="ds-canvas-panel__iframe-bar-sep">·</span>
+            <span>
+              {a2uiState?.surfaces?.length ?? 0} surface
+              {(a2uiState?.surfaces?.length ?? 0) === 1 ? "" : "s"}
+            </span>
+            <span className="ds-canvas-panel__iframe-bar-sep">·</span>
+            <span>{bridgeStatusLabel}</span>
+          </div>
+          <iframe
+            ref={iframeRef}
+            src={iframeSrc}
+            className="ds-canvas-panel__frame deck-ui-canvas-frame"
+            sandbox="allow-scripts allow-same-origin"
+            title="A2UI Canvas"
+          />
+        </div>
         {state === "loading" ? (
           <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
             <LoaderIcon className="ds-canvas-panel__spinner deck-ui-canvas-spinner" />

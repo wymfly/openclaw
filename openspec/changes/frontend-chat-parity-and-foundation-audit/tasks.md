@@ -72,9 +72,9 @@
 
 ### 6b. cp-iframe-bar status strip (commit 2)
 
-- [ ] 6.5 Introduce `ds-canvas-panel__iframe-bar` mono-small status strip ABOVE the iframe inside the viewport: shows `a2ui:tree · ${surfaces.length} surfaces · ${bridgeStatus}` (from `useSessionA2UI`). Mirrors bundle `cp-iframe-bar` line 66.
-- [ ] 6.6 Wrap iframe + bar in a `__iframe-mock` shell wrapper per bundle pattern. Skip `cp-card`/`cp-row`/`cp-actions` mock content (deck-go runs real iframe — documented divergence in gap report).
-- [ ] 6.7 tsc + vitest gauntlet; commit "deck-go: chat-parity 6b — canvas iframe-bar status strip".
+- [x] 6.5 New `ds-canvas-panel__iframe-bar` mono-small status strip rendered ABOVE the iframe with three pills separated by `__iframe-bar-sep`: `a2ui:tree`, `${surfaces.length} surface(s)`, and `${bridgeStatusLabel}`. `data-bridge` attribute drives color (text-2 for ready, warn for connecting, error for error, text-3 default), surfacing connection health without opening the debug panel.
+- [x] 6.6 Iframe + status bar wrapped in `__iframe-mock` shell (column flex) per bundle's `cp-iframe-mock` pattern. `cp-card`/`cp-row`/`cp-actions` mock content correctly skipped — deck-go runs the real A2UI iframe, divergence documented in `chat-parity-gap-report.md`.
+- [x] 6.7 Gauntlet green: tsc clean + vitest 841/841 pass. Ready to commit "deck-go: chat-parity 6b — canvas iframe-bar status strip".
 
 ## 7. Artifact panel remediation (Decision 2, 2 commits — covers 7 ports + 1 partial from §3.2)
 
