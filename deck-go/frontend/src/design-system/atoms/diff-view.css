@@ -1,0 +1,42 @@
+.ds-diff {
+  margin: 0;
+  padding: var(--ds-sp-2) 0;
+  background: var(--ds-code-bg);
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: var(--ds-line);
+  overflow-x: auto;
+}
+.ds-diff__line {
+  display: flex;
+  padding: 0 var(--ds-sp-3);
+  white-space: pre;
+}
+.ds-diff__sym {
+  width: 14px;
+  color: var(--ds-text-4);
+  user-select: none;
+  flex-shrink: 0;
+}
+.ds-diff__line--add {
+  background: var(--ds-diff-add);
+}
+.ds-diff__line--add .ds-diff__sym,
+.ds-diff__line--add code {
+  color: var(--ds-diff-add-text);
+}
+.ds-diff__line--del {
+  background: var(--ds-diff-del);
+}
+.ds-diff__line--del .ds-diff__sym,
+.ds-diff__line--del code {
+  color: var(--ds-diff-del-text);
+}
+.ds-diff__line--hunk {
+  color: var(--ds-text-3);
+}
+.ds-diff__line--context code {
+  color: var(--ds-text-1);
+}

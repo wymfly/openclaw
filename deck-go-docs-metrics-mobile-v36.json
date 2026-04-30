@@ -1,0 +1,64 @@
+{
+  "url": "http://127.0.0.1:4179/?panel=docs",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "ready": true,
+  "classCounts": {
+    "workspace": 1,
+    "cards": 2,
+    "stats": 2,
+    "categoryFilter": 1,
+    "categoryButtons": 6,
+    "rows": 0,
+    "surfaces": 0,
+    "hero": 0,
+    "inlineStyles": 1
+  },
+  "layout": {
+    "workspaceGrid": "362px",
+    "bodyWidth": 390,
+    "viewportWidth": 390
+  },
+  "statusText": {
+    "docsReady": true,
+    "noDocs": true,
+    "selectedDoc": true,
+    "extractButton": true
+  },
+  "categoryStyles": [
+    {
+      "text": "all",
+      "className": "deckgo-doc-category deckgo-doc-category--all is-active",
+      "categoryColor": "#2563eb"
+    },
+    {
+      "text": "summary",
+      "className": "deckgo-doc-category deckgo-doc-category--summary ",
+      "categoryColor": "#3b82f6"
+    },
+    {
+      "text": "plan",
+      "className": "deckgo-doc-category deckgo-doc-category--plan ",
+      "categoryColor": "#8b5cf6"
+    },
+    {
+      "text": "spec",
+      "className": "deckgo-doc-category deckgo-doc-category--spec ",
+      "categoryColor": "#f59e0b"
+    },
+    {
+      "text": "manual",
+      "className": "deckgo-doc-category deckgo-doc-category--manual ",
+      "categoryColor": "#10b981"
+    },
+    {
+      "text": "draft",
+      "className": "deckgo-doc-category deckgo-doc-category--draft ",
+      "categoryColor": "#6b7280"
+    }
+  ],
+  "overflowCount": 0,
+  "overflow": []
+}

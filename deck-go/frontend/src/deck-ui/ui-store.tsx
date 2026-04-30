@@ -9,7 +9,11 @@ import {
   type PropsWithChildren,
 } from "react";
 import { fetchBootstrapStatus, fetchRuntimeGatewayStatus } from "../api";
-import { readStoredDeckAccessToken, writeStoredDeckAccessToken } from "../lib/deck-auth-storage";
+import {
+  readDefaultDeckAccessToken,
+  readStoredDeckAccessToken,
+  writeStoredDeckAccessToken,
+} from "../lib/deck-auth-storage";
 import type { DeckGoThemeMode } from "../theme";
 import { findPanel, type PanelId } from "./panel-registry";
 import type { DeckUIState } from "./types";
@@ -73,7 +77,9 @@ export function DeckUIProvider(
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [authRequired, setAuthRequired] = useState(false);
   const [authMessage, setAuthMessage] = useState(DEFAULT_AUTH_MESSAGE);
-  const [authTokenInput, setAuthTokenInput] = useState(() => readStoredDeckAccessToken() ?? "");
+  const [authTokenInput, setAuthTokenInput] = useState(
+    () => readStoredDeckAccessToken() ?? readDefaultDeckAccessToken() ?? "",
+  );
   const [summaryReady, setSummaryReady] = useState(false);
   const [bootstrap, setBootstrap] = useState<DeckUIState["bootstrap"]>(null);
   const [runtime, setRuntime] = useState<DeckUIState["runtime"]>(null);
@@ -169,7 +175,16 @@ export function DeckUIProvider(
   });
 
   useEffect(() => {
-    void refreshRuntimeSummary();
+    if (!readStoredDeckAccessToken()) {
+      const fallback = readDefaultDeckAccessToken();
+      if (fallback) {
+        void unlockControlPlane(fallback);
+      } else {
+        void refreshRuntimeSummary();
+      }
+    } else {
+      void refreshRuntimeSummary();
+    }
     const interval = window.setInterval(() => {
       void refreshRuntimeSummary();
     }, SUMMARY_REFRESH_MS);

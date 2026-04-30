@@ -20,6 +20,7 @@ import { ArtifactPanel } from "./artifacts/ArtifactPanel";
 import type { ArtifactInfo } from "./artifacts/detectArtifact";
 import { BlockFilterBar } from "./BlockFilterBar";
 import { CanvasPanel } from "./CanvasPanel";
+import "./chat-shell.css";
 import {
   fetchChatSnapshot,
   fetchSessionList,
@@ -32,7 +33,6 @@ import { normalizeHistoryMessages } from "./history-normalize";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { RightPanel } from "./RightPanel";
-import { SessionConfigBar } from "./SessionConfigBar";
 import { SessionSidebar } from "./SessionSidebar";
 import { initializeLocalCommands } from "./slash-command-executor";
 import { SSEStatusBanner } from "./SSEStatusBanner";
@@ -349,18 +349,22 @@ export function ChatPanel() {
   return (
     <ArtifactContext.Provider value={artifactContext}>
       <section
-        className={`deck-ui-chat ${showRightPanel ? "has-right-drawer" : "without-right-drawer"}`}
+        className={`ds-chat-shell ${showRightPanel ? "ds-chat-shell--has-right-drawer" : ""}`.trim()}
         aria-label="Chat workspace"
       >
-        <aside className="deck-ui-chat-sidebar">
+        <aside className="ds-chat-shell__sidebar">
           <SessionSidebar />
         </aside>
 
-        <section className="deck-ui-chat-main">
+        <section className="ds-chat-shell__main">
           <SSEStatusBanner />
-          <ChatContextBar />
+          <ChatContextBar onToggleSearch={() => setShowSearch((current) => !current)} />
           {isStreaming ? (
-            <button className="deck-ui-steer-shortcut" type="button" onClick={focusSteerInput}>
+            <button
+              className="ds-chat-shell__steer-shortcut"
+              type="button"
+              onClick={focusSteerInput}
+            >
               {t("steerQuickAccess")}
             </button>
           ) : null}
@@ -375,7 +379,7 @@ export function ChatPanel() {
             />
           ) : null}
 
-          <section className="deck-ui-transcript" aria-label="Transcript">
+          <section className="ds-chat-shell__transcript" aria-label="Transcript">
             {!activeSessionKey ? (
               <EmptyState onSelectPrompt={setSuggestedText} />
             ) : (
@@ -391,9 +395,8 @@ export function ChatPanel() {
             <SteerDialog />
           </div>
           <ToolProgressBar />
-          <SessionConfigBar />
 
-          <div className="deck-ui-composer">
+          <div className="ds-chat-shell__composer">
             <MessageInput
               suggestedText={suggestedText}
               onSuggestedTextConsumed={() => setSuggestedText("")}

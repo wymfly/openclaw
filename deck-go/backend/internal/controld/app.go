@@ -2,7 +2,11 @@ package controld
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -14,7 +18,12 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/localstore"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/envconf"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
+	_ "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/remote"
+	runtimestate "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/state"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/server"
 )
 
@@ -23,8 +32,9 @@ const defaultListenAddr = "127.0.0.1:19528"
 type EnvLookup func(string) string
 
 type Dependencies struct {
-	Store   *config.Store
-	Runtime openclawrt.ManagedRuntimeSurface
+	Store         *config.Store
+	Runtime       openclawrt.ManagedRuntimeSurface
+	RuntimeFacade facade.RuntimeFacade
 }
 
 func ResolveListenAddr(getenv EnvLookup) string {
@@ -38,6 +48,46 @@ func ResolveListenAddr(getenv EnvLookup) string {
 		return addr
 	}
 	return defaultListenAddr
+}
+
+func ValidateListenAddrSecurity(addr string, getenv EnvLookup) error {
+	host := listenHost(addr)
+	if isLoopbackListenHost(host) {
+		return nil
+	}
+	if hasTLSConfig(getenv) {
+		return nil
+	}
+	return fmt.Errorf("deck-go HTTP bind address %q is not loopback; configure TLS or bind to 127.0.0.1", addr)
+}
+
+func listenHost(addr string) string {
+	host, _, err := net.SplitHostPort(strings.TrimSpace(addr))
+	if err == nil {
+		return strings.Trim(host, "[]")
+	}
+	if strings.HasPrefix(addr, ":") {
+		return ""
+	}
+	return strings.TrimSpace(addr)
+}
+
+func isLoopbackListenHost(host string) bool {
+	host = strings.TrimSpace(strings.Trim(host, "[]"))
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func hasTLSConfig(getenv EnvLookup) bool {
+	if getenv == nil {
+		return false
+	}
+	cert := strings.TrimSpace(getenv("DECK_GO_TLS_CERT_FILE"))
+	key := strings.TrimSpace(getenv("DECK_GO_TLS_KEY_FILE"))
+	return cert != "" && key != ""
 }
 
 func NewHandler() http.Handler {
@@ -60,6 +110,72 @@ func NewDependencies() (*Dependencies, error) {
 		Store:   store,
 		Runtime: managed,
 	}, nil
+}
+
+func NewDependenciesFromEnv() (*Dependencies, error) {
+	loaded, err := envconf.Load(envconf.Options{})
+	if err != nil {
+		return nil, err
+	}
+	runtimeFacade, err := facade.BuildFacade(&loaded, runtimestate.Open(ResolveDeckStatePath()))
+	if err != nil {
+		return nil, err
+	}
+	return NewDependenciesWithRuntimeFacade(loaded, runtimeFacade)
+}
+
+func NewDependenciesWithRuntimeFacade(loaded envconf.Loaded, runtimeFacade facade.RuntimeFacade) (*Dependencies, error) {
+	store, err := config.NewStore()
+	if err != nil {
+		return nil, err
+	}
+	bus := events.NewBus(2000)
+	managed := openclawrt.NewManagedRuntime(store, bus)
+	if loaded.Mode == envconf.ModeRemote {
+		if requester, ok := runtimeFacade.(openclawrt.Requester); ok {
+			managed = openclawrt.NewManagedRuntimeWithRequester(store, requester, bus)
+		}
+	}
+	if loaded.Mode == envconf.ModeBundled {
+		supervisor := openclawrt.NewManagedSupervisorWithOptions(
+			store,
+			bus,
+			openclawrt.WithManagedGatewayConfig(managedGatewaySettingsFromRuntimeBundled(loaded.Bundled)),
+		)
+		managed = openclawrt.NewManagedRuntimeWithStoreAndSupervisor(store, supervisor, bus)
+		if binder, ok := runtimeFacade.(interface {
+			AttachSupervisor(*bundled.Supervisor)
+		}); ok {
+			if runtimeSupervisor, ok := supervisor.(*bundled.Supervisor); ok {
+				binder.AttachSupervisor(runtimeSupervisor)
+			}
+		}
+		managed.EnsureAutoStart()
+	}
+	return &Dependencies{
+		Store:         store,
+		Runtime:       managed,
+		RuntimeFacade: runtimeFacade,
+	}, nil
+}
+
+func managedGatewaySettingsFromRuntimeBundled(cfg envconf.RuntimeBundledConfig) config.ManagedGatewaySettings {
+	env := make(map[string]string, len(cfg.Env))
+	for key, value := range cfg.Env {
+		env[key] = value
+	}
+	return config.ManagedGatewaySettings{
+		Mode:                "managed",
+		Command:             cfg.Command,
+		Args:                append([]string(nil), cfg.Args...),
+		WorkingDir:          cfg.WorkingDir,
+		BindHost:            cfg.BindHost,
+		BindPort:            cfg.BindPort,
+		GatewayToken:        cfg.Token,
+		AutoStart:           cfg.AutoStart,
+		AutoStartConfigured: true,
+		Env:                 env,
+	}
 }
 
 func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
@@ -101,6 +217,7 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 				next.ServeHTTP(w, req)
 			})
 		})
+		api.Use(server.GatewayConfiguredMiddleware(deps.RuntimeFacade))
 		httpapi.MountAdminRoutes(
 			api,
 			managed,
@@ -141,8 +258,21 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 		wsapi.MountRoutes(api, registry)
 	})
 
-	root.Mount("/", server.NewRootHandler(deps.Store, managed))
+	root.Mount("/", server.NewRootHandlerWithRuntimeFacade(deps.Store, managed, deps.RuntimeFacade))
 	return root
+}
+
+func ResolveDeckStatePath() string {
+	if explicit := strings.TrimSpace(os.Getenv("DECK_STATE_PATH")); explicit != "" {
+		return explicit
+	}
+	if dataDir := strings.TrimSpace(os.Getenv("DECK_GO_DATA_DIR")); dataDir != "" {
+		return filepath.Join(dataDir, "deck-state.json")
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".openclaw", "deck-go", "deck-state.json")
+	}
+	return "deck-state.json"
 }
 
 type alertAdapter struct{}

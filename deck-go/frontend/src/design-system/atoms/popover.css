@@ -1,0 +1,11 @@
+.ds-popover {
+  position: absolute;
+  z-index: 50;
+  background: var(--ds-bg-elev);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-md);
+  font-family: var(--ds-font-sans);
+  color: var(--ds-text-1);
+  overflow: hidden;
+}

@@ -1,0 +1,92 @@
+.ds-code {
+  margin: 0;
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-code-bg);
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: var(--ds-line);
+  color: var(--ds-text-1);
+  overflow-x: auto;
+}
+.ds-code--numbered {
+  padding: var(--ds-sp-2) 0;
+}
+.ds-code__line {
+  display: flex;
+  padding: 0 var(--ds-sp-3);
+  white-space: pre;
+}
+.ds-code__ln {
+  color: var(--ds-text-4);
+  width: 32px;
+  text-align: right;
+  margin-right: var(--ds-sp-4);
+  user-select: none;
+  flex-shrink: 0;
+}
+.ds-code__line code {
+  color: var(--ds-text-1);
+  white-space: pre;
+}
+
+/* Code-view variant — toolbar + scroll body code panel.
+ * Bundle .read + .read-bar + .read-code + .code-line + .code-line .ln
+ * (lines 464-496). Used by HighlightedCodeView (chat tool-result
+ * "read" view) but kept here as an atom because the toolbar+scroll
+ * shape is reusable beyond chat. */
+.ds-code-view {
+  overflow: hidden;
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-code-bg);
+}
+
+.ds-code-view__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-transform: uppercase;
+}
+
+.ds-code-view__scroll {
+  max-height: 400px;
+  overflow: auto;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: var(--ds-line);
+}
+
+.ds-code-view__line {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  min-width: 0;
+  color: var(--ds-text-1);
+}
+
+.ds-code-view__line:hover {
+  background: var(--ds-bg-hover);
+}
+
+.ds-code-view__ln {
+  padding: 0 8px;
+  border-right: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-4);
+  text-align: right;
+  user-select: none;
+}
+
+.ds-code-view__line code {
+  min-width: 0;
+  padding: 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

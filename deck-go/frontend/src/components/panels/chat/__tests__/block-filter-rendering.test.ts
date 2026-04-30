@@ -2,6 +2,7 @@ import { NextIntlClientProvider } from "next-intl";
 // @vitest-environment jsdom
 import { act } from "react";
 import { createElement, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -313,6 +314,211 @@ describe("showToolResult block filter", () => {
     expect(container.querySelector("[data-diff-line]")).toBeNull();
   });
 
+  it("restores the legacy details chrome and keeps view-tab state per card", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    act(() => {
+      root = createRoot(container);
+      root.render(
+        createElement(
+          Wrapper,
+          null,
+          createElement(
+            "div",
+            null,
+            createElement(ToolResultCard, {
+              content: "export const first = 1;",
+              toolName: "read_file",
+              toolInput: { path: "src/first.ts" },
+            }),
+            createElement(ToolResultCard, {
+              content: "export const second = 2;",
+              toolName: "read_file",
+              toolInput: { path: "src/second.ts" },
+            }),
+          ),
+        ),
+      );
+    });
+
+    const details = Array.from(container.querySelectorAll<HTMLDetailsElement>("details")).filter(
+      (element) => element.classList.contains("ds-tool-result-card"),
+    );
+    expect(details).toHaveLength(2);
+    expect(details[0]?.open).toBe(false);
+    expect(details[1]?.open).toBe(false);
+
+    // SegmentedControl: each card has 4 tabs (raw/bash/read/diff). The raw tab
+    // is always enabled and labelled "Show raw" via t() mock; for read_file the
+    // detected view is "read" so that tab is selected by default.
+    function rawTabs(): HTMLButtonElement[] {
+      return Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
+        (button) => button.textContent === "Show raw",
+      );
+    }
+    const initialRawTabs = rawTabs();
+    expect(initialRawTabs).toHaveLength(2);
+    expect(details[0]?.querySelector("summary")?.contains(initialRawTabs[0] ?? null)).toBe(true);
+    expect(initialRawTabs[0]?.getAttribute("aria-selected")).toBe("false");
+    expect(initialRawTabs[1]?.getAttribute("aria-selected")).toBe("false");
+
+    act(() => {
+      initialRawTabs[0]?.click();
+    });
+
+    // Card 1 switched to raw; card 2 stays on detected (read) view.
+    const updatedRawTabs = rawTabs();
+    expect(updatedRawTabs[0]?.getAttribute("aria-selected")).toBe("true");
+    expect(updatedRawTabs[1]?.getAttribute("aria-selected")).toBe("false");
+    // Per-card details still closed (clicking a tab inside summary does not toggle the details).
+    expect(details[0]?.open).toBe(false);
+    expect(details[1]?.open).toBe(false);
+  });
+
+  it("opens error tool result cards by default", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    act(() => {
+      root = createRoot(container);
+      root.render(
+        createElement(
+          Wrapper,
+          null,
+          createElement(ToolResultCard, {
+            content: "boom",
+            toolName: "custom_tool",
+            isError: true,
+          }),
+        ),
+      );
+    });
+
+    const details = container.querySelector<HTMLDetailsElement>(
+      "details.ds-tool-result-card.is-error",
+    );
+    expect(details).toBeTruthy();
+    expect(details?.open).toBe(true);
+    expect(details?.querySelector("summary")?.textContent).toContain("Tool error");
+  });
+
+  it("keeps an error card collapsed after rerender once the user closes it", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    const renderCard = () =>
+      createElement(
+        Wrapper,
+        null,
+        createElement(ToolResultCard, {
+          content: "boom",
+          toolName: "custom_tool",
+          isError: true,
+        }),
+      );
+
+    act(() => {
+      root = createRoot(container);
+      root.render(renderCard());
+    });
+
+    const details = container.querySelector<HTMLDetailsElement>(
+      "details.ds-tool-result-card.is-error",
+    );
+    expect(details?.open).toBe(true);
+
+    act(() => {
+      if (!details) {
+        return;
+      }
+      flushSync(() => {
+        details.open = false;
+        details.dispatchEvent(new Event("toggle", { bubbles: false }));
+      });
+      root?.render(renderCard());
+    });
+
+    const rerenderedDetails = container.querySelector<HTMLDetailsElement>(
+      "details.ds-tool-result-card.is-error",
+    );
+    expect(rerenderedDetails?.open).toBe(false);
+  });
+
+  it("opens a card when the same instance transitions into an error result", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    const renderCard = (isError: boolean) =>
+      createElement(
+        Wrapper,
+        null,
+        createElement(ToolResultCard, {
+          content: "transition",
+          toolName: "custom_tool",
+          isError,
+        }),
+      );
+
+    act(() => {
+      root = createRoot(container);
+      root.render(renderCard(false));
+    });
+
+    const initialDetails = container.querySelector<HTMLDetailsElement>(
+      "details.ds-tool-result-card",
+    );
+    expect(initialDetails?.open).toBe(false);
+
+    act(() => {
+      root?.render(renderCard(true));
+    });
+
+    const errorDetails = container.querySelector<HTMLDetailsElement>(
+      "details.ds-tool-result-card.is-error",
+    );
+    expect(errorDetails?.open).toBe(true);
+  });
+
+  it("does not block the native keyboard activation path for the raw view tab", async () => {
+    const { ToolResultCard } = await import("../blocks/ToolResultCard");
+
+    act(() => {
+      root = createRoot(container);
+      root.render(
+        createElement(
+          Wrapper,
+          null,
+          createElement(ToolResultCard, {
+            content: "export const value = 1;",
+            toolName: "read_file",
+            toolInput: { path: "src/value.ts" },
+          }),
+        ),
+      );
+    });
+
+    const rawTab = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(
+      (button) => button.textContent === "Show raw",
+    );
+    expect(rawTab).toBeTruthy();
+    expect(rawTab?.getAttribute("aria-selected")).toBe("false");
+
+    // SegmentedControl tabs are native <button> elements — Space/Enter map to
+    // click. Verify we don't preventDefault on the keyboard path that would
+    // suppress activation.
+    const keyboardEvent = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: " ",
+    });
+    rawTab?.dispatchEvent(keyboardEvent);
+    expect(keyboardEvent.defaultPrevented).toBe(false);
+
+    act(() => {
+      rawTab?.click();
+    });
+
+    // After click the raw tab becomes the selected segment.
+    expect(rawTab?.getAttribute("aria-selected")).toBe("true");
+  });
+
   it("collapses long raw tool results until explicitly expanded", async () => {
     const { ToolResultCard } = await import("../blocks/ToolResultCard");
     const content = Array.from({ length: 205 }, (_, index) => `line-${index + 1}`).join("\n");
@@ -369,19 +575,24 @@ describe("showToolResult block filter", () => {
       );
     });
 
+    // Default activeView is "structured" for structured (non-string) content;
+    // each child block renders via its typed renderer.
     expect(container.textContent).toContain("structured-line-60");
 
-    const rawButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+    // Click the raw tab to switch to JSON serialization.
+    const rawTab = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(
       (button) => button.textContent === "Show raw",
     );
-    expect(rawButton).toBeTruthy();
+    expect(rawTab).toBeTruthy();
+    expect(rawTab?.getAttribute("aria-selected")).toBe("false");
 
     act(() => {
-      rawButton?.click();
+      rawTab?.click();
     });
 
-    expect(container.querySelector('[data-tool-result-view="virtual"]')).toBeTruthy();
+    expect(rawTab?.getAttribute("aria-selected")).toBe("true");
     expect(container.textContent).toContain('"type": "text"');
-    expect(container.textContent).toContain("Show formatted");
+    // Long content (>200 JSON lines) renders via virtual scroll.
+    expect(container.querySelector('[data-tool-result-view="virtual"]')).toBeTruthy();
   });
 });

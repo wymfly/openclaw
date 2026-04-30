@@ -1,0 +1,671 @@
+/* CanvasPanel + CanvasDebugPanel + ArtifactPanel chrome.
+ *
+ * P3 task 2 atom 9.7 — Decision B per-atom visual replacement.
+ * Bundle target: docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css
+ *   .right-panel    (lines 848-856 — drawer wrapper, owned by chat-right-drawer.css)
+ *   .rp-head        (lines 884-901)
+ *   .cp / .cp-body  (lines 903-904)
+ *   .cp-stage       (lines 905-913)
+ *   .cp-overlay     (lines 914-922)
+ *   .cp-debug       (lines 940-948)
+ *   .ap / .ap-tabs  (lines 950-989)
+ *
+ * Replaces legacy `.deck-ui-canvas-panel` / `-header` / `-viewport` /
+ * `-frame` / `-overlay` / `-spinner` / `-debug*` / `-embed` and the
+ * `.deck-ui-artifact` / `-fullscreen` / `-head` panel chrome rules
+ * removed from theme.css in the same commit. Inline `ArtifactCard`
+ * + `SharedRenderer` body sub-renderer styles (artifact-table /
+ * -json / -image / -markdown / -empty / -code) remain on legacy
+ * classes for now and will be cleaned up in 9.10 widgets bucket.
+ */
+
+/* CanvasPanel — bundle .cp (flex column min-height 0). The .right-panel
+ * drawer wrapper is owned separately. */
+.ds-canvas-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Header — bundle .rp-head adapted for drawer top bar. Chat-parity §6a
+ * promotes the bar to: leading Canvas icon + title-stack (title + mono-
+ * small subtitle showing live a2ui-bridge state) + grow spacer + Bug /
+ * Refresh / Close IconButtons. */
+.ds-canvas-panel__header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+  color: var(--ds-text-1);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ds-canvas-panel__title-icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--ds-text-2);
+}
+
+.ds-canvas-panel__title-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ds-canvas-panel__title {
+  color: var(--ds-text-1);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.ds-canvas-panel__sub {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-canvas-panel__sub[data-bridge="ready"] {
+  color: var(--ds-success, var(--ds-text-2));
+}
+
+.ds-canvas-panel__sub[data-bridge="error"] {
+  color: var(--ds-error);
+}
+
+.ds-canvas-panel__sub[data-bridge="connecting"] {
+  color: var(--ds-warn);
+}
+
+.ds-canvas-panel__header-spacer {
+  flex: 1 1 auto;
+}
+
+/* Viewport — bundle .cp-stage. */
+.ds-canvas-panel__viewport {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  background: var(--ds-bg-1);
+  overflow: auto;
+}
+
+/* Iframe-mock shell — bundle .cp-iframe-mock. Wraps the runtime iframe with
+ * a mono-small status strip (`__iframe-bar`) above. Bundle's cp-card /
+ * cp-row / cp-actions mock content is skipped (deck-go runs a real iframe;
+ * see chat-parity-gap-report.md "skip" list). */
+.ds-canvas-panel__iframe-mock {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Status strip above iframe — bundle .cp-iframe-bar (mono small). Surfaces
+ * the live tree status (a2ui:tree · N surfaces · bridge state) so the user
+ * can read connection health without opening the debug panel. */
+.ds-canvas-panel__iframe-bar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-elev, var(--ds-bg-2));
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-canvas-panel__iframe-bar-sep {
+  color: var(--ds-text-4);
+}
+
+.ds-canvas-panel__iframe-bar[data-bridge="ready"] {
+  color: var(--ds-text-2);
+}
+
+.ds-canvas-panel__iframe-bar[data-bridge="error"] {
+  color: var(--ds-error);
+}
+
+.ds-canvas-panel__iframe-bar[data-bridge="connecting"] {
+  color: var(--ds-warn);
+}
+
+/* Iframe fills viewport — runtime A2UI iframe is borderless full-bleed. */
+.ds-canvas-panel__frame {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+}
+
+/* Overlay (loading / error / empty) — bundle .cp-overlay. Chat-parity §6a
+ * adds icon + mono-small typography to error/empty so the overlay matches
+ * bundle's iconography pattern. */
+.ds-canvas-panel__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--ds-bg-1);
+  color: var(--ds-text-2);
+  text-align: center;
+}
+
+.ds-canvas-panel__overlay-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--ds-text-3);
+}
+
+.ds-canvas-panel__overlay-text {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-body);
+  color: var(--ds-text-2);
+}
+
+.ds-canvas-panel__overlay-hint {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  color: var(--ds-text-3);
+}
+
+.ds-canvas-panel__spinner {
+  width: 20px;
+  height: 20px;
+  color: var(--ds-accent);
+  animation: ds-canvas-spin 0.9s linear infinite;
+}
+
+@keyframes ds-canvas-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Debug — bundle .cp-debug. */
+.ds-canvas-debug {
+  flex: 0 0 auto;
+  max-height: 220px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  overflow: hidden;
+}
+
+.ds-canvas-debug__tabs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.ds-canvas-debug__tabs button {
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--ds-text-3);
+  font: inherit;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.ds-canvas-debug__tabs button:hover,
+.ds-canvas-debug__tabs button.is-active {
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-1);
+}
+
+.ds-canvas-debug__tabs span {
+  margin-left: auto;
+  color: var(--ds-text-3);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ds-canvas-debug__events,
+.ds-canvas-debug__surfaces {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: auto;
+}
+
+.ds-canvas-debug__event {
+  width: 100%;
+  display: grid;
+  grid-template-columns: max-content minmax(86px, max-content) minmax(0, 1fr);
+  gap: 8px;
+  padding: 5px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: transparent;
+  color: var(--ds-text-1);
+  text-align: left;
+  font: inherit;
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.ds-canvas-debug__event:hover {
+  background: var(--ds-bg-hover);
+}
+
+.ds-canvas-debug__time,
+.ds-canvas-debug__empty,
+.ds-canvas-debug__event > span:last-child {
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-canvas-debug__event > span:nth-child(2) {
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+}
+
+.ds-canvas-debug__raw {
+  margin: 0;
+  max-height: 140px;
+  overflow: auto;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.ds-canvas-debug__tree {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow: auto;
+}
+
+.ds-canvas-debug__surfaces {
+  gap: 5px;
+}
+
+.ds-canvas-debug__surfaces li {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  padding: 5px 8px;
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-canvas-debug__empty {
+  margin: 0;
+  padding: 12px;
+  text-align: center;
+}
+
+/* Inline canvas embed — used by CanvasEmbed block + nested in tool-result. */
+.ds-canvas-embed {
+  width: 100%;
+  min-height: 260px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-elev);
+}
+
+/* ArtifactPanel — bundle .ap (drawer body, flex column). */
+.ds-artifact-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Head — bundle .rp-head adapted (drawer head row with title + toolbar). */
+.ds-artifact-panel__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+  color: var(--ds-text-1);
+  font-size: 13px;
+}
+
+.ds-artifact-panel__head-icon {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  color: var(--ds-text-2);
+}
+
+.ds-artifact-panel__title-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+  flex: 0 1 auto;
+}
+
+.ds-artifact-panel__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-artifact-panel__sub {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-artifact-panel__head-spacer {
+  flex: 1 1 auto;
+}
+
+/* Legacy `<strong>` + `__language` markup (pre-§7a head) — kept as a
+ * safety net during the migration window; ArtifactPanel now renders the
+ * icon + title-stack + spacer pattern. Safe to drop after the chat
+ * parity gauntlet has been green for a release. */
+.ds-artifact-panel__head strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.ds-artifact-panel__language {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-transform: uppercase;
+}
+
+/* Tab strip — bundle `.ap-tabs` + `.ap-tab` (right-panel.jsx 142-158).
+ * Renders directly below the head. Active tab gets an `--ds-accent`
+ * underline + accent text; others default to muted. */
+.ds-artifact-panel__tabs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ds-artifact-panel__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ds-artifact-panel__tab {
+  flex: 0 0 auto;
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.ds-artifact-panel__tab:hover {
+  color: var(--ds-text-1);
+}
+
+.ds-artifact-panel__tab:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: -2px;
+}
+
+.ds-artifact-panel__tab--active {
+  color: var(--ds-accent);
+  border-bottom-color: var(--ds-accent);
+}
+
+/* Body — bundle .ap-body (overflow auto on a code-bg base). Specific
+ * sub-renderers (.ap-md / .ap-table / .ap-json / .ap-html-stub) override
+ * their own backgrounds; those styles still live on legacy
+ * `.deck-ui-artifact-*` selectors and will be migrated in 9.10. */
+.ds-artifact-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: var(--ds-code-bg);
+}
+
+/* Fullscreen modifier — covers entire viewport on top of the drawer. */
+.ds-artifact-panel--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: var(--ds-bg-elev);
+}
+
+/* Density compact override. */
+[data-density="compact"] .ds-canvas-panel__header,
+[data-density="compact"] .ds-artifact-panel__head {
+  height: 34px;
+  padding: 6px 10px;
+}
+
+/* Inline artifact card — surfaces a runnable artifact inside the
+ * tool-result area. Bundle has no direct counterpart; deck-go
+ * keeps the bordered grid pattern with a play icon, title,
+ * language tag, and a primary "open" button. Palette switched
+ * to --ds-* tokens (was color-mix --primary tinted). */
+.ds-artifact-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-accent-dim);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-accent-bg);
+}
+
+.ds-artifact-card__icon {
+  min-width: 24px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-elev);
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ds-artifact-card__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-artifact-card__language {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-transform: uppercase;
+}
+
+/* Artifact body sub-renderers — bundle .ap-* (lines 974-989) for
+ * code/markdown/json/table/image surfaces inside the artifact panel.
+ * `.ds-artifact-panel__body` already supplies the outer scroll
+ * container; these rules style each language-specific child. */
+/* Code fallback — line-numbered render. Bundle `.ap-code` + `.code-line`
+ * + `.ln` (right-panel.jsx 192-201). Each child is a row with a mono
+ * gutter span and the line code. Text content is rendered as-is, so the
+ * outer `<pre>` keeps `font-family: monospace` defaults but layout is
+ * driven by per-line flex rows. */
+.ds-artifact-body__code {
+  margin: 0;
+  padding: 9px 10px;
+  background: var(--ds-code-bg);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: var(--ds-line);
+  overflow: auto;
+}
+
+.ds-artifact-body__code-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  white-space: pre;
+}
+
+.ds-artifact-body__code-line code {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: pre-wrap;
+}
+
+.ds-artifact-body__code-ln {
+  flex: 0 0 auto;
+  min-width: 28px;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-align: right;
+  user-select: none;
+}
+
+/* HTML stub — bundle `.ap-html-stub` + `.ap-html-bar` + `.ap-html-canvas`
+ * (right-panel.jsx 276-289). A status strip above the sandboxed iframe
+ * surfacing the security boundary; iframe occupies remaining space. */
+.ds-artifact-body__html-stub {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 280px;
+}
+
+.ds-artifact-body__html-bar {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-artifact-body__html-canvas {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.ds-artifact-body__markdown {
+  padding: 10px 12px;
+}
+
+.ds-artifact-body__image {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: 12px;
+  background: var(--ds-bg-1);
+}
+
+.ds-artifact-body__image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.ds-artifact-body__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ds-fs-body);
+}
+
+.ds-artifact-body__table th,
+.ds-artifact-body__table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  text-align: left;
+}
+
+.ds-artifact-body__table th {
+  background: var(--ds-bg-2);
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-artifact-body__empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--ds-text-3);
+  text-align: center;
+}
+
+/* SharedRenderer wrapper — generic overflow container for any
+ * artifact body content. */
+.ds-shared-renderer {
+  min-height: 0;
+  overflow: auto;
+}
+
+.ds-shared-renderer iframe {
+  width: 100%;
+  min-height: 360px;
+  border: 0;
+  background: #fff;
+}

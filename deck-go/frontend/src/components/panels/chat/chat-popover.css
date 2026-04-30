@@ -1,0 +1,197 @@
+/* Chat composer popovers — slash command palette + mention popover +
+ * prompt-template menu wrapper.
+ *
+ * P3 task 2 atom 9.8 — Decision B per-atom visual replacement.
+ * Bundle target: docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css
+ *   .popover    (lines 766-778)
+ *   .pop-head   (line 779 — section title chrome)
+ *   .pop-row    (lines 780-788 — option chrome)
+ *
+ * Replaces legacy `.deck-ui-command-palette*` / `.deck-ui-mention-*` /
+ * `.deck-ui-command-section*` / `.deck-ui-command-name` / `.deck-ui-command-
+ * primary` / `.deck-ui-command-args` / `.deck-ui-command-description` /
+ * `.deck-ui-template-menu*` rules removed from theme.css in the same commit.
+ *
+ * Anchoring: composer popovers are positioned inline relative to the textarea
+ * via `position: absolute` against the field's `position: relative`. The
+ * design-system DropdownMenu atom is the long-term replacement for these
+ * surfaces but JSX still renders the bespoke palette / mention / template
+ * structures, which are preserved here.
+ */
+
+.ds-command-palette,
+.ds-mention-popover {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 360px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-elev);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.ds-command-palette__back {
+  align-self: flex-start;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ds-text-2, currentColor);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.ds-command-palette__back:hover {
+  background: var(--ds-bg-hover);
+}
+
+.ds-command-palette__section + .ds-command-palette__section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ds-border-subtle, var(--ds-border));
+}
+
+.ds-command-palette__section-title {
+  margin: 0 0 4px 0;
+  padding: 0 4px;
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ds-command-palette__option {
+  display: grid;
+  grid-template-columns: minmax(108px, auto) minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Per-command interaction-mode chip — bundle .pop-mode-tag.mono.small.
+ * Inline tag inside the primary span, after name+args. */
+.ds-command-palette__mode-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  text-transform: lowercase;
+}
+
+.ds-command-palette__option--selected .ds-command-palette__mode-tag,
+.ds-command-palette__option[aria-selected="true"] .ds-command-palette__mode-tag {
+  border-color: var(--ds-accent-dim);
+  color: var(--ds-accent);
+}
+
+/* Enter-key hint chip on the selected option — bundle .kbd. Sits in the
+ * 3rd grid column so it pins to the right edge of the option. */
+.ds-command-palette__kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--ds-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.ds-command-palette__option:hover,
+.ds-command-palette__option--selected,
+.ds-command-palette__option[aria-selected="true"] {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
+}
+
+.ds-command-palette--arg-options .ds-command-palette__option,
+.ds-command-palette__back,
+.ds-mention-popover__option {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ds-command-palette__primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-command-palette__name {
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  font-weight: 600;
+}
+
+.ds-command-palette__args,
+.ds-command-palette__description {
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-command-palette__description {
+  text-align: right;
+}
+
+.ds-mention-popover__title {
+  margin-bottom: 4px;
+  padding: 0 4px;
+  color: var(--ds-text-2, currentColor);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ds-mention-popover__option {
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ds-mention-popover__option:hover {
+  background: var(--ds-bg-hover);
+}
+
+/* Template menu wrapper — composer toolbar slot. The Button atom owns the
+ * trigger chrome; this rule scopes the dropdown anchor + flex sizing so the
+ * wrapper hugs its inner button width inside the composer flex row. */
+.ds-template-menu {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: max-content;
+}

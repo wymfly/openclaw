@@ -1,0 +1,33 @@
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-1);
+  padding: 1px var(--ds-sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-pill);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.ds-badge--neutral {
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  border-color: var(--ds-border);
+}
+.ds-badge--ok {
+  background: var(--ds-success-bg);
+  color: var(--ds-success);
+}
+.ds-badge--warn {
+  background: var(--ds-warn-bg);
+  color: var(--ds-warn);
+}
+.ds-badge--err {
+  background: var(--ds-error-bg);
+  color: var(--ds-error);
+}
+.ds-badge--running {
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+}

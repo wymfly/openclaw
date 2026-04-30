@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,29 +12,39 @@ const apiMocks = vi.hoisted(() => ({
   fetchMonitorRunDetail: vi.fn(),
   fetchMonitorRuns: vi.fn(),
   fetchMonitorStats: vi.fn(),
-  fetchSettings: vi.fn(),
-  startRuntimeGateway: vi.fn(),
-  restartRuntimeGateway: vi.fn(),
-  stopRuntimeGateway: vi.fn(),
+  fetchCapabilities: vi.fn(),
+  isBundledRuntimeStatus: (runtime: { mode?: string } | null | undefined) =>
+    runtime?.mode === "bundled",
+  isRemoteRuntimeStatus: (runtime: { mode?: string } | null | undefined) =>
+    runtime?.mode === "remote",
 }));
 
 const refreshRuntimeSummary = vi.hoisted(() => vi.fn());
+const bootstrapSummary = vi.hoisted(() => ({
+  gateway: { connected: true },
+  runtime: { status: "running", health: "healthy", autoStart: true, mode: "bundled" },
+}));
 const runtimeSummary = vi.hoisted(() => ({
   status: "running",
   health: "healthy",
   gatewayUrl: "ws://127.0.0.1:18789",
   pid: 1234,
   configured: true,
+  autoStart: true,
+  ownershipState: "owned",
+  restartAttempts: 0,
+  lastConnectedAt: "",
+  lastError: "",
+  latencyP50: 0,
+  mode: "bundled",
+  tlsVerified: true,
 }));
 
 vi.mock("../../../api", () => apiMocks);
 
 vi.mock("../../../deck-ui/ui-store", () => ({
   useDeckUI: () => ({
-    bootstrap: {
-      gateway: { connected: true },
-      runtime: { status: "running", health: "healthy" },
-    },
+    bootstrap: bootstrapSummary,
     runtime: {
       runtime: runtimeSummary,
     },
@@ -45,12 +56,6 @@ vi.mock("../../../deck-ui/ui-store", () => ({
 let container: HTMLDivElement;
 let root: Root | null = null;
 
-function findButtonText(pattern: RegExp) {
-  return Array.from(container.querySelectorAll("button")).find((button) =>
-    pattern.test(button.textContent ?? ""),
-  );
-}
-
 describe("GatewayPanel", () => {
   beforeEach(() => {
     (
@@ -58,22 +63,11 @@ describe("GatewayPanel", () => {
     ).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
-    apiMocks.fetchSettings.mockResolvedValue({
-      path: "/tmp/deck-go.json",
-      settings: {
-        accessToken: "token",
-        managedGateway: {
-          mode: "managed",
-          command: "pnpm",
-          args: ["openclaw", "gateway", "run"],
-          workingDir: "/tmp/openclaw",
-          bindHost: "127.0.0.1",
-          bindPort: 18789,
-          gatewayToken: "gateway-token",
-          autoStart: true,
-          env: {},
-        },
-      },
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      mode: "bundled",
+      configured: true,
+      endpointMutable: false,
+      supervisorState: true,
     });
     apiMocks.fetchGatewayHealth.mockResolvedValue({
       ok: true,
@@ -148,14 +142,23 @@ describe("GatewayPanel", () => {
         },
       ],
     });
-    apiMocks.startRuntimeGateway.mockResolvedValue({ runtime: { status: "running" } });
-    apiMocks.restartRuntimeGateway.mockResolvedValue({ runtime: { status: "running" } });
-    apiMocks.stopRuntimeGateway.mockResolvedValue({ runtime: { status: "stopped" } });
+    runtimeSummary.mode = "bundled";
     runtimeSummary.status = "running";
     runtimeSummary.health = "healthy";
     runtimeSummary.gatewayUrl = "ws://127.0.0.1:18789";
     runtimeSummary.pid = 1234;
     runtimeSummary.configured = true;
+    runtimeSummary.autoStart = true;
+    runtimeSummary.ownershipState = "owned";
+    runtimeSummary.restartAttempts = 0;
+    runtimeSummary.lastConnectedAt = "";
+    runtimeSummary.lastError = "";
+    runtimeSummary.latencyP50 = 0;
+    runtimeSummary.tlsVerified = true;
+    bootstrapSummary.gateway.connected = true;
+    bootstrapSummary.runtime.status = "running";
+    bootstrapSummary.runtime.health = "healthy";
+    bootstrapSummary.runtime.autoStart = true;
     refreshRuntimeSummary.mockResolvedValue(undefined);
   });
 
@@ -170,17 +173,19 @@ describe("GatewayPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("renders runtime and managed gateway settings from deck-go APIs", async () => {
+  it("renders bundled runtime summary and Gateway diagnostics from deck-go APIs", async () => {
     await act(async () => {
       root = createRoot(container);
       root.render(createElement(GatewayPanel));
     });
 
+    await waitFor(() => expect(apiMocks.fetchCapabilities).toHaveBeenCalled());
     expect(container.textContent).toMatch(/Monitor|监控面板/);
     expect(container.textContent).toMatch(/status running|运行状态 running/);
     expect(container.textContent).toContain("ws://127.0.0.1:18789");
-    expect(container.textContent).toMatch(/Managed gateway settings|托管 Gateway 设置/);
-    expect(container.textContent).toContain("pnpm");
+    expect(container.textContent).toMatch(/Runtime summary|运行时摘要/);
+    expect(container.textContent).toMatch(/Bundled supervisor|本机 supervisor/);
+    expect(container.textContent).not.toMatch(/^(Start|启动|Stop|停止|Restart|重启)$/);
     expect(container.textContent).toMatch(/Gateway health diagnostics|Gateway 健康诊断/);
     expect(container.textContent).toMatch(/latency: 17 ms|延迟: 17 ms/);
     expect(container.textContent).toMatch(
@@ -204,9 +209,8 @@ describe("GatewayPanel", () => {
     expect(container.querySelectorAll(".deck-ui-gateway-surface").length).toBeGreaterThanOrEqual(4);
     expect(container.querySelectorAll(".deck-ui-gateway-hero")).toHaveLength(1);
     expect(container.querySelectorAll(".deck-ui-gateway-actions")).toHaveLength(1);
-    expect(container.querySelectorAll(".deck-ui-gateway-button")).toHaveLength(4);
+    expect(container.querySelectorAll(".deck-ui-gateway-button")).toHaveLength(1);
     expect(container.querySelector("[style]")).toBeNull();
-    expect(apiMocks.fetchSettings).toHaveBeenCalled();
     expect(apiMocks.fetchGatewayHealth).toHaveBeenCalled();
     expect(apiMocks.fetchGatewayStatus).toHaveBeenCalled();
     expect(apiMocks.fetchActivityEvents).toHaveBeenCalledWith(20);
@@ -214,43 +218,177 @@ describe("GatewayPanel", () => {
     expect(apiMocks.fetchMonitorStats).toHaveBeenCalled();
   });
 
-  it("gates runtime actions by current gateway state", async () => {
+  it("renders no Gateway lifecycle action buttons", async () => {
     await act(async () => {
       root = createRoot(container);
       root.render(createElement(GatewayPanel));
     });
 
-    const startButton = findButtonText(/^(Start|启动)$/);
-    const restartButton = findButtonText(/^(Restart|重启)$/);
-    const stopButton = findButtonText(/^(Stop|停止)$/);
-
-    expect(startButton?.disabled).toBe(true);
-    expect(restartButton?.disabled).toBe(false);
-    expect(stopButton?.disabled).toBe(false);
+    const labels = Array.from(container.querySelectorAll("button")).map((button) =>
+      button.textContent?.trim(),
+    );
+    expect(labels).not.toContain("Start");
+    expect(labels).not.toContain("Restart");
+    expect(labels).not.toContain("Stop");
+    expect(labels).not.toContain("启动");
+    expect(labels).not.toContain("重启");
+    expect(labels).not.toContain("停止");
   });
 
-  it("starts a stopped managed gateway and refreshes runtime summary", async () => {
-    runtimeSummary.status = "stopped";
+  it.each([
+    {
+      name: "connected",
+      status: "running",
+      health: "healthy",
+      connected: true,
+      ownership: "owned",
+      restarts: 0,
+      autoStart: true,
+      gatewayText: /gateway Connected|网关 已连接/,
+      canStart: false,
+      canRestart: true,
+      canStop: true,
+    },
+    {
+      name: "reconnecting",
+      status: "starting",
+      health: "unhealthy",
+      connected: false,
+      ownership: "owned",
+      restarts: 1,
+      autoStart: true,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: false,
+      canRestart: false,
+      canStop: true,
+    },
+    {
+      name: "degraded",
+      status: "degraded",
+      health: "unhealthy",
+      connected: false,
+      ownership: "owned",
+      restarts: 2,
+      autoStart: true,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: true,
+      canRestart: true,
+      canStop: true,
+    },
+    {
+      name: "failed",
+      status: "failed",
+      health: "unknown",
+      connected: false,
+      ownership: "none",
+      restarts: 3,
+      autoStart: true,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: true,
+      canRestart: true,
+      canStop: true,
+    },
+    {
+      name: "port-conflict",
+      status: "failed",
+      health: "unknown",
+      connected: false,
+      ownership: "external",
+      restarts: 0,
+      autoStart: true,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: true,
+      canRestart: true,
+      canStop: true,
+    },
+    {
+      name: "autostart-disabled",
+      status: "stopped",
+      health: "unknown",
+      connected: false,
+      ownership: "none",
+      restarts: 0,
+      autoStart: false,
+      gatewayText: /gateway pending|网关 待连接/,
+      canStart: true,
+      canRestart: false,
+      canStop: false,
+    },
+  ])(
+    "renders managed runtime state matrix row: $name",
+    async ({ status, health, connected, ownership, restarts, gatewayText }) => {
+      runtimeSummary.status = status;
+      runtimeSummary.health = health;
+      runtimeSummary.ownershipState = ownership;
+      runtimeSummary.restartAttempts = restarts;
+      bootstrapSummary.gateway.connected = connected;
+      bootstrapSummary.runtime.status = status;
+      bootstrapSummary.runtime.health = health;
+
+      await act(async () => {
+        root = createRoot(container);
+        root.render(createElement(GatewayPanel));
+      });
+
+      expect(container.textContent).toMatch(new RegExp(`(status|运行状态) ${status}`));
+      expect(container.textContent).toMatch(new RegExp(`(Health|健康度) ${health}`));
+      expect(container.textContent).toMatch(gatewayText);
+      expect(container.textContent).toMatch(new RegExp(`(owner|归属) ${ownership}`));
+      expect(container.textContent).toMatch(new RegExp(`(restarts|重启) ${restarts}`));
+    },
+  );
+
+  it("renders remote runtime field set when supervisor state is absent", async () => {
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      mode: "remote",
+      configured: true,
+      endpointMutable: true,
+      supervisorState: false,
+    });
+    runtimeSummary.mode = "remote";
+    runtimeSummary.status = undefined as unknown as string;
+    runtimeSummary.health = undefined as unknown as string;
+    runtimeSummary.gatewayUrl = undefined as unknown as string;
+    runtimeSummary.pid = undefined as unknown as number;
+    runtimeSummary.ownershipState = undefined as unknown as "owned";
+    runtimeSummary.restartAttempts = undefined as unknown as number;
+    runtimeSummary.lastConnectedAt = "2026-04-28T10:00:00Z";
+    runtimeSummary.lastError = "";
+    runtimeSummary.latencyP50 = 24;
+    runtimeSummary.tlsVerified = true;
+
     await act(async () => {
       root = createRoot(container);
       root.render(createElement(GatewayPanel));
     });
 
-    const fetchCountBeforeStart = apiMocks.fetchSettings.mock.calls.length;
-    const startButton = findButtonText(/^(Start|启动)$/);
-    expect(startButton).toBeTruthy();
-    expect(startButton?.disabled).toBe(false);
+    await waitFor(() => expect(container.textContent).toMatch(/Remote connection|远程连接/));
+    expect(container.textContent).toContain("2026-04-28T10:00:00Z");
+    expect(container.textContent).toContain("24 ms");
+    expect(container.textContent).toMatch(/TLS verified|TLS 已验证/);
+    expect(container.textContent).not.toMatch(/Bundled supervisor|本机 supervisor/);
+  });
+
+  it("renders first-run empty state instead of Gateway data errors", async () => {
+    const notConfigured = new Error("gateway_not_configured: runtime gateway is not configured");
+    apiMocks.fetchGatewayHealth.mockRejectedValue(notConfigured);
+    apiMocks.fetchGatewayStatus.mockRejectedValue(notConfigured);
+    apiMocks.fetchActivityEvents.mockRejectedValue(notConfigured);
+    apiMocks.fetchMonitorRuns.mockRejectedValue(notConfigured);
 
     await act(async () => {
-      startButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      root = createRoot(container);
+      root.render(createElement(GatewayPanel));
     });
 
-    expect(apiMocks.startRuntimeGateway).toHaveBeenCalledTimes(1);
-    expect(refreshRuntimeSummary).toHaveBeenCalledTimes(1);
-    expect(apiMocks.fetchSettings.mock.calls.length).toBeGreaterThan(fetchCountBeforeStart);
-    expect(apiMocks.fetchGatewayHealth).toHaveBeenCalledTimes(2);
-    expect(apiMocks.fetchGatewayStatus).toHaveBeenCalledTimes(2);
-    expect(apiMocks.fetchMonitorRuns).toHaveBeenCalledTimes(2);
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="empty-state-not-configured"]')).toBeTruthy(),
+    );
+    expect(container.textContent).toMatch(
+      /Open Settings and save a remote endpoint before loading Gateway data\.|请打开设置并保存远程端点后再加载 Gateway 数据。/,
+    );
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).not.toContain("gateway_not_configured");
   });
 
   it("renders old Monitor history and loads timeline detail from run selection", async () => {

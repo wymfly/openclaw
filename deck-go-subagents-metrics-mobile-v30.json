@@ -1,0 +1,56 @@
+{
+  "url": "http://127.0.0.1:4179/?panel=subagents",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "title": "deck-go",
+  "bodyTextStart": "☰\nSubagents\n\ncontrol · panel 21 of 26\n\nGateway Healthy\nRuntime running\nRefresh\nLight\nDark\nSubagents\n\nSubagent runs show active/history inspection plus lineage, kill, and steer actions.\n\nSubagents ready\n0 visible\n0 server total\nactive mode\n\nRUNS\n\n0\n\nACTIVE\n\n0\n\nHISTORY\n\n0\n\nRUN FILTERS\n\nall child agents\nmain\nall\nactive\ncompleted\nfailed\ntimeout\nlast 1h\nlast 6h\nlast 24h\nall time\nRefresh runs\nAuto refresh\n\nGLOBAL SPAWN DEFAULTS\n\nReads and writes Gateway-valid agents.defaults.subagents config.\n\nMax spa",
+  "scrollWidth": 390,
+  "clientWidth": 390,
+  "overflowCount": 1,
+  "overflowNodes": [
+    {
+      "tag": "SPAN",
+      "className": "deckgo-pill",
+      "text": "hash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff",
+      "right": 537,
+      "width": 493
+    }
+  ],
+  "activeNav": [
+    {
+      "text": "Light",
+      "className": "is-active",
+      "ariaCurrent": null
+    }
+  ],
+  "classCounts": {
+    "root": 1,
+    "columns": 2,
+    "cards": 2,
+    "bodies": 2,
+    "statusRows": 1,
+    "stats": 1,
+    "surfaces": 3,
+    "formGrids": 3,
+    "defaultGrids": 1,
+    "inputs": 11,
+    "actions": 3,
+    "buttons": 4,
+    "checks": 2,
+    "list": 1,
+    "rows": 1,
+    "hero": 0,
+    "empty": 3,
+    "errors": 0
+  },
+  "headings": ["Subagents", "Subagents", "Run detail"],
+  "statusText": [
+    "Subagents ready0 visible0 server totalactive mode",
+    "runs0active0history0",
+    "No subagent runs loaded.",
+    "Choose a subagent run to inspect it.",
+    "Select a run to load its lineage."
+  ]
+}

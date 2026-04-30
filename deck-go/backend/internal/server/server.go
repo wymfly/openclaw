@@ -8,6 +8,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/access"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
@@ -23,6 +24,14 @@ func New() http.Handler {
 }
 
 func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurface) http.Handler {
+	return NewRootHandlerWithRuntimeFacade(store, managed, nil)
+}
+
+func NewRootHandlerWithRuntimeFacade(
+	store *config.Store,
+	managed openclawrt.ManagedRuntimeSurface,
+	runtimeFacade facade.RuntimeFacade,
+) http.Handler {
 	if managed == nil {
 		panic("managed runtime is required")
 	}
@@ -32,6 +41,7 @@ func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurfac
 	}
 
 	r := chi.NewRouter()
+	r.Use(accessLogMiddleware)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -69,8 +79,9 @@ func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurfac
 	})
 
 	r.Route("/api", func(api chi.Router) {
+		api.Use(GatewayConfiguredMiddleware(runtimeFacade))
 		registerOnboardingRoutes(api, managed)
-		registerSettingsRoutes(api, managed)
+		registerSettingsRoutes(api, store, managed)
 		registerGatewayRoutes(api, managed)
 		registerConfigRoutes(api, managed)
 		registerInventoryRoutes(api, openclawrt.NewLegacyInventorySurface(managed))
@@ -85,9 +96,10 @@ func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurfac
 		registerSessionEventRoute(api, managed)
 		registerChatSnapshotRoute(api, managed)
 		registerEventStreamRoutes(api, managed)
-		registerRuntimeRoutes(api, managed)
+		registerRuntimeRoutes(api, managed, runtimeFacade)
 	})
 
+	registerAdminHTTPGuardRoutes(r)
 	registerGatewayCallbackProxyRoutes(r, store)
 	registerStaticRoutes(r)
 

@@ -204,6 +204,25 @@ describe("ApiExplorerPanel", () => {
     expect(container.textContent).toContain("deck.agents.list");
   });
 
+  it("renders first-run empty state instead of a describe error", async () => {
+    apiMocks.fetchGatewayDescribe.mockRejectedValue(
+      new Error("gateway_not_configured: runtime gateway is not configured"),
+    );
+
+    await act(async () => {
+      renderApiExplorerPanel();
+    });
+
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="empty-state-not-configured"]')).toBeTruthy(),
+    );
+    expect(container.textContent).toContain(
+      "Open Settings and save a remote endpoint before loading Gateway data.",
+    );
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).not.toContain("gateway_not_configured");
+  });
+
   it("filters methods by name or scope and switches to event inspection", async () => {
     await act(async () => {
       renderApiExplorerPanel();

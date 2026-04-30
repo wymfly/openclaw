@@ -19,6 +19,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
@@ -69,14 +70,9 @@ func TestSettingsRoute_RoundTrip(t *testing.T) {
 	defer srv.Close()
 
 	putReq, err := http.NewRequest(http.MethodPut, srv.URL+"/api/settings", strings.NewReader(`{
-	  "managedGateway":{
-	    "command":"pnpm",
-	    "args":["openclaw","gateway","run"],
-	    "bindHost":"127.0.0.1",
-	    "bindPort":18789,
-	    "gatewayToken":"gateway-token",
-	    "autoStart":true
-	  }
+	  "appearance":{"theme":"dark"},
+	  "notifications":{"desktop":true},
+	  "pairedDevices":[{"deviceId":"dev-1","displayName":"Dev One"}]
 	}`))
 	if err != nil {
 		t.Fatal(err)
@@ -113,12 +109,64 @@ func TestSettingsRoute_RoundTrip(t *testing.T) {
 	if !ok {
 		t.Fatalf("unexpected payload: %#v", payload)
 	}
-	managed, ok := settings["managedGateway"].(map[string]any)
-	if !ok {
-		t.Fatalf("unexpected settings payload: %#v", settings)
+	if settings["accessToken"] != nil {
+		t.Fatalf("settings response leaked access token: %#v", settings)
 	}
-	if managed["gatewayToken"] != "gateway-token" {
-		t.Fatalf("unexpected managed gateway payload: %#v", managed)
+	if settings["accessTokenConfigured"] != true {
+		t.Fatalf("expected access token configured status: %#v", settings)
+	}
+	if settings["managedGateway"] != nil {
+		t.Fatalf("settings response exposed managed gateway: %#v", settings)
+	}
+	appearance, ok := settings["appearance"].(map[string]any)
+	if !ok || appearance["theme"] != "dark" {
+		t.Fatalf("unexpected appearance payload: %#v", settings)
+	}
+	notifications, ok := settings["notifications"].(map[string]any)
+	if !ok || notifications["desktop"] != true {
+		t.Fatalf("unexpected notifications payload: %#v", settings)
+	}
+}
+
+func TestSettingsRoute_RejectsRuntimeManagedFields(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+
+	srv := httptest.NewServer(New())
+	defer srv.Close()
+
+	for _, tc := range []struct {
+		name  string
+		body  string
+		field string
+	}{
+		{name: "access token", body: `{"accessToken":"secret"}`, field: "accessToken"},
+		{name: "managed gateway", body: `{"managedGateway":{"command":"node"}}`, field: "managedGateway"},
+		{name: "unknown field", body: `{"runtimeMode":"remote"}`, field: "runtimeMode"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPut, srv.URL+"/api/settings", strings.NewReader(tc.body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Authorization", "Bearer admin-token")
+			req.Header.Set("Content-Type", "application/json")
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusBadRequest {
+				t.Fatalf("unexpected status: %d", res.StatusCode)
+			}
+			var payload map[string]any
+			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(payload["message"].(string), tc.field) {
+				t.Fatalf("expected rejected field %q in payload, got %#v", tc.field, payload)
+			}
+		})
 	}
 }
 
@@ -299,7 +347,7 @@ func TestOnboardingRoutes_StatusTestAndSave(t *testing.T) {
 	if err := json.NewDecoder(statusRes.Body).Decode(&statusPayload); err != nil {
 		t.Fatal(err)
 	}
-	if statusPayload["needsOnboarding"] != true {
+	if statusPayload["needsOnboarding"] != false {
 		t.Fatalf("unexpected onboarding payload: %#v", statusPayload)
 	}
 
@@ -358,12 +406,14 @@ func TestOnboardingRoutes_StatusTestAndSave(t *testing.T) {
 	if !ok {
 		t.Fatalf("unexpected settings payload: %#v", settingsPayload)
 	}
-	managed, ok := settings["managedGateway"].(map[string]any)
-	if !ok {
-		t.Fatalf("unexpected managed gateway payload: %#v", settings)
+	if settings["accessToken"] != nil {
+		t.Fatalf("settings response leaked access token: %#v", settings)
 	}
-	if managed["gatewayToken"] != "token-1" {
-		t.Fatalf("unexpected managed gateway settings: %#v", managed)
+	if settings["managedGateway"] != nil {
+		t.Fatalf("settings response exposed managed gateway: %#v", settings)
+	}
+	if settings["accessTokenConfigured"] != true {
+		t.Fatalf("expected token configured status: %#v", settings)
 	}
 }
 
@@ -1406,7 +1456,7 @@ func TestCorsPreflight_AllowsStreamResumeHeader(t *testing.T) {
 	}
 }
 
-func TestRuntimeGatewayRoutes_UseSupervisorStateMachine(t *testing.T) {
+func TestRuntimeGatewayRoutes_ExposeReadOnlyStatus(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 
@@ -1441,107 +1491,400 @@ func TestRuntimeGatewayRoutes_UseSupervisorStateMachine(t *testing.T) {
 	if getRes.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected get status: %d", getRes.StatusCode)
 	}
-
-	startReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/start", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	startReq.Header.Set("Authorization", "Bearer admin-token")
-	startRes, err := http.DefaultClient.Do(startReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer startRes.Body.Close()
-	if startRes.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected start status: %d", startRes.StatusCode)
-	}
-
 	var payload map[string]any
-	if err := json.NewDecoder(startRes.Body).Decode(&payload); err != nil {
+	if err := json.NewDecoder(getRes.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
 	runtimePayload, ok := payload["runtime"].(map[string]any)
-	if !ok || runtimePayload["status"] != "running" {
+	if !ok || runtimePayload["status"] != "stopped" {
 		t.Fatalf("unexpected runtime payload: %#v", payload)
 	}
-	if supervisor.startCalls != 1 || supervisor.restartCalls != 0 || supervisor.stopCalls != 0 {
-		t.Fatalf("expected only start to hit lifecycle state machine, got start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
+	for _, path := range []string{"/api/runtime/gateway/start", "/api/runtime/gateway/restart", "/api/runtime/gateway/stop"} {
+		req, err := http.NewRequest(http.MethodPost, srv.URL+path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer admin-token")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusNotFound {
+			t.Fatalf("%s status = %d, want 404", path, res.StatusCode)
+		}
+	}
+	if supervisor.startCalls != 0 || supervisor.restartCalls != 0 || supervisor.stopCalls != 0 {
+		t.Fatalf("HTTP runtime routes should be read-only, got start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
+	}
+}
+
+func TestRuntimeModeFixtures_ExposeBundledAndRemoteShapes(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		mode          string
+		caps          facade.Capabilities
+		status        facade.RuntimeStatus
+		wantGateway   map[string]any
+		forbidGateway string
+	}{
+		{
+			name: "bundled",
+			mode: "bundled",
+			caps: facade.Capabilities{
+				Mode:            "bundled",
+				Configured:      true,
+				EndpointMutable: false,
+				SupervisorState: true,
+			},
+			status: facade.RuntimeStatus{
+				Mode:            "bundled",
+				PID:             intPtr(2468),
+				OwnershipState:  "owned",
+				RestartAttempts: 1,
+			},
+			wantGateway: map[string]any{
+				"mode":            "bundled",
+				"pid":             float64(2468),
+				"ownershipState":  "owned",
+				"restartAttempts": float64(1),
+			},
+			forbidGateway: "lastConnectedAt",
+		},
+		{
+			name: "remote",
+			mode: "remote",
+			caps: facade.Capabilities{
+				Mode:            "remote",
+				Configured:      true,
+				EndpointMutable: true,
+				SupervisorState: false,
+			},
+			status: facade.RuntimeStatus{
+				Mode:            "remote",
+				LastConnectedAt: stringPtr("2026-04-28T10:00:00Z"),
+				LastError:       stringPtr(""),
+				LatencyP50:      intPtr(42),
+				TLSVerified:     boolPtr(true),
+			},
+			wantGateway: map[string]any{
+				"mode":            "remote",
+				"lastConnectedAt": "2026-04-28T10:00:00Z",
+				"lastError":       "",
+				"latencyP50":      float64(42),
+				"tlsVerified":     true,
+			},
+			forbidGateway: "pid",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("RUNTIME_MODE", tc.mode)
+			t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+			t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+
+			store, err := config.NewStore()
+			if err != nil {
+				t.Fatal(err)
+			}
+			rt := &fakeRuntimeFacade{caps: tc.caps, status: tc.status}
+			srv := httptest.NewServer(newTestRouterWithFacade(store, &testSupervisor{}, events.NewBus(8), rt))
+			defer srv.Close()
+
+			capsPayload := getAuthorizedJSON(t, srv.URL+"/api/runtime/capabilities")
+			if capsPayload["mode"] != tc.caps.Mode || capsPayload["configured"] != tc.caps.Configured || capsPayload["endpointMutable"] != tc.caps.EndpointMutable || capsPayload["supervisorState"] != tc.caps.SupervisorState {
+				t.Fatalf("unexpected capabilities for %s: %#v", tc.mode, capsPayload)
+			}
+
+			gatewayPayload := getAuthorizedJSON(t, srv.URL+"/api/runtime/gateway")
+			for key, want := range tc.wantGateway {
+				if got := gatewayPayload[key]; got != want {
+					t.Fatalf("%s gateway field %s = %#v, want %#v in %#v", tc.mode, key, got, want, gatewayPayload)
+				}
+			}
+			if _, exists := gatewayPayload[tc.forbidGateway]; exists {
+				t.Fatalf("%s gateway payload included forbidden field %q: %#v", tc.mode, tc.forbidGateway, gatewayPayload)
+			}
+		})
+	}
+}
+
+func getAuthorizedJSON(t *testing.T, url string) map[string]any {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("%s status = %d, want 200", url, res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	return payload
+}
+
+func intPtr(value int) *int {
+	return &value
+}
+
+func stringPtr(value string) *string {
+	return &value
+}
+
+func boolPtr(value bool) *bool {
+	return &value
+}
+
+func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
+	cases := []struct {
+		name     string
+		snapshot openclawrt.ManagedSnapshot
+		want     map[string]any
+	}{
+		{
+			name: "connected",
+			snapshot: openclawrt.ManagedSnapshot{
+				Managed:        true,
+				Configured:     true,
+				Status:         openclawrt.ManagedStatusRunning,
+				Health:         openclawrt.ManagedHealthHealthy,
+				GatewayURL:     "ws://127.0.0.1:18789",
+				AutoStart:      true,
+				OwnershipState: "owned",
+			},
+			want: map[string]any{
+				"status":         "running",
+				"health":         "healthy",
+				"gatewayUrl":     "ws://127.0.0.1:18789",
+				"autoStart":      true,
+				"ownershipState": "owned",
+			},
+		},
+		{
+			name: "reconnecting",
+			snapshot: openclawrt.ManagedSnapshot{
+				Managed:         true,
+				Configured:      true,
+				Status:          openclawrt.ManagedStatusStarting,
+				Health:          openclawrt.ManagedHealthUnhealthy,
+				GatewayURL:      "ws://127.0.0.1:18789",
+				LastError:       "waiting for gateway health",
+				FailurePhase:    "runtime",
+				AutoStart:       true,
+				OwnershipState:  "owned",
+				RestartAttempts: 1,
+				RestartDelayMs:  250,
+			},
+			want: map[string]any{
+				"status":          "starting",
+				"health":          "unhealthy",
+				"lastError":       "waiting for gateway health",
+				"failurePhase":    "runtime",
+				"autoStart":       true,
+				"ownershipState":  "owned",
+				"restartAttempts": float64(1),
+				"restartDelayMs":  float64(250),
+			},
+		},
+		{
+			name: "degraded",
+			snapshot: openclawrt.ManagedSnapshot{
+				Managed:         true,
+				Configured:      true,
+				Status:          openclawrt.ManagedStatusDegraded,
+				Health:          openclawrt.ManagedHealthUnhealthy,
+				GatewayURL:      "ws://127.0.0.1:18789",
+				LastError:       "health probe failed",
+				FailurePhase:    "runtime",
+				AutoStart:       true,
+				OwnershipState:  "owned",
+				RestartAttempts: 2,
+				RestartDelayMs:  500,
+			},
+			want: map[string]any{
+				"status":          "degraded",
+				"health":          "unhealthy",
+				"lastError":       "health probe failed",
+				"failurePhase":    "runtime",
+				"autoStart":       true,
+				"ownershipState":  "owned",
+				"restartAttempts": float64(2),
+				"restartDelayMs":  float64(500),
+			},
+		},
+		{
+			name: "failed",
+			snapshot: openclawrt.ManagedSnapshot{
+				Managed:      true,
+				Configured:   true,
+				Status:       openclawrt.ManagedStatusFailed,
+				Health:       openclawrt.ManagedHealthUnknown,
+				LastError:    "launch failed",
+				FailurePhase: "launch",
+				AutoStart:    true,
+			},
+			want: map[string]any{
+				"status":       "failed",
+				"health":       "unknown",
+				"lastError":    "launch failed",
+				"failurePhase": "launch",
+				"autoStart":    true,
+			},
+		},
+		{
+			name: "port-conflict",
+			snapshot: openclawrt.ManagedSnapshot{
+				Managed:        true,
+				Configured:     true,
+				Status:         openclawrt.ManagedStatusFailed,
+				Health:         openclawrt.ManagedHealthUnknown,
+				LastError:      "managed gateway target port already in use by unowned listener",
+				FailurePhase:   "preflight",
+				AutoStart:      true,
+				OwnershipState: "external",
+			},
+			want: map[string]any{
+				"status":         "failed",
+				"health":         "unknown",
+				"lastError":      "managed gateway target port already in use by unowned listener",
+				"failurePhase":   "preflight",
+				"autoStart":      true,
+				"ownershipState": "external",
+			},
+		},
+		{
+			name: "autostart-disabled",
+			snapshot: openclawrt.ManagedSnapshot{
+				Managed:        true,
+				Configured:     true,
+				Status:         openclawrt.ManagedStatusStopped,
+				Health:         openclawrt.ManagedHealthUnknown,
+				AutoStart:      false,
+				OwnershipState: "none",
+			},
+			want: map[string]any{
+				"status":         "stopped",
+				"health":         "unknown",
+				"autoStart":      false,
+				"ownershipState": "none",
+			},
+		},
 	}
 
-	getReqAfterStart, err := http.NewRequest(http.MethodGet, srv.URL+"/api/runtime/gateway", nil)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+			t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+
+			store, err := config.NewStore()
+			if err != nil {
+				t.Fatal(err)
+			}
+			bus := events.NewBus(8)
+			supervisor := &testSupervisor{snapshot: tc.snapshot}
+			srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
+			defer srv.Close()
+
+			req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/runtime/gateway", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Authorization", "Bearer admin-token")
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusOK {
+				t.Fatalf("unexpected status: %d", res.StatusCode)
+			}
+
+			var payload map[string]any
+			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			runtimePayload, ok := payload["runtime"].(map[string]any)
+			if !ok {
+				t.Fatalf("unexpected runtime payload: %#v", payload)
+			}
+			for key, want := range tc.want {
+				got, exists := runtimePayload[key]
+				if !exists {
+					t.Fatalf("expected runtime field %s in %#v", key, runtimePayload)
+				}
+				if got != want {
+					t.Fatalf("expected runtime field %s=%#v, got %#v in %#v", key, want, got, runtimePayload)
+				}
+			}
+		})
+	}
+}
+
+func TestBootstrapStatus_ReportsAutostartDisabledState(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+
+	store, err := config.NewStore()
 	if err != nil {
 		t.Fatal(err)
 	}
-	getReqAfterStart.Header.Set("Authorization", "Bearer admin-token")
-	getResAfterStart, err := http.DefaultClient.Do(getReqAfterStart)
+	if err := store.Update(config.Settings{
+		ManagedGateway: config.ManagedGatewaySettings{
+			AutoStart:           false,
+			AutoStartConfigured: true,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	bus := events.NewBus(8)
+	supervisor := &testSupervisor{
+		snapshot: openclawrt.ManagedSnapshot{
+			Managed:    true,
+			Configured: true,
+			Status:     openclawrt.ManagedStatusStopped,
+			Health:     openclawrt.ManagedHealthUnknown,
+			AutoStart:  false,
+		},
+	}
+	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/bootstrap/status", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer getResAfterStart.Body.Close()
-	if getResAfterStart.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected get-after-start status: %d", getResAfterStart.StatusCode)
-	}
-	if err := json.NewDecoder(getResAfterStart.Body).Decode(&payload); err != nil {
+	req.Header.Set("Authorization", "Bearer admin-token")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
 		t.Fatal(err)
 	}
-	runtimePayload, ok = payload["runtime"].(map[string]any)
-	if !ok || runtimePayload["status"] != "running" || runtimePayload["health"] != "healthy" {
-		t.Fatalf("expected runtime GET to reflect supervisor snapshot after start, got %#v", payload)
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", res.StatusCode)
 	}
 
-	restartReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/restart", nil)
-	if err != nil {
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	restartReq.Header.Set("Authorization", "Bearer admin-token")
-	restartRes, err := http.DefaultClient.Do(restartReq)
-	if err != nil {
-		t.Fatal(err)
+	settingsPayload, ok := payload["settings"].(map[string]any)
+	if !ok || settingsPayload["autoStart"] != false {
+		t.Fatalf("expected bootstrap settings to report autostart disabled, got %#v", payload)
 	}
-	defer restartRes.Body.Close()
-	if restartRes.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected restart status: %d", restartRes.StatusCode)
+	runtimePayload, ok := payload["runtime"].(map[string]any)
+	if !ok || runtimePayload["autoStart"] != false || runtimePayload["status"] != "stopped" {
+		t.Fatalf("expected bootstrap runtime to report stopped autostart-disabled state, got %#v", payload)
 	}
-	if supervisor.startCalls != 1 || supervisor.restartCalls != 1 || supervisor.stopCalls != 0 {
-		t.Fatalf("expected restart to hit lifecycle state machine, got start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
-	}
-
-	stopReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/stop", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	stopReq.Header.Set("Authorization", "Bearer admin-token")
-	stopRes, err := http.DefaultClient.Do(stopReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer stopRes.Body.Close()
-	if stopRes.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected stop status: %d", stopRes.StatusCode)
-	}
-	if supervisor.startCalls != 1 || supervisor.restartCalls != 1 || supervisor.stopCalls != 1 {
-		t.Fatalf("expected stop to hit lifecycle state machine, got start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
-	}
-
-	getReqAfterStop, err := http.NewRequest(http.MethodGet, srv.URL+"/api/runtime/gateway", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	getReqAfterStop.Header.Set("Authorization", "Bearer admin-token")
-	getResAfterStop, err := http.DefaultClient.Do(getReqAfterStop)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer getResAfterStop.Body.Close()
-	if getResAfterStop.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected get-after-stop status: %d", getResAfterStop.StatusCode)
-	}
-	if err := json.NewDecoder(getResAfterStop.Body).Decode(&payload); err != nil {
-		t.Fatal(err)
-	}
-	runtimePayload, ok = payload["runtime"].(map[string]any)
-	if !ok || runtimePayload["status"] != "stopped" || runtimePayload["health"] != "unknown" {
-		t.Fatalf("expected runtime GET to reflect supervisor snapshot after stop, got %#v", payload)
+	gatewayPayload, ok := payload["gateway"].(map[string]any)
+	if !ok || gatewayPayload["connected"] != false {
+		t.Fatalf("expected bootstrap gateway disconnected while autostart disabled, got %#v", payload)
 	}
 }
 
@@ -1580,18 +1923,8 @@ func TestRuntimeGatewayManagedSmoke_StartRestartStop(t *testing.T) {
 	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
 	defer srv.Close()
 
-	startReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/start", nil)
-	if err != nil {
+	if _, err := supervisor.Start(context.Background()); err != nil {
 		t.Fatal(err)
-	}
-	startReq.Header.Set("Authorization", "Bearer admin-token")
-	startRes, err := http.DefaultClient.Do(startReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	startRes.Body.Close()
-	if startRes.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected start status: %d", startRes.StatusCode)
 	}
 
 	waitForHTTPRuntimeStatus(t, srv.URL, "admin-token", "running")
@@ -1615,33 +1948,13 @@ func TestRuntimeGatewayManagedSmoke_StartRestartStop(t *testing.T) {
 		t.Fatalf("unexpected bootstrap payload: %#v", bootstrapPayload)
 	}
 
-	restartReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/restart", nil)
-	if err != nil {
+	if _, err := supervisor.Restart(context.Background()); err != nil {
 		t.Fatal(err)
-	}
-	restartReq.Header.Set("Authorization", "Bearer admin-token")
-	restartRes, err := http.DefaultClient.Do(restartReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	restartRes.Body.Close()
-	if restartRes.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected restart status: %d", restartRes.StatusCode)
 	}
 	waitForHTTPRuntimeStatus(t, srv.URL, "admin-token", "running")
 
-	stopReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/stop", nil)
-	if err != nil {
+	if _, err := supervisor.Stop(context.Background()); err != nil {
 		t.Fatal(err)
-	}
-	stopReq.Header.Set("Authorization", "Bearer admin-token")
-	stopRes, err := http.DefaultClient.Do(stopReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	stopRes.Body.Close()
-	if stopRes.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected stop status: %d", stopRes.StatusCode)
 	}
 	waitForHTTPRuntimeStatus(t, srv.URL, "admin-token", "stopped")
 }
@@ -1681,18 +1994,8 @@ func TestBootstrapStatus_DoesNotDriftAfterSettingsChangeWhileRuntimeIsRunning(t 
 	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
 	defer srv.Close()
 
-	startReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/start", nil)
-	if err != nil {
+	if _, err := supervisor.Start(context.Background()); err != nil {
 		t.Fatal(err)
-	}
-	startReq.Header.Set("Authorization", "Bearer admin-token")
-	startRes, err := http.DefaultClient.Do(startReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	startRes.Body.Close()
-	if startRes.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected start status: %d", startRes.StatusCode)
 	}
 	waitForHTTPRuntimeStatus(t, srv.URL, "admin-token", "running")
 
@@ -1732,16 +2035,9 @@ func TestBootstrapStatus_DoesNotDriftAfterSettingsChangeWhileRuntimeIsRunning(t 
 		t.Fatalf("expected connected bootstrap after settings drift, got %#v", payload)
 	}
 
-	stopReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/stop", nil)
-	if err != nil {
+	if _, err := supervisor.Stop(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	stopReq.Header.Set("Authorization", "Bearer admin-token")
-	stopRes, err := http.DefaultClient.Do(stopReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	stopRes.Body.Close()
 }
 
 func waitForHTTPRuntimeStatus(t *testing.T, baseURL string, token string, expected string) {

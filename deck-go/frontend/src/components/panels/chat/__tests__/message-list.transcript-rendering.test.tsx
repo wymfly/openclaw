@@ -405,7 +405,7 @@ describe("TranscriptBlocks", () => {
       );
     });
 
-    const panel = container.querySelector<HTMLElement>(".deck-ui-artifact");
+    const panel = container.querySelector<HTMLElement>(".ds-artifact-panel");
     const fullscreenButton = container.querySelector<HTMLButtonElement>(
       'button[title="artifactFullscreen"]',
     );
@@ -418,7 +418,7 @@ describe("TranscriptBlocks", () => {
     });
 
     expect(panel?.dataset.fullscreen).toBe("true");
-    expect(panel?.classList.contains("deck-ui-artifact-fullscreen")).toBe(true);
+    expect(panel?.classList.contains("ds-artifact-panel--fullscreen")).toBe(true);
     expect(fullscreenButton?.getAttribute("aria-pressed")).toBe("true");
   });
 });

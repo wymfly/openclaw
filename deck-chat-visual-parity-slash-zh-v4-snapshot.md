@@ -1,0 +1,239 @@
+- generic [ref=e8]:
+  - navigation "Deck 面板" [ref=e427]:
+    - button "收起导航" [ref=e428] [cursor=pointer]:
+      - img [ref=e12]
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: 核心
+        - button "对话" [ref=e429] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e21]: 对话
+        - button "智能体" [ref=e430] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e26]: 智能体
+        - button "监控" [ref=e431] [cursor=pointer]:
+          - img [ref=e29]
+          - generic [ref=e32]: 监控
+        - button "模型" [ref=e432] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: 模型
+      - generic [ref=e38]:
+        - paragraph [ref=e39]: 观测
+        - button "用量" [ref=e433] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: 用量
+        - button "会话" [ref=e434] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: 会话
+        - button "记忆" [ref=e435] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e55]: 记忆
+        - button "日志" [ref=e436] [cursor=pointer]:
+          - img [ref=e58]
+          - generic [ref=e61]: 日志
+        - button "动态" [ref=e437] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e66]: 动态
+        - button "线程" [ref=e438] [cursor=pointer]:
+          - img [ref=e69]
+          - generic [ref=e72]: 线程
+        - button "API 浏览器" [ref=e439] [cursor=pointer]:
+          - img [ref=e75]
+          - generic [ref=e77]: API 浏览器
+      - generic [ref=e78]:
+        - paragraph [ref=e79]: 自动化
+        - button "定时任务" [ref=e440] [cursor=pointer]:
+          - img [ref=e82]
+          - generic [ref=e85]: 定时任务
+        - button "Webhooks" [ref=e86] [cursor=pointer]:
+          - img [ref=e88]
+          - generic [ref=e93]: Webhooks
+        - button "审批" [ref=e441] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e99]: 审批
+        - button "技能" [ref=e442] [cursor=pointer]:
+          - img [ref=e102]
+          - generic [ref=e104]: 技能
+      - generic [ref=e105]:
+        - paragraph [ref=e106]: 控制
+        - button "预算" [ref=e443] [cursor=pointer]:
+          - img [ref=e109]
+          - generic [ref=e112]: 预算
+        - button "告警" [ref=e444] [cursor=pointer]:
+          - img [ref=e115]
+          - generic [ref=e117]: 告警
+        - button "渠道" [ref=e445] [cursor=pointer]:
+          - img [ref=e120]
+          - generic [ref=e126]: 渠道
+        - button "插件" [ref=e446] [cursor=pointer]:
+          - img [ref=e129]
+          - generic [ref=e134]: 插件
+        - button "消息路由" [ref=e447] [cursor=pointer]:
+          - img [ref=e137]
+          - generic [ref=e141]: 消息路由
+        - button "子智能体" [ref=e448] [cursor=pointer]:
+          - img [ref=e144]
+          - generic [ref=e149]: 子智能体
+        - button "身份" [ref=e449] [cursor=pointer]:
+          - img [ref=e152]
+          - generic [ref=e157]: 身份
+        - button "配置" [ref=e450] [cursor=pointer]:
+          - img [ref=e160]
+          - generic [ref=e163]: 配置
+        - button "节点" [ref=e451] [cursor=pointer]:
+          - img [ref=e166]
+          - generic [ref=e169]: 节点
+        - button "文档" [ref=e452] [cursor=pointer]:
+          - img [ref=e172]
+          - generic [ref=e177]: 文档
+    - button "设置" [ref=e453] [cursor=pointer]:
+      - img [ref=e181]
+      - generic [ref=e184]: 设置
+  - generic [ref=e185]:
+    - banner [ref=e186]:
+      - heading "对话" [level=1] [ref=e454]
+      - generic [ref=e190]:
+        - button "已连接" [ref=e455]: 已连接
+        - button "切换语言" [ref=e456] [cursor=pointer]:
+          - img [ref=e194]
+          - generic [ref=e198]: EN
+        - 'button "主题切换: 系统" [ref=e457] [cursor=pointer]':
+          - img [ref=e200]
+    - main [ref=e202]:
+      - region "Chat workspace" [ref=e203]:
+        - complementary [ref=e204]:
+          - complementary [ref=e205]:
+            - tablist [ref=e206]:
+              - tab "全部 3" [ref=e458] [cursor=pointer]: 全部3
+            - button "新建会话" [ref=e459] [cursor=pointer]:
+              - img [ref=e209]
+              - generic [ref=e210]: 新建会话
+            - textbox "搜索会话..." [ref=e460]
+            - generic [ref=e212]:
+              - 'button "Gateway startup regression triage Visual seed: streaming response with approval and canvas drawer. 4月26日 22:00 删除会话" [ref=e461] [cursor=pointer]':
+                - generic [ref=e214]: Gateway startup regression triage
+                - generic [ref=e215]: "Visual seed: streaming response with approval and canvas drawer."
+                - generic [ref=e216]: 4月26日 22:00
+                - button "删除会话" [ref=e462]
+              - button "A very long bilingual session title for truncation 验证导航列表不会溢出到删除按钮 Preview text remains dense but readable in the old Deck row layout. 4月26日 21:20 删除会话" [ref=e463] [cursor=pointer]:
+                - generic [ref=e222]: A very long bilingual session title for truncation 验证导航列表不会溢出到删除按钮
+                - generic [ref=e223]: Preview text remains dense but readable in the old Deck row layout.
+                - generic [ref=e224]: 4月26日 21:20
+                - button "删除会话" [ref=e464]
+              - button "Tool rendering and artifact handoff Generated an artifact and opened the canvas drawer. 4月26日 20:00 删除会话" [ref=e465] [cursor=pointer]:
+                - generic [ref=e230]: Tool rendering and artifact handoff
+                - generic [ref=e231]: Generated an artifact and opened the canvas drawer.
+                - generic [ref=e232]: 4月26日 20:00
+                - button "删除会话" [ref=e466]
+            - generic [ref=e237]: 默认智能体 main
+        - generic [ref=e238]:
+          - generic [ref=e239]:
+            - generic [ref=e240]: main
+            - strong [ref=e241]: visual-main
+            - generic [ref=e242]: 5 条消息
+            - generic [ref=e243]: 运行中
+            - generic "97.2K / 100.0K tokens" [ref=e244]: "上下文: 97%"
+            - status [ref=e245]: 上下文窗口接近满载 — 建议压缩或新建会话
+            - generic "已压缩 2 次" [ref=e467]
+            - button "压缩" [ref=e468] [cursor=pointer]
+          - button "跳转到引导" [ref=e469] [cursor=pointer]
+          - region "Transcript" [ref=e249]:
+            - generic [ref=e250]:
+              - generic "User message" [ref=e252]:
+                - generic [ref=e253]: U
+                - generic [ref=e254]
+              - generic "Assistant message" [ref=e259]:
+                - generic [ref=e260]: AI
+                - generic [ref=e261]
+              - generic [ref=e317]:
+                - generic [ref=e318]: cmp
+                - generic [ref=e319]: 上下文已压缩
+                - generic [ref=e320]: 128,000 → 42,000
+                - generic [ref=e321]: 21:56:00
+              - generic "User message" [ref=e323]:
+                - generic [ref=e324]: U
+                - generic [ref=e325]
+              - generic "Assistant message" [ref=e330]:
+                - generic [ref=e331]: AI
+                - generic [ref=e332]
+          - generic "对话过滤器" [ref=e483]:
+            - button "推理" [ref=e484] [cursor=pointer]
+            - button "工具" [ref=e485] [cursor=pointer]
+            - button "结果" [ref=e486] [cursor=pointer]
+          - generic [ref=e353]:
+            - generic [ref=e354]:
+              - generic [ref=e355]: 引导
+              - textbox "引导" [ref=e487]:
+                - /placeholder: 输入指令以改变执行方向...
+            - button "引导" [disabled] [ref=e488]
+          - generic "工具" [ref=e489]:
+            - generic [ref=e359]:
+              - paragraph [ref=e360]: 运行中
+              - strong [ref=e361]: shell_command
+              - generic [ref=e362]: tool-run-gateway
+              - generic [ref=e363]: 58934s
+            - generic [ref=e364]:
+              - paragraph [ref=e365]: 工具
+              - strong [ref=e366]: 工具运行中
+          - generic [ref=e367]:
+            - generic [ref=e368]:
+              - text: 模型
+              - strong [ref=e369]: gpt-5.4
+            - button "思考 off" [ref=e490] [cursor=pointer]
+            - button "快速 off" [ref=e491] [cursor=pointer]
+            - button "用量 tokens" [ref=e492] [cursor=pointer]
+            - button "发送 允许" [ref=e493] [cursor=pointer]
+          - generic [ref=e375]:
+            - region "需要审批" [ref=e494]:
+              - generic [ref=e377]:
+                - strong [ref=e378]: 需要审批
+                - generic [ref=e379]: 17m 52s
+              - generic [ref=e380]:
+                - code [ref=e381]: shell_command
+                - generic [ref=e382]: pnpm openclaw gateway run --bind loopback --port 18789 --force
+              - generic [ref=e383]:
+                - term [ref=e384]: 智能体
+                - definition [ref=e385]: main
+                - term [ref=e386]: cwd
+                - definition [ref=e387]: /workspace/openclaw
+              - generic [ref=e388]:
+                - button "批准" [ref=e495] [cursor=pointer]
+                - button "始终批准" [ref=e496] [cursor=pointer]
+                - button "拒绝" [ref=e497] [cursor=pointer]
+            - status [ref=e392]: 上下文窗口接近满载 — 建议压缩或新建会话
+            - button "附件" [ref=e498] [cursor=pointer]:
+              - img [ref=e394]
+              - generic [ref=e395]: 附件
+            - generic [ref=e396]:
+              - listbox "斜杠菜单" [ref=e508]:
+                - generic [ref=e509]
+                - generic [ref=e517]
+                - generic [ref=e564]
+                - generic [ref=e603]
+                - generic [ref=e618]
+                - generic [ref=e838]
+              - textbox "输入消息..." [ref=e499]: /
+            - button "提示模板" [ref=e500] [cursor=pointer]
+            - button "画布面板" [pressed] [ref=e501] [cursor=pointer]:
+              - img [ref=e401]
+              - generic [ref=e404]: 画布面板
+            - button "工件面板" [ref=e502] [cursor=pointer]:
+              - img [ref=e406]
+              - text: 工件面板
+            - button "发送" [disabled] [ref=e503]:
+              - img [ref=e410]
+              - generic [ref=e412]: 发送
+            - button "停止" [ref=e504] [cursor=pointer]:
+              - img [ref=e414]
+              - generic [ref=e416]: 停止
+        - complementary [ref=e417]:
+          - region "画布" [ref=e505]:
+            - generic [ref=e420]:
+              - generic [ref=e421]: 画布
+              - generic [ref=e422]:
+                - button "调试面板" [ref=e506] [cursor=pointer]
+                - button "收起画布" [ref=e507] [cursor=pointer]
+            - iframe [ref=e426]:
+              - generic [ref=f2e4]:
+                - banner [ref=f2e5]
+                - main [ref=f2e23]

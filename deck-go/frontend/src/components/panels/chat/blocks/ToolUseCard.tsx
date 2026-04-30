@@ -1,5 +1,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Block } from "@/design-system/atoms/Block";
+import { Button } from "@/design-system/atoms/Button";
 import { formatParamSummary } from "@/lib/format-utils";
 import { ToolParamView } from "./ToolParamView";
 
@@ -7,9 +9,11 @@ interface ToolUseCardProps {
   name: string;
   input: Record<string, unknown>;
   defaultOpen?: boolean;
+  /** When rendered inside a `ToolPair`, suppress own border (shared with sibling result). */
+  paired?: boolean;
 }
 
-export function ToolUseCard({ name, input, defaultOpen }: ToolUseCardProps) {
+export function ToolUseCard({ name, input, defaultOpen, paired }: ToolUseCardProps) {
   const t = useTranslations("chat");
   const [copied, setCopied] = useState(false);
   const summary = formatParamSummary(input);
@@ -20,29 +24,41 @@ export function ToolUseCard({ name, input, defaultOpen }: ToolUseCardProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const label = (
+    <>
+      <span className="ds-tool-icon" aria-hidden="true">
+        #
+      </span>
+      <span>
+        {t("toolCall")}: <code>{name}</code>
+        {summary ? ` (${summary})` : ""}
+      </span>
+    </>
+  );
+
   return (
-    <details className="deck-ui-tool-use-card" open={defaultOpen}>
-      <summary className="deck-ui-tool-use-summary">
-        <span className="deck-ui-tool-icon" aria-hidden="true">
-          #
-        </span>
-        <span className="deck-ui-tool-label">{t("toolCall")}: </span>
-        <code>{name}</code>
-        {summary ? <span className="deck-ui-tool-summary"> ({summary})</span> : null}
-      </summary>
-      <div className="deck-ui-tool-use-body">
-        <div className="deck-ui-tool-use-actions">
-          <button
-            className="deck-ui-tool-control"
-            type="button"
-            title={copied ? t("copied") : t("copyJson")}
-            onClick={() => void handleCopy()}
-          >
-            {copied ? t("copied") : t("copyJson")}
-          </button>
-        </div>
-        <ToolParamView input={input} />
+    <Block
+      label={label}
+      collapsible
+      defaultOpen={defaultOpen}
+      tone="accent"
+      className={
+        paired
+          ? "ds-tool-use-card ds-tool-use-card--paired ds-block--tool-use"
+          : "ds-tool-use-card ds-block--tool-use"
+      }
+    >
+      <div className="ds-tool-use-card__actions">
+        <Button
+          variant="ghost"
+          size="sm"
+          title={copied ? t("copied") : t("copyJson")}
+          onClick={() => void handleCopy()}
+        >
+          {copied ? t("copied") : t("copyJson")}
+        </Button>
       </div>
-    </details>
+      <ToolParamView input={input} />
+    </Block>
   );
 }

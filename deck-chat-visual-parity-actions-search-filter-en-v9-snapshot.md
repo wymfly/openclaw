@@ -1,0 +1,53 @@
+- generic [ref=e8]:
+  - navigation "Deck panels" [ref=e9]:
+    - button "Collapse navigation" [ref=e11] [cursor=pointer]:
+      - img [ref=e12]
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Core
+        - button "Chat" [ref=e17] [cursor=pointer]
+        - button "Agents" [ref=e22] [cursor=pointer]
+        - button "Monitor" [ref=e27] [cursor=pointer]
+        - button "Models" [ref=e33] [cursor=pointer]
+      - generic [ref=e38]:
+        - paragraph [ref=e39]: Observe
+        - button "Usage" [ref=e40] [cursor=pointer]
+        - button "Sessions" [ref=e45] [cursor=pointer]
+        - button "Memory" [ref=e50] [cursor=pointer]
+        - button "Logs" [ref=e56] [cursor=pointer]
+        - button "Activity" [ref=e62] [cursor=pointer]
+        - button "Threads" [ref=e67] [cursor=pointer]
+        - button "API Explorer" [ref=e73] [cursor=pointer]
+      - generic [ref=e78]:
+        - paragraph [ref=e79]: Automate
+        - button "Cron Jobs" [ref=e80] [cursor=pointer]
+        - button "Webhooks" [ref=e86] [cursor=pointer]
+        - button "Approvals" [ref=e94] [cursor=pointer]
+        - button "Skills" [ref=e100] [cursor=pointer]
+      - generic [ref=e105]:
+        - paragraph [ref=e106]: Control
+        - button "Budget" [ref=e107] [cursor=pointer]
+        - button "Alerts" [ref=e113] [cursor=pointer]
+        - button "Channels" [ref=e118] [cursor=pointer]
+        - button "Plugins" [ref=e127] [cursor=pointer]
+        - button "Routing" [ref=e135] [cursor=pointer]
+        - button "Subagents" [ref=e142] [cursor=pointer]
+        - button "Identities" [ref=e150] [cursor=pointer]
+        - button "Config" [ref=e158] [cursor=pointer]
+        - button "Nodes" [ref=e164] [cursor=pointer]
+        - button "Docs" [ref=e170] [cursor=pointer]
+    - button "Settings" [ref=e179] [cursor=pointer]:
+      - img [ref=e181]
+      - generic [ref=e184]: Settings
+  - generic [ref=e185]:
+    - banner [ref=e186]:
+      - heading "Chat" [level=1] [ref=e189]
+      - generic [ref=e190]:
+        - button "Connected" [ref=e191]: Connected
+        - button "Switch language" [ref=e193] [cursor=pointer]
+        - 'button "Theme switch: System" [ref=e199] [cursor=pointer]'
+    - main [ref=e202]:
+      - region "Chat workspace" [ref=e203]:
+        - complementary [ref=e204]
+        - generic [ref=e238]
+        - complementary [ref=e457]

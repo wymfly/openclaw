@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 )
 
 type stubManagedConnectionProvider struct{}
@@ -164,7 +164,7 @@ func TestDeviceTokenRotateInvalidatesOldProbeClient(t *testing.T) {
 	t.Cleanup(func() { transportBinding = previous })
 
 	supervisor := &recordingManagedSupervisor{
-		snapshot: runtimecontrol.Snapshot{
+		snapshot: bundled.Snapshot{
 			GatewayURL: "ws://gateway.example",
 		},
 		gatewayToken: "old-token",

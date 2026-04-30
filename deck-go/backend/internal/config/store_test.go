@@ -1,6 +1,11 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"runtime"
+	"slices"
+	"testing"
+)
 
 func TestStore_UpdateAndReload(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
@@ -37,7 +42,7 @@ func TestStore_UpdateAndReload(t *testing.T) {
 	}
 	if got.ManagedGateway.Command != next.ManagedGateway.Command ||
 		got.ManagedGateway.BindPort != next.ManagedGateway.BindPort ||
-		got.ManagedGateway.GatewayToken != next.ManagedGateway.GatewayToken ||
+		got.ManagedGateway.GatewayToken != next.AccessToken ||
 		got.ManagedGateway.AutoStart != next.ManagedGateway.AutoStart {
 		t.Fatalf("unexpected managed gateway: %#v", got.ManagedGateway)
 	}
@@ -85,7 +90,7 @@ func TestStore_EffectiveHonorsEnvOverrides(t *testing.T) {
 		got.ManagedGateway.WorkingDir != "/env" ||
 		got.ManagedGateway.BindHost != "127.0.0.1" ||
 		got.ManagedGateway.BindPort != 18789 ||
-		got.ManagedGateway.GatewayToken != "env-gateway" ||
+		got.ManagedGateway.GatewayToken != "env-access" ||
 		!got.ManagedGateway.AutoStart {
 		t.Fatalf("unexpected effective settings: %#v", got)
 	}
@@ -119,5 +124,71 @@ func TestStore_GatewayConnectionDerivesManagedURL(t *testing.T) {
 	}
 	if url != "ws://127.0.0.1:18999" || token != "gateway-token" {
 		t.Fatalf("unexpected connection info: %s %s", url, token)
+	}
+}
+
+func TestStore_EffectiveUsesLegacyGatewayTokenOnlyAsFallback(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("DECK_GO_GATEWAY_TOKEN", "legacy-gateway-token")
+
+	got := store.Effective()
+	if got.AccessToken != "legacy-gateway-token" {
+		t.Fatalf("expected legacy gateway token to seed access token, got %#v", got)
+	}
+	if got.ManagedGateway.GatewayToken != "legacy-gateway-token" {
+		t.Fatalf("expected canonical gateway token fallback, got %#v", got.ManagedGateway)
+	}
+}
+
+func TestStore_DefaultsAutoStartToTrue(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !store.Effective().ManagedGateway.AutoStart {
+		t.Fatal("expected managed gateway auto-start to default to true")
+	}
+}
+
+func TestStore_WritesSettingsWithOwnerOnlyPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permissions are not meaningful on Windows")
+	}
+	dataDir := t.TempDir()
+	t.Setenv("DECK_GO_DATA_DIR", dataDir)
+	store, err := NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Update(Settings{AccessToken: "secret-token"}); err != nil {
+		t.Fatal(err)
+	}
+
+	dirInfo, err := os.Stat(dataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dirInfo.Mode().Perm() != 0o700 {
+		t.Fatalf("expected data dir mode 0700, got %#o", dirInfo.Mode().Perm())
+	}
+	fileInfo, err := os.Stat(store.Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fileInfo.Mode().Perm() != 0o600 {
+		t.Fatalf("expected settings file mode 0600, got %#o", fileInfo.Mode().Perm())
+	}
+}
+
+func TestDefaultManagedGatewayArgsDoNotForcePortReplacement(t *testing.T) {
+	args := defaultManagedGatewayArgs(ManagedGatewaySettings{})
+	if slices.Contains(args, "--force") {
+		t.Fatalf("default managed gateway args must not include --force: %#v", args)
 	}
 }

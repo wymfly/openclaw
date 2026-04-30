@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import "@/design-system/atoms/code.css";
 
 export function HighlightedCodeView({
   content,
@@ -20,17 +21,17 @@ export function HighlightedCodeView({
   };
 
   return (
-    <div className="deck-ui-highlighted-code" data-language={language} data-tool-result-view="read">
-      <div className="deck-ui-code-toolbar">
+    <div className="ds-code-view" data-language={language} data-tool-result-view="read">
+      <div className="ds-code-view__bar">
         <span>{language}</span>
-        <button className="deck-ui-tool-control" type="button" onClick={() => void handleCopy()}>
+        <button type="button" onClick={() => void handleCopy()}>
           {copied ? t("copied") : t("copy")}
         </button>
       </div>
-      <div className="deck-ui-code-scroll">
+      <div className="ds-code-view__scroll">
         {lines.map((line, index) => (
-          <div className="deck-ui-code-line" key={`${index}-${line}`}>
-            <span className="deck-ui-code-gutter">{index + 1}</span>
+          <div className="ds-code-view__line" key={`${index}-${line}`}>
+            <span className="ds-code-view__ln">{index + 1}</span>
             <code>{line || "\u00A0"}</code>
           </div>
         ))}

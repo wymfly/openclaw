@@ -1,0 +1,39 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=subagents",
+  "title": "deck-go",
+  "viewport": {
+    "width": 1440,
+    "height": 960,
+    "scrollWidth": 1440
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-subagents",
+  "classCounts": {
+    "deck-ui-subagents": 1,
+    "deck-ui-subagents-card": 2,
+    "deck-ui-subagents-body": 2,
+    "deck-ui-subagents-status-row": 1,
+    "deck-ui-subagents-stats": 1,
+    "deck-ui-subagents-actions": 3,
+    "deck-ui-subagents-button": 4,
+    "deck-ui-subagents-list": 1,
+    "deck-ui-subagents-row": 1,
+    "deck-ui-subagents-hero": 0,
+    "deck-ui-subagents-detail-stats": 0,
+    "deck-ui-subagents-surface": 3,
+    "deck-ui-subagents-form-grid": 3,
+    "deck-ui-subagents-input": 11,
+    "deck-ui-subagents-lineage-list": 0
+  },
+  "statusTexts": ["Subagents ready0 visible0 server totalactive mode"],
+  "cardTitles": [
+    "Subagents",
+    "Run filters",
+    "Global spawn defaults",
+    "Per-agent permissions",
+    "Run detail"
+  ],
+  "selectedRun": null,
+  "visibleTextSample": "OC\nOpenClaw\nDeck\n‹\n\nCORE\n\nCH\nChat\nAG\nAgents\nGW\nGateway\nMO\nModels\n\nOBSERVE\n\nUS\nUsage\nSE\nSessions\nME\nMemory\nLO\nLogs\nAC\nActivity\nTH\nThreads\nAX\nAPI Explorer\n\nAUTOMATE\n\nCR\nCron\nWH\nWebhooks\nAP\nApprovals\nSK\nSkills\n\nCONTROL\n\nBU\nBudget\nAL\nAlerts\nCN\nChannels\nPL\nPlugins\nRT\nRouting\nSA\nSubagents\nID\nIdentity\nCF\nConfig\nNO\nNodes\nDO\nDocs\nST\nSettings\n‹\nSubagents\n\ncontrol · panel 21 of 26\n\nGateway Healthy\nRuntime running\nRefresh\nLight\nDark\nSubagents\n\nSubagent runs show active/history inspection plus lineage, kill, and steer actions.\n\nSubagents ready\n0 visible\n0 server total\nactive mode\n\nRUNS\n\n0\n\nACTIVE\n\n0\n\nHISTORY\n\n0\n\nRUN FILTERS\n\nall child agents\nmain\nall\nactive\ncompleted\nfailed\ntimeout\nlast 1h\nlast 6h\nlast 24h\nall time\nRefresh runs\nAuto refresh\n\nGLOBAL SPAWN DEFAULTS\n\nReads and writes Gateway-valid agents.defaults.subagents config.\n\nMax spawn depth\nMax children per agent\nMax concurrent\nArchive after minutes\nRun timeout seconds\nThinking default\nDefault model\nRequire explicit agent id\nReload defaults\nSave defaults\nhash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff\n\nPER-AGENT PERMISSIONS\n\nmain\nallowed: None\ndepth: 1 | children: 5 | model: default\nOpen agent subagents\n\nNo subagent runs loaded.\n\nRun detail\n\nSelect a run, inspect lineage, and perform supported kill or steer actions from current run state.\n\nChoose a subagent run to inspect it.\n\nSelect a run to load its lineage.",
+  "overflowCount": 0,
+  "overflow": []
+}

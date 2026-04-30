@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import type { DeckGoSettingsResponse } from "../../../../../contracts/generated/ts/deck-api.generated";
 import {
   fetchActivityEvents,
   fetchGatewayHealth,
@@ -7,22 +6,24 @@ import {
   fetchMonitorRunDetail,
   fetchMonitorRuns,
   fetchMonitorStats,
-  fetchSettings,
+  isBundledRuntimeStatus,
+  isRemoteRuntimeStatus,
   type DeckGoActivityEvent,
   type DeckGoGatewayHealthResponse,
   type DeckGoGatewayStatusResponse,
   type DeckGoMonitorRun,
   type DeckGoMonitorRunDetailResponse,
   type DeckGoMonitorStatsResponse,
-  restartRuntimeGateway,
-  startRuntimeGateway,
-  stopRuntimeGateway,
 } from "../../../api";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { useCapabilities } from "../../../hooks/useCapabilities";
 import { useTranslations } from "../../../i18n/provider";
-import { JsonDetails } from "../../shared/ShellComponents";
+import {
+  GatewayNotConfiguredEmptyState,
+  gatewayNotConfiguredValue,
+  isGatewayNotConfiguredValue,
+} from "../../runtime/GatewayNotConfiguredEmptyState";
 
-type GatewayActionState = "idle" | "starting" | "stopping" | "restarting";
 type GatewayTab = "overview" | "timeline" | "history" | "runtime";
 
 const GATEWAY_TABS: Array<{ key: GatewayTab; labelKey: string }> = [
@@ -118,7 +119,7 @@ export function GatewayPanel() {
   const t = useTranslations("monitor");
   const [activeTab, setActiveTab] = useState<GatewayTab>("overview");
   const { bootstrap, runtime, refreshingSummary, refreshRuntimeSummary } = useDeckUI();
-  const [settingsResponse, setSettingsResponse] = useState<DeckGoSettingsResponse | null>(null);
+  const { capabilities } = useCapabilities();
   const [healthResponse, setHealthResponse] = useState<DeckGoGatewayHealthResponse | null>(null);
   const [statusResponse, setStatusResponse] = useState<DeckGoGatewayStatusResponse | null>(null);
   const [activityEvents, setActivityEvents] = useState<DeckGoActivityEvent[]>([]);
@@ -128,25 +129,8 @@ export function GatewayPanel() {
   const [monitorRunDetail, setMonitorRunDetail] = useState<DeckGoMonitorRunDetailResponse | null>(
     null,
   );
-  const [actionState, setActionState] = useState<GatewayActionState>("idle");
-  const [error, setError] = useState("");
   const [diagnosticsError, setDiagnosticsError] = useState("");
   const [monitorError, setMonitorError] = useState("");
-  const [lastAction, setLastAction] = useState<unknown>(null);
-
-  const refreshSettings = useCallback(async () => {
-    try {
-      const result = await fetchSettings();
-      setSettingsResponse(result);
-      setError("");
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : t("errors.loadSettings"));
-    }
-  }, [t]);
-
-  useEffect(() => {
-    void refreshSettings();
-  }, [refreshSettings]);
 
   const refreshDiagnostics = useCallback(async () => {
     try {
@@ -155,9 +139,7 @@ export function GatewayPanel() {
       setStatusResponse(status);
       setDiagnosticsError("");
     } catch (loadError) {
-      setDiagnosticsError(
-        loadError instanceof Error ? loadError.message : t("errors.loadDiagnostics"),
-      );
+      setDiagnosticsError(gatewayNotConfiguredValue(loadError, t("errors.loadDiagnostics")));
     }
   }, [t]);
 
@@ -177,9 +159,7 @@ export function GatewayPanel() {
       setMonitorStats(stats);
       setMonitorError("");
     } catch (loadError) {
-      setMonitorError(
-        loadError instanceof Error ? loadError.message : t("errors.loadMonitorProjections"),
-      );
+      setMonitorError(gatewayNotConfiguredValue(loadError, t("errors.loadMonitorProjections")));
     }
   }, [t]);
 
@@ -198,48 +178,25 @@ export function GatewayPanel() {
     }
   };
 
-  const runAction = async (nextState: GatewayActionState, action: () => Promise<unknown>) => {
-    try {
-      setActionState(nextState);
-      const result = await action();
-      setLastAction(result);
-      await refreshRuntimeSummary();
-      await refreshSettings();
-      await refreshDiagnostics();
-      await refreshMonitor();
-      setError("");
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("errors.gatewayAction"));
-    } finally {
-      setActionState("idle");
-    }
-  };
-
-  const runtimeStatus = runtime?.runtime.status || bootstrap?.runtime.status || "stopped";
-  const runtimeHealth = runtime?.runtime.health || bootstrap?.runtime.health || "unknown";
-  const gatewayUrl = runtime?.runtime.gatewayUrl || t("runtime.notResolved");
-  const managedGateway = settingsResponse?.settings.managedGateway;
+  const runtimePayload = runtime?.runtime;
+  const bootstrapRuntime = bootstrap?.runtime;
+  const bundledRuntime = isBundledRuntimeStatus(runtimePayload)
+    ? runtimePayload
+    : isBundledRuntimeStatus(bootstrapRuntime)
+      ? bootstrapRuntime
+      : null;
+  const remoteRuntime = isRemoteRuntimeStatus(runtimePayload) ? runtimePayload : null;
+  const supervisorState = capabilities?.supervisorState ?? runtimePayload?.mode !== "remote";
+  const runtimeStatus = runtimePayload?.status || bootstrap?.runtime.status || "unknown";
+  const runtimeHealth = runtimePayload?.health || bootstrap?.runtime.health || "unknown";
+  const runtimeOwnership = bundledRuntime?.ownershipState || "none";
+  const restartAttempts = bundledRuntime?.restartAttempts ?? 0;
+  const gatewayUrl = runtimePayload?.gatewayUrl || t("runtime.notResolved");
   const healthChannelCount = countRecordEntries(healthResponse?.channels);
   const statusChannelCount = countRecordEntries(statusResponse?.channels);
   const selectedRun = monitorRuns.find((run) => run.runId === selectedRunId) ?? null;
-  const runtimeConfigured = runtime?.runtime.configured ?? false;
-  const runtimeActionPending = actionState !== "idle";
-  const canStart =
-    runtimeConfigured &&
-    !runtimeActionPending &&
-    runtimeStatus !== "running" &&
-    runtimeStatus !== "starting";
-  const canRestart =
-    runtimeConfigured &&
-    !runtimeActionPending &&
-    runtimeStatus !== "stopped" &&
-    runtimeStatus !== "stopping" &&
-    runtimeStatus !== "starting";
-  const canStop =
-    runtimeConfigured &&
-    !runtimeActionPending &&
-    runtimeStatus !== "stopped" &&
-    runtimeStatus !== "stopping";
+  const gatewayNotConfigured =
+    isGatewayNotConfiguredValue(diagnosticsError) || isGatewayNotConfiguredValue(monitorError);
 
   return (
     <section className="deckgo-panel-workspace deck-ui-gateway">
@@ -294,6 +251,20 @@ export function GatewayPanel() {
                 {t("runtime.refreshState")}{" "}
                 {refreshingSummary ? t("runtime.inFlight") : t("runtime.idle")}
               </span>
+              {supervisorState ? (
+                <>
+                  <span className="deckgo-pill">
+                    {t("runtime.ownership")} {runtimeOwnership}
+                  </span>
+                  <span className="deckgo-pill">
+                    {t("runtime.restartAttempts")} {restartAttempts}
+                  </span>
+                </>
+              ) : (
+                <span className="deckgo-pill">
+                  {t("runtime.mode")} {capabilities?.mode ?? runtimePayload?.mode ?? "remote"}
+                </span>
+              )}
             </div>
 
             <div className="deckgo-panel-hero-strip deck-ui-gateway-hero">
@@ -301,38 +272,21 @@ export function GatewayPanel() {
                 <p className="deckgo-kicker">{t("runtime.resolvedUrl")}</p>
                 <strong>{gatewayUrl}</strong>
                 <p className="deckgo-note">
-                  {t("runtime.pid")}: {runtime?.runtime.pid ?? "n/a"} | {t("runtime.configured")}:{" "}
-                  {runtime?.runtime.configured ? t("runtime.yes") : t("runtime.no")}
+                  {supervisorState
+                    ? `${t("runtime.pid")}: ${bundledRuntime?.pid ?? "n/a"} | ${t(
+                        "runtime.configured",
+                      )}: ${runtimePayload?.configured ? t("runtime.yes") : t("runtime.no")}`
+                    : `${t("runtime.lastConnectedAt")}: ${
+                        remoteRuntime?.lastConnectedAt || "n/a"
+                      } | ${t("runtime.tlsVerified")}: ${
+                        remoteRuntime?.tlsVerified ? t("runtime.yes") : t("runtime.no")
+                      }`}
                 </p>
               </div>
               <div
                 className="deckgo-actions deck-ui-gateway-actions"
                 hidden={activeTab !== "runtime"}
               >
-                <button
-                  className="deckgo-button deck-ui-gateway-button is-primary"
-                  type="button"
-                  onClick={() => void runAction("starting", startRuntimeGateway)}
-                  disabled={!canStart}
-                >
-                  {t("runtime.actions.start")}
-                </button>
-                <button
-                  className="deckgo-button deck-ui-gateway-button"
-                  type="button"
-                  onClick={() => void runAction("restarting", restartRuntimeGateway)}
-                  disabled={!canRestart}
-                >
-                  {t("runtime.actions.restart")}
-                </button>
-                <button
-                  className="deckgo-button deck-ui-gateway-button is-danger"
-                  type="button"
-                  onClick={() => void runAction("stopping", stopRuntimeGateway)}
-                  disabled={!canStop}
-                >
-                  {t("runtime.actions.stop")}
-                </button>
                 <button
                   className="deckgo-button deck-ui-gateway-button"
                   type="button"
@@ -347,13 +301,12 @@ export function GatewayPanel() {
               </div>
             </div>
 
-            {error ? <p className="deckgo-note deck-ui-gateway-error">{error}</p> : null}
-            {lastAction ? (
-              <JsonDetails title={t("runtime.lastAction")} payload={lastAction} />
+            {gatewayNotConfigured ? (
+              <GatewayNotConfiguredEmptyState className="deck-ui-gateway-surface" />
             ) : null}
             <div
               className="deckgo-grid deckgo-grid-2 deck-ui-gateway-surface-grid"
-              hidden={activeTab !== "overview"}
+              hidden={activeTab !== "overview" || gatewayNotConfigured}
             >
               <div className="deckgo-surface-tile deck-ui-gateway-surface">
                 <p className="deckgo-surface-label">{t("overview.healthDiagnostics")}</p>
@@ -391,12 +344,12 @@ export function GatewayPanel() {
                 </p>
               </div>
             </div>
-            {diagnosticsError ? (
+            {diagnosticsError && !isGatewayNotConfiguredValue(diagnosticsError) ? (
               <p className="deckgo-note deck-ui-gateway-error">{diagnosticsError}</p>
             ) : null}
             <div
               className="deckgo-surface-tile deck-ui-gateway-surface"
-              hidden={activeTab !== "overview"}
+              hidden={activeTab !== "overview" || gatewayNotConfigured}
             >
               <p className="deckgo-surface-label">{t("liveFeed")}</p>
               {activityEvents.length === 0 ? (
@@ -418,7 +371,7 @@ export function GatewayPanel() {
                 </ul>
               )}
             </div>
-            {monitorError ? (
+            {monitorError && !isGatewayNotConfiguredValue(monitorError) ? (
               <p className="deckgo-note deck-ui-gateway-error">{monitorError}</p>
             ) : null}
           </div>
@@ -513,7 +466,7 @@ export function GatewayPanel() {
                 <p className="deckgo-note">{t("timeline.selectRun")}</p>
               </div>
             )}
-            {monitorError ? (
+            {monitorError && !isGatewayNotConfiguredValue(monitorError) ? (
               <p className="deckgo-note deck-ui-gateway-error">{monitorError}</p>
             ) : null}
           </div>
@@ -580,7 +533,7 @@ export function GatewayPanel() {
                 </ul>
               )}
             </div>
-            {monitorError ? (
+            {monitorError && !isGatewayNotConfiguredValue(monitorError) ? (
               <p className="deckgo-note deck-ui-gateway-error">{monitorError}</p>
             ) : null}
           </div>
@@ -590,61 +543,62 @@ export function GatewayPanel() {
       <aside className="deckgo-column deck-ui-gateway-column" hidden={activeTab !== "runtime"}>
         <article className="deckgo-card deck-ui-gateway-card">
           <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("runtime.settingsTitle")}</h2>
+            <h2 className="deckgo-card-title">{t("runtime.summaryTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">{t("runtime.settingsDescription")}</p>
+          <p className="deckgo-card-subtitle">{t("runtime.summaryDescription")}</p>
           <div className="deckgo-card-body deckgo-dividerless deck-ui-gateway-body">
             <div className="deckgo-pill-row deck-ui-gateway-status-row">
               <span className="deckgo-pill">
-                {t("runtime.mode")} {managedGateway?.mode || "managed"}
+                {t("runtime.mode")} {capabilities?.mode ?? runtimePayload?.mode ?? "unknown"}
               </span>
               <span className="deckgo-pill">
-                {t("runtime.autoStart")}{" "}
-                {managedGateway?.autoStart ? t("runtime.on") : t("runtime.off")}
+                {t("runtime.configured")}{" "}
+                {capabilities?.configured ? t("runtime.yes") : t("runtime.no")}
               </span>
             </div>
-            <div className="deckgo-surface-tile deck-ui-gateway-surface">
-              <p className="deckgo-surface-label">{t("runtime.command")}</p>
-              <strong>{managedGateway?.command || t("runtime.unset")}</strong>
-              <p className="deckgo-note">
-                {t("runtime.args")}: {(managedGateway?.args ?? []).join(" ") || t("runtime.none")}
-              </p>
-            </div>
-            <div className="deckgo-surface-tile deck-ui-gateway-surface">
-              <p className="deckgo-surface-label">{t("runtime.workingDirectory")}</p>
-              <strong>{managedGateway?.workingDir || t("runtime.unset")}</strong>
-              <p className="deckgo-note">
-                {t("runtime.bind")}: {managedGateway?.bindHost || "127.0.0.1"}:
-                {managedGateway?.bindPort ?? 0}
-              </p>
-            </div>
+            {supervisorState ? (
+              <>
+                <div className="deckgo-surface-tile deck-ui-gateway-surface">
+                  <p className="deckgo-surface-label">{t("runtime.bundledState")}</p>
+                  <strong>
+                    {t("runtime.pid")}: {bundledRuntime?.pid ?? "n/a"}
+                  </strong>
+                  <p className="deckgo-note">
+                    {t("runtime.ownership")} {runtimeOwnership} | {t("runtime.restartAttempts")}{" "}
+                    {restartAttempts}
+                  </p>
+                </div>
+                <div className="deckgo-surface-tile deck-ui-gateway-surface">
+                  <p className="deckgo-surface-label">{t("runtime.resolvedUrl")}</p>
+                  <strong>{gatewayUrl}</strong>
+                  <p className="deckgo-note">
+                    {t("runtime.status")} {runtimeStatus} | {t("runtime.health")} {runtimeHealth}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="deckgo-surface-tile deck-ui-gateway-surface">
+                  <p className="deckgo-surface-label">{t("runtime.remoteState")}</p>
+                  <strong>
+                    {t("runtime.lastConnectedAt")}:{" "}
+                    {remoteRuntime?.lastConnectedAt || t("runtime.none")}
+                  </strong>
+                  <p className="deckgo-note">
+                    {t("runtime.latencyP50")}:{" "}
+                    {remoteRuntime?.latencyP50 != null ? `${remoteRuntime.latencyP50} ms` : "n/a"} |{" "}
+                    {t("runtime.tlsVerified")}:{" "}
+                    {remoteRuntime?.tlsVerified ? t("runtime.yes") : t("runtime.no")}
+                  </p>
+                </div>
+                <div className="deckgo-surface-tile deck-ui-gateway-surface">
+                  <p className="deckgo-surface-label">{t("runtime.lastError")}</p>
+                  <strong>{remoteRuntime?.lastError || t("runtime.none")}</strong>
+                </div>
+              </>
+            )}
           </div>
         </article>
-
-        {settingsResponse ? (
-          <article className="deckgo-card deck-ui-gateway-card">
-            <div className="deckgo-card-header">
-              <h2 className="deckgo-card-title">{t("runtime.rawSettings")}</h2>
-            </div>
-            <div className="deckgo-card-body deck-ui-gateway-body">
-              <JsonDetails title={t("runtime.settingsResponse")} payload={settingsResponse} />
-            </div>
-          </article>
-        ) : null}
-
-        {healthResponse || statusResponse ? (
-          <article className="deckgo-card deck-ui-gateway-card">
-            <div className="deckgo-card-header">
-              <h2 className="deckgo-card-title">{t("runtime.rawDiagnostics")}</h2>
-            </div>
-            <div className="deckgo-card-body deck-ui-gateway-body">
-              <JsonDetails
-                title={t("runtime.gatewayDiagnostics")}
-                payload={{ health: healthResponse, status: statusResponse }}
-              />
-            </div>
-          </article>
-        ) : null}
       </aside>
     </section>
   );

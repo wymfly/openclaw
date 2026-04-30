@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import "@/design-system/atoms/json-tree.css";
 
 export function JsonTree({ content }: { content: string }) {
   const t = useTranslations("chat");
@@ -9,14 +10,14 @@ export function JsonTree({ content }: { content: string }) {
     parsed = JSON.parse(content);
   } catch {
     return (
-      <pre className="deck-ui-artifact-code" data-artifact-view="json-error">
+      <pre className="ds-json ds-json--error" data-artifact-view="json-error">
         {t("artifactJsonInvalid")}
       </pre>
     );
   }
 
   return (
-    <div className="deck-ui-artifact-json" data-artifact-view="json">
+    <div className="ds-json" data-artifact-view="json">
       <JsonNode depth={0} value={parsed} />
     </div>
   );
@@ -24,13 +25,13 @@ export function JsonTree({ content }: { content: string }) {
 
 function JsonNode({ depth, value }: { depth: number; value: unknown }) {
   if (value === null) {
-    return <span className="deck-ui-json-null">null</span>;
+    return <span className="ds-json__null">null</span>;
   }
   if (typeof value === "boolean" || typeof value === "number") {
-    return <span className="deck-ui-json-primitive">{String(value)}</span>;
+    return <span className="ds-json__primitive">{String(value)}</span>;
   }
   if (typeof value === "string") {
-    return <span className="deck-ui-json-string">&quot;{value}&quot;</span>;
+    return <span className="ds-json__string">&quot;{value}&quot;</span>;
   }
   if (Array.isArray(value)) {
     return <CollapsibleNode bracket={["[", "]"]} depth={depth} entries={value} isArray />;
@@ -72,19 +73,19 @@ function CollapsibleNode({
   }
 
   return (
-    <span className="deck-ui-json-node">
+    <span className="ds-json__node">
       <button
         aria-expanded={open}
-        className="deck-ui-json-toggle"
+        className="ds-json__toggle"
         type="button"
         onClick={() => setOpen((current) => !current)}
       >
         <span aria-hidden="true">{open ? "v" : ">"}</span>
-        <span className="deck-ui-json-summary">{summary}</span>
+        <span className="ds-json__summary">{summary}</span>
       </button>
       {open ? (
         <>
-          <div className="deck-ui-json-children">
+          <div className="ds-json__children">
             {(entries as unknown[]).map((entry, index) => {
               const isLast = index === entries.length - 1;
               if (isArray) {
@@ -98,7 +99,7 @@ function CollapsibleNode({
               const [key, childValue] = entry as [string, unknown];
               return (
                 <div key={key}>
-                  <span className="deck-ui-json-key">&quot;{key}&quot;</span>
+                  <span className="ds-json__key">&quot;{key}&quot;</span>
                   <span>: </span>
                   <JsonNode depth={depth + 1} value={childValue} />
                   {!isLast ? <span>,</span> : null}

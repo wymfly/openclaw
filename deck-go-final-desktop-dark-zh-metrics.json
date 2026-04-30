@@ -1,0 +1,98 @@
+{
+  "lang": "zh",
+  "theme": "dark",
+  "themeMode": "dark",
+  "resolvedTheme": "dark",
+  "hasDarkClass": true,
+  "navAria": "Deck 面板",
+  "headerTitle": "对话",
+  "containsChineseChat": true,
+  "noHorizontalOverflow": true,
+  "viewport": {
+    "width": 1440,
+    "height": 960
+  },
+  "chatRect": {
+    "x": 224,
+    "y": 77,
+    "width": 1200,
+    "height": 880,
+    "top": 77,
+    "right": 1424,
+    "bottom": 957,
+    "left": 224
+  },
+  "headerRect": {
+    "x": 208,
+    "y": 0,
+    "width": 1232,
+    "height": 61,
+    "top": 0,
+    "right": 1440,
+    "bottom": 61,
+    "left": 208
+  },
+  "buttons": [
+    {
+      "text": "",
+      "aria": "收起导航",
+      "title": null
+    },
+    {
+      "text": "CH对话",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "AG智能体",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "GW监控",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "MO模型",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "US用量",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "SE会话",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "ME记忆",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "LO日志",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "AC动态",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "TH线程",
+      "aria": null,
+      "title": null
+    },
+    {
+      "text": "AXAPI 浏览器",
+      "aria": null,
+      "title": null
+    }
+  ],
+  "consoleTextSample": "核心\n\nCH\n对话\nAG\n智能体\nGW\n监控\nMO\n模型\n\n观测\n\nUS\n用量\nSE\n会话\nME\n记忆\nLO\n日志\nAC\n动态\nTH\n线程\nAX\nAPI 浏览器\n\n自动化\n\nCR\n定时任务\nWH\nWebhooks\nAP\n审批\nSK\n技能\n\n控制\n\nBU\n预算\nAL\n告警\nCN\n渠道\nPL\n插件\nRT\n消息路由\nSA\n子智能体\nID\n身份\nCF\n配置\nNO\n节点\nDO\n文档\nST\n设置\n对话\n未连接\nEN\n深色\n\nUnexpected token '<', \"<!doctype \"... is not valid JSON\n\n会话\n智能体\n全部\n新建会话\n默认智能体 main\n正在重新连接服务器...\nSSE · reconnecting\nmain\n无会话\n0 条消息\n空闲\n\n对话记录\n\n开始新对话\n\n选择一个话题开始，或直接输入你的问题\n\n帮我写一段创意文案\n分析这段代码的性能问题\n解释一"
+}

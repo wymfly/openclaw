@@ -1,7 +1,4 @@
-import type {
-  DeckGoBootstrapStatusResponse,
-  DeckGoRuntimeGatewayActionResponse,
-} from "../../../contracts/generated/ts/deck-api.generated";
+import type { DeckGoBootstrapStatusResponse, DeckGoRuntimeGatewayResponse } from "../api";
 import type { DeckGoThemeMode } from "../theme";
 import type { PanelId } from "./panel-registry";
 
@@ -15,7 +12,7 @@ export type DeckUIState = {
   authTokenInput: string;
   summaryReady: boolean;
   bootstrap: DeckGoBootstrapStatusResponse | null;
-  runtime: DeckGoRuntimeGatewayActionResponse | null;
+  runtime: DeckGoRuntimeGatewayResponse | null;
   summaryError: string | null;
   refreshingSummary: boolean;
   setActivePanel: (panel: PanelId) => void;

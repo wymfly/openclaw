@@ -1,0 +1,49 @@
+{
+  "url": "http://127.0.0.1:4179/?panel=settings",
+  "viewport": {
+    "width": 1440,
+    "height": 960
+  },
+  "ready": true,
+  "classCounts": {
+    "workspace": 1,
+    "cards": 4,
+    "bodies": 4,
+    "statusRows": 2,
+    "formRows": 2,
+    "inputs": 8,
+    "textareas": 1,
+    "checks": 1,
+    "surfaces": 2,
+    "lists": 0,
+    "rows": 0,
+    "actions": 4,
+    "buttons": 9,
+    "inlineStyles": 0
+  },
+  "statusText": {
+    "settingsReady": true,
+    "gatewayLinked": true,
+    "runtimeRunning": true,
+    "devicesReady": true,
+    "noPairedDevices": true,
+    "connectionProbe": false,
+    "appearance": true,
+    "settingsSummary": true
+  },
+  "values": {
+    "activeRuntimeUrl": "ws://127.0.0.1:18800",
+    "pathText": true,
+    "pendingText": [
+      "Settings ready",
+      "Gateway linked",
+      "Runtime running",
+      "Devices ready",
+      "0 pending",
+      "0 paired"
+    ]
+  },
+  "assetHrefs": ["/assets/index-ayIZ9USM.js", "/assets/index-CSZFF1aO.css"],
+  "overflowCount": 0,
+  "overflow": []
+}

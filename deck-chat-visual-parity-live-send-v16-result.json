@@ -1,0 +1,70 @@
+{
+  "ok": true,
+  "expected": "515152",
+  "sessionKey": "agent:main:dashboard:286d46a5-a0d1-4c38-b32a-7ea37716195f",
+  "create": {
+    "ok": true,
+    "key": "agent:main:dashboard:286d46a5-a0d1-4c38-b32a-7ea37716195f",
+    "sessionId": "80c410e3-80f2-48ea-a948-a26093312fde",
+    "runId": "81492e4b-3ce3-425b-b02a-810d1fcce07e",
+    "status": "started",
+    "messageSeq": 1,
+    "runStarted": true,
+    "entry": {
+      "label": "Playwright live send 1777274507312",
+      "sessionFile": "/Users/wangym/workspace/agents/openclaw/deck-go/.local/deck-go-stack/data/managed-gateway-state/agents/main/sessions/80c410e3-80f2-48ea-a948-a26093312fde.jsonl",
+      "sessionId": "80c410e3-80f2-48ea-a948-a26093312fde",
+      "updatedAt": 1777274507320
+    }
+  },
+  "observations": [
+    {
+      "attempt": 1,
+      "status": 200,
+      "hasExpected": false,
+      "length": 15
+    },
+    {
+      "attempt": 2,
+      "status": 200,
+      "hasExpected": false,
+      "length": 15
+    },
+    {
+      "attempt": 3,
+      "status": 200,
+      "hasExpected": true,
+      "length": 268
+    }
+  ],
+  "lastHistory": {
+    "status": 200,
+    "body": {
+      "messages": [
+        {
+          "id": "",
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "What number comes immediately after 515151? Reply with digits only."
+            }
+          ],
+          "timestamp": 1777274518610
+        },
+        {
+          "id": "",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "515152"
+            }
+          ],
+          "timestamp": 1777274518622
+        }
+      ]
+    }
+  },
+  "elapsedMs": 15901
+}

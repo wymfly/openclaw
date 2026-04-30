@@ -35,34 +35,54 @@ commands:
   logs          tail backend/frontend logs
   backend-fg    build and run backend in the foreground
   frontend-fg   run Vite preview in the foreground
-  runtime-start ask deck-go to start the managed local Gateway
-  runtime-stop  ask deck-go to stop the managed local Gateway
+  runtime-start deprecated: bundled runtime starts from RUNTIME_BUNDLED_AUTO_START
+  runtime-stop  deprecated: stop the stack instead
   chat-smoke    deprecated: use the Codex Playwright plugin instead
 EOF
 }
 
 load_env() {
   if [[ ! -f "${ENV_FILE}" ]]; then
-    echo "[deck-go-local] missing env file: ${ENV_FILE}" >&2
-    echo "[deck-go-local] copy deck-go/.env.example to deck-go/.env and retry" >&2
-    exit 1
+    echo "[deck-go-local] env file not found; using built-in bundled mock defaults: ${ENV_FILE}" >&2
+  else
+    set -a
+    # shellcheck disable=SC1090
+    source "${ENV_FILE}"
+    set +a
   fi
-
-  set -a
-  # shellcheck disable=SC1090
-  source "${ENV_FILE}"
-  set +a
 
   : "${DECK_GO_ADDR:=127.0.0.1:19566}"
   : "${DECK_GO_DATA_DIR:=.local/deck-go-stack/data}"
   : "${DECK_GO_ACCESS_TOKEN:=stage3-local-access-token}"
-  : "${DECK_GO_GATEWAY_TOKEN:=stage3-local-gateway-token}"
-  : "${DECK_GO_GATEWAY_AUTO_START:=true}"
   : "${DECK_GO_FRONTEND_HOST:=127.0.0.1}"
   : "${DECK_GO_FRONTEND_PORT:=4174}"
   : "${VITE_DECK_GO_API_BASE:=http://${DECK_GO_ADDR}}"
   : "${VITE_DECK_VISUAL_STATE:=1}"
-  : "${DECK_GO_RUNTIME_ACTION_TIMEOUT:=300}"
+  : "${RUNTIME_MODE:=bundled}"
+
+  if [[ "${RUNTIME_MODE}" == "bundled" ]]; then
+    : "${RUNTIME_BUNDLED_COMMAND:=$(command -v node || true)}"
+    : "${RUNTIME_BUNDLED_ARGS:=test/fixtures/mock-gateway.mjs}"
+    : "${RUNTIME_BUNDLED_WORKDIR:=${ROOT_DIR}}"
+    : "${RUNTIME_BUNDLED_BIND_HOST:=127.0.0.1}"
+    : "${RUNTIME_BUNDLED_BIND_PORT:=18789}"
+    : "${RUNTIME_BUNDLED_TOKEN:=deck-go-local-gateway-token}"
+    : "${RUNTIME_BUNDLED_AUTO_START:=true}"
+    : "${RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_PORT:=${RUNTIME_BUNDLED_BIND_PORT}}"
+    : "${RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_TOKEN:=${RUNTIME_BUNDLED_TOKEN}}"
+    : "${RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_REQUEST_LOG:=${LOG_DIR}/mock-gateway-requests.jsonl}"
+    if [[ -z "${RUNTIME_BUNDLED_COMMAND}" ]]; then
+      echo "[deck-go-local] node is required for the default bundled mock Gateway" >&2
+      exit 1
+    fi
+  elif [[ "${RUNTIME_MODE}" == "remote" ]]; then
+    : "${RUNTIME_REMOTE_URL:=}"
+    : "${RUNTIME_REMOTE_TOKEN:=}"
+    : "${RUNTIME_REMOTE_TLS_VERIFY:=true}"
+  else
+    echo "[deck-go-local] RUNTIME_MODE must be bundled or remote, got ${RUNTIME_MODE}" >&2
+    exit 1
+  fi
 
   local local_no_proxy="localhost,127.0.0.1,::1"
   if [[ -n "${NO_PROXY:-}" ]]; then
@@ -83,6 +103,7 @@ load_env() {
   if [[ "${DECK_GO_DATA_DIR}" != /* ]]; then
     DECK_GO_DATA_DIR="${ROOT_DIR}/${DECK_GO_DATA_DIR}"
   fi
+  : "${RUNTIME_ADMIN_SOCKET:=${DECK_GO_DATA_DIR}/admin.sock}"
 
   BACKEND_BASE="http://${DECK_GO_ADDR}"
   FRONTEND_BASE="http://${DECK_GO_FRONTEND_HOST}:${DECK_GO_FRONTEND_PORT}"
@@ -93,11 +114,23 @@ load_env() {
   export DECK_GO_ADDR
   export DECK_GO_DATA_DIR
   export DECK_GO_ACCESS_TOKEN
-  export DECK_GO_GATEWAY_TOKEN
-  export DECK_GO_GATEWAY_AUTO_START
   export DECK_GO_FRONTEND_HOST
   export DECK_GO_FRONTEND_PORT
-  export DECK_GO_RUNTIME_ACTION_TIMEOUT
+  export RUNTIME_MODE
+  export RUNTIME_BUNDLED_COMMAND
+  export RUNTIME_BUNDLED_ARGS
+  export RUNTIME_BUNDLED_WORKDIR
+  export RUNTIME_BUNDLED_BIND_HOST
+  export RUNTIME_BUNDLED_BIND_PORT
+  export RUNTIME_BUNDLED_TOKEN
+  export RUNTIME_BUNDLED_AUTO_START
+  export RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_PORT
+  export RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_TOKEN
+  export RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_REQUEST_LOG
+  export RUNTIME_REMOTE_URL
+  export RUNTIME_REMOTE_TOKEN
+  export RUNTIME_REMOTE_TLS_VERIFY
+  export RUNTIME_ADMIN_SOCKET
   export VITE_DECK_GO_API_BASE
   export VITE_DECK_VISUAL_STATE
   export BACKEND_BASE
@@ -181,6 +214,13 @@ stop_pid() {
   return 1
 }
 
+stop_runtime_listener_if_configured() {
+  if [[ "${RUNTIME_MODE}" != "bundled" || -z "${RUNTIME_BUNDLED_BIND_PORT:-}" ]]; then
+    return 0
+  fi
+  stop_pid "${PID_DIR}/runtime.pid" "bundled runtime" "${RUNTIME_BUNDLED_BIND_PORT}"
+}
+
 wait_for_url() {
   local url="$1"
   local label="$2"
@@ -202,6 +242,7 @@ runtime_snapshot() {
 wait_for_runtime_healthy() {
   python3 - "${BACKEND_BASE}" "${DECK_GO_ACCESS_TOKEN}" <<'PY'
 import json
+import urllib.error
 import sys
 import time
 import urllib.request
@@ -211,44 +252,42 @@ token = sys.argv[2]
 request = urllib.request.Request(f"{base}/api/runtime/gateway", headers={"x-deck-token": token})
 last = None
 for _ in range(30):
-    with urllib.request.urlopen(request, timeout=5) as response:
-        payload = json.load(response)
-    runtime = payload.get("runtime", {})
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.load(response)
+    except urllib.error.HTTPError as exc:
+        last = {"httpStatus": exc.code, "body": exc.read().decode("utf-8", "replace")}
+        time.sleep(1)
+        continue
+    runtime = payload.get("runtime") if isinstance(payload.get("runtime"), dict) else payload
     last = runtime
-    if runtime.get("status") == "running" and runtime.get("health") == "healthy":
-        print("[deck-go-local] runtime reached running/healthy")
+    if runtime.get("mode") == "bundled" and runtime.get("pid"):
+        print("[deck-go-local] bundled runtime reported a PID")
+        raise SystemExit(0)
+    if payload.get("ok") is True and runtime.get("pid"):
+        print("[deck-go-local] bundled runtime reported a PID")
+        raise SystemExit(0)
+    if runtime.get("mode") == "remote":
+        print("[deck-go-local] remote runtime is configured")
         raise SystemExit(0)
     time.sleep(1)
-print("[deck-go-local] runtime failed to reach running/healthy", file=sys.stderr)
+print("[deck-go-local] runtime failed to reach ready state", file=sys.stderr)
 print(json.dumps(last or {}, indent=2), file=sys.stderr)
 raise SystemExit(1)
 PY
 }
 
-wait_for_runtime_stopped() {
-  python3 - "${BACKEND_BASE}" "${DECK_GO_ACCESS_TOKEN}" <<'PY'
-import json
-import sys
-import time
-import urllib.request
-
-base = sys.argv[1]
-token = sys.argv[2]
-request = urllib.request.Request(f"{base}/api/runtime/gateway", headers={"x-deck-token": token})
-last = None
-for _ in range(30):
-    with urllib.request.urlopen(request, timeout=5) as response:
-        payload = json.load(response)
-    runtime = payload.get("runtime", {})
-    last = runtime
-    if runtime.get("status") == "stopped":
-        print("[deck-go-local] runtime reached stopped")
-        raise SystemExit(0)
-    time.sleep(1)
-print("[deck-go-local] runtime failed to reach stopped", file=sys.stderr)
-print(json.dumps(last or {}, indent=2), file=sys.stderr)
-raise SystemExit(1)
-PY
+wait_for_backend_autostart_runtime() {
+  if [[ "${RUNTIME_MODE}" == "remote" ]]; then
+    echo "[deck-go-local] remote runtime starts in configured/first-run state"
+    return 0
+  fi
+  if [[ "${RUNTIME_BUNDLED_AUTO_START}" != "true" ]]; then
+    echo "[deck-go-local] managed runtime autostart disabled"
+    return 0
+  fi
+  echo "[deck-go-local] waiting for backend-managed Gateway autostart"
+  wait_for_runtime_healthy
 }
 
 build_frontend() {
@@ -289,8 +328,18 @@ start_backend() {
       DECK_GO_ADDR="${DECK_GO_ADDR}" \
       DECK_GO_DATA_DIR="${DECK_GO_DATA_DIR}" \
       DECK_GO_ACCESS_TOKEN="${DECK_GO_ACCESS_TOKEN}" \
-      DECK_GO_GATEWAY_TOKEN="${DECK_GO_GATEWAY_TOKEN}" \
-      DECK_GO_GATEWAY_AUTO_START="${DECK_GO_GATEWAY_AUTO_START}" \
+      RUNTIME_MODE="${RUNTIME_MODE}" \
+      RUNTIME_BUNDLED_COMMAND="${RUNTIME_BUNDLED_COMMAND:-}" \
+      RUNTIME_BUNDLED_ARGS="${RUNTIME_BUNDLED_ARGS:-}" \
+      RUNTIME_BUNDLED_WORKDIR="${RUNTIME_BUNDLED_WORKDIR:-}" \
+      RUNTIME_BUNDLED_BIND_HOST="${RUNTIME_BUNDLED_BIND_HOST:-}" \
+      RUNTIME_BUNDLED_BIND_PORT="${RUNTIME_BUNDLED_BIND_PORT:-}" \
+      RUNTIME_BUNDLED_TOKEN="${RUNTIME_BUNDLED_TOKEN:-}" \
+      RUNTIME_BUNDLED_AUTO_START="${RUNTIME_BUNDLED_AUTO_START:-}" \
+      RUNTIME_REMOTE_URL="${RUNTIME_REMOTE_URL:-}" \
+      RUNTIME_REMOTE_TOKEN="${RUNTIME_REMOTE_TOKEN:-}" \
+      RUNTIME_REMOTE_TLS_VERIFY="${RUNTIME_REMOTE_TLS_VERIFY:-true}" \
+      RUNTIME_ADMIN_SOCKET="${RUNTIME_ADMIN_SOCKET}" \
       "${BACKEND_BIN}" >"${BACKEND_LOG}" 2>&1 </dev/null &
   )
   wait_for_url "${BACKEND_BASE}/api/bootstrap/status" "deck-go backend" "${CURL_AUTH_ARGS[@]}"
@@ -316,32 +365,13 @@ start_frontend() {
 }
 
 runtime_start() {
-  local snapshot
-  snapshot="$(runtime_snapshot 2>/dev/null || true)"
-  if [[ "${snapshot}" == *'"status":"running"'* ]] && [[ "${snapshot}" == *'"health":"healthy"'* ]]; then
-    echo "[deck-go-local] runtime already running/healthy"
-    return 0
-  fi
-  if [[ "${snapshot}" == *'"status":"starting"'* ]]; then
-    echo "[deck-go-local] runtime already starting; waiting for healthy"
-    wait_for_runtime_healthy
-    return 0
-  fi
-  echo "[deck-go-local] requesting managed gateway start"
-  curl --max-time "${DECK_GO_RUNTIME_ACTION_TIMEOUT}" -sf -X POST "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway/start" >/dev/null
-  wait_for_runtime_healthy
+  echo "[deck-go-local] runtime-start is deprecated; bundled Gateway autostarts from RUNTIME_BUNDLED_AUTO_START" >&2
+  return 2
 }
 
 runtime_stop() {
-  local snapshot
-  snapshot="$(runtime_snapshot 2>/dev/null || true)"
-  if [[ "${snapshot}" == *'"status":"stopped"'* ]]; then
-    echo "[deck-go-local] runtime already stopped"
-    return 0
-  fi
-  echo "[deck-go-local] requesting managed gateway stop"
-  curl --max-time "${DECK_GO_RUNTIME_ACTION_TIMEOUT}" -sf -X POST "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway/stop" >/dev/null
-  wait_for_runtime_stopped
+  echo "[deck-go-local] runtime-stop is deprecated; use manage-local-stack.sh stop" >&2
+  return 2
 }
 
 show_status() {
@@ -377,6 +407,8 @@ show_status() {
   if curl --max-time 5 -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway" >/dev/null 2>&1; then
     echo "[deck-go-local] runtime:"
     runtime_snapshot
+  else
+    echo "[deck-go-local] runtime: unavailable or first-run"
   fi
 }
 
@@ -393,8 +425,18 @@ run_backend_fg() {
     DECK_GO_ADDR="${DECK_GO_ADDR}" \
     DECK_GO_DATA_DIR="${DECK_GO_DATA_DIR}" \
     DECK_GO_ACCESS_TOKEN="${DECK_GO_ACCESS_TOKEN}" \
-    DECK_GO_GATEWAY_TOKEN="${DECK_GO_GATEWAY_TOKEN}" \
-    DECK_GO_GATEWAY_AUTO_START="${DECK_GO_GATEWAY_AUTO_START}" \
+    RUNTIME_MODE="${RUNTIME_MODE}" \
+    RUNTIME_BUNDLED_COMMAND="${RUNTIME_BUNDLED_COMMAND:-}" \
+    RUNTIME_BUNDLED_ARGS="${RUNTIME_BUNDLED_ARGS:-}" \
+    RUNTIME_BUNDLED_WORKDIR="${RUNTIME_BUNDLED_WORKDIR:-}" \
+    RUNTIME_BUNDLED_BIND_HOST="${RUNTIME_BUNDLED_BIND_HOST:-}" \
+    RUNTIME_BUNDLED_BIND_PORT="${RUNTIME_BUNDLED_BIND_PORT:-}" \
+    RUNTIME_BUNDLED_TOKEN="${RUNTIME_BUNDLED_TOKEN:-}" \
+    RUNTIME_BUNDLED_AUTO_START="${RUNTIME_BUNDLED_AUTO_START:-}" \
+    RUNTIME_REMOTE_URL="${RUNTIME_REMOTE_URL:-}" \
+    RUNTIME_REMOTE_TOKEN="${RUNTIME_REMOTE_TOKEN:-}" \
+    RUNTIME_REMOTE_TLS_VERIFY="${RUNTIME_REMOTE_TLS_VERIFY:-true}" \
+    RUNTIME_ADMIN_SOCKET="${RUNTIME_ADMIN_SOCKET}" \
     "${BACKEND_BIN}"
 }
 
@@ -409,7 +451,7 @@ run_frontend_fg() {
 
 chat_smoke() {
   echo "[deck-go-local] chat-smoke is deprecated for Codex/Ralph validation" >&2
-  echo "[deck-go-local] use the Codex Playwright plugin against backend-fg/frontend-fg/runtime-start instead" >&2
+  echo "[deck-go-local] use the Playwright e2e specs against manage-local-stack.sh start instead" >&2
   return 2
 }
 
@@ -420,18 +462,22 @@ case "${command}" in
   start)
     build_frontend
     start_backend
+    wait_for_backend_autostart_runtime
     start_frontend
     show_status
     ;;
   stop)
     stop_pid "${FRONTEND_PID_FILE}" "frontend" "${FRONTEND_PORT}"
     stop_pid "${BACKEND_PID_FILE}" "backend" "${BACKEND_PORT}"
+    stop_runtime_listener_if_configured
     ;;
   restart)
     stop_pid "${FRONTEND_PID_FILE}" "frontend" "${FRONTEND_PORT}"
     stop_pid "${BACKEND_PID_FILE}" "backend" "${BACKEND_PORT}"
+    stop_runtime_listener_if_configured
     build_frontend
     start_backend
+    wait_for_backend_autostart_runtime
     start_frontend
     show_status
     ;;

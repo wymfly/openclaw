@@ -57,11 +57,27 @@ export function PanelExpandIcon(props: IconProps) {
   );
 }
 
+export function PlayIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6 4.5v15l12-7.5Z" />
+    </IconBase>
+  );
+}
+
 export function XIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path d="M18 6 6 18" />
       <path d="m6 6 12 12" />
+    </IconBase>
+  );
+}
+
+export function SlashIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M22 2 2 22" />
     </IconBase>
   );
 }
@@ -322,6 +338,15 @@ export function BotIcon(props: IconProps) {
   );
 }
 
+export function UserIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </IconBase>
+  );
+}
+
 export function BrainIcon(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -364,6 +389,16 @@ export function CopyIcon(props: IconProps) {
     <IconBase {...props}>
       <rect height="13" rx="2" width="13" x="8" y="8" />
       <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+    </IconBase>
+  );
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
     </IconBase>
   );
 }
@@ -419,6 +454,36 @@ export function FileTextIcon(props: IconProps) {
       <path d="M8 13h8" />
       <path d="M8 17h8" />
       <path d="M8 9h2" />
+    </IconBase>
+  );
+}
+
+export function HashIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <line x1="4" x2="20" y1="9" y2="9" />
+      <line x1="4" x2="20" y1="15" y2="15" />
+      <line x1="10" x2="8" y1="3" y2="21" />
+      <line x1="16" x2="14" y1="3" y2="21" />
+    </IconBase>
+  );
+}
+
+export function FilterIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </IconBase>
+  );
+}
+
+export function MaximizeIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+      <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+      <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+      <path d="M3 16v3a2 2 0 0 0 2 2h3" />
     </IconBase>
   );
 }

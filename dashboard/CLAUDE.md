@@ -1,5 +1,13 @@
 # Dashboard (openclaw-deck) Development Rules
 
+> **⚠️ Legacy 状态 / Archived (2026-04-28)**
+>
+> `dashboard/` 是上一代 OpenClaw Deck 客户端，已**冻结**，仅作为参考保留，不再迭代新功能。
+>
+> 当前二次开发主目标是 `deck-go/`（Go 后端 + React/Vite 前端）。新工作请见仓库根 `AGENTS.md` 的「二次开发主目标」章节，以及设计文档 `docs/superpowers/specs/2026-04-28-runtime-mode-decoupling-design.md`。
+>
+> 本文件保留供 `dashboard/` 维护期参考；下面的 i18n / theme 规则仅适用于本目录。
+
 ## i18n — 零硬编码字符串
 
 所有用户可见的文字（按钮、标签、标题、占位符、空状态、错误提示、tooltip）**必须**通过 `useTranslations()` 调用。

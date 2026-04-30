@@ -84,9 +84,6 @@ import {
   searchMemory,
   searchSkillHub,
   simulateRouting,
-  startRuntimeGateway,
-  stopRuntimeGateway,
-  restartRuntimeGateway,
   restoreCompactionCheckpoint,
   saveAgentFile,
   updateApprovalsPolicy,
@@ -905,38 +902,18 @@ describe("chat helper seam requests", () => {
     expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/settings/version", undefined);
   });
 
-  it("passes managed gateway runtime lifecycle requests through the current runtime routes", async () => {
-    deckFetchMock
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ runtime: { status: "running" } }), { status: 200 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ runtime: { status: "running" } }), { status: 200 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ runtime: { status: "stopped" } }), { status: 200 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ runtime: { status: "running" } }), { status: 200 }),
-      );
+  it("wraps the read-only runtime gateway status route for Deck UI state", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ mode: "bundled", status: "running" }), { status: 200 }),
+    );
 
-    await fetchRuntimeGatewayStatus();
-    await startRuntimeGateway();
-    await stopRuntimeGateway();
-    await restartRuntimeGateway();
+    const result = await fetchRuntimeGatewayStatus();
 
     expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/runtime/gateway", undefined, {
       allowPrompt: false,
     });
-    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/runtime/gateway/start", {
-      method: "POST",
-    });
-    expect(deckFetchMock).toHaveBeenNthCalledWith(3, "/api/runtime/gateway/stop", {
-      method: "POST",
-    });
-    expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/runtime/gateway/restart", {
-      method: "POST",
-    });
+    expect(result.runtime.status).toBe("running");
+    expect(result.runtime.mode).toBe("bundled");
   });
 
   it("passes monitor run list, detail, and stats requests through the current monitor routes", async () => {

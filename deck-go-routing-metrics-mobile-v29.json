@@ -1,0 +1,39 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=routing",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-routing",
+  "classCounts": {
+    "deck-ui-routing": 1,
+    "deck-ui-routing-card": 2,
+    "deck-ui-routing-body": 2,
+    "deck-ui-routing-status-row": 1,
+    "deck-ui-routing-stats": 1,
+    "deck-ui-routing-actions": 5,
+    "deck-ui-routing-button": 7,
+    "deck-ui-routing-list": 0,
+    "deck-ui-routing-row": 0,
+    "deck-ui-routing-hero": 0,
+    "deck-ui-routing-detail-stats": 0,
+    "deck-ui-routing-surface": 5,
+    "deck-ui-routing-form-grid": 3,
+    "deck-ui-routing-input": 21
+  },
+  "statusTexts": ["Routing readydefault maindm scope mainrouting conflicts 0"],
+  "cardTitles": [
+    "Routing",
+    "DM scope strategy",
+    "Filter bindings",
+    "Add or validate binding",
+    "Routing detail",
+    "Simulate route selection",
+    "Routing activity feed"
+  ],
+  "selectedBinding": null,
+  "visibleTextSample": "☰\nRouting\n\ncontrol · panel 20 of 26\n\nGateway Healthy\nRuntime running\nRefresh\nLight\nDark\nRouting\n\nRouting shows live bindings and route simulation from the control plane.\n\nRouting ready\ndefault main\ndm scope main\nrouting conflicts 0\n\nBINDINGS\n\n0\n\nDM SCOPE\n\nmain\n\nCONFIG HASH\n\n4f53cda18c2baa0c\n\nDM SCOPE STRATEGY\n\nmain\nper-peer\nper-channel-peer\nper-account-channel-peer\nPatch DM scope\n\nFILTER BINDINGS\n\nRefresh routing\n\nADD OR VALIDATE BINDING\n\nno peer\ndirect peer\ngroup peer\nchannel peer\nValidate binding\nAdd binding\n\nNo routing bindings loaded.\n\nRouting detail\n\nInspect the live binding set, then simulate match order against the current route configuration.\n\nChoose a binding to inspect it.\n\nSIMULATE ROUTE SELECTION\n\nno peer\ndirect peer\ngroup peer\nchannel peer\nSimulate\nReset simulation\n\nRun a simulation to inspect routing tier evaluation.\n\nROUTING ACTIVITY FEED\n\nRecent routing-adjacent activity from the shared deck activity API.\n\nRefresh activity\n\nNo recent routing activity loaded.",
+  "overflowCount": 0,
+  "overflow": []
+}

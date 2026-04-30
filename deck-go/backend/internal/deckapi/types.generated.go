@@ -3,21 +3,12 @@
 
 package deckapi
 
-type DeckGoManagedGatewaySettings struct {
-	Mode string `json:"mode,omitempty"`
-	Command string `json:"command,omitempty"`
-	Args []string `json:"args,omitempty"`
-	WorkingDir string `json:"workingDir,omitempty"`
-	BindHost string `json:"bindHost,omitempty"`
-	BindPort float64 `json:"bindPort,omitempty"`
-	GatewayToken string `json:"gatewayToken,omitempty"`
-	AutoStart bool `json:"autoStart,omitempty"`
-	Env map[string]string `json:"env,omitempty"`
-}
-
 type DeckGoSettings struct {
-	AccessToken string `json:"accessToken,omitempty"`
-	ManagedGateway DeckGoManagedGatewaySettings `json:"managedGateway,omitempty"`
+	AccessTokenConfigured bool `json:"accessTokenConfigured,omitempty"`
+	AccessTokenSource string `json:"accessTokenSource,omitempty"`
+	Appearance map[string]any `json:"appearance,omitempty"`
+	Notifications map[string]any `json:"notifications,omitempty"`
+	PairedDevices []map[string]any `json:"pairedDevices,omitempty"`
 }
 
 type DeckGoSettingsResponse struct {
@@ -41,7 +32,8 @@ type DeckGoBootstrapSettingsStatus struct {
 }
 
 type DeckGoRuntimeGatewayStatus struct {
-	Managed bool `json:"managed"`
+	Mode string `json:"mode,omitempty"`
+	Managed bool `json:"managed,omitempty"`
 	Configured bool `json:"configured,omitempty"`
 	Status string `json:"status,omitempty"`
 	FailurePhase string `json:"failurePhase,omitempty"`
@@ -51,8 +43,55 @@ type DeckGoRuntimeGatewayStatus struct {
 	LastExitCode float64 `json:"lastExitCode,omitempty"`
 	Health string `json:"health,omitempty"`
 	GatewayUrl string `json:"gatewayUrl,omitempty"`
+	LastConnectedAt string `json:"lastConnectedAt,omitempty"`
 	LastError string `json:"lastError,omitempty"`
-	AutoStart bool `json:"autoStart,omitempty"`
+	LatencyP50 float64 `json:"latencyP50,omitempty"`
+	TlsVerified bool `json:"tlsVerified,omitempty"`
+	AutoStart bool `json:"autoStart"`
+	Owner string `json:"owner,omitempty"`
+	OwnershipState string `json:"ownershipState,omitempty"`
+	OwnershipFile string `json:"ownershipFile,omitempty"`
+	RestartAttempts float64 `json:"restartAttempts,omitempty"`
+	RestartDelayMs float64 `json:"restartDelayMs,omitempty"`
+}
+
+type DeckGoRuntimeCapabilities struct {
+	Mode string `json:"mode"`
+	Configured bool `json:"configured"`
+	EndpointMutable bool `json:"endpointMutable"`
+	SupervisorState bool `json:"supervisorState"`
+}
+
+type DeckGoRuntimeEndpointResponse struct {
+	Url string `json:"url"`
+	TokenConfigured bool `json:"tokenConfigured"`
+	TlsVerify bool `json:"tlsVerify"`
+	Source string `json:"source"`
+}
+
+type DeckGoRuntimeEndpointPutRequest struct {
+	Url string `json:"url"`
+	Token string `json:"token"`
+	TlsVerify bool `json:"tlsVerify"`
+}
+
+type DeckGoRuntimeEndpointTestRequest struct {
+	Url string `json:"url,omitempty"`
+	Token string `json:"token,omitempty"`
+	TlsVerify bool `json:"tlsVerify,omitempty"`
+}
+
+type DeckGoRuntimeEndpointTestResponse struct {
+	Ok bool `json:"ok"`
+	LatencyMs float64 `json:"latencyMs,omitempty"`
+	GatewayVersion string `json:"gatewayVersion,omitempty"`
+	TlsVerified bool `json:"tlsVerified"`
+	Error string `json:"error,omitempty"`
+}
+
+type DeckGoRuntimeErrorResponse struct {
+	Code string `json:"code"`
+	Message string `json:"message"`
 }
 
 type DeckGoBootstrapGatewayStatus struct {

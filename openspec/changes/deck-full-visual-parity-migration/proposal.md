@@ -12,6 +12,7 @@ This matters now because continuing to polish the current Vite UI in place would
 - Require Chat to migrate old Deck UI details beyond the data path: message rendering blocks, shared renderer, tool result views, subagent cards, right panel behavior, input affordances, icons, status surfaces, and action menus.
 - Require page-by-page migration planning and acceptance gates for all active Deck panels.
 - Require visual validation to compare against old Deck reference behavior and screenshots, using desktop Web as the blocking target.
+- Require the final validation pass to use a paired old Next Deck vs current Vite/Go Deck screenshot matrix for every active desktop panel, matching the evidence level established by `deck-chat-visual-parity`.
 - Keep Gateway API as the product capability authority, but require Go backend/API/projection gaps discovered during frontend migration to be fixed in the owning child change rather than hidden by frontend-only workarounds.
 - Explicitly defer mobile parity and post-parity redesign to follow-on changes.
 
@@ -50,5 +51,6 @@ This matters now because continuing to polish the current Vite UI in place would
 - Validation impact:
   - Browser evidence must use the Codex Playwright/browser plugin path already established for `deck-go`.
   - Desktop Web visual parity is blocking; mobile parity is not part of this change.
+  - Green panel-open traversal is integration E2E evidence only; it does not replace paired old/current screenshot comparison.
   - Functional Gateway/API behavior must remain aligned with the Go backend and managed local Gateway stack.
   - Go backend changes are in scope when old Node+Next service behavior is required to preserve a migrated Deck workflow and the Gateway source of truth supports the capability.

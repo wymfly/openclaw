@@ -1,10 +1,13 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BugIcon, RefreshIcon, XIcon } from "@/deck-ui/icons";
+import { BugIcon, LoaderIcon, MonitorDotIcon, RefreshIcon, XIcon } from "@/deck-ui/icons";
+import { Button } from "@/design-system/atoms/Button";
+import { IconButton } from "@/design-system/atoms/IconButton";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { A2UIBridge, sendUserActionToAgent, type UserAction } from "./a2ui-bridge";
 import { CanvasDebugPanel } from "./CanvasDebugPanel";
+import "./chat-canvas.css";
 import { persistChatProjection, resolveCanvasEval, setCanvasBridgeReady } from "./chat-api";
 
 type CanvasState = "loading" | "ready" | "error" | "empty";
@@ -276,57 +279,104 @@ export function CanvasPanel({ onClose }: CanvasPanelProps) {
     iframe.src = currentSrc;
   }, []);
 
+  const hasTranslation = (key: string) => typeof t.has === "function" && t.has(key);
+  const tFallback = (key: string, fallback: string) => (hasTranslation(key) ? t(key) : fallback);
+  const bridgeStatus = a2uiState?.bridgeStatus;
+  const bridgeStatusKey = bridgeStatus ?? (resolvedCanvasUrl ? "ready" : "disconnected");
+  const bridgeStatusLabel = (() => {
+    if (bridgeStatus === "ready") {
+      return tFallback("canvasBridgeReady", "ready");
+    }
+    if (bridgeStatus === "error") {
+      return tFallback("canvasBridgeError", "handshake failed");
+    }
+    if (bridgeStatus === "connecting") {
+      return tFallback("canvasBridgeConnecting", "connecting");
+    }
+    return tFallback("canvasBridgeDisconnected", "disconnected");
+  })();
+  const refreshLabel = tFallback("canvasRefresh", "Refresh canvas");
+
   return (
-    <section className="deck-ui-canvas-panel" aria-label={t("canvasTitle")}>
-      <header className="deck-ui-canvas-header">
-        <span>{t("canvasTitle")}</span>
-        <div>
-          <button
-            aria-label={t("debugTitle")}
-            title={t("debugTitle")}
-            type="button"
-            onClick={() => setShowDebug((value) => !value)}
-          >
-            <BugIcon />
-            <span className="deck-ui-sr-only">{t("debugTitle")}</span>
-          </button>
-          <button
-            aria-label={t("canvasCollapse")}
-            title={t("canvasCollapse")}
-            type="button"
-            onClick={onClose}
-          >
-            <XIcon />
-            <span className="deck-ui-sr-only">{t("canvasCollapse")}</span>
-          </button>
+    <section className="ds-canvas-panel deck-ui-canvas-panel" aria-label={t("canvasTitle")}>
+      <header className="ds-canvas-panel__header deck-ui-canvas-header">
+        <MonitorDotIcon className="ds-canvas-panel__title-icon" aria-hidden="true" />
+        <div className="ds-canvas-panel__title-stack">
+          <span className="ds-canvas-panel__title">{t("canvasTitle")}</span>
+          <span className="ds-canvas-panel__sub" data-bridge={bridgeStatusKey}>
+            a2ui-bridge · {bridgeStatusLabel}
+          </span>
         </div>
+        <span className="ds-canvas-panel__header-spacer" />
+        <IconButton
+          size="sm"
+          aria-label={t("debugTitle")}
+          title={t("debugTitle")}
+          onClick={() => setShowDebug((value) => !value)}
+        >
+          <BugIcon />
+          <span className="ds-sr-only deck-ui-sr-only">{t("debugTitle")}</span>
+        </IconButton>
+        <IconButton size="sm" aria-label={refreshLabel} title={refreshLabel} onClick={handleRetry}>
+          <RefreshIcon />
+          <span className="ds-sr-only deck-ui-sr-only">{refreshLabel}</span>
+        </IconButton>
+        <IconButton
+          size="sm"
+          aria-label={t("canvasCollapse")}
+          title={t("canvasCollapse")}
+          onClick={onClose}
+        >
+          <XIcon />
+          <span className="ds-sr-only deck-ui-sr-only">{t("canvasCollapse")}</span>
+        </IconButton>
       </header>
 
-      <div className="deck-ui-canvas-viewport">
-        <iframe
-          ref={iframeRef}
-          src={iframeSrc}
-          className="deck-ui-canvas-frame"
-          sandbox="allow-scripts allow-same-origin"
-          title="A2UI Canvas"
-        />
+      <div className="ds-canvas-panel__viewport deck-ui-canvas-viewport">
+        <div className="ds-canvas-panel__iframe-mock">
+          <div className="ds-canvas-panel__iframe-bar" data-bridge={bridgeStatusKey}>
+            <span>a2ui:tree</span>
+            <span className="ds-canvas-panel__iframe-bar-sep">·</span>
+            <span>
+              {a2uiState?.surfaces?.length ?? 0} surface
+              {(a2uiState?.surfaces?.length ?? 0) === 1 ? "" : "s"}
+            </span>
+            <span className="ds-canvas-panel__iframe-bar-sep">·</span>
+            <span>{bridgeStatusLabel}</span>
+          </div>
+          <iframe
+            ref={iframeRef}
+            src={iframeSrc}
+            className="ds-canvas-panel__frame deck-ui-canvas-frame"
+            sandbox="allow-scripts allow-same-origin"
+            title="A2UI Canvas"
+          />
+        </div>
         {state === "loading" ? (
-          <div className="deck-ui-canvas-overlay">
-            <span>{t("canvasLoading")}</span>
+          <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
+            <LoaderIcon className="ds-canvas-panel__spinner deck-ui-canvas-spinner" />
+            <span className="ds-canvas-panel__overlay-text">{t("canvasLoading")}</span>
           </div>
         ) : null}
         {state === "error" ? (
-          <div className="deck-ui-canvas-overlay">
-            <span>{t("canvasError")}</span>
-            <button type="button" onClick={handleRetry}>
+          <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
+            <XIcon className="ds-canvas-panel__overlay-icon" aria-hidden="true" />
+            <span className="ds-canvas-panel__overlay-text">
+              {tFallback("canvasErrorMessage", "Bridge handshake failed")}
+            </span>
+            <Button variant="ghost" size="sm" onClick={handleRetry}>
               <RefreshIcon />
               {t("canvasRetry")}
-            </button>
+            </Button>
           </div>
         ) : null}
         {state === "empty" ? (
-          <div className="deck-ui-canvas-overlay">
-            <span>{t("canvasEmpty")}</span>
+          <div className="ds-canvas-panel__overlay deck-ui-canvas-overlay">
+            <MonitorDotIcon className="ds-canvas-panel__overlay-icon" aria-hidden="true" />
+            <span className="ds-canvas-panel__overlay-text">{t("canvasEmpty")}</span>
+            <span className="ds-canvas-panel__overlay-hint">
+              {tFallback("canvasEmptyHint", "Waiting for the agent to push canvas content")}
+            </span>
           </div>
         ) : null}
       </div>

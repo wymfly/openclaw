@@ -1,0 +1,231 @@
+- generic [ref=e8]:
+  - navigation "Deck panels" [ref=e9]:
+    - button "Collapse navigation" [ref=e11] [cursor=pointer]:
+      - img [ref=e12]
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: Core
+        - button "Chat" [ref=e17] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e21]: Chat
+        - button "Agents" [ref=e22] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e26]: Agents
+        - button "Monitor" [ref=e27] [cursor=pointer]:
+          - img [ref=e29]
+          - generic [ref=e32]: Monitor
+        - button "Models" [ref=e33] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: Models
+      - generic [ref=e38]:
+        - paragraph [ref=e39]: Observe
+        - button "Usage" [ref=e40] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Usage
+        - button "Sessions" [ref=e45] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Sessions
+        - button "Memory" [ref=e50] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e55]: Memory
+        - button "Logs" [ref=e56] [cursor=pointer]:
+          - img [ref=e58]
+          - generic [ref=e61]: Logs
+        - button "Activity" [ref=e62] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e66]: Activity
+        - button "Threads" [ref=e67] [cursor=pointer]:
+          - img [ref=e69]
+          - generic [ref=e72]: Threads
+        - button "API Explorer" [ref=e73] [cursor=pointer]:
+          - img [ref=e75]
+          - generic [ref=e77]: API Explorer
+      - generic [ref=e78]:
+        - paragraph [ref=e79]: Automate
+        - button "Cron Jobs" [ref=e80] [cursor=pointer]:
+          - img [ref=e82]
+          - generic [ref=e85]: Cron Jobs
+        - button "Webhooks" [ref=e86] [cursor=pointer]:
+          - img [ref=e88]
+          - generic [ref=e93]: Webhooks
+        - button "Approvals" [ref=e94] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e99]: Approvals
+        - button "Skills" [ref=e100] [cursor=pointer]:
+          - img [ref=e102]
+          - generic [ref=e104]: Skills
+      - generic [ref=e105]:
+        - paragraph [ref=e106]: Control
+        - button "Budget" [ref=e107] [cursor=pointer]:
+          - img [ref=e109]
+          - generic [ref=e112]: Budget
+        - button "Alerts" [ref=e113] [cursor=pointer]:
+          - img [ref=e115]
+          - generic [ref=e117]: Alerts
+        - button "Channels" [ref=e118] [cursor=pointer]:
+          - img [ref=e120]
+          - generic [ref=e126]: Channels
+        - button "Plugins" [ref=e127] [cursor=pointer]:
+          - img [ref=e129]
+          - generic [ref=e134]: Plugins
+        - button "Routing" [ref=e135] [cursor=pointer]:
+          - img [ref=e137]
+          - generic [ref=e141]: Routing
+        - button "Subagents" [ref=e142] [cursor=pointer]:
+          - img [ref=e144]
+          - generic [ref=e149]: Subagents
+        - button "Identities" [ref=e150] [cursor=pointer]:
+          - img [ref=e152]
+          - generic [ref=e157]: Identities
+        - button "Config" [ref=e158] [cursor=pointer]:
+          - img [ref=e160]
+          - generic [ref=e163]: Config
+        - button "Nodes" [ref=e164] [cursor=pointer]:
+          - img [ref=e166]
+          - generic [ref=e169]: Nodes
+        - button "Docs" [ref=e170] [cursor=pointer]:
+          - img [ref=e172]
+          - generic [ref=e177]: Docs
+    - button "Settings" [ref=e179] [cursor=pointer]:
+      - img [ref=e181]
+      - generic [ref=e184]: Settings
+  - generic [ref=e185]:
+    - banner [ref=e186]:
+      - heading "Chat" [level=1] [ref=e189]
+      - generic [ref=e190]:
+        - button "Connected" [ref=e191]: Connected
+        - button "Switch language" [ref=e193] [cursor=pointer]:
+          - img [ref=e194]
+          - generic [ref=e198]: ZH
+        - 'button "Theme switch: System" [ref=e199] [cursor=pointer]':
+          - img [ref=e200]
+    - main [ref=e202]:
+      - region "Chat workspace" [ref=e203]:
+        - complementary [ref=e204]:
+          - complementary [ref=e205]:
+            - tablist [ref=e206]:
+              - tab "All 3" [ref=e207] [cursor=pointer]: All3
+            - button "New Session" [ref=e208] [cursor=pointer]:
+              - img [ref=e209]
+              - generic [ref=e210]: New Session
+            - textbox "Search sessions..." [ref=e211]
+            - generic [ref=e212]:
+              - 'button "Gateway startup regression triage Visual seed: streaming response with approval and canvas drawer. 4月26日 22:00 Delete session" [ref=e213] [cursor=pointer]':
+                - generic [ref=e214]: Gateway startup regression triage
+                - generic [ref=e215]: "Visual seed: streaming response with approval and canvas drawer."
+                - generic [ref=e216]: 4月26日 22:00
+                - button "Delete session" [ref=e217]
+              - button "A very long bilingual session title for truncation 验证导航列表不会溢出到删除按钮 Preview text remains dense but readable in the old Deck row layout. 4月26日 21:20 Delete session" [ref=e221] [cursor=pointer]:
+                - generic [ref=e222]: A very long bilingual session title for truncation 验证导航列表不会溢出到删除按钮
+                - generic [ref=e223]: Preview text remains dense but readable in the old Deck row layout.
+                - generic [ref=e224]: 4月26日 21:20
+                - button "Delete session" [ref=e225]
+              - button "Tool rendering and artifact handoff Generated an artifact and opened the canvas drawer. 4月26日 20:00 Delete session" [ref=e229] [cursor=pointer]:
+                - generic [ref=e230]: Tool rendering and artifact handoff
+                - generic [ref=e231]: Generated an artifact and opened the canvas drawer.
+                - generic [ref=e232]: 4月26日 20:00
+                - button "Delete session" [ref=e233]
+            - generic [ref=e237]: Default Agent main
+        - generic [ref=e238]:
+          - generic [ref=e239]:
+            - generic [ref=e240]: main
+            - strong [ref=e241]: visual-main
+            - generic [ref=e242]: 5 messages
+            - generic [ref=e243]: Running
+            - generic "97.2K / 100.0K tokens" [ref=e244]: "Context: 97%"
+            - status [ref=e245]: Context window nearly full — consider compacting or starting a new session
+            - generic "Compacted 2 times" [ref=e246]
+            - button "Compact" [ref=e247] [cursor=pointer]
+          - button "Go to steer" [ref=e248] [cursor=pointer]
+          - region "Transcript" [ref=e249]:
+            - generic [ref=e250]:
+              - generic "User message" [ref=e252]:
+                - generic [ref=e253]: U
+                - generic [ref=e254]
+              - generic "Assistant message" [ref=e259]:
+                - generic [ref=e260]: AI
+                - generic [ref=e261]
+              - generic [ref=e317]:
+                - generic [ref=e318]: cmp
+                - generic [ref=e319]: Context compacted
+                - generic [ref=e320]: 128,000 → 42,000
+                - generic [ref=e321]: 21:56:00
+              - generic "User message" [ref=e323]:
+                - generic [ref=e324]: U
+                - generic [ref=e325]
+              - generic "Assistant message" [ref=e330]:
+                - generic [ref=e331]: AI
+                - generic [ref=e332]
+          - generic "chat.filterBlocks" [ref=e348]:
+            - button "Thinking" [ref=e349] [cursor=pointer]
+            - button "Tools" [ref=e350] [cursor=pointer]
+            - button "Results" [ref=e351] [cursor=pointer]
+          - generic [ref=e353]:
+            - generic [ref=e354]:
+              - generic [ref=e355]: Steer
+              - textbox "Steer" [ref=e356]:
+                - /placeholder: Enter instruction to redirect execution...
+            - button "Steer" [disabled] [ref=e357]
+          - generic "chat.tools" [ref=e358]:
+            - generic [ref=e359]:
+              - paragraph [ref=e360]: running
+              - strong [ref=e361]: shell_command
+              - generic [ref=e362]: tool-run-gateway
+              - generic [ref=e363]: 58248s
+            - generic [ref=e364]:
+              - paragraph [ref=e365]: Tools
+              - strong [ref=e366]: Tools running
+          - generic [ref=e367]:
+            - generic [ref=e368]:
+              - text: Model
+              - strong [ref=e369]: gpt-5.4
+            - button "Thinking off" [ref=e370] [cursor=pointer]
+            - button "Fast off" [ref=e371] [cursor=pointer]
+            - button "Usage tokens" [ref=e372] [cursor=pointer]
+            - button "Send allow" [ref=e373] [cursor=pointer]
+          - generic [ref=e375]:
+            - region "Approval required" [ref=e376]:
+              - generic [ref=e377]:
+                - strong [ref=e378]: Approval required
+                - generic [ref=e379]: 19m 50s
+              - generic [ref=e380]:
+                - code [ref=e381]: shell_command
+                - generic [ref=e382]: pnpm openclaw gateway run --bind loopback --port 18789 --force
+              - generic [ref=e383]:
+                - term [ref=e384]: Agent
+                - definition [ref=e385]: main
+                - term [ref=e386]: cwd
+                - definition [ref=e387]: /workspace/openclaw
+              - generic [ref=e388]:
+                - button "Approve" [ref=e389] [cursor=pointer]
+                - button "Always Approve" [ref=e390] [cursor=pointer]
+                - button "Deny" [ref=e391] [cursor=pointer]
+            - status [ref=e392]: Context window nearly full — consider compacting or starting a new session
+            - button "Attach" [ref=e393] [cursor=pointer]:
+              - img [ref=e394]
+              - generic [ref=e395]: Attach
+            - textbox "Type a message..." [ref=e397]
+            - button "Prompt Templates" [ref=e399] [cursor=pointer]
+            - button "Canvas panel" [pressed] [ref=e400] [cursor=pointer]:
+              - img [ref=e401]
+              - generic [ref=e404]: Canvas panel
+            - button "Artifact panel" [ref=e405] [cursor=pointer]:
+              - img [ref=e406]
+              - text: Artifact panel
+            - button "Send" [disabled] [ref=e409]:
+              - img [ref=e410]
+              - generic [ref=e412]: Send
+            - button "Stop" [ref=e413] [cursor=pointer]:
+              - img [ref=e414]
+              - generic [ref=e416]: Stop
+        - complementary [ref=e417]:
+          - region "Canvas" [ref=e419]:
+            - generic [ref=e420]:
+              - generic [ref=e421]: Canvas
+              - generic [ref=e422]:
+                - button "Debug panel" [ref=e423] [cursor=pointer]
+                - button "Collapse canvas" [ref=e424] [cursor=pointer]
+            - iframe [ref=e426]:
+              - generic [ref=f1e4]:
+                - banner [ref=f1e5]
+                - main [ref=f1e23]

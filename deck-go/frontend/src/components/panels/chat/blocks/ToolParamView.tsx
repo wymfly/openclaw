@@ -8,14 +8,14 @@ export function ToolParamView({ input }: { input: Record<string, unknown> }) {
   const entries = Object.entries(input);
 
   if (entries.length === 0) {
-    return <p className="deck-ui-tool-param-empty">{t("paramNoParams")}</p>;
+    return <p className="ds-tool-param-empty deck-ui-tool-param-empty">{t("paramNoParams")}</p>;
   }
 
   return (
-    <div className="deck-ui-tool-params">
+    <div className="ds-tool-params deck-ui-tool-params">
       {entries.map(([key, value]) => (
-        <div className="deck-ui-tool-param-row" key={key}>
-          <span className="deck-ui-tool-param-key">{key}: </span>
+        <div className="ds-tool-param-row deck-ui-tool-param-row" key={key}>
+          <span className="ds-tool-param-key deck-ui-tool-param-key">{key}: </span>
           <ValueCell value={value} />
         </div>
       ))}
@@ -28,23 +28,23 @@ function ValueCell({ value }: { value: unknown }) {
   const [expanded, setExpanded] = useState(false);
 
   if (value === null || value === undefined) {
-    return <span className="deck-ui-tool-param-value is-null">null</span>;
+    return <span className="ds-tool-param-value deck-ui-tool-param-value is-null">null</span>;
   }
 
   if (typeof value === "boolean" || typeof value === "number") {
-    return <span className="deck-ui-tool-param-value">{String(value)}</span>;
+    return <span className="ds-tool-param-value deck-ui-tool-param-value">{String(value)}</span>;
   }
 
   if (typeof value === "string") {
     if (value.length <= TRUNCATE_THRESHOLD) {
-      return <span className="deck-ui-tool-param-value">{value}</span>;
+      return <span className="ds-tool-param-value deck-ui-tool-param-value">{value}</span>;
     }
 
     return (
-      <span className="deck-ui-tool-param-value">
+      <span className="ds-tool-param-value deck-ui-tool-param-value">
         <span>{expanded ? value : value.slice(0, TRUNCATE_THRESHOLD)}</span>{" "}
         <button
-          className="deck-ui-tool-inline-button"
+          className="ds-tool-inline-button deck-ui-tool-inline-button"
           type="button"
           onClick={() => setExpanded((current) => !current)}
         >
@@ -56,13 +56,15 @@ function ValueCell({ value }: { value: unknown }) {
 
   if (typeof value === "object") {
     return (
-      <span className="deck-ui-tool-param-value">
+      <span className="ds-tool-param-value deck-ui-tool-param-value">
         <NestedSection value={value as Record<string, unknown> | unknown[]} />
       </span>
     );
   }
 
-  return <span className="deck-ui-tool-param-value">{JSON.stringify(value)}</span>;
+  return (
+    <span className="ds-tool-param-value deck-ui-tool-param-value">{JSON.stringify(value)}</span>
+  );
 }
 
 function NestedSection({ value }: { value: Record<string, unknown> | unknown[] }) {
@@ -70,7 +72,7 @@ function NestedSection({ value }: { value: Record<string, unknown> | unknown[] }
   const count = Array.isArray(value) ? value.length : Object.keys(value).length;
 
   return (
-    <details className="deck-ui-tool-param-nested">
+    <details className="ds-tool-param-nested deck-ui-tool-param-nested">
       <summary>{t("paramKeys", { count })}</summary>
       <pre>{JSON.stringify(value, null, 2)}</pre>
     </details>

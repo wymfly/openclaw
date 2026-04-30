@@ -1,0 +1,55 @@
+- generic [ref=e3]:
+  - navigation "Deck panels" [ref=e4]:
+    - button "Collapse navigation" [ref=e6] [cursor=pointer]:
+      - img [ref=e7]
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - paragraph [ref=e11]: 核心
+        - button "CH 对话" [ref=e12] [cursor=pointer]
+        - button "AG 智能体" [ref=e15] [cursor=pointer]
+        - button "GW 监控" [ref=e18] [cursor=pointer]
+        - button "MO 模型" [ref=e21] [cursor=pointer]
+      - generic [ref=e24]:
+        - paragraph [ref=e25]: 观测
+        - button "US 用量" [ref=e26] [cursor=pointer]
+        - button "SE 会话" [ref=e29] [cursor=pointer]
+        - button "ME 记忆" [ref=e32] [cursor=pointer]
+        - button "LO 日志" [ref=e35] [cursor=pointer]
+        - button "AC 动态" [ref=e38] [cursor=pointer]
+        - button "TH 线程" [ref=e41] [cursor=pointer]
+        - button "AX API 浏览器" [ref=e44] [cursor=pointer]
+      - generic [ref=e47]:
+        - paragraph [ref=e48]: 自动化
+        - button "CR 定时任务" [ref=e49] [cursor=pointer]
+        - button "WH Webhooks" [ref=e52] [cursor=pointer]
+        - button "AP 审批" [ref=e55] [cursor=pointer]
+        - button "SK 技能" [ref=e58] [cursor=pointer]
+      - generic [ref=e61]:
+        - paragraph [ref=e62]: 控制
+        - button "BU 预算" [ref=e63] [cursor=pointer]
+        - button "AL 告警" [ref=e66] [cursor=pointer]
+        - button "CN 渠道" [ref=e69] [cursor=pointer]
+        - button "PL 插件" [ref=e72] [cursor=pointer]
+        - button "RT 消息路由" [ref=e75] [cursor=pointer]
+        - button "SA 子智能体" [ref=e78] [cursor=pointer]
+        - button "ID 身份" [ref=e81] [cursor=pointer]
+        - button "CF 配置" [ref=e84] [cursor=pointer]
+        - button "NO 节点" [ref=e87] [cursor=pointer]
+        - button "DO 文档" [ref=e90] [cursor=pointer]
+    - button "ST 设置" [ref=e94] [cursor=pointer]:
+      - generic [ref=e95]: ST
+      - generic [ref=e96]: 设置
+  - generic [ref=e97]:
+    - banner [ref=e98]:
+      - generic [ref=e99]:
+        - button "Collapse navigation" [ref=e100] [cursor=pointer]
+        - heading "对话" [level=1] [ref=e104]
+      - generic [ref=e105]:
+        - button "未连接" [ref=e106]: 未连接
+        - button "切换语言" [ref=e108] [cursor=pointer]
+        - button "主题切换" [ref=e114] [cursor=pointer]
+      - paragraph [ref=e118]: Unexpected token '<', "<!doctype "... is not valid JSON
+    - main [ref=e119]:
+      - region "Chat workspace" [ref=e120]:
+        - complementary [ref=e121]
+        - generic [ref=e134]

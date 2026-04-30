@@ -1,0 +1,7 @@
+{
+  "theme": "dark",
+  "classDark": true,
+  "approval": true,
+  "canvasData": true,
+  "text": "CORE\n\nChat\nAgents\nMonitor\nModels\n\nOBSERVE\n\nUsage\nSessions\nMemory\nLogs\nActivity\nThreads\nAPI Explorer\n\nAUTOMATE\n\nCron Jobs\nWebhooks\nApprovals\nSkills\n\nCONTROL\n\nBudget\nAlerts\nChannels\nPlugins\nRouting\nSubagents\nIdentities\nConfig\nNodes\nDocs\nSettings\nChat\nConnected\nZH\nAll3\nNew Session\nGateway startup regression triage\nVisual seed: streaming response with approval and canvas drawer.\n4月26日 22:00\nA very long bilingual session title for truncation 验证导航列表不会溢出到删除按钮\nPreview text remains dense but readable in the old Deck row layout.\n4月26日 21:20\nTool rendering and artifact handoff\nGenerated an artifact and opened the canvas drawer.\n4月26日 20:00\nDefault Agent main\nmain\nvisual-main\n5 messages\nRunning\nContext:"
+}

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 )
 
 type stubCapabilityProvider struct {
@@ -23,17 +23,17 @@ func (s stubCapabilityProvider) Load(context.Context) (CapabilitySummary, error)
 func TestSummaries_IncludeCapabilityVersionWhenAvailable(t *testing.T) {
 	summaries := NewSummariesWithCapabilities(
 		stubSnapshotReader{
-			snapshot: runtimecontrol.Snapshot{
-				Status: runtimecontrol.StatusRunning,
-				Health: runtimecontrol.HealthHealthy,
+			snapshot: bundled.Snapshot{
+				Status: bundled.StatusRunning,
+				Health: bundled.HealthHealthy,
 			},
 		},
 		stubCapabilityProvider{
 			summary: CapabilitySummary{
-				Available:      true,
-				SchemaVersion:  "3.1",
-				MethodCount:    81,
-				EventCount:     5,
+				Available:     true,
+				SchemaVersion: "3.1",
+				MethodCount:   81,
+				EventCount:    5,
 			},
 		},
 	)
@@ -59,9 +59,9 @@ func TestSummaries_IncludeCapabilityVersionWhenAvailable(t *testing.T) {
 func TestSummaries_IgnoreCapabilityErrors(t *testing.T) {
 	summaries := NewSummariesWithCapabilities(
 		stubSnapshotReader{
-			snapshot: runtimecontrol.Snapshot{
-				Status: runtimecontrol.StatusRunning,
-				Health: runtimecontrol.HealthHealthy,
+			snapshot: bundled.Snapshot{
+				Status: bundled.StatusRunning,
+				Health: bundled.HealthHealthy,
 			},
 		},
 		stubCapabilityProvider{err: errors.New("describe failed")},

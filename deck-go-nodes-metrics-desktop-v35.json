@@ -1,0 +1,65 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=nodes",
+  "viewport": {
+    "width": 1440,
+    "height": 960,
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-nodes",
+  "overflowCount": 0,
+  "overflowNodes": [],
+  "classCounts": {
+    "root": 1,
+    "columns": 2,
+    "cards": 2,
+    "bodies": 2,
+    "statusRows": 1,
+    "stats": 1,
+    "detailStats": 0,
+    "surfaces": 0,
+    "surfaceGrids": 0,
+    "inputs": 0,
+    "textareas": 0,
+    "actions": 1,
+    "buttons": 1,
+    "lists": 0,
+    "rows": 0,
+    "hero": 0,
+    "checks": 0,
+    "empty": 2,
+    "errors": 0
+  },
+  "navItems": [
+    {
+      "text": "CFConfig",
+      "className": "deck-ui-nav-item ",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    },
+    {
+      "text": "NONodes",
+      "className": "deck-ui-nav-item is-active",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    },
+    {
+      "text": "Light",
+      "className": "is-active",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    }
+  ],
+  "cardTitles": ["Nodes", "Selected node"],
+  "statusTexts": [
+    "Nodes ready0 nodes0 pending",
+    "nodes0pending requests0",
+    "No nodes loaded.",
+    "Choose a node or pairing request to inspect it."
+  ],
+  "visibleTextSample": "OC\nOpenClaw\nDeck\n‹\n\nCORE\n\nCH\nChat\nAG\nAgents\nGW\nGateway\nMO\nModels\n\nOBSERVE\n\nUS\nUsage\nSE\nSessions\nME\nMemory\nLO\nLogs\nAC\nActivity\nTH\nThreads\nAX\nAPI Explorer\n\nAUTOMATE\n\nCR\nCron\nWH\nWebhooks\nAP\nApprovals\nSK\nSkills\n\nCONTROL\n\nBU\nBudget\nAL\nAlerts\nCN\nChannels\nPL\nPlugins\nRT\nRouting\nSA\nSubagents\nID\nIdentity\nCF\nConfig\nNO\nNodes\nDO\nDocs\nST\nSettings\n‹\nNodes\n\ncontrol · panel 24 of 26\n\nGateway Healthy\nRuntime running\nRefresh\nLight\nDark\nNodes\n\nManage node inventory, pairing, command invocation, and pending work.\n\nNodes ready\n0 nodes\n0 pending\n\nNODES\n\n0\n\nPENDING REQUESTS\n\n0\n\nRefresh nodes\n\nNo nodes loaded.\n\nSelected node\n\nInspect node state, pairing requests, lifecycle diagnostics, invoke, and pending work from current node routes.\n\nChoose a node or pairing request to inspect it.",
+  "assetHrefs": ["/assets/index-D4W4jBr4.js", "/assets/index-BN8H28hM.css"]
+}

@@ -1,6 +1,8 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { RefreshIcon } from "@/deck-ui/icons";
+import { Button } from "@/design-system/atoms/Button";
+import { IconButton } from "@/design-system/atoms/IconButton";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UIEvents } from "@/stores/chat-hooks";
 
@@ -32,48 +34,57 @@ export function CanvasDebugPanel() {
   };
 
   return (
-    <section className="deck-ui-canvas-debug">
-      <header className="deck-ui-canvas-debug-tabs">
+    <section className="ds-canvas-debug deck-ui-canvas-debug">
+      <header className="ds-canvas-debug__tabs deck-ui-canvas-debug-tabs">
         <button
-          className={activeTab === "messages" ? "is-active" : ""}
           type="button"
+          className={activeTab === "messages" ? "is-active" : ""}
+          aria-pressed={activeTab === "messages"}
           onClick={() => setActiveTab("messages")}
         >
           {t("debugMessages")}
         </button>
         <button
-          className={activeTab === "tree" ? "is-active" : ""}
           type="button"
+          className={activeTab === "tree" ? "is-active" : ""}
+          aria-pressed={activeTab === "tree"}
           onClick={() => setActiveTab("tree")}
         >
           {t("debugTree")}
         </button>
         <span>{t("debugEvents", { count: events.length })}</span>
-        <button className="deck-ui-canvas-debug-clear" type="button" onClick={clearEvents}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="deck-ui-canvas-debug-clear"
+          onClick={clearEvents}
+        >
           {t("debugClear")}
-        </button>
+        </Button>
       </header>
 
       {activeTab === "messages" ? (
         events.length === 0 ? (
-          <p className="deck-ui-canvas-debug-empty">{t("debugEvents", { count: 0 })}</p>
+          <p className="ds-canvas-debug__empty deck-ui-canvas-debug-empty">
+            {t("debugEvents", { count: 0 })}
+          </p>
         ) : (
-          <ul className="deck-ui-canvas-debug-events">
+          <ul className="ds-canvas-debug__events deck-ui-canvas-debug-events">
             {events.map((event, index) => (
               <li key={`${event.timestamp}-${event.action}-${index}`}>
                 <button
-                  className="deck-ui-canvas-debug-event"
+                  className="ds-canvas-debug__event deck-ui-canvas-debug-event"
                   type="button"
                   onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}
                 >
-                  <span className="deck-ui-canvas-debug-time">
+                  <span className="ds-canvas-debug__time deck-ui-canvas-debug-time">
                     {new Date(event.timestamp).toLocaleTimeString()}
                   </span>
                   <span>{event.action}</span>
                   <span>{event.summary}</span>
                 </button>
                 {expandedIndex === index ? (
-                  <pre className="deck-ui-canvas-debug-raw">
+                  <pre className="ds-canvas-debug__raw deck-ui-canvas-debug-raw">
                     {JSON.stringify(event.raw, null, 2)}
                   </pre>
                 ) : null}
@@ -82,26 +93,29 @@ export function CanvasDebugPanel() {
           </ul>
         )
       ) : (
-        <div className="deck-ui-canvas-debug-tree">
-          <button
-            className="deck-ui-tool-control"
-            type="button"
+        <div className="ds-canvas-debug__tree deck-ui-canvas-debug-tree">
+          <IconButton
+            size="sm"
             title={t("debugRefreshTree")}
             aria-label={t("debugRefreshTree")}
             onClick={refreshTree}
           >
             <RefreshIcon />
-          </button>
+          </IconButton>
           {treeData != null ? (
-            <pre className="deck-ui-canvas-debug-raw">{JSON.stringify(treeData, null, 2)}</pre>
+            <pre className="ds-canvas-debug__raw deck-ui-canvas-debug-raw">
+              {JSON.stringify(treeData, null, 2)}
+            </pre>
           ) : surfaces.length > 0 ? (
-            <ul className="deck-ui-canvas-debug-surfaces">
+            <ul className="ds-canvas-debug__surfaces deck-ui-canvas-debug-surfaces">
               {surfaces.map((surface) => (
                 <li key={surface}>{surface}</li>
               ))}
             </ul>
           ) : (
-            <p className="deck-ui-canvas-debug-empty">{t("debugTreeUnavailable")}</p>
+            <p className="ds-canvas-debug__empty deck-ui-canvas-debug-empty">
+              {t("debugTreeUnavailable")}
+            </p>
           )}
         </div>
       )}

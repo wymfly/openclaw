@@ -230,7 +230,10 @@ describe("ChatPanel active entry", () => {
     );
     expect(container.textContent).toContain("Approval required");
     expect(container.textContent).toContain("shell_command");
-    expect(container.textContent).toContain("Context window nearly full");
+    // Chat-parity §5: ChatContextBar collapsed into bundle's 5-cell layout —
+    // the "Context window nearly full" string now only appears in the
+    // composer's ctx-warn (gated at pct >= 95). Visual-rich seed sits below
+    // that threshold, so we no longer assert the warning here.
     expect(container.textContent).toContain("Canvas");
   });
 
@@ -294,9 +297,12 @@ describe("ChatPanel active entry", () => {
       surfaces: ["summary"],
     });
     expect(container.textContent).toContain("Hydrated from snapshot");
-    expect(container.textContent).toContain("Context: 85%");
-    expect(container.textContent).toContain("Compacted 2 times");
-    expect(container.textContent).toContain("Context window nearly full");
+    // Chat-parity §5: 5-cell ChatContextBar uses bundle's __key/__val pattern
+    // ("Context" key + "85%" val, no colon prefix) and replaces the old
+    // "Compacted N times" warning chip with a "Compactions" cell + count.
+    expect(container.textContent).toContain("Context");
+    expect(container.textContent).toContain("85%");
+    expect(container.textContent).toContain("Compactions");
     expect(container.textContent).toContain("Compact");
     expect(container.textContent).toContain("Canvas");
     expect(getCachedTranscript("sess-1")).toMatchObject([

@@ -1,0 +1,34 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=channels",
+  "title": "deck-go",
+  "viewport": {
+    "width": 1440,
+    "height": 960,
+    "scrollWidth": 1440
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-channels",
+  "classCounts": {
+    "deck-ui-channels": 1,
+    "deck-ui-channels-card": 2,
+    "deck-ui-channels-body": 2,
+    "deck-ui-channels-status-row": 1,
+    "deck-ui-channels-stats": 1,
+    "deck-ui-channels-actions": 1,
+    "deck-ui-channels-button": 4,
+    "deck-ui-channels-list": 0,
+    "deck-ui-channels-row": 0,
+    "deck-ui-channels-hero": 0,
+    "deck-ui-channels-detail-stats": 0,
+    "deck-ui-channels-surface": 0,
+    "deck-ui-channels-chart": 0,
+    "deck-ui-channels-chart-row": 0,
+    "deck-ui-channels-form-grid": 0,
+    "deck-ui-channels-input": 0,
+    "deck-ui-channels-account-card": 0
+  },
+  "statusTexts": ["Inventory readyts: 1777180740314"],
+  "cardTitles": ["Channel inventory", "Selected channel"],
+  "visibleTextSample": "OC\nOpenClaw\nDeck\n‹\n\nCORE\n\nCH\nChat\nAG\nAgents\nGW\nGateway\nMO\nModels\n\nOBSERVE\n\nUS\nUsage\nSE\nSessions\nME\nMemory\nLO\nLogs\nAC\nActivity\nTH\nThreads\nAX\nAPI Explorer\n\nAUTOMATE\n\nCR\nCron\nWH\nWebhooks\nAP\nApprovals\nSK\nSkills\n\nCONTROL\n\nBU\nBudget\nAL\nAlerts\nCN\nChannels\nPL\nPlugins\nRT\nRouting\nSA\nSubagents\nID\nIdentity\nCF\nConfig\nNO\nNodes\nDO\nDocs\nST\nSettings\n‹\nChannels\n\ncontrol · panel 18 of 26\n\nGateway Healthy\nRuntime running\nRefresh\nLight\nDark\nChannel inventory\n\nRead and update channel runtime state through `channels.status`, logout, probe, throughput, and config routes.\n\nInventory ready\nts: 1777180740314\n\nCHANNELS\n\n0\n\nACCOUNTS\n\n0\n\nDEFAULTS\n\n0\n\nRefresh channels\nLogout channel\nTest channel\nEnable channel\n\nNo channels loaded.\n\nSelected channel\n\nThis keeps the first channel slice narrow: inventory truth, account wiring, and logout.\n\nChoose a channel to inspect its payload.",
+  "overflowCount": 0,
+  "overflow": []
+}

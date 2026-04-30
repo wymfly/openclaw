@@ -155,7 +155,7 @@ describe("provider-usage.load", () => {
           throw new DOMException("This operation was aborted", "AbortError");
         }
         return {
-          provider,
+          provider: "github-copilot",
           displayName: "GitHub Copilot",
           windows: [{ label: "Chat", usedPercent: 20 }],
         };

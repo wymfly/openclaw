@@ -1,0 +1,118 @@
+{
+  "stack": {
+    "backend": "127.0.0.1:62611",
+    "frontend": "127.0.0.1:62612",
+    "gateway": "127.0.0.1:18789"
+  },
+  "shell": {
+    "gatewayHealthy": true,
+    "runtimeRunning": true
+  },
+  "panels": [
+    {
+      "label": "Chat",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Agents",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Gateway",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Models",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Sessions",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Logs",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Activity",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Config",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Plugins",
+      "ok": false,
+      "reason": "nav button missing"
+    },
+    {
+      "label": "Settings",
+      "ok": false,
+      "reason": "nav button missing"
+    }
+  ],
+  "directApis": [
+    {
+      "path": "/api/bootstrap/status",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/runtime/gateway",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/agents",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/config",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/sessions?agentId=main&limit=5",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/models/usage/providers",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/gateway/health",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/gateway/status",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "failedPanels": [
+    "Chat",
+    "Agents",
+    "Gateway",
+    "Models",
+    "Sessions",
+    "Logs",
+    "Activity",
+    "Config",
+    "Plugins",
+    "Settings"
+  ],
+  "ok": false
+}

@@ -1,47 +1,106 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { AlertTriangleIcon, MinusIcon } from "@/deck-ui/icons";
+import { MinusIcon, SearchIcon, ZapIcon } from "@/deck-ui/icons";
 import { contextPct, formatTokens, pressureState } from "@/lib/context-utils";
 import { useChatStore } from "@/stores/chat";
-import { useActiveSessionKey, useSessionMessages, useSessionStreaming } from "@/stores/chat-hooks";
+import { useActiveSessionKey } from "@/stores/chat-hooks";
+import type { SessionMeta } from "@/stores/chat-types";
 import { useSessionsStore } from "@/stores/sessions";
-import { compactChatSession } from "./chat-api";
+import { compactChatSession, patchSession } from "./chat-api";
+import "./chat-context-bar.css";
 
-export function ChatContextBar() {
+const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
+const RESPONSE_USAGE_LEVELS = ["off", "tokens", "full"] as const;
+type ThinkingLevel = (typeof THINKING_LEVELS)[number];
+
+export type ChatContextBarProps = {
+  onToggleSearch?: () => void;
+};
+
+export function ChatContextBar({ onToggleSearch }: ChatContextBarProps = {}) {
   const t = useTranslations("chat");
   const ts = useTranslations("sessions");
   const activeSessionKey = useActiveSessionKey();
-  const activeAgentId = useChatStore((state) => state.activeAgentId);
-  const messages = useSessionMessages();
-  const { isStreaming } = useSessionStreaming();
-  const [compacting, setCompacting] = useState(false);
-  const [compactError, setCompactError] = useState<string | null>(null);
   const meta = useChatStore((state) =>
     activeSessionKey ? state.sessionMetas.find((item) => item.key === activeSessionKey) : undefined,
   );
   const sessionEntry = useSessionsStore((state) =>
     activeSessionKey ? state.sessions.find((item) => item.key === activeSessionKey) : undefined,
   );
+  const [compacting, setCompacting] = useState(false);
+  const [compactError, setCompactError] = useState<string | null>(null);
+
   const contextWindow = sessionEntry?.contextTokens ?? meta?.contextTokens ?? 0;
   const totalTokens = sessionEntry?.totalTokens ?? meta?.totalTokens;
   const tokensIn = sessionEntry?.tokensIn ?? 0;
   const tokensOut = sessionEntry?.tokensOut ?? 0;
   const compactionCount = sessionEntry?.compactionCount ?? meta?.compactionCount ?? 0;
   const usedTokens = totalTokens ?? tokensIn + tokensOut;
-  const pct = contextPct({
-    contextWindow,
-    tokensIn,
-    tokensOut,
-    totalTokens,
-  });
+  const pct = contextPct({ contextWindow, tokensIn, tokensOut, totalTokens });
   const pressure = pressureState(pct);
+  const tone = pct >= 95 ? "error" : pct >= 80 ? "warn" : "ok";
+
   const hasTranslation = (key: string) => typeof t.has === "function" && t.has(key);
-  const noSessionLabel = hasTranslation("noSession") ? t("noSession") : "No session";
-  const messagesCountLabel = hasTranslation("messagesCount")
-    ? t("messagesCount", { count: messages.length })
-    : `${messages.length} messages`;
-  const streamingLabel = hasTranslation("status_running") ? t("status_running") : "Streaming";
-  const idleLabel = hasTranslation("status_idle") ? t("status_idle") : "Idle";
+  const tFallback = (key: string, fallback: string) => (hasTranslation(key) ? t(key) : fallback);
+
+  const updateMetas = (sessionKey: string, updater: (target: SessionMeta) => SessionMeta) => {
+    useChatStore.setState((state) => {
+      const metas = state.sessionMetas.map((entry) =>
+        entry.key === sessionKey ? updater(entry) : entry,
+      );
+      return { sessionMetas: metas, sessionMeta: metas };
+    });
+  };
+
+  const handleToggleFast = () => {
+    if (!activeSessionKey || !meta) {
+      return;
+    }
+    const next = !meta.fastMode;
+    updateMetas(activeSessionKey, (target) => ({ ...target, fastMode: next }));
+    void patchSession(activeSessionKey, { fastMode: next });
+  };
+
+  const handleCycleThinking = () => {
+    if (!activeSessionKey || !meta) {
+      return;
+    }
+    const current = meta.thinkingLevel ?? "off";
+    const index = THINKING_LEVELS.indexOf(current as ThinkingLevel);
+    const next = THINKING_LEVELS[(index + 1) % THINKING_LEVELS.length];
+    updateMetas(activeSessionKey, (target) => ({
+      ...target,
+      thinkingLevel: next === "off" ? undefined : next,
+    }));
+    void patchSession(activeSessionKey, { thinkingLevel: next === "off" ? null : next });
+  };
+
+  const handleCycleUsage = () => {
+    if (!activeSessionKey || !meta) {
+      return;
+    }
+    const current = meta.responseUsage ?? "off";
+    const index = RESPONSE_USAGE_LEVELS.indexOf(current);
+    const next = RESPONSE_USAGE_LEVELS[(index + 1) % RESPONSE_USAGE_LEVELS.length];
+    updateMetas(activeSessionKey, (target) => ({
+      ...target,
+      responseUsage: next === "off" ? undefined : next,
+    }));
+    void patchSession(activeSessionKey, { responseUsage: next === "off" ? null : next });
+  };
+
+  const handleToggleSendPolicy = () => {
+    if (!activeSessionKey || !meta) {
+      return;
+    }
+    const current = meta.sendPolicy ?? "allow";
+    const next = current === "allow" ? "deny" : "allow";
+    updateMetas(activeSessionKey, (target) => ({
+      ...target,
+      sendPolicy: next === "allow" ? undefined : next,
+    }));
+    void patchSession(activeSessionKey, { sendPolicy: next === "allow" ? null : next });
+  };
 
   const handleCompact = () => {
     if (!activeSessionKey || compacting) {
@@ -57,50 +116,140 @@ export function ChatContextBar() {
       .finally(() => setCompacting(false));
   };
 
+  const model = meta?.model ?? tFallback("configModelDefault", "default");
+  const thinkingLevel = (meta?.thinkingLevel ?? "off") as ThinkingLevel;
+  const usageLevel = meta?.responseUsage ?? "off";
+  const sendPolicy = meta?.sendPolicy ?? "allow";
+  const optionLabel = (prefix: string, value: string) => tFallback(`${prefix}_${value}`, value);
+
   return (
-    <div className="deck-ui-context-strip">
-      <span className="deck-ui-context-pill">{activeAgentId ?? "main"}</span>
-      <strong className="deck-ui-context-session">{activeSessionKey ?? noSessionLabel}</strong>
-      <span>{messagesCountLabel}</span>
-      <span>{isStreaming ? streamingLabel : idleLabel}</span>
-      {contextWindow > 0 ? (
-        <span
-          className="deck-ui-context-pressure"
-          data-pressure={pressure}
-          title={`${formatTokens(usedTokens)} / ${formatTokens(contextWindow)} tokens`}
+    <div className="ds-chat-context-bar" role="toolbar">
+      <div
+        className="ds-chat-context-bar__cell"
+        title={`${formatTokens(usedTokens)} / ${formatTokens(contextWindow)} tokens`}
+      >
+        <span className="ds-chat-context-bar__key">{tFallback("configModel", "Model")}</span>
+        <span className="ds-chat-context-bar__val">{model}</span>
+      </div>
+
+      <div
+        className="ds-chat-context-bar__cell ds-chat-context-bar__cell--bar"
+        data-pressure={pressure}
+        title={`${formatTokens(usedTokens)} / ${formatTokens(contextWindow)} tokens`}
+      >
+        <span className="ds-chat-context-bar__key">{tFallback("contextLabel", "Context")}</span>
+        <span className="ds-chat-context-bar__bar" data-tone={tone}>
+          <span className="ds-chat-context-bar__fill" style={{ width: `${pct}%` }} />
+        </span>
+        <span className="ds-chat-context-bar__val">{pct}%</span>
+      </div>
+
+      <div className="ds-chat-context-bar__cell">
+        <span className="ds-chat-context-bar__key">
+          {tFallback("configCompactions", "Compactions")}
+        </span>
+        <span className="ds-chat-context-bar__val">{compactionCount}</span>
+      </div>
+
+      <button
+        type="button"
+        className="ds-chat-context-bar__cell ds-chat-context-bar__cell--button"
+        title={tFallback("configReasoningToggle", "Click to cycle thinking level")}
+        onClick={handleCycleThinking}
+        disabled={!activeSessionKey || !meta}
+      >
+        <span className="ds-chat-context-bar__key">
+          {tFallback("configReasoning", "Reasoning")}
+        </span>
+        <span className="ds-chat-context-bar__val">
+          {optionLabel("configLevel", thinkingLevel)}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        className="ds-chat-context-bar__cell ds-chat-context-bar__cell--button"
+        title={tFallback("configSendPolicyToggle", "Click to toggle send policy")}
+        onClick={handleToggleSendPolicy}
+        disabled={!activeSessionKey || !meta}
+      >
+        <span className="ds-chat-context-bar__key">{tFallback("configSendPolicy", "Send")}</span>
+        <span className="ds-chat-context-bar__val">
+          {sendPolicy === "deny"
+            ? tFallback("configDeny", "deny")
+            : tFallback("configAllow", "allow")}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        className="ds-chat-context-bar__cell ds-chat-context-bar__cell--button"
+        title={tFallback("configUsageToggle", "Click to cycle response usage")}
+        onClick={handleCycleUsage}
+        disabled={!activeSessionKey || !meta}
+      >
+        <span className="ds-chat-context-bar__key">{tFallback("configUsage", "Usage")}</span>
+        <span className="ds-chat-context-bar__val">
+          {optionLabel("configUsageValue", usageLevel)}
+        </span>
+      </button>
+
+      {meta?.fastMode ? (
+        <button
+          type="button"
+          className="ds-chat-context-bar__chip ds-chat-context-bar__chip--warn"
+          title={tFallback("configFastToggle", "Click to toggle fast mode")}
+          onClick={handleToggleFast}
         >
-          <span>{t("contextLabel")}: </span>
-          <span className="deck-ui-context-pressure-track">
-            <span style={{ width: `${pct}%` }} />
-          </span>
-          <strong>{pct}%</strong>
-        </span>
-      ) : null}
-      {pct >= 80 ? (
-        <span className="deck-ui-context-warning" role="status">
-          <AlertTriangleIcon />
-          {t("contextWarning")}
-        </span>
-      ) : null}
-      {compactionCount > 0 ? (
-        <span
-          className="deck-ui-context-compacted"
-          title={t("contextCompacted", { count: compactionCount })}
+          <ZapIcon className="ds-chat-context-bar__chip-icon" aria-hidden="true" />
+          <span>{tFallback("configFast", "Fast")}</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="ds-chat-context-bar__chip ds-chat-context-bar__chip--ghost"
+          title={tFallback("configFastToggle", "Click to toggle fast mode")}
+          onClick={handleToggleFast}
+          disabled={!activeSessionKey || !meta}
         >
-          <AlertTriangleIcon />
-          {compactionCount}
-          <span className="deck-ui-sr-only">
-            {t("contextCompacted", { count: compactionCount })}
-          </span>
-        </span>
-      ) : null}
+          <ZapIcon className="ds-chat-context-bar__chip-icon" aria-hidden="true" />
+          <span>{tFallback("configFast", "Fast")}</span>
+        </button>
+      )}
+
+      <span className="ds-chat-context-bar__grow" />
+
       {pct >= 60 && activeSessionKey ? (
-        <button type="button" onClick={handleCompact} disabled={compacting}>
+        <button
+          type="button"
+          className="ds-chat-context-bar__compact-action"
+          onClick={handleCompact}
+          disabled={compacting}
+        >
           <MinusIcon />
           {compacting ? ts("compacting") : ts("compact")}
         </button>
       ) : null}
-      {compactError ? <span role="alert">{compactError}</span> : null}
+
+      {onToggleSearch ? (
+        <button
+          type="button"
+          className="ds-chat-context-bar__search-btn"
+          onClick={onToggleSearch}
+          title={tFallback("searchTranscript", "Search transcript")}
+        >
+          <SearchIcon className="ds-chat-context-bar__search-icon" aria-hidden="true" />
+          <span className="ds-chat-context-bar__kbd" aria-hidden="true">
+            ⌘F
+          </span>
+        </button>
+      ) : null}
+
+      {compactError ? (
+        <span className="ds-chat-context-bar__compact-error" role="alert">
+          {compactError}
+        </span>
+      ) : null}
     </div>
   );
 }

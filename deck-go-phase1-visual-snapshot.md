@@ -1,0 +1,140 @@
+- generic [ref=e3]:
+  - navigation "Deck panels" [ref=e4]:
+    - button "Collapse navigation" [ref=e6] [cursor=pointer]:
+      - img [ref=e7]
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - paragraph [ref=e11]: 核心
+        - button "CH 对话" [ref=e12] [cursor=pointer]:
+          - generic [ref=e13]: CH
+          - generic [ref=e14]: 对话
+        - button "AG 智能体" [ref=e15] [cursor=pointer]:
+          - generic [ref=e16]: AG
+          - generic [ref=e17]: 智能体
+        - button "GW 监控" [ref=e18] [cursor=pointer]:
+          - generic [ref=e19]: GW
+          - generic [ref=e20]: 监控
+        - button "MO 模型" [ref=e21] [cursor=pointer]:
+          - generic [ref=e22]: MO
+          - generic [ref=e23]: 模型
+      - generic [ref=e24]:
+        - paragraph [ref=e25]: 观测
+        - button "US 用量" [ref=e26] [cursor=pointer]:
+          - generic [ref=e27]: US
+          - generic [ref=e28]: 用量
+        - button "SE 会话" [ref=e29] [cursor=pointer]:
+          - generic [ref=e30]: SE
+          - generic [ref=e31]: 会话
+        - button "ME 记忆" [ref=e32] [cursor=pointer]:
+          - generic [ref=e33]: ME
+          - generic [ref=e34]: 记忆
+        - button "LO 日志" [ref=e35] [cursor=pointer]:
+          - generic [ref=e36]: LO
+          - generic [ref=e37]: 日志
+        - button "AC 动态" [ref=e38] [cursor=pointer]:
+          - generic [ref=e39]: AC
+          - generic [ref=e40]: 动态
+        - button "TH 线程" [ref=e41] [cursor=pointer]:
+          - generic [ref=e42]: TH
+          - generic [ref=e43]: 线程
+        - button "AX API 浏览器" [ref=e44] [cursor=pointer]:
+          - generic [ref=e45]: AX
+          - generic [ref=e46]: API 浏览器
+      - generic [ref=e47]:
+        - paragraph [ref=e48]: 自动化
+        - button "CR 定时任务" [ref=e49] [cursor=pointer]:
+          - generic [ref=e50]: CR
+          - generic [ref=e51]: 定时任务
+        - button "WH Webhooks" [ref=e52] [cursor=pointer]:
+          - generic [ref=e53]: WH
+          - generic [ref=e54]: Webhooks
+        - button "AP 审批" [ref=e55] [cursor=pointer]:
+          - generic [ref=e56]: AP
+          - generic [ref=e57]: 审批
+        - button "SK 技能" [ref=e58] [cursor=pointer]:
+          - generic [ref=e59]: SK
+          - generic [ref=e60]: 技能
+      - generic [ref=e61]:
+        - paragraph [ref=e62]: 控制
+        - button "BU 预算" [ref=e63] [cursor=pointer]:
+          - generic [ref=e64]: BU
+          - generic [ref=e65]: 预算
+        - button "AL 告警" [ref=e66] [cursor=pointer]:
+          - generic [ref=e67]: AL
+          - generic [ref=e68]: 告警
+        - button "CN 渠道" [ref=e69] [cursor=pointer]:
+          - generic [ref=e70]: CN
+          - generic [ref=e71]: 渠道
+        - button "PL 插件" [ref=e72] [cursor=pointer]:
+          - generic [ref=e73]: PL
+          - generic [ref=e74]: 插件
+        - button "RT 消息路由" [ref=e75] [cursor=pointer]:
+          - generic [ref=e76]: RT
+          - generic [ref=e77]: 消息路由
+        - button "SA 子智能体" [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]: SA
+          - generic [ref=e80]: 子智能体
+        - button "ID 身份" [ref=e81] [cursor=pointer]:
+          - generic [ref=e82]: ID
+          - generic [ref=e83]: 身份
+        - button "CF 配置" [ref=e84] [cursor=pointer]:
+          - generic [ref=e85]: CF
+          - generic [ref=e86]: 配置
+        - button "NO 节点" [ref=e87] [cursor=pointer]:
+          - generic [ref=e88]: "NO"
+          - generic [ref=e89]: 节点
+        - button "DO 文档" [ref=e90] [cursor=pointer]:
+          - generic [ref=e91]: DO
+          - generic [ref=e92]: 文档
+    - button "ST 设置" [ref=e94] [cursor=pointer]:
+      - generic [ref=e95]: ST
+      - generic [ref=e96]: 设置
+  - generic [ref=e97]:
+    - banner [ref=e98]:
+      - generic [ref=e99]:
+        - button "Collapse navigation" [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+        - heading "对话" [level=1] [ref=e104]
+      - generic [ref=e105]:
+        - button "未连接" [ref=e106]: 未连接
+        - button "切换语言" [ref=e108] [cursor=pointer]:
+          - img [ref=e109]
+          - generic [ref=e113]: EN
+        - button "主题切换" [ref=e114] [cursor=pointer]:
+          - img [ref=e115]
+          - generic [ref=e117]: 系统
+      - paragraph [ref=e118]: Unexpected token '<', "<!doctype "... is not valid JSON
+    - main [ref=e119]:
+      - region "Chat workspace" [ref=e120]:
+        - complementary [ref=e121]:
+          - complementary [ref=e122]:
+            - generic [ref=e123]
+            - tablist [ref=e126]
+            - button "新建会话" [ref=e128] [cursor=pointer]
+            - textbox "搜索会话..." [ref=e131]
+            - generic [ref=e133]: 默认智能体 main
+        - generic [ref=e134]:
+          - status [ref=e135]:
+            - strong [ref=e137]: 正在重新连接服务器...
+            - generic [ref=e138]: SSE · reconnecting
+          - generic [ref=e139]:
+            - generic [ref=e140]: main
+            - strong [ref=e141]: No session
+            - generic [ref=e142]: 0 messages
+            - generic [ref=e143]: Idle
+          - generic [ref=e144]:
+            - generic [ref=e145]
+            - generic [ref=e148]
+          - region "Transcript" [ref=e152]:
+            - generic [ref=e153]
+          - generic [ref=e161]:
+            - generic [ref=e162]: "on"
+            - button "Show canvas" [disabled] [ref=e163]
+          - generic [ref=e165]:
+            - button "Attach files" [ref=e166] [cursor=pointer]: Attach
+            - textbox "输入消息..." [ref=e168]
+            - button "提示模板" [ref=e170] [cursor=pointer]
+            - button "画布面板" [ref=e171] [cursor=pointer]
+            - button "工件面板" [ref=e172] [cursor=pointer]
+            - button "发送" [disabled] [ref=e173]
+            - button "停止" [disabled] [ref=e174]

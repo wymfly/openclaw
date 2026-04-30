@@ -1,8 +1,11 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { NavigationIcon } from "@/deck-ui/icons";
+import { Button } from "@/design-system/atoms/Button";
+import { Input } from "@/design-system/atoms/Input";
 import { useChatStore } from "@/stores/chat";
 import { steerChatSession } from "./chat-api";
+import "./chat-widgets.css";
 
 export function SteerDialog() {
   const t = useTranslations("chat");
@@ -45,12 +48,13 @@ export function SteerDialog() {
   };
 
   return (
-    <div className="deck-ui-context-strip">
-      <NavigationIcon className="deck-ui-steer-icon" />
-      <label className="deck-ui-inline-input">
+    <div className="ds-steer-dialog">
+      <NavigationIcon className="ds-steer-dialog__icon" />
+      <label className="ds-steer-dialog__input">
         <span>{t("steer")}</span>
-        <input
+        <Input
           ref={inputRef}
+          inputSize="sm"
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           onKeyDown={(event) => {
@@ -63,14 +67,15 @@ export function SteerDialog() {
           disabled={sending}
         />
       </label>
-      <button
-        className="deck-ui-context-button"
-        type="button"
+      <Button
+        variant="primary"
+        size="sm"
+        className="ds-steer-dialog__button"
         onClick={() => void handleSteer()}
         disabled={!message.trim() || sending}
       >
         {t("steer")}
-      </button>
+      </Button>
     </div>
   );
 }

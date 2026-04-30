@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo } from "react";
+import { Tab } from "@/design-system/atoms/Tab";
 import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
 
@@ -25,7 +26,7 @@ export function AgentTabs() {
   }, [sessionMetas]);
 
   return (
-    <div className="deck-ui-agent-tabs" role="tablist">
+    <div className="ds-agent-tabs deck-ui-agent-tabs" role="tablist">
       <AgentTab
         label={t("allAgents")}
         count={sessionMetas.length}
@@ -58,16 +59,14 @@ function AgentTab({
 }) {
   const accessibleLabel = count > 0 ? `${label} ${count}` : label;
   return (
-    <button
-      className={`deck-ui-agent-tab ${active ? "is-active" : ""}`}
-      type="button"
-      role="tab"
+    <Tab
+      active={active}
+      className="deck-ui-agent-tab"
       aria-label={accessibleLabel}
-      aria-selected={active}
       onClick={onSelect}
     >
       <span>{label}</span>
       {count > 0 ? <span>{count}</span> : null}
-    </button>
+    </Tab>
   );
 }

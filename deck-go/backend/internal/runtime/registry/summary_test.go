@@ -4,24 +4,24 @@ import (
 	"context"
 	"testing"
 
-	runtimecontrol "github.com/openclaw/openclaw/deck-go/backend/internal/runtime"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 )
 
 type stubSnapshotReader struct {
-	snapshot runtimecontrol.Snapshot
+	snapshot bundled.Snapshot
 }
 
-func (s stubSnapshotReader) Snapshot() runtimecontrol.Snapshot {
+func (s stubSnapshotReader) Snapshot() bundled.Snapshot {
 	return s.snapshot
 }
 
 func TestSummaries_ListAndGet(t *testing.T) {
 	summaries := NewSummaries(stubSnapshotReader{
-		snapshot: runtimecontrol.Snapshot{
+		snapshot: bundled.Snapshot{
 			Managed:    true,
 			Configured: true,
-			Status:     runtimecontrol.StatusRunning,
-			Health:     runtimecontrol.HealthHealthy,
+			Status:     bundled.StatusRunning,
+			Health:     bundled.HealthHealthy,
 			GatewayURL: "ws://127.0.0.1:18789",
 			LastError:  "none",
 			AutoStart:  true,
@@ -35,7 +35,7 @@ func TestSummaries_ListAndGet(t *testing.T) {
 	if len(items) != 1 {
 		t.Fatalf("unexpected runtime list: %#v", items)
 	}
-	if items[0].RuntimeID != DefaultRuntimeID || items[0].Status != string(runtimecontrol.StatusRunning) {
+	if items[0].RuntimeID != DefaultRuntimeID || items[0].Status != string(bundled.StatusRunning) {
 		t.Fatalf("unexpected runtime summary: %#v", items[0])
 	}
 	if items[0].Managed != true || items[0].Configured != true {
@@ -58,7 +58,7 @@ func TestSummaries_ListAndGet(t *testing.T) {
 	if !ok {
 		t.Fatal("expected runtime to exist")
 	}
-	if item.Health != string(runtimecontrol.HealthHealthy) {
+	if item.Health != string(bundled.HealthHealthy) {
 		t.Fatalf("unexpected runtime health: %#v", item)
 	}
 

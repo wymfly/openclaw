@@ -1,5 +1,5 @@
 import type {
-  DeckGoBootstrapStatusResponse,
+  DeckGoBootstrapStatusResponse as GeneratedDeckGoBootstrapStatusResponse,
   DeckGoChannelsStatusResponse,
   DeckGoChatAbortRequest,
   DeckGoChatHistoryResponse,
@@ -11,7 +11,12 @@ import type {
   DeckGoConfigSchemaLookupRequest,
   DeckGoLogStreamEvent,
   DeckGoPluginsListResponse,
-  DeckGoRuntimeGatewayActionResponse,
+  DeckGoRuntimeCapabilities,
+  DeckGoRuntimeEndpointPutRequest,
+  DeckGoRuntimeEndpointResponse,
+  DeckGoRuntimeEndpointTestRequest,
+  DeckGoRuntimeEndpointTestResponse,
+  DeckGoRuntimeGatewayStatus as GeneratedDeckGoRuntimeGatewayStatus,
   DeckGoServerEvent,
   DeckGoSessionAbortResponse,
   DeckGoSessionCreateResponse,
@@ -34,6 +39,99 @@ import type { A2UIState } from "./stores/chat-types";
 
 export type DeckGoSession = DeckGoSessionMeta;
 export type { DeckGoServerEvent };
+type RuntimeGatewaySharedStatus = Pick<
+  GeneratedDeckGoRuntimeGatewayStatus,
+  "configured" | "status" | "health" | "gatewayUrl" | "lastError"
+>;
+
+export type DeckGoBundledRuntimeGatewayStatus = RuntimeGatewaySharedStatus & {
+  mode: "bundled";
+  managed?: boolean;
+  failurePhase?: GeneratedDeckGoRuntimeGatewayStatus["failurePhase"];
+  pid?: number;
+  startedAt?: string;
+  lastExitAt?: string;
+  lastExitCode?: number;
+  autoStart: boolean;
+  owner?: string;
+  ownershipState?: GeneratedDeckGoRuntimeGatewayStatus["ownershipState"];
+  ownershipFile?: string;
+  restartAttempts?: number;
+  restartDelayMs?: number;
+};
+
+export type DeckGoRemoteRuntimeGatewayStatus = RuntimeGatewaySharedStatus & {
+  mode: "remote";
+  lastConnectedAt?: string;
+  latencyP50?: number;
+  tlsVerified?: boolean;
+};
+
+export type DeckGoRuntimeGatewayStatus =
+  | DeckGoBundledRuntimeGatewayStatus
+  | DeckGoRemoteRuntimeGatewayStatus;
+
+export type DeckGoBootstrapStatusResponse = Omit<
+  GeneratedDeckGoBootstrapStatusResponse,
+  "runtime"
+> & {
+  runtime: DeckGoRuntimeGatewayStatus;
+};
+
+export type DeckGoRuntimeGatewayResponse = {
+  ok?: boolean;
+  runtime: DeckGoRuntimeGatewayStatus;
+};
+
+export function isBundledRuntimeStatus(
+  runtime: DeckGoRuntimeGatewayStatus | null | undefined,
+): runtime is DeckGoBundledRuntimeGatewayStatus {
+  return runtime?.mode === "bundled";
+}
+
+export function isRemoteRuntimeStatus(
+  runtime: DeckGoRuntimeGatewayStatus | null | undefined,
+): runtime is DeckGoRemoteRuntimeGatewayStatus {
+  return runtime?.mode === "remote";
+}
+
+function normalizeRuntimeGatewayStatus(
+  raw: GeneratedDeckGoRuntimeGatewayStatus,
+): DeckGoRuntimeGatewayStatus {
+  if (raw.mode === "remote") {
+    return {
+      configured: raw.configured,
+      gatewayUrl: raw.gatewayUrl,
+      health: raw.health,
+      lastConnectedAt: raw.lastConnectedAt,
+      lastError: raw.lastError,
+      latencyP50: raw.latencyP50,
+      mode: "remote",
+      status: raw.status,
+      tlsVerified: raw.tlsVerified,
+    };
+  }
+  return {
+    autoStart: raw.autoStart ?? false,
+    configured: raw.configured,
+    failurePhase: raw.failurePhase,
+    gatewayUrl: raw.gatewayUrl,
+    health: raw.health,
+    lastError: raw.lastError,
+    lastExitAt: raw.lastExitAt,
+    lastExitCode: raw.lastExitCode,
+    managed: raw.managed,
+    mode: "bundled",
+    owner: raw.owner,
+    ownershipFile: raw.ownershipFile,
+    ownershipState: raw.ownershipState,
+    pid: raw.pid,
+    restartAttempts: raw.restartAttempts,
+    restartDelayMs: raw.restartDelayMs,
+    startedAt: raw.startedAt,
+    status: raw.status,
+  };
+}
 
 function buildApiPath(path: string) {
   if (path.startsWith("/api/")) {
@@ -47,8 +145,11 @@ function buildApiPath(path: string) {
 
 async function readErrorMessage(res: Response, fallback: string) {
   try {
-    const payload = (await res.json()) as { error?: string };
-    return payload.error || fallback;
+    const payload = (await res.json()) as { code?: string; error?: string; message?: string };
+    if (payload.code && payload.message) {
+      return `${payload.code}: ${payload.message}`;
+    }
+    return payload.error || payload.message || payload.code || fallback;
   } catch {
     return fallback;
   }
@@ -257,18 +358,66 @@ export async function revokeDeviceToken(deviceId: string, role: string) {
 }
 
 export async function fetchBootstrapStatus() {
-  return fetchDeckJsonNoPrompt<DeckGoBootstrapStatusResponse>(
+  const payload = await fetchDeckJsonNoPrompt<GeneratedDeckGoBootstrapStatusResponse>(
     "/bootstrap/status",
     undefined,
     "bootstrap fetch failed",
   );
+  return {
+    ...payload,
+    runtime: normalizeRuntimeGatewayStatus(payload.runtime),
+  } satisfies DeckGoBootstrapStatusResponse;
 }
 
 export async function fetchRuntimeGatewayStatus() {
-  return fetchDeckJsonNoPrompt<DeckGoRuntimeGatewayActionResponse>(
+  const runtime = await fetchDeckJsonNoPrompt<GeneratedDeckGoRuntimeGatewayStatus>(
     "/runtime/gateway",
     undefined,
     "runtime gateway fetch failed",
+  );
+  return {
+    ok: true,
+    runtime: normalizeRuntimeGatewayStatus(runtime),
+  } satisfies DeckGoRuntimeGatewayResponse;
+}
+
+export async function fetchCapabilities() {
+  return fetchDeckJsonNoPrompt<DeckGoRuntimeCapabilities>(
+    "/runtime/capabilities",
+    undefined,
+    "runtime capabilities fetch failed",
+  );
+}
+
+export async function fetchEndpoint() {
+  return fetchDeckJsonNoPrompt<DeckGoRuntimeEndpointResponse>(
+    "/runtime/endpoint",
+    undefined,
+    "runtime endpoint fetch failed",
+  );
+}
+
+export async function updateEndpoint(payload: DeckGoRuntimeEndpointPutRequest) {
+  return fetchDeckJson<DeckGoRuntimeEndpointResponse>(
+    "/runtime/endpoint",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    "runtime endpoint update failed",
+  );
+}
+
+export async function testEndpoint(payload?: DeckGoRuntimeEndpointTestRequest) {
+  return fetchDeckJson<DeckGoRuntimeEndpointTestResponse>(
+    "/runtime/endpoint:test",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload ?? {}),
+    },
+    "runtime endpoint test failed",
   );
 }
 
@@ -304,30 +453,6 @@ export async function fetchGatewayStatus() {
     "/gateway/status",
     undefined,
     "gateway status fetch failed",
-  );
-}
-
-export async function startRuntimeGateway() {
-  return fetchDeckJson<DeckGoRuntimeGatewayActionResponse>(
-    "/runtime/gateway/start",
-    { method: "POST" },
-    "runtime gateway start failed",
-  );
-}
-
-export async function stopRuntimeGateway() {
-  return fetchDeckJson<DeckGoRuntimeGatewayActionResponse>(
-    "/runtime/gateway/stop",
-    { method: "POST" },
-    "runtime gateway stop failed",
-  );
-}
-
-export async function restartRuntimeGateway() {
-  return fetchDeckJson<DeckGoRuntimeGatewayActionResponse>(
-    "/runtime/gateway/restart",
-    { method: "POST" },
-    "runtime gateway restart failed",
   );
 }
 

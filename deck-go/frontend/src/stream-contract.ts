@@ -1,12 +1,12 @@
 import type {
   DeckGoLogStreamEvent,
   DeckGoProjectionGapEvent,
-  DeckGoRuntimeGatewayStatus,
   DeckGoSessionMessageStreamEvent,
   DeckGoSessionToolStreamEvent,
   DeckGoSessionsChangedStreamEvent,
   DeckGoServerEvent,
 } from "../../contracts/generated/ts/deck-api.generated";
+import type { DeckGoRuntimeGatewayStatus } from "./api";
 
 export type DeckGoParsedServerEvent =
   | { kind: "projection.gap"; payload: DeckGoProjectionGapEvent }
@@ -30,6 +30,19 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function runtimeStatusPayload(value: unknown): DeckGoRuntimeGatewayStatus {
+  const record = asRecord(value);
+  if (record?.mode === "remote") {
+    return record as DeckGoRuntimeGatewayStatus;
+  }
+  return {
+    ...record,
+    autoStart: typeof record?.autoStart === "boolean" ? record.autoStart : false,
+    managed: typeof record?.managed === "boolean" ? record.managed : false,
+    mode: "bundled",
+  } as DeckGoRuntimeGatewayStatus;
+}
+
 export function parseServerEvent(event: DeckGoServerEvent): DeckGoParsedServerEvent {
   switch (event.event) {
     case "projection.gap":
@@ -40,17 +53,17 @@ export function parseServerEvent(event: DeckGoServerEvent): DeckGoParsedServerEv
     case "runtime.gateway.status":
       return {
         kind: "runtime.gateway.status",
-        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? { managed: false },
+        payload: runtimeStatusPayload(event.json),
       };
     case "runtime.gateway.health":
       return {
         kind: "runtime.gateway.health",
-        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? { managed: false },
+        payload: runtimeStatusPayload(event.json),
       };
     case "runtime.gateway.exit":
       return {
         kind: "runtime.gateway.exit",
-        payload: (event.json as DeckGoRuntimeGatewayStatus | undefined) ?? { managed: false },
+        payload: runtimeStatusPayload(event.json),
       };
     case "session.message":
       return {
@@ -111,7 +124,9 @@ export function summarizeServerEvent(event: DeckGoServerEvent): string {
     case "runtime.gateway.health":
       return `runtime health = ${parsed.payload.health || "unknown"}`;
     case "runtime.gateway.exit":
-      return `runtime exit code = ${parsed.payload.lastExitCode ?? "unknown"}`;
+      return `runtime exit code = ${
+        parsed.payload.mode === "bundled" ? (parsed.payload.lastExitCode ?? "unknown") : "unknown"
+      }`;
     case "session.message":
       return `session.message for ${parsed.payload.sessionKey || "unknown-session"}`;
     case "session.tool": {

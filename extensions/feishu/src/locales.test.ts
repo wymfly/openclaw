@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import en from "../locales/en.json";
-import zh from "../locales/zh.json";
+import en from "../locales/en.json" with { type: "json" };
+import zh from "../locales/zh.json" with { type: "json" };
 
 const REQUIRED_KEYS = [
   "title",

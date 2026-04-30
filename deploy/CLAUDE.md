@@ -1,5 +1,13 @@
 # Deploy — Claude Code 操作指引
 
+> **⚠️ Legacy 状态 / Archived (2026-04-28)**
+>
+> `deploy/` 是上一代 OpenClaw + Deck（Next.js dashboard）的部署系统，已**冻结**，仅作为历史参考。涉及的产物：`openclaw-deploy-*.tar.gz`、`install.sh/ps1/bat`、PM2/Scheduled Task 路径等，均针对 `dashboard/`。
+>
+> 当前二次开发主目标 `deck-go/` 的部署形态待规划，**不复用本目录**。新工作请见仓库根 `AGENTS.md` 的「二次开发主目标」与「Deck-go 开发环境（新主目标）」章节。
+>
+> 本文件保留供 `dashboard/` 部署期排查问题；下面的部署架构与脚本规则仅适用于上一代部署链路。
+
 本文件指导 Claude Code 如何操作 OpenClaw + Deck 的部署系统，并在项目迭代时保持部署脚本同步。
 
 ## 部署架构

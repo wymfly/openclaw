@@ -1,11 +1,14 @@
 package server
 
 import (
-	"context"
+	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
-	"time"
+	"net/url"
+	"strings"
 
-	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
@@ -14,39 +17,185 @@ func registerRuntimeRoutes(
 		MethodFunc(string, string, http.HandlerFunc)
 	},
 	managed openclawrt.ManagedRuntimeSurface,
+	runtimeFacade facade.RuntimeFacade,
 ) {
-	mux.MethodFunc("GET", "/runtime/gateway", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, managed.RuntimeGatewayStatusResponse())
-	})
+	if runtimeFacade != nil {
+		mux.MethodFunc("GET", "/runtime/capabilities", func(w http.ResponseWriter, r *http.Request) {
+			caps, err := runtimeFacade.Capabilities(r.Context())
+			if err != nil {
+				writeRuntimeError(w, http.StatusInternalServerError, "runtime_capabilities_failed", err.Error())
+				return
+			}
+			writeJSON(w, http.StatusOK, caps)
+		})
 
-	mux.MethodFunc("POST", "/runtime/gateway/start", func(w http.ResponseWriter, r *http.Request) {
-		runRuntimeAction(w, r, managed.StartRuntimeGateway)
-	})
-	mux.MethodFunc("POST", "/runtime/gateway/stop", func(w http.ResponseWriter, r *http.Request) {
-		runRuntimeAction(w, r, managed.StopRuntimeGateway)
-	})
-	mux.MethodFunc("POST", "/runtime/gateway/restart", func(w http.ResponseWriter, r *http.Request) {
-		runRuntimeAction(w, r, managed.RestartRuntimeGateway)
-	})
-}
+		mux.MethodFunc("GET", "/runtime/endpoint", func(w http.ResponseWriter, r *http.Request) {
+			payload, err := runtimeFacade.Endpoint(r.Context())
+			if err != nil {
+				writeRuntimeFacadeError(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		})
 
-func runRuntimeAction(
-	w http.ResponseWriter,
-	r *http.Request,
-	action func(context.Context) (deckapi.DeckGoRuntimeGatewayActionResponse, error),
-) {
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
-	defer cancel()
+		mux.MethodFunc("PUT", "/runtime/endpoint", sensitiveBody(func(w http.ResponseWriter, r *http.Request) {
+			caps, err := runtimeFacade.Capabilities(r.Context())
+			if err != nil {
+				writeRuntimeError(w, http.StatusInternalServerError, "runtime_capabilities_failed", err.Error())
+				return
+			}
+			if !caps.EndpointMutable {
+				writeRuntimeError(w, http.StatusMethodNotAllowed, "endpoint_not_mutable", "runtime endpoint is configured by environment")
+				return
+			}
+			input, ok := decodeRemoteEndpointInput(w, r)
+			if !ok {
+				return
+			}
+			payload, err := runtimeFacade.UpdateRemoteEndpoint(r.Context(), input)
+			if err != nil {
+				writeRuntimeFacadeError(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		}))
 
-	payload, err := action(ctx)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"ok":      false,
-			"runtime": payload.Runtime,
-			"error":   err.Error(),
+		mux.MethodFunc("POST", "/runtime/endpoint:test", sensitiveBody(func(w http.ResponseWriter, r *http.Request) {
+			input, ok := decodeOptionalRemoteEndpointInput(w, r)
+			if !ok {
+				return
+			}
+			payload, err := runtimeFacade.TestRemoteEndpoint(r.Context(), input)
+			if err != nil {
+				writeRuntimeFacadeError(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		}))
+
+		mux.MethodFunc("GET", "/runtime/gateway", func(w http.ResponseWriter, r *http.Request) {
+			caps, err := runtimeFacade.Capabilities(r.Context())
+			if err != nil {
+				writeRuntimeError(w, http.StatusInternalServerError, "runtime_capabilities_failed", err.Error())
+				return
+			}
+			if !caps.Configured {
+				writeGatewayNotConfigured(w, r.Context(), runtimeFacade)
+				return
+			}
+			payload, err := runtimeFacade.RuntimeGatewayStatus(r.Context())
+			if err != nil {
+				writeRuntimeFacadeError(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
 		})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, payload)
+	mux.MethodFunc("GET", "/runtime/gateway", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, managed.RuntimeGatewayStatusResponse())
+	})
+}
+
+func decodeRemoteEndpointInput(w http.ResponseWriter, r *http.Request) (facade.RemoteEndpointInput, bool) {
+	var body map[string]json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeRuntimeError(w, http.StatusBadRequest, "invalid_json", "invalid json body")
+		return facade.RemoteEndpointInput{}, false
+	}
+	return remoteEndpointInputFromBody(w, body)
+}
+
+func decodeOptionalRemoteEndpointInput(w http.ResponseWriter, r *http.Request) (*facade.RemoteEndpointInput, bool) {
+	var body map[string]json.RawMessage
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&body); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil, true
+		}
+		writeRuntimeError(w, http.StatusBadRequest, "invalid_json", "invalid json body")
+		return nil, false
+	}
+	if len(body) == 0 {
+		return nil, true
+	}
+	input, ok := remoteEndpointInputFromBody(w, body)
+	if !ok {
+		return nil, false
+	}
+	return &input, true
+}
+
+func remoteEndpointInputFromBody(w http.ResponseWriter, body map[string]json.RawMessage) (facade.RemoteEndpointInput, bool) {
+	rawURL, ok := decodeStringField(body, "url")
+	if !ok || !validRuntimeEndpointURL(rawURL) {
+		writeRuntimeError(w, http.StatusBadRequest, "invalid_url", "url must be a valid http or https URL")
+		return facade.RemoteEndpointInput{}, false
+	}
+	token, ok := decodeStringField(body, "token")
+	if !ok || token == "" {
+		writeRuntimeError(w, http.StatusBadRequest, "token_required", "token is required")
+		return facade.RemoteEndpointInput{}, false
+	}
+	tlsVerify, ok := decodeBoolField(body, "tlsVerify")
+	if !ok {
+		writeRuntimeError(w, http.StatusBadRequest, "invalid_tls_verify", "tlsVerify must be a boolean")
+		return facade.RemoteEndpointInput{}, false
+	}
+	return facade.RemoteEndpointInput{URL: strings.TrimSpace(rawURL), Token: token, TLSVerify: tlsVerify}, true
+}
+
+func decodeStringField(body map[string]json.RawMessage, key string) (string, bool) {
+	raw, ok := body[key]
+	if !ok {
+		return "", false
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", false
+	}
+	return value, true
+}
+
+func decodeBoolField(body map[string]json.RawMessage, key string) (bool, bool) {
+	raw, ok := body[key]
+	if !ok {
+		return false, false
+	}
+	var value bool
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return false, false
+	}
+	return value, true
+}
+
+func validRuntimeEndpointURL(raw string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return false
+	}
+	return parsed.Scheme == "http" || parsed.Scheme == "https"
+}
+
+func writeRuntimeFacadeError(w http.ResponseWriter, err error) {
+	if code, status, ok := facade.CodedErrorInfo(err); ok {
+		writeRuntimeError(w, status, code, err.Error())
+		return
+	}
+	switch {
+	case errors.Is(err, facade.ErrUnsupported):
+		writeRuntimeError(w, http.StatusMethodNotAllowed, "endpoint_not_mutable", "runtime operation is not supported in this mode")
+	case errors.Is(err, facade.ErrNotConfigured):
+		writeRuntimeError(w, http.StatusServiceUnavailable, "gateway_not_configured", "runtime gateway is not configured")
+	default:
+		writeRuntimeError(w, http.StatusInternalServerError, "runtime_error", err.Error())
+	}
+}
+
+func writeRuntimeError(w http.ResponseWriter, status int, code string, message string) {
+	writeJSON(w, status, map[string]any{
+		"code":    code,
+		"message": message,
+	})
 }

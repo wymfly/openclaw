@@ -133,6 +133,47 @@ export interface RunMetadata {
   durationMs?: number;
   startedAt?: number;
   streaming?: boolean;
+  // -------------------------------------------------------------------------
+  // P2a chat capability extension (capability map §7).
+  // View-shape fields derived from wire CostUsageTotals (camelCase). Optional
+  // throughout — chat metadata bar must hide-on-undefined gracefully.
+  // -------------------------------------------------------------------------
+  /** Read-side cache tokens. Maps from wire `usage.cacheRead`. */
+  cacheReadTokens?: number;
+  /** Write-side cache tokens. Maps from wire `usage.cacheWrite`. */
+  cacheWriteTokens?: number;
+  /**
+   * Cache-hit ratio in `[0, 1]`. Derived in the consumer layer:
+   * `cacheRead / (input + output + cacheRead + cacheWrite)`.
+   */
+  cacheHit?: number;
+  /** Total run cost in USD (float). Maps from wire `usage.totalCost`. */
+  cost?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Subagent lineage view shape (P2a §7)
+// ---------------------------------------------------------------------------
+// Wire shape `DeckGoSubagentLineageNode` is a flat array. The chat panel
+// builds a recursive view-shape with optional `children` for rendering. This
+// type exposes the recursive shape for components that consume it without
+// breaking the flat-list wire contract.
+// ---------------------------------------------------------------------------
+
+export interface SubagentLineageNode {
+  sessionKey: string;
+  parentSessionKey?: string;
+  agentId?: string;
+  title?: string;
+  status?: string;
+  startedAt?: number;
+  endedAt?: number;
+  spawnedWorkspaceDir?: string;
+  /**
+   * Optional recursive children populated by `buildLineageTree` in the chat
+   * subagent renderer. Absent on the wire shape.
+   */
+  children?: SubagentLineageNode[];
 }
 
 // ---------------------------------------------------------------------------

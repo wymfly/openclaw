@@ -1,0 +1,127 @@
+{
+  "stack": {
+    "backend": "127.0.0.1:62611",
+    "frontend": "127.0.0.1:62612",
+    "gateway": "127.0.0.1:18789"
+  },
+  "shell": {
+    "gatewayHealthy": true,
+    "runtimeRunning": true
+  },
+  "panels": [
+    {
+      "label": "Chat",
+      "heading": "Chat",
+      "ok": true,
+      "chars": 624,
+      "excerpt": "Sessions\nAgents\n全部1\n新建会话\nmain · dashboard:b4\nSender (untrusted metadata): ```json { \"label\": \"gateway-client\", \"id\": \"gateway-client\" } ``` [Sun 2026-04-26 17:23 GMT+8] What number comes immediately after 515151? Reply w"
+    },
+    {
+      "label": "Agents",
+      "heading": "Agents",
+      "ok": true,
+      "chars": 9330,
+      "excerpt": "Agents\n\nAgent inventory uses list, create, rename, delete, and detail routes.\n\nAgents ready\n1 loaded\ndefault main\n\nAGENTS\n\n1\n\nDEFAULT\n\nmain\n\nSELECTED\n\nmain\n\nAGENT BATCH SUMMARY\n\nTOTAL\n\n1\n\nSTATUSES\n\n1\n\nMODELS\n\n1\n\nname | i"
+    },
+    {
+      "label": "Gateway",
+      "heading": "Gateway",
+      "ok": true,
+      "chars": 857,
+      "excerpt": "Gateway runtime\n\nThis panel is wired to deck-go's managed Gateway control plane for runtime status, health, diagnostics, and lifecycle actions.\n\nstatus running\nhealth healthy\ngateway linked\nrefresh idle\n\nRESOLVED URL\n\nws"
+    },
+    {
+      "label": "Models",
+      "heading": "Models",
+      "ok": true,
+      "chars": 2211,
+      "excerpt": "Models\n\nModels config uses provider inventory, schema lookup, catalog data, auth overview, and structured provider edits.\n\nModels loading\n0 providers\n0 configured models\n0 auth providers\n0 catalog providers\nhash n/a\n\nPRO"
+    },
+    {
+      "label": "Sessions",
+      "heading": "Sessions",
+      "ok": true,
+      "chars": 2098,
+      "excerpt": "Session inventory\n\nSessions are now a dedicated browse/manage surface instead of staying embedded in chat.\n\nInventory ready\nDetail ready\n1 visible\nSearch sessions\nSession type\nall types\ndirect\ngroup\nglobal\nsubagent\nActiv"
+    },
+    {
+      "label": "Logs",
+      "heading": "Logs",
+      "ok": true,
+      "chars": 22433,
+      "excerpt": "Logs tail\n\nLogs are loaded from `/logs` and live `/logs/stream` events, with local filtering and export preview controls.\n\nTail ready\nStream connected\ncursor 2664462\n29 visible\n\nFILTERS\n\ndebug\ninfo\nwarn\nerror\nall\ngateway"
+    },
+    {
+      "label": "Activity",
+      "heading": "Activity",
+      "ok": true,
+      "chars": 3223,
+      "excerpt": "Activity\n\nRecent activity uses the synthesized deck-go event feed, monitor stats, and run history.\n\nActivity ready\n7 loaded\n7 visible\n\nEVENTS\n\n7\n\nVISIBLE\n\n7\n\nAGENTS\n\n1\n\nFILTER ACTIVITY\n\nall event types\nagent\nchat\nsystem\n"
+    },
+    {
+      "label": "Config",
+      "heading": "Config",
+      "ok": true,
+      "chars": 7903,
+      "excerpt": "Config\n\nRaw config editing uses deck-go config get/apply plus targeted schema lookup.\n\nConfig ready\n4 top-level keys\n36 schema sections\nhash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff\nunsaved no\n\nKE"
+    },
+    {
+      "label": "Plugins",
+      "heading": "Plugins",
+      "ok": true,
+      "chars": 3853,
+      "excerpt": "Plugin inventory\n\nPlugin capability inventory is backed by the live `deck.plugins.list` contract.\n\nInventory ready\nscope: channel\ncapability: channel\n\nPLUGINS\n\n24\n\nENABLED\n\n0\n\nSTATUSES\n\ndisabled: 24\n\nChannel plugins\nAll "
+    },
+    {
+      "label": "Settings",
+      "heading": "Settings",
+      "ok": true,
+      "chars": 1053,
+      "excerpt": "Deck-go local settings\n\nThis panel owns deck-go local access and managed Gateway launch settings, so chat no longer needs to carry them.\n\nSettings ready\nGateway linked\nRuntime running\nDeck access token\nManaged Gateway co"
+    }
+  ],
+  "directApis": [
+    {
+      "path": "/api/bootstrap/status",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/runtime/gateway",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/agents",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/config",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/sessions?agentId=main&limit=5",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/models/usage/providers",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/gateway/health",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/api/gateway/status",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "failedPanels": [],
+  "ok": true
+}

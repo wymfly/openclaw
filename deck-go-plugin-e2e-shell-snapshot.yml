@@ -1,0 +1,140 @@
+- generic [ref=e3]:
+  - navigation "Deck panels" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: OC
+      - generic [ref=e7]:
+        - strong [ref=e8]: OpenClaw
+        - generic [ref=e9]: Deck
+      - button "Collapse navigation" [ref=e10] [cursor=pointer]: ‹
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - paragraph [ref=e13]: Core
+        - button "CH Chat" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: CH
+          - generic [ref=e16]: Chat
+        - button "AG Agents" [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: AG
+          - generic [ref=e19]: Agents
+        - button "GW Gateway" [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]: GW
+          - generic [ref=e22]: Gateway
+        - button "MO Models" [ref=e23] [cursor=pointer]:
+          - generic [ref=e24]: MO
+          - generic [ref=e25]: Models
+      - generic [ref=e26]:
+        - paragraph [ref=e27]: Observe
+        - button "US Usage" [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]: US
+          - generic [ref=e30]: Usage
+        - button "SE Sessions" [ref=e31] [cursor=pointer]:
+          - generic [ref=e32]: SE
+          - generic [ref=e33]: Sessions
+        - button "ME Memory" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]: ME
+          - generic [ref=e36]: Memory
+        - button "LO Logs" [ref=e37] [cursor=pointer]:
+          - generic [ref=e38]: LO
+          - generic [ref=e39]: Logs
+        - button "AC Activity" [ref=e40] [cursor=pointer]:
+          - generic [ref=e41]: AC
+          - generic [ref=e42]: Activity
+        - button "TH Threads" [ref=e43] [cursor=pointer]:
+          - generic [ref=e44]: TH
+          - generic [ref=e45]: Threads
+        - button "AX API Explorer" [ref=e46] [cursor=pointer]:
+          - generic [ref=e47]: AX
+          - generic [ref=e48]: API Explorer
+      - generic [ref=e49]:
+        - paragraph [ref=e50]: Automate
+        - button "CR Cron" [ref=e51] [cursor=pointer]:
+          - generic [ref=e52]: CR
+          - generic [ref=e53]: Cron
+        - button "WH Webhooks" [ref=e54] [cursor=pointer]:
+          - generic [ref=e55]: WH
+          - generic [ref=e56]: Webhooks
+        - button "AP Approvals" [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: AP
+          - generic [ref=e59]: Approvals
+        - button "SK Skills" [ref=e60] [cursor=pointer]:
+          - generic [ref=e61]: SK
+          - generic [ref=e62]: Skills
+      - generic [ref=e63]:
+        - paragraph [ref=e64]: Control
+        - button "BU Budget" [ref=e65] [cursor=pointer]:
+          - generic [ref=e66]: BU
+          - generic [ref=e67]: Budget
+        - button "AL Alerts" [ref=e68] [cursor=pointer]:
+          - generic [ref=e69]: AL
+          - generic [ref=e70]: Alerts
+        - button "CN Channels" [ref=e71] [cursor=pointer]:
+          - generic [ref=e72]: CN
+          - generic [ref=e73]: Channels
+        - button "PL Plugins" [ref=e74] [cursor=pointer]:
+          - generic [ref=e75]: PL
+          - generic [ref=e76]: Plugins
+        - button "RT Routing" [ref=e77] [cursor=pointer]:
+          - generic [ref=e78]: RT
+          - generic [ref=e79]: Routing
+        - button "SA Subagents" [ref=e80] [cursor=pointer]:
+          - generic [ref=e81]: SA
+          - generic [ref=e82]: Subagents
+        - button "ID Identity" [ref=e83] [cursor=pointer]:
+          - generic [ref=e84]: ID
+          - generic [ref=e85]: Identity
+        - button "CF Config" [ref=e86] [cursor=pointer]:
+          - generic [ref=e87]: CF
+          - generic [ref=e88]: Config
+        - button "NO Nodes" [ref=e89] [cursor=pointer]:
+          - generic [ref=e90]: "NO"
+          - generic [ref=e91]: Nodes
+        - button "DO Docs" [ref=e92] [cursor=pointer]:
+          - generic [ref=e93]: DO
+          - generic [ref=e94]: Docs
+    - button "ST Settings" [ref=e96] [cursor=pointer]:
+      - generic [ref=e97]: ST
+      - generic [ref=e98]: Settings
+  - generic [ref=e99]:
+    - banner [ref=e100]:
+      - generic [ref=e101]:
+        - button "Collapse navigation" [ref=e102] [cursor=pointer]: ‹
+        - generic [ref=e103]:
+          - heading "Chat" [level=1] [ref=e104]
+          - paragraph [ref=e105]: core · panel 1 of 26
+      - generic [ref=e106]:
+        - button "Gateway Healthy" [ref=e107]: Gateway Healthy
+        - generic [ref=e109]: Runtime running
+        - button "Refresh" [ref=e110] [cursor=pointer]
+        - generic "Theme switch" [ref=e111]:
+          - button "Light" [ref=e112] [cursor=pointer]
+          - button "Dark" [ref=e113] [cursor=pointer]
+    - main [ref=e114]:
+      - region "Chat workspace" [ref=e115]:
+        - complementary [ref=e116]:
+          - complementary [ref=e117]:
+            - generic [ref=e118]
+            - tablist [ref=e121]
+            - button "新建会话" [ref=e123] [cursor=pointer]
+            - textbox "搜索会话..." [ref=e124]
+            - generic [ref=e125]: 默认智能体 main
+        - generic [ref=e126]:
+          - generic [ref=e127]:
+            - generic [ref=e128]: main
+            - strong [ref=e129]: No session
+            - generic [ref=e130]: 0 messages
+            - generic [ref=e131]: Idle
+          - generic [ref=e132]:
+            - generic [ref=e133]
+            - generic [ref=e136]
+          - region "Transcript" [ref=e140]:
+            - generic [ref=e141]
+          - generic [ref=e150]:
+            - generic [ref=e151]: "on"
+            - button "Show canvas" [disabled] [ref=e152]
+          - generic [ref=e154]:
+            - button "Attach files" [ref=e155] [cursor=pointer]: Attach
+            - textbox "输入消息..." [ref=e157]
+            - button "提示模板" [ref=e159] [cursor=pointer]
+            - button "画布面板" [ref=e160] [cursor=pointer]
+            - button "工件面板" [ref=e161] [cursor=pointer]
+            - button "发送" [disabled] [ref=e162]
+            - button "停止" [disabled] [ref=e163]

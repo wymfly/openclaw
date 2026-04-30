@@ -1,4 +1,6 @@
 import { useTranslations } from "next-intl";
+import { Button } from "@/design-system/atoms/Button";
+import { Card } from "@/design-system/atoms/Card";
 
 interface FileBlockProps {
   data: string;
@@ -28,17 +30,12 @@ export function FileBlock({ data, mimeType, fileName, size }: FileBlockProps) {
   };
 
   return (
-    <div className="deck-ui-file-block">
-      <span className="deck-ui-file-name">{fileName}</span>
-      {size != null ? <span className="deck-ui-file-size">{formatSize(size)}</span> : null}
-      <button
-        className="deck-ui-tool-control"
-        type="button"
-        title={t("download")}
-        onClick={handleDownload}
-      >
+    <Card surface="flat" padded={false} className="ds-file-block ds-block--file">
+      <span className="ds-file-block__name">{fileName}</span>
+      {size != null ? <span className="ds-file-block__size">{formatSize(size)}</span> : null}
+      <Button variant="ghost" size="sm" title={t("download")} onClick={handleDownload}>
         {t("download")}
-      </button>
-    </div>
+      </Button>
+    </Card>
   );
 }

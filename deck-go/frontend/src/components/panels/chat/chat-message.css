@@ -1,0 +1,285 @@
+/* Chat message — IM-style right-align user bubble + assistant full-width row.
+ *
+ * Bundle reference: docs/design-bundles/2026-04-29-claude-design-chat-pilot/
+ * project/styles.css lines 273-313 (.msg-row + .align-right.is-user) and
+ * lines 585-602 (.run-status-bar + .message-actions + .waiting-dots).
+ *
+ * Owns: list scroll container, per-message frame, message bubble (avatar +
+ * body + blocks + meta line + actions toolbar), partial-result / error /
+ * waiting indicators, RunStatusBar layout, MessageActions hover reveal,
+ * RunStatusBadge variants. */
+
+/* List scroll container — replaces legacy .deck-ui-message-list. */
+.ds-chat-message-list {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 22px 0 16px;
+}
+
+/* Empty-state placeholder when no messages yet. */
+.ds-chat-message-empty {
+  margin: 0;
+  align-self: center;
+  justify-self: center;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+/* Per-message frame — wraps each row + lets the row constrain its width. */
+.ds-chat-message-frame {
+  min-width: 0;
+  display: grid;
+}
+
+/* Streaming "thinking" placeholder before any message lands. */
+.ds-chat-message-waiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px 14px;
+  color: var(--ds-text-3);
+}
+
+/* Base message row — bundle .msg-row (lines 273-278). */
+.ds-chat-message {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 22px 14px;
+  align-items: flex-start;
+}
+
+/* Avatar — bundle .msg-avatar (lines 280-289). */
+.ds-chat-message__avatar {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  border: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-2);
+  margin-top: 2px;
+}
+
+.ds-chat-message__avatar svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* User avatar variant — accent-tinted bubble icon. */
+.ds-chat-message--user .ds-chat-message__avatar {
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+  border-color: var(--ds-accent-dim);
+}
+
+/* Message body — column flex with meta + blocks + toolbar. */
+.ds-chat-message__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.ds-chat-message__body p {
+  margin: 6px 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.ds-chat-message__body p:first-child {
+  margin-top: 0;
+}
+
+.ds-chat-message__body p:last-child {
+  margin-bottom: 0;
+}
+
+.ds-chat-message__body mark {
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: var(--ds-text-1);
+  background: color-mix(in srgb, var(--ds-accent) 16%, transparent);
+}
+
+.ds-chat-message__body mark.is-danger {
+  background: color-mix(in srgb, var(--ds-error) 18%, transparent);
+}
+
+/* Bubble wrapper — assistant is full-width transparent so transcript blocks
+ * render inline; user variant is the accent-tinted IM bubble. */
+.ds-chat-message__bubble {
+  display: block;
+  width: 100%;
+}
+
+.ds-chat-message__blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Right-align IM bubble for user — bundle .align-right.is-user (298-313). */
+.ds-chat-message--user {
+  grid-template-columns: minmax(0, 1fr) 28px;
+}
+
+.ds-chat-message--user .ds-chat-message__avatar {
+  grid-column: 2;
+  grid-row: 1;
+  order: 2;
+  margin-top: 2px;
+}
+
+.ds-chat-message--user .ds-chat-message__body {
+  grid-column: 1;
+  grid-row: 1;
+  order: 1;
+  align-items: flex-end;
+  text-align: left;
+}
+
+.ds-chat-message--user .ds-chat-message__bubble {
+  display: inline-block;
+  max-width: 720px;
+  padding: 10px 14px;
+  background: var(--ds-accent-bg);
+  border: 1px solid var(--ds-accent-dim);
+  border-radius: var(--ds-radius-lg);
+  margin-left: auto;
+  word-break: break-word;
+  color: var(--ds-text-1);
+}
+
+/* Meta line — bundle .msg-meta-line.mono.small (transcript.jsx 261-280):
+ * role label + dot-sep + time + (when streaming) dot-sep + streaming-dot. */
+.ds-chat-message__meta-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.2;
+}
+
+.ds-chat-message__role {
+  color: var(--ds-text-3);
+}
+
+.ds-chat-message__dot-sep {
+  color: var(--ds-text-4);
+}
+
+.ds-chat-message__time {
+  color: var(--ds-text-3);
+}
+
+.ds-chat-message__streaming-dot {
+  color: var(--ds-accent);
+}
+
+.ds-chat-message__error {
+  color: var(--ds-error);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-chat-message__partial {
+  color: var(--ds-text-3);
+  font-style: italic;
+  font-size: var(--ds-fs-meta);
+}
+
+/* MessageActions hover reveal — bundle .message-actions (line 592) +
+ * legacy hover-reveal pattern (theme.css 10004-10013). The .ds-message-actions
+ * base layout (display:inline-flex, gap:4px) lives in chat-widgets.css; this
+ * file owns the hover-reveal lifecycle bound to the parent .ds-chat-message. */
+.ds-chat-message .ds-message-actions {
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.ds-chat-message:hover .ds-message-actions,
+.ds-chat-message:focus-within .ds-message-actions {
+  opacity: 1;
+}
+
+/* User row pins actions to the right edge for IM symmetry. */
+.ds-chat-message--user .ds-message-actions {
+  justify-self: end;
+}
+
+/* RunStatusBar — bundle .run-status-bar (lines 585-591). */
+.ds-run-status-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-run-status-bar > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ds-run-status-bar svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  color: var(--ds-text-3);
+}
+
+.ds-run-status-bar__model {
+  color: var(--ds-accent);
+  font-weight: 600;
+}
+
+.ds-run-status-bar__model svg {
+  color: var(--ds-accent);
+}
+
+/* RunStatusBadge variants — used inside RunStatusBar via the Badge atom +
+ * legacy `deck-ui-run-status-badge.is-{state}` className (test selector). */
+.ds-run-status-bar .deck-ui-run-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.deck-ui-run-status-badge.is-running {
+  color: var(--ds-accent);
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
+}
+
+.deck-ui-run-status-badge.is-failed,
+.deck-ui-run-status-badge.is-killed,
+.deck-ui-run-status-badge.is-timeout {
+  color: var(--ds-error);
+  border-color: var(--ds-error);
+  background: var(--ds-error-bg);
+}
+
+.deck-ui-run-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ds-warn);
+}
+
+/* Density compact — bundle line 1001. */
+[data-density="compact"] .ds-chat-message {
+  padding: 6px 22px 10px;
+}

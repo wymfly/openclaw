@@ -14,7 +14,7 @@ export function ImageBlock({ data, mimeType, fileName }: ImageBlockProps) {
   return (
     <>
       <button
-        className="deck-ui-image-block"
+        className="ds-image-block"
         type="button"
         onClick={() => setEnlarged(true)}
         aria-label={label}
@@ -23,7 +23,7 @@ export function ImageBlock({ data, mimeType, fileName }: ImageBlockProps) {
       </button>
       {enlarged ? (
         <div
-          className="deck-ui-image-preview"
+          className="ds-image-block__preview"
           role="button"
           tabIndex={0}
           aria-label="Close image preview"

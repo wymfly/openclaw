@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { PlayIcon } from "@/deck-ui/icons";
 import type { ArtifactInfo } from "./detectArtifact";
 
 export function ArtifactCard({
@@ -12,13 +13,11 @@ export function ArtifactCard({
   const title = t.has(artifact.title) ? t(artifact.title) : artifact.title;
 
   return (
-    <div className="deck-ui-artifact-card">
-      <span className="deck-ui-artifact-card-icon" aria-hidden="true">
-        art
-      </span>
-      <span className="deck-ui-artifact-card-title">{title}</span>
-      <span className="deck-ui-artifact-card-language">{artifact.language}</span>
-      <button className="deck-ui-tool-control" type="button" onClick={() => onOpen(artifact)}>
+    <div className="ds-artifact-card">
+      <PlayIcon className="ds-artifact-card__icon" aria-hidden="true" />
+      <span className="ds-artifact-card__title">{title}</span>
+      <span className="ds-artifact-card__language">{artifact.language}</span>
+      <button type="button" onClick={() => onOpen(artifact)}>
         {t("openArtifact")}
       </button>
     </div>

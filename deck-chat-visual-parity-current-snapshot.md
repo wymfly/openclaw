@@ -1,0 +1,111 @@
+- generic [ref=e3]:
+  - navigation "Deck panels" [ref=e4]:
+    - button "Collapse navigation" [ref=e6] [cursor=pointer]:
+      - img [ref=e7]
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - paragraph [ref=e11]: Core
+        - button "Chat" [ref=e12] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e16]: Chat
+        - button "Agents" [ref=e17] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e21]: Agents
+        - button "Monitor" [ref=e22] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e27]: Monitor
+        - button "Models" [ref=e28] [cursor=pointer]:
+          - img [ref=e30]
+          - generic [ref=e32]: Models
+      - generic [ref=e33]:
+        - paragraph [ref=e34]: Observe
+        - button "Usage" [ref=e35] [cursor=pointer]:
+          - img [ref=e37]
+          - generic [ref=e39]: Usage
+        - button "Sessions" [ref=e40] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Sessions
+        - button "Memory" [ref=e45] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e50]: Memory
+        - button "Logs" [ref=e51] [cursor=pointer]:
+          - img [ref=e53]
+          - generic [ref=e56]: Logs
+        - button "Activity" [ref=e57] [cursor=pointer]:
+          - img [ref=e59]
+          - generic [ref=e61]: Activity
+        - button "Threads" [ref=e62] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e67]: Threads
+        - button "API Explorer" [ref=e68] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e72]: API Explorer
+      - generic [ref=e73]:
+        - paragraph [ref=e74]: Automate
+        - button "Cron Jobs" [ref=e75] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e80]: Cron Jobs
+        - button "Webhooks" [ref=e81] [cursor=pointer]:
+          - img [ref=e83]
+          - generic [ref=e88]: Webhooks
+        - button "Approvals" [ref=e89] [cursor=pointer]:
+          - img [ref=e91]
+          - generic [ref=e94]: Approvals
+        - button "Skills" [ref=e95] [cursor=pointer]:
+          - img [ref=e97]
+          - generic [ref=e99]: Skills
+      - generic [ref=e100]:
+        - paragraph [ref=e101]: Control
+        - button "Budget" [ref=e102] [cursor=pointer]:
+          - img [ref=e104]
+          - generic [ref=e107]: Budget
+        - button "Alerts" [ref=e108] [cursor=pointer]:
+          - img [ref=e110]
+          - generic [ref=e112]: Alerts
+        - button "Channels" [ref=e113] [cursor=pointer]:
+          - img [ref=e115]
+          - generic [ref=e121]: Channels
+        - button "Plugins" [ref=e122] [cursor=pointer]:
+          - img [ref=e124]
+          - generic [ref=e129]: Plugins
+        - button "Routing" [ref=e130] [cursor=pointer]:
+          - img [ref=e132]
+          - generic [ref=e136]: Routing
+        - button "Subagents" [ref=e137] [cursor=pointer]:
+          - img [ref=e139]
+          - generic [ref=e144]: Subagents
+        - button "Identities" [ref=e145] [cursor=pointer]:
+          - img [ref=e147]
+          - generic [ref=e152]: Identities
+        - button "Config" [ref=e153] [cursor=pointer]:
+          - img [ref=e155]
+          - generic [ref=e158]: Config
+        - button "Nodes" [ref=e159] [cursor=pointer]:
+          - img [ref=e161]
+          - generic [ref=e164]: Nodes
+        - button "Docs" [ref=e165] [cursor=pointer]:
+          - img [ref=e167]
+          - generic [ref=e172]: Docs
+    - button "Settings" [ref=e174] [cursor=pointer]:
+      - img [ref=e176]
+      - generic [ref=e179]: Settings
+  - generic [ref=e180]:
+    - banner [ref=e181]:
+      - heading "Chat" [level=1] [ref=e184]
+      - generic [ref=e185]:
+        - button "Disconnected" [ref=e186]: Disconnected
+        - button "Switch language" [ref=e188] [cursor=pointer]:
+          - img [ref=e189]
+          - generic [ref=e193]: ZH
+        - 'button "Theme switch: Dark" [ref=e194] [cursor=pointer]':
+          - img [ref=e195]
+      - paragraph [ref=e197]: Unexpected token '<', "<!doctype "... is not valid JSON
+    - main [ref=e198]:
+      - region "Chat workspace" [ref=e199]:
+        - complementary [ref=e200]:
+          - complementary [ref=e201]
+        - generic [ref=e210]:
+          - status [ref=e211]
+          - generic [ref=e215]
+          - region "Transcript" [ref=e220]
+          - generic [ref=e230]

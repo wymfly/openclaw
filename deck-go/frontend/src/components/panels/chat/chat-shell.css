@@ -1,0 +1,111 @@
+/* Chat panel shell — three-column grid (sidebar | main | right-drawer).
+ *
+ * Ports the layout rules previously living under `.deck-ui-chat`,
+ * `.deck-ui-chat-sidebar`, `.deck-ui-chat-main` (theme.css). Visual is
+ * intentionally identical to bundle / pre-migration baseline; only the
+ * className namespace migrates from `deck-ui-*` to `ds-chat-shell*`.
+ *
+ * Token swap: `var(--border)` → `var(--ds-border)`, `var(--panel)` →
+ * `var(--ds-bg-elev)`, `var(--shadow-soft)` → `var(--ds-shadow-md)`.
+ */
+
+.ds-chat-shell {
+  height: calc(100vh - 84px);
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-bg-elev);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.ds-chat-shell--has-right-drawer {
+  grid-template-columns: 224px minmax(0, 1fr) auto;
+}
+
+.ds-chat-shell__sidebar,
+.ds-chat-shell__main {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--ds-bg-elev);
+  box-shadow: none;
+}
+
+.ds-chat-shell__sidebar {
+  display: grid;
+  border-right: 1px solid var(--ds-border);
+  overflow: hidden;
+}
+
+.ds-chat-shell__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: auto;
+  padding: 0;
+}
+
+.ds-chat-shell__transcript {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ds-chat-shell__composer {
+  border: 0;
+  border-top: 1px solid var(--ds-border);
+  border-radius: 0;
+  background: var(--ds-bg-elev);
+}
+
+.ds-chat-shell__steer-shortcut {
+  align-self: flex-end;
+  margin: 4px 12px 0 0;
+  padding: 4px 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-text-2, var(--ds-accent));
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.ds-chat-shell__steer-shortcut:hover {
+  background: var(--ds-bg-hover);
+}
+
+@media (max-width: 1180px) {
+  .ds-chat-shell {
+    grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 820px) {
+  .ds-chat-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: calc(100vh - 120px);
+    overflow: visible;
+  }
+
+  .ds-chat-shell__sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--ds-border);
+  }
+
+  .ds-chat-shell__main {
+    min-height: 540px;
+  }
+
+  .ds-chat-shell__transcript {
+    min-height: 260px;
+  }
+}

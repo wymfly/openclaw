@@ -1,0 +1,63 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=config",
+  "viewport": {
+    "width": 1440,
+    "height": 960,
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-config",
+  "overflowCount": 0,
+  "overflowNodes": [],
+  "classCounts": {
+    "root": 1,
+    "columns": 2,
+    "cards": 2,
+    "bodies": 2,
+    "statusRows": 2,
+    "stats": 1,
+    "surfaces": 3,
+    "dialogs": 0,
+    "inputs": 30,
+    "textareas": 24,
+    "actions": 44,
+    "buttons": 92,
+    "lists": 2,
+    "rows": 56,
+    "fieldCards": 52,
+    "hero": 1,
+    "empty": 1,
+    "errors": 0
+  },
+  "navItems": [
+    {
+      "text": "IDIdentity",
+      "className": "deck-ui-nav-item ",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    },
+    {
+      "text": "CFConfig",
+      "className": "deck-ui-nav-item is-active",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    },
+    {
+      "text": "Light",
+      "className": "is-active",
+      "ariaCurrent": null,
+      "dataPanel": null,
+      "href": null
+    }
+  ],
+  "cardTitles": ["Config", "Config detail"],
+  "statusTexts": [
+    "Config ready4 top-level keys36 schema sectionshash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1affunsaved no",
+    "keys4schema pathagents.defaultshashf528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff",
+    "4 sections52 schema children",
+    "The selected schema section is not present in the current config snapshot."
+  ],
+  "assetHrefs": ["/assets/index-CBM3G7iO.js", "/assets/index-ClnxDhs1.css"]
+}

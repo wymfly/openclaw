@@ -1,0 +1,187 @@
+{
+  "href": "http://127.0.0.1:4179/?panel=config",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "rootClassName": "deckgo-panel-workspace deck-ui-config",
+  "overflowCount": 21,
+  "overflowNodes": [
+    {
+      "tag": "DIV",
+      "className": "deckgo-card-header",
+      "text": "imageGenerationModelagents.defaults.imageGenerationModelreadonly",
+      "right": 397,
+      "width": 336
+    },
+    {
+      "tag": "DIV",
+      "className": "",
+      "text": "Edit this nested or non-primitive value as JSON, then apply it to the raw config snapshot.Apply JSON fieldReset JSON fieldValue: agents.defa",
+      "right": 397,
+      "width": 336
+    },
+    {
+      "tag": "P",
+      "className": "deckgo-note",
+      "text": "Edit this nested or non-primitive value as JSON, then apply it to the raw config snapshot.",
+      "right": 397,
+      "width": 336
+    },
+    {
+      "tag": "TEXTAREA",
+      "className": "deckgo-textarea deck-ui-config-textarea",
+      "text": "",
+      "right": 397,
+      "width": 336
+    },
+    {
+      "tag": "DIV",
+      "className": "deckgo-actions deck-ui-config-actions",
+      "text": "Apply JSON fieldReset JSON field",
+      "right": 397,
+      "width": 336
+    },
+    {
+      "tag": "DETAILS",
+      "className": "",
+      "text": "Value: agents.defaults.imageGenerationModel",
+      "right": 397,
+      "width": 336
+    },
+    {
+      "tag": "DIV",
+      "className": "deckgo-card-header",
+      "text": "musicGenerationModelagents.defaults.musicGenerationModelreadonly",
+      "right": 396,
+      "width": 335
+    },
+    {
+      "tag": "DIV",
+      "className": "",
+      "text": "Edit this nested or non-primitive value as JSON, then apply it to the raw config snapshot.Apply JSON fieldReset JSON fieldValue: agents.defa",
+      "right": 396,
+      "width": 335
+    },
+    {
+      "tag": "P",
+      "className": "deckgo-note",
+      "text": "Edit this nested or non-primitive value as JSON, then apply it to the raw config snapshot.",
+      "right": 396,
+      "width": 335
+    },
+    {
+      "tag": "TEXTAREA",
+      "className": "deckgo-textarea deck-ui-config-textarea",
+      "text": "",
+      "right": 396,
+      "width": 335
+    },
+    {
+      "tag": "DIV",
+      "className": "deckgo-actions deck-ui-config-actions",
+      "text": "Apply JSON fieldReset JSON field",
+      "right": 396,
+      "width": 335
+    },
+    {
+      "tag": "DETAILS",
+      "className": "",
+      "text": "Value: agents.defaults.musicGenerationModel",
+      "right": 396,
+      "width": 335
+    },
+    {
+      "tag": "DIV",
+      "className": "deckgo-card-header",
+      "text": "blockStreamingCoalesceagents.defaults.blockStreamingCoalesceobject",
+      "right": 410,
+      "width": 349
+    },
+    {
+      "tag": "SPAN",
+      "className": "deckgo-pill",
+      "text": "object",
+      "right": 392,
+      "width": 55
+    },
+    {
+      "tag": "DIV",
+      "className": "",
+      "text": "Edit this nested or non-primitive value as JSON, then apply it to the raw config snapshot.Apply JSON fieldReset JSON fieldValue: agents.defa",
+      "right": 410,
+      "width": 349
+    },
+    {
+      "tag": "P",
+      "className": "deckgo-note",
+      "text": "Edit this nested or non-primitive value as JSON, then apply it to the raw config snapshot.",
+      "right": 410,
+      "width": 349
+    },
+    {
+      "tag": "TEXTAREA",
+      "className": "deckgo-textarea deck-ui-config-textarea",
+      "text": "",
+      "right": 410,
+      "width": 349
+    },
+    {
+      "tag": "DIV",
+      "className": "deckgo-actions deck-ui-config-actions",
+      "text": "Apply JSON fieldReset JSON field",
+      "right": 410,
+      "width": 349
+    },
+    {
+      "tag": "DETAILS",
+      "className": "",
+      "text": "Value: agents.defaults.blockStreamingCoalesce",
+      "right": 410,
+      "width": 349
+    },
+    {
+      "tag": "SUMMARY",
+      "className": "",
+      "text": "Value: agents.defaults.blockStreamingCoalesce",
+      "right": 396,
+      "width": 321
+    },
+    {
+      "tag": "PRE",
+      "className": "deckgo-code",
+      "text": "",
+      "right": 396,
+      "width": 321
+    }
+  ],
+  "classCounts": {
+    "root": 1,
+    "columns": 2,
+    "cards": 2,
+    "bodies": 2,
+    "statusRows": 2,
+    "stats": 1,
+    "surfaces": 3,
+    "dialogs": 0,
+    "inputs": 30,
+    "textareas": 24,
+    "actions": 44,
+    "buttons": 92,
+    "lists": 2,
+    "rows": 56,
+    "fieldCards": 52,
+    "hero": 1,
+    "empty": 1,
+    "errors": 0
+  },
+  "statusTexts": [
+    "Config ready4 top-level keys36 schema sectionshash f528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1affunsaved no",
+    "keys4schema pathagents.defaultshashf528060c2293964e7cf6544314865cd9b8b9b41020a199c128a9aceb28cf1aff",
+    "4 sections52 schema children",
+    "The selected schema section is not present in the current config snapshot."
+  ],
+  "assetHrefs": ["/assets/index-3l-CoydZ.js", "/assets/index-qHuWq0U9.css"]
+}

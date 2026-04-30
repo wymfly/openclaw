@@ -702,6 +702,27 @@ describe("AgentsPanel", () => {
     );
   });
 
+  it("renders first-run empty state instead of an agent list error", async () => {
+    apiMocks.fetchAgentsList.mockRejectedValue(
+      new Error("gateway_not_configured: runtime gateway is not configured"),
+    );
+
+    await act(async () => {
+      root = createRoot(container);
+      renderAgentsPanel();
+    });
+
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="empty-state-not-configured"]')).toBeTruthy(),
+    );
+    expect(container.textContent).toContain(
+      "Open Settings and save a remote endpoint before loading Gateway data.",
+    );
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).not.toContain("gateway_not_configured");
+    expect(apiMocks.fetchAgentDetail).not.toHaveBeenCalled();
+  });
+
   it("renders the restored Agents shell with Chinese UI copy", async () => {
     await act(async () => {
       root = createRoot(container);

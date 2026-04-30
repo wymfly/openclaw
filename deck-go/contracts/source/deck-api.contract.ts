@@ -1,18 +1,9 @@
-export interface DeckGoManagedGatewaySettings {
-  mode?: "managed";
-  command?: string;
-  args?: string[];
-  workingDir?: string;
-  bindHost?: string;
-  bindPort?: number;
-  gatewayToken?: string;
-  autoStart?: boolean;
-  env?: Record<string, string>;
-}
-
 export interface DeckGoSettings {
-  accessToken?: string;
-  managedGateway?: DeckGoManagedGatewaySettings;
+  accessTokenConfigured?: boolean;
+  accessTokenSource?: string;
+  appearance?: Record<string, unknown>;
+  notifications?: Record<string, unknown>;
+  pairedDevices?: Array<Record<string, unknown>>;
 }
 
 export interface DeckGoSettingsResponse {
@@ -36,18 +27,66 @@ export interface DeckGoBootstrapSettingsStatus {
 }
 
 export interface DeckGoRuntimeGatewayStatus {
-  managed: boolean;
+  mode?: "bundled" | "remote";
+  managed?: boolean;
   configured?: boolean;
   status?: "stopped" | "starting" | "running" | "degraded" | "stopping" | "failed";
-  failurePhase?: "preflight" | "launch" | "runtime";
+  failurePhase?: "preflight" | "launch" | "ownership" | "runtime";
   pid?: number;
   startedAt?: string;
   lastExitAt?: string;
   lastExitCode?: number;
   health?: "unknown" | "healthy" | "unhealthy";
   gatewayUrl?: string;
+  lastConnectedAt?: string;
   lastError?: string;
-  autoStart?: boolean;
+  latencyP50?: number;
+  tlsVerified?: boolean;
+  autoStart: boolean;
+  owner?: string;
+  ownershipState?: "none" | "owned" | "adopted" | "external";
+  ownershipFile?: string;
+  restartAttempts?: number;
+  restartDelayMs?: number;
+}
+
+export interface DeckGoRuntimeCapabilities {
+  mode: "bundled" | "remote";
+  configured: boolean;
+  endpointMutable: boolean;
+  supervisorState: boolean;
+}
+
+export interface DeckGoRuntimeEndpointResponse {
+  url: string;
+  tokenConfigured: boolean;
+  tlsVerify: boolean;
+  source: "env" | "json";
+}
+
+export interface DeckGoRuntimeEndpointPutRequest {
+  url: string;
+  token: string;
+  tlsVerify: boolean;
+}
+
+export interface DeckGoRuntimeEndpointTestRequest {
+  url?: string;
+  token?: string;
+  tlsVerify?: boolean;
+}
+
+export interface DeckGoRuntimeEndpointTestResponse {
+  ok: boolean;
+  latencyMs?: number;
+  gatewayVersion?: string;
+  tlsVerified: boolean;
+  error?: string;
+}
+
+export interface DeckGoRuntimeErrorResponse {
+  code: string;
+  message: string;
 }
 
 export interface DeckGoBootstrapGatewayStatus {

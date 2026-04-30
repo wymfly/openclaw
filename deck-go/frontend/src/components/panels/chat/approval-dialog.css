@@ -1,0 +1,144 @@
+/* Inline approval dialog — sits above the composer when an approval is active.
+ *
+ * P3 task 2 atom 9.9 — Decision B per-atom visual replacement.
+ * Bundle target: docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css
+ *   .approval-dlg            (lines 794-801)
+ *   .approval-head           (line 802)
+ *   .approval-title          (line 803)
+ *   .approval-countdown      (lines 804-805 + .danger variant)
+ *   .approval-tool / -cmd    (lines 806-826)
+ *   .approval-meta / -meta-v (lines 827-828)
+ *   .approval-actions        (line 829)
+ *   .btn-success / -secondary / -danger / -danger-out (lines 830-844)
+ *
+ * Replaces legacy `.deck-ui-approval-dialog` / `-actions` / `-icon` /
+ * `-countdown` / `-body` / `-allow` / `-deny` rules removed from theme.css
+ * in the same commit. Allow / allow-always / deny buttons rely on the
+ * design-system Button atom variants (primary / secondary / danger).
+ */
+
+.ds-approval-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-accent-dim);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-elev);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.ds-approval-dialog__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-accent);
+}
+
+.ds-approval-dialog__header strong {
+  color: var(--ds-text-1);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ds-approval-dialog__icon {
+  width: 16px;
+  height: 16px;
+  color: var(--ds-accent);
+}
+
+.ds-approval-dialog__countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-approval-dialog__countdown svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+.ds-approval-dialog__countdown--danger {
+  color: var(--ds-error);
+}
+
+.ds-approval-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ds-approval-dialog__body code {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 3px 8px;
+  border: 1px solid var(--ds-accent-dim);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
+}
+
+.ds-approval-dialog__body pre {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-code-bg);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+
+.ds-approval-dialog__body p {
+  margin: 0;
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-line);
+}
+
+.ds-approval-dialog__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-approval-dialog__meta dt {
+  color: var(--ds-text-3);
+}
+
+.ds-approval-dialog__meta dd {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ds-text-2);
+}
+
+.ds-approval-dialog__meta dd svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+.ds-approval-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

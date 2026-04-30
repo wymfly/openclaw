@@ -3,10 +3,12 @@ package gateway
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
@@ -79,6 +81,12 @@ type Client struct {
 	realtime *Realtime
 }
 
+type DirectRequestOptions struct {
+	Headers               http.Header
+	HandshakeTimeout      time.Duration
+	InsecureSkipTLSVerify bool
+}
+
 func New(provider ConnectionProvider) *Client {
 	return NewClient(provider)
 }
@@ -91,6 +99,75 @@ func NewClient(provider ConnectionProvider) *Client {
 
 func NewClientWithRealtime(realtime *Realtime) *Client {
 	return &Client{realtime: realtime}
+}
+
+func RequestDirect(ctx context.Context, upstreamURL string, token string, method string, params map[string]any) (any, error) {
+	return RequestDirectWithOptions(ctx, upstreamURL, token, method, params, DirectRequestOptions{})
+}
+
+func RequestDirectWithOptions(ctx context.Context, upstreamURL string, token string, method string, params map[string]any, opts DirectRequestOptions) (any, error) {
+	if strings.TrimSpace(upstreamURL) == "" {
+		return nil, errors.New("gateway url is not configured")
+	}
+	if strings.TrimSpace(token) == "" {
+		return nil, errors.New("gateway token is not configured")
+	}
+
+	handshakeTimeout := opts.HandshakeTimeout
+	if handshakeTimeout <= 0 {
+		handshakeTimeout = 8 * time.Second
+	}
+	dialer := websocket.Dialer{HandshakeTimeout: handshakeTimeout}
+	if opts.InsecureSkipTLSVerify {
+		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	headers := opts.Headers.Clone()
+	if headers == nil {
+		headers = http.Header{}
+	}
+	headers.Set("Authorization", "Bearer "+token)
+	conn, _, err := dialer.DialContext(ctx, upstreamURL, headers)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	if err := completeConnect(ctx, conn, token, "gateway-client"); err != nil {
+		return nil, err
+	}
+
+	reqID := nextID()
+	if err := conn.WriteJSON(frame{
+		Type:   frameTypeReq,
+		ID:     reqID,
+		Method: method,
+		Params: params,
+	}); err != nil {
+		return nil, err
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+		_, raw, err := conn.ReadMessage()
+		if err != nil {
+			return nil, err
+		}
+		var fr frame
+		if err := json.Unmarshal(raw, &fr); err != nil {
+			continue
+		}
+		if fr.Type != frameTypeRes || fr.ID != reqID {
+			continue
+		}
+		if fr.Error != nil {
+			return nil, FromEnvelope(fr.Error)
+		}
+		return fr.Payload, nil
+	}
 }
 
 func (c *Client) Request(ctx context.Context, method string, params map[string]any) (any, error) {

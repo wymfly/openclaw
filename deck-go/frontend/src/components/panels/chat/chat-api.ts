@@ -5,6 +5,7 @@ import {
   createChatSession,
   deleteSession,
   fetchChatSnapshot as fetchChatSnapshotRequest,
+  fetchCompactionCheckpoints,
   fetchSessionPreviews as fetchSessionPreviewsRequest,
   fetchSessions,
   patchChatSession,
@@ -16,6 +17,8 @@ import {
   setCanvasBridgeReady,
   setSessionEventsSubscription,
   steerChatSession,
+  type DeckGoCompactionCheckpoint,
+  type DeckGoCompactionListResponse,
 } from "@/api";
 import type {
   A2UIState,
@@ -299,6 +302,14 @@ export async function deleteChatSession(
   agentId?: string | null,
 ): Promise<SessionMutationResponse> {
   return (await deleteSession({ sessionKey, agentId })) as SessionMutationResponse;
+}
+
+export type CompactionCheckpoint = DeckGoCompactionCheckpoint;
+export type CompactionListResponse = DeckGoCompactionListResponse;
+
+export async function fetchCompactionList(sessionKey: string): Promise<CompactionCheckpoint[]> {
+  const data = await fetchCompactionCheckpoints(sessionKey);
+  return Array.isArray(data.checkpoints) ? data.checkpoints : [];
 }
 
 export {

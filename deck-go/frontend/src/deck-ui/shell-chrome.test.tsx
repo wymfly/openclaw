@@ -14,12 +14,12 @@ const uiState = vi.hoisted(() => ({
   activePanel: "gateway",
   bootstrap: {
     gateway: { connected: true },
-    runtime: { status: "running" },
+    runtime: { autoStart: true, mode: "bundled", status: "running" },
   },
   mobileNavOpen: false,
   refreshingSummary: false,
   runtime: {
-    runtime: { status: "running" },
+    runtime: { autoStart: true, mode: "bundled", status: "running" },
   },
   setActivePanel: vi.fn(),
   setMobileNavOpen: vi.fn(),
@@ -77,12 +77,12 @@ describe("Deck shell chrome parity", () => {
     uiState.activePanel = "gateway";
     uiState.bootstrap = {
       gateway: { connected: true },
-      runtime: { status: "running" },
+      runtime: { autoStart: true, mode: "bundled", status: "running" },
     };
     uiState.mobileNavOpen = false;
     uiState.refreshingSummary = false;
     uiState.runtime = {
-      runtime: { status: "running" },
+      runtime: { autoStart: true, mode: "bundled", status: "running" },
     };
     uiState.sidebarCollapsed = false;
     uiState.summaryError = null;

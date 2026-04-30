@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-GO_ENV := GOCACHE=/tmp/deck-go-buildcache GOSUMDB=off
+GO_ENV := GOCACHE=/tmp/deck-go-buildcache GOMODCACHE=/tmp/deck-go-gomodcache GOPATH=/tmp/deck-go-gopath GOSUMDB=off
 NPM_ENV := npm_config_cache=/tmp/deck-go-npm-cache
 REPO_ROOT := $(abspath ..)
 

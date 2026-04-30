@@ -24,6 +24,7 @@ import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
 import { createRuntimeOutboundDelegates } from "openclaw/plugin-sdk/outbound-runtime";
 import { createComputedAccountStatusAdapter } from "openclaw/plugin-sdk/status-helpers";
 import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/text-runtime";
+import type { WizardSpec } from "openclaw/plugin-sdk/wizard-spec";
 import feishuSetupWizardSpec from "../deck/setup-wizard.json" with { type: "json" };
 import {
   inspectFeishuCredentials,
@@ -71,6 +72,8 @@ import { feishuSetupAdapter } from "./setup-core.js";
 import { feishuSetupWizard } from "./setup-surface.js";
 import { looksLikeFeishuId, normalizeFeishuTarget } from "./targets.js";
 import type { FeishuConfig, FeishuProbeResult, ResolvedFeishuAccount } from "./types.js";
+
+const typedFeishuSetupWizardSpec = feishuSetupWizardSpec as WizardSpec;
 
 function readFeishuMediaParam(params: Record<string, unknown>): string | undefined {
   const media = params.media;
@@ -546,7 +549,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount, FeishuProbeResul
       meta: {
         ...meta,
       },
-      setupWizardSpec: feishuSetupWizardSpec,
+      setupWizardSpec: typedFeishuSetupWizardSpec,
       capabilities: {
         chatTypes: ["direct", "channel"],
         polls: false,

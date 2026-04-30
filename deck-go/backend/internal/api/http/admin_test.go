@@ -30,7 +30,11 @@ func (s *stubSettingsProvider) GetSettings(_ context.Context) (deckapi.DeckGoSet
 }
 
 func (s *stubSettingsProvider) UpdateSettings(_ context.Context, settings deckapi.DeckGoSettings) (deckapi.DeckGoSettingsSaveResponse, error) {
-	s.lastKey = "settings:update:" + settings.ManagedGateway.Mode
+	if theme, _ := settings.Appearance["theme"].(string); theme != "" {
+		s.lastKey = "settings:update:" + theme
+	} else {
+		s.lastKey = "settings:update"
+	}
 	return s.savePayload, nil
 }
 
@@ -360,20 +364,15 @@ func TestMountAdminRoutes(t *testing.T) {
 		getPayload: deckapi.DeckGoSettingsResponse{
 			Ok: true,
 			Settings: deckapi.DeckGoSettings{
-				ManagedGateway: deckapi.DeckGoManagedGatewaySettings{
-					Mode:         "managed",
-					BindHost:     "127.0.0.1",
-					BindPort:     18789,
-					AutoStart:    true,
-					GatewayToken: "token-1",
-				},
+				AccessTokenConfigured: true,
+				Appearance:            map[string]any{"theme": "dark"},
 			},
 			Path: "/tmp/settings.json",
 		},
 		savePayload: deckapi.DeckGoSettingsSaveResponse{
 			Ok: true,
 			Settings: deckapi.DeckGoSettings{
-				ManagedGateway: deckapi.DeckGoManagedGatewaySettings{Mode: "managed"},
+				Appearance: map[string]any{"theme": "dark"},
 			},
 		},
 		testPayload:    map[string]any{"ok": true},
@@ -481,13 +480,13 @@ func TestMountAdminRoutes(t *testing.T) {
 		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 			t.Fatal(err)
 		}
-		if !payload.Ok || payload.Settings.ManagedGateway.Mode != "managed" {
+		if !payload.Ok || payload.Settings.Appearance["theme"] != "dark" {
 			t.Fatalf("unexpected settings payload: %#v", payload)
 		}
 	})
 
 	t.Run("updates settings payload", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPut, server.URL+"/settings", strings.NewReader(`{"managedGateway":{"mode":"managed"}}`))
+		req, err := http.NewRequest(http.MethodPut, server.URL+"/settings", strings.NewReader(`{"appearance":{"theme":"dark"}}`))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -500,7 +499,7 @@ func TestMountAdminRoutes(t *testing.T) {
 		if res.StatusCode != http.StatusOK {
 			t.Fatalf("unexpected status: %d", res.StatusCode)
 		}
-		if settings.lastKey != "settings:update:managed" {
+		if settings.lastKey != "settings:update:dark" {
 			t.Fatalf("unexpected settings update invocation: %q", settings.lastKey)
 		}
 	})
@@ -904,24 +903,21 @@ func TestMountAdminRoutes(t *testing.T) {
 			t.Fatalf("unexpected status: %d", res.StatusCode)
 		}
 		buf := make([]byte, 256)
-		var streamBody strings.Builder
-		for i := 0; i < 4; i++ {
+		body := ""
+		deadline := time.Now().Add(2 * time.Second)
+		for time.Now().Before(deadline) &&
+			(!strings.Contains(body, "event: projection.gap") || !strings.Contains(body, "event: chat")) {
 			n, err := res.Body.Read(buf)
-			if err != nil && err != io.EOF {
-				t.Fatal(err)
-			}
 			if n > 0 {
-				streamBody.Write(buf[:n])
-			}
-			body := streamBody.String()
-			if strings.Contains(body, "event: projection.gap") && strings.Contains(body, "event: chat") {
-				return
+				body += string(buf[:n])
 			}
 			if err == io.EOF {
 				break
 			}
+			if err != nil {
+				break
+			}
 		}
-		body := streamBody.String()
 		if !strings.Contains(body, "event: projection.gap") || !strings.Contains(body, "event: chat") {
 			t.Fatalf("unexpected stream body: %q", body)
 		}
