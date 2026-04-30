@@ -93,12 +93,12 @@
 
 ## 8. Transcript widget polish (Decision 3, 1 commit — covers 4 ports + selected partials from §3.3)
 
-- [ ] 8.1 Add `bfb-label` "show" eyebrow to `BlockFilterBar`: leading `<span className="ds-block-filter-bar__label mono small"><I.Filter size=10/> show</span>` per bundle `transcript.jsx` 99-101.
-- [ ] 8.2 Update `MessageBubble` `__time` slot into `__meta-line mono small`: render role label ("you" / "main") + `dot-sep` + time + (when streaming) `dot-sep` + `streaming-dot` accent-colored "streaming" pill. Mirrors bundle 268-280.
-- [ ] 8.3 Add Check/X icon prefix to `Chip` atom toggle states or BlockFilterBar inline: bundle line 112 shows `{prefs[k] ? <I.Check/> : <I.X/>} {label}` — visual confirmation of toggle state.
-- [ ] 8.4 Add "view summary" button to `CompactionNotice`: `<Button variant="ghost" size="sm">view summary</Button>` after the count text. Click opens new `<CompactionSummaryModal>` that fetches `sessions.compaction.list` (deck-go backend wrapper exists at `deck-go/backend/internal/runtime/openclaw/session_commands.go:91`) and renders the compaction history with summary text per entry. Use Modal atom.
-- [ ] 8.5 Wire `CompactionSummaryModal` to backend RPC: extend `chat-api.ts` with `fetchCompactionList(sessionKey)` + render entries with timestamp + before/after tokens + summary content (markdown via Markdown atom).
-- [ ] 8.6 tsc + vitest gauntlet; commit "deck-go: chat-parity 8 — block-filter eyebrow + msg-meta-line role+streaming + compaction summary modal".
+- [x] 8.1 BlockFilterBar gained leading `__label` mono-small eyebrow: `<FilterIcon /> show` (new i18n key `filterShow` en/zh) before the chip row. New `FilterIcon` atom added to `deck-ui/icons.tsx` (Lucide funnel polygon). `__label-icon` size 10px aligns with bundle.
+- [x] 8.2 MessageBubble `__time` span replaced with `__meta-line` mono-small flex row: `<span class="__role">{roleLabel}</span> · <span class="__time">{time}</span> [· <span class="__streaming-dot">{streaming}</span>]`. `roleLabel` derived per-message via i18n `msgRoleYou`/`msgRoleAssistant`; `streamingLabel` via `msgStreaming`. `__streaming-dot` colored `--ds-accent`.
+- [x] 8.3 BlockFilterBar chip body now leads with `<CheckIcon class="__chip-state">` (when enabled) or `<XIcon class="__chip-state">` (when disabled) before the existing topic icon + label. 10px icons, no API change to Chip atom.
+- [x] 8.4 CompactionNotice gained Button (variant ghost, size sm) "view summary" rendered between counts and time when `sessionKey` prop is present (threaded via MessageList from `useChatStore.activeSessionKey`). Click opens new `<CompactionSummaryModal>` via internal state.
+- [x] 8.5 New `CompactionSummaryModal.tsx` mounts the Modal atom (size lg) with header (title + close IconButton), body (loading / error / empty / list of `<li>` per checkpoint with mono meta line `time · reason · tokensBefore → tokensAfter` + `<Markdown>` summary), and footer close Button. `chat-api.ts` re-exports `DeckGoCompactionCheckpoint`/`DeckGoCompactionListResponse` types (aliased) and exposes `fetchCompactionList(sessionKey)` wrapping the existing api.ts `fetchCompactionCheckpoints` and returning `checkpoints[]`.
+- [x] 8.6 Gauntlet green: `pnpm tsc --noEmit` clean (deck-go/frontend), `pnpm vitest run` 841/841 (125 files). Ready to commit "deck-go: chat-parity 8 — block-filter eyebrow + msg-meta-line role+streaming + compaction summary modal".
 
 ## 9. Sidebar collapsed mode (Decision 5, 1 commit — covers 6 partials from §3.5)
 

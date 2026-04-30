@@ -1,5 +1,13 @@
 import { useTranslations } from "next-intl";
-import { BrainIcon, CheckSquareIcon, WrenchIcon, type IconComponent } from "@/deck-ui/icons";
+import {
+  BrainIcon,
+  CheckIcon,
+  CheckSquareIcon,
+  FilterIcon,
+  WrenchIcon,
+  XIcon,
+  type IconComponent,
+} from "@/deck-ui/icons";
 import { Chip } from "@/design-system/atoms/Chip";
 import type { ChatBlockPreferences } from "@/stores/chat-preferences";
 import "./chat-widgets.css";
@@ -26,6 +34,10 @@ export function BlockFilterBar({
 
   return (
     <div className="ds-block-filter-bar" role="toolbar" aria-label={t("filterBlocks")}>
+      <span className="ds-block-filter-bar__label" aria-hidden="true">
+        <FilterIcon className="ds-block-filter-bar__label-icon" />
+        {t("filterShow")}
+      </span>
       {TOGGLES.map(({ key, labelKey, icon: Icon }) => {
         const enabled = preferences[key] ?? true;
         const label = t(labelKey);
@@ -45,6 +57,11 @@ export function BlockFilterBar({
               }
             }}
           >
+            {enabled ? (
+              <CheckIcon className="ds-block-filter-bar__chip-state" />
+            ) : (
+              <XIcon className="ds-block-filter-bar__chip-state" />
+            )}
             <Icon />
             {label}
           </Chip>

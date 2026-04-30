@@ -156,12 +156,33 @@
   word-break: break-word;
 }
 
-/* Meta line elements — bundle .msg-meta-line color treatment (line 293). */
-.ds-chat-message__time {
+/* Meta line — bundle .msg-meta-line.mono.small (transcript.jsx 261-280):
+ * role label + dot-sep + time + (when streaming) dot-sep + streaming-dot. */
+.ds-chat-message__meta-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 0 2px;
-  font-size: var(--ds-fs-meta);
   color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
   line-height: 1.2;
+}
+
+.ds-chat-message__role {
+  color: var(--ds-text-3);
+}
+
+.ds-chat-message__dot-sep {
+  color: var(--ds-text-4);
+}
+
+.ds-chat-message__time {
+  color: var(--ds-text-3);
+}
+
+.ds-chat-message__streaming-dot {
+  color: var(--ds-accent);
 }
 
 .ds-chat-message__error {

@@ -30,6 +30,8 @@ function MessageBubble({
   sessionStatus,
   sessionStreaming,
   partialResultLabel,
+  roleLabel,
+  streamingLabel,
 }: {
   message: ChatMessage;
   blockPrefs?: ChatBlockPreferences;
@@ -39,6 +41,8 @@ function MessageBubble({
   sessionStatus?: "idle" | "running" | "done" | "failed" | "killed" | "timeout";
   sessionStreaming: boolean;
   partialResultLabel: string;
+  roleLabel: string;
+  streamingLabel: string;
 }) {
   const isUser = message.role === "user";
   const showPartialResult = !isUser && message.streaming && !sessionStreaming;
@@ -76,8 +80,22 @@ function MessageBubble({
             {partialResultLabel}
           </span>
         ) : null}
-        <span className="ds-chat-message__time deck-ui-message-time">
-          {new Date(message.timestamp).toLocaleTimeString()}
+        <span className="ds-chat-message__meta-line deck-ui-message-time">
+          <span className="ds-chat-message__role">{roleLabel}</span>
+          <span className="ds-chat-message__dot-sep" aria-hidden="true">
+            ·
+          </span>
+          <span className="ds-chat-message__time">
+            {new Date(message.timestamp).toLocaleTimeString()}
+          </span>
+          {message.streaming ? (
+            <>
+              <span className="ds-chat-message__dot-sep" aria-hidden="true">
+                ·
+              </span>
+              <span className="ds-chat-message__streaming-dot">{streamingLabel}</span>
+            </>
+          ) : null}
         </span>
         {!isUser ? <MessageActions content={extractPlainText(message)} /> : null}
       </div>
@@ -104,8 +122,12 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
     return key ? s.sessions.get(key)?.status : undefined;
   });
 
+  const activeSessionKey = useChatStore((s) => s.activeSessionKey);
   const containerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
+  const userRoleLabel = t("msgRoleYou");
+  const assistantRoleLabel = t("msgRoleAssistant");
+  const streamingLabel = t("msgStreaming");
 
   const handleScroll = () => {
     const el = containerRef.current;
@@ -137,6 +159,7 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
           return (
             <CompactionNotice
               key={msg.id}
+              sessionKey={activeSessionKey}
               timestamp={msg.timestamp}
               tokensBefore={msg.tokensBefore}
               tokensAfter={msg.tokensAfter}
@@ -183,6 +206,8 @@ export function MessageList({ blockPreferences }: { blockPreferences?: ChatBlock
               sessionStatus={sessionStatus}
               sessionStreaming={isStreaming}
               partialResultLabel={t("partialResult")}
+              roleLabel={msg.role === "user" ? userRoleLabel : assistantRoleLabel}
+              streamingLabel={streamingLabel}
             />
           </div>
         );
