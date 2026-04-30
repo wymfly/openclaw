@@ -89,6 +89,8 @@ export const sessionsMethodDefs: Record<string, MethodMetadata> = {
     params: SessionsSendParamsSchema,
     result: SessionsSendResultSchema,
     scope: WRITE_SCOPE,
+    forkClass: "C2",
+    bffEligible: false,
   },
   "sessions.abort": {
     params: SessionsAbortParamsSchema,
@@ -109,6 +111,8 @@ export const sessionsMethodDefs: Record<string, MethodMetadata> = {
     params: SessionsClearParamsSchema,
     result: SessionsClearResultSchema,
     scope: ADMIN_SCOPE,
+    forkClass: "C2",
+    bffEligible: false,
   },
   "sessions.delete": {
     params: SessionsDeleteParamsSchema,

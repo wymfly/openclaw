@@ -1,10 +1,3 @@
-import {
-  loadConfig,
-  readConfigFileSnapshotForWrite,
-  resolveConfigSnapshotHash,
-  writeConfigFile,
-} from "../../../config/config.js";
-import type { OpenClawConfig } from "../../../config/types.openclaw.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import {
   errorShape,
@@ -20,9 +13,13 @@ import {
   DeckIdentityUnlinkParamsSchema,
   DeckIdentityUnlinkResultSchema,
 } from "../../protocol/schema/deck.js";
+import { configService, type OpenClawConfig } from "../../services/config.service.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
 import { validateBaseHash } from "./utils.js";
+
+const { loadConfig, readConfigFileSnapshotForWrite, resolveConfigSnapshotHash, writeConfigFile } =
+  configService;
 
 /** Split "channel:peerId" on the FIRST ":" only (peerId may contain ":"). */
 function splitChannelPeer(raw: string): { channel: string; peerId: string } | null {
@@ -175,15 +172,23 @@ export const deckIdentityMethodDefs: Record<string, MethodMetadata> = {
     params: DeckIdentityListParamsSchema,
     result: DeckIdentityListResultSchema,
     scope: "operator.read",
+    forkClass: "C3",
+    bffEligible: true,
   },
   "deck.identity.link": {
     params: DeckIdentityLinkParamsSchema,
     result: DeckIdentityLinkResultSchema,
     scope: "operator.admin",
+    controlPlaneWrite: true,
+    forkClass: "C2",
+    bffEligible: false,
   },
   "deck.identity.unlink": {
     params: DeckIdentityUnlinkParamsSchema,
     result: DeckIdentityUnlinkResultSchema,
     scope: "operator.admin",
+    controlPlaneWrite: true,
+    forkClass: "C2",
+    bffEligible: false,
   },
 };

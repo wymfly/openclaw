@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
+import { ChatEventMediaFields, ChatEventMessageSchema } from "./logs-chat-extensions.js";
 import { ChatSendSessionKeyString, InputProvenanceSchema, NonEmptyString } from "./primitives.js";
-import { TranscriptMessageSchema } from "./transcript.js";
 
 export const LogsTailParamsSchema = Type.Object(
   {
@@ -33,20 +33,6 @@ export const ChatHistoryParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export const ChatHistoryMessageSchema = TranscriptMessageSchema;
-
-export const ChatHistoryResultSchema = Type.Object(
-  {
-    sessionKey: NonEmptyString,
-    sessionId: NonEmptyString,
-    messages: Type.Array(ChatHistoryMessageSchema),
-    thinkingLevel: Type.Optional(Type.String()),
-    fastMode: Type.Optional(Type.Boolean()),
-    verboseLevel: Type.Optional(Type.String()),
-  },
-  { additionalProperties: false },
-);
-
 export const ChatSendParamsSchema = Type.Object(
   {
     sessionKey: ChatSendSessionKeyString,
@@ -66,30 +52,10 @@ export const ChatSendParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export const ChatSendResultSchema = Type.Object(
-  {
-    ok: Type.Optional(Type.Boolean()),
-    aborted: Type.Optional(Type.Boolean()),
-    runIds: Type.Optional(Type.Array(NonEmptyString)),
-    runId: Type.Optional(NonEmptyString),
-    status: Type.Optional(Type.String()),
-  },
-  { additionalProperties: false },
-);
-
 export const ChatAbortParamsSchema = Type.Object(
   {
     sessionKey: NonEmptyString,
     runId: Type.Optional(NonEmptyString),
-  },
-  { additionalProperties: false },
-);
-
-export const ChatAbortResultSchema = Type.Object(
-  {
-    ok: Type.Boolean(),
-    aborted: Type.Boolean(),
-    runIds: Type.Array(NonEmptyString),
   },
   { additionalProperties: false },
 );
@@ -114,7 +80,7 @@ export const ChatEventSchema = Type.Object(
       Type.Literal("aborted"),
       Type.Literal("error"),
     ]),
-    message: Type.Optional(TranscriptMessageSchema),
+    message: Type.Optional(ChatEventMessageSchema),
     errorMessage: Type.Optional(Type.String()),
     errorKind: Type.Optional(
       Type.Union([
@@ -127,9 +93,9 @@ export const ChatEventSchema = Type.Object(
     ),
     usage: Type.Optional(Type.Unknown()),
     stopReason: Type.Optional(Type.String()),
-    mediaUrl: Type.Optional(Type.String()),
-    mediaUrls: Type.Optional(Type.Array(Type.String())),
-    mediaType: Type.Optional(Type.String()),
+    ...ChatEventMediaFields,
   },
   { additionalProperties: false },
 );
+
+export * from "./logs-chat-extensions.js";

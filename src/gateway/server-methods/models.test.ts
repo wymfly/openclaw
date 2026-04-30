@@ -11,10 +11,23 @@ vi.mock("node:fs", async () => {
 });
 vi.mock("../../config/config.js", () => ({
   loadConfig: vi.fn(),
+  readConfigFileSnapshotForWrite: vi.fn(),
+  resolveConfigSnapshotHash: vi.fn(),
+  writeConfigFile: vi.fn(),
 }));
 vi.mock("../../agents/model-selection.js", () => ({
   buildAllowedModelSet: vi.fn(),
   buildConfiguredModelCatalog: vi.fn(),
+  parseModelRef: vi.fn((raw: string) => {
+    if (!raw) {
+      return null;
+    }
+    const parts = raw.split("/");
+    if (parts.length >= 2) {
+      return { provider: parts[0], model: parts[1] };
+    }
+    return { provider: "anthropic", model: raw };
+  }),
 }));
 vi.mock("../../agents/auth-diagnostics.js", () => ({
   buildAuthOverview: vi.fn(),
@@ -47,8 +60,8 @@ describe("models.configured", () => {
     buildAuthOverview = authMod.buildAuthOverview as unknown as ReturnType<typeof vi.fn>;
 
     // Re-import handlers after mocks are set up
-    const mod = await import("./models.js");
-    modelsHandlers = mod.modelsHandlers;
+    const mod = await import("./models-configured.js");
+    modelsHandlers = mod.modelsConfiguredHandlers;
   });
 
   afterEach(() => {

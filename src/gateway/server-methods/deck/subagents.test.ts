@@ -14,6 +14,16 @@ vi.mock("../../../agents/subagent-announce.js", () => ({
   runSubagentAnnounceFlow: vi.fn(async () => true),
 }));
 
+vi.mock("../../../agents/subagent-control.js", () => ({
+  killSubagentRunAdmin: vi.fn(async ({ sessionKey }: { sessionKey: string }) => ({
+    found: true,
+    killed: true,
+    runId: "run-to-kill",
+    sessionKey,
+    cascadeKilled: 0,
+  })),
+}));
+
 vi.mock("../../../config/config.js", () => ({
   loadConfig: () => ({
     agents: {
@@ -24,10 +34,14 @@ vi.mock("../../../config/config.js", () => ({
       ],
     },
   }),
+  readConfigFileSnapshotForWrite: vi.fn(),
+  resolveConfigSnapshotHash: vi.fn(),
+  writeConfigFile: vi.fn(),
 }));
 
 // --- Imports (after mocks) ---
 
+import { killSubagentRunAdmin } from "../../../agents/subagent-control.js";
 import {
   addSubagentRunForTests,
   resetSubagentRegistryForTests,
@@ -38,27 +52,30 @@ import { deckSubagentsHandlers } from "./subagents.js";
 
 // --- Helpers ---
 
-function callHandler(
+async function callHandler(
   method: string,
   params: Record<string, unknown>,
 ): Promise<{ ok: boolean; payload?: unknown; error?: unknown }> {
-  return new Promise((resolve) => {
-    const respond: RespondFn = (ok, payload, error) => {
-      resolve({ ok, payload, error });
-    };
-    const handler = deckSubagentsHandlers[method];
-    if (!handler) {
-      throw new Error(`Handler "${method}" not found`);
-    }
-    void handler({
-      params,
-      respond,
-      req: { type: "req" as const, id: "test-1", method, params },
-      client: null,
-      isWebchatConnect: () => false,
-      context: {} as GatewayRequestHandlerOptions["context"],
-    });
+  let response: { ok: boolean; payload?: unknown; error?: unknown } | undefined;
+  const respond: RespondFn = (ok, payload, error) => {
+    response = { ok, payload, error };
+  };
+  const handler = deckSubagentsHandlers[method];
+  if (!handler) {
+    throw new Error(`Handler "${method}" not found`);
+  }
+  await handler({
+    params,
+    respond,
+    req: { type: "req" as const, id: "test-1", method, params },
+    client: null,
+    isWebchatConnect: () => false,
+    context: {} as GatewayRequestHandlerOptions["context"],
   });
+  if (!response) {
+    throw new Error(`Handler "${method}" did not respond`);
+  }
+  return response;
 }
 
 function makeRun(
@@ -79,6 +96,7 @@ function makeRun(
 
 afterEach(() => {
   resetSubagentRegistryForTests({ persist: false });
+  vi.clearAllMocks();
 });
 
 // =====================
@@ -179,6 +197,10 @@ describe("deck.subagents.kill", () => {
     expect(p.ok).toBe(true);
     expect(p.runId).toBe("run-to-kill");
     expect(p.childSessionKey).toBe("agent:coder:subagent:kill-uuid");
+    expect(killSubagentRunAdmin).toHaveBeenCalledWith({
+      cfg: expect.objectContaining({ agents: expect.any(Object) }),
+      sessionKey: "agent:coder:subagent:kill-uuid",
+    });
   });
 
   it("returns NOT_FOUND for non-existent run", async () => {

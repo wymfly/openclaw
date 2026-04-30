@@ -7,6 +7,11 @@ import { resolvePnpmRunner } from "./pnpm-runner.mjs";
 const nodeBin = process.execPath;
 const WINDOWS_BUILD_MAX_OLD_SPACE_MB = 4096;
 export const BUILD_ALL_STEPS = [
+  {
+    label: "gen-method-modules",
+    kind: "node",
+    args: ["--import", "tsx", "scripts/gen-method-modules.ts"],
+  },
   { label: "canvas:a2ui:bundle", kind: "pnpm", pnpmArgs: ["canvas:a2ui:bundle"] },
   { label: "tsdown", kind: "node", args: ["scripts/tsdown-build.mjs"] },
   { label: "runtime-postbuild", kind: "node", args: ["scripts/runtime-postbuild.mjs"] },
@@ -62,6 +67,7 @@ export const BUILD_ALL_STEPS = [
 export const BUILD_ALL_PROFILES = {
   full: BUILD_ALL_STEPS.map((step) => step.label),
   ciArtifacts: [
+    "gen-method-modules",
     "canvas:a2ui:bundle",
     "tsdown",
     "runtime-postbuild",

@@ -8,6 +8,9 @@ const { mockLoadConfig, mockBuildPluginSnapshotReport } = vi.hoisted(() => ({
 
 vi.mock("../../../config/config.js", () => ({
   loadConfig: mockLoadConfig,
+  readConfigFileSnapshotForWrite: vi.fn(),
+  resolveConfigSnapshotHash: vi.fn(),
+  writeConfigFile: vi.fn(),
 }));
 
 vi.mock("../../../plugins/status.js", () => ({

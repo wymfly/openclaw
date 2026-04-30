@@ -3,7 +3,7 @@ import {
   __testing as controlPlaneRateLimitTesting,
   resolveControlPlaneRateLimitKey,
 } from "./control-plane-rate-limit.js";
-import { handleGatewayRequest } from "./server-methods.js";
+import { CONTROL_PLANE_WRITE_METHODS, handleGatewayRequest } from "./server-methods.js";
 import type { GatewayRequestHandler } from "./server-methods/types.js";
 
 const noWebchat = () => false;
@@ -173,5 +173,20 @@ describe("gateway control-plane write rate limit", () => {
       clientIp: "10.0.0.10",
     });
     expect(key).toBe("unknown-device|10.0.0.10");
+  });
+
+  it("derives the control-plane write set from method metadata", () => {
+    expect([...CONTROL_PLANE_WRITE_METHODS].toSorted()).toEqual([
+      "config.apply",
+      "config.patch",
+      "deck.agents.eventStreams.set",
+      "deck.agents.skills.set",
+      "deck.agents.subagents.set",
+      "deck.identity.link",
+      "deck.identity.unlink",
+      "deck.routing.add",
+      "deck.routing.remove",
+      "update.run",
+    ]);
   });
 });

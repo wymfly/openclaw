@@ -1,24 +1,11 @@
-import { gatewayEventDefs } from "./event-defs.js";
 // Side-effect-free export for codegen consumption.
 // MUST NOT import modules with side-effects at module scope.
 //
 // Verify: bun -e 'import("./src/gateway/method-registry-data.ts")'
 import type { MethodMetadata } from "./method-registry.js";
+import { loadGatewayMethodMetadataModules } from "./method-registry.js";
 import { PROTOCOL_VERSION } from "./protocol/schema/protocol-schemas.js";
-import { agentMethodDefs } from "./server-methods/agent.js";
-import { agentsMethodDefs } from "./server-methods/agents.js";
-import { chatMethodDefs } from "./server-methods/chat-method-defs.js";
-import { configMethodDefs } from "./server-methods/config-method-defs.js";
-import { controlPlaneMethodDefs } from "./server-methods/control-plane-method-defs.js";
-import { deckAuthMethodDefs } from "./server-methods/deck-auth.js";
-import { deckMethodDefs } from "./server-methods/deck/index.js";
-import { describeMethodDefs } from "./server-methods/describe.js";
-import { deviceMethodDefs } from "./server-methods/device-method-defs.js";
-import { modelsMethodDefs } from "./server-methods/models.js";
-import { nodeMethodDefs } from "./server-methods/node-method-defs.js";
-import { sessionsMethodDefs } from "./server-methods/sessions-method-defs.js";
-import { talkMethodDefs } from "./server-methods/talk-method-defs.js";
-import { wizardMethodDefs } from "./server-methods/wizard-method-defs.js";
+import { gatewayMethodMetadataModules } from "./server-methods/_method-defs.generated.js";
 
 export { PROTOCOL_VERSION };
 
@@ -26,24 +13,11 @@ export { PROTOCOL_VERSION };
 // All typed methodDefs used by Deck codegen and gateway.describe.
 // ---------------------------------------------------------------------------
 
-export const allMethodDefs: Record<string, MethodMetadata> = {
-  ...chatMethodDefs,
-  ...configMethodDefs,
-  ...controlPlaneMethodDefs,
-  ...sessionsMethodDefs,
-  ...agentMethodDefs,
-  ...agentsMethodDefs,
-  ...modelsMethodDefs,
-  ...deckMethodDefs,
-  ...deckAuthMethodDefs,
-  ...describeMethodDefs,
-  ...talkMethodDefs,
-  ...wizardMethodDefs,
-  ...deviceMethodDefs,
-  ...nodeMethodDefs,
-};
+const metadata = loadGatewayMethodMetadataModules(gatewayMethodMetadataModules);
 
-export const allEventDefs = gatewayEventDefs;
+export const allMethodDefs: Record<string, MethodMetadata> = metadata.methodDefs;
+
+export const allEventDefs = metadata.events;
 
 // ---------------------------------------------------------------------------
 // All known method names — used for allowlist generation.
@@ -220,6 +194,8 @@ export const allMethodNames: readonly string[] = [
   "deck.identity.list",
   "deck.identity.link",
   "deck.identity.unlink",
+  // deck.plugins
+  "deck.plugins.list",
   // deck.threads
   "deck.threads.list",
   // gateway introspection

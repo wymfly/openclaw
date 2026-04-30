@@ -1,11 +1,3 @@
-import { listAgentEntries } from "../../../agents/agent-scope.js";
-import {
-  getSubagentRunsForDeck,
-  markSubagentRunTerminated,
-} from "../../../agents/subagent-registry.js";
-import type { SubagentRunRecord } from "../../../agents/subagent-registry.types.js";
-import { loadConfig } from "../../../config/config.js";
-import { getSubagentDepth, resolveAgentIdFromSessionKey } from "../../../routing/session-key.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import {
   validateDeckSubagentsKillParams,
@@ -20,9 +12,22 @@ import {
   DeckSubagentsListParamsSchema,
   DeckSubagentsListResultSchema,
 } from "../../protocol/schema/deck.js";
+import { agentsService } from "../../services/agents.service.js";
+import { configService, type OpenClawConfig } from "../../services/config.service.js";
+import { routingService } from "../../services/routing.service.js";
+import {
+  subagentRegistryService,
+  type SubagentRunRecord,
+} from "../../services/subagent-registry.service.js";
+import { subagentsService } from "../../services/subagents.service.js";
 import type { GatewayRequestHandlers } from "../types.js";
 
 const MAX_LINEAGE_NODES = 50;
+const { listAgentEntries } = agentsService;
+const { loadConfig } = configService;
+const { getSubagentDepth, resolveAgentIdFromSessionKey } = routingService;
+const { getSubagentRunsForDeck } = subagentRegistryService;
+const { killSubagentRunAdmin } = subagentsService;
 
 function deriveStatus(run: SubagentRunRecord): "active" | "completed" | "failed" | "timeout" {
   if (typeof run.endedAt !== "number") {
@@ -37,8 +42,10 @@ function deriveStatus(run: SubagentRunRecord): "active" | "completed" | "failed"
   return "completed";
 }
 
-function resolveAgentName(cfg: ReturnType<typeof loadConfig>, agentId: string): string | undefined {
-  const entry = listAgentEntries(cfg).find((a) => a.id.toLowerCase() === agentId.toLowerCase());
+function resolveAgentName(cfg: OpenClawConfig, agentId: string): string | undefined {
+  const entry = listAgentEntries(cfg).find(
+    (agent) => agent.id.toLowerCase() === agentId.toLowerCase(),
+  );
   return entry?.name?.trim() || undefined;
 }
 
@@ -121,7 +128,7 @@ export const deckSubagentsHandlers: GatewayRequestHandlers = {
     respond(true, { runs, total });
   },
 
-  "deck.subagents.kill": ({ params, respond }) => {
+  "deck.subagents.kill": async ({ params, respond }) => {
     if (!validateDeckSubagentsKillParams(params)) {
       respond(false, undefined, { code: "INVALID_REQUEST", message: "invalid params" });
       return;
@@ -137,7 +144,13 @@ export const deckSubagentsHandlers: GatewayRequestHandlers = {
     }
 
     const childSessionKey = entry.childSessionKey;
-    markSubagentRunTerminated({ runId });
+    const cfg = loadConfig();
+    const result = await killSubagentRunAdmin({ cfg, sessionKey: childSessionKey });
+
+    if (!result.found) {
+      respond(false, undefined, { code: "NOT_FOUND", message: `run "${runId}" not found` });
+      return;
+    }
 
     respond(true, { ok: true, runId, childSessionKey });
   },
@@ -273,15 +286,21 @@ export const deckSubagentsMethodDefs: Record<string, MethodMetadata> = {
     params: DeckSubagentsListParamsSchema,
     result: DeckSubagentsListResultSchema,
     scope: "operator.read",
+    forkClass: "C3",
+    bffEligible: true,
   },
   "deck.subagents.kill": {
     params: DeckSubagentsKillParamsSchema,
     result: DeckSubagentsKillResultSchema,
     scope: "operator.admin",
+    forkClass: "C2",
+    bffEligible: false,
   },
   "deck.subagents.lineage": {
     params: DeckSubagentsLineageParamsSchema,
     result: DeckSubagentsLineageResultSchema,
     scope: "operator.read",
+    forkClass: "C3",
+    bffEligible: true,
   },
 };

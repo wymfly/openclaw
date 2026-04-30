@@ -33,11 +33,13 @@ export const configMethodDefs: Record<string, MethodMetadata> = {
     params: ConfigApplyParamsSchema,
     result: ConfigWriteResultSchema,
     scope: ADMIN_SCOPE,
+    controlPlaneWrite: true,
   },
   "config.patch": {
     params: ConfigPatchParamsSchema,
     result: ConfigWriteResultSchema,
     scope: ADMIN_SCOPE,
+    controlPlaneWrite: true,
   },
   "config.set": {
     params: ConfigSetParamsSchema,

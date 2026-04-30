@@ -153,7 +153,6 @@ import {
   LogsTailResultSchema,
   type ModelsListParams,
   ModelsListParamsSchema,
-  ModelsConfiguredParamsSchema,
   type NodeDescribeParams,
   NodeDescribeParamsSchema,
   type NodeEventParams,
@@ -206,8 +205,6 @@ import {
   SecretsResolveResultSchema,
   type SessionsAbortParams,
   SessionsAbortParamsSchema,
-  type SessionsClearParams,
-  SessionsClearParamsSchema,
   type SessionsCompactParams,
   SessionsCompactParamsSchema,
   type SessionsCompactionBranchParams,
@@ -273,16 +270,6 @@ import {
   TalkModeParamsSchema,
   type TickEvent,
   TickEventSchema,
-  type TranscriptBlock,
-  TranscriptBlockSchema,
-  TranscriptFileBlockSchema,
-  TranscriptImageBlockSchema,
-  type TranscriptMessage,
-  TranscriptMessageSchema,
-  TranscriptRoleSchema,
-  TranscriptTextBlockSchema,
-  TranscriptThinkingBlockSchema,
-  TranscriptToolUseBlockSchema,
   type UpdateRunParams,
   UpdateRunParamsSchema,
   type WakeParams,
@@ -401,8 +388,6 @@ export const validateSessionsPatchParams =
   ajv.compile<SessionsPatchParams>(SessionsPatchParamsSchema);
 export const validateSessionsResetParams =
   ajv.compile<SessionsResetParams>(SessionsResetParamsSchema);
-export const validateSessionsClearParams =
-  ajv.compile<SessionsClearParams>(SessionsClearParamsSchema);
 export const validateSessionsDeleteParams = ajv.compile<SessionsDeleteParams>(
   SessionsDeleteParamsSchema,
 );
@@ -450,7 +435,6 @@ export const validateChannelsLogoutParams = ajv.compile<ChannelsLogoutParams>(
   ChannelsLogoutParamsSchema,
 );
 export const validateModelsListParams = ajv.compile<ModelsListParams>(ModelsListParamsSchema);
-export const validateModelsConfiguredParams = ajv.compile(ModelsConfiguredParamsSchema);
 export const validateSkillsStatusParams = ajv.compile<SkillsStatusParams>(SkillsStatusParamsSchema);
 export const validateToolsCatalogParams = ajv.compile<ToolsCatalogParams>(ToolsCatalogParamsSchema);
 export const validateToolsEffectiveParams = ajv.compile<ToolsEffectiveParams>(
@@ -524,77 +508,6 @@ export const validateUpdateRunParams = ajv.compile<UpdateRunParams>(UpdateRunPar
 export const validateWebLoginStartParams =
   ajv.compile<WebLoginStartParams>(WebLoginStartParamsSchema);
 export const validateWebLoginWaitParams = ajv.compile<WebLoginWaitParams>(WebLoginWaitParamsSchema);
-
-// deck.* validators
-import {
-  DeckCommandsDiscoverParamsSchema,
-  DeckRoutingListParamsSchema,
-  DeckRoutingAddParamsSchema,
-  DeckRoutingRemoveParamsSchema,
-  DeckRoutingValidateParamsSchema,
-  DeckRoutingSimulateParamsSchema,
-  DeckAgentsDetailParamsSchema,
-  DeckAgentsSkillsGetParamsSchema,
-  DeckAgentsSkillsSetParamsSchema,
-  DeckAgentsSubagentsGetParamsSchema,
-  DeckAgentsSubagentsSetParamsSchema,
-  DeckAgentsEventStreamsGetParamsSchema,
-  DeckAgentsEventStreamsSetParamsSchema,
-  DeckAgentsToolPolicyPreviewParamsSchema,
-  DeckAgentsSystemPromptPreviewParamsSchema,
-  DeckSubagentsListParamsSchema,
-  DeckSubagentsKillParamsSchema,
-  DeckSubagentsLineageParamsSchema,
-  DeckSubagentsSteerParamsSchema,
-  DeckIdentityListParamsSchema,
-  DeckIdentityLinkParamsSchema,
-  DeckIdentityUnlinkParamsSchema,
-  DeckPluginsListParamsSchema,
-  DeckThreadsListParamsSchema,
-} from "./schema/deck.js";
-
-// deck.commands.*
-export const validateDeckCommandsDiscoverParams = ajv.compile(DeckCommandsDiscoverParamsSchema);
-// deck.routing.*
-export const validateDeckRoutingListParams = ajv.compile(DeckRoutingListParamsSchema);
-export const validateDeckRoutingAddParams = ajv.compile(DeckRoutingAddParamsSchema);
-export const validateDeckRoutingRemoveParams = ajv.compile(DeckRoutingRemoveParamsSchema);
-export const validateDeckRoutingValidateParams = ajv.compile(DeckRoutingValidateParamsSchema);
-export const validateDeckRoutingSimulateParams = ajv.compile(DeckRoutingSimulateParamsSchema);
-// deck.agents.*
-export const validateDeckAgentsDetailParams = ajv.compile(DeckAgentsDetailParamsSchema);
-export const validateDeckAgentsSkillsGetParams = ajv.compile(DeckAgentsSkillsGetParamsSchema);
-export const validateDeckAgentsSkillsSetParams = ajv.compile(DeckAgentsSkillsSetParamsSchema);
-export const validateDeckAgentsSubagentsGetParams = ajv.compile(DeckAgentsSubagentsGetParamsSchema);
-export const validateDeckAgentsSubagentsSetParams = ajv.compile(DeckAgentsSubagentsSetParamsSchema);
-// deck.agents.eventStreams.*
-export const validateDeckAgentsEventStreamsGetParams = ajv.compile(
-  DeckAgentsEventStreamsGetParamsSchema,
-);
-export const validateDeckAgentsEventStreamsSetParams = ajv.compile(
-  DeckAgentsEventStreamsSetParamsSchema,
-);
-// deck.agents.toolPolicy.*
-export const validateDeckAgentsToolPolicyPreviewParams = ajv.compile(
-  DeckAgentsToolPolicyPreviewParamsSchema,
-);
-// deck.agents.systemPrompt.*
-export const validateDeckAgentsSystemPromptPreviewParams = ajv.compile(
-  DeckAgentsSystemPromptPreviewParamsSchema,
-);
-// deck.subagents.*
-export const validateDeckSubagentsListParams = ajv.compile(DeckSubagentsListParamsSchema);
-export const validateDeckSubagentsKillParams = ajv.compile(DeckSubagentsKillParamsSchema);
-export const validateDeckSubagentsLineageParams = ajv.compile(DeckSubagentsLineageParamsSchema);
-export const validateDeckSubagentsSteerParams = ajv.compile(DeckSubagentsSteerParamsSchema);
-// deck.identity.*
-export const validateDeckIdentityListParams = ajv.compile(DeckIdentityListParamsSchema);
-export const validateDeckIdentityLinkParams = ajv.compile(DeckIdentityLinkParamsSchema);
-export const validateDeckIdentityUnlinkParams = ajv.compile(DeckIdentityUnlinkParamsSchema);
-// deck.plugins.*
-export const validateDeckPluginsListParams = ajv.compile(DeckPluginsListParamsSchema);
-// deck.threads.*
-export const validateDeckThreadsListParams = ajv.compile(DeckThreadsListParamsSchema);
 
 export function formatValidationErrors(errors: ErrorObject[] | null | undefined) {
   if (!errors?.length) {
@@ -678,7 +591,6 @@ export {
   SessionsAbortParamsSchema,
   SessionsPatchParamsSchema,
   SessionsResetParamsSchema,
-  SessionsClearParamsSchema,
   SessionsDeleteParamsSchema,
   SessionsCompactParamsSchema,
   SessionsUsageParamsSchema,
@@ -726,7 +638,6 @@ export {
   CommandsListParamsSchema,
   CommandsListResultSchema,
   ModelsListParamsSchema,
-  ModelsConfiguredParamsSchema,
   SkillsStatusParamsSchema,
   ToolsCatalogParamsSchema,
   ToolsEffectiveParamsSchema,
@@ -751,14 +662,6 @@ export {
   ExecApprovalGetParamsSchema,
   ExecApprovalRequestParamsSchema,
   ExecApprovalResolveParamsSchema,
-  TranscriptRoleSchema,
-  TranscriptTextBlockSchema,
-  TranscriptThinkingBlockSchema,
-  TranscriptToolUseBlockSchema,
-  TranscriptImageBlockSchema,
-  TranscriptFileBlockSchema,
-  TranscriptBlockSchema,
-  TranscriptMessageSchema,
   ChatHistoryParamsSchema,
   ChatSendParamsSchema,
   ChatInjectParamsSchema,
@@ -787,8 +690,6 @@ export type {
   AgentIdentityResult,
   AgentWaitParams,
   ChatEvent,
-  TranscriptBlock,
-  TranscriptMessage,
   TickEvent,
   ShutdownEvent,
   WakeParams,
@@ -870,7 +771,6 @@ export type {
   SessionsPatchParams,
   SessionsPatchResult,
   SessionsResetParams,
-  SessionsClearParams,
   SessionsDeleteParams,
   SessionsCompactParams,
   SessionsUsageParams,
@@ -895,3 +795,5 @@ export type {
   UpdateRunParams,
   ChatInjectParams,
 };
+
+export * from "./index-extensions.js";

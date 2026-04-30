@@ -26,6 +26,15 @@ vi.mock("../../../config/paths.js", () => ({
   resolveStateDir: vi.fn(() => "/tmp/test-state"),
 }));
 
+vi.mock("../../../config/sessions.js", () => ({
+  loadSessionStore: vi.fn(() => ({})),
+}));
+
+vi.mock("../../../config/sessions/paths.js", () => ({
+  resolveSessionTranscriptsDirForAgent: vi.fn(() => "/tmp/test-transcripts"),
+  resolveStorePath: vi.fn(() => "/tmp/test-sessions"),
+}));
+
 import { deckIdentityHandlers } from "./identity.js";
 import { deckThreadsHandlers } from "./threads.js";
 

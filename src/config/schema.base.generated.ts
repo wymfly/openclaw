@@ -5515,6 +5515,18 @@ export const GENERATED_BASE_CONFIG_SCHEMA: BaseConfigSchemaResponse = {
                 },
                 additionalProperties: false,
               },
+              channels: {
+                type: "object",
+                properties: {
+                  eventStreams: {
+                    type: "array",
+                    items: {
+                      type: "string",
+                    },
+                  },
+                },
+                additionalProperties: false,
+              },
             },
             additionalProperties: false,
             title: "Agent Defaults",
@@ -7203,6 +7215,18 @@ export const GENERATED_BASE_CONFIG_SCHEMA: BaseConfigSchemaResponse = {
                   title: "Agent Runtime",
                   description:
                     "Optional runtime descriptor for this agent. Use embedded for default OpenClaw execution or acp for external ACP harness defaults.",
+                },
+                channels: {
+                  type: "object",
+                  properties: {
+                    eventStreams: {
+                      type: "array",
+                      items: {
+                        type: "string",
+                      },
+                    },
+                  },
+                  additionalProperties: false,
                 },
               },
               required: ["id"],

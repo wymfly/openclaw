@@ -16,11 +16,34 @@ const {
 }));
 
 vi.mock("../../../agents/agent-scope.js", () => ({
+  listAgentEntries: vi.fn(() => []),
+  listAgentIds: vi.fn(() => []),
+  resolveAgentConfig: vi.fn(() => ({})),
   resolveDefaultAgentId: mockResolveDefaultAgentId,
+  resolveAgentSkillsFilter: vi.fn(() => undefined),
+  resolveAgentWorkspaceDir: vi.fn(() => "/tmp/test-workspace"),
+}));
+
+vi.mock("../../../agents/skills-status.js", () => ({
+  buildWorkspaceSkillStatus: vi.fn(() => ({ commands: [] })),
+}));
+
+vi.mock("../../../agents/workspace.js", () => ({
+  DEFAULT_AGENTS_FILENAME: "AGENTS.md",
+  DEFAULT_BOOTSTRAP_FILENAME: "bootstrap.md",
+  DEFAULT_HEARTBEAT_FILENAME: "heartbeat.md",
+  DEFAULT_IDENTITY_FILENAME: "identity.md",
+  DEFAULT_SOUL_FILENAME: "soul.md",
+  DEFAULT_TOOLS_FILENAME: "tools.md",
+  DEFAULT_USER_FILENAME: "user.md",
+  loadWorkspaceBootstrapFiles: vi.fn(() => ({})),
 }));
 
 vi.mock("../../../config/config.js", () => ({
   loadConfig: mockLoadConfig,
+  readConfigFileSnapshotForWrite: vi.fn(),
+  resolveConfigSnapshotHash: vi.fn(),
+  writeConfigFile: vi.fn(),
 }));
 
 vi.mock("../../../auto-reply/commands-registry.data.js", () => ({

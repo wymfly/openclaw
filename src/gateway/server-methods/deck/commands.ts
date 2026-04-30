@@ -1,9 +1,4 @@
 import { createHash } from "node:crypto";
-import { resolveDefaultAgentId } from "../../../agents/agent-scope.js";
-import { getChatCommands } from "../../../auto-reply/commands-registry.data.js";
-import type { ChatCommandDefinition } from "../../../auto-reply/commands-registry.types.js";
-import { listSkillCommandsForAgents } from "../../../auto-reply/skill-commands.js";
-import { loadConfig } from "../../../config/config.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import {
   ErrorCodes,
@@ -14,8 +9,15 @@ import {
   DeckCommandsDiscoverParamsSchema,
   DeckCommandsDiscoverResultSchema,
 } from "../../protocol/schema/deck.js";
+import { agentsService } from "../../services/agents.service.js";
+import { configService } from "../../services/config.service.js";
+import { skillsService, type ChatCommandDefinition } from "../../services/skills.service.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
+
+const { resolveDefaultAgentId } = agentsService;
+const { loadConfig } = configService;
+const { getChatCommands, listSkillCommandsForAgents } = skillsService;
 
 type DiscoverableCommand = {
   name: string;
@@ -152,5 +154,7 @@ export const deckCommandsMethodDefs: Record<string, MethodMetadata> = {
     params: DeckCommandsDiscoverParamsSchema,
     result: DeckCommandsDiscoverResultSchema,
     scope: "operator.read",
+    forkClass: "C1",
+    bffEligible: false,
   },
 };

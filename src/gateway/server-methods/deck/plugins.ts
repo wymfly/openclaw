@@ -1,13 +1,16 @@
-import { loadConfig } from "../../../config/config.js";
-import { buildPluginSnapshotReport } from "../../../plugins/status.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import { ErrorCodes, errorShape, validateDeckPluginsListParams } from "../../protocol/index.js";
 import {
   DeckPluginsListParamsSchema,
   DeckPluginsListResultSchema,
 } from "../../protocol/schema/deck.js";
+import { configService } from "../../services/config.service.js";
+import { pluginsService } from "../../services/plugins.service.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
+
+const { loadConfig } = configService;
+const { buildPluginSnapshotReport } = pluginsService;
 
 type InventoryCapability = "channel" | "all";
 
@@ -91,5 +94,7 @@ export const deckPluginsMethodDefs: Record<string, MethodMetadata> = {
     params: DeckPluginsListParamsSchema,
     result: DeckPluginsListResultSchema,
     scope: "operator.read",
+    forkClass: "C4",
+    bffEligible: false,
   },
 };

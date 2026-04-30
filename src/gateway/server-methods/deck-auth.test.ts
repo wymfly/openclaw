@@ -6,6 +6,26 @@ vi.mock("../../config/config.js", () => ({
     models: { providers: { anthropic: {} } },
     agents: { defaults: { model: "anthropic/claude-sonnet-4-20250514" } },
   })),
+  readConfigFileSnapshotForWrite: vi.fn(),
+  resolveConfigSnapshotHash: vi.fn(),
+  writeConfigFile: vi.fn(),
+}));
+
+vi.mock("../../config/sessions.js", () => ({
+  loadSessionStore: vi.fn(() => ({})),
+}));
+
+vi.mock("../../config/sessions/paths.js", () => ({
+  resolveSessionTranscriptsDirForAgent: vi.fn(() => "/tmp/test-transcripts"),
+  resolveStorePath: vi.fn(() => "/tmp/test-sessions"),
+}));
+
+vi.mock("../../config/paths.js", () => ({
+  resolveStateDir: vi.fn(() => "/tmp/test-state"),
+}));
+
+vi.mock("../../infra/json-file.js", () => ({
+  loadJsonFile: vi.fn(() => undefined),
 }));
 
 vi.mock("../../agents/agent-paths.js", () => ({
@@ -13,7 +33,27 @@ vi.mock("../../agents/agent-paths.js", () => ({
 }));
 
 vi.mock("../../agents/agent-scope.js", () => ({
+  listAgentEntries: vi.fn(() => []),
+  listAgentIds: vi.fn(() => []),
+  resolveAgentConfig: vi.fn(() => ({})),
   resolveDefaultAgentId: vi.fn(() => "main"),
+  resolveAgentSkillsFilter: vi.fn(() => undefined),
+  resolveAgentWorkspaceDir: vi.fn(() => "/tmp/test-workspace"),
+}));
+
+vi.mock("../../agents/skills-status.js", () => ({
+  buildWorkspaceSkillStatus: vi.fn(() => ({ commands: [] })),
+}));
+
+vi.mock("../../agents/workspace.js", () => ({
+  DEFAULT_AGENTS_FILENAME: "AGENTS.md",
+  DEFAULT_BOOTSTRAP_FILENAME: "bootstrap.md",
+  DEFAULT_HEARTBEAT_FILENAME: "heartbeat.md",
+  DEFAULT_IDENTITY_FILENAME: "identity.md",
+  DEFAULT_SOUL_FILENAME: "soul.md",
+  DEFAULT_TOOLS_FILENAME: "tools.md",
+  DEFAULT_USER_FILENAME: "user.md",
+  loadWorkspaceBootstrapFiles: vi.fn(() => ({})),
 }));
 
 vi.mock("../../agents/auth-profiles.js", () => ({
@@ -32,6 +72,7 @@ vi.mock("../../agents/model-auth.js", () => ({
 }));
 
 vi.mock("../../agents/model-selection.js", () => ({
+  buildConfiguredModelCatalog: vi.fn(() => []),
   parseModelRef: vi.fn((raw: string) => {
     if (!raw) {
       return null;

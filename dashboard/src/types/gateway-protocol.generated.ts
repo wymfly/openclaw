@@ -3075,6 +3075,9 @@ export interface GatewayDescribeResult {
       result?: Record<string, unknown>;
       scope: string;
       since?: number;
+      forkClass?: string;
+      bffEligible?: boolean;
+      controlPlaneWrite?: boolean;
     }
   >;
   events: Record<

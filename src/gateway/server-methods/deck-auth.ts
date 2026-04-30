@@ -1,15 +1,14 @@
-import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
-import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
-import { buildAuthOverview } from "../../agents/auth-diagnostics.js";
-import { runAuthProbes, type AuthProbeResult } from "../../commands/models/list.probe.js";
-import { loadConfig } from "../../config/config.js";
 import type { MethodMetadata } from "../method-registry.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
 import {
   DeckAuthOverviewResultSchema,
   DeckAuthProbeResultSchema,
 } from "../protocol/schema/deck.js";
-import { createProviderProvenance } from "./model-provider-provenance.js";
+import { agentsService } from "../services/agents.service.js";
+import { authService, type AuthProbeResult } from "../services/auth.service.js";
+import { configService } from "../services/config.service.js";
+import { createProviderProvenance } from "../services/model-provenance.js";
+import { sessionsService } from "../services/sessions.service.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
 /**
@@ -21,6 +20,10 @@ import type { GatewayRequestHandlers } from "./types.js";
  * resolves to the first probe result.
  */
 const inflightProbes = new Map<string, Promise<AuthProbeResult | null>>();
+const { resolveDefaultAgentId, resolveOpenClawAgentDir } = agentsService;
+const { buildAuthOverview, runAuthProbes } = authService;
+const { loadConfig } = configService;
+const { resolveSessionTranscriptsDirForAgent } = sessionsService;
 
 export const deckAuthHandlers: GatewayRequestHandlers = {
   "deck.auth.overview": async ({ respond }) => {
@@ -124,8 +127,6 @@ export const deckAuthHandlers: GatewayRequestHandlers = {
       // Probes write to sessions dir under `probe-*` prefix; cleanup is
       // best-effort and not critical.
       try {
-        const { resolveSessionTranscriptsDirForAgent } =
-          await import("../../config/sessions/paths.js");
         const { default: fs } = await import("node:fs/promises");
         const sessionDir = resolveSessionTranscriptsDirForAgent(agentId);
         const entries = await fs.readdir(sessionDir).catch(() => []);
@@ -178,9 +179,13 @@ export const deckAuthMethodDefs: Record<string, MethodMetadata> = {
   "deck.auth.overview": {
     result: DeckAuthOverviewResultSchema,
     scope: "operator.read",
+    forkClass: "C4",
+    bffEligible: false,
   },
   "deck.auth.probe": {
     result: DeckAuthProbeResultSchema,
     scope: "operator.write",
+    forkClass: "C4",
+    bffEligible: false,
   },
 };

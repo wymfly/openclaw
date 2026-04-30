@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { ensureAuthProfileStore } from "../../agents/auth-profiles.js";
 import { resolveEnvApiKey } from "../../agents/model-auth.js";
+import type { ModelCatalogEntry, ModelInputType } from "../../agents/model-catalog.js";
 import { parseModelRef } from "../../agents/model-selection.js";
 import { normalizeProviderId } from "../../agents/provider-id.js";
 import type { OpenClawConfig } from "../../config/config.js";
@@ -65,18 +66,59 @@ function normalizeProvider(provider: string): string {
   return normalizeProviderId(provider) ?? provider.trim();
 }
 
-function readAgentModelsProviders(agentDir: string): Set<string> {
+function readModelsJsonSync(agentDir: string): Record<string, unknown> {
   try {
     const raw = fs.readFileSync(path.join(agentDir, "models.json"), "utf8");
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    return new Set(
-      Object.keys((parsed?.providers as Record<string, unknown>) ?? {})
-        .map((provider) => normalizeProvider(provider))
-        .filter(Boolean),
-    );
+    return (parsed?.providers as Record<string, unknown>) ?? {};
   } catch {
-    return new Set();
+    return {};
   }
+}
+
+function readAgentModelsProviders(agentDir: string): Set<string> {
+  return new Set(
+    Object.keys(readModelsJsonSync(agentDir))
+      .map((provider) => normalizeProvider(provider))
+      .filter(Boolean),
+  );
+}
+
+export function buildModelsJsonCatalog(agentDir: string): ModelCatalogEntry[] {
+  const providers = readModelsJsonSync(agentDir);
+  const catalog: ModelCatalogEntry[] = [];
+  for (const [providerRaw, providerData] of Object.entries(providers)) {
+    const providerId = normalizeProviderId(providerRaw);
+    if (!providerId) {
+      continue;
+    }
+    const p = providerData as Record<string, unknown> | undefined;
+    if (!p || !Array.isArray(p.models)) {
+      continue;
+    }
+    for (const model of p.models as Array<Record<string, unknown>>) {
+      const id = typeof model?.id === "string" ? model.id.trim() : "";
+      if (!id) {
+        continue;
+      }
+      catalog.push({
+        provider: providerId,
+        id,
+        name: typeof model?.name === "string" && model.name.trim() ? model.name.trim() : id,
+        contextWindow:
+          typeof model?.contextWindow === "number" && model.contextWindow > 0
+            ? model.contextWindow
+            : undefined,
+        reasoning: typeof model?.reasoning === "boolean" ? model.reasoning : undefined,
+        input: Array.isArray(model?.input)
+          ? (model.input as unknown[]).filter(
+              (i): i is ModelInputType => i === "text" || i === "image" || i === "document",
+            )
+          : undefined,
+      });
+    }
+  }
+  return catalog;
 }
 
 function hasConfigAuth(providerConfig: Record<string, unknown> | undefined): boolean {
@@ -117,7 +159,7 @@ function collectProviderSourceSets(cfg: OpenClawConfig, agentDir: string): Provi
         ? (((defaultModel as Record<string, unknown>).primary as string) ?? "")
         : "";
   if (rawModel) {
-    const parsed = parseModelRef(String(rawModel), DEFAULT_PROVIDER);
+    const parsed = parseModelRef(rawModel, DEFAULT_PROVIDER);
     if (parsed?.provider) {
       defaultModelProviders.add(parsed.provider);
     }

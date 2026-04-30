@@ -1,11 +1,9 @@
-import {
-  listAgentIds,
-  resolveAgentConfig,
-  resolveDefaultAgentId,
-  type ResolvedAgentConfig,
-} from "../../../agents/agent-scope.js";
-import type { OpenClawConfig } from "../../../config/types.js";
-import { normalizeAgentId } from "../../../routing/session-key.js";
+import { agentsService, type ResolvedAgentConfig } from "../../services/agents.service.js";
+import type { OpenClawConfig } from "../../services/config.service.js";
+import { routingService } from "../../services/routing.service.js";
+
+const { listAgentIds, resolveAgentConfig, resolveDefaultAgentId } = agentsService;
+const { normalizeAgentId } = routingService;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object");

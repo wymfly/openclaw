@@ -1,0 +1,170 @@
+change: openclaw-gateway-bff-architecture-refactor
+closureCompanion:
+  scriptsFound: false
+  note: "package.json does not currently expose openspec:closure:* scripts; maintain this file manually until companion scripts are added."
+entries:
+  - scenarioId: phase0.baseline.rebase-base
+    ownerTask: "0.1"
+    status: verified
+    verificationCommand: "git merge-base upstream/main enhanced"
+    evidence: "Recorded 0c0463b2b70f76aa46bdd860efd8ba16c3834711 (2026-04-15T08:05:37+05:30) in .omc/notepad.md."
+  - scenarioId: phase0.baseline.codegen
+    ownerTask: "0.2"
+    status: verified
+    verificationCommand: "pnpm protocol:gen:check && shasum dashboard/src/types/gateway-protocol.generated.ts dashboard/src/types/gateway-client.generated.ts"
+    evidence: ".omc/research/protocol-gen-check-baseline.log and .omc/research/codegen-baseline.txt captured; protocol:gen:check reported generated files up to date."
+  - scenarioId: phase0.baseline.describe
+    ownerTask: "0.3"
+    status: verified
+    verificationCommand: "start gateway and capture gateway.describe to .omc/research/describe-baseline.json"
+    evidence: "Started a minimal loopback gateway via startGatewayServer, called gateway.describe over WebSocket, and captured .omc/research/describe-baseline.json (81 methods, 5 events, includes gateway.describe)."
+  - scenarioId: phase0.baseline.fork-footprint
+    ownerTask: "0.4"
+    status: verified
+    verificationCommand: "git diff --name-only --diff-filter=M $BASE..enhanced -- src/gateway/"
+    evidence: ".omc/research/fork-modified-baseline.txt captured from base 0c0463b2b70f76aa46bdd860efd8ba16c3834711."
+  - scenarioId: phase0.audit.schema-footprint
+    ownerTask: "0.5"
+    status: verified
+    verificationCommand: "node --import tsx scripts/audit-schema-fork-footprint.ts"
+    evidence: "scripts/audit-schema-fork-footprint.ts added; baseline JSON/text captured in .omc/research/schema-fork-footprint-baseline.*."
+  - scenarioId: phase0.audit.fork-classification-registry-only
+    ownerTask: "0.6,0.9"
+    status: verified
+    verificationCommand: "node --import tsx scripts/audit-fork-classifications.ts --registry-only"
+    evidence: "Pass: registry-only deck.* count=26 after adding deck.plugins.list to method-registry-data, server-methods-list, and method-scopes."
+  - scenarioId: phase0.audit.service-coverage-fixture
+    ownerTask: "0.7"
+    status: verified
+    verificationCommand: "node --import tsx scripts/audit-gateway-service-coverage.ts --fixtures .omc/research/spike-fixtures --expected .omc/research/spike-fixtures/expected-symbols.json"
+    evidence: "Pass: fixture service-coverage symbols=4; spike fixtures cover depth-1, depth-3, multiline, and dynamic imports."
+  - scenarioId: phase0.audit.describe-diff
+    ownerTask: "0.8"
+    status: verified
+    verificationCommand: "node --import tsx scripts/diff-describe-baseline.ts"
+    evidence: "Pass: node --import tsx scripts/diff-describe-baseline.ts --baseline .omc/research/describe-baseline.json --current .omc/research/describe-baseline.json => describe diff count=0 disallowed=0."
+  - scenarioId: phase1.schema-sibling-split
+    ownerTask: "1.1-1.11"
+    status: verified
+    verificationCommand: "import and direct schema compatibility checks"
+    evidence: "Moved fork schema additions into sibling *-extensions.ts files. Direct imports remain compatible via per-file re-exports; cron result schemas import from cron-extensions.js to avoid an ESM re-export cycle."
+  - scenarioId: phase1.codegen-byte-stability
+    ownerTask: "1.12"
+    status: verified
+    verificationCommand: "pnpm protocol:gen:check"
+    evidence: "Pass: protocol:gen:check reported generated files up to date after Phase 1 split."
+  - scenarioId: phase1.schema-footprint
+    ownerTask: "1.13"
+    status: verified
+    verificationCommand: "node --import tsx scripts/audit-schema-fork-footprint.ts --enforce"
+    evidence: "Pass: all target upstream schema/protocol files are <=5 modified lines; config and logs-chat residual changes preserve root schema lookup and chat event media/transcript semantics."
+  - scenarioId: phase1.describe-diff
+    ownerTask: "1.14"
+    status: verified
+    verificationCommand: "node --import tsx scripts/diff-describe-baseline.ts --baseline .omc/research/describe-baseline.json --current .omc/research/describe-phase1.json"
+    evidence: "Pass: describe diff count=0 disallowed=0 after correcting ConfigSchemaLookupPathString placement."
+  - scenarioId: phase1.targeted-tests
+    ownerTask: "1.15"
+    status: blocked
+    verificationCommand: "pnpm test src/gateway/protocol/ src/gateway/method-registry.test.ts src/gateway/server-methods/describe.test.ts && pnpm test src/gateway/server.config-patch.test.ts src/gateway/server-methods/config.test.ts src/gateway/server-methods/control-plane-method-defs.test.ts && pnpm tsgo && pnpm build"
+    evidence: "Targeted protocol/registry/describe tests passed (8 files, 52 tests); config/control-plane tests passed (2 files, 25 tests); pnpm build passed. pnpm tsgo remains blocked by pre-existing unrelated Feishu/provider-usage type errors."
+  - scenarioId: phase2a.method-metadata-contract
+    ownerTask: "2.1-2.4"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/method-registry.test.ts src/gateway/server-methods/describe.test.ts && pnpm protocol:gen:check && node --import tsx scripts/diff-describe-baseline.ts --baseline .omc/research/describe-baseline.json --current .omc/research/describe-phase2a.json --allow-field schemaVersion"
+    evidence: "MethodDefinition/GatewayDescribePayload/gateway.describe schema now surface forkClass, bffEligible, and controlPlaneWrite. Registry tests passed 17/17, including schemaVersion changes for controlPlaneWrite, forkClass, and bffEligible. protocol:gen:check passed after regenerating dashboard typed protocol output. describe diff count=4 disallowed=0 with schemaVersion explicitly allowed for this metadata baseline bump."
+  - scenarioId: phase2.discovery-dispatcher-control-plane
+    ownerTask: "2.5-2.28"
+    status: verified
+    verificationCommand: "pnpm check:method-modules-up-to-date && pnpm protocol:gen:check && pnpm test src/gateway/method-registry.test.ts src/gateway/method-registry-data.test.ts src/gateway/server-methods/describe.test.ts src/gateway/server-methods/__tests__/dispatcher.test.ts src/gateway/server-methods.control-plane-rate-limit.test.ts src/gateway/__tests__/discovery-determinism.test.ts src/gateway/__tests__/discovery-duplicate-detection.test.ts src/gateway/__tests__/metadata-no-side-effect.test.ts && pnpm check:import-cycles && pnpm build && rg \"gen-method-modules\" dist (expected no hits / exit 1) && node --import tsx scripts/diff-describe-baseline.ts --baseline .omc/research/describe-baseline.json --current .omc/research/describe-phase2-current.json --allow-field schemaVersion"
+    evidence: "Generated runtime and metadata manifests are up to date. Targeted Phase 2 tests passed (8 files, 35 tests): registry, method-registry-data, describe, dispatcher, control-plane derived set, discovery determinism, duplicate handler detection, and metadata manifest no stdout/stderr side effects. protocol:gen:check passed; generated dashboard diff remains limited to gateway.describe metadata fields. check:import-cycles reported 0 runtime value cycles. pnpm build passed and invoked gen-method-modules first. rg \"gen-method-modules\" dist exited 1 with no hits, proving the generator is not bundled. describe diff count=13 disallowed=0. Implementation intentionally keeps usage metadata out of _method-defs.generated.ts because adding it widened generated sessions.usage* types, which violates the parent proposal's public typed-client diff invariant."
+  - scenarioId: phase2.registration-thin-entry
+    ownerTask: "2.31"
+    status: verified
+    verificationCommand: "git diff --numstat 0c0463b2b70f76aa46bdd860efd8ba16c3834711 -- src/gateway/server-methods.ts src/gateway/server-methods-list.ts && pnpm test src/gateway/server-methods/ src/gateway/__tests__/discovery-determinism.test.ts src/gateway/__tests__/discovery-duplicate-detection.test.ts src/gateway/__tests__/metadata-no-side-effect.test.ts src/gateway/server-methods.control-plane-rate-limit.test.ts src/gateway/method-registry.test.ts src/gateway/method-registry-data.test.ts && pnpm check:import-cycles"
+    evidence: "Pass: numstat now shows 1 added / 171 deleted in src/gateway/server-methods.ts and 3 added / 133 deleted in src/gateway/server-methods-list.ts versus rebase base 0c0463b2b70f76aa46bdd860efd8ba16c3834711. Runtime aggregation moved to src/gateway/server-methods/runtime.ts and root server-methods.ts is a one-line re-export. Broad gateway/server-methods suite passed 55 files / 540 tests after the move; import cycle check reported 0 runtime value cycles."
+  - scenarioId: phase2.full-gates
+    ownerTask: "2.30"
+    status: blocked
+    verificationCommand: "pnpm tsgo && pnpm check && pnpm test src/gateway/server-methods/ ..."
+    evidence: "pnpm tsgo and pnpm check remain blocked by pre-existing unrelated Feishu/provider-usage type errors. The earlier broad server-methods timeout was traced to src/gateway/server-methods/deck/subagents-steer.test.ts swallowing async handler rejections and missing a config/sessions/paths mock; after fixing the test helper/mock, pnpm test src/gateway/server-methods/ src/gateway/__tests__/discovery-determinism.test.ts src/gateway/__tests__/discovery-duplicate-detection.test.ts src/gateway/__tests__/metadata-no-side-effect.test.ts src/gateway/server-methods.control-plane-rate-limit.test.ts src/gateway/method-registry.test.ts src/gateway/method-registry-data.test.ts passed 55 files / 540 tests. pnpm protocol:gen:check and pnpm check:method-modules-up-to-date passed. pnpm build passed earlier in this Phase 2 verification cycle."
+  - scenarioId: phase3.service-interface-v1
+    ownerTask: "3.1-3.11"
+    status: verified
+    verificationCommand: "node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm test src/gateway/services/__tests__/contract.test.ts && pnpm check:import-cycles"
+    evidence: "Added src/gateway/services/README.md and v1 pass-through services for agents, auth, config, routing, skills, subagents, subagent-registry, plugins, and sessions. README documents the no-cache/no-side-effect contract and the DEFAULT_EVENT_STREAMS gateway-local escape hatch. Service coverage audit passed with consumed=63 unmapped=0 after cutting src/gateway/server-methods/deck/agents.ts over to agents/config services. Contract test passed 1 file / 9 tests, covering every exported service binding and version=1. Import cycle check reported 0 runtime value cycles."
+  - scenarioId: phase3.deck-agents-split-service-cutover
+    ownerTask: "3.12"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/ src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/__tests__/discovery-duplicate-detection.test.ts src/gateway/__tests__/discovery-determinism.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm check:method-modules-up-to-date && pnpm protocol:gen:check && pnpm check:import-cycles"
+    evidence: "Split src/gateway/server-methods/deck/agents.ts into detail, skills, subagents-config, and event-streams sibling files, split agents-preview.ts into tool-policy and system-prompt sibling files, and added discovered module/metadata pairs for all six splits. To avoid duplicate registration, deck.module.ts now keeps only commands/routing and deck-post-agents.module.ts owns subagents/identity/plugins/threads after the split modules. Metadata priorities were adjusted to preserve generated typed-client order; dashboard generated diff is again limited to the planned gateway.describe metadata fields. Split files consume agents/config/skills services instead of direct OpenClaw internal imports. deck+service+describe+registry targeted tests passed 12 files / 103 tests; deck+discovery targeted tests passed 13 files / 96 tests. Service coverage audit passed consumed=46 unmapped=0. check:method-modules-up-to-date, protocol:gen:check, and import cycle check all passed."
+  - scenarioId: phase3.deck-routing-split-service-cutover
+    ownerTask: "3.13"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/routing.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/__tests__/discovery-duplicate-detection.test.ts src/gateway/__tests__/discovery-determinism.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm check:method-modules-up-to-date && pnpm protocol:gen:check && pnpm check:import-cycles"
+    evidence: "Split src/gateway/server-methods/deck/routing.ts into list/add/remove/validate/simulate sibling files plus routing-shared.ts, and added discovered module/metadata pairs for all five routing methods. deck.module.ts now owns only deck.commands.* in the pre-agents chunk; routing is independently discovered with metadata/runtime priorities between commands and agents to preserve generated typed-client order. Routing handlers consume agents/config/routing services instead of direct OpenClaw internal imports. routing.test passed 1 file / 12 tests; deck+discovery+services+describe+registry targeted tests passed 14 files / 105 tests. Service coverage audit passed consumed=42 unmapped=0. protocol:gen:check, check:method-modules-up-to-date, and import cycle check passed. pnpm tsgo remains blocked only by the known unrelated Feishu/provider-usage baseline errors."
+  - scenarioId: phase3.deck-subagents-service-cutover
+    ownerTask: "3.14"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/subagents.test.ts src/gateway/server-methods/deck/subagents-steer.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm protocol:gen:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm tsgo"
+    evidence: "Refactored src/gateway/server-methods/deck/subagents.ts to consume agents/config/routing/subagentRegistry/subagents services and src/gateway/server-methods/deck/subagents-steer.ts to consume config/routing/sessions/subagents/subagentRegistry services. Post-architect fix: deck.subagents.kill now calls the existing killSubagentRunAdmin primitive through subagentsService, preserving abort/queue/store/cascade behavior instead of only marking the registry terminated. Tests now assert admin kill invocation, steer abort/queue clearing when a sessionId exists, restart RPC params, and steer announce-suppression cleanup on dispatch failure. Narrow subagents tests passed 2 files / 17 tests. Broader deck+services+describe+registry targeted tests passed 12 files / 105 tests. Service coverage audit passed consumed=23 unmapped=0. protocol:gen:check, check:method-modules-up-to-date, check:import-cycles, and check:madge-import-cycles passed. OpenSpec parent and batch child strict validation passed. git diff --check passed. pnpm check pre-tsgo gates passed and then remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase3.deck-auth-service-cutover
+    ownerTask: "3.15"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck-auth.test.ts && pnpm test src/gateway/server-methods/deck-auth.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/server-methods/deck-auth.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm protocol:gen:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm check:madge-import-cycles && pnpm tsgo"
+    evidence: "Refactored src/gateway/server-methods/deck-auth.ts to consume agents/auth/config/sessions services instead of direct agents/auth-diagnostics/commands/config/session-path imports. Probe transcript cleanup now uses sessionsService.resolveSessionTranscriptsDirForAgent. deck-auth.test passed 1 file / 6 tests. deck-auth+services+describe+registry targeted tests passed 4 files / 25 tests. Wider deck+deck-auth+services+describe+registry targeted tests passed 13 files / 111 tests. Service coverage audit passed consumed=17 unmapped=0. protocol:gen:check, check:method-modules-up-to-date, check:import-cycles, and check:madge-import-cycles passed. A direct internal-dependency scan of deck-auth.ts returned no matches. pnpm tsgo remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase3.deck-identity-service-cutover
+    ownerTask: "3.16"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/identity.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/server-methods/deck-auth.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm protocol:gen:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm tsgo"
+    evidence: "Refactored src/gateway/server-methods/deck/identity.ts to consume configService for load/write/snapshot/hash operations and the OpenClawConfig type. The file had no agent dependency, so no unused agentsService import was introduced. identity.test passed 1 file / 7 tests. Wider deck+deck-auth+services+describe+registry targeted tests passed 13 files / 111 tests. Service coverage audit passed consumed=13 unmapped=0. protocol:gen:check, check:method-modules-up-to-date, and check:import-cycles passed. A direct internal config/agents dependency scan of identity.ts returned no matches. pnpm tsgo remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase3.deck-commands-service-cutover
+    ownerTask: "3.17"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/commands.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/server-methods/deck-auth.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm protocol:gen:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm tsgo"
+    evidence: "Refactored src/gateway/server-methods/deck/commands.ts to consume skillsService, agentsService, and configService for chat command registry, skill command discovery, default agent resolution, and config loading. commands.test passed 1 file / 3 tests. Wider deck+deck-auth+services+describe+registry targeted tests passed 13 files / 111 tests. Service coverage audit passed consumed=9 unmapped=0. protocol:gen:check, check:method-modules-up-to-date, and check:import-cycles passed. A direct internal agents/auto-reply/config dependency scan of commands.ts returned no matches. pnpm tsgo remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase3.deck-threads-service-cutover
+    ownerTask: "3.18"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/identity.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/server-methods/deck-auth.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm protocol:gen:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm tsgo"
+    evidence: "Refactored src/gateway/server-methods/deck/threads.ts to consume sessionsService for resolveStateDir and loadJsonFile. identity.test, which owns the deck.threads.list coverage in this suite, passed 1 file / 7 tests. Wider deck+deck-auth+services+describe+registry targeted tests passed 13 files / 111 tests. Service coverage audit passed consumed=7 unmapped=0. protocol:gen:check, check:method-modules-up-to-date, and check:import-cycles passed. A direct internal config/infra dependency scan of threads.ts returned no matches. pnpm tsgo remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase3.deck-plugins-service-cutover
+    ownerTask: "3.19"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/plugins.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/server-methods/deck-auth.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm protocol:gen:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm tsgo"
+    evidence: "Refactored src/gateway/server-methods/deck/plugins.ts to consume configService and pluginsService for config loading and plugin snapshot reporting. plugins.test passed 1 file / 4 tests. Wider deck+deck-auth+services+describe+registry targeted tests passed 13 files / 111 tests. Service coverage audit passed consumed=5 unmapped=0. protocol:gen:check, check:method-modules-up-to-date, and check:import-cycles passed. A direct internal config/plugins dependency scan of plugins.ts returned no matches. pnpm tsgo remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase3.deck-utils-preview-service-cutover
+    ownerTask: "3.20,3.21"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/agents-preview.test.ts src/gateway/server-methods/deck/utils.test.ts src/gateway/services/__tests__/contract.test.ts && pnpm test src/gateway/server-methods/deck/ src/gateway/server-methods/deck-auth.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts && node --import tsx scripts/audit-gateway-service-coverage.ts && pnpm protocol:gen:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm tsgo"
+    evidence: "Refactored src/gateway/server-methods/deck/agent-read-config.ts to consume agentsService, routingService, and configService types. src/gateway/server-methods/deck/utils.ts only depends on gateway protocol error-code helpers, and src/gateway/server-methods/deck/agents-preview.ts is now a split-handler aggregator over already service-backed preview modules. agents-preview+utils+services targeted tests passed 3 files / 32 tests. Wider deck+deck-auth+services+describe+registry targeted tests passed 13 files / 111 tests. Service coverage audit passed consumed=1 unmapped=0, closing task 3.21. protocol:gen:check, check:method-modules-up-to-date, and check:import-cycles passed. A direct internal agents/config/routing dependency scan of utils.ts, agent-read-config.ts, and agents-preview.ts returned no matches. pnpm tsgo remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase3.fork-classification-annotations
+    ownerTask: "3.22-3.24"
+    status: verified
+    verificationCommand: "node --import tsx scripts/audit-fork-classifications.ts && node --import tsx -e 'write describe-current.json from gatewayMethodRegistry.describe({ filter: \"all\", includeSchemas: true })' && node --import tsx scripts/diff-describe-baseline.ts --baseline .omc/research/describe-baseline.json --current .omc/research/describe-current.json --allow-field schemaVersion && pnpm test src/gateway/server-methods/deck/ src/gateway/server-methods/deck-auth.test.ts src/gateway/services/__tests__/contract.test.ts src/gateway/server-methods/describe.test.ts src/gateway/method-registry-data.test.ts src/gateway/method-registry.test.ts && pnpm protocol:gen:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm check:madge-import-cycles && pnpm tsgo"
+    evidence: "Annotated all 34 fork-only methods with forkClass and bffEligible, including bffEligible=true for the 5 C3 methods. Updated scripts/audit-fork-classifications.ts so server-methods-list validation understands the Phase 2 registry-derived listGatewayMethods implementation. Classification audit passed with strict classification totals C1=8 C2=11 C3=5 C4=9 C5=1. Captured .omc/research/describe-current.json from gatewayMethodRegistry.describe({ filter: \"all\", includeSchemas: true }); bounded describe diff passed with describe diff count=79 disallowed=0, with differences limited to forkClass/bffEligible/controlPlaneWrite/schemaVersion. Regression tests passed 14 files / 122 tests. protocol:gen:check and check:method-modules-up-to-date passed. check:import-cycles reported 0 runtime value cycles; check:madge-import-cycles reported 0 cycles. pnpm tsgo remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase3.full-gates
+    ownerTask: "3.25"
+    status: blocked
+    verificationCommand: "pnpm test src/gateway/server-methods/deck/ src/gateway/server-methods/deck-auth.test.ts && pnpm build && pnpm check && openspec validate openclaw-gateway-bff-architecture-refactor --strict && openspec validate openclaw-gateway-batch-rpc-primitive --strict && git diff --check && pnpm check:method-modules-up-to-date"
+    evidence: "Deck handler regression tests passed 10 files / 92 tests. pnpm build passed and regenerated method module manifests; a follow-up pnpm check:method-modules-up-to-date passed. Parent and batch-child OpenSpec strict validation passed. git diff --check passed. pnpm check passed its pre-tsgo gates (conflict markers, tool-display, host-env policy, method modules, import cycles, madge cycles) and then remains blocked only by the known unrelated Feishu/provider-usage TypeScript baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase4.models-hot-path-split
+    ownerTask: "4.1-4.7"
+    status: verified
+    verificationCommand: "pnpm test src/gateway/server-methods/ && pnpm protocol:gen:check && pnpm build && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm check:madge-import-cycles && node --import tsx scripts/audit-gateway-service-coverage.ts && node --import tsx scripts/audit-fork-classifications.ts && node --import tsx scripts/diff-describe-baseline.ts --baseline .omc/research/describe-baseline.json --current .omc/research/describe-current.json --allow-field schemaVersion && git diff 0c0463b2b70f76aa46bdd860efd8ba16c3834711 -- src/gateway/server-methods/models.ts && git diff --check && pnpm tsgo"
+    evidence: "Split models.configured into src/gateway/server-methods/models-configured.ts plus paired .module/.method-defs files, moved provider provenance and models.json catalog helpers into src/gateway/services/model-provenance.ts, and moved models.list metadata ownership into src/gateway/server-methods/models-list.method-defs.ts. src/gateway/server-methods/models.ts now has zero diff against rebase base 0c0463b2b70f76aa46bdd860efd8ba16c3834711, including reverting the prior residual -1 line. Targeted models/deck-auth/service tests passed 3 files / 19 tests; registry/describe extension tests passed 6 files / 40 tests; broad server-methods tests passed 49 files / 518 tests. protocol:gen:check, pnpm build, check:method-modules-up-to-date, check:import-cycles, check:madge-import-cycles, service coverage audit, classification audit, OpenSpec strict validation, bounded describe diff, and git diff --check passed. pnpm tsgo remains blocked only by known unrelated Feishu/provider-usage baseline errors at extensions/feishu/src/channel.ts:549, extensions/feishu/src/locales.test.ts:2-3, and src/infra/provider-usage.load.test.ts:158."
+  - scenarioId: phase5.final-audit
+    ownerTask: "5.1-5.10"
+    status: blocked
+    verificationCommand: "pnpm test && pnpm check && pnpm build && pnpm protocol:gen:check && pnpm config:schema:check && pnpm config:docs:check && pnpm check:method-modules-up-to-date && pnpm check:import-cycles && pnpm check:madge-import-cycles && node --import tsx scripts/audit-gateway-service-coverage.ts && node --import tsx scripts/audit-fork-classifications.ts && node --import tsx scripts/diff-describe-baseline.ts --baseline .omc/research/describe-baseline.json --current .omc/research/describe-current.json --allow-field schemaVersion && cd dashboard && pnpm tsgo && cd deck-go/backend && GOCACHE=/tmp/openclaw-go-build-cache go build ./..."
+    evidence: "Passed: pnpm protocol:gen:check; pnpm config:schema:check after regenerating src/config/schema.base.generated.ts; pnpm config:docs:check after regenerating docs/.generated/config-baseline.sha256; pnpm build; pnpm check:method-modules-up-to-date; pnpm check:import-cycles; pnpm check:madge-import-cycles; service coverage audit; classification audit; bounded describe diff; git diff --check; OpenSpec strict validation; targeted build-all/base-config/method-scopes tests (3 files / 48 tests); discovery determinism/duplicate/service tests (3 files / 11 tests); deck-go backend go build with GOCACHE=/tmp/openclaw-go-build-cache. Fresh 2026-04-29T15:10:43Z pnpm check evidence: conflict-marker/tool-display/host-env/method-modules/import-cycle/madge gates passed, then tsgo failed on the same known Feishu/provider-usage baseline errors. Blocked: final fork footprint gate reports 32 modified non-test src/gateway files versus the <=12 target; .omc/research/rca-phase5-footprint-20260429-145451.md documents why this is a Phase 5 metric/scope mismatch rather than a Phase 4 regression. dashboard pnpm tsgo fails on existing dashboard test/e2e typing errors; full pnpm test still fails across unrelated enhanced-fork surfaces (plugin/wecom boundaries, SSRF/proxy-sensitive extension tests, agent lifecycle mocks, chat-history expectations, dashboard gate, and other non-gateway-refactor baselines). Two proposal-related full-suite failures were fixed and reverified: ciArtifacts now expects gen-method-modules, and listGatewayMethods includes aux exec/plugin approval and secrets handlers."
+  - scenarioId: phase5.deck-go-backend-compile
+    ownerTask: "5.10"
+    status: verified
+    verificationCommand: "GOCACHE=/tmp/openclaw-go-build-cache go build ./... (from deck-go/backend)"
+    evidence: "Fresh 2026-04-30 post-review split verification exited 0 with no output. This proves the deck-go backend side of task 5.10 is not blocked."
+  - scenarioId: phase5.dashboard-typed-client-compile
+    ownerTask: "5.10"
+    status: blocked
+    verificationCommand: "pnpm tsgo (from dashboard)"
+    evidence: "Fresh 2026-04-30 post-review split verification exited 2 on existing dashboard test/e2e TypeScript baseline errors: e2e/feishu-wizard-journey.spec.ts readonly steps vs mutable Record array; server/__tests__/node-connection.test.ts VoidFunction overload mismatches; ChannelAccessTab and RouteSimulator tests with unknown child.props/value narrowing; ChannelDetail.permission-summary.test.ts callable never; WizardRunner.test.tsx missing title prop; RoutingPanel.handoff.test.tsx missing ReactNode imports. These failures do not point at dashboard/src/types/gateway-*.generated.ts or the gateway typed client generated output."

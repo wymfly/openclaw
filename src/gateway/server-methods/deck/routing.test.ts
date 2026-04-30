@@ -20,10 +20,16 @@ const mockConfig = {
 
 vi.mock("../../../config/config.js", () => ({
   loadConfig: () => mockConfig,
+  readConfigFileSnapshotForWrite: vi.fn(),
+  resolveConfigSnapshotHash: vi.fn(),
   writeConfigFile: vi.fn(async () => {}),
 }));
 
 vi.mock("../../../agents/agent-scope.js", () => ({
+  listAgentEntries: () => [],
+  listAgentIds: () => ["main", "support"],
+  resolveAgentSkillsFilter: () => undefined,
+  resolveAgentWorkspaceDir: (_cfg: unknown, agentId: string) => `/tmp/${agentId}`,
   resolveDefaultAgentId: () => "main",
   resolveAgentConfig: (_cfg: unknown, agentId: string) => {
     if (agentId === "main") {

@@ -10,6 +10,9 @@ export interface MethodDefinition {
   scope: OperatorScope | "node" | "public";
   since?: number;
   deprecated?: boolean;
+  forkClass?: "C1" | "C2" | "C3" | "C4" | "C5";
+  bffEligible?: boolean;
+  controlPlaneWrite?: boolean;
 }
 
 export type MethodMetadata = Omit<MethodDefinition, "handler">;
@@ -17,6 +20,25 @@ export type MethodMetadata = Omit<MethodDefinition, "handler">;
 export interface EventDefinition {
   payload?: TSchema;
   since?: number;
+}
+
+export interface GatewayMethodMetadataModule {
+  name: string;
+  priority?: number;
+  methodDefs?: Record<string, MethodMetadata>;
+  events?: Record<string, EventDefinition>;
+}
+
+export interface GatewayMethodModule extends GatewayMethodMetadataModule {
+  handlers: GatewayRequestHandlers;
+}
+
+export interface LoadedGatewayMethodModules {
+  handlers: GatewayRequestHandlers;
+  methodDefs: Record<string, MethodMetadata>;
+  events: Record<string, EventDefinition>;
+  modules: readonly GatewayMethodModule[];
+  metadataModules: readonly GatewayMethodMetadataModule[];
 }
 
 export interface GatewayDescribePayload {
@@ -29,6 +51,9 @@ export interface GatewayDescribePayload {
       result?: Record<string, unknown>;
       scope: string;
       since?: number;
+      forkClass?: "C1" | "C2" | "C3" | "C4" | "C5";
+      bffEligible?: boolean;
+      controlPlaneWrite?: boolean;
     }
   >;
   events: Record<
@@ -68,6 +93,83 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function sortGatewayModules<T extends GatewayMethodMetadataModule>(modules: readonly T[]): T[] {
+  return [...modules].toSorted((left, right) => {
+    const priority = (left.priority ?? 100) - (right.priority ?? 100);
+    if (priority !== 0) {
+      return priority;
+    }
+    return left.name.localeCompare(right.name);
+  });
+}
+
+export function loadGatewayMethodMetadataModules(modules: readonly GatewayMethodMetadataModule[]): {
+  methodDefs: Record<string, MethodMetadata>;
+  events: Record<string, EventDefinition>;
+  metadataModules: readonly GatewayMethodMetadataModule[];
+} {
+  const methodDefs: Record<string, MethodMetadata> = {};
+  const events: Record<string, EventDefinition> = {};
+  const eventOwners = new Map<string, string>();
+  const sortedModules = sortGatewayModules(modules);
+
+  for (const module of sortedModules) {
+    for (const [method, def] of Object.entries(module.methodDefs ?? {})) {
+      // Metadata modules may intentionally refine an earlier broad metadata
+      // set; duplicate runtime handlers still fail fast below.
+      methodDefs[method] = def;
+    }
+
+    for (const [event, def] of Object.entries(module.events ?? {})) {
+      const previousOwner = eventOwners.get(event);
+      if (previousOwner) {
+        throw new Error(
+          `duplicate gateway event metadata "${event}" in ${previousOwner} and ${module.name}`,
+        );
+      }
+      eventOwners.set(event, module.name);
+      events[event] = def;
+    }
+  }
+
+  return {
+    methodDefs,
+    events,
+    metadataModules: sortedModules,
+  };
+}
+
+export function loadGatewayMethodModules(
+  modules: readonly GatewayMethodModule[],
+  metadataModules: readonly GatewayMethodMetadataModule[] = modules,
+): LoadedGatewayMethodModules {
+  const handlers: GatewayRequestHandlers = {};
+  const handlerOwners = new Map<string, string>();
+  const sortedModules = sortGatewayModules(modules);
+
+  for (const module of sortedModules) {
+    for (const [method, handler] of Object.entries(module.handlers)) {
+      const previousOwner = handlerOwners.get(method);
+      if (previousOwner) {
+        throw new Error(
+          `duplicate gateway method handler "${method}" in ${previousOwner} and ${module.name}`,
+        );
+      }
+      handlerOwners.set(method, module.name);
+      handlers[method] = handler;
+    }
+  }
+
+  const metadata = loadGatewayMethodMetadataModules(metadataModules);
+  return {
+    handlers,
+    methodDefs: metadata.methodDefs,
+    events: metadata.events,
+    modules: sortedModules,
+    metadataModules: metadata.metadataModules,
+  };
+}
+
 function computeSchemaVersion(
   methods: ReadonlyMap<string, MethodDefinition>,
   events: ReadonlyMap<string, EventDefinition>,
@@ -84,6 +186,9 @@ function computeSchemaVersion(
       .toSorted(([left], [right]) => left.localeCompare(right))
       .map(([name, def]) => ({
         deprecated: def.deprecated,
+        bffEligible: def.bffEligible,
+        controlPlaneWrite: def.controlPlaneWrite,
+        forkClass: def.forkClass,
         name,
         params: def.params,
         result: def.result,
@@ -128,6 +233,9 @@ export function buildMethodRegistry(
       scope: meta?.scope ?? "public",
       since: meta?.since,
       deprecated: meta?.deprecated,
+      forkClass: meta?.forkClass,
+      bffEligible: meta?.bffEligible,
+      controlPlaneWrite: meta?.controlPlaneWrite,
     });
   }
 
@@ -193,11 +301,23 @@ export function buildMethodRegistry(
           result?: Record<string, unknown>;
           scope: string;
           since?: number;
+          forkClass?: "C1" | "C2" | "C3" | "C4" | "C5";
+          bffEligible?: boolean;
+          controlPlaneWrite?: boolean;
         } = {
           scope: def.scope,
         };
         if (def.since !== undefined) {
           entry.since = def.since;
+        }
+        if (def.forkClass !== undefined) {
+          entry.forkClass = def.forkClass;
+        }
+        if (def.bffEligible !== undefined) {
+          entry.bffEligible = def.bffEligible;
+        }
+        if (def.controlPlaneWrite !== undefined) {
+          entry.controlPlaneWrite = def.controlPlaneWrite;
         }
         if (includeSchemas) {
           if (def.params) {

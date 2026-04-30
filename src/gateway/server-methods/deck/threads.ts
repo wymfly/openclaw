@@ -1,14 +1,15 @@
 import path from "node:path";
-import { resolveStateDir } from "../../../config/paths.js";
-import { loadJsonFile } from "../../../infra/json-file.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import { validateDeckThreadsListParams } from "../../protocol/index.js";
 import {
   DeckThreadsListParamsSchema,
   DeckThreadsListResultSchema,
 } from "../../protocol/schema/deck.js";
+import { sessionsService } from "../../services/sessions.service.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
+
+const { loadJsonFile, resolveStateDir } = sessionsService;
 
 /** Channels that have thread binding persistence support. */
 const THREAD_BINDING_CHANNELS = new Set(["discord"]);
@@ -97,5 +98,7 @@ export const deckThreadsMethodDefs: Record<string, MethodMetadata> = {
     params: DeckThreadsListParamsSchema,
     result: DeckThreadsListResultSchema,
     scope: "operator.read",
+    forkClass: "C3",
+    bffEligible: true,
   },
 };

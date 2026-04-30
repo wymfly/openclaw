@@ -26,6 +26,14 @@ export const GatewayDescribeResultSchema = Type.Object({
       result: Type.Optional(JsonObjectSchema),
       scope: Type.String(),
       since: Type.Optional(Type.Number()),
+      forkClass: Type.Optional(
+        Type.Unsafe<"C1" | "C2" | "C3" | "C4" | "C5">({
+          type: "string",
+          enum: ["C1", "C2", "C3", "C4", "C5"],
+        }),
+      ),
+      bffEligible: Type.Optional(Type.Boolean()),
+      controlPlaneWrite: Type.Optional(Type.Boolean()),
     }),
   ),
   events: Type.Record(
@@ -79,5 +87,7 @@ export const describeMethodDefs: Record<string, MethodMetadata> = {
     params: GatewayDescribeParamsSchema,
     result: GatewayDescribeResultSchema,
     scope: READ_SCOPE,
+    forkClass: "C5",
+    bffEligible: false,
   },
 };

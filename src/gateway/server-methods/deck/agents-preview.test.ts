@@ -74,6 +74,7 @@ vi.mock("../../../config/config.js", () => ({
     writeOptions: {},
   }),
   resolveConfigSnapshotHash: (snapshot: { hash?: string }) => snapshot.hash ?? null,
+  writeConfigFile: vi.fn(),
 }));
 
 import { loadWorkspaceBootstrapFiles } from "../../../agents/workspace.js";

@@ -23,12 +23,28 @@ vi.mock("../../../config/config.js", () => ({
       ],
     },
   }),
+  readConfigFileSnapshotForWrite: vi.fn(),
+  resolveConfigSnapshotHash: vi.fn(),
   STATE_DIR: "/tmp/test-state",
+  writeConfigFile: vi.fn(),
 }));
 
 vi.mock("../../../config/sessions.js", () => ({
-  loadSessionStore: () => ({}),
+  loadSessionStore: vi.fn(() => ({})),
+  resolveStorePath: vi.fn(() => "/tmp/test-sessions"),
+}));
+
+vi.mock("../../../config/sessions/paths.js", () => ({
+  resolveSessionTranscriptsDirForAgent: () => "/tmp/test-transcripts",
   resolveStorePath: () => "/tmp/test-sessions",
+}));
+
+vi.mock("../../../config/paths.js", () => ({
+  resolveStateDir: () => "/tmp/test-state",
+}));
+
+vi.mock("../../../infra/json-file.js", () => ({
+  loadJsonFile: () => undefined,
 }));
 
 vi.mock("../../../agents/pi-embedded.js", () => ({
@@ -48,49 +64,59 @@ vi.mock("../../../agents/lanes.js", () => ({
 }));
 
 vi.mock("../../../routing/session-key.js", () => ({
+  getSubagentDepth: () => 1,
+  normalizeAgentId: (value: string | undefined | null) => value ?? "main",
   parseAgentSessionKey: (key: string) => {
     const parts = key.split(":");
     return parts.length >= 2 ? { agentId: parts[1] } : null;
+  },
+  resolveAgentIdFromSessionKey: (key: string | undefined | null) => {
+    const parts = (key ?? "").split(":");
+    return parts.length >= 2 ? parts[1] : "main";
   },
 }));
 
 // --- Imports (after mocks) ---
 
+import { abortEmbeddedPiRun } from "../../../agents/pi-embedded.js";
 import {
   addSubagentRunForTests,
+  getSubagentRunsForDeck,
   resetSubagentRegistryForTests,
 } from "../../../agents/subagent-registry.js";
 import type { SubagentRunRecord } from "../../../agents/subagent-registry.types.js";
+import { clearSessionQueues } from "../../../auto-reply/reply/queue.js";
+import { loadSessionStore } from "../../../config/sessions.js";
+import { callGateway } from "../../../gateway/call.js";
 import type { GatewayRequestHandlerOptions, RespondFn } from "../types.js";
 import { deckSubagentsSteerHandlers, resetSteerDedupForTests } from "./subagents-steer.js";
 
 // --- Helpers ---
 
-function callHandler(
+async function callHandler(
   method: string,
   params: Record<string, unknown>,
 ): Promise<{ ok: boolean; payload?: unknown; error?: unknown }> {
-  return new Promise((resolve) => {
-    const respond: RespondFn = (ok, payload, error) => {
-      resolve({ ok, payload, error });
-    };
-    const handler = deckSubagentsSteerHandlers[method];
-    if (!handler) {
-      throw new Error(`Handler "${method}" not found`);
-    }
-    const result = handler({
-      params,
-      respond,
-      req: { type: "req" as const, id: "test-1", method, params },
-      client: null,
-      isWebchatConnect: () => false,
-      context: {} as GatewayRequestHandlerOptions["context"],
-    });
-    // Await async handlers
-    if (result && typeof result === "object" && "then" in result) {
-      void result.catch(() => {});
-    }
+  let response: { ok: boolean; payload?: unknown; error?: unknown } | undefined;
+  const respond: RespondFn = (ok, payload, error) => {
+    response = { ok, payload, error };
+  };
+  const handler = deckSubagentsSteerHandlers[method];
+  if (!handler) {
+    throw new Error(`Handler "${method}" not found`);
+  }
+  await handler({
+    params,
+    respond,
+    req: { type: "req" as const, id: "test-1", method, params },
+    client: null,
+    isWebchatConnect: () => false,
+    context: {} as GatewayRequestHandlerOptions["context"],
   });
+  if (!response) {
+    throw new Error(`Handler "${method}" did not respond`);
+  }
+  return response;
 }
 
 function makeRun(
@@ -112,6 +138,7 @@ function makeRun(
 afterEach(() => {
   resetSubagentRegistryForTests({ persist: false });
   resetSteerDedupForTests();
+  vi.clearAllMocks();
 });
 
 // =====================
@@ -142,6 +169,86 @@ describe("deck.subagents.steer", () => {
     expect(p.dedupKey).toBeDefined();
     expect(typeof p.dedupKey).toBe("string");
     expect(p.deduped).toBeUndefined();
+  });
+
+  it("aborts the existing session and clears queues before restart", async () => {
+    vi.mocked(loadSessionStore).mockReturnValueOnce({
+      "agent:coder:subagent:uuid-side-effects": {
+        sessionId: "session-side-effects",
+        updatedAt: Date.now(),
+      },
+    });
+    vi.mocked(callGateway)
+      .mockResolvedValueOnce({ status: "ok" })
+      .mockResolvedValueOnce({ runId: "run-side-effects-restarted" });
+    addSubagentRunForTests(
+      makeRun({
+        runId: "run-side-effects",
+        childSessionKey: "agent:coder:subagent:uuid-side-effects",
+        requesterSessionKey: "agent:main:main",
+        task: "write code",
+        createdAt: Date.now() - 5000,
+        startedAt: Date.now() - 5000,
+      }),
+    );
+
+    const result = await callHandler("deck.subagents.steer", {
+      runId: "run-side-effects",
+      instruction: "focus on cancellation",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(abortEmbeddedPiRun).toHaveBeenCalledWith("session-side-effects");
+    expect(clearSessionQueues).toHaveBeenCalledWith([
+      "agent:coder:subagent:uuid-side-effects",
+      "session-side-effects",
+    ]);
+    expect(callGateway).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        method: "agent.wait",
+        params: expect.objectContaining({ runId: "run-side-effects" }),
+      }),
+    );
+    expect(callGateway).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        method: "agent",
+        params: expect.objectContaining({
+          deliver: false,
+          message: "focus on cancellation",
+          sessionId: "session-side-effects",
+          sessionKey: "agent:coder:subagent:uuid-side-effects",
+        }),
+      }),
+    );
+  });
+
+  it("restores announce behavior when restart dispatch fails", async () => {
+    vi.mocked(callGateway)
+      .mockResolvedValueOnce({ status: "ok" })
+      .mockRejectedValueOnce(new Error("restart failed"));
+    addSubagentRunForTests(
+      makeRun({
+        runId: "run-restart-fails",
+        childSessionKey: "agent:coder:subagent:uuid-restart-fails",
+        requesterSessionKey: "agent:main:main",
+        task: "write code",
+        createdAt: Date.now() - 5000,
+        startedAt: Date.now() - 5000,
+      }),
+    );
+
+    const result = await callHandler("deck.subagents.steer", {
+      runId: "run-restart-fails",
+      instruction: "focus on cancellation",
+    });
+
+    expect(result.ok).toBe(false);
+    expect((result.error as { code: string }).code).toBe("STEER_FAILED");
+    expect(getSubagentRunsForDeck().get("run-restart-fails")?.suppressAnnounceReason).toBe(
+      undefined,
+    );
   });
 
   it("returns RUN_NOT_FOUND for non-existent run", async () => {

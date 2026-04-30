@@ -115,6 +115,13 @@ export type GatewayRequestOptions = {
   context: GatewayRequestContext;
 };
 
+export type DispatchGatewaySubRequest = (opts: {
+  req: RequestFrame;
+  respond: RespondFn;
+  client?: GatewayClient | null;
+  isWebchatConnect?: (params: ConnectParams | null | undefined) => boolean;
+}) => Promise<void>;
+
 export type GatewayRequestHandlerOptions = {
   req: RequestFrame;
   params: Record<string, unknown>;
@@ -122,6 +129,7 @@ export type GatewayRequestHandlerOptions = {
   isWebchatConnect: (params: ConnectParams | null | undefined) => boolean;
   respond: RespondFn;
   context: GatewayRequestContext;
+  dispatchSubRequest?: DispatchGatewaySubRequest;
 };
 
 export type GatewayRequestHandler = (opts: GatewayRequestHandlerOptions) => Promise<void> | void;

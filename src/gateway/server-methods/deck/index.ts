@@ -1,20 +1,17 @@
 import type { MethodMetadata } from "../../method-registry.js";
 import type { GatewayRequestHandlers } from "../types.js";
-import { deckAgentsPreviewHandlers, deckAgentsPreviewMethodDefs } from "./agents-preview.js";
-import { deckAgentsHandlers, deckAgentsMethodDefs } from "./agents.js";
 import { deckCommandsHandlers, deckCommandsMethodDefs } from "./commands.js";
 import { deckIdentityHandlers, deckIdentityMethodDefs } from "./identity.js";
 import { deckPluginsHandlers, deckPluginsMethodDefs } from "./plugins.js";
-import { deckRoutingHandlers, deckRoutingMethodDefs } from "./routing.js";
 import { deckSubagentsSteerHandlers, deckSubagentsSteerMethodDefs } from "./subagents-steer.js";
 import { deckSubagentsHandlers, deckSubagentsMethodDefs } from "./subagents.js";
 import { deckThreadsHandlers, deckThreadsMethodDefs } from "./threads.js";
 
-export const deckHandlers: GatewayRequestHandlers = {
+export const deckPreAgentsHandlers: GatewayRequestHandlers = {
   ...deckCommandsHandlers,
-  ...deckRoutingHandlers,
-  ...deckAgentsHandlers,
-  ...deckAgentsPreviewHandlers,
+};
+
+export const deckPostAgentsHandlers: GatewayRequestHandlers = {
   ...deckSubagentsHandlers,
   ...deckSubagentsSteerHandlers,
   ...deckIdentityHandlers,
@@ -22,14 +19,24 @@ export const deckHandlers: GatewayRequestHandlers = {
   ...deckThreadsHandlers,
 };
 
-export const deckMethodDefs: Record<string, MethodMetadata> = {
+export const deckPreAgentsMethodDefs: Record<string, MethodMetadata> = {
   ...deckCommandsMethodDefs,
-  ...deckRoutingMethodDefs,
-  ...deckAgentsMethodDefs,
-  ...deckAgentsPreviewMethodDefs,
+};
+
+export const deckPostAgentsMethodDefs: Record<string, MethodMetadata> = {
   ...deckSubagentsMethodDefs,
   ...deckSubagentsSteerMethodDefs,
   ...deckIdentityMethodDefs,
   ...deckPluginsMethodDefs,
   ...deckThreadsMethodDefs,
+};
+
+export const deckHandlers: GatewayRequestHandlers = {
+  ...deckPreAgentsHandlers,
+  ...deckPostAgentsHandlers,
+};
+
+export const deckMethodDefs: Record<string, MethodMetadata> = {
+  ...deckPreAgentsMethodDefs,
+  ...deckPostAgentsMethodDefs,
 };

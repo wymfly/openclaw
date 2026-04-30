@@ -113,4 +113,38 @@ describe("buildMethodRegistry", () => {
 
     expect(first.describe().schemaVersion).not.toBe(second.describe().schemaVersion);
   });
+
+  it("includes controlPlaneWrite metadata changes in schemaVersion", () => {
+    const first = buildMethodRegistry(fakeHandlers, [testMethodDefs]);
+    const second = buildMethodRegistry(fakeHandlers, [
+      {
+        ...testMethodDefs,
+        "test.set": {
+          ...testMethodDefs["test.set"],
+          controlPlaneWrite: true,
+        },
+      },
+    ]);
+
+    expect(first.describe().schemaVersion).not.toBe(second.describe().schemaVersion);
+    expect(second.describe().methods["test.set"].controlPlaneWrite).toBe(true);
+  });
+
+  it("includes fork metadata changes in schemaVersion", () => {
+    const first = buildMethodRegistry(fakeHandlers, [testMethodDefs]);
+    const second = buildMethodRegistry(fakeHandlers, [
+      {
+        ...testMethodDefs,
+        "test.set": {
+          ...testMethodDefs["test.set"],
+          forkClass: "C3",
+          bffEligible: true,
+        },
+      },
+    ]);
+
+    expect(first.describe().schemaVersion).not.toBe(second.describe().schemaVersion);
+    expect(second.describe().methods["test.set"].forkClass).toBe("C3");
+    expect(second.describe().methods["test.set"].bffEligible).toBe(true);
+  });
 });

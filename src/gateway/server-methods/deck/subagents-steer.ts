@@ -1,26 +1,16 @@
 import crypto from "node:crypto";
 import { createHash } from "node:crypto";
-import { AGENT_LANE_SUBAGENT } from "../../../agents/lanes.js";
-import { abortEmbeddedPiRun } from "../../../agents/pi-embedded.js";
-import {
-  clearSubagentRunSteerRestart,
-  getSubagentRunsForDeck,
-  markSubagentRunForSteerRestart,
-  replaceSubagentRunAfterSteer,
-} from "../../../agents/subagent-registry.js";
-import { clearSessionQueues } from "../../../auto-reply/reply/queue.js";
-import { loadConfig } from "../../../config/config.js";
-import { loadSessionStore } from "../../../config/sessions.js";
-import { resolveStorePath } from "../../../config/sessions/paths.js";
-import { callGateway } from "../../../gateway/call.js";
-import { parseAgentSessionKey } from "../../../routing/session-key.js";
-import { INTERNAL_MESSAGE_CHANNEL } from "../../../utils/message-channel.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import { validateDeckSubagentsSteerParams } from "../../protocol/index.js";
 import {
   DeckSubagentsSteerParamsSchema,
   DeckSubagentsSteerResultSchema,
 } from "../../protocol/schema/deck.js";
+import { configService } from "../../services/config.service.js";
+import { routingService } from "../../services/routing.service.js";
+import { sessionsService } from "../../services/sessions.service.js";
+import { subagentRegistryService } from "../../services/subagent-registry.service.js";
+import { subagentsService } from "../../services/subagents.service.js";
 import type { GatewayRequestHandlers } from "../types.js";
 
 // ---------------------------------------------------------------------------
@@ -33,6 +23,22 @@ const STEER_ABORT_SETTLE_TIMEOUT_MS = 5_000;
 
 const dedupMap = new Map<string, number>();
 let sweepTimer: ReturnType<typeof setInterval> | undefined;
+const { loadConfig } = configService;
+const { parseAgentSessionKey } = routingService;
+const { loadSessionStore, resolveStorePath } = sessionsService;
+const {
+  clearSubagentRunSteerRestart,
+  getSubagentRunsForDeck,
+  markSubagentRunForSteerRestart,
+  replaceSubagentRunAfterSteer,
+} = subagentRegistryService;
+const {
+  AGENT_LANE_SUBAGENT,
+  INTERNAL_MESSAGE_CHANNEL,
+  abortEmbeddedPiRun,
+  callGateway,
+  clearSessionQueues,
+} = subagentsService;
 
 function ensureSweepTimer() {
   if (sweepTimer !== undefined) {
@@ -129,8 +135,7 @@ export const deckSubagentsSteerHandlers: GatewayRequestHandlers = {
     dedupMap.set(dedupKey, now + DEDUP_TTL_MS);
     ensureSweepTimer();
 
-    // 5. Execute full steer-restart flow
-    // (replicates src/agents/tools/subagents-tool.ts:600-681)
+    // 5. Execute the same restart flow used by subagent control.
 
     // 5a. Suppress announce for the interrupted run
     markSubagentRunForSteerRestart(runId);
@@ -206,5 +211,7 @@ export const deckSubagentsSteerMethodDefs: Record<string, MethodMetadata> = {
     params: DeckSubagentsSteerParamsSchema,
     result: DeckSubagentsSteerResultSchema,
     scope: "operator.admin",
+    forkClass: "C2",
+    bffEligible: false,
   },
 };

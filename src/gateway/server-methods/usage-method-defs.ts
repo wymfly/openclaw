@@ -14,15 +14,21 @@ export const usageMethodDefs: Record<string, MethodMetadata> = {
     params: SessionsUsageParamsSchema,
     result: SessionsUsageResultSchema,
     scope: READ_SCOPE,
+    forkClass: "C1",
+    bffEligible: false,
   },
   "sessions.usage.logs": {
     params: SessionsUsageLogsParamsSchema,
     result: SessionsUsageLogsResultSchema,
     scope: READ_SCOPE,
+    forkClass: "C1",
+    bffEligible: false,
   },
   "sessions.usage.timeseries": {
     params: SessionsUsageTimeseriesParamsSchema,
     result: SessionsUsageTimeseriesResultSchema,
     scope: READ_SCOPE,
+    forkClass: "C1",
+    bffEligible: false,
   },
 };

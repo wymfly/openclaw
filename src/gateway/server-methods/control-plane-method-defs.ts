@@ -29,20 +29,22 @@ import {
   StatusResultSchema,
 } from "../protocol/schema/control-plane-results.js";
 import {
-  CronAddParamsSchema,
   CronAddResultSchema,
-  CronListParamsSchema,
   CronListResultSchema,
-  CronRemoveParamsSchema,
   CronRemoveResultSchema,
-  CronRunParamsSchema,
   CronRunResultSchema,
-  CronRunsParamsSchema,
   CronRunsResultSchema,
-  CronStatusParamsSchema,
   CronStatusResultSchema,
-  CronUpdateParamsSchema,
   CronUpdateResultSchema,
+} from "../protocol/schema/cron-extensions.js";
+import {
+  CronAddParamsSchema,
+  CronListParamsSchema,
+  CronRemoveParamsSchema,
+  CronRunParamsSchema,
+  CronRunsParamsSchema,
+  CronStatusParamsSchema,
+  CronUpdateParamsSchema,
 } from "../protocol/schema/cron.js";
 import {
   ExecApprovalGetParamsSchema,
@@ -107,6 +109,8 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   "models.catalog.providers": {
     result: ModelsCatalogProvidersResultSchema,
     scope: READ_SCOPE,
+    forkClass: "C4",
+    bffEligible: false,
   },
   "skills.status": {
     params: SkillsStatusParamsSchema,
