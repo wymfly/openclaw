@@ -276,6 +276,8 @@
     "cmdBack": "Back",
     "cmdTagRemove": "Remove command tag",
     "cmdTagPlaceholder": "Type command argument...",
+    "cmdModeTagTitle": "Command interaction mode",
+    "attachAdd": "add",
     "cmdOptionsFor": "Options for /{command}",
     "slashCommands": "Slash commands",
     "compacted": "Context compacted",

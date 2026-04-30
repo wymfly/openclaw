@@ -608,7 +608,12 @@ export function MessageInput(props: MessageInputProps = {}) {
           <span className="ds-message-input__warning-text">{t("contextWarning")}</span>
         </div>
       ) : null}
-      <FileAttachmentBar files={files} onRemove={removeFile} />
+      <FileAttachmentBar
+        files={files}
+        onRemove={removeFile}
+        onAdd={() => fileInputRef.current?.click()}
+        addLabel={hasTranslation("attachAdd") ? t("attachAdd") : "add"}
+      />
       <input
         ref={fileInputRef}
         className="ds-message-input__file-input deck-ui-file-input"

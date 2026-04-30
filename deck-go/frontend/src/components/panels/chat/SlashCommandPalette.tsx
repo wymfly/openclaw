@@ -18,6 +18,7 @@ import {
   ZapIcon,
   type IconComponent,
 } from "@/deck-ui/icons";
+import { resolveSelectMode } from "@/hooks/useSlashCommand";
 import { commandRegistry } from "@/lib/command-registry";
 import type { RegisteredCommand } from "@/lib/command-types";
 import type { CommandVisibilityContext } from "@/lib/command-types";
@@ -226,6 +227,12 @@ export function SlashCommandPalette({
                       {command.args}
                     </span>
                   ) : null}
+                  <span
+                    className="ds-command-palette__mode-tag"
+                    title={translatedOrFallback(t, "cmdModeTagTitle", "Command interaction mode")}
+                  >
+                    {resolveSelectMode(command)}
+                  </span>
                 </span>
                 <span
                   className="ds-command-palette__description deck-ui-command-description"
@@ -233,6 +240,11 @@ export function SlashCommandPalette({
                 >
                   {description}
                 </span>
+                {index === selectedIndex ? (
+                  <span className="ds-command-palette__kbd" aria-hidden="true">
+                    ↵
+                  </span>
+                ) : null}
               </div>
             );
           })}

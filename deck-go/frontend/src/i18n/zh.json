@@ -276,6 +276,8 @@
     "cmdBack": "返回",
     "cmdTagRemove": "移除命令标签",
     "cmdTagPlaceholder": "输入命令参数...",
+    "cmdModeTagTitle": "命令交互模式",
+    "attachAdd": "添加",
     "cmdOptionsFor": "/{command} 的选项",
     "slashCommands": "斜杠菜单",
     "compacted": "上下文已压缩",

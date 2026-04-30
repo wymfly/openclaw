@@ -47,11 +47,11 @@
 
 ### 4c. Composer popover affordances + active state (commit 3)
 
-- [ ] 4.10 Implement `composer-icon-btn.active` toggled state on attach + template + canvas + artifact buttons: when expanded, button gets `--ds-accent-bg` background + `--ds-accent` glyph color. Add `is-active` modifier to IconButton atom OR composer-scoped override.
-- [ ] 4.11 Add `pop-mode-tag mono small` chip per command in SlashPalette options showing `tag` / `argOptions` / `immediate` mode badge (bundle line 258). Update SlashCommandPalette JSX to render mode tag from `RegisteredCommand.execMode`.
-- [ ] 4.12 Add `kbd` enter-hint chip on selected option in SlashPalette + MentionPopover (`<span className="kbd">↵</span>` with `marginLeft: auto`). Mirrors bundle line 222-226.
-- [ ] 4.13 Add "+ add" trail button to `ds-message-input__attach-bar` per bundle line 93-95 (`<button className="btn-ghost small"><I.Plus/> add</button>`); wire to existing fileInput trigger.
-- [ ] 4.14 tsc + vitest gauntlet; commit "deck-go: chat-parity 4c — composer active state + popover mode-tag + kbd + attach-bar add".
+- [x] 4.10 Active state via composer-scoped CSS rule (no atom change): `.ds-message-input__action[aria-pressed="true"]` and `.ds-template-menu > button[aria-expanded="true"]` get `--ds-accent-bg` + `--ds-accent` + `--ds-accent-dim`. Canvas/artifact toggles already wired aria-pressed; PromptTemplateMenu's Button atom already wires aria-expanded. Attach button skipped (no toggle semantics; remains a one-shot trigger).
+- [x] 4.11 SlashCommandPalette renders `__mode-tag` chip per command using `resolveSelectMode(command)` (returns "tag" / "argOptions" / "immediate"; deck's "remote" execMode resolves to "tag"). Inline mono-small chip inside `__primary`, after name+args. Selected option's mode-tag picks up `--ds-accent` color.
+- [x] 4.12 Selected SlashPalette option renders `__kbd ↵` chip in the 3rd grid column (right edge). Skipped MentionPopover since it has no selectedIndex tracking in current implementation; adding kbd there requires a wider refactor (out of scope for §4c — deferred to follow-up).
+- [x] 4.13 FileAttachmentBar accepts new `onAdd` + `addLabel` props; renders trail "+ add" `__add` ghost button when `onAdd` provided. MessageInput wires it to `fileInputRef.current?.click()`. New i18n keys `attachAdd` (en: "add", zh: "添加") + `cmdModeTagTitle` (en: "Command interaction mode", zh: "命令交互模式").
+- [x] 4.14 Gauntlet green: tsc clean (only pre-existing `MutableRefObject` deprecation warnings) + vitest 840/840 pass. Ready to commit "deck-go: chat-parity 4c — composer active state + popover mode-tag + kbd + attach-bar add".
 
 ## 5. ChatContextBar 5-cell collapse (Decision 1, 1 commit)
 

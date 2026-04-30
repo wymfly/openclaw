@@ -1,5 +1,5 @@
 import { useCallback, useContext } from "react";
-import { FileTextIcon, MonitorDotIcon } from "@/deck-ui/icons";
+import { FileTextIcon, MonitorDotIcon, PlusIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
 import { useChatStore } from "@/stores/chat";
@@ -38,9 +38,13 @@ export function formatSize(bytes: number) {
 export function FileAttachmentBar({
   files,
   onRemove,
+  onAdd,
+  addLabel,
 }: {
   files: File[];
   onRemove: (index: number) => void;
+  onAdd?: () => void;
+  addLabel?: string;
 }) {
   if (files.length === 0) {
     return null;
@@ -65,6 +69,18 @@ export function FileAttachmentBar({
           </IconButton>
         </span>
       ))}
+      {onAdd ? (
+        <button
+          className="ds-attachment-bar__add"
+          type="button"
+          aria-label={addLabel ?? "Add"}
+          title={addLabel ?? "Add"}
+          onClick={onAdd}
+        >
+          <PlusIcon className="ds-attachment-bar__add-icon" aria-hidden="true" />
+          <span>{addLabel ?? "add"}</span>
+        </button>
+      ) : null}
     </div>
   );
 }

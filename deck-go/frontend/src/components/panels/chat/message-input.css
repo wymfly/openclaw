@@ -192,6 +192,16 @@
   gap: 6px;
 }
 
+/* Active state for composer-icon-btn equivalents — bundle .composer-icon-btn.active.
+ * Targets canvas/artifact toggles (aria-pressed=true) and the template menu
+ * trigger (aria-expanded=true) inside .ds-template-menu. */
+.ds-message-input__action[aria-pressed="true"],
+.ds-message-input__field .ds-template-menu > button[aria-expanded="true"] {
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+  border-color: var(--ds-accent-dim);
+}
+
 /* Char-count hint — bundle .composer-hint mono small. margin-left:auto
  * pushes the send/abort button to the right edge of the toolbar. */
 .ds-message-input__hint {
@@ -256,6 +266,32 @@
 .ds-attachment-bar__remove:hover {
   background: var(--ds-bg-hover);
   color: var(--ds-error);
+}
+
+/* Trail "+ add" ghost button — bundle .attach-bar > .btn-ghost.small. Lets
+ * the user re-open the file picker without leaving the composer. */
+.ds-attachment-bar__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px dashed var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.ds-attachment-bar__add:hover {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-bg-hover);
+  color: var(--ds-accent);
+}
+
+.ds-attachment-bar__add-icon {
+  width: 11px;
+  height: 11px;
 }
 
 /* Density compact override — keep composer dense without losing tap area. */

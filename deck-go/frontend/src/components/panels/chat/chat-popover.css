@@ -71,7 +71,7 @@
 
 .ds-command-palette__option {
   display: grid;
-  grid-template-columns: minmax(108px, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(108px, auto) minmax(0, 1fr) auto;
   gap: 6px 10px;
   align-items: center;
   min-height: 34px;
@@ -83,6 +83,45 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+/* Per-command interaction-mode chip — bundle .pop-mode-tag.mono.small.
+ * Inline tag inside the primary span, after name+args. */
+.ds-command-palette__mode-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  text-transform: lowercase;
+}
+
+.ds-command-palette__option--selected .ds-command-palette__mode-tag,
+.ds-command-palette__option[aria-selected="true"] .ds-command-palette__mode-tag {
+  border-color: var(--ds-accent-dim);
+  color: var(--ds-accent);
+}
+
+/* Enter-key hint chip on the selected option — bundle .kbd. Sits in the
+ * 3rd grid column so it pins to the right edge of the option. */
+.ds-command-palette__kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--ds-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  line-height: 1;
 }
 
 .ds-command-palette__option:hover,
