@@ -20,6 +20,19 @@
   border-color: var(--ds-warn);
 }
 
+/* Role markers — semantic-only, no visual override. Consumers keep their
+ * existing per-component chrome (tool-pair.css, file-block.css, etc.); these
+ * tags let cross-cutting selectors target every block-shaped surface
+ * (e.g. transcript spacing, future axe rules, theming hooks). Mirrors
+ * bundle `.block` cascade pattern. See §10. */
+.ds-block--tool-use,
+.ds-block--tool-result,
+.ds-block--file,
+.ds-block--canvas,
+.ds-block--unknown {
+  /* intentionally empty — chrome owned by consumer */
+}
+
 .ds-block__head {
   width: 100%;
   display: flex;

@@ -109,4 +109,17 @@ describe("Block", () => {
     );
     expect(container.querySelector(".ds-block")?.className).toContain("ds-block--error");
   });
+
+  it("role marker classes are accepted via className passthrough", () => {
+    // §10: consumers tag their root with `ds-block--<role>` to participate in
+    // the bundle .block cascade pattern. Verify the modifier class names are
+    // recognised by the atom (additive, no visual override of consumer chrome).
+    const { container } = mount(
+      <Block label="x" className="ds-block--tool-use">
+        body
+      </Block>,
+    );
+    const block = container.querySelector(".ds-block");
+    expect(block?.className).toContain("ds-block--tool-use");
+  });
 });

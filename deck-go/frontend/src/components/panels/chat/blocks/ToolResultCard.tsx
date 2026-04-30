@@ -52,7 +52,7 @@ function renderNestedBlock(block: ContentBlock, index: number) {
     case "canvas":
       return (
         <iframe
-          className="ds-canvas-embed deck-ui-canvas-embed"
+          className="ds-block ds-block--canvas ds-canvas-embed deck-ui-canvas-embed"
           key={`canvas-${index}`}
           src={block.url}
           title={block.title ?? "canvas"}
@@ -189,7 +189,12 @@ export function ToolResultCard(props: ToolResultCardProps) {
     ];
   }, [detectedView, isStructuredContent, t]);
 
-  const wrapperClasses = ["deck-ui-tool-result-card", "ds-tool-result-card"];
+  const wrapperClasses = [
+    "deck-ui-tool-result-card",
+    "ds-block",
+    "ds-block--tool-result",
+    "ds-tool-result-card",
+  ];
   if (isError) {
     wrapperClasses.push("is-error");
     wrapperClasses.push("ds-tool-result-card--error");

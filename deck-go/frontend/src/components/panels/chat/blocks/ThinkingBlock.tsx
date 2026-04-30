@@ -7,7 +7,7 @@ export function ThinkingBlock({ text }: { text: string }) {
   // textContent assertions, so we keep `<details>` here and apply ds-* classes
   // for visual parity.
   return (
-    <details className="ds-thinking-block deck-ui-thinking-block">
+    <details className="ds-block ds-block--thinking ds-thinking-block deck-ui-thinking-block">
       <summary>
         <span className="ds-tool-icon deck-ui-tool-icon" aria-hidden="true">
           ...

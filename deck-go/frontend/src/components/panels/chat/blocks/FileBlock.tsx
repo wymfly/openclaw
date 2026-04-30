@@ -30,7 +30,7 @@ export function FileBlock({ data, mimeType, fileName, size }: FileBlockProps) {
   };
 
   return (
-    <Card surface="flat" padded={false} className="ds-file-block">
+    <Card surface="flat" padded={false} className="ds-file-block ds-block--file">
       <span className="ds-file-block__name">{fileName}</span>
       {size != null ? <span className="ds-file-block__size">{formatSize(size)}</span> : null}
       <Button variant="ghost" size="sm" title={t("download")} onClick={handleDownload}>

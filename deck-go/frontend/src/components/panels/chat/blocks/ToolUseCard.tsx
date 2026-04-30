@@ -42,7 +42,11 @@ export function ToolUseCard({ name, input, defaultOpen, paired }: ToolUseCardPro
       collapsible
       defaultOpen={defaultOpen}
       tone="accent"
-      className={paired ? "ds-tool-use-card ds-tool-use-card--paired" : "ds-tool-use-card"}
+      className={
+        paired
+          ? "ds-tool-use-card ds-tool-use-card--paired ds-block--tool-use"
+          : "ds-tool-use-card ds-block--tool-use"
+      }
     >
       <div className="ds-tool-use-card__actions">
         <Button
