@@ -33,7 +33,6 @@ import { normalizeHistoryMessages } from "./history-normalize";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { RightPanel } from "./RightPanel";
-import { SessionConfigBar } from "./SessionConfigBar";
 import { SessionSidebar } from "./SessionSidebar";
 import { initializeLocalCommands } from "./slash-command-executor";
 import { SSEStatusBanner } from "./SSEStatusBanner";
@@ -359,7 +358,7 @@ export function ChatPanel() {
 
         <section className="ds-chat-shell__main">
           <SSEStatusBanner />
-          <ChatContextBar />
+          <ChatContextBar onToggleSearch={() => setShowSearch((current) => !current)} />
           {isStreaming ? (
             <button
               className="ds-chat-shell__steer-shortcut"
@@ -396,7 +395,6 @@ export function ChatPanel() {
             <SteerDialog />
           </div>
           <ToolProgressBar />
-          <SessionConfigBar />
 
           <div className="ds-chat-shell__composer">
             <MessageInput

@@ -1,16 +1,13 @@
-/* Chat context bar — session / agent / pressure / compaction summary strip.
+/* Chat context bar — bundle .context-bar (transcript.jsx 25-64).
  *
- * P3 task 2 atom 9.5 — Decision B per-atom visual replacement.
- * Bundle target: docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/styles.css
- *   .context-bar             (lines 201-207)
- *   .ctx-cell / .ctx-key / .ctx-val (lines 208-211)
- *   .ctx-bar / .ctx-fill     (lines 212-218)
- *   .tone-warn / .tone-error (lines 219-220)
- *   .chip / .chip-warn       (lines 222-230)
- *
- * Replaces legacy `.deck-ui-context-pressure*` / `-warning` / `-compacted`
- * / `-pill` / `-session` rules removed from theme.css in the same commit
- * (they were dead in JSX — ChatContextBar.tsx is fully migrated to ds-*).
+ * Chat-parity §5 collapsed the previous SessionConfigBar (model/thinking/
+ * fast/usage/send-policy chips) INTO this strip's row using the bundle's
+ * 5-cell layout. Each `__cell` is a `__key` label + `__val mono` value
+ * pair; clickable cells become `--button` modifier and cycle / toggle
+ * the underlying SessionMeta state via patchSession. Trailing controls:
+ * fast chip (warn-toned when active), grow spacer, optional compact
+ * action when context pressure ≥60%, and a search button hooked to
+ * the transcript-search overlay (⌘F kbd hint).
  */
 
 .ds-chat-context-bar {
@@ -27,28 +24,54 @@
   font-size: var(--ds-fs-meta);
 }
 
-.ds-chat-context-bar__session {
-  font-weight: 600;
-  color: var(--ds-text-1);
-}
-
-.ds-chat-context-bar__pressure {
+/* Per-cell layout — bundle .ctx-cell. */
+.ds-chat-context-bar__cell {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--ds-fs-meta);
 }
 
-.ds-chat-context-bar__pressure > span:first-child {
+.ds-chat-context-bar__cell--button {
+  cursor: pointer;
+  border-radius: var(--ds-radius-sm);
+  padding: 2px 6px;
+  transition: background 120ms;
+}
+
+.ds-chat-context-bar__cell--button:hover:not(:disabled) {
+  background: var(--ds-bg-hover);
+}
+
+.ds-chat-context-bar__cell--button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.ds-chat-context-bar__key {
   color: var(--ds-text-3);
   font-size: var(--ds-fs-meta);
 }
 
-.ds-chat-context-bar__pressure strong {
+.ds-chat-context-bar__val {
   color: var(--ds-text-1);
-  font-weight: 500;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
 }
 
-.ds-chat-context-bar__pressure-track {
+/* Context bar cell with inline pressure track + percentage — bundle
+ * .ctx-cell.ctx-bar-cell + .ctx-bar + .ctx-fill. Tone tunes the fill
+ * color via `data-tone`. */
+.ds-chat-context-bar__cell--bar {
+  gap: 6px;
+}
+
+.ds-chat-context-bar__bar {
   position: relative;
   display: inline-block;
   width: 100px;
@@ -58,38 +81,63 @@
   overflow: hidden;
 }
 
-.ds-chat-context-bar__pressure-track > span {
+.ds-chat-context-bar__fill {
   display: block;
   height: 100%;
   background: var(--ds-accent);
   transition: width 0.3s;
 }
 
-.ds-chat-context-bar__pressure[data-pressure="warning"]
-  .ds-chat-context-bar__pressure-track > span {
+.ds-chat-context-bar__bar[data-tone="warn"] .ds-chat-context-bar__fill {
   background: var(--ds-warn);
 }
 
-.ds-chat-context-bar__pressure[data-pressure="critical"]
-  .ds-chat-context-bar__pressure-track > span {
+.ds-chat-context-bar__bar[data-tone="error"] .ds-chat-context-bar__fill {
   background: var(--ds-error);
 }
 
-.ds-chat-context-bar__warning,
-.ds-chat-context-bar__compacted {
+/* Inline fast-mode chip — bundle .chip.chip-warn. The `--ghost` modifier
+ * keeps the affordance visible (so the user can enable fast) when off. */
+.ds-chat-context-bar__chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-pill, 999px);
+  background: transparent;
+  color: var(--ds-text-2);
+  font: inherit;
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.ds-chat-context-bar__chip--warn {
+  border-color: var(--ds-warn);
+  background: var(--ds-warn-bg);
   color: var(--ds-warn);
 }
 
-.ds-chat-context-bar__warning svg,
-.ds-chat-context-bar__compacted svg {
-  width: 13px;
-  height: 13px;
+.ds-chat-context-bar__chip--ghost:hover:not(:disabled) {
+  background: var(--ds-bg-hover);
+}
+
+.ds-chat-context-bar__chip-icon {
+  width: 10px;
+  height: 10px;
   flex: 0 0 auto;
 }
 
+.ds-chat-context-bar__chip:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.ds-chat-context-bar__grow {
+  flex: 1 1 auto;
+}
+
+/* Trailing compact action — appears when context pressure >= 60%. */
 .ds-chat-context-bar__compact-action {
   display: inline-flex;
   align-items: center;
@@ -113,16 +161,49 @@
   opacity: 0.6;
 }
 
-.ds-chat-context-bar__sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+/* Trailing search button — bundle .btn-ghost with .kbd ⌘F. */
+.ds-chat-context-bar__search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text-2);
+  font: inherit;
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.ds-chat-context-bar__search-btn:hover {
+  border-color: var(--ds-border-subtle);
+  background: var(--ds-bg-hover);
+  color: var(--ds-text-1);
+}
+
+.ds-chat-context-bar__search-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.ds-chat-context-bar__kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--ds-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.ds-chat-context-bar__compact-error {
+  color: var(--ds-error);
 }
 
 /* Density compact override — tighter padding + smaller meta. */

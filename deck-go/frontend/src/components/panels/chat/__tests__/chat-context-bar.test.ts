@@ -9,7 +9,12 @@ const chatState = {
   sessionMeta: [] as Array<Record<string, unknown>>,
 };
 
+const sessionsState = {
+  sessions: [] as Array<Record<string, unknown>>,
+};
+
 const patchSessionMock = vi.fn();
+const compactChatSessionMock = vi.fn();
 
 vi.mock("@/stores/chat", () => ({
   useChatStore: Object.assign(
@@ -34,51 +39,62 @@ vi.mock("@/stores/chat-hooks", () => ({
   useActiveSessionKey: () => chatState.activeSessionKey,
 }));
 
+vi.mock("@/stores/sessions", () => ({
+  useSessionsStore: (selector: (state: typeof sessionsState) => unknown) => selector(sessionsState),
+}));
+
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) =>
     (
       ({
         configModel: "Model",
         configModelDefault: "default",
-        configThinking: "Thinking",
+        configReasoning: "Reasoning",
+        configCompactions: "Compactions",
         configFast: "Fast",
         configUsage: "Usage",
         configSendPolicy: "Send",
         configAllow: "allow",
         configDeny: "deny",
-        configVerbose: "Verbose",
-        configOn: "on",
-        configOff: "off",
-        configThinkingToggle: "Click to cycle thinking level",
+        configReasoningToggle: "Click to cycle thinking level",
         configFastToggle: "Click to toggle fast mode",
         configUsageToggle: "Click to cycle response usage",
         configSendPolicyToggle: "Click to toggle send policy",
+        contextLabel: "Context",
+        searchTranscript: "Search transcript",
+        compactFailed: "compact failed",
+        compacting: "compacting",
+        compact: "compact",
       }) as const
     )[
       key as
         | "configModel"
         | "configModelDefault"
-        | "configThinking"
+        | "configReasoning"
+        | "configCompactions"
         | "configFast"
         | "configUsage"
         | "configSendPolicy"
         | "configAllow"
         | "configDeny"
-        | "configVerbose"
-        | "configOn"
-        | "configOff"
-        | "configThinkingToggle"
+        | "configReasoningToggle"
         | "configFastToggle"
         | "configUsageToggle"
         | "configSendPolicyToggle"
+        | "contextLabel"
+        | "searchTranscript"
+        | "compactFailed"
+        | "compacting"
+        | "compact"
     ] ?? key,
 }));
 
 vi.mock("../chat-api", () => ({
   patchSession: (...args: unknown[]) => patchSessionMock(...args),
+  compactChatSession: (...args: unknown[]) => compactChatSessionMock(...args),
 }));
 
-let SessionConfigBar: typeof import("../SessionConfigBar").SessionConfigBar;
+let ChatContextBar: typeof import("../ChatContextBar").ChatContextBar;
 let container: HTMLDivElement;
 let root: Root | null = null;
 
@@ -87,9 +103,11 @@ beforeEach(async () => {
   (
     globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
-  ({ SessionConfigBar } = await import("../SessionConfigBar"));
+  ({ ChatContextBar } = await import("../ChatContextBar"));
   patchSessionMock.mockReset();
   patchSessionMock.mockResolvedValue(true);
+  compactChatSessionMock.mockReset();
+  compactChatSessionMock.mockResolvedValue(undefined);
   chatState.activeSessionKey = "sess-1";
   chatState.sessionMetas = [
     {
@@ -105,6 +123,7 @@ beforeEach(async () => {
     },
   ];
   chatState.sessionMeta = chatState.sessionMetas;
+  sessionsState.sessions = [];
   container = document.createElement("div");
   document.body.appendChild(container);
 });
@@ -119,11 +138,11 @@ afterEach(() => {
   container.remove();
 });
 
-describe("SessionConfigBar", () => {
+describe("ChatContextBar", () => {
   it("cycles thinking level and patches the session", () => {
     act(() => {
       root = createRoot(container);
-      root.render(createElement(SessionConfigBar));
+      root.render(createElement(ChatContextBar));
     });
 
     const thinkingButton = Array.from(container.querySelectorAll("button")).find((button) =>
@@ -144,7 +163,7 @@ describe("SessionConfigBar", () => {
   it("toggles fast mode and patches the session", () => {
     act(() => {
       root = createRoot(container);
-      root.render(createElement(SessionConfigBar));
+      root.render(createElement(ChatContextBar));
     });
 
     const fastButton = Array.from(container.querySelectorAll("button")).find((button) =>
@@ -165,7 +184,7 @@ describe("SessionConfigBar", () => {
   it("cycles response usage and patches the session", () => {
     act(() => {
       root = createRoot(container);
-      root.render(createElement(SessionConfigBar));
+      root.render(createElement(ChatContextBar));
     });
 
     const usageButton = Array.from(container.querySelectorAll("button")).find((button) =>
@@ -186,7 +205,7 @@ describe("SessionConfigBar", () => {
   it("toggles send policy and patches the session", () => {
     act(() => {
       root = createRoot(container);
-      root.render(createElement(SessionConfigBar));
+      root.render(createElement(ChatContextBar));
     });
 
     const sendPolicyButton = Array.from(container.querySelectorAll("button")).find((button) =>
@@ -202,5 +221,24 @@ describe("SessionConfigBar", () => {
       sendPolicy: "deny",
     });
     expect(chatState.sessionMetas[0]?.sendPolicy).toBe("deny");
+  });
+
+  it("invokes onToggleSearch when the search button is clicked", () => {
+    const onToggleSearch = vi.fn();
+    act(() => {
+      root = createRoot(container);
+      root.render(createElement(ChatContextBar, { onToggleSearch } as never));
+    });
+
+    const searchButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.getAttribute("title")?.includes("Search transcript"),
+    );
+    if (!searchButton) {
+      throw new Error("missing search button");
+    }
+
+    searchButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(onToggleSearch).toHaveBeenCalledTimes(1);
   });
 });

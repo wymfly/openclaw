@@ -248,6 +248,7 @@
     "configModel": "模型",
     "configThinking": "思考",
     "configReasoning": "推理",
+    "configCompactions": "压缩次数",
     "configFast": "快速",
     "configVerbose": "详细",
     "configUsage": "用量",

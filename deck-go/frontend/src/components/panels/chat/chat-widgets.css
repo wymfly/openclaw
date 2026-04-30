@@ -5,52 +5,9 @@
  * so theme.css visuals stay valid until P2d 7.3 cleanup.
  */
 
-/* Session-config bar — bordered island that surfaces the active
- * session's model + agent + status so the user can see/change them
- * without opening Settings. Bundle has no direct counterpart; the
- * shape is bespoke deck-go chrome with `--ds-bg-elev` interior
- * and chip-style toggles. */
-.ds-session-config {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 9px;
-  border: 1px solid var(--ds-border-subtle);
-  border-radius: var(--ds-radius-sm);
-  background: var(--ds-bg-elev);
-  color: var(--ds-text-3);
-  font-size: var(--ds-fs-meta);
-}
-
-.ds-session-config__model {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-right: 8px;
-}
-
-.ds-session-config__model strong,
-.ds-session-config__pill {
-  color: var(--ds-accent);
-  font-weight: 600;
-}
-
-.ds-session-config span,
-.ds-session-config button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.ds-session-config svg {
-  width: 12px;
-  height: 12px;
-  flex: 0 0 auto;
-  color: var(--ds-text-3);
-}
-
-.ds-session-config__button,
+/* Steer-dialog button — shared chip-style ghost button used by SteerDialog.
+ * Was previously shared with `.ds-session-config__button` (chat-parity §5
+ * collapsed SessionConfigBar into the 5-cell ChatContextBar). */
 .ds-steer-dialog__button {
   min-height: 28px;
   padding: 4px 8px;
@@ -63,7 +20,6 @@
   cursor: pointer;
 }
 
-.ds-session-config__button:hover,
 .ds-steer-dialog__button:hover {
   border-color: var(--ds-accent-dim);
   background: var(--ds-accent-bg);

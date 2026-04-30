@@ -248,6 +248,7 @@
     "configModel": "Model",
     "configThinking": "Thinking",
     "configReasoning": "Reasoning",
+    "configCompactions": "Compactions",
     "configFast": "Fast",
     "configVerbose": "Verbose",
     "configUsage": "Usage",
