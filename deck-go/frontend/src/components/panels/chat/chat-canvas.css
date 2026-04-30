@@ -546,6 +546,11 @@
  * code/markdown/json/table/image surfaces inside the artifact panel.
  * `.ds-artifact-panel__body` already supplies the outer scroll
  * container; these rules style each language-specific child. */
+/* Code fallback — line-numbered render. Bundle `.ap-code` + `.code-line`
+ * + `.ln` (right-panel.jsx 192-201). Each child is a row with a mono
+ * gutter span and the line code. Text content is rendered as-is, so the
+ * outer `<pre>` keeps `font-family: monospace` defaults but layout is
+ * driven by per-line flex rows. */
 .ds-artifact-body__code {
   margin: 0;
   padding: 9px 10px;
@@ -554,8 +559,57 @@
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-code);
   line-height: var(--ds-line);
-  white-space: pre-wrap;
   overflow: auto;
+}
+
+.ds-artifact-body__code-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  white-space: pre;
+}
+
+.ds-artifact-body__code-line code {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: pre-wrap;
+}
+
+.ds-artifact-body__code-ln {
+  flex: 0 0 auto;
+  min-width: 28px;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-align: right;
+  user-select: none;
+}
+
+/* HTML stub — bundle `.ap-html-stub` + `.ap-html-bar` + `.ap-html-canvas`
+ * (right-panel.jsx 276-289). A status strip above the sandboxed iframe
+ * surfacing the security boundary; iframe occupies remaining space. */
+.ds-artifact-body__html-stub {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 280px;
+}
+
+.ds-artifact-body__html-bar {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-artifact-body__html-canvas {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  background: #fff;
 }
 
 .ds-artifact-body__markdown {

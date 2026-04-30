@@ -203,6 +203,7 @@
     "artifactTabTable": "Table",
     "artifactTabHtml": "HTML",
     "artifactLines": "{count, plural, one {# line} other {# lines}}",
+    "artifactHtmlStubLabel": "srcdoc iframe (sandbox=allow-scripts)",
     "download": "Download",
     "error": "Failed to send",
     "filterBlocks": "Transcript filters",

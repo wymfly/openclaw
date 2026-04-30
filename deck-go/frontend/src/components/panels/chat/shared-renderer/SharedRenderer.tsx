@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import type { ArtifactInfo, ArtifactLanguage } from "../artifacts/detectArtifact";
 import { CodeViewer } from "./CodeViewer";
@@ -15,6 +16,7 @@ export function SharedRenderer({
   className?: string;
   forceLanguage?: ArtifactLanguage;
 }) {
+  const t = useTranslations("chat");
   const effectiveLanguage: ArtifactLanguage = forceLanguage ?? artifact.language;
   const effectiveArtifact = useMemo<ArtifactInfo>(
     () => (forceLanguage ? { ...artifact, language: forceLanguage } : artifact),
@@ -24,11 +26,23 @@ export function SharedRenderer({
     () => (usesIframe(effectiveLanguage) ? buildSrcdoc(effectiveArtifact) : ""),
     [effectiveArtifact, effectiveLanguage],
   );
+  const fallbackLines = useMemo(
+    () => (effectiveLanguage === "text" ? artifact.content.split("\n") : []),
+    [artifact.content, effectiveLanguage],
+  );
 
   return (
     <div className={className ?? "ds-shared-renderer"}>
       {usesIframe(effectiveLanguage) ? (
-        <iframe srcDoc={srcdoc} sandbox="allow-scripts" title={artifact.title} />
+        <div className="ds-artifact-body__html-stub">
+          <div className="ds-artifact-body__html-bar">{t("artifactHtmlStubLabel")}</div>
+          <iframe
+            className="ds-artifact-body__html-canvas"
+            srcDoc={srcdoc}
+            sandbox="allow-scripts"
+            title={artifact.title}
+          />
+        </div>
       ) : effectiveLanguage === "json" ? (
         <JsonTree content={artifact.content} />
       ) : effectiveLanguage === "csv" ? (
@@ -42,7 +56,14 @@ export function SharedRenderer({
           <img src={artifact.content} alt={artifact.title} />
         </div>
       ) : (
-        <pre className="ds-artifact-body__code">{artifact.content}</pre>
+        <pre className="ds-artifact-body__code">
+          {fallbackLines.map((line, index) => (
+            <div className="ds-artifact-body__code-line" key={index}>
+              <span className="ds-artifact-body__code-ln">{index + 1}</span>
+              <code>{line || " "}</code>
+            </div>
+          ))}
+        </pre>
       )}
     </div>
   );

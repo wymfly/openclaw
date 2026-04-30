@@ -203,6 +203,7 @@
     "artifactTabTable": "表格",
     "artifactTabHtml": "HTML",
     "artifactLines": "{count} 行",
+    "artifactHtmlStubLabel": "srcdoc iframe (sandbox=allow-scripts)",
     "download": "下载",
     "error": "发送失败",
     "filterBlocks": "对话过滤器",

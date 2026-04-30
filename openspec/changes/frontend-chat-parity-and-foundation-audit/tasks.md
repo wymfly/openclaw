@@ -87,9 +87,9 @@
 
 ### 7b. ap-html-stub + ap-code line numbers (commit 2)
 
-- [ ] 7.5 Add `ApHtmlStub` renderer for HTML artifacts: srcdoc iframe with sandbox=allow-scripts inside `ds-artifact-body__html-stub` wrapper + mono-small bar above ("srcdoc iframe (sandbox=allow-scripts)") per bundle 276-289. Replace current behavior of escaped pre.
-- [ ] 7.6 Replace `ds-artifact-body__code` plain pre with line-numbered `ds-code-view*` rendering (reuse 9.10.10 atom): wrap each line in `__line` div + `__ln` gutter span. Mirrors bundle `ap-code` 192-201.
-- [ ] 7.7 tsc + vitest gauntlet; commit "deck-go: chat-parity 7b — ap-html-stub iframe + ap-code line numbers".
+- [x] 7.5 SharedRenderer's iframe branch (html/svg/mermaid/text via `usesIframe`) wrapped in `ds-artifact-body__html-stub` (column flex, min-height 280px) with mono-small `ds-artifact-body__html-bar` status strip above ("srcdoc iframe (sandbox=allow-scripts)" via new i18n key `artifactHtmlStubLabel`) and `ds-artifact-body__html-canvas` iframe (flex 1 1 auto, white bg) below. Mirrors bundle `right-panel.jsx` 276-289.
+- [x] 7.6 Plain `<pre className="ds-artifact-body__code">{content}</pre>` text fallback replaced with line-numbered render: outer `<pre>` keeps mono background; inner `__code-line` flex rows wrap a 28px-min `__code-ln` gutter span (mono-small, `--ds-text-3`, right-aligned, user-select none) and a `<code>` cell. `<HighlightedCodeView>` (the `code` route) intentionally NOT swapped — it already provides line-numbered rendering with its own header bar; only the bare-pre fallback (text language) gained the gutter. Mirrors bundle `ap-code` 192-201.
+- [x] 7.7 Gauntlet green: `pnpm tsc --noEmit` clean, `pnpm vitest run` 841/841 (125 files). Ready to commit "deck-go: chat-parity 7b — ap-html-stub iframe + ap-code line numbers".
 
 ## 8. Transcript widget polish (Decision 3, 1 commit — covers 4 ports + selected partials from §3.3)
 
