@@ -1,46 +1,55 @@
 @import "./design-system/tokens/index.css";
 
+/*
+ * Legacy token namespace — Phase 1 alias layer (2026-04-30).
+ * Most legacy tokens now resolve through `var(--ds-*)`. A small set
+ * (--secondary, --primary-strong, --shadow-*, --focus-ring, --radius-card,
+ * --doc-plan) has no ds equivalent and keeps its original literal value.
+ * New code should reference `--ds-*` directly; this layer exists only so
+ * the 8000+ lines of legacy `.deckgo-*` / `.deck-ui-*` CSS below pick up
+ * the new design system without rewrite.
+ */
 :root {
-  --font-display: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-body: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "SFMono-Regular", "SF Mono", Consolas, monospace;
-  --radius-pill: 9999px;
+  --font-display: var(--ds-font-sans);
+  --font-body: var(--ds-font-sans);
+  --font-mono: var(--ds-font-mono);
+  --radius-pill: var(--ds-radius-pill);
   --radius-card: 8px;
-  --radius-inner: 6px;
+  --radius-inner: var(--ds-radius-md);
   --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-panel: 0 14px 40px rgba(15, 23, 42, 0.12);
   --grain-opacity: 0;
-  --control-height: 32px;
+  --control-height: var(--ds-row-h);
   --focus-ring: rgba(96, 165, 250, 0.38);
 }
 
 :root[data-theme="dark"] {
-  --bg: #0f0f23;
-  --bg-alt: #151528;
-  --panel: #1a1a2e;
-  --panel-strong: rgba(255, 255, 255, 0.06);
-  --panel-float: #1a1a2e;
-  --panel-bright: #202038;
-  --surface-elevated: rgba(255, 255, 255, 0.05);
-  --surface-floating: #1a1a2e;
-  --surface-inset: rgba(255, 255, 255, 0.04);
-  --text: #e5e7eb;
-  --text-soft: #cbd5e1;
-  --text-faint: #94a3b8;
-  --primary: #60a5fa;
+  --bg: var(--ds-bg-1);
+  --bg-alt: var(--ds-bg-2);
+  --panel: var(--ds-bg-elev);
+  --panel-strong: var(--ds-bg-3);
+  --panel-float: var(--ds-bg-elev);
+  --panel-bright: var(--ds-bg-elev);
+  --surface-elevated: var(--ds-bg-2);
+  --surface-floating: var(--ds-bg-elev);
+  --surface-inset: var(--ds-bg-2);
+  --text: var(--ds-text-1);
+  --text-soft: var(--ds-text-2);
+  --text-faint: var(--ds-text-3);
+  --primary: var(--ds-accent);
   --primary-strong: #3b82f6;
-  --primary-muted: rgba(96, 165, 250, 0.14);
+  --primary-muted: var(--ds-accent-bg);
   --primary-foreground: #ffffff;
   --secondary: #22c55e;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --destructive: #f87171;
+  --success: var(--ds-success);
+  --warning: var(--ds-warn);
+  --danger: var(--ds-error);
+  --destructive: var(--ds-error);
   --destructive-fg: #ffffff;
-  --accent: #a78bfa;
-  --border: rgba(255, 255, 255, 0.1);
+  --accent: var(--ds-accent);
+  --border: var(--ds-border);
   --shadow-accent: rgba(96, 165, 250, 0.18);
-  --input-bg: rgba(15, 15, 35, 0.82);
+  --input-bg: var(--ds-bg-1);
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--panel);
@@ -54,40 +63,40 @@
   --status-connected: var(--success);
   --status-disconnected: var(--danger);
   --status-reconnecting: var(--warning);
-  --doc-summary: #60a5fa;
+  --doc-summary: var(--ds-accent);
   --doc-plan: #a78bfa;
-  --doc-spec: #fbbf24;
-  --doc-manual: #4ade80;
-  --doc-draft: #9ca3af;
+  --doc-spec: var(--ds-warn);
+  --doc-manual: var(--ds-success);
+  --doc-draft: var(--ds-text-3);
 }
 
 :root[data-theme="light"] {
-  --bg: #f6f7fb;
-  --bg-alt: #eef2f7;
-  --panel: #ffffff;
-  --panel-strong: #f1f5f9;
-  --panel-float: #ffffff;
-  --panel-bright: #ffffff;
-  --surface-elevated: #f8fafc;
-  --surface-floating: #ffffff;
-  --surface-inset: #edf2f7;
-  --text: #111827;
-  --text-soft: #475569;
-  --text-faint: #64748b;
-  --primary: #2563eb;
+  --bg: var(--ds-bg-1);
+  --bg-alt: var(--ds-bg-2);
+  --panel: var(--ds-bg-elev);
+  --panel-strong: var(--ds-bg-3);
+  --panel-float: var(--ds-bg-elev);
+  --panel-bright: var(--ds-bg-elev);
+  --surface-elevated: var(--ds-bg-2);
+  --surface-floating: var(--ds-bg-elev);
+  --surface-inset: var(--ds-bg-2);
+  --text: var(--ds-text-1);
+  --text-soft: var(--ds-text-2);
+  --text-faint: var(--ds-text-3);
+  --primary: var(--ds-accent);
   --primary-strong: #1d4ed8;
-  --primary-muted: rgba(37, 99, 235, 0.1);
+  --primary-muted: var(--ds-accent-bg);
   --primary-foreground: #ffffff;
   --secondary: #0f766e;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --destructive: #dc2626;
+  --success: var(--ds-success);
+  --warning: var(--ds-warn);
+  --danger: var(--ds-error);
+  --destructive: var(--ds-error);
   --destructive-fg: #ffffff;
-  --accent: #7c3aed;
-  --border: #d9e2ec;
+  --accent: var(--ds-accent);
+  --border: var(--ds-border);
   --shadow-accent: rgba(37, 99, 235, 0.18);
-  --input-bg: #ffffff;
+  --input-bg: var(--ds-bg-1);
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--panel);
@@ -101,11 +110,11 @@
   --status-connected: var(--success);
   --status-disconnected: var(--danger);
   --status-reconnecting: var(--warning);
-  --doc-summary: #3b82f6;
+  --doc-summary: var(--ds-accent);
   --doc-plan: #8b5cf6;
-  --doc-spec: #f59e0b;
-  --doc-manual: #10b981;
-  --doc-draft: #6b7280;
+  --doc-spec: var(--ds-warn);
+  --doc-manual: var(--ds-success);
+  --doc-draft: var(--ds-text-3);
 }
 
 * {
