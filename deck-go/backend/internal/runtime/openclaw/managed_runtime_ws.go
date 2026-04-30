@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -86,6 +87,10 @@ func (s *deckGatewayWSSession) run() {
 	for {
 		var frame deckGatewayWSFrame
 		if err := s.conn.ReadJSON(&frame); err != nil {
+			var ne net.Error
+			if errors.As(err, &ne) && ne.Timeout() {
+				_ = s.writeControl(websocket.CloseMessage, websocket.FormatCloseMessage(deckGatewayWSTimeoutCloseCode, "heartbeat timeout"))
+			}
 			return
 		}
 		if strings.TrimSpace(frame.Type) != "req" {
