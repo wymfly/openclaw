@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpIcon, PlusIcon, SquareIcon } from "@/deck-ui/icons";
+import { ArrowUpIcon, PlusIcon, SlashIcon, SquareIcon, XIcon, ZapIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
 import { Textarea } from "@/design-system/atoms/Textarea";
@@ -604,7 +604,8 @@ export function MessageInput(props: MessageInputProps = {}) {
       ) : null}
       {contextCritical ? (
         <div className="ds-message-input__warning deck-ui-composer-warning" role="status">
-          {t("contextWarning")}
+          <ZapIcon className="ds-message-input__warning-icon" aria-hidden="true" />
+          <span className="ds-message-input__warning-text">{t("contextWarning")}</span>
         </div>
       ) : null}
       <FileAttachmentBar files={files} onRemove={removeFile} />
@@ -654,17 +655,24 @@ export function MessageInput(props: MessageInputProps = {}) {
         </IconButton>
         <div className="ds-message-input__ta-wrap">
           {slash.ghostHint ? (
-            <div className="ds-message-input__ghost deck-ui-ghost-hint">{slash.ghostHint}</div>
+            <div className="ds-message-input__ghost deck-ui-ghost-hint">
+              <span className="ds-message-input__ghost-prefix">/{slash.slashFilter} </span>
+              <span className="ds-message-input__ghost-rest">{slash.ghostHint}</span>
+            </div>
           ) : null}
           {slash.activeTag ? (
-            <button
-              className="ds-message-input__tag deck-ui-command-tag"
-              type="button"
-              onClick={() => slash.clearTag()}
-              title={t("cmdTagRemove")}
-            >
-              /{slash.activeTag.name}
-            </button>
+            <span className="ds-message-input__tag deck-ui-command-tag">
+              <SlashIcon className="ds-message-input__tag-icon" aria-hidden="true" />
+              <span className="ds-message-input__tag-name">{slash.activeTag.name}</span>
+              <IconButton
+                className="ds-message-input__tag-close"
+                aria-label={t("cmdTagRemove")}
+                title={t("cmdTagRemove")}
+                onClick={() => slash.clearTag()}
+              >
+                <XIcon />
+              </IconButton>
+            </span>
           ) : null}
           <Textarea
             ref={textareaRef}

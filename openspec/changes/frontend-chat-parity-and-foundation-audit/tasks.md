@@ -40,10 +40,10 @@
 
 ### 4b. cmd-tag + ghost-rest + ctx-warn polish (commit 2)
 
-- [ ] 4.6 Restructure `ds-message-input__tag`: replace single button with 3-element span — leading `<I.Slash>` icon + mono command name span + close `<button>` IconButton with X icon. Click on tag NO longer clears (was: clickable-to-clear); only the close button does. Mirrors bundle `composer.jsx` lines 138-146.
-- [ ] 4.7 Split `ds-message-input__ghost` into 2 spans: typed prefix (full opacity) + `__ghost-rest` (60% opacity for completion). Wire to `slash.ghostHint` so the prefix matches `slash.slashFilter` and the rest is the suggestion remainder.
-- [ ] 4.8 Add `<I.Zap>` icon + mono small text to `ds-message-input__warning` per bundle `ctx-warn` line 73-79. Switch text to `<span className="mono small">` styling.
-- [ ] 4.9 tsc + vitest gauntlet; commit "deck-go: chat-parity 4b — cmd-tag 3-element + ghost-rest split + ctx-warn zap".
+- [x] 4.6 cmd-tag refactored from `<button>` to `<span>` chip with 3 children: leading `SlashIcon` (10px) + `__tag-name` mono command name + trailing `IconButton` close with `XIcon`. Outer span is non-interactive; only the close IconButton calls `slash.clearTag()`. Mirrors bundle `composer.jsx` 138-146.
+- [x] 4.7 Ghost split into 2 spans: `__ghost-prefix` (`/{slash.slashFilter} `, color `--ds-text-2` for the matching prefix) + `__ghost-rest` (`{slash.ghostHint}`, color `--ds-text-4` + opacity 0.6 for the args/completion remainder). Switched ghost to `--ds-font-mono` per bundle `.ghost-hint.mono`.
+- [x] 4.8 ctx-warn now renders `ZapIcon` (11px, `--ds-warn` colored) + `__warning-text` mono span. Bundle `.ctx-warn` Zap+small-mono pattern reproduced.
+- [x] 4.9 Added `SlashIcon` to `deck-go/frontend/src/deck-ui/icons.tsx` (Lucide-style 22→2,2→22 single 45° line). Gauntlet green: tsc clean + vitest 840/840 pass. Ready to commit "deck-go: chat-parity 4b — cmd-tag 3-element + ghost-rest split + ctx-warn zap".
 
 ### 4c. Composer popover affordances + active state (commit 3)
 

@@ -74,6 +74,14 @@ export function XIcon(props: IconProps) {
   );
 }
 
+export function SlashIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M22 2 2 22" />
+    </IconBase>
+  );
+}
+
 export function GlobeIcon(props: IconProps) {
   return (
     <IconBase {...props}>

@@ -41,7 +41,7 @@
   background: var(--ds-accent-bg);
 }
 
-/* Context-pressure warning bar — bundle .ctx-warn. */
+/* Context-pressure warning bar — bundle .ctx-warn (Zap icon + mono small). */
 .ds-message-input__warning {
   display: flex;
   align-items: center;
@@ -50,6 +50,18 @@
   border-radius: var(--ds-radius-sm);
   background: var(--ds-warn-bg);
   color: var(--ds-warn);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-message-input__warning-icon {
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
+}
+
+.ds-message-input__warning-text {
+  flex: 1 1 auto;
+  font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);
 }
 
@@ -89,34 +101,63 @@
   gap: 6px;
 }
 
-/* Ghost hint — bundle .ghost-hint, slash command preview overlay. */
+/* Ghost hint — bundle .ghost-hint mono. Two-span split: prefix matches the
+ * typed slash text (full opacity, overlays user's input invisibly) +
+ * ghost-rest dims the suggested completion or args placeholder. */
 .ds-message-input__ghost {
   position: absolute;
   inset: 6px 8px auto 8px;
   pointer-events: none;
-  color: var(--ds-text-4);
+  font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-body);
   white-space: pre;
 }
 
-/* Active slash-command tag chip — bundle .cmd-tag. */
+.ds-message-input__ghost-prefix {
+  color: var(--ds-text-2);
+}
+
+.ds-message-input__ghost-rest {
+  color: var(--ds-text-4);
+  opacity: 0.6;
+}
+
+/* Active slash-command tag chip — bundle .cmd-tag (3-element span: leading
+ * Slash icon + mono name + trailing close IconButton). The chip itself is
+ * non-interactive; only the close button clears the tag. */
 .ds-message-input__tag {
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
   gap: 4px;
   height: 24px;
-  padding: 4px 8px;
+  padding: 4px 6px 4px 8px;
   border: 1px solid var(--ds-accent-dim);
   border-radius: var(--ds-radius-sm);
   background: var(--ds-accent-bg);
   color: var(--ds-accent);
-  font: inherit;
   font-size: var(--ds-fs-meta);
-  cursor: pointer;
 }
 
-.ds-message-input__tag:hover {
+.ds-message-input__tag-icon {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+}
+
+.ds-message-input__tag-name {
+  font-family: var(--ds-font-mono);
+}
+
+.ds-message-input__tag-close {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: inherit;
+}
+
+.ds-message-input__tag-close:hover {
   background: color-mix(in srgb, var(--ds-accent) 22%, var(--ds-accent-bg));
 }
 
