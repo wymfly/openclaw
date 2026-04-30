@@ -80,10 +80,10 @@
 
 ### 7a. Artifact header + ap-tabs format switcher (commit 1)
 
-- [ ] 7.1 Add Artifact icon at start of `ds-artifact-panel__head` + restructure title to bundle pattern: `__title` (filename / artifact title) + `__sub` mono small subtitle showing `<lang> · <N lines>` (compute lines via `artifact.content.split("\n").length`). Mirrors bundle `right-panel.jsx` 124-128.
-- [ ] 7.2 Add `ds-artifact-panel__tabs` 5-tab strip below head per bundle 142-158 — Code/Markdown/JSON/Table/HTML buttons. Use Tab atom or `ap-tab` styling with `--ds-accent` border-bottom on active.
-- [ ] 7.3 Add `forceLanguage` override prop to `SharedRenderer`: tabs flip the prop, SharedRenderer routes to the matching renderer regardless of `artifact.language`. JSON/Table tabs gracefully degrade with error state if content unparseable.
-- [ ] 7.4 tsc + vitest gauntlet; commit "deck-go: chat-parity 7a — artifact icon+sub + 5-tab format switcher".
+- [x] 7.1 ArtifactPanel head restructured: leading `FileTextIcon` (13px, `--ds-text-2`) + `__title-stack` column (`__title` font-weight 600 ellipsis + `__sub` mono-small `${langLabel} · ${count} lines` via ICU `t("artifactLines", { count })`). Existing `__language` span removed; legacy `<strong>` + `__language` CSS retained as safety-net during migration.
+- [x] 7.2 New `ds-artifact-panel__tabs` strip below head with 5 buttons (Code/Markdown/JSON/Table/HTML) mapped to ArtifactLanguage values (`code`/`markdown`/`json`/`csv`/`html`). Active tab gets `__tab--active` modifier with `--ds-accent` border-bottom + accent text color. Uses `role="tablist"` + `role="tab"` + `aria-selected` for a11y.
+- [x] 7.3 SharedRenderer accepts `forceLanguage?: ArtifactLanguage` prop — `effectiveLanguage = forceLanguage ?? artifact.language`. Switch routes to matching sub-renderer; JsonTree already handles parse errors gracefully (`__error` state); TableViewer already handles non-CSV (`artifactCsvEmpty`); html/svg/mermaid/text iframe routes share `usesIframe` check. Tabs flip the prop via `setForcedLanguage(tab.id)`.
+- [x] 7.4 Gauntlet green: `pnpm tsc --noEmit` clean (deck-go/frontend), `pnpm vitest run` 841/841 (125 files). Ready to commit "deck-go: chat-parity 7a — artifact icon+sub + 5-tab format switcher".
 
 ### 7b. ap-html-stub + ap-code line numbers (commit 2)
 
