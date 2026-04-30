@@ -11,6 +11,8 @@
     "test:deck-ui": "node ../../scripts/run-vitest.mjs run --config vitest.config.ts"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
