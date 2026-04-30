@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { StreamingCursor } from "../StreamingCursor";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("StreamingCursor", () => {
@@ -29,5 +30,11 @@ describe("StreamingCursor", () => {
 
   it("merges caller className", () => {
     expect(mount(<StreamingCursor className="extra" />)?.className).toContain("extra");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<StreamingCursor />);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Tag } from "../Tag";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Tag", () => {
@@ -29,5 +30,11 @@ describe("Tag", () => {
 
   it("merges caller className", () => {
     expect(mount(<Tag className="extra">x</Tag>)?.className).toContain("extra");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Tag>bash</Tag>);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

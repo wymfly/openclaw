@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Badge } from "../Badge";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Badge", () => {
@@ -32,5 +33,11 @@ describe("Badge", () => {
     expect(mount(<Badge variant="ok">x</Badge>)?.className).toContain("ds-badge--ok");
     expect(mount(<Badge variant="warn">x</Badge>)?.className).toContain("ds-badge--warn");
     expect(mount(<Badge variant="running">x</Badge>)?.className).toContain("ds-badge--running");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Badge>idle</Badge>);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

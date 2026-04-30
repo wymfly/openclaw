@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { SkeletonLoader } from "../SkeletonLoader";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("SkeletonLoader", () => {
@@ -32,5 +33,11 @@ describe("SkeletonLoader", () => {
   it("merges caller style", () => {
     const div = mount(<SkeletonLoader style={{ marginTop: 4 }} />);
     expect(div?.style.marginTop).toBe("4px");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<SkeletonLoader width={120} height="1em" />);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

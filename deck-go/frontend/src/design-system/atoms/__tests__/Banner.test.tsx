@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Banner } from "../Banner";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Banner", () => {
@@ -52,5 +53,11 @@ describe("Banner", () => {
       </Banner>,
     );
     expect(div?.getAttribute("role")).toBe("region");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Banner>Reconnecting…</Banner>);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

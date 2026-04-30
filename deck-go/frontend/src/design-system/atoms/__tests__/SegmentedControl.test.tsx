@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SegmentedControl, type SegmentedItem } from "../SegmentedControl";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 type View = "raw" | "bash" | "read" | "diff";
@@ -104,5 +105,12 @@ describe("SegmentedControl", () => {
     expect(tabs[0].tabIndex).toBe(-1);
     expect(tabs[1].tabIndex).toBe(0);
     expect(tabs[3].tabIndex).toBe(-1);
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(
+      <SegmentedControl items={ITEMS} value="raw" onChange={() => {}} aria-label="View" />,
+    );
+    await expectNoAxeViolations(container);
   });
 });

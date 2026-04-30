@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { WaitingDots } from "../WaitingDots";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("WaitingDots", () => {
@@ -32,5 +33,11 @@ describe("WaitingDots", () => {
     for (const dot of Array.from(dots ?? [])) {
       expect(dot.getAttribute("aria-hidden")).toBe("true");
     }
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<WaitingDots aria-label="Waiting for assistant" />);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Input } from "../Input";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Input", () => {
@@ -44,5 +45,11 @@ describe("Input", () => {
     const node = mount(<Input placeholder="email" defaultValue="x@y.z" />);
     expect(node?.getAttribute("placeholder")).toBe("email");
     expect(node?.value).toBe("x@y.z");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Input aria-label="email" />);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

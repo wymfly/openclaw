@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Textarea } from "../Textarea";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Textarea", () => {
@@ -37,5 +38,11 @@ describe("Textarea", () => {
     const node = mount(<Textarea rows={4} placeholder="msg" />);
     expect(node?.getAttribute("rows")).toBe("4");
     expect(node?.getAttribute("placeholder")).toBe("msg");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Textarea aria-label="message" />);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

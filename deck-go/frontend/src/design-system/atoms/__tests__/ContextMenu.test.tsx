@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 const ITEMS: ContextMenuItem[] = [
@@ -100,5 +101,16 @@ describe("ContextMenu", () => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     });
     expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
+
+  it("has no axe violations (open menu)", async () => {
+    const { container } = mount(
+      <ContextMenu items={ITEMS} aria-label="actions">
+        <div data-testid="target">target</div>
+      </ContextMenu>,
+    );
+    const target = container.querySelector('[data-testid="target"]') as HTMLElement;
+    act(() => fireContextMenu(target));
+    await expectNoAxeViolations(container);
   });
 });

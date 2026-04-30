@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Card } from "../Card";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Card", () => {
@@ -42,5 +43,11 @@ describe("Card", () => {
   it("forwards extra props (data-*)", () => {
     const div = mount(<Card data-testid="card">x</Card>);
     expect(div?.getAttribute("data-testid")).toBe("card");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Card>hello</Card>);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ProgressBar } from "../ProgressBar";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("ProgressBar", () => {
@@ -50,5 +51,11 @@ describe("ProgressBar", () => {
     const bar = mount(<ProgressBar aria-label="x" />);
     const fill = bar?.querySelector(".ds-progress-bar__fill") as HTMLDivElement | null;
     expect(fill?.style.width).toBe("");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<ProgressBar aria-label="Loading" value={0.5} />);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

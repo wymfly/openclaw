@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Radio } from "../Radio";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Radio", () => {
@@ -30,5 +31,11 @@ describe("Radio", () => {
     expect(node?.getAttribute("name")).toBe("kind");
     expect(node?.getAttribute("value")).toBe("apple");
     expect(node?.checked).toBe(true);
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Radio name="g" value="a" aria-label="apple" />);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

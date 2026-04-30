@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { FileInput } from "../FileInput";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("FileInput", () => {
@@ -48,5 +49,10 @@ describe("FileInput", () => {
     expect(container.querySelector(".ds-file-input")?.className).toContain(
       "ds-file-input--disabled",
     );
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(<FileInput>Upload</FileInput>);
+    await expectNoAxeViolations(container);
   });
 });

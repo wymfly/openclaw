@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Spinner } from "../Spinner";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Spinner", () => {
@@ -35,5 +36,11 @@ describe("Spinner", () => {
 
   it("does not apply size class for default md", () => {
     expect(mount(<Spinner aria-label="x" />)?.className).not.toContain("ds-spinner--sm");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Spinner aria-label="Loading messages" />);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

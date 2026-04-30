@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Drawer } from "../Drawer";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Drawer", () => {
@@ -105,5 +106,14 @@ describe("Drawer", () => {
     const dialog = container.querySelector(".ds-drawer");
     expect(dialog?.getAttribute("aria-labelledby")).toBe("dlg-h");
     expect(dialog?.getAttribute("aria-label")).toBeNull();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(
+      <Drawer open onClose={() => {}} aria-label="Artifact panel">
+        <p>Body content</p>
+      </Drawer>,
+    );
+    await expectNoAxeViolations(container);
   });
 });

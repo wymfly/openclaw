@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Button } from "../Button";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Button", () => {
@@ -81,5 +82,11 @@ describe("Button", () => {
     const btn = mount(<Button className="extra">x</Button>);
     expect(btn?.className).toContain("ds-button");
     expect(btn?.className).toContain("extra");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Button>click me</Button>);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

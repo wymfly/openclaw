@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Chip } from "../Chip";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Chip", () => {
@@ -29,5 +30,11 @@ describe("Chip", () => {
 
   it("applies active class when active=true", () => {
     expect(mount(<Chip active>x</Chip>)?.className).toContain("ds-chip--active");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(<Chip>cache 71%</Chip>);
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

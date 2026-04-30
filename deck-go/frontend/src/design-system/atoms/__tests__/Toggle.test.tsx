@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Toggle } from "../Toggle";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Toggle", () => {
@@ -70,5 +71,12 @@ describe("Toggle", () => {
     act(() => button.click());
     expect(onCheckedChange).not.toHaveBeenCalled();
     expect(button.disabled).toBe(true);
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(
+      <Toggle checked={false} onCheckedChange={() => {}} aria-label="streaming" />,
+    );
+    await expectNoAxeViolations(container);
   });
 });

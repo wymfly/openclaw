@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Tab } from "../Tab";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Tab", () => {
@@ -40,5 +41,18 @@ describe("Tab", () => {
 
   it("muted applies ds-tab--muted modifier", () => {
     expect(mount(<Tab muted>x</Tab>)?.className).toContain("ds-tab--muted");
+  });
+
+  it("has no axe violations", async () => {
+    // Tab atom rendered standalone is a single role=tab without a tablist
+    // parent, which axe flags via `aria-required-parent`. Wrap in a tablist
+    // so the atom is exercised in its valid composition.
+    const result = render(
+      <div role="tablist" aria-label="Sessions">
+        <Tab active>Sessions</Tab>
+      </div>,
+    );
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

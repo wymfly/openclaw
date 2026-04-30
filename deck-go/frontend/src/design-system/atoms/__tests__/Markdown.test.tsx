@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { Markdown } from "../Markdown";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Markdown", () => {
@@ -79,5 +80,10 @@ describe("Markdown", () => {
   it("renders horizontal rule", () => {
     const { container } = mount(<Markdown content="---" />);
     expect(container.querySelector("hr")).not.toBeNull();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(<Markdown content="hello world" />);
+    await expectNoAxeViolations(container);
   });
 });

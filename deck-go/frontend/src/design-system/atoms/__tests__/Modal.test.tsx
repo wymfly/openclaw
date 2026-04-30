@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Modal } from "../Modal";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Modal", () => {
@@ -128,5 +129,14 @@ describe("Modal", () => {
     expect(document.body.style.overflow).toBe("hidden");
     unmount();
     expect(document.body.style.overflow).toBe("");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(
+      <Modal open onClose={() => {}} aria-label="Approve tool">
+        <p>Body content</p>
+      </Modal>,
+    );
+    await expectNoAxeViolations(container);
   });
 });

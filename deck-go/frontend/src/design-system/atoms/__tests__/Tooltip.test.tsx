@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Tooltip } from "../Tooltip";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Tooltip", () => {
@@ -73,5 +74,14 @@ describe("Tooltip", () => {
       button.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
     });
     expect(container.querySelector('[role="tooltip"]')).toBeNull();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(
+      <Tooltip content="hello">
+        <button>Trigger</button>
+      </Tooltip>,
+    );
+    await expectNoAxeViolations(container);
   });
 });

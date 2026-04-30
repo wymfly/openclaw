@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { DiffView } from "../DiffView";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("DiffView", () => {
@@ -66,5 +67,11 @@ describe("DiffView", () => {
   it("forwards aria-label", () => {
     const { container } = mount(<DiffView content="" aria-label="changes" />);
     expect(container.querySelector("pre")?.getAttribute("aria-label")).toBe("changes");
+  });
+
+  it("has no axe violations", async () => {
+    const diff = ["@@ -1,3 +1,3 @@", " context", "-old", "+new"].join("\n");
+    const { container } = mount(<DiffView content={diff} aria-label="changes" />);
+    await expectNoAxeViolations(container);
   });
 });

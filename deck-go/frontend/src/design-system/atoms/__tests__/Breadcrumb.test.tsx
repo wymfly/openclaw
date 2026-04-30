@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Breadcrumb } from "../Breadcrumb";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Breadcrumb", () => {
@@ -65,5 +66,12 @@ describe("Breadcrumb", () => {
     link.addEventListener("click", (event) => event.preventDefault());
     link.click();
     expect(onClick).toHaveBeenCalled();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(
+      <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Sessions" }]} />,
+    );
+    await expectNoAxeViolations(container);
   });
 });

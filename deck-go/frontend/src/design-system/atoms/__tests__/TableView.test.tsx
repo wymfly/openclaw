@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { TableView } from "../TableView";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("TableView", () => {
@@ -59,5 +60,19 @@ describe("TableView", () => {
       <TableView headers={["A"]} rows={[["x"], ["y"]]} rowKey={(_row, index) => `row-${index}`} />,
     );
     expect(container.querySelectorAll("tbody tr").length).toBe(2);
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(
+      <TableView
+        headers={["Col A", "Col B"]}
+        rows={[
+          ["1", "2"],
+          ["3", "4"],
+        ]}
+        caption="Test data"
+      />,
+    );
+    await expectNoAxeViolations(container);
   });
 });

@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Select } from "../Select";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Select", () => {
@@ -47,5 +48,16 @@ describe("Select", () => {
     );
     expect(node?.className).toContain("ds-select--invalid");
     expect(node?.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(
+      <Select aria-label="kind" defaultValue="a">
+        <option value="a">A</option>
+        <option value="b">B</option>
+      </Select>,
+    );
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

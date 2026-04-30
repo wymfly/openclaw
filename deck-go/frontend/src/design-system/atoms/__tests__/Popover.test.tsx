@@ -2,6 +2,7 @@
 import { act, useRef, type RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Popover } from "../Popover";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 interface HostProps {
@@ -95,5 +96,10 @@ describe("Popover", () => {
       content.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     });
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(<Host open onClose={() => {}} />);
+    await expectNoAxeViolations(container);
   });
 });

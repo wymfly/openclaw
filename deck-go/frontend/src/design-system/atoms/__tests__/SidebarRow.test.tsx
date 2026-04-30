@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SidebarRow } from "../SidebarRow";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("SidebarRow", () => {
@@ -56,5 +57,10 @@ describe("SidebarRow", () => {
   it("inactive omits aria-current", () => {
     const { container } = mount(<SidebarRow title="x" />);
     expect(container.querySelector("button")?.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(<SidebarRow title="Session A" preview="hi" meta="2m ago" />);
+    await expectNoAxeViolations(container);
   });
 });

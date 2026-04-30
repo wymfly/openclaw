@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Block } from "../Block";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Block", () => {
@@ -108,6 +109,11 @@ describe("Block", () => {
       </Block>,
     );
     expect(container.querySelector(".ds-block")?.className).toContain("ds-block--error");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(<Block label="Read">file content</Block>);
+    await expectNoAxeViolations(container);
   });
 
   it("role marker classes are accepted via className passthrough", () => {

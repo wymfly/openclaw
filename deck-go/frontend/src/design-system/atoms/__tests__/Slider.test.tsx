@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Slider } from "../Slider";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Slider", () => {
@@ -27,5 +28,13 @@ describe("Slider", () => {
     expect(node?.getAttribute("min")).toBe("0");
     expect(node?.getAttribute("max")).toBe("100");
     expect(node?.getAttribute("step")).toBe("5");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(
+      <Slider aria-label="volume" min={0} max={100} defaultValue={50} step={5} />,
+    );
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

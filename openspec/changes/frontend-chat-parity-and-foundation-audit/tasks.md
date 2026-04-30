@@ -116,12 +116,12 @@
 
 ## 11. axe a11y automation (1 commit)
 
-- [ ] 11.1 Install `vitest-axe` as devDep: `cd deck-go/frontend && pnpm add -D vitest-axe`. Verify it lands in `package.json` `devDependencies` and `pnpm-lock.yaml` updates.
-- [ ] 11.2 Add a top-of-file import + matcher extension in `deck-go/frontend/src/design-system/atoms/__tests__/setup.ts` (create if missing) — `expect.extend({ toHaveNoViolations: vitestAxe.toHaveNoViolations })` plus the JSDOM polyfills `vitest-axe` needs.
-- [ ] 11.3 Add `await expect(container).toHaveNoViolations()` to every P1a atom test (`Button` / `IconButton` / `Badge` / `Chip` / `Tag` / `Spinner` / `SkeletonLoader` / `Banner` / `StreamingCursor` / `WaitingDots` / `ProgressBar`) — 11 files, ~1 assertion each.
-- [ ] 11.4 Add the same to every P1b atom test (`Card` / `Block` / `Drawer` / `Modal` / `Markdown` / `Code` / `DiffView` / `JsonTree` / `TableView` / `Input` / `Textarea` / `Select` / `Toggle` / `Radio` / `Slider` / `FileInput` / `Tab` / `SegmentedControl` / `Breadcrumb` / `SidebarRow` / `Popover` / `DropdownMenu` / `Tooltip` / `Toast` / `ContextMenu`) — 25 files. Plus the new `Block` atom from §10.
-- [ ] 11.5 Run full `pnpm vitest run` — investigate any axe failure. Each failure is a small atom fix or test-only `disableRules: ["color-contrast"]` override with a justification comment.
-- [ ] 11.6 Commit "deck-go: chat-parity 11 — axe automation across 37 atoms".
+- [x] 11.1 `vitest-axe ^0.1.0` added as devDep in `deck-go/frontend/package.json` (peer dep `vitest >=0.16.0` satisfied; runtime hoisted to workspace `node_modules/vitest-axe`).
+- [x] 11.2 Created `deck-go/frontend/src/design-system/atoms/__tests__/setup-axe.ts` (registers `toHaveNoViolations` matcher via `expect.extend`; uses `// @ts-expect-error` to bypass vitest-axe v0.1.0's `t as toHaveNoViolations` aliased re-export quirk that TS misclassifies as type-only under `isolatedModules`) and a small `axe-helper.ts` exposing `expectNoAxeViolations(container, options?)` so atom tests can `await expectNoAxeViolations(container)` in one line. Wired in via `vitest.config.ts` `test.setupFiles`.
+- [x] 11.3 Added `it("has no axe violations", async () => { ... })` to all 11 P1a atom tests: `Button` / `IconButton` / `Badge` / `Chip` / `Tag` / `Spinner` / `SkeletonLoader` / `Banner` / `StreamingCursor` / `WaitingDots` / `ProgressBar`. Each renders the atom with sensible defaults (incl. `aria-label` where required) and asserts zero violations.
+- [x] 11.4 Added the same to all 25 P1b atom tests: `Card` / `Block` / `Drawer` / `Modal` / `Markdown` / `Code` / `DiffView` / `JsonTree` / `TableView` / `Input` / `Textarea` / `Select` / `Toggle` / `Radio` / `Slider` / `FileInput` / `Tab` (wrapped in `role="tablist"` parent to satisfy `aria-required-parent`) / `SegmentedControl` / `Breadcrumb` / `SidebarRow` / `Popover` / `DropdownMenu` / `Tooltip` / `Toast` / `ContextMenu` (open-menu state). Block atom (§10) included.
+- [x] 11.5 Full `pnpm vitest run` — initial run had 1 timeout in `Toast.test.tsx` due to suite-wide `vi.useFakeTimers()` in `beforeEach` blocking axe's internal microtask scheduler. Resolved by calling `vi.useRealTimers()` at the top of the Toast axe test (the only one that needs real timers). All 36 atom axe assertions pass with **zero violations** — no atom required a `disableRules` override.
+- [x] 11.6 Gauntlet green: `pnpm tsc --noEmit` clean (deck-go/frontend), `pnpm vitest run` **878/878** pass (125 files; up from 842 → +36 new axe tests). Ready to commit "deck-go: chat-parity 11 — axe automation across 37 atoms".
 
 ## 12. Lighthouse + keyboard walkthrough (user-driven)
 

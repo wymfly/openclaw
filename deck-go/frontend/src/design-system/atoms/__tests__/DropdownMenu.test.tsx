@@ -2,6 +2,7 @@
 import { act, useRef, type RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DropdownMenu, type DropdownMenuItem } from "../DropdownMenu";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 const ITEMS: DropdownMenuItem[] = [
@@ -122,5 +123,10 @@ describe("DropdownMenu", () => {
       "describe me",
     );
     expect(container.querySelector(".ds-dropdown-menu__trailing")?.textContent).toBe("⌘K");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(<Host open onClose={() => {}} onSelect={() => {}} />);
+    await expectNoAxeViolations(container);
   });
 });

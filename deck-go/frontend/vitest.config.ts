@@ -46,5 +46,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./src/design-system/atoms/__tests__/setup-axe.ts"],
   },
 });

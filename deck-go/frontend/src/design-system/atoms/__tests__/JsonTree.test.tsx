@@ -2,6 +2,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { JsonTree } from "../JsonTree";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("JsonTree", () => {
@@ -67,5 +68,10 @@ describe("JsonTree", () => {
     const { container } = mount(<JsonTree value={[1, 2, 3]} />);
     expect(container.textContent).toContain("1");
     expect(container.textContent).toContain("3");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(<JsonTree value={{ a: 1, b: { c: 2 } }} aria-label="payload" />);
+    await expectNoAxeViolations(container);
   });
 });

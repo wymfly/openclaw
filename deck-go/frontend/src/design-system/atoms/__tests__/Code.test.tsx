@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Code } from "../Code";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Code", () => {
@@ -53,5 +54,10 @@ describe("Code", () => {
   it("ds-code--numbered modifier on line-numbered variant", () => {
     const { container } = mount(<Code content="x" showLineNumbers />);
     expect(container.querySelector("pre")?.className).toContain("ds-code--numbered");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = mount(<Code content="const x = 1" language="ts" />);
+    await expectNoAxeViolations(container);
   });
 });

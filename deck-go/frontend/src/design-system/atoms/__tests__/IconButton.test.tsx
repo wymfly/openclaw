@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IconButton } from "../IconButton";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("IconButton", () => {
@@ -73,5 +74,15 @@ describe("IconButton", () => {
       </IconButton>,
     );
     expect(btn?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("has no axe violations", async () => {
+    const result = render(
+      <IconButton aria-label="Close">
+        <span>×</span>
+      </IconButton>,
+    );
+    cleanups.push(result.unmount);
+    await expectNoAxeViolations(result.container);
   });
 });

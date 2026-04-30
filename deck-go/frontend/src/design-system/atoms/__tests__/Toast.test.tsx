@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Toast } from "../Toast";
+import { expectNoAxeViolations } from "./axe-helper";
 import { render } from "./render-component";
 
 describe("Toast", () => {
@@ -64,5 +65,13 @@ describe("Toast", () => {
       </Toast>,
     );
     expect(container.querySelector(".ds-toast")?.getAttribute("role")).toBe("region");
+  });
+
+  it("has no axe violations", async () => {
+    // axe's internal microtask scheduler relies on real timers; the suite-wide
+    // `vi.useFakeTimers()` in `beforeEach` would otherwise hang the assertion.
+    vi.useRealTimers();
+    const { container } = mount(<Toast>Saved</Toast>);
+    await expectNoAxeViolations(container);
   });
 });
