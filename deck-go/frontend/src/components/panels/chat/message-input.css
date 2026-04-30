@@ -16,22 +16,33 @@
  * / `.deck-ui-file-input` rules removed from theme.css in the same commit.
  */
 
-/* Composer frame — bundle .composer-frame. */
+/* Composer frame — bundle .composer-frame.
+ *
+ * 4a structural restructure: 4 vertical stacks (warning / attach-bar /
+ * composer-field / composer-toolbar). Was a row+wrap of flat siblings. */
 .ds-message-input {
   position: relative;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  flex-direction: column;
   gap: 8px;
   padding: 10px;
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-lg);
   background: var(--ds-bg-2);
+  transition:
+    border-color 120ms,
+    background 120ms;
+}
+
+/* Drag-over modifier — bundle .composer-frame.drag-over. Visual feedback
+ * when user drags files over the composer. */
+.ds-message-input--drag-over {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
 }
 
 /* Context-pressure warning bar — bundle .ctx-warn. */
 .ds-message-input__warning {
-  flex: 1 0 100%;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -47,13 +58,30 @@
   display: none;
 }
 
-/* Composer field — owns textarea, popovers, ghost hint, slash-command tag.
- * Bundle layout is row-based (.composer-field flex row); we keep a stacking
- * column so popover / ghost / tag / textarea sit naturally without z-index
- * juggling, then expand to fill the frame's remaining horizontal space. */
+/* Composer field — bundle .composer-field row layout: paperclip-attach at
+ * left + ta-wrap (textarea + ghost overlay + cmd-tag) flexing to fill +
+ * template menu (composer-icon-btn equivalent) at right. */
 .ds-message-input__field {
   position: relative;
-  flex: 1 1 240px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Attach IconButton — bundle .composer-attach (paperclip at field's left
+ * edge). Aligns with textarea baseline. */
+.ds-message-input__attach {
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+/* Textarea wrapper — bundle .ta-wrap. Holds Textarea + ghost overlay +
+ * cmd-tag chip; flex-basis 0 so it absorbs remaining width. */
+.ds-message-input__ta-wrap {
+  position: relative;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -95,7 +123,7 @@
 /* Inner textarea — neutralize the Textarea atom's surface so the textarea
  * blends into composer-frame; bundle .ta-wrap textarea is borderless +
  * transparent + no resize handle. */
-.ds-message-input__field .ds-textarea {
+.ds-message-input__ta-wrap .ds-textarea {
   flex: 1 1 auto;
   min-height: 28px;
   max-height: 200px;
@@ -107,21 +135,37 @@
   resize: none;
 }
 
-.ds-message-input__field .ds-textarea:hover:not(:disabled),
-.ds-message-input__field .ds-textarea:focus-visible {
+.ds-message-input__ta-wrap .ds-textarea:hover:not(:disabled),
+.ds-message-input__ta-wrap .ds-textarea:focus-visible {
   border: 0;
   outline: none;
   background: transparent;
 }
 
-/* Action / send / abort layout — visuals owned by Button + IconButton atoms;
- * here we only pin alignment within the composer flex row. */
-.ds-message-input__action,
+/* Composer toolbar — bundle .composer-toolbar (canvas/artifact chips +
+ * grow + char-count hint + send/abort). Sits below the field stack. */
+.ds-message-input__toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Char-count hint — bundle .composer-hint mono small. margin-left:auto
+ * pushes the send/abort button to the right edge of the toolbar. */
+.ds-message-input__hint {
+  margin-left: auto;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  white-space: nowrap;
+}
+
+/* Send / abort buttons keep their atom-owned visuals; align center within
+ * the toolbar row. Template menu remains inside the field. */
 .ds-message-input__send,
-.ds-message-input__abort,
-.ds-message-input > .ds-template-menu {
+.ds-message-input__abort {
   flex: 0 0 auto;
-  align-self: flex-end;
 }
 
 /* Attachment bar — bundle .attach-bar. */
@@ -179,20 +223,23 @@
   gap: 6px;
 }
 
-[data-density="compact"] .ds-message-input__field .ds-textarea {
+[data-density="compact"] .ds-message-input__ta-wrap .ds-textarea {
   min-height: 24px;
 }
 
-/* Small viewport — keep textarea full-width + let action buttons share the
- * remaining row evenly, mirroring bundle small-viewport intent. */
+/* Small viewport — toolbar items wrap so canvas/artifact chips don't crowd
+ * out the send button. Hint hides since space is precious. */
 @media (max-width: 720px) {
-  .ds-message-input__field {
-    flex: 1 0 100%;
+  .ds-message-input__toolbar {
+    flex-wrap: wrap;
   }
 
-  .ds-message-input__action,
+  .ds-message-input__hint {
+    display: none;
+  }
+
   .ds-message-input__send,
   .ds-message-input__abort {
-    flex: 1 1 auto;
+    margin-left: auto;
   }
 }

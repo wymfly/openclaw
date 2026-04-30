@@ -32,11 +32,11 @@
 
 ### 4a. Composer structural restructure (commit 1)
 
-- [ ] 4.1 Wrap `<MessageInput>` outer children into 4 vertical stacks per bundle `composer.jsx` lines 60-200: `composer-frame > [approval | ctx-warn | attach-bar | composer-field | composer-toolbar]`. Add new `ds-message-input__toolbar` wrapper for canvas/artifact/template/send (currently flat siblings).
-- [ ] 4.2 Move attach IconButton + PromptTemplateMenu + Textarea + slash palette **INSIDE** `ds-message-input__field`. Bundle has `composer-attach` paperclip at left edge of field, `composer-icon-btn` (template) at right edge — restructure deck to match.
-- [ ] 4.3 Add `--drag-over` modifier to `ds-message-input` when files dragged: switch border to `--ds-accent-dim` + bg to `--ds-accent-bg` (was just `event.preventDefault()` with no visual feedback). Hook into existing `onDrop` / `onDragOver`.
-- [ ] 4.4 Add char-count hint span to new toolbar: `<span className="ds-message-input__hint">{input.length} ch · ⌘↵ send</span>` mono fs-meta with `flex: 1` grow spacer pushing send button right (per bundle `composer-toolbar` + `composer-hint` + `grow`).
-- [ ] 4.5 tsc + vitest gauntlet; commit "deck-go: chat-parity 4a — composer 4-stack restructure + drag-over + char-count".
+- [x] 4.1 `MessageInput.tsx` restructured into 5 vertical stacks (column flex on `.ds-message-input`): approval / ctx-warn / FileAttachmentBar / composer-field (row) / composer-toolbar (row). Added `ds-message-input__toolbar` wrapper holding canvas chip + artifact chip + char-count hint + send/abort. Template menu moved INSIDE `__field` (right edge).
+- [x] 4.2 Inside `ds-message-input__field`: paperclip attach IconButton at left → `ds-message-input__ta-wrap` (column for ghost overlay + cmd-tag chip + Textarea) → PromptTemplateMenu at right. Slash palette + mention popover remain inside field as positioned overlays. Matches bundle `composer-attach` + `ta-wrap` + `composer-icon-btn` row.
+- [x] 4.3 Added `useState` for `dragOver` + `--drag-over` modifier class. Border switches to `--ds-accent-dim` and bg to `--ds-accent-bg` on dragenter/dragover; resets on dragleave (only when leaving the frame itself, not bubbled from children) and drop. Drop also calls existing `addFiles`.
+- [x] 4.4 New `ds-message-input__hint` span in toolbar (`{input.length} ch · ⌘↵ {send}`), mono via `--ds-font-mono`, `--ds-fs-meta` size, `margin-left: auto` so the send/abort button is pushed to the toolbar's right edge. Hidden on `max-width: 720px`.
+- [x] 4.5 Gauntlet green: `pnpm tsc --noEmit` clean, `pnpm vitest run` 840/840 pass (125 files). Ready to commit "deck-go: chat-parity 4a — composer 4-stack restructure + drag-over + char-count".
 
 ### 4b. cmd-tag + ghost-rest + ctx-warn polish (commit 2)
 

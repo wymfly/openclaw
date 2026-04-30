@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpIcon, PlusIcon, SquareIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
@@ -99,6 +99,7 @@ export function MessageInput(props: MessageInputProps = {}) {
   } = composer;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [dragOver, setDragOver] = useState(false);
   const slash = useSlashCommand(input);
   const mention = useMention();
   const history = useInputHistory();
@@ -570,14 +571,29 @@ export function MessageInput(props: MessageInputProps = {}) {
       : controlledSendDisabled;
   const abortDisabled = abortDisabledProp ?? !activeSessionKey;
 
+  const charCountHint = `${input.length} ch · ⌘↵ ${t("send")}`;
+
   return (
     <div
-      className="ds-message-input deck-ui-message-input"
+      className={
+        "ds-message-input deck-ui-message-input" + (dragOver ? " ds-message-input--drag-over" : "")
+      }
       onDrop={(event) => {
         event.preventDefault();
+        setDragOver(false);
         addFiles(Array.from(event.dataTransfer.files));
       }}
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        event.preventDefault();
+        if (!dragOver) {
+          setDragOver(true);
+        }
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget === event.target) {
+          setDragOver(false);
+        }
+      }}
     >
       {activeApproval && pendingApprovals.some((approval) => approval.id === activeApproval.id) ? (
         <ApprovalDialog
@@ -592,14 +608,6 @@ export function MessageInput(props: MessageInputProps = {}) {
         </div>
       ) : null}
       <FileAttachmentBar files={files} onRemove={removeFile} />
-      <IconButton
-        className="ds-message-input__action deck-ui-composer-action"
-        aria-label={attachFilesLabel}
-        title={attachFilesLabel}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <PlusIcon />
-      </IconButton>
       <input
         ref={fileInputRef}
         className="ds-message-input__file-input deck-ui-file-input"
@@ -636,62 +644,77 @@ export function MessageInput(props: MessageInputProps = {}) {
             onDismiss={mention.closeMention}
           />
         ) : null}
-        {slash.ghostHint ? (
-          <div className="ds-message-input__ghost deck-ui-ghost-hint">{slash.ghostHint}</div>
-        ) : null}
-        {slash.activeTag ? (
-          <button
-            className="ds-message-input__tag deck-ui-command-tag"
-            type="button"
-            onClick={() => slash.clearTag()}
-            title={t("cmdTagRemove")}
-          >
-            /{slash.activeTag.name}
-          </button>
-        ) : null}
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          noResize
-          onChange={(event) => handleInputChange(event.target.value)}
-          onKeyDown={handleInputKeyDown}
-          onPaste={(event) => {
-            const pastedFiles = Array.from(event.clipboardData.files);
-            if (pastedFiles.length > 0) {
-              addFiles(pastedFiles);
-            }
-          }}
-          placeholder={slash.activeTag ? t("cmdTagPlaceholder") : t("placeholder")}
-        />
+        <IconButton
+          className="ds-message-input__attach"
+          aria-label={attachFilesLabel}
+          title={attachFilesLabel}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <PlusIcon />
+        </IconButton>
+        <div className="ds-message-input__ta-wrap">
+          {slash.ghostHint ? (
+            <div className="ds-message-input__ghost deck-ui-ghost-hint">{slash.ghostHint}</div>
+          ) : null}
+          {slash.activeTag ? (
+            <button
+              className="ds-message-input__tag deck-ui-command-tag"
+              type="button"
+              onClick={() => slash.clearTag()}
+              title={t("cmdTagRemove")}
+            >
+              /{slash.activeTag.name}
+            </button>
+          ) : null}
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            noResize
+            onChange={(event) => handleInputChange(event.target.value)}
+            onKeyDown={handleInputKeyDown}
+            onPaste={(event) => {
+              const pastedFiles = Array.from(event.clipboardData.files);
+              if (pastedFiles.length > 0) {
+                addFiles(pastedFiles);
+              }
+            }}
+            placeholder={slash.activeTag ? t("cmdTagPlaceholder") : t("placeholder")}
+          />
+        </div>
+        <PromptTemplateMenu onSelect={(template) => setInput(`${input}${template}`)} />
       </div>
-      <PromptTemplateMenu onSelect={(template) => setInput(`${input}${template}`)} />
-      <CanvasToggle label={t("canvasToggle")} />
-      <ArtifactToggle label={t("artifactToggle")} />
-      {isStreaming ? (
-        <Button
-          variant="danger"
-          size="sm"
-          className="ds-message-input__abort deck-ui-composer-abort"
-          disabled={abortDisabled}
-          title={t("abort")}
-          onClick={() => void abortRun()}
-        >
-          <SquareIcon />
-          <span>{t("abort")}</span>
-        </Button>
-      ) : (
-        <Button
-          variant="primary"
-          size="sm"
-          className="ds-message-input__send deck-ui-composer-send"
-          disabled={sendDisabled}
-          title={t("send")}
-          onClick={() => void sendPlainMessage()}
-        >
-          <ArrowUpIcon />
-          <span>{t("send")}</span>
-        </Button>
-      )}
+      <div className="ds-message-input__toolbar">
+        <CanvasToggle label={t("canvasToggle")} />
+        <ArtifactToggle label={t("artifactToggle")} />
+        <span className="ds-message-input__hint" aria-hidden="true">
+          {charCountHint}
+        </span>
+        {isStreaming ? (
+          <Button
+            variant="danger"
+            size="sm"
+            className="ds-message-input__abort deck-ui-composer-abort"
+            disabled={abortDisabled}
+            title={t("abort")}
+            onClick={() => void abortRun()}
+          >
+            <SquareIcon />
+            <span>{t("abort")}</span>
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            size="sm"
+            className="ds-message-input__send deck-ui-composer-send"
+            disabled={sendDisabled}
+            title={t("send")}
+            onClick={() => void sendPlainMessage()}
+          >
+            <ArrowUpIcon />
+            <span>{t("send")}</span>
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
