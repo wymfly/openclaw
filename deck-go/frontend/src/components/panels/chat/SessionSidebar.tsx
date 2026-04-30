@@ -1,16 +1,20 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PlusIcon, TrashIcon } from "@/deck-ui/icons";
+import { HashIcon, PanelCollapseIcon, PanelExpandIcon, PlusIcon, TrashIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
 import { Input } from "@/design-system/atoms/Input";
 import { SidebarRow } from "@/design-system/atoms/SidebarRow";
+import { useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
 import { AgentTabs } from "./AgentTabs";
 import { deleteChatSession, fetchSessionPreviews, patchSession } from "./chat-api";
 import "./session-sidebar.css";
+
+const COLLAPSED_AGENT_LIMIT = 3;
+const COLLAPSED_SESSION_LIMIT = 8;
 
 function formatTime(timestamp?: number): string {
   if (!timestamp) {
@@ -68,6 +72,7 @@ export function SessionSidebar(
   const [editValue, setEditValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
   const cancelRenameRef = useRef(false);
   const storeActiveSessionKey = useActiveSessionKey();
   const storeActiveAgentId = useChatStore((state) => state.activeAgentId);
@@ -75,6 +80,7 @@ export function SessionSidebar(
   const storeSessionPreviewOverlays = useChatStore((state) => state.sessionPreviewOverlays);
   const setActiveSession = useChatStore((state) => state.setActiveSession);
   const setActiveAgent = useChatStore((state) => state.setActiveAgent);
+  const agents = useAgentsStore((state) => state.agents);
   const activeSessionKey = props.activeSessionKey ?? storeActiveSessionKey;
   const activeAgentId = props.activeAgentId ?? storeActiveAgentId;
   const sessionMetas = props.sessionMetas ?? storeSessionMetas;
@@ -209,9 +215,103 @@ export function SessionSidebar(
     });
   }, [searchQuery, sessionMetas, sessionPreviewOverlays]);
 
+  if (collapsed) {
+    const visibleAgents = agents.slice(0, COLLAPSED_AGENT_LIMIT);
+    const overflowAgents = Math.max(agents.length - COLLAPSED_AGENT_LIMIT, 0);
+    const collapsedSessions = sessionMetas.slice(0, COLLAPSED_SESSION_LIMIT);
+    return (
+      <aside className="ds-session-sidebar ds-session-sidebar--collapsed deck-ui-session-sidebar">
+        <IconButton
+          size="sm"
+          aria-label={t("sidebarExpand")}
+          title={t("sidebarExpand")}
+          className="ds-session-sidebar__toggle"
+          onClick={() => setCollapsed(false)}
+        >
+          <PanelExpandIcon />
+        </IconButton>
+        <IconButton
+          size="sm"
+          aria-label={t("newSession")}
+          title={t("newSession")}
+          className="ds-session-sidebar__new-mini"
+          onClick={handleNew}
+        >
+          <PlusIcon />
+        </IconButton>
+        {visibleAgents.length > 0 ? (
+          <div className="ds-session-sidebar__agent-stack">
+            {visibleAgents.map((agent) => {
+              const letter = (agent.name || agent.id).slice(0, 1).toLowerCase();
+              const active = agent.id === activeAgentId;
+              const dotClasses = ["ds-session-sidebar__agent-dot"];
+              if (active) {
+                dotClasses.push("ds-session-sidebar__agent-dot--active");
+              }
+              return (
+                <button
+                  key={agent.id}
+                  type="button"
+                  className={dotClasses.join(" ")}
+                  title={agent.name || agent.id}
+                  onClick={() => setActiveAgent(agent.id)}
+                >
+                  {letter}
+                </button>
+              );
+            })}
+            {overflowAgents > 0 ? (
+              <span
+                className="ds-session-sidebar__agent-dot ds-session-sidebar__agent-dot--overflow"
+                aria-label={`+${overflowAgents}`}
+              >
+                +
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+        <span className="ds-session-sidebar__rule" aria-hidden="true" />
+        {collapsedSessions.map((session) => {
+          const sessionRunning = session.status === "running";
+          const active = activeSessionKey === session.key;
+          const miniClasses = ["ds-session-sidebar__session-mini"];
+          if (active) {
+            miniClasses.push("ds-session-sidebar__session-mini--active");
+          }
+          return (
+            <button
+              key={session.key}
+              type="button"
+              className={miniClasses.join(" ")}
+              title={sessionTitle(session)}
+              onClick={() => handleSelect(session)}
+            >
+              {sessionRunning ? (
+                <span className="ds-session-sidebar__streaming-dot" aria-hidden="true" />
+              ) : (
+                <HashIcon />
+              )}
+            </button>
+          );
+        })}
+      </aside>
+    );
+  }
+
   return (
     <aside className="ds-session-sidebar deck-ui-session-sidebar">
-      <AgentTabs />
+      <div className="ds-session-sidebar__head">
+        <AgentTabs />
+        <IconButton
+          size="sm"
+          aria-label={t("sidebarCollapse")}
+          title={t("sidebarCollapse")}
+          className="ds-session-sidebar__toggle"
+          onClick={() => setCollapsed(true)}
+        >
+          <PanelCollapseIcon />
+        </IconButton>
+      </div>
       <Button
         variant="secondary"
         size="sm"

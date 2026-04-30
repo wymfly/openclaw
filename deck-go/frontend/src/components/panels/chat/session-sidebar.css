@@ -143,3 +143,135 @@
 [data-density="compact"] .ds-session-sidebar__foot {
   padding: 7px 10px;
 }
+
+/* Expanded-mode head — chat-parity §9: hosts AgentTabs + collapse toggle on
+ * the same row. AgentTabs grows to fill; toggle pinned to the right. The
+ * head wrapper takes ownership of the bottom separator so AgentTabs no
+ * longer needs to draw its own. */
+.ds-session-sidebar__head {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.ds-session-sidebar__head .ds-agent-tabs {
+  flex: 1 1 auto;
+  border-bottom: 0;
+}
+
+.ds-session-sidebar__head .ds-session-sidebar__toggle {
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 6px 8px 6px 4px;
+}
+
+/* Collapsed mode — bundle sidebar.jsx 12-42. Narrow vertical rail with
+ * icon-only New + agent-stack + rule + session-mini pills (max 8). */
+.ds-session-sidebar--collapsed {
+  flex-direction: column;
+  align-items: center;
+  width: 56px;
+  gap: 6px;
+  padding: 8px 0 12px;
+}
+
+.ds-session-sidebar--collapsed .ds-session-sidebar__toggle,
+.ds-session-sidebar--collapsed .ds-session-sidebar__new-mini {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.ds-session-sidebar__agent-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.ds-session-sidebar__agent-dot {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 50%;
+  background: var(--ds-bg-2);
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ds-session-sidebar__agent-dot:hover {
+  background: var(--ds-bg-1);
+  color: var(--ds-text-1);
+}
+
+.ds-session-sidebar__agent-dot--active {
+  background: var(--ds-accent-bg);
+  border-color: var(--ds-accent-dim);
+  color: var(--ds-accent);
+}
+
+.ds-session-sidebar__agent-dot--overflow {
+  background: var(--ds-bg-1);
+  cursor: default;
+}
+
+.ds-session-sidebar__rule {
+  width: 24px;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--ds-border-subtle);
+}
+
+.ds-session-sidebar__session-mini {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text-3);
+  cursor: pointer;
+}
+
+.ds-session-sidebar__session-mini svg {
+  width: 11px;
+  height: 11px;
+}
+
+.ds-session-sidebar__session-mini:hover {
+  background: var(--ds-bg-2);
+  color: var(--ds-text-1);
+}
+
+.ds-session-sidebar__session-mini--active {
+  background: var(--ds-accent-bg);
+  border-color: var(--ds-accent-dim);
+  color: var(--ds-accent);
+}
+
+.ds-session-sidebar__streaming-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ds-accent);
+  animation: ds-session-sidebar-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ds-session-sidebar-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}

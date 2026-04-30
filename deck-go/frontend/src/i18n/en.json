@@ -219,6 +219,8 @@
     "compactionSummaryLoading": "Loading…",
     "compactionSummaryEmpty": "No compaction checkpoints yet.",
     "compactionSummaryNoText": "No summary recorded.",
+    "sidebarCollapse": "Collapse sidebar",
+    "sidebarExpand": "Expand sidebar",
     "tools": "Tools",
     "toolsRunning": "Tools running",
     "toolsCompleted": "Tools completed",

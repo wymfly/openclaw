@@ -219,6 +219,8 @@
     "compactionSummaryLoading": "加载中…",
     "compactionSummaryEmpty": "暂无压缩检查点。",
     "compactionSummaryNoText": "未记录摘要。",
+    "sidebarCollapse": "折叠侧栏",
+    "sidebarExpand": "展开侧栏",
     "tools": "工具",
     "toolsRunning": "工具运行中",
     "toolsCompleted": "工具已完成",
