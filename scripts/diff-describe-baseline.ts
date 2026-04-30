@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const defaultAllowedFields = new Set([
   "forkClass",
+  "forkDeprecated",
+  "forkDeprecationReplacement",
+  "forkDeprecationSince",
+  "forkDeprecationRemovalTarget",
   "bffEligible",
   "controlPlaneWrite",
   "schemaVersion",

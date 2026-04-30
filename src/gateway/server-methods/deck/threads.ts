@@ -99,6 +99,10 @@ export const deckThreadsMethodDefs: Record<string, MethodMetadata> = {
     result: DeckThreadsListResultSchema,
     scope: "operator.read",
     forkClass: "C3",
+    forkDeprecated: true,
+    forkDeprecationReplacement: "deck-go-bff/views.ThreadsList",
+    forkDeprecationSince: "2026-05-01",
+    forkDeprecationRemovalTarget: "2026-08-01",
     bffEligible: true,
   },
 };

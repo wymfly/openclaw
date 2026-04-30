@@ -176,6 +176,70 @@ whose names end in `.subscribe` or `.unsubscribe`. `options.failFast` stops
 after the first failed sub-call. `options.timeoutMs` is reserved on the wire for
 future timeout semantics and is currently accepted without enforcement.
 
+#### deck-go BFF batch endpoint
+
+deck-go also exposes the batch primitive at its client edge:
+
+```http
+POST /api/v1/runtimes/{runtimeId}/gateway/batch
+Authorization: Bearer <deck-go access token>
+Content-Type: application/json
+```
+
+```json
+{
+  "calls": [
+    { "id": "describe", "method": "gateway.describe", "params": { "includeSchemas": false } },
+    { "id": "models", "method": "models.configured", "params": {} },
+    { "id": "agents", "method": "agents.list", "params": {} }
+  ],
+  "options": { "failFast": false, "timeoutMs": 2500 }
+}
+```
+
+The BFF enforces its generated typed-method allowlist before forwarding any
+sub-call. Rejected sub-calls return per-entry errors and are not dispatched to
+the upstream Gateway. The response is `{requestId, runtimeId, results}` with
+`results` ordered like the input calls.
+
+#### deck-go BFF WebSocket endpoint
+
+Native clients can opt into deck-go's BFF WebSocket transport:
+
+```http
+GET /api/v1/runtimes/{runtimeId}/gateway/ws
+Authorization: Bearer <deck-go access token>
+```
+
+Browser clients that cannot set WebSocket headers may pass `?token=<deck-go
+access token>`. Query-token auth is accepted only for the Gateway WebSocket
+upgrade path. After upgrade, frames do not carry tokens; the BFF revalidates the
+original token during heartbeat and closes revoked or rotated tokens with a
+legal WebSocket close code.
+
+The frame shape mirrors the Gateway protocol:
+
+- Request: `{type:"req", id, method, params}`
+- Response: `{type:"res", id, ok, payload|error}`
+- Event: `{type:"event", event, payload}`
+
+The BFF preserves the same generated typed-method allowlist used by HTTP RPC and
+HTTP batch.
+
+### Fork deprecation metadata
+
+Fork-local Gateway methods may include optional `forkDeprecated*` metadata in
+`gateway.describe`:
+
+- `forkDeprecated`
+- `forkDeprecationReplacement`
+- `forkDeprecationSince`
+- `forkDeprecationRemovalTarget`
+
+These fields are advisory metadata for fork migration tracking. They do not
+change method runtime behavior and are intentionally fork-prefixed to avoid
+colliding with any future upstream `deprecated` semantics.
+
 ## Roles + scopes
 
 ### Roles

@@ -64,6 +64,10 @@ export const deckRoutingListMethodDefs: Record<string, MethodMetadata> = {
     result: DeckRoutingListResultSchema,
     scope: "operator.read",
     forkClass: "C3",
+    forkDeprecated: true,
+    forkDeprecationReplacement: "deck-go-bff/views.RoutingList",
+    forkDeprecationSince: "2026-05-01",
+    forkDeprecationRemovalTarget: "2026-08-01",
     bffEligible: true,
   },
 };

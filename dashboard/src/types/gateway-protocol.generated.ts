@@ -3076,6 +3076,10 @@ export interface GatewayDescribeResult {
       scope: string;
       since?: number;
       forkClass?: string;
+      forkDeprecated?: boolean;
+      forkDeprecationReplacement?: string;
+      forkDeprecationSince?: string;
+      forkDeprecationRemovalTarget?: string;
       bffEligible?: boolean;
       controlPlaneWrite?: boolean;
     }

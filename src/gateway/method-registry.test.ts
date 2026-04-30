@@ -147,4 +147,59 @@ describe("buildMethodRegistry", () => {
     expect(second.describe().methods["test.set"].forkClass).toBe("C3");
     expect(second.describe().methods["test.set"].bffEligible).toBe(true);
   });
+
+  it("includes fork deprecation metadata changes in schemaVersion", () => {
+    const first = buildMethodRegistry(fakeHandlers, [testMethodDefs]);
+    const second = buildMethodRegistry(fakeHandlers, [
+      {
+        ...testMethodDefs,
+        "test.set": {
+          ...testMethodDefs["test.set"],
+          forkDeprecated: true,
+          forkDeprecationReplacement: "deck-go-bff/views.TestSet",
+          forkDeprecationSince: "2026-05-01",
+          forkDeprecationRemovalTarget: "2026-08-01",
+        },
+      },
+    ]);
+
+    expect(first.describe().schemaVersion).not.toBe(second.describe().schemaVersion);
+    expect(second.describe().methods["test.set"]).toMatchObject({
+      forkDeprecated: true,
+      forkDeprecationReplacement: "deck-go-bff/views.TestSet",
+      forkDeprecationSince: "2026-05-01",
+      forkDeprecationRemovalTarget: "2026-08-01",
+    });
+  });
+
+  it("keeps describe payload bytes stable when fork deprecation metadata is absent", () => {
+    const first = buildMethodRegistry(fakeHandlers, [testMethodDefs]);
+    const second = buildMethodRegistry(fakeHandlers, [testMethodDefs]);
+
+    const firstBytes = JSON.stringify(first.describe({ filter: "all", includeSchemas: false }));
+    const secondBytes = JSON.stringify(second.describe({ filter: "all", includeSchemas: false }));
+
+    expect(firstBytes).toBe(secondBytes);
+    expect(firstBytes).not.toContain("forkDeprecated");
+    expect(firstBytes).not.toContain("forkDeprecationReplacement");
+  });
+
+  it("orders describe payload bytes deterministically when fork deprecation metadata is present", () => {
+    const defs = {
+      ...testMethodDefs,
+      "test.set": {
+        ...testMethodDefs["test.set"],
+        forkDeprecated: true,
+        forkDeprecationReplacement: "deck-go-bff/views.TestSet",
+        forkDeprecationSince: "2026-05-01",
+        forkDeprecationRemovalTarget: "2026-08-01",
+      },
+    };
+    const first = buildMethodRegistry(fakeHandlers, [defs]);
+    const second = buildMethodRegistry(fakeHandlers, [defs]);
+
+    expect(JSON.stringify(first.describe({ filter: "all", includeSchemas: false }))).toBe(
+      JSON.stringify(second.describe({ filter: "all", includeSchemas: false })),
+    );
+  });
 });

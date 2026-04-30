@@ -287,6 +287,10 @@ export const deckSubagentsMethodDefs: Record<string, MethodMetadata> = {
     result: DeckSubagentsListResultSchema,
     scope: "operator.read",
     forkClass: "C3",
+    forkDeprecated: true,
+    forkDeprecationReplacement: "deck-go-bff/views.SubagentsList",
+    forkDeprecationSince: "2026-05-01",
+    forkDeprecationRemovalTarget: "2026-08-01",
     bffEligible: true,
   },
   "deck.subagents.kill": {
@@ -301,6 +305,10 @@ export const deckSubagentsMethodDefs: Record<string, MethodMetadata> = {
     result: DeckSubagentsLineageResultSchema,
     scope: "operator.read",
     forkClass: "C3",
+    forkDeprecated: true,
+    forkDeprecationReplacement: "deck-go-bff/views.SubagentsLineage",
+    forkDeprecationSince: "2026-05-01",
+    forkDeprecationRemovalTarget: "2026-08-01",
     bffEligible: true,
   },
 };

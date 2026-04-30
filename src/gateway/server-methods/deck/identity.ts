@@ -173,6 +173,10 @@ export const deckIdentityMethodDefs: Record<string, MethodMetadata> = {
     result: DeckIdentityListResultSchema,
     scope: "operator.read",
     forkClass: "C3",
+    forkDeprecated: true,
+    forkDeprecationReplacement: "deck-go-bff/views.IdentityList",
+    forkDeprecationSince: "2026-05-01",
+    forkDeprecationRemovalTarget: "2026-08-01",
     bffEligible: true,
   },
   "deck.identity.link": {

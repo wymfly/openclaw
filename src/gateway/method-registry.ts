@@ -11,6 +11,10 @@ export interface MethodDefinition {
   since?: number;
   deprecated?: boolean;
   forkClass?: "C1" | "C2" | "C3" | "C4" | "C5";
+  forkDeprecated?: boolean;
+  forkDeprecationReplacement?: string;
+  forkDeprecationSince?: string;
+  forkDeprecationRemovalTarget?: string;
   bffEligible?: boolean;
   controlPlaneWrite?: boolean;
 }
@@ -52,6 +56,10 @@ export interface GatewayDescribePayload {
       scope: string;
       since?: number;
       forkClass?: "C1" | "C2" | "C3" | "C4" | "C5";
+      forkDeprecated?: boolean;
+      forkDeprecationReplacement?: string;
+      forkDeprecationSince?: string;
+      forkDeprecationRemovalTarget?: string;
       bffEligible?: boolean;
       controlPlaneWrite?: boolean;
     }
@@ -189,6 +197,10 @@ function computeSchemaVersion(
         bffEligible: def.bffEligible,
         controlPlaneWrite: def.controlPlaneWrite,
         forkClass: def.forkClass,
+        forkDeprecated: def.forkDeprecated,
+        forkDeprecationReplacement: def.forkDeprecationReplacement,
+        forkDeprecationSince: def.forkDeprecationSince,
+        forkDeprecationRemovalTarget: def.forkDeprecationRemovalTarget,
         name,
         params: def.params,
         result: def.result,
@@ -234,6 +246,10 @@ export function buildMethodRegistry(
       since: meta?.since,
       deprecated: meta?.deprecated,
       forkClass: meta?.forkClass,
+      forkDeprecated: meta?.forkDeprecated,
+      forkDeprecationReplacement: meta?.forkDeprecationReplacement,
+      forkDeprecationSince: meta?.forkDeprecationSince,
+      forkDeprecationRemovalTarget: meta?.forkDeprecationRemovalTarget,
       bffEligible: meta?.bffEligible,
       controlPlaneWrite: meta?.controlPlaneWrite,
     });
@@ -302,6 +318,10 @@ export function buildMethodRegistry(
           scope: string;
           since?: number;
           forkClass?: "C1" | "C2" | "C3" | "C4" | "C5";
+          forkDeprecated?: boolean;
+          forkDeprecationReplacement?: string;
+          forkDeprecationSince?: string;
+          forkDeprecationRemovalTarget?: string;
           bffEligible?: boolean;
           controlPlaneWrite?: boolean;
         } = {
@@ -312,6 +332,18 @@ export function buildMethodRegistry(
         }
         if (def.forkClass !== undefined) {
           entry.forkClass = def.forkClass;
+        }
+        if (def.forkDeprecated !== undefined) {
+          entry.forkDeprecated = def.forkDeprecated;
+        }
+        if (def.forkDeprecationReplacement !== undefined) {
+          entry.forkDeprecationReplacement = def.forkDeprecationReplacement;
+        }
+        if (def.forkDeprecationSince !== undefined) {
+          entry.forkDeprecationSince = def.forkDeprecationSince;
+        }
+        if (def.forkDeprecationRemovalTarget !== undefined) {
+          entry.forkDeprecationRemovalTarget = def.forkDeprecationRemovalTarget;
         }
         if (def.bffEligible !== undefined) {
           entry.bffEligible = def.bffEligible;
