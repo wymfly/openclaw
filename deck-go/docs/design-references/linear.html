@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Linear · Design Reference Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* === Linear 实测色板（暗色为主） === */
+    --bg-0: #08090a;          /* 主背景，几乎纯黑 */
+    --bg-1: #101113;          /* 次背景 / sidebar */
+    --bg-2: #1a1b1e;          /* 卡片 / hover */
+    --bg-3: #232428;          /* selected / 输入框背景 */
+    --bg-4: #2e2f33;          /* 强 hover / focus 边框底色 */
+    --line: #232428;           /* 分隔线 */
+    --line-2: #2e2f33;        /* 强分隔 */
+
+    --text-1: #f4f5f8;        /* 主文字 */
+    --text-2: #b0b3bb;        /* 次要文字 */
+    --text-3: #797d87;        /* 弱化文字 */
+    --text-4: #4a4d56;        /* placeholder / disabled */
+
+    /* Linear 的 signature 紫，配合多色 status */
+    --indigo: #5e6ad2;        /* 标志紫 */
+    --indigo-soft: #8d95e6;
+    --indigo-bg: rgba(94, 106, 210, 0.12);
+
+    --status-todo: #797d87;
+    --status-progress: #f2c94c;
+    --status-done: #5fb878;
+    --status-blocked: #eb5757;
+    --status-canceled: #6b6f78;
+
+    --priority-urgent: #eb5757;
+    --priority-high: #f2994a;
+    --priority-med: #5e6ad2;
+    --priority-low: #6b6f78;
+
+    --sans: 'Inter', 'Inter Variable', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg-0);
+    color: var(--text-1);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* === Layout === */
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 56px 48px 96px;
+  }
+
+  /* === Hero === */
+  .hero {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 40px;
+    margin-bottom: 48px;
+  }
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-3);
+    margin-bottom: 20px;
+  }
+  .hero-title {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 56px;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    color: var(--text-1);
+    margin: 0 0 18px;
+  }
+  .hero-title em {
+    font-style: normal;
+    color: var(--indigo-soft);
+    font-weight: 500;
+  }
+  .hero-tagline {
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--text-2);
+    max-width: 680px;
+    margin: 0 0 28px;
+    font-weight: 400;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .chip .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--indigo);
+  }
+
+  /* === Section 头部 === */
+  section { margin-bottom: 72px; }
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--indigo-soft);
+    letter-spacing: 0.14em;
+    margin-bottom: 6px;
+  }
+  .sec-title {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: -0.018em;
+    margin: 0 0 6px;
+  }
+  .sec-sub {
+    font-size: 14px;
+    color: var(--text-3);
+    max-width: 580px;
+    margin: 0 0 28px;
+    line-height: 1.55;
+  }
+
+  /* === § 1 Tokens === */
+  .tokens-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 20px;
+  }
+  .token-block {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .token-block h4 {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .swatch-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .swatch { display: flex; flex-direction: column; gap: 5px; }
+  .swatch-color {
+    aspect-ratio: 1.4;
+    border-radius: 5px;
+    border: 1px solid var(--line-2);
+  }
+  .swatch-name { font-size: 11.5px; color: var(--text-2); font-weight: 500; }
+  .swatch-val {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+  }
+  .accent-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .type-sample {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .type-sample:last-child { border-bottom: 0; padding-bottom: 0; }
+  .type-sample:first-child { padding-top: 0; }
+  .type-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    margin-bottom: 6px;
+    letter-spacing: 0.06em;
+  }
+  .type-display { font-size: 28px; line-height: 1.05; letter-spacing: -0.025em; font-weight: 600; color: var(--text-1); }
+  .type-h2 { font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -0.012em; color: var(--text-1); }
+  .type-body { font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+  .type-mono { font-family: var(--mono); font-size: 12.5px; color: var(--text-2); }
+
+  .radius-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .radius-tile {
+    flex: 1;
+    aspect-ratio: 1;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+  }
+
+  .spacing-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .spacing-bar {
+    height: 6px;
+    background: var(--indigo);
+    border-radius: 1px;
+  }
+  .spacing-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    width: 40px;
+  }
+
+  /* === § 2 Mock: Issue list === */
+  .mock-frame {
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px -16px rgba(0,0,0,0.6);
+  }
+  .mock-frame-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-1);
+  }
+  .traffic { width: 11px; height: 11px; border-radius: 50%; opacity: 0.55; }
+  .traffic:nth-child(1) { background: #ed6a5e; }
+  .traffic:nth-child(2) { background: #f5bf4f; }
+  .traffic:nth-child(3) { background: #62c554; }
+  .mock-url {
+    margin-left: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .kbd-hint {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+  }
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    background: var(--bg-2);
+    font-size: 10px;
+  }
+
+  .linear-mock {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 600px;
+  }
+
+  .ln-side {
+    background: var(--bg-1);
+    border-right: 1px solid var(--line);
+    padding: 12px 6px;
+    font-size: 13px;
+  }
+  .ln-workspace {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-bottom: 12px;
+  }
+  .ln-ws-mark {
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, #5e6ad2, #8d95e6);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .ln-ws-name {
+    font-weight: 600;
+    font-size: 13.5px;
+    flex: 1;
+  }
+  .ln-ws-arrow { color: var(--text-3); font-size: 11px; }
+
+  .ln-search {
+    margin: 0 6px 14px;
+    padding: 6px 10px;
+    background: var(--bg-2);
+    border-radius: 5px;
+    color: var(--text-3);
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ln-search .kbd { margin-left: auto; }
+
+  .ln-section {
+    padding: 6px 10px 4px;
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    margin-top: 8px;
+  }
+  .ln-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: var(--text-2);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .ln-nav:hover { background: var(--bg-2); }
+  .ln-nav.active { background: var(--bg-3); color: var(--text-1); }
+  .ln-nav .ic {
+    width: 14px; height: 14px;
+    background: currentColor;
+    opacity: 0.5;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .ln-nav .count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* main panel */
+  .ln-main {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-0);
+  }
+  .ln-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .ln-crumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-2);
+  }
+  .ln-crumbs .sep { color: var(--text-4); }
+  .ln-crumbs .current { color: var(--text-1); font-weight: 600; }
+  .ln-toolbar-spacer { flex: 1; }
+  .ln-tb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    color: var(--text-2);
+    font-size: 12.5px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+  }
+  .ln-tb-btn:hover { background: var(--bg-2); }
+
+  .ln-filterbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
+  }
+  .ln-filter {
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--line-2);
+    color: var(--text-2);
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .ln-filter.active { background: var(--indigo-bg); color: var(--indigo-soft); border-color: var(--indigo); }
+
+  /* group header */
+  .ln-group {
+    padding: 6px 16px;
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-2);
+  }
+  .ln-group .gd {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .ln-group .gn { font-variant-numeric: tabular-nums; color: var(--text-3); margin-left: 4px; }
+
+  .ln-row {
+    display: grid;
+    grid-template-columns: 28px 22px 22px 60px 1fr 90px 70px 28px 80px;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .ln-row:hover { background: var(--bg-1); }
+  .ln-row .id {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .ln-row .title {
+    color: var(--text-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ln-row .label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    color: var(--text-2);
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+  }
+  .ln-row .label .ld { width: 6px; height: 6px; border-radius: 50%; }
+  .ln-row .due {
+    font-size: 11.5px;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .ln-row .avatar {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--bg-3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text-2);
+  }
+  .ln-row .avatar.indigo { background: var(--indigo); color: #fff; }
+  .ln-row .avatar.green { background: #2d6a4f; color: #b7e4c7; }
+  .ln-row .avatar.amber { background: #6f4a14; color: #f0c987; }
+  .ln-row .avatar.rose { background: #6b2e3e; color: #f4a8b8; }
+
+  /* status icons */
+  .stat {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stat.todo { border: 1.5px solid var(--status-todo); }
+  .stat.progress {
+    background: conic-gradient(var(--status-progress) 270deg, transparent 270deg);
+    border: 1.5px solid var(--status-progress);
+  }
+  .stat.done { background: var(--status-done); }
+  .stat.done::after { content: '✓'; color: var(--bg-0); font-size: 9px; font-weight: 700; }
+  .stat.blocked {
+    background: var(--status-blocked);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .stat.blocked::after { content: '!'; }
+  .stat.canceled { border: 1.5px solid var(--status-canceled); position: relative; }
+  .stat.canceled::after { content: ''; position: absolute; left: 1px; right: 1px; top: 50%; height: 1.5px; background: var(--status-canceled); transform: rotate(-45deg); }
+
+  /* priority bars */
+  .pri {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 1.5px;
+    width: 14px; height: 14px;
+    padding: 1px;
+  }
+  .pri span { width: 2.5px; background: var(--text-4); border-radius: 1px; }
+  .pri span:nth-child(1) { height: 35%; }
+  .pri span:nth-child(2) { height: 65%; }
+  .pri span:nth-child(3) { height: 100%; }
+  .pri.urgent span { background: var(--priority-urgent); }
+  .pri.high span:nth-child(1), .pri.high span:nth-child(2), .pri.high span:nth-child(3) { background: var(--priority-high); }
+  .pri.med span:nth-child(1), .pri.med span:nth-child(2) { background: var(--priority-med); }
+  .pri.low span:nth-child(1) { background: var(--priority-low); }
+
+  /* density note */
+  .density-note {
+    margin-top: 18px;
+    padding: 14px 18px;
+    background: var(--indigo-bg);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-2);
+    border-left: 2px solid var(--indigo);
+  }
+  .density-note strong { color: var(--text-1); font-weight: 600; }
+
+  /* === § 3 Components === */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .comp-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px;
+  }
+  .comp-card h4 {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .comp-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .comp-intent {
+    font-size: 12.5px;
+    color: var(--text-3);
+    line-height: 1.55;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line-2);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .btn-primary { background: var(--indigo); color: #fff; }
+  .btn-primary:hover { background: #6e7adf; }
+  .btn-secondary { background: var(--bg-2); color: var(--text-1); border-color: var(--line-2); }
+  .btn-ghost { background: transparent; color: var(--text-2); }
+  .btn-ghost:hover { background: var(--bg-2); }
+  .btn .kbd-inline {
+    margin-left: 4px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    padding: 0 3px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    background: var(--bg-3);
+  }
+  .btn-primary .kbd-inline { color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.18); background: rgba(0,0,0,0.18); }
+
+  /* Input */
+  .input-mock {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-radius: 5px;
+    font-size: 12.5px;
+    color: var(--text-3);
+  }
+  .input-mock.focus {
+    border-color: var(--indigo);
+    background: var(--bg-3);
+    box-shadow: 0 0 0 2px var(--indigo-bg);
+    color: var(--text-1);
+  }
+
+  /* Status badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    background: var(--bg-2);
+    color: var(--text-2);
+    border: 1px solid var(--line-2);
+  }
+
+  /* Command palette */
+  .cmd-palette {
+    background: var(--bg-1);
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px -8px rgba(0,0,0,0.7);
+  }
+  .cmd-input {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .cmd-input::before {
+    content: '⌘';
+    color: var(--text-3);
+    font-family: var(--mono);
+  }
+  .cmd-list { padding: 4px 0; }
+  .cmd-item {
+    padding: 6px 14px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-2);
+  }
+  .cmd-item.active { background: var(--bg-3); color: var(--text-1); }
+  .cmd-item .cmd-ic {
+    width: 14px; height: 14px;
+    background: currentColor;
+    opacity: 0.45;
+    border-radius: 2px;
+  }
+  .cmd-item .cmd-shortcut {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    display: flex;
+    gap: 3px;
+  }
+
+  /* Avatar group */
+  .ag {
+    display: inline-flex;
+  }
+  .ag .a {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-1);
+    margin-left: -6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .ag .a:first-child { margin-left: 0; }
+
+  /* === § 4 Soul Details === */
+  .detail-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .detail-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .detail-card h4 {
+    font-size: 15.5px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    color: var(--text-1);
+  }
+  .detail-card p {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-2);
+    margin: 0;
+  }
+  .detail-card .icon-wrap {
+    width: 28px; height: 28px;
+    background: var(--indigo-bg);
+    color: var(--indigo-soft);
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* === § 5 Verdict === */
+  .verdict {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    padding: 36px 40px;
+  }
+  .verdict h3 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    letter-spacing: -0.018em;
+    color: var(--text-1);
+  }
+  .verdict h3 em { color: var(--indigo-soft); font-style: normal; font-weight: 500; }
+  .verdict-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 24px;
+  }
+  .verdict-block h5 {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--indigo-soft);
+    margin: 0 0 10px;
+    font-weight: 500;
+  }
+  .verdict-block ul {
+    margin: 0; padding-left: 16px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-2);
+  }
+  .verdict-block li { margin-bottom: 4px; }
+</style>
+</head>
+<body data-screen-label="Linear Reference">
+<div class="page">
+
+  <!-- ===== Hero ===== -->
+  <header class="hero">
+    <div class="hero-eyebrow">Design Reference · Card 02</div>
+    <h1 class="hero-title">Linear &mdash; <em>built for the makers who ship.</em></h1>
+    <p class="hero-tagline">深色背景，紧凑列表，键盘党天堂。每个像素都为"快速完成工作"服务，没有一个像素在装饰。这是工具型软件的工业标杆。</p>
+    <div class="hero-meta">
+      <span class="chip"><span class="dot"></span>暗色（near-black bg）</span>
+      <span class="chip"><span class="dot"></span>高信息密度（L3-L4）</span>
+      <span class="chip"><span class="dot"></span>Inter sans-only</span>
+      <span class="chip"><span class="dot"></span>强键盘 ⌘K 命令面板</span>
+      <span class="chip"><span class="dot"></span>工程感 · 数据墙</span>
+    </div>
+  </header>
+
+  <!-- ===== § 1 Tokens ===== -->
+  <section>
+    <div class="sec-num">§ 01</div>
+    <h2 class="sec-title">Tokens 速览</h2>
+    <p class="sec-sub">背景层级用近黑色叠出（08 → 10 → 1a → 23 → 2e），signature 紫 #5e6ad2 是唯一的"温度"。多色 status / priority 用得很克制——一格只有一个颜色在说话。</p>
+
+    <div class="tokens-grid">
+
+      <div class="token-block">
+        <h4>Surface · 5 层暗色叠</h4>
+        <div class="swatch-row">
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--bg-0)"></div>
+            <div class="swatch-name">bg-0</div>
+            <div class="swatch-val">#08090a</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--bg-1)"></div>
+            <div class="swatch-name">bg-1</div>
+            <div class="swatch-val">#101113</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--bg-2)"></div>
+            <div class="swatch-name">bg-2</div>
+            <div class="swatch-val">#1a1b1e</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--bg-3)"></div>
+            <div class="swatch-name">bg-3</div>
+            <div class="swatch-val">#232428</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top:18px">Text · 文字色 4 档</h4>
+        <div class="swatch-row">
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--text-1)"></div>
+            <div class="swatch-name">text-1</div>
+            <div class="swatch-val">#f4f5f8</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--text-2)"></div>
+            <div class="swatch-name">text-2</div>
+            <div class="swatch-val">#b0b3bb</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--text-3)"></div>
+            <div class="swatch-name">text-3</div>
+            <div class="swatch-val">#797d87</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--text-4)"></div>
+            <div class="swatch-name">text-4</div>
+            <div class="swatch-val">#4a4d56</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top:18px">Status · 状态色（信息编码）</h4>
+        <div class="accent-row">
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--indigo)"></div>
+            <div class="swatch-name">indigo</div>
+            <div class="swatch-val">#5e6ad2</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--status-progress)"></div>
+            <div class="swatch-name">progress</div>
+            <div class="swatch-val">#f2c94c</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--status-done)"></div>
+            <div class="swatch-name">done</div>
+            <div class="swatch-val">#5fb878</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--status-blocked)"></div>
+            <div class="swatch-name">blocked</div>
+            <div class="swatch-val">#eb5757</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="token-block">
+        <h4>Type · sans-only 节奏</h4>
+        <div class="type-sample">
+          <div class="type-label">DISPLAY · 600</div>
+          <div class="type-display">Linear is fast.</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">H2 · 600</div>
+          <div class="type-h2">Build software like the best teams in the world.</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">BODY · 400</div>
+          <div class="type-body">Inter 在小字号下保持可读，cv11 启用让数字等宽对齐——表格和 ID 列因此整齐。</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">MONO · JetBrains 500</div>
+          <div class="type-mono">ENG-1247 · linear-cli@2.3.1</div>
+        </div>
+
+        <h4 style="margin-top:18px">Radius · 锐利档位</h4>
+        <div class="radius-row">
+          <div class="radius-tile" style="border-radius:3px">3</div>
+          <div class="radius-tile" style="border-radius:5px">5</div>
+          <div class="radius-tile" style="border-radius:8px">8</div>
+          <div class="radius-tile" style="border-radius:12px">12</div>
+        </div>
+
+        <h4 style="margin-top:18px">Spacing · 4 倍数（紧密节奏）</h4>
+        <div class="spacing-row"><span class="spacing-label">4</span><div class="spacing-bar" style="width:4px"></div></div>
+        <div class="spacing-row"><span class="spacing-label">8</span><div class="spacing-bar" style="width:8px"></div></div>
+        <div class="spacing-row"><span class="spacing-label">12</span><div class="spacing-bar" style="width:12px"></div></div>
+        <div class="spacing-row"><span class="spacing-label">16</span><div class="spacing-bar" style="width:16px"></div></div>
+        <div class="spacing-row"><span class="spacing-label">24</span><div class="spacing-bar" style="width:24px"></div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== § 2 Mock: Issue list ===== -->
+  <section>
+    <div class="sec-num">§ 02</div>
+    <h2 class="sec-title">典型页面 &mdash; Issue 列表</h2>
+    <p class="sec-sub">两栏：紧凑 sidebar + 数据墙级密度的主列表。每行 32px 高，9 列信息（status / priority / id / title / labels / due / assignee / cycle）。这是 L3-L4 密度档的范本。</p>
+
+    <div class="mock-frame">
+      <div class="mock-frame-head">
+        <span class="traffic"></span><span class="traffic"></span><span class="traffic"></span>
+        <span class="mock-url">linear.app / acme / team / eng / active</span>
+        <div class="kbd-hint">Press <span class="kbd">⌘</span><span class="kbd">K</span> for commands</div>
+      </div>
+
+      <div class="linear-mock">
+        <aside class="ln-side">
+          <div class="ln-workspace">
+            <div class="ln-ws-mark">A</div>
+            <div class="ln-ws-name">Acme Inc.</div>
+            <div class="ln-ws-arrow">⌄</div>
+          </div>
+          <div class="ln-search">Search… <span class="kbd">⌘</span><span class="kbd">K</span></div>
+
+          <div class="ln-section">Workspace</div>
+          <div class="ln-nav"><span class="ic"></span>Inbox<span class="count">12</span></div>
+          <div class="ln-nav"><span class="ic"></span>My Issues<span class="count">7</span></div>
+          <div class="ln-nav"><span class="ic"></span>Views</div>
+
+          <div class="ln-section">Your Teams</div>
+          <div class="ln-nav active"><span class="ic" style="color:var(--indigo)"></span>Engineering</div>
+          <div class="ln-nav" style="padding-left:24px;font-size:12.5px"><span class="ic" style="width:10px;height:10px"></span>Active<span class="count">34</span></div>
+          <div class="ln-nav" style="padding-left:24px;font-size:12.5px"><span class="ic" style="width:10px;height:10px"></span>Backlog<span class="count">128</span></div>
+          <div class="ln-nav" style="padding-left:24px;font-size:12.5px"><span class="ic" style="width:10px;height:10px"></span>Cycles</div>
+          <div class="ln-nav" style="padding-left:24px;font-size:12.5px"><span class="ic" style="width:10px;height:10px"></span>Projects</div>
+
+          <div class="ln-nav"><span class="ic" style="color:#5fb878"></span>Design</div>
+          <div class="ln-nav"><span class="ic" style="color:#f2994a"></span>Growth</div>
+        </aside>
+
+        <main class="ln-main">
+          <div class="ln-toolbar">
+            <div class="ln-crumbs">
+              <span>Engineering</span>
+              <span class="sep">›</span>
+              <span class="current">Active issues</span>
+            </div>
+            <div class="ln-toolbar-spacer"></div>
+            <div class="ln-tb-btn">⊞ Board</div>
+            <div class="ln-tb-btn">≡ List</div>
+            <div class="ln-tb-btn">+ New</div>
+          </div>
+
+          <div class="ln-filterbar">
+            <span style="color:var(--text-3)">Filter</span>
+            <span class="ln-filter active">Priority: High+</span>
+            <span class="ln-filter active">Cycle: Current</span>
+            <span class="ln-filter">+ Add</span>
+            <div style="flex:1"></div>
+            <span class="ln-filter">Group: Status</span>
+            <span class="ln-filter">⌄ Sort</span>
+          </div>
+
+          <!-- Group: In Progress -->
+          <div class="ln-group">
+            <span class="gd" style="background:var(--status-progress)"></span>
+            In Progress <span class="gn">5</span>
+          </div>
+          <div class="ln-row">
+            <span class="pri urgent" title="Urgent"><span></span><span></span><span></span></span>
+            <span class="stat progress"></span>
+            <span class="id">ENG-1247</span>
+            <span></span>
+            <span class="title">Streaming hangs after long tool calls in editor view</span>
+            <span class="label"><span class="ld" style="background:#eb5757"></span>bug</span>
+            <span class="due">Nov 28</span>
+            <span class="avatar indigo">JL</span>
+            <span class="due" style="text-align:right">Cycle 24</span>
+          </div>
+          <div class="ln-row">
+            <span class="pri high"><span></span><span></span><span></span></span>
+            <span class="stat progress"></span>
+            <span class="id">ENG-1244</span>
+            <span></span>
+            <span class="title">Migrate API contract to OpenAPI 3.1 + zod validators</span>
+            <span class="label"><span class="ld" style="background:#5e6ad2"></span>infra</span>
+            <span class="due">Dec 02</span>
+            <span class="avatar green">RM</span>
+            <span class="due" style="text-align:right">Cycle 24</span>
+          </div>
+          <div class="ln-row">
+            <span class="pri med"><span></span><span></span><span></span></span>
+            <span class="stat progress"></span>
+            <span class="id">ENG-1240</span>
+            <span></span>
+            <span class="title">Empty state for deck list when user has 0 decks</span>
+            <span class="label"><span class="ld" style="background:#5fb878"></span>polish</span>
+            <span class="due">—</span>
+            <span class="avatar amber">SK</span>
+            <span class="due" style="text-align:right">Cycle 24</span>
+          </div>
+
+          <!-- Group: Todo -->
+          <div class="ln-group">
+            <span class="gd" style="background:var(--status-todo)"></span>
+            Todo <span class="gn">8</span>
+          </div>
+          <div class="ln-row">
+            <span class="pri high"><span></span><span></span><span></span></span>
+            <span class="stat todo"></span>
+            <span class="id">ENG-1238</span>
+            <span></span>
+            <span class="title">Add ⌘K command palette to deck-go editor</span>
+            <span class="label"><span class="ld" style="background:#9b51e0"></span>feature</span>
+            <span class="due">Dec 05</span>
+            <span class="avatar rose">AK</span>
+            <span class="due" style="text-align:right">Cycle 25</span>
+          </div>
+          <div class="ln-row">
+            <span class="pri med"><span></span><span></span><span></span></span>
+            <span class="stat todo"></span>
+            <span class="id">ENG-1235</span>
+            <span></span>
+            <span class="title">Slide reorder via drag & drop with snap-to-grid</span>
+            <span class="label"><span class="ld" style="background:#5e6ad2"></span>feature</span>
+            <span class="due">—</span>
+            <span class="avatar indigo">JL</span>
+            <span class="due" style="text-align:right">Cycle 25</span>
+          </div>
+          <div class="ln-row">
+            <span class="pri low"><span></span><span></span><span></span></span>
+            <span class="stat todo"></span>
+            <span class="id">ENG-1232</span>
+            <span></span>
+            <span class="title">Polish hover states across navigation</span>
+            <span class="label"><span class="ld" style="background:#5fb878"></span>polish</span>
+            <span class="due">—</span>
+            <span class="avatar amber">SK</span>
+            <span class="due" style="text-align:right">—</span>
+          </div>
+
+          <!-- Group: Done -->
+          <div class="ln-group">
+            <span class="gd" style="background:var(--status-done)"></span>
+            Done <span class="gn">17</span>
+          </div>
+          <div class="ln-row" style="opacity:0.6">
+            <span class="pri med"><span></span><span></span><span></span></span>
+            <span class="stat done"></span>
+            <span class="id">ENG-1228</span>
+            <span></span>
+            <span class="title">Implement design tokens v1.2 (motion + z-index)</span>
+            <span class="label"><span class="ld" style="background:#5e6ad2"></span>infra</span>
+            <span class="due">Nov 25</span>
+            <span class="avatar green">RM</span>
+            <span class="due" style="text-align:right">Cycle 23</span>
+          </div>
+          <div class="ln-row" style="opacity:0.6">
+            <span class="pri high"><span></span><span></span><span></span></span>
+            <span class="stat done"></span>
+            <span class="id">ENG-1224</span>
+            <span></span>
+            <span class="title">Build /design-system review canvas</span>
+            <span class="label"><span class="ld" style="background:#9b51e0"></span>feature</span>
+            <span class="due">Nov 20</span>
+            <span class="avatar indigo">JL</span>
+            <span class="due" style="text-align:right">Cycle 23</span>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="density-note">
+      <strong>密度档位 · L3-L4。</strong>每行 32px 高、9 列结构、3 个分组同时可见。一屏可容纳 30+ issue。这是为"扫描和操作"优化，每个像素都在传递信息。注意：右上角永远显示 ⌘K 提示，键盘党的家。
+    </div>
+  </section>
+
+  <!-- ===== § 3 Components ===== -->
+  <section>
+    <div class="sec-num">§ 03</div>
+    <h2 class="sec-title">组件样本</h2>
+    <p class="sec-sub">每个组件都为"高频快速操作"服务：紧凑、键盘标注、状态用色彩点位编码。</p>
+
+    <div class="comp-grid">
+
+      <div class="comp-card">
+        <h4>Buttons · 紧凑 + 键盘提示</h4>
+        <div class="comp-row">
+          <button class="btn btn-primary">Create issue<span class="kbd-inline">C</span></button>
+          <button class="btn btn-secondary">Filter<span class="kbd-inline">F</span></button>
+          <button class="btn btn-ghost">Cancel<span class="kbd-inline">Esc</span></button>
+        </div>
+        <p class="comp-intent">主按钮永远配 single-key 快捷键，因为这是键盘党的家。padding 比 Claude.ai 小一半（5px vs 9px），密度优先。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Input · 双状态</h4>
+        <div style="margin-bottom:10px"><div class="input-mock">Issue title…</div></div>
+        <div><div class="input-mock focus">Streaming hangs after long tool calls</div></div>
+        <p class="comp-intent">未聚焦完全融入背景，聚焦时浮一层 + indigo 描边 + 2px 软光晕（比 Claude.ai 的 3px 更紧）。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Status · 信息点位编码</h4>
+        <div class="comp-row">
+          <span class="status-badge"><span class="stat todo"></span>Todo</span>
+          <span class="status-badge"><span class="stat progress"></span>In Progress</span>
+          <span class="status-badge"><span class="stat done"></span>Done</span>
+          <span class="status-badge"><span class="stat blocked"></span>Blocked</span>
+          <span class="status-badge"><span class="stat canceled"></span>Canceled</span>
+        </div>
+        <p class="comp-intent">Linear 标志做法：用形状（圆/扇形/对勾/感叹号/斜杠）配色块编码状态，扫一眼就能识别 5 种状态。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Priority Bars · 等级条形图</h4>
+        <div class="comp-row" style="gap:14px;padding:6px 0 4px">
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)"><span class="pri urgent"><span></span><span></span><span></span></span>Urgent</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)"><span class="pri high"><span></span><span></span><span></span></span>High</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)"><span class="pri med"><span></span><span></span><span></span></span>Medium</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)"><span class="pri low"><span></span><span></span><span></span></span>Low</span>
+        </div>
+        <p class="comp-intent">14×14 像素的等级条形图，把"优先级"做成可视化柱状。比文字 "P0/P1/P2" 扫得快得多。</p>
+      </div>
+
+      <div class="comp-card" style="grid-column: span 2">
+        <h4>⌘K Command Palette · Linear 的灵魂</h4>
+        <div class="cmd-palette">
+          <div class="cmd-input">Type a command or search…</div>
+          <div class="cmd-list">
+            <div class="cmd-item active"><span class="cmd-ic"></span>Create new issue<span class="cmd-shortcut"><span class="kbd">C</span></span></div>
+            <div class="cmd-item"><span class="cmd-ic"></span>Search issues<span class="cmd-shortcut"><span class="kbd">/</span></span></div>
+            <div class="cmd-item"><span class="cmd-ic"></span>Go to my issues<span class="cmd-shortcut"><span class="kbd">G</span><span class="kbd">M</span></span></div>
+            <div class="cmd-item"><span class="cmd-ic"></span>Switch team<span class="cmd-shortcut"><span class="kbd">⌘</span><span class="kbd">⇧</span><span class="kbd">T</span></span></div>
+            <div class="cmd-item"><span class="cmd-ic"></span>Toggle theme<span class="cmd-shortcut"><span class="kbd">⌘</span><span class="kbd">D</span></span></div>
+          </div>
+        </div>
+        <p class="comp-intent">⌘K 是整个 Linear 的核心。每个动作都能在这里完成，每个 item 都标注 shortcut。这是把"键盘优先"从修辞做成产品的方式。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Avatar · 单色高对比</h4>
+        <div class="comp-row" style="padding:6px 0 4px">
+          <div class="ag">
+            <span class="a" style="background:var(--indigo);color:#fff">JL</span>
+            <span class="a" style="background:#2d6a4f;color:#b7e4c7">RM</span>
+            <span class="a" style="background:#6f4a14;color:#f0c987">SK</span>
+            <span class="a" style="background:#6b2e3e;color:#f4a8b8">AK</span>
+            <span class="a" style="background:var(--bg-3);color:var(--text-2)">+3</span>
+          </div>
+        </div>
+        <p class="comp-intent">没有头像照片，只有首字母 + 单色背景。视觉负担最低，重叠堆叠节省横向空间。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Toast / Notification</h4>
+        <div style="margin-top:8px;padding:10px 14px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12.5px">
+          <span class="stat done"></span>
+          <span style="color:var(--text-1)">Issue ENG-1247 marked as done</span>
+          <span style="margin-left:auto;color:var(--text-3);font-family:var(--mono);font-size:10.5px">⌘Z to undo</span>
+        </div>
+        <p class="comp-intent">底部 toast 自带 undo 提示。Linear 的"破坏性操作必须可撤销"哲学的视觉体现。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== § 4 Soul Details ===== -->
+  <section>
+    <div class="sec-num">§ 04</div>
+    <h2 class="sec-title">灵魂细节</h2>
+    <p class="sec-sub">这些是 Linear 让人一眼认出的特征。视觉好抄，工程哲学难抄。</p>
+
+    <div class="detail-list">
+      <div class="detail-card">
+        <div class="icon-wrap">⌘K</div>
+        <h4>命令面板是"真正的主菜单"</h4>
+        <p>不是花哨功能。所有动作都能在 ⌘K 完成——创建、搜索、跳转、设置、切换。这让用户可以从不碰鼠标。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">⚡</div>
+        <h4>本地优先 + Optimistic Update</h4>
+        <p>所有操作几乎瞬间生效（不等服务器）。这种"丝滑感"不是 CSS 动效，是底层架构：本地 SQLite + 后台 sync。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">▦</div>
+        <h4>密度即美</h4>
+        <p>32px 行高、4px spacing 节奏、不留多余空白。每屏装下 30+ issue。Linear 把"信息密度"做成了审美主张，而不是工程妥协。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">●</div>
+        <h4>状态用形状编码</h4>
+        <p>Todo（空圆）/ Progress（扇形）/ Done（实心+对勾）/ Blocked（!）/ Canceled（斜杠）——5 种形状一眼区分，不依赖颜色识别。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">G→</div>
+        <h4>双键导航（vim 派系）</h4>
+        <p>G+M 跳到 My Issues、G+I 跳到 Inbox。这是 vim 用户的方言。Linear 同时也教会了非 vim 用户欣赏键盘流。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">⊞</div>
+        <h4>Cycle 把 Sprint 重新发明</h4>
+        <p>每周/双周自动循环的 cycle，未完成自动滚到下个周期。把 Jira 那套繁文缛节用 1/10 的复杂度做完了。这是产品哲学，不是设计。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== § 5 Verdict ===== -->
+  <section style="margin-bottom:0">
+    <div class="sec-num">§ 05</div>
+    <h2 class="sec-title">什么时候选这个味道</h2>
+    <p class="sec-sub">Linear 的味道不是"暗色"那么简单——是"为高频快速操作的工程师做的工具"。下面告诉你它适合什么、不适合什么。</p>
+
+    <div class="verdict">
+      <h3>选 Linear 的味道，<em>当你的产品是工具，用户每天高频操作。</em></h3>
+      <div class="verdict-grid">
+        <div class="verdict-block">
+          <h5>适合</h5>
+          <ul>
+            <li>工具类产品（issue tracker、CRM、工单、项目管理）</li>
+            <li>用户每天打开 &gt; 5 次的高频场景</li>
+            <li>需要展现密集信息（表格、列表、看板）</li>
+            <li>开发者 / 设计师 / 工程师为目标用户</li>
+            <li>键盘党友好是产品差异化卖点</li>
+          </ul>
+        </div>
+        <div class="verdict-block">
+          <h5>不适合</h5>
+          <ul>
+            <li>对话 / 写作 / 阅读类产品（用户停留 = 阅读）</li>
+            <li>消费级 / C 端产品（用户不会学键盘）</li>
+            <li>需要"温暖、亲切"情感联结的场景</li>
+            <li>移动端为主的体验</li>
+            <li>追求"高级感、品质感"超过"效率感"的定位</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

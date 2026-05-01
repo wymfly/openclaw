@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Claude.ai · Design Reference Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* === Claude.ai 实测色板 === */
+    --linen: #faf9f5;          /* 主背景，偏暖的米白 */
+    --linen-2: #f5f4ed;        /* 二级背景 */
+    --linen-3: #ecebe1;        /* 卡片浅底 / 分隔 */
+    --paper: #ffffff;          /* 纯白卡片底 */
+    --ink-1: #181818;          /* 主文字 */
+    --ink-2: #3d3929;          /* 次要文字 */
+    --ink-3: #6b6657;          /* 弱化文字 */
+    --ink-4: #a8a496;          /* placeholder */
+    --rule: #e6e3d8;           /* 分隔线 */
+    --clay: #c15f3c;           /* Anthropic 强调橘 */
+    --clay-soft: #e8a685;      /* 强调橘弱化 */
+    --clay-bg: #faf0e9;        /* 强调橘背景 */
+    --olive: #6b7b4a;          /* 状态色（少用）*/
+    --serif: 'Source Serif 4', 'Tiempos', 'Iowan Old Style', Georgia, serif;
+    --sans: 'Inter', 'Söhne', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--linen);
+    color: var(--ink-1);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === Layout === */
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 64px 56px 96px;
+  }
+
+  /* === Section 0: Hero === */
+  .hero {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 48px;
+    margin-bottom: 56px;
+  }
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    margin-bottom: 24px;
+  }
+  .hero-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 64px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--ink-1);
+    margin: 0 0 24px;
+  }
+  .hero-title em {
+    font-style: italic;
+    color: var(--clay);
+  }
+  .hero-tagline {
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1.45;
+    color: var(--ink-2);
+    max-width: 720px;
+    margin: 0 0 32px;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .chip .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--clay);
+  }
+
+  /* === Section 头部 === */
+  section { margin-bottom: 80px; }
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--clay);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .sec-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+  }
+  .sec-sub {
+    font-size: 15px;
+    color: var(--ink-3);
+    max-width: 600px;
+    margin: 0 0 32px;
+  }
+
+  /* === Section 1: Tokens === */
+  .tokens-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 32px;
+  }
+  .token-block {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .token-block h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    margin: 0 0 16px;
+    font-weight: 500;
+  }
+  .swatch-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .swatch-color {
+    aspect-ratio: 1.4;
+    border-radius: 10px;
+    border: 1px solid var(--rule);
+  }
+  .swatch-name {
+    font-size: 12px;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .swatch-val {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+  .accent-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  /* type sample */
+  .type-sample {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .type-sample:last-child { border-bottom: 0; padding-bottom: 0; }
+  .type-sample:first-child { padding-top: 0; }
+  .type-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+  .type-display { font-family: var(--serif); font-size: 36px; line-height: 1.1; letter-spacing: -0.015em; font-weight: 400; }
+  .type-h2 { font-family: var(--serif); font-size: 22px; line-height: 1.3; font-weight: 500; }
+  .type-body { font-family: var(--sans); font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+  .type-mono { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+
+  /* radius + spacing */
+  .radius-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .radius-tile {
+    flex: 1;
+    aspect-ratio: 1;
+    background: var(--linen-3);
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 8px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+
+  .spacing-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .spacing-bar {
+    height: 8px;
+    background: var(--clay-soft);
+    border-radius: 2px;
+  }
+  .spacing-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 50px;
+  }
+
+  /* === Section 2: 典型页面 === */
+  .mock-frame {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 8px 24px -12px rgba(60,40,20,0.08);
+  }
+  .mock-frame-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--linen-2);
+  }
+  .traffic { width: 11px; height: 11px; border-radius: 50%; background: var(--ink-4); opacity: 0.4; }
+  .traffic:nth-child(1) { background: #ed6a5e; opacity: 0.7; }
+  .traffic:nth-child(2) { background: #f5bf4f; opacity: 0.7; }
+  .traffic:nth-child(3) { background: #62c554; opacity: 0.7; }
+  .mock-url {
+    margin-left: 16px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+
+  .chat-mock {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 560px;
+  }
+  .chat-side {
+    background: var(--linen-2);
+    border-right: 1px solid var(--rule);
+    padding: 16px 12px;
+  }
+  .chat-side-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 14px;
+    margin-bottom: 8px;
+  }
+  .chat-side-head .logo-mark {
+    width: 22px; height: 22px;
+    background: var(--clay);
+    border-radius: 6px;
+    position: relative;
+  }
+  .chat-side-head .logo-mark::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    background: var(--linen);
+    border-radius: 2px;
+  }
+  .chat-side-head .name {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 16px;
+  }
+  .new-chat-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: var(--clay);
+    color: var(--paper);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .new-chat-btn::before {
+    content: '+';
+    font-size: 16px;
+    line-height: 1;
+  }
+  .chat-side-section-label {
+    font-size: 11px;
+    color: var(--ink-3);
+    padding: 8px 8px 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .chat-item {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--ink-2);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 1px;
+  }
+  .chat-item.active {
+    background: var(--linen-3);
+    color: var(--ink-1);
+  }
+
+  .chat-main {
+    display: flex;
+    flex-direction: column;
+    background: var(--linen);
+  }
+  .chat-thread {
+    flex: 1;
+    padding: 40px 64px;
+    overflow: auto;
+  }
+  .turn { margin-bottom: 36px; }
+  .turn-user .bubble {
+    background: var(--linen-3);
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 14.5px;
+    color: var(--ink-1);
+    max-width: 78%;
+    margin-left: auto;
+  }
+  .turn-claude .who {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 15px;
+  }
+  .turn-claude .who .avatar {
+    width: 22px; height: 22px;
+    background: var(--clay);
+    border-radius: 50%;
+  }
+  .turn-claude .body {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink-1);
+  }
+  .turn-claude .body p { margin: 0 0 12px; }
+  .turn-claude .body strong { font-weight: 600; }
+
+  .composer {
+    margin: 0 64px 32px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 12px 32px -16px rgba(60,40,20,0.10);
+  }
+  .composer-input {
+    color: var(--ink-3);
+    font-size: 14.5px;
+    padding: 6px 0 16px;
+  }
+  .composer-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tool-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--rule);
+    color: var(--ink-3);
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .send-btn {
+    margin-left: auto;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--clay);
+    color: var(--paper);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+
+  .density-note {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: var(--clay-bg);
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    border-left: 2px solid var(--clay);
+  }
+  .density-note strong { color: var(--ink-1); font-weight: 600; }
+
+  /* === Section 3: 组件样本 === */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .comp-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .comp-card h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    margin: 0 0 16px;
+    font-weight: 500;
+  }
+  .comp-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .comp-intent {
+    font-size: 13px;
+    color: var(--ink-3);
+    line-height: 1.5;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--rule);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--clay); color: var(--paper); }
+  .btn-secondary { background: var(--paper); color: var(--ink-1); border-color: var(--rule); }
+  .btn-ghost { background: transparent; color: var(--ink-2); }
+  .btn-ghost:hover { background: var(--linen-3); }
+
+  /* Input */
+  .input-mock {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--linen);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--ink-3);
+  }
+  .input-mock.focus {
+    border-color: var(--clay);
+    background: var(--paper);
+    box-shadow: 0 0 0 3px var(--clay-bg);
+    color: var(--ink-1);
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 500;
+    background: var(--linen-3);
+    color: var(--ink-2);
+  }
+  .badge .d { width: 5px; height: 5px; border-radius: 50%; }
+  .badge.new { background: var(--clay-bg); color: var(--clay); }
+  .badge.new .d { background: var(--clay); }
+  .badge.beta { background: #f0eeda; color: #8a6f1e; }
+  .badge.beta .d { background: #b8932a; }
+
+  /* Card */
+  .nested-card {
+    background: var(--linen-2);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .nested-card-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 16px;
+    margin: 0 0 4px;
+  }
+  .nested-card-meta {
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+
+  /* Tooltip */
+  .tooltip-mock {
+    display: inline-block;
+    background: var(--ink-1);
+    color: var(--linen);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    position: relative;
+  }
+  .tooltip-mock::before {
+    content: '';
+    position: absolute;
+    top: -4px; left: 16px;
+    width: 8px; height: 8px;
+    background: var(--ink-1);
+    transform: rotate(45deg);
+  }
+
+  /* === Section 4: 灵魂细节 === */
+  .detail-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .detail-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .detail-card h4 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 18px;
+    margin: 0 0 8px;
+  }
+  .detail-card p {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 0;
+  }
+  .detail-card .icon-wrap {
+    width: 32px; height: 32px;
+    background: var(--clay-bg);
+    color: var(--clay);
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  /* === Section 5: When to choose === */
+  .verdict {
+    background: var(--ink-1);
+    color: var(--linen);
+    border-radius: 16px;
+    padding: 40px 44px;
+  }
+  .verdict h3 {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 400;
+    margin: 0 0 16px;
+    letter-spacing: -0.01em;
+  }
+  .verdict h3 em { color: var(--clay-soft); font-style: italic; }
+  .verdict-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 28px;
+  }
+  .verdict-block h5 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--clay-soft);
+    margin: 0 0 12px;
+    font-weight: 500;
+  }
+  .verdict-block ul {
+    margin: 0; padding-left: 16px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: rgba(250, 249, 245, 0.85);
+  }
+  .verdict-block li { margin-bottom: 6px; }
+</style>
+</head>
+<body data-screen-label="Claude.ai Reference">
+<div class="page">
+
+  <!-- ===== Hero ===== -->
+  <header class="hero">
+    <div class="hero-eyebrow">Design Reference · Card 01</div>
+    <h1 class="hero-title">Claude.ai &mdash; <em>conversation, in print quality.</em></h1>
+    <p class="hero-tagline">浅暖色背景，衬线大标题，宽松留白，对话即页面。把"和 AI 说话"这件事，做成了像读一封手写信。</p>
+    <div class="hero-meta">
+      <span class="chip"><span class="dot"></span>浅暖色（linen / paper）</span>
+      <span class="chip"><span class="dot"></span>低-中信息密度</span>
+      <span class="chip"><span class="dot"></span>衬线 + Sans 双调</span>
+      <span class="chip"><span class="dot"></span>键鼠平衡</span>
+      <span class="chip"><span class="dot"></span>内容焦点</span>
+    </div>
+  </header>
+
+  <!-- ===== § 1 Tokens ===== -->
+  <section>
+    <div class="sec-num">§ 01</div>
+    <h2 class="sec-title">Tokens 速览</h2>
+    <p class="sec-sub">背景偏暖（linen #faf9f5），强调橘是 Anthropic clay。字体一软一硬：标题 Source Serif、正文 Inter，给页面一种"读物"的气质。</p>
+
+    <div class="tokens-grid">
+
+      <!-- Color -->
+      <div class="token-block">
+        <h4>Surface · 表面色</h4>
+        <div class="swatch-row">
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--linen)"></div>
+            <div class="swatch-name">linen</div>
+            <div class="swatch-val">#faf9f5</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--linen-2)"></div>
+            <div class="swatch-name">linen-2</div>
+            <div class="swatch-val">#f5f4ed</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--linen-3)"></div>
+            <div class="swatch-name">linen-3</div>
+            <div class="swatch-val">#ecebe1</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--paper)"></div>
+            <div class="swatch-name">paper</div>
+            <div class="swatch-val">#ffffff</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top:24px">Ink · 文字色</h4>
+        <div class="swatch-row">
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--ink-1)"></div>
+            <div class="swatch-name">ink-1</div>
+            <div class="swatch-val">#181818</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--ink-2)"></div>
+            <div class="swatch-name">ink-2</div>
+            <div class="swatch-val">#3d3929</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--ink-3)"></div>
+            <div class="swatch-name">ink-3</div>
+            <div class="swatch-val">#6b6657</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--ink-4)"></div>
+            <div class="swatch-name">ink-4</div>
+            <div class="swatch-val">#a8a496</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top:24px">Accent · 强调色（克制使用）</h4>
+        <div class="accent-row">
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--clay)"></div>
+            <div class="swatch-name">clay</div>
+            <div class="swatch-val">#c15f3c</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--clay-soft)"></div>
+            <div class="swatch-name">clay-soft</div>
+            <div class="swatch-val">#e8a685</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="background:var(--clay-bg)"></div>
+            <div class="swatch-name">clay-bg</div>
+            <div class="swatch-val">#faf0e9</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Type + Radius + Spacing -->
+      <div class="token-block">
+        <h4>Type · 字体节奏</h4>
+        <div class="type-sample">
+          <div class="type-label">DISPLAY · serif 400</div>
+          <div class="type-display">Hello, Claude.</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">H2 · serif 500</div>
+          <div class="type-h2">A second voice in your head.</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">BODY · sans 400</div>
+          <div class="type-body">Inter sets the workhorse paragraph — calm, evenly weighted, slightly looser line-height than usual to let the page breathe.</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">MONO · 400</div>
+          <div class="type-mono">const breath = page.spacing * 1.5;</div>
+        </div>
+
+        <h4 style="margin-top:24px">Radius · 圆角档位</h4>
+        <div class="radius-row">
+          <div class="radius-tile" style="border-radius:6px">6</div>
+          <div class="radius-tile" style="border-radius:10px">10</div>
+          <div class="radius-tile" style="border-radius:14px">14</div>
+          <div class="radius-tile" style="border-radius:18px">18</div>
+        </div>
+
+        <h4 style="margin-top:24px">Spacing · 8 倍数节奏</h4>
+        <div class="spacing-row"><span class="spacing-label">8</span><div class="spacing-bar" style="width:8px"></div></div>
+        <div class="spacing-row"><span class="spacing-label">16</span><div class="spacing-bar" style="width:16px"></div></div>
+        <div class="spacing-row"><span class="spacing-label">24</span><div class="spacing-bar" style="width:24px"></div></div>
+        <div class="spacing-row"><span class="spacing-label">40</span><div class="spacing-bar" style="width:40px"></div></div>
+        <div class="spacing-row"><span class="spacing-label">64</span><div class="spacing-bar" style="width:64px"></div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== § 2 Mock ===== -->
+  <section>
+    <div class="sec-num">§ 02</div>
+    <h2 class="sec-title">典型页面 &mdash; 对话窗</h2>
+    <p class="sec-sub">两栏：左侧栏带历史 + 主对话区。注意 padding 多大、行距多松、按钮多收。这是"内容焦点"派的骨架。</p>
+
+    <div class="mock-frame">
+      <div class="mock-frame-head">
+        <span class="traffic"></span><span class="traffic"></span><span class="traffic"></span>
+        <span class="mock-url">claude.ai / chat / new</span>
+      </div>
+
+      <div class="chat-mock">
+        <aside class="chat-side">
+          <div class="chat-side-head">
+            <div class="logo-mark"></div>
+            <div class="name">Claude</div>
+          </div>
+          <div class="new-chat-btn">New chat</div>
+          <div class="chat-side-section-label">Today</div>
+          <div class="chat-item active">Reading the Tao Te Ching</div>
+          <div class="chat-item">Vue 3 reactivity walkthrough</div>
+          <div class="chat-item">Naming a wine bar</div>
+          <div class="chat-side-section-label" style="margin-top:8px">Yesterday</div>
+          <div class="chat-item">Quarterly OKR draft</div>
+          <div class="chat-item">Translation: 林徽因</div>
+          <div class="chat-item">Plan a 3-day Kyoto trip</div>
+        </aside>
+
+        <main class="chat-main">
+          <div class="chat-thread">
+            <div class="turn turn-user">
+              <div class="bubble">Help me name a small natural-wine bar in Chengdu — something warm and a bit literary.</div>
+            </div>
+            <div class="turn turn-claude">
+              <div class="who"><div class="avatar"></div>Claude</div>
+              <div class="body">
+                <p>Here are six directions, each with a different mood:</p>
+                <p><strong>Half-Light</strong> — the hour between dusk and lamp-on. Quiet, romantic, very Chengdu winter.</p>
+                <p><strong>The Long Pour</strong> — sounds like a place where conversations don't end at last call.</p>
+                <p>Want me to keep going in any of these directions, or pivot to something more playful?</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer">
+            <div class="composer-input">Reply to Claude…</div>
+            <div class="composer-tools">
+              <div class="tool-btn">+</div>
+              <div class="tool-btn">⌘</div>
+              <div class="tool-btn">@</div>
+              <div class="send-btn">↑</div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="density-note">
+      <strong>密度档位 · L1-L2 之间。</strong>主区每屏只服务 1-2 个对话回合，padding 常驻 56-64px，最大行宽限制让阅读舒适。这是为"读和想"优化，不是为"扫和操作"优化。
+    </div>
+  </section>
+
+  <!-- ===== § 3 Components ===== -->
+  <section>
+    <div class="sec-num">§ 03</div>
+    <h2 class="sec-title">组件样本</h2>
+    <p class="sec-sub">每个组件都为"对话流"服务：低视觉重量、强可读性、强调色克制使用。</p>
+
+    <div class="comp-grid">
+
+      <div class="comp-card">
+        <h4>Buttons</h4>
+        <div class="comp-row">
+          <button class="btn btn-primary">New chat</button>
+          <button class="btn btn-secondary">Continue</button>
+          <button class="btn btn-ghost">Cancel</button>
+        </div>
+        <p class="comp-intent">主按钮使用 clay 橘只在"开启动作"时出现（New chat、Send）。次按钮纯白底加细描边，ghost 完全隐身，让文字内容做主角。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Input · 双状态</h4>
+        <div style="margin-bottom:12px"><div class="input-mock">Reply to Claude…</div></div>
+        <div><div class="input-mock focus">In a little wine bar at the edge of dusk…</div></div>
+        <p class="comp-intent">未聚焦时几乎隐形（边框跟背景几乎同色），聚焦时浮上一层 paper 白 + clay 边框 + 3px 软光晕。让"开始打字"成为视觉上的小仪式。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Badge / Tag</h4>
+        <div class="comp-row">
+          <span class="badge"><span class="d" style="background:var(--ink-3)"></span>Default</span>
+          <span class="badge new"><span class="d"></span>New</span>
+          <span class="badge beta"><span class="d"></span>Beta</span>
+        </div>
+        <p class="comp-intent">圆角 999（full pill），低对比度。clay 强调橘只用于"新功能"这种值得看一眼的事，不滥用。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Nested Card</h4>
+        <div class="nested-card">
+          <div class="nested-card-title">Half-Light</div>
+          <div class="nested-card-meta">the hour between dusk and lamp-on</div>
+        </div>
+        <p class="comp-intent">嵌套卡片用 linen-2 比主背景略深一点点，靠"色阶"而不是"阴影"建立层级。这是浅色派最克制的做法。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Tooltip</h4>
+        <div class="comp-row" style="padding:24px 0 8px"><span class="tooltip-mock">⌘ Enter to send</span></div>
+        <p class="comp-intent">tooltip 用近黑色 ink-1 反差，给键盘提示留位置。这是页面里**唯一**用深色块的地方。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Avatar / Logo Mark</h4>
+        <div class="comp-row" style="padding:8px 0">
+          <div style="width:32px;height:32px;background:var(--clay);border-radius:50%"></div>
+          <div style="width:32px;height:32px;background:var(--clay);border-radius:8px;position:relative">
+            <div style="position:absolute;inset:8px;background:var(--linen);border-radius:2px"></div>
+          </div>
+          <div style="width:32px;height:32px;background:var(--ink-1);border-radius:50%;color:var(--linen);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:500">S</div>
+        </div>
+        <p class="comp-intent">圆形+方形交替使用：圆形给"人"（Claude / user），方形给"产品标"。颜色上 clay 是 Claude 的 signature，黑色给真人。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== § 4 Soul Details ===== -->
+  <section>
+    <div class="sec-num">§ 04</div>
+    <h2 class="sec-title">灵魂细节</h2>
+    <p class="sec-sub">这些是让人一眼认出"这是 Claude.ai"的 5 个特征。复刻视觉容易，复刻这些难。</p>
+
+    <div class="detail-list">
+      <div class="detail-card">
+        <div class="icon-wrap">A</div>
+        <h4>衬线大标题做页面节拍器</h4>
+        <p>Source Serif 在大字号下展现的笔锋让产品页面像在读杂志，不是在用 SaaS。这一点单凭加几个 padding 学不来。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">B</div>
+        <h4>橘色用一次顶十次</h4>
+        <p>整个 UI 真正出现 clay 的地方屈指可数：主 CTA、focus ring、avatar、accent badge。它的力量来自稀缺。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">C</div>
+        <h4>对话回合之间的呼吸</h4>
+        <p>turn 之间 36-40px 的纵向间距，比一般产品大得多。这让"思考"在视觉上有位置存在。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">D</div>
+        <h4>无阴影，靠色阶分层</h4>
+        <p>linen / linen-2 / linen-3 / paper 四层暖白叠出深度，不靠 shadow。结果是页面看上去更"轻"、更"纸"。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">E</div>
+        <h4>composer 的"漂浮卡片"做法</h4>
+        <p>底部输入框是浮在背景上的圆角卡片，自带轻微 shadow。让"打字"区域被视觉提名，不至于淹没在内容流里。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">F</div>
+        <h4>键盘提示常驻可见</h4>
+        <p>⌘K、⌘Enter 这些 hotkey 不藏在帮助菜单里，直接出现在 tooltip / input affordance 中。键鼠平衡，但键盘党也照顾到了。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== § 5 Verdict ===== -->
+  <section style="margin-bottom:0">
+    <div class="sec-num">§ 05</div>
+    <h2 class="sec-title">什么时候选这个味道</h2>
+    <p class="sec-sub">这套设计语言不是万能。下面这两栏告诉你它适合什么、不适合什么。</p>
+
+    <div class="verdict">
+      <h3>选 Claude.ai 的味道，<em>当你的产品想被"读"，而不是被"扫"。</em></h3>
+      <div class="verdict-grid">
+        <div class="verdict-block">
+          <h5>适合</h5>
+          <ul>
+            <li>对话 / 写作 / 阅读 / 思考 类工具</li>
+            <li>用户停留时长 &gt; 10 分钟的产品</li>
+            <li>低频但重要的决策场景（投资、写作、咨询）</li>
+            <li>愿意"贵一点也要好看"的中高端定位</li>
+            <li>内容是主角，UI 是配角</li>
+          </ul>
+        </div>
+        <div class="verdict-block">
+          <h5>不适合</h5>
+          <ul>
+            <li>数据密集的 dashboard / 工作管理类</li>
+            <li>用户每天高频快速操作的场景（&lt; 30 秒一次）</li>
+            <li>移动端为主的消费产品</li>
+            <li>需要展现"产品很有数据/很专业"的工具</li>
+            <li>预算有限、需要快速识别度的 startup MVP</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

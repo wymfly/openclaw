@@ -1,0 +1,130 @@
+/**
+ * deck-go design tokens — design source mirror
+ *
+ * Canonical file: ../../frontend/src/design-system/tokens/tokens.css
+ * This file should match the canonical one after every sync cycle.
+ * Edit here when proposing changes (then drop a memo in proposals/).
+ *
+ * All tokens are CSS custom properties on :root, namespaced --ds-*.
+ * Categories: bg, text, border, accent, state, radius, space, shadow, type, motion.
+ *
+ * (Placeholder — real values to be filled in during DS implementation.
+ *  See ../../docs/project/design-system-implementation-plan.md.)
+ */
+
+:root {
+  /* ──────────────────────────────────────────────────────────
+     COLOR — backgrounds
+     ────────────────────────────────────────────────────────── */
+  --ds-bg-0: #ffffff;          /* page background, deepest */
+  --ds-bg-1: #fafaf9;          /* surface 1 (cards, panels) */
+  --ds-bg-2: #f5f4f2;          /* surface 2 (subtle inset) */
+  --ds-bg-hover: #efedeb;      /* hover wash */
+  --ds-bg-active: #e9e7e4;     /* pressed wash */
+
+  /* ──────────────────────────────────────────────────────────
+     COLOR — text
+     ────────────────────────────────────────────────────────── */
+  --ds-text-primary: #1a1a1a;
+  --ds-text-secondary: #555555;
+  --ds-text-tertiary: #888888;
+  --ds-text-disabled: #b8b8b8;
+  --ds-text-on-accent: #ffffff;
+
+  /* ──────────────────────────────────────────────────────────
+     COLOR — border
+     ────────────────────────────────────────────────────────── */
+  --ds-border-subtle: #ebe9e6;
+  --ds-border-default: #d8d5d0;
+  --ds-border-strong: #b8b4ad;
+
+  /* ──────────────────────────────────────────────────────────
+     COLOR — accent (brand)
+     ────────────────────────────────────────────────────────── */
+  --ds-accent-50: #fff5f0;
+  --ds-accent-100: #ffe6d8;
+  --ds-accent-500: #d97757;    /* Claude orange — primary brand */
+  --ds-accent-600: #c66645;
+  --ds-accent-700: #a85234;
+
+  /* ──────────────────────────────────────────────────────────
+     COLOR — state
+     ────────────────────────────────────────────────────────── */
+  --ds-state-success: #2d8a4e;
+  --ds-state-warning: #b87a1f;
+  --ds-state-error: #c93030;
+  --ds-state-info: #2871c4;
+
+  /* ──────────────────────────────────────────────────────────
+     RADIUS
+     ────────────────────────────────────────────────────────── */
+  --ds-radius-xs: 4px;
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 8px;
+  --ds-radius-lg: 12px;
+  --ds-radius-xl: 16px;
+  --ds-radius-full: 9999px;
+
+  /* ──────────────────────────────────────────────────────────
+     SPACING (4px base)
+     ────────────────────────────────────────────────────────── */
+  --ds-space-0: 0;
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
+  --ds-space-10: 40px;
+  --ds-space-12: 48px;
+  --ds-space-16: 64px;
+
+  /* ──────────────────────────────────────────────────────────
+     SHADOW
+     ────────────────────────────────────────────────────────── */
+  --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --ds-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --ds-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* ──────────────────────────────────────────────────────────
+     TYPE
+     ────────────────────────────────────────────────────────── */
+  --ds-font-sans: "Inter", "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --ds-font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --ds-font-serif: "Source Serif 4", Georgia, serif;
+
+  --ds-text-xs: 11px;
+  --ds-text-sm: 12px;
+  --ds-text-base: 14px;
+  --ds-text-md: 15px;
+  --ds-text-lg: 17px;
+  --ds-text-xl: 20px;
+  --ds-text-2xl: 24px;
+  --ds-text-3xl: 32px;
+
+  --ds-leading-tight: 1.25;
+  --ds-leading-normal: 1.5;
+  --ds-leading-relaxed: 1.65;
+
+  --ds-weight-regular: 400;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold: 700;
+
+  /* ──────────────────────────────────────────────────────────
+     MOTION
+     ────────────────────────────────────────────────────────── */
+  --ds-duration-fast: 120ms;
+  --ds-duration-normal: 200ms;
+  --ds-duration-slow: 320ms;
+  --ds-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ds-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Dark mode placeholder — to be designed */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* TODO: dark palette */
+  }
+}

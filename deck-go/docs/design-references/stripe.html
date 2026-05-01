@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Stripe · Design Reference Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* === Stripe 实测色板（浅冷专业） === */
+    --canvas: #f6f9fc;          /* 主背景，冷灰偏蓝 */
+    --paper: #ffffff;           /* 卡片底 */
+    --paper-2: #fafbfd;         /* 二级卡片 */
+    --rule: #e3e8ee;            /* 主分隔线 */
+    --rule-soft: #eff3f7;       /* 弱分隔 */
+    --rule-strong: #cdd5df;     /* 表头 */
+
+    --text-1: #1a1f36;          /* 主文字（深蓝黑） */
+    --text-2: #425466;          /* 次要 */
+    --text-3: #697386;          /* 弱化 */
+    --text-4: #a3acba;          /* placeholder */
+
+    --indigo: #635bff;          /* Stripe signature 紫 */
+    --indigo-2: #5851e5;
+    --indigo-soft: #e0dcff;
+    --indigo-bg: #f6f5ff;
+
+    --teal: #06b7db;
+    --green: #2cb47e;
+    --green-bg: #e6f7ee;
+    --amber: #d97917;
+    --amber-bg: #fef4e6;
+    --red: #cd3d64;
+    --red-bg: #fde7ec;
+
+    --shadow-sm: 0 1px 2px rgba(50, 50, 93, 0.05);
+    --shadow-md: 0 2px 5px rgba(50, 50, 93, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 7px 14px rgba(50, 50, 93, 0.10), 0 3px 6px rgba(0, 0, 0, 0.04);
+
+    --sans: 'Inter', 'sohne-var', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--canvas);
+    color: var(--text-1);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 56px 48px 96px;
+  }
+
+  /* Hero */
+  .hero { border-bottom: 1px solid var(--rule); padding-bottom: 44px; margin-bottom: 52px; }
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    margin-bottom: 22px;
+  }
+  .hero-title {
+    font-weight: 700;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    color: var(--text-1);
+    margin: 0 0 20px;
+  }
+  .hero-title em {
+    font-style: normal;
+    background: linear-gradient(120deg, var(--indigo) 0%, var(--teal) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 600;
+  }
+  .hero-tagline {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--text-2);
+    max-width: 700px;
+    margin: 0 0 28px;
+  }
+  .hero-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text-2);
+    box-shadow: var(--shadow-sm);
+  }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); }
+
+  section { margin-bottom: 76px; }
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--indigo);
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+  }
+  .sec-title {
+    font-weight: 700;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    color: var(--text-1);
+  }
+  .sec-sub {
+    font-size: 15px;
+    color: var(--text-3);
+    max-width: 620px;
+    margin: 0 0 28px;
+    line-height: 1.55;
+  }
+
+  /* § 1 Tokens */
+  .tokens-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 20px;
+  }
+  .token-block {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .token-block h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .swatch-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .swatch { display: flex; flex-direction: column; gap: 5px; }
+  .swatch-color {
+    aspect-ratio: 1.4;
+    border-radius: 6px;
+    border: 1px solid var(--rule);
+  }
+  .swatch-name { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .swatch-val { font-family: var(--mono); font-size: 10px; color: var(--text-3); }
+
+  .type-sample { padding: 14px 0; border-bottom: 1px solid var(--rule-soft); }
+  .type-sample:last-child { border-bottom: 0; padding-bottom: 0; }
+  .type-sample:first-child { padding-top: 0; }
+  .type-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    margin-bottom: 6px;
+    letter-spacing: 0.06em;
+  }
+  .type-display { font-size: 32px; line-height: 1.05; letter-spacing: -0.025em; font-weight: 700; }
+  .type-h2 { font-size: 19px; line-height: 1.3; font-weight: 600; letter-spacing: -0.012em; }
+  .type-body { font-size: 14px; line-height: 1.55; color: var(--text-2); }
+  .type-mono { font-family: var(--mono); font-size: 12.5px; color: var(--text-2); }
+
+  .radius-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .radius-tile {
+    flex: 1;
+    aspect-ratio: 1;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+  }
+
+  .shadow-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .shadow-tile {
+    flex: 1;
+    aspect-ratio: 1.5;
+    background: var(--paper);
+    border-radius: 6px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+  }
+
+  /* § 2 Mock: Dashboard */
+  .mock-frame {
+    background: var(--canvas);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+  .mock-frame-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .traffic { width: 11px; height: 11px; border-radius: 50%; opacity: 0.7; }
+  .traffic:nth-child(1) { background: #ed6a5e; }
+  .traffic:nth-child(2) { background: #f5bf4f; }
+  .traffic:nth-child(3) { background: #62c554; }
+  .mock-url {
+    margin-left: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  .stripe-mock {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 640px;
+  }
+  .sp-side {
+    background: var(--paper);
+    border-right: 1px solid var(--rule);
+    padding: 16px 10px;
+  }
+  .sp-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 4px 10px 16px;
+  }
+  .sp-brand .mark {
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, var(--indigo), var(--teal));
+    border-radius: 5px;
+  }
+  .sp-brand .name { font-weight: 600; font-size: 14px; }
+
+  .sp-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 13.5px;
+    color: var(--text-2);
+    cursor: pointer;
+  }
+  .sp-nav:hover { background: var(--paper-2); }
+  .sp-nav.active { background: var(--indigo-bg); color: var(--indigo); font-weight: 500; }
+  .sp-nav .ic { width: 14px; height: 14px; background: currentColor; opacity: 0.55; border-radius: 3px; }
+  .sp-section {
+    padding: 14px 10px 4px;
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+
+  .sp-main {
+    display: flex;
+    flex-direction: column;
+    background: var(--canvas);
+  }
+  .sp-topbar {
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .sp-topbar h1 { font-size: 20px; font-weight: 600; margin: 0; }
+  .sp-topbar .spacer { flex: 1; }
+  .sp-search {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--text-3);
+    width: 220px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sp-search .kbd {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-4);
+    border: 1px solid var(--rule);
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--paper);
+  }
+
+  .sp-body { padding: 24px; flex: 1; overflow: auto; }
+  .sp-tabs {
+    display: flex;
+    gap: 22px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 24px;
+  }
+  .sp-tab {
+    padding: 0 0 12px;
+    font-size: 13.5px;
+    color: var(--text-3);
+    cursor: pointer;
+    position: relative;
+    margin-bottom: -1px;
+  }
+  .sp-tab.active {
+    color: var(--text-1);
+    font-weight: 500;
+    border-bottom: 2px solid var(--indigo);
+  }
+
+  /* Stat row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+  .stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-delta {
+    margin-top: 6px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .stat-delta.up { color: var(--green); }
+  .stat-delta.down { color: var(--red); }
+
+  /* Chart card */
+  .chart-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 20px 22px 16px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
+  }
+  .chart-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .chart-title { font-size: 15px; font-weight: 600; margin: 0; }
+  .chart-sub { font-size: 12.5px; color: var(--text-3); }
+  .chart-spacer { flex: 1; }
+  .chart-legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-2); }
+  .chart-legend .lg-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+  .chart-area {
+    height: 180px;
+    position: relative;
+  }
+  .chart-svg { width: 100%; height: 100%; display: block; }
+
+  /* Table */
+  .data-table {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .table-head, .table-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 110px 90px 110px 60px;
+    gap: 12px;
+    padding: 10px 18px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .table-head {
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--rule);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .table-row {
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .table-row:last-child { border-bottom: 0; }
+  .table-row:hover { background: var(--paper-2); }
+  .amount { font-variant-numeric: tabular-nums; font-weight: 500; }
+  .cust { color: var(--text-1); }
+  .cust-email { font-size: 11.5px; color: var(--text-3); }
+  .meta-mono { font-family: var(--mono); font-size: 11.5px; color: var(--text-3); }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px 2px 7px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+  .pill.success { background: var(--green-bg); color: var(--green); }
+  .pill.pending { background: var(--amber-bg); color: var(--amber); }
+  .pill.failed { background: var(--red-bg); color: var(--red); }
+  .pill.refunded { background: var(--paper-2); color: var(--text-3); border: 1px solid var(--rule); }
+  .pill .pd { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  .density-note {
+    margin-top: 18px;
+    padding: 14px 18px;
+    background: var(--paper);
+    border-radius: 6px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--text-2);
+    border-left: 3px solid var(--indigo);
+    box-shadow: var(--shadow-sm);
+  }
+  .density-note strong { color: var(--text-1); font-weight: 600; }
+
+  /* § 3 Components */
+  .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .comp-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .comp-card h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .comp-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .comp-intent {
+    font-size: 13px;
+    color: var(--text-3);
+    line-height: 1.55;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--rule);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 5px;
+    font-size: 13.5px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-primary {
+    background: var(--indigo);
+    color: #fff;
+    box-shadow: 0 1px 1px rgba(50,50,93,0.11), 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .btn-primary:hover { background: var(--indigo-2); }
+  .btn-secondary { background: var(--paper); color: var(--text-1); border-color: var(--rule); }
+  .btn-secondary:hover { background: var(--paper-2); }
+  .btn-ghost { background: transparent; color: var(--indigo); box-shadow: none; }
+  .btn-ghost:hover { background: var(--indigo-bg); }
+
+  .input-mock {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--paper);
+    border: 1px solid var(--rule-strong);
+    border-radius: 5px;
+    font-size: 14px;
+    color: var(--text-3);
+    box-shadow: var(--shadow-sm);
+  }
+  .input-mock.focus {
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 3px var(--indigo-soft);
+    color: var(--text-1);
+  }
+
+  /* Code block */
+  .code-block {
+    background: #0a2540;
+    color: #e6e8ec;
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+  }
+  .code-block .kw { color: #88aaff; }
+  .code-block .str { color: #5dceaf; }
+  .code-block .num { color: #ffb86c; }
+  .code-block .com { color: #6b7d92; }
+
+  /* tabs */
+  .tabs-mock { display: flex; gap: 0; border-bottom: 1px solid var(--rule); }
+  .tab-mock { padding: 9px 0; margin-right: 22px; font-size: 13px; color: var(--text-3); }
+  .tab-mock.active { color: var(--indigo); border-bottom: 2px solid var(--indigo); margin-bottom: -1px; font-weight: 500; }
+
+  /* alert */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .alert.info { background: var(--indigo-bg); color: var(--indigo-2); border: 1px solid var(--indigo-soft); }
+  .alert .ai-ic { width: 18px; height: 18px; border-radius: 50%; background: currentColor; opacity: 0.85; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; }
+
+  /* § 4 details */
+  .detail-list { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .detail-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .detail-card h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .detail-card p { font-size: 13.5px; line-height: 1.55; color: var(--text-2); margin: 0; }
+  .detail-card .icon-wrap {
+    width: 30px; height: 30px;
+    background: var(--indigo-bg);
+    color: var(--indigo);
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* § 5 verdict */
+  .verdict {
+    background: linear-gradient(135deg, #0a2540 0%, #1a3a5c 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 38px 44px;
+  }
+  .verdict h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    letter-spacing: -0.018em;
+  }
+  .verdict h3 em {
+    font-style: normal;
+    background: linear-gradient(120deg, #88aaff 0%, #5dceaf 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .verdict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 24px; }
+  .verdict-block h5 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #88aaff;
+    margin: 0 0 12px;
+    font-weight: 500;
+  }
+  .verdict-block ul { margin: 0; padding-left: 16px; font-size: 13.5px; line-height: 1.65; color: rgba(255,255,255,0.85); }
+  .verdict-block li { margin-bottom: 5px; }
+</style>
+</head>
+<body data-screen-label="Stripe Reference">
+<div class="page">
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-eyebrow">Design Reference · Card 03</div>
+    <h1 class="hero-title">Stripe &mdash; <em>infrastructure that looks like documentation.</em></h1>
+    <p class="hero-tagline">浅冷背景，文档级精致。表格、表单、图表三件套被打磨到极致。这是"专业、可信、为开发者写的产品"美学的工业标杆。</p>
+    <div class="hero-meta">
+      <span class="chip"><span class="dot"></span>浅冷（canvas #f6f9fc）</span>
+      <span class="chip"><span class="dot"></span>中等密度（L2-L3）</span>
+      <span class="chip"><span class="dot"></span>Inter / sohne sans</span>
+      <span class="chip"><span class="dot"></span>键鼠平衡</span>
+      <span class="chip"><span class="dot"></span>数据可视化标杆</span>
+    </div>
+  </header>
+
+  <!-- § 1 Tokens -->
+  <section>
+    <div class="sec-num">§ 01</div>
+    <h2 class="sec-title">Tokens 速览</h2>
+    <p class="sec-sub">背景偏冷蓝（canvas #f6f9fc），signature 紫 #635bff。文字主色是带紫调的深蓝黑 #1a1f36，让整个产品看起来"冷峻又专业"。</p>
+
+    <div class="tokens-grid">
+
+      <div class="token-block">
+        <h4>Surface · 浅冷叠层</h4>
+        <div class="swatch-row">
+          <div class="swatch"><div class="swatch-color" style="background:var(--canvas)"></div><div class="swatch-name">canvas</div><div class="swatch-val">#f6f9fc</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--paper-2)"></div><div class="swatch-name">paper-2</div><div class="swatch-val">#fafbfd</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--paper)"></div><div class="swatch-name">paper</div><div class="swatch-val">#ffffff</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--rule)"></div><div class="swatch-name">rule</div><div class="swatch-val">#e3e8ee</div></div>
+        </div>
+
+        <h4 style="margin-top:18px">Text · 带紫调深蓝黑</h4>
+        <div class="swatch-row">
+          <div class="swatch"><div class="swatch-color" style="background:var(--text-1)"></div><div class="swatch-name">text-1</div><div class="swatch-val">#1a1f36</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--text-2)"></div><div class="swatch-name">text-2</div><div class="swatch-val">#425466</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--text-3)"></div><div class="swatch-name">text-3</div><div class="swatch-val">#697386</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--text-4)"></div><div class="swatch-name">text-4</div><div class="swatch-val">#a3acba</div></div>
+        </div>
+
+        <h4 style="margin-top:18px">Brand & Status</h4>
+        <div class="swatch-row">
+          <div class="swatch"><div class="swatch-color" style="background:var(--indigo)"></div><div class="swatch-name">indigo</div><div class="swatch-val">#635bff</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--green)"></div><div class="swatch-name">green</div><div class="swatch-val">#2cb47e</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--amber)"></div><div class="swatch-name">amber</div><div class="swatch-val">#d97917</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:var(--red)"></div><div class="swatch-name">red</div><div class="swatch-val">#cd3d64</div></div>
+        </div>
+      </div>
+
+      <div class="token-block">
+        <h4>Type · sans 扎实节奏</h4>
+        <div class="type-sample">
+          <div class="type-label">DISPLAY · 700</div>
+          <div class="type-display">$24,891.42</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">H2 · 600</div>
+          <div class="type-h2">Move money for your business.</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">BODY · 400</div>
+          <div class="type-body">Inter 14px 是大部分文档和 dashboard 的工作字号。</div>
+        </div>
+        <div class="type-sample">
+          <div class="type-label">MONO · JetBrains</div>
+          <div class="type-mono">cus_NffrFeUfNV2Hib · pi_3MtwBwLkdIw</div>
+        </div>
+
+        <h4 style="margin-top:18px">Radius · 中庸档位</h4>
+        <div class="radius-row">
+          <div class="radius-tile" style="border-radius:4px">4</div>
+          <div class="radius-tile" style="border-radius:6px">6</div>
+          <div class="radius-tile" style="border-radius:8px">8</div>
+          <div class="radius-tile" style="border-radius:12px">12</div>
+        </div>
+
+        <h4 style="margin-top:18px">Shadow · 多层 elevation</h4>
+        <div class="shadow-row">
+          <div class="shadow-tile" style="box-shadow:var(--shadow-sm)">sm</div>
+          <div class="shadow-tile" style="box-shadow:var(--shadow-md)">md</div>
+          <div class="shadow-tile" style="box-shadow:var(--shadow-lg)">lg</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- § 2 Mock: Dashboard -->
+  <section>
+    <div class="sec-num">§ 02</div>
+    <h2 class="sec-title">典型页面 &mdash; Payments Dashboard</h2>
+    <p class="sec-sub">Stripe 招牌：stat row + 折线图 + 数据表 三件套。每个元素都贴在 paper 卡片上，靠 subtle shadow 分层，不靠重边框。</p>
+
+    <div class="mock-frame">
+      <div class="mock-frame-head">
+        <span class="traffic"></span><span class="traffic"></span><span class="traffic"></span>
+        <span class="mock-url">dashboard.stripe.com / payments</span>
+      </div>
+
+      <div class="stripe-mock">
+        <aside class="sp-side">
+          <div class="sp-brand">
+            <div class="mark"></div>
+            <div class="name">Acme Inc.</div>
+          </div>
+          <div class="sp-nav"><span class="ic"></span>Home</div>
+          <div class="sp-nav active"><span class="ic"></span>Payments</div>
+          <div class="sp-nav"><span class="ic"></span>Customers</div>
+          <div class="sp-nav"><span class="ic"></span>Products</div>
+          <div class="sp-section">Reports</div>
+          <div class="sp-nav"><span class="ic"></span>Balances</div>
+          <div class="sp-nav"><span class="ic"></span>Reconcile</div>
+          <div class="sp-section">Developers</div>
+          <div class="sp-nav"><span class="ic"></span>API keys</div>
+          <div class="sp-nav"><span class="ic"></span>Webhooks</div>
+          <div class="sp-nav"><span class="ic"></span>Logs</div>
+        </aside>
+
+        <main class="sp-main">
+          <div class="sp-topbar">
+            <h1>Payments</h1>
+            <div class="spacer"></div>
+            <div class="sp-search">Search payments…<span class="kbd">⌘K</span></div>
+            <button class="btn btn-secondary" style="font-size:13px;padding:6px 12px">Export</button>
+            <button class="btn btn-primary" style="font-size:13px;padding:6px 12px">+ Create</button>
+          </div>
+
+          <div class="sp-body">
+            <div class="sp-tabs">
+              <div class="sp-tab active">All</div>
+              <div class="sp-tab">Succeeded</div>
+              <div class="sp-tab">Refunded</div>
+              <div class="sp-tab">Disputed</div>
+              <div class="sp-tab">Failed</div>
+            </div>
+
+            <div class="stats-row">
+              <div class="stat-card">
+                <div class="stat-label">Gross volume</div>
+                <div class="stat-value">$24,891.42</div>
+                <div class="stat-delta up">↑ 12.4% vs last 7d</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Successful payments</div>
+                <div class="stat-value">1,247</div>
+                <div class="stat-delta up">↑ 8.1%</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Avg. order value</div>
+                <div class="stat-value">$19.96</div>
+                <div class="stat-delta down">↓ 2.3%</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Failed</div>
+                <div class="stat-value">12</div>
+                <div class="stat-delta up" style="color:var(--text-3)">→ 0.9% rate</div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-head">
+                <div>
+                  <h3 class="chart-title">Gross volume</h3>
+                  <div class="chart-sub">Last 7 days · USD</div>
+                </div>
+                <div class="chart-spacer"></div>
+                <div class="chart-legend">
+                  <span><span class="lg-dot" style="background:var(--indigo)"></span>This period</span>
+                  <span><span class="lg-dot" style="background:var(--text-4);opacity:0.6"></span>Previous</span>
+                </div>
+              </div>
+              <div class="chart-area">
+                <svg class="chart-svg" viewBox="0 0 800 180" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="fillG" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#635bff" stop-opacity="0.18"/>
+                      <stop offset="100%" stop-color="#635bff" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <!-- grid -->
+                  <line x1="0" y1="40" x2="800" y2="40" stroke="#eff3f7"/>
+                  <line x1="0" y1="90" x2="800" y2="90" stroke="#eff3f7"/>
+                  <line x1="0" y1="140" x2="800" y2="140" stroke="#eff3f7"/>
+                  <!-- previous (gray dotted) -->
+                  <path d="M 0 130 L 130 110 L 260 120 L 390 95 L 520 100 L 650 80 L 800 90" stroke="#a3acba" stroke-width="1.5" fill="none" stroke-dasharray="4 4" opacity="0.55"/>
+                  <!-- this period filled -->
+                  <path d="M 0 110 L 130 85 L 260 95 L 390 65 L 520 70 L 650 40 L 800 55 L 800 180 L 0 180 Z" fill="url(#fillG)"/>
+                  <path d="M 0 110 L 130 85 L 260 95 L 390 65 L 520 70 L 650 40 L 800 55" stroke="#635bff" stroke-width="2" fill="none"/>
+                  <!-- focus dot -->
+                  <circle cx="650" cy="40" r="4" fill="#635bff"/>
+                  <circle cx="650" cy="40" r="8" fill="#635bff" opacity="0.18"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="data-table">
+              <div class="table-head">
+                <div>Amount</div>
+                <div>Customer</div>
+                <div>Status</div>
+                <div>Method</div>
+                <div>Date</div>
+                <div></div>
+              </div>
+              <div class="table-row">
+                <div class="amount">$129.00</div>
+                <div><div class="cust">Maya Patel</div><div class="cust-email">maya@studio.co</div></div>
+                <div><span class="pill success"><span class="pd"></span>Succeeded</span></div>
+                <div class="meta-mono">•••• 4242</div>
+                <div class="meta-mono">Nov 28, 14:22</div>
+                <div style="text-align:right;color:var(--text-3)">⋯</div>
+              </div>
+              <div class="table-row">
+                <div class="amount">$49.00</div>
+                <div><div class="cust">Tomás Becker</div><div class="cust-email">tomas@bakery.de</div></div>
+                <div><span class="pill success"><span class="pd"></span>Succeeded</span></div>
+                <div class="meta-mono">•••• 0014</div>
+                <div class="meta-mono">Nov 28, 13:48</div>
+                <div style="text-align:right;color:var(--text-3)">⋯</div>
+              </div>
+              <div class="table-row">
+                <div class="amount">$1,249.99</div>
+                <div><div class="cust">Northwind Co.</div><div class="cust-email">billing@northwind.com</div></div>
+                <div><span class="pill pending"><span class="pd"></span>Processing</span></div>
+                <div class="meta-mono">ACH</div>
+                <div class="meta-mono">Nov 28, 12:31</div>
+                <div style="text-align:right;color:var(--text-3)">⋯</div>
+              </div>
+              <div class="table-row">
+                <div class="amount">$22.50</div>
+                <div><div class="cust">Anya Volkov</div><div class="cust-email">anya@design.studio</div></div>
+                <div><span class="pill failed"><span class="pd"></span>Failed</span></div>
+                <div class="meta-mono">•••• 8210</div>
+                <div class="meta-mono">Nov 28, 11:09</div>
+                <div style="text-align:right;color:var(--text-3)">⋯</div>
+              </div>
+              <div class="table-row">
+                <div class="amount">$89.00</div>
+                <div><div class="cust">Lin Wei</div><div class="cust-email">lin@plant-store.cn</div></div>
+                <div><span class="pill refunded"><span class="pd"></span>Refunded</span></div>
+                <div class="meta-mono">•••• 1119</div>
+                <div class="meta-mono">Nov 28, 10:14</div>
+                <div style="text-align:right;color:var(--text-3)">⋯</div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="density-note">
+      <strong>密度档位 · L2-L3。</strong>比 Claude.ai 密、比 Linear 松。stat-row 4 列 + chart 1 卡 + table 5+ 行同屏。表格行高 38-44px，比 Linear 32px 宽 1/3，让数据"专业但可读"，是文档级精致的特征。
+    </div>
+  </section>
+
+  <!-- § 3 Components -->
+  <section>
+    <div class="sec-num">§ 03</div>
+    <h2 class="sec-title">组件样本</h2>
+    <p class="sec-sub">每个组件都为"专业可信 + 数据准确 + 文档级"服务：subtle shadow + 紫色 accent + 多色 status + 强 mono。</p>
+
+    <div class="comp-grid">
+
+      <div class="comp-card">
+        <h4>Buttons · 带阴影立体感</h4>
+        <div class="comp-row">
+          <button class="btn btn-primary">Pay $129.00</button>
+          <button class="btn btn-secondary">Cancel</button>
+          <button class="btn btn-ghost">Learn more →</button>
+        </div>
+        <p class="comp-intent">Stripe 按钮的标志特征：主按钮带 2 层 shadow（一层硬一层软），让按钮"浮"起来。这是 Linear 完全不会做的（Linear 是平面派）。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Input · 强光晕</h4>
+        <div style="margin-bottom:10px"><div class="input-mock">4242 4242 4242 4242</div></div>
+        <div><div class="input-mock focus">4242 4242 4242 4242</div></div>
+        <p class="comp-intent">focus 时 indigo 边框 + 3px soft 光晕。这是 Stripe Elements 的标志做法，"输入此刻被关注"用强光晕表达。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Status Pills · 多色编码</h4>
+        <div class="comp-row">
+          <span class="pill success"><span class="pd"></span>Succeeded</span>
+          <span class="pill pending"><span class="pd"></span>Processing</span>
+          <span class="pill failed"><span class="pd"></span>Failed</span>
+          <span class="pill refunded"><span class="pd"></span>Refunded</span>
+        </div>
+        <p class="comp-intent">浅底 + 深字的色对编码：每种状态用对应色族（绿/橙/红/灰）。比 Linear 形状编码更"金融级"——强可读、跨人群通识。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Tabs · 下划线指示</h4>
+        <div class="tabs-mock" style="margin-top:6px">
+          <div class="tab-mock active">Overview</div>
+          <div class="tab-mock">Payments</div>
+          <div class="tab-mock">Subscriptions</div>
+          <div class="tab-mock">Customers</div>
+        </div>
+        <p class="comp-intent">细线条 + indigo 下划线，没有 pill 也没有 background。最克制的 tab 形式，让内容做主角。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Code Block · 文档基因</h4>
+        <div class="code-block" style="margin-top:8px">
+<span class="com">// Create a charge</span>
+<span class="kw">const</span> charge = <span class="kw">await</span> stripe.charges.<span class="kw">create</span>({
+  amount: <span class="num">2000</span>,
+  currency: <span class="str">'usd'</span>,
+  source: <span class="str">'tok_visa'</span>,
+});</div>
+        <p class="comp-intent">深蓝 #0a2540 背景的代码块，是 Stripe Docs 的灵魂。让"代码"在 dashboard 里也能优雅出现。</p>
+      </div>
+
+      <div class="comp-card">
+        <h4>Alert · 信息提示</h4>
+        <div class="alert info" style="margin-top:8px">
+          <span class="ai-ic">i</span>
+          <div><strong>Test mode is active.</strong> Payments here won't charge real cards. Switch to live mode to accept real payments.</div>
+        </div>
+        <p class="comp-intent">indigo-bg 浅底 + indigo 边框，icon 圆形纯色填充。Stripe 的 alert 永远配 icon + 短标题 + 一行解释——"专业产品该有的引导"。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- § 4 Soul Details -->
+  <section>
+    <div class="sec-num">§ 04</div>
+    <h2 class="sec-title">灵魂细节</h2>
+    <p class="sec-sub">这些是让人一眼认出"这是 Stripe"的 6 个特征。视觉好抄，"专业感"难抄。</p>
+
+    <div class="detail-list">
+      <div class="detail-card">
+        <div class="icon-wrap">$</div>
+        <h4>tabular-nums 是宗教</h4>
+        <p>所有金额、数量、ID 都用等宽数字。表格里数字纵向自动对齐，扫一眼就能比较金额大小——这是金融产品的基本素养。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">⊟</div>
+        <h4>多层 shadow 叠出 elevation</h4>
+        <p>shadow-sm（卡片）/ shadow-md（hover）/ shadow-lg（modal）三档。Stripe 用 shadow 做层级，不靠 border。这是它"看起来高级"的核心。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">⌥</div>
+        <h4>渐变只用一次：在标题</h4>
+        <p>整个产品几乎没有渐变。但 hero 标题的 indigo→teal 渐变文字是 Stripe 的视觉签名，出现在官网、登陆页、文档首页。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">⎘</div>
+        <h4>表格行 hover 暗示可点击</h4>
+        <p>表格每一行 hover 变浅灰，整行可点进入详情。这是 Stripe 把"列表 + 详情"模式做到极致的结果——表格不只是显示，是导航。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">📈</div>
+        <h4>chart 永远配对比基线</h4>
+        <p>折线图永远显示 "this period" 实线 + "previous period" 虚线。让"是好是坏"一眼可见，不需要思考。</p>
+      </div>
+      <div class="detail-card">
+        <div class="icon-wrap">{ }</div>
+        <h4>code 是产品里的合法公民</h4>
+        <p>dashboard 任何地方都可能出现 code block，配深蓝背景 + 语法高亮。Stripe 把"开发者文档"和"产品 UI"融为一体——这是它早期最大的差异化。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- § 5 Verdict -->
+  <section style="margin-bottom:0">
+    <div class="sec-num">§ 05</div>
+    <h2 class="sec-title">什么时候选这个味道</h2>
+    <p class="sec-sub">Stripe 的味道是"专业可信 + 文档级精致 + 数据为王"。下面告诉你它适合什么、不适合什么。</p>
+
+    <div class="verdict">
+      <h3>选 Stripe 的味道，<em>当你的产品需要"被相信"。</em></h3>
+      <div class="verdict-grid">
+        <div class="verdict-block">
+          <h5>适合</h5>
+          <ul>
+            <li>金融 / 支付 / 数据 / B2B SaaS（信任为王）</li>
+            <li>面向开发者的产品（API 优先、文档优先）</li>
+            <li>有大量表格 / 图表 / 报表的 dashboard</li>
+            <li>需要"专业感、企业级"定位</li>
+            <li>键鼠平衡的桌面 web 体验</li>
+          </ul>
+        </div>
+        <div class="verdict-block">
+          <h5>不适合</h5>
+          <ul>
+            <li>对话 / 写作 / 阅读类产品（太"工具")</li>
+            <li>消费级 / 社交 / 娱乐产品（太"严肃"）</li>
+            <li>追求紧凑高密度极速操作的工具（不如 Linear）</li>
+            <li>追求温度、亲切的产品（不如 Claude.ai）</li>
+            <li>移动端为主的体验（Stripe 是桌面派）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
