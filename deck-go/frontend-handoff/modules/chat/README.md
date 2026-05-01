@@ -2,7 +2,7 @@
 
 > **⚠️ Reverse-derived artifact.** This package was reconstructed from real engineering code (`frontend-new/src/components/panels/chat/`) rather than produced through a forward design → engineering flow. Sister modules (agents, settings, etc.) MUST be produced through the **forward** flow per protocol-v1; do **not** copy this package's "engineering-first" shape as the design template.
 
-**Status:** migrated (sha pending — written into this README on commit)
+**Status:** migrated (sha ef59017130)
 **Protocol version:** `protocol-v1`
 **Migrated to:** `frontend-new/src/components/panels/chat/` (101 source files + 10 test files)
 **Bundle reference:** [`./prototype.html`](./prototype.html) (single-file Babel-standalone prototype, self-contained with sibling `tokens.css` / `styles.css` / `data.js` / 8 .jsx files)
